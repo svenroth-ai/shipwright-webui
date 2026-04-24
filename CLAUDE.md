@@ -17,7 +17,7 @@ Two hard rules, survivors of every review round:
 
 ## Structure
 ```
-webui/
+<repo-root>/
   scripts/                      # install-windows.ps1, dev-restart.js
   server/                       # Hono backend (port 3847)
     src/
@@ -103,18 +103,18 @@ webui/
 
 ### Development
 
-`webui/` has **no root `package.json`** — server and client are independent workspaces. Run each in its own terminal:
+This repo has **no root `package.json`** — `server/` and `client/` are independent workspaces. Run each in its own terminal:
 
 ```bash
 # Install (once)
-cd webui/server && npm install
-cd webui/client && npm install
+cd server && npm install
+cd client && npm install
 
 # Terminal 1 — Hono backend (tsx watch, port 3847)
-cd webui/server && npm run dev
+cd server && npm run dev
 
 # Terminal 2 — Vite client (port 5173 by default, proxies /api to 3847)
-cd webui/client && npm run dev
+cd client && npm run dev
 ```
 
 Other scripts (run from the respective subdir):
@@ -133,7 +133,22 @@ PORT=3847                     # Hono server port (override via env)
 VITE_PORT=5173                # Vite dev server port (override via env)
 ```
 
-Default is a single dev-server stack. For parallel worktrees set both vars explicitly — see `docs/guide.md` chapter 8.5 "Parallel Development with Worktrees". The Vite proxy reads `PORT` at startup so `/api` routes to the matching Hono instance.
+Default is a single dev-server stack. For parallel worktrees set both vars explicitly — see [shipwright docs/guide.md §8.5 "Parallel Development with Worktrees"](https://github.com/svenroth-ai/shipwright/blob/main/docs/guide.md#85-parallel-development-with-worktrees). The Vite proxy reads `PORT` at startup so `/api` routes to the matching Hono instance.
+
+### Profile resolution (post-split)
+
+This repo ships bundled stack profiles at `server/profiles/`. The loader
+(`server/src/core/profile-loader.ts`) resolves in this order:
+
+1. `SHIPWRIGHT_PROFILES_DIR` — explicit override.
+2. `SHIPWRIGHT_MONOREPO_PATH` + `/shared/profiles` — dev-loop helper for
+   when you're iterating on the shipwright monorepo and want live edits
+   to take effect without re-syncing the snapshot.
+3. Bundled `server/profiles/` (default).
+
+The snapshot is a copy of `shipwright/shared/profiles/`. Refresh via
+`npm run sync-profiles` (from `server/`) or copy manually. See
+`server/profiles/README.md`.
 
 ### Conventions
 - TypeScript strict mode everywhere.
@@ -164,13 +179,13 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 2. **Profile `dev_server.command`** — the spawn target (which command actually starts the dev-server).
 3. **`.webui/actions.json` → `actions.preview.enabled`** — the policy override (user-level opt-out).
 
-`stack.frontend` AND `dev_server.command` must both be present for `<PreviewButton>` to render. `actions.preview.enabled = false` hides it regardless. Boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). The full diagram lives in [`webui/agent_docs/architecture.md`](agent_docs/architecture.md).
+`stack.frontend` AND `dev_server.command` must both be present for `<PreviewButton>` to render. `actions.preview.enabled = false` hides it regardless. Boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). The full diagram lives in [`agent_docs/architecture.md`](agent_docs/architecture.md).
 
 ### DO-NOT regression guards (Iterate 2 / ADR-035)
 1. **DO NOT write into Claude's JSONL files under `~/.claude/projects/`.** Webui is a read-only polling observer of that directory. Title sync uses Claude's first-party `--name` CLI flag at launch time, not JSONL mutation or a sidecar file.
 2. **Auto-scroll pattern is CSS-first.** `overflow-anchor: auto` + `scroll-padding` on the scroll container is the primary path. `useAutoScroll` (ResizeObserver-light, ref-based, ~50 LOC) is the safety net for Chrome+polling cases. Do NOT reach for stale libraries like `react-scroll-to-bottom`. See ADR-035.
 3. **DO NOT re-introduce a chat composer.** External-launch architecture is load-bearing. See ADR-034. Spec 35 fails the build if a chat-* surface re-appears.
-4. **DO NOT re-add `@assistant-ui/*` packages.** Rendering is bespoke via `react-markdown` + `remark-gfm` + `rehype-highlight` + `strip-ansi`. The full stack is in `webui/client/package.json` already.
+4. **DO NOT re-add `@assistant-ui/*` packages.** Rendering is bespoke via `react-markdown` + `remark-gfm` + `rehype-highlight` + `strip-ansi`. The full stack is in `client/package.json` already.
 5. **DO NOT run `claude --resume <uuid>` as a webui-initiated side-effect command** while the user's session may be active in their terminal. SQLite lock + JSONL interleave risk (EBUSY on Windows). Title updates take effect on next user-initiated launch only.
 6. **Multi-writer state files** (`sdk-sessions.json`, any future sidecars) MUST use `proper-lockfile`, not just temp-file + rename. The PATCH /tasks/:id endpoint surfaces ELOCKED as 409 so the client can retry instead of silently overwriting.
 7. **TSC baseline:** server has 4 pre-existing errors (cross-package imports + missing `@types/proper-lockfile`). Policy is "no regression" — new code must compile clean; existing errors are tracked but not required to fix in this iterate.
@@ -192,7 +207,7 @@ probably gone stale on Windows. Kill the PID on :3847 explicitly:
 # Windows:
 netstat -ano | findstr :3847
 taskkill //F //PID <pid>
-cd webui/server && npm run dev
+cd server && npm run dev
 ```
 
 If `npm run dev` fails with `EADDRINUSE`, another worktree's dev server may
