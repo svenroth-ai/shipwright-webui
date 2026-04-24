@@ -136,7 +136,7 @@ function main() {
     // Busy-wait; can't easily do async here without top-level await.
   }
 
-  // Spawn `npm run dev` inside webui/server where tsx watch lives. The
+  // Spawn `npm run dev` inside server/ where tsx watch lives. The
   // client (vite) is not restarted automatically because (a) vite HMR
   // usually makes restart unnecessary and (b) it runs in a separate
   // process the user owns. If you need a fresh client too, run

@@ -53,8 +53,8 @@ describe("formatBindError", () => {
   });
 
   it("EADDRINUSE message matches a documented, stable pattern", () => {
-    // This pattern is asserted by webui/CLAUDE.md + docs/guide.md §8.5.
-    // Changing the format here requires updating those docs.
+    // This pattern is asserted by CLAUDE.md (this repo). Changing the
+    // format here requires updating that doc.
     const err = Object.assign(new Error("listen EADDRINUSE"), {
       code: "EADDRINUSE",
     });
