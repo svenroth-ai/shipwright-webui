@@ -9,6 +9,7 @@
  */
 
 export type ParamType = "boolean" | "enum" | "string";
+export type ValueSeparator = "space" | "equals" | "none";
 
 export interface RenderableParamSchema {
   /** Internal key — kebab-case, server enforces /^[a-z][a-z0-9-]*$/. */
@@ -31,4 +32,13 @@ export interface RenderableParamSchema {
   sensitive?: boolean;
   /** Pattern (only for messaging hints — final validation is server-side). */
   pattern?: string;
+  /**
+   * iterate/preview-params-render — needed for the live CommandPreviewPanel.
+   * The server still owns the security (cli_flag allowlist, escaping); the
+   * client uses these only to render the preview. Drift is caught by the
+   * server-side sync test.
+   */
+  cli_flag?: string;
+  cli_flag_map?: Record<string, string>;
+  value_separator?: ValueSeparator;
 }
