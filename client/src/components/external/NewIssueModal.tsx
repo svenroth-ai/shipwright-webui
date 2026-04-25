@@ -43,6 +43,7 @@ import {
   CheckSquare,
   ChevronDown,
   RotateCw,
+  Sparkles,
   Terminal,
   Workflow,
   X,
@@ -87,7 +88,16 @@ export interface NewIssueModalProps {
 }
 
 type SubmitAction = "save" | "launch";
-type Mode = "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
+/**
+ * 2026-04-25 — iterate-custom-actions-generic-mode. `"generic"` is the
+ * fall-through for any action whose id is not one of the four bundled
+ * Shipwright modes. It hides the Shipwright-specific UI (phase picker,
+ * autonomy toggle, Shipwright wording) and reads its label + subheading
+ * from the action definition itself. POST `actionId` carries the real
+ * `action.id` (not the mode string) so the server resolves the correct
+ * `command_template`.
+ */
+type Mode = "new-task" | "new-pipeline" | "new-iterate" | "new-plain" | "generic";
 
 // 250 ms matches the mockup + O23 default in the section spec.
 const PHASE_DEBOUNCE_MS = 250;
@@ -135,12 +145,22 @@ const PALETTE: Record<Mode, ModePalette> = {
     textStrong: "#374151",
     stripe: "var(--color-accent, #857568)",
   },
+  // v0.4 — Generic / custom actions from `.webui/actions.json`. Same slate
+  // family as Plain Claude but slightly cooler so a custom action is
+  // visually distinct from the bundled "no-skill" mode.
+  generic: {
+    bg: "var(--color-muted-bg, #ede8e1)",
+    text: "var(--color-muted, #6b7280)",
+    textStrong: "#1f2937",
+    stripe: "var(--color-primary, #6b5e56)",
+  },
 };
 
 function modeIcon(mode: Mode): ReactNode {
   if (mode === "new-pipeline") return <Workflow size={18} strokeWidth={1.6} />;
   if (mode === "new-iterate") return <RotateCw size={18} strokeWidth={1.7} />;
   if (mode === "new-plain") return <Terminal size={18} strokeWidth={1.8} />;
+  if (mode === "generic") return <Sparkles size={18} strokeWidth={1.7} />;
   return <CheckSquare size={18} strokeWidth={1.8} />;
 }
 
@@ -164,14 +184,24 @@ export function NewIssueModal({
   const { activeProjectId } = useProjectFilter();
   const { data: projects = [] } = useProjects();
 
-  const mode: Mode =
-    action?.id === "new-pipeline"
-      ? "new-pipeline"
-      : action?.id === "new-iterate"
-        ? "new-iterate"
-        : action?.id === "new-plain"
-          ? "new-plain"
-          : "new-task";
+  // 2026-04-25 — iterate-custom-actions-generic-mode. Default fall-through
+  // is now `"generic"` (was `"new-task"`). Bundled IDs keep their bespoke
+  // mode; everything else (custom .webui/actions.json entries like
+  // `new-content-orchestrator`) lands in `"generic"` and renders without
+  // Shipwright-specific UI surfaces. `action == null` (defensive guard
+  // before the early return below) still resolves to "new-task" for the
+  // initial render frame so the palette lookup never crashes.
+  const mode: Mode = !action
+    ? "new-task"
+    : action.id === "new-task"
+      ? "new-task"
+      : action.id === "new-pipeline"
+        ? "new-pipeline"
+        : action.id === "new-iterate"
+          ? "new-iterate"
+          : action.id === "new-plain"
+            ? "new-plain"
+            : "generic";
   const palette = PALETTE[mode];
 
   const realProjects = useMemo(
@@ -447,6 +477,12 @@ export function NewIssueModal({
   // mode. Pipeline + Iterate keep the toggle unconditionally (they're
   // action-driven, not phase-driven). Task mode shows it ONLY when the
   // current phase declares supports_autonomy: true.
+  //
+  // 2026-04-25 — iterate-custom-actions-generic-mode. Generic + Plain
+  // never render the toggle; `--autonomous` is a Shipwright-specific flag
+  // and meaningless for arbitrary user-defined skills. Custom actions
+  // that need a similar concept can declare it as a parameter in their
+  // `.webui/actions.json` schema.
   const showAutonomyToggle =
     mode === "new-pipeline" ||
     mode === "new-iterate" ||
@@ -455,7 +491,11 @@ export function NewIssueModal({
   const onSubmit = useCallback(
     async (ev: FormEvent, submitAction: SubmitAction) => {
       ev.preventDefault();
-      if (!canSubmit || !selectedProject) return;
+      // `action == null` is also guarded by the early `if (!action) return null;`
+      // before render, so this is mostly a TypeScript narrowing aid for the
+      // `action.id` access below. Belt-and-suspenders against a future
+      // refactor that allows submit without a chosen action.
+      if (!canSubmit || !selectedProject || !action) return;
       setSubmitting(true);
       setError(null);
       try {
@@ -492,19 +532,22 @@ export function NewIssueModal({
         // phaseLabel + description + autonomy) so the server runs
         // substitutePlaceholders against the matching command_template
         // and persists the phase on the task for the TaskDetail badge.
+        //
+        // 2026-04-25 — iterate-custom-actions-generic-mode. `actionId`
+        // now carries the REAL `action.id` from the catalog (was the
+        // UI-only `mode` string). For the four bundled IDs the value is
+        // identical; for custom actions like `new-content-orchestrator`
+        // this is the only way the server can resolve the right
+        // `command_template`.
         const body: {
           description?: string;
           autonomy?: AutonomyValue;
-          actionId?:
-            | "new-task"
-            | "new-pipeline"
-            | "new-iterate"
-            | "new-plain";
+          actionId?: string;
           phase?: string;
           phaseLabel?: string;
           parameters?: Record<string, string | boolean>;
         } = {
-          actionId: mode,
+          actionId: action.id,
         };
         if (description.trim()) body.description = description.trim();
         // iterate/v030-five-ux-fixes (P3) — autonomy is sent only when
@@ -600,10 +643,10 @@ export function NewIssueModal({
                 className="text-[16px] font-bold tracking-tight text-[var(--color-text,#1a1a1a)]"
                 style={{ letterSpacing: "-0.2px" }}
               >
-                {modeHeading(mode)}
+                {modeHeading(mode, action)}
               </Dialog.Title>
               <Dialog.Description className="mt-0.5 text-[12px] leading-[1.4] text-[var(--color-muted,#6b7280)]">
-                {modeSubheading(mode)}
+                {modeSubheading(mode, action)}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -824,38 +867,66 @@ export function NewIssueModal({
                 </div>
               )}
 
-              {/* Command preview — live-updated, debounced 250ms. */}
-              <FieldLabel
-                label="Command preview"
-                hint={
-                  mode === "new-task"
-                    ? "phase drives the slash command · only used when you click Launch & Copy"
-                    : "generated from .webui/actions.json · auto-updates"
-                }
-              >
-                <CommandPreviewPanel
-                  mode={mode}
-                  title={title}
-                  description={description}
-                  projectPath={selectedProject?.path ?? ""}
-                  sessionUuid="<session-uuid>"
-                  // iterate/v030-five-ux-fixes (P3) — autonomy flows
-                  // through whenever the toggle is rendered. Phase-aware
-                  // task mode passes through too; phases without
-                  // supports_autonomy pass undefined so the preview omits
-                  // `--autonomous`.
-                  autonomy={showAutonomyToggle ? autonomy : undefined}
-                  phaseId={mode === "new-task" ? phaseId : undefined}
-                  phaseLabel={
-                    mode === "new-task" ? currentPhase?.label : undefined
+              {/* Command preview — live-updated, debounced 250ms.
+                  2026-04-25 — generic mode renders a static hint rather
+                  than the live preview. The live preview hardcodes the
+                  Shipwright slash-command shapes; mirroring an arbitrary
+                  user-defined `command_template` here would either lie
+                  (wrong slash) or duplicate the server's
+                  substitutePlaceholders pipeline in the browser. The
+                  TaskDetail page shows the real generated command after
+                  Launch, which is the source of truth. */}
+              {mode === "generic" ? (
+                <FieldLabel
+                  label="Command preview"
+                  hint="generated from action.command_template at Launch"
+                >
+                  <div
+                    data-testid="command-preview-generic"
+                    className="rounded-[var(--radius-button,8px)] border-[1.5px] border-dashed border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-3 text-[12px] leading-[1.55] text-[var(--color-muted,#6b7280)]"
+                  >
+                    The exact command is generated server-side from this
+                    action's <code className="rounded-[3px] bg-white px-1 py-0.5 font-mono text-[11px]">command_template</code>{" "}
+                    in <code className="rounded-[3px] bg-white px-1 py-0.5 font-mono text-[11px]">.webui/actions.json</code>.
+                    It will appear on the TaskDetail page after Launch.
+                  </div>
+                </FieldLabel>
+              ) : (
+                <FieldLabel
+                  label="Command preview"
+                  hint={
+                    mode === "new-task"
+                      ? "phase drives the slash command · only used when you click Launch & Copy"
+                      : "generated from .webui/actions.json · auto-updates"
                   }
-                  parameters={paramsToPreview(
-                    currentSchema,
-                    paramValues,
-                    paramEnabled,
-                  )}
-                />
-              </FieldLabel>
+                >
+                  <CommandPreviewPanel
+                    // Branch unreachable when mode === "generic" (handled
+                    // above); the cast narrows the union for the panel's
+                    // tighter prop type.
+                    mode={mode as Exclude<Mode, "generic">}
+                    title={title}
+                    description={description}
+                    projectPath={selectedProject?.path ?? ""}
+                    sessionUuid="<session-uuid>"
+                    // iterate/v030-five-ux-fixes (P3) — autonomy flows
+                    // through whenever the toggle is rendered. Phase-aware
+                    // task mode passes through too; phases without
+                    // supports_autonomy pass undefined so the preview omits
+                    // `--autonomous`.
+                    autonomy={showAutonomyToggle ? autonomy : undefined}
+                    phaseId={mode === "new-task" ? phaseId : undefined}
+                    phaseLabel={
+                      mode === "new-task" ? currentPhase?.label : undefined
+                    }
+                    parameters={paramsToPreview(
+                      currentSchema,
+                      paramValues,
+                      paramEnabled,
+                    )}
+                  />
+                </FieldLabel>
+              )}
 
               {/* Helper-box — per-mode palette. */}
               <div
@@ -1026,20 +1097,32 @@ function FieldLabel({
   );
 }
 
-function modeHeading(mode: Mode): string {
+function modeHeading(mode: Mode, action: ActionDefinition | null): string {
   if (mode === "new-pipeline") return "New Pipeline";
   if (mode === "new-iterate") return "New Iterate";
   if (mode === "new-plain") return "Plain Claude";
+  // 2026-04-25 — generic mode reads the heading from the action label
+  // (catalog-driven). The "New " prefix matches the visual rhythm of the
+  // bundled modes when the label is short ("New Content Orchestrator").
+  if (mode === "generic") return action ? `New ${action.label}` : "New Action";
   return "New Task";
 }
 
-function modeSubheading(mode: Mode): string {
+function modeSubheading(mode: Mode, action: ActionDefinition | null): string {
   if (mode === "new-pipeline")
     return "Full Shipwright SDLC. Save it to the Backlog, or Launch now to copy the command and start immediately.";
   if (mode === "new-iterate")
     return "Lightweight change on a completed project. Save it to the Backlog, or Launch now to copy the command and start immediately.";
   if (mode === "new-plain")
     return "Plain Claude session in this project's directory. No skill, no slash command — just a chat.";
+  // 2026-04-25 — generic subheading prefers the action's own description
+  // (set in `.webui/actions.json`). Falls back to a neutral hint when the
+  // catalog entry omits one. NO Shipwright wording.
+  if (mode === "generic")
+    return (
+      action?.description ??
+      "Custom action from this project's .webui/actions.json. Save it to the Backlog, or Launch now to copy the command."
+    );
   return "Standalone task scoped to a Shipwright phase. Save it to the Backlog, or Launch now to copy the command and start immediately.";
 }
 

@@ -43,7 +43,13 @@ export interface ExternalTask {
    * TaskDetailHeader prefers `phaseLabel` over the title-regex fallback
    * so the badge reflects the user's explicit choice.
    */
-  actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
+  /**
+   * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
+   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * flow through. The server validates against the project's actions
+   * catalog (`unknown_action_id` 400 on miss).
+   */
+  actionId?: string;
   phase?: string;
   phaseLabel?: string;
   description?: string;
@@ -156,7 +162,13 @@ export async function launchTask(
     description?: string;
     autonomy?: "guided" | "autonomous";
     /** 2026-04-23 — action context so server can run full substitution. */
-    actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
+    /**
+   * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
+   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * flow through. The server validates against the project's actions
+   * catalog (`unknown_action_id` 400 on miss).
+   */
+  actionId?: string;
     phase?: string;
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
@@ -190,7 +202,13 @@ export async function launchExternalTask(
   args: {
     description?: string;
     autonomy?: "guided" | "autonomous";
-    actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
+    /**
+   * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
+   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * flow through. The server validates against the project's actions
+   * catalog (`unknown_action_id` 400 on miss).
+   */
+  actionId?: string;
     phase?: string;
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */

@@ -818,4 +818,103 @@ describe("NewIssueModal", () => {
       expect(inputAfter.value).toBe("");
     });
   });
+
+  // 2026-04-25 — iterate-custom-actions-generic-mode. The four bundled IDs
+  // map to bespoke modes; everything else (custom .webui/actions.json
+  // entries) falls into "generic" and renders without the Shipwright UI
+  // surfaces (no phase picker, no autonomy toggle, no Shipwright wording).
+  describe("v0.4 — generic mode (custom actions from .webui/actions.json)", () => {
+    const CUSTOM_ACTION: ActionDefinition = {
+      id: "new-content-orchestrator",
+      label: "Content Orchestrator",
+      kind: "external_launch",
+      description: "Run the content pipeline.",
+      command_template:
+        'cd "p" && claude --session-id {task.uuid} --name "{task.title}" /content-orchestrator{task.description?}',
+    };
+    const CUSTOM_ACTIONS: ResolvedProjectActions = {
+      ...SAMPLE_ACTIONS,
+      actions: [TASK_ACTION, CUSTOM_ACTION],
+    };
+
+    it("renders the action.label as heading + action.description as subheading", () => {
+      renderModal({ action: CUSTOM_ACTION, projectActions: CUSTOM_ACTIONS });
+      expect(screen.getByText("New Content Orchestrator")).toBeTruthy();
+      expect(screen.getByText("Run the content pipeline.")).toBeTruthy();
+    });
+
+    it("does NOT render Phase, Autonomy, or the live CommandPreviewPanel", () => {
+      renderModal({ action: CUSTOM_ACTION, projectActions: CUSTOM_ACTIONS });
+      expect(screen.queryByTestId("new-issue-phase-select")).toBeNull();
+      expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+      // Generic mode replaces the live panel with a static hint.
+      expect(screen.queryByTestId("command-preview-panel")).toBeNull();
+      expect(screen.getByTestId("command-preview-generic")).toBeTruthy();
+    });
+
+    it("Launch posts the REAL action.id (not a bundled mode string)", async () => {
+      const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+        const u = String(url);
+        if (u.includes("/launch")) {
+          // Capture the body for the assertion below.
+          (fetchMock as unknown as { _launchBody: string })._launchBody =
+            init?.body as string;
+          return new Response(
+            JSON.stringify({
+              task: { taskId: "task-c1" },
+              commands: { powershell: "x", cmd: "x", posix: "x" },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (u.includes("/api/external/tasks")) {
+          return new Response(
+            JSON.stringify({
+              task: {
+                taskId: "task-c1",
+                sessionUuid: "00000000-0000-0000-0000-000000000099",
+                cwd: "/tmp/demo",
+                pluginDirs: [],
+                title: "x",
+                projectId: "proj-1",
+                state: "draft",
+                createdAt: "",
+                inbox: {
+                  pendingToolUseIds: [],
+                  dismissedToolUseIds: [],
+                  lastProcessedByteOffset: 0,
+                },
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      });
+      globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+      renderModal({
+        action: CUSTOM_ACTION,
+        projectActions: CUSTOM_ACTIONS,
+        writeToClipboard: async () => undefined,
+        onToast: () => {},
+      });
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+          target: { value: "Run content pipeline" },
+        });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-launch-btn"));
+      });
+
+      await waitFor(() => {
+        const body = (fetchMock as unknown as { _launchBody?: string })
+          ._launchBody;
+        expect(body).toBeTruthy();
+        expect(JSON.parse(body!).actionId).toBe("new-content-orchestrator");
+      });
+    });
+  });
 });
