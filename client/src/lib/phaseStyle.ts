@@ -43,3 +43,32 @@ export function getPhaseStyle(phaseId: string | undefined): PhaseStyle {
   if (!phaseId) return PHASE_STYLES.build;
   return PHASE_STYLES[phaseId.toLowerCase()] ?? PHASE_STYLES.build;
 }
+
+/**
+ * Best-effort phase derivation from a task title — used as a fallback
+ * when `task.phase` / `task.phaseLabel` are missing (legacy tasks
+ * launched before the phase-on-create wiring, or externally-created
+ * tasks). Returns `null` when no keyword matches; callers can choose
+ * to render no badge in that case.
+ *
+ * Extracted from TaskDetailHeader (2026-04-25) so TaskCard can share
+ * the exact same heuristic and display a consistent badge.
+ */
+export function derivePhaseFromTitle(
+  title: string | undefined,
+): { id: string; label: string } | null {
+  const t = (title ?? "").toLowerCase();
+  const id = /plan/.test(t)
+    ? "plan"
+    : /build|implement|fix/.test(t)
+      ? "build"
+      : /design|ui|mockup/.test(t)
+        ? "design"
+        : /test|qa|e2e/.test(t)
+          ? "test"
+          : /iterate/.test(t)
+            ? "iterate"
+            : null;
+  if (!id) return null;
+  return { id, label: id.charAt(0).toUpperCase() + id.slice(1) };
+}

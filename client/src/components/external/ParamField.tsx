@@ -91,18 +91,82 @@ export function ParamField({
 
   const effectiveHelpText = schema.helpText ?? autoHelpText(schema);
 
-  if (schema.type === "boolean") {
-    return (
-      <div className="flex items-start gap-2.5" data-testid={`paramfield-${schema.name}`}>
+  // iterate/v030-five-ux-fixes (post-live-test alignment fix) — every
+  // field type uses the same outer flex pattern: a fixed-width left slot
+  // for the checkbox, then a flex-1 content column for label + control +
+  // help text. This makes labels align across all rows regardless of
+  // type. Slot width is sized for the 16px checkbox plus a small gutter.
+  const SLOT_WIDTH_PX = 22;
+
+  const isRequired = !!schema.required;
+  const stringValue = typeof value === "string" ? value : "";
+  const isSensitive = !!schema.sensitive;
+  const showAsPassword = isSensitive && !revealed;
+  const showEnableToggle =
+    !!onEnableToggle && !isRequired && schema.type !== "boolean";
+  const valueDisabled =
+    !!onEnableToggle && !enabled && !isRequired && schema.type !== "boolean";
+  const trimmedValue = stringValue.trim();
+  const showEmptyHint =
+    !!onEnableToggle && enabled && !isRequired && schema.type !== "boolean" && trimmedValue === "";
+
+  // iterate/fix-adopt-prompt-shape — Default appears as placeholder hint
+  // when no explicit placeholder is set. Sensitive defaults are NEVER
+  // surfaced as placeholders.
+  const placeholderHint =
+    schema.placeholder ??
+    (!isSensitive && schema.default !== undefined
+      ? `default: ${schema.default}`
+      : undefined);
+
+  const slot = (
+    <div
+      className="flex h-[28px] flex-shrink-0 items-center pt-0"
+      style={{ width: `${SLOT_WIDTH_PX}px` }}
+    >
+      {schema.type === "boolean" ? (
         <input
           id={inputId}
           type="checkbox"
           checked={value === true}
           onChange={(e) => onChange(e.target.checked)}
           aria-describedby={effectiveHelpText ? helpId : undefined}
-          className="mt-0.5 h-[16px] w-[16px] flex-shrink-0 cursor-pointer rounded-[4px] border-[1.5px] border-[var(--color-border,#e0dbd4)] accent-[var(--color-primary,#6b5e56)]"
+          className="h-[16px] w-[16px] flex-shrink-0 cursor-pointer rounded-[4px] border-[1.5px] border-[var(--color-border,#e0dbd4)] accent-[var(--color-primary,#6b5e56)]"
         />
-        <label htmlFor={inputId} className="select-none">
+      ) : showEnableToggle ? (
+        <input
+          id={enableId}
+          type="checkbox"
+          checked={enabled}
+          onChange={onEnableToggle}
+          aria-describedby={effectiveHelpText ? helpId : undefined}
+          aria-controls={inputId}
+          aria-label={`Enable ${schema.label}`}
+          data-testid={`paramfield-${schema.name}-enable`}
+          className="h-[16px] w-[16px] cursor-pointer rounded-[4px] border-[1.5px] border-[var(--color-border,#e0dbd4)] accent-[var(--color-primary,#6b5e56)]"
+        />
+      ) : null}
+    </div>
+  );
+
+  // The "Required" affordance is now an inline pill next to the label
+  // (was a 60px-wide left slot, which mis-aligned the column with rows
+  // that have a checkbox in the same gutter). Keeps testid stable so
+  // existing tests + ParamField.test.tsx continue to find it.
+  const requiredBadge = isRequired ? (
+    <span
+      data-testid={`paramfield-${schema.name}-required-badge`}
+      className="ml-1.5 rounded-[4px] bg-[var(--color-error-bg,#FEE2E2)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-error,#DC2626)]"
+    >
+      Required
+    </span>
+  ) : null;
+
+  if (schema.type === "boolean") {
+    return (
+      <div className="flex items-start gap-2" data-testid={`paramfield-${schema.name}`}>
+        {slot}
+        <label htmlFor={inputId} className="min-w-0 flex-1 cursor-pointer select-none">
           <span className="text-[13px] font-medium text-[var(--color-text,#1a1a1a)]">
             {schema.label}
           </span>
@@ -119,65 +183,18 @@ export function ParamField({
     );
   }
 
-  // String + Enum share the enable-checkbox + value-control layout.
-  const stringValue = typeof value === "string" ? value : "";
-  const isSensitive = !!schema.sensitive;
-  const showAsPassword = isSensitive && !revealed;
-  const isRequired = !!schema.required;
-  const showEnableToggle = !!onEnableToggle && !isRequired;
-  const valueDisabled = !!onEnableToggle && !enabled && !isRequired;
-  const trimmedValue = stringValue.trim();
-  // The boolean branch above already returned; here we know we're on
-  // string/enum, so the type-guard would be redundant.
-  const showEmptyHint =
-    !!onEnableToggle && enabled && !isRequired && trimmedValue === "";
-
-  // iterate/fix-adopt-prompt-shape — Default appears as placeholder hint
-  // when no explicit placeholder is set. Sensitive defaults are NEVER
-  // surfaced as placeholders.
-  const placeholderHint =
-    schema.placeholder ??
-    (!isSensitive && schema.default !== undefined
-      ? `default: ${schema.default}`
-      : undefined);
-
-  const enableSlot = (
-    <div className="flex h-[28px] w-[60px] flex-shrink-0 items-center pt-0">
-      {showEnableToggle ? (
-        <input
-          id={enableId}
-          type="checkbox"
-          checked={enabled}
-          onChange={onEnableToggle}
-          aria-describedby={effectiveHelpText ? helpId : undefined}
-          aria-controls={inputId}
-          aria-label={`Enable ${schema.label}`}
-          data-testid={`paramfield-${schema.name}-enable`}
-          className="h-[16px] w-[16px] cursor-pointer rounded-[4px] border-[1.5px] border-[var(--color-border,#e0dbd4)] accent-[var(--color-primary,#6b5e56)]"
-        />
-      ) : isRequired ? (
-        <span
-          data-testid={`paramfield-${schema.name}-required-badge`}
-          className="rounded-[4px] bg-[var(--color-error-bg,#FEE2E2)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-error,#DC2626)]"
-        >
-          Required
-        </span>
-      ) : null}
-    </div>
-  );
-
   if (schema.type === "enum") {
     const enumOptions = schema.enum ?? [];
     return (
       <div className="flex items-start gap-2" data-testid={`paramfield-${schema.name}`}>
-        {enableSlot}
+        {slot}
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <label
             htmlFor={inputId}
-            className="text-[12px] font-medium text-[var(--color-text,#1a1a1a)]"
+            className="flex items-center text-[12px] font-medium text-[var(--color-text,#1a1a1a)]"
           >
             {schema.label}
-            {isRequired && <span className="ml-0.5 text-[var(--color-error,#DC2626)]">*</span>}
+            {requiredBadge}
           </label>
           <select
             id={inputId}
@@ -233,14 +250,14 @@ export function ParamField({
   // String — sensitive renders password input with reveal toggle.
   return (
     <div className="flex items-start gap-2" data-testid={`paramfield-${schema.name}`}>
-      {enableSlot}
+      {slot}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <label
           htmlFor={inputId}
-          className="text-[12px] font-medium text-[var(--color-text,#1a1a1a)]"
+          className="flex items-center text-[12px] font-medium text-[var(--color-text,#1a1a1a)]"
         >
           {schema.label}
-          {isRequired && <span className="ml-0.5 text-[var(--color-error,#DC2626)]">*</span>}
+          {requiredBadge}
         </label>
         <div className="relative flex items-stretch">
           <input
