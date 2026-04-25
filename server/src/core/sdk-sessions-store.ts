@@ -102,7 +102,7 @@ export interface ExternalTask {
    * substitution throws (unknown phase, invalid description newline),
    * nothing is persisted.
    */
-  actionId?: "new-task" | "new-pipeline" | "new-iterate";
+  actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
   phase?: string;
   phaseLabel?: string;
   description?: string;
