@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-25
+
+### Fixed
+- fix(webui): Advanced parameter rows now align consistently — every field type (boolean, string, enum) uses the same fixed-width left slot for the checkbox, so labels line up regardless of param type. Required fields render an inline "Required" pill next to the label instead of a 60px-wide left gutter that mis-aligned the column.
+- fix(webui): TaskCard now shows the phase badge for legacy tasks (launched before the phase-on-create wiring). The title-keyword fallback heuristic (extracted into `derivePhaseFromTitle()` and shared with TaskDetailHeader) keeps the kanban card in sync with the task detail. `data-phase-source="task"|"title-fallback"` exposes the provenance.
+
 ## [0.3.0] - 2026-04-25
 
 ### Added
