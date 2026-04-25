@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-26
+
+### Added
+- feat(webui): support custom action ids from `.webui/actions.json` — user-defined slash skills (e.g. `/content-orchestrator`) can be wired into the "+ New ▾" menu without forking. NewIssueModal renders a new **generic mode** for custom ids: heading from `action.label`, subheading from `action.description`, no phase picker, no autonomy toggle, static command-preview hint. Server-side `actionId` allowlist relaxed; the actions catalog lookup is now the single source of truth (`unknown_action_id` 400 on miss). `ExternalTask.actionId` widened from a 4-id union to `string`.
+
+### Changed
+- build(webui): `install-windows.ps1` now runs `npm run build` in both `server/` and `client/` in step 3, and the generated VBS launcher invokes `node dist/index.js` instead of `tsx src/index.ts`. Single production-style runtime path on autostart, no TypeScript runtime in the hot loop, dev-only `tsx` stays out of the autostart artefact.
+
+### Documentation
+- docs(webui): `docs/guide.md` is now the source-of-truth user guide. Written for Shipwright users comfortable with Claude Code in VS Code but new to running a local web app — covers what the Command Center is and when to use it, the why-copy-paste rationale (max flexibility, no CLI/SDK lock-in, no surprise side effects, multi-tab by construction), recommended setup (Warp + Command Center next to your editor), step-by-step installation, daily workflow, custom actions, Windows autostart, and troubleshooting. README links to it as the quickstart's complement.
+
 ## [0.4.2] - 2026-04-26
 
 ### Fixed
