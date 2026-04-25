@@ -636,6 +636,76 @@ describe("actions/preview/stub routes", () => {
       });
       expect(r.status).toBe(400);
     });
+
+    // ── 2026-04-25 — iterate-custom-actions-generic-mode ──
+    //
+    // Custom action ids defined in `.webui/actions.json` (e.g. wrapping a
+    // user's own slash skill like `/content-orchestrator`) must flow
+    // through the same substitutePlaceholders pipeline. The route layer's
+    // shape-check used to gate `actionId` against a 4-id allowlist; the
+    // catalog lookup is now the single source of truth.
+    it("substitutes a custom action's command_template (generic mode)", async () => {
+      const webuiDir = path.join(projectPath, ".webui");
+      mkdirSync(webuiDir, { recursive: true });
+      writeFileSync(
+        path.join(webuiDir, "actions.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          defaults: { autonomy: "guided" },
+          actions: [
+            {
+              id: "new-content-orchestrator",
+              label: "Content Orchestrator",
+              kind: "external_launch",
+              description: "Run the content pipeline.",
+              command_template:
+                "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" /content-orchestrator{task.description?}",
+              modal_fields: ["title", "description"],
+            },
+          ],
+          phases: [{ id: "content", label: "Content" }],
+          preview: { enabled: false },
+        }),
+        "utf-8",
+      );
+
+      const { task } = await createTask("Run pipeline");
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-content-orchestrator",
+          description: "weekly batch",
+        }),
+      });
+      expect(r.status).toBe(200);
+      const body = (await r.json()) as {
+        task: { actionId?: string };
+        commands: { posix: string };
+      };
+      // Custom slash command literal made it through substitution.
+      expect(body.commands.posix).toContain("/content-orchestrator");
+      expect(body.commands.posix).toContain("weekly batch");
+      // Real action.id persisted on the task (not coerced to a bundled id).
+      expect(body.task.actionId).toBe("new-content-orchestrator");
+      // No accidental Shipwright slash leak from the legacy hardcoded path.
+      expect(body.commands.posix).not.toContain("/shipwright-");
+    });
+
+    it("rejects unknown actionId with 400 unknown_action_id", async () => {
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "totally-not-a-real-action",
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string; actionId: string };
+      expect(body.error).toBe("unknown_action_id");
+      expect(body.actionId).toBe("totally-not-a-real-action");
+    });
   });
 
   // ── 2026-04-23 — iterate-20260423-chat-livetest-2 AC-B ──

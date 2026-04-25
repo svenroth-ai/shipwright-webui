@@ -101,8 +101,13 @@ export interface ExternalTask {
    * persists them AFTER successful substitutePlaceholders — if the
    * substitution throws (unknown phase, invalid description newline),
    * nothing is persisted.
+   *
+   * 2026-04-25 — iterate-custom-actions-generic-mode. Type widened from a
+   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * (e.g. `new-content-orchestrator`) can flow through. Catalog membership
+   * is the validity gate at /launch time — see routes.ts `unknown_action_id`.
    */
-  actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
+  actionId?: string;
   phase?: string;
   phaseLabel?: string;
   description?: string;
