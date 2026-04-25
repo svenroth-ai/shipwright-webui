@@ -30,6 +30,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -203,23 +204,50 @@ export function NewIssueModal({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [paramValues, setParamValues] = useState<Record<string, string | boolean>>({});
   const [revealedSecrets, setRevealedSecrets] = useState<Record<string, boolean>>({});
+  // iterate/v030-five-ux-fixes (P1) — explicit per-field enable state.
+  // Required fields are hardcoded `true`; optional string/enum fields
+  // start `false` (opt-in) and toggle via the enable-checkbox.
+  const [paramEnabled, setParamEnabled] = useState<Record<string, boolean>>({});
 
-  // Reset form every time the modal opens.
+  // iterate/v030-five-ux-fixes (review M5 / regression guard) — the
+  // reset-form effect must fire ONLY when the modal opens (false → true),
+  // NOT every time projectActions / phases / scopedProject identity
+  // changes. Background React-Query refetches produce new array
+  // references with identical content; reacting to those wipes user
+  // input mid-edit. Read all derived inputs through refs so the closure
+  // sees the latest value without triggering re-runs.
+  const resetCtxRef = useRef<{
+    autonomy: AutonomyValue;
+    firstPhaseId: string;
+    initialProjectId: string;
+  }>({
+    autonomy: projectActions?.defaults.autonomy ?? "guided",
+    firstPhaseId: phases[0]?.id ?? "",
+    initialProjectId: scopedProject?.id ?? realProjects[0]?.id ?? "",
+  });
+  resetCtxRef.current = {
+    autonomy: projectActions?.defaults.autonomy ?? "guided",
+    firstPhaseId: phases[0]?.id ?? "",
+    initialProjectId: scopedProject?.id ?? realProjects[0]?.id ?? "",
+  };
+
   useEffect(() => {
     if (!open) return;
+    const ctx = resetCtxRef.current;
     setTitle("");
     setDescription("");
     setError(null);
     setPhaseOverridden(false);
     setDetectedTrigger(null);
-    setAutonomy(projectActions?.defaults.autonomy ?? "guided");
-    setPhaseId(phases[0]?.id ?? "");
-    setSelectedProjectId(scopedProject?.id ?? realProjects[0]?.id ?? "");
+    setAutonomy(ctx.autonomy);
+    setPhaseId(ctx.firstPhaseId);
+    setSelectedProjectId(ctx.initialProjectId);
     // iterate/launch-cli-parameters § 4 — full reset of Advanced state.
     setAdvancedOpen(false);
     setParamValues({});
     setRevealedSecrets({});
-  }, [open, projectActions, phases, scopedProject, realProjects]);
+    setParamEnabled({});
+  }, [open]);
 
   // iterate/launch-cli-parameters § 4 — Schema-Lookup. Switch on the
   // *shape* of the action (does it expose phase_parameters?) rather than
@@ -249,11 +277,83 @@ export function NewIssueModal({
     () => currentSchema.map((s) => s.name).join("|"),
     [currentSchema],
   );
+  // iterate/v030-five-ux-fixes (post-review fix) — keep `currentSchema`
+  // out of the reset-effect deps. The seeding code reads it via ref so
+  // a React-Query refetch that produces a new array reference with the
+  // same param names doesn't blow away user-typed values. Only schemaKey
+  // (stable hash of names) and `open` should trigger reset.
+  const currentSchemaRef = useRef<RenderableParamSchema[]>(currentSchema);
+  currentSchemaRef.current = currentSchema;
   useEffect(() => {
     if (!open) return;
-    setParamValues({});
+    // iterate/v030-five-ux-fixes (P1) — seed required fields enabled,
+    // optional fields off. For required+default schemas seed the value
+    // with the default so submit-gate can pass without forcing the user
+    // to retype the schema-default verbatim.
+    const nextEnabled: Record<string, boolean> = {};
+    const nextValues: Record<string, string | boolean> = {};
+    for (const s of currentSchemaRef.current) {
+      if (s.required) {
+        nextEnabled[s.name] = true;
+        if (
+          (s.type === "string" || s.type === "enum") &&
+          typeof s.default === "string"
+        ) {
+          nextValues[s.name] = s.default;
+        }
+      } else {
+        nextEnabled[s.name] = false;
+      }
+    }
+    setParamValues(nextValues);
+    setParamEnabled(nextEnabled);
     setRevealedSecrets({});
   }, [open, schemaKey]);
+
+  // iterate/v030-five-ux-fixes (P1) — toggle handler keeps three slices
+  // of state coherent: enable, value, revealedSecrets.
+  // - Toggle ON  + value empty + non-sensitive default exists → pre-fill default.
+  // - Toggle OFF + sensitive   → clear value + revealedSecret entry.
+  // - Toggle OFF + non-sensitive → keep value (re-toggle preserves user input).
+  const onParamEnableToggle = useCallback(
+    (s: RenderableParamSchema) => {
+      setParamEnabled((prev) => {
+        const wasEnabled = !!prev[s.name];
+        const next = !wasEnabled;
+        if (!next && s.sensitive) {
+          setParamValues((vs) => {
+            if (vs[s.name] === undefined) return vs;
+            const copy = { ...vs };
+            delete copy[s.name];
+            return copy;
+          });
+          setRevealedSecrets((rs) => {
+            if (rs[s.name] === undefined) return rs;
+            const copy = { ...rs };
+            delete copy[s.name];
+            return copy;
+          });
+        } else if (next && !s.sensitive) {
+          setParamValues((vs) => {
+            const cur = vs[s.name];
+            const empty =
+              cur === undefined ||
+              (typeof cur === "string" && cur.trim() === "");
+            if (
+              empty &&
+              (s.type === "string" || s.type === "enum") &&
+              typeof s.default === "string"
+            ) {
+              return { ...vs, [s.name]: s.default };
+            }
+            return vs;
+          });
+        }
+        return { ...prev, [s.name]: next };
+      });
+    },
+    [],
+  );
 
   // Debounced phase classification — only when Task mode and user hasn't overridden.
   useEffect(() => {
@@ -277,7 +377,9 @@ export function NewIssueModal({
 
   // iterate/launch-cli-parameters § 4 — Required-validation. A required
   // string/enum is "filled" when value is a non-empty string; required
-  // boolean is "filled" when value === true (rare, but possible).
+  // boolean is "filled" when value === true (rare, but possible — note
+  // the validator now rejects boolean+required at load time, so this
+  // branch is defensive).
   const requiredMissing = useMemo(() => {
     return currentSchema.some((s) => {
       if (!s.required) return false;
@@ -287,6 +389,19 @@ export function NewIssueModal({
       return v === undefined;
     });
   }, [currentSchema, paramValues]);
+
+  // iterate/v030-five-ux-fixes (P2) — required fields render OUTSIDE the
+  // Advanced collapsible. Generic over `required: true` — currently only
+  // `build.section` uses it but the layout adapts to any future required
+  // params.
+  const requiredFields = useMemo(
+    () => currentSchema.filter((s) => s.required),
+    [currentSchema],
+  );
+  const advancedFields = useMemo(
+    () => currentSchema.filter((s) => !s.required),
+    [currentSchema],
+  );
 
   const canSubmit =
     !submitting &&
@@ -303,6 +418,15 @@ export function NewIssueModal({
     () => phases.find((p) => p.id === phaseId) ?? phases[0],
     [phases, phaseId],
   );
+
+  // iterate/v030-five-ux-fixes (P3) — phase-aware AutonomyToggle in task
+  // mode. Pipeline + Iterate keep the toggle unconditionally (they're
+  // action-driven, not phase-driven). Task mode shows it ONLY when the
+  // current phase declares supports_autonomy: true.
+  const showAutonomyToggle =
+    mode === "new-pipeline" ||
+    mode === "new-iterate" ||
+    (mode === "new-task" && currentPhase?.supports_autonomy === true);
 
   const onSubmit = useCallback(
     async (ev: FormEvent, submitAction: SubmitAction) => {
@@ -355,16 +479,25 @@ export function NewIssueModal({
           actionId: mode,
         };
         if (description.trim()) body.description = description.trim();
-        // Pipeline + Iterate send autonomy; Task mode does not.
-        if (mode !== "new-task") body.autonomy = autonomy;
+        // iterate/v030-five-ux-fixes (P3) — autonomy is sent only when
+        // the toggle was actually rendered. For task mode that means the
+        // current phase declared supports_autonomy: true; otherwise we
+        // omit the field so the server (and substituter) don't emit
+        // `--autonomous` for a phase where it has no effect.
+        if (showAutonomyToggle) body.autonomy = autonomy;
         // Task mode sends the picked phase; Pipeline/Iterate have no phase.
         if (mode === "new-task" && currentPhase) {
           body.phase = currentPhase.id;
           body.phaseLabel = currentPhase.label;
         }
         // iterate/launch-cli-parameters § 5 — only send entries the user
-        // explicitly populated. Server applies defaults for omitted keys.
-        const explicit = explicitParamEntries(currentSchema, paramValues);
+        // explicitly enabled. Disabled or empty fields are dropped here
+        // so the server doesn't see them.
+        const explicit = explicitParamEntries(
+          currentSchema,
+          paramValues,
+          paramEnabled,
+        );
         if (Object.keys(explicit).length > 0) body.parameters = explicit;
         const { commands } = await launchExternalTask(task.taskId, body);
         onTaskCreated?.();
@@ -406,6 +539,8 @@ export function NewIssueModal({
       currentPhase,
       currentSchema,
       paramValues,
+      paramEnabled,
+      showAutonomyToggle,
     ],
   );
 
@@ -544,8 +679,9 @@ export function NewIssueModal({
                 </FieldLabel>
               )}
 
-              {/* Autonomy — Pipeline + Iterate only (FR-03.72) */}
-              {mode !== "new-task" && (
+              {/* Autonomy — Pipeline + Iterate always; Task mode only when
+                  the current phase declares supports_autonomy: true (P3). */}
+              {showAutonomyToggle && (
                 <FieldLabel label="Autonomy">
                   <AutonomyToggle value={autonomy} onChange={setAutonomy} />
                 </FieldLabel>
@@ -565,11 +701,52 @@ export function NewIssueModal({
                 />
               </FieldLabel>
 
+              {/* iterate/v030-five-ux-fixes (P2) — Required parameters
+                  rendered OUTSIDE the Advanced collapsible so the user
+                  sees them immediately. The same <ParamField> renders;
+                  required schemas force `enabled: true` via the badge
+                  rather than an enable-checkbox. */}
+              {requiredFields.length > 0 && (
+                <div
+                  data-testid="new-issue-required-section"
+                  className="flex flex-col gap-3"
+                >
+                  {requiredFields.map((p) => {
+                    const v = paramValues[p.name];
+                    const empty =
+                      (p.type === "boolean" && v !== true) ||
+                      (p.type !== "boolean" &&
+                        (typeof v !== "string" || v.trim() === ""));
+                    return (
+                      <ParamField
+                        key={p.name}
+                        schema={p}
+                        value={v}
+                        onChange={(next) =>
+                          setParamValues((prev) => ({ ...prev, [p.name]: next }))
+                        }
+                        revealed={revealedSecrets[p.name] === true}
+                        onRevealToggle={() =>
+                          setRevealedSecrets((prev) => ({
+                            ...prev,
+                            [p.name]: !prev[p.name],
+                          }))
+                        }
+                        enabled={true}
+                        // No onEnableToggle for required — ParamField
+                        // renders the "Required" badge instead.
+                        showRequiredError={empty}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+
               {/* iterate/launch-cli-parameters § 4 — Advanced parameters
-                  collapsible. Rendered only when the active schema has
-                  ≥1 entry. Reset triggers (open / phase / mode) live
-                  with the state declarations above. */}
-              {currentSchema.length > 0 && (
+                  collapsible. Hides required fields (now in their own
+                  section above per P2). The collapsible only renders if
+                  there's at least one optional field. */}
+              {advancedFields.length > 0 && (
                 <div data-testid="new-issue-advanced-section">
                   <button
                     type="button"
@@ -579,7 +756,7 @@ export function NewIssueModal({
                     className="flex w-full items-center justify-between rounded-[var(--radius-button,8px)] px-2 py-1.5 text-[12px] font-medium text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
                   >
                     <span>
-                      Advanced parameters ({currentSchema.length})
+                      Advanced parameters ({advancedFields.length})
                     </span>
                     <ChevronDown
                       size={12}
@@ -591,12 +768,8 @@ export function NewIssueModal({
                       data-testid="new-issue-advanced-content"
                       className="mt-2 flex flex-col gap-3 rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f9f6f3)] px-3 py-3"
                     >
-                      {currentSchema.map((p) => {
+                      {advancedFields.map((p) => {
                         const v = paramValues[p.name];
-                        const empty =
-                          (p.type === "boolean" && v !== true) ||
-                          (p.type !== "boolean" &&
-                            (typeof v !== "string" || v.trim() === ""));
                         return (
                           <ParamField
                             key={p.name}
@@ -612,7 +785,9 @@ export function NewIssueModal({
                                 [p.name]: !prev[p.name],
                               }))
                             }
-                            showRequiredError={!!p.required && empty}
+                            enabled={paramEnabled[p.name] === true}
+                            onEnableToggle={() => onParamEnableToggle(p)}
+                            showRequiredError={false}
                           />
                         );
                       })}
@@ -636,12 +811,21 @@ export function NewIssueModal({
                   description={description}
                   projectPath={selectedProject?.path ?? ""}
                   sessionUuid="<session-uuid>"
-                  autonomy={mode === "new-task" ? undefined : autonomy}
+                  // iterate/v030-five-ux-fixes (P3) — autonomy flows
+                  // through whenever the toggle is rendered. Phase-aware
+                  // task mode passes through too; phases without
+                  // supports_autonomy pass undefined so the preview omits
+                  // `--autonomous`.
+                  autonomy={showAutonomyToggle ? autonomy : undefined}
                   phaseId={mode === "new-task" ? phaseId : undefined}
                   phaseLabel={
                     mode === "new-task" ? currentPhase?.label : undefined
                   }
-                  parameters={paramsToPreview(currentSchema, paramValues)}
+                  parameters={paramsToPreview(
+                    currentSchema,
+                    paramValues,
+                    paramEnabled,
+                  )}
                 />
               </FieldLabel>
 
@@ -829,31 +1013,36 @@ function modeSubheading(mode: Mode): string {
 }
 
 /**
- * Map (schema, values) → PreviewParam[] for the live CommandPreviewPanel.
+ * Map (schema, values, enabled) → PreviewParam[] for the live
+ * CommandPreviewPanel.
+ *
+ * iterate/v030-five-ux-fixes (P1) — `enabled` is now an explicit input.
+ * Optional string/enum fields render in the preview only when their
+ * enable-checkbox is on AND the value is non-empty. Required fields are
+ * always considered enabled (handled at the modal-level seeding). Boolean
+ * fields keep their consolidated semantic: checked == enabled == emit.
  *
  * Mirrors the server's resolveParameters logic but is simpler — the
  * preview is approximate (server is authoritative on the actual command).
- * Skips:
- *   - boolean params whose effective value is not true
- *   - enum params with cli_flag_map but no entry for the chosen value
- *     (matches deploy.target=dev "skip emission" semantic)
- *   - string params whose effective value is empty after trim
  */
 function paramsToPreview(
   schema: RenderableParamSchema[],
   values: Record<string, string | boolean>,
+  enabled: Record<string, boolean>,
 ): PreviewParam[] {
   const out: PreviewParam[] = [];
   for (const s of schema) {
-    let v: string | boolean | undefined = values[s.name];
-    if (v === undefined || (typeof v === "string" && v.trim() === "")) {
-      v = s.default;
-    }
+    const v: string | boolean | undefined = values[s.name];
     if (s.type === "boolean") {
       if (v !== true || !s.cli_flag) continue;
       out.push({ cli_flag: s.cli_flag, separator: "none" });
       continue;
     }
+    // String / enum: optional fields require enabled=true. Required
+    // fields are always treated as enabled (the modal seeds them on
+    // open). The check works for both because required fields receive
+    // `paramEnabled[name] = true` from the reset effect.
+    if (!s.required && enabled[s.name] !== true) continue;
     if (typeof v !== "string") continue;
     const trimmed = v.trim();
     if (trimmed === "") continue;
@@ -873,38 +1062,40 @@ function paramsToPreview(
 }
 
 /**
- * Drop schema entries that the user did NOT explicitly populate. The
- * server is the source of truth for default-injection (plan § 3), so
- * we only forward "user actually touched this" values.
+ * Drop schema entries that the user did NOT explicitly enable.
  *
- * Critical: when `default !== undefined`, we must forward any value
- * that DIFFERS from the default (including `false`) — otherwise the
- * server re-injects the default and the user's negative choice gets
- * silently reverted (Gemini external-review HIGH finding).
+ * iterate/v030-five-ux-fixes (P1) — explicit enable-checkbox is now the
+ * authoritative "user wants to emit" signal for string/enum params.
+ * Boolean params remain consolidated (checked = enable = value).
  *
- * Booleans without a default (or default=false): only forward `true`,
- * because the server treats undefined as "skip emit" already.
+ * Forwarding rules:
+ *   - Boolean: forward `true`; drop everything else.
+ *   - String/Enum: forward only when enabled === true AND value is a
+ *     non-empty trimmed string. Disabled or empty → drop (skip-emit).
+ *     This matches the server-side resolver's "empty value = skip
+ *     emission" semantic (parameter-resolver.ts:272-273).
+ *
+ * Required+default fields are seeded on modal-open with the schema
+ * default in `paramValues`, so the user can submit immediately if the
+ * default is acceptable. The modal-level `requiredMissing` gate blocks
+ * submit if the user clears the value.
  */
 function explicitParamEntries(
   schema: RenderableParamSchema[],
   values: Record<string, string | boolean>,
+  enabled: Record<string, boolean>,
 ): Record<string, string | boolean> {
-  // iterate/fix-adopt-prompt-shape — opt-in semantics simplified the
-  // forwarding rules: server no longer auto-injects defaults, so the
-  // client just forwards every non-empty user value as-is.
-  //   - Booleans: only forward `true` (false is the natural skip-emit).
-  //   - String/enum: forward when non-empty after trim.
-  // Required-with-default fields work because the modal seeds nothing,
-  // so the user must type/click to satisfy the required gate; once
-  // typed, the value is forwarded.
   const out: Record<string, string | boolean> = {};
   for (const p of schema) {
     const v = values[p.name];
-    if (v === undefined) continue;
     if (p.type === "boolean") {
       if (v === true) out[p.name] = true;
       continue;
     }
+    // Required fields are always considered enabled (forced-on by the
+    // modal's reset effect); the explicit-enabled flag is also seeded
+    // true for them so this check is a no-op there.
+    if (enabled[p.name] !== true) continue;
     if (typeof v !== "string") continue;
     const trimmed = v.trim();
     if (trimmed === "") continue;

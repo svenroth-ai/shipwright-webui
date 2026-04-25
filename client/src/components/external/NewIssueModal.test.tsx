@@ -411,4 +411,377 @@ describe("NewIssueModal", () => {
       expect(screen.queryByTestId("new-issue-advanced-section")).toBeNull();
     });
   });
+
+  // ── iterate/v030-five-ux-fixes — P1 + P2 + P3 ──
+  describe("v0.3.0 — required out of Advanced (P2)", () => {
+    const PARAM_TASK_ACTION: ActionDefinition = {
+      id: "new-task",
+      label: "New task",
+      kind: "external_launch",
+      command_template: "claude /shipwright-{task.phase} {task.parameters?}",
+      phase_parameters: {
+        build: [
+          {
+            name: "section",
+            label: "Section",
+            type: "string",
+            required: true,
+            placeholder: "planning/03.md",
+          },
+          { name: "from", label: "From", type: "string" },
+        ],
+      },
+    };
+    const PARAM_ACTIONS: ResolvedProjectActions = {
+      ...SAMPLE_ACTIONS,
+      actions: [PARAM_TASK_ACTION, PIPELINE_ACTION],
+      phases: [{ id: "build", label: "Build" }],
+    };
+
+    it("required field is visible WITHOUT clicking the Advanced toggle", () => {
+      renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: PARAM_ACTIONS,
+      });
+      // The required-section wraps required fields and is always visible.
+      expect(screen.getByTestId("new-issue-required-section")).toBeTruthy();
+      expect(screen.getByTestId("paramfield-section")).toBeTruthy();
+      // The Advanced collapsible is closed by default — so its content is
+      // NOT rendered. The required field must be visible from outside.
+      expect(screen.queryByTestId("new-issue-advanced-content")).toBeNull();
+    });
+
+    it("required-section renders the 'Required' badge instead of an enable-checkbox", () => {
+      renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: PARAM_ACTIONS,
+      });
+      expect(
+        screen.getByTestId("paramfield-section-required-badge"),
+      ).toBeTruthy();
+      expect(screen.queryByTestId("paramfield-section-enable")).toBeNull();
+    });
+
+    it("Advanced count shows only OPTIONAL params (excludes required)", () => {
+      renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: PARAM_ACTIONS,
+      });
+      const toggle = screen.getByTestId("new-issue-advanced-toggle");
+      // PARAM_TASK_ACTION has 2 phase_parameters (section required, from optional).
+      // The Advanced count should be 1 (from), not 2.
+      expect(toggle.textContent).toContain("Advanced parameters (1)");
+    });
+
+    it("required+default schema seeds the input with the default", () => {
+      const ACTION_WITH_DEFAULT: ActionDefinition = {
+        ...PARAM_TASK_ACTION,
+        phase_parameters: {
+          build: [
+            {
+              name: "section",
+              label: "Section",
+              type: "string",
+              required: true,
+              default: "planning/01-default.md",
+            },
+          ],
+        },
+      };
+      renderModal({
+        action: ACTION_WITH_DEFAULT,
+        projectActions: { ...PARAM_ACTIONS, actions: [ACTION_WITH_DEFAULT] },
+      });
+      const input = screen
+        .getByTestId("paramfield-section")
+        .querySelector("input") as HTMLInputElement;
+      expect(input.value).toBe("planning/01-default.md");
+    });
+  });
+
+  describe("v0.3.0 — phase-aware AutonomyToggle (P3)", () => {
+    const PHASES_WITH_BUILD_AUTO: Array<{
+      id: string;
+      label: string;
+      supports_autonomy?: boolean;
+    }> = [
+      { id: "build", label: "Build", supports_autonomy: true },
+      { id: "changelog", label: "Changelog" },
+    ];
+    const ACTIONS_WITH_AUTO_PHASES: ResolvedProjectActions = {
+      ...SAMPLE_ACTIONS,
+      phases: PHASES_WITH_BUILD_AUTO,
+    };
+
+    it("Task mode WITH supports_autonomy phase (build) → AutonomyToggle visible", () => {
+      renderModal({
+        action: TASK_ACTION,
+        projectActions: ACTIONS_WITH_AUTO_PHASES,
+      });
+      expect(screen.getByTestId("autonomy-toggle")).toBeTruthy();
+    });
+
+    it("Task mode WITHOUT supports_autonomy phase → AutonomyToggle hidden", () => {
+      // Re-order so changelog is the first / default phase.
+      const PHASES_CHANGELOG_FIRST = [
+        { id: "changelog", label: "Changelog" },
+        { id: "build", label: "Build", supports_autonomy: true },
+      ];
+      renderModal({
+        action: TASK_ACTION,
+        projectActions: {
+          ...SAMPLE_ACTIONS,
+          phases: PHASES_CHANGELOG_FIRST,
+        },
+      });
+      expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+    });
+
+    it("Pipeline mode always renders AutonomyToggle (action-driven)", () => {
+      renderModal({
+        action: PIPELINE_ACTION,
+        projectActions: { ...SAMPLE_ACTIONS, phases: [] },
+      });
+      expect(screen.getByTestId("autonomy-toggle")).toBeTruthy();
+    });
+  });
+
+  describe("v0.3.0 — explicit enable-checkbox per Advanced param (P1)", () => {
+    const ACTION_WITH_OPTIONAL: ActionDefinition = {
+      id: "new-task",
+      label: "New task",
+      kind: "external_launch",
+      command_template: "claude /shipwright-{task.phase} {task.parameters?}",
+      phase_parameters: {
+        build: [
+          {
+            name: "depth",
+            label: "Crawl depth",
+            type: "string",
+            cli_flag: "--depth",
+            value_separator: "space",
+            default: "3",
+          },
+        ],
+      },
+    };
+    const ACTIONS_WITH_OPTIONAL: ResolvedProjectActions = {
+      ...SAMPLE_ACTIONS,
+      actions: [ACTION_WITH_OPTIONAL, PIPELINE_ACTION],
+      phases: [{ id: "build", label: "Build" }],
+    };
+
+    it("optional Advanced param starts with enable-checkbox unchecked + value disabled", async () => {
+      renderModal({
+        action: ACTION_WITH_OPTIONAL,
+        projectActions: ACTIONS_WITH_OPTIONAL,
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      const enable = screen.getByTestId(
+        "paramfield-depth-enable",
+      ) as HTMLInputElement;
+      expect(enable.checked).toBe(false);
+      const valueInput = screen
+        .getByTestId("paramfield-depth")
+        .querySelector("input:not([type='checkbox'])") as HTMLInputElement;
+      expect(valueInput.disabled).toBe(true);
+    });
+
+    it("toggling enable-checkbox ON pre-fills value with schema.default", async () => {
+      renderModal({
+        action: ACTION_WITH_OPTIONAL,
+        projectActions: ACTIONS_WITH_OPTIONAL,
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-depth-enable"));
+      });
+      const valueInput = screen
+        .getByTestId("paramfield-depth")
+        .querySelector("input:not([type='checkbox'])") as HTMLInputElement;
+      expect(valueInput.disabled).toBe(false);
+      expect(valueInput.value).toBe("3");
+    });
+
+    it("disabled optional param with value is NOT in command preview", async () => {
+      renderModal({
+        action: ACTION_WITH_OPTIONAL,
+        projectActions: ACTIONS_WITH_OPTIONAL,
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      // Toggle enable on, then off — leaves value in state but disables.
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-depth-enable"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-depth-enable"));
+      });
+      const preview = screen.getByTestId("command-preview-panel");
+      // After disabling, the --depth flag must not appear in the preview.
+      expect(preview.textContent).not.toContain("--depth");
+    });
+
+    it("React-Query refetch with identical param names does NOT wipe user input (regression guard for HIGH review finding)", async () => {
+      // Simulate the React-Query refetch path: a fresh ResolvedProjectActions
+      // object with structurally identical phase_parameters (same names) but
+      // a new array reference. The reset effect must NOT fire — only schemaKey
+      // (name-derived hash) is in deps.
+      const ACTION_V1: ActionDefinition = {
+        id: "new-task",
+        label: "New task",
+        kind: "external_launch",
+        command_template:
+          "claude /shipwright-{task.phase} {task.parameters?}",
+        phase_parameters: {
+          build: [
+            {
+              name: "depth",
+              label: "Crawl depth",
+              type: "string",
+              cli_flag: "--depth",
+              default: "3",
+            },
+          ],
+        },
+      };
+      const ACTIONS_V1: ResolvedProjectActions = {
+        ...SAMPLE_ACTIONS,
+        actions: [ACTION_V1, PIPELINE_ACTION],
+        phases: [{ id: "build", label: "Build" }],
+      };
+      const qc = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      qc.setQueryData(
+        ["projects"],
+        [
+          {
+            id: "proj-1",
+            name: "demo",
+            path: "/tmp/demo",
+            profile: "supabase-nextjs",
+            status: "active",
+            createdAt: "2026-04-01",
+            lastActive: "2026-04-20",
+          },
+        ],
+      );
+      const { rerender } = render(
+        <MemoryRouter>
+          <QueryClientProvider client={qc}>
+            <NewIssueModal
+              open={true}
+              onOpenChange={vi.fn()}
+              action={ACTION_V1}
+              projectActions={ACTIONS_V1}
+            />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+      // Open Advanced + enable + type a custom value (not the default).
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-depth-enable"));
+      });
+      const input = screen
+        .getByTestId("paramfield-depth")
+        .querySelector("input:not([type='checkbox'])") as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "10" } });
+      });
+      expect(input.value).toBe("10");
+
+      // Simulate a refetch — fresh objects, identical content (same names).
+      const ACTION_V2: ActionDefinition = JSON.parse(
+        JSON.stringify(ACTION_V1),
+      );
+      const ACTIONS_V2: ResolvedProjectActions = {
+        ...ACTIONS_V1,
+        actions: [ACTION_V2, PIPELINE_ACTION],
+      };
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={qc}>
+            <NewIssueModal
+              open={true}
+              onOpenChange={vi.fn()}
+              action={ACTION_V2}
+              projectActions={ACTIONS_V2}
+            />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+      // The user's custom value MUST survive the refetch. If reset fired
+      // on currentSchema identity change, the value would be wiped to
+      // empty (optional fields are not seeded with defaults).
+      const inputAfter = screen
+        .getByTestId("paramfield-depth")
+        .querySelector("input:not([type='checkbox'])") as HTMLInputElement;
+      expect(inputAfter.value).toBe("10");
+    });
+
+    it("sensitive optional param: clearing value on toggle-OFF (audit hardening)", async () => {
+      const SENSITIVE_ACTION: ActionDefinition = {
+        id: "new-task",
+        label: "New task",
+        kind: "external_launch",
+        command_template:
+          "claude /shipwright-{task.phase} {task.parameters?}",
+        phase_parameters: {
+          build: [
+            {
+              name: "token",
+              label: "Auth token",
+              type: "string",
+              cli_flag: "--token",
+              value_separator: "space",
+              sensitive: true,
+            },
+          ],
+        },
+      };
+      renderModal({
+        action: SENSITIVE_ACTION,
+        projectActions: {
+          ...SAMPLE_ACTIONS,
+          actions: [SENSITIVE_ACTION, PIPELINE_ACTION],
+          phases: [{ id: "build", label: "Build" }],
+        },
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      // Enable, type a value.
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-token-enable"));
+      });
+      const input = screen
+        .getByTestId("paramfield-token")
+        .querySelector("input:not([type='checkbox'])") as HTMLInputElement;
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "secret-123" } });
+      });
+      expect(input.value).toBe("secret-123");
+      // Disable — value must be cleared from internal state. Re-enabling
+      // shows an empty input (the sensitive default exception applies).
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-token-enable"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("paramfield-token-enable"));
+      });
+      const inputAfter = screen
+        .getByTestId("paramfield-token")
+        .querySelector("input:not([type='checkbox'])") as HTMLInputElement;
+      expect(inputAfter.value).toBe("");
+    });
+  });
 });
