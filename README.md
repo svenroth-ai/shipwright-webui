@@ -14,6 +14,10 @@ is a read-only observer.
 Extracted from the Shipwright monorepo on 2026-04-24. Full pre-split
 history is preserved; see the `genesis-from-shipwright-v0.3.2` tag.
 
+**Full docs:** [`docs/guide.md`](docs/guide.md) — installation, updates,
+autostart, custom actions for your own slash skills, troubleshooting.
+This README is the quickstart only.
+
 ## Quick start
 
 Prerequisites: Node 20+, npm 10+, Claude Code CLI (any version ≥
