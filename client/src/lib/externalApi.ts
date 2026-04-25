@@ -43,7 +43,7 @@ export interface ExternalTask {
    * TaskDetailHeader prefers `phaseLabel` over the title-regex fallback
    * so the badge reflects the user's explicit choice.
    */
-  actionId?: "new-task" | "new-pipeline" | "new-iterate";
+  actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
   phase?: string;
   phaseLabel?: string;
   description?: string;
@@ -156,7 +156,7 @@ export async function launchTask(
     description?: string;
     autonomy?: "guided" | "autonomous";
     /** 2026-04-23 — action context so server can run full substitution. */
-    actionId?: "new-task" | "new-pipeline" | "new-iterate";
+    actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
     phase?: string;
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
@@ -190,7 +190,7 @@ export async function launchExternalTask(
   args: {
     description?: string;
     autonomy?: "guided" | "autonomous";
-    actionId?: "new-task" | "new-pipeline" | "new-iterate";
+    actionId?: "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
     phase?: string;
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */

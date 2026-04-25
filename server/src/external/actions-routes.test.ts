@@ -153,10 +153,12 @@ describe("actions/preview/stub routes", () => {
       preview: { enabled: boolean; command: string | null };
       diagnostics: unknown[];
     };
+    // v0.4.0 — new-plain action joins the bundle.
     expect(body.actions.map((a) => a.id)).toEqual([
       "new-task",
       "new-pipeline",
       "new-iterate",
+      "new-plain",
     ]);
     // 2026-04-23 — `adopt` phase added to default-actions.json.
     expect(body.phases.length).toBe(10);

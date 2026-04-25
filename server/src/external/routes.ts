@@ -336,8 +336,13 @@ export function createExternalRoutes(args: {
     const actionId =
       body.actionId === "new-task" ||
       body.actionId === "new-pipeline" ||
-      body.actionId === "new-iterate"
-        ? (body.actionId as "new-task" | "new-pipeline" | "new-iterate")
+      body.actionId === "new-iterate" ||
+      body.actionId === "new-plain"
+        ? (body.actionId as
+            | "new-task"
+            | "new-pipeline"
+            | "new-iterate"
+            | "new-plain")
         : undefined;
     const phase =
       typeof body.phase === "string" && body.phase.trim()

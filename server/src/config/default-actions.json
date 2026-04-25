@@ -60,6 +60,14 @@
       "parameters": [
         { "name": "type", "type": "enum", "label": "Change type", "enum": ["feature", "change", "bug"], "cli_flag": "--type", "value_separator": "space", "helpText": "Auto-detected if omitted" }
       ]
+    },
+    {
+      "id": "new-plain",
+      "label": "Plain Claude",
+      "kind": "external_launch",
+      "description": "Plain Claude session in this project's directory. No Shipwright skill — just chat.",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" {plugin.dirs}{task.description?}",
+      "modal_fields": ["title", "description"]
     }
   ],
   "phases": [
