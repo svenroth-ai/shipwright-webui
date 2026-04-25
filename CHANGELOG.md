@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-04-26
+
+### Fixed
+- fix(webui): TaskList (Board view → List) Phase column actually renders the phase. Was hardcoded to `—` since 2026-04-22 with a stale "ADR-045 — deferred" comment. Now uses the same source-priority chain as TaskCard / TaskDetailHeader (server-persisted phase first, title-keyword fallback as last resort, em-dash when neither resolves). Visually identical chips across kanban + list.
+
 ## [0.4.1] - 2026-04-26
 
 ### Fixed
