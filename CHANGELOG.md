@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-04-26
+
+### Fixed
+- fix(webui): phase persists across all launch paths — the launch handler now reads `actionId ?? task.actionId`, `phase ?? task.phase`, `phaseLabel ?? task.phaseLabel`, so subsequent launches via TaskCard / Resume / any path that doesn't carry the full action context re-use the values persisted at create time. Once set, always used.
+- fix(webui): NewIssueModal can no longer submit before the actions catalog resolves. Fast typists previously could trigger a phase-less create when `useProjectActions` was still loading; submit is now gated on `projectActions` being present (and on `currentPhase` for new-task mode).
+- fix(webui): phaseStyle.derivePhaseFromTitle uses word boundaries — `\b(?:design|ui|mockup)\b` no longer matches "ui" inside "webui" or "suite", which previously produced a bogus Design badge for adopt-titled tasks.
+- feat(webui): phaseStyle.derivePhaseFromTitle gained an `adopt` branch with verb-inflection support (adopt, adopted, adopten, adopting, adopts). Explicitly excludes the noun form `adoption` because that signals different user intent.
+- fix(webui): forgotten in v0.4.0 — server `ExternalTask.actionId` union now includes `"new-plain"`.
+
 ## [0.4.0] - 2026-04-25
 
 ### Added
