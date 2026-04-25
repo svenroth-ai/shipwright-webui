@@ -51,6 +51,7 @@ import {
   useCloseExternalTask,
   useDeleteExternalTask,
 } from "../../hooks/useExternalTasks";
+import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 
@@ -306,10 +307,11 @@ function TaskListRow({ task }: { task: ExternalTask }) {
           className="whitespace-nowrap px-4 py-3 text-[11px] text-[var(--color-muted)]"
           data-testid={`task-list-cell-${task.taskId}-phase`}
         >
-          {/* ExternalTask has no `phase` field yet (ADR-045 — deferred).
-              Render an em-dash placeholder so the table keeps a stable
-              column width across states. */}
-          —
+          {/* v0.4.2 — phase badge using the same source-priority chain
+              as TaskCard / TaskDetailHeader: server-persisted task.phase
+              first, title-keyword fallback as a last resort. Stays in
+              sync with the kanban via the shared phaseStyle helpers. */}
+          <PhaseCell task={task} />
         </td>
         <td
           className="hidden whitespace-nowrap px-4 py-3 font-mono text-[11px] text-[var(--color-muted)] opacity-75 md:table-cell"
@@ -390,6 +392,38 @@ function TaskListRow({ task }: { task: ExternalTask }) {
         }}
       />
     </>
+  );
+}
+
+/**
+ * v0.4.2 — phase chip for the List view. Mirrors the TaskCard phase
+ * resolution exactly: persisted task.phase wins, title-keyword fallback
+ * fires only when the task lacks the persisted field. Returns the em-
+ * dash placeholder when neither source resolves so the column keeps a
+ * stable width.
+ */
+function PhaseCell({ task }: { task: ExternalTask }) {
+  const fallback = derivePhaseFromTitle(task.title);
+  const phaseId = task.phase ?? fallback?.id ?? null;
+  const phaseLabel = task.phaseLabel ?? fallback?.label ?? null;
+  if (!phaseId || !phaseLabel) {
+    return <span className="text-[var(--color-muted)]">—</span>;
+  }
+  const style = getPhaseStyle(phaseId);
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${style.cls}`}
+      data-testid={`task-list-phase-${task.taskId}`}
+      data-phase={phaseId}
+      data-phase-source={task.phase ? "task" : "title-fallback"}
+      title={`Phase: ${phaseLabel}`}
+    >
+      <span
+        className={`inline-block h-1.5 w-1.5 rounded-full ${style.dot}`}
+        aria-hidden="true"
+      />
+      {phaseLabel}
+    </span>
   );
 }
 
