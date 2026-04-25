@@ -81,14 +81,19 @@ export function ParamField({
         </label>
         <select
           id={inputId}
-          value={typeof value === "string" ? value : (schema.default as string | undefined) ?? ""}
+          value={typeof value === "string" ? value : ""}
           onChange={(e) => onChange(e.target.value)}
           aria-describedby={schema.helpText ? helpId : undefined}
           className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-white px-3 py-1.5 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
         >
-          {/* Use === undefined (not falsy) so an enum default of "" or 0
-              still suppresses the placeholder option (external review O9). */}
-          {schema.default === undefined && <option value="">Select…</option>}
+          {/* iterate/fix-adopt-prompt-shape — opt-in for ALL param types.
+              Enum dropdown ALWAYS starts at Select…, even when default is
+              defined. The user must explicitly pick to emit a flag. */}
+          <option value="">
+            {schema.default !== undefined
+              ? `Select… (default: ${schema.default})`
+              : "Select…"}
+          </option>
           {enumOptions.map((opt) => (
             <option key={opt} value={opt}>
               {opt}
@@ -116,6 +121,16 @@ export function ParamField({
   const stringValue = typeof value === "string" ? value : "";
   const isSensitive = !!schema.sensitive;
   const showAsPassword = isSensitive && !revealed;
+
+  // iterate/fix-adopt-prompt-shape — Default appears as placeholder hint
+  // when no explicit placeholder is set. Sensitive defaults are NEVER
+  // surfaced as placeholders (external review O11 — defaults could be
+  // tokens in custom configs).
+  const placeholderHint =
+    schema.placeholder ??
+    (!isSensitive && schema.default !== undefined
+      ? `default: ${schema.default}`
+      : undefined);
   return (
     <div className="flex flex-col gap-1" data-testid={`paramfield-${schema.name}`}>
       <label
@@ -131,7 +146,7 @@ export function ParamField({
           type={showAsPassword ? "password" : "text"}
           value={stringValue}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={schema.placeholder}
+          placeholder={placeholderHint}
           // `new-password` is the most defensive autocomplete value: most
           // browsers respect it for sensitive fields and skip the password
           // manager + autofill stash. `off` is widely ignored (external

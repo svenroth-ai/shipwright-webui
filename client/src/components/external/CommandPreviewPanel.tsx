@@ -111,7 +111,6 @@ function buildCommandText(opts: {
   revealSecrets?: boolean;
 }): string {
   const t = opts.title.trim() || "Untitled";
-  const slash = slashFor(opts.mode, opts.phaseId);
   const namePre = namePrefix(opts.mode, opts.phaseLabel);
   const quotedName = `"${namePre}: ${t.replace(/"/g, '\\"')}"`;
   const projectPath = opts.projectPath || "<project-path>";
@@ -120,41 +119,44 @@ function buildCommandText(opts: {
     opts.pluginDirs && opts.pluginDirs.length > 0
       ? ` \\n    --plugin-dir ${opts.pluginDirs.join(" --plugin-dir ")}`
       : "";
-  const autonomyFlag =
-    opts.autonomy === "autonomous" ? ` \\n    --autonomous` : "";
   const desc = opts.description.trim();
-  const descArg = desc
-    ? ` \\n    "${desc.replace(/"/g, '\\"')}"`
-    : "";
 
   // 2026-04-23 — iterate-20260423-launch-cwd-prefix. The pasted command
   // sets cwd via a `cd … && claude …` prefix so the skill runs with the
   // project as working directory regardless of where the terminal was
   // parked. POSIX flavor shown here for legibility; the real server
-  // output is shell-aware (Set-Location for PS, `cd /d` for cmd). The
-  // path is quoted so the preview reads correctly when project paths
-  // contain spaces.
+  // output is shell-aware (Set-Location for PS, `cd /d` for cmd).
   const cdPrefix = `cd "${projectPath}" && `;
 
-  // Live params append after the autonomy flag and before the description
-  // arg — matches the server template ordering
-  // ({plugin.dirs}{task.parameters?}{task.description?}).
-  const paramsFlag =
+  // iterate/fix-adopt-prompt-shape — slash + autonomy + params +
+  // description go INTO ONE quoted initial-prompt arg (matches the
+  // server's {task.initial_prompt} substitution). --add-dir is gone
+  // (cd prefix already sets cwd). Skill flags belong INSIDE this
+  // quoted prompt — Claude treats it as the user's first message in
+  // interactive mode.
+  const innerSlash = slashFor(opts.mode, opts.phaseId);
+  const innerAutonomy = opts.autonomy === "autonomous" ? " --autonomous" : "";
+  const innerParams =
     opts.parameters && opts.parameters.length > 0
       ? opts.parameters
           .map((p) => renderParamToken(p, !opts.revealSecrets))
           .join("")
       : "";
+  const innerDesc = desc ? ` ${desc}` : "";
+  const initialPrompt = `${innerSlash}${innerAutonomy}${innerParams}${innerDesc}`;
+  // Escape embedded `"` in the preview's outer double-quote — the
+  // SERVER uses per-shell quoting (single-quotes for POSIX/PS where
+  // embedded `"` is fine), but the preview always shows double-quotes
+  // as a teaching aid. Without this escape, a description like
+  // `say "hi"` would render as a broken preview line (review fix).
+  const escapedPrompt = initialPrompt.replace(/"/g, '\\"');
 
   return (
-    `$ ${cdPrefix}claude ${slash} \\n` +
-    `    --add-dir ${projectPath} \\n` +
+    `$ ${cdPrefix}claude \\n` +
     `    --session-id ${sessionUuid} \\n` +
     `    --name ${quotedName}` +
     pluginDirsFlag +
-    autonomyFlag +
-    paramsFlag +
-    descArg
+    ` \\n    "${escapedPrompt}"`
   );
 }
 
