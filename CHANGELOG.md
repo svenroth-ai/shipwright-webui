@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-25
+
+### Added
+- feat(webui): Plain Claude session button — a ghost-style icon-only button (Terminal) sits LEFT of the "+ New ▾" split-button. Click opens a slim NewIssueModal variant (Title + Description + Project context only — no Phase, no Autonomy, no Advanced) and creates a `claude --session-id <uuid> --name "<title>"` paste command that drops you straight into a chat scoped to the project's directory. No Shipwright skill, no slash command — just Claude in the right cwd.
+- feat(webui): new bundled action `new-plain` in default-actions.json — uses the legacy `{task.description?}` placeholder so the substituter is untouched. The pasted command pre-seeds the description as Claude's first user message when present.
+
 ## [0.3.2] - 2026-04-25
 
 ### Fixed
