@@ -333,16 +333,16 @@ export function createExternalRoutes(args: {
       body.autonomy === "autonomous" || body.autonomy === "guided"
         ? (body.autonomy as "autonomous" | "guided")
         : undefined;
+    // 2026-04-25 — iterate-custom-actions-generic-mode. The bundled IDs
+    // (`new-task`/`new-pipeline`/`new-iterate`/`new-plain`) are no longer
+    // a hard allowlist; any non-empty action id pulled from the project's
+    // `.webui/actions.json` is accepted. Authoritative validation happens
+    // below via the catalog lookup (`unknown_action_id` 400). The
+    // shape-check here only rejects non-string / empty values so callers
+    // can't smuggle structural garbage into substitutePlaceholders.
     const bodyActionId =
-      body.actionId === "new-task" ||
-      body.actionId === "new-pipeline" ||
-      body.actionId === "new-iterate" ||
-      body.actionId === "new-plain"
-        ? (body.actionId as
-            | "new-task"
-            | "new-pipeline"
-            | "new-iterate"
-            | "new-plain")
+      typeof body.actionId === "string" && body.actionId.trim().length > 0
+        ? body.actionId.trim()
         : undefined;
     const bodyPhase =
       typeof body.phase === "string" && body.phase.trim()
@@ -362,10 +362,7 @@ export function createExternalRoutes(args: {
     // substituted command instead of falling through to the legacy path
     // that loses phase + actionId silently.
     const taskActionId =
-      task.actionId === "new-task" ||
-      task.actionId === "new-pipeline" ||
-      task.actionId === "new-iterate" ||
-      task.actionId === "new-plain"
+      typeof task.actionId === "string" && task.actionId.trim().length > 0
         ? task.actionId
         : undefined;
     const actionId = bodyActionId ?? taskActionId;
