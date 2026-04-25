@@ -10,7 +10,7 @@ Code workflow they already love.
 
 1. [What is the Command Center?](#1-what-is-the-command-center)
 2. [Why copy-paste? The architecture in plain English](#2-why-copy-paste-the-architecture-in-plain-english)
-3. [Recommended setup — VS Code + Warp + Command Center](#3-recommended-setup--vs-code--warp--command-center)
+3. [Recommended setup — Warp + Command Center](#3-recommended-setup--warp--command-center)
 4. [Installation](#4-installation)
 5. [Your first project — step by step](#5-your-first-project--step-by-step)
 6. [Daily workflow](#6-daily-workflow)
@@ -95,13 +95,12 @@ task page so you can paste and start.
 
 ---
 
-## 3. Recommended setup — VS Code + Warp + Command Center
+## 3. Recommended setup — Warp + Command Center
 
-Three windows, three jobs:
+Two extra windows next to your usual editor:
 
 | Window | What it does |
 |---|---|
-| **VS Code** (with the Claude Code extension) | Where you read and edit code. The extension's chat panel works exactly as before. |
 | **[Warp](https://www.warp.dev/) terminal** | Where you actually run Claude after pasting the Command Center's command. Warp is recommended because it gives you a **session tree** (every Claude run as a separate, named tab), a **folder tree** of the current directory, and a side **preview** pane. You can run three projects in parallel and never lose where you are. |
 | **Command Center** (browser tab on `localhost:5173`) | Your status board. See what's done, what's running, what's waiting on you. Open task detail pages to read the live transcript. |
 
