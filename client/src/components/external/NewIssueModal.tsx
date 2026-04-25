@@ -233,19 +233,27 @@ export function NewIssueModal({
     return action.parameters ?? [];
   }, [action, phaseId]);
 
-  // iterate/launch-cli-parameters § 4 — Reset paramValues whenever the
-  // schema source changes (phase / mode / action). Re-seed defaults from
-  // the new schema so the preview reflects them immediately. revealedSecrets
-  // also resets — sensitive reveal is transient by design.
+  // iterate/fix-adopt-prompt-shape — opt-in semantics (Bug 3): defaults
+  // are NOT pre-filled. Strings + booleans + enums all start empty/
+  // unchecked/Select-please. Defaults appear as placeholder text in
+  // ParamField, so the user sees them as hints but must explicitly opt
+  // in to emit. The server no longer auto-injects defaults either —
+  // both layers agree on the opt-in contract (except for required
+  // fields, where the server falls back to the schema default).
+  //
+  // Stable dependency key (review fix OpenAI #5): `currentSchema`
+  // identity changes on every render even when the schema is logically
+  // the same. We hash the param names instead so unrelated rerenders
+  // don't wipe user-entered values.
+  const schemaKey = useMemo(
+    () => currentSchema.map((s) => s.name).join("|"),
+    [currentSchema],
+  );
   useEffect(() => {
     if (!open) return;
-    const seed: Record<string, string | boolean> = {};
-    for (const p of currentSchema) {
-      if (p.default !== undefined) seed[p.name] = p.default;
-    }
-    setParamValues(seed);
+    setParamValues({});
     setRevealedSecrets({});
-  }, [open, currentSchema]);
+  }, [open, schemaKey]);
 
   // Debounced phase classification — only when Task mode and user hasn't overridden.
   useEffect(() => {
@@ -881,22 +889,25 @@ function explicitParamEntries(
   schema: RenderableParamSchema[],
   values: Record<string, string | boolean>,
 ): Record<string, string | boolean> {
+  // iterate/fix-adopt-prompt-shape — opt-in semantics simplified the
+  // forwarding rules: server no longer auto-injects defaults, so the
+  // client just forwards every non-empty user value as-is.
+  //   - Booleans: only forward `true` (false is the natural skip-emit).
+  //   - String/enum: forward when non-empty after trim.
+  // Required-with-default fields work because the modal seeds nothing,
+  // so the user must type/click to satisfy the required gate; once
+  // typed, the value is forwarded.
   const out: Record<string, string | boolean> = {};
   for (const p of schema) {
     const v = values[p.name];
     if (v === undefined) continue;
     if (p.type === "boolean") {
-      // Forward when value differs from default. `default: true` + user
-      // unchecks → must send `false` so server does NOT re-apply default.
       if (v === true) out[p.name] = true;
-      else if (p.default === true) out[p.name] = false;
       continue;
     }
     if (typeof v !== "string") continue;
     const trimmed = v.trim();
     if (trimmed === "") continue;
-    // String/enum: skip when value equals default (server applies it).
-    if (p.default !== undefined && trimmed === String(p.default)) continue;
     out[p.name] = trimmed;
   }
   return out;
