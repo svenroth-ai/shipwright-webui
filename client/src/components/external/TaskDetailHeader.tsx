@@ -51,7 +51,7 @@ import { useLaunchTask } from "../../hooks/useLaunchTask";
 import { useProjects } from "../../hooks/useProjects";
 import { useTaskTranscript } from "../../hooks/useTaskTranscript";
 import { formatRelativeTime } from "../../lib/formatTime";
-import { getPhaseStyle } from "../../lib/phaseStyle";
+import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
 import {
   EditableTaskTitle,
   type EditableTaskTitleHandle,
@@ -219,21 +219,13 @@ export function TaskDetailHeader({ task }: Props) {
       const style = getPhaseStyle(task.phase);
       return { label: task.phaseLabel, cls: style.cls, dot: style.dot };
     }
-    const title = (task.title ?? "").toLowerCase();
-    const fallbackId =
-      /plan/.test(title) ? "plan"
-      : /build|implement|fix/.test(title) ? "build"
-      : /design|ui|mockup/.test(title) ? "design"
-      : /test|qa|e2e/.test(title) ? "test"
-      : /iterate/.test(title) ? "iterate"
-      : null;
-    if (!fallbackId) return null;
-    const style = getPhaseStyle(fallbackId);
-    return {
-      label: fallbackId.charAt(0).toUpperCase() + fallbackId.slice(1),
-      cls: style.cls,
-      dot: style.dot,
-    };
+    // v0.3.1 — title-fallback extracted to phaseStyle.ts so TaskCard
+    // shares the exact same heuristic. Keep the fallback in sync across
+    // both surfaces with one helper.
+    const guess = derivePhaseFromTitle(task.title);
+    if (!guess) return null;
+    const style = getPhaseStyle(guess.id);
+    return { label: guess.label, cls: style.cls, dot: style.dot };
   }, [task.phase, task.phaseLabel, task.title]);
 
   // Compute "last event" from transcript ticks (polling). When transcript is

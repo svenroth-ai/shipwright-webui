@@ -74,4 +74,28 @@ describe("TaskCard — phase badge (AC-B)", () => {
     const badge = screen.getByTestId("task-card-phase-task-1");
     expect(badge.textContent).toContain("Future");
   });
+
+  // v0.3.1 — title-keyword fallback so legacy tasks (launched before
+  // phase-on-create wiring) still get a badge that matches what
+  // TaskDetailHeader shows.
+  it("derives phase from title when task.phase + task.phaseLabel are missing", () => {
+    renderCard(baseTask({ title: "Build login flow" }));
+    const badge = screen.getByTestId("task-card-phase-task-1");
+    expect(badge.textContent).toContain("Build");
+    expect(badge.dataset.phase).toBe("build");
+    expect(badge.dataset.phaseSource).toBe("title-fallback");
+  });
+
+  it("server-persisted task.phase wins over title-fallback (e.g. compliance task titled 'audit drift')", () => {
+    renderCard(
+      baseTask({
+        title: "audit drift",
+        phase: "compliance",
+        phaseLabel: "Compliance",
+      }),
+    );
+    const badge = screen.getByTestId("task-card-phase-task-1");
+    expect(badge.textContent).toContain("Compliance");
+    expect(badge.dataset.phaseSource).toBe("task");
+  });
 });
