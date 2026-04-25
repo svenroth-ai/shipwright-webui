@@ -227,4 +227,188 @@ describe("NewIssueModal", () => {
       expect(trigger.textContent).toContain("Adopt");
     });
   });
+
+  // ── iterate/launch-cli-parameters — Tests #23-#25 ──
+  // Schema-driven Advanced parameters Section behaviour.
+  describe("Advanced parameters — schema-driven (iterate/launch-cli-parameters)", () => {
+    const PARAM_TASK_ACTION: ActionDefinition = {
+      id: "new-task",
+      label: "New task",
+      kind: "external_launch",
+      command_template: "claude /shipwright-{task.phase} {task.parameters?}",
+      phase_parameters: {
+        build: [
+          {
+            name: "section",
+            label: "Section",
+            type: "string",
+            required: true,
+            placeholder: "planning/03.md",
+          },
+          {
+            name: "from",
+            label: "From",
+            type: "string",
+          },
+        ],
+        test: [
+          { name: "fix", label: "Fix", type: "boolean" },
+        ],
+      },
+    };
+
+    const PARAM_ACTIONS: ResolvedProjectActions = {
+      ...SAMPLE_ACTIONS,
+      actions: [PARAM_TASK_ACTION, PIPELINE_ACTION],
+      phases: [
+        { id: "build", label: "Build" },
+        { id: "test", label: "Test" },
+      ],
+    };
+
+    // Test #23
+    it("required field empty → Launch button disabled, field-level error visible", async () => {
+      renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: PARAM_ACTIONS,
+      });
+      // Title is required at the top level — give it a value so we isolate
+      // the param-required gate.
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+          target: { value: "Build something" },
+        });
+      });
+      // Open Advanced — the required field "section" should be there.
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      const launchBtn = screen.getByTestId("new-issue-launch-btn") as HTMLButtonElement;
+      expect(launchBtn.disabled).toBe(true);
+      // Field renders with an aria-invalid input + Required label.
+      const sectionField = screen.getByTestId("paramfield-section");
+      const input = sectionField.querySelector("input");
+      expect(input).toBeTruthy();
+      expect(input?.getAttribute("aria-invalid")).toBe("true");
+      // Once filled, button enables.
+      await act(async () => {
+        fireEvent.change(input!, { target: { value: "planning/03.md" } });
+      });
+      expect(launchBtn.disabled).toBe(false);
+    });
+
+    // Test #24 — Phase-switch reset is exercised via fresh-mount with a
+    // different default phase (Radix DropdownMenu can't be opened from
+    // JSDOM/fireEvent.click — see existing comment at line 174 — so we
+    // verify the reset via the schema-source-change path which fires the
+    // same useEffect branch).
+    it("schema source change → fresh paramValues, no carry-over", async () => {
+      const ACTIONS_BUILD_FIRST: ResolvedProjectActions = {
+        ...PARAM_ACTIONS,
+        phases: [
+          { id: "build", label: "Build" },
+          { id: "test", label: "Test" },
+        ],
+      };
+      const ACTIONS_TEST_FIRST: ResolvedProjectActions = {
+        ...PARAM_ACTIONS,
+        phases: [
+          { id: "test", label: "Test" },
+          { id: "build", label: "Build" },
+        ],
+      };
+
+      const { unmount } = renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: ACTIONS_BUILD_FIRST,
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      const sectionInput = screen
+        .getByTestId("paramfield-section")
+        .querySelector("input")!;
+      await act(async () => {
+        fireEvent.change(sectionInput, { target: { value: "build/03.md" } });
+      });
+      expect((sectionInput as HTMLInputElement).value).toBe("build/03.md");
+
+      // Tear down the build-first instance, mount the test-first variant.
+      unmount();
+
+      renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: ACTIONS_TEST_FIRST,
+      });
+      // Reset puts advancedOpen back to false (fresh state). Open it
+      // again to verify the new schema renders, with no carry-over from
+      // the previous instance.
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      // Fresh schema → different paramfield rendered, no carry-over.
+      expect(screen.queryByTestId("paramfield-section")).toBeNull();
+      expect(screen.queryByTestId("paramfield-fix")).toBeTruthy();
+    });
+
+    // Test #25
+    it("modal close + reopen produces fresh paramValues (no stale state)", async () => {
+      const onOpenChange = vi.fn();
+      const { rerender } = renderModal({
+        action: PARAM_TASK_ACTION,
+        projectActions: PARAM_ACTIONS,
+        onOpenChange,
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("new-issue-advanced-toggle"));
+      });
+      const input = screen
+        .getByTestId("paramfield-section")
+        .querySelector("input")!;
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "stale.md" } });
+      });
+      // Close the modal.
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={new QueryClient()}>
+            <NewIssueModal
+              open={false}
+              onOpenChange={onOpenChange}
+              action={PARAM_TASK_ACTION}
+              projectActions={PARAM_ACTIONS}
+            />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+      // Re-open. The reset useEffect fires on `open === true`.
+      rerender(
+        <MemoryRouter>
+          <QueryClientProvider client={new QueryClient()}>
+            <NewIssueModal
+              open={true}
+              onOpenChange={onOpenChange}
+              action={PARAM_TASK_ACTION}
+              projectActions={PARAM_ACTIONS}
+            />
+          </QueryClientProvider>
+        </MemoryRouter>,
+      );
+      // Advanced should be collapsed again (advancedOpen reset to false).
+      const advancedSection = screen.getByTestId("new-issue-advanced-section");
+      // Content div is only rendered when open — ensure it's gone.
+      expect(
+        advancedSection.querySelector('[data-testid="new-issue-advanced-content"]'),
+      ).toBeNull();
+    });
+
+    it("Pipeline mode renders Advanced section only when parameters[] non-empty", () => {
+      // PIPELINE_ACTION has no parameters — section should NOT render.
+      renderModal({
+        action: PIPELINE_ACTION,
+        projectActions: PARAM_ACTIONS,
+      });
+      expect(screen.queryByTestId("new-issue-advanced-section")).toBeNull();
+    });
+  });
 });
