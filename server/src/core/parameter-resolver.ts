@@ -157,13 +157,28 @@ function resolveOne(
   schema: ParamSchema,
   rawValue: string | boolean | undefined,
 ): ResolveOneOk | ResolverError {
-  // Default-injection: if user value is missing/empty, fall back to schema.default.
+  // iterate/fix-adopt-prompt-shape § 4 — opt-in semantics for OPTIONAL
+  // params: defaults are UI hints, NOT auto-applied. Only user-explicit
+  // values are emitted. This fixes the v0.2.0 bug where defaults like
+  // `crawl-max-depth: 3` were silently appended even when the user
+  // wanted nothing.
+  //
+  // EXCEPTION (review-fix Gemini #2): for REQUIRED params with a
+  // default, the server DOES fall back to the default — otherwise the
+  // user would see the default in the placeholder, leave it untouched,
+  // and get a 400 "required_parameter_missing". The fallback only fires
+  // for `required: true` so optional defaults stay opt-in.
   let value: string | boolean | undefined = rawValue;
-  if (value === undefined || (typeof value === "string" && value.trim() === "")) {
+  if (
+    schema.required &&
+    schema.default !== undefined &&
+    (value === undefined ||
+      (typeof value === "string" && value.trim() === ""))
+  ) {
     value = schema.default;
   }
 
-  // Required-check after default-injection.
+  // Required-check (against value, which now includes the required+default fallback above).
   if (schema.required) {
     const empty =
       value === undefined ||
