@@ -59,6 +59,7 @@ import { classifyPhase } from "../../lib/classifyPhase";
 import { UNASSIGNED_PROJECT_ID } from "../../lib/projectIds";
 import { AutonomyToggle, type AutonomyValue } from "./AutonomyToggle";
 import { ParamField } from "./ParamField";
+import type { PreviewParam } from "./CommandPreviewPanel";
 import type { RenderableParamSchema } from "../../types/action-schema";
 import { ProjectContextStrip } from "./ProjectContextStrip";
 import { CommandPreviewPanel } from "./CommandPreviewPanel";
@@ -632,6 +633,7 @@ export function NewIssueModal({
                   phaseLabel={
                     mode === "new-task" ? currentPhase?.label : undefined
                   }
+                  parameters={paramsToPreview(currentSchema, paramValues)}
                 />
               </FieldLabel>
 
@@ -816,6 +818,50 @@ function modeSubheading(mode: Mode): string {
   if (mode === "new-iterate")
     return "Lightweight change on a completed project. Save it to the Backlog, or Launch now to copy the command and start immediately.";
   return "Plain Claude — no Shipwright pipeline. Save it to the Backlog, or Launch now to copy the command and start immediately.";
+}
+
+/**
+ * Map (schema, values) → PreviewParam[] for the live CommandPreviewPanel.
+ *
+ * Mirrors the server's resolveParameters logic but is simpler — the
+ * preview is approximate (server is authoritative on the actual command).
+ * Skips:
+ *   - boolean params whose effective value is not true
+ *   - enum params with cli_flag_map but no entry for the chosen value
+ *     (matches deploy.target=dev "skip emission" semantic)
+ *   - string params whose effective value is empty after trim
+ */
+function paramsToPreview(
+  schema: RenderableParamSchema[],
+  values: Record<string, string | boolean>,
+): PreviewParam[] {
+  const out: PreviewParam[] = [];
+  for (const s of schema) {
+    let v: string | boolean | undefined = values[s.name];
+    if (v === undefined || (typeof v === "string" && v.trim() === "")) {
+      v = s.default;
+    }
+    if (s.type === "boolean") {
+      if (v !== true || !s.cli_flag) continue;
+      out.push({ cli_flag: s.cli_flag, separator: "none" });
+      continue;
+    }
+    if (typeof v !== "string") continue;
+    const trimmed = v.trim();
+    if (trimmed === "") continue;
+    let flag: string | undefined = s.cli_flag;
+    if (s.type === "enum" && s.cli_flag_map) {
+      flag = s.cli_flag_map[trimmed];
+    }
+    if (!flag) continue;
+    out.push({
+      cli_flag: flag,
+      value: trimmed,
+      separator: s.value_separator ?? "space",
+      sensitive: s.sensitive,
+    });
+  }
+  return out;
 }
 
 /**

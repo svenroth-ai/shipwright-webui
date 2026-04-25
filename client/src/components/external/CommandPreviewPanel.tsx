@@ -22,8 +22,31 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export type CommandPreviewMode = "new-task" | "new-pipeline" | "new-iterate";
+
+/**
+ * Pre-resolved CLI parameter for preview rendering. Mirrors the server's
+ * ResolvedParam — kept independent here so the preview path doesn't need
+ * to import server types or duplicate the validation logic.
+ *
+ * iterate/preview-params-render: render selected params live in the
+ * preview so what-you-see equals what-you-paste.
+ */
+export interface PreviewParam {
+  cli_flag: string;
+  value?: string;
+  separator: "space" | "equals" | "none";
+  sensitive?: boolean;
+}
+
+/**
+ * Fixed-length mask for sensitive values in the preview. 8 chars,
+ * length-independent — preserving original token length would leak
+ * entropy to anyone shoulder-surfing or screen-recording the modal.
+ */
+const SECRET_MASK = "********";
 
 export interface CommandPreviewPanelProps {
   mode: CommandPreviewMode;
@@ -40,9 +63,25 @@ export interface CommandPreviewPanelProps {
   phaseLabel?: string;
   /** Plugin dirs to include as space-separated --plugin-dir flags. Optional. */
   pluginDirs?: string[];
+  /**
+   * Live CLI parameters from the modal's Advanced section. Rendered in
+   * declared order; sensitive values masked with a fixed-length placeholder
+   * unless the in-panel reveal toggle is on.
+   */
+  parameters?: PreviewParam[];
   /** Debounce the text update so rapid typing doesn't re-layout every keystroke.
    *  Matches classifyPhase's 250ms cadence. */
   debounceMs?: number;
+}
+
+/** Render a single param in the same shape used by `formatParameter` on the server. */
+function renderParamToken(p: PreviewParam, mask: boolean): string {
+  const value = p.value;
+  if (value === undefined) return ` ${p.cli_flag}`;
+  const display = mask && p.sensitive ? SECRET_MASK : value;
+  if (p.separator === "equals") return ` ${p.cli_flag}=${display}`;
+  if (p.separator === "none") return ` ${p.cli_flag}${display}`;
+  return ` ${p.cli_flag} ${display}`;
 }
 
 function slashFor(mode: CommandPreviewMode, phaseId?: string): string {
@@ -67,6 +106,9 @@ function buildCommandText(opts: {
   phaseId?: string;
   phaseLabel?: string;
   pluginDirs?: string[];
+  parameters?: PreviewParam[];
+  /** When false, sensitive params are rendered with the SECRET_MASK. */
+  revealSecrets?: boolean;
 }): string {
   const t = opts.title.trim() || "Untitled";
   const slash = slashFor(opts.mode, opts.phaseId);
@@ -94,6 +136,16 @@ function buildCommandText(opts: {
   // contain spaces.
   const cdPrefix = `cd "${projectPath}" && `;
 
+  // Live params append after the autonomy flag and before the description
+  // arg — matches the server template ordering
+  // ({plugin.dirs}{task.parameters?}{task.description?}).
+  const paramsFlag =
+    opts.parameters && opts.parameters.length > 0
+      ? opts.parameters
+          .map((p) => renderParamToken(p, !opts.revealSecrets))
+          .join("")
+      : "";
+
   return (
     `$ ${cdPrefix}claude ${slash} \\n` +
     `    --add-dir ${projectPath} \\n` +
@@ -101,6 +153,7 @@ function buildCommandText(opts: {
     `    --name ${quotedName}` +
     pluginDirsFlag +
     autonomyFlag +
+    paramsFlag +
     descArg
   );
 }
@@ -121,6 +174,7 @@ export function CommandPreviewPanel({
   phaseId,
   phaseLabel,
   pluginDirs,
+  parameters,
   debounceMs = 250,
 }: CommandPreviewPanelProps) {
   const [debouncedInputs, setDebouncedInputs] = useState({
@@ -129,13 +183,23 @@ export function CommandPreviewPanel({
     autonomy,
     phaseId,
     phaseLabel,
+    parameters,
   });
   useEffect(() => {
     const handle = setTimeout(() => {
-      setDebouncedInputs({ title, description, autonomy, phaseId, phaseLabel });
+      setDebouncedInputs({ title, description, autonomy, phaseId, phaseLabel, parameters });
     }, debounceMs);
     return () => clearTimeout(handle);
-  }, [title, description, autonomy, phaseId, phaseLabel, debounceMs]);
+  }, [title, description, autonomy, phaseId, phaseLabel, parameters, debounceMs]);
+
+  // In-panel reveal state for sensitive params. Local + transient — collapses
+  // back to false on every full-component remount (modal close → reopen
+  // unmounts the panel, so this is automatic).
+  const [revealSecrets, setRevealSecrets] = useState(false);
+  const hasSensitive = useMemo(
+    () => (debouncedInputs.parameters ?? []).some((p) => p.sensitive),
+    [debouncedInputs.parameters],
+  );
 
   const commandText = useMemo(
     () =>
@@ -149,8 +213,10 @@ export function CommandPreviewPanel({
         phaseId: debouncedInputs.phaseId,
         phaseLabel: debouncedInputs.phaseLabel,
         pluginDirs,
+        parameters: debouncedInputs.parameters,
+        revealSecrets,
       }),
-    [mode, debouncedInputs, projectPath, sessionUuid, pluginDirs],
+    [mode, debouncedInputs, projectPath, sessionUuid, pluginDirs, revealSecrets],
   );
 
   return (
@@ -163,6 +229,18 @@ export function CommandPreviewPanel({
         borderLeft: `4px solid ${stripeColorFor(mode)}`,
       }}
     >
+      {hasSensitive && (
+        <button
+          type="button"
+          data-testid="command-preview-reveal"
+          onClick={() => setRevealSecrets((s) => !s)}
+          aria-label={revealSecrets ? "Hide secrets" : "Show secrets"}
+          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-[4px] bg-[#2a2a2a] px-2 py-1 text-[10px] font-medium text-[#9ca3af] hover:bg-[#383838] hover:text-[#e6e6e6]"
+        >
+          {revealSecrets ? <EyeOff size={11} /> : <Eye size={11} />}
+          {revealSecrets ? "Hide" : "Show"} secrets
+        </button>
+      )}
       <pre
         className="font-mono text-[12px] leading-[1.7] text-[#e6e6e6]"
         style={{ whiteSpace: "nowrap" }}
