@@ -159,6 +159,8 @@ export async function launchTask(
     actionId?: "new-task" | "new-pipeline" | "new-iterate";
     phase?: string;
     phaseLabel?: string;
+    /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
+    parameters?: Record<string, string | boolean>;
   } = {},
 ): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
   return await httpJson<{ task: ExternalTask; commands: CopyCommandForms }>(
@@ -191,6 +193,8 @@ export async function launchExternalTask(
     actionId?: "new-task" | "new-pipeline" | "new-iterate";
     phase?: string;
     phaseLabel?: string;
+    /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
+    parameters?: Record<string, string | boolean>;
   } = {},
 ): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
   return await launchTask(taskId, args);
@@ -276,6 +280,8 @@ export async function getDiagnostics(): Promise<DiagnosticsSnapshot> {
 // Section 03 (iterate 3) — actions schema + preview + actions-stub wrappers.
 // -----------------------------------------------------------------------------
 
+import type { RenderableParamSchema } from "../types/action-schema";
+
 export interface ActionDefinition {
   id: string;
   label: string;
@@ -283,6 +289,10 @@ export interface ActionDefinition {
   description?: string;
   command_template?: string;
   modal_fields?: string[];
+  /** Phase-independent CLI parameters (new-iterate / new-pipeline). */
+  parameters?: RenderableParamSchema[];
+  /** Phase-bound CLI parameters keyed by phase id (new-task). */
+  phase_parameters?: Record<string, RenderableParamSchema[]>;
 }
 
 export interface PhaseDefinition {

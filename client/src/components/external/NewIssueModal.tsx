@@ -58,6 +58,8 @@ import { useProjects } from "../../hooks/useProjects";
 import { classifyPhase } from "../../lib/classifyPhase";
 import { UNASSIGNED_PROJECT_ID } from "../../lib/projectIds";
 import { AutonomyToggle, type AutonomyValue } from "./AutonomyToggle";
+import { ParamField } from "./ParamField";
+import type { RenderableParamSchema } from "../../types/action-schema";
 import { ProjectContextStrip } from "./ProjectContextStrip";
 import { CommandPreviewPanel } from "./CommandPreviewPanel";
 import type { Project } from "../../types";
@@ -196,6 +198,11 @@ export function NewIssueModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // iterate/launch-cli-parameters § 4 — schema-driven Advanced parameters.
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [paramValues, setParamValues] = useState<Record<string, string | boolean>>({});
+  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, boolean>>({});
+
   // Reset form every time the modal opens.
   useEffect(() => {
     if (!open) return;
@@ -207,7 +214,37 @@ export function NewIssueModal({
     setAutonomy(projectActions?.defaults.autonomy ?? "guided");
     setPhaseId(phases[0]?.id ?? "");
     setSelectedProjectId(scopedProject?.id ?? realProjects[0]?.id ?? "");
+    // iterate/launch-cli-parameters § 4 — full reset of Advanced state.
+    setAdvancedOpen(false);
+    setParamValues({});
+    setRevealedSecrets({});
   }, [open, projectActions, phases, scopedProject, realProjects]);
+
+  // iterate/launch-cli-parameters § 4 — Schema-Lookup. Switch on the
+  // *shape* of the action (does it expose phase_parameters?) rather than
+  // the mode string — keeps the lookup correct if a future non-task
+  // action gains phase-bound parameters (external review O4).
+  const currentSchema = useMemo<RenderableParamSchema[]>(() => {
+    if (!action) return [];
+    if (action.phase_parameters) {
+      return action.phase_parameters[phaseId] ?? [];
+    }
+    return action.parameters ?? [];
+  }, [action, phaseId]);
+
+  // iterate/launch-cli-parameters § 4 — Reset paramValues whenever the
+  // schema source changes (phase / mode / action). Re-seed defaults from
+  // the new schema so the preview reflects them immediately. revealedSecrets
+  // also resets — sensitive reveal is transient by design.
+  useEffect(() => {
+    if (!open) return;
+    const seed: Record<string, string | boolean> = {};
+    for (const p of currentSchema) {
+      if (p.default !== undefined) seed[p.name] = p.default;
+    }
+    setParamValues(seed);
+    setRevealedSecrets({});
+  }, [open, currentSchema]);
 
   // Debounced phase classification — only when Task mode and user hasn't overridden.
   useEffect(() => {
@@ -228,8 +265,25 @@ export function NewIssueModal({
 
   const effectiveProjectId =
     scopedProject?.id ?? selectedProjectId ?? realProjects[0]?.id ?? "";
+
+  // iterate/launch-cli-parameters § 4 — Required-validation. A required
+  // string/enum is "filled" when value is a non-empty string; required
+  // boolean is "filled" when value === true (rare, but possible).
+  const requiredMissing = useMemo(() => {
+    return currentSchema.some((s) => {
+      if (!s.required) return false;
+      const v = paramValues[s.name];
+      if (s.type === "boolean") return v !== true;
+      if (typeof v === "string") return v.trim() === "";
+      return v === undefined;
+    });
+  }, [currentSchema, paramValues]);
+
   const canSubmit =
-    !submitting && title.trim().length > 0 && Boolean(effectiveProjectId);
+    !submitting &&
+    title.trim().length > 0 &&
+    Boolean(effectiveProjectId) &&
+    !requiredMissing;
 
   const selectedProject = useMemo<Project | undefined>(
     () => realProjects.find((p) => p.id === effectiveProjectId),
@@ -287,6 +341,7 @@ export function NewIssueModal({
           actionId?: "new-task" | "new-pipeline" | "new-iterate";
           phase?: string;
           phaseLabel?: string;
+          parameters?: Record<string, string | boolean>;
         } = {
           actionId: mode,
         };
@@ -298,6 +353,10 @@ export function NewIssueModal({
           body.phase = currentPhase.id;
           body.phaseLabel = currentPhase.label;
         }
+        // iterate/launch-cli-parameters § 5 — only send entries the user
+        // explicitly populated. Server applies defaults for omitted keys.
+        const explicit = explicitParamEntries(currentSchema, paramValues);
+        if (Object.keys(explicit).length > 0) body.parameters = explicit;
         const { commands } = await launchExternalTask(task.taskId, body);
         onTaskCreated?.();
 
@@ -335,6 +394,9 @@ export function NewIssueModal({
       onTaskCreated,
       onToast,
       writeToClipboard,
+      currentPhase,
+      currentSchema,
+      paramValues,
     ],
   );
 
@@ -493,6 +555,62 @@ export function NewIssueModal({
                   className="min-h-[108px] w-full resize-y rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
                 />
               </FieldLabel>
+
+              {/* iterate/launch-cli-parameters § 4 — Advanced parameters
+                  collapsible. Rendered only when the active schema has
+                  ≥1 entry. Reset triggers (open / phase / mode) live
+                  with the state declarations above. */}
+              {currentSchema.length > 0 && (
+                <div data-testid="new-issue-advanced-section">
+                  <button
+                    type="button"
+                    data-testid="new-issue-advanced-toggle"
+                    onClick={() => setAdvancedOpen((p) => !p)}
+                    aria-expanded={advancedOpen}
+                    className="flex w-full items-center justify-between rounded-[var(--radius-button,8px)] px-2 py-1.5 text-[12px] font-medium text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                  >
+                    <span>
+                      Advanced parameters ({currentSchema.length})
+                    </span>
+                    <ChevronDown
+                      size={12}
+                      className={`transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {advancedOpen && (
+                    <div
+                      data-testid="new-issue-advanced-content"
+                      className="mt-2 flex flex-col gap-3 rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f9f6f3)] px-3 py-3"
+                    >
+                      {currentSchema.map((p) => {
+                        const v = paramValues[p.name];
+                        const empty =
+                          (p.type === "boolean" && v !== true) ||
+                          (p.type !== "boolean" &&
+                            (typeof v !== "string" || v.trim() === ""));
+                        return (
+                          <ParamField
+                            key={p.name}
+                            schema={p}
+                            value={v}
+                            onChange={(next) =>
+                              setParamValues((prev) => ({ ...prev, [p.name]: next }))
+                            }
+                            revealed={revealedSecrets[p.name] === true}
+                            onRevealToggle={() =>
+                              setRevealedSecrets((prev) => ({
+                                ...prev,
+                                [p.name]: !prev[p.name],
+                              }))
+                            }
+                            showRequiredError={!!p.required && empty}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Command preview — live-updated, debounced 250ms. */}
               <FieldLabel
@@ -698,4 +816,42 @@ function modeSubheading(mode: Mode): string {
   if (mode === "new-iterate")
     return "Lightweight change on a completed project. Save it to the Backlog, or Launch now to copy the command and start immediately.";
   return "Plain Claude — no Shipwright pipeline. Save it to the Backlog, or Launch now to copy the command and start immediately.";
+}
+
+/**
+ * Drop schema entries that the user did NOT explicitly populate. The
+ * server is the source of truth for default-injection (plan § 3), so
+ * we only forward "user actually touched this" values.
+ *
+ * Critical: when `default !== undefined`, we must forward any value
+ * that DIFFERS from the default (including `false`) — otherwise the
+ * server re-injects the default and the user's negative choice gets
+ * silently reverted (Gemini external-review HIGH finding).
+ *
+ * Booleans without a default (or default=false): only forward `true`,
+ * because the server treats undefined as "skip emit" already.
+ */
+function explicitParamEntries(
+  schema: RenderableParamSchema[],
+  values: Record<string, string | boolean>,
+): Record<string, string | boolean> {
+  const out: Record<string, string | boolean> = {};
+  for (const p of schema) {
+    const v = values[p.name];
+    if (v === undefined) continue;
+    if (p.type === "boolean") {
+      // Forward when value differs from default. `default: true` + user
+      // unchecks → must send `false` so server does NOT re-apply default.
+      if (v === true) out[p.name] = true;
+      else if (p.default === true) out[p.name] = false;
+      continue;
+    }
+    if (typeof v !== "string") continue;
+    const trimmed = v.trim();
+    if (trimmed === "") continue;
+    // String/enum: skip when value equals default (server applies it).
+    if (p.default !== undefined && trimmed === String(p.default)) continue;
+    out[p.name] = trimmed;
+  }
+  return out;
 }
