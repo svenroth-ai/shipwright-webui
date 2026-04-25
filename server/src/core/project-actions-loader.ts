@@ -31,6 +31,7 @@ import {
   checkContractVersion,
   ACTIONS_SCHEMA_VERSION,
 } from "./contract-version.js";
+import type { ParamSchema } from "../types/action-schema.js";
 
 export interface ActionDefinition {
   id: string;
@@ -39,6 +40,18 @@ export interface ActionDefinition {
   description?: string;
   command_template: string;
   modal_fields?: string[];
+  /**
+   * Phase-independent CLI parameters (used by new-pipeline / new-iterate).
+   * Mutually independent from `phase_parameters` — actions normally use
+   * one or the other.
+   */
+  parameters?: ParamSchema[];
+  /**
+   * Phase-bound CLI parameters keyed by phase id (used by new-task).
+   * Schema lookup at launch time is `phase_parameters[selectedPhase]`.
+   * Keys must exist in `phases[].id`.
+   */
+  phase_parameters?: Record<string, ParamSchema[]>;
 }
 
 export interface PhaseDefinition {

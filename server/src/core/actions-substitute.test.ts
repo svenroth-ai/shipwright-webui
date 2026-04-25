@@ -468,3 +468,184 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     expect(result).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// {task.parameters?} substitution — iterate/launch-cli-parameters § 2 + Tests #1-#7
+// ---------------------------------------------------------------------------
+
+import { InvalidParameterError } from "./actions-substitute.js";
+import type { ResolvedParam } from "../types/action-schema.js";
+
+function ctxWithParams(parameters: ResolvedParam[]): SubstitutionContext {
+  return { ...baseCtx(), task: { ...baseCtx().task, parameters } };
+}
+
+describe("actions-substitute — {task.parameters?} substitution", () => {
+  it("renders empty string when parameters is undefined or empty (#1)", () => {
+    const ctx = baseCtx();
+    for (const shell of SHELL_FORMS) {
+      expect(substitutePlaceholders("X{task.parameters?}Y", ctx, shell)).toBe("XY");
+    }
+    const ctx2 = ctxWithParams([]);
+    for (const shell of SHELL_FORMS) {
+      expect(substitutePlaceholders("X{task.parameters?}Y", ctx2, shell)).toBe("XY");
+    }
+  });
+
+  it("renders a single boolean flag with leading space (#1)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--dry-run", separator: "none" },
+    ]);
+    for (const shell of SHELL_FORMS) {
+      expect(substitutePlaceholders("X{task.parameters?}", ctx, shell)).toBe(
+        "X --dry-run",
+      );
+    }
+  });
+
+  it("renders multiple flags joined by single spaces (#1)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--dry-run", separator: "none" },
+      { cli_flag: "--scope", value: "library", separator: "space" },
+      { cli_flag: "--fix", separator: "none" },
+    ]);
+    // qPs always wraps in single quotes; that's the documented contract.
+    expect(substitutePlaceholders("X{task.parameters?}", ctx, "powershell")).toBe(
+      "X --dry-run --scope 'library' --fix",
+    );
+  });
+
+  it("escapes string values with shell-specific quoting (#2)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--note", value: 'has "quote" and space', separator: "space" },
+    ]);
+    // PowerShell uses single quotes; embedded double quotes pass through.
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "powershell")).toBe(
+      ` --note 'has "quote" and space'`,
+    );
+    // CMD wraps in double quotes; embedded double quotes are escaped as \".
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "cmd")).toBe(
+      ` --note "has \\"quote\\" and space"`,
+    );
+    // POSIX single-quotes, embedded single quotes use the standard ' close ' \\' ' open trick.
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "posix")).toBe(
+      ` --note 'has "quote" and space'`,
+    );
+  });
+
+  it("escapes single quotes in string values (#2)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--note", value: "it's me", separator: "space" },
+    ]);
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "posix")).toBe(
+      ` --note 'it'\\''s me'`,
+    );
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "powershell")).toBe(
+      ` --note 'it''s me'`,
+    );
+  });
+
+  it("rejects a parameter value containing a newline (#3)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--note", value: "line1\nline2", separator: "space" },
+    ]);
+    expect(() =>
+      substitutePlaceholders("{task.parameters?}", ctx, "posix"),
+    ).toThrow(InvalidParameterError);
+  });
+
+  it("rejects a parameter value containing a carriage return (#3)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--note", value: "line1\rline2", separator: "space" },
+    ]);
+    expect(() =>
+      substitutePlaceholders("{task.parameters?}", ctx, "cmd"),
+    ).toThrow(InvalidParameterError);
+  });
+
+  it("equals separator escapes only the value, not the flag=value composite (#4)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "--key", value: "the value", separator: "equals" },
+    ]);
+    // Format must be `--key='the value'`, NOT `'--key=the value'`.
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "powershell")).toBe(
+      ` --key='the value'`,
+    );
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "cmd")).toBe(
+      ` --key="the value"`,
+    );
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "posix")).toBe(
+      ` --key='the value'`,
+    );
+  });
+
+  it("none separator emits cli_flag<value> with no space — `@<file>` form (#5)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "@", value: "planning/03-section.md", separator: "none" },
+    ]);
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "powershell")).toBe(
+      ` @'planning/03-section.md'`,
+    );
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "cmd")).toBe(
+      ` @"planning/03-section.md"`,
+    );
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "posix")).toBe(
+      ` @'planning/03-section.md'`,
+    );
+  });
+
+  it("preserves schema order: [section, from] renders @file before --from (#7)", () => {
+    const ctx = ctxWithParams([
+      { cli_flag: "@", value: "planning/03.md", separator: "none" },
+      { cli_flag: "--from", value: "03", separator: "space" },
+    ]);
+    expect(substitutePlaceholders("{task.parameters?}", ctx, "posix")).toBe(
+      ` @'planning/03.md' --from '03'`,
+    );
+  });
+
+  it("adjacency: {plugin.dirs}{task.parameters?}{task.description?} all populated (#6)", () => {
+    const ctx: SubstitutionContext = {
+      ...baseCtx({
+        description: "do the thing",
+        parameters: [
+          { cli_flag: "--dry-run", separator: "none" },
+        ],
+      }),
+      pluginDirs: ["/plugins/foo"],
+    };
+    const out = substitutePlaceholders(
+      "claude{plugin.dirs}{task.parameters?}{task.description?}",
+      ctx,
+      "posix",
+    );
+    // Expect: claude --plugin-dir '/plugins/foo' --dry-run 'do the thing'
+    // No double spaces, no dangling separators.
+    expect(out).not.toMatch(/  /);
+    expect(out).not.toMatch(/\\\n/); // no leftover line continuations
+    expect(out).toContain(`--plugin-dir '/plugins/foo'`);
+    expect(out).toContain("--dry-run");
+    expect(out).toContain(`'do the thing'`);
+  });
+
+  it("adjacency: all three optional suffixes empty produces no extra spaces (#6)", () => {
+    const ctx = baseCtx(); // no parameters, no description
+    const out = substitutePlaceholders(
+      "claude{plugin.dirs}{task.parameters?}{task.description?}",
+      ctx,
+      "posix",
+    );
+    expect(out).toBe("claude");
+  });
+});
+
+describe("actions-substitute — validateTemplate dry-run with parameters", () => {
+  it("accepts a template containing {task.parameters?} (synthetic dry-run)", () => {
+    const result = validateTemplate(
+      "claude /shipwright-{task.phase} {task.parameters?}",
+      "new-task",
+      ["build"],
+    );
+    expect(result).toBeNull();
+  });
+});

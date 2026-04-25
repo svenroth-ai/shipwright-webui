@@ -462,13 +462,16 @@ describe("actions/preview/stub routes", () => {
 
     it("substitutes {task.description?} into the command when provided", async () => {
       const { task } = await createTask();
+      // iterate/launch-cli-parameters: phase=build now has a required `section`
+      // parameter; using `test` keeps this back-compat description test scoped
+      // to behaviour the new schema doesn't gate on.
       const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           actionId: "new-task",
-          phase: "build",
-          phaseLabel: "Build",
+          phase: "test",
+          phaseLabel: "Test",
           description: "fix-the-login-redirect",
         }),
       });
@@ -724,6 +727,345 @@ describe("actions/preview/stub routes", () => {
       };
       expect(body.task.projectId).toBe("unassigned");
       expect(body.task.phase).toBeUndefined();
+    });
+  });
+
+  // ── iterate/launch-cli-parameters — Tests #14-#21 ──
+  // POST /tasks/:id/launch parameters resolution + body validation.
+  describe("launch parameters resolution (iterate/launch-cli-parameters)", () => {
+    /**
+     * Write a custom `.webui/actions.json` to the project tmpdir so the
+     * loader picks it up over the bundled default. clearActionsCache()
+     * runs in beforeEach (line 115) so each test gets a fresh load.
+     */
+    function writeWebuiActions(actions: object): void {
+      const dir = path.join(projectPath, ".webui");
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        path.join(dir, "actions.json"),
+        JSON.stringify(actions, null, 2),
+        "utf-8",
+      );
+      clearActionsCache();
+    }
+
+    async function createTask(title = "t1", projectId = PROJECT_ID) {
+      const r = await app.request("/api/external/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, cwd: projectPath, projectId }),
+      });
+      return (await r.json()) as { task: { taskId: string } };
+    }
+
+    function actionsWithBuildParams(): object {
+      return {
+        schemaVersion: 1,
+        defaults: { autonomy: "guided" },
+        actions: [
+          {
+            id: "new-task",
+            label: "New task",
+            kind: "external_launch",
+            command_template:
+              "claude /shipwright-{task.phase} --add-dir {project.path}{task.parameters?}",
+            modal_fields: ["title", "phase", "description"],
+            phase_parameters: {
+              build: [
+                {
+                  name: "section",
+                  label: "Section",
+                  type: "string",
+                  cli_flag: "@",
+                  value_separator: "none",
+                  required: true,
+                  pattern: "^[A-Za-z0-9_./-]+\\.md$",
+                },
+                {
+                  name: "from",
+                  label: "From",
+                  type: "string",
+                  cli_flag: "--from",
+                  value_separator: "space",
+                  pattern: "^[0-9]+$",
+                },
+              ],
+              test: [
+                { name: "fix", label: "Fix", type: "boolean", cli_flag: "--fix" },
+              ],
+              deploy: [
+                {
+                  name: "target",
+                  label: "Target",
+                  type: "enum",
+                  enum: ["dev", "prod", "rollback"],
+                  cli_flag_map: { prod: "--prod", rollback: "--rollback" },
+                  default: "dev",
+                },
+              ],
+              adopt: [
+                {
+                  name: "crawl-max-depth",
+                  label: "Depth",
+                  type: "string",
+                  cli_flag: "--crawl-max-depth",
+                  value_separator: "space",
+                  pattern: "^[0-9]+$",
+                  default: "3",
+                },
+                {
+                  name: "crawl-auth-token",
+                  label: "Token",
+                  type: "string",
+                  cli_flag: "--crawl-auth-token",
+                  value_separator: "space",
+                  sensitive: true,
+                },
+              ],
+            },
+          },
+        ],
+        phases: [
+          { id: "build", label: "Build" },
+          { id: "test", label: "Test" },
+          { id: "deploy", label: "Deploy" },
+          { id: "adopt", label: "Adopt" },
+          { id: "design", label: "Design" }, // present but no schema entry
+        ],
+        preview: { enabled: false },
+      };
+    }
+
+    // Test #14
+    it("POST /launch with unknown param key → 400", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "test",
+          phaseLabel: "Test",
+          parameters: { "totally-not-real": true },
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string; name?: string };
+      expect(body.error).toBe("unknown_parameter");
+      expect(body.name).toBe("totally-not-real");
+    });
+
+    // Test #15
+    it("POST /launch with phase that has no schema entry but body has parameters → 400 (phase_mismatch fail-closed)", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "design", // present in phases but not in phase_parameters
+          phaseLabel: "Design",
+          parameters: { fix: true },
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string };
+      expect(body.error).toBe("phase_has_no_parameter_schema");
+    });
+
+    // Test #16
+    it("POST /launch with target=dev → command emits no --prod / --rollback (cli_flag_map skip)", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "deploy",
+          phaseLabel: "Deploy",
+          parameters: { target: "dev" },
+        }),
+      });
+      expect(r.status).toBe(200);
+      const body = (await r.json()) as { commands: { posix: string } };
+      expect(body.commands.posix).not.toContain("--prod");
+      expect(body.commands.posix).not.toContain("--rollback");
+    });
+
+    // Test #17 — sensitive log redaction.
+    it("POST /launch with sensitive param → server log redacted (no raw token)", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      // Capture console.warn / console.info / console.log calls.
+      const logSpies = [
+        vi.spyOn(console, "log").mockImplementation(() => {}),
+        vi.spyOn(console, "info").mockImplementation(() => {}),
+        vi.spyOn(console, "warn").mockImplementation(() => {}),
+        vi.spyOn(console, "error").mockImplementation(() => {}),
+      ];
+      const SECRET = "supersecret_TOKEN_12345";
+      try {
+        const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actionId: "new-task",
+            phase: "adopt",
+            phaseLabel: "Adopt",
+            parameters: { "crawl-auth-token": SECRET },
+          }),
+        });
+        expect(r.status).toBe(200);
+        const body = (await r.json()) as { commands: { posix: string } };
+        // Response itself MUST contain the cleartext (clipboard contract).
+        expect(body.commands.posix).toContain(SECRET);
+        // But no console.* call may contain the raw token.
+        for (const spy of logSpies) {
+          for (const call of spy.mock.calls) {
+            const joined = call.map((a) => String(a)).join(" ");
+            expect(joined).not.toContain(SECRET);
+          }
+        }
+      } finally {
+        for (const spy of logSpies) spy.mockRestore();
+      }
+    });
+
+    // Test #18
+    it("POST /launch with String-param violating pattern → 400 with field name", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "adopt",
+          phaseLabel: "Adopt",
+          parameters: { "crawl-max-depth": "abc" }, // pattern is ^[0-9]+$
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string; name?: string };
+      expect(body.error).toBe("parameter_pattern_mismatch");
+      expect(body.name).toBe("crawl-max-depth");
+    });
+
+    // Test #19 — Default-Server-Side-Apply
+    it("POST /launch without parameters body → server applies defaults (--crawl-max-depth 3)", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "adopt",
+          phaseLabel: "Adopt",
+          // No parameters at all — defaults must still apply.
+        }),
+      });
+      expect(r.status).toBe(200);
+      const body = (await r.json()) as { commands: { posix: string } };
+      expect(body.commands.posix).toContain("--crawl-max-depth");
+      expect(body.commands.posix).toContain("3");
+    });
+
+    // Test #20 — Required-Server-Validation
+    it("POST /launch for build without `section` → 400 missing required parameter", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "build",
+          phaseLabel: "Build",
+          // section is required, omitted here
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string; name?: string };
+      expect(body.error).toBe("required_parameter_missing");
+      expect(body.name).toBe("section");
+    });
+
+    // Test #21 — Control-Char rejection.
+    it("POST /launch with control-char in string param → 400", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "build",
+          phaseLabel: "Build",
+          parameters: { section: "ok.md evil" }, // null-byte
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string };
+      expect(body.error).toBe("parameter_invalid_character");
+    });
+
+    it("POST /launch with bidi-override char in string param → 400", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "build",
+          phaseLabel: "Build",
+          parameters: { section: "ok.md‮evil.md" }, // RLO bidi-override
+        }),
+      });
+      expect(r.status).toBe(400);
+      const body = (await r.json()) as { error: string };
+      expect(body.error).toBe("parameter_invalid_character");
+    });
+
+    it("POST /launch with all valid build params → 200 + command contains @section + --from", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const { task } = await createTask();
+      const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionId: "new-task",
+          phase: "build",
+          phaseLabel: "Build",
+          parameters: { section: "planning/03.md", from: "03" },
+        }),
+      });
+      expect(r.status).toBe(200);
+      const body = (await r.json()) as { commands: { posix: string } };
+      expect(body.commands.posix).toMatch(/@'?planning\/03\.md'?/);
+      expect(body.commands.posix).toMatch(/--from '?03'?/);
+    });
+
+    it("POST /launch GET-back action metadata exposes parameters/phase_parameters fields", async () => {
+      writeWebuiActions(actionsWithBuildParams());
+      const r = await app.request(
+        `/api/external/projects/${PROJECT_ID}/actions`,
+      );
+      expect(r.status).toBe(200);
+      const body = (await r.json()) as {
+        actions: Array<{
+          id: string;
+          parameters?: unknown[];
+          phase_parameters?: Record<string, unknown[]>;
+        }>;
+      };
+      const newTask = body.actions.find((a) => a.id === "new-task")!;
+      expect(newTask.phase_parameters).toBeDefined();
+      expect(Object.keys(newTask.phase_parameters!)).toContain("build");
     });
   });
 });
