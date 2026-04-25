@@ -50,6 +50,14 @@ export interface SchemaError {
 
 const VALID_PARAM_TYPES = new Set<ParamType>(["boolean", "enum", "string"]);
 const PARAMETERS_PLACEHOLDER = "{task.parameters?}";
+/**
+ * iterate/fix-adopt-prompt-shape § 1 — actions can satisfy the
+ * "schema → template references parameters" check by EITHER using the
+ * legacy `{task.parameters?}` placeholder OR the new
+ * `{task.initial_prompt}` placeholder (which embeds parameters into
+ * the quoted initial-prompt string).
+ */
+const INITIAL_PROMPT_PLACEHOLDER = "{task.initial_prompt}";
 
 /**
  * Modal field allowlist (per AD-03.13). `complexity:radio:small,medium,large`
@@ -170,18 +178,28 @@ function validateActionParameters(
   const hasPhaseParams =
     !!action.phase_parameters &&
     Object.values(action.phase_parameters).some((arr) => arr.length > 0);
-  const hasPlaceholder = action.command_template?.includes(PARAMETERS_PLACEHOLDER);
+  const hasParamsPlaceholder =
+    action.command_template?.includes(PARAMETERS_PLACEHOLDER) ?? false;
+  const hasInitialPromptPlaceholder =
+    action.command_template?.includes(INITIAL_PROMPT_PLACEHOLDER) ?? false;
+  const hasAnyPlaceholder = hasParamsPlaceholder || hasInitialPromptPlaceholder;
 
-  // Template-Konsistenz: parameters defined but no {task.parameters?} → fail.
-  if ((hasParams || hasPhaseParams) && !hasPlaceholder) {
+  // Template-Konsistenz: parameters defined but neither placeholder → fail.
+  // Either {task.parameters?} (legacy) or {task.initial_prompt} (new in
+  // iterate/fix-adopt-prompt-shape) satisfies the requirement.
+  if ((hasParams || hasPhaseParams) && !hasAnyPlaceholder) {
     errors.push({
       code: "missing_parameters_placeholder",
       actionId: action.id,
     });
   }
 
-  // Inverse warning: placeholder present but no params/phase_params.
-  if (!hasParams && !hasPhaseParams && hasPlaceholder) {
+  // Inverse warning: a parameter-bearing placeholder is present but no
+  // parameters/phase_params defined. Only fires for the legacy
+  // {task.parameters?} (which would be a no-op); {task.initial_prompt}
+  // is meaningful even without parameters (it still emits the slash
+  // command itself).
+  if (!hasParams && !hasPhaseParams && hasParamsPlaceholder) {
     errors.push({
       code: "orphan_parameters_placeholder",
       actionId: action.id,
@@ -324,6 +342,22 @@ function validateParamArray(
           default: param.default,
         });
       }
+    }
+
+    // iterate/fix-adopt-prompt-shape — boolean params with default:true
+    // are unrepresentable under opt-in semantics: an unchecked checkbox
+    // means "no flag emitted", so the default-true becomes effectively
+    // unreachable. Reject at load time so users don't author broken
+    // schemas. Required-boolean-default-true is rejected separately
+    // below (the only escape is required+default fallback for STRINGS).
+    if (param.type === "boolean" && param.default === true) {
+      errors.push({
+        code: "invalid_default_value",
+        actionId,
+        name: param.name,
+        default: param.default,
+        reason: "boolean default:true is unrepresentable under opt-in semantics",
+      });
     }
   }
 }

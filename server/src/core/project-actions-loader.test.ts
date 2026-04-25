@@ -237,19 +237,20 @@ describe("project-actions-loader — loadBundledDefault (pure)", () => {
     expect(d.phases.some((p) => p.id === "adopt")).toBe(true);
   });
 
-  // 2026-04-23 — iterate-20260423-cli-flag-fix. Regression guard: the
-  // bundled command templates MUST use `--add-dir` (a real Claude CLI flag,
-  // verified via `claude --help`) rather than `--project-root` (which does
-  // not exist and causes `error: unknown option '--project-root'` when the
-  // user pastes the copied command).
-  it("command_templates use --add-dir, not --project-root", () => {
+  // iterate/fix-adopt-prompt-shape — bundled templates dropped --add-dir
+  // because {cd.prefix} already changes the shell's cwd into the project
+  // root. --add-dir only grants tool-access to ADDITIONAL paths outside
+  // the cwd, which the bundled actions don't need. Regression guard
+  // ensures we don't accidentally re-introduce --project-root (which
+  // never existed as a real CLI flag) or --add-dir (now redundant).
+  it("command_templates do not use --project-root or --add-dir", () => {
     const d = loadBundledDefault();
     for (const action of d.actions) {
       const tpl = action.command_template ?? "";
       expect(tpl, `action ${action.id} must not use --project-root`).not.toContain(
         "--project-root",
       );
-      expect(tpl, `action ${action.id} must use --add-dir`).toContain(
+      expect(tpl, `action ${action.id} must not use --add-dir (redundant with cd.prefix)`).not.toContain(
         "--add-dir",
       );
     }

@@ -649,3 +649,244 @@ describe("actions-substitute — validateTemplate dry-run with parameters", () =
     expect(result).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// {task.initial_prompt} — iterate/fix-adopt-prompt-shape § 1
+// ---------------------------------------------------------------------------
+
+import { UnknownActionError } from "./actions-substitute.js";
+
+function ctxFor(actionId: string, overrides: Partial<SubstitutionContext["task"]> = {}): SubstitutionContext {
+  return {
+    ...baseCtx(),
+    task: { ...baseCtx().task, ...overrides },
+    actionId,
+    // initial_prompt branch validates phase against allowedPhaseIds for new-task.
+    allowedPhaseIds: new Set(["build", "test", "design", "adopt", "deploy", "changelog", "compliance"]),
+  };
+}
+
+describe("actions-substitute — {task.initial_prompt} basic shape", () => {
+  it("renders /shipwright-{phase} for new-task wrapped in shell quotes (POSIX)", () => {
+    const ctx = ctxFor("new-task", { phase: "build" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-build'",
+    );
+  });
+
+  it("renders /shipwright-iterate for new-iterate (POSIX)", () => {
+    const ctx = ctxFor("new-iterate");
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-iterate'",
+    );
+  });
+
+  it("renders /shipwright-run for new-pipeline (POSIX)", () => {
+    const ctx = ctxFor("new-pipeline");
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-run'",
+    );
+  });
+
+  it("throws UnknownActionError for unknown actionId", () => {
+    const ctx = ctxFor("custom-action");
+    expect(() =>
+      substitutePlaceholders("{task.initial_prompt}", ctx, "posix"),
+    ).toThrow(UnknownActionError);
+  });
+
+  it("uses correct shell quote per form", () => {
+    const ctx = ctxFor("new-iterate");
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "powershell")).toBe(
+      "'/shipwright-iterate'",
+    );
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "cmd")).toBe(
+      `"/shipwright-iterate"`,
+    );
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-iterate'",
+    );
+  });
+});
+
+describe("actions-substitute — {task.initial_prompt} composition", () => {
+  it("appends --autonomous when autonomy=autonomous", () => {
+    const ctx = ctxFor("new-pipeline", { autonomy: "autonomous" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-run --autonomous'",
+    );
+  });
+
+  it("omits --autonomous when autonomy=guided or undefined", () => {
+    const ctxGuided = ctxFor("new-pipeline", { autonomy: "guided" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctxGuided, "posix")).toBe(
+      "'/shipwright-run'",
+    );
+  });
+
+  it("appends parameters in declared order", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "adopt",
+      parameters: [
+        { cli_flag: "--dry-run", separator: "none" },
+        { cli_flag: "--scope", value: "full_app", separator: "space" },
+      ],
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-adopt --dry-run --scope full_app'",
+    );
+  });
+
+  it("appends description as raw trailing text", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "test",
+      description: "run vitest suite",
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-test run vitest suite'",
+    );
+  });
+
+  it("composes slash + autonomy + params + description in that order", () => {
+    const ctx = ctxFor("new-iterate", {
+      autonomy: "autonomous",
+      parameters: [
+        { cli_flag: "--type", value: "bug", separator: "space" },
+      ],
+      description: "fix-the-thing",
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-iterate --autonomous --type bug fix-the-thing'",
+    );
+  });
+
+  it("matches the user-provided adopt schema", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "adopt",
+      parameters: [
+        { cli_flag: "--dry-run", separator: "none" },
+        { cli_flag: "--scope", value: "full_app", separator: "space" },
+        { cli_flag: "--planning-split", value: "01-command-center", separator: "space" },
+      ],
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-adopt --dry-run --scope full_app --planning-split 01-command-center'",
+    );
+  });
+});
+
+describe("actions-substitute — {task.initial_prompt} cross-shell special chars", () => {
+  it("POSIX: $, `, \\\\, !, ^, &, |, <, >, (, ) in description are inhibited by single-quote wrap", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "build",
+      description: "$VAR `cmd` \\path !x ^a &b |c <d >e (f) g",
+    });
+    const out = substitutePlaceholders("{task.initial_prompt}", ctx, "posix");
+    // Whole content wrapped in single-quotes — no shell expansion possible.
+    expect(out.startsWith("'/shipwright-build")).toBe(true);
+    expect(out.endsWith("'")).toBe(true);
+    expect(out).toContain("$VAR");
+    expect(out).toContain("`cmd`");
+  });
+
+  it("POSIX: single quote in description gets standard '\\'' escape", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "build",
+      description: "it's done",
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      `'/shipwright-build it'\\''s done'`,
+    );
+  });
+
+  it("PowerShell: single quote in description gets PS doubling escape", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "build",
+      description: "it's done",
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "powershell")).toBe(
+      `'/shipwright-build it''s done'`,
+    );
+  });
+
+  it("cmd: double quote in description gets backslash escape", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "build",
+      description: 'say "hi"',
+    });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "cmd")).toBe(
+      `"/shipwright-build say \\"hi\\""`,
+    );
+  });
+
+  it("POSIX: special chars in param value are inside the outer single-quote", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "adopt",
+      parameters: [
+        { cli_flag: "--note", value: "$HOME and `pwd`", separator: "space" },
+      ],
+    });
+    const out = substitutePlaceholders("{task.initial_prompt}", ctx, "posix");
+    expect(out).toBe("'/shipwright-adopt --note $HOME and `pwd`'");
+  });
+
+  it("rejects newline in description (analog to existing behaviour)", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "build",
+      description: "line1\nline2",
+    });
+    expect(() =>
+      substitutePlaceholders("{task.initial_prompt}", ctx, "posix"),
+    ).toThrow(InvalidDescriptionError);
+  });
+
+  it("rejects newline in any param value", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "adopt",
+      parameters: [{ cli_flag: "--note", value: "a\nb", separator: "space" }],
+    });
+    expect(() =>
+      substitutePlaceholders("{task.initial_prompt}", ctx, "posix"),
+    ).toThrow(InvalidParameterError);
+  });
+});
+
+describe("actions-substitute — {task.initial_prompt} integration with full template", () => {
+  it("renders the full bundled new-task command shape", () => {
+    const ctx = ctxFor("new-task", {
+      phase: "adopt",
+      phase_label: "Adopt",
+      title: "audit drift",
+      parameters: [
+        { cli_flag: "--dry-run", separator: "none" },
+        { cli_flag: "--scope", value: "full_app", separator: "space" },
+      ],
+    });
+    ctx.project.path = "/home/sven/app";
+    const template =
+      `{cd.prefix}claude --session-id {task.uuid} --name "{task.phase_label}: {task.title}" {plugin.dirs} {task.initial_prompt}`;
+    const out = substitutePlaceholders(template, ctx, "posix");
+    // The prompt is the LAST argument, single-quoted; --add-dir is gone.
+    expect(out).toContain("cd '/home/sven/app' && claude");
+    expect(out).toContain("--session-id");
+    // The bundled --name template uses literal `"..."` around two
+    // separately-escaped placeholders — that's pre-existing behaviour.
+    expect(out).toContain("--name");
+    expect(out).toContain("'Adopt'");
+    expect(out).toContain("'audit drift'");
+    expect(out).not.toContain("--add-dir");
+    expect(out).not.toContain(" /shipwright-adopt "); // no slash command directly after `claude`
+    expect(out).toMatch(/'\/shipwright-adopt --dry-run --scope full_app'$/);
+  });
+});
+
+describe("validateTemplate with {task.initial_prompt}", () => {
+  it("accepts a template using the new placeholder", () => {
+    const result = validateTemplate(
+      `{cd.prefix}claude --session-id {task.uuid} --name "{task.phase_label}: {task.title}" {plugin.dirs} {task.initial_prompt}`,
+      "new-task",
+      ["build"],
+    );
+    expect(result).toBeNull();
+  });
+});

@@ -954,8 +954,11 @@ describe("actions/preview/stub routes", () => {
       expect(body.name).toBe("crawl-max-depth");
     });
 
-    // Test #19 — Default-Server-Side-Apply
-    it("POST /launch without parameters body → server applies defaults (--crawl-max-depth 3)", async () => {
+    // iterate/fix-adopt-prompt-shape — opt-in semantics: defaults are
+    // UI hints only, NEVER auto-injected server-side. v0.2.0 had the
+    // opposite behaviour (test #19 expected `--crawl-max-depth 3` from
+    // schema default); the fix is the inverse expectation.
+    it("POST /launch without parameters body → no defaults emitted (opt-in only)", async () => {
       writeWebuiActions(actionsWithBuildParams());
       const { task } = await createTask();
       const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
@@ -965,13 +968,13 @@ describe("actions/preview/stub routes", () => {
           actionId: "new-task",
           phase: "adopt",
           phaseLabel: "Adopt",
-          // No parameters at all — defaults must still apply.
+          // No parameters → server emits NO --crawl-max-depth even though
+          // the schema declares default: "3".
         }),
       });
       expect(r.status).toBe(200);
       const body = (await r.json()) as { commands: { posix: string } };
-      expect(body.commands.posix).toContain("--crawl-max-depth");
-      expect(body.commands.posix).toContain("3");
+      expect(body.commands.posix).not.toContain("--crawl-max-depth");
     });
 
     // Test #20 — Required-Server-Validation

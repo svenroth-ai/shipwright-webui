@@ -112,6 +112,17 @@ export class InvalidParameterError extends Error {
   }
 }
 
+export class UnknownActionError extends Error {
+  readonly actionId: string;
+  constructor(actionId: string) {
+    super(
+      `Action id "${actionId}" is not one of the bundled actions ("new-task", "new-iterate", "new-pipeline"). The {task.initial_prompt} placeholder hardcodes the slash-command shape per known actionId; custom actions must use the legacy {task.parameters?} / {task.description?} placeholders instead.`,
+    );
+    this.name = "UnknownActionError";
+    this.actionId = actionId;
+  }
+}
+
 export class UnknownPhaseError extends Error {
   readonly phase: string;
   constructor(phase: string) {
@@ -146,9 +157,36 @@ const ALLOWED_PLACEHOLDERS = new Set([
   "task.phase_label",
   "task.autonomy_flag?",
   "task.parameters?",
+  "task.initial_prompt",
   "plugin.dirs",
   "cd.prefix",
 ]);
+
+/**
+ * iterate/fix-adopt-prompt-shape § 1 — slash-command shapes per bundled
+ * actionId. The substituter's {task.initial_prompt} branch dispatches on
+ * ctx.actionId. Custom actions outside this set must NOT use the
+ * placeholder (UnknownActionError).
+ */
+function buildSlashCommand(actionId: string, phase: string): string | null {
+  if (actionId === "new-task") return `/shipwright-${phase}`;
+  if (actionId === "new-iterate") return `/shipwright-iterate`;
+  if (actionId === "new-pipeline") return `/shipwright-run`;
+  return null;
+}
+
+/**
+ * iterate/fix-adopt-prompt-shape § 1 — render a single ResolvedParam
+ * RAW (no shell escape) for use INSIDE {task.initial_prompt}. The outer
+ * `q()` wraps the entire prompt and handles all per-shell escaping in one
+ * place; nested escaping would corrupt the result.
+ */
+function formatParameterRaw(p: ResolvedParam): string {
+  if (p.value === undefined) return ` ${p.cli_flag}`;
+  if (p.separator === "equals") return ` ${p.cli_flag}=${p.value}`;
+  if (p.separator === "none") return ` ${p.cli_flag}${p.value}`;
+  return ` ${p.cli_flag} ${p.value}`;
+}
 
 function pickEscaper(shellForm: ShellForm): (v: string) => string {
   if (shellForm === "powershell") return qPs;
@@ -247,6 +285,44 @@ function substituteOne(
       const params = ctx.task.parameters;
       if (!params || params.length === 0) return "";
       return params.map((p) => formatParameter(p, q)).join("");
+    }
+    case "task.initial_prompt": {
+      // iterate/fix-adopt-prompt-shape § 1 — build slash + autonomy +
+      // params + description as ONE raw inner string, then shell-quote
+      // the whole thing as a single argument. Skill flags belong INSIDE
+      // this quoted prompt (Claude treats it as the user's first
+      // message in interactive mode), not as Claude CLI flags.
+      //
+      // Phase validation: new-task uses {ctx.task.phase} in the slash;
+      // an unknown phase would silently emit /shipwright-<garbage>. The
+      // legacy `task.phase` placeholder branch already throws
+      // UnknownPhaseError; we re-do the check here because the new
+      // placeholder bypasses that branch entirely.
+      if (
+        ctx.actionId === "new-task" &&
+        ctx.task.phase &&
+        !ctx.allowedPhaseIds.has(ctx.task.phase)
+      ) {
+        throw new UnknownPhaseError(ctx.task.phase);
+      }
+      const slash = buildSlashCommand(ctx.actionId, ctx.task.phase);
+      if (!slash) {
+        throw new UnknownActionError(ctx.actionId);
+      }
+      let inner = slash;
+      if (ctx.task.autonomy === "autonomous") {
+        inner += " --autonomous";
+      }
+      if (ctx.task.parameters && ctx.task.parameters.length > 0) {
+        for (const p of ctx.task.parameters) {
+          inner += formatParameterRaw(p);
+        }
+      }
+      const desc = ctx.task.description?.trim();
+      if (desc) {
+        inner += ` ${desc}`;
+      }
+      return q(inner);
     }
     case "plugin.dirs": {
       const dirs = ctx.pluginDirs;
