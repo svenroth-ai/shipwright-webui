@@ -39,6 +39,7 @@
  */
 
 import { qPs, qCmd, qPosix, toPosixPath, buildCdPrefix } from "./launcher.js";
+import type { ResolvedParam } from "../types/action-schema.js";
 
 export type ShellForm = "powershell" | "cmd" | "posix";
 
@@ -54,6 +55,13 @@ export interface SubstitutionContext {
     phase: string;
     phase_label: string;
     autonomy?: "guided" | "autonomous";
+    /**
+     * Pre-resolved CLI parameters from the route handler. Empty array
+     * and `undefined` are treated identically (no flags emitted).
+     * The substituter trusts cli_flag has been validated against the
+     * allowlist; values are still per-shell escaped here.
+     */
+    parameters?: ResolvedParam[];
   };
   pluginDirs: string[];
   /**
@@ -95,6 +103,15 @@ export class InvalidDescriptionError extends Error {
   }
 }
 
+export class InvalidParameterError extends Error {
+  readonly cli_flag: string;
+  constructor(cli_flag: string, reason: string) {
+    super(`Invalid parameter value for ${cli_flag}: ${reason}`);
+    this.name = "InvalidParameterError";
+    this.cli_flag = cli_flag;
+  }
+}
+
 export class UnknownPhaseError extends Error {
   readonly phase: string;
   constructor(phase: string) {
@@ -128,6 +145,7 @@ const ALLOWED_PLACEHOLDERS = new Set([
   "task.phase",
   "task.phase_label",
   "task.autonomy_flag?",
+  "task.parameters?",
   "plugin.dirs",
   "cd.prefix",
 ]);
@@ -137,6 +155,43 @@ function pickEscaper(shellForm: ShellForm): (v: string) => string {
   if (shellForm === "cmd") return qCmd;
   if (shellForm === "posix") return qPosix;
   throw new UnsupportedShellError(shellForm);
+}
+
+/**
+ * Render a single ResolvedParam to its shell-token form. Always begins
+ * with a leading space so the join() in the `task.parameters?` branch
+ * stays clean — adjacent placeholders like `{plugin.dirs}{task.parameters?}`
+ * collapse correctly via the post-substitute whitespace pass.
+ *
+ * Format per separator:
+ *   none  + no value           → ` <flag>`            (boolean)
+ *   space + value              → ` <flag> <q(value)>` (most flags)
+ *   equals + value             → ` <flag>=<q(value)>` (q wraps the VALUE only)
+ *   none  + value              → ` <flag><q(value)>`  (positional `@<file>`)
+ *
+ * Pre-flight throws InvalidParameterError on \n / \r in the value to
+ * preserve the single-line copy-paste invariant (analog to
+ * task.description? handling).
+ */
+function formatParameter(
+  p: ResolvedParam,
+  q: (v: string) => string,
+): string {
+  const value = p.value;
+  if (value !== undefined && /[\r\n]/.test(value)) {
+    throw new InvalidParameterError(p.cli_flag, "value cannot contain newlines");
+  }
+
+  if (value === undefined) {
+    // Boolean / valueless flag.
+    return ` ${p.cli_flag}`;
+  }
+
+  const escaped = q(value);
+  if (p.separator === "equals") return ` ${p.cli_flag}=${escaped}`;
+  if (p.separator === "none") return ` ${p.cli_flag}${escaped}`;
+  // Default and "space".
+  return ` ${p.cli_flag} ${escaped}`;
 }
 
 function transformPath(shellForm: ShellForm, p: string): string {
@@ -187,6 +242,11 @@ function substituteOne(
         return ` \\\n    --autonomous`;
       }
       return "";
+    }
+    case "task.parameters?": {
+      const params = ctx.task.parameters;
+      if (!params || params.length === 0) return "";
+      return params.map((p) => formatParameter(p, q)).join("");
     }
     case "plugin.dirs": {
       const dirs = ctx.pluginDirs;
@@ -263,6 +323,20 @@ export function substitutePlaceholders(
   // fails identically on bad input.
   if (ctx.task.description && /[\r\n]/.test(ctx.task.description)) {
     throw new InvalidDescriptionError();
+  }
+
+  // Pre-flight reject of parameter newlines (analog to description). The
+  // route layer should have caught these already, but this makes the
+  // substituter fail-safe regardless of upstream discipline.
+  if (ctx.task.parameters) {
+    for (const p of ctx.task.parameters) {
+      if (p.value !== undefined && /[\r\n]/.test(p.value)) {
+        throw new InvalidParameterError(
+          p.cli_flag,
+          "value cannot contain newlines",
+        );
+      }
+    }
   }
 
   // Regex matches `{anything-up-to-closing-brace}` with no nesting. The
@@ -342,6 +416,11 @@ export function validateTemplate(
       title: "dry run",
       phase: phaseIds[0] ?? "dry-run-phase",
       phase_label: "Dry Run",
+      // Synthetic parameters so {task.parameters?} doesn't render as a
+      // no-op during validation — exercises the substituter branch.
+      parameters: [
+        { cli_flag: "--dry-flag", value: "x", separator: "space" },
+      ],
     },
     pluginDirs: [],
     allowedPhaseIds: new Set([...phaseIds, "dry-run-phase"]),

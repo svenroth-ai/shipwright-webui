@@ -9,8 +9,38 @@
       "label": "New task",
       "kind": "external_launch",
       "description": "Plain Claude invocation scoped to a Shipwright phase. Fire-and-forget — no pipeline state.",
-      "command_template": "{cd.prefix}claude /shipwright-{task.phase}{task.autonomy_flag?} \\\n    --add-dir {project.path} \\\n    --session-id {task.uuid} \\\n    --name \"{task.phase_label}: {task.title}\" \\\n    {plugin.dirs}{task.description?}",
-      "modal_fields": ["title", "phase", "description"]
+      "command_template": "{cd.prefix}claude /shipwright-{task.phase}{task.autonomy_flag?} \\\n    --add-dir {project.path} \\\n    --session-id {task.uuid} \\\n    --name \"{task.phase_label}: {task.title}\" \\\n    {plugin.dirs}{task.parameters?}{task.description?}",
+      "modal_fields": ["title", "phase", "description"],
+      "phase_parameters": {
+        "adopt": [
+          { "name": "dry-run", "type": "boolean", "label": "Dry run", "cli_flag": "--dry-run", "helpText": "Simulate adoption without commits" },
+          { "name": "scope", "type": "enum", "label": "Scope", "enum": ["full_app", "library", "cli"], "cli_flag": "--scope", "value_separator": "space" },
+          { "name": "include-nested", "type": "boolean", "label": "Include nested projects", "cli_flag": "--include-nested" },
+          { "name": "skip-crawl", "type": "boolean", "label": "Skip Playwright crawl", "cli_flag": "--skip-crawl" },
+          { "name": "crawl-base-url", "type": "string", "label": "Crawl base URL", "cli_flag": "--crawl-base-url", "value_separator": "space", "placeholder": "e.g. http://localhost:3000" },
+          { "name": "crawl-auth-token", "type": "string", "label": "Crawl auth token", "cli_flag": "--crawl-auth-token", "value_separator": "space", "sensitive": true },
+          { "name": "crawl-max-depth", "type": "string", "label": "Crawl max depth", "cli_flag": "--crawl-max-depth", "value_separator": "space", "pattern": "^[1-9][0-9]?$", "default": "3" },
+          { "name": "crawl-max-pages", "type": "string", "label": "Crawl max pages", "cli_flag": "--crawl-max-pages", "value_separator": "space", "pattern": "^[1-9][0-9]{0,3}$", "default": "50" },
+          { "name": "no-backfill-events", "type": "boolean", "label": "Skip event backfill", "cli_flag": "--no-backfill-events" },
+          { "name": "no-sync", "type": "boolean", "label": "Skip writing sync config", "cli_flag": "--no-sync" },
+          { "name": "planning-split", "type": "string", "label": "Planning split name", "cli_flag": "--planning-split", "value_separator": "space", "default": "01-adopted", "pattern": "^[A-Za-z0-9_-]+$" }
+        ],
+        "build": [
+          { "name": "section", "type": "string", "label": "Section file (relative to project)", "cli_flag": "@", "value_separator": "none", "pattern": "^[A-Za-z0-9_./-]+\\.md$", "placeholder": "e.g. planning/03-section.md", "required": true },
+          { "name": "from", "type": "string", "label": "Start from section number", "cli_flag": "--from", "value_separator": "space", "pattern": "^[0-9]+$", "placeholder": "e.g. 03", "helpText": "Resume autonomous build from this section number" }
+        ],
+        "test": [
+          { "name": "fix", "type": "boolean", "label": "Auto-fix failing tests", "cli_flag": "--fix" },
+          { "name": "e2e-only", "type": "boolean", "label": "E2E tests only", "cli_flag": "--e2e-only" },
+          { "name": "design-fidelity", "type": "boolean", "label": "Design-fidelity check only", "cli_flag": "--design-fidelity" }
+        ],
+        "deploy": [
+          { "name": "target", "type": "enum", "label": "Target", "enum": ["dev", "prod", "rollback"], "cli_flag_map": { "prod": "--prod", "rollback": "--rollback" }, "default": "dev", "helpText": "Dev is default — no CLI flag emitted." }
+        ],
+        "changelog": [
+          { "name": "from", "type": "string", "label": "From git tag", "cli_flag": "--from", "value_separator": "space", "pattern": "^[A-Za-z0-9._/-]+$", "placeholder": "e.g. v0.3.1" }
+        ]
+      }
     },
     {
       "id": "new-pipeline",
@@ -25,8 +55,11 @@
       "label": "New iterate",
       "kind": "external_launch",
       "description": "Run the complexity-adaptive iterate skill against an existing project.",
-      "command_template": "{cd.prefix}claude /shipwright-iterate \\\n    --add-dir {project.path} \\\n    --session-id {task.uuid} \\\n    --name \"Iterate: {task.title}\" \\\n    {plugin.dirs}{task.autonomy_flag?}{task.description?}",
-      "modal_fields": ["title", "autonomy", "description"]
+      "command_template": "{cd.prefix}claude /shipwright-iterate \\\n    --add-dir {project.path} \\\n    --session-id {task.uuid} \\\n    --name \"Iterate: {task.title}\" \\\n    {plugin.dirs}{task.autonomy_flag?}{task.parameters?}{task.description?}",
+      "modal_fields": ["title", "autonomy", "description"],
+      "parameters": [
+        { "name": "type", "type": "enum", "label": "Change type", "enum": ["feature", "change", "bug"], "cli_flag": "--type", "value_separator": "space", "helpText": "Auto-detected if omitted" }
+      ]
     }
   ],
   "phases": [

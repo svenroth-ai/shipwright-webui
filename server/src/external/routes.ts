@@ -32,6 +32,7 @@ import {
   substitutePlaceholders,
   UnknownPhaseError,
   InvalidDescriptionError,
+  InvalidParameterError,
   InvalidPlaceholderError,
   type SubstitutionContext,
 } from "../core/actions-substitute.js";
@@ -40,6 +41,8 @@ import {
   validateActionsSchema,
   type SchemaError,
 } from "../core/actions-schema-validator.js";
+import { resolveParameters } from "../core/parameter-resolver.js";
+import { PARAM_NAME_PATTERN } from "../types/action-schema.js";
 import {
   PreviewExitedEarlyError,
   PreviewPortInUseError,
@@ -345,6 +348,44 @@ export function createExternalRoutes(args: {
         ? body.phaseLabel.trim()
         : undefined;
 
+    // iterate/launch-cli-parameters § 5 — body parameters validation.
+    // Shape: Record<string, string | boolean>; key allowlist is the
+    // PARAM_NAME_PATTERN (matches schema.name validity).
+    let userParams: Record<string, string | boolean> | undefined;
+    if (body.parameters !== undefined) {
+      if (
+        body.parameters === null ||
+        typeof body.parameters !== "object" ||
+        Array.isArray(body.parameters)
+      ) {
+        return c.json(
+          { error: "invalid_parameters_body", detail: "parameters must be an object" },
+          400,
+        );
+      }
+      userParams = {};
+      for (const [k, v] of Object.entries(
+        body.parameters as Record<string, unknown>,
+      )) {
+        if (!PARAM_NAME_PATTERN.test(k)) {
+          return c.json(
+            { error: "invalid_parameters_body", detail: `bad key: ${k}` },
+            400,
+          );
+        }
+        if (typeof v !== "string" && typeof v !== "boolean") {
+          return c.json(
+            {
+              error: "invalid_parameters_body",
+              detail: `value for ${k} must be string or boolean`,
+            },
+            400,
+          );
+        }
+        userParams[k] = v;
+      }
+    }
+
     let commands;
     const taskUpdate: Partial<ExternalTask> = {
       state: "awaiting_external_start",
@@ -367,6 +408,26 @@ export function createExternalRoutes(args: {
         const allowedPhaseIds = new Set(
           loaded.actions.phases.map((p) => p.id),
         );
+
+        // Resolve user-supplied CLI parameters against the action's schema.
+        // Server-side default-injection + required-check + pattern + control-char.
+        const resolveResult = resolveParameters({
+          action,
+          phase,
+          userParams,
+        });
+        if (!resolveResult.ok) {
+          return c.json(
+            {
+              error: resolveResult.error,
+              ...(resolveResult.name ? { name: resolveResult.name } : {}),
+              ...(resolveResult.detail ? { detail: resolveResult.detail } : {}),
+              ...(resolveResult.allowed ? { allowed: resolveResult.allowed } : {}),
+            },
+            400,
+          );
+        }
+
         const ctx: SubstitutionContext = {
           project: { id: project.id, path: project.path || "" },
           task: {
@@ -376,6 +437,7 @@ export function createExternalRoutes(args: {
             phase: phase ?? "",
             phase_label: phaseLabel ?? "",
             autonomy,
+            parameters: resolveResult.resolved,
           },
           pluginDirs: task.pluginDirs,
           allowedPhaseIds,
@@ -399,6 +461,7 @@ export function createExternalRoutes(args: {
           if (
             err instanceof UnknownPhaseError ||
             err instanceof InvalidDescriptionError ||
+            err instanceof InvalidParameterError ||
             err instanceof InvalidPlaceholderError
           ) {
             return c.json(

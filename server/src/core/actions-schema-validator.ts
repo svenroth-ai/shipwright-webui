@@ -20,7 +20,9 @@
  * first error, or aggregated diagnostics for the GET /actions route).
  */
 
-import type { ResolvedActions } from "./project-actions-loader.js";
+import type { ActionDefinition, ResolvedActions } from "./project-actions-loader.js";
+import type { ParamSchema, ParamType } from "../types/action-schema.js";
+import { CLI_FLAG_PATTERN, PARAM_NAME_PATTERN } from "../types/action-schema.js";
 
 export type SchemaErrorCode =
   | "duplicate_action_id"
@@ -28,12 +30,26 @@ export type SchemaErrorCode =
   | "empty_phases"
   | "missing_command_template"
   | "unsupported_modal_field"
-  | "invalid_preview_enabled";
+  | "invalid_preview_enabled"
+  | "invalid_param_type"
+  | "invalid_param_enum"
+  | "duplicate_param_name"
+  | "invalid_cli_flag"
+  | "invalid_cli_flag_map"
+  | "invalid_param_pattern"
+  | "invalid_default_value"
+  | "invalid_param_name"
+  | "missing_parameters_placeholder"
+  | "orphan_parameters_placeholder"
+  | "unknown_phase_parameter_key";
 
 export interface SchemaError {
   code: SchemaErrorCode;
   [key: string]: unknown;
 }
+
+const VALID_PARAM_TYPES = new Set<ParamType>(["boolean", "enum", "string"]);
+const PARAMETERS_PLACEHOLDER = "{task.parameters?}";
 
 /**
  * Modal field allowlist (per AD-03.13). `complexity:radio:small,medium,large`
@@ -120,5 +136,221 @@ export function validateActionsSchema(
     });
   }
 
+  // 6. Parameters / phase_parameters validation per action.
+  const phaseIds = new Set(actions.phases.map((p) => p.id));
+  for (const action of actions.actions) {
+    validateActionParameters(action, phaseIds, errors);
+  }
+
   return errors;
+}
+
+/**
+ * Validate `parameters` and `phase_parameters` for a single action.
+ * Pushes any errors into the shared `errors` list.
+ *
+ * Checks performed (matching plan § 6):
+ *  - Each ParamSchema is structurally well-formed.
+ *  - cli_flag / cli_flag_map values pass the CLI_FLAG_PATTERN allowlist.
+ *  - cli_flag_map values are non-empty (skip-emission == omission).
+ *  - cli_flag_map keys are subset of the enum (when both present).
+ *  - default values match type/pattern/enum.
+ *  - String pattern compiles as a valid regex.
+ *  - Names are unique within the same schema block.
+ *  - phase_parameters keys exist in actions.phases[].id.
+ *  - command_template contains {task.parameters?} when params are defined.
+ *  - Inverse warning when template has the placeholder but no params defined.
+ */
+function validateActionParameters(
+  action: ActionDefinition,
+  phaseIds: Set<string>,
+  errors: SchemaError[],
+): void {
+  const hasParams = !!action.parameters && action.parameters.length > 0;
+  const hasPhaseParams =
+    !!action.phase_parameters &&
+    Object.values(action.phase_parameters).some((arr) => arr.length > 0);
+  const hasPlaceholder = action.command_template?.includes(PARAMETERS_PLACEHOLDER);
+
+  // Template-Konsistenz: parameters defined but no {task.parameters?} → fail.
+  if ((hasParams || hasPhaseParams) && !hasPlaceholder) {
+    errors.push({
+      code: "missing_parameters_placeholder",
+      actionId: action.id,
+    });
+  }
+
+  // Inverse warning: placeholder present but no params/phase_params.
+  if (!hasParams && !hasPhaseParams && hasPlaceholder) {
+    errors.push({
+      code: "orphan_parameters_placeholder",
+      actionId: action.id,
+      severity: "warning",
+    });
+  }
+
+  if (action.parameters) {
+    validateParamArray(action.id, "parameters", action.parameters, errors);
+  }
+
+  if (action.phase_parameters) {
+    for (const [phaseKey, params] of Object.entries(action.phase_parameters)) {
+      if (!phaseIds.has(phaseKey)) {
+        errors.push({
+          code: "unknown_phase_parameter_key",
+          actionId: action.id,
+          phaseKey,
+        });
+      }
+      validateParamArray(
+        action.id,
+        `phase_parameters.${phaseKey}`,
+        params,
+        errors,
+      );
+    }
+  }
+}
+
+function validateParamArray(
+  actionId: string,
+  blockLabel: string,
+  params: ParamSchema[],
+  errors: SchemaError[],
+): void {
+  const seenNames = new Set<string>();
+
+  for (const param of params) {
+    // Name pattern.
+    if (!PARAM_NAME_PATTERN.test(param.name)) {
+      errors.push({
+        code: "invalid_param_name",
+        actionId,
+        block: blockLabel,
+        name: param.name,
+      });
+    }
+
+    // Duplicate name within the same block.
+    if (seenNames.has(param.name)) {
+      errors.push({
+        code: "duplicate_param_name",
+        actionId,
+        block: blockLabel,
+        name: param.name,
+      });
+    }
+    seenNames.add(param.name);
+
+    // Type allowlist.
+    if (!VALID_PARAM_TYPES.has(param.type)) {
+      errors.push({
+        code: "invalid_param_type",
+        actionId,
+        name: param.name,
+        type: param.type,
+      });
+    }
+
+    // Enum required and non-empty when type === "enum".
+    if (param.type === "enum") {
+      if (!Array.isArray(param.enum) || param.enum.length === 0) {
+        errors.push({
+          code: "invalid_param_enum",
+          actionId,
+          name: param.name,
+        });
+      }
+    }
+
+    // cli_flag pattern.
+    if (param.cli_flag !== undefined) {
+      if (!CLI_FLAG_PATTERN.test(param.cli_flag)) {
+        errors.push({
+          code: "invalid_cli_flag",
+          actionId,
+          name: param.name,
+          cli_flag: param.cli_flag,
+        });
+      }
+    }
+
+    // cli_flag_map values pattern + no empties + keys subset of enum.
+    if (param.cli_flag_map) {
+      const enumSet = new Set(param.enum ?? []);
+      for (const [key, flag] of Object.entries(param.cli_flag_map)) {
+        if (flag === "" || !CLI_FLAG_PATTERN.test(flag)) {
+          errors.push({
+            code: "invalid_cli_flag",
+            actionId,
+            name: param.name,
+            cli_flag_map_key: key,
+            cli_flag: flag,
+          });
+        }
+        if (param.enum && !enumSet.has(key)) {
+          errors.push({
+            code: "invalid_cli_flag_map",
+            actionId,
+            name: param.name,
+            cli_flag_map_key: key,
+          });
+        }
+      }
+    }
+
+    // Pattern defensive compile.
+    if (param.pattern !== undefined) {
+      try {
+        new RegExp(param.pattern);
+      } catch (err) {
+        errors.push({
+          code: "invalid_param_pattern",
+          actionId,
+          name: param.name,
+          pattern: param.pattern,
+          detail: String(err).slice(0, 200),
+        });
+      }
+    }
+
+    // Default value validation.
+    if (param.default !== undefined) {
+      if (!isDefaultValid(param)) {
+        errors.push({
+          code: "invalid_default_value",
+          actionId,
+          name: param.name,
+          default: param.default,
+        });
+      }
+    }
+  }
+}
+
+function isDefaultValid(param: ParamSchema): boolean {
+  const def = param.default;
+
+  if (param.type === "boolean") {
+    return typeof def === "boolean";
+  }
+
+  if (typeof def !== "string") return false;
+
+  if (param.type === "enum") {
+    return Array.isArray(param.enum) && param.enum.includes(def);
+  }
+
+  // type === "string"
+  if (param.pattern) {
+    try {
+      const re = new RegExp(param.pattern);
+      if (!re.test(def)) return false;
+    } catch {
+      // Pattern invalid; default validity is unreachable — flagged via
+      // invalid_param_pattern separately.
+      return false;
+    }
+  }
+  return true;
 }
