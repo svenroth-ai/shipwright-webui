@@ -576,6 +576,53 @@ describe("actions/preview/stub routes", () => {
       expect(body.commands.posix).not.toContain("/shipwright-");
     });
 
+    // v0.4.1 root-cause fix — once a task has actionId/phase/phaseLabel
+    // persisted, subsequent launches that omit them in the body MUST
+    // re-use the persisted values instead of falling through to the
+    // legacy shape. Repro of Sven's 2026-04-25 bug: TaskCard's green
+    // Launch / Resume button only sends {taskId, resume}; the launch
+    // handler used to skip the actionId branch silently → command had no
+    // slash + task lost its phase context, so TaskDetailHeader fell back
+    // to the title-keyword regex (which matched "ui" in "webui" → wrong
+    // "Design" badge).
+    it("re-uses persisted task.actionId+phase when body omits them (v0.4.1 fix)", async () => {
+      const { task } = await createTask();
+      // First launch — full action context, server persists phase + actionId.
+      const r1 = await app.request(
+        `/api/external/tasks/${task.taskId}/launch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            actionId: "new-task",
+            phase: "compliance",
+            phaseLabel: "Compliance",
+          }),
+        },
+      );
+      expect(r1.status).toBe(200);
+      // Second launch — empty body (mimics TaskCard / Resume button).
+      const r2 = await app.request(
+        `/api/external/tasks/${task.taskId}/launch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        },
+      );
+      expect(r2.status).toBe(200);
+      const body2 = (await r2.json()) as {
+        task: { phase?: string; phaseLabel?: string; actionId?: string };
+        commands: { posix: string };
+      };
+      // Persisted phase + actionId survive the empty-body launch.
+      expect(body2.task.phase).toBe("compliance");
+      expect(body2.task.phaseLabel).toBe("Compliance");
+      expect(body2.task.actionId).toBe("new-task");
+      // And the command USES them — slash is built from persisted phase.
+      expect(body2.commands.posix).toContain("/shipwright-compliance");
+    });
+
     it("rejects unknown phase (InvalidPhase bubbles as 400)", async () => {
       const { task } = await createTask();
       const r = await app.request(`/api/external/tasks/${task.taskId}/launch`, {

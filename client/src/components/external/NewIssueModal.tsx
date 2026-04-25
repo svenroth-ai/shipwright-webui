@@ -416,12 +416,6 @@ export function NewIssueModal({
     [currentSchema],
   );
 
-  const canSubmit =
-    !submitting &&
-    title.trim().length > 0 &&
-    Boolean(effectiveProjectId) &&
-    !requiredMissing;
-
   const selectedProject = useMemo<Project | undefined>(
     () => realProjects.find((p) => p.id === effectiveProjectId),
     [realProjects, effectiveProjectId],
@@ -431,6 +425,23 @@ export function NewIssueModal({
     () => phases.find((p) => p.id === phaseId) ?? phases[0],
     [phases, phaseId],
   );
+
+  // v0.4.1 — gate submit on the actions catalog being loaded. Before the
+  // fix, fast typists could click Launch & Copy before useProjectActions
+  // resolved → the modal had `phases = []` → `currentPhase = undefined` →
+  // `body.phase` not sent → server persisted task without phase, and
+  // TaskDetailHeader's title-keyword fallback then mis-classified
+  // "WebUI Repo Adopten" as Design (Sven 2026-04-25). Submitting without
+  // a resolved phase in task mode is now prevented entirely.
+  const catalogReady = Boolean(projectActions);
+  const taskPhaseReady = mode !== "new-task" || Boolean(currentPhase);
+  const canSubmit =
+    !submitting &&
+    title.trim().length > 0 &&
+    Boolean(effectiveProjectId) &&
+    !requiredMissing &&
+    catalogReady &&
+    taskPhaseReady;
 
   // iterate/v030-five-ux-fixes (P3) — phase-aware AutonomyToggle in task
   // mode. Pipeline + Iterate keep the toggle unconditionally (they're

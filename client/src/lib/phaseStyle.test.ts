@@ -48,16 +48,27 @@ describe("derivePhaseFromTitle (v0.3.1 — shared TaskCard / TaskDetailHeader fa
     expect(derivePhaseFromTitle("e2e cleanup")?.id).toBe("test");
   });
 
-  // Regression: "suite" contains "ui" which collides with the design
-  // regex. The current heuristic picks design over test for that input.
-  // Documented as a known limitation — title-based fallback is best-effort
-  // only; authoritative source is `task.phase` set on launch.
-  it("documents the suite/ui false-positive (heuristic limitation)", () => {
-    expect(derivePhaseFromTitle("e2e suite cleanup")?.id).toBe("design");
+  // v0.4.1 regression — pre-fix the "suite" / "webui" substrings of "ui"
+  // would mis-match the design regex. Word-boundary `\bui\b` fixes it.
+  it("v0.4.1 — does NOT match design when 'ui' is a substring (suite, webui, …)", () => {
+    expect(derivePhaseFromTitle("e2e suite cleanup")?.id).toBe("test");
+    expect(derivePhaseFromTitle("WebUI Repo Adopten")?.id).toBe("adopt");
+    expect(derivePhaseFromTitle("Refactor webui rendering")?.id).toBeUndefined;
+    // "Refactor webui rendering" has no plan/build/etc keywords as
+    // standalone words → null.
+    expect(derivePhaseFromTitle("Refactor webui rendering")).toBeNull();
+  });
+
+  it("v0.4.1 — adopt branch matches Adopt-titled tasks", () => {
+    expect(derivePhaseFromTitle("Adopt the legacy repo")?.id).toBe("adopt");
+    expect(derivePhaseFromTitle("WebUI Repo Adopten")?.id).toBe("adopt");
+    expect(derivePhaseFromTitle("adopt")?.id).toBe("adopt");
+    // Word-boundary: "adoption" should NOT match (substring guard).
+    expect(derivePhaseFromTitle("Adoption strategy")).toBeNull();
   });
 
   it("returns iterate for iterate keyword", () => {
-    expect(derivePhaseFromTitle("Iterate on auth UX")?.id).toBe("iterate");
+    expect(derivePhaseFromTitle("Iterate on auth flow")?.id).toBe("iterate");
   });
 
   it("returns null for titles with no recognized keyword", () => {
@@ -68,5 +79,10 @@ describe("derivePhaseFromTitle (v0.3.1 — shared TaskCard / TaskDetailHeader fa
 
   it("plan takes precedence over build/test in mixed titles (matches TaskDetailHeader order)", () => {
     expect(derivePhaseFromTitle("Plan and implement auth")?.id).toBe("plan");
+  });
+
+  it("adopt takes precedence over other keywords (highest priority)", () => {
+    expect(derivePhaseFromTitle("Adopt and plan auth")?.id).toBe("adopt");
+    expect(derivePhaseFromTitle("Build adopt fixture")?.id).toBe("adopt");
   });
 });

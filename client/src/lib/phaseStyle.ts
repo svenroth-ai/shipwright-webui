@@ -51,6 +51,15 @@ export function getPhaseStyle(phaseId: string | undefined): PhaseStyle {
  * tasks). Returns `null` when no keyword matches; callers can choose
  * to render no badge in that case.
  *
+ * v0.4.1 — tightened keyword boundaries:
+ *   - `\badopt\b` branch added (highest priority — "adopt" titles are
+ *     unambiguous markers).
+ *   - `\bui\b` uses word boundaries so substrings like "webui" or "suite"
+ *     don't trigger the design palette. The pre-v0.4.1 regex `/ui/`
+ *     matched ANY occurrence anywhere in the string, which produced
+ *     bogus design badges for titles like "WebUI Repo Adopten".
+ *   - All keywords use word-boundary form for symmetry.
+ *
  * Extracted from TaskDetailHeader (2026-04-25) so TaskCard can share
  * the exact same heuristic and display a consistent badge.
  */
@@ -58,17 +67,21 @@ export function derivePhaseFromTitle(
   title: string | undefined,
 ): { id: string; label: string } | null {
   const t = (title ?? "").toLowerCase();
-  const id = /plan/.test(t)
-    ? "plan"
-    : /build|implement|fix/.test(t)
-      ? "build"
-      : /design|ui|mockup/.test(t)
-        ? "design"
-        : /test|qa|e2e/.test(t)
-          ? "test"
-          : /iterate/.test(t)
-            ? "iterate"
-            : null;
+  // Adopt: matches "adopt", "adopted", "adopten" (German), "adopting",
+  // "adopts" — but NOT "adoption" (noun has different intent).
+  const id = /\badopt(?:e[dn]|ing|s)?\b/.test(t)
+    ? "adopt"
+    : /\bplan\b/.test(t)
+      ? "plan"
+      : /\b(?:build|implement|fix)\b/.test(t)
+        ? "build"
+        : /\b(?:design|ui|mockup)\b/.test(t)
+          ? "design"
+          : /\b(?:test|qa|e2e)\b/.test(t)
+            ? "test"
+            : /\biterate\b/.test(t)
+              ? "iterate"
+              : null;
   if (!id) return null;
   return { id, label: id.charAt(0).toUpperCase() + id.slice(1) };
 }

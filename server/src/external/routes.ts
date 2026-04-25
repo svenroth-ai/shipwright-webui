@@ -333,7 +333,7 @@ export function createExternalRoutes(args: {
       body.autonomy === "autonomous" || body.autonomy === "guided"
         ? (body.autonomy as "autonomous" | "guided")
         : undefined;
-    const actionId =
+    const bodyActionId =
       body.actionId === "new-task" ||
       body.actionId === "new-pipeline" ||
       body.actionId === "new-iterate" ||
@@ -344,14 +344,33 @@ export function createExternalRoutes(args: {
             | "new-iterate"
             | "new-plain")
         : undefined;
-    const phase =
+    const bodyPhase =
       typeof body.phase === "string" && body.phase.trim()
         ? body.phase.trim()
         : undefined;
-    const phaseLabel =
+    const bodyPhaseLabel =
       typeof body.phaseLabel === "string" && body.phaseLabel.trim()
         ? body.phaseLabel.trim()
         : undefined;
+
+    // v0.4.1 — root-cause fix for the "phase disappears on Resume / TaskCard
+    // launch" bug. When the request body omits actionId / phase /
+    // phaseLabel, fall back to the values persisted on the task at create
+    // time. This makes once-set-always-used the contract: TaskCard's
+    // green Launch button + Terminal Resume + any other launch path that
+    // doesn't carry the full action context will still produce a properly
+    // substituted command instead of falling through to the legacy path
+    // that loses phase + actionId silently.
+    const taskActionId =
+      task.actionId === "new-task" ||
+      task.actionId === "new-pipeline" ||
+      task.actionId === "new-iterate" ||
+      task.actionId === "new-plain"
+        ? task.actionId
+        : undefined;
+    const actionId = bodyActionId ?? taskActionId;
+    const phase = bodyPhase ?? task.phase;
+    const phaseLabel = bodyPhaseLabel ?? task.phaseLabel;
 
     // iterate/launch-cli-parameters § 5 — body parameters validation.
     // Shape: Record<string, string | boolean>; key allowlist is the
