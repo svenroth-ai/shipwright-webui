@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-04-25
+
+### Fixed
+- fix(webui): ProjectContextStrip no longer wraps "Creating in" + project name across two lines when Advanced parameters opens a vertical scrollbar (whitespace-nowrap + shrink-0 on each segment).
+- fix(webui): project path now shows the last two segments (`…/03 Development/shipwright-webui`) instead of the `C:\Users\…` prefix — the end-of-path is the relevant identifier; full path remains in the hover tooltip.
+
 ## [0.3.1] - 2026-04-25
 
 ### Fixed
