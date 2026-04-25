@@ -26,8 +26,8 @@ keeps the quickstart; everything beyond a first-run lives here.
 - **Node.js 20+** and **npm 10+** — `node --version` && `npm --version`
 - **Claude Code CLI** ≥ `MIN_SUPPORTED_CLI` (currently `2.1.114` — pinned
   in [`server/src/core/cli-compat.ts`](../server/src/core/cli-compat.ts)).
-  Older versions show a banner via `/api/diagnostics` and may not behave
-  the way Plan D'' assumes.
+  Older versions show a banner via `/api/diagnostics`; the WebUI's
+  discovery + parsing assumptions are not verified below that line.
 - **Git** for cloning + worktree workflows.
 
 The WebUI itself does **not** spawn Claude. You launch sessions in your
@@ -168,9 +168,8 @@ Profile resolution order: `SHIPWRIGHT_PROFILES_DIR` → `SHIPWRIGHT_MONOREPO_PAT
 Refresh the bundled snapshot with `make sync-profiles` after a profile
 edit upstream.
 
-`SHIPWRIGHT_MAX_CONCURRENT` exists in `server/src/config.ts` for legacy
-reasons but has no effect under Plan D'' (the WebUI no longer spawns or
-limits Claude processes).
+`SHIPWRIGHT_MAX_CONCURRENT` exists in `server/src/config.ts` but has no
+effect — the WebUI does not spawn or limit Claude processes.
 
 ### 4.2 Parallel worktrees
 
@@ -183,9 +182,8 @@ PORT=3848 VITE_PORT=5174 make dev-client
 ```
 
 Both halves fail loud on port collisions (Vite via `strictPort: true`,
-Hono via the bind-error handler in `server/src/index.ts`). The historic
-`VITE_ALT_PORT=5177` hardcode was removed in v0.3.2 — set
-`VITE_PORT` explicitly.
+Hono via the bind-error handler in `server/src/index.ts`). Use
+`VITE_PORT` explicitly per worktree.
 
 ### 4.3 Custom actions
 
@@ -401,7 +399,7 @@ surfaces structured errors:
   id cached).
 - **Unknown phase at launch time** → 400 `command_substitution_failed`.
 
-#### Constraints carried over from Iterate 3
+#### Security constraints
 
 - `command_template` is tokenised + spawned with `shell: false` on the
   server. User-controlled strings can't escape into a sub-shell —
@@ -467,9 +465,9 @@ kills the two configured ports — never anything else.
 
 `tsx watch` on Windows occasionally goes stale on rapid restarts. Kill
 the PID on `:3847` explicitly with the recipe above, then `make
-dev-server` again. The Hono server now exits with a deterministic
-operator message on `EADDRINUSE`, `EACCES`, and `EADDRNOTAVAIL` since
-v0.3.2 — silent half-starts are the previous regression we paid down.
+dev-server` again. The Hono server exits with a deterministic operator
+message on `EADDRINUSE`, `EACCES`, and `EADDRNOTAVAIL` so silent
+half-starts surface immediately rather than hanging.
 
 ### Diagnostic banner: "Claude CLI < MIN_SUPPORTED_CLI"
 
@@ -481,10 +479,9 @@ claude --version
 npm install -g @anthropic-ai/claude-code   # or your preferred install path
 ```
 
-Plan D'' assumes specific CLI behaviour from v2.1.114 onwards (per the
-PoC in `~/.claude/plans/external-launch-poc-results.md`). Older versions
-may launch but the WebUI's discovery / parsing assumptions are
-unverified there.
+The WebUI's discovery + parsing assumptions are pinned against
+`MIN_SUPPORTED_CLI`. Older Claude CLI versions may launch but the
+JSONL-shape and `--session-id` semantics aren't verified there.
 
 ### Malformed `.webui/actions.json` chip
 
