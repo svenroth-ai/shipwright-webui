@@ -41,7 +41,9 @@ export type SchemaErrorCode =
   | "invalid_param_name"
   | "missing_parameters_placeholder"
   | "orphan_parameters_placeholder"
-  | "unknown_phase_parameter_key";
+  | "unknown_phase_parameter_key"
+  | "invalid_param_required"
+  | "invalid_phase_supports_autonomy";
 
 export interface SchemaError {
   code: SchemaErrorCode;
@@ -148,6 +150,18 @@ export function validateActionsSchema(
   const phaseIds = new Set(actions.phases.map((p) => p.id));
   for (const action of actions.actions) {
     validateActionParameters(action, phaseIds, errors);
+  }
+
+  // 7. Phase.supports_autonomy type-guard (iterate/v030-five-ux-fixes P3).
+  for (const phase of actions.phases) {
+    const v = (phase as { supports_autonomy?: unknown }).supports_autonomy;
+    if (v !== undefined && typeof v !== "boolean") {
+      errors.push({
+        code: "invalid_phase_supports_autonomy",
+        phaseId: phase.id,
+        value: v,
+      });
+    }
   }
 
   return errors;
@@ -357,6 +371,23 @@ function validateParamArray(
         name: param.name,
         default: param.default,
         reason: "boolean default:true is unrepresentable under opt-in semantics",
+      });
+    }
+
+    // iterate/v030-five-ux-fixes (P6) — boolean + required is also
+    // unrepresentable under opt-in. The enable-checkbox IS the value for
+    // booleans, so a "required" boolean would either need to be forced-on
+    // (= effectively default:true, already rejected) or allow the user to
+    // submit unchecked (= unsatisfied required gate). Either way, the
+    // schema models a state that opt-in semantics can't reach. Hard-reject
+    // at load time so misauthored configs fail loudly instead of silently
+    // breaking the submit-gate at runtime.
+    if (param.type === "boolean" && param.required === true) {
+      errors.push({
+        code: "invalid_param_required",
+        actionId,
+        name: param.name,
+        reason: "boolean + required is unrepresentable under opt-in semantics",
       });
     }
   }

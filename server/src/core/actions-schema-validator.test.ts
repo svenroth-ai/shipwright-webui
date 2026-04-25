@@ -499,3 +499,137 @@ describe("validateActionsSchema — overall return", () => {
     expect(errs).toEqual([]);
   });
 });
+
+// iterate/v030-five-ux-fixes — P3 + P6 ////////////////////////////////////////
+
+describe("validateActionsSchema — boolean+required reject (v0.3.0 P6)", () => {
+  it("rejects boolean parameter with required:true (unrepresentable under opt-in)", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        actions: [
+          {
+            id: "a",
+            label: "A",
+            kind: "external_launch",
+            command_template: "x {task.parameters?}",
+            parameters: [
+              {
+                name: "force",
+                label: "Force",
+                type: "boolean",
+                cli_flag: "--force",
+                required: true,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(errs.some((e) => e.code === "invalid_param_required")).toBe(true);
+  });
+
+  it("accepts boolean parameter without required (still opt-in)", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        actions: [
+          {
+            id: "a",
+            label: "A",
+            kind: "external_launch",
+            command_template: "x {task.parameters?}",
+            parameters: [
+              {
+                name: "force",
+                label: "Force",
+                type: "boolean",
+                cli_flag: "--force",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(errs.some((e) => e.code === "invalid_param_required")).toBe(false);
+  });
+
+  it("accepts string parameter with required:true (representable)", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        actions: [
+          {
+            id: "a",
+            label: "A",
+            kind: "external_launch",
+            command_template: "x {task.parameters?}",
+            parameters: [
+              {
+                name: "section",
+                label: "Section",
+                type: "string",
+                cli_flag: "@",
+                value_separator: "none",
+                required: true,
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    expect(errs.some((e) => e.code === "invalid_param_required")).toBe(false);
+  });
+});
+
+describe("validateActionsSchema — phase.supports_autonomy type-guard (v0.3.0 P3)", () => {
+  it("accepts phase with supports_autonomy:true", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        phases: [
+          { id: "build", label: "Build", supports_autonomy: true },
+          { id: "test", label: "Test" },
+        ],
+      }),
+    );
+    expect(
+      errs.some((e) => e.code === "invalid_phase_supports_autonomy"),
+    ).toBe(false);
+  });
+
+  it("accepts phase with supports_autonomy:false", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        phases: [{ id: "build", label: "Build", supports_autonomy: false }],
+      }),
+    );
+    expect(
+      errs.some((e) => e.code === "invalid_phase_supports_autonomy"),
+    ).toBe(false);
+  });
+
+  it("accepts phase without supports_autonomy (undefined treated as false)", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        phases: [{ id: "build", label: "Build" }],
+      }),
+    );
+    expect(
+      errs.some((e) => e.code === "invalid_phase_supports_autonomy"),
+    ).toBe(false);
+  });
+
+  it("rejects phase with non-boolean supports_autonomy", () => {
+    const errs = validateActionsSchema(
+      baseActions({
+        phases: [
+          {
+            id: "build",
+            label: "Build",
+            supports_autonomy: "yes" as unknown as boolean,
+          },
+        ],
+      }),
+    );
+    const bad = errs.find((e) => e.code === "invalid_phase_supports_autonomy");
+    expect(bad).toBeDefined();
+    expect(bad?.phaseId).toBe("build");
+  });
+});

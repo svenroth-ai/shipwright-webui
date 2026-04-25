@@ -26,7 +26,7 @@
           { "name": "planning-split", "type": "string", "label": "Planning split name", "cli_flag": "--planning-split", "value_separator": "space", "default": "01-adopted", "pattern": "^[A-Za-z0-9_-]+$" }
         ],
         "build": [
-          { "name": "section", "type": "string", "label": "Section file (relative to project)", "cli_flag": "@", "value_separator": "none", "pattern": "^[A-Za-z0-9_./-]+\\.md$", "placeholder": "e.g. planning/03-section.md", "required": true },
+          { "name": "section", "type": "string", "label": "Section file (relative to project)", "cli_flag": "@", "value_separator": "none", "pattern": "^[A-Za-z0-9_./-]+\\.md$", "placeholder": "e.g. planning/03-build-feature.md", "required": true, "helpText": "Path relative to your project root — e.g. planning/03-build-feature.md. /shipwright-plan creates these files; pick one to build now." },
           { "name": "from", "type": "string", "label": "Start from section number", "cli_flag": "--from", "value_separator": "space", "pattern": "^[0-9]+$", "placeholder": "e.g. 03", "helpText": "Resume autonomous build from this section number" }
         ],
         "test": [
@@ -67,12 +67,12 @@
     { "id": "project",    "label": "Project",    "color": "#9ca3af" },
     { "id": "design",     "label": "Design",     "color": "#A855F7" },
     { "id": "plan",       "label": "Plan",       "color": "#3B82F6" },
-    { "id": "build",      "label": "Build",      "color": "#F59E0B" },
-    { "id": "test",       "label": "Test",       "color": "#059669" },
+    { "id": "build",      "label": "Build",      "color": "#F59E0B", "supports_autonomy": true },
+    { "id": "test",       "label": "Test",       "color": "#059669", "supports_autonomy": true },
     { "id": "deploy",     "label": "Deploy",     "color": "#14B8A6" },
     { "id": "changelog",  "label": "Changelog",  "color": "#6366F1" },
     { "id": "compliance", "label": "Compliance", "color": "#0EA5E9" },
-    { "id": "security",   "label": "Security",   "color": "#DC2626" }
+    { "id": "security",   "label": "Security",   "color": "#DC2626", "supports_autonomy": true }
   ],
   "preview": {
     "enabled": "auto"

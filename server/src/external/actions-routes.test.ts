@@ -165,6 +165,23 @@ describe("actions/preview/stub routes", () => {
     expect(body.preview.enabled).toBe(true);
     expect(body.preview.command).toBe("npm run dev");
     expect(body.diagnostics).toEqual([]);
+
+    // iterate/v030-five-ux-fixes (P3) — supports_autonomy passes through
+    // verbatim. build / test / security are bundled with the marker; all
+    // others must be undefined (not coerced to false, so client gating
+    // can distinguish "set to false" from "not configured").
+    const phasesWithAuto = body.phases as Array<{
+      id: string;
+      supports_autonomy?: boolean;
+    }>;
+    const buildPhase = phasesWithAuto.find((p) => p.id === "build");
+    expect(buildPhase?.supports_autonomy).toBe(true);
+    const testPhase = phasesWithAuto.find((p) => p.id === "test");
+    expect(testPhase?.supports_autonomy).toBe(true);
+    const securityPhase = phasesWithAuto.find((p) => p.id === "security");
+    expect(securityPhase?.supports_autonomy).toBe(true);
+    const changelogPhase = phasesWithAuto.find((p) => p.id === "changelog");
+    expect(changelogPhase?.supports_autonomy).toBeUndefined();
   });
 
   it("GET /projects/:id/actions reports diagnostic when .webui/actions.json is malformed", async () => {
