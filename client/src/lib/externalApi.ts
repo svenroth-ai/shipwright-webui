@@ -299,6 +299,12 @@ export interface PhaseDefinition {
   id: string;
   label: string;
   color?: string;
+  /**
+   * iterate/v030-five-ux-fixes (P3) — when true, the New Task modal
+   * renders the AutonomyToggle for this phase. Pipeline + Iterate modi
+   * ignore this flag and always render the toggle.
+   */
+  supports_autonomy?: boolean;
 }
 
 export interface PreviewSpec {
