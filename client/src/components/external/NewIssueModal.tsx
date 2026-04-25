@@ -43,6 +43,7 @@ import {
   CheckSquare,
   ChevronDown,
   RotateCw,
+  Terminal,
   Workflow,
   X,
 } from "lucide-react";
@@ -86,7 +87,7 @@ export interface NewIssueModalProps {
 }
 
 type SubmitAction = "save" | "launch";
-type Mode = "new-task" | "new-pipeline" | "new-iterate";
+type Mode = "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
 
 // 250 ms matches the mockup + O23 default in the section spec.
 const PHASE_DEBOUNCE_MS = 250;
@@ -125,11 +126,21 @@ const PALETTE: Record<Mode, ModePalette> = {
     textStrong: "#064e3b",
     stripe: "var(--color-success, #059669)",
   },
+  // v0.4.0 — Plain Claude (no skill, no pipeline). Slate palette
+  // distinguishes it from the three Shipwright modes without competing
+  // visually.
+  "new-plain": {
+    bg: "var(--color-muted-bg, #ede8e1)",
+    text: "var(--color-muted, #6b7280)",
+    textStrong: "#374151",
+    stripe: "var(--color-accent, #857568)",
+  },
 };
 
 function modeIcon(mode: Mode): ReactNode {
   if (mode === "new-pipeline") return <Workflow size={18} strokeWidth={1.6} />;
   if (mode === "new-iterate") return <RotateCw size={18} strokeWidth={1.7} />;
+  if (mode === "new-plain") return <Terminal size={18} strokeWidth={1.8} />;
   return <CheckSquare size={18} strokeWidth={1.8} />;
 }
 
@@ -158,7 +169,9 @@ export function NewIssueModal({
       ? "new-pipeline"
       : action?.id === "new-iterate"
         ? "new-iterate"
-        : "new-task";
+        : action?.id === "new-plain"
+          ? "new-plain"
+          : "new-task";
   const palette = PALETTE[mode];
 
   const realProjects = useMemo(
@@ -471,7 +484,11 @@ export function NewIssueModal({
         const body: {
           description?: string;
           autonomy?: AutonomyValue;
-          actionId?: "new-task" | "new-pipeline" | "new-iterate";
+          actionId?:
+            | "new-task"
+            | "new-pipeline"
+            | "new-iterate"
+            | "new-plain";
           phase?: string;
           phaseLabel?: string;
           parameters?: Record<string, string | boolean>;
@@ -1001,6 +1018,7 @@ function FieldLabel({
 function modeHeading(mode: Mode): string {
   if (mode === "new-pipeline") return "New Pipeline";
   if (mode === "new-iterate") return "New Iterate";
+  if (mode === "new-plain") return "Plain Claude";
   return "New Task";
 }
 
@@ -1009,7 +1027,9 @@ function modeSubheading(mode: Mode): string {
     return "Full Shipwright SDLC. Save it to the Backlog, or Launch now to copy the command and start immediately.";
   if (mode === "new-iterate")
     return "Lightweight change on a completed project. Save it to the Backlog, or Launch now to copy the command and start immediately.";
-  return "Plain Claude — no Shipwright pipeline. Save it to the Backlog, or Launch now to copy the command and start immediately.";
+  if (mode === "new-plain")
+    return "Plain Claude session in this project's directory. No skill, no slash command — just a chat.";
+  return "Standalone task scoped to a Shipwright phase. Save it to the Backlog, or Launch now to copy the command and start immediately.";
 }
 
 /**

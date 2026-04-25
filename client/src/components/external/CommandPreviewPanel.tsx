@@ -24,7 +24,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-export type CommandPreviewMode = "new-task" | "new-pipeline" | "new-iterate";
+export type CommandPreviewMode = "new-task" | "new-pipeline" | "new-iterate" | "new-plain";
 
 /**
  * Pre-resolved CLI parameter for preview rendering. Mirrors the server's

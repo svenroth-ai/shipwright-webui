@@ -546,6 +546,40 @@ describe("NewIssueModal", () => {
     });
   });
 
+  // ── v0.4.0 — Plain Claude mode ──
+  describe("v0.4.0 — Plain Claude mode", () => {
+    const PLAIN_ACTION: ActionDefinition = {
+      id: "new-plain",
+      label: "Plain Claude",
+      kind: "external_launch",
+      command_template:
+        'cd "p" && claude --session-id {task.uuid} --name "{task.title}" {plugin.dirs}{task.description?}',
+    };
+
+    it("renders the Plain Claude header + subheading", () => {
+      renderModal({ action: PLAIN_ACTION });
+      expect(screen.getByTestId("new-issue-modal-new-plain")).toBeTruthy();
+      expect(screen.getByText("Plain Claude")).toBeTruthy();
+    });
+
+    it("does NOT render Phase, Autonomy, or Advanced sections", () => {
+      renderModal({ action: PLAIN_ACTION });
+      // No phase dropdown.
+      expect(screen.queryByTestId("new-issue-phase-select")).toBeNull();
+      // No autonomy toggle.
+      expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+      // No required parameters section, no advanced section.
+      expect(screen.queryByTestId("new-issue-required-section")).toBeNull();
+      expect(screen.queryByTestId("new-issue-advanced-section")).toBeNull();
+    });
+
+    it("still has Title and Description fields (so the user can name + pre-seed the chat)", () => {
+      renderModal({ action: PLAIN_ACTION });
+      expect(screen.getByTestId("new-issue-title-input")).toBeTruthy();
+      expect(screen.getByTestId("new-issue-description-input")).toBeTruthy();
+    });
+  });
+
   describe("v0.3.0 — explicit enable-checkbox per Advanced param (P1)", () => {
     const ACTION_WITH_OPTIONAL: ActionDefinition = {
       id: "new-task",
