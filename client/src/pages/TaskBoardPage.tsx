@@ -65,6 +65,7 @@ import { TaskCard } from "../components/external/TaskCard";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateMenuSplitButton } from "../components/external/CreateMenuSplitButton";
+import { PlainClaudeButton } from "../components/external/PlainClaudeButton";
 import { PreviewButton } from "../components/external/PreviewButton";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { NewIssueModal } from "../components/external/NewIssueModal";
@@ -266,8 +267,18 @@ export default function TaskBoardPage() {
                 actionsQuery.data?.preview.ready_timeout_seconds ?? null
               }
             />
-            <CreateMenuSplitButton
+            {/* v0.4.0 — Plain Claude as a sibling icon-button to the
+                "+ New ▾" split-button. The split-button keeps the three
+                Shipwright skill modes (task / pipeline / iterate);
+                Plain Claude is filtered out of its dropdown so the same
+                action isn't reachable from two places. */}
+            <PlainClaudeButton
               actions={actionsList}
+              onSelect={openModal}
+              isLoading={actionsQuery.isLoading}
+            />
+            <CreateMenuSplitButton
+              actions={actionsList.filter((a) => a.id !== "new-plain")}
               onSelect={openModal}
               isLoading={actionsQuery.isLoading}
             />

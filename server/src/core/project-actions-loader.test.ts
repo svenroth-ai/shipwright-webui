@@ -57,11 +57,17 @@ describe("project-actions-loader — bundled default fallback", () => {
     expect(r.actions.actions.length).toBeGreaterThanOrEqual(3);
   });
 
-  it("bundled default has the three Shipwright actions with external_launch kind", () => {
+  it("bundled default has the four Shipwright actions with external_launch kind", () => {
     const fs: FakeFs = { files: new Map() };
     const r = loadActionsForProject("/fake", fakeDeps(fs));
     const ids = r.actions.actions.map((a) => a.id).sort();
-    expect(ids).toEqual(["new-iterate", "new-pipeline", "new-task"]);
+    // v0.4.0 — new-plain joins the bundled set.
+    expect(ids).toEqual([
+      "new-iterate",
+      "new-pipeline",
+      "new-plain",
+      "new-task",
+    ]);
     for (const a of r.actions.actions) {
       expect(a.kind).toBe("external_launch");
       expect(typeof a.command_template).toBe("string");
@@ -233,7 +239,8 @@ describe("project-actions-loader — loadBundledDefault (pure)", () => {
     expect(d.defaults.autonomy).toBe("guided");
     // 2026-04-23 — `adopt` phase added; bundle now ships 10 phases (was 9).
     expect(d.phases.length).toBe(10);
-    expect(d.actions.length).toBe(3);
+    // v0.4.0 — new-plain joins the bundled set.
+    expect(d.actions.length).toBe(4);
     expect(d.phases.some((p) => p.id === "adopt")).toBe(true);
   });
 
