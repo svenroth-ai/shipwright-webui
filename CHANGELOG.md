@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-25
+
+### Fixed
+- fix(webui): skill flags belong in initial-prompt, not as Claude CLI args
+- fix(webui): opt-in Advanced parameters + initial-prompt preview
+
 ## [0.2.0] - 2026-04-25
 
 ### Added
