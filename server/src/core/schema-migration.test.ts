@@ -89,7 +89,7 @@ describe("schema v1 → v2 migration (ADR-038)", () => {
     expect(onDisk.schemaVersion).toBe(1);
   });
 
-  it("v2-write-on-touch: persist() after patch rewrites as v2 with projectId on every row", async () => {
+  it("write-on-touch: persist() after patch rewrites as the current schema version with projectId on every row", async () => {
     const payload = v1Payload([
       baseTask({ taskId: "t1" }),
       baseTask({ taskId: "t2" }),
@@ -105,7 +105,10 @@ describe("schema v1 → v2 migration (ADR-038)", () => {
       schemaVersion: number;
       sessions: Record<string, { projectId: string }>;
     };
-    expect(onDisk.schemaVersion).toBe(2);
+    // CURRENT_SCHEMA_VERSION is 3 since iterate/multi-session-run-orchestrator-v2.
+    // Older binaries reading this file fall back via the v1+v2+v3 compat
+    // window in validateExternalTask().
+    expect(onDisk.schemaVersion).toBe(3);
     // BOTH touched + untouched rows get the canonical projectId on disk —
     // persist writes the whole shape atomically.
     expect(onDisk.sessions.t1.projectId).toBe("unassigned");
@@ -190,5 +193,146 @@ describe("schema v1 → v2 migration (ADR-038)", () => {
     const list = store.list();
     expect(list).toHaveLength(1);
     expect(list[0].taskId).toBe("good");
+  });
+});
+
+describe("schema v3 phase-task linkage (iterate/multi-session-run-orchestrator-v2)", () => {
+  it("v3-load: phaseTaskId / runId / parentRunMaster round-trip from disk", async () => {
+    const payload = JSON.stringify({
+      schemaVersion: 3,
+      sessions: {
+        t1: baseTask({
+          taskId: "t1",
+          projectId: "p1",
+          phaseTaskId: "ptk-aaaa",
+          runId: "run-12345678",
+          parentRunMaster: false,
+        }),
+      },
+    });
+    const deps = inMemoryDeps({ "/store/sdk-sessions.json": payload });
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const t1 = store.get("t1");
+    expect(t1?.phaseTaskId).toBe("ptk-aaaa");
+    expect(t1?.runId).toBe("run-12345678");
+    expect(t1?.parentRunMaster).toBe(false);
+  });
+
+  it("v3-load: tolerates missing v3 fields (forward-compat — pre-v3 rows tagged v3)", async () => {
+    const payload = JSON.stringify({
+      schemaVersion: 3,
+      sessions: {
+        t1: baseTask({ taskId: "t1", projectId: "p1" }),
+      },
+    });
+    const deps = inMemoryDeps({ "/store/sdk-sessions.json": payload });
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const t1 = store.get("t1");
+    expect(t1?.phaseTaskId).toBeUndefined();
+    expect(t1?.runId).toBeUndefined();
+    expect(t1?.parentRunMaster).toBeUndefined();
+  });
+
+  it("v3-load: soft-ignores wrong-typed v3 fields (e.g. number runId)", async () => {
+    const payload = JSON.stringify({
+      schemaVersion: 3,
+      sessions: {
+        t1: baseTask({
+          taskId: "t1",
+          projectId: "p1",
+          phaseTaskId: 12345,
+          runId: null,
+          parentRunMaster: "not-a-boolean",
+        }),
+      },
+    });
+    const deps = inMemoryDeps({ "/store/sdk-sessions.json": payload });
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const t1 = store.get("t1");
+    expect(t1).toBeDefined();
+    expect(t1?.phaseTaskId).toBeUndefined();
+    expect(t1?.runId).toBeUndefined();
+    expect(t1?.parentRunMaster).toBeUndefined();
+  });
+
+  it("create() accepts sessionUuid override + phase-task fields", async () => {
+    const deps = inMemoryDeps();
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const task = store.create({
+      title: "Run-12345678 / build / 01-core",
+      cwd: "/proj",
+      projectId: "p1",
+      sessionUuid: "33333333-4444-4555-8666-777777777777",
+      phaseTaskId: "ptk-cccc",
+      runId: "run-12345678",
+      parentRunMaster: false,
+    });
+    expect(task.sessionUuid).toBe("33333333-4444-4555-8666-777777777777");
+    expect(task.phaseTaskId).toBe("ptk-cccc");
+    expect(task.runId).toBe("run-12345678");
+    expect(task.parentRunMaster).toBe(false);
+  });
+
+  it("findByPhaseTaskId returns the existing non-terminal shadow", async () => {
+    const deps = inMemoryDeps();
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const task = store.create({
+      title: "shadow",
+      cwd: "/proj",
+      projectId: "p1",
+      phaseTaskId: "ptk-cccc",
+      runId: "run-12345678",
+      parentRunMaster: false,
+    });
+    const found = store.findByPhaseTaskId("ptk-cccc");
+    expect(found?.taskId).toBe(task.taskId);
+  });
+
+  it("findByPhaseTaskId skips done shadows so a closed task can be re-launched", async () => {
+    const deps = inMemoryDeps();
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const old = store.create({
+      title: "old",
+      cwd: "/proj",
+      projectId: "p1",
+      phaseTaskId: "ptk-cccc",
+      runId: "run-12345678",
+      parentRunMaster: false,
+    });
+    store.patch(old.taskId, { state: "done" });
+    expect(store.findByPhaseTaskId("ptk-cccc")).toBeUndefined();
+  });
+
+  it("persist after creating a v3 task writes the new fields to disk", async () => {
+    const deps = inMemoryDeps();
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    store.create({
+      title: "shadow",
+      cwd: "/proj",
+      projectId: "p1",
+      phaseTaskId: "ptk-cccc",
+      runId: "run-12345678",
+      parentRunMaster: false,
+    });
+    await store.persist();
+    const onDisk = JSON.parse(deps.__files.get("/store/sdk-sessions.json")!) as {
+      schemaVersion: number;
+      sessions: Record<
+        string,
+        { phaseTaskId?: string; runId?: string; parentRunMaster?: boolean }
+      >;
+    };
+    expect(onDisk.schemaVersion).toBe(3);
+    const row = Object.values(onDisk.sessions)[0];
+    expect(row.phaseTaskId).toBe("ptk-cccc");
+    expect(row.runId).toBe("run-12345678");
+    expect(row.parentRunMaster).toBe(false);
   });
 });

@@ -3,7 +3,7 @@
  *
  * Shape (on disk, `<registryDir>/sdk-sessions.json`):
  *   {
- *     schemaVersion: 2,
+ *     schemaVersion: 3,
  *     sessions: {
  *       [taskId]: {
  *         taskId,
@@ -15,6 +15,9 @@
  *         state,               // see PocTaskState below
  *         title,
  *         projectId,           // v2 (iterate 3 section 02) — "unassigned" reserved
+ *         phaseTaskId?,        // v3 — links shadow to a run-config phase_task
+ *         runId?,              // v3 — owning run
+ *         parentRunMaster?,    // v3 — true iff the shadow represents the master conv
  *         createdAt,
  *         launchedAt?,
  *         firstJsonlObservedAt?,
@@ -24,13 +27,13 @@
  *     }
  *   }
  *
- * Schema migration (ADR-038): CURRENT_SCHEMA_VERSION = 2. The loader
- * accepts both v1 and v2 on disk. v1 rows are backfilled with
- * `projectId: "unassigned"` in memory (write-on-touch — the first
- * persist() after any mutation flushes the whole shape as v2). This
- * keeps the migration incremental — large stores (300+ rows) migrate
- * over days of normal use rather than on boot, and rollback is a
- * one-line constant revert.
+ * Schema migration (ADR-038 + iterate/multi-session-run-orchestrator-v2):
+ * CURRENT_SCHEMA_VERSION = 3. The loader accepts v1, v2, AND v3 on disk.
+ * v1 rows are backfilled with `projectId: "unassigned"` in memory; v2
+ * rows load with the new v3 fields undefined. Write-on-touch — the first
+ * persist() after any mutation flushes the whole shape as v3. This keeps
+ * the migration incremental — large stores migrate over days of normal
+ * use rather than on boot, and rollback is a one-line constant revert.
  *
  * O26 (deleted project references): if a dep `getKnownProjectIds` is
  * injected, v2 rows whose projectId is not in the known set resolve
@@ -112,6 +115,21 @@ export interface ExternalTask {
   phaseLabel?: string;
   description?: string;
   autonomy?: "guided" | "autonomous";
+  /**
+   * v3 — iterate/multi-session-run-orchestrator-v2. Optional linkage to
+   * a framework run-config v2 phase_task. When set, this task is a
+   * "shadow" of an external multi-session phase the user is running.
+   * - phaseTaskId   — the orchestrator's `phaseTaskId` (ptk-...)
+   * - runId         — the owning run (run-XXXXXXXX)
+   * - parentRunMaster — true if the shadow represents the master
+   *   conversation (always false in this iterate; reserved for future).
+   * Idempotency: the create-task route looks up existing tasks by
+   * phaseTaskId before inserting; multiple Continue Pipeline clicks
+   * for the same phase_task reuse the existing shadow.
+   */
+  phaseTaskId?: string;
+  runId?: string;
+  parentRunMaster?: boolean;
   createdAt: string;
   launchedAt?: string;
   firstJsonlObservedAt?: string;
@@ -120,7 +138,7 @@ export interface ExternalTask {
 }
 
 export interface SdkSessionsFile {
-  schemaVersion: 1 | 2;
+  schemaVersion: 1 | 2 | 3;
   sessions: Record<string, ExternalTask>;
 }
 
@@ -142,7 +160,7 @@ export interface SdkSessionsStoreDeps {
   getKnownProjectIds?: () => Set<string>;
 }
 
-const CURRENT_SCHEMA_VERSION = 2 as const;
+const CURRENT_SCHEMA_VERSION = 3 as const;
 
 export class SdkSessionsStore {
   private readonly path: string;
@@ -191,13 +209,14 @@ export class SdkSessionsStore {
       return;
     }
 
-    // Schema-version gate. We accept v1 and v2 (ADR-038). Anything else
-    // → start empty (future version, won't silently misinterpret).
+    // Schema-version gate. We accept v1, v2, and v3 (ADR-038 +
+    // iterate/multi-session-run-orchestrator-v2). Anything else → start
+    // empty (future version, won't silently misinterpret).
     const schemaVersion =
       parsed && typeof parsed === "object" && "schemaVersion" in parsed
         ? (parsed as { schemaVersion: unknown }).schemaVersion
         : undefined;
-    if (schemaVersion !== 1 && schemaVersion !== 2) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) {
       this.sessions.clear();
       this.loaded = true;
       return;
@@ -215,7 +234,11 @@ export class SdkSessionsStore {
 
     // Per-entry fault isolation: a bad row is dropped, the rest survive.
     for (const [taskId, value] of Object.entries(sessionsObj as Record<string, unknown>)) {
-      const task = validateExternalTask(taskId, value, schemaVersion);
+      const task = validateExternalTask(
+        taskId,
+        value,
+        schemaVersion as 1 | 2 | 3,
+      );
       if (task) this.sessions.set(taskId, task);
     }
 
@@ -258,10 +281,22 @@ export class SdkSessionsStore {
      */
     phase?: string;
     phaseLabel?: string;
+    /**
+     * v3 — iterate/multi-session-run-orchestrator-v2. When the caller
+     * passes a sessionUuid (Continue Pipeline path), it overrides the
+     * auto-generated one — the framework's orchestrator has pre-bound
+     * the uuid in run-config and the user's CLI launch must use it. The
+     * route validates the uuid format + that it matches a phase_task
+     * BEFORE calling here; this method trusts the caller.
+     */
+    sessionUuid?: string;
+    phaseTaskId?: string;
+    runId?: string;
+    parentRunMaster?: boolean;
   }): ExternalTask {
     const task: ExternalTask = {
       taskId: randomUUID(),
-      sessionUuid: randomUUID(),
+      sessionUuid: args.sessionUuid ?? randomUUID(),
       cwd: args.cwd,
       pluginDirs: args.pluginDirs ?? [],
       parentTaskId: args.parentTaskId,
@@ -281,8 +316,29 @@ export class SdkSessionsStore {
     };
     if (args.phase) task.phase = args.phase;
     if (args.phaseLabel) task.phaseLabel = args.phaseLabel;
+    if (args.phaseTaskId) task.phaseTaskId = args.phaseTaskId;
+    if (args.runId) task.runId = args.runId;
+    if (typeof args.parentRunMaster === "boolean") {
+      task.parentRunMaster = args.parentRunMaster;
+    }
     this.sessions.set(task.taskId, task);
     return task;
+  }
+
+  /**
+   * v3 — find an existing non-terminal task by `phaseTaskId`. Used by the
+   * create-task route to make Continue Pipeline launches idempotent: a
+   * second click on the same phase_task should reuse the prior shadow
+   * rather than create a duplicate (review O #6).
+   *
+   * Returns the first match (there should only ever be one non-terminal
+   * shadow per phase_task; defensive against duplicates).
+   */
+  findByPhaseTaskId(phaseTaskId: string): ExternalTask | undefined {
+    for (const t of this.sessions.values()) {
+      if (t.phaseTaskId === phaseTaskId && t.state !== "done") return t;
+    }
+    return undefined;
   }
 
   get(taskId: string): ExternalTask | undefined {
@@ -342,7 +398,7 @@ export class SdkSessionsStore {
 function validateExternalTask(
   taskId: string,
   raw: unknown,
-  schemaVersion: 1 | 2,
+  schemaVersion: 1 | 2 | 3,
 ): ExternalTask | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -372,8 +428,8 @@ function validateExternalTask(
   // v1: any projectId field on disk is untrusted (this is a compat-window
   //   shape, e.g. an older binary read a v2 row tagged v1). Always
   //   backfill UNASSIGNED_PROJECT_ID. External review O25.
-  // v2: require a non-empty string; soft-skip the row otherwise (null,
-  //   empty-string, or non-string = corrupt).
+  // v2 + v3: require a non-empty string; soft-skip the row otherwise
+  //   (null, empty-string, or non-string = corrupt).
   let projectId: string;
   if (schemaVersion === 1) {
     projectId = UNASSIGNED_PROJECT_ID;
@@ -405,6 +461,18 @@ function validateExternalTask(
         }
       : { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 };
 
+  // v3 — read phase-task linkage fields. Forward-compat: tolerate them on
+  // v1/v2 rows too (e.g. partial rollback after writing v3 once). Drop bad
+  // shapes silently rather than fail the whole row.
+  const phaseTaskId =
+    typeof r.phaseTaskId === "string" && r.phaseTaskId.length > 0
+      ? r.phaseTaskId
+      : undefined;
+  const runId =
+    typeof r.runId === "string" && r.runId.length > 0 ? r.runId : undefined;
+  const parentRunMaster =
+    typeof r.parentRunMaster === "boolean" ? r.parentRunMaster : undefined;
+
   return {
     taskId,
     sessionUuid: r.sessionUuid,
@@ -421,5 +489,8 @@ function validateExternalTask(
     lastJsonlSeenMtimeMs:
       typeof r.lastJsonlSeenMtimeMs === "number" ? r.lastJsonlSeenMtimeMs : undefined,
     inbox,
+    ...(phaseTaskId ? { phaseTaskId } : {}),
+    ...(runId ? { runId } : {}),
+    ...(parentRunMaster !== undefined ? { parentRunMaster } : {}),
   };
 }
