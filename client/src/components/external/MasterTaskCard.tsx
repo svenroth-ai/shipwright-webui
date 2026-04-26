@@ -19,7 +19,7 @@
  * future TaskDetail header (review O #7 / plan B4).
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 
@@ -34,6 +34,8 @@ import {
   type RunStatus,
 } from "../../lib/run-config-v2";
 import { useContinuePipeline } from "../../hooks/useContinuePipeline";
+import { useExternalTasks } from "../../hooks/useExternalTasks";
+import type { ExternalTask } from "../../lib/externalApi";
 import { CopySnippet } from "./CopySnippet";
 
 const STALE_IN_PROGRESS_MS = 60 * 60 * 1000; // 1 hour
@@ -53,9 +55,21 @@ export function MasterTaskCard({
 }: Props) {
   const navigate = useNavigate();
   const continuePipeline = useContinuePipeline();
+  const { data: tasks = [] } = useExternalTasks();
   const [expanded, setExpanded] = useState(config.status === "in_progress");
   const [pendingPhaseTaskId, setPendingPhaseTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Build a sessionUuid → shadow-task lookup so child rows can navigate
+  // to the corresponding TaskDetail when a webui shadow exists. Rows
+  // without a shadow (e.g. phase_tasks the user has never continued via
+  // webui — orchestrator-tracked but no JSONL polling here) stay
+  // non-interactive.
+  const shadowBySessionUuid = useMemo(() => {
+    const m = new Map<string, ExternalTask>();
+    for (const t of tasks) m.set(t.sessionUuid, t);
+    return m;
+  }, [tasks]);
 
   const failedTasks = useMemo(
     () => config.phase_tasks.filter((t) => t.status === "failed"),
@@ -145,39 +159,75 @@ export function MasterTaskCard({
           data-testid={`master-card-children-${config.runId}`}
           className="divide-y divide-[var(--color-border,#e0dbd4)]"
         >
-          {config.phase_tasks.map((pt) => (
-            <li
-              key={pt.phaseTaskId}
-              data-testid={`master-card-row-${pt.phaseTaskId}`}
-              className="flex items-center gap-3 px-4 py-2 text-[13px]"
-            >
-              <PhaseDot phase={pt.phase} />
-              <span className="font-medium text-[var(--color-text,#1a1a1a)]">
-                {pt.phase}
-                {pt.splitId ? (
-                  <span className="text-[var(--color-muted,#6b7280)]"> / {pt.splitId}</span>
-                ) : null}
-              </span>
-              <PhaseTaskBadge status={pt.status} />
-              <span className="ml-auto font-mono text-[11px] text-[var(--color-muted,#6b7280)]">
-                {pt.sessionUuid.slice(-8)}
-              </span>
-              {pt.status === "awaiting_launch" && (
-                <button
-                  type="button"
-                  data-testid={`master-card-continue-${pt.phaseTaskId}`}
-                  onClick={() => onContinue(pt.phaseTaskId)}
-                  disabled={pendingPhaseTaskId === pt.phaseTaskId}
-                  className="rounded-[var(--radius-button,8px)] bg-[var(--color-success,#059669)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#047857] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {pendingPhaseTaskId === pt.phaseTaskId ? "…" : "Continue"}
-                </button>
-              )}
-              {pt.status === "failed" && (
-                <span className="text-[11px] font-medium text-[#b91c1c]">failed</span>
-              )}
-            </li>
-          ))}
+          {config.phase_tasks.map((pt) => {
+            const shadow = shadowBySessionUuid.get(pt.sessionUuid);
+            const navigable = shadow !== undefined;
+            const onRowActivate = navigable
+              ? () => navigate(`/tasks/${shadow.taskId}`)
+              : undefined;
+            const onRowKey = navigable
+              ? (ev: KeyboardEvent<HTMLLIElement>) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
+                    onRowActivate?.();
+                  }
+                }
+              : undefined;
+            return (
+              <li
+                key={pt.phaseTaskId}
+                data-testid={`master-card-row-${pt.phaseTaskId}`}
+                data-navigable={navigable ? "true" : "false"}
+                role={navigable ? "button" : undefined}
+                tabIndex={navigable ? 0 : undefined}
+                onClick={onRowActivate}
+                onKeyDown={onRowKey}
+                aria-label={
+                  navigable
+                    ? `Open task detail for ${pt.phase}${pt.splitId ? ` / ${pt.splitId}` : ""}`
+                    : undefined
+                }
+                className={
+                  "flex items-center gap-3 px-4 py-2 text-[13px] " +
+                  (navigable
+                    ? "cursor-pointer hover:bg-[var(--color-muted-bg,#ede8e1)] focus:bg-[var(--color-muted-bg,#ede8e1)] focus:outline-none"
+                    : "")
+                }
+              >
+                <PhaseDot phase={pt.phase} />
+                <span className="font-medium text-[var(--color-text,#1a1a1a)]">
+                  {pt.phase}
+                  {pt.splitId ? (
+                    <span className="text-[var(--color-muted,#6b7280)]"> / {pt.splitId}</span>
+                  ) : null}
+                </span>
+                <PhaseTaskBadge status={pt.status} />
+                <span className="ml-auto font-mono text-[11px] text-[var(--color-muted,#6b7280)]">
+                  {pt.sessionUuid.slice(-8)}
+                </span>
+                {pt.status === "awaiting_launch" && (
+                  <button
+                    type="button"
+                    data-testid={`master-card-continue-${pt.phaseTaskId}`}
+                    onClick={(ev) => {
+                      // Don't bubble to row navigation — Continue is the
+                      // primary action on this row regardless of whether
+                      // a shadow already exists.
+                      ev.stopPropagation();
+                      void onContinue(pt.phaseTaskId);
+                    }}
+                    disabled={pendingPhaseTaskId === pt.phaseTaskId}
+                    className="rounded-[var(--radius-button,8px)] bg-[var(--color-success,#059669)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#047857] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {pendingPhaseTaskId === pt.phaseTaskId ? "…" : "Continue"}
+                  </button>
+                )}
+                {pt.status === "failed" && (
+                  <span className="text-[11px] font-medium text-[#b91c1c]">failed</span>
+                )}
+              </li>
+            );
+          })}
           {readyToLaunchTasks.length === 0 &&
             !isStrictlyTerminal(config.status) &&
             staleTasks.length === 0 && (
