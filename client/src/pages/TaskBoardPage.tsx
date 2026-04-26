@@ -71,7 +71,13 @@ import { PreviewButton } from "../components/external/PreviewButton";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { MasterTaskCard } from "../components/external/MasterTaskCard";
+import { ContinuePipelineModal } from "../components/external/ContinuePipelineModal";
 import { UNASSIGNED_PROJECT_ID } from "../lib/projectIds";
+
+/** Synthetic action id used by the "Continue Pipeline" entry. Routed
+ * separately from real catalog actions: clicking it opens
+ * ContinuePipelineModal, not NewIssueModal. */
+const CONTINUE_PIPELINE_ACTION_ID = "continue-pipeline";
 
 const VIEW_STORAGE_KEY = "webui.taskBoardView";
 const VIEW_URL_PARAM = "view";
@@ -141,7 +147,7 @@ export default function TaskBoardPage() {
   }, [activeProjectId, projects]);
 
   const actionsQuery = useProjectActions(resolvedProjectId);
-  const actionsList: ActionDefinition[] = actionsQuery.data?.actions ?? [];
+  const baseActionsList: ActionDefinition[] = actionsQuery.data?.actions ?? [];
 
   // iterate/multi-session-run-orchestrator-v2 — Pipelines lane.
   // Polls run-config for the active project; renders a MasterTaskCard
@@ -151,6 +157,26 @@ export default function TaskBoardPage() {
     () => projects.find((p) => p.id === resolvedProjectId) ?? null,
     [projects, resolvedProjectId],
   );
+
+  // Continue Pipeline menu entry availability: only when v2 run-config is
+  // healthy AND there's at least one ready-to-launch phase_task. Gated on
+  // status === "in_progress" so a complete/failed run doesn't expose it.
+  const continuePipelineAvailable =
+    runConfigQuery.data?.status === "ok" &&
+    runConfigQuery.data.config.status === "in_progress" &&
+    runConfigQuery.data.readyToLaunchTasks.length > 0;
+
+  const actionsList: ActionDefinition[] = useMemo(() => {
+    if (!continuePipelineAvailable) return baseActionsList;
+    const synthetic: ActionDefinition = {
+      id: CONTINUE_PIPELINE_ACTION_ID,
+      label: "Continue Pipeline",
+      kind: "external_launch",
+      description:
+        "Resume the next phase of an in-progress Shipwright pipeline.",
+    } as ActionDefinition;
+    return [...baseActionsList, synthetic];
+  }, [baseActionsList, continuePipelineAvailable]);
 
   // iterate 3.7h: client-side project filter against the single global
   // task list. ProjectFilterDropdown uses the same underlying cache entry,
@@ -206,8 +232,15 @@ export default function TaskBoardPage() {
   // NewIssueModal state — singleton per page.
   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // Continue Pipeline modal — separate singleton; routed from the same
+  // dropdown but never overlaps with NewIssueModal.
+  const [continuePipelineOpen, setContinuePipelineOpen] = useState(false);
 
   const openModal = useCallback((a: ActionDefinition) => {
+    if (a.id === CONTINUE_PIPELINE_ACTION_ID) {
+      setContinuePipelineOpen(true);
+      return;
+    }
     setModalAction(a);
     setModalOpen(true);
   }, []);
@@ -416,6 +449,12 @@ export default function TaskBoardPage() {
           // next refetchInterval tick. Phase A3 — iterate 3 remediation.
           void queryClient.invalidateQueries({ queryKey: ["external-tasks"] });
         }}
+      />
+      <ContinuePipelineModal
+        open={continuePipelineOpen}
+        onOpenChange={setContinuePipelineOpen}
+        project={activeProjectMeta}
+        runConfig={runConfigQuery.data}
       />
     </div>
   );
