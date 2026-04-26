@@ -26,11 +26,12 @@ Two hard rules, survivors of every review round:
       config/
         default-actions.json    # Shipwright phase + action catalog (Iterate 3)
       core/
-        launcher.ts             # Copy-command generator (PS / cmd.exe / POSIX). Exports qPs/qCmd/qPosix for reuse.
+        launcher.ts             # Copy-command generator (PS / cmd.exe / POSIX). Exports qPs/qCmd/qPosix for reuse. Iterate v2: optional slashCommand emits as trailing positional arg for phase-task launches.
         session-watcher.ts      # Filename-first JSONL discovery + byte-range reader
         session-parser.ts       # Typed events from raw JSONL + unknown-fallback
         inbox-derive.ts         # Pending tool_use extraction (best-effort)
-        sdk-sessions-store.ts   # Persistent task store (schema-versioned v1/v2; projectId field)
+        sdk-sessions-store.ts   # Persistent task store (schemaVersion v1/v2/v3; projectId + iterate-v2 phaseTaskId/runId/parentRunMaster fields; findByPhaseTaskId() for idempotency)
+        run-config-reader.ts    # Iterate v2: reads <project.path>/shipwright_run_config.json; per-row fault isolation + torn-read retry + 5s last-good cache. Read-only.
         cli-compat.ts           # Claude CLI version gate (MIN_SUPPORTED_CLI)
         project-manager.ts      # Project metadata CRUD (still used)
         profile-loader.ts       # Stack profile loading (wizard)
@@ -40,7 +41,7 @@ Two hard rules, survivors of every review round:
         path-guard.ts           # Iterate 3: shared path-traversal guard (realpath + path.relative, NOT startsWith) for tree + file routes
         gitignore-cache.ts      # Iterate 3: mtime-keyed gitignore rule cache for FolderTree
       external/
-        routes.ts               # /api/external/{tasks,launch,transcript,inbox,actions,preview,actions-stub,projects/:id/tree,projects/:id/file}
+        routes.ts               # /api/external/{tasks,launch,transcript,inbox,actions,preview,actions-stub,projects/:id/tree,projects/:id/file,projects/:id/run-config}
       middleware/
         error-handler.ts        # Centralized error response middleware
         logger.ts               # Request logging
@@ -80,8 +81,12 @@ Two hard rules, survivors of every review round:
           SmartViewer/               # Right pane of TaskDetail — 5 renderers (Markdown/Code/Text/Image/Mermaid; mermaid lazy-imported, 609 KB chunk)
           NewIssueModal.tsx          # Shared New-* modal body (Pipeline / Iterate / Task variants)
           PreviewButton.tsx          # Dev-server spawn trigger; visibility-gated by profile.stack.frontend
-          CreateMenuSplitButton.tsx  # Sidebar "+ New ▾" split-button (Pipeline / Iterate / Task)
+          CreateMenuSplitButton.tsx  # Sidebar "+ New ▾" split-button (Pipeline / Iterate / Task / Continue Pipeline)
           TaskDetailThreePane.tsx    # react-resizable-panels wrapper; persists widths + collapsed state in localStorage
+          # iterate/multi-session-run-orchestrator-v2 additions:
+          MasterTaskCard.tsx         # One card per Run (run-config v2). Children list + state-conditional banners (failed / needs_validation / complete / stale).
+          ContinuePipelineModal.tsx  # "+ New ▾ → Continue Pipeline" target. Picker for readyToLaunchTasks[]; delegates to useContinuePipeline.
+          CopySnippet.tsx            # Small monospace snippet + copy button (used for `recover-phase-task` snippets).
         common/
           DiagnosticsBanner.tsx # Warns when CLI < MIN_SUPPORTED_CLI
         sidebar/                # Sidebar navigation
@@ -193,6 +198,11 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 9. (Iterate 3 — ADR-044) **Preview spawn uses `shell: false`.** User-controlled `dev_server.command` strings + `shell: true` would be command-injection. All Preview subprocess entrypoints flow through `core/preview-session-manager.ts`, which tokenizes the command and spawns with `shell: false`. DO NOT add a parallel spawn path.
 10. (Iterate 3 — ADR-044) **Path-guard is `realpath + path.relative`, NOT `startsWith`.** Symlinks, unicode, and Windows junction points defeat prefix checks. All tree + file routes share `core/path-guard.ts`; null-byte input is hard-rejected.
 11. (Iterate 3 — ADR-044) **DO NOT hardcode `shipwright-run` / `shipwright-iterate` / phase strings (`build`, `plan`, `design`, …) in components** — read from `/api/external/projects/:id/actions`. Violations re-introduce the configurability debt iterate 3 paid down and will cause custom `.webui/actions.json` installations to break silently. Meta-test `client/src/test/doc-sync.test.ts` keeps this file-map honest; grep your component for `shipwright-` literals before committing.
+12. (iterate/multi-session-run-orchestrator-v2) **DO NOT write into the user's `shipwright_run_config.json`.** WebUI is a read-only observer of run-config. The framework's orchestrator owns every mutation; the only webui write surface remains `sdk-sessions.json` + `.webui/actions.json` stub creation (existing). All run-config consumption flows through `core/run-config-reader.ts` (server) and `useRunConfig()` (client).
+13. (iterate/multi-session-run-orchestrator-v2) **Phase-task launches must use the pre-bound `sessionUuid` from the run-config — never re-generate.** The `/launch` route's `phaseTaskRef` branch re-reads run-config server-side and rejects mismatched session-uuids (`409 phase_task_session_uuid_mismatch`). The client never sends `sessionUuid` / `slashCommand` directly; only `phaseTaskRef.phaseTaskId`. Also: `phaseTaskRef` and `actionId` are mutually exclusive (`400 mixed_launch_intents`).
+14. (iterate/multi-session-run-orchestrator-v2) **All pipeline-continuation entry points share `useContinuePipeline()`.** Master TaskCard CTA + Continue Pipeline modal + future TaskDetail header all funnel through the single hook so re-fetch + idempotent shadow-task lookup + verified launch happen as one atomic unit. Adding a parallel launch path bypasses the staleness re-check and re-introduces the race the architecture closes.
+15. (iterate/multi-session-run-orchestrator-v2) **Schema v3 is additive + write-on-touch.** `sdk-sessions.json` gains optional `phaseTaskId` / `runId` / `parentRunMaster` fields. Loader accepts v1 + v2 + v3; persist always writes v3. Same forward-compat window as ADR-038. DO NOT batch-rewrite on boot.
+16. (iterate/multi-session-run-orchestrator-v2) **Stale `in_progress` detection uses run-config timestamps only.** `phase_task.startedAt` / `claimAttemptedAt` against `config.updated_at` — never JSONL mtime. WebUI must not depend on observing JSONL files for tasks it doesn't own a shadow of.
 
 ### Title integration (`--name`)
 
