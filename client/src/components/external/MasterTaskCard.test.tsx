@@ -8,12 +8,26 @@
  * focuses on what renders for each run-config status.
  */
 
-import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
+import { http, HttpResponse } from "msw";
+
+// Stub useContinuePipeline for the navigation tests so clicking the
+// Continue button doesn't kick off a real fetch/clipboard chain that
+// outlives the test (causing the "test environment was torn down"
+// warning). The hook's behaviour is exercised end-to-end in
+// useContinuePipeline.test.ts.
+vi.mock("../../hooks/useContinuePipeline", () => ({
+  useContinuePipeline: () => async () => ({
+    ok: false as const,
+    reason: "no_run_config" as const,
+  }),
+}));
 
 import { MasterTaskCard } from "./MasterTaskCard";
+import { server } from "../../test/mocks/server";
 import type { Project } from "../../types";
 import type { PhaseTask, RunConfigV2 } from "../../lib/run-config-v2";
 
@@ -280,5 +294,153 @@ describe("MasterTaskCard", () => {
     expect(
       screen.queryByTestId("master-card-stale-run-a1b2c3d4"),
     ).toBeNull();
+  });
+});
+
+describe("MasterTaskCard — child row navigation (shadow lookup)", () => {
+  // Probe component reads useLocation so tests can assert navigation.
+  function LocationProbe() {
+    const loc = useLocation();
+    return <div data-testid="probe-location">{loc.pathname}</div>;
+  }
+
+  function renderWithLocation(props: {
+    config: RunConfigV2;
+    shadowTasks: Array<{ taskId: string; sessionUuid: string }>;
+  }) {
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: props.shadowTasks.map((t) => ({
+            taskId: t.taskId,
+            sessionUuid: t.sessionUuid,
+            cwd: "/proj",
+            pluginDirs: [],
+            title: "shadow",
+            projectId: PROJECT.id,
+            state: "active",
+            createdAt: "2026-04-25T08:00:00.000Z",
+            inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
+          })),
+        }),
+      ),
+    );
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <MasterTaskCard
+                    project={PROJECT}
+                    config={props.config}
+                    readyToLaunchTasks={props.config.phase_tasks.filter(
+                      (t) => t.status === "awaiting_launch",
+                    )}
+                    diagnostics={{ droppedPhaseTaskIds: [], warnings: [] }}
+                  />
+                  <LocationProbe />
+                </>
+              }
+            />
+            <Route path="/tasks/:id" element={<LocationProbe />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it("renders rows with data-navigable=true when a shadow task matches the sessionUuid", async () => {
+    const cfg = makeConfig();
+    renderWithLocation({
+      config: cfg,
+      shadowTasks: [
+        {
+          taskId: "task-shadow-aaaa",
+          sessionUuid: cfg.phase_tasks[0].sessionUuid, // ptk-aaaa
+        },
+      ],
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("master-card-row-ptk-aaaa").getAttribute("data-navigable"),
+      ).toBe("true");
+    });
+    // ptk-bbbb has no shadow → not navigable.
+    expect(
+      screen.getByTestId("master-card-row-ptk-bbbb").getAttribute("data-navigable"),
+    ).toBe("false");
+  });
+
+  it("clicking a navigable row routes to /tasks/<shadow.taskId>", async () => {
+    const cfg = makeConfig();
+    renderWithLocation({
+      config: cfg,
+      shadowTasks: [
+        {
+          taskId: "task-shadow-aaaa",
+          sessionUuid: cfg.phase_tasks[0].sessionUuid,
+        },
+      ],
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("master-card-row-ptk-aaaa").getAttribute("data-navigable"),
+      ).toBe("true");
+    });
+    fireEvent.click(screen.getByTestId("master-card-row-ptk-aaaa"));
+    await waitFor(() => {
+      expect(screen.getByTestId("probe-location").textContent).toBe(
+        "/tasks/task-shadow-aaaa",
+      );
+    });
+  });
+
+  it("Continue button click does NOT bubble to row navigation", async () => {
+    const cfg = makeConfig();
+    renderWithLocation({
+      config: cfg,
+      // Shadow exists for the awaiting_launch row too.
+      shadowTasks: [
+        {
+          taskId: "task-shadow-bbbb",
+          sessionUuid: cfg.phase_tasks[1].sessionUuid,
+        },
+      ],
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("master-card-row-ptk-bbbb").getAttribute("data-navigable"),
+      ).toBe("true");
+    });
+    // Click only the Continue button. Without stopPropagation the row
+    // would also navigate; we want the launch flow to take over instead.
+    // Note: the launch flow itself eventually navigates too, but it
+    // races against the synchronous row handler. Here we just assert
+    // that the row click handler did NOT fire ahead of the launch —
+    // captured by checking we did NOT go to /tasks/task-shadow-bbbb
+    // immediately. We rely on jsdom's synchronous click semantics.
+    fireEvent.click(screen.getByTestId("master-card-continue-ptk-bbbb"));
+    // Synchronously after the click, location must still be "/" — the
+    // launch flow is async so navigation hasn't happened yet, AND the
+    // row's onClick was suppressed.
+    expect(screen.getByTestId("probe-location").textContent).toBe("/");
+  });
+
+  it("non-navigable rows have no role=button and no tabIndex", () => {
+    const cfg = makeConfig();
+    renderWithLocation({
+      config: cfg,
+      shadowTasks: [], // no shadows at all
+    });
+    const row = screen.getByTestId("master-card-row-ptk-aaaa");
+    expect(row.getAttribute("role")).toBeNull();
+    expect(row.getAttribute("tabindex")).toBeNull();
+    expect(row.getAttribute("data-navigable")).toBe("false");
   });
 });
