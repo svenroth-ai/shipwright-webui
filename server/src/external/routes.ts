@@ -53,6 +53,11 @@ import {
   type PreviewProfile,
 } from "../core/preview-session-manager.js";
 import { loadProfile, getProfilesDir } from "../core/profile-loader.js";
+import {
+  readRunConfig as defaultReadRunConfig,
+  type RunConfigReadResult,
+} from "../core/run-config-reader.js";
+import { deriveReadyToLaunchTasks } from "../types/run-config-v2.js";
 import { SessionWatcher } from "../core/session-watcher.js";
 import { parseSessionJsonl } from "../core/session-parser.js";
 import { deriveInbox, DEFAULT_USER_BLOCKING_TOOLS } from "../core/inbox-derive.js";
@@ -167,6 +172,12 @@ export function createExternalRoutes(args: {
    * `core/profile-loader.ts` entry; tests inject a synthetic profile.
    */
   loadProfile?: (profileName: string) => PreviewProfile | null;
+  /**
+   * iterate/multi-session-run-orchestrator-v2 — reads a project's
+   * shipwright_run_config.json. Tests inject a stub so they don't
+   * touch the filesystem; production wires the real reader.
+   */
+  readRunConfig?: (projectPath: string) => Promise<RunConfigReadResult>;
 }) {
   const app = new Hono();
   const {
@@ -180,6 +191,7 @@ export function createExternalRoutes(args: {
   const profileResolver =
     injectedLoadProfile ??
     ((name: string) => loadProfile(name, getProfilesDir()) as PreviewProfile | null);
+  const runConfigReader = args.readRunConfig ?? ((p: string) => defaultReadRunConfig(p));
 
   app.post("/api/external/tasks", async (c) => {
     const body = await c.req.json().catch(() => ({}));
@@ -1058,6 +1070,54 @@ export function createExternalRoutes(args: {
         500,
       );
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // iterate/multi-session-run-orchestrator-v2 — Run-config route.
+  //
+  // Read-only observer of `<project.path>/shipwright_run_config.json`. The
+  // route never mutates state; the framework's orchestrator owns all
+  // run-config writes. v1 configs and missing configs return early so the
+  // UI falls back to the legacy flat task rendering.
+  // -------------------------------------------------------------------------
+
+  /**
+   * GET /api/external/projects/:projectId/run-config
+   *
+   * Response shapes:
+   *   { status: "ok", config, readyToLaunchTasks, diagnostics }
+   *   { status: "missing" }
+   *   { status: "v1_legacy" }
+   *   { status: "invalid", reason }
+   *
+   * `readyToLaunchTasks` is a derived UX convenience (every awaiting_launch
+   * task whose prerequisites are completed). The framework's state machine
+   * remains the source of truth; phase-task launches re-verify against the
+   * full config server-side at launch time.
+   */
+  app.get("/api/external/projects/:projectId/run-config", async (c) => {
+    const projectId = c.req.param("projectId");
+    const project = getProjectById?.(projectId);
+    if (!project) {
+      return c.json({ error: "project_not_found", projectId }, 404);
+    }
+    if (!project.path) {
+      return c.json({ error: "project_path_unavailable", projectId }, 400);
+    }
+
+    const result = await runConfigReader(project.path);
+    if (result.status === "ok") {
+      return c.json({
+        status: "ok",
+        config: result.config,
+        readyToLaunchTasks: deriveReadyToLaunchTasks(result.config),
+        diagnostics: result.diagnostics,
+      });
+    }
+    if (result.status === "missing" || result.status === "v1_legacy") {
+      return c.json({ status: result.status });
+    }
+    return c.json({ status: "invalid", reason: result.reason });
   });
 
   // -------------------------------------------------------------------------
