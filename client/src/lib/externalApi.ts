@@ -145,12 +145,31 @@ export async function createTask(args: {
    * or when the project has no actions catalog (unassigned).
    */
   phase?: string;
+  /**
+   * iterate/multi-session-run-orchestrator-v2 — Phase-task linkage. When
+   * the caller is creating a Continue Pipeline shadow, all four fields
+   * travel together. The server validates shapes + idempotency:
+   *   - phaseTaskId already linked to a non-terminal task → reuses it
+   *   - sessionUuid is the framework's pre-bound uuid (overrides the
+   *     auto-generated one)
+   *   - parentRunMaster is reserved (always false in this iterate)
+   */
+  phaseTaskId?: string;
+  runId?: string;
+  sessionUuid?: string;
+  parentRunMaster?: boolean;
 }): Promise<ExternalTask> {
-  const json = await httpJson<{ task: ExternalTask }>(`${EXTERNAL_API}/tasks`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(args),
-  });
+  // Server may respond with `{task, reused: true}` when an existing
+  // phase-task shadow is reused (idempotency). The `reused` flag is
+  // informational — callers infer the prior state from `task.state`.
+  const json = await httpJson<{ task: ExternalTask; reused?: boolean }>(
+    `${EXTERNAL_API}/tasks`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(args),
+    },
+  );
   return json.task;
 }
 
@@ -173,6 +192,14 @@ export async function launchTask(
     phaseLabel?: string;
     /** iterate/launch-cli-parameters § 5 — schema-driven CLI flag values. */
     parameters?: Record<string, string | boolean>;
+    /**
+     * iterate/multi-session-run-orchestrator-v2 — phase-task launch. The
+     * client only ever sends the phaseTaskId; the server resolves the
+     * full phase_task from run-config and verifies before producing a
+     * command. Mutually exclusive with `actionId` (server returns 400
+     * `mixed_launch_intents` if both are present).
+     */
+    phaseTaskRef?: { phaseTaskId: string };
   } = {},
 ): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
   return await httpJson<{ task: ExternalTask; commands: CopyCommandForms }>(
@@ -581,4 +608,27 @@ export async function fetchFileText(
     throw new FileTooLargeError(CLIENT_FILE_TEXT_MAX_BYTES, "client", size);
   }
   return { text, size };
+}
+
+// -----------------------------------------------------------------------------
+// iterate/multi-session-run-orchestrator-v2 — run-config wrappers.
+// -----------------------------------------------------------------------------
+
+import type { RunConfigResponse } from "./run-config-v2";
+
+/**
+ * GET /api/external/projects/:projectId/run-config
+ *
+ * Returns the parsed v2 config (with derived `readyToLaunchTasks` for the
+ * UI's Continue Pipeline picker), or the typed status `missing | v1_legacy
+ * | invalid` so the kanban falls back cleanly when no pipeline UI applies.
+ *
+ * Polling strategy lives in `useRunConfig()`; this wrapper is plain HTTP.
+ */
+export async function getRunConfig(
+  projectId: string,
+): Promise<RunConfigResponse> {
+  return await httpJson<RunConfigResponse>(
+    `${EXTERNAL_API}/projects/${encodeURIComponent(projectId)}/run-config`,
+  );
 }
