@@ -38,6 +38,17 @@ export interface LaunchArgs {
    * the quoted string.
    */
   title?: string;
+  /**
+   * iterate/multi-session-run-orchestrator-v2 — Optional trailing slash
+   * command (e.g. `/shipwright-build`). Emitted as a quoted positional
+   * argument AFTER all flags, matching the framework's launch contract:
+   *   claude --session-id <uuid> --add-dir <root> --name '...' '/shipwright-<phase>'
+   *
+   * Validated against SLASH_COMMAND_PATTERN at the route layer; the
+   * launcher itself just escapes per shell. Newlines / control chars
+   * are rejected here as defense-in-depth.
+   */
+  slashCommand?: string;
 }
 
 export interface LaunchResult {
@@ -111,10 +122,12 @@ interface Argv {
   parentSessionUuid?: string;
   pluginDirs: string[];
   title?: string;
+  slashCommand?: string;
 }
 
 function buildArgv(args: LaunchArgs): Argv {
   const title = normalizeTitle(args.title);
+  const slashCommand = normalizeSlashCommand(args.slashCommand);
   return {
     sessionUuid: args.sessionUuid,
     cwd: args.cwd,
@@ -123,6 +136,7 @@ function buildArgv(args: LaunchArgs): Argv {
     parentSessionUuid: args.parentSessionUuid,
     pluginDirs: args.pluginDirs ?? [],
     title,
+    slashCommand,
   };
 }
 
@@ -139,6 +153,24 @@ function normalizeTitle(raw: string | undefined): string | undefined {
   return trimmed === "" ? undefined : trimmed;
 }
 
+/**
+ * Reject newlines / NUL / other control chars in slash commands; the route
+ * layer additionally validates against the strict
+ * `^/shipwright-(project|design|plan|build|test|security|changelog|deploy)$`
+ * regex. Belt-and-suspenders.
+ */
+function normalizeSlashCommand(raw: string | undefined): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  for (const ch of raw) {
+    const code = ch.charCodeAt(0);
+    if (code < 0x20 || code === 0x7f) {
+      throw new Error("slashCommand cannot contain control characters.");
+    }
+  }
+  const trimmed = raw.trim();
+  return trimmed === "" ? undefined : trimmed;
+}
+
 function renderPowershell(a: Argv): string {
   const parts: string[] = ["claude"];
   appendSessionFlags(a, parts, qPs);
@@ -148,6 +180,7 @@ function renderPowershell(a: Argv): string {
   for (const d of a.pluginDirs) {
     parts.push("--plugin-dir", qPs(d));
   }
+  appendSlashCommand(a, parts, qPs);
   return buildCdPrefix("powershell", a.cwd) + "& " + parts.join(" ");
 }
 
@@ -160,6 +193,7 @@ function renderCmd(a: Argv): string {
   for (const d of a.pluginDirs) {
     parts.push("--plugin-dir", qCmd(d));
   }
+  appendSlashCommand(a, parts, qCmd);
   return buildCdPrefix("cmd", a.cwd) + parts.join(" ");
 }
 
@@ -174,6 +208,7 @@ function renderPosix(a: Argv): string {
   for (const d of plugins) {
     parts.push("--plugin-dir", qPosix(d));
   }
+  appendSlashCommand(a, parts, qPosix);
   // Prefix uses raw cwd; buildCdPrefix does its own toPosixPath conversion.
   return buildCdPrefix("posix", a.cwd) + parts.join(" ");
 }
@@ -205,6 +240,14 @@ function appendResumeFork(a: Argv, parts: string[], q: (v: string) => string): v
 
 function appendName(a: Argv, parts: string[], q: (v: string) => string): void {
   if (a.title) parts.push("--name", q(a.title));
+}
+
+function appendSlashCommand(
+  a: Argv,
+  parts: string[],
+  q: (v: string) => string,
+): void {
+  if (a.slashCommand) parts.push(q(a.slashCommand));
 }
 
 // --- shell-specific escaping ---

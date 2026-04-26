@@ -349,3 +349,92 @@ describe("launcher.copyLauncher adapter", () => {
     expect(result.commands.powershell).toContain(SAMPLE_UUID);
   });
 });
+
+describe("launcher.buildCopyCommands — slashCommand (multi-session phase tasks)", () => {
+  it("appends a quoted slashCommand AFTER all flags in PS / cmd / POSIX", () => {
+    const c = buildCopyCommands({
+      sessionUuid: SAMPLE_UUID,
+      cwd: "/proj",
+      title: "Run-12345678 / build / 01-core",
+      slashCommand: "/shipwright-build",
+    });
+    // PS: ends with the quoted slash command
+    expect(c.powershell).toMatch(/'\/shipwright-build'$/);
+    // cmd: ends with double-quoted slash command
+    expect(c.cmd).toMatch(/"\/shipwright-build"$/);
+    // POSIX: single-quoted slash command at the end
+    expect(c.posix).toMatch(/'\/shipwright-build'$/);
+  });
+
+  it("places slashCommand AFTER --name and --plugin-dir args", () => {
+    const c = buildCopyCommands({
+      sessionUuid: SAMPLE_UUID,
+      cwd: "/proj",
+      title: "label",
+      slashCommand: "/shipwright-test",
+      pluginDirs: ["/p1", "/p2"],
+    });
+    const namePos = c.posix.indexOf("--name");
+    const pluginPos = c.posix.indexOf("--plugin-dir");
+    const slashPos = c.posix.indexOf("/shipwright-test'");
+    expect(namePos).toBeGreaterThan(0);
+    expect(pluginPos).toBeGreaterThan(namePos);
+    expect(slashPos).toBeGreaterThan(pluginPos);
+  });
+
+  it("escapes a name with spaces, single+double quotes, $, backticks, &, ; through all three shells", () => {
+    // splitId is constrained at the route layer to safe chars, but the
+    // human-readable title forwarded as --name may legitimately contain
+    // these. The shell-escape discipline must hold either way.
+    const tricky =
+      "Run-1234 / build / 01-core (it's \"funny\" $price `100` & ;)";
+    const c = buildCopyCommands({
+      sessionUuid: SAMPLE_UUID,
+      cwd: "/proj",
+      title: tricky,
+      slashCommand: "/shipwright-build",
+    });
+    // PS single-quoted: each ' doubles. The literal apostrophe in "it's"
+    // must appear as `''` inside the quoted argument.
+    expect(c.powershell).toContain(
+      "'Run-1234 / build / 01-core (it''s \"funny\" $price `100` & ;)'",
+    );
+    // cmd double-quoted: each " becomes \"
+    expect(c.cmd).toContain(
+      `"Run-1234 / build / 01-core (it's \\"funny\\" $price \`100\` & ;)"`,
+    );
+    // POSIX single-quoted: each ' becomes '\''
+    expect(c.posix).toContain(
+      `'Run-1234 / build / 01-core (it'\\''s "funny" $price \`100\` & ;)'`,
+    );
+  });
+
+  it("rejects slashCommand containing newlines (defense in depth)", () => {
+    expect(() =>
+      buildCopyCommands({
+        sessionUuid: SAMPLE_UUID,
+        cwd: "/proj",
+        slashCommand: "/shipwright-build\nrm -rf /",
+      }),
+    ).toThrow(/control characters/);
+  });
+
+  it("rejects slashCommand containing NUL", () => {
+    expect(() =>
+      buildCopyCommands({
+        sessionUuid: SAMPLE_UUID,
+        cwd: "/proj",
+        slashCommand: "/shipwright-build\x00",
+      }),
+    ).toThrow(/control characters/);
+  });
+
+  it("ignores empty slashCommand silently", () => {
+    const c = buildCopyCommands({
+      sessionUuid: SAMPLE_UUID,
+      cwd: "/proj",
+      slashCommand: "",
+    });
+    expect(c.powershell).not.toContain("/shipwright-");
+  });
+});
