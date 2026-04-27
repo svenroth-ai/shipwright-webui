@@ -93,6 +93,15 @@ const ACTION_VISUALS: Record<string, ActionVisual> = {
     icon: RotateCw,
     subtitle: "Change after the initial pipeline.",
   },
+  // iterate/multi-session-run-orchestrator-v2 — synthetic entry injected
+  // by TaskBoardPage when the active project's run-config has a ready
+  // phase_task. Routed to ContinuePipelineModal (NOT NewIssueModal).
+  "continue-pipeline": {
+    bg: "#dbeafe", // blue-100
+    fg: "#1e40af", // blue-800
+    icon: RotateCw,
+    subtitle: "Resume the next phase of an in-progress pipeline.",
+  },
 };
 
 const DEFAULT_VISUAL: ActionVisual = {

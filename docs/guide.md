@@ -234,7 +234,9 @@ modes:
 - **Plain Claude** — a chat session without a Shipwright skill.
 
 If you've added [custom actions](#93-custom-actions) for your own slash
-skills, they show up here too.
+skills, they show up here too. A fifth entry, **Continue Pipeline**,
+shows up when the active project has a multi-session pipeline run that's
+waiting for the next phase — see [6.7](#67-multi-session-pipelines).
 
 Pick one. A modal opens.
 
@@ -291,6 +293,57 @@ available — go back any time to read it again.
 > **Multi-project parallel:** repeat the loop for as many projects as
 > you want. Each task gets its own browser tab, its own transcript, its
 > own inbox slot. The Kanban board is your status overview.
+
+### 6.7 Multi-session pipelines
+
+When you run `/shipwright-run`, each SDLC phase runs in its own
+terminal Claude session — the master writes a
+`shipwright_run_config.json` at the project root, prints a launch card
+for the first phase, and ends. For the lifecycle, state machine, and
+recovery commands, see the [framework guide §4 *The Pipeline: Phase by
+Phase*](https://github.com/svenroth-ai/shipwright/blob/main/docs/guide.md#4-the-pipeline-phase-by-phase).
+
+The Command Center reads that file and renders a **Pipelines lane**
+above the Kanban columns:
+
+- One **Master TaskCard** per Run, labelled `Run-<short>` (e.g.
+  `Run-a1b2`) with a status pill (`IN PROGRESS` / `COMPLETE` /
+  `FAILED` / `NEEDS VALIDATION`).
+- Inside the card, one row per `phase_task` with phase, optional split
+  id, status pill, and the last 8 chars of the session UUID.
+- Rows whose phase task has a webui shadow (i.e. you continued through
+  the Command Center at least once) are **clickable** — they jump to
+  the matching task detail page. Rows without a shadow stay plain text.
+
+To advance the pipeline, you have two equivalent paths:
+
+- **Master TaskCard → green Continue button** on the next
+  `awaiting_launch` row. One click, no picker.
+- **+ New ▾ → Continue Pipeline** opens a modal that lists every ready
+  phase task. When the run uses splits and several branches are
+  parallel-ready (`plan/01-core` AND `plan/02-ui-shell` both waiting),
+  the modal shows a radio list so you pick which branch to launch
+  first.
+
+Both paths run the same flow: re-read run-config, look up (or create)
+the matching webui shadow task, build the launch command for the
+phase's pre-bound `--session-id`, copy it to your clipboard, and
+navigate to the new task detail page. Paste in your terminal as usual.
+
+> Repeated clicks for the same phase task reuse the existing shadow —
+> no duplicates appear in the Kanban.
+
+If a phase fails, the Master TaskCard shows a red banner with a
+copy-able `recover-phase-task` snippet for each failed task. For runs
+that finish but leave non-terminal tasks behind (`needs_validation`),
+the snippet uses `--force-status skipped`. For runs sitting in the same
+state for over an hour with no `updated_at` movement, an amber "stale"
+banner appears with the same recovery affordance.
+
+If a project has no `shipwright_run_config.json`, or the file predates
+schema v2 (i.e. an older Shipwright run), the Pipelines lane stays
+hidden and the Kanban behaves exactly like before — no functional
+change for non-pipeline workflows.
 
 ---
 
