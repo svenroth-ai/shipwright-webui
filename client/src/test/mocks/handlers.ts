@@ -154,7 +154,10 @@ export const handlers: HttpHandler[] = [
   // Iterate 3.7e-b3 — Projects page queries `/api/external/tasks` to
   // derive the per-project task count column. Return an empty list so
   // tests don't log MSW "intercepted unhandled request" warnings.
+  // Iterate v2 fix: wire the correct response shape ({tasks: []}, not
+  // {data: []}) so TanStack Query doesn't get `undefined` from the
+  // listTasks() unwrap, which surfaces as a runtime warning.
   http.get('/api/external/tasks', () =>
-    HttpResponse.json({ data: [] }),
+    HttpResponse.json({ tasks: [] }),
   ),
 ];

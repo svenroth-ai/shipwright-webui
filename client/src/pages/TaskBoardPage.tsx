@@ -61,6 +61,7 @@ import { useExternalTasks } from "../hooks/useExternalTasks";
 import { useProjects } from "../hooks/useProjects";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
+import { useRunConfig } from "../hooks/useRunConfig";
 import { TaskCard } from "../components/external/TaskCard";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
@@ -69,7 +70,14 @@ import { PlainClaudeButton } from "../components/external/PlainClaudeButton";
 import { PreviewButton } from "../components/external/PreviewButton";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { NewIssueModal } from "../components/external/NewIssueModal";
+import { MasterTaskCard } from "../components/external/MasterTaskCard";
+import { ContinuePipelineModal } from "../components/external/ContinuePipelineModal";
 import { UNASSIGNED_PROJECT_ID } from "../lib/projectIds";
+
+/** Synthetic action id used by the "Continue Pipeline" entry. Routed
+ * separately from real catalog actions: clicking it opens
+ * ContinuePipelineModal, not NewIssueModal. */
+const CONTINUE_PIPELINE_ACTION_ID = "continue-pipeline";
 
 const VIEW_STORAGE_KEY = "webui.taskBoardView";
 const VIEW_URL_PARAM = "view";
@@ -139,7 +147,36 @@ export default function TaskBoardPage() {
   }, [activeProjectId, projects]);
 
   const actionsQuery = useProjectActions(resolvedProjectId);
-  const actionsList: ActionDefinition[] = actionsQuery.data?.actions ?? [];
+  const baseActionsList: ActionDefinition[] = actionsQuery.data?.actions ?? [];
+
+  // iterate/multi-session-run-orchestrator-v2 — Pipelines lane.
+  // Polls run-config for the active project; renders a MasterTaskCard
+  // when a v2 config exists. Missing / v1 / invalid → no lane.
+  const runConfigQuery = useRunConfig(resolvedProjectId);
+  const activeProjectMeta = useMemo(
+    () => projects.find((p) => p.id === resolvedProjectId) ?? null,
+    [projects, resolvedProjectId],
+  );
+
+  // Continue Pipeline menu entry availability: only when v2 run-config is
+  // healthy AND there's at least one ready-to-launch phase_task. Gated on
+  // status === "in_progress" so a complete/failed run doesn't expose it.
+  const continuePipelineAvailable =
+    runConfigQuery.data?.status === "ok" &&
+    runConfigQuery.data.config.status === "in_progress" &&
+    runConfigQuery.data.readyToLaunchTasks.length > 0;
+
+  const actionsList: ActionDefinition[] = useMemo(() => {
+    if (!continuePipelineAvailable) return baseActionsList;
+    const synthetic: ActionDefinition = {
+      id: CONTINUE_PIPELINE_ACTION_ID,
+      label: "Continue Pipeline",
+      kind: "external_launch",
+      description:
+        "Resume the next phase of an in-progress Shipwright pipeline.",
+    } as ActionDefinition;
+    return [...baseActionsList, synthetic];
+  }, [baseActionsList, continuePipelineAvailable]);
 
   // iterate 3.7h: client-side project filter against the single global
   // task list. ProjectFilterDropdown uses the same underlying cache entry,
@@ -195,8 +232,15 @@ export default function TaskBoardPage() {
   // NewIssueModal state — singleton per page.
   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // Continue Pipeline modal — separate singleton; routed from the same
+  // dropdown but never overlaps with NewIssueModal.
+  const [continuePipelineOpen, setContinuePipelineOpen] = useState(false);
 
   const openModal = useCallback((a: ActionDefinition) => {
+    if (a.id === CONTINUE_PIPELINE_ACTION_ID) {
+      setContinuePipelineOpen(true);
+      return;
+    }
     setModalAction(a);
     setModalOpen(true);
   }, []);
@@ -323,6 +367,28 @@ export default function TaskBoardPage() {
           pixel offset from the sidebar. List view keeps its own internal
           layout (handled in TaskList).
           Iterate 3.7e-b1: gap-8 → gap-10 (32 → 40 px gutter). */}
+      {/* iterate/multi-session-run-orchestrator-v2 — Pipelines lane.
+          Renders one Master TaskCard per Run when the active project has a
+          v2 run-config. v1_legacy / missing / invalid → no lane (legacy
+          flat-task path is unchanged). Currently scoped to the active
+          project only; multi-project view is out of scope per plan. */}
+      {runConfigQuery.data?.status === "ok" && activeProjectMeta && (
+        <div
+          className="page-container flex w-full flex-col gap-3 pt-6 pb-2"
+          data-testid="task-board-pipelines-lane"
+        >
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted,#6b7280)]">
+            Pipelines
+          </div>
+          <MasterTaskCard
+            project={activeProjectMeta}
+            config={runConfigQuery.data.config}
+            readyToLaunchTasks={runConfigQuery.data.readyToLaunchTasks}
+            diagnostics={runConfigQuery.data.diagnostics}
+          />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="p-6 text-sm text-[var(--color-muted)]">Loading…</div>
       ) : view === "list" ? (
@@ -383,6 +449,12 @@ export default function TaskBoardPage() {
           // next refetchInterval tick. Phase A3 — iterate 3 remediation.
           void queryClient.invalidateQueries({ queryKey: ["external-tasks"] });
         }}
+      />
+      <ContinuePipelineModal
+        open={continuePipelineOpen}
+        onOpenChange={setContinuePipelineOpen}
+        project={activeProjectMeta}
+        runConfig={runConfigQuery.data}
       />
     </div>
   );

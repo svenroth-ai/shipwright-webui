@@ -53,6 +53,19 @@ import {
   type PreviewProfile,
 } from "../core/preview-session-manager.js";
 import { loadProfile, getProfilesDir } from "../core/profile-loader.js";
+import {
+  readRunConfig as defaultReadRunConfig,
+  type RunConfigReadResult,
+} from "../core/run-config-reader.js";
+import {
+  deriveReadyToLaunchTasks,
+  buildPhaseTaskName,
+  PHASE_TASK_ID_PATTERN,
+  RUN_ID_PATTERN,
+  SESSION_UUID_PATTERN,
+  SLASH_COMMAND_PATTERN,
+  SPLIT_ID_SAFE_PATTERN,
+} from "../types/run-config-v2.js";
 import { SessionWatcher } from "../core/session-watcher.js";
 import { parseSessionJsonl } from "../core/session-parser.js";
 import { deriveInbox, DEFAULT_USER_BLOCKING_TOOLS } from "../core/inbox-derive.js";
@@ -167,6 +180,12 @@ export function createExternalRoutes(args: {
    * `core/profile-loader.ts` entry; tests inject a synthetic profile.
    */
   loadProfile?: (profileName: string) => PreviewProfile | null;
+  /**
+   * iterate/multi-session-run-orchestrator-v2 — reads a project's
+   * shipwright_run_config.json. Tests inject a stub so they don't
+   * touch the filesystem; production wires the real reader.
+   */
+  readRunConfig?: (projectPath: string) => Promise<RunConfigReadResult>;
 }) {
   const app = new Hono();
   const {
@@ -180,6 +199,7 @@ export function createExternalRoutes(args: {
   const profileResolver =
     injectedLoadProfile ??
     ((name: string) => loadProfile(name, getProfilesDir()) as PreviewProfile | null);
+  const runConfigReader = args.readRunConfig ?? ((p: string) => defaultReadRunConfig(p));
 
   app.post("/api/external/tasks", async (c) => {
     const body = await c.req.json().catch(() => ({}));
@@ -259,6 +279,22 @@ export function createExternalRoutes(args: {
       phaseLabel = match.label;
     }
 
+    // iterate/multi-session-run-orchestrator-v2 — Phase-task linkage
+    // (review O #5/#6 + plan A4/A6.5). When the body carries phase-task
+    // metadata, validate the shapes here and reuse an existing
+    // non-terminal shadow if one already maps to the same phaseTaskId
+    // (idempotency for repeat Continue Pipeline clicks).
+    const phaseTaskRefs = resolvePhaseTaskCreateFields(body);
+    if ("error" in phaseTaskRefs) {
+      return c.json(phaseTaskRefs.error, phaseTaskRefs.status);
+    }
+    if (phaseTaskRefs.phaseTaskId) {
+      const existing = store.findByPhaseTaskId(phaseTaskRefs.phaseTaskId);
+      if (existing) {
+        return c.json({ task: existing, reused: true });
+      }
+    }
+
     const task = store.create({
       title,
       cwd,
@@ -266,6 +302,10 @@ export function createExternalRoutes(args: {
       projectId,
       phase,
       phaseLabel,
+      sessionUuid: phaseTaskRefs.sessionUuid,
+      phaseTaskId: phaseTaskRefs.phaseTaskId,
+      runId: phaseTaskRefs.runId,
+      parentRunMaster: phaseTaskRefs.parentRunMaster,
     });
     await store.persist();
     return c.json({ task });
@@ -413,7 +453,150 @@ export function createExternalRoutes(args: {
       launchedAt: new Date().toISOString(),
     };
 
-    if (actionId && !resume) {
+    // iterate/multi-session-run-orchestrator-v2 — Plan A6 + A8.
+    //
+    // phaseTaskRef branch: client passes ONLY the phaseTaskId; the server
+    // re-reads the project's run-config and verifies the entire phase_task
+    // before producing a command. This is the load-bearing security path —
+    // the client never gets to dictate sessionUuid / slashCommand directly.
+    const phaseTaskRefRaw = body.phaseTaskRef;
+    if (phaseTaskRefRaw !== undefined) {
+      if (actionId) {
+        return c.json(
+          {
+            error: "mixed_launch_intents",
+            detail: "phaseTaskRef and actionId are mutually exclusive",
+          },
+          400,
+        );
+      }
+      if (
+        !phaseTaskRefRaw ||
+        typeof phaseTaskRefRaw !== "object" ||
+        Array.isArray(phaseTaskRefRaw)
+      ) {
+        return c.json(
+          { error: "invalid_phase_task_ref", detail: "must be an object" },
+          400,
+        );
+      }
+      const refPhaseTaskId = (phaseTaskRefRaw as Record<string, unknown>)
+        .phaseTaskId;
+      if (
+        typeof refPhaseTaskId !== "string" ||
+        !PHASE_TASK_ID_PATTERN.test(refPhaseTaskId)
+      ) {
+        return c.json(
+          { error: "invalid_phase_task_id", detail: "must match /^ptk-[0-9a-f]{4,}$/" },
+          400,
+        );
+      }
+      const project = getProjectById?.(task.projectId);
+      if (!project || !project.path) {
+        return c.json(
+          { error: "phase_task_requires_project", projectId: task.projectId },
+          400,
+        );
+      }
+      const cfgRead = await runConfigReader(project.path);
+      if (cfgRead.status !== "ok") {
+        return c.json(
+          {
+            error: "run_config_unavailable",
+            status: cfgRead.status,
+            ...(cfgRead.status === "invalid" ? { reason: cfgRead.reason } : {}),
+          },
+          409,
+        );
+      }
+      const phaseTask = cfgRead.config.phase_tasks.find(
+        (t) => t.phaseTaskId === refPhaseTaskId,
+      );
+      if (!phaseTask) {
+        return c.json(
+          { error: "phase_task_not_found", phaseTaskId: refPhaseTaskId },
+          409,
+        );
+      }
+      if (phaseTask.status !== "awaiting_launch") {
+        return c.json(
+          {
+            error: "phase_task_not_actionable",
+            phaseTaskId: refPhaseTaskId,
+            status: phaseTask.status,
+          },
+          409,
+        );
+      }
+      const completed = new Set(cfgRead.config.completed_phase_task_ids);
+      if (!phaseTask.prerequisites.every((p) => completed.has(p))) {
+        return c.json(
+          {
+            error: "phase_task_prereq_not_met",
+            phaseTaskId: refPhaseTaskId,
+            prerequisites: phaseTask.prerequisites,
+            completed: cfgRead.config.completed_phase_task_ids,
+          },
+          409,
+        );
+      }
+      // Defense in depth even though the reader already validated these.
+      if (!SLASH_COMMAND_PATTERN.test(phaseTask.slashCommand)) {
+        return c.json(
+          {
+            error: "phase_task_corrupt",
+            detail: "slashCommand fails strict regex",
+          },
+          409,
+        );
+      }
+      if (
+        phaseTask.splitId !== null &&
+        !SPLIT_ID_SAFE_PATTERN.test(phaseTask.splitId)
+      ) {
+        return c.json(
+          {
+            error: "phase_task_corrupt",
+            detail: "splitId contains unsafe characters",
+          },
+          409,
+        );
+      }
+      // The shadow webui task MUST already carry the phase_task's
+      // pre-bound sessionUuid (set at create-task time). Mismatch =
+      // either a stale shadow trying to launch the wrong phase or a
+      // tampered store; either way, refuse.
+      if (task.sessionUuid !== phaseTask.sessionUuid) {
+        return c.json(
+          {
+            error: "phase_task_session_uuid_mismatch",
+            taskSessionUuid: task.sessionUuid,
+            phaseTaskSessionUuid: phaseTask.sessionUuid,
+          },
+          409,
+        );
+      }
+      const derivedName = buildPhaseTaskName({
+        runId: cfgRead.config.runId,
+        phase: phaseTask.phase,
+        splitId: phaseTask.splitId,
+      });
+      commands = buildCopyCommands({
+        sessionUuid: phaseTask.sessionUuid,
+        cwd: task.cwd,
+        pluginDirs: task.pluginDirs,
+        title: derivedName,
+        slashCommand: phaseTask.slashCommand,
+      });
+      taskUpdate.phaseTaskId = phaseTask.phaseTaskId;
+      taskUpdate.runId = cfgRead.config.runId;
+      taskUpdate.parentRunMaster = false;
+      taskUpdate.phase = phaseTask.phase;
+      taskUpdate.phaseLabel = phaseTask.phase;
+      taskUpdate.title = derivedName;
+    }
+
+    if (!commands && actionId && !resume) {
       const project = getProjectById?.(task.projectId);
       // If the project is resolvable, run the proper substitution path.
       // Unassigned / deleted-project references fall back to legacy.
@@ -1061,6 +1244,54 @@ export function createExternalRoutes(args: {
   });
 
   // -------------------------------------------------------------------------
+  // iterate/multi-session-run-orchestrator-v2 — Run-config route.
+  //
+  // Read-only observer of `<project.path>/shipwright_run_config.json`. The
+  // route never mutates state; the framework's orchestrator owns all
+  // run-config writes. v1 configs and missing configs return early so the
+  // UI falls back to the legacy flat task rendering.
+  // -------------------------------------------------------------------------
+
+  /**
+   * GET /api/external/projects/:projectId/run-config
+   *
+   * Response shapes:
+   *   { status: "ok", config, readyToLaunchTasks, diagnostics }
+   *   { status: "missing" }
+   *   { status: "v1_legacy" }
+   *   { status: "invalid", reason }
+   *
+   * `readyToLaunchTasks` is a derived UX convenience (every awaiting_launch
+   * task whose prerequisites are completed). The framework's state machine
+   * remains the source of truth; phase-task launches re-verify against the
+   * full config server-side at launch time.
+   */
+  app.get("/api/external/projects/:projectId/run-config", async (c) => {
+    const projectId = c.req.param("projectId");
+    const project = getProjectById?.(projectId);
+    if (!project) {
+      return c.json({ error: "project_not_found", projectId }, 404);
+    }
+    if (!project.path) {
+      return c.json({ error: "project_path_unavailable", projectId }, 400);
+    }
+
+    const result = await runConfigReader(project.path);
+    if (result.status === "ok") {
+      return c.json({
+        status: "ok",
+        config: result.config,
+        readyToLaunchTasks: deriveReadyToLaunchTasks(result.config),
+        diagnostics: result.diagnostics,
+      });
+    }
+    if (result.status === "missing" || result.status === "v1_legacy") {
+      return c.json({ status: result.status });
+    }
+    return c.json({ status: "invalid", reason: result.reason });
+  });
+
+  // -------------------------------------------------------------------------
   // Section 04a — Tree + File routes for SmartViewer / FolderTree.
   //
   // Security surface:
@@ -1371,6 +1602,96 @@ function parseIntSafe(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
   const n = Number.parseInt(value, 10);
   return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
+/**
+ * iterate/multi-session-run-orchestrator-v2 — Validates phase-task fields
+ * on the create-task body. Returns either resolved fields or a structured
+ * error tuple. Pure shape-check; cross-checks against the run-config
+ * happen in the launch route, which is the security boundary.
+ *
+ * Plan A6.5: shape-validate every field; the route enforces idempotency
+ * via store.findByPhaseTaskId().
+ */
+type PhaseTaskCreateFields = {
+  phaseTaskId?: string;
+  runId?: string;
+  sessionUuid?: string;
+  parentRunMaster?: boolean;
+};
+function resolvePhaseTaskCreateFields(
+  body: Record<string, unknown>,
+):
+  | PhaseTaskCreateFields
+  | { error: { error: string; detail?: string }; status: 400 }
+{
+  const out: PhaseTaskCreateFields = {};
+  const phaseTaskId = body.phaseTaskId;
+  const runId = body.runId;
+  const sessionUuid = body.sessionUuid;
+  const parentRunMaster = body.parentRunMaster;
+
+  if (
+    phaseTaskId === undefined &&
+    runId === undefined &&
+    sessionUuid === undefined &&
+    parentRunMaster === undefined
+  ) {
+    return out;
+  }
+
+  if (phaseTaskId !== undefined) {
+    if (typeof phaseTaskId !== "string" || !PHASE_TASK_ID_PATTERN.test(phaseTaskId)) {
+      return {
+        error: {
+          error: "invalid_phase_task_id",
+          detail: "phaseTaskId must match /^ptk-[0-9a-f]{4,}$/",
+        },
+        status: 400,
+      };
+    }
+    out.phaseTaskId = phaseTaskId;
+  }
+  if (runId !== undefined) {
+    if (typeof runId !== "string" || !RUN_ID_PATTERN.test(runId)) {
+      return {
+        error: {
+          error: "invalid_run_id",
+          detail: "runId must match /^run-[0-9a-f]{8}$/",
+        },
+        status: 400,
+      };
+    }
+    out.runId = runId;
+  }
+  if (sessionUuid !== undefined) {
+    if (
+      typeof sessionUuid !== "string" ||
+      !SESSION_UUID_PATTERN.test(sessionUuid)
+    ) {
+      return {
+        error: {
+          error: "invalid_session_uuid",
+          detail: "sessionUuid must be a valid uuid",
+        },
+        status: 400,
+      };
+    }
+    out.sessionUuid = sessionUuid;
+  }
+  if (parentRunMaster !== undefined) {
+    if (typeof parentRunMaster !== "boolean") {
+      return {
+        error: {
+          error: "invalid_parent_run_master",
+          detail: "parentRunMaster must be boolean",
+        },
+        status: 400,
+      };
+    }
+    out.parentRunMaster = parentRunMaster;
+  }
+  return out;
 }
 
 /**
