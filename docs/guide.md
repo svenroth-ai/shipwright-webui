@@ -296,13 +296,12 @@ available — go back any time to read it again.
 
 ### 6.7 Multi-session pipelines
 
-When you run `/shipwright-run`, the master Claude session writes a
-`shipwright_run_config.json` file at the root of your project, prints a
-launch card for the first phase, and ends. From that point each SDLC
-phase (`project`, `design`, `plan`, `build`, `test`, `security`,
-`changelog`, `deploy`) runs in its **own** terminal Claude session. The
-master conversation never re-opens — the orchestrator hands off through
-the run-config.
+When you run `/shipwright-run`, each SDLC phase runs in its own
+terminal Claude session — the master writes a
+`shipwright_run_config.json` at the project root, prints a launch card
+for the first phase, and ends. For the lifecycle, state machine, and
+recovery commands, see the [framework guide §4 *The Pipeline: Phase by
+Phase*](https://github.com/svenroth-ai/shipwright/blob/main/docs/guide.md#4-the-pipeline-phase-by-phase).
 
 The Command Center reads that file and renders a **Pipelines lane**
 above the Kanban columns:
