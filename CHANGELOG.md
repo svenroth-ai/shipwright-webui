@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-27
+
+### Added
+
+- **Multi-session pipeline integration (v2 run-config orchestrator).** WebUI now reads `shipwright_run_config.json` schemaVersion 2 from registered projects and renders one Master TaskCard per Run on the TaskBoard, grouped above the kanban columns. Each phase_task is shown with phase / splitId / status / sessionUuid; awaiting_launch tasks expose a green Continue button that copies the framework's launch command. A new "+ New ▾ → Continue Pipeline" entry surfaces when an in-progress run has at least one ready phase_task; the modal pre-populates from `readyToLaunchTasks[]` and supports parallel branches (per_split runs) via a radio list. Failure / needs_validation / complete / stale states render with copy-able `recover-phase-task` snippets. v1 run-configs and missing configs render the legacy flat task path unchanged. Continuation always funnels through one shared code path (`useContinuePipeline`) so every entry surface (Master CTA, dropdown menu, future TaskDetail header) stays consistent. Server-side launch verification re-reads run-config on every `phaseTaskRef` launch and rejects mismatched session-uuids / non-actionable status / unmet prerequisites — the client never dictates the resolved command.
+
 ## [0.5.0] - 2026-04-26
 
 ### Added
