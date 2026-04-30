@@ -18,7 +18,9 @@ import {
 
 import {
   getProjectActions,
+  resetActionsJson,
   saveActionsStub,
+  uploadActionsJson,
   type ResolvedProjectActions,
 } from "../lib/externalApi";
 
@@ -47,6 +49,43 @@ export function useSaveActionsStub() {
   return useMutation({
     mutationFn: ({ projectId }: { projectId: string; mode?: "custom" }) =>
       saveActionsStub(projectId, "custom"),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ACTIONS_KEY(vars.projectId) });
+    },
+  });
+}
+
+/**
+ * FR-01.27 — upload the contents of a user-picked .json file as the new
+ * `<project.path>/.webui/actions.json`. On success the cached resolved
+ * catalog for that project is invalidated so the New-* dropdowns
+ * re-fetch immediately.
+ */
+export function useUploadActionsJson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      projectId,
+      jsonContent,
+    }: {
+      projectId: string;
+      jsonContent: string;
+    }) => uploadActionsJson(projectId, jsonContent),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: ACTIONS_KEY(vars.projectId) });
+    },
+  });
+}
+
+/**
+ * FR-01.27 — remove the user override and fall back to the bundled
+ * default. Same invalidation hook as upload.
+ */
+export function useResetActionsJson() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ projectId }: { projectId: string }) =>
+      resetActionsJson(projectId),
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: ACTIONS_KEY(vars.projectId) });
     },

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Settings → Configure actions** now lists every registered project with a state badge (Custom / Bundled / Malformed) and lets you upload or reset `.webui/actions.json` directly from the UI. Files are validated against the actions schema (JSON-parse + `validateActionsSchema` + contract version) before they overwrite anything on disk; oversized payloads (>256 KB) are rejected via a `Content-Length` pre-check, and every write goes through the same `realpath + path.relative` traversal guard the rest of the file/tree routes use. Reset is enabled even when the on-disk file is malformed so you can recover without opening a terminal.
+
 ## [0.6.0] - 2026-04-27
 
 ### Added
