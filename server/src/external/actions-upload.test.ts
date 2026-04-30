@@ -280,6 +280,43 @@ describe("POST /api/projects/:id/actions-upload", () => {
     expect(body.error).toBe("payload_too_large");
   });
 
+  it("rejects a payload with an unknown placeholder in command_template (400 invalid_placeholder)", async () => {
+    const r = await app.request(
+      `/api/projects/${PROJECT_ID}/actions-upload`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schemaVersion: 1,
+          defaults: { autonomy: "guided" },
+          actions: [
+            {
+              id: "new-task",
+              label: "New task",
+              kind: "external_launch",
+              command_template: "claude /shipwright-{task.priority}",
+            },
+          ],
+          phases: [{ id: "build", label: "Build" }],
+          preview: { enabled: "auto" },
+        }),
+      },
+    );
+    expect(r.status).toBe(400);
+    const body = (await r.json()) as {
+      error: string;
+      placeholder: string;
+      actionId: string;
+    };
+    expect(body.error).toBe("invalid_placeholder");
+    expect(body.placeholder).toBe("task.priority");
+    expect(body.actionId).toBe("new-task");
+
+    // The bad payload must not have been written to disk.
+    const file = path.join(projectPath, ".webui", "actions.json");
+    expect(existsSync(file)).toBe(false);
+  });
+
   it("invalidates the actions loader cache so next GET /actions reflects the upload", async () => {
     // Prime the cache with the bundled-default branch.
     const before = await app.request(
