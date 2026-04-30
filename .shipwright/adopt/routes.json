@@ -1,0 +1,84 @@
+[
+  {
+    "url": "/",
+    "title": "Shipwright Command Center",
+    "h1": "",
+    "h2": [],
+    "buttons": [
+      "All projects\n9 tasks",
+      "Board",
+      "List",
+      "New task",
+      "draft\n3",
+      "awaiting\n5",
+      "active\n0",
+      "idle\n1",
+      "done\n0",
+      "launch-failed\n0"
+    ],
+    "forms": [],
+    "depth": 0,
+    "screenshot": "../.shipwright/adopt/screenshots/root.png"
+  },
+  {
+    "url": "/projects",
+    "title": "Shipwright Command Center",
+    "h1": "Projects",
+    "h2": [],
+    "buttons": [
+      "Create Project"
+    ],
+    "forms": [],
+    "depth": 0,
+    "screenshot": "../.shipwright/adopt/screenshots/projects.png"
+  },
+  {
+    "url": "/inbox",
+    "title": "Shipwright Command Center",
+    "h1": "Inbox",
+    "h2": [],
+    "buttons": [],
+    "forms": [],
+    "depth": 0,
+    "screenshot": "../.shipwright/adopt/screenshots/inbox.png"
+  },
+  {
+    "url": "/settings",
+    "title": "Shipwright Command Center",
+    "h1": "Settings",
+    "h2": [
+      "Launcher preferences",
+      "Configure actions"
+    ],
+    "buttons": [],
+    "forms": [],
+    "depth": 0,
+    "screenshot": "../.shipwright/adopt/screenshots/settings.png"
+  },
+  {
+    "url": "/diagnostics",
+    "title": "Shipwright Command Center",
+    "h1": "Diagnostics",
+    "h2": [
+      "CLAUDE CLI",
+      "SESSIONS",
+      "LAUNCHERS"
+    ],
+    "buttons": [],
+    "forms": [],
+    "depth": 0,
+    "screenshot": "../.shipwright/adopt/screenshots/diagnostics.png"
+  },
+  {
+    "url": "/tmp/dry-run",
+    "title": "Shipwright Command Center",
+    "h1": "",
+    "h2": [
+      "Unexpected Application Error!"
+    ],
+    "buttons": [],
+    "forms": [],
+    "depth": 0,
+    "screenshot": "../.shipwright/adopt/screenshots/tmp_dry_run.png"
+  }
+]

@@ -1,0 +1,165 @@
+{
+  "product_description": "Shipwright Command Center is a local web application that observes multiple Claude Code sessions in parallel. It pairs with the Shipwright SDLC plugins but stays standalone: the user launches Claude in their own terminal (or VS Code) using a copy-command pre-bound with `--session-id <uuid>`, and the Command Center watches the resulting JSONL transcript at `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl`. From that transcript it derives a live kanban board, chat-style transcript, pending-tool-call inbox, project registry, and diagnostics view.\n\nThe load-bearing architectural rule (ADR-034) is that the WebUI spawns no Claude process. The user's terminal is the source of truth; the WebUI is a read-only observer. A second hard rule keeps the transcript endpoint stateless: the client passes `?fromByte=<offset>&expectFingerprint=<fp>` so multi-tab support works by construction, with no per-session byte-offset cache on the server.\n\nFunctionally the app supports project registration via a 4-step wizard (with stack-profile selection), task creation/launch/resume/fork from a kanban board, in-pane file tree + smart viewer for project files, an Inbox surfacing pending Claude tool calls (e.g. AskUserQuestion) across all projects, an optional Preview button that spawns a project's dev-server when its profile has a `dev_server.command`, and a multi-session run-config integration where one Run becomes a Master TaskCard with child phase-tasks (build / plan / design / iterate). Settings live in the user's Claude client; the WebUI's own Settings page is a minimal stub.",
+  "features": [
+    {
+      "route": "/",
+      "label": "Task board (multi-project kanban)",
+      "description": "Landing page. Lists every registered task across all projects as cards grouped by state (active / idle / completed / failed). Includes a sidebar split-button to create a new Pipeline / Iterate / Task or to Continue a pipeline. Each card shows a state icon, an actions menu, and a launch CTA; clicking a card navigates to its TaskDetail. Master TaskCards (one per Run when a project's `shipwright_run_config.json` reports `runs[]`) render their child phase-tasks inline with conditional banners for failed / needs_validation / complete / stale states.",
+      "acceptance_draft": "Given the user has at least one registered project with one or more tasks, when they open `/`, then they see a card per task labeled with its current state and can launch, resume, edit title, or delete from the card menu."
+    },
+    {
+      "route": "/tasks/:id",
+      "label": "Task detail (3-pane viewer)",
+      "description": "Three-pane layout: left FolderTree of the project root (gitignore-aware, lazy-expanded), center BubbleTranscript rendering the JSONL as chat-style messages with markdown + code + ANSI-stripped tool output, right SmartViewer for selected files (Markdown / Code / Text / Image / Mermaid renderers). Pane widths and collapsed state persist in localStorage. The header carries an editable title (renames take effect on the next launch via Claude's `--name` flag) and a state-dependent CTA (launch / resume / fork). No chat composer — that is a load-bearing absence per ADR-034.",
+      "acceptance_draft": "Given a task exists with a JSONL on disk, when the user opens its TaskDetail, then the transcript renders incrementally (1 s polling, byte-range reads), the file tree expands without crawling .gitignored paths, and clicking a file in the tree shows it in the right pane via the appropriate renderer."
+    },
+    {
+      "route": "/projects",
+      "label": "Project registry + wizard",
+      "description": "CRUD for the project registry persisted at `~/.shipwright-webui/projects.json`. The 4-step wizard collects name, path, stack profile (auto-suggested from the resolved profiles dir), and a color tag. Stack profile selection drives downstream capability gates (Preview button, dev-server command).",
+      "acceptance_draft": "Given the user fills the wizard with a valid project path, when they submit, then a new project row is persisted with `proper-lockfile`-guarded write, surfaces in the sidebar selector, and is immediately usable on the task board."
+    },
+    {
+      "route": "/inbox",
+      "label": "Pending interactions (cross-project)",
+      "description": "Best-effort surface for pending Claude tool_use blocks (notably AskUserQuestion) across every tracked task. Derived from JSONL by walking unmatched tool_use ids. Each row links back to its TaskDetail and supports a one-shot dismiss to silence the reminder.",
+      "acceptance_draft": "Given a task has emitted an AskUserQuestion that the user has not answered in their terminal, when they open `/inbox`, then they see one row per pending question with the project, task title, and a dismiss action."
+    },
+    {
+      "route": "/diagnostics",
+      "label": "Diagnostics snapshot",
+      "description": "Read-only view of Claude CLI version, the resolved profiles directory, the launcher's three-shell output samples, and a list of currently observed sessions. Fronted by a banner when the detected CLI is below `MIN_SUPPORTED_CLI` (see `core/cli-compat.ts`).",
+      "acceptance_draft": "Given a Claude CLI is on PATH, when the user opens `/diagnostics`, then it shows the detected version, profile dir, three sample copy-commands (PowerShell / cmd.exe / POSIX), and the current task list with state."
+    },
+    {
+      "route": "/settings",
+      "label": "Settings stub",
+      "description": "Minimal placeholder page. Most settings now live inside the user's Claude client (model, autonomy, plugin dirs); the WebUI keeps only its own UI preferences. Persisted at `~/.shipwright-webui/settings.json` with `proper-lockfile`-guarded writes.",
+      "acceptance_draft": "Given the user opens `/settings`, when they change a UI preference, then it is persisted to `settings.json` and survives a server restart."
+    },
+    {
+      "route": "/api/health",
+      "label": "Health check (GET)",
+      "description": "Liveness probe used by `dev_server.py`, smoke tests, and the install-windows autostart. Returns `{status, version, uptime}`.",
+      "acceptance_draft": "Given the server is up, when a client GETs `/api/health`, then it returns 200 with status=ok and a non-negative uptime."
+    },
+    {
+      "route": "/api/external/tasks",
+      "label": "Task list / create (GET, POST)",
+      "description": "GET returns every persisted task from `sdk-sessions.json` with derived state (active / idle / completed / failed) and timestamps. POST creates a new task with a pre-bound `crypto.randomUUID()` session-id, optional projectId / phaseTaskRef, and the title that flows into Claude via `--name` at launch.",
+      "acceptance_draft": "Given a POST with a valid title and projectId, when the client posts, then a new task row is persisted (lockfile-guarded), the response includes the pre-bound session-uuid, and the launcher endpoint can immediately produce a copy-command for it."
+    },
+    {
+      "route": "/api/external/tasks/:id",
+      "label": "Task detail / edit / delete (GET, PATCH, DELETE)",
+      "description": "GET returns the full task row with derived state. PATCH allows title / projectId / autonomy edits; ELOCKED bubbles up as 409 so the client can retry. DELETE asks the user to confirm in non-terminal states.",
+      "acceptance_draft": "Given a task exists, when the client PATCHes a new title, then the next launch command emits the new title via `--name` and the JSONL records `custom-title` / `agent-name` events."
+    },
+    {
+      "route": "/api/external/tasks/:id/launch",
+      "label": "Build copy-command for terminal launch (POST)",
+      "description": "Returns the three-shell copy-command (PowerShell / cmd.exe / POSIX) for the task. The launcher routes via `substitutePlaceholders` with full action context (`{cd.prefix}`, `{project.path}`, `{task.uuid}`, optional slash command). Supports two mutually exclusive intents: a freeform `actionId` from `.webui/actions.json` / `default-actions.json`, or a `phaseTaskRef.phaseTaskId` that re-reads `shipwright_run_config.json` server-side and rejects mismatched session-uuids (409 phase_task_session_uuid_mismatch). Mixing both yields 400 mixed_launch_intents.",
+      "acceptance_draft": "Given a task with a valid actionId, when the client POSTs `/launch`, then the response carries three shell-correct copy-commands that paste-and-run inside the user's terminal without escape errors."
+    },
+    {
+      "route": "/api/external/tasks/:id/fork",
+      "label": "Fork copy-command (POST)",
+      "description": "Same shape as launch but for `--resume` of an existing session into a new task row. Plugin dirs are re-passed because `--plugin-dir` does not survive `--resume` reliably.",
+      "acceptance_draft": "Given a completed task, when the client POSTs `/fork`, then the response carries three shell-correct copy-commands that resume the prior session and the registry shows a new linked task row."
+    },
+    {
+      "route": "/api/external/tasks/:id/transcript",
+      "label": "Stateless byte-range transcript read (GET)",
+      "description": "Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a UTF-8-safe byte range. Client passes `?fromByte=<n>&expectFingerprint=<fp>` so the server stays stateless across tabs. Cuts are made on `\\n` boundaries only. EBUSY/EPERM/EACCES/ENOENT retried up to 6 attempts with 50→1600 ms backoff.",
+      "acceptance_draft": "Given a JSONL with N bytes, when the client GETs with fromByte=k, then the server returns the bytes from k to a clean newline boundary, the new fingerprint, and a flag indicating whether more is available — without mutating any server-side cache."
+    },
+    {
+      "route": "/api/external/tasks/:id/close",
+      "label": "Close terminal task (POST)",
+      "description": "Marks the task as completed in the registry without spawning anything in the user's terminal. Pure metadata flip; the JSONL stays untouched.",
+      "acceptance_draft": "Given an active task, when the client POSTs `/close`, then the registry persists `state: completed` and subsequent task lists reflect that state."
+    },
+    {
+      "route": "/api/external/inbox",
+      "label": "Pending tool_use list (GET)",
+      "description": "Walks every tracked task's JSONL via `inbox-derive.ts` and returns unmatched tool_use blocks (best-effort). Memoized by `(sessionUuid, mtimeMs, dismissedKey, contentLength)` so the route stays sub-100 ms across hundreds of sessions.",
+      "acceptance_draft": "Given multiple tasks with at least one with an open AskUserQuestion, when the client GETs `/inbox`, then it returns a deduped list of pending interactions across all projects."
+    },
+    {
+      "route": "/api/external/inbox/:toolUseId/dismiss",
+      "label": "Dismiss inbox row (POST)",
+      "description": "Adds the toolUseId to the dismissed set so subsequent inbox derivations skip it. Local-only; the JSONL is never mutated.",
+      "acceptance_draft": "Given a pending inbox row, when the client POSTs `/dismiss`, then the next inbox call no longer includes that toolUseId."
+    },
+    {
+      "route": "/api/external/projects/:projectId/actions",
+      "label": "Resolved action catalog (GET)",
+      "description": "Resolves the merged action catalog for a project: `<project>/.webui/actions.json` overlaying `default-actions.json`. mtime-cached on the server. The response feeds the New-* modal and the launch button menus.",
+      "acceptance_draft": "Given a project with a `.webui/actions.json` override, when the client GETs `/actions`, then the response merges its phases / actions over the bundled defaults with override semantics."
+    },
+    {
+      "route": "/api/external/projects/:projectId/preview",
+      "label": "Preview dev-server spawn (POST)",
+      "description": "Spawns the project's `dev_server.command` (from its stack profile) with `shell: false` for command-injection safety. Lifecycle owned by `core/preview-session-manager.ts`; killed on server shutdown. Visibility is gated by `stack.frontend` AND `dev_server.command` AND `actions.preview.enabled`.",
+      "acceptance_draft": "Given a project whose profile has both `stack.frontend` and `dev_server.command`, when the client POSTs `/preview`, then a child process is spawned, dedup is keyed by projectId, and the response carries the URL once it becomes reachable."
+    },
+    {
+      "route": "/api/external/projects/:projectId/run-config",
+      "label": "Read shipwright_run_config.json (GET)",
+      "description": "Read-only forwarder for `<project.path>/shipwright_run_config.json`. Per-row fault isolation, torn-read retry, 5 s last-good cache. WebUI never mutates this file (DO-NOT regression guard).",
+      "acceptance_draft": "Given a project with a v2 run-config, when the client GETs `/run-config`, then it receives the parsed runs[] / phase_task[] list with derived `readyToLaunchTasks[]` plus a Last-Good-Cache header on transient read errors."
+    },
+    {
+      "route": "/api/external/projects/:projectId/tree",
+      "label": "Folder tree (GET)",
+      "description": "Lazy-expand listing for the FolderTree component. Honors gitignore (mtime-cached rules), uses path-traversal-safe realpath comparison (NOT startsWith), and rejects null-byte input.",
+      "acceptance_draft": "Given a project root, when the client GETs `/tree?path=src`, then it returns the immediate children excluding gitignored paths and rejects any traversal attempt with 400."
+    },
+    {
+      "route": "/api/external/projects/:projectId/file",
+      "label": "File contents (GET)",
+      "description": "Reads a single file under the project root with the same realpath-based path guard. Used by the SmartViewer right pane.",
+      "acceptance_draft": "Given a path under the project root, when the client GETs `/file?path=README.md`, then it returns the contents and content-type hint; symlinks escaping the root are rejected."
+    },
+    {
+      "route": "/api/projects/:id/actions-stub",
+      "label": "Create empty `.webui/actions.json` stub (POST)",
+      "description": "One-shot: writes an empty (but schema-valid) `.webui/actions.json` under the project root if and only if the file does not already exist. Used by the wizard / settings to scaffold customization.",
+      "acceptance_draft": "Given a project without a `.webui/actions.json`, when the client POSTs `/actions-stub`, then the file is created with the default skeleton; a second POST is a no-op."
+    },
+    {
+      "route": "/api/diagnostics",
+      "label": "Diagnostics snapshot (GET)",
+      "description": "Returns CLI version (refreshed on demand), profiles dir, sample copy-commands, observed-session count, and a `min_supported_cli` warning flag. Powers the `/diagnostics` page and the bootstrap CLI banner.",
+      "acceptance_draft": "Given a server with a Claude CLI on PATH, when the client GETs `/api/diagnostics`, then the response carries CLI version, profiles dir, three-shell sample commands, and a min-supported-CLI flag."
+    },
+    {
+      "route": "/api/profiles",
+      "label": "Stack-profile catalog (GET)",
+      "description": "Lists every stack profile from the resolved profiles dir (override → monorepo → bundled). Used by the wizard to populate the profile dropdown.",
+      "acceptance_draft": "Given the bundled profiles dir, when the client GETs `/api/profiles`, then the response lists every JSON profile with its display name and dev_server signal."
+    },
+    {
+      "route": "/api/projects",
+      "label": "Project registry (GET, POST)",
+      "description": "GET lists all registered projects. POST creates a new one (validates the path, captures the chosen profile and color). Persisted via `proper-lockfile` to `~/.shipwright-webui/projects.json`.",
+      "acceptance_draft": "Given a valid project path, when the client POSTs, then the registry adds the project with a generated id and the response carries the persisted row."
+    },
+    {
+      "route": "/api/projects/:id",
+      "label": "Project detail / edit / delete (GET, PATCH, DELETE)",
+      "description": "GET returns the project row. PATCH updates name / profile / color. DELETE removes the row and any synthetic Unassigned reassignment for orphaned tasks.",
+      "acceptance_draft": "Given an existing project, when the client PATCHes a new profile, then the registry persists the change and the dependent capability gates (Preview, slashCommand resolution) re-evaluate."
+    },
+    {
+      "route": "/api/settings",
+      "label": "Settings (GET, PUT)",
+      "description": "GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub surface only — most behavioral settings live in the user's Claude client.",
+      "acceptance_draft": "Given a valid settings payload, when the client PUTs, then the file is replaced and the next GET returns the new value."
+    }
+  ],
+  "architecture_prose": "Shipwright Command Center is a two-half local stack: a Hono backend on Node 20+ at `:3847` and a Vite-served React 19 frontend at `:5173`, communicating over a JSON HTTP API under `/api`. The Vite dev server proxies `/api` to the Hono port, so both halves run independently and refuse to silently half-start (Vite via `strictPort`, Hono via a bind-error handler).\n\nThe load-bearing architectural choice (ADR-034) is the external-launch model: the WebUI spawns no Claude process. Instead, on task creation the server pre-binds a `crypto.randomUUID()` session-id, and the launcher (`core/launcher.ts`) emits a copy-command for the user's shell (PowerShell, cmd.exe, or POSIX) carrying `--session-id <uuid> --name <title>`. The user pastes that command in their own terminal (or VS Code). The Claude CLI then writes its JSONL transcript at `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl`, which the WebUI observes via `core/session-watcher.ts`. Discovery is filename-first (`<uuid>.jsonl`); first-line sessionId is a sanity check.\n\nThe transcript endpoint is stateless: clients pass `?fromByte=<offset>&expectFingerprint=<fp>` so multi-tab support works by construction. UTF-8-safe byte slicing cuts on `\\n` boundaries only; EBUSY/EPERM/EACCES/ENOENT are retried up to 6 attempts with exponential backoff. Client polling at 1 s replaces SSE — no chokidar, no heartbeat. The Inbox derives pending tool_use blocks from the same JSONL via `core/inbox-derive.ts` with a `(sessionUuid, mtimeMs, dismissedKey, contentLength)` cache key.\n\nState lives in three files under `~/.shipwright-webui/`: `projects.json` (registry), `sdk-sessions.json` (task store, schemaVersion v1/v2/v3 with write-on-touch migration per ADR-038/044), and `settings.json`. All three are guarded by `proper-lockfile`; ELOCKED surfaces as HTTP 409. Stack profiles resolve in three steps (`SHIPWRIGHT_PROFILES_DIR` → `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`).\n\nProject configuration flows in via `<project>/.webui/actions.json` (overlaying the bundled `default-actions.json`) and read-only consumption of `<project>/shipwright_run_config.json` (per `core/run-config-reader.ts`). The WebUI never writes into `~/.claude/projects/` or `shipwright_run_config.json`; the only WebUI write surfaces are `~/.shipwright-webui/*.json` and the `.webui/actions.json` stub creation. Path-traversal protection uses `realpath + path.relative` (never `startsWith`); the Preview spawn path uses `shell: false` to neutralize command injection.",
+  "architecture_diagram": "```\n┌─────────────────────────────────────────────────────────────────────┐\n│  USER TERMINAL                                                      │\n│  (PowerShell / cmd.exe / POSIX)                                     │\n│                                                                     │\n│   $ claude --session-id <uuid> --name <title> --add-dir ...         │\n│                       │                                             │\n│                       ▼                                             │\n│   ┌──────────────────────────────┐                                  │\n│   │  Claude Code CLI             │                                  │\n│   │   writes JSONL transcript    │                                  │\n│   └──────────────────────────────┘                                  │\n└──────────┬──────────────────────────────────────────────────────────┘\n           │ writes\n           ▼\n   ~/.claude/projects/<encoded-cwd>/<uuid>.jsonl\n           ▲ reads (byte-range, stateless)\n           │\n┌──────────┴──────────────────────────────────────────────────────────┐\n│  SHIPWRIGHT COMMAND CENTER (this repo)                              │\n│                                                                     │\n│  ┌────────────────────┐         ┌─────────────────────────────────┐ │\n│  │ Vite (React 19)    │ ──/api──▶ Hono server (Node 20+)         │ │\n│  │  :5173             │  proxy  │  :3847                          │ │\n│  │                    │         │  ┌───────────────────────────┐  │ │\n│  │  TaskBoardPage     │         │  │ external/routes.ts        │  │ │\n│  │  TaskDetailPage    │         │  │  tasks / launch / fork    │  │ │\n│  │  ProjectsPage      │         │  │  transcript / inbox       │  │ │\n│  │  InboxPage         │         │  │  actions / preview        │  │ │\n│  │  DiagnosticsPage   │         │  │  tree / file / run-config │  │ │\n│  │  SettingsPage      │         │  └───────────────────────────┘  │ │\n│  │                    │         │  routes/{projects,settings,     │ │\n│  │  TanStack Query +  │         │         profiles,diagnostics}.ts│ │\n│  │  1 s polling       │         │                                 │ │\n│  │  (no SSE)          │         │  core/                          │ │\n│  │                    │         │   launcher.ts                   │ │\n│  └────────────────────┘         │   session-watcher.ts            │ │\n│                                 │   session-parser.ts             │ │\n│                                 │   inbox-derive.ts               │ │\n│                                 │   sdk-sessions-store.ts (v1-v3) │ │\n│                                 │   project-manager.ts            │ │\n│                                 │   profile-loader.ts             │ │\n│                                 │   run-config-reader.ts (RO)     │ │\n│                                 │   project-actions-loader.ts     │ │\n│                                 │   actions-substitute.ts         │ │\n│                                 │   preview-session-manager.ts    │ │\n│                                 │   path-guard.ts (realpath)      │ │\n│                                 │   gitignore-cache.ts            │ │\n│                                 │   cli-compat.ts                 │ │\n│                                 └───────┬─────────────────────────┘ │\n└─────────────────────────────────────────┼───────────────────────────┘\n                                          │ proper-lockfile guarded\n                                          ▼\n         ┌────────────────────────────────────────────────────┐\n         │ ~/.shipwright-webui/                               │\n         │   projects.json   sdk-sessions.json   settings.json│\n         └────────────────────────────────────────────────────┘\n                                          │ read-only\n                                          ▼\n         <project.path>/shipwright_run_config.json (framework-owned)\n         <project.path>/.webui/actions.json        (user-editable)\n```",
+  "conventions_prose": "TypeScript runs in strict mode across both halves; new code must compile clean (the server has 4 documented baseline errors from cross-package imports + a missing `@types/proper-lockfile`, tracked but not required to fix in any one iterate). Hono routes live in `server/src/routes/` (one file per resource); the external-launch surface lives at `server/src/external/routes.ts`. React components in `client/src/components/` are grouped by UI area (`external/`, `sidebar/`, `wizard/`, `common/`). Files stay under 300 lines — anything larger gets split.\n\nData fetching uses TanStack React Query with sequential 1 s polling for transcript updates (no SSE, no chokidar). Styling is TailwindCSS 4; accessible primitives come from Radix UI. Markdown rendering is bespoke via `react-markdown` + `remark-gfm` + `rehype-highlight` + `strip-ansi` — `@assistant-ui/*` packages are explicitly forbidden (DO-NOT guard #4 in CLAUDE.md). Auto-scroll is CSS-first: `overflow-anchor: auto` + `scroll-padding` on the scroll container, with a small ref-based `useAutoScroll` as the safety net for Chrome+polling.\n\nCommits follow Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`). The repo has no root `package.json` — `server/` and `client/` are independent workspaces, each with its own `npm run dev | build | test | lint | typecheck`. CI runs through `.github/workflows/ci.yml`; there is no detected linter / formatter / editorconfig at the root level (each workspace owns its own). E2E lives in `client/e2e/` (Playwright); the multi-service detector pivots Playwright setup into `client/` because that is where `package.json` and `playwright.config.ts` live.\n\nThree categories of regression guards are spelled out in CLAUDE.md and must be respected: (1) the WebUI never writes into Claude's JSONL or `shipwright_run_config.json`; (2) the chat composer must not be re-introduced (Spec 35 is the regression fence); (3) phase strings (`build`, `plan`, `design`, `iterate`) and slash-command names must not be hardcoded — they come from `/api/external/projects/:id/actions`. A meta-test (`client/src/test/doc-sync.test.ts`) keeps the file-map in CLAUDE.md honest.",
+  "adrs": []
+}

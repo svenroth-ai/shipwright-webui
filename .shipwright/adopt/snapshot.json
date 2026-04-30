@@ -1,0 +1,307 @@
+{
+  "project_root": "C:\\Users\\SvenRoth\\dinovo GmbH\\AI Backup - Documents\\03 Development\\shipwright-webui",
+  "excludes": [],
+  "stack": {
+    "primary_language": "typescript",
+    "runtime": {
+      "typescript": "^5.6.0"
+    },
+    "frontend": {
+      "react": "React@^19.0.0",
+      "react-dom": "React@^19.0.0",
+      "vite": "Vite@^6.0.0"
+    },
+    "backend": {
+      "tsx": "tsx (TypeScript runner)@^4.21.0",
+      "hono": "Hono@^4.7.0",
+      "@hono/node-server": "Hono Node Server@^1.14.0"
+    },
+    "database": {},
+    "auth": {},
+    "signals": [
+      "has-multi-service-layout"
+    ],
+    "multi_service": {
+      "detected": true,
+      "confidence": "medium",
+      "services": [
+        {
+          "name": "frontend",
+          "root": "client",
+          "framework": "react",
+          "dev_command": "npm --prefix client run dev",
+          "proxy_target": null
+        },
+        {
+          "name": "backend",
+          "root": "server",
+          "framework": "hono",
+          "dev_command": "npm --prefix server run dev",
+          "proxy_target": null
+        }
+      ],
+      "evidence": [
+        "sibling package.jsons found at client/ + server/",
+        "frontend framework signal: react",
+        "backend framework signal: hono"
+      ]
+    }
+  },
+  "profile": {
+    "matched": "vite-hono",
+    "confidence": 0.875,
+    "candidates": [
+      {
+        "name": "vite-hono",
+        "score": 0.875,
+        "matched_deps": [
+          "@hono/node-server",
+          "hono",
+          "react",
+          "react-dom",
+          "tsx",
+          "typescript",
+          "vite"
+        ]
+      },
+      {
+        "name": "supabase-nextjs",
+        "score": 0.214,
+        "matched_deps": [
+          "react",
+          "react-dom",
+          "typescript"
+        ]
+      }
+    ]
+  },
+  "conventions": {
+    "linter": null,
+    "formatter": null,
+    "tsconfig_strict": false,
+    "editorconfig": null,
+    "python_style": null,
+    "typescript": false
+  },
+  "test_frameworks": {
+    "unit": null,
+    "integration": null,
+    "e2e": null,
+    "db": null,
+    "coverage_tool": null
+  },
+  "ci_pipeline": {
+    "provider": "github-actions",
+    "workflows": [
+      ".github/workflows/ci.yml"
+    ]
+  },
+  "folders": {
+    "layers": [
+      {
+        "name": "docs",
+        "paths": [
+          "docs",
+          "project-docs"
+        ]
+      },
+      {
+        "name": "infrastructure",
+        "paths": [
+          "scripts"
+        ]
+      }
+    ],
+    "loc_by_layer": {
+      "docs": 0,
+      "infrastructure": 565
+    }
+  },
+  "nested_projects": [],
+  "features": [
+    {
+      "route": "/api/health",
+      "source_file": "server/src/index.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.01"
+    },
+    {
+      "route": "/api/external/tasks",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.02"
+    },
+    {
+      "route": "/api/external/tasks/:id",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.03"
+    },
+    {
+      "route": "/api/external/tasks/:id/launch",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.04"
+    },
+    {
+      "route": "/api/external/tasks/:id/fork",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.05"
+    },
+    {
+      "route": "/api/external/tasks/:id/transcript",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.06"
+    },
+    {
+      "route": "/api/external/inbox",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.07"
+    },
+    {
+      "route": "/api/external/inbox/:toolUseId/dismiss",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.08"
+    },
+    {
+      "route": "/api/external/tasks/:id/close",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.09"
+    },
+    {
+      "route": "/api/external/projects/:projectId/actions",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.10"
+    },
+    {
+      "route": "/api/external/projects/:projectId/preview",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.11"
+    },
+    {
+      "route": "/api/external/projects/:projectId/run-config",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.12"
+    },
+    {
+      "route": "/api/external/projects/:projectId/tree",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.13"
+    },
+    {
+      "route": "/api/external/projects/:projectId/file",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.14"
+    },
+    {
+      "route": "/api/projects/:id/actions-stub",
+      "source_file": "server/src/external/routes.ts",
+      "framework": "express",
+      "method": "POST",
+      "confidence": 0.75,
+      "fr_id": "FR-01.15"
+    },
+    {
+      "route": "/test",
+      "source_file": "server/src/middleware/error-handler.test.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.16"
+    },
+    {
+      "route": "/api/diagnostics",
+      "source_file": "server/src/routes/diagnostics.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.17"
+    },
+    {
+      "route": "/api/profiles",
+      "source_file": "server/src/routes/profiles.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.18"
+    },
+    {
+      "route": "/api/projects",
+      "source_file": "server/src/routes/projects.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.19"
+    },
+    {
+      "route": "/api/projects/:id",
+      "source_file": "server/src/routes/projects.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.20"
+    },
+    {
+      "route": "/api/settings",
+      "source_file": "server/src/routes/settings.ts",
+      "framework": "express",
+      "method": "GET",
+      "confidence": 0.75,
+      "fr_id": "FR-01.21"
+    }
+  ],
+  "git": {
+    "commits_total": 212,
+    "first_commit": "2026-04-27T09:00:35+02:00",
+    "contributors": [
+      "Sven Roth",
+      "svroch"
+    ],
+    "contributors_total": 2,
+    "major_refactor_commits": []
+  },
+  "commands": {
+    "dev": null,
+    "build": null,
+    "test": null,
+    "lint": null
+  }
+}

@@ -1,0 +1,39 @@
+# shipwright-webui
+
+## WHAT
+Shipwright Command Center is a local web application that observes multiple Claude Code sessions in parallel. It pairs with the Shipwright SDLC plugins but stays standalone: the user launches Claude in their own terminal (or VS Code) using a copy-command pre-bound with `--session-id <uuid>`, and the Command Center watches the resulting JSONL transcript at `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl`. From that transcript it derives a live kanban board, chat-style transcript, pending-tool-call inbox, project registry, and diagnostics view.
+
+The load-bearing architectural rule (ADR-034) is that the WebUI spawns no Claude process. The user's terminal is the source of truth; the WebUI is a read-only observer. A second hard rule keeps the transcript endpoint stateless: the client passes `?fromByte=<offset>&expectFingerprint=<fp>` so multi-tab support works by construction, with no per-session byte-offset cache on the server.
+
+Functionally the app supports project registration via a 4-step wizard (with stack-profile selection), task creation/launch/resume/fork from a kanban board, in-pane file tree + smart viewer for project files, an Inbox surfacing pending Claude tool calls (e.g. AskUserQuestion) across all projects, an optional Preview button that spawns a project's dev-server when its profile has a `dev_server.command`, and a multi-session run-config integration where one Run becomes a Master TaskCard with child phase-tasks (build / plan / design / iterate). Settings live in the user's Claude client; the WebUI's own Settings page is a minimal stub.
+
+## Stack
+- **Runtime**: typescript
+- **Frontend**: react, react-dom, vite
+- **Backend**: @hono/node-server, hono, tsx
+- **Database**: —
+- **Auth**: —
+- **Profile**: `vite-hono`
+
+## HOW
+
+### Development
+```bash
+—
+```
+
+### Build
+```bash
+—
+```
+
+### Test
+```bash
+—
+```
+
+## Ongoing Changes
+This project was adopted into Shipwright on 2026-04-30. Prior code history is preserved.
+Use `/shipwright-iterate` for all future changes. Do NOT use `/shipwright-project`, `/shipwright-plan`, or `/shipwright-build` directly on this repo.
+
+See `.shipwright/agent_docs/decision_log.md` ADR-0001 for the adoption decision.
