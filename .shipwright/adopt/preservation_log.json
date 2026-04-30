@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "file": "CLAUDE.md",
+      "action": "skipped_loadbearing",
+      "backup": ".shipwright/adopt/backups/CLAUDE.md.preserved",
+      "note": "existing CLAUDE.md > 1024 bytes; adopt suggestion at .shipwright/adopt/CLAUDE.md.adopt-suggested"
+    },
+    {
+      "file": ".shipwright/agent_docs/architecture.md",
+      "action": "written_fresh"
+    },
+    {
+      "file": ".shipwright/agent_docs/conventions.md",
+      "action": "written_fresh"
+    },
+    {
+      "file": ".shipwright/agent_docs/decision_log.md",
+      "action": "written_fresh"
+    },
+    {
+      "file": ".shipwright/agent_docs/build_dashboard.md",
+      "action": "written_fresh"
+    }
+  ]
+}
