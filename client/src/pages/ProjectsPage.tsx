@@ -4,10 +4,17 @@
  * Iterate 3.7e-b3 (2026-04-22) — Table rebuild + color picker + settings
  * dialog + fix "Create creates nothing" error surfacing.
  *
+ * Iterate iterate-20260501-projects-row-click-navigates — row click
+ * now navigates to the TaskBoard (`/`) with that project preselected
+ * via `useProjectFilter`. Settings remain reachable via the gear icon
+ * in the Actions column, which already stops propagation. Sven UAT
+ * 2026-05-01: the prior "row → settings dialog" behavior was unintuitive
+ * because it duplicated the gear icon and made the larger click target
+ * the secondary affordance.
+ *
  * Columns (per plan §"S3 — Projects"):
  *   Color     — 10 px circle; uses getProjectColor(id, settings.color)
- *   Name      — click → opens the Settings dialog (replaces old "card click
- *               → board" navigation; row is now a settings affordance)
+ *   Name      — click → navigate to TaskBoard filtered by this project
  *   Path      — monospace, truncated (max 400 px); full path in title="..."
  *   Tasks     — count of tasks with task.projectId === project.id
  *               (source: useExternalTasks with all-projects scope)
@@ -29,10 +36,12 @@
  * closed on `onSuccess`; useCreateProject error state was unrendered.
  */
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, FolderOpen, Settings as SettingsIcon, Trash2 } from 'lucide-react';
 import { useProjects } from '../hooks/useProjects';
 import { useDeleteProject } from '../hooks/useDeleteProject';
 import { useExternalTasks } from '../hooks/useExternalTasks';
+import { useProjectFilter } from '../hooks/useProjectFilter';
 import { ProjectWizard } from '../components/wizard/ProjectWizard';
 import { ProjectSettingsDialog } from '../components/wizard/ProjectSettingsDialog';
 import { getProjectColor } from '../lib/projectColor';
@@ -44,6 +53,14 @@ export default function ProjectsPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [settingsFor, setSettingsFor] = useState<Project | null>(null);
   const deleteProject = useDeleteProject();
+  const navigate = useNavigate();
+  const { setActiveProjectId } = useProjectFilter();
+
+  function handleRowOpen(project: Project) {
+    if (project.synthesized) return;
+    setActiveProjectId(project.id);
+    navigate(`/?projectId=${encodeURIComponent(project.id)}`);
+  }
 
   // Per-project task count. Memoized so re-renders don't rehash on every
   // row. `Map<projectId, count>`. Synthesized "Unassigned" row intentionally
@@ -216,9 +233,7 @@ export default function ProjectsPage() {
                           transition: 'background 120ms',
                           cursor: project.synthesized ? 'default' : 'pointer',
                         }}
-                        onClick={() => {
-                          if (!project.synthesized) setSettingsFor(project);
-                        }}
+                        onClick={() => handleRowOpen(project)}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.background =
                             'var(--color-muted-bg)';
