@@ -218,7 +218,7 @@ describe("ActionsConfigCard", () => {
     expect(errBanner).toHaveAttribute("role", "alert");
   });
 
-  it("reset triggers DELETE /actions-upload after confirm", async () => {
+  it("reset triggers DELETE /actions-upload after dialog confirm", async () => {
     // Override default actions response so p1 reports fromUser:true,
     // which is what enables the Reset button.
     server.use(
@@ -229,7 +229,6 @@ describe("ActionsConfigCard", () => {
       ),
     );
     let deleteCalled = false;
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     server.use(
       http.delete("/api/projects/p1/actions-upload", () => {
         deleteCalled = true;
@@ -249,12 +248,16 @@ describe("ActionsConfigCard", () => {
       expect(btn.disabled).toBe(false);
     });
 
-    await userEvent.click(
-      screen.getByTestId("actions-config-reset-p1"),
+    // Click the inline Reset → opens the Radix confirm dialog. No fetch yet.
+    await userEvent.click(screen.getByTestId("actions-config-reset-p1"));
+    expect(deleteCalled).toBe(false);
+
+    // Confirm in the dialog → DELETE fires.
+    const confirmBtn = await screen.findByTestId(
+      "actions-config-reset-confirm-button-p1",
     );
+    await userEvent.click(confirmBtn);
     await waitFor(() => expect(deleteCalled).toBe(true));
-    expect(confirmSpy).toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 
   it("reset is enabled even when the on-disk file is malformed (recovery path)", async () => {
@@ -286,7 +289,7 @@ describe("ActionsConfigCard", () => {
     });
   });
 
-  it("reset is a no-op when user cancels the confirm prompt", async () => {
+  it("reset is a no-op when the user cancels the dialog", async () => {
     server.use(
       http.get(
         "/api/external/projects/:projectId/actions",
@@ -295,7 +298,6 @@ describe("ActionsConfigCard", () => {
       ),
     );
     let deleteCalled = false;
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
     server.use(
       http.delete("/api/projects/p1/actions-upload", () => {
         deleteCalled = true;
@@ -311,11 +313,11 @@ describe("ActionsConfigCard", () => {
       expect(btn.disabled).toBe(false);
     });
 
-    await userEvent.click(
-      screen.getByTestId("actions-config-reset-p1"),
+    await userEvent.click(screen.getByTestId("actions-config-reset-p1"));
+    const cancelBtn = await screen.findByTestId(
+      "actions-config-reset-cancel-p1",
     );
+    await userEvent.click(cancelBtn);
     expect(deleteCalled).toBe(false);
-    expect(confirmSpy).toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 });
