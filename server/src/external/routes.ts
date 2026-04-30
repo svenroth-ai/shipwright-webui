@@ -20,6 +20,8 @@ import {
   mkdirSync,
   writeFileSync,
   readFileSync,
+  unlinkSync,
+  renameSync,
 } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join, extname, basename } from "node:path";
@@ -36,11 +38,19 @@ import {
   InvalidPlaceholderError,
   type SubstitutionContext,
 } from "../core/actions-substitute.js";
-import { loadActionsForProject } from "../core/project-actions-loader.js";
+import {
+  loadActionsForProject,
+  clearActionsCacheForProject,
+  type ResolvedActions,
+} from "../core/project-actions-loader.js";
 import {
   validateActionsSchema,
   type SchemaError,
 } from "../core/actions-schema-validator.js";
+import {
+  checkContractVersion,
+  ACTIONS_SCHEMA_VERSION,
+} from "../core/contract-version.js";
 import { resolveParameters } from "../core/parameter-resolver.js";
 import { PARAM_NAME_PATTERN } from "../types/action-schema.js";
 import {
@@ -1163,6 +1173,12 @@ export function createExternalRoutes(args: {
         ready_timeout_seconds: profile?.dev_server?.ready_timeout_seconds ?? null,
       },
       diagnostics: loaded.diagnostics,
+      // FR-01.27 — Settings UI uses this to render the source-state badge
+      // (Custom / Bundled / Malformed). True iff the loader read
+      // `<project.path>/.webui/actions.json` successfully; false when it
+      // fell back to the bundled default (file missing OR malformed —
+      // the diagnostics array distinguishes those).
+      fromUser: loaded.fromUser,
     });
   });
 
@@ -1562,8 +1578,208 @@ export function createExternalRoutes(args: {
     }
   });
 
+  /**
+   * POST /api/projects/:id/actions-upload — replace `<project.path>/.webui/actions.json`
+   * with a JSON body validated against the actions schema. Iterate
+   * iterate-20260430-actions-upload-ui (FR-01.27).
+   *
+   * Validation pipeline (rejects with 4xx on first failure):
+   *   1. Project resolvable + has a filesystem path.
+   *   2. Raw body ≤ ACTIONS_UPLOAD_MAX_BYTES.
+   *   3. Body parses as JSON.
+   *   4. checkContractVersion (fail-soft: warns once, never blocks).
+   *   5. validateActionsSchema returns no errors.
+   *
+   * Atomic write: writeFileSync to a sibling tmp path, then renameSync.
+   * Cache: clearActionsCache() so the next GET /actions reflects the
+   * new file (cache key is per-project but the bundled-default branch
+   * shares state, so a global clear is the simplest correct option).
+   */
+  app.post("/api/projects/:id/actions-upload", async (c) => {
+    const id = c.req.param("id");
+    const project = getProjectById?.(id);
+    if (!project) {
+      return c.json({ error: "project_not_found", projectId: id }, 404);
+    }
+    if (!project.path) {
+      return c.json(
+        { error: "project_path_unavailable", projectId: id },
+        400,
+      );
+    }
+
+    // Pre-buffer DoS guard — reject before reading the body when the
+    // declared Content-Length already exceeds the cap. Without this,
+    // `c.req.text()` allocates the full payload into memory before the
+    // post-read length check can fire.
+    const declaredLength = Number(c.req.header("content-length") ?? "");
+    if (
+      Number.isFinite(declaredLength) &&
+      declaredLength > ACTIONS_UPLOAD_MAX_BYTES
+    ) {
+      return c.json(
+        {
+          error: "payload_too_large",
+          maxBytes: ACTIONS_UPLOAD_MAX_BYTES,
+          size: declaredLength,
+        },
+        413,
+      );
+    }
+
+    const raw = await c.req.text();
+    if (raw.length > ACTIONS_UPLOAD_MAX_BYTES) {
+      return c.json(
+        {
+          error: "payload_too_large",
+          maxBytes: ACTIONS_UPLOAD_MAX_BYTES,
+          size: raw.length,
+        },
+        413,
+      );
+    }
+
+    let parsed: ResolvedActions;
+    try {
+      parsed = JSON.parse(raw) as ResolvedActions;
+    } catch (err) {
+      return c.json(
+        { error: "invalid_json", detail: String(err).slice(0, 200) },
+        400,
+      );
+    }
+
+    // Schema validation requires a structured object — guard against
+    // null / array / scalar before the validator dereferences fields.
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      return c.json(
+        { error: "invalid_json", detail: "expected JSON object at top level" },
+        400,
+      );
+    }
+
+    // Fail-soft: emits a one-shot warn on console for newer-than-known
+    // schemaVersion, but does not block the upload.
+    checkContractVersion({
+      artefact: ".webui/actions.json (upload)",
+      path: project.path,
+      declared: parsed.schemaVersion,
+      knownMax: ACTIONS_SCHEMA_VERSION,
+      fieldName: "schemaVersion",
+    });
+
+    const errors: SchemaError[] = validateActionsSchema(parsed);
+    if (errors.length > 0) {
+      return c.json(
+        { error: "schema_validation_failed", errors },
+        400,
+      );
+    }
+
+    const dir = join(project.path, ".webui");
+    const file = join(dir, "actions.json");
+    const tmp = join(dir, `actions.json.tmp-${process.pid}-${Date.now()}`);
+    try {
+      mkdirSync(dir, { recursive: true });
+      // Symlink-resolution defense: even though the destination filename
+      // is fixed (no user-controlled path components), `project.path`
+      // itself OR the `.webui` directory could be a symlink that escapes
+      // the registered project root. realPathGuard is mandatory per
+      // CLAUDE.md DO-NOT regression guard #10.
+      const guard = realPathGuard(project.path, dir);
+      if (!guard.ok) {
+        return c.json(
+          { error: "path_unsafe", reason: guard.reason, path: dir },
+          400,
+        );
+      }
+      // Re-serialize the parsed object so we get canonical formatting and
+      // strip any garbage (e.g. comments stripped by JSON.parse). 2-space
+      // indent matches the actions-stub writer.
+      writeFileSync(tmp, JSON.stringify(parsed, null, 2) + "\n", "utf-8");
+      renameSync(tmp, file);
+    } catch (err) {
+      // Best-effort tmp cleanup — ignore if it is already gone.
+      try {
+        if (existsSync(tmp)) unlinkSync(tmp);
+      } catch {
+        /* swallow */
+      }
+      return c.json(
+        {
+          error: "upload_write_failed",
+          detail: String(err).slice(0, 200),
+          path: file,
+        },
+        500,
+      );
+    }
+
+    clearActionsCacheForProject(project.path);
+    return c.json({ path: file, written: true });
+  });
+
+  /**
+   * DELETE /api/projects/:id/actions-upload — reset the project to the
+   * bundled default by removing `<project.path>/.webui/actions.json`.
+   * Idempotent: returns `{removed: false}` when the file did not exist.
+   */
+  app.delete("/api/projects/:id/actions-upload", (c) => {
+    const id = c.req.param("id");
+    const project = getProjectById?.(id);
+    if (!project) {
+      return c.json({ error: "project_not_found", projectId: id }, 404);
+    }
+    if (!project.path) {
+      return c.json(
+        { error: "project_path_unavailable", projectId: id },
+        400,
+      );
+    }
+    const file = join(project.path, ".webui", "actions.json");
+    if (!existsSync(file)) {
+      clearActionsCacheForProject(project.path);
+      return c.json({ path: file, removed: false });
+    }
+    // Same realpath guard as POST — refuse to unlink a target that
+    // resolves outside the project root.
+    const guard = realPathGuard(project.path, file);
+    if (!guard.ok) {
+      return c.json(
+        { error: "path_unsafe", reason: guard.reason, path: file },
+        400,
+      );
+    }
+    try {
+      unlinkSync(file);
+    } catch (err) {
+      return c.json(
+        {
+          error: "upload_unlink_failed",
+          detail: String(err).slice(0, 200),
+          path: file,
+        },
+        500,
+      );
+    }
+    clearActionsCacheForProject(project.path);
+    return c.json({ path: file, removed: true });
+  });
+
   return app;
 }
+
+/**
+ * 256 KB cap on `.webui/actions.json` upload payloads. The bundled default
+ * is ~5 KB; 256 KB is generous for any legitimate per-project override and
+ * tight enough to refuse accidental binary uploads or copy-paste of huge
+ * files.
+ */
+const ACTIONS_UPLOAD_MAX_BYTES = 256 * 1024;
 
 /**
  * Dry-run the substitute pipeline against a template using placeholder-
