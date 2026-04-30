@@ -1680,6 +1680,27 @@ export function createExternalRoutes(args: {
       );
     }
 
+    // Placeholder dry-run — same check the GET /actions route runs against
+    // the loader output. Performing it here too means a payload with an
+    // unresolvable placeholder fails 400 at upload time instead of 500-ing
+    // at the next launch. Mirrors the order of checks in the GET handler.
+    const phaseIds = parsed.phases.map((p) => p.id);
+    for (const action of parsed.actions) {
+      if (!action.command_template) continue;
+      const errCandidate = dryRunTemplate(action.command_template, action.id, phaseIds);
+      if (errCandidate) {
+        return c.json(
+          {
+            error: "invalid_placeholder",
+            placeholder: errCandidate.placeholder,
+            actionId: errCandidate.actionId,
+            template: errCandidate.template,
+          },
+          400,
+        );
+      }
+    }
+
     const dir = join(project.path, ".webui");
     const file = join(dir, "actions.json");
     const tmp = join(dir, `actions.json.tmp-${process.pid}-${Date.now()}`);
