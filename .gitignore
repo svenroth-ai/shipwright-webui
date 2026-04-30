@@ -17,3 +17,15 @@ shipwright_events.jsonl.lock
 node_modules/
 dist/
 *.tsbuildinfo
+
+# Local env / secrets (never commit)
+.env
+.env.*
+!.env.example
+
+# Test / report artifacts (auto-generated)
+client/e2e-results.json
+client/playwright-report/
+client/test-results/
+client/e2e/_minimal-*.png
+client/e2e/_probe-*.png
