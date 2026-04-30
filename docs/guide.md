@@ -20,6 +20,7 @@ Code workflow they already love.
    - [9.1 Environment variables](#91-environment-variables)
    - [9.2 Parallel worktrees](#92-parallel-worktrees)
    - [9.3 Custom actions](#93-custom-actions)
+     - [9.3.1 Installing or replacing the file](#931-installing-or-replacing-the-file)
 10. [Troubleshooting](#10-troubleshooting)
 
 ---
@@ -214,6 +215,12 @@ Click **Create**. The project appears in the sidebar.
 The project is now on the Kanban board (currently empty). You can
 register more projects right away — the Command Center watches all of
 them in parallel.
+
+> Back on the **Projects** page later, clicking a project row jumps you
+> straight to the Kanban board with that project pre-filtered. The gear
+> icon in the **Actions** column opens the Settings dialog (rename,
+> color); the trash icon removes the project from the registry without
+> touching files on disk.
 
 ---
 
@@ -458,9 +465,11 @@ which exposes the four standard Shipwright modes (`new-task`,
 `new-pipeline`, `new-iterate`, `new-plain`).
 
 To add your own buttons — for example a `/content-orchestrator` skill
-you've built globally in `~/.claude/skills/` — drop a file at
-`<project.path>/.webui/actions.json`. Edits show up on the next page
-load (mtime-cached).
+you've built globally in `~/.claude/skills/` — install a file at
+`<project.path>/.webui/actions.json`. The Command Center offers three
+ways to do that (see [9.3.1](#931-installing-or-replacing-the-file)
+below); regardless of which path you pick, edits show up on the next
+page load (mtime-cached server-side).
 
 #### When to use it
 
@@ -476,6 +485,64 @@ load (mtime-cached).
 the Command Center install. If the file is personal to you, add
 `.webui/` to your project's `.gitignore`. If your team shares the same
 skills, commit it.
+
+#### 9.3.1 Installing or replacing the file
+
+You have three ways to put `actions.json` on disk for a registered
+project. Pick whichever fits your moment:
+
+**A — Settings page (most common, post-creation).**
+
+`Settings` → **Configure actions** card. You'll see one row per
+registered project with a small badge:
+
+| Badge | Meaning |
+|---|---|
+| `BUNDLED` | No `.webui/actions.json` on disk → the Command Center serves the bundled default. |
+| `CUSTOM` | A valid `.webui/actions.json` is in use. |
+| `MALFORMED` | A `.webui/actions.json` exists but failed to parse / validate. The bundled default is served as a fallback so the Kanban stays usable. |
+
+For each project the row exposes:
+
+- **Upload .json** — opens the OS file picker. The selected file is
+  parsed and validated server-side; on success it replaces
+  `<project.path>/.webui/actions.json` atomically (tmp + rename) and the
+  catalog cache for that project is invalidated. Other projects are
+  unaffected. On failure (bad JSON, schema error, unknown placeholder,
+  >256 KB) the row shows an inline red banner with the structured error
+  and the on-disk file is **not** touched.
+- **Reset to default** — opens a confirm dialog; on confirm, the
+  `.webui/actions.json` is deleted and the project falls back to the
+  bundled default. The button is enabled when the project is `CUSTOM`
+  *or* `MALFORMED` so you can recover from a broken upload without
+  opening a terminal.
+
+**B — Project Wizard Advanced (at creation time).**
+
+When creating a new project: open **Show advanced options** on the
+Confirmation step → pick **Custom** → optional **Choose file…** to
+attach an `actions.json` from disk. The picker parses the file
+client-side as a pre-flight check; if it doesn't parse, the **Create
+Project** button is disabled with an inline error so you don't waste a
+round trip. After the project is created, the file is uploaded through
+the same validation pipeline as path A. If the upload fails, the
+project is still created — the wizard stays open with the error so you
+can pick a different file or close and retry from Settings later.
+
+If you skip **Choose file…** under **Custom**, an empty schema-valid
+stub is written and the docs page opens, exactly as before.
+
+**C — Direct edit on disk.**
+
+Open `<project.path>/.webui/actions.json` in your editor and save. The
+server's catalog is mtime-cached, so your changes show up the next time
+the catalog is read (e.g. opening the project page or the **+ New ▾**
+menu). This path skips the upload validators — you find out about
+schema / placeholder mistakes when the page reads the file.
+
+> Tip: regardless of path, every write goes through a `realpath +
+> path.relative` traversal guard, so symlinks under `.webui/` cannot
+> redirect the write outside the registered project root.
 
 #### Minimal example — four custom skills
 
@@ -625,11 +692,19 @@ sees.
 
 #### Validation
 
+The same validators run for the upload UI (Settings + Wizard) and the
+catalog-read endpoint (`GET /api/external/projects/:id/actions`). Direct
+edits on disk only see the read-side validators — the upload-only rows
+(`payload_too_large`, `path_unsafe`) are by definition not reachable.
+
 | Failure | Result |
 |---|---|
-| Malformed JSON | Bundled default served + a diagnostic chip on the project page (`actions_file_malformed`). The Kanban stays usable. |
-| Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, …) | 400 with a structured `code`. |
-| Unknown placeholder in `command_template` | 400 `template_validation_failed` with the offending token. |
+| Body > 256 KB on upload | 413 `payload_too_large` (rejected via `Content-Length` pre-check, before buffering). |
+| Malformed JSON on upload | 400 `invalid_json` with parser detail. |
+| Malformed JSON on direct edit | Bundled default served + a diagnostic chip on the project page (`actions_file_malformed`). The Kanban stays usable. |
+| Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, boolean param with `default:true` or `required:true`, …) | 400 `schema_validation_failed` with the full `errors[]` array. |
+| Unknown placeholder in `command_template` | 400 `invalid_placeholder` naming the offending token + `actionId`. Same check runs at upload time AND at every catalog read. |
+| `.webui/` resolves outside the project root (symlink escape) | 400 `path_unsafe` with the rejected `reason` (`traversal` / `symlink_escape` / `drive_change`). |
 | Unknown `actionId` at launch | 400 `unknown_action_id`. |
 | Unknown phase at launch | 400 `command_substitution_failed`. |
 
