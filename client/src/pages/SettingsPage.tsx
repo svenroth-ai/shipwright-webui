@@ -18,9 +18,16 @@
  *     shadow-sm, 20px padding). No neutral-* / gray-* classes.
  *   - No new CSS tokens introduced — only palette tokens already in
  *     index.css are used.
+ *
+ * iterate-20260430-actions-upload-ui (FR-01.27) — the static "Configure
+ * actions" paragraph is replaced by <ActionsConfigCard />, which lists
+ * every registered project with a state badge + file picker + reset.
  */
+import { useProjects } from "../hooks/useProjects";
+import { ActionsConfigCard } from "../components/settings/ActionsConfigCard";
 
 export default function SettingsPage() {
+  const { data: projects = [] } = useProjects();
   return (
     <div
       className="flex h-full flex-col"
@@ -106,63 +113,9 @@ export default function SettingsPage() {
           </p>
         </section>
 
-        {/* Section 03 (iterate 3) — actions.json stub link. Read-only; the
-            full in-app editor is deferred past iterate 3. */}
-        <section
-          className="flex flex-col gap-2"
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-card)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-          data-testid="settings-configure-actions"
-        >
-          <h2
-            className="font-semibold"
-            style={{
-              fontSize: "15px",
-              color: "var(--color-text)",
-              margin: 0,
-            }}
-          >
-            Configure actions
-          </h2>
-          <p
-            style={{
-              fontSize: "13px",
-              color: "var(--color-muted)",
-              margin: 0,
-              lineHeight: 1.5,
-            }}
-          >
-            Each project declares its <code
-              style={{
-                background: "var(--color-muted-bg)",
-                borderRadius: "4px",
-                padding: "1px 6px",
-                fontFamily:
-                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                fontSize: "12px",
-              }}
-            >+ New ▾</code> dropdown entries, phase
-            allowlist, and preview gate in{" "}
-            <code
-              style={{
-                background: "var(--color-muted-bg)",
-                borderRadius: "4px",
-                padding: "1px 6px",
-                fontFamily:
-                  "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                fontSize: "12px",
-              }}
-            >
-              &lt;project.path&gt;/.webui/actions.json
-            </code>
-            . The in-app editor is coming in a future iterate.
-          </p>
-        </section>
+        {/* FR-01.27 — per-project actions.json upload + reset. Replaces
+            the read-only descriptive paragraph that lived here previously. */}
+        <ActionsConfigCard projects={projects} />
       </div>
     </div>
   );

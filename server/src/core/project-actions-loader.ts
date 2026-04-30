@@ -150,6 +150,16 @@ export function clearActionsCache(): void {
 }
 
 /**
+ * Targeted invalidation for a single project. Used by the upload + reset
+ * routes after they mutate `.webui/actions.json`. Keeps the bundled-
+ * default singleton intact so other projects do not pay a re-parse cost
+ * on their next GET (review feedback: avoid global thundering-herd).
+ */
+export function clearActionsCacheForProject(projectPath: string): void {
+  cache.delete(projectPath);
+}
+
+/**
  * Load actions for a given project path. Returns the bundled default
  * when the user file is missing / malformed; diagnostics carry any
  * non-fatal warnings (route layer surfaces them as a chip).

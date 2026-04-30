@@ -366,6 +366,14 @@ export interface ResolvedProjectActions {
   defaults: { autonomy: "guided" | "autonomous" };
   preview: PreviewSpec;
   diagnostics: Array<{ code: string; path?: string; detail?: string }>;
+  /**
+   * FR-01.27 — true iff the server loaded `<project.path>/.webui/actions.json`
+   * successfully (custom). false when bundled default was used. The
+   * `diagnostics` array distinguishes "missing" (empty) from "malformed"
+   * (contains `actions_file_malformed`). Optional in the type because
+   * older WebUI builds may not include the field.
+   */
+  fromUser?: boolean;
 }
 
 /**
@@ -496,6 +504,42 @@ export async function saveActionsStub(
   return await httpJsonTyped<{ path: string; created: boolean }>(
     `/api/projects/${encodeURIComponent(projectId)}/actions-stub`,
     { method: "POST" },
+  );
+}
+
+/**
+ * FR-01.27 — replace `<project.path>/.webui/actions.json` with the JSON
+ * content of a user-uploaded file. Server validates JSON-parse + schema
+ * + contract version before writing. The body is sent as `application/
+ * json`; the server caps the payload at 256 KB and emits structured
+ * error codes (`invalid_json`, `schema_validation_failed`,
+ * `payload_too_large`, `project_not_found`, `project_path_unavailable`).
+ */
+export async function uploadActionsJson(
+  projectId: string,
+  jsonContent: string,
+): Promise<{ path: string; written: boolean }> {
+  return await httpJsonTyped<{ path: string; written: boolean }>(
+    `/api/projects/${encodeURIComponent(projectId)}/actions-upload`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: jsonContent,
+    },
+  );
+}
+
+/**
+ * FR-01.27 — remove the project's `.webui/actions.json`, falling back to
+ * the bundled default on subsequent loads. Idempotent on the server —
+ * `removed: false` indicates the file was already absent.
+ */
+export async function resetActionsJson(
+  projectId: string,
+): Promise<{ path: string; removed: boolean }> {
+  return await httpJsonTyped<{ path: string; removed: boolean }>(
+    `/api/projects/${encodeURIComponent(projectId)}/actions-upload`,
+    { method: "DELETE" },
   );
 }
 
