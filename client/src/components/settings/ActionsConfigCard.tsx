@@ -15,7 +15,8 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import type { Project } from "../../types";
-import { ApiError } from "../../lib/externalApi";
+import { readFileAsText } from "../../lib/readFile";
+import { formatUploadError } from "../../lib/actionsUpload";
 import {
   useProjectActions,
   useResetActionsJson,
@@ -405,46 +406,3 @@ const inlineCodeStyle: React.CSSProperties = {
   fontSize: "12px",
 };
 
-/**
- * Wrap FileReader in a promise. We use FileReader instead of `file.text()`
- * because the older jsdom shipped with our test runner does not implement
- * Blob.prototype.text — and FileReader is supported across every browser
- * we target for the WebUI shell.
- */
-function readFileAsText(file: File): Promise<string> {
-  if (typeof file.text === "function") {
-    return file.text();
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") resolve(result);
-      else reject(new Error("FileReader produced non-string result"));
-    };
-    reader.onerror = () => reject(reader.error ?? new Error("FileReader error"));
-    reader.readAsText(file);
-  });
-}
-
-function formatUploadError(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.code === "schema_validation_failed") {
-      const errors =
-        (err.payload.errors as Array<{ code: string }> | undefined) ?? [];
-      const codes = errors.map((e) => e.code).slice(0, 3).join(", ");
-      return `Schema validation failed: ${codes || "unknown"}`;
-    }
-    if (err.code === "invalid_json") {
-      return `Invalid JSON: ${err.detail ?? "could not parse"}`;
-    }
-    if (err.code === "payload_too_large") {
-      return "File exceeds the 256 KB upload limit.";
-    }
-    if (err.code === "project_path_unavailable") {
-      return "This project does not have a filesystem path on the server.";
-    }
-    return `${err.code}${err.detail ? ": " + err.detail : ""}`;
-  }
-  return String(err).slice(0, 200);
-}

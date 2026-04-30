@@ -8,8 +8,13 @@ import { EnvVarsStep } from './EnvVarsStep';
 import { ConfirmationStep } from './ConfirmationStep';
 import { ProjectColorPicker } from './ProjectColorPicker';
 import { useCreateProject } from '../../hooks/useCreateProject';
-import { useSaveActionsStub } from '../../hooks/useProjectActions';
+import {
+  useSaveActionsStub,
+  useUploadActionsJson,
+} from '../../hooks/useProjectActions';
 import { useSettings } from '../../hooks/useSettings';
+import { readFileAsText } from '../../lib/readFile';
+import { formatUploadError } from '../../lib/actionsUpload';
 
 interface ProjectWizardProps {
   open: boolean;
@@ -54,8 +59,15 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
   // empty .webui/actions.json stub + opens the docs page.
   const [workflowChoice, setWorkflowChoice] = useState<WorkflowChoice>('shipwright');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  // Iterate iterate-20260501-wizard-actions-upload — when workflowChoice
+  // is "custom" the user can optionally drop their own actions.json
+  // here, instead of waiting for the empty-stub flow + Settings round-trip.
+  const [pendingActionsFile, setPendingActionsFile] = useState<File | null>(null);
+  const [pendingActionsError, setPendingActionsError] = useState<string | null>(null);
+  const [postCreateError, setPostCreateError] = useState<string | null>(null);
   const createProject = useCreateProject();
   const saveStub = useSaveActionsStub();
+  const uploadActions = useUploadActionsJson();
 
   function handleNext() {
     if (step < 3) setStep(step + 1);
@@ -66,6 +78,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
   }
 
   function handleCreate() {
+    setPostCreateError(null);
     createProject.mutate(
       {
         name,
@@ -79,18 +92,38 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
       {
         onSuccess: async (created) => {
           // Section 03 — Custom branch writes the .webui/actions.json stub
-          // on the just-created project and pops the docs page. Shipwright
-          // branch is a no-op (bundled default applies at load time).
+          // on the just-created project and pops the docs page.
+          // iterate-20260501 — when the user picked a file in the advanced
+          // step, upload that instead of writing the empty stub. Server
+          // validation runs the same pipeline as Settings (JSON-parse +
+          // schema + placeholder dry-run); if the upload fails, the
+          // project still exists — surface the error and keep the wizard
+          // open so the user can pick another file or skip to Settings.
           if (workflowChoice === 'custom') {
-            try {
-              await saveStub.mutateAsync({ projectId: created.id });
-              if (typeof window !== 'undefined') {
-                window.open(DOCS_ACTIONS_URL, '_blank', 'noopener,noreferrer');
+            if (pendingActionsFile) {
+              try {
+                const text = await readFileAsText(pendingActionsFile);
+                await uploadActions.mutateAsync({
+                  projectId: created.id,
+                  jsonContent: text,
+                });
+              } catch (err) {
+                setPostCreateError(
+                  `Project created, but actions.json upload failed: ${formatUploadError(err)}. Fix the file and retry from Settings.`,
+                );
+                return; // keep wizard open
               }
-            } catch (err) {
-              // Non-fatal — the project is created; the user can re-trigger
-              // the stub later via Settings. Log and continue closing.
-              console.error('saveActionsStub failed', err);
+            } else {
+              try {
+                await saveStub.mutateAsync({ projectId: created.id });
+                if (typeof window !== 'undefined') {
+                  window.open(DOCS_ACTIONS_URL, '_blank', 'noopener,noreferrer');
+                }
+              } catch (err) {
+                // Non-fatal — the project is created; the user can re-trigger
+                // the stub later via Settings. Log and continue closing.
+                console.error('saveActionsStub failed', err);
+              }
             }
           }
           onOpenChange(false);
@@ -98,6 +131,37 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
         },
       },
     );
+  }
+
+  async function handleActionsFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = ''; // allow re-picking the same file after a fix
+    setPendingActionsError(null);
+    setPostCreateError(null);
+    if (!file) {
+      setPendingActionsFile(null);
+      return;
+    }
+    if (file.size > 256 * 1024) {
+      setPendingActionsError(
+        `File is ${file.size.toLocaleString()} bytes; the limit is ${(256 * 1024).toLocaleString()} bytes.`,
+      );
+      setPendingActionsFile(null);
+      return;
+    }
+    // Pre-flight JSON parse so the user gets feedback before clicking
+    // Create. Server still validates schema + placeholders on upload.
+    try {
+      const text = await readFileAsText(file);
+      JSON.parse(text);
+    } catch (err) {
+      setPendingActionsError(
+        `Could not read or parse JSON: ${String(err).slice(0, 200)}`,
+      );
+      setPendingActionsFile(null);
+      return;
+    }
+    setPendingActionsFile(file);
   }
 
   function resetForm() {
@@ -108,10 +172,22 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
     setColor(null);
     setWorkflowChoice('shipwright');
     setShowAdvanced(false);
+    setPendingActionsFile(null);
+    setPendingActionsError(null);
+    setPostCreateError(null);
     createProject.reset();
+    saveStub.reset();
+    uploadActions.reset();
   }
 
-  const canProceed = step === 0 ? name.trim() && path.trim() : true;
+  // iterate-20260501 — block Create when the picked actions.json failed
+  // pre-flight parse. Other steps just require name + path on step 0.
+  const canProceed =
+    step === 0
+      ? !!(name.trim() && path.trim())
+      : step === 3
+        ? !pendingActionsError
+        : true;
   const isLastStep = step === 3;
 
   return (
@@ -268,10 +344,106 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
                             </span>
                           </span>
                         </label>
+
+                        {/* iterate-20260501 — optional upload-now path. Only
+                            offered when "Custom" is the active radio so the
+                            shipwright-default flow stays distraction-free. */}
+                        {workflowChoice === 'custom' && (
+                          <div
+                            data-testid="wizard-actions-upload"
+                            className="rounded-[var(--radius-button)] border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-2.5"
+                          >
+                            <p className="text-xs text-[var(--color-muted)]">
+                              Optional: upload your{' '}
+                              <code className="rounded bg-[var(--color-muted-bg)] px-1 font-mono">
+                                actions.json
+                              </code>{' '}
+                              now. If you skip this, an empty stub is written and you can
+                              upload later from Settings.
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <label
+                                className="inline-flex items-center text-xs font-semibold text-[var(--color-text)]"
+                                style={{
+                                  padding: '6px 10px',
+                                  border: '1px solid var(--color-border)',
+                                  borderRadius: 'var(--radius-button)',
+                                  background: 'var(--color-surface)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Choose file…
+                                <input
+                                  type="file"
+                                  accept="application/json,.json"
+                                  onChange={handleActionsFilePick}
+                                  data-testid="wizard-actions-file"
+                                  style={{ display: 'none' }}
+                                />
+                              </label>
+                              {pendingActionsFile ? (
+                                <span
+                                  data-testid="wizard-actions-filename"
+                                  className="text-xs text-[var(--color-text)] truncate"
+                                  title={pendingActionsFile.name}
+                                  style={{ maxWidth: '260px' }}
+                                >
+                                  ✓ {pendingActionsFile.name}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-[var(--color-muted)]">
+                                  No file selected
+                                </span>
+                              )}
+                              {pendingActionsFile && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setPendingActionsFile(null);
+                                    setPendingActionsError(null);
+                                  }}
+                                  data-testid="wizard-actions-clear"
+                                  className="text-xs text-[var(--color-muted)] hover:text-[var(--color-error)] transition-colors"
+                                >
+                                  remove
+                                </button>
+                              )}
+                            </div>
+                            {pendingActionsError && (
+                              <div
+                                data-testid="wizard-actions-pre-error"
+                                role="alert"
+                                className="mt-2 rounded-[var(--radius-button)] border px-2.5 py-2 text-xs"
+                                style={{
+                                  background: 'var(--color-error-bg)',
+                                  borderColor: 'var(--color-error)',
+                                  color: 'var(--color-error)',
+                                }}
+                              >
+                                {pendingActionsError}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
+
+                {postCreateError && (
+                  <div
+                    data-testid="wizard-actions-upload-error"
+                    role="alert"
+                    className="mt-4 rounded-[var(--radius-button)] border px-4 py-3 text-[13px]"
+                    style={{
+                      background: 'var(--color-error-bg)',
+                      borderColor: 'var(--color-error)',
+                      color: 'var(--color-error)',
+                    }}
+                  >
+                    {postCreateError}
+                  </div>
+                )}
               </>
             )}
           </div>
