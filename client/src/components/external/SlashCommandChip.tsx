@@ -26,7 +26,7 @@ interface Props {
 export function SlashCommandChip({ commandName }: Props) {
   return (
     <div
-      className="flex justify-center my-2"
+      className="flex justify-start my-2"
       data-testid="slash-command-chip"
     >
       <span
