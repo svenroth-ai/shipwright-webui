@@ -302,7 +302,16 @@ export function BubbleTranscript({ content, initialTail = DEFAULT_TAIL, task }: 
         ref={containerRef}
         className="scroll-themed flex-1 overflow-y-auto overflow-x-hidden"
         style={{
-          overflowAnchor: "auto",
+          // ADR-063: ADR-035 ("CSS-first auto-scroll via overflow-anchor: auto")
+          // applies in the non-virtualized branch only. In the virtualized
+          // branch, browser scroll-anchoring fights the TanStack virtualizer's
+          // DOM recycling: the browser anchors on a row that the virtualizer
+          // unmounts during scroll-up, then frame-by-frame fights translateY
+          // corrections. Disabling browser anchoring there leaves auto-scroll
+          // to the useAutoScroll safety net (ADR-035), which is ref-based and
+          // survives DOM rotation. Non-virtualized branch keeps `auto` because
+          // its DOM is stable and ADR-035's original premise holds.
+          overflowAnchor: showVirtualized ? "none" : "auto",
           scrollPaddingBottom: "40px",
           background: "var(--color-bg, #f5f0eb)",
           // 2026-04-23 — AC-6: root font-size 13px (matches mockup
