@@ -229,6 +229,7 @@ if (isMainModule) {
         existsSync: (p: string) => fs.existsSync(p),
         mkdirSync: (p: string, o?: { recursive: boolean }) => fs.mkdirSync(p, o),
         writeFileSync: (p: string, d: string) => fs.writeFileSync(p, d),
+        renameSync: (from: string, to: string) => fs.renameSync(from, to),
       };
       app.route("/", createProjectRoutes(projectManager, projectFsDeps));
       app.route("/", createSettingsRoutes(settingsPath, settingsDeps));

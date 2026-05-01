@@ -16,6 +16,30 @@ export interface ProjectRouteDeps {
   existsSync: (path: string) => boolean;
   mkdirSync: (path: string, opts?: { recursive: boolean }) => void;
   writeFileSync: (path: string, data: string) => void;
+  renameSync: (from: string, to: string) => void;
+}
+
+// One-double-click-to-VS-Code: emitted into <project.path>/.shipwright-webui/
+// on POST /api/projects. Relative `..` keeps the file portable across machines
+// and survives directory renames. Idempotent — never overwrites a file the
+// user may have customized.
+const WORKSPACE_CONTENT = JSON.stringify(
+  {
+    folders: [{ path: ".." }],
+    settings: {
+      "terminal.integrated.defaultLocation": "editor",
+      "explorer.compactFolders": false,
+    },
+  },
+  null,
+  2,
+);
+
+function slugifyProjectName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export function createProjectRoutes(
@@ -44,6 +68,16 @@ export function createProjectRoutes(
       const webuiDir = `${body.path}/.shipwright-webui`;
       if (!fsDeps.existsSync(webuiDir)) {
         fsDeps.mkdirSync(webuiDir, { recursive: true });
+      }
+      const slug = slugifyProjectName(String(body.name));
+      if (slug.length > 0) {
+        const workspacePath = `${webuiDir}/${slug}.code-workspace`;
+        if (!fsDeps.existsSync(workspacePath)) {
+          // Atomic temp+rename mirrors sdk-sessions-store.ts convention.
+          const tmpPath = `${workspacePath}.tmp`;
+          fsDeps.writeFileSync(tmpPath, WORKSPACE_CONTENT);
+          fsDeps.renameSync(tmpPath, workspacePath);
+        }
       }
     }
     const project = projectManager.create(body);
