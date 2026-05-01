@@ -33,6 +33,19 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 const NEAR_BOTTOM_THRESHOLD_PX = 64;
+/**
+ * 2026-05-01 — iterate-2026-05-01-system-chips-and-scroll-polish.
+ *
+ * Window during which programmatic re-pin is suppressed after the user's
+ * last scroll event. Without it, 1 Hz polling ticks can yank a user who
+ * is scrolling slowly near the bottom (still within NEAR_BOTTOM_THRESHOLD_PX,
+ * so userDetached hasn't flipped) back to the bottom — visible as flicker
+ * during scroll-up.
+ *
+ * 250 ms covers a typical wheel/touchpad tick cadence without being long
+ * enough to make the live-stream feel laggy.
+ */
+const ACTIVE_SCROLL_GUARD_MS = 250;
 
 export function useAutoScroll(
   containerRef: React.RefObject<HTMLElement | null>,
@@ -50,6 +63,13 @@ export function useAutoScroll(
   // Initialized to 0 and reset on dep change so session swaps don't
   // inherit the previous session's height budget.
   const prevScrollHeight = useRef(0);
+  // 2026-05-01 — active-scroll guard. Stamped with `Date.now()` on every
+  // user-driven scroll event; programmatic re-pin paths consult it before
+  // forcing scrollTop. `lastProgrammaticScrollAt` lets us discriminate the
+  // synthetic scroll event we fire ourselves (must NOT update the guard,
+  // or auto-pin would suppress its own follow-ups during streaming).
+  const lastUserScrollAt = useRef(0);
+  const lastProgrammaticScrollAt = useRef(0);
 
   // Attach scroll listener once per container. Track whether the user has
   // manually scrolled up — if so, pause auto-scroll until they come back.
@@ -61,10 +81,24 @@ export function useAutoScroll(
       const atBottom = distance < NEAR_BOTTOM_THRESHOLD_PX;
       setIsAtBottom(atBottom);
       userDetached.current = !atBottom;
+      // Stamp the guard ONLY if this scroll event isn't the one we just
+      // fired ourselves. Programmatic scrollTop writes synthesize a scroll
+      // event on the next frame; treating that as user input would defeat
+      // the live-stream pin.
+      const now = Date.now();
+      if (now - lastProgrammaticScrollAt.current > 50) {
+        lastUserScrollAt.current = now;
+      }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, [containerRef]);
+
+  // True iff the user has scrolled within the active-scroll guard window.
+  // Inline helper so both the layout-effect and the ResizeObserver callback
+  // share one definition (they both must respect the guard).
+  const inActiveScrollGuard = () =>
+    Date.now() - lastUserScrollAt.current < ACTIVE_SCROLL_GUARD_MS;
 
   // On every dep change (new content / tail growth / filter flip) re-pin
   // to the bottom unless the user has scrolled away. Double-rAF so the
@@ -75,9 +109,14 @@ export function useAutoScroll(
     const el = containerRef.current;
     if (!el) return;
     if (userDetached.current) return;
+    // Active-scroll guard: skip programmatic re-pin if the user scrolled
+    // within the last ACTIVE_SCROLL_GUARD_MS — but NOT on first mount,
+    // which must always seed the viewport at the bottom.
+    if (didInitialScroll.current && inActiveScrollGuard()) return;
     const run = () => {
       const node = containerRef.current;
       if (!node) return;
+      lastProgrammaticScrollAt.current = Date.now();
       node.scrollTop = node.scrollHeight;
     };
     requestAnimationFrame(() => {
@@ -117,11 +156,17 @@ export function useAutoScroll(
         if (userDetached.current) return;
         // Only re-pin on GROWTH (not shrink/no-op).
         if (now <= prev) return;
+        // Active-scroll guard — same suppression as the layout-effect path.
+        // Without this, a 1 Hz polling tick during slow scroll-up yanks the
+        // user back even though they haven't crossed the userDetached
+        // threshold yet.
+        if (inActiveScrollGuard()) return;
         // Was the user at the bottom of the PREVIOUS content? Use a
         // negative-tolerant check (prev may equal scrollTop+clientHeight,
         // or fall short if we just scrolled past it in a prior callback).
         const distanceFromPrevBottom = prev - (node.scrollTop + node.clientHeight);
         if (distanceFromPrevBottom > NEAR_BOTTOM_THRESHOLD_PX) return;
+        lastProgrammaticScrollAt.current = Date.now();
         node.scrollTop = now;
       } finally {
         // Always refresh the baseline — covers growth, shrink, and

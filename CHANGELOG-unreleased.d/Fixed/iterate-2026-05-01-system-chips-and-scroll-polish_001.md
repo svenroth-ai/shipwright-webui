@@ -1,0 +1,1 @@
+Transcript flicker during slow scroll-up: useAutoScroll now suppresses programmatic re-pin for 250 ms after the last user scroll event, so 1 Hz polling ticks no longer yank the user back to the bottom while they are still within the near-bottom threshold.
