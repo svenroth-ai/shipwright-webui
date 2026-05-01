@@ -917,7 +917,7 @@ describe("BubbleTranscript — AC-4 file-history-snapshot filtering", () => {
 // 2026-05-01 — iterate-2026-05-01-task-notification-render.
 // Regression guard: a Claude Code background-task lifecycle envelope
 // (`<task-notification>...</task-notification>` user-role event) must
-// render as a centered status chip, NOT as a right-aligned user bubble
+// render as a left-aligned status chip, NOT as a right-aligned user bubble
 // containing the raw XML.
 describe("BubbleTranscript — task-notification rendering", () => {
   const notificationXml =
@@ -927,7 +927,7 @@ describe("BubbleTranscript — task-notification rendering", () => {
     '<summary>Background command "git push" completed (exit code 0)</summary>\n' +
     "</task-notification>";
 
-  it("renders a task-notification user event as a centered chip, not a user bubble", () => {
+  it("renders a task-notification user event as a left-aligned chip, not a user bubble", () => {
     const content = jsonl([
       { type: "user", message: { content: "before" } },
       {
@@ -951,5 +951,89 @@ describe("BubbleTranscript — task-notification rendering", () => {
     const root = screen.getByTestId("bubble-transcript");
     expect(root.textContent).not.toContain("<task-notification>");
     expect(root.textContent).not.toContain("</task-notification>");
+  });
+
+  // 2026-05-01 — iterate-2026-05-01-system-chips-and-scroll-polish.
+  // The chip wrapper row must use justify-start (left-aligned with assistant
+  // bubbles), not justify-center (the previous default for system pills).
+  it("renders the task-notification chip row left-aligned, not centered", () => {
+    const content = jsonl([
+      {
+        type: "user",
+        message: { content: notificationXml },
+        origin: { kind: "task-notification" },
+      },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const row = screen.getByTestId("task-notification-chip-row");
+    expect(row.className).toMatch(/justify-start/);
+    expect(row.className).not.toMatch(/justify-center/);
+  });
+});
+
+// 2026-05-01 — iterate-2026-05-01-system-chips-and-scroll-polish.
+// All system-kind chips (system, custom-title, agent-name, permission-mode,
+// slash-command, task-notification) render LEFT-ALIGNED so they line up
+// with assistant bubbles. The previous mix of right-aligned user bubbles
+// + centered system pills made the transcript feel "all over the place".
+describe("BubbleTranscript — system chip alignment (left)", () => {
+  beforeEach(() => {
+    window.localStorage.setItem(SYSTEM_VISIBILITY_KEY, "true");
+  });
+  afterEach(() => {
+    window.localStorage.removeItem(SYSTEM_VISIBILITY_KEY);
+  });
+
+  it("renders the system chip left-aligned", () => {
+    const content = jsonl([
+      { type: "system", subtype: "init", content: "cwd=/tmp" },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const chip = screen.getByTestId("bubble-system");
+    expect(chip.className).toMatch(/justify-start/);
+    expect(chip.className).not.toMatch(/justify-center/);
+  });
+
+  it("renders the custom-title chip left-aligned", () => {
+    const content = jsonl([
+      { type: "custom-title", customTitle: "Implement user auth" },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const chip = screen.getByTestId("bubble-custom-title");
+    expect(chip.className).toMatch(/justify-start/);
+    expect(chip.className).not.toMatch(/justify-center/);
+  });
+
+  it("renders the agent-name chip left-aligned", () => {
+    const content = jsonl([
+      { type: "agent-name", agentName: "Claude Sonnet 4.6" },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const chip = screen.getByTestId("bubble-agent-name");
+    expect(chip.className).toMatch(/justify-start/);
+    expect(chip.className).not.toMatch(/justify-center/);
+  });
+
+  it("renders the permission-mode chip left-aligned", () => {
+    const content = jsonl([
+      { type: "permission-mode", permissionMode: "acceptEdits" },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const chip = screen.getByTestId("bubble-permission-mode");
+    expect(chip.className).toMatch(/justify-start/);
+    expect(chip.className).not.toMatch(/justify-center/);
+  });
+
+  it("renders the slash-command chip left-aligned", () => {
+    const slash =
+      "<command-message>shipwright-iterate:iterate</command-message>\n" +
+      "<command-name>/shipwright-iterate:iterate</command-name>";
+    const content = jsonl([
+      { type: "user", message: { content: slash } },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const chip = screen.getByTestId("slash-command-chip");
+    expect(chip.className).toMatch(/justify-start/);
+    expect(chip.className).not.toMatch(/justify-center/);
   });
 });

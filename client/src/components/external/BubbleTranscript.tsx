@@ -883,7 +883,7 @@ function renderBubble(
 
   if (event.kind === "system") {
     return (
-      <div className="flex justify-center" data-testid="bubble-system">
+      <div className="flex justify-start" data-testid="bubble-system">
         <span
           className="inline-flex max-w-[95%] items-center gap-1.5 truncate px-2.5 py-1 text-[11px]"
           style={{
@@ -905,7 +905,7 @@ function renderBubble(
 
   if (event.kind === "custom-title") {
     return (
-      <div className="flex justify-center" data-testid="bubble-custom-title">
+      <div className="flex justify-start" data-testid="bubble-custom-title">
         <span
           className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
           style={{
@@ -924,7 +924,7 @@ function renderBubble(
 
   if (event.kind === "agent-name") {
     return (
-      <div className="flex justify-center" data-testid="bubble-agent-name">
+      <div className="flex justify-start" data-testid="bubble-agent-name">
         <span
           className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
           style={{
@@ -946,7 +946,7 @@ function renderBubble(
 
   if (event.kind === "permission-mode") {
     return (
-      <div className="flex justify-center" data-testid="bubble-permission-mode">
+      <div className="flex justify-start" data-testid="bubble-permission-mode">
         <span
           className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
           style={{
