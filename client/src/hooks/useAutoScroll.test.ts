@@ -224,3 +224,70 @@ describe("useAutoScroll — AC-2 pre-growth at-bottom gate", () => {
     expect(el.scrollTop).toBe(100);
   });
 });
+
+// 2026-05-01 — iterate-2026-05-01-system-chips-and-scroll-polish.
+//
+// User report: "Beim hochscrollen springt alles. es flackert und ich kann
+// nicht schön hochscrollen." Root cause: when the user is actively
+// scrolling but hasn't yet crossed the userDetached threshold, polling
+// ticks at 1 Hz fire programmatic scroll-to-bottom and yank them back.
+// Fix: suppress programmatic re-pin for ACTIVE_SCROLL_GUARD_MS after the
+// last user-driven scroll event so micro-scrolls at the bottom edge don't
+// fight the user.
+describe("useAutoScroll — active-scroll suspension guard", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("does NOT scroll on RO growth fired within the active-scroll guard window", () => {
+    // User is at the bottom (distance 20 < threshold), then scrolls — even
+    // though the userDetached flag may not flip (the scroll stayed within
+    // threshold), the guard should still suppress the programmatic re-pin.
+    const el = makeContainer({ scrollHeight: 1000, scrollTop: 480, clientHeight: 500 });
+    const ref = createRef<HTMLDivElement>();
+    (ref as { current: HTMLDivElement | null }).current = el;
+
+    renderHook(() => useAutoScroll(ref, "dep-0"));
+
+    // Simulate a small user scroll event — stays "near bottom" so userDetached
+    // does not flip, but the guard timestamp is now fresh.
+    el.scrollTop = 470;
+    el.dispatchEvent(new Event("scroll"));
+
+    // Polling tick arrives almost immediately afterwards — within the guard
+    // window — and would normally re-pin the user to scrollHeight=1300.
+    setScrollHeight(el, 1300);
+    act(() => {
+      for (const cb of capturedCallbacks) cb([], {} as ResizeObserver);
+    });
+    // User position must NOT have been yanked.
+    expect(el.scrollTop).toBe(470);
+  });
+
+  it("DOES re-pin after the active-scroll guard window has elapsed", () => {
+    const el = makeContainer({ scrollHeight: 1000, scrollTop: 480, clientHeight: 500 });
+    const ref = createRef<HTMLDivElement>();
+    (ref as { current: HTMLDivElement | null }).current = el;
+
+    renderHook(() => useAutoScroll(ref, "dep-0"));
+
+    // Tiny scroll, user stays near bottom.
+    el.scrollTop = 470;
+    el.dispatchEvent(new Event("scroll"));
+
+    // Advance well past the guard window (≥ 250 ms).
+    act(() => {
+      vi.advanceTimersByTime(400);
+    });
+
+    // Now content grows and the user was at-bottom — re-pin should fire.
+    setScrollHeight(el, 1300);
+    act(() => {
+      for (const cb of capturedCallbacks) cb([], {} as ResizeObserver);
+    });
+    expect(el.scrollTop).toBe(1300);
+  });
+});

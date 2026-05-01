@@ -28,7 +28,7 @@ export function TaskNotificationChip({ status, summary, taskId }: Props) {
     : `Background task ${status}`;
 
   return (
-    <div className="flex justify-center my-2" data-testid="task-notification-chip-row">
+    <div className="flex justify-start my-2" data-testid="task-notification-chip-row">
       <span
         data-testid="task-notification-chip"
         data-status={status}
