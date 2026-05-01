@@ -75,6 +75,95 @@ const FALLBACK_ROW_PX = 96;
 const SYSTEM_VISIBILITY_KEY = "webui.transcript.showSystem";
 
 /**
+ * 2026-05-01 — iterate-20260501-virtualized-null-render-rows (ADR-065).
+ *
+ * Pre-virtualizer null-render filter. Drops events that `renderBubble`
+ * would otherwise return null for, so the absolute-positioned wrapper
+ * around them never enters the virtualizer's items list. Without this
+ * upstream drop, every such event left a 14 px wrapper (the wrapper's
+ * `padding: 7px 0`) that the virtualizer measured against its 96 px
+ * `FALLBACK_ROW_PX` estimate, producing −82 px translateY corrections
+ * cascading through every row above on each new mount during scroll-up.
+ *
+ * Two predicates, both already enforced inside `renderBubble` and kept
+ * there as defense-in-depth:
+ *
+ *   1. `user` events whose content is `[{ tool_result, … }]` only AND
+ *      every `tool_use_id` is present in `visibleToolUseIds` — the
+ *      output is folded into a `<ToolCard>` so the bubble renders nothing.
+ *   2. `attachment` events with no `filename` / `name` field — Claude
+ *      Code emits internal payloads (bash hook events, deferred-tools
+ *      deltas) under `type: "attachment"`. They have no displayable
+ *      filename, so `<AttachmentCard>` would render nothing.
+ *
+ * The matching pattern was already used for `file-history-snapshot` at
+ * the data-array level; the comment block at the visible-events filter
+ * inside `<BubbleTranscript>` documents the rule. The two predicates
+ * above were previously enforced inside `renderBubble`, in violation of
+ * the rule, and that's what produced the residual scroll-up flicker on
+ * tool-heavy sessions.
+ */
+export function filterEventsForRender(
+  events: ParsedEvent[],
+  visibleToolUseIds: Set<string>,
+): ParsedEvent[] {
+  return events.filter((e) => {
+    if (e.kind === "user") {
+      const results = toolResults(e);
+      if (results.length > 0 && isOnlyToolResults(e)) {
+        const allFolded = results.every((r) => visibleToolUseIds.has(r.tool_use_id));
+        if (allFolded) return false;
+      }
+      return true;
+    }
+    if (e.kind === "attachment") {
+      const payload = e.attachment as Record<string, unknown> | undefined;
+      const filename = readNonEmptyString(payload, "filename");
+      const altName = readNonEmptyString(payload, "name");
+      if (!filename && !altName) {
+        warnUnknownAttachmentSchemaOnce(payload);
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+/**
+ * Module-level dedupe set so a given payload-key-shape produces at most
+ * one dev warn per page lifetime. Original behaviour (in
+ * `renderAttachmentCard`) emitted the warn on every render — once per
+ * filter pass, sometimes hundreds per second on tool-heavy sessions.
+ * This iterate moves the filter upstream, so we re-emit the schema-drift
+ * detection here but rate-limited per unique key signature.
+ */
+const _warnedAttachmentKeys = new Set<string>();
+function warnUnknownAttachmentSchemaOnce(payload: Record<string, unknown> | undefined): void {
+  if (!import.meta.env?.DEV) return;
+  if (!payload || typeof payload !== "object") return;
+  const keys = Object.keys(payload).sort();
+  const sig = keys.join("|");
+  if (_warnedAttachmentKeys.has(sig)) return;
+  _warnedAttachmentKeys.add(sig);
+  // eslint-disable-next-line no-console
+  console.warn(
+    "[BubbleTranscript] Dropping attachment event with no filename/name field. Keys:",
+    keys,
+  );
+}
+
+/** Test-only seam to clear the warn-dedupe set between tests. */
+export function _resetAttachmentWarnDedupeForTesting(): void {
+  _warnedAttachmentKeys.clear();
+}
+
+function readNonEmptyString(obj: Record<string, unknown> | undefined, key: string): string | undefined {
+  if (!obj) return undefined;
+  const v = obj[key];
+  return typeof v === "string" && v.length > 0 ? v : undefined;
+}
+
+/**
  * Event kinds treated as "system messages" for the toolbar toggle.
  * The original `system` kind plus three Claude-emitted metadata pills
  * (custom-title, agent-name, permission-mode) which are session-info
@@ -229,6 +318,17 @@ export function BubbleTranscript({ content, initialTail = DEFAULT_TAIL, task }: 
     return set;
   }, [visible]);
 
+  // 2026-05-01 — ADR-065. Drop events that would render null content
+  // BEFORE they reach <VirtualBubbles> / <PlainBubbles>, so the
+  // virtualizer never sees them and never produces 14 px placeholder
+  // wrappers that drive translateY corrections during scroll-up.
+  // visibleToolUseIds (above) is the load-bearing input for the
+  // tool_result-only-and-all-folded predicate.
+  const visibleForRender = useMemo(
+    () => filterEventsForRender(visible, visibleToolUseIds),
+    [visible, visibleToolUseIds],
+  );
+
   // 2026-04-23 — ADR-057 task-list-unified. Chronological list of ALL
   // tool_uses across the full filtered scope. Used by TaskListAggregateCard
   // to derive the task-list state AT EACH TaskCreate/TaskUpdate event
@@ -317,7 +417,7 @@ export function BubbleTranscript({ content, initialTail = DEFAULT_TAIL, task }: 
       >
         {showVirtualized ? (
           <VirtualBubbles
-            events={visible}
+            events={visibleForRender}
             resolved={resolvedToolUseIds}
             toolResultsById={toolResultsById}
             visibleToolUseIds={visibleToolUseIds}
@@ -327,7 +427,7 @@ export function BubbleTranscript({ content, initialTail = DEFAULT_TAIL, task }: 
           />
         ) : (
           <PlainBubbles
-            events={visible}
+            events={visibleForRender}
             resolved={resolvedToolUseIds}
             toolResultsById={toolResultsById}
             visibleToolUseIds={visibleToolUseIds}
@@ -1224,19 +1324,13 @@ function renderAttachmentCard(event: ParsedEvent): ReactNode {
   const payload = event.attachment;
   const filename = readStringField(payload, "filename") ?? readStringField(payload, "name");
   if (!filename) {
-    // 2026-04-23 — AC-4: attachment events without filename are silently
-    // suppressed (typically Claude Code internals like deferred_tools_delta
-    // or skill_listing that the CLI files under `type: "attachment"`).
-    // Dev-mode warn so schema drift surfaces in the next iterate rather
-    // than in a future user bug report. Guarded by import.meta.env so
-    // production builds stay quiet.
-    if (import.meta.env?.DEV && payload && typeof payload === "object") {
-      // eslint-disable-next-line no-console
-      console.warn(
-        "[BubbleTranscript] Dropping attachment event with no filename/name field. Keys:",
-        Object.keys(payload as Record<string, unknown>),
-      );
-    }
+    // 2026-05-01 — ADR-065: filename-less attachments are normally
+    // filtered out upstream by `filterEventsForRender`, so this branch
+    // is defense-in-depth for any callsite that bypasses the filter.
+    // The schema-drift dev-warn now lives in `filterEventsForRender`
+    // (rate-limited to once per unique payload key shape) — emitting it
+    // here too would re-introduce the per-render warn-flood the iterate
+    // is fixing.
     return null;
   }
   return <AttachmentCard basename={basenameOf(filename)} />;

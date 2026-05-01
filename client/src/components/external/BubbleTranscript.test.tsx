@@ -9,11 +9,16 @@
  *     < 200 renders the plain list.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { BubbleTranscript } from "./BubbleTranscript";
+import {
+  BubbleTranscript,
+  filterEventsForRender,
+  _resetAttachmentWarnDedupeForTesting,
+} from "./BubbleTranscript";
+import { parseSessionJsonl } from "../../external/session-parser";
 
 const SYSTEM_VISIBILITY_KEY = "webui.transcript.showSystem";
 
@@ -1035,5 +1040,190 @@ describe("BubbleTranscript — system chip alignment (left)", () => {
     const chip = screen.getByTestId("slash-command-chip");
     expect(chip.className).toMatch(/justify-start/);
     expect(chip.className).not.toMatch(/justify-center/);
+  });
+});
+
+// 2026-05-01 — iterate-20260501-virtualized-null-render-rows (ADR-065).
+//
+// Regression coverage for the data-validated invariant that null-rendering
+// events MUST NOT reach the virtualizer's events array. mountLog
+// instrumentation showed that tool_result-only-and-all-folded user events
+// + filename-less attachment events were leaving 14 px placeholder
+// wrappers in the virtualized branch — each one driving an −82 px
+// translateY correction on the rows above during scroll-up. The cumulative
+// shift was the user-reported "Er zieht den Code nach" symptom.
+//
+// The fix moves the null-render predicates out of `renderBubble` into a
+// pure filter `filterEventsForRender(events, visibleToolUseIds)` applied
+// at the data-array level — matching the established pattern for
+// `file-history-snapshot` (BubbleTranscript.tsx:160-163) which the
+// existing comment already documents as the rule.
+describe("filterEventsForRender — null-rendering events must not reach the virtualizer", () => {
+  it("excludes a user event whose content is only tool_result blocks AND every id is in visibleToolUseIds", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        {
+          type: "assistant",
+          message: {
+            content: [
+              { type: "tool_use", id: "tu_a", name: "Bash", input: {} },
+            ],
+          },
+        },
+        {
+          type: "user",
+          message: {
+            content: [
+              { type: "tool_result", tool_use_id: "tu_a", content: "ok" },
+            ],
+          },
+        },
+      ]),
+    );
+    const visibleToolUseIds = new Set(["tu_a"]);
+    const result = filterEventsForRender(parsed.events, visibleToolUseIds);
+
+    // Assistant kept; the all-folded user tool_result event filtered out.
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe("assistant");
+  });
+
+  it("KEEPS a user event when tool_result is orphan (no matching tool_use in visible window)", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        {
+          type: "user",
+          message: {
+            content: [
+              { type: "tool_result", tool_use_id: "tu_orphan", content: "x" },
+            ],
+          },
+        },
+      ]),
+    );
+    // Orphan: tool_use not in visibleToolUseIds → bubble must render.
+    const result = filterEventsForRender(parsed.events, new Set<string>());
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe("user");
+  });
+
+  it("KEEPS a user event with mixed text + tool_result (data must never be silently dropped)", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        {
+          type: "user",
+          message: {
+            content: [
+              { type: "text", text: "actual user text" },
+              { type: "tool_result", tool_use_id: "tu_a", content: "ok" },
+            ],
+          },
+        },
+      ]),
+    );
+    // Even if tu_a is folded, the bubble has text → must render.
+    const result = filterEventsForRender(parsed.events, new Set(["tu_a"]));
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe("user");
+  });
+
+  it("excludes an attachment event whose payload has no filename or name field", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        // Bash hook event surface — what the test session's transcript
+        // shows as `attachment` in mountLog. No filename, no name.
+        {
+          type: "attachment",
+          attachment: {
+            type: "hook",
+            hookName: "PostToolUse",
+            command: "ls",
+            stdout: "",
+            stderr: "",
+            exitCode: 0,
+            durationMs: 12,
+          },
+        },
+      ]),
+    );
+    const result = filterEventsForRender(parsed.events, new Set<string>());
+    expect(result).toHaveLength(0);
+  });
+
+  it("KEEPS an attachment event with a filename", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        { type: "attachment", attachment: { filename: "diagram.png" } },
+      ]),
+    );
+    const result = filterEventsForRender(parsed.events, new Set<string>());
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe("attachment");
+  });
+
+  it("KEEPS an attachment event with a 'name' field (alternate payload shape)", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        { type: "attachment", attachment: { name: "screenshot.png" } },
+      ]),
+    );
+    const result = filterEventsForRender(parsed.events, new Set<string>());
+    expect(result).toHaveLength(1);
+    expect(result[0].kind).toBe("attachment");
+  });
+
+  it("returns all input events when none would render null", () => {
+    const parsed = parseSessionJsonl(
+      jsonl([
+        { type: "user", message: { content: "hello" } },
+        {
+          type: "assistant",
+          message: { content: [{ type: "text", text: "hi" }] },
+        },
+      ]),
+    );
+    const result = filterEventsForRender(parsed.events, new Set<string>());
+    expect(result).toHaveLength(2);
+    expect(result.map((e) => e.kind)).toEqual(["user", "assistant"]);
+  });
+
+  it("dev-warns at most once per unique attachment payload key signature across many filter passes", () => {
+    // Schema-drift detection: original code (in renderAttachmentCard)
+    // re-fired the warn on every render. The relocated filter dedupes
+    // by payload key signature — a second pass over the SAME shape
+    // produces zero additional warns; a different shape produces
+    // exactly one more.
+    _resetAttachmentWarnDedupeForTesting();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const shapeA = jsonl([
+        {
+          type: "attachment",
+          attachment: { type: "hook", hookName: "PostToolUse", command: "ls" },
+        },
+      ]);
+      const parsedA = parseSessionJsonl(shapeA);
+
+      // Three filter passes over the same event shape.
+      filterEventsForRender(parsedA.events, new Set<string>());
+      filterEventsForRender(parsedA.events, new Set<string>());
+      filterEventsForRender(parsedA.events, new Set<string>());
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      // A *different* payload key shape produces one more warn.
+      const shapeB = jsonl([
+        {
+          type: "attachment",
+          attachment: { kind: "deferred_tools_delta", count: 3 },
+        },
+      ]);
+      const parsedB = parseSessionJsonl(shapeB);
+      filterEventsForRender(parsedB.events, new Set<string>());
+      filterEventsForRender(parsedB.events, new Set<string>());
+      expect(warnSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      warnSpy.mockRestore();
+      _resetAttachmentWarnDedupeForTesting();
+    }
   });
 });
