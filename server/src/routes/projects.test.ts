@@ -26,6 +26,7 @@ function setup() {
     existsSync: vi.fn(() => true),
     mkdirSync: vi.fn(),
     writeFileSync: vi.fn(),
+    renameSync: vi.fn(),
   };
 
   const app = new Hono();
@@ -131,5 +132,88 @@ describe("Project Routes (Plan D'' simplified)", () => {
     // ProjectWizard's inline error banner has something non-empty to show.
     expect(typeof body.error).toBe("string");
     expect(body.error.length).toBeGreaterThan(0);
+  });
+
+  // iterate-2026-05-01-vscode-workspace — POST emits a portable
+  // .code-workspace file inside .shipwright-webui/ so the user can open
+  // the project in VS Code with one double-click.
+  describe("VS Code workspace generation on POST", () => {
+    it("POST creates <slug>.code-workspace with relative '..' folder + editor terminal default", async () => {
+      const { app, fsDeps } = setup();
+      // Project dir + .shipwright-webui exist; workspace file does NOT.
+      const wsPath = "/tmp/new/.shipwright-webui/shipwright-webui.code-workspace";
+      fsDeps.existsSync.mockImplementation((p: string) => p !== wsPath);
+      const res = await app.request("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Shipwright WebUI", path: "/tmp/new" }),
+      });
+      expect(res.status).toBe(201);
+      // writeFileSync called against the temp path (atomic write convention),
+      // followed by renameSync to the final path.
+      const writeCalls = fsDeps.writeFileSync.mock.calls;
+      const renameCalls = fsDeps.renameSync.mock.calls;
+      const writeCall = writeCalls.find(([p]) => String(p).endsWith(".code-workspace.tmp"));
+      expect(writeCall).toBeDefined();
+      const json = JSON.parse(writeCall![1] as string);
+      expect(json).toEqual({
+        folders: [{ path: ".." }],
+        settings: {
+          "terminal.integrated.defaultLocation": "editor",
+          "explorer.compactFolders": false,
+        },
+      });
+      const renameCall = renameCalls.find(([, dst]) => dst === wsPath);
+      expect(renameCall).toBeDefined();
+    });
+
+    it("POST does not overwrite an existing .code-workspace", async () => {
+      const { app, fsDeps } = setup();
+      // Pre-existing workspace file — must be left alone.
+      const wsPath = "/tmp/new/.shipwright-webui/shipwright-webui.code-workspace";
+      fsDeps.existsSync.mockImplementation(() => true);
+      const res = await app.request("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Shipwright WebUI", path: "/tmp/new" }),
+      });
+      expect(res.status).toBe(201);
+      const writeCalls = fsDeps.writeFileSync.mock.calls;
+      const renameCalls = fsDeps.renameSync.mock.calls;
+      // No write to the workspace path — neither final nor temp.
+      expect(writeCalls.some(([p]) => String(p).startsWith(wsPath))).toBe(false);
+      expect(renameCalls.some(([, dst]) => String(dst) === wsPath)).toBe(false);
+    });
+
+    it.each([
+      ["Shipwright WebUI", "shipwright-webui"],
+      ["foo  bar", "foo-bar"],
+      ["  --weird name--  ", "weird-name"],
+    ])("slugifies project name %j -> %j", async (inputName, expectedSlug) => {
+      const { app, fsDeps } = setup();
+      const wsPath = `/tmp/proj/.shipwright-webui/${expectedSlug}.code-workspace`;
+      fsDeps.existsSync.mockImplementation((p: string) => p !== wsPath);
+      const res = await app.request("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: inputName, path: "/tmp/proj" }),
+      });
+      expect(res.status).toBe(201);
+      const renameCall = fsDeps.renameSync.mock.calls.find(([, dst]) => dst === wsPath);
+      expect(renameCall).toBeDefined();
+    });
+
+    it("PATCH /api/projects/:id does NOT touch the workspace file", async () => {
+      const { app, fsDeps } = setup();
+      const res = await app.request("/api/projects/p1", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Renamed" }),
+      });
+      expect(res.status).toBe(200);
+      expect(fsDeps.writeFileSync).not.toHaveBeenCalled();
+      expect(fsDeps.renameSync).not.toHaveBeenCalled();
+      expect(fsDeps.mkdirSync).not.toHaveBeenCalled();
+    });
   });
 });
