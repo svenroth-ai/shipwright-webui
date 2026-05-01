@@ -62,6 +62,7 @@ import { AttachmentCard } from "./AttachmentCard";
 import { MarkdownText } from "./MarkdownText";
 import { SkillCard } from "./SkillCard";
 import { SlashCommandChip } from "./SlashCommandChip";
+import { TaskNotificationChip } from "./TaskNotificationChip";
 import { ToolCard } from "./ToolCard";
 import { TaskListAggregateCard, TodoWriteCard } from "./TaskListCard";
 import { ToolOutputBlock } from "./ToolOutputBlock";
@@ -838,6 +839,18 @@ function renderBubble(
   // 2026-04-23 — AC-3: slash-command invocation → centered grey chip.
   if (event.kind === "slash-command") {
     return <SlashCommandChip commandName={event.commandName} />;
+  }
+
+  // 2026-05-01 — task-notification (Claude Code v2.1.119+ background task
+  // lifecycle): centered status chip instead of raw user-bubble XML.
+  if (event.kind === "task-notification") {
+    return (
+      <TaskNotificationChip
+        status={event.status}
+        summary={event.summary}
+        taskId={event.taskId}
+      />
+    );
   }
 
   // 2026-04-23 — ADR-055 chat-followups AC-3 + ADR-056 chat-livetest-2

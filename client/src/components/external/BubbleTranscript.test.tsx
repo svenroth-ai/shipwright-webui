@@ -913,3 +913,43 @@ describe("BubbleTranscript — AC-4 file-history-snapshot filtering", () => {
     expect(screen.queryByTestId("bubble-assistant")).toBeInTheDocument();
   });
 });
+
+// 2026-05-01 — iterate-2026-05-01-task-notification-render.
+// Regression guard: a Claude Code background-task lifecycle envelope
+// (`<task-notification>...</task-notification>` user-role event) must
+// render as a centered status chip, NOT as a right-aligned user bubble
+// containing the raw XML.
+describe("BubbleTranscript — task-notification rendering", () => {
+  const notificationXml =
+    "<task-notification>\n" +
+    "<task-id>b20yl2hq3</task-id>\n" +
+    "<status>completed</status>\n" +
+    '<summary>Background command "git push" completed (exit code 0)</summary>\n' +
+    "</task-notification>";
+
+  it("renders a task-notification user event as a centered chip, not a user bubble", () => {
+    const content = jsonl([
+      { type: "user", message: { content: "before" } },
+      {
+        type: "user",
+        message: { content: notificationXml },
+        origin: { kind: "task-notification" },
+      },
+      {
+        type: "assistant",
+        message: { content: [{ type: "text", text: "Acknowledged." }] },
+      },
+    ]);
+    render(<BubbleTranscript content={content} />);
+    const chip = screen.getByTestId("task-notification-chip");
+    expect(chip.getAttribute("data-status")).toBe("completed");
+    expect(chip.textContent).toContain('Background command "git push" completed (exit code 0)');
+    // The "before" user message is a real user bubble; the notification
+    // event must NOT add a second one.
+    expect(screen.queryAllByTestId("bubble-user")).toHaveLength(1);
+    // No raw XML must leak into the DOM.
+    const root = screen.getByTestId("bubble-transcript");
+    expect(root.textContent).not.toContain("<task-notification>");
+    expect(root.textContent).not.toContain("</task-notification>");
+  });
+});
