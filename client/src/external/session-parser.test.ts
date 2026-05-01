@@ -612,6 +612,99 @@ describe("parseOne — skill-body kind populates body (ADR-056 AC-A)", () => {
   });
 });
 
+// ── 2026-05-01 — iterate-2026-05-01-task-notification-render ──
+//
+// Bug: background-task completion notifications (Claude Code v2.1.119+)
+// arrive as user-role events whose content is `<task-notification>...</task-notification>`
+// XML and `origin.kind === "task-notification"`. The transcript previously
+// rendered the raw XML in a right-aligned user bubble. The parser must
+// reclassify these as a dedicated kind so the renderer can show a
+// centered status chip instead.
+
+describe("parseSessionJsonl — task-notification detection", () => {
+  const fullPayload =
+    "<task-notification>\n" +
+    "<task-id>b20yl2hq3</task-id>\n" +
+    "<tool-use-id>toolu_01BaEEcX5G9r119FWbnELPDK</tool-use-id>\n" +
+    "<output-file>C:\\\\tmp\\\\b20yl2hq3.output</output-file>\n" +
+    "<status>completed</status>\n" +
+    "<summary>Background command \"Find all occurrences of the run_id\" completed (exit code 0)</summary>\n" +
+    "</task-notification>";
+
+  it("reclassifies a user event whose content is a task-notification XML payload", () => {
+    const line = JSON.stringify({
+      type: "user",
+      message: { role: "user", content: fullPayload },
+      origin: { kind: "task-notification" },
+    });
+    const r = parseSessionJsonl(line);
+    expect(r.events).toHaveLength(1);
+    expect(r.events[0].kind).toBe("task-notification");
+    if (r.events[0].kind === "task-notification") {
+      expect(r.events[0].status).toBe("completed");
+      expect(r.events[0].summary).toBe(
+        'Background command "Find all occurrences of the run_id" completed (exit code 0)',
+      );
+      expect(r.events[0].taskId).toBe("b20yl2hq3");
+    }
+  });
+
+  it("detects via content fingerprint even when origin field is absent", () => {
+    const line = JSON.stringify({
+      type: "user",
+      message: { role: "user", content: fullPayload },
+    });
+    const r = parseSessionJsonl(line);
+    expect(r.events[0].kind).toBe("task-notification");
+  });
+
+  it("tolerates failed status + reads summary verbatim", () => {
+    const failedPayload =
+      "<task-notification>\n" +
+      "<task-id>xyz</task-id>\n" +
+      "<status>failed</status>\n" +
+      "<summary>Background command \"git push\" failed (exit code 1)</summary>\n" +
+      "</task-notification>";
+    const line = JSON.stringify({
+      type: "user",
+      message: { role: "user", content: failedPayload },
+    });
+    const r = parseSessionJsonl(line);
+    expect(r.events[0].kind).toBe("task-notification");
+    if (r.events[0].kind === "task-notification") {
+      expect(r.events[0].status).toBe("failed");
+      expect(r.events[0].summary).toBe(
+        'Background command "git push" failed (exit code 1)',
+      );
+    }
+  });
+
+  it("leaves mixed user content (task-notification embedded in prose) as plain user event", () => {
+    const mixed = "Look at this notification: " + fullPayload;
+    const line = JSON.stringify({
+      type: "user",
+      message: { role: "user", content: mixed },
+    });
+    const r = parseSessionJsonl(line);
+    expect(r.events[0].kind).toBe("user");
+  });
+
+  it("falls back to status='unknown' + empty summary when tags are missing but envelope matches", () => {
+    const sparse = "<task-notification>\n<task-id>abc</task-id>\n</task-notification>";
+    const line = JSON.stringify({
+      type: "user",
+      message: { role: "user", content: sparse },
+    });
+    const r = parseSessionJsonl(line);
+    expect(r.events[0].kind).toBe("task-notification");
+    if (r.events[0].kind === "task-notification") {
+      expect(r.events[0].status).toBe("unknown");
+      expect(r.events[0].summary).toBe("");
+      expect(r.events[0].taskId).toBe("abc");
+    }
+  });
+});
+
 describe("isThinkingOnly — AC-5 thinking-card classifier", () => {
   it("returns true when content is only thinking blocks", () => {
     const e: AssistantEvent = {
