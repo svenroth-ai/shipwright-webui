@@ -1,1 +1,0 @@
-Scroll-up flicker on long transcripts: disable browser scroll-anchoring (`overflow-anchor: none`) in the virtualized BubbleTranscript branch — the browser was fighting TanStack-Virtual's DOM recycling. Non-virtualized branch keeps ADR-035's `auto`. See ADR-063.
