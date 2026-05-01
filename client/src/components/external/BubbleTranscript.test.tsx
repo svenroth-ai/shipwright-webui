@@ -207,6 +207,37 @@ describe("BubbleTranscript — virtualization toggle", () => {
   });
 });
 
+// ADR-063: Browser scroll-anchoring (`overflow-anchor: auto`) fights the
+// TanStack virtualizer's DOM recycling on scroll-up — the browser tries
+// to anchor on a row that the virtualizer just unmounted, producing the
+// frame-by-frame flicker the user reported even after ADR-062's stable-
+// keys + animation-frame fix. Carve-out from ADR-035 ("CSS-first auto-
+// scroll"): in the non-virtualized branch, DOM is stable and `auto`
+// stays correct. In the virtualized branch, `useAutoScroll` (the ADR-035
+// safety net) is sufficient; `auto` must be `none` to keep the browser
+// from re-anchoring on recycled rows.
+describe("BubbleTranscript — ADR-063 overflow-anchor carve-out for virtualized branch", () => {
+  it("sets overflow-anchor: none on the scroll container when virtualized", () => {
+    const events = Array.from({ length: 250 }, (_, i) => ({
+      type: "user",
+      message: { content: `e${i}` },
+    }));
+    render(<BubbleTranscript content={jsonl(events)} />);
+    const scroll = screen.getByTestId("transcript-scroll");
+    expect(scroll.style.overflowAnchor).toBe("none");
+  });
+
+  it("keeps overflow-anchor: auto on the scroll container when NOT virtualized", () => {
+    const events = Array.from({ length: 50 }, (_, i) => ({
+      type: "user",
+      message: { content: `e${i}` },
+    }));
+    render(<BubbleTranscript content={jsonl(events)} />);
+    const scroll = screen.getByTestId("transcript-scroll");
+    expect(scroll.style.overflowAnchor).toBe("auto");
+  });
+});
+
 describe("BubbleTranscript — iterate-3 chip variants (FR-03.52)", () => {
   // These chips are now treated as system-message noise and hidden by
   // default; the tests below opt-in via the system-visibility toggle.
