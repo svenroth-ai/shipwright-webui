@@ -1,0 +1,1 @@
+Transcript scroll-up flicker on long sessions (>=200 visible events): virtualizer now keys row measurements to event identity and batches ResizeObserver updates per paint frame, so dynamic-height rows stop jerking the visible window during scroll.
