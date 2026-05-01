@@ -592,11 +592,27 @@ function VirtualBubbles({
   containerRef: React.RefObject<HTMLDivElement | null>;
   task?: ExternalTask;
 }) {
+  // 2026-05-01 — iterate-2026-05-01-virtualizer-flicker. Three settings
+  // fix the user-reported "scroll-up flickert" symptom (dynamic-height
+  // virtualization jank):
+  //   - `getItemKey` keys size measurements to event identity (uuid /
+  //     `kind-timestamp`) instead of array index, so a row's measured
+  //     height survives every filter / tail / poll-tick re-render that
+  //     would otherwise shift indices and force re-measurement.
+  //   - `useAnimationFrameWithResizeObserver` batches RO-fired measurement
+  //     updates to a single paint frame, eliminating the multi-frame
+  //     stagger as several rows enter the viewport during a scroll-up.
+  //   - `overscan` bumped from 8 → 16 so more rows are pre-measured before
+  //     entering the visible window.
+  // (Scroll-position correction for items above the viewport is on by
+  // default in @tanstack/react-virtual v3.14 — no extra option needed.)
   const virtualizer = useVirtualizer({
     count: events.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => FALLBACK_ROW_PX,
-    overscan: 8,
+    overscan: 16,
+    getItemKey: (index) => stableEventKey(events[index], index),
+    useAnimationFrameWithResizeObserver: true,
   });
   return (
     <div
