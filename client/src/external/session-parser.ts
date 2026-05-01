@@ -19,6 +19,7 @@ export type ParsedEvent =
   | UserEvent
   | SlashCommandEvent
   | SkillBodyEvent
+  | TaskNotificationEvent
   | AssistantEvent
   | AttachmentEvent
   | QueueOpEvent
@@ -80,6 +81,29 @@ export interface SkillBodyEvent extends BaseEvent {
   skillName: string;
   /** Markdown body from the H1 heading onward (optional — legacy events). */
   body?: string;
+}
+
+/**
+ * 2026-05-01 — iterate-2026-05-01-task-notification-render.
+ *
+ * Claude Code v2.1.119+ emits background-task lifecycle as user-role
+ * events whose `content` is a `<task-notification>...</task-notification>`
+ * XML envelope and `origin.kind === "task-notification"`. Without
+ * reclassification these render as a right-aligned user bubble showing
+ * the raw XML — the renderer can't distinguish them from a typed message.
+ *
+ * Detection runs on user-role events only; mixed prose containing a
+ * notification block falls back to plain `user` so legitimate user text
+ * is never swallowed.
+ */
+export interface TaskNotificationEvent extends BaseEvent {
+  kind: "task-notification";
+  /** `completed` | `failed` | `unknown`. Verbatim from `<status>`. */
+  status: string;
+  /** Verbatim from `<summary>`. May be empty for malformed envelopes. */
+  summary: string;
+  /** From `<task-id>`. Empty when absent. */
+  taskId: string;
 }
 
 export interface AssistantEvent extends BaseEvent {
@@ -213,6 +237,14 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
           skillName: skill.skillName,
           body: skill.body,
         };
+      }
+      // 2026-05-01 — task-notification reclassification (see
+      // TaskNotificationEvent doc). Detected via content envelope first,
+      // origin.kind as a secondary sanity check (older Claude builds may
+      // omit origin). Mixed prose falls through to plain `user`.
+      const notification = extractTaskNotification(content);
+      if (notification) {
+        return { ...base, kind: "task-notification", ...notification };
       }
       return { ...base, kind: "user", content };
     }
@@ -542,6 +574,51 @@ export function extractSkillBody(
     return { skillName, body };
   }
   return null;
+}
+
+/**
+ * 2026-05-01 — iterate-2026-05-01-task-notification-render.
+ *
+ * Detects a Claude Code background-task lifecycle envelope. Returns the
+ * parsed fields when content is EXCLUSIVELY a `<task-notification>...
+ * </task-notification>` block (only whitespace allowed around it).
+ * Mixed user prose containing the envelope mid-text returns null so a
+ * legitimate user message is never swallowed.
+ *
+ * Tag parsing is lenient on order and missing fields:
+ *   - `<status>` → status; defaults to "unknown" when absent.
+ *   - `<summary>` → summary; defaults to "" when absent.
+ *   - `<task-id>` → taskId; defaults to "" when absent.
+ *
+ * Length cap (4 KB) prevents pathological inputs from running the regex
+ * over megabyte-scale strings; real envelopes observed in the wild are
+ * a few hundred bytes.
+ */
+export function extractTaskNotification(
+  content: unknown,
+): { status: string; summary: string; taskId: string } | null {
+  if (typeof content !== "string") return null;
+  if (content.length > 4096) return null;
+  const trimmed = content.trim();
+  if (!trimmed.startsWith("<task-notification>")) return null;
+  if (!trimmed.endsWith("</task-notification>")) return null;
+  const status = readSingleTag(trimmed, "status") ?? "unknown";
+  const summary = readSingleTag(trimmed, "summary") ?? "";
+  const taskId = readSingleTag(trimmed, "task-id") ?? "";
+  return { status, summary, taskId };
+}
+
+function readSingleTag(source: string, tag: string): string | null {
+  // Match the FIRST occurrence of `<tag>...</tag>`. Inner content cannot
+  // span another `<` so deliberately-nested envelopes don't bleed across.
+  const open = `<${tag}>`;
+  const close = `</${tag}>`;
+  const start = source.indexOf(open);
+  if (start < 0) return null;
+  const valueStart = start + open.length;
+  const end = source.indexOf(close, valueStart);
+  if (end < 0) return null;
+  return source.slice(valueStart, end).trim();
 }
 
 /**
