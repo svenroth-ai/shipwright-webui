@@ -56,6 +56,11 @@ import {
   userText,
   type ParsedEvent,
 } from "../../external/session-parser";
+import {
+  loadSizeCache,
+  persistSizeCache,
+  pruneSizeCache,
+} from "../../lib/virtualizerSizeCache";
 import { useAutoScroll } from "../../hooks/useAutoScroll";
 import { useLaunchTask } from "../../hooks/useLaunchTask";
 import { AttachmentCard } from "./AttachmentCard";
@@ -706,14 +711,141 @@ function VirtualBubbles({
   //     entering the visible window.
   // (Scroll-position correction for items above the viewport is on by
   // default in @tanstack/react-virtual v3.14 — no extra option needed.)
+  //
+  // 2026-05-02 — iterate-2026-05-02-virtualized-slow-scroll-investigate.
+  // Phase 2 measurement (ADR-066) showed the residual SLOW-scroll-up
+  // jump is dominated by rows mounting at heights 100–1700 px against
+  // the 96 px FALLBACK_ROW_PX estimate, producing visible layout
+  // cascades that interleave with user wheel events. Mitigation:
+  // persist the measured-size Map to localStorage keyed by
+  // `task.sessionUuid` and rehydrate on mount via TanStack Virtual's
+  // `initialMeasurementsCache`. The cascade fires at most once on
+  // first-ever visit; reloads start with correct sizes and skip the
+  // cascade entirely. See `lib/virtualizerSizeCache.ts`.
+  const sessionUuid = task?.sessionUuid ?? "";
+  const sizeCacheRef = useRef<Map<string, number> | null>(null);
+  const wasEmptyOnMount = useRef<boolean | null>(null);
+  if (sizeCacheRef.current === null) {
+    sizeCacheRef.current = loadSizeCache(sessionUuid);
+    wasEmptyOnMount.current = sizeCacheRef.current.size === 0;
+  }
+
+  // initialMeasurementsCache is consumed once when measurementsCache
+  // is first empty (TanStack Virtual virtual-core line 472). We compute
+  // it lazily via useState's initializer so it captures the first
+  // render's events + cached sizes. Subsequent renders update the live
+  // virtualizer cache via measureElement and our sizeCacheRef tap.
+  const [initialMeasurementsCache] = useState(() => {
+    const cache = sizeCacheRef.current ?? new Map<string, number>();
+    if (cache.size === 0) return [] as never[];
+    const out: { index: number; start: number; size: number; end: number; key: string; lane: number }[] = [];
+    for (let i = 0; i < events.length; i += 1) {
+      const key = stableEventKey(events[i], i);
+      const size = cache.get(key);
+      if (typeof size !== "number") continue;
+      out.push({ index: i, key, size, start: 0, end: 0, lane: 0 });
+    }
+    return out;
+  });
+
+  // First-visit warmup pass (ADR-066 follow-up). When the persistent
+  // size-cache is empty on mount, render with overscan high enough to
+  // mount every visible event in one paint frame; that lets every row's
+  // measurement land in the virtualizer's `itemSizeCache` BEFORE the
+  // user can scroll. After 2 rAFs (or a 1 s fallback) we drop back to
+  // the steady-state overscan of 16. With cache warm, this pass is
+  // skipped and overscan is 16 from the start.
+  //
+  // Cap at WARMUP_OVERSCAN_MAX so very long sessions (e.g. 5000+ events)
+  // don't spend seconds mounting every row at once. Beyond the cap, the
+  // warmup covers the rows immediately above the auto-scrolled-to-bottom
+  // viewport (where the user's first scroll-up will go); rows further
+  // up are populated on demand and persisted on next visit.
+  const WARMUP_OVERSCAN_MAX = 500;
+  const [overscanMode, setOverscanMode] = useState<"warmup" | "normal">(
+    wasEmptyOnMount.current ? "warmup" : "normal",
+  );
+  const overscan =
+    overscanMode === "warmup"
+      ? Math.min(WARMUP_OVERSCAN_MAX, Math.max(16, events.length))
+      : 16;
+
   const virtualizer = useVirtualizer({
     count: events.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => FALLBACK_ROW_PX,
-    overscan: 16,
+    overscan,
     getItemKey: (index) => stableEventKey(events[index], index),
     useAnimationFrameWithResizeObserver: true,
+    initialMeasurementsCache,
   });
+
+  // Drop overscan back to normal after the warmup paint settles.
+  // 2 rAFs ensures (1) the high-overscan render committed and (2)
+  // ResizeObserver-driven measurement updates landed. The 1 s timeout is
+  // a defensive fallback for slow machines or pathologically long
+  // sessions where measurements take longer.
+  useEffect(() => {
+    if (overscanMode !== "warmup") return;
+    let raf1 = 0;
+    let raf2 = 0;
+    const timeout = window.setTimeout(() => setOverscanMode("normal"), 1_000);
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        window.clearTimeout(timeout);
+        setOverscanMode("normal");
+      });
+    });
+    return () => {
+      if (raf1) cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+      window.clearTimeout(timeout);
+    };
+  }, [overscanMode]);
+
+  // Persist measurements on unmount — the cacheRef is updated live via
+  // the measureRef tap below, so unmount writes whatever's current.
+  // Effect must NOT depend on `events` or it'll fire on every prop tick;
+  // we only need to write at the end of the component's lifetime.
+  // Persist measurements via three triggers, in priority order:
+  //   1. pagehide event — fires reliably even on hard browser navigation
+  //      (the unmount-cleanup path doesn't always run before page tear-down,
+  //      which is the case in Playwright-driven probes and likely also in
+  //      real users' tab-close flow).
+  //   2. Periodic flush every 5 s — defense against tab-crash / power-loss
+  //      where pagehide never fires.
+  //   3. React unmount cleanup — fallback for SPA route changes that don't
+  //      trigger pagehide. Same logic as pagehide.
+  // All three call into the same `flushCache` closure that uses the latest
+  // events snapshot via a ref so the active-keys prune always sees the
+  // current event list.
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+
+  useEffect(() => {
+    if (!sessionUuid) return;
+
+    const flushCache = () => {
+      const cache = sizeCacheRef.current;
+      if (!cache || cache.size === 0) return;
+      const currentEvents = eventsRef.current;
+      const active = new Set<string>();
+      for (let i = 0; i < currentEvents.length; i += 1) {
+        active.add(stableEventKey(currentEvents[i], i));
+      }
+      persistSizeCache(sessionUuid, pruneSizeCache(cache, active));
+    };
+
+    window.addEventListener("pagehide", flushCache);
+    const handle = setInterval(flushCache, 5_000);
+
+    return () => {
+      window.removeEventListener("pagehide", flushCache);
+      clearInterval(handle);
+      flushCache();
+    };
+  }, [sessionUuid]);
+
   return (
     <div
       style={{
@@ -726,10 +858,23 @@ function VirtualBubbles({
       {virtualizer.getVirtualItems().map((vi) => {
         const event = events[vi.index];
         const previous = vi.index > 0 ? events[vi.index - 1] : null;
+        // Combined ref: virtualizer.measureElement + persistent
+        // size-cache tap (ADR-066). Latter keeps sizeCacheRef in sync
+        // with the virtualizer's live measurements so pagehide /
+        // periodic flush has fresh data to write.
+        const measureRef = (el: HTMLDivElement | null) => {
+          virtualizer.measureElement(el);
+          if (el && sizeCacheRef.current) {
+            const h = el.getBoundingClientRect().height;
+            if (Number.isFinite(h) && h > 0) {
+              sizeCacheRef.current.set(String(vi.key), h);
+            }
+          }
+        };
         return (
           <div
             key={vi.key}
-            ref={virtualizer.measureElement}
+            ref={measureRef}
             data-index={vi.index}
             style={{
               position: "absolute",
