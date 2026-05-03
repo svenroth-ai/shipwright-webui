@@ -104,6 +104,29 @@ export default function TaskDetailPage() {
     [pendingFocus],
   );
 
+  // .gitignore-suggestion toast (ADR-067 AC-8). EmbeddedTerminal fires
+  // onGitignoreSuggestion when a paste-image response carries
+  // gitignoreSuggestion=true. The toast offers a one-click append.
+  const [gitignoreToastOpen, setGitignoreToastOpen] = useState(false);
+  const [gitignoreAppending, setGitignoreAppending] = useState(false);
+  const handleGitignoreSuggestion = useCallback(() => {
+    setGitignoreToastOpen(true);
+  }, []);
+  const handleGitignoreAppend = useCallback(async () => {
+    if (!taskId) return;
+    setGitignoreAppending(true);
+    try {
+      await fetch(`/api/terminal/${encodeURIComponent(taskId)}/append-gitignore`, {
+        method: "POST",
+      });
+    } catch {
+      /* swallow — toast just dismisses; user can retry by pasting again */
+    } finally {
+      setGitignoreAppending(false);
+      setGitignoreToastOpen(false);
+    }
+  }, [taskId]);
+
   const handleSelect = useCallback((path: string) => {
     setSelectedPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));
     setActivePath(path);
@@ -265,7 +288,7 @@ export default function TaskDetailPage() {
                 <Tabs.Content
                   value="terminal"
                   forceMount
-                  className="min-h-0 flex-1 data-[state=inactive]:hidden"
+                  className="relative min-h-0 flex-1 data-[state=inactive]:hidden"
                   data-testid="task-detail-terminal"
                 >
                   <Suspense
@@ -281,9 +304,38 @@ export default function TaskDetailPage() {
                         taskId={taskId}
                         active={centerTab === "terminal"}
                         onReadyChange={handleTerminalReady}
+                        onGitignoreSuggestion={handleGitignoreSuggestion}
                       />
                     ) : null}
                   </Suspense>
+                  {gitignoreToastOpen ? (
+                    <div
+                      className="absolute bottom-3 right-3 flex items-center gap-2 rounded border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] shadow"
+                      data-testid="gitignore-suggestion-toast"
+                    >
+                      <span>
+                        Add <code>.claude-pastes/</code> to <code>.gitignore</code>?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void handleGitignoreAppend()}
+                        disabled={gitignoreAppending}
+                        className="rounded bg-[var(--color-primary,#171717)] px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+                        data-testid="gitignore-suggestion-append"
+                      >
+                        {gitignoreAppending ? "Adding…" : "Append"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGitignoreToastOpen(false)}
+                        className="text-[11px] text-[var(--color-muted,#6b7280)]"
+                        data-testid="gitignore-suggestion-dismiss"
+                        aria-label="Dismiss"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : null}
                 </Tabs.Content>
               </Tabs.Root>
             </section>

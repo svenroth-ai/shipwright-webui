@@ -54,23 +54,36 @@ vi.mock("../components/external/SmartViewer/ViewerTabBar", () => ({
 // Track ready callback invocations for the EmbeddedTerminal mock.
 const focusSpy = vi.fn();
 const mountCounterRef = { current: 0 };
+const gitignoreSuggestionRef: { current: (() => void) | null } = { current: null };
 
 vi.mock("../components/terminal/EmbeddedTerminal", () => {
-  const Mock = forwardRef<{ focus: () => void; ready: boolean }, { taskId: string; active: boolean; onReadyChange?: (r: boolean, role: "writer" | "reader" | null) => void }>(
-    function EmbeddedTerminalMock(props, ref) {
-      useImperativeHandle(ref, () => ({ focus: focusSpy, ready: true }), []);
-      // Mount counter (tracked once per actual React mount).
-      useEffect(() => {
-        mountCounterRef.current += 1;
-      }, []);
-      // Synchronously surface ready=true on mount so the readiness handshake
-      // fires deterministically in tests.
-      useEffect(() => {
-        props.onReadyChange?.(true, "writer");
-      }, [props.onReadyChange]);
-      return <div data-testid="embedded-terminal-mock" data-active={props.active ? "true" : "false"} data-task-id={props.taskId} />;
-    },
-  );
+  const Mock = forwardRef<
+    { focus: () => void; ready: boolean },
+    {
+      taskId: string;
+      active: boolean;
+      onReadyChange?: (r: boolean, role: "writer" | "reader" | null) => void;
+      onGitignoreSuggestion?: () => void;
+    }
+  >(function EmbeddedTerminalMock(props, ref) {
+    useImperativeHandle(ref, () => ({ focus: focusSpy, ready: true }), []);
+    useEffect(() => {
+      mountCounterRef.current += 1;
+    }, []);
+    useEffect(() => {
+      props.onReadyChange?.(true, "writer");
+    }, [props.onReadyChange]);
+    useEffect(() => {
+      gitignoreSuggestionRef.current = props.onGitignoreSuggestion ?? null;
+    }, [props.onGitignoreSuggestion]);
+    return (
+      <div
+        data-testid="embedded-terminal-mock"
+        data-active={props.active ? "true" : "false"}
+        data-task-id={props.taskId}
+      />
+    );
+  });
   return { EmbeddedTerminal: Mock };
 });
 
@@ -221,6 +234,53 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
       "active",
     );
     expect(focusSpy).not.toHaveBeenCalled();
+  });
+
+  it("gitignore-suggestion toast surfaces on EmbeddedTerminal callback; Append calls /append-gitignore", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 204, json: async () => ({}) }));
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
+    renderPage();
+    await screen.findByTestId("embedded-terminal-mock");
+    expect(screen.queryByTestId("gitignore-suggestion-toast")).toBeNull();
+    // Trigger the toast via the recorded callback (simulates server returning
+    // gitignoreSuggestion=true on a paste-image response).
+    await act(async () => {
+      gitignoreSuggestionRef.current?.();
+    });
+    expect(screen.getByTestId("gitignore-suggestion-toast")).toBeInTheDocument();
+    await user.click(screen.getByTestId("gitignore-suggestion-append"));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/terminal/t-123/append-gitignore",
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId("gitignore-suggestion-toast")).toBeNull();
+    });
+  });
+
+  it("gitignore-suggestion toast Dismiss closes without calling /append-gitignore", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 204, json: async () => ({}) }));
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
+    renderPage();
+    await screen.findByTestId("embedded-terminal-mock");
+    await act(async () => {
+      gitignoreSuggestionRef.current?.();
+    });
+    await user.click(screen.getByTestId("gitignore-suggestion-dismiss"));
+    expect(screen.queryByTestId("gitignore-suggestion-toast")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("transcript stats only render when transcript tab is active (avoids stale numbers in terminal-mode header)", async () => {
