@@ -297,6 +297,7 @@ if (isMainModule) {
         store: sdkSessionsStore,
         ptyManager,
         upgradeWebSocket,
+        pastesKeepLast: config.claudePastesKeepLast,
       })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).
