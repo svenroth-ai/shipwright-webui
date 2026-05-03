@@ -7,9 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.7.0] - 2026-05-02
+
 ### Added
 
+- Auto-generate .code-workspace on POST /api/projects so projects open in VS Code with one double-click (terminal-in-editor layout).
 - **Settings → Configure actions** now lists every registered project with a state badge (Custom / Bundled / Malformed) and lets you upload or reset `.webui/actions.json` directly from the UI. Files are validated against the actions schema (JSON-parse + `validateActionsSchema` + contract version + `command_template` placeholder dry-run) before they overwrite anything on disk; oversized payloads (>256 KB) are rejected via a `Content-Length` pre-check, and every write goes through the same `realpath + path.relative` traversal guard the rest of the file/tree routes use. Reset is enabled even when the on-disk file is malformed so you can recover without opening a terminal. The reset confirmation uses the same Radix dialog pattern as the rest of the WebUI.
+
+### Changed
+
+- Transcript layout: all system chips (system, custom-title, agent-name, permission-mode, slash-command, task-notification) now render left-aligned with the assistant bubbles instead of centered.
+
+### Fixed
+
+- Transcript flicker during slow scroll-up: useAutoScroll now suppresses programmatic re-pin for 250 ms after the last user scroll event, so 1 Hz polling ticks no longer yank the user back to the bottom while they are still within the near-bottom threshold.
+- Background-task completion notifications (Claude Code v2.1.119+) now render as a centered status chip in the transcript instead of a right-aligned user bubble showing raw <task-notification> XML.
+- Transcript scroll-up flicker on long sessions (>=200 visible events): virtualizer now keys row measurements to event identity and batches ResizeObserver updates per paint frame, so dynamic-height rows stop jerking the visible window during scroll.
+- Eliminate slow scroll-up content cascade on long virtualized BubbleTranscript transcripts (200+ events). Per-row measurement sizes are persisted to localStorage per session and rehydrated on mount; on a cold cache, a one-frame warmup pass measures all visible rows before the user can scroll. Solves "Er zieht den Code nach" symptom (ADR-066, 5th attempt; ADR-063 + ADR-064 reverted, ADR-062 + ADR-065 preserved).
+- Eliminate residual scroll-up flicker on tool-heavy virtualized transcripts by filtering null-rendering events (tool_result-only-and-all-folded user events; filename-less attachment events) out of the virtualizer's items list — closes the 4th attempt at this bug after ADR-062/063/064. (ADR-065)
 
 ## [0.6.0] - 2026-04-27
 
