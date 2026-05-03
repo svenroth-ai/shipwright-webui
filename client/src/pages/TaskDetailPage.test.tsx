@@ -265,6 +265,34 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
     });
   });
 
+  it("gitignore-suggestion toast STAYS OPEN with an error message when /append-gitignore returns non-OK (external review F9)", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: "gitignore_missing" }),
+    }));
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      writable: true,
+      value: fetchMock,
+    });
+    renderPage();
+    await screen.findByTestId("embedded-terminal-mock");
+    await act(async () => {
+      gitignoreSuggestionRef.current?.();
+    });
+    await user.click(screen.getByTestId("gitignore-suggestion-append"));
+    // Toast must stay open AND surface the structured error so the user
+    // doesn't think the append succeeded silently.
+    await waitFor(() => {
+      expect(screen.getByTestId("gitignore-suggestion-toast")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("gitignore-suggestion-error")).toHaveTextContent(
+      /gitignore_missing/,
+    );
+  });
+
   it("gitignore-suggestion toast Dismiss closes without calling /append-gitignore", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async () => ({ ok: true, status: 204, json: async () => ({}) }));
