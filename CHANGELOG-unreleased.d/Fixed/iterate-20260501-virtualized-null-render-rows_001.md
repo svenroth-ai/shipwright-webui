@@ -1,1 +1,0 @@
-Eliminate residual scroll-up flicker on tool-heavy virtualized transcripts by filtering null-rendering events (tool_result-only-and-all-folded user events; filename-less attachment events) out of the virtualizer's items list — closes the 4th attempt at this bug after ADR-062/063/064. (ADR-065)
