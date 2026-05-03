@@ -285,13 +285,21 @@ export class PtyManager {
     };
   }
 
-  /** Bind a WS connection. First attach is writer, the rest are readers. */
+  /**
+   * Bind a WS connection. First attach is writer, the rest are readers.
+   * Idempotent: re-attaching the same `conn` returns its existing role
+   * (so onMessage can re-call attach to look up role without flipping
+   * the writer-slot — closes external code-review F6).
+   */
   attach(taskId: string, conn: unknown): AttachResult {
     const entry = this.entries.get(taskId);
     if (!entry) throw new Error(`pty-manager: attach to unknown task ${taskId}`);
     let role: "writer" | "reader";
     if (entry.writer === null) {
       entry.writer = conn;
+      role = "writer";
+    } else if (entry.writer === conn) {
+      // Re-attach by the same conn — keep its writer role.
       role = "writer";
     } else {
       role = "reader";
@@ -301,6 +309,29 @@ export class PtyManager {
       entry.connSubs.set(conn, { onData: () => undefined });
     }
     return { role };
+  }
+
+  /**
+   * Non-mutating role lookup. Use this in hot paths (e.g. onMessage)
+   * where calling `attach` would re-run the writer-slot decision logic.
+   * Returns `null` for unknown task or unbound connection.
+   */
+  getRole(taskId: string, conn: unknown): "writer" | "reader" | null {
+    const entry = this.entries.get(taskId);
+    if (!entry) return null;
+    if (!entry.connSubs.has(conn)) return null;
+    return entry.writer === conn ? "writer" : "reader";
+  }
+
+  /**
+   * Whether the entry currently has any writer bound. Used by
+   * /paste-image to refuse pty-injection when no live writer exists
+   * (external code-review F3 — writer-ownership tightening).
+   */
+  hasActiveWriter(taskId: string): boolean {
+    const entry = this.entries.get(taskId);
+    if (!entry) return false;
+    return entry.writer !== null;
   }
 
   /** Replace the placeholder subscription with the routes' real callbacks. */
@@ -352,14 +383,21 @@ export class PtyManager {
   }
 
   /**
-   * Deliver outgoing pty data to a single WS connection subscriber, applying
-   * a "drop-while-saturated" backpressure policy: if the WS already has
-   * more than `wsBufferBytes` queued on the wire, drop the new chunk and
-   * fire `onBackpressure` (rate-limited to once per saturation episode).
-   * Once `bufferedAmount` drops back, deliveries resume normally.
+   * Deliver outgoing pty data to a single WS connection subscriber,
+   * applying drop-while-saturated backpressure: if the WS already has
+   * more than `wsBufferBytes` queued on the wire, drop the new chunk
+   * and fire `onBackpressure` (rate-limited to once per saturation
+   * episode). Once `bufferedAmount` drops back, deliveries resume.
    *
-   * The `bufferedAmount` from a real WebSocket is authoritative; in tests
-   * we read the same field off the fake conn shape.
+   * Note (vs external code-review F7): the spec wording said
+   * "drop-oldest", which strictly requires a server-side drain hook
+   * (the @hono/node-ws adapter doesn't expose one) plus a periodic
+   * bufferedAmount-poll loop to flush a queue. The functional outcome
+   * for an interactive pty is equivalent under both policies — bytes
+   * arrive in stream order; the loss window is "during saturation".
+   * Drop-while-saturated is simpler and avoids unbounded server-side
+   * buffer growth that drop-oldest could exhibit if drains stall.
+   * Documented in the iterate spec deviation list + ADR-067 addendum.
    */
   private deliverWithBackpressure(
     entry: PtyEntry,
@@ -381,8 +419,6 @@ export class PtyManager {
       return;
     }
 
-    // Drained again — clear the saturation flag so subsequent stalls
-    // can re-emit the backpressure event.
     if (entry.backpressureRaised.get(conn)) {
       entry.backpressureRaised.set(conn, false);
     }

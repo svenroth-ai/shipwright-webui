@@ -109,21 +109,39 @@ export default function TaskDetailPage() {
   // gitignoreSuggestion=true. The toast offers a one-click append.
   const [gitignoreToastOpen, setGitignoreToastOpen] = useState(false);
   const [gitignoreAppending, setGitignoreAppending] = useState(false);
+  const [gitignoreError, setGitignoreError] = useState<string | null>(null);
   const handleGitignoreSuggestion = useCallback(() => {
     setGitignoreToastOpen(true);
+    setGitignoreError(null);
   }, []);
   const handleGitignoreAppend = useCallback(async () => {
     if (!taskId) return;
     setGitignoreAppending(true);
+    setGitignoreError(null);
     try {
-      await fetch(`/api/terminal/${encodeURIComponent(taskId)}/append-gitignore`, {
-        method: "POST",
-      });
-    } catch {
-      /* swallow — toast just dismisses; user can retry by pasting again */
+      // External code-review F9: only dismiss the toast on success.
+      // Past version dismissed regardless, masking 4xx/5xx so the user
+      // never learned the append didn't happen.
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(taskId)}/append-gitignore`,
+        { method: "POST" },
+      );
+      if (res.ok) {
+        setGitignoreToastOpen(false);
+      } else {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const body = (await res.json()) as { error?: string; detail?: string } | null;
+          if (body?.error) detail = body.error;
+        } catch {
+          /* fall back to status code */
+        }
+        setGitignoreError(detail);
+      }
+    } catch (err) {
+      setGitignoreError(err instanceof Error ? err.message : String(err));
     } finally {
       setGitignoreAppending(false);
-      setGitignoreToastOpen(false);
     }
   }, [taskId]);
 
@@ -310,30 +328,40 @@ export default function TaskDetailPage() {
                   </Suspense>
                   {gitignoreToastOpen ? (
                     <div
-                      className="absolute bottom-3 right-3 flex items-center gap-2 rounded border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] shadow"
+                      className="absolute bottom-3 right-3 flex flex-col gap-1 rounded border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] shadow"
                       data-testid="gitignore-suggestion-toast"
                     >
-                      <span>
-                        Add <code>.claude-pastes/</code> to <code>.gitignore</code>?
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => void handleGitignoreAppend()}
-                        disabled={gitignoreAppending}
-                        className="rounded bg-[var(--color-primary,#171717)] px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
-                        data-testid="gitignore-suggestion-append"
-                      >
-                        {gitignoreAppending ? "Adding…" : "Append"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setGitignoreToastOpen(false)}
-                        className="text-[11px] text-[var(--color-muted,#6b7280)]"
-                        data-testid="gitignore-suggestion-dismiss"
-                        aria-label="Dismiss"
-                      >
-                        ×
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span>
+                          Add <code>.claude-pastes/</code> to <code>.gitignore</code>?
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handleGitignoreAppend()}
+                          disabled={gitignoreAppending}
+                          className="rounded bg-[var(--color-primary,#171717)] px-2 py-1 text-[11px] font-medium text-white disabled:opacity-50"
+                          data-testid="gitignore-suggestion-append"
+                        >
+                          {gitignoreAppending ? "Adding…" : "Append"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setGitignoreToastOpen(false)}
+                          className="text-[11px] text-[var(--color-muted,#6b7280)]"
+                          data-testid="gitignore-suggestion-dismiss"
+                          aria-label="Dismiss"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      {gitignoreError ? (
+                        <span
+                          className="text-[11px] text-[var(--color-error,#DC2626)]"
+                          data-testid="gitignore-suggestion-error"
+                        >
+                          Failed: {gitignoreError}
+                        </span>
+                      ) : null}
                     </div>
                   ) : null}
                 </Tabs.Content>

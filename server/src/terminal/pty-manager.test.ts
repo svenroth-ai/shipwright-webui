@@ -236,6 +236,46 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(c.role).toBe("writer");
   });
 
+  it("attach() is idempotent for the same conn — re-attach keeps writer role (external review F6 regression fence)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    expect(mgr.attach("t1", wsA).role).toBe("writer");
+    // Re-attach by the same conn must NOT flip writer to reader.
+    expect(mgr.attach("t1", wsA).role).toBe("writer");
+    expect(mgr.attach("t1", wsA).role).toBe("writer");
+    // A different conn still gets reader.
+    expect(mgr.attach("t1", { id: "B" }).role).toBe("reader");
+  });
+
+  it("getRole() is non-mutating and returns the right role for known/unknown conns", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const wsB = { id: "B" };
+    mgr.attach("t1", wsA);
+    mgr.attach("t1", wsB);
+    expect(mgr.getRole("t1", wsA)).toBe("writer");
+    expect(mgr.getRole("t1", wsB)).toBe("reader");
+    expect(mgr.getRole("t1", { id: "C" })).toBe(null);
+    expect(mgr.getRole("unknown-task", wsA)).toBe(null);
+    // Calling getRole many times does NOT change the writer slot.
+    for (let i = 0; i < 10; i++) mgr.getRole("t1", wsA);
+    expect(mgr.getRole("t1", wsA)).toBe("writer");
+  });
+
+  it("hasActiveWriter reflects writer-slot occupancy (used by /paste-image gate)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    expect(mgr.hasActiveWriter("t1")).toBe(false);
+    const wsA = { id: "A" };
+    mgr.attach("t1", wsA);
+    expect(mgr.hasActiveWriter("t1")).toBe(true);
+    mgr.detach("t1", wsA);
+    expect(mgr.hasActiveWriter("t1")).toBe(false);
+    expect(mgr.hasActiveWriter("unknown-task")).toBe(false);
+  });
+
   it("when last connection detaches, the pty is killed automatically", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });

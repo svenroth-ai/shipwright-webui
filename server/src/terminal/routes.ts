@@ -55,7 +55,11 @@ export interface TerminalRoutesDeps {
 }
 
 function defaultAllowedOrigins(origin: string | null): boolean {
-  if (!origin) return true; // some WS clients send no Origin (curl, etc.)
+  // External code-review F4: refuse missing/null Origin. The browser
+  // always sends an Origin header on WS upgrades from a real page; an
+  // absent header indicates a non-browser caller (curl, scripted client),
+  // which falls outside the loopback-CORS posture.
+  if (!origin) return false;
   try {
     const u = new URL(origin);
     return (
@@ -68,12 +72,33 @@ function defaultAllowedOrigins(origin: string | null): boolean {
   }
 }
 
+/**
+ * Probe the Windows shell fallback chain pwsh → powershell → cmd. Returns
+ * the first executable we can resolve via the PATH (or `where` on Windows).
+ * `node:child_process.spawnSync('where', [...])` is the cheapest probe.
+ * Cached per-process — shells don't disappear during a server lifetime.
+ */
+let cachedWinShell: string | null = null;
+function resolveWindowsShell(): string {
+  if (cachedWinShell !== null) return cachedWinShell;
+  // require() is fine here — node:child_process is a built-in.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
+  for (const candidate of ["pwsh.exe", "powershell.exe", "cmd.exe"]) {
+    const r = spawnSync("where", [candidate], { stdio: "ignore" });
+    if (r.status === 0) {
+      cachedWinShell = candidate;
+      return candidate;
+    }
+  }
+  // Last-resort: cmd.exe is essentially always present on Windows.
+  cachedWinShell = "cmd.exe";
+  return "cmd.exe";
+}
+
 function defaultResolveShell(): string {
   if (os.platform() === "win32") {
-    // pwsh.exe is the modern default (PowerShell 7+). Fallback chain
-    // to powershell.exe / cmd.exe is documented; users can override via
-    // SHIPWRIGHT_TERMINAL_SHELL.
-    return process.env.SHIPWRIGHT_TERMINAL_SHELL ?? "pwsh.exe";
+    return process.env.SHIPWRIGHT_TERMINAL_SHELL ?? resolveWindowsShell();
   }
   return process.env.SHIPWRIGHT_TERMINAL_SHELL ?? process.env.SHELL ?? "/bin/bash";
 }
@@ -176,19 +201,20 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         return c.json({ error: "image_read_failed", detail: String((err as Error).message) }, 400);
       }
 
+      // External code-review F3: refuse paste-image if there's no live
+      // writer bound to this task's pty. The writer-slot is filled when
+      // a WS connection has attached as writer; a second tab that's a
+      // reader cannot drive the pty via this REST surface either. If
+      // no pty exists at all, savePastedImage still persists the file
+      // but we skip the pty.write step.
       try {
         const result = await savePastedImage({
           cwd: task.cwd,
           bytes,
           keepLast: pastesKeepLast,
         });
-        // Only the writer can drive the pty. We don't currently surface
-        // the per-conn writer role here — the route only fires when the
-        // user holds focus inside the active tab anyway. Future: refuse
-        // if no writer is bound. For v1, write unconditionally because
-        // the alternative (404 the user's paste) is worse UX.
         const meta = ptyManager.get(taskId);
-        if (meta) {
+        if (meta && ptyManager.hasActiveWriter(taskId)) {
           const quoted = quotePathForShell(result.absolutePath, meta.shellKind);
           ptyManager.write(taskId, quoted + " ");
         }
@@ -225,8 +251,17 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!guard.ok) {
         return c.json({ error: "path_guard_traversal", detail: guard.reason }, 403);
       }
-      // existsSync via realpath would race; we let appendGitignoreLine
-      // handle the missing-file case (it returns false → 404).
+      // External code-review F2: existence FIRST, then realPathGuard.
+      // realPathGuard internally calls realpathSync, which throws on
+      // ENOENT — without this ordering, a missing .gitignore returns
+      // 403 gitignore_symlink_escape (wrong) instead of 404
+      // gitignore_missing (the spec'd behavior).
+      const { stat } = await import("node:fs/promises");
+      try {
+        await stat(guard.absolute);
+      } catch {
+        return c.json({ error: "gitignore_missing" }, 404);
+      }
       const real = realPathGuard(task.cwd, guard.absolute);
       if (!real.ok) {
         return c.json({ error: "gitignore_symlink_escape", detail: real.reason }, 403);
@@ -234,14 +269,8 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       try {
         const did = await appendGitignoreLine(real.absolute);
         if (!did) {
-          // Either already-present or missing — distinguish via stat.
-          try {
-            const { stat } = await import("node:fs/promises");
-            await stat(real.absolute);
-            return c.json({ ok: true, appended: false, reason: "already_present" });
-          } catch {
-            return c.json({ error: "gitignore_missing" }, 404);
-          }
+          // Already present (we already proved the file exists).
+          return c.json({ ok: true, appended: false, reason: "already_present" });
         }
         return c.body(null, 204);
       } catch (err) {
@@ -282,8 +311,6 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
             const { role } = ptyManager.attach(taskId, connToken);
             ptyManager.subscribeForConnection(taskId, connToken, {
               onData: (data) => {
-                // Always send as a typed envelope so the client doesn't
-                // have to sniff message shape.
                 try {
                   ws.send(JSON.stringify({ type: "data", payload: data }));
                 } catch { /* socket may be mid-close */ }
@@ -305,6 +332,12 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   cwd: meta.cwd,
                 }),
               );
+              // External code-review F8: also emit an explicit
+              // `second-attach` envelope so reader-role consumers can
+              // surface a UX banner before the first input attempt.
+              if (role === "reader") {
+                ws.send(JSON.stringify({ type: "second-attach" }));
+              }
             } catch { /* ignore */ }
           },
           onMessage(evt, ws) {
@@ -316,10 +349,12 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
               return;
             }
             if (!isWSInbound(parsed)) return;
-            // attach() is idempotent and returns the same role for the
-            // same connToken, so we can re-call to resolve the writer
-            // gate on each inbound message without duplicating state.
-            const { role: actualRole } = ptyManager.attach(taskId, connToken);
+            // External code-review F6: use the non-mutating getRole()
+            // here so re-evaluating the writer gate on every inbound
+            // message can NOT silently flip the original writer to
+            // reader. attach() is idempotent for same-conn since the
+            // F6 fix, but getRole() is the cheaper + safer entrypoint.
+            const actualRole = ptyManager.getRole(taskId, connToken);
             if (actualRole !== "writer") {
               try {
                 ws.send(JSON.stringify({ type: "read_only" }));

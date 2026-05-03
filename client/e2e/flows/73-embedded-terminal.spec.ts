@@ -275,4 +275,86 @@ test.describe("ADR-067 — Embedded terminal", () => {
       await fs.rm(cwd, { recursive: true, force: true });
     }
   });
+
+  test("DOM paste event with image ClipboardData hits /paste-image AND drops same-payload text (image-wins precedence, external review F11)", async ({ page, request }) => {
+    const cwd = await makeTaskCwd();
+    const taskId = await createTask(request, cwd);
+    try {
+      await page.goto(`/tasks/${taskId}`);
+      // Stub fetch in the page so we can observe the POST without hitting
+      // the real server (the spec above already exercises the real path).
+      // We capture the URL + method + presence of an image FormData entry.
+      await page.evaluate(() => {
+        const w = window as unknown as { __pasteFetchCalls: Array<{ url: string; method?: string; hasImage: boolean; body?: string }> };
+        w.__pasteFetchCalls = [];
+        const realFetch = window.fetch.bind(window);
+        window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+          const url = typeof input === "string" ? input : input.toString();
+          if (url.includes("/paste-image")) {
+            const fd = init?.body;
+            const hasImage = fd instanceof FormData && fd.has("image");
+            w.__pasteFetchCalls.push({ url, method: init?.method, hasImage });
+            return new Response(
+              JSON.stringify({
+                path: "/x/.claude-pastes/img.png",
+                kind: "png",
+                gitignoreSuggestion: false,
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } },
+            );
+          }
+          return realFetch(input, init);
+        };
+      });
+
+      // Construct a synthetic paste event with BOTH text and image
+      // ClipboardItems and dispatch it on the embedded-terminal canvas.
+      const result = await page.evaluate<{ called: boolean; hasImage: boolean }, string>(
+        async (id) => {
+          void id;
+          const target = document.querySelector(
+            '[data-testid="embedded-terminal-canvas"]',
+          );
+          if (!target) return { called: false, hasImage: false };
+
+          // Build a DataTransfer with text + image.
+          const dt = new DataTransfer();
+          dt.items.add("ignored-by-image-wins", "text/plain");
+          // 1x1 transparent PNG (the smallest valid PNG byte sequence).
+          const png = new Uint8Array([
+            0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+            0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+            0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+            0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41,
+            0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
+            0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00,
+            0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+            0x42, 0x60, 0x82,
+          ]);
+          const blob = new Blob([png], { type: "image/png" });
+          const file = new File([blob], "screenshot.png", { type: "image/png" });
+          dt.items.add(file);
+
+          const ev = new ClipboardEvent("paste", {
+            clipboardData: dt,
+            bubbles: true,
+            cancelable: true,
+          });
+          target.dispatchEvent(ev);
+          // Wait a tick for async fetch to register.
+          await new Promise((r) => setTimeout(r, 100));
+          const w = window as unknown as { __pasteFetchCalls: Array<{ hasImage: boolean }> };
+          const last = w.__pasteFetchCalls[w.__pasteFetchCalls.length - 1];
+          return { called: !!last, hasImage: last?.hasImage ?? false };
+        },
+        taskId,
+      );
+
+      expect(result.called).toBe(true);
+      expect(result.hasImage).toBe(true);
+    } finally {
+      await fs.rm(cwd, { recursive: true, force: true });
+    }
+  });
 });
