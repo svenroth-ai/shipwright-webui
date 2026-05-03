@@ -38,6 +38,11 @@ const REQUIRED_TOKENS = [
   'preview-session-manager',
   'path-guard',
   'gitignore-cache',
+  // Iterate 4 (ADR-067) — embedded terminal
+  'EmbeddedTerminal',
+  'useTerminalSocket',
+  'pty-manager',
+  'image-paste',
 ] as const;
 
 let claudeMd = '';
