@@ -109,6 +109,17 @@ export function TerminalLaunchButton({
       await writeClipboard(command);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
+      // ADR-067 Launch-Flow: notify any open TaskDetail page that the
+      // command for this task just landed in the clipboard. TaskDetailPage
+      // listens, flips its center-pane tab to "terminal", and focuses
+      // xterm so the user's next Strg+V lands inside the pty buffer.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("webui:launch-copied", {
+            detail: { taskId: task.taskId },
+          }),
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
