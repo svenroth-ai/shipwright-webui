@@ -144,18 +144,33 @@ function pickPlatformCommand(commands: CopyCommandForms): string {
 }
 
 async function writeClipboard(text: string): Promise<void> {
+  // Try the modern Clipboard API first. ADR-067 regression note: when
+  // the launch CTA fires from inside the embedded-terminal pane, focus
+  // can briefly leave the document during React's pending-state
+  // re-render of the button → `clipboard.writeText` rejects with
+  // NotAllowedError. We catch and fall through to the textarea +
+  // execCommand path so the user always gets the command in their
+  // clipboard.
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      console.warn("clipboard.writeText failed, falling back to textarea:", err);
+      // fall through
+    }
   }
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.style.position = "fixed";
   ta.style.opacity = "0";
+  ta.style.left = "-9999px";
   document.body.appendChild(ta);
+  ta.focus();
   ta.select();
   try {
-    document.execCommand("copy");
+    const ok = document.execCommand("copy");
+    if (!ok) throw new Error("execCommand('copy') returned false");
   } finally {
     document.body.removeChild(ta);
   }
@@ -256,6 +271,19 @@ export function TaskDetailHeader({ task }: Props) {
     copyResetTimer.current = setTimeout(() => setCopiedLabel(null), 1800);
   }, []);
 
+  // ADR-067: dispatch a typed window event after the clipboard write
+  // succeeds so TaskDetailPage's launch-flow side-effect (flip to
+  // Terminal tab + focus xterm) fires. The header CTA is the primary
+  // launch surface — without this dispatch, only the now-secondary
+  // <TerminalLaunchButton> path triggered the side-effect, leaving the
+  // most-clicked CTA broken for the embedded-terminal flow.
+  const dispatchLaunchCopied = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("webui:launch-copied", { detail: { taskId: task.taskId } }),
+    );
+  }, [task.taskId]);
+
   const handleLaunch = useCallback(async () => {
     setCtaError(null);
     try {
@@ -266,10 +294,11 @@ export function TaskDetailHeader({ task }: Props) {
       const command = pickPlatformCommand(commands);
       await writeClipboard(command);
       flashCopied("Launch command copied");
+      dispatchLaunchCopied();
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied]);
+  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
 
   const handleResume = useCallback(async () => {
     setCtaError(null);
@@ -281,10 +310,11 @@ export function TaskDetailHeader({ task }: Props) {
       const command = pickPlatformCommand(commands);
       await writeClipboard(command);
       flashCopied("Resume command copied");
+      dispatchLaunchCopied();
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied]);
+  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
 
   const handleClose = useCallback(() => {
     closeMut.mutate(task.taskId);

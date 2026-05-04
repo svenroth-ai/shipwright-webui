@@ -41,6 +41,12 @@ import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
+import { PtyManager } from "./terminal/pty-manager.js";
+import {
+  createTerminalRoutes,
+  createNodePtySpawnFn,
+} from "./terminal/routes.js";
+import { createNodeWebSocket } from "@hono/node-ws";
 
 const config = getConfig();
 const startTime = Date.now();
@@ -240,6 +246,22 @@ if (isMainModule) {
       // linger past a webui restart.
       const previewManager = new PreviewSessionManager();
 
+      // Iterate 4 (ADR-067) — embedded-terminal pty manager.
+      // PtyManager owns shell-pty lifecycle (Plan-D''-conform: shells only,
+      // never `claude`). Construction is async because the @lydell/node-pty
+      // backend is dynamically imported so unit tests don't pull in the
+      // native binary.
+      const ptyManager = new PtyManager({
+        spawn: await createNodePtySpawnFn(),
+        wsBufferBytes: config.terminalWsBufferBytes,
+        idleTimeoutMs: config.terminalIdleTimeoutMs,
+      });
+
+      // @hono/node-ws adapter — `upgradeWebSocket` is a Hono middleware
+      // factory, `injectWebSocket(server)` patches the underlying
+      // http.Server (returned by `serve(...)`) to handle WS upgrades.
+      const { upgradeWebSocket, injectWebSocket } = createNodeWebSocket({ app });
+
       app.route(
         "/",
         createExternalRoutes({
@@ -269,6 +291,14 @@ if (isMainModule) {
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
+
+      // Iterate 4 (ADR-067) — embedded terminal routes (REST + WS upgrade).
+      createTerminalRoutes({
+        store: sdkSessionsStore,
+        ptyManager,
+        upgradeWebSocket,
+        pastesKeepLast: config.claudePastesKeepLast,
+      })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).
       // Warn (don't fail) when stack.frontend is declared but dev_server
@@ -328,6 +358,11 @@ if (isMainModule) {
         } catch {
           // best-effort — ignore shutdown errors
         }
+        try {
+          ptyManager.killAll();
+        } catch {
+          // best-effort — ignore shutdown errors
+        }
         process.exit(0);
       };
       process.on("SIGTERM", shutdown);
@@ -335,6 +370,11 @@ if (isMainModule) {
       process.on("exit", () => {
         try {
           previewManager.killAll();
+        } catch {
+          // ignore
+        }
+        try {
+          ptyManager.killAll();
         } catch {
           // ignore
         }
@@ -359,6 +399,11 @@ if (isMainModule) {
         console.error(`FATAL: ${message}`);
         process.exit(exitCode);
       });
+
+      // Iterate 4 (ADR-067) — attach @hono/node-ws to the underlying
+      // http.Server so the /api/terminal/:taskId/ws upgrade fires.
+      // Must be called AFTER serve(...) since it patches that server.
+      injectWebSocket(server);
     } catch (err) {
       console.error("FATAL: Server startup failed:", err);
       process.exit(1);
