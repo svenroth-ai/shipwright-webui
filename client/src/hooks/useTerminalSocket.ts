@@ -51,6 +51,12 @@ export interface UseTerminalSocketResult {
   ready: boolean;
   /** writer/reader role from the server. */
   role: TerminalRole | null;
+  /**
+   * Server-reported shell kind from the ready envelope. Used by
+   * LaunchCoordinator (ADR-068-A1) to pick the correct shell-form
+   * of the launch command. Null until ready envelope arrives.
+   */
+  shellKind: TerminalReadyInfo["shellKind"] | null;
   /** Last error message, if any. */
   lastError: string | null;
   /** Number of reconnect attempts since last successful connect. */
@@ -106,6 +112,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
 
   const [ready, setReady] = useState(false);
   const [role, setRole] = useState<TerminalRole | null>(null);
+  const [shellKind, setShellKind] = useState<TerminalReadyInfo["shellKind"] | null>(null);
   const [open, setOpen] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -131,6 +138,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     if (!enabled || !taskId) {
       setReady(false);
       setRole(null);
+      setShellKind(null);
       setOpen(false);
       return;
     }
@@ -176,6 +184,9 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         const env = parsed as Record<string, unknown>;
         if (env.type === "ready") {
           if (env.role === "writer" || env.role === "reader") setRole(env.role);
+          if (env.shellKind === "pwsh" || env.shellKind === "cmd" || env.shellKind === "posix") {
+            setShellKind(env.shellKind);
+          }
           setReady(true);
           return;
         }
@@ -267,9 +278,10 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       }
       setReady(false);
       setRole(null);
+      setShellKind(null);
       setOpen(false);
     };
   }, [enabled, taskId, urlOverride]);
 
-  return { ready, role, lastError, reconnectAttempts, send, open };
+  return { ready, role, shellKind, lastError, reconnectAttempts, send, open };
 }

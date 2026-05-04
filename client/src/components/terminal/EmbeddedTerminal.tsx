@@ -35,11 +35,24 @@ import {
   useTerminalSocket,
   type TerminalRole,
 } from "../../hooks/useTerminalSocket";
+import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 
 export interface EmbeddedTerminalHandle {
   focus(): void;
   ready: boolean;
+  role: TerminalRole | null;
 }
+
+/**
+ * Prompt-readiness handshake parameters (Decision #12, Review-v7 CRITICAL #2).
+ * After the WS reaches `ready=true && role=writer`, wait for the shell to
+ * print its prompt before injecting. Heuristic: first onData burst seen +
+ * 250ms quiesce. Hard cap 3s — `.bashrc` / `$PROFILE` / oh-my-zsh /
+ * Starship typically fire prompt within this window.
+ */
+const PROMPT_QUIESCE_MS = 250;
+const PROMPT_HARD_CAP_MS = 3000;
+const PROMPT_POLL_MS = 50;
 
 export interface EmbeddedTerminalProps {
   taskId: string;
@@ -80,11 +93,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastResizeAtRef = useRef(0);
     const lastResizePendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // ADR-068-A1 — auto-launch coordination state (refs survive re-renders).
+    const coord = useLaunchCoordinator();
+    const consumedTokensRef = useRef<Set<number>>(new Set());
+    const lastPtyDataAtRef = useRef(0);
+    const dataSeenInitiallyRef = useRef(false);
+    const injectionInFlightRef = useRef(false);
+
     const socket = useTerminalSocket({
       taskId,
       urlOverride: socketUrlOverride,
       enabled: socketEnabled,
       onData: (chunk) => {
+        // Track quiet-period for prompt-readiness handshake. Any pty.onData
+        // burst counts as activity and resets the 250ms quiesce window.
+        if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
+        lastPtyDataAtRef.current = Date.now();
         termRef.current?.write(chunk);
       },
       onBackpressure: (info) => {
@@ -113,9 +137,74 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         get ready() {
           return socket.ready;
         },
+        get role() {
+          return socket.role;
+        },
       }),
-      [socket.ready],
+      [socket.ready, socket.role],
     );
+
+    // ADR-068-A1: auto-launch flow.
+    //
+    // Watches the LaunchCoordinator pendingLaunch. When all preconditions
+    // hold (writer + ready + shellKind known) AND the prompt-readiness
+    // handshake clears, sends `commands[shellKind] + "\r"` over WS and
+    // marks the token consumed. consumedTokensRef defends against
+    // duplicate injection on remount / WS reconnect / StrictMode.
+    //
+    // Reader-tab cancel is handled by TaskDetailPage (it owns the
+    // coordinator state and watches the EmbeddedTerminal role via the
+    // imperative ref + onReadyChange).
+    useEffect(() => {
+      const pending = coord.pendingLaunch;
+      if (!pending) return;
+      if (consumedTokensRef.current.has(pending.launchToken)) return;
+      if (injectionInFlightRef.current) return;
+      if (!socket.ready || socket.role !== "writer") return;
+      if (!socket.shellKind) return;
+      // Cancelled / expired clientside while we waited.
+      if (pending.expiresAt <= Date.now()) return;
+
+      let cancelled = false;
+      injectionInFlightRef.current = true;
+
+      void (async () => {
+        // Prompt-readiness handshake (Decision #12).
+        const startWait = Date.now();
+        while (!cancelled && Date.now() - startWait < PROMPT_HARD_CAP_MS) {
+          if (
+            dataSeenInitiallyRef.current &&
+            Date.now() - lastPtyDataAtRef.current >= PROMPT_QUIESCE_MS
+          ) {
+            break;
+          }
+          await new Promise((r) => setTimeout(r, PROMPT_POLL_MS));
+        }
+        if (cancelled) return;
+
+        // Re-check preconditions — coord state may have changed.
+        if (consumedTokensRef.current.has(pending.launchToken)) return;
+        if (!socket.ready || socket.role !== "writer") return;
+        if (!socket.shellKind) return;
+
+        const cmd =
+          socket.shellKind === "pwsh"
+            ? pending.commands.powershell
+            : socket.shellKind === "cmd"
+              ? pending.commands.cmd
+              : pending.commands.posix;
+
+        consumedTokensRef.current.add(pending.launchToken);
+        socket.send({ type: "data", payload: cmd + "\r" });
+        coord.consumeLaunch(pending.launchToken);
+      })().finally(() => {
+        injectionInFlightRef.current = false;
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [coord, socket.ready, socket.role, socket.shellKind, coord.pendingLaunch]);
 
     // Mount xterm + addons exactly once per component lifetime.
     useEffect(() => {

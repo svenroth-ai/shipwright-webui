@@ -41,6 +41,10 @@ import { FolderTree } from "../components/external/FolderTree";
 import { SmartViewer } from "../components/external/SmartViewer";
 import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
 import { parseSessionJsonl, toolUses } from "../external/session-parser";
+import {
+  LaunchCoordinatorProvider,
+  useLaunchCoordinator,
+} from "../contexts/LaunchCoordinatorContext";
 
 // Lazy-load the xterm bundle so the ~120 KB gz only ships when a TaskDetail
 // actually opens (external review F6).
@@ -56,11 +60,23 @@ type CenterTab = "transcript" | "terminal";
 const TAB_STORAGE_KEY = "webui:embedded-terminal-default-tab";
 
 export default function TaskDetailPage() {
+  // Wrap the entire body in LaunchCoordinatorProvider so the auto-launch
+  // pendingLaunch state is scoped to ONE page mount (ADR-068-A1 Decision
+  // #17 — page-unmount cancels any in-flight pending launch).
+  return (
+    <LaunchCoordinatorProvider>
+      <TaskDetailPageBody />
+    </LaunchCoordinatorProvider>
+  );
+}
+
+function TaskDetailPageBody() {
   const { taskId } = useParams<{ taskId: string }>();
   const { data: task, error } = useExternalTask(taskId);
   const transcript = useTaskTranscript(taskId ?? null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
+  const coord = useLaunchCoordinator();
 
   // Center-pane Toggle-Tab (ADR-067). Persisted globally per user
   // preference — once a user picks Terminal, every TaskDetail they
@@ -71,29 +87,28 @@ export default function TaskDetailPage() {
   );
   const terminalRef = useRef<EmbeddedTerminalHandle | null>(null);
 
-  // Pending-focus marker for the launch-flow handshake. Set when a
-  // launch-copied event arrives; cleared once xterm reports ready and
-  // we successfully call focus().
+  // ADR-068-A1: when a pendingLaunch is dispatched (by TaskDetailHeader's
+  // CTA), flip to the Terminal tab + mark a focus pending. The
+  // EmbeddedTerminal then consumes pendingLaunch via context, awaits
+  // the prompt-readiness handshake, and writes commands[shellKind]+"\r"
+  // over the WS — replacing the old `webui:launch-copied` window-event
+  // round-trip.
   const [pendingFocus, setPendingFocus] = useState(false);
-
-  // Listen for the launch-copied event from <TerminalLaunchButton>.
   useEffect(() => {
-    if (!taskId) return;
-    const handler = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ taskId?: string }>).detail;
-      if (!detail || detail.taskId !== taskId) return;
-      setCenterTab("terminal");
-      setPendingFocus(true);
-    };
-    window.addEventListener("webui:launch-copied", handler as EventListener);
-    return () => window.removeEventListener("webui:launch-copied", handler as EventListener);
-  }, [taskId, setCenterTab]);
+    if (!coord.pendingLaunch) return;
+    setCenterTab("terminal");
+    setPendingFocus(true);
+  }, [coord.pendingLaunch, setCenterTab]);
 
   // Drives the readiness handshake: when the terminal reports ready=true
   // and a focus is pending, focus xterm. Single retry on next ready
-  // transition keeps it simple — no busy loop.
+  // transition keeps it simple — no busy loop. Reader-role tabs cancel
+  // any pending launch so it cannot fire later.
   const handleTerminalReady = useCallback(
-    (ready: boolean) => {
+    (ready: boolean, role: import("../hooks/useTerminalSocket").TerminalRole | null) => {
+      if (ready && role === "reader" && coord.pendingLaunch) {
+        coord.cancelLaunch("role-not-writer");
+      }
       if (!ready) return;
       if (!pendingFocus) return;
       const handle = terminalRef.current;
@@ -101,7 +116,7 @@ export default function TaskDetailPage() {
       handle.focus();
       setPendingFocus(false);
     },
-    [pendingFocus],
+    [pendingFocus, coord],
   );
 
   // .gitignore-suggestion toast (ADR-067 AC-8). EmbeddedTerminal fires

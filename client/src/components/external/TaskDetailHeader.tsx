@@ -39,7 +39,6 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import type {
-  CopyCommandForms,
   ExternalTask,
   ExternalTaskState,
 } from "../../lib/externalApi";
@@ -52,6 +51,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useTaskTranscript } from "../../hooks/useTaskTranscript";
 import { formatRelativeTime } from "../../lib/formatTime";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
+import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import {
   EditableTaskTitle,
   type EditableTaskTitleHandle,
@@ -138,10 +138,11 @@ function isTerminalState(state: ExternalTask["state"]): boolean {
   return state === "done";
 }
 
-function pickPlatformCommand(commands: CopyCommandForms): string {
-  if (typeof navigator === "undefined") return commands.posix;
-  return /windows/i.test(navigator.userAgent) ? commands.powershell : commands.posix;
-}
+// pickPlatformCommand was removed in iterate-2026-05-04 (ADR-068-A1):
+// the auto-launch flow now picks the shell-form via the WS ready
+// envelope's `shellKind` (server-authoritative), not navigator.userAgent.
+// The CopyCommandForms type still flows through `coord.pendingLaunch`
+// where EmbeddedTerminal indexes by shellKind directly.
 
 async function writeClipboard(text: string): Promise<void> {
   // Try the modern Clipboard API first. ADR-067 regression note: when
@@ -187,6 +188,7 @@ export function TaskDetailHeader({ task }: Props) {
   const deleteMut = useDeleteExternalTask();
   const projectsQ = useProjects();
   const transcript = useTaskTranscript(task.taskId);
+  const coord = useLaunchCoordinator();
 
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
   const [ctaError, setCtaError] = useState<string | null>(null);
@@ -271,50 +273,59 @@ export function TaskDetailHeader({ task }: Props) {
     copyResetTimer.current = setTimeout(() => setCopiedLabel(null), 1800);
   }, []);
 
-  // ADR-067: dispatch a typed window event after the clipboard write
-  // succeeds so TaskDetailPage's launch-flow side-effect (flip to
-  // Terminal tab + focus xterm) fires. The header CTA is the primary
-  // launch surface — without this dispatch, only the now-secondary
-  // <TerminalLaunchButton> path triggered the side-effect, leaving the
-  // most-clicked CTA broken for the embedded-terminal flow.
-  const dispatchLaunchCopied = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.dispatchEvent(
-      new CustomEvent("webui:launch-copied", { detail: { taskId: task.taskId } }),
-    );
-  }, [task.taskId]);
-
+  // ADR-068-A1: dispatch into the LaunchCoordinator (replaces the previous
+  // `webui:launch-copied` window event + clipboard.writeText flow). The
+  // EmbeddedTerminal consumes pendingLaunch via context and writes
+  // `commands[shellKind] + "\r"` over the WS once the prompt-readiness
+  // handshake clears. CTA disabled while pendingLaunch !== null OR
+  // launchMut.isPending so rapid-clicks queue depth stays = 1.
   const handleLaunch = useCallback(async () => {
     setCtaError(null);
+    if (launchMut.isPending || coord.pendingLaunch) return;
     try {
       const { commands } = await launchMut.mutateAsync({
         taskId: task.taskId,
         resume: false,
       });
-      const command = pickPlatformCommand(commands);
-      await writeClipboard(command);
-      flashCopied("Launch command copied");
-      dispatchLaunchCopied();
+      // Idempotent prewarm so the pty is ready before the user lands on
+      // the Terminal tab (next ws-upgrade is a no-op if already spawned).
+      try {
+        await fetch(
+          `/api/terminal/${encodeURIComponent(task.taskId)}/spawn`,
+          { method: "POST" },
+        );
+      } catch {
+        // Non-fatal: ws-upgrade will spawn anyway.
+      }
+      coord.dispatchAutoLaunch(commands, false);
+      flashCopied("Launching…");
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
+  }, [launchMut, task.taskId, flashCopied, coord]);
 
   const handleResume = useCallback(async () => {
     setCtaError(null);
+    if (launchMut.isPending || coord.pendingLaunch) return;
     try {
       const { commands } = await launchMut.mutateAsync({
         taskId: task.taskId,
         resume: true,
       });
-      const command = pickPlatformCommand(commands);
-      await writeClipboard(command);
-      flashCopied("Resume command copied");
-      dispatchLaunchCopied();
+      try {
+        await fetch(
+          `/api/terminal/${encodeURIComponent(task.taskId)}/spawn`,
+          { method: "POST" },
+        );
+      } catch {
+        // Non-fatal.
+      }
+      coord.dispatchAutoLaunch(commands, true);
+      flashCopied("Resuming…");
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
+  }, [launchMut, task.taskId, flashCopied, coord]);
 
   const handleClose = useCallback(() => {
     closeMut.mutate(task.taskId);
@@ -483,7 +494,7 @@ export function TaskDetailHeader({ task }: Props) {
           <button
             type="button"
             onClick={() => void handleLaunch()}
-            disabled={launchMut.isPending}
+            disabled={launchMut.isPending || coord.pendingLaunch !== null}
             className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition disabled:opacity-60"
             style={{ background: "var(--color-success, #059669)" }}
             onMouseEnter={(ev) => {
@@ -494,13 +505,13 @@ export function TaskDetailHeader({ task }: Props) {
             }}
             data-testid="cta-launch-in-terminal"
             data-color="green"
-            aria-label="Launch command — copy to clipboard"
+            aria-label="Launch — auto-execute in embedded terminal"
           >
             <TerminalIcon size={14} />
             {launchMut.isPending
               ? "Preparing…"
-              : copiedLabel === "Launch command copied"
-              ? "Copied — paste into terminal"
+              : copiedLabel === "Launching…"
+              ? "Sent — terminal opening"
               : "Launch"}
           </button>
         )}
@@ -508,17 +519,17 @@ export function TaskDetailHeader({ task }: Props) {
           <button
             type="button"
             onClick={() => void handleResume()}
-            disabled={launchMut.isPending}
+            disabled={launchMut.isPending || coord.pendingLaunch !== null}
             className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60"
             data-testid="cta-copy-resume-command"
             data-color="orange"
-            aria-label="Resume command — copy to clipboard"
+            aria-label="Resume — auto-execute in embedded terminal"
           >
             <TerminalIcon size={14} />
             {launchMut.isPending
               ? "Preparing…"
-              : copiedLabel === "Resume command copied"
-              ? "Copied — paste into terminal"
+              : copiedLabel === "Resuming…"
+              ? "Sent — terminal opening"
               : "Resume"}
           </button>
         )}
@@ -526,17 +537,17 @@ export function TaskDetailHeader({ task }: Props) {
           <button
             type="button"
             onClick={() => void handleResume()}
-            disabled={launchMut.isPending}
+            disabled={launchMut.isPending || coord.pendingLaunch !== null}
             className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:opacity-60"
             data-testid="cta-terminal"
             data-color="brown"
-            aria-label="Terminal — copy resume command to clipboard"
+            aria-label="Terminal — open + resume session"
           >
             <TerminalIcon size={14} />
             {launchMut.isPending
               ? "Preparing…"
-              : copiedLabel === "Resume command copied"
-              ? "Copied — paste into terminal"
+              : copiedLabel === "Resuming…"
+              ? "Sent — terminal opening"
               : "Terminal"}
           </button>
         )}
