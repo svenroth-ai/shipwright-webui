@@ -98,8 +98,9 @@ function PrivacyDisclosureFooter() {
     >
       <span aria-hidden>ⓘ</span>
       <span className="flex-1 truncate">
-        Terminal scrollback is persisted locally (24h retention; may include
-        secrets / env vars).{" "}
+        Terminal scrollback is persisted locally (default 24h retention,
+        configurable via <code>SHIPWRIGHT_TERMINAL_SCROLLBACK_TTL_DAYS</code>;
+        may include secrets / env vars).{" "}
         {isWindows ? (
           <span>On Windows, file permissions rely on user-account ACLs.</span>
         ) : null}

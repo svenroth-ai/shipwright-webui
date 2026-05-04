@@ -346,16 +346,39 @@ export function TaskDetailHeader({ task }: Props) {
   }, [launchMut, task.taskId, flashCopied, coord, prewarmPty]);
 
   const handleClose = useCallback(() => {
-    // Iterate-2026-05-04 (ADR-068-A1): "Close task" now ALSO kills the
-    // embedded-terminal pty (best-effort) so background sessions don't
-    // linger. Scrollback is RETAINED — explicit "Clear history" menu
-    // item handles destructive cleanup.
+    // Iterate-2026-05-04 (ADR-068-A1, post-Phase-5-review): "Close task"
+    // is a registry-state action ONLY — flips state to "done". The
+    // embedded-terminal pty lifecycle is owned by separate actions
+    // ("Stop terminal session" menu item below + nav-away which fires
+    // last-conn-close → pty.kill). Piggybacking pty teardown on a
+    // registry-state action was flagged as a UX behavior change beyond
+    // spec; reverted.
     closeMut.mutate(task.taskId);
-    void fetch(
-      `/api/terminal/${encodeURIComponent(task.taskId)}/close`,
-      { method: "POST" },
-    ).catch(() => undefined);
   }, [closeMut, task.taskId]);
+
+  // ADR-068-A1: explicit "Stop terminal session" action — kills the
+  // embedded-terminal pty without touching the registry state. Best-
+  // effort; failures are logged via console.warn (the user is unlikely
+  // to care if a stop fails — the pty will idle out at 30 min anyway).
+  const handleStopTerminal = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(task.taskId)}/close`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[task-detail] stop-terminal returned HTTP ${res.status}`,
+        );
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[task-detail] stop-terminal failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }, [task.taskId]);
 
   // Iterate-2026-05-04 (ADR-068-A1): "Clear terminal history" — destructive
   // cleanup of disk-backed scrollback. Surfaced via "..." overflow menu;
@@ -668,6 +691,14 @@ export function TaskDetailHeader({ task }: Props) {
               >
                 <X size={14} className="text-[var(--color-muted,#6b7280)]" />
                 Close task
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                onSelect={() => void handleStopTerminal()}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                data-testid="task-detail-menu-stop-terminal"
+              >
+                <X size={14} className="text-[var(--color-muted,#6b7280)]" />
+                Stop terminal session
               </DropdownMenu.Item>
               <DropdownMenu.Item
                 onSelect={() => handleDelete()}
