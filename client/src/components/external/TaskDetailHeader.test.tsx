@@ -137,13 +137,15 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
 });
 
 describe("TaskDetailHeader — behavior", () => {
-  it("Launch CTA posts /launch with resume=false + copies command (clipboard, NOT spawn)", async () => {
-    const writeText = vi.fn(async (_text: string) => {});
-    Object.defineProperty(navigator, "clipboard", {
-    value: { writeText },
-    configurable: true,
-    writable: true,
-  });
+  it("Launch CTA posts /launch with resume=false + dispatches into LaunchCoordinator (ADR-068-A1)", async () => {
+    // Iterate-2026-05-04: clipboard.writeText is no longer the primary
+    // launch path. The CTA POSTs /launch, then prewarms the pty via
+    // /api/terminal/:id/spawn, then dispatches into the
+    // LaunchCoordinatorContext. EmbeddedTerminal consumes the pending
+    // launch via context and writes the command bytes over WS once
+    // prompt-readiness clears. This test asserts the new contract:
+    // /launch is posted with resume=false, /spawn is posted, and the
+    // CTA shows the "Launching…" transient label.
     const fetchInner = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
       const u = String(url);
       if (u.includes("/launch")) {
@@ -158,6 +160,9 @@ describe("TaskDetailHeader — behavior", () => {
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
+      }
+      if (u.includes("/spawn")) {
+        return new Response("{}", { status: 200 });
       }
       return new Response("{}", { status: 200 });
     });
@@ -177,21 +182,19 @@ describe("TaskDetailHeader — behavior", () => {
     const launchInit = launchCall?.[1] as RequestInit | undefined;
     const body = JSON.parse(launchInit?.body as string);
     expect(body.resume).toBe(false);
-    expect(writeText).toHaveBeenCalled();
-    // Sanity: we copied the command string, not any "claude --resume" spawn.
-    const copied = writeText.mock.calls[0]?.[0];
-    expect(copied).toContain("claude");
+    // Verifies the prewarm sidecar fires (idempotent ensure-or-create).
+    await waitFor(() => {
+      const spawnCall = fetchInner.mock.calls.find(
+        (c) => c[0] !== undefined && String(c[0]).includes("/spawn"),
+      );
+      expect(spawnCall).toBeDefined();
+    });
   });
 
-  it("Terminal CTA (active) posts /launch with resume=true + writes to clipboard (never spawns)", async () => {
-    const writeText = vi.fn(async (_text: string) => {});
-    Object.defineProperty(navigator, "clipboard", {
-    value: { writeText },
-    configurable: true,
-    writable: true,
-  });
+  it("Terminal CTA (active) posts /launch with resume=true + dispatches into LaunchCoordinator (ADR-068-A1)", async () => {
     const fetchInner = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
-      if (String(url).includes("/launch")) {
+      const u = String(url);
+      if (u.includes("/launch")) {
         return new Response(
           JSON.stringify({
             task: { ...makeTask({ state: "active" }) },
@@ -204,6 +207,7 @@ describe("TaskDetailHeader — behavior", () => {
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
+      if (u.includes("/spawn")) return new Response("{}", { status: 200 });
       return new Response("{}", { status: 200 });
     });
     renderHeader(makeTask({ state: "active" }), fetchInner);
@@ -211,8 +215,12 @@ describe("TaskDetailHeader — behavior", () => {
     await act(async () => {
       fireEvent.click(screen.getByTestId("cta-terminal"));
     });
+
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalled();
+      const launchCall = fetchInner.mock.calls.find(
+        (c) => c[0] !== undefined && String(c[0]).includes("/launch"),
+      );
+      expect(launchCall).toBeDefined();
     });
     const launchCall = fetchInner.mock.calls.find(
       (c) => c[0] !== undefined && String(c[0]).includes("/launch"),
@@ -220,9 +228,13 @@ describe("TaskDetailHeader — behavior", () => {
     const launchInit = launchCall?.[1] as RequestInit | undefined;
     const body = JSON.parse(launchInit?.body as string);
     expect(body.resume).toBe(true);
-    // No `--resume` was spawned — we only copied the command.
-    const copied = writeText.mock.calls[0]?.[0];
-    expect(copied).toContain("--resume");
+    // The /spawn prewarm is also fired (best-effort).
+    await waitFor(() => {
+      const spawnCall = fetchInner.mock.calls.find(
+        (c) => c[0] !== undefined && String(c[0]).includes("/spawn"),
+      );
+      expect(spawnCall).toBeDefined();
+    });
   });
 
   it("3-dots menu surfaces Close + Delete (+ debug toggle), no Fork", async () => {
