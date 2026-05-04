@@ -304,14 +304,23 @@ describe("<EmbeddedTerminal>", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("renders the read-only banner when server sends a read_only envelope", async () => {
+  it("renders the read-only banner when ready arrives with role=reader, and clears it on writer-promoted (StrictMode race fence)", async () => {
     const { container } = render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});
     const ws = FakeWebSocket.instances[0];
+    // No ready yet → no banner.
+    expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
     await act(async () => {
-      ws.__message(JSON.stringify({ type: "read_only" }));
+      ws.__message(
+        JSON.stringify({ type: "ready", role: "reader", shellKind: "pwsh", cwd: "C:\\x" }),
+      );
     });
     expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).not.toBeNull();
+    // Promotion clears the banner.
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "writer-promoted" }));
+    });
+    expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
   });
 
   it("surfaces gitignoreSuggestion=true via onGitignoreSuggestion callback", async () => {

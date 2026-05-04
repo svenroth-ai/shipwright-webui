@@ -369,6 +369,13 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   );
                 } catch { /* ignore */ }
               },
+              // Fired when the previous writer detaches and we get
+              // promoted (closes the StrictMode double-mount race).
+              onPromoteToWriter: () => {
+                try {
+                  ws.send(JSON.stringify({ type: "writer-promoted" }));
+                } catch { /* ignore */ }
+              },
             });
             try {
               ws.send(
@@ -438,12 +445,40 @@ export async function createNodePtySpawnFn(): Promise<PtySpawnFn> {
   // unit tests that mock PtyManager.
   const { spawn: nodePtySpawn } = await import("@lydell/node-pty");
   return (shell, args, opts) => {
+    // ADR-067 brand fit on Windows: chalk's `supports-color` package
+    // has a hardcoded Windows branch that returns level 3 (truecolor)
+    // for Windows 10 build ≥14931 — REGARDLESS of TERM, COLORTERM, or
+    // FORCE_COLOR=1. Claude Code uses chalk under ink, so its
+    // "auto mode on" banner emits RGB \x1b[38;2;...m escapes that
+    // bypass our 16-slot xterm theme and render the original neon
+    // yellow on beige.
+    //
+    // The single escape hatch in supports-color:
+    //
+    //   if (env.TERM === 'dumb') { return min; }   // min = FORCE_COLOR || 0
+    //
+    // So `TERM=dumb` + `FORCE_COLOR=1` returns level 1 (16-color),
+    // which falls into our brand theme. Trade-off: ncurses-based tools
+    // (vim, less, htop) also see TERM=dumb and disable their colors;
+    // power users can override per-shell via `$env:TERM = "xterm"`
+    // before invoking those tools. For Claude Code as the primary
+    // workload of this pane, brand consistency wins over vim color.
+    const termEnv: Record<string, string | undefined> = {
+      ...(process.env as Record<string, string>),
+      TERM: "dumb",
+      COLORTERM: "",
+      FORCE_COLOR: "1",
+      ...(opts.env ?? {}),
+    };
     const handle = nodePtySpawn(shell, args, {
       cwd: opts.cwd,
       cols: opts.cols ?? 120,
       rows: opts.rows ?? 30,
-      env: { ...(process.env as Record<string, string>), ...(opts.env ?? {}) },
-      name: opts.name ?? "xterm-256color",
+      env: termEnv,
+      // node-pty's own `name` is used by some Win32 conpty paths; we
+      // keep it on "xterm" so the conpty layer stays sane while the
+      // child-process env still sees TERM=dumb.
+      name: opts.name ?? "xterm",
     });
     // The library's IPty matches our PtyHandleApi shape; cast is safe.
     return handle as unknown as PtyHandleApi;

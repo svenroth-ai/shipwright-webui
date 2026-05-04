@@ -70,6 +70,15 @@ export interface AttachResult {
 export interface ConnectionSubscription {
   onData: (data: string) => void;
   onBackpressure?: (info: { droppedBytes: number }) => void;
+  /**
+   * Fired when this connection is promoted from reader to writer because
+   * the previous writer detached (typical: React StrictMode dev double-
+   * mount → first WS becomes writer, gets unmounted + closed; second WS
+   * opens BEFORE the first close arrives, gets reader role; then first
+   * close arrives, freeing the slot — we promote second to writer and
+   * call this hook so the routes layer can notify the client).
+   */
+  onPromoteToWriter?: () => void;
 }
 
 export class PtySpawnRejectedError extends Error {
@@ -345,8 +354,10 @@ export class PtyManager {
   }
 
   /**
-   * Detach a WS conn. If conn was writer, the slot is freed. If this was
-   * the last connection on the entry, the pty is killed.
+   * Detach a WS conn. If conn was writer, the slot is freed and any
+   * remaining reader connection is promoted to writer (with onPromoteToWriter
+   * fired so the routes layer can notify that client). If this was the
+   * last connection on the entry, the pty is killed instead.
    */
   detach(taskId: string, conn: unknown): void {
     const entry = this.entries.get(taskId);
@@ -354,9 +365,31 @@ export class PtyManager {
     entry.connSubs.delete(conn);
     entry.pendingByConn.delete(conn);
     entry.backpressureRaised.delete(conn);
-    if (entry.writer === conn) entry.writer = null;
+    const wasWriter = entry.writer === conn;
+    if (wasWriter) entry.writer = null;
     if (entry.connSubs.size === 0) {
       this.kill(taskId);
+      return;
+    }
+    if (wasWriter) {
+      // Promote the oldest remaining connection to writer (Map iteration
+      // order is insertion order). Closes the StrictMode double-mount race
+      // where the second WS opens BEFORE the first close arrives, takes
+      // reader role, and only learns about the freed writer slot via
+      // this promotion hook.
+      const next = entry.connSubs.keys().next();
+      if (!next.done) {
+        const promoted = next.value;
+        entry.writer = promoted;
+        const sub = entry.connSubs.get(promoted);
+        if (sub?.onPromoteToWriter) {
+          try {
+            sub.onPromoteToWriter();
+          } catch {
+            /* ignore */
+          }
+        }
+      }
     }
   }
 
