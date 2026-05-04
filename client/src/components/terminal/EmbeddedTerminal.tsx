@@ -25,7 +25,6 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -81,8 +80,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastResizeAtRef = useRef(0);
     const lastResizePendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [readOnly, setReadOnly] = useState(false);
-
     const socket = useTerminalSocket({
       taskId,
       urlOverride: socketUrlOverride,
@@ -93,10 +90,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       onBackpressure: (info) => {
         onBackpressure?.(info);
       },
-      onReadOnly: () => {
-        setReadOnly(true);
-      },
     });
+
+    // Derive the read-only state from socket.role — flipping cleanly
+    // when the server promotes us via the writer-promoted envelope
+    // (closes the StrictMode double-mount race; the previous local
+    // setReadOnly(true) state never cleared on promotion).
+    const readOnly = socket.role === "reader";
 
     // Surface ready for the launch-flow handshake.
     useEffect(() => {
@@ -122,6 +122,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       const container = containerRef.current;
       if (!container) return;
 
+      // Bind xterm's theme to the project's brand palette. xterm's
+      // default ANSI colors target a dark background — bright yellow
+      // (#E5E510), bright cyan, etc. wash out on the warm beige
+      // `--color-bg = #f5f0eb`. We pin ALL 16 ANSI slots to a
+      // light-theme palette tuned for ~3:1+ contrast on beige and
+      // mapped to brand semantic colors (warning=amber, error=red,
+      // success=emerald) where the slot has a natural correspondence.
+      const cssVar = (name: string, fallback: string) =>
+        getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
       const term = new Terminal({
         convertEol: false,
         cursorBlink: true,
@@ -129,11 +138,30 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
         fontSize: 13,
         theme: {
-          // Background bound to the page CSS var at mount; theme-switch
-          // is currently out of scope for this iterate.
-          background:
-            getComputedStyle(document.body).getPropertyValue("--color-bg").trim() ||
-            "#1e1e1e",
+          background: cssVar("--color-bg", "#f5f0eb"),
+          foreground: cssVar("--color-text", "#1a1a1a"),
+          cursor: cssVar("--color-text", "#1a1a1a"),
+          cursorAccent: cssVar("--color-bg", "#f5f0eb"),
+          selectionBackground: cssVar("--color-primary", "#6b5e56") + "33",
+          // Normal ANSI 0–7 — darker variants of the bright set so
+          // bold/highlight stays distinguishable.
+          black: "#1a1a1a",
+          red: "#B91C1C",
+          green: "#047857",
+          yellow: "#B45309",     // amber-brown, NOT pure yellow
+          blue: "#1D4ED8",
+          magenta: "#7C3AED",
+          cyan: "#0E7490",
+          white: "#6b5e56",       // brand brown — "white" on beige is invisible
+          // Bright ANSI 8–15 — pinned to brand semantic colors where possible.
+          brightBlack: "#525252",
+          brightRed: cssVar("--color-error", "#DC2626"),
+          brightGreen: cssVar("--color-success", "#059669"),
+          brightYellow: cssVar("--color-warning", "#D97706"),
+          brightBlue: cssVar("--color-info", "#3B82F6"),
+          brightMagenta: cssVar("--color-purple", "#8B5CF6"),
+          brightCyan: "#0891B2",
+          brightWhite: cssVar("--color-text", "#1a1a1a"),
         },
         scrollback: 5000,
         allowProposedApi: false,

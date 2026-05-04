@@ -222,7 +222,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(seen).toEqual(["hello", " world"]);
   });
 
-  it("first attach is writer, second attach is reader; detaching the writer frees the writer slot", () => {
+  it("first attach is writer, second attach is reader; detaching the writer auto-promotes a reader (StrictMode race fence)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
     const wsA = { id: "A" };
@@ -231,9 +231,30 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     const b = mgr.attach("t1", wsB);
     expect(a.role).toBe("writer");
     expect(b.role).toBe("reader");
+    let promotedFires = 0;
+    mgr.subscribeForConnection("t1", wsB, {
+      onData: () => undefined,
+      onPromoteToWriter: () => {
+        promotedFires += 1;
+      },
+    });
     mgr.detach("t1", wsA);
+    // wsB should now be writer; promotion hook fired exactly once.
+    expect(promotedFires).toBe(1);
+    expect(mgr.getRole("t1", wsB)).toBe("writer");
+    // A new conn while wsB holds the writer slot is reader.
     const c = mgr.attach("t1", { id: "C" });
-    expect(c.role).toBe("writer");
+    expect(c.role).toBe("reader");
+  });
+
+  it("detaching the LAST connection kills the pty (no promotion)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const fake = spawn.lastPty();
+    const wsA = { id: "A" };
+    mgr.attach("t1", wsA);
+    mgr.detach("t1", wsA);
+    expect(fake.__killed).toBe(true);
   });
 
   it("attach() is idempotent for the same conn — re-attach keeps writer role (external review F6 regression fence)", () => {

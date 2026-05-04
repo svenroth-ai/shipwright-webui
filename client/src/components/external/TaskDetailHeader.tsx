@@ -144,18 +144,33 @@ function pickPlatformCommand(commands: CopyCommandForms): string {
 }
 
 async function writeClipboard(text: string): Promise<void> {
+  // Try the modern Clipboard API first. ADR-067 regression note: when
+  // the launch CTA fires from inside the embedded-terminal pane, focus
+  // can briefly leave the document during React's pending-state
+  // re-render of the button → `clipboard.writeText` rejects with
+  // NotAllowedError. We catch and fall through to the textarea +
+  // execCommand path so the user always gets the command in their
+  // clipboard.
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      console.warn("clipboard.writeText failed, falling back to textarea:", err);
+      // fall through
+    }
   }
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.style.position = "fixed";
   ta.style.opacity = "0";
+  ta.style.left = "-9999px";
   document.body.appendChild(ta);
+  ta.focus();
   ta.select();
   try {
-    document.execCommand("copy");
+    const ok = document.execCommand("copy");
+    if (!ok) throw new Error("execCommand('copy') returned false");
   } finally {
     document.body.removeChild(ta);
   }

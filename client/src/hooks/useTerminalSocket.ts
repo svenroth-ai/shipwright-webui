@@ -89,7 +89,6 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
-  const cancelledRef = useRef(false);
 
   const send = useCallback(
     (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => {
@@ -111,9 +110,18 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setOpen(false);
       return;
     }
-    cancelledRef.current = false;
+    // Per-effect-instance cancelled flag (NOT a shared useRef). Each
+    // mount of the effect captures its own `cancelled` in its closures
+    // — so a stale close-handler from a previously-unmounted effect
+    // can NOT see `cancelled === false` after another mount reset
+    // a shared ref. Closes the React.StrictMode triple-WS bug where
+    // mount-1's ws_A close fired AFTER mount-2's effect, then
+    // mount-1's scheduleReconnect created a spurious ws_C overwriting
+    // mount-2's ws_B in socketRef.
+    let cancelled = false;
 
     const connect = () => {
+      if (cancelled) return;
       const url = urlOverride ?? defaultUrl(taskId);
       let ws: WebSocket;
       try {
@@ -126,12 +134,14 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       socketRef.current = ws;
 
       ws.addEventListener("open", () => {
+        if (cancelled) return;
         setOpen(true);
         attemptsRef.current = 0;
         setReconnectAttempts(0);
         setLastError(null);
       });
       ws.addEventListener("message", (evt) => {
+        if (cancelled) return;
         let parsed: unknown;
         try {
           parsed = JSON.parse(typeof evt.data === "string" ? evt.data : "");
@@ -158,31 +168,46 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           onReadOnlyRef.current?.();
           return;
         }
+        if (env.type === "writer-promoted") {
+          // The previous writer detached; the server promoted us. Flip
+          // the role so the UI clears the read-only banner. Closes the
+          // React.StrictMode double-mount race where the second WS opens
+          // before the first close arrives and gets reader role.
+          setRole("writer");
+          return;
+        }
       });
       ws.addEventListener("close", () => {
+        // CRITICAL: bail out if this effect-instance was cleaned up.
+        // Without this, a stale handler from a previously-unmounted
+        // effect would still drive socketRef + scheduleReconnect.
+        if (cancelled) return;
         setOpen(false);
         setReady(false);
         socketRef.current = null;
-        if (!cancelledRef.current) scheduleReconnect();
+        scheduleReconnect();
       });
       ws.addEventListener("error", () => {
+        if (cancelled) return;
         setLastError("websocket error");
       });
     };
 
     const scheduleReconnect = () => {
-      if (cancelledRef.current) return;
+      if (cancelled) return;
       if (attemptsRef.current >= MAX_RECONNECT_ATTEMPTS) return;
       const delay = BACKOFF_MS[Math.min(attemptsRef.current, BACKOFF_MS.length - 1)];
       attemptsRef.current += 1;
       setReconnectAttempts(attemptsRef.current);
-      reconnectTimerRef.current = setTimeout(connect, delay);
+      reconnectTimerRef.current = setTimeout(() => {
+        if (!cancelled) connect();
+      }, delay);
     };
 
     connect();
 
     return () => {
-      cancelledRef.current = true;
+      cancelled = true;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
