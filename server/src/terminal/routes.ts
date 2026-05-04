@@ -1,0 +1,488 @@
+/*
+ * routes.ts — embedded-terminal HTTP + WebSocket surface (iterate-2026-05-03).
+ *
+ * The WebSocket upgrade at GET /api/terminal/:taskId/ws is the AUTHORITATIVE
+ * lifecycle entrypoint: it ensure-or-creates the pty atomically. The
+ * separate POST /spawn route is retained only as an idempotent prewarm
+ * (returns the existing handle if one exists; never duplicates).
+ *
+ * External-review (2026-05-03) drove these contracts:
+ *   - WS upgrade rejects unknown Origin (loopback CORS posture mirrored).
+ *   - Writer ownership tied to the live WS conn identity; cleared on close.
+ *   - Backpressure handled inside PtyManager via WS.bufferedAmount.
+ *   - PTY autoclosed when last connection detaches (no orphan tab leak).
+ *
+ * Auth posture: same loopback-only CORS gate as the rest of the HTTP
+ * surface. A future remote-access mode would need additional auth (see
+ * ADR-067).
+ */
+
+import type { Hono } from "hono";
+import type { UpgradeWebSocket } from "hono/ws";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
+import { stat as fsStat } from "node:fs/promises";
+
+import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
+import { pathGuard, realPathGuard } from "../core/path-guard.js";
+import type {
+  PtyHandleApi,
+  PtyManager,
+  PtySpawnFn,
+  ShellKind,
+} from "./pty-manager.js";
+import { quotePathForShell } from "./pty-manager.js";
+import {
+  appendGitignoreLine,
+  ImagePasteError,
+  MAX_IMAGE_BYTES,
+  savePastedImage,
+} from "./image-paste.js";
+
+export interface TerminalRoutesDeps {
+  store: SdkSessionsStore;
+  ptyManager: PtyManager;
+  upgradeWebSocket: UpgradeWebSocket<WebSocket, { onError: (err: unknown) => void }>;
+  /** Allowed Origin header values for the WS upgrade. */
+  allowedOrigins?: (origin: string | null) => boolean;
+  /**
+   * Shell resolver — defaults to pwsh.exe on win32, $SHELL || /bin/bash
+   * elsewhere. Can be overridden for tests. Returned value MUST be on
+   * the PtyManager whitelist or spawn() will reject.
+   */
+  resolveShell?: () => string;
+  /** Per-task.cwd image-paste retention (default 20). */
+  pastesKeepLast?: number;
+}
+
+function defaultAllowedOrigins(origin: string | null): boolean {
+  // External code-review F4: refuse missing/null Origin. The browser
+  // always sends an Origin header on WS upgrades from a real page; an
+  // absent header indicates a non-browser caller (curl, scripted client),
+  // which falls outside the loopback-CORS posture.
+  if (!origin) return false;
+  try {
+    const u = new URL(origin);
+    return (
+      u.hostname === "localhost" ||
+      u.hostname === "127.0.0.1" ||
+      u.hostname === "::1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Probe the Windows shell fallback chain pwsh → powershell → cmd. Returns
+ * the first executable we can resolve via the PATH. Cached per-process —
+ * shells don't disappear during a server lifetime. ESM-safe (no require).
+ */
+let cachedWinShell: string | null = null;
+function resolveWindowsShell(): string {
+  if (cachedWinShell !== null) return cachedWinShell;
+  for (const candidate of ["pwsh.exe", "powershell.exe", "cmd.exe"]) {
+    const r = spawnSync("where", [candidate], { stdio: "ignore" });
+    if (r.status === 0) {
+      cachedWinShell = candidate;
+      return candidate;
+    }
+  }
+  // Last-resort: cmd.exe is essentially always present on Windows.
+  cachedWinShell = "cmd.exe";
+  return "cmd.exe";
+}
+
+/**
+ * Resolve task.cwd through realpath BEFORE using it as the trusted root
+ * for any path-guard check. Without this, a symlinked task.cwd could
+ * pass child-path checks while pointing the new write surface outside
+ * the intended project root (external review F2 v2 — security HIGH).
+ *
+ * Returns the realpath-resolved absolute cwd, or null if cwd is missing
+ * or unresolvable. Caller must hard-fail (404 / 403) on null.
+ */
+function resolveTrustedCwd(rawCwd: string | undefined | null): string | null {
+  if (!rawCwd || typeof rawCwd !== "string") return null;
+  if (rawCwd.indexOf("\0") !== -1) return null;
+  if (!existsSync(rawCwd)) return null;
+  try {
+    return realpathSync(rawCwd);
+  } catch {
+    return null;
+  }
+}
+
+function defaultResolveShell(): string {
+  if (os.platform() === "win32") {
+    return process.env.SHIPWRIGHT_TERMINAL_SHELL ?? resolveWindowsShell();
+  }
+  return process.env.SHIPWRIGHT_TERMINAL_SHELL ?? process.env.SHELL ?? "/bin/bash";
+}
+
+interface WSMessageData {
+  type: "data";
+  payload: string;
+}
+interface WSMessageResize {
+  type: "resize";
+  cols: number;
+  rows: number;
+}
+type WSInbound = WSMessageData | WSMessageResize;
+
+function isWSInbound(v: unknown): v is WSInbound {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  if (o.type === "data" && typeof o.payload === "string") return true;
+  if (o.type === "resize" && typeof o.cols === "number" && typeof o.rows === "number") {
+    return true;
+  }
+  return false;
+}
+
+export function createTerminalRoutes(deps: TerminalRoutesDeps) {
+  const { store, ptyManager, upgradeWebSocket } = deps;
+  const allowedOrigins = deps.allowedOrigins ?? defaultAllowedOrigins;
+  const resolveShell = deps.resolveShell ?? defaultResolveShell;
+  const pastesKeepLast = deps.pastesKeepLast ?? 20;
+
+  return (app: Hono): Hono => {
+    // --- POST /api/terminal/:taskId/spawn — idempotent prewarm ------------
+    app.post("/api/terminal/:taskId/spawn", async (c) => {
+      const taskId = c.req.param("taskId");
+      if (!taskId) return c.json({ error: "missing_task_id" }, 400);
+      const task = store.get(taskId);
+      if (!task) return c.json({ error: "task_not_found" }, 404);
+      const trustedCwd = resolveTrustedCwd(task.cwd);
+      if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
+
+      try {
+        const meta = ptyManager.spawn(taskId, {
+          cwd: trustedCwd,
+          shell: resolveShell(),
+        });
+        return c.json({
+          taskId: meta.taskId,
+          shell: meta.shell,
+          shellKind: meta.shellKind,
+          cwd: meta.cwd,
+        });
+      } catch (err) {
+        return c.json(
+          { error: "pty_spawn_rejected", detail: String((err as Error).message) },
+          400,
+        );
+      }
+    });
+
+    // --- POST /api/terminal/:taskId/close ---------------------------------
+    app.post("/api/terminal/:taskId/close", (c) => {
+      const taskId = c.req.param("taskId");
+      if (!taskId) return c.json({ error: "missing_task_id" }, 400);
+      ptyManager.kill(taskId);
+      return c.body(null, 204);
+    });
+
+    // --- POST /api/terminal/:taskId/paste-image ---------------------------
+    // Multipart/form-data with field "image: File". Saves to
+    // <task.cwd>/.claude-pastes/img-<ts>-<rand>.<ext>, prunes to keep-last-N,
+    // and pty.write()s the shell-quoted absolute path into the buffer
+    // (followed by a trailing space). 413 fast-fail on large Content-Length.
+    app.post("/api/terminal/:taskId/paste-image", async (c) => {
+      const taskId = c.req.param("taskId");
+      if (!taskId) return c.json({ error: "missing_task_id" }, 400);
+      const task = store.get(taskId);
+      if (!task) return c.json({ error: "task_not_found" }, 404);
+      const trustedCwd = resolveTrustedCwd(task.cwd);
+      if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
+
+      // Content-Length precheck — refuse before buffering. 9 MiB ceiling
+      // gives 1 MiB of headroom over the 8 MiB blob cap (multipart envelope
+      // overhead). External review F2 v2: also refuse missing/invalid
+      // Content-Length so chunked-transfer can't bypass the precheck.
+      const rawLen = c.req.header("content-length");
+      if (!rawLen) {
+        return c.json({ error: "content_length_required" }, 411);
+      }
+      const contentLength = parseInt(rawLen, 10);
+      if (!Number.isFinite(contentLength) || contentLength <= 0) {
+        return c.json({ error: "content_length_invalid" }, 400);
+      }
+      if (contentLength > 9 * 1024 * 1024) {
+        return c.json({ error: "image_too_large" }, 413);
+      }
+
+      let body: Awaited<ReturnType<typeof c.req.parseBody>>;
+      try {
+        body = await c.req.parseBody();
+      } catch (err) {
+        return c.json({ error: "invalid_multipart", detail: String((err as Error).message) }, 400);
+      }
+      const file = body.image;
+      if (!(file instanceof File)) {
+        return c.json({ error: "missing_image_field" }, 400);
+      }
+      let bytes: Uint8Array;
+      try {
+        bytes = new Uint8Array(await file.arrayBuffer());
+      } catch (err) {
+        return c.json({ error: "image_read_failed", detail: String((err as Error).message) }, 400);
+      }
+
+      // External review F3 (v2): if no pty exists yet, ensure-or-create
+      // it so paste-image works even when the user pastes into a freshly
+      // opened terminal tab. The writer-gate still applies — paste-image
+      // never writes if the current writer is a different tab.
+      try {
+        let meta = ptyManager.get(taskId);
+        if (!meta) {
+          try {
+            meta = ptyManager.spawn(taskId, {
+              cwd: trustedCwd,
+              shell: resolveShell(),
+            });
+          } catch {
+            // Spawn failure is non-fatal here — the file save still
+            // succeeds; the response will report ptyWritten=false.
+            meta = undefined;
+          }
+        }
+        const result = await savePastedImage({
+          cwd: trustedCwd,
+          bytes,
+          keepLast: pastesKeepLast,
+        });
+        let ptyWritten = false;
+        if (meta && ptyManager.hasActiveWriter(taskId)) {
+          const quoted = quotePathForShell(result.absolutePath, meta.shellKind);
+          ptyManager.write(taskId, quoted + " ");
+          ptyWritten = true;
+        }
+        return c.json({
+          path: result.absolutePath,
+          kind: result.kind,
+          gitignoreSuggestion: result.gitignoreSuggestion,
+          ptyWritten,
+          kept: result.prune.kept,
+          deleted: result.prune.deleted,
+        });
+      } catch (err) {
+        if (err instanceof ImagePasteError) {
+          const status = err.code === "image_too_large" ? 413 : 400;
+          return c.json({ error: err.code, detail: err.message }, status);
+        }
+        return c.json(
+          { error: "internal_error", detail: String((err as Error).message) },
+          500,
+        );
+      }
+    });
+
+    // --- POST /api/terminal/:taskId/append-gitignore ----------------------
+    // Idempotent append of `.claude-pastes/` to <task.cwd>/.gitignore.
+    // realpath-guarded so a symlinked .gitignore can't redirect the write
+    // outside cwd (external review F11).
+    app.post("/api/terminal/:taskId/append-gitignore", async (c) => {
+      const taskId = c.req.param("taskId");
+      if (!taskId) return c.json({ error: "missing_task_id" }, 400);
+      const task = store.get(taskId);
+      if (!task) return c.json({ error: "task_not_found" }, 404);
+      const trustedCwd = resolveTrustedCwd(task.cwd);
+      if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
+
+      const guard = pathGuard(trustedCwd, ".gitignore");
+      if (!guard.ok) {
+        return c.json({ error: "path_guard_traversal", detail: guard.reason }, 403);
+      }
+      // External code-review F2: existence FIRST, then realPathGuard.
+      // realPathGuard internally calls realpathSync, which throws on
+      // ENOENT — without this ordering, a missing .gitignore returns
+      // 403 gitignore_symlink_escape (wrong) instead of 404
+      // gitignore_missing (the spec'd behavior).
+      try {
+        await fsStat(guard.absolute);
+      } catch {
+        return c.json({ error: "gitignore_missing" }, 404);
+      }
+      const real = realPathGuard(trustedCwd, guard.absolute);
+      if (!real.ok) {
+        return c.json({ error: "gitignore_symlink_escape", detail: real.reason }, 403);
+      }
+      try {
+        const did = await appendGitignoreLine(real.absolute);
+        if (!did) {
+          // Already present (we already proved the file exists).
+          return c.json({ ok: true, appended: false, reason: "already_present" });
+        }
+        return c.body(null, 204);
+      } catch (err) {
+        return c.json(
+          { error: "internal_error", detail: String((err as Error).message) },
+          500,
+        );
+      }
+    });
+
+    // --- GET /api/terminal/:taskId/ws — authoritative lifecycle entry ----
+    app.get(
+      "/api/terminal/:taskId/ws",
+      upgradeWebSocket((c) => {
+        const taskId = c.req.param("taskId");
+        if (!taskId) throw new Error("missing_task_id");
+        const origin = c.req.header("origin") ?? null;
+        if (!allowedOrigins(origin)) {
+          // Refuse via upgrade rejection: throw so onError handles it,
+          // and the client sees the WS connection close immediately.
+          throw new Error("origin_not_allowed");
+        }
+        const task = store.get(taskId);
+        if (!task) throw new Error("task_not_found");
+        const trustedCwd = resolveTrustedCwd(task.cwd);
+        if (!trustedCwd) throw new Error("task_cwd_unresolvable");
+
+        // Ensure-or-create the pty against the realpath-validated cwd.
+        const meta = ptyManager.spawn(taskId, {
+          cwd: trustedCwd,
+          shell: resolveShell(),
+        });
+
+        // Per-connection identity is the WSContext (re-used in attach/detach).
+        // We build it inline to keep references stable across handlers.
+        const connToken = { taskId, t: Date.now() } as const;
+
+        return {
+          onOpen(_evt, ws) {
+            const { role } = ptyManager.attach(taskId, connToken);
+            ptyManager.subscribeForConnection(taskId, connToken, {
+              onData: (data) => {
+                try {
+                  ws.send(JSON.stringify({ type: "data", payload: data }));
+                } catch { /* socket may be mid-close */ }
+              },
+              onBackpressure: ({ droppedBytes }) => {
+                try {
+                  ws.send(
+                    JSON.stringify({ type: "backpressure", droppedBytes }),
+                  );
+                } catch { /* ignore */ }
+              },
+              // Fired when the previous writer detaches and we get
+              // promoted (closes the StrictMode double-mount race).
+              onPromoteToWriter: () => {
+                try {
+                  ws.send(JSON.stringify({ type: "writer-promoted" }));
+                } catch { /* ignore */ }
+              },
+            });
+            try {
+              ws.send(
+                JSON.stringify({
+                  type: "ready",
+                  role,
+                  shellKind: meta.shellKind,
+                  cwd: meta.cwd,
+                }),
+              );
+              // External code-review F8: also emit an explicit
+              // `second-attach` envelope so reader-role consumers can
+              // surface a UX banner before the first input attempt.
+              if (role === "reader") {
+                ws.send(JSON.stringify({ type: "second-attach" }));
+              }
+            } catch { /* ignore */ }
+          },
+          onMessage(evt, ws) {
+            const raw = typeof evt.data === "string" ? evt.data : "";
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(raw);
+            } catch {
+              return;
+            }
+            if (!isWSInbound(parsed)) return;
+            // External code-review F6: use the non-mutating getRole()
+            // here so re-evaluating the writer gate on every inbound
+            // message can NOT silently flip the original writer to
+            // reader. attach() is idempotent for same-conn since the
+            // F6 fix, but getRole() is the cheaper + safer entrypoint.
+            const actualRole = ptyManager.getRole(taskId, connToken);
+            if (actualRole !== "writer") {
+              try {
+                ws.send(JSON.stringify({ type: "read_only" }));
+              } catch { /* ignore */ }
+              return;
+            }
+            if (parsed.type === "data") {
+              ptyManager.write(taskId, parsed.payload);
+            } else {
+              ptyManager.resize(taskId, parsed.cols, parsed.rows);
+            }
+          },
+          onClose() {
+            ptyManager.detach(taskId, connToken);
+          },
+          onError() {
+            ptyManager.detach(taskId, connToken);
+          },
+        };
+      }),
+    );
+
+    return app;
+  };
+}
+
+// ---------------------------------------------------------------------------
+// PtySpawnFn factory — wraps @lydell/node-pty so PtyManager stays
+// dependency-injection-friendly + native-binary-free in tests.
+// ---------------------------------------------------------------------------
+
+export async function createNodePtySpawnFn(): Promise<PtySpawnFn> {
+  // Lazy import keeps the native binary out of the module-load path for
+  // unit tests that mock PtyManager.
+  const { spawn: nodePtySpawn } = await import("@lydell/node-pty");
+  return (shell, args, opts) => {
+    // ADR-067 brand fit on Windows: chalk's `supports-color` package
+    // has a hardcoded Windows branch that returns level 3 (truecolor)
+    // for Windows 10 build ≥14931 — REGARDLESS of TERM, COLORTERM, or
+    // FORCE_COLOR=1. Claude Code uses chalk under ink, so its
+    // "auto mode on" banner emits RGB \x1b[38;2;...m escapes that
+    // bypass our 16-slot xterm theme and render the original neon
+    // yellow on beige.
+    //
+    // The single escape hatch in supports-color:
+    //
+    //   if (env.TERM === 'dumb') { return min; }   // min = FORCE_COLOR || 0
+    //
+    // So `TERM=dumb` + `FORCE_COLOR=1` returns level 1 (16-color),
+    // which falls into our brand theme. Trade-off: ncurses-based tools
+    // (vim, less, htop) also see TERM=dumb and disable their colors;
+    // power users can override per-shell via `$env:TERM = "xterm"`
+    // before invoking those tools. For Claude Code as the primary
+    // workload of this pane, brand consistency wins over vim color.
+    const termEnv: Record<string, string | undefined> = {
+      ...(process.env as Record<string, string>),
+      TERM: "dumb",
+      COLORTERM: "",
+      FORCE_COLOR: "1",
+      ...(opts.env ?? {}),
+    };
+    const handle = nodePtySpawn(shell, args, {
+      cwd: opts.cwd,
+      cols: opts.cols ?? 120,
+      rows: opts.rows ?? 30,
+      env: termEnv,
+      // node-pty's own `name` is used by some Win32 conpty paths; we
+      // keep it on "xterm" so the conpty layer stays sane while the
+      // child-process env still sees TERM=dumb.
+      name: opts.name ?? "xterm",
+    });
+    // The library's IPty matches our PtyHandleApi shape; cast is safe.
+    return handle as unknown as PtyHandleApi;
+  };
+}
+
+export type { ShellKind };

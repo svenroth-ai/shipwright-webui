@@ -12,7 +12,7 @@ PoC findings that shaped the implementation: [`~/.claude/plans/external-launch-p
 Decision record: `agent_docs/decision_log.md` ADR-034.
 
 Two hard rules, survivors of every review round:
-1. **Webui spawns no Claude process.** Users launch in their own terminal; webui observes the JSONL.
+1. **Webui spawns no Claude process directly.** Users launch in their own terminal (or in the embedded-terminal pane added by ADR-067); webui observes the JSONL. Webui MAY host a neutral shell pane (xterm.js + node-pty) — Claude execution within that pane stays user-initiated (User must press Strg+V then Enter). The pty-manager whitelist enforces shell-only spawn targets.
 2. **Server is stateless on transcript reads.** Client passes `?fromByte=<offset>&expectFingerprint=<fp>`; no per-session byte-offset cache lives server-side. Multi-tab works by construction.
 
 ## Structure
@@ -40,6 +40,10 @@ Two hard rules, survivors of every review round:
         preview-session-manager.ts # Iterate 3: Preview subprocess lifecycle (spawn shell:false, keyed by projectId, kill-on-shutdown)
         path-guard.ts           # Iterate 3: shared path-traversal guard (realpath + path.relative, NOT startsWith) for tree + file routes
         gitignore-cache.ts      # Iterate 3: mtime-keyed gitignore rule cache for FolderTree
+      terminal/
+        pty-manager.ts          # Iterate 4 (ADR-067): Embedded-terminal pty lifecycle (Plan-D''-conform shell-only whitelist; idempotent ensure-or-create; writer/reader attach roles; drop-while-saturated backpressure; 30 min idle ceiling; quotePathForShell helper)
+        routes.ts               # Iterate 4 (ADR-067): /api/terminal/:taskId/{ws,spawn,close,paste-image,append-gitignore} — WS upgrade is the authoritative ensure-or-create entrypoint; Origin gate mirrors loopback CORS
+        image-paste.ts          # Iterate 4 (ADR-067): savePastedImage / pruneKeepLastN / appendGitignoreLine — magic-byte mime sniff; realPathGuard for symlink-safe writes; 8 MiB cap
       external/
         routes.ts               # /api/external/{tasks,launch,transcript,inbox,actions,preview,actions-stub,projects/:id/tree,projects/:id/file,projects/:id/run-config}
       middleware/
@@ -87,13 +91,15 @@ Two hard rules, survivors of every review round:
           MasterTaskCard.tsx         # One card per Run (run-config v2). Children list + state-conditional banners (failed / needs_validation / complete / stale).
           ContinuePipelineModal.tsx  # "+ New ▾ → Continue Pipeline" target. Picker for readyToLaunchTasks[]; delegates to useContinuePipeline.
           CopySnippet.tsx            # Small monospace snippet + copy button (used for `recover-phase-task` snippets).
+        terminal/
+          EmbeddedTerminal.tsx       # Iterate 4 (ADR-067): xterm.js panel hosted in TaskDetailPage. Lazy-loaded. forwardRef exposes focus()/ready. DOM paste-handler (capture phase) implements image-wins precedence; calls /api/terminal/:taskId/paste-image for image clipboards, falls through to socket.send({type:"data"}) for text. Resize via ResizeObserver throttled to 250 ms.
         common/
           DiagnosticsBanner.tsx # Warns when CLI < MIN_SUPPORTED_CLI
         sidebar/                # Sidebar navigation
         wizard/                 # Project Wizard (4-step modal)
       external/
         session-parser.ts       # Client-side parser (typed events for rendering)
-      hooks/                    # TanStack Query + polling hooks
+      hooks/                    # TanStack Query + polling hooks; useTerminalSocket (ADR-067 — WS bridge for EmbeddedTerminal, ws/wss inferred, ready handshake, reconnect backoff)
       lib/                      # externalApi.ts + utilities
       contexts/                 # React contexts
       test/                     # Vitest test utilities
@@ -203,6 +209,7 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 14. (iterate/multi-session-run-orchestrator-v2) **All pipeline-continuation entry points share `useContinuePipeline()`.** Master TaskCard CTA + Continue Pipeline modal + future TaskDetail header all funnel through the single hook so re-fetch + idempotent shadow-task lookup + verified launch happen as one atomic unit. Adding a parallel launch path bypasses the staleness re-check and re-introduces the race the architecture closes.
 15. (iterate/multi-session-run-orchestrator-v2) **Schema v3 is additive + write-on-touch.** `sdk-sessions.json` gains optional `phaseTaskId` / `runId` / `parentRunMaster` fields. Loader accepts v1 + v2 + v3; persist always writes v3. Same forward-compat window as ADR-038. DO NOT batch-rewrite on boot.
 16. (iterate/multi-session-run-orchestrator-v2) **Stale `in_progress` detection uses run-config timestamps only.** `phase_task.startedAt` / `claimAttemptedAt` against `config.updated_at` — never JSONL mtime. WebUI must not depend on observing JSONL files for tasks it doesn't own a shadow of.
+17. (Iterate 4 — ADR-067) **pty-manager spawn target MUST be a whitelisted shell binary** (`pwsh / powershell.exe / cmd.exe / bash / zsh / sh / fish`); never `claude`. Whitelist match is basename-normalised so absolute paths are checked correctly. Plan-D'' compliance lives in this whitelist + the WS-upgrade Origin gate (loopback-only, mirrors the existing CORS posture). `paste-image` and `append-gitignore` endpoints MUST flow through `realPathGuard` on the resolved target (defeats symlinked `.gitignore` redirect attempts). 8 MiB image cap + 9 MiB Content-Length precheck + magic-byte mime sniff are non-negotiable. Image-paste pty.write uses `quotePathForShell(absPath, shellKind)` so paths with spaces (`C:\My Project\img.png`) round-trip cleanly. WS upgrade is the AUTHORITATIVE pty creation path — `POST /spawn` is an idempotent prewarm, never a parallel-creation surface.
 
 ### Title integration (`--name`)
 

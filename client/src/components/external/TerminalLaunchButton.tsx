@@ -109,6 +109,17 @@ export function TerminalLaunchButton({
       await writeClipboard(command);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
+      // ADR-067 Launch-Flow: notify any open TaskDetail page that the
+      // command for this task just landed in the clipboard. TaskDetailPage
+      // listens, flips its center-pane tab to "terminal", and focuses
+      // xterm so the user's next Strg+V lands inside the pty buffer.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("webui:launch-copied", {
+            detail: { taskId: task.taskId },
+          }),
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -267,20 +278,31 @@ function pickCommand(commands: CopyCommandForms, platform: "windows" | "posix"):
 }
 
 async function writeClipboard(text: string): Promise<void> {
+  // ADR-067 regression note: when launch fires from inside the
+  // embedded-terminal pane, focus can briefly leave the document during
+  // React's pending-state re-render → `clipboard.writeText` rejects
+  // with NotAllowedError. Catch + fall back so the command still lands
+  // in the clipboard.
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      console.warn("clipboard.writeText failed, falling back to textarea:", err);
+      // fall through
+    }
   }
-  // Hard fallback: textarea + execCommand. Modern browsers prefer the
-  // Clipboard API, but Firefox/Safari without HTTPS fall back to this.
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.style.position = "fixed";
   textarea.style.opacity = "0";
+  textarea.style.left = "-9999px";
   document.body.appendChild(textarea);
+  textarea.focus();
   textarea.select();
   try {
-    document.execCommand("copy");
+    const ok = document.execCommand("copy");
+    if (!ok) throw new Error("execCommand('copy') returned false");
   } finally {
     document.body.removeChild(textarea);
   }
