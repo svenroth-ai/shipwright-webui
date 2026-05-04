@@ -149,6 +149,19 @@ function TaskDetailPageBody() {
     setPendingFocus(true);
   }, [coord.pendingLaunch, setCenterTab]);
 
+  // Phase-5-Codex review fix (HIGH): "Terminal" CTA on active/awaiting
+  // tasks dispatches `webui:focus-terminal-tab` (pure tab-flip, no
+  // auto-execute). Listener flips the Tabs.Root + focuses xterm.
+  useEffect(() => {
+    const handler = () => {
+      setCenterTab("terminal");
+      setPendingFocus(true);
+    };
+    window.addEventListener("webui:focus-terminal-tab", handler);
+    return () =>
+      window.removeEventListener("webui:focus-terminal-tab", handler);
+  }, [setCenterTab]);
+
   // Phase-3 review fix (HIGH): explicit page-unmount cancel (Decision #17).
   // The provider unmount also clears state, but recording an explicit
   // `cancelLaunch("page-unmount")` reason is required by AC-5 so coord

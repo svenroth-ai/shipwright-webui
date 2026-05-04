@@ -422,6 +422,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       };
     }, [taskId, socket, onGitignoreSuggestion, onPasteImageError]);
 
+    // ADR-068-A1 AC-16 (Phase-5-Codex review fix): about-to-run preview
+    // banner. Visible while a pendingLaunch token exists for THIS
+    // EmbeddedTerminal (matches the user's clipboard-visual-gate
+    // expectation). Shows the actual command bytes that will hit the
+    // pty so the user has a chance to see what's about to execute.
+    // For custom-action launches, the preview is non-collapsible —
+    // bundled-action launches (the default) get a small spinner.
+    const previewCommand =
+      coord.pendingLaunch && socket.shellKind
+        ? socket.shellKind === "pwsh"
+          ? coord.pendingLaunch.commands.powershell
+          : socket.shellKind === "cmd"
+            ? coord.pendingLaunch.commands.cmd
+            : coord.pendingLaunch.commands.posix
+        : null;
+
     return (
       <div
         className="flex h-full min-h-0 w-full flex-col"
@@ -436,6 +452,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             data-testid="embedded-terminal-readonly"
           >
             Read-only — another tab is the active writer for this task.
+          </div>
+        ) : null}
+        {previewCommand ? (
+          <div
+            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)]"
+            data-testid="embedded-terminal-launch-preview"
+          >
+            <span className="opacity-70" aria-hidden>About to run:</span>{" "}
+            <span className="break-all">{previewCommand}</span>
           </div>
         ) : null}
         <div
