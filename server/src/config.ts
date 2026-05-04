@@ -19,12 +19,38 @@ export interface ServerConfig {
   terminalIdleTimeoutMs: number;
   /** Test-only override for the spawn target. Whitelist still enforced; only honored when NODE_ENV === "test". */
   ptyShellOverride?: string;
+  /**
+   * Iterate-2026-05-04 (ADR-068-A1) — disk-backed terminal scrollback.
+   * Directory where per-task scrollback files (`<taskId>.log`) are persisted.
+   * Default: `<registryDir>/terminal-scrollback`.
+   */
+  terminalScrollbackDir: string;
+  /**
+   * Per-task scrollback rotation cap (bytes). When append-cumulative exceeds
+   * this threshold, `.log` rotates to `.log.1` (atomic). Default 1 MiB.
+   * Set to 0 to DISABLE persistence entirely (no file creation, no replay).
+   */
+  terminalScrollbackMaxBytes: number;
+  /**
+   * Time-to-live for orphan scrollback files (whole days). Boot + daily sweep
+   * deletes files older than this. Default 1 day (privacy-first).
+   */
+  terminalScrollbackTtlDays: number;
+  /** Bound on TTL sweep per pass — protects against unbounded boot work on huge dirs. Default 100. */
+  terminalSweepMaxFilesPerPass: number;
 }
 
 function clampPositiveInt(raw: string | undefined, fallback: number): number {
   if (!raw) return fallback;
   const n = parseInt(raw, 10);
   return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** Like clampPositiveInt but accepts 0 (used for "disabled" semantics). */
+function clampNonNegativeInt(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === "") return fallback;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
 }
 
 export function getConfig(): ServerConfig {
@@ -53,5 +79,20 @@ export function getConfig(): ServerConfig {
       process.env.NODE_ENV === "test"
         ? process.env.SHIPWRIGHT_PTY_SHELL_OVERRIDE
         : undefined,
+    terminalScrollbackDir:
+      process.env.SHIPWRIGHT_TERMINAL_SCROLLBACK_DIR ??
+      path.join(os.homedir(), ".shipwright-webui", "terminal-scrollback"),
+    terminalScrollbackMaxBytes: clampNonNegativeInt(
+      process.env.SHIPWRIGHT_TERMINAL_SCROLLBACK_MAX_BYTES,
+      1_048_576,
+    ),
+    terminalScrollbackTtlDays: clampPositiveInt(
+      process.env.SHIPWRIGHT_TERMINAL_SCROLLBACK_TTL_DAYS,
+      1,
+    ),
+    terminalSweepMaxFilesPerPass: clampPositiveInt(
+      process.env.SHIPWRIGHT_TERMINAL_SWEEP_MAX_FILES_PER_PASS,
+      100,
+    ),
   };
 }
