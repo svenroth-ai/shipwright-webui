@@ -21,6 +21,7 @@
  */
 
 import path from "node:path";
+import type { ScrollbackStore } from "./scrollback-store.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -33,6 +34,14 @@ export interface PtyHandleApi {
   write(data: string): void;
   resize(cols: number, rows: number): void;
   kill(signal?: string): void;
+  /**
+   * Optional pause/resume — used by the replay-on-attach flow (ADR-068-A1)
+   * to halt live pty output while the WS replays scrollback from disk.
+   * `@lydell/node-pty`'s IPty exposes both; tests with a fake pty can
+   * leave them undefined (no-op semantics).
+   */
+  pause?(): void;
+  resume?(): void;
 }
 
 export type PtySpawnFn = (
@@ -178,6 +187,13 @@ export interface PtyManagerOpts {
   wsBufferBytes?: number;
   /** PTY auto-kill ceiling on idleness; default 30 min. */
   idleTimeoutMs?: number;
+  /**
+   * Optional scrollback store (ADR-068-A1). When provided, every pty.onData
+   * chunk is appended to disk before broadcast. closeStream is called on
+   * pty.kill so file descriptors are released cleanly. Tests can omit this
+   * for native-binary-free coverage.
+   */
+  scrollbackStore?: ScrollbackStore;
 }
 
 export class PtyManager {
@@ -185,11 +201,13 @@ export class PtyManager {
   private readonly spawnFn: PtySpawnFn;
   private readonly wsBufferBytes: number;
   private readonly idleTimeoutMs: number;
+  private readonly scrollbackStore: ScrollbackStore | undefined;
 
   constructor(opts: PtyManagerOpts) {
     this.spawnFn = opts.spawn;
     this.wsBufferBytes = opts.wsBufferBytes ?? 1_048_576;
     this.idleTimeoutMs = opts.idleTimeoutMs ?? 1_800_000;
+    this.scrollbackStore = opts.scrollbackStore;
   }
 
   /** Look up a handle by taskId. Returns undefined if not yet spawned. */
@@ -231,6 +249,20 @@ export class PtyManager {
     // Forward pty output to all subscribers + reset idle timer.
     pty.onData((data) => {
       this.touchIdle(entry);
+      // ADR-068-A1: persist to disk before broadcast. Synchronous via
+      // fs.appendFileSync so subsequent reads see the bytes immediately.
+      // Wrapped in try/catch so a disk error / rotation-buffer-overflow
+      // never breaks the broadcaster.
+      if (this.scrollbackStore) {
+        try {
+          this.scrollbackStore.append(taskId, Buffer.from(data, "utf8"));
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] scrollback append failed for ${taskId}: ${(err as Error).message}`,
+          );
+        }
+      }
       for (const cb of entry.dataSubs) {
         try {
           cb(data);
@@ -273,11 +305,59 @@ export class PtyManager {
       // best-effort
     }
     this.cleanup(taskId);
+    // ADR-068-A1: release scrollback FD lifecycle. Best-effort + non-throwing
+    // — if the queue is busy with rotation, closeStream resolves after that
+    // settles. Detached from kill() return so kill() stays sync.
+    if (this.scrollbackStore) {
+      void this.scrollbackStore
+        .closeStream(taskId)
+        .catch((err: unknown) => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] scrollback closeStream failed for ${taskId}: ${(err as Error).message}`,
+          );
+        });
+    }
   }
 
   killAll(): void {
     const taskIds = [...this.entries.keys()];
     for (const id of taskIds) this.kill(id);
+  }
+
+  /**
+   * Pause the live pty (ADR-068-A1). Called by the WS upgrade `onOpen`
+   * before reading scrollback from disk so live output doesn't pile up
+   * in the per-conn liveBuffer during replay-render. Pty-pause has a
+   * global side-effect: ALL attached connections see no live data
+   * until resume() is called. Documented + accepted; multi-tab fairness
+   * is deferred (replay completes in <1s typical).
+   */
+  pause(taskId: string): void {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.pty.pause) return;
+    try {
+      entry.pty.pause();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] pause failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /** Counterpart to pause(). Idempotent — calling on a non-paused pty is a no-op. */
+  resume(taskId: string): void {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.pty.resume) return;
+    try {
+      entry.pty.resume();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] resume failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   /**

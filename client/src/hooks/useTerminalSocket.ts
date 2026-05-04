@@ -9,6 +9,10 @@
  *                              {type:"data",payload}
  *                              {type:"backpressure",droppedBytes}
  *                              {type:"read_only"}
+ *                              {type:"replay_start",totalBytes}      [ADR-068-A1]
+ *                              {type:"replay_chunk",payload}         [ADR-068-A1]
+ *                              {type:"replay_separator",payload}     [ADR-068-A1]
+ *                              {type:"replay_end"}                    [ADR-068-A1]
  *   - Outbound JSON envelope: {type:"data",payload}  | {type:"resize",cols,rows}
  *   - `ready === true` exactly when the socket is OPEN AND a server-side
  *     `ready` envelope has arrived. The TaskDetail launch-flow waits on
@@ -37,6 +41,9 @@ export interface UseTerminalSocketOptions {
   onBackpressure?: (info: { droppedBytes: number }) => void;
   /** Called on inbound `read_only` envelope. */
   onReadOnly?: () => void;
+  /** ADR-068-A1: replay lifecycle hooks. Optional — replay chunks fall back to onData. */
+  onReplayStart?: (info: { totalBytes: number }) => void;
+  onReplayEnd?: () => void;
 }
 
 export interface UseTerminalSocketResult {
@@ -64,12 +71,23 @@ function defaultUrl(taskId: string): string {
 }
 
 export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSocketResult {
-  const { taskId, urlOverride, enabled = true, onData, onBackpressure, onReadOnly } = opts;
+  const {
+    taskId,
+    urlOverride,
+    enabled = true,
+    onData,
+    onBackpressure,
+    onReadOnly,
+    onReplayStart,
+    onReplayEnd,
+  } = opts;
 
   // Stable refs for callbacks so the effect doesn't tear down on every parent re-render.
   const onDataRef = useRef(onData);
   const onBackpressureRef = useRef(onBackpressure);
   const onReadOnlyRef = useRef(onReadOnly);
+  const onReplayStartRef = useRef(onReplayStart);
+  const onReplayEndRef = useRef(onReplayEnd);
   useEffect(() => {
     onDataRef.current = onData;
   }, [onData]);
@@ -79,6 +97,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   useEffect(() => {
     onReadOnlyRef.current = onReadOnly;
   }, [onReadOnly]);
+  useEffect(() => {
+    onReplayStartRef.current = onReplayStart;
+  }, [onReplayStart]);
+  useEffect(() => {
+    onReplayEndRef.current = onReplayEnd;
+  }, [onReplayEnd]);
 
   const [ready, setReady] = useState(false);
   const [role, setRole] = useState<TerminalRole | null>(null);
@@ -174,6 +198,26 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           // React.StrictMode double-mount race where the second WS opens
           // before the first close arrives and gets reader role.
           setRole("writer");
+          return;
+        }
+        // ADR-068-A1 — replay envelopes route into onData (xterm renders
+        // identically), with optional lifecycle hooks for UX surfaces
+        // (e.g. progress bar, "scrollback restored" toast).
+        if (env.type === "replay_start") {
+          const total = typeof env.totalBytes === "number" ? env.totalBytes : 0;
+          onReplayStartRef.current?.({ totalBytes: total });
+          return;
+        }
+        if (env.type === "replay_chunk" && typeof env.payload === "string") {
+          onDataRef.current?.(env.payload);
+          return;
+        }
+        if (env.type === "replay_separator" && typeof env.payload === "string") {
+          onDataRef.current?.(env.payload);
+          return;
+        }
+        if (env.type === "replay_end") {
+          onReplayEndRef.current?.();
           return;
         }
       });

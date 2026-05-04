@@ -24,6 +24,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { stat as fsStat } from "node:fs/promises";
+import { StringDecoder } from "node:string_decoder";
 
 import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 import { pathGuard, realPathGuard } from "../core/path-guard.js";
@@ -40,6 +41,7 @@ import {
   MAX_IMAGE_BYTES,
   savePastedImage,
 } from "./image-paste.js";
+import type { ScrollbackStore } from "./scrollback-store.js";
 
 export interface TerminalRoutesDeps {
   store: SdkSessionsStore;
@@ -55,6 +57,12 @@ export interface TerminalRoutesDeps {
   resolveShell?: () => string;
   /** Per-task.cwd image-paste retention (default 20). */
   pastesKeepLast?: number;
+  /**
+   * Iterate-2026-05-04 (ADR-068-A1) — disk-backed scrollback. Optional
+   * for tests; production uses a single ScrollbackStore instance shared
+   * with PtyManager so append + replay see the same disk state.
+   */
+  scrollbackStore?: ScrollbackStore;
 }
 
 function defaultAllowedOrigins(origin: string | null): boolean {
@@ -148,6 +156,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   const allowedOrigins = deps.allowedOrigins ?? defaultAllowedOrigins;
   const resolveShell = deps.resolveShell ?? defaultResolveShell;
   const pastesKeepLast = deps.pastesKeepLast ?? 20;
+  const scrollbackStore = deps.scrollbackStore;
 
   return (app: Hono): Hono => {
     // --- POST /api/terminal/:taskId/spawn — idempotent prewarm ------------
@@ -179,11 +188,43 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
     });
 
     // --- POST /api/terminal/:taskId/close ---------------------------------
+    // ADR-068-A1: kill pty only — scrollback is RETAINED on disk.
+    // Re-attach replays the history. Use /clear-scrollback to delete.
     app.post("/api/terminal/:taskId/close", (c) => {
       const taskId = c.req.param("taskId");
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       ptyManager.kill(taskId);
       return c.body(null, 204);
+    });
+
+    // --- POST /api/terminal/:taskId/clear-scrollback (ADR-068-A1) --------
+    // Loud destructive: deletes <taskId>.log + <taskId>.log.1. Throws on
+    // failure (5xx) so the UI surfaces an inline error. Independent of
+    // /close — the user can clear history while the pty stays alive
+    // (the next pty.onData will re-create the file).
+    app.post("/api/terminal/:taskId/clear-scrollback", async (c) => {
+      const taskId = c.req.param("taskId");
+      if (!taskId) return c.json({ error: "missing_task_id" }, 400);
+      if (!scrollbackStore) {
+        // No store wired (test config) — treat as no-op success.
+        return c.body(null, 204);
+      }
+      try {
+        await scrollbackStore.clear(taskId);
+        return c.body(null, 204);
+      } catch (err) {
+        const detail = String((err as Error).message);
+        // ScrollbackStoreError("invalid_task_id") → 400; everything else
+        // (path-guard escape, EACCES, …) → 500.
+        const code = (err as { code?: string }).code;
+        if (code === "invalid_task_id") {
+          return c.json({ error: "invalid_task_id", detail }, 400);
+        }
+        if (code === "scrollback_path_outside_dir") {
+          return c.json({ error: "scrollback_path_outside_dir", detail }, 403);
+        }
+        return c.json({ error: "clear_failed", detail }, 500);
+      }
     });
 
     // --- POST /api/terminal/:taskId/paste-image ---------------------------
@@ -356,11 +397,37 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         return {
           onOpen(_evt, ws) {
             const { role } = ptyManager.attach(taskId, connToken);
-            ptyManager.subscribeForConnection(taskId, connToken, {
-              onData: (data) => {
+
+            // ADR-068-A1 replay flow:
+            //   1. Subscribe with a liveBuffer so we don't miss live output
+            //      while reading scrollback from disk.
+            //   2. Pause pty (avoids OOM on slow xterm-render under
+            //      backgrounded-tab conditions — Decision #15).
+            //   3. Send `ready` envelope.
+            //   4. Read scrollback + chunked replay envelopes.
+            //   5. Flush liveBuffer + flip replayDone.
+            //   6. Resume pty.
+            const liveBuffer: string[] = [];
+            let replayDone = false;
+
+            const flushLiveBuffer = () => {
+              for (const data of liveBuffer) {
                 try {
                   ws.send(JSON.stringify({ type: "data", payload: data }));
                 } catch { /* socket may be mid-close */ }
+              }
+              liveBuffer.length = 0;
+            };
+
+            ptyManager.subscribeForConnection(taskId, connToken, {
+              onData: (data) => {
+                if (replayDone) {
+                  try {
+                    ws.send(JSON.stringify({ type: "data", payload: data }));
+                  } catch { /* socket may be mid-close */ }
+                } else {
+                  liveBuffer.push(data);
+                }
               },
               onBackpressure: ({ droppedBytes }) => {
                 try {
@@ -377,6 +444,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                 } catch { /* ignore */ }
               },
             });
+
             try {
               ws.send(
                 JSON.stringify({
@@ -393,6 +461,97 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                 ws.send(JSON.stringify({ type: "second-attach" }));
               }
             } catch { /* ignore */ }
+
+            // Async replay (IIFE so onOpen stays sync). On error, just
+            // flush the liveBuffer + flip replayDone — the live shell
+            // continues to work; only the historical replay was lost.
+            void (async () => {
+              if (!scrollbackStore || scrollbackStore.disabled) {
+                flushLiveBuffer();
+                replayDone = true;
+                return;
+              }
+              try {
+                ptyManager.pause(taskId);
+                const replay = await scrollbackStore.read(taskId);
+                if (replay.length > 0) {
+                  const utf8 = Buffer.from(replay, "utf8");
+                  const totalBytes = utf8.byteLength;
+                  try {
+                    ws.send(
+                      JSON.stringify({ type: "replay_start", totalBytes }),
+                    );
+                  } catch { /* ignore */ }
+
+                  const HWM = 1_048_576;
+                  const CHUNK_SIZE = 65536;
+                  const decoder = new StringDecoder("utf8");
+                  // bufferedAmount is on the underlying socket — @hono/node-ws
+                  // exposes WSContext, not the raw WebSocket. Read it via
+                  // unknown-cast so we don't fight the type without dropping
+                  // safety further than necessary.
+                  const readBufferedAmount = (): number => {
+                    const maybe = (ws as unknown as { bufferedAmount?: number })
+                      .bufferedAmount;
+                    return typeof maybe === "number" ? maybe : 0;
+                  };
+                  for (let i = 0; i < utf8.byteLength; i += CHUNK_SIZE) {
+                    while (readBufferedAmount() > HWM) {
+                      await new Promise((r) => setTimeout(r, 10));
+                    }
+                    const chunkBuf = utf8.subarray(i, i + CHUNK_SIZE);
+                    const chunkStr = decoder.write(chunkBuf);
+                    if (chunkStr.length > 0) {
+                      try {
+                        ws.send(
+                          JSON.stringify({
+                            type: "replay_chunk",
+                            payload: chunkStr,
+                          }),
+                        );
+                      } catch { /* ignore */ }
+                    }
+                  }
+                  const tail = decoder.end();
+                  if (tail.length > 0) {
+                    try {
+                      ws.send(
+                        JSON.stringify({
+                          type: "replay_chunk",
+                          payload: tail,
+                        }),
+                      );
+                    } catch { /* ignore */ }
+                  }
+
+                  // Yellow-dim ANSI separator banner — visible but
+                  // unobtrusive. Marks the boundary between historical
+                  // scrollback and the live shell prompt below.
+                  const sep =
+                    "\r\n\x1b[2m\x1b[33m── Shipwright: scrollback restored from disk; live shell below ──\x1b[0m\r\n";
+                  try {
+                    ws.send(
+                      JSON.stringify({
+                        type: "replay_separator",
+                        payload: sep,
+                      }),
+                    );
+                    ws.send(JSON.stringify({ type: "replay_end" }));
+                  } catch { /* ignore */ }
+                }
+                flushLiveBuffer();
+                replayDone = true;
+              } catch (err) {
+                // eslint-disable-next-line no-console
+                console.warn(
+                  `[terminal] replay failed for ${taskId}: ${(err as Error).message}`,
+                );
+                flushLiveBuffer();
+                replayDone = true;
+              } finally {
+                ptyManager.resume(taskId);
+              }
+            })();
           },
           onMessage(evt, ws) {
             const raw = typeof evt.data === "string" ? evt.data : "";
