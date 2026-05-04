@@ -1,0 +1,1 @@
+Disk-backed terminal scrollback persistence (24h TTL, configurable via SHIPWRIGHT_TERMINAL_SCROLLBACK_TTL_DAYS) — terminal history survives nav-away, page-reload, browser-restart, and OS-reboot; replay-on-attach via WS chunked envelopes (ADR-068-A1)
