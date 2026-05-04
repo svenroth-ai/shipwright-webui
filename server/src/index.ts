@@ -46,6 +46,7 @@ import {
   createTerminalRoutes,
   createNodePtySpawnFn,
 } from "./terminal/routes.js";
+import { ScrollbackStore } from "./terminal/scrollback-store.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 
 const config = getConfig();
@@ -246,6 +247,90 @@ if (isMainModule) {
       // linger past a webui restart.
       const previewManager = new PreviewSessionManager();
 
+      // Iterate 5 (ADR-068-A1) — disk-backed terminal scrollback. Single
+      // ScrollbackStore instance shared between PtyManager (append on
+      // pty.onData + closeStream on kill) and the WS replay flow in
+      // terminal/routes.ts. Boot-time init() creates the dir + caches
+      // the realpath; sweep runs on boot AND on a 24h interval.
+      const scrollbackStore = new ScrollbackStore(config.terminalScrollbackDir, {
+        maxBytesPerTask: config.terminalScrollbackMaxBytes,
+      });
+      try {
+        await scrollbackStore.init();
+      } catch (err) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message:
+              "scrollback store init failed; persistence disabled this session",
+            error: String(err).slice(0, 200),
+          }),
+        );
+      }
+      // Boot-time TTL sweep — bounded, oldest-first, active-aware.
+      const computeActiveTaskIds = (): Set<string> => {
+        const all = sdkSessionsStore.list();
+        const ids = new Set<string>();
+        for (const t of all) {
+          if (
+            t.state === "active" ||
+            t.state === "idle" ||
+            t.state === "awaiting_external_start" ||
+            t.state === "jsonl_missing"
+          ) {
+            ids.add(t.taskId);
+          }
+        }
+        return ids;
+      };
+      try {
+        const result = await scrollbackStore.sweepExpired(
+          config.terminalScrollbackTtlDays,
+          {
+            activeTaskIds: computeActiveTaskIds(),
+            maxFilesPerPass: config.terminalSweepMaxFilesPerPass,
+          },
+        );
+        if (result.deleted > 0 || result.errors > 0) {
+          console.log(
+            JSON.stringify({
+              level: "info",
+              message: "scrollback boot sweep",
+              deleted: result.deleted,
+              remaining: result.remaining,
+              errors: result.errors,
+            }),
+          );
+        }
+      } catch (err) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "scrollback boot sweep failed",
+            error: String(err).slice(0, 200),
+          }),
+        );
+      }
+      // Daily periodic sweep. setInterval is unref'd so it doesn't keep the
+      // event loop alive past graceful shutdown.
+      const dailySweepTimer = setInterval(() => {
+        scrollbackStore
+          .sweepExpired(config.terminalScrollbackTtlDays, {
+            activeTaskIds: computeActiveTaskIds(),
+            maxFilesPerPass: config.terminalSweepMaxFilesPerPass,
+          })
+          .catch((err: unknown) => {
+            console.warn(
+              JSON.stringify({
+                level: "warn",
+                message: "scrollback periodic sweep failed",
+                error: String(err).slice(0, 200),
+              }),
+            );
+          });
+      }, 24 * 60 * 60 * 1000);
+      dailySweepTimer.unref();
+
       // Iterate 4 (ADR-067) — embedded-terminal pty manager.
       // PtyManager owns shell-pty lifecycle (Plan-D''-conform: shells only,
       // never `claude`). Construction is async because the @lydell/node-pty
@@ -255,6 +340,7 @@ if (isMainModule) {
         spawn: await createNodePtySpawnFn(),
         wsBufferBytes: config.terminalWsBufferBytes,
         idleTimeoutMs: config.terminalIdleTimeoutMs,
+        scrollbackStore,
       });
 
       // @hono/node-ws adapter — `upgradeWebSocket` is a Hono middleware
@@ -292,12 +378,15 @@ if (isMainModule) {
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
 
-      // Iterate 4 (ADR-067) — embedded terminal routes (REST + WS upgrade).
+      // Iterate 4 (ADR-067) + Iterate 5 (ADR-068-A1) — embedded terminal
+      // routes (REST + WS upgrade). scrollbackStore wires replay-on-attach
+      // + Stop/Clear semantics + disabled-mode propagation.
       createTerminalRoutes({
         store: sdkSessionsStore,
         ptyManager,
         upgradeWebSocket,
         pastesKeepLast: config.claudePastesKeepLast,
+        scrollbackStore,
       })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).
@@ -363,7 +452,15 @@ if (isMainModule) {
         } catch {
           // best-effort — ignore shutdown errors
         }
-        process.exit(0);
+        // ADR-068-A1: drain scrollback queues. Fire-and-forget — process.exit
+        // below races the await; the timeout guard inside shutdown() ensures
+        // we never hang on a stuck queue.
+        scrollbackStore
+          .shutdown(2000)
+          .catch(() => undefined)
+          .finally(() => process.exit(0));
+        // Hard ceiling in case shutdown() hangs longer than expected.
+        setTimeout(() => process.exit(0), 3000).unref();
       };
       process.on("SIGTERM", shutdown);
       process.on("SIGINT", shutdown);
