@@ -70,6 +70,54 @@ export default function TaskDetailPage() {
   );
 }
 
+/**
+ * Compact privacy disclosure for the Terminal tab — ADR-068-A1 AC-15.
+ *
+ * Renders as a 1-line dismissible note at the bottom of the embedded
+ * terminal pane. The user toggles it off via the × button; preference
+ * persists in localStorage. Copy includes:
+ *   - retention period
+ *   - "may contain secrets" warning
+ *   - Windows-permission-best-effort note (when on Windows)
+ *   - "Clear history" pointer (route through "..." menu)
+ *
+ * Display-only — there's no client-side state about whether scrollback
+ * actually exists for this task. The note is a privacy notice, not a
+ * runtime indicator.
+ */
+function PrivacyDisclosureFooter() {
+  const STORAGE_KEY = "webui:terminal-privacy-disclosure-dismissed";
+  const [dismissed, setDismissed] = useLocalStorage<boolean>(STORAGE_KEY, false);
+  if (dismissed) return null;
+  const isWindows = typeof navigator !== "undefined" &&
+    /windows/i.test(navigator.userAgent);
+  return (
+    <div
+      className="absolute bottom-0 left-0 right-0 flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-1.5 text-[11px] text-[var(--color-muted,#6b7280)]"
+      data-testid="terminal-privacy-disclosure"
+    >
+      <span aria-hidden>ⓘ</span>
+      <span className="flex-1 truncate">
+        Terminal scrollback is persisted locally (24h retention; may include
+        secrets / env vars).{" "}
+        {isWindows ? (
+          <span>On Windows, file permissions rely on user-account ACLs.</span>
+        ) : null}
+        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.
+      </span>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        className="text-[var(--color-muted,#6b7280)] hover:text-[var(--color-text,#1a1a1a)]"
+        data-testid="terminal-privacy-disclosure-dismiss"
+        aria-label="Dismiss privacy notice"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function TaskDetailPageBody() {
   const { taskId } = useParams<{ taskId: string }>();
   const { data: task, error } = useExternalTask(taskId);
@@ -421,6 +469,13 @@ function TaskDetailPageBody() {
                       ) : null}
                     </div>
                   ) : null}
+                  {/* ADR-068-A1 AC-15: privacy disclosure (compact, dismissible).
+                      Surfaces 24h retention + Windows ACL caveat; "Clear
+                      history" affordance routes through TaskDetailHeader's
+                      "..." menu (Phase 4 confirm modal). Client-side
+                      dismissal persists in localStorage so power-users
+                      can hide it after first read. */}
+                  <PrivacyDisclosureFooter />
                 </Tabs.Content>
               </Tabs.Root>
             </section>
