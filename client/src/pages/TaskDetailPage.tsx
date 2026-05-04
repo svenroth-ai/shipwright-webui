@@ -110,9 +110,16 @@ export default function TaskDetailPage() {
   const [gitignoreToastOpen, setGitignoreToastOpen] = useState(false);
   const [gitignoreAppending, setGitignoreAppending] = useState(false);
   const [gitignoreError, setGitignoreError] = useState<string | null>(null);
+  const [pasteImageError, setPasteImageError] = useState<string | null>(null);
   const handleGitignoreSuggestion = useCallback(() => {
     setGitignoreToastOpen(true);
     setGitignoreError(null);
+  }, []);
+  // External review F-v2: surface paste-image upload failures instead of
+  // swallowing them. Auto-dismiss after 4 s so the toast doesn't stick.
+  const handlePasteImageError = useCallback((detail: string) => {
+    setPasteImageError(detail);
+    window.setTimeout(() => setPasteImageError((curr) => (curr === detail ? null : curr)), 4000);
   }, []);
   const handleGitignoreAppend = useCallback(async () => {
     if (!taskId) return;
@@ -323,9 +330,28 @@ export default function TaskDetailPage() {
                         active={centerTab === "terminal"}
                         onReadyChange={handleTerminalReady}
                         onGitignoreSuggestion={handleGitignoreSuggestion}
+                        onPasteImageError={handlePasteImageError}
                       />
                     ) : null}
                   </Suspense>
+                  {pasteImageError ? (
+                    <div
+                      className="absolute bottom-3 left-3 flex items-center gap-2 rounded border border-[var(--color-error,#DC2626)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] text-[var(--color-error,#DC2626)] shadow"
+                      data-testid="paste-image-error-toast"
+                      role="alert"
+                    >
+                      <span>Image paste failed: {pasteImageError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPasteImageError(null)}
+                        className="text-[11px] text-[var(--color-muted,#6b7280)]"
+                        data-testid="paste-image-error-dismiss"
+                        aria-label="Dismiss"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : null}
                   {gitignoreToastOpen ? (
                     <div
                       className="absolute bottom-3 right-3 flex flex-col gap-1 rounded border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 text-[12px] shadow"

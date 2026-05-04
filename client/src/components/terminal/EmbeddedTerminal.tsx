@@ -61,13 +61,18 @@ export interface EmbeddedTerminalProps {
   onBackpressure?: (info: { droppedBytes: number }) => void;
   /** Surface readiness for the launch-flow handshake. */
   onReadyChange?: (ready: boolean, role: TerminalRole | null) => void;
+  /**
+   * Surface paste-image upload failures (network errors, server 4xx/5xx)
+   * so the parent can show a toast instead of swallowing the failure.
+   */
+  onPasteImageError?: (detail: string) => void;
 }
 
 const RESIZE_THROTTLE_MS = 250;
 
 export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTerminalProps>(
   function EmbeddedTerminal(
-    { taskId, active, socketUrlOverride, socketEnabled = true, onGitignoreSuggestion, onBackpressure, onReadyChange },
+    { taskId, active, socketUrlOverride, socketEnabled = true, onGitignoreSuggestion, onBackpressure, onReadyChange, onPasteImageError },
     ref,
   ) {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -230,7 +235,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             const url = `/api/terminal/${encodeURIComponent(taskId)}/paste-image`;
             void fetch(url, { method: "POST", body: form })
               .then(async (res) => {
-                if (!res.ok) return;
+                if (!res.ok) {
+                  // External review F-v2: surface paste-image failures
+                  // instead of silently swallowing them. Reuse the
+                  // backpressure callback path with a structured detail.
+                  let detail = `HTTP ${res.status}`;
+                  try {
+                    const body = (await res.json().catch(() => null)) as
+                      | { error?: string }
+                      | null;
+                    if (body?.error) detail = body.error;
+                  } catch {
+                    /* fall through */
+                  }
+                  onPasteImageError?.(detail);
+                  return;
+                }
                 const body = (await res.json().catch(() => null)) as
                   | { gitignoreSuggestion?: boolean }
                   | null;
@@ -238,26 +258,32 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
                   onGitignoreSuggestion?.();
                 }
               })
-              .catch(() => {
-                /* ignore — server pty.write happens on success */
+              .catch((err) => {
+                onPasteImageError?.(err instanceof Error ? err.message : String(err));
               });
             return;
           }
         }
 
         // No image: fall through to text-paste via socket.send (AC-6a).
-        const text = ev.clipboardData?.getData("text/plain");
-        if (text) {
+        // External review F-v2: detect text-item presence INDEPENDENT of
+        // empty-string truthiness — empty paste should still preventDefault
+        // for predictable single-path behavior.
+        const hasTextItem = Array.from(items).some(
+          (it) => it.kind === "string" && it.type === "text/plain",
+        );
+        if (hasTextItem) {
           ev.preventDefault();
           ev.stopPropagation();
-          socket.send({ type: "data", payload: text });
+          const text = ev.clipboardData?.getData("text/plain") ?? "";
+          if (text) socket.send({ type: "data", payload: text });
         }
       };
       container.addEventListener("paste", handler, { capture: true });
       return () => {
         container.removeEventListener("paste", handler, { capture: true } as EventListenerOptions);
       };
-    }, [taskId, socket, onGitignoreSuggestion]);
+    }, [taskId, socket, onGitignoreSuggestion, onPasteImageError]);
 
     return (
       <div
