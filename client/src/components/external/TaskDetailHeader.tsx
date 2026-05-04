@@ -346,8 +346,39 @@ export function TaskDetailHeader({ task }: Props) {
   }, [launchMut, task.taskId, flashCopied, coord, prewarmPty]);
 
   const handleClose = useCallback(() => {
+    // Iterate-2026-05-04 (ADR-068-A1): "Close task" now ALSO kills the
+    // embedded-terminal pty (best-effort) so background sessions don't
+    // linger. Scrollback is RETAINED — explicit "Clear history" menu
+    // item handles destructive cleanup.
     closeMut.mutate(task.taskId);
+    void fetch(
+      `/api/terminal/${encodeURIComponent(task.taskId)}/close`,
+      { method: "POST" },
+    ).catch(() => undefined);
   }, [closeMut, task.taskId]);
+
+  // Iterate-2026-05-04 (ADR-068-A1): "Clear terminal history" — destructive
+  // cleanup of disk-backed scrollback. Surfaced via "..." overflow menu;
+  // confirm-modal in the page layer guards accidental clicks.
+  const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const handleConfirmClearHistory = useCallback(async () => {
+    setClearHistoryError(null);
+    try {
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(task.taskId)}/clear-scrollback`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        setClearHistoryError(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`);
+        return;
+      }
+      setConfirmClearHistoryOpen(false);
+    } catch (err) {
+      setClearHistoryError(err instanceof Error ? err.message : String(err));
+    }
+  }, [task.taskId]);
 
   const handleDelete = useCallback(() => {
     if (
@@ -649,6 +680,20 @@ export function TaskDetailHeader({ task }: Props) {
                 />
                 Delete task
               </DropdownMenu.Item>
+              <DropdownMenu.Item
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setConfirmClearHistoryOpen(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-error,#DC2626)] outline-none transition hover:bg-[var(--color-error,#DC2626)]/10"
+                data-testid="task-detail-menu-clear-history"
+              >
+                <Trash2
+                  size={14}
+                  className="text-[var(--color-error,#DC2626)]"
+                />
+                Clear terminal history
+              </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 h-px bg-[var(--color-border,#e0dbd4)]" />
               <DropdownMenu.Item
                 onSelect={(e) => {
@@ -700,6 +745,59 @@ export function TaskDetailHeader({ task }: Props) {
           });
         }}
       />
+
+      {/* ADR-068-A1: Clear-history confirm modal. Inline (vs reusing
+          ConfirmDeleteDialog which is task-shaped) so the copy is
+          terminal-specific + the destructive action is contained. */}
+      {confirmClearHistoryOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30"
+          data-testid="confirm-clear-history-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmClearHistoryOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-[var(--radius-card,12px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] p-5 shadow-[var(--shadow-card,0_6px_30px_rgba(0,0,0,0.10))]"
+            data-testid="confirm-clear-history-dialog"
+          >
+            <h2 className="text-[15px] font-semibold text-[var(--color-text,#1a1a1a)]">
+              Clear terminal history?
+            </h2>
+            <p className="mt-2 text-[13px] text-[var(--color-muted,#6b7280)]">
+              The persisted terminal scrollback for this task will be deleted
+              from disk. The active session (if any) keeps running. This
+              cannot be undone.
+            </p>
+            {clearHistoryError ? (
+              <p
+                className="mt-3 text-[12px] text-[var(--color-error,#DC2626)]"
+                data-testid="confirm-clear-history-error"
+              >
+                Failed: {clearHistoryError}
+              </p>
+            ) : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearHistoryOpen(false)}
+                className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[12px] text-[var(--color-text,#1a1a1a)] transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                data-testid="confirm-clear-history-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmClearHistory()}
+                className="rounded-[var(--radius-button,8px)] bg-[var(--color-error,#DC2626)] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:opacity-90"
+                data-testid="confirm-clear-history-confirm"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

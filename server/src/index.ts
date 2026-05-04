@@ -381,6 +381,9 @@ if (isMainModule) {
           },
           previewManager,
           loadProfile: (name: string) => loadProfileReal(name, getProfilesDir()),
+          // ADR-068-A1: cascade-clean scrollback on DELETE /tasks/:id.
+          scrollbackClearBestEffort: (taskId: string) =>
+            scrollbackStore.clearBestEffort(taskId),
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
