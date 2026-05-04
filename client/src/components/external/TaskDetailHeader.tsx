@@ -608,19 +608,30 @@ export function TaskDetailHeader({ task }: Props) {
         {cta === "terminal" && (
           <button
             type="button"
-            onClick={() => void handleResume()}
-            disabled={launchMut.isPending || coord.pendingLaunch !== null}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:opacity-60"
+            onClick={() => {
+              // Phase-5-Codex review fix (HIGH): for state=active|
+              // awaiting_external_start, "Terminal" was calling
+              // handleResume() which auto-executed claude --resume —
+              // unwanted side-effect when the user just wants to look
+              // at a live session. Now this CTA is a pure nav-flip:
+              // dispatch a no-op into the coord that toggles the
+              // Terminal tab. Resume is reachable via state=idle (CTA
+              // becomes orange "Resume" automatically when pty dies +
+              // mtime drifts > 2 min — see external/routes.ts state
+              // computation).
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("webui:focus-terminal-tab"),
+                );
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover,#5a4f48)]"
             data-testid="cta-terminal"
             data-color="brown"
-            aria-label="Terminal — open + resume session"
+            aria-label="Terminal — open the embedded terminal pane"
           >
             <TerminalIcon size={14} />
-            {launchMut.isPending
-              ? "Preparing…"
-              : copiedLabel === "Resuming…"
-              ? "Sent — terminal opening"
-              : "Terminal"}
+            Terminal
           </button>
         )}
 

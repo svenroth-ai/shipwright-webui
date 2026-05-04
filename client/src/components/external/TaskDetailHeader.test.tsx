@@ -191,50 +191,42 @@ describe("TaskDetailHeader — behavior", () => {
     });
   });
 
-  it("Terminal CTA (active) posts /launch with resume=true + dispatches into LaunchCoordinator (ADR-068-A1)", async () => {
+  it("Terminal CTA (active) is a pure tab-flip — does NOT post /launch (post-Phase-5-Codex review fix)", async () => {
+    // Phase-5-Codex review fix (HIGH): "Terminal" CTA on active/awaiting
+    // tasks no longer auto-executes claude --resume. The user expectation
+    // for an active task is "let me see what's running" — clicking
+    // Terminal should JUST switch the tab. Resume only fires from
+    // state=idle (CTA becomes orange "Resume" automatically) OR via the
+    // "..." menu when the user explicitly wants it.
     const fetchInner = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
       const u = String(url);
+      // Should NOT be called for /launch on Terminal click.
       if (u.includes("/launch")) {
-        return new Response(
-          JSON.stringify({
-            task: { ...makeTask({ state: "active" }) },
-            commands: {
-              powershell: "& claude --resume 'abc' --name 'demo'",
-              cmd: "claude --resume abc --name demo",
-              posix: "claude --resume 'abc' --name 'demo'",
-            },
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
+        throw new Error(
+          `unexpected /launch call from Terminal CTA: ${u}`,
         );
       }
-      if (u.includes("/spawn")) return new Response("{}", { status: 200 });
       return new Response("{}", { status: 200 });
     });
     renderHeader(makeTask({ state: "active" }), fetchInner);
+
+    let dispatchedFocus = false;
+    const focusHandler = () => {
+      dispatchedFocus = true;
+    };
+    window.addEventListener("webui:focus-terminal-tab", focusHandler);
 
     await act(async () => {
       fireEvent.click(screen.getByTestId("cta-terminal"));
     });
 
-    await waitFor(() => {
-      const launchCall = fetchInner.mock.calls.find(
-        (c) => c[0] !== undefined && String(c[0]).includes("/launch"),
-      );
-      expect(launchCall).toBeDefined();
-    });
+    window.removeEventListener("webui:focus-terminal-tab", focusHandler);
+    expect(dispatchedFocus).toBe(true);
+    // The Terminal CTA must NOT have triggered any /launch call.
     const launchCall = fetchInner.mock.calls.find(
       (c) => c[0] !== undefined && String(c[0]).includes("/launch"),
     );
-    const launchInit = launchCall?.[1] as RequestInit | undefined;
-    const body = JSON.parse(launchInit?.body as string);
-    expect(body.resume).toBe(true);
-    // The /spawn prewarm is also fired (best-effort).
-    await waitFor(() => {
-      const spawnCall = fetchInner.mock.calls.find(
-        (c) => c[0] !== undefined && String(c[0]).includes("/spawn"),
-      );
-      expect(spawnCall).toBeDefined();
-    });
+    expect(launchCall).toBeUndefined();
   });
 
   it("3-dots menu surfaces Close + Delete (+ debug toggle), no Fork", async () => {
