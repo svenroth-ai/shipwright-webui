@@ -205,24 +205,38 @@ export class ScrollbackStore {
     return st.queue.add(() => this.readLocked(taskId)) as Promise<string>;
   }
 
-  /** Cached size (bytes) of the live `.log`. Lazy-init from disk if missing. */
+  /**
+   * Total persisted bytes for a task — sum of `.log` (live) + `.log.1`
+   * (rotated archive). The cached size in PerTaskState reflects ONLY
+   * the live `.log` and resets on rotation, so a callee using `bytes()`
+   * to gate replay-presence UI would otherwise get a false 0 right
+   * after rotation. Phase-3 review fix (HIGH).
+   */
   async bytes(taskId: string): Promise<number> {
     if (this.disabled) return 0;
     this.validateTaskId(taskId);
-    const st = this.states.get(taskId);
-    if (st && st.size > 0) return st.size;
-
-    // Cold-cache lookup: stat the file.
-    try {
-      const filePath = path.join(await this.ensureDirResolved(), `${taskId}.log`);
-      const stats = await fsAsync.stat(filePath);
-      const fresh = this.getOrInitState(taskId);
-      fresh.size = stats.size;
-      return stats.size;
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") return 0;
-      throw err;
+    const dir = await this.ensureDirResolved();
+    let total = 0;
+    for (const name of [`${taskId}.log`, `${taskId}.log.1`]) {
+      try {
+        const stats = await fsAsync.stat(path.join(dir, name));
+        total += stats.size;
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      }
     }
+    // Refresh per-task size cache against the live .log (only the
+    // live size is the size cache's contract).
+    const st = this.states.get(taskId);
+    if (st) {
+      try {
+        const live = await fsAsync.stat(path.join(dir, `${taskId}.log`));
+        st.size = live.size;
+      } catch {
+        st.size = 0;
+      }
+    }
+    return total;
   }
 
   /**
@@ -288,7 +302,16 @@ export class ScrollbackStore {
       throw err;
     }
 
-    const candidates: { taskId: string; file: string; mtime: number }[] = [];
+    // Phase-3 review fix (MEDIUM): group by task so .log + .log.1 of
+    // the same task count as ONE deletion unit against maxFilesPerPass
+    // (otherwise a 100-file cap would only free 50 tasks of history).
+    interface TaskGroup {
+      taskId: string;
+      files: string[];
+      newestMtime: number;
+      oldestMtime: number;
+    }
+    const groupsById = new Map<string, TaskGroup>();
     for (const name of entries) {
       const m = name.match(/^([0-9a-fA-F-]{36})\.log(?:\.1)?$/);
       if (!m) continue;
@@ -296,26 +319,54 @@ export class ScrollbackStore {
       if (sweepOpts.activeTaskIds.has(taskId)) continue;
       try {
         const stats = await fsAsync.stat(path.join(dir, name));
-        if (stats.mtimeMs >= cutoffMs) continue;
-        candidates.push({ taskId, file: name, mtime: stats.mtimeMs });
+        // Keep the WHOLE task only if every file in the group is
+        // expired. If any file is fresh, skip the entire task.
+        if (stats.mtimeMs >= cutoffMs) {
+          groupsById.delete(taskId);
+          // Mark "fresh" so we don't add expired siblings later.
+          continue;
+        }
+        const g = groupsById.get(taskId);
+        if (g) {
+          g.files.push(name);
+          g.newestMtime = Math.max(g.newestMtime, stats.mtimeMs);
+          g.oldestMtime = Math.min(g.oldestMtime, stats.mtimeMs);
+        } else {
+          groupsById.set(taskId, {
+            taskId,
+            files: [name],
+            newestMtime: stats.mtimeMs,
+            oldestMtime: stats.mtimeMs,
+          });
+        }
       } catch {
         result.errors++;
       }
     }
 
-    candidates.sort((a, b) => a.mtime - b.mtime); // oldest-first
+    // Oldest-first by newestMtime so the group whose live file is
+    // oldest gets cleaned first (aligned with TTL semantics).
+    const groups = [...groupsById.values()].sort(
+      (a, b) => a.newestMtime - b.newestMtime,
+    );
 
-    for (const c of candidates) {
+    for (const g of groups) {
       if (result.deleted >= maxFiles) {
         result.remaining++;
         continue;
       }
-      try {
-        await fsAsync.unlink(path.join(dir, c.file));
+      let groupFailed = false;
+      for (const file of g.files) {
+        try {
+          await fsAsync.unlink(path.join(dir, file));
+        } catch {
+          result.errors++;
+          groupFailed = true;
+        }
+      }
+      if (!groupFailed) {
         result.deleted++;
-        this.states.delete(c.taskId);
-      } catch {
-        result.errors++;
+        this.states.delete(g.taskId);
       }
     }
     return result;
@@ -451,6 +502,21 @@ export class ScrollbackStore {
       } catch (err) {
         // ENOENT = nothing to rotate (cleared mid-flight). OK.
         if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      }
+
+      // Phase-3 review fix (MEDIUM): unlink any existing `.log.1`
+      // BEFORE renaming. fs.rename overwrite semantics differ across
+      // Node versions / OSes — explicit unlink makes rotation
+      // deterministic + idempotent.
+      try {
+        await fsAsync.unlink(archive);
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[scrollback] rotate pre-unlink archive failed for ${taskId}: ${(err as Error).message}`,
+          );
+        }
       }
 
       try {

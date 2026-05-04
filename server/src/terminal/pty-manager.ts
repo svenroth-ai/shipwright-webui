@@ -215,6 +215,16 @@ export class PtyManager {
     return this.entries.get(taskId)?.meta;
   }
 
+  /**
+   * Return the set of taskIds with a live pty entry. Used by the daily
+   * scrollback sweep (ADR-068-A1, AC-11) to skip clearing files for
+   * tasks whose pty is still running but whose `sdk-sessions.json` state
+   * has drifted (e.g. session ended mid-run).
+   */
+  getLiveTaskIds(): Set<string> {
+    return new Set(this.entries.keys());
+  }
+
   /** Idempotent ensure-or-create. */
   spawn(taskId: string, opts: PtySpawnOpts): PtyHandleMeta {
     const existing = this.entries.get(taskId);

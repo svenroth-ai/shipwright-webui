@@ -346,33 +346,46 @@ describe("ScrollbackStore — rotation", () => {
     }
   });
 
-  it("rotation buffer overflow throws ScrollbackStoreError", async () => {
-    // Stub the queue so rotation never completes; appends pile up indefinitely.
+  it("rotation buffer overflow throws ScrollbackStoreError (deterministic)", async () => {
+    // Phase-3 review fix (MEDIUM): use a hanging renameFn so rotation
+    // never completes; appends queue into the rotationBuffer until it
+    // exceeds the cap, deterministically triggering the throw.
+    let resolveRename: (() => void) | null = null;
+    const hangingRename = () =>
+      new Promise<void>((resolve) => {
+        resolveRename = resolve;
+      });
+
     const small = new ScrollbackStore(dir, {
       maxBytesPerTask: 100,
       rotationBufferMultiplier: 2, // cap = 200 bytes
+      renameFn: hangingRename,
     });
     await small.init();
+
     // Trip rotation.
     small.append(VALID_TASK_ID_2, Buffer.from("a".repeat(150)));
-    // Wait for rotation to start (state → ROTATING).
+    // Yield so the queue scheduler picks up rotation (state → ROTATING)
+    // and parks on hangingRename.
+    await new Promise((r) => setImmediate(r));
     await new Promise((r) => setImmediate(r));
 
-    // Force enough buffered bytes to exceed cap (200 * 2 = 400).
-    let threw = false;
-    try {
-      // Several large appends should overflow the rotation buffer.
-      for (let i = 0; i < 10; i++) {
-        small.append(VALID_TASK_ID_2, Buffer.from("x".repeat(50)));
-      }
-    } catch (err) {
-      threw = err instanceof ScrollbackStoreError &&
-        err.code === "rotation_buffer_overflow";
-    }
-    // We MIGHT not throw if rotation completes before fill. That's also fine.
-    // The test asserts: IF it threw, it threw the right code.
-    expect(threw === true || threw === false).toBe(true);
-    await small.shutdown();
+    // Now rotation is parked. Buffer size threshold = 200 bytes.
+    // First append (50 bytes) → buffered. Second (200 bytes) → would
+    // exceed 200 → throws.
+    expect(() =>
+      small.append(VALID_TASK_ID_2, Buffer.from("y".repeat(50))),
+    ).not.toThrow();
+    expect(() =>
+      small.append(VALID_TASK_ID_2, Buffer.from("z".repeat(200))),
+    ).toThrowError(ScrollbackStoreError);
+
+    // Release the hanging rename + drain. shutdown(200ms) ensures the
+    // test doesn't race the framework timeout if the queue stays
+    // parked on a slow OS rename.
+    resolveRename?.();
+    await new Promise((r) => setTimeout(r, 50));
+    await small.shutdown(200);
   });
 
   it("rotation Windows-EBUSY retry: succeeds within renameMaxAttempts", async () => {

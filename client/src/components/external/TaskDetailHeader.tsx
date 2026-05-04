@@ -279,6 +279,30 @@ export function TaskDetailHeader({ task }: Props) {
   // `commands[shellKind] + "\r"` over the WS once the prompt-readiness
   // handshake clears. CTA disabled while pendingLaunch !== null OR
   // launchMut.isPending so rapid-clicks queue depth stays = 1.
+  // Phase-3 review fix (HIGH): /spawn prewarm is best-effort but its
+  // status IS checked. Network failure is tolerated (ws-upgrade will
+  // ensure-or-create on first attach), but a 4xx/5xx response is
+  // surfaced so the user knows the prewarm rejected (e.g.
+  // task_cwd_unresolvable, pty_spawn_rejected). On 4xx/5xx we still
+  // dispatch the auto-launch — the WS upgrade path is authoritative —
+  // but we surface a non-blocking error message.
+  const prewarmPty = useCallback(async (taskId: string): Promise<string | null> => {
+    try {
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(taskId)}/spawn`,
+        { method: "POST" },
+      );
+      if (res.ok) return null;
+      const detail = await res.text().catch(() => "");
+      return `prewarm ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`;
+    } catch (err) {
+      // Network errors are non-fatal — ws-upgrade will spawn.
+      return err instanceof Error
+        ? `prewarm network error: ${err.message}`
+        : "prewarm network error";
+    }
+  }, []);
+
   const handleLaunch = useCallback(async () => {
     setCtaError(null);
     if (launchMut.isPending || coord.pendingLaunch) return;
@@ -289,20 +313,18 @@ export function TaskDetailHeader({ task }: Props) {
       });
       // Idempotent prewarm so the pty is ready before the user lands on
       // the Terminal tab (next ws-upgrade is a no-op if already spawned).
-      try {
-        await fetch(
-          `/api/terminal/${encodeURIComponent(task.taskId)}/spawn`,
-          { method: "POST" },
-        );
-      } catch {
-        // Non-fatal: ws-upgrade will spawn anyway.
+      const prewarmIssue = await prewarmPty(task.taskId);
+      if (prewarmIssue) {
+        // Surface as non-blocking warning; still dispatch — the
+        // WS-upgrade path is the authoritative spawn point.
+        setCtaError(prewarmIssue);
       }
       coord.dispatchAutoLaunch(commands, false);
       flashCopied("Launching…");
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied, coord]);
+  }, [launchMut, task.taskId, flashCopied, coord, prewarmPty]);
 
   const handleResume = useCallback(async () => {
     setCtaError(null);
@@ -312,20 +334,16 @@ export function TaskDetailHeader({ task }: Props) {
         taskId: task.taskId,
         resume: true,
       });
-      try {
-        await fetch(
-          `/api/terminal/${encodeURIComponent(task.taskId)}/spawn`,
-          { method: "POST" },
-        );
-      } catch {
-        // Non-fatal.
+      const prewarmIssue = await prewarmPty(task.taskId);
+      if (prewarmIssue) {
+        setCtaError(prewarmIssue);
       }
       coord.dispatchAutoLaunch(commands, true);
       flashCopied("Resuming…");
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied, coord]);
+  }, [launchMut, task.taskId, flashCopied, coord, prewarmPty]);
 
   const handleClose = useCallback(() => {
     closeMut.mutate(task.taskId);

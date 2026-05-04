@@ -267,7 +267,23 @@ if (isMainModule) {
           }),
         );
       }
+      // Iterate 4 (ADR-067) — embedded-terminal pty manager.
+      // PtyManager owns shell-pty lifecycle (Plan-D''-conform: shells only,
+      // never `claude`). Construction is async because the @lydell/node-pty
+      // backend is dynamically imported so unit tests don't pull in the
+      // native binary.
+      const ptyManager = new PtyManager({
+        spawn: await createNodePtySpawnFn(),
+        wsBufferBytes: config.terminalWsBufferBytes,
+        idleTimeoutMs: config.terminalIdleTimeoutMs,
+        scrollbackStore,
+      });
+
       // Boot-time TTL sweep — bounded, oldest-first, active-aware.
+      // AC-11 active definition: task in sdk-sessions.json with state ∈
+      // {active, idle, awaiting_external_start, jsonl_missing} OR live
+      // pty entry in pty-manager (catches stale-session-but-live-pty
+      // edge case — Phase-3 review fix HIGH).
       const computeActiveTaskIds = (): Set<string> => {
         const all = sdkSessionsStore.list();
         const ids = new Set<string>();
@@ -280,6 +296,9 @@ if (isMainModule) {
           ) {
             ids.add(t.taskId);
           }
+        }
+        for (const id of ptyManager.getLiveTaskIds()) {
+          ids.add(id);
         }
         return ids;
       };
@@ -330,18 +349,6 @@ if (isMainModule) {
           });
       }, 24 * 60 * 60 * 1000);
       dailySweepTimer.unref();
-
-      // Iterate 4 (ADR-067) — embedded-terminal pty manager.
-      // PtyManager owns shell-pty lifecycle (Plan-D''-conform: shells only,
-      // never `claude`). Construction is async because the @lydell/node-pty
-      // backend is dynamically imported so unit tests don't pull in the
-      // native binary.
-      const ptyManager = new PtyManager({
-        spawn: await createNodePtySpawnFn(),
-        wsBufferBytes: config.terminalWsBufferBytes,
-        idleTimeoutMs: config.terminalIdleTimeoutMs,
-        scrollbackStore,
-      });
 
       // @hono/node-ws adapter — `upgradeWebSocket` is a Hono middleware
       // factory, `injectWebSocket(server)` patches the underlying
@@ -440,7 +447,10 @@ if (isMainModule) {
         );
       }
 
-      const shutdown = () => {
+      // Phase-3 review fix (HIGH): shutdown is now async + awaits the
+      // scrollback drain BEFORE process.exit. The hard 3s timer remains
+      // as a safety fallback only.
+      const shutdown = async () => {
         console.log("Shutting down…");
         try {
           previewManager.killAll();
@@ -452,18 +462,25 @@ if (isMainModule) {
         } catch {
           // best-effort — ignore shutdown errors
         }
-        // ADR-068-A1: drain scrollback queues. Fire-and-forget — process.exit
-        // below races the await; the timeout guard inside shutdown() ensures
-        // we never hang on a stuck queue.
-        scrollbackStore
-          .shutdown(2000)
-          .catch(() => undefined)
-          .finally(() => process.exit(0));
-        // Hard ceiling in case shutdown() hangs longer than expected.
-        setTimeout(() => process.exit(0), 3000).unref();
+        // Hard ceiling fires only if scrollbackStore.shutdown hangs.
+        const hardCap = setTimeout(() => process.exit(0), 3000);
+        hardCap.unref();
+        try {
+          await scrollbackStore.shutdown(2000);
+        } catch (err) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "scrollback shutdown threw",
+              error: String(err).slice(0, 200),
+            }),
+          );
+        }
+        clearTimeout(hardCap);
+        process.exit(0);
       };
-      process.on("SIGTERM", shutdown);
-      process.on("SIGINT", shutdown);
+      process.on("SIGTERM", () => void shutdown());
+      process.on("SIGINT", () => void shutdown());
       process.on("exit", () => {
         try {
           previewManager.killAll();
