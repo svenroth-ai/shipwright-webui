@@ -100,6 +100,22 @@ function TaskDetailPageBody() {
     setPendingFocus(true);
   }, [coord.pendingLaunch, setCenterTab]);
 
+  // Phase-3 review fix (HIGH): explicit page-unmount cancel (Decision #17).
+  // The provider unmount also clears state, but recording an explicit
+  // `cancelLaunch("page-unmount")` reason is required by AC-5 so coord
+  // diagnostics + lastCancelReason reflect the true source.
+  useEffect(() => {
+    return () => {
+      // Capture coord at effect-mount time; if a pending exists at
+      // unmount, fire the explicit cancel reason. Defense-in-depth —
+      // safe to call even when no pending exists (no-op in that case).
+      coord.cancelLaunch("page-unmount");
+    };
+    // Intentionally empty deps — the effect must fire ONLY at unmount.
+    // coord identity is stable (memoized in the provider).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Drives the readiness handshake: when the terminal reports ready=true
   // and a focus is pending, focus xterm. Single retry on next ready
   // transition keeps it simple — no busy loop. Reader-role tabs cancel

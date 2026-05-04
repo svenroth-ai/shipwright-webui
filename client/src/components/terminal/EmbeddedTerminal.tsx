@@ -171,21 +171,41 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       void (async () => {
         // Prompt-readiness handshake (Decision #12).
         const startWait = Date.now();
+        let handshakeCleared = false;
         while (!cancelled && Date.now() - startWait < PROMPT_HARD_CAP_MS) {
           if (
             dataSeenInitiallyRef.current &&
             Date.now() - lastPtyDataAtRef.current >= PROMPT_QUIESCE_MS
           ) {
+            handshakeCleared = true;
             break;
           }
           await new Promise((r) => setTimeout(r, PROMPT_POLL_MS));
         }
         if (cancelled) return;
 
+        // Phase-3 review fix (HIGH): the hard-cap is a CANCEL boundary,
+        // NOT permission to inject blindly. If the prompt-readiness
+        // handshake never cleared within 3s, cancel the pending launch
+        // explicitly so the CTA re-enables and the user can retry.
+        if (!handshakeCleared) {
+          consumedTokensRef.current.add(pending.launchToken);
+          coord.cancelLaunch("timeout");
+          return;
+        }
+
         // Re-check preconditions — coord state may have changed.
         if (consumedTokensRef.current.has(pending.launchToken)) return;
         if (!socket.ready || socket.role !== "writer") return;
         if (!socket.shellKind) return;
+        // Phase-3 review fix (HIGH): explicit timeout-cancel on expired
+        // pending entry instead of silently returning. Surfaces the
+        // deterministic cancel-reason ("timeout") in coord state.
+        if (pending.expiresAt <= Date.now()) {
+          consumedTokensRef.current.add(pending.launchToken);
+          coord.cancelLaunch("timeout");
+          return;
+        }
 
         const cmd =
           socket.shellKind === "pwsh"

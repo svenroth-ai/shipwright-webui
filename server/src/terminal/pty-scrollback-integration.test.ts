@@ -168,19 +168,39 @@ describe("PtyManager + ScrollbackStore integration (ADR-068-A1)", () => {
   });
 
   it("survives scrollback append throwing — broadcast loop continues", async () => {
-    // Bind a generic data subscriber to verify it still receives data
-    // even if scrollback append throws (rotation buffer overflow case).
-    let received: string[] = [];
-    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
-    mgr.subscribe(TASK, (data) => received.push(data));
+    // Phase-3 review fix (MEDIUM): inject a throwing ScrollbackStore so
+    // the test actually verifies the try/catch around scrollbackStore.append
+    // in pty-manager onData. Without this, the previous version was
+    // vacuous.
+    const throwingDir = await fs.mkdtemp(path.join(os.tmpdir(), "throwing-"));
+    const baseStore = new ScrollbackStore(throwingDir, { maxBytesPerTask: 4096 });
+    await baseStore.init();
+    // Wrap append() to always throw.
+    const throwingStore = Object.create(baseStore) as ScrollbackStore;
+    Object.defineProperty(throwingStore, "append", {
+      value: () => {
+        throw new Error("simulated disk failure");
+      },
+    });
 
-    // Inject an invalid task by manipulating the entry directly is
-    // complex; easier: emit a normal payload — should reach the
-    // subscriber regardless. (The throw path is covered in scrollback's
-    // own tests; this just verifies the try/catch around append is
-    // present and not bypassed by some refactor.)
-    spawn.lastPty().__emit("ok");
-    expect(received).toContain("ok");
+    const tmpSpawn = makeSpawn();
+    const throwingMgr = new PtyManager({
+      spawn: tmpSpawn.fn,
+      idleTimeoutMs: 60_000,
+      scrollbackStore: throwingStore,
+    });
+
+    const received: string[] = [];
+    throwingMgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+    throwingMgr.subscribe(TASK, (data) => received.push(data));
+
+    // The throwing append() must NOT prevent broadcast.
+    tmpSpawn.lastPty().__emit("payload-after-throw");
+    expect(received).toContain("payload-after-throw");
+
+    throwingMgr.killAll();
+    await baseStore.shutdown();
+    await fs.rm(throwingDir, { recursive: true, force: true });
   });
 
   it("multi-byte UTF-8 payload appends faithfully through pty.onData", async () => {
