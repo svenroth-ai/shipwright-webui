@@ -256,6 +256,19 @@ export function TaskDetailHeader({ task }: Props) {
     copyResetTimer.current = setTimeout(() => setCopiedLabel(null), 1800);
   }, []);
 
+  // ADR-067: dispatch a typed window event after the clipboard write
+  // succeeds so TaskDetailPage's launch-flow side-effect (flip to
+  // Terminal tab + focus xterm) fires. The header CTA is the primary
+  // launch surface — without this dispatch, only the now-secondary
+  // <TerminalLaunchButton> path triggered the side-effect, leaving the
+  // most-clicked CTA broken for the embedded-terminal flow.
+  const dispatchLaunchCopied = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("webui:launch-copied", { detail: { taskId: task.taskId } }),
+    );
+  }, [task.taskId]);
+
   const handleLaunch = useCallback(async () => {
     setCtaError(null);
     try {
@@ -266,10 +279,11 @@ export function TaskDetailHeader({ task }: Props) {
       const command = pickPlatformCommand(commands);
       await writeClipboard(command);
       flashCopied("Launch command copied");
+      dispatchLaunchCopied();
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied]);
+  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
 
   const handleResume = useCallback(async () => {
     setCtaError(null);
@@ -281,10 +295,11 @@ export function TaskDetailHeader({ task }: Props) {
       const command = pickPlatformCommand(commands);
       await writeClipboard(command);
       flashCopied("Resume command copied");
+      dispatchLaunchCopied();
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied]);
+  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
 
   const handleClose = useCallback(() => {
     closeMut.mutate(task.taskId);

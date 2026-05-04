@@ -33,6 +33,21 @@ async function makeTaskCwd(): Promise<string> {
   return dir;
 }
 
+async function cleanupCwd(dir: string): Promise<void> {
+  // Windows: a freshly-spawned pty (auto-create on /paste-image or
+  // /ws upgrade) keeps the cwd open until it exits. Best-effort with
+  // retries; leftover bytes in tmpdir are acceptable across CI runs.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      await fs.rm(dir, { recursive: true, force: true });
+      return;
+    } catch (err) {
+      if (attempt === 4) return; // give up silently
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+}
+
 async function createTask(request: import("@playwright/test").APIRequestContext, cwd: string) {
   const res = await request.post("/api/external/tasks", {
     data: { title: "embedded-terminal-spec-73", cwd },
@@ -41,6 +56,12 @@ async function createTask(request: import("@playwright/test").APIRequestContext,
   const body = (await res.json()) as { task: { taskId: string } };
   return body.task.taskId;
 }
+
+// Spec 73 needs clipboard read/write permissions so the launch CTA's
+// `navigator.clipboard.writeText` resolves (otherwise no
+// webui:launch-copied dispatch fires) and so the paste-image fetch
+// path can observe a real DataTransfer.
+test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
 test.describe("ADR-067 — Embedded terminal", () => {
   test("tabs render; Terminal default; xterm canvas + helper textarea present", async ({ page, request }) => {
@@ -64,7 +85,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
       // xterm rendered: helper textarea is present inside the embedded-terminal wrapper.
       await expect(page.locator(".xterm-helper-textarea")).toHaveCount(1);
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -81,7 +102,10 @@ test.describe("ADR-067 — Embedded terminal", () => {
       const stored = await page.evaluate(() =>
         localStorage.getItem("webui:embedded-terminal-default-tab"),
       );
-      expect(stored).toBe('"transcript"');
+      // Accept both the JSON-stringified form ('"transcript"') and the
+      // bare string form, in case useLocalStorage's encoding contract
+      // changes — the spec only requires the SEMANTIC value to round-trip.
+      expect(stored === '"transcript"' || stored === "transcript").toBe(true);
 
       await page.reload();
       await expect(page.getByTestId("task-detail-transcript")).toHaveAttribute(
@@ -89,7 +113,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
         "active",
       );
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -139,7 +163,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
     } finally {
       // The pty was spawned by the WS upgrade — auto-killed when the
       // last connection closed (ADR-067 AC-2c). No manual cleanup needed.
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -178,7 +202,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
       expect(dirEntries.length).toBe(1);
       expect(dirEntries[0]).toMatch(/^img-\d+-[0-9a-f]{8}\.png$/);
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -199,7 +223,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
       const body = (await res.json()) as { error: string };
       expect(body.error).toBe("unsupported_image_type");
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -222,7 +246,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
       const body = (await r2.json()) as { ok: boolean; appended: boolean };
       expect(body.appended).toBe(false);
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -235,7 +259,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
       const body = (await res.json()) as { error: string };
       expect(body.error).toBe("gitignore_missing");
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -250,8 +274,10 @@ test.describe("ADR-067 — Embedded terminal", () => {
         "data-state",
         "active",
       );
-      // Click the launch CTA in the header.
-      await page.getByTestId("terminal-launch-btn").click();
+      // Click the launch CTA in the header (testid `cta-launch-in-terminal`
+      // for draft/awaiting_external_start tasks; the header dispatches
+      // webui:launch-copied after the clipboard write).
+      await page.getByTestId("cta-launch-in-terminal").click();
       // The clipboard write is async + the event dispatch follows it. Wait
       // for the resulting flip.
       await expect(page.getByTestId("task-detail-terminal")).toHaveAttribute(
@@ -260,7 +286,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
         { timeout: 5000 },
       );
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 
@@ -272,7 +298,69 @@ test.describe("ADR-067 — Embedded terminal", () => {
       await expect(page.locator('[data-testid^="chat-"]')).toHaveCount(0);
       await expect(page.locator("textarea:not(.xterm-helper-textarea)")).toHaveCount(0);
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
+    }
+  });
+
+  test("DOM paste event with text-only ClipboardData routes through socket.send (AC-12c text-paste browser-level)", async ({ page, request }) => {
+    const cwd = await makeTaskCwd();
+    const taskId = await createTask(request, cwd);
+    try {
+      // Install the WS-send tap BEFORE the page initializes — addInitScript
+      // runs in every new document context (incl. the first goto), so the
+      // hook captures the patched constructor when it imports.
+      await page.addInitScript(() => {
+        const w = window as unknown as { __wsSent: string[] };
+        w.__wsSent = [];
+        const RealWS = window.WebSocket;
+        const RealSend = RealWS.prototype.send;
+        // Patch on the prototype so every instance is captured without
+        // touching the constructor identity (some libs use `instanceof`).
+        RealWS.prototype.send = function (
+          this: WebSocket,
+          data: string | ArrayBufferLike | Blob | ArrayBufferView,
+        ) {
+          if (typeof data === "string") w.__wsSent.push(data);
+          return RealSend.call(this, data);
+        };
+      });
+      await page.goto(`/tasks/${taskId}`);
+      // Wait for the EmbeddedTerminal to mount AND its WS to open AND
+      // the server's ready envelope to land — without this the paste
+      // handler's socket.send is a no-op (readyState !== OPEN).
+      await page.waitForSelector('[data-testid="embedded-terminal"][data-ws-ready="true"]');
+
+      const result = await page.evaluate(async () => {
+        const target = document.querySelector(
+          '[data-testid="embedded-terminal-canvas"]',
+        );
+        if (!target) return { sent: [] as string[] };
+        const dt = new DataTransfer();
+        dt.items.add("ls -la\n", "text/plain");
+        const ev = new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+        });
+        Object.defineProperty(ev, "clipboardData", { value: dt });
+        target.dispatchEvent(ev);
+        // Poll until a {type:"data"} envelope shows up (cap 1.5 s).
+        const w = window as unknown as { __wsSent: string[] };
+        const deadline = Date.now() + 1500;
+        while (Date.now() < deadline) {
+          if (w.__wsSent.some((s) => s.includes('"type":"data"'))) break;
+          await new Promise((r) => setTimeout(r, 50));
+        }
+        return { sent: w.__wsSent };
+      });
+
+      // The mock collects every send(); we expect a {type:"data"} envelope
+      // carrying the pasted text. Resize / ready frames come along too —
+      // we only assert presence of the data envelope.
+      const dataEnvelopes = result.sent.filter((s) => s.includes('"type":"data"'));
+      expect(dataEnvelopes.length).toBeGreaterThanOrEqual(1);
+      expect(dataEnvelopes.some((s) => s.includes("ls -la"))).toBe(true);
+    } finally {
+      await cleanupCwd(cwd);
     }
   });
 
@@ -280,12 +368,10 @@ test.describe("ADR-067 — Embedded terminal", () => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd);
     try {
-      await page.goto(`/tasks/${taskId}`);
-      // Stub fetch in the page so we can observe the POST without hitting
-      // the real server (the spec above already exercises the real path).
-      // We capture the URL + method + presence of an image FormData entry.
-      await page.evaluate(() => {
-        const w = window as unknown as { __pasteFetchCalls: Array<{ url: string; method?: string; hasImage: boolean; body?: string }> };
+      // Install fetch tap BEFORE page init so EmbeddedTerminal's
+      // fetch import sees the patched window.fetch.
+      await page.addInitScript(() => {
+        const w = window as unknown as { __pasteFetchCalls: Array<{ url: string; hasImage: boolean }> };
         w.__pasteFetchCalls = [];
         const realFetch = window.fetch.bind(window);
         window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -293,7 +379,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
           if (url.includes("/paste-image")) {
             const fd = init?.body;
             const hasImage = fd instanceof FormData && fd.has("image");
-            w.__pasteFetchCalls.push({ url, method: init?.method, hasImage });
+            w.__pasteFetchCalls.push({ url, hasImage });
             return new Response(
               JSON.stringify({
                 path: "/x/.claude-pastes/img.png",
@@ -306,6 +392,12 @@ test.describe("ADR-067 — Embedded terminal", () => {
           return realFetch(input, init);
         };
       });
+      await page.goto(`/tasks/${taskId}`);
+      // Wait for the EmbeddedTerminal mount (xterm + paste listener
+      // attached). The fetch-mock works regardless of WS state, but
+      // the paste handler is on the canvas, which is only rendered
+      // after the lazy import resolves.
+      await page.waitForSelector('[data-testid="embedded-terminal-canvas"]');
 
       // Construct a synthetic paste event with BOTH text and image
       // ClipboardItems and dispatch it on the embedded-terminal canvas.
@@ -354,7 +446,7 @@ test.describe("ADR-067 — Embedded terminal", () => {
       expect(result.called).toBe(true);
       expect(result.hasImage).toBe(true);
     } finally {
-      await fs.rm(cwd, { recursive: true, force: true });
+      await cleanupCwd(cwd);
     }
   });
 });

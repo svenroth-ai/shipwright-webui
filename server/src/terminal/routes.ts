@@ -21,6 +21,9 @@ import type { Hono } from "hono";
 import type { UpgradeWebSocket } from "hono/ws";
 import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
+import { stat as fsStat } from "node:fs/promises";
 
 import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 import { pathGuard, realPathGuard } from "../core/path-guard.js";
@@ -74,16 +77,12 @@ function defaultAllowedOrigins(origin: string | null): boolean {
 
 /**
  * Probe the Windows shell fallback chain pwsh → powershell → cmd. Returns
- * the first executable we can resolve via the PATH (or `where` on Windows).
- * `node:child_process.spawnSync('where', [...])` is the cheapest probe.
- * Cached per-process — shells don't disappear during a server lifetime.
+ * the first executable we can resolve via the PATH. Cached per-process —
+ * shells don't disappear during a server lifetime. ESM-safe (no require).
  */
 let cachedWinShell: string | null = null;
 function resolveWindowsShell(): string {
   if (cachedWinShell !== null) return cachedWinShell;
-  // require() is fine here — node:child_process is a built-in.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
   for (const candidate of ["pwsh.exe", "powershell.exe", "cmd.exe"]) {
     const r = spawnSync("where", [candidate], { stdio: "ignore" });
     if (r.status === 0) {
@@ -94,6 +93,26 @@ function resolveWindowsShell(): string {
   // Last-resort: cmd.exe is essentially always present on Windows.
   cachedWinShell = "cmd.exe";
   return "cmd.exe";
+}
+
+/**
+ * Resolve task.cwd through realpath BEFORE using it as the trusted root
+ * for any path-guard check. Without this, a symlinked task.cwd could
+ * pass child-path checks while pointing the new write surface outside
+ * the intended project root (external review F2 v2 — security HIGH).
+ *
+ * Returns the realpath-resolved absolute cwd, or null if cwd is missing
+ * or unresolvable. Caller must hard-fail (404 / 403) on null.
+ */
+function resolveTrustedCwd(rawCwd: string | undefined | null): string | null {
+  if (!rawCwd || typeof rawCwd !== "string") return null;
+  if (rawCwd.indexOf("\0") !== -1) return null;
+  if (!existsSync(rawCwd)) return null;
+  try {
+    return realpathSync(rawCwd);
+  } catch {
+    return null;
+  }
 }
 
 function defaultResolveShell(): string {
@@ -137,10 +156,12 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       const task = store.get(taskId);
       if (!task) return c.json({ error: "task_not_found" }, 404);
+      const trustedCwd = resolveTrustedCwd(task.cwd);
+      if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
 
       try {
         const meta = ptyManager.spawn(taskId, {
-          cwd: task.cwd,
+          cwd: trustedCwd,
           shell: resolveShell(),
         });
         return c.json({
@@ -175,11 +196,21 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       const task = store.get(taskId);
       if (!task) return c.json({ error: "task_not_found" }, 404);
+      const trustedCwd = resolveTrustedCwd(task.cwd);
+      if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
 
       // Content-Length precheck — refuse before buffering. 9 MiB ceiling
       // gives 1 MiB of headroom over the 8 MiB blob cap (multipart envelope
-      // overhead).
-      const contentLength = parseInt(c.req.header("content-length") ?? "0", 10);
+      // overhead). External review F2 v2: also refuse missing/invalid
+      // Content-Length so chunked-transfer can't bypass the precheck.
+      const rawLen = c.req.header("content-length");
+      if (!rawLen) {
+        return c.json({ error: "content_length_required" }, 411);
+      }
+      const contentLength = parseInt(rawLen, 10);
+      if (!Number.isFinite(contentLength) || contentLength <= 0) {
+        return c.json({ error: "content_length_invalid" }, 400);
+      }
       if (contentLength > 9 * 1024 * 1024) {
         return c.json({ error: "image_too_large" }, 413);
       }
@@ -201,27 +232,40 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         return c.json({ error: "image_read_failed", detail: String((err as Error).message) }, 400);
       }
 
-      // External code-review F3: refuse paste-image if there's no live
-      // writer bound to this task's pty. The writer-slot is filled when
-      // a WS connection has attached as writer; a second tab that's a
-      // reader cannot drive the pty via this REST surface either. If
-      // no pty exists at all, savePastedImage still persists the file
-      // but we skip the pty.write step.
+      // External review F3 (v2): if no pty exists yet, ensure-or-create
+      // it so paste-image works even when the user pastes into a freshly
+      // opened terminal tab. The writer-gate still applies — paste-image
+      // never writes if the current writer is a different tab.
       try {
+        let meta = ptyManager.get(taskId);
+        if (!meta) {
+          try {
+            meta = ptyManager.spawn(taskId, {
+              cwd: trustedCwd,
+              shell: resolveShell(),
+            });
+          } catch {
+            // Spawn failure is non-fatal here — the file save still
+            // succeeds; the response will report ptyWritten=false.
+            meta = undefined;
+          }
+        }
         const result = await savePastedImage({
-          cwd: task.cwd,
+          cwd: trustedCwd,
           bytes,
           keepLast: pastesKeepLast,
         });
-        const meta = ptyManager.get(taskId);
+        let ptyWritten = false;
         if (meta && ptyManager.hasActiveWriter(taskId)) {
           const quoted = quotePathForShell(result.absolutePath, meta.shellKind);
           ptyManager.write(taskId, quoted + " ");
+          ptyWritten = true;
         }
         return c.json({
           path: result.absolutePath,
           kind: result.kind,
           gitignoreSuggestion: result.gitignoreSuggestion,
+          ptyWritten,
           kept: result.prune.kept,
           deleted: result.prune.deleted,
         });
@@ -246,8 +290,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       const task = store.get(taskId);
       if (!task) return c.json({ error: "task_not_found" }, 404);
+      const trustedCwd = resolveTrustedCwd(task.cwd);
+      if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
 
-      const guard = pathGuard(task.cwd, ".gitignore");
+      const guard = pathGuard(trustedCwd, ".gitignore");
       if (!guard.ok) {
         return c.json({ error: "path_guard_traversal", detail: guard.reason }, 403);
       }
@@ -256,13 +302,12 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       // ENOENT — without this ordering, a missing .gitignore returns
       // 403 gitignore_symlink_escape (wrong) instead of 404
       // gitignore_missing (the spec'd behavior).
-      const { stat } = await import("node:fs/promises");
       try {
-        await stat(guard.absolute);
+        await fsStat(guard.absolute);
       } catch {
         return c.json({ error: "gitignore_missing" }, 404);
       }
-      const real = realPathGuard(task.cwd, guard.absolute);
+      const real = realPathGuard(trustedCwd, guard.absolute);
       if (!real.ok) {
         return c.json({ error: "gitignore_symlink_escape", detail: real.reason }, 403);
       }
@@ -295,10 +340,12 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         }
         const task = store.get(taskId);
         if (!task) throw new Error("task_not_found");
+        const trustedCwd = resolveTrustedCwd(task.cwd);
+        if (!trustedCwd) throw new Error("task_cwd_unresolvable");
 
-        // Ensure-or-create the pty.
+        // Ensure-or-create the pty against the realpath-validated cwd.
         const meta = ptyManager.spawn(taskId, {
-          cwd: task.cwd,
+          cwd: trustedCwd,
           shell: resolveShell(),
         });
 
