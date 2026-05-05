@@ -146,6 +146,15 @@ export async function createTask(args: {
    */
   phase?: string;
   /**
+   * 2026-05-05 — Save-to-Backlog wiring. Persists the user's chosen
+   * action id on creation so a later TaskCard "Launch" click recovers
+   * the correct command_template via routes.ts:421 fallback. Without
+   * this, `draft` tasks resolved at /launch time fall through to the
+   * legacy buildCopyCommands path and produce a vanilla `claude` with
+   * no slash command.
+   */
+  actionId?: string;
+  /**
    * iterate/multi-session-run-orchestrator-v2 — Phase-task linkage. When
    * the caller is creating a Continue Pipeline shadow, all four fields
    * travel together. The server validates shapes + idempotency:

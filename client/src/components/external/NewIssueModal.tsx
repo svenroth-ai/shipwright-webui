@@ -509,11 +509,17 @@ export function NewIssueModal({
           pluginDirs: string[];
           projectId: string;
           phase?: string;
+          actionId?: string;
         } = {
           title: title.trim(),
           cwd: selectedProject.path,
           pluginDirs: [],
           projectId: selectedProject.id,
+          // 2026-05-05 — persist the chosen action id at create-time so
+          // Save-to-Backlog tasks remember their template for the later
+          // TaskCard "Launch" click (server falls back to task.actionId
+          // at routes.ts:421 when the launch body omits it).
+          actionId: action.id,
         };
         if (mode === "new-task" && currentPhase) {
           createPayload.phase = currentPhase.id;
@@ -573,19 +579,38 @@ export function NewIssueModal({
         const { commands } = await launchExternalTask(task.taskId, body);
         onTaskCreated?.();
 
-        // Platform-default clipboard choice: PowerShell on Windows, POSIX elsewhere.
-        const isWin =
-          typeof navigator !== "undefined" &&
-          /win/i.test(navigator.userAgent || "");
-        const copyText = isWin ? commands.powershell : commands.posix;
+        // Iterate-2026-05-04 (ADR-068-A1, post-live-smoke fix): hand the
+        // launch commands across the navigation via sessionStorage so
+        // TaskDetailPage's LaunchCoordinator can pick them up on mount.
+        // Replaces the legacy `writeToClipboard(copyText)` flow — the
+        // command is auto-executed in the embedded terminal instead of
+        // requiring the user to paste manually.
         try {
-          await writeToClipboard(copyText);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem(
+              `webui:pending-auto-launch:${task.taskId}`,
+              JSON.stringify({ commands, resume: false, ts: Date.now() }),
+            );
+          }
         } catch {
-          onToast(
-            "Copy failed — open TaskDetail to copy manually.",
-            "error",
-          );
-          // Do NOT unwind the task — server already committed.
+          // sessionStorage may be disabled (privacy mode); fall back to
+          // clipboard so the user can still paste manually.
+          try {
+            const isWin =
+              typeof navigator !== "undefined" &&
+              /win/i.test(navigator.userAgent || "");
+            const copyText = isWin ? commands.powershell : commands.posix;
+            await writeToClipboard(copyText);
+            onToast(
+              "Auto-launch unavailable — command copied to clipboard.",
+              "info",
+            );
+          } catch {
+            onToast(
+              "Auto-launch unavailable. Open TaskDetail to copy manually.",
+              "error",
+            );
+          }
         }
         onOpenChange(false);
         navigate(`/tasks/${task.taskId}`);
@@ -995,7 +1020,7 @@ export function NewIssueModal({
                 disabled={!canSubmit}
                 className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Launch & Copy
+                Launch
               </button>
             </div>
           </form>

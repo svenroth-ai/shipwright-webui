@@ -29,9 +29,40 @@ vi.mock("../hooks/useTaskTranscript", () => ({
 vi.mock("../components/external/BubbleTranscript", () => ({
   BubbleTranscript: () => <div data-testid="bubble-transcript-mock" />,
 }));
-vi.mock("../components/external/TaskDetailHeader", () => ({
-  TaskDetailHeader: () => <div data-testid="task-detail-header-mock" />,
-}));
+// Iterate-2026-05-04 (ADR-068-A1): TaskDetailHeader is mocked with a
+// surface that exposes a Launch button which dispatches into the
+// LaunchCoordinator via the real context. Tests can reach in to
+// trigger an auto-launch without rendering the real header DOM.
+vi.mock("../components/external/TaskDetailHeader", async () => {
+  const { useLaunchCoordinator } = await import(
+    "../contexts/LaunchCoordinatorContext"
+  );
+  return {
+    TaskDetailHeader: () => {
+      const coord = useLaunchCoordinator();
+      return (
+        <div data-testid="task-detail-header-mock">
+          <button
+            type="button"
+            data-testid="task-detail-header-mock-launch"
+            onClick={() =>
+              coord.dispatchAutoLaunch(
+                {
+                  powershell: "& claude --launch ps",
+                  cmd: "claude --launch cmd",
+                  posix: "claude --launch posix",
+                },
+                false,
+              )
+            }
+          >
+            Launch
+          </button>
+        </div>
+      );
+    },
+  };
+});
 vi.mock("../components/external/TaskDetailThreePane", () => ({
   TaskDetailThreePane: ({ left, center, right }: { left: React.ReactNode; center: React.ReactNode; right: React.ReactNode }) => (
     <div data-testid="three-pane-mock">
@@ -186,7 +217,7 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
     expect(transcriptPane.getAttribute("data-state")).toBe("active");
   });
 
-  it("flips to terminal + calls .focus() when webui:launch-copied event fires for THIS task", async () => {
+  it("flips to terminal + calls .focus() when LaunchCoordinator dispatchAutoLaunch fires (ADR-068-A1)", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByTestId("embedded-terminal-mock");
@@ -198,42 +229,15 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
       ),
     );
     focusSpy.mockClear();
-    await act(async () => {
-      window.dispatchEvent(
-        new CustomEvent("webui:launch-copied", { detail: { taskId: "t-123" } }),
-      );
-    });
+    // Dispatch via the new LaunchCoordinator path (replaces the old
+    // window.dispatchEvent("webui:launch-copied") flow).
+    await user.click(screen.getByTestId("task-detail-header-mock-launch"));
     await waitFor(() =>
       expect(screen.getByTestId("task-detail-terminal").getAttribute("data-state")).toBe(
         "active",
       ),
     );
-    // The mock surfaces ready=true via onReadyChange on mount. The
-    // readiness handshake then calls focus when pendingFocus is set —
-    // i.e. once the launch-copied event has been received.
     await waitFor(() => expect(focusSpy).toHaveBeenCalled());
-  });
-
-  it("ignores webui:launch-copied for OTHER tasks (no spurious flip)", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByTestId("embedded-terminal-mock");
-    await user.click(screen.getByTestId("task-detail-tab-transcript"));
-    await waitFor(() =>
-      expect(screen.getByTestId("task-detail-transcript").getAttribute("data-state")).toBe(
-        "active",
-      ),
-    );
-    focusSpy.mockClear();
-    await act(async () => {
-      window.dispatchEvent(
-        new CustomEvent("webui:launch-copied", { detail: { taskId: "different-task" } }),
-      );
-    });
-    expect(screen.getByTestId("task-detail-transcript").getAttribute("data-state")).toBe(
-      "active",
-    );
-    expect(focusSpy).not.toHaveBeenCalled();
   });
 
   it("gitignore-suggestion toast surfaces on EmbeddedTerminal callback; Append calls /append-gitignore", async () => {

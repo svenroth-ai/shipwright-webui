@@ -43,6 +43,9 @@ const REQUIRED_TOKENS = [
   'useTerminalSocket',
   'pty-manager',
   'image-paste',
+  // Iterate 5 (ADR-068-A1) — embedded-terminal auto-launch + disk persistence
+  'scrollback-store',
+  'LaunchCoordinatorContext',
 ] as const;
 
 let claudeMd = '';
