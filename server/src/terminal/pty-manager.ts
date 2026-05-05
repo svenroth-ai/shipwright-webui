@@ -182,6 +182,25 @@ interface PtyEntry {
   pendingByConn: Map<unknown, { bytes: number; queue: string[] }>;
   /** True while a backpressure event is already raised — avoids fire-flood. */
   backpressureRaised: Map<unknown, boolean>;
+  /**
+   * AC-3a (iterate-2026-05-05) — per-task pause refcount. Multi-tab
+   * replay-on-attach has each tab calling pause() / resume() independently;
+   * we MUST gate pty.pause / pty.resume on the 0↔1 transitions so one tab's
+   * resume doesn't unpause for the other tab mid-replay.
+   */
+  pauseRefCount: number;
+  /** Set of conn-tokens that currently hold a pause stake. */
+  pausedConns: Set<unknown>;
+  /**
+   * AC-3b — per-conn timestamp recording when the WS bufferedAmount first
+   * crossed the watchdog threshold. `null` = below threshold (drained).
+   * Used by the watchdog to evict stuck writers based on socket DRAINAGE,
+   * NOT pty emission (per external review v2: gemini-2 + openai-9 — a
+   * runaway pty keeps its `lastDataAt` fresh forever, so the original
+   * "lastDataAt > 2s" heuristic was inverted under exactly the load
+   * conditions that trigger the bug).
+   */
+  bufferedExceededSince: Map<unknown, number | null>;
 }
 
 export interface PtyManagerOpts {
@@ -197,7 +216,22 @@ export interface PtyManagerOpts {
    * for native-binary-free coverage.
    */
   scrollbackStore?: ScrollbackStore;
+  /**
+   * AC-3b (iterate-2026-05-05) — watchdog config. The watchdog evicts a
+   * writer whose WS bufferedAmount has been above `stuckThresholdBytes`
+   * for at least `stuckDurationMs` of wall-clock time. Default OFF in
+   * unit tests (no setInterval leaks); routes wires it on at construction.
+   */
+  watchdogEnabled?: boolean;
+  watchdogStuckThresholdBytes?: number;
+  watchdogStuckDurationMs?: number;
+  watchdogIntervalMs?: number;
+  /** Time source override for tests. Defaults to Date.now. */
+  now?: () => number;
 }
+
+/** Sentinel for the legacy token-less pause()/resume() API. */
+const ANON_PAUSE_TOKEN: unique symbol = Symbol("pty-manager.anonymous-pause");
 
 export class PtyManager {
   private readonly entries = new Map<string, PtyEntry>();
@@ -205,12 +239,47 @@ export class PtyManager {
   private readonly wsBufferBytes: number;
   private readonly idleTimeoutMs: number;
   private readonly scrollbackStore: ScrollbackStore | undefined;
+  private readonly watchdogStuckThresholdBytes: number;
+  private readonly watchdogStuckDurationMs: number;
+  private readonly watchdogIntervalMs: number;
+  private readonly watchdogEnabledOpt: boolean;
+  private readonly nowFn: () => number;
+  private watchdogTimer: ReturnType<typeof setInterval> | null = null;
+  /**
+   * Per-conn capability tracking (per external review code-pass —
+   * openai-5). `Map<conn, "ok" | "missing">`: "ok" = bufferedAmount
+   * returned a number; "missing" = bufferedAmount was undefined →
+   * skip THAT conn's eviction without disabling the watchdog globally.
+   * Conns absent from the map haven't been probed yet — first
+   * deliverWithBackpressure / watchdogTick that sees them stamps
+   * the result. Earlier global-disable design was rejected because
+   * a single legacy adapter would have permanently disabled stuck-
+   * writer eviction for healthy conns sharing the same PtyManager.
+   */
+  private connCapability = new Map<unknown, "ok" | "missing">();
+  /** Whether the capability-missing warning has already been logged (rate-limit). */
+  private capabilityWarnLogged = false;
 
   constructor(opts: PtyManagerOpts) {
     this.spawnFn = opts.spawn;
     this.wsBufferBytes = opts.wsBufferBytes ?? 1_048_576;
     this.idleTimeoutMs = opts.idleTimeoutMs ?? 1_800_000;
     this.scrollbackStore = opts.scrollbackStore;
+    this.watchdogStuckThresholdBytes =
+      opts.watchdogStuckThresholdBytes ?? 524_288; // 512 KiB
+    this.watchdogStuckDurationMs = opts.watchdogStuckDurationMs ?? 2_000;
+    this.watchdogIntervalMs = opts.watchdogIntervalMs ?? 2_000;
+    this.watchdogEnabledOpt = opts.watchdogEnabled ?? false;
+    this.nowFn = opts.now ?? Date.now;
+    if (this.watchdogEnabledOpt) {
+      this.watchdogTimer = setInterval(
+        () => this.watchdogTick(),
+        this.watchdogIntervalMs,
+      );
+      // Avoid keeping a Node event loop alive solely for the watchdog.
+      const t = this.watchdogTimer as { unref?: () => void };
+      if (typeof t.unref === "function") t.unref();
+    }
   }
 
   /** Look up a handle by taskId. Returns undefined if not yet spawned. */
@@ -256,6 +325,9 @@ export class PtyManager {
       idleTimer: null,
       pendingByConn: new Map(),
       backpressureRaised: new Map(),
+      pauseRefCount: 0,
+      pausedConns: new Set(),
+      bufferedExceededSince: new Map(),
     };
     this.entries.set(taskId, entry);
 
@@ -336,40 +408,70 @@ export class PtyManager {
   killAll(): void {
     const taskIds = [...this.entries.keys()];
     for (const id of taskIds) this.kill(id);
+    if (this.watchdogTimer !== null) {
+      clearInterval(this.watchdogTimer);
+      this.watchdogTimer = null;
+    }
   }
 
   /**
-   * Pause the live pty (ADR-068-A1). Called by the WS upgrade `onOpen`
-   * before reading scrollback from disk so live output doesn't pile up
-   * in the per-conn liveBuffer during replay-render. Pty-pause has a
-   * global side-effect: ALL attached connections see no live data
-   * until resume() is called. Documented + accepted; multi-tab fairness
-   * is deferred (replay completes in <1s typical).
+   * Pause the live pty (ADR-068-A1) — anonymous-token API kept for
+   * backwards compat. Per-conn pause ownership is preferred via
+   * `pauseForConn(taskId, connToken)` so the watchdog's force-evict
+   * path can clean up specific stakes (per Gemini #3 + OpenAI #12).
    */
   pause(taskId: string): void {
-    const entry = this.entries.get(taskId);
-    if (!entry || !entry.pty.pause) return;
-    try {
-      entry.pty.pause();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[pty-manager] pause failed for ${taskId}: ${(err as Error).message}`,
-      );
-    }
+    this.pauseForConn(taskId, ANON_PAUSE_TOKEN);
   }
 
   /** Counterpart to pause(). Idempotent — calling on a non-paused pty is a no-op. */
   resume(taskId: string): void {
+    this.resumeForConn(taskId, ANON_PAUSE_TOKEN);
+  }
+
+  /**
+   * AC-3a (iterate-2026-05-05). Pause the live pty under per-conn refcount
+   * ownership. Multiple conns can each hold their own pause stake;
+   * `pty.pause()` fires only on the 0→1 transition, `pty.resume()` only
+   * on the 1→0 transition. Idempotent for the same conn.
+   */
+  pauseForConn(taskId: string, connToken: unknown): void {
     const entry = this.entries.get(taskId);
-    if (!entry || !entry.pty.resume) return;
-    try {
-      entry.pty.resume();
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `[pty-manager] resume failed for ${taskId}: ${(err as Error).message}`,
-      );
+    if (!entry) return;
+    if (entry.pausedConns.has(connToken)) return;
+    entry.pausedConns.add(connToken);
+    entry.pauseRefCount++;
+    if (entry.pauseRefCount === 1 && entry.pty.pause) {
+      try {
+        entry.pty.pause();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[pty-manager] pause failed for ${taskId}: ${(err as Error).message}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Counterpart to pauseForConn. Idempotent — silent no-op when the
+   * conn was not pausing (e.g. force-evicted twice, or never paused).
+   */
+  resumeForConn(taskId: string, connToken: unknown): void {
+    const entry = this.entries.get(taskId);
+    if (!entry) return;
+    if (!entry.pausedConns.has(connToken)) return;
+    entry.pausedConns.delete(connToken);
+    entry.pauseRefCount = Math.max(0, entry.pauseRefCount - 1);
+    if (entry.pauseRefCount === 0 && entry.pty.resume) {
+      try {
+        entry.pty.resume();
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[pty-manager] resume failed for ${taskId}: ${(err as Error).message}`,
+        );
+      }
     }
   }
 
@@ -468,9 +570,17 @@ export class PtyManager {
   detach(taskId: string, conn: unknown): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
+    // AC-3 cleanup (per Gemini #3 + OpenAI #12): if the detached conn
+    // held a pause stake (e.g. mid-replay watchdog eviction), release
+    // it so pty.resume fires and the refcount doesn't leak.
+    if (entry.pausedConns.has(conn)) {
+      this.resumeForConn(taskId, conn);
+    }
     entry.connSubs.delete(conn);
     entry.pendingByConn.delete(conn);
     entry.backpressureRaised.delete(conn);
+    entry.bufferedExceededSince.delete(conn);
+    this.connCapability.delete(conn);
     const wasWriter = entry.writer === conn;
     if (wasWriter) entry.writer = null;
     if (wasWriter) {
@@ -543,6 +653,26 @@ export class PtyManager {
     const live = (conn as { bufferedAmount?: number }).bufferedAmount;
     const incoming = Buffer.byteLength(data, "utf8");
 
+    // AC-3b — per-conn capability stamp (post-code-review v3, openai-5).
+    if (!this.connCapability.has(conn)) {
+      this.connCapability.set(conn, typeof live === "number" ? "ok" : "missing");
+    }
+
+    // AC-3b — track when this conn's buffered backlog first exceeded
+    // the stuck threshold. The watchdog evicts based on this timestamp,
+    // NOT on pty.onData freshness (per external review v2 — gemini-2 +
+    // openai-9: a runaway pty would otherwise keep the writer pinned
+    // forever).
+    if (typeof live === "number") {
+      const exceeded = live > this.watchdogStuckThresholdBytes;
+      const prev = entry.bufferedExceededSince.get(conn);
+      if (exceeded && (prev === undefined || prev === null)) {
+        entry.bufferedExceededSince.set(conn, this.nowFn());
+      } else if (!exceeded && prev !== null && prev !== undefined) {
+        entry.bufferedExceededSince.set(conn, null);
+      }
+    }
+
     if (typeof live === "number" && live + incoming > this.wsBufferBytes) {
       // Saturated — drop this chunk, raise backpressure once per episode.
       if (!entry.backpressureRaised.get(conn) && sub.onBackpressure) {
@@ -561,5 +691,63 @@ export class PtyManager {
     try {
       sub.onData(data);
     } catch { /* ignore */ }
+  }
+
+  /**
+   * AC-3b watchdog tick. Walks every entry; for each one with a writer,
+   * checks how long the writer's WS bufferedAmount has been above the
+   * stuck threshold. Beyond `watchdogStuckDurationMs`, evict via
+   * `detach()` so the cleanup chain (pause refcount release + reader
+   * promotion + onPromoteToWriter) runs.
+   *
+   * Capability is tracked PER-CONN (post-code-review openai-5). A
+   * single legacy WS adapter without bufferedAmount no longer disables
+   * eviction for healthy conns sharing the same manager.
+   */
+  private watchdogTick(): void {
+    for (const [taskId, entry] of this.entries) {
+      const writer = entry.writer;
+      if (writer === null) continue;
+      // Per-conn capability check.
+      if (this.connCapability.get(writer) === "missing") continue;
+      const live = (writer as { bufferedAmount?: number }).bufferedAmount;
+      if (typeof live !== "number") {
+        // Stamp this writer as missing-capability + warn once globally.
+        this.connCapability.set(writer, "missing");
+        if (!this.capabilityWarnLogged) {
+          this.capabilityWarnLogged = true;
+          // eslint-disable-next-line no-console
+          console.warn(
+            "[pty-manager] watchdog disabled for one or more writers — WSContext does not expose bufferedAmount; falling back to ws.close-driven release for affected conns",
+          );
+        }
+        continue;
+      }
+      this.connCapability.set(writer, "ok");
+      // If the writer's backlog crossed threshold mid-tick (no prior
+      // delivery to record it via deliverWithBackpressure), record now.
+      const prev = entry.bufferedExceededSince.get(writer);
+      const exceeded = live > this.watchdogStuckThresholdBytes;
+      if (exceeded && (prev === undefined || prev === null)) {
+        entry.bufferedExceededSince.set(writer, this.nowFn());
+        continue;
+      }
+      if (!exceeded) {
+        if (prev !== null && prev !== undefined) {
+          entry.bufferedExceededSince.set(writer, null);
+        }
+        continue;
+      }
+      // exceeded === true && prev !== null/undefined — check stuck duration.
+      if (typeof prev === "number" && this.nowFn() - prev >= this.watchdogStuckDurationMs) {
+        // Stuck — evict. detach() runs the pause-refcount cleanup +
+        // promotes the next reader. Log so UAT can correlate.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[pty-manager] watchdog evicting stuck writer for task ${taskId} (bufferedAmount=${live}B for ${this.nowFn() - prev}ms)`,
+        );
+        this.detach(taskId, writer);
+      }
+    }
   }
 }

@@ -474,7 +474,9 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                 return;
               }
               try {
-                ptyManager.pause(taskId);
+                // AC-3a (iterate-2026-05-05): per-conn pause stake so
+                // multi-tab replay doesn't cross-trigger pty.resume.
+                ptyManager.pauseForConn(taskId, connToken);
                 const replay = await scrollbackStore.read(taskId);
                 if (replay.length > 0) {
                   const utf8 = Buffer.from(replay, "utf8");
@@ -551,7 +553,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                 flushLiveBuffer();
                 replayDone = true;
               } finally {
-                ptyManager.resume(taskId);
+                // AC-3a — release this conn's pause stake. detach()
+                // also calls resumeForConn defensively in case onClose
+                // races us, so this resume is idempotent.
+                ptyManager.resumeForConn(taskId, connToken);
               }
             })();
           },

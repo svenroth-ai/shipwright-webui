@@ -1,0 +1,1 @@
+Embedded terminal no longer leaves a re-attached tab stuck as read-only under high pty-output volume (AC-3). pty-manager gains per-conn pause refcount + writer-stuck watchdog (drainage-based, capability-detected per-conn). New e2e Spec 78 reproduces the original UAT scenario.
