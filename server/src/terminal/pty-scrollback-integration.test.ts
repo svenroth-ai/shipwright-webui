@@ -208,4 +208,77 @@ describe("PtyManager + ScrollbackStore integration (ADR-068-A1)", () => {
     spawn.lastPty().__emit("Hellö 🚀");
     expect(await store.read(TASK)).toBe("Hellö 🚀");
   });
+
+  // -------------------------------------------------------------------
+  // AC-3a — pause/resume per-conn refcount (iterate-2026-05-05).
+  //
+  // Multi-tab replay-on-attach must not have one tab's resume()
+  // unpause the pty for the other tab mid-replay. PtyManager guards
+  // pty.pause / pty.resume on 0↔1 refcount transitions so concurrent
+  // pause stakes from different conns are tracked independently.
+  // -------------------------------------------------------------------
+
+  it("AC-3a: pauseForConn refcount — two distinct conns, only one pty.pause / pty.resume", () => {
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+    const fake = spawn.lastPty();
+    const connA = { id: "A" };
+    const connB = { id: "B" };
+
+    mgr.pauseForConn(TASK, connA);
+    mgr.pauseForConn(TASK, connB);
+    expect(fake.__paused).toBe(1); // 0→1 transition only
+
+    mgr.resumeForConn(TASK, connA);
+    expect(fake.__resumed).toBe(0); // refcount still 1 — connB holds stake
+
+    mgr.resumeForConn(TASK, connB);
+    expect(fake.__resumed).toBe(1); // 1→0 transition fires resume
+  });
+
+  it("AC-3a: pauseForConn is idempotent for the same conn", () => {
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+    const fake = spawn.lastPty();
+    const connA = { id: "A" };
+
+    mgr.pauseForConn(TASK, connA);
+    mgr.pauseForConn(TASK, connA); // duplicate — no-op
+    mgr.pauseForConn(TASK, connA); // duplicate — no-op
+    expect(fake.__paused).toBe(1);
+
+    mgr.resumeForConn(TASK, connA);
+    expect(fake.__resumed).toBe(1);
+
+    // Resume of a non-pausing conn is a silent no-op.
+    mgr.resumeForConn(TASK, connA);
+    expect(fake.__resumed).toBe(1);
+  });
+
+  it("AC-3a: detach() releases the conn's pause stake (force-evict cleanup)", () => {
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+    const fake = spawn.lastPty();
+    const connA = { id: "A" };
+
+    // connA attaches + holds a pause stake (mid-replay scenario).
+    mgr.attach(TASK, connA);
+    mgr.pauseForConn(TASK, connA);
+    expect(fake.__paused).toBe(1);
+    expect(fake.__resumed).toBe(0);
+
+    // Watchdog (or graceful close) detaches connA — its stake must be
+    // released or the pty stays paused forever.
+    mgr.detach(TASK, connA);
+    expect(fake.__resumed).toBe(1);
+  });
+
+  it("AC-3a: legacy pause(taskId) anonymous-token API still single-fires pty.pause", () => {
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+    const fake = spawn.lastPty();
+
+    mgr.pause(TASK);
+    mgr.pause(TASK); // duplicate anonymous — refcount idempotent
+    expect(fake.__paused).toBe(1);
+
+    mgr.resume(TASK);
+    expect(fake.__resumed).toBe(1);
+  });
 });
