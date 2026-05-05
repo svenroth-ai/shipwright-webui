@@ -232,6 +232,10 @@ export function TaskDetailHeader({ task }: Props) {
   // map into `lib/phaseStyle.ts` so TaskCard reuses the same palette —
   // keeps the kanban dot + chip styling consistent with the header badge.
   const phase = useMemo(() => {
+    // Plain Claude (new-plain) has no phase by design — the title is a
+    // free-form chat title, so neither persisted-phase nor keyword-
+    // fallback should render a phase pill on the header.
+    if (task.actionId === "new-plain") return null;
     if (task.phaseLabel && task.phase) {
       const style = getPhaseStyle(task.phase);
       return { label: task.phaseLabel, cls: style.cls, dot: style.dot };
@@ -243,7 +247,7 @@ export function TaskDetailHeader({ task }: Props) {
     if (!guess) return null;
     const style = getPhaseStyle(guess.id);
     return { label: guess.label, cls: style.cls, dot: style.dot };
-  }, [task.phase, task.phaseLabel, task.title]);
+  }, [task.actionId, task.phase, task.phaseLabel, task.title]);
 
   // Compute "last event" from transcript ticks (polling). When transcript is
   // still loading we fall back to launchedAt / createdAt.

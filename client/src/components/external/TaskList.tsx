@@ -403,6 +403,12 @@ function TaskListRow({ task }: { task: ExternalTask }) {
  * stable width.
  */
 function PhaseCell({ task }: { task: ExternalTask }) {
+  // Plain Claude (new-plain) has no phase by design — title-keyword
+  // fallback would emit bogus phases for free-form chat titles. Render
+  // the em-dash placeholder so the column keeps a stable width.
+  if (task.actionId === "new-plain") {
+    return <span className="text-[var(--color-muted)]">—</span>;
+  }
   const fallback = derivePhaseFromTitle(task.title);
   const phaseId = task.phase ?? fallback?.id ?? null;
   const phaseLabel = task.phaseLabel ?? fallback?.label ?? null;
