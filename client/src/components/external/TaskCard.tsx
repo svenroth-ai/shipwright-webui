@@ -264,6 +264,10 @@ export function TaskCard({ task }: Props) {
         <div className="flex flex-wrap items-center gap-1.5">
           <StatePill state={task.state} />
           {(() => {
+            // Plain Claude (new-plain) has no phase by design — the title
+            // is a free-form chat title, so the keyword-fallback would
+            // emit bogus phases (e.g. "build my prototype" → build).
+            if (task.actionId === "new-plain") return null;
             const phaseId =
               task.phase ?? derivePhaseFromTitle(task.title)?.id ?? null;
             const phaseLabel =

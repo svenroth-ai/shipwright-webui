@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **TaskCard / TerminalLaunchButton resume default narrowed to `task.state === "active" || "idle"`** (was `state !== "draft"`). `awaiting_external_start` / `launch_failed` / `jsonl_missing` no longer emit `claude --resume <uuid>` for sessions that never started — that produced auto-execute commands that failed at runtime.
 - **pty survives WS detach.** `pty-manager.detach()` no longer kills the pty when the last subscriber leaves; every nav-away from TaskDetail used to trigger a kill, leaving "come back later → terminal is dead" UX. Orphan GC now relies on the 30 min idle ceiling plus explicit user actions (Stop / DELETE).
 - **`EmbeddedTerminal` refs reset on `taskId` change.** The route `/tasks/:taskId` keeps the same `<TaskDetailPage/>` element across task switches, so the `EmbeddedTerminal` stays mounted; the prior task's "data seen" / "consumed token" state could short-circuit the next task's prompt-readiness handshake.
+- **Plain Claude (new-plain) tasks no longer show a phase pill on TaskCard, TaskList, or TaskDetailHeader.** The `derivePhaseFromTitle` keyword fallback was firing on free-form chat titles (e.g. "build my prototype" → phase=build), but Plain Claude is a free chat scoped to the project's directory and has no phase by design. All three call-sites now early-return when `task.actionId === "new-plain"`.
 
 ### Tests
 
