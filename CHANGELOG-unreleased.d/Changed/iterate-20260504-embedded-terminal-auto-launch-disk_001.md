@@ -1,1 +1,0 @@
-POST /api/terminal/:taskId/close semantics: now kills pty only — scrollback retained on disk; new POST /api/terminal/:taskId/clear-scrollback handles destructive history cleanup (Decision #18 — separate Stop vs Clear)
