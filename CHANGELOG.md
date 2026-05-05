@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Auto-launch from TaskCard / NewIssueModal now reaches the embedded terminal deterministically.** Previously failed in roughly half of clicks: when a new WebSocket attached to an existing pty (StrictMode dev double-mount; or a genuine multi-tab handoff), the server emitted `ready{role:"reader"}` followed within ~5 ms by `writer-promoted` once the previous writer's close handler fired, but the client cancelled the pending launch immediately on the first reader signal — losing the launch before the promotion landed. `TaskDetailPage.handleTerminalReady` now defers the reader-cancel by a 1500 ms stability window; the cancel is cleared when the role flips to writer (the typical promotion case) and only fires when the role genuinely stays reader (real second-tab scenario).
+- **Cold-pty prompt-readiness handshake no longer cancels auto-launch on a silent shell.** The handshake required at least one byte from the pty before injecting; on Windows with PowerShell `$PROFILE` / oh-my-zsh / Starship the first byte can take 500–1500 ms, sometimes exceeding the 3 s hard cap. New no-data grace path proceeds after 1500 ms of silence (the CR lands in the input buffer; the shell executes when the prompt paints); the absolute cancel boundary is raised to 15 s for worst-case profile init.
+- **`actionId` persists across Save-to-Backlog launches.** `POST /api/external/tasks` now accepts `actionId` in the body, and `sdk-sessions-store`'s loader preserves `actionId` / `phase` / `phaseLabel` / `description` / `autonomy` on disk-reload (was silently dropping all five). Subsequent TaskCard launches recover the correct slash command via `task.actionId` instead of falling through to the bundled-action default.
+- **TaskCard / TerminalLaunchButton resume default narrowed to `task.state === "active" || "idle"`** (was `state !== "draft"`). `awaiting_external_start` / `launch_failed` / `jsonl_missing` no longer emit `claude --resume <uuid>` for sessions that never started — that produced auto-execute commands that failed at runtime.
+- **pty survives WS detach.** `pty-manager.detach()` no longer kills the pty when the last subscriber leaves; every nav-away from TaskDetail used to trigger a kill, leaving "come back later → terminal is dead" UX. Orphan GC now relies on the 30 min idle ceiling plus explicit user actions (Stop / DELETE).
+- **`EmbeddedTerminal` refs reset on `taskId` change.** The route `/tasks/:taskId` keeps the same `<TaskDetailPage/>` element across task switches, so the `EmbeddedTerminal` stays mounted; the prior task's "data seen" / "consumed token" state could short-circuit the next task's prompt-readiness handshake.
+
+### Tests
+
+- New `client/e2e/flows/76-autolaunch-reader-writer-race.spec.ts` regression guard. Drives all 3 previously-failing UAT flows × 3 repetitions (Pure Claude TaskCard launch, NewIssueModal direct launch, Save → Backlog → TaskCard launch) and observes outcome via WebSocket frame capture (looks for `claude --session-id` in the data-frame stream — independent of any in-flight diagnostic logging).
+- New `client/e2e/flows/75-launch-matrix-and-session-persistence.spec.ts` API-level launch-matrix coverage: 4 direct-launch tests assert each action-id renders the correct slash command, 4 backlog-launch tests assert `task.actionId` is recovered server-side, and 1 session-persistence test verifies the pty is the SAME pty after a WS detach + re-attach (no respawn).
+
 ## [v0.7.0] - 2026-05-02
 
 ### Added

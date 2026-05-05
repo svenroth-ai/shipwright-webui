@@ -99,31 +99,58 @@ export function TerminalLaunchButton({
   const [error, setError] = useState<string | null>(null);
 
   const detectedPlatform = platform ?? detectPlatform();
-  const wantResume = resume ?? task.state !== "draft";
+  // 2026-05-05 — only `active` / `idle` have a real claude session to resume
+  // (claude is currently running, or session exists but ended). The previous
+  // `task.state !== "draft"` default treated `awaiting_external_start` /
+  // `launch_failed` / `jsonl_missing` as resumable, which made the server
+  // emit `claude --resume <uuid>` for sessions that never started — auto-
+  // execute then injected a command that fails at runtime. Callers that
+  // want explicit resume semantics still pass `resume={true}`.
+  const wantResume =
+    resume ?? (task.state === "active" || task.state === "idle");
 
+  // Live-smoke fix (2026-05-05, ADR-068-A1): TaskCard launch CTAs hand
+  // the commands to TaskDetailPage via sessionStorage instead of
+  // writing to clipboard. TaskDetailPage's mount-effect picks up the
+  // entry, dispatches into LaunchCoordinator, and EmbeddedTerminal
+  // auto-executes via WS data-frame. Same pattern as NewIssueModal.
+  // Replaces the legacy `webui:launch-copied` window event.
   const copy = useCallback(async () => {
     setError(null);
     try {
       const result = await launchMut.mutateAsync({ taskId: task.taskId, resume: wantResume });
-      const command = pickCommand(result.commands, detectedPlatform);
-      await writeClipboard(command);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1500);
-      // ADR-067 Launch-Flow: notify any open TaskDetail page that the
-      // command for this task just landed in the clipboard. TaskDetailPage
-      // listens, flips its center-pane tab to "terminal", and focuses
-      // xterm so the user's next Strg+V lands inside the pty buffer.
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("webui:launch-copied", {
-            detail: { taskId: task.taskId },
-          }),
-        );
+      // Hand the commands to the TaskDetail page via sessionStorage.
+      try {
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(
+            `webui:pending-auto-launch:${task.taskId}`,
+            JSON.stringify({
+              commands: result.commands,
+              resume: wantResume,
+              ts: Date.now(),
+            }),
+          );
+        }
+      } catch {
+        // sessionStorage disabled (privacy mode) — fall back to clipboard
+        // so the user can still paste manually.
+        try {
+          const command = pickCommand(result.commands, detectedPlatform);
+          await writeClipboard(command);
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1500);
+        } catch {
+          /* ignore — best effort */
+        }
       }
+      // Navigate to TaskDetail. The page's mount-effect reads the
+      // sessionStorage entry, dispatches into LaunchCoordinator, and
+      // EmbeddedTerminal sends the WS data-frame.
+      navigate(`/tasks/${task.taskId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, wantResume, detectedPlatform]);
+  }, [launchMut, task.taskId, wantResume, detectedPlatform, navigate]);
 
   if (variant === "inline") {
     return (

@@ -10,8 +10,11 @@
  *     spawn() is idempotent for the same taskId (no dual-creation race).
  *   - Writer ownership is bound to the live WS connection identity;
  *     detach clears the writer slot synchronously.
- *   - Last-connection-close kills the pty (no orphans on tab close).
- *   - 30-min idle ceiling forces kill regardless (defence in depth).
+ *   - Last-connection-close keeps the pty alive (ADR-068-A1 Replay-on-
+ *     Attach contract). Navigation away from TaskDetail must NOT kill
+ *     a running claude session; the user re-attaches by navigating back.
+ *   - 30-min idle ceiling forces kill (the orphan GC mechanism). Plus
+ *     explicit user "Stop terminal session" + DELETE task cascade.
  *   - Per-conn outbound buffer cap with drop-oldest backpressure.
  *   - Shell-aware path quoting via quotePathForShell() — used by the
  *     image-paste flow so cwd-with-spaces does not break the prompt.
@@ -446,8 +449,21 @@ export class PtyManager {
   /**
    * Detach a WS conn. If conn was writer, the slot is freed and any
    * remaining reader connection is promoted to writer (with onPromoteToWriter
-   * fired so the routes layer can notify that client). If this was the
-   * last connection on the entry, the pty is killed instead.
+   * fired so the routes layer can notify that client).
+   *
+   * 2026-05-05 — last-detach NO LONGER kills the pty. The previous
+   * "no orphan tab leak" policy collided fundamentally with ADR-068-A1
+   * (Iterate 5) Replay-on-Attach: any TaskBoard ↔ TaskDetail navigation
+   * closes the WS, the server killed the pty, and re-attaching produced
+   * a brand-new shell with no claude session — the symptom users report
+   * as "Session bleibt nicht aktiv". Orphan management now relies on:
+   *   - 30-min idle ceiling (touchIdle on every pty.onData)
+   *   - explicit user "Stop terminal session" menu action
+   *   - DELETE task cascade (Phase 4 Close-task-kills-pty)
+   *   - server shutdown
+   * The pty's process tree is bounded, the scrollback file is bounded
+   * (1 MiB rotated), and the daily sweep TTL also catches abandoned
+   * scrollback for tasks whose pty has long since exited.
    */
   detach(taskId: string, conn: unknown): void {
     const entry = this.entries.get(taskId);
@@ -457,10 +473,6 @@ export class PtyManager {
     entry.backpressureRaised.delete(conn);
     const wasWriter = entry.writer === conn;
     if (wasWriter) entry.writer = null;
-    if (entry.connSubs.size === 0) {
-      this.kill(taskId);
-      return;
-    }
     if (wasWriter) {
       // Promote the oldest remaining connection to writer (Map iteration
       // order is insertion order). Closes the StrictMode double-mount race

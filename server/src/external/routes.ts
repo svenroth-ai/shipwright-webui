@@ -312,6 +312,16 @@ export function createExternalRoutes(args: {
       }
     }
 
+    // 2026-05-05 — Save-to-Backlog wiring. Persist the chosen action id at
+    // create-time so a later TaskCard "Launch" click can recover the right
+    // command_template via routes.ts:421 fallback. Catalog membership is
+    // not validated here — the /launch handler already rejects unknown ids
+    // (`unknown_action_id` 400). Empty/non-string actionId is dropped.
+    const createActionId =
+      typeof body.actionId === "string" && body.actionId.trim().length > 0
+        ? body.actionId.trim()
+        : undefined;
+
     const task = store.create({
       title,
       cwd,
@@ -319,6 +329,7 @@ export function createExternalRoutes(args: {
       projectId,
       phase,
       phaseLabel,
+      actionId: createActionId,
       sessionUuid: phaseTaskRefs.sessionUuid,
       phaseTaskId: phaseTaskRefs.phaseTaskId,
       runId: phaseTaskRefs.runId,

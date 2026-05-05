@@ -10,7 +10,9 @@
  *   - WS upgrade rejects unknown Origin (loopback CORS posture mirrored).
  *   - Writer ownership tied to the live WS conn identity; cleared on close.
  *   - Backpressure handled inside PtyManager via WS.bufferedAmount.
- *   - PTY autoclosed when last connection detaches (no orphan tab leak).
+ *   - PTY persists across last-connection detach (ADR-068-A1 Replay-on-
+ *     Attach). Orphan GC runs via the 30-min idle ceiling + explicit
+ *     "Stop terminal session" / DELETE task cascade.
  *
  * Auth posture: same loopback-only CORS gate as the rest of the HTTP
  * surface. A future remote-access mode would need additional auth (see

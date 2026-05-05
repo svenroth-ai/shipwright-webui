@@ -345,7 +345,14 @@ export function TaskCard({ task }: Props) {
                     variant="solid"
                     color="brown"
                     size="xs"
-                    resume={true}
+                    // 2026-05-05 — `awaiting_external_start` has no claude
+                    // session to resume yet (the prior Launch click never
+                    // produced a JSONL — that's what `awaiting_external_start`
+                    // means). Resume here would emit `claude --resume <uuid>`
+                    // and fail at runtime. `active` IS running, so resume is
+                    // valid — at worst the user has to drop the original
+                    // session first, but the command itself is correct.
+                    resume={task.state === "active"}
                     label="Terminal"
                   />
                 </span>

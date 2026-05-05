@@ -303,6 +303,15 @@ export function TaskDetailHeader({ task }: Props) {
     }
   }, []);
 
+  // Live-smoke fix (2026-05-05): prewarm fires fire-and-forget AFTER
+  // dispatch, NOT before. Reason — the original `await prewarmPty()` BEFORE
+  // dispatchAutoLaunch could hang silently (Vite ws proxy ECONNABORTED was
+  // observed once during a fresh connect cycle), blocking the dispatch
+  // entirely. The WS-upgrade itself is the AUTHORITATIVE pty creation
+  // path (ADR-067 + ADR-068-A1) — /spawn is only a latency optimization.
+  // Decoupling them means: even if prewarm hangs, dispatch fires
+  // immediately, EmbeddedTerminal connects + spawns pty via /ws, and
+  // auto-execute proceeds.
   const handleLaunch = useCallback(async () => {
     setCtaError(null);
     if (launchMut.isPending || coord.pendingLaunch) return;
@@ -311,16 +320,13 @@ export function TaskDetailHeader({ task }: Props) {
         taskId: task.taskId,
         resume: false,
       });
-      // Idempotent prewarm so the pty is ready before the user lands on
-      // the Terminal tab (next ws-upgrade is a no-op if already spawned).
-      const prewarmIssue = await prewarmPty(task.taskId);
-      if (prewarmIssue) {
-        // Surface as non-blocking warning; still dispatch — the
-        // WS-upgrade path is the authoritative spawn point.
-        setCtaError(prewarmIssue);
-      }
       coord.dispatchAutoLaunch(commands, false);
       flashCopied("Launching…");
+      // Fire-and-forget prewarm — surfaces a warning if it 4xx/5xxs but
+      // does not block dispatch.
+      void prewarmPty(task.taskId).then((issue) => {
+        if (issue) setCtaError(issue);
+      });
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
@@ -334,12 +340,11 @@ export function TaskDetailHeader({ task }: Props) {
         taskId: task.taskId,
         resume: true,
       });
-      const prewarmIssue = await prewarmPty(task.taskId);
-      if (prewarmIssue) {
-        setCtaError(prewarmIssue);
-      }
       coord.dispatchAutoLaunch(commands, true);
       flashCopied("Resuming…");
+      void prewarmPty(task.taskId).then((issue) => {
+        if (issue) setCtaError(issue);
+      });
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }

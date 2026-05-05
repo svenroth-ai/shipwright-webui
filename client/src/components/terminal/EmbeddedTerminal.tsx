@@ -47,11 +47,24 @@ export interface EmbeddedTerminalHandle {
  * Prompt-readiness handshake parameters (Decision #12, Review-v7 CRITICAL #2).
  * After the WS reaches `ready=true && role=writer`, wait for the shell to
  * print its prompt before injecting. Heuristic: first onData burst seen +
- * 250ms quiesce. Hard cap 3s — `.bashrc` / `$PROFILE` / oh-my-zsh /
- * Starship typically fire prompt within this window.
+ * 250ms quiesce.
+ *
+ * 2026-05-05 — Cold-pty grace path: a freshly-spawned pty on Windows can
+ * stay silent for 500–1500ms before the first prompt-paint (oh-my-zsh,
+ * Starship, $PROFILE init). The original 3s hard-cap treated that as a
+ * timeout and cancelled the launch ("tab flips, command never runs"; second
+ * attempt works because the first warmed the pty via Fix C). Two changes:
+ *   - PROMPT_READY_NO_DATA_GRACE_MS: if NO data has arrived after this
+ *     window, proceed anyway. The shell is silent but listening; the CR
+ *     terminator will land in the input buffer and execute when the prompt
+ *     paints. Inverted from "must see data" → "see-data wins, silence-grace
+ *     wins second."
+ *   - PROMPT_HARD_CAP_MS raised to 15s as the absolute cancel boundary
+ *     (covers worst-case oh-my-zsh + nvm + fnm cold start).
  */
 const PROMPT_QUIESCE_MS = 250;
-const PROMPT_HARD_CAP_MS = 3000;
+const PROMPT_READY_NO_DATA_GRACE_MS = 1500;
+const PROMPT_HARD_CAP_MS = 15_000;
 const PROMPT_POLL_MS = 50;
 
 export interface EmbeddedTerminalProps {
@@ -99,6 +112,26 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastPtyDataAtRef = useRef(0);
     const dataSeenInitiallyRef = useRef(false);
     const injectionInFlightRef = useRef(false);
+
+    // 2026-05-05 — Race-Fix: TaskDetail's route is registered as the SAME
+    // <TaskDetailPage/> element across `/tasks/:taskId` so React keeps the
+    // EmbeddedTerminal instance mounted when the user navigates from one
+    // task to another (TaskBoard → /tasks/A → TaskBoard → /tasks/B). The
+    // refs above outlive that taskId change. The most damaging stale ref
+    // is `dataSeenInitiallyRef` + `lastPtyDataAtRef`: when a previous pty
+    // had emitted any byte, the prompt-readiness handshake passes
+    // immediately on the NEW task (`Date.now() - lastPtyDataAt >= 250ms`
+    // is trivially true with an old timestamp), so the auto-execute
+    // injection fires BEFORE the new pty has rendered its prompt — the
+    // shell drops the bytes and the user sees "command never reached the
+    // shell" intermittently. Reset on every taskId change so the new
+    // task starts with a clean handshake gate.
+    useEffect(() => {
+      consumedTokensRef.current = new Set();
+      lastPtyDataAtRef.current = 0;
+      dataSeenInitiallyRef.current = false;
+      injectionInFlightRef.current = false;
+    }, [taskId]);
 
     const socket = useTerminalSocket({
       taskId,
@@ -173,9 +206,17 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         const startWait = Date.now();
         let handshakeCleared = false;
         while (!cancelled && Date.now() - startWait < PROMPT_HARD_CAP_MS) {
+          const waited = Date.now() - startWait;
           if (
             dataSeenInitiallyRef.current &&
             Date.now() - lastPtyDataAtRef.current >= PROMPT_QUIESCE_MS
+          ) {
+            handshakeCleared = true;
+            break;
+          }
+          if (
+            !dataSeenInitiallyRef.current &&
+            waited >= PROMPT_READY_NO_DATA_GRACE_MS
           ) {
             handshakeCleared = true;
             break;
@@ -185,9 +226,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (cancelled) return;
 
         // Phase-3 review fix (HIGH): the hard-cap is a CANCEL boundary,
-        // NOT permission to inject blindly. If the prompt-readiness
-        // handshake never cleared within 3s, cancel the pending launch
-        // explicitly so the CTA re-enables and the user can retry.
+        // NOT permission to inject blindly. With the cold-pty grace path
+        // (1.5s silence ⇒ proceed) reaching the 15s hard-cap means
+        // something is genuinely wrong (pty hung, prompt never rendered);
+        // cancel explicitly so the CTA re-enables and the user can retry.
         if (!handshakeCleared) {
           consumedTokensRef.current.add(pending.launchToken);
           coord.cancelLaunch("timeout");
