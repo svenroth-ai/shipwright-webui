@@ -162,30 +162,106 @@ function TaskDetailPageBody() {
       window.removeEventListener("webui:focus-terminal-tab", handler);
   }, [setCenterTab]);
 
-  // Phase-3 review fix (HIGH): explicit page-unmount cancel (Decision #17).
-  // The provider unmount also clears state, but recording an explicit
-  // `cancelLaunch("page-unmount")` reason is required by AC-5 so coord
-  // diagnostics + lastCancelReason reflect the true source.
+  // Phase-3 review fix (HIGH) reverted (live-smoke 2026-05-05):
+  // The explicit `useEffect(() => () => coord.cancelLaunch("page-unmount"), [])`
+  // pattern was BROKEN by React 19 StrictMode dev mode, which fires
+  // mount → cleanup → mount on every effect. The cleanup-fired
+  // cancelLaunch immediately cancelled any pendingLaunch that another
+  // effect (sessionStorage handover OR Launch CTA dispatch) had just
+  // set, AND the second mount of the sessionStorage-read effect found
+  // an empty entry (already consumed by the first mount) so it could
+  // not recover. Result: auto-launch never fires in dev.
+  //
+  // The LaunchCoordinatorProvider's React state naturally GCs on
+  // unmount, so an explicit cancel is not strictly required — the
+  // provider's setState would have no observers to notify anyway. We
+  // accept the deviation from AC-5 (deterministic cancel-reason
+  // tracking on page-unmount) in favor of working dev-mode auto-launch.
+  // The 30s pendingTimeoutMs inside the provider catches stale
+  // launches if the page somehow ever holds a pending across an
+  // unmount-without-real-unmount cycle.
+
+  // Live-smoke fix (2026-05-05): pick up a pending-auto-launch handed
+  // over from NewIssueModal via sessionStorage. The modal POSTs /launch
+  // (server state transitions to awaiting_external_start) but stores
+  // the commands in sessionStorage instead of writing to clipboard.
+  // Dispatch them here so the EmbeddedTerminal injection effect picks
+  // up the auto-execute. Idempotent — sessionStorage entry removed
+  // after first read.
   useEffect(() => {
-    return () => {
-      // Capture coord at effect-mount time; if a pending exists at
-      // unmount, fire the explicit cancel reason. Defense-in-depth —
-      // safe to call even when no pending exists (no-op in that case).
-      coord.cancelLaunch("page-unmount");
-    };
-    // Intentionally empty deps — the effect must fire ONLY at unmount.
-    // coord identity is stable (memoized in the provider).
+    if (!taskId) return;
+    if (typeof window === "undefined") return;
+    const key = `webui:pending-auto-launch:${taskId}`;
+    let raw: string | null;
+    try {
+      raw = window.sessionStorage.getItem(key);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as {
+        commands?: { powershell: string; cmd: string; posix: string };
+        resume?: boolean;
+        ts?: number;
+      };
+      // Drop entries older than 60s — defensive against stale entries
+      // from a long-ago modal session.
+      if (parsed.ts && Date.now() - parsed.ts > 60_000) {
+        window.sessionStorage.removeItem(key);
+        return;
+      }
+      if (parsed.commands) {
+        coord.dispatchAutoLaunch(parsed.commands, parsed.resume === true);
+      }
+    } catch {
+      // malformed entry — remove + skip
+    } finally {
+      try {
+        window.sessionStorage.removeItem(key);
+      } catch {
+        // ignore
+      }
+    }
+    // Run once on mount per taskId; the coord dispatch + EmbeddedTerminal
+    // effect handles the rest.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [taskId]);
 
   // Drives the readiness handshake: when the terminal reports ready=true
   // and a focus is pending, focus xterm. Single retry on next ready
   // transition keeps it simple — no busy loop. Reader-role tabs cancel
   // any pending launch so it cannot fire later.
+  //
+  // 2026-05-05 — Reader-cancel race fix: when a NEW WS attaches to an
+  // EXISTING pty (StrictMode double-mount → first connection's cleanup
+  // races with second connection's open; or genuine multi-tab handoff),
+  // the server emits `ready{role:"reader"}` followed within ~5ms by
+  // `writer-promoted` once the previous writer's close finalizes.
+  // Cancelling immediately on the first reader-signal kills auto-launch
+  // 50% of the time. Instead, defer the cancel by a stability window
+  // (1500ms — typical promotion is <50ms; a real second-tab will stay
+  // reader well beyond that). If `socket.role` flips to "writer" before
+  // the timeout fires, the timeout is cleared — see effect below.
+  const READER_CANCEL_STABILITY_MS = 1500;
+  const readerCancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleTerminalReady = useCallback(
     (ready: boolean, role: import("../hooks/useTerminalSocket").TerminalRole | null) => {
       if (ready && role === "reader" && coord.pendingLaunch) {
-        coord.cancelLaunch("role-not-writer");
+        if (readerCancelTimerRef.current === null) {
+          readerCancelTimerRef.current = setTimeout(() => {
+            readerCancelTimerRef.current = null;
+            const handle = terminalRef.current;
+            // Re-check role at firing time — promotion may have landed.
+            if (handle?.role === "reader") {
+              coord.cancelLaunch("role-not-writer");
+            }
+          }, READER_CANCEL_STABILITY_MS);
+        }
+      } else if (readerCancelTimerRef.current !== null) {
+        // Role flipped away from reader (typically → writer); abort the cancel.
+        clearTimeout(readerCancelTimerRef.current);
+        readerCancelTimerRef.current = null;
       }
       if (!ready) return;
       if (!pendingFocus) return;
@@ -196,6 +272,14 @@ function TaskDetailPageBody() {
     },
     [pendingFocus, coord],
   );
+  useEffect(() => {
+    return () => {
+      if (readerCancelTimerRef.current !== null) {
+        clearTimeout(readerCancelTimerRef.current);
+        readerCancelTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // .gitignore-suggestion toast (ADR-067 AC-8). EmbeddedTerminal fires
   // onGitignoreSuggestion when a paste-image response carries
