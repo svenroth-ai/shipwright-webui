@@ -41,6 +41,10 @@ import { FolderTree } from "../components/external/FolderTree";
 import { SmartViewer } from "../components/external/SmartViewer";
 import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
 import { parseSessionJsonl, toolUses } from "../external/session-parser";
+import {
+  LaunchCoordinatorProvider,
+  useLaunchCoordinator,
+} from "../contexts/LaunchCoordinatorContext";
 
 // Lazy-load the xterm bundle so the ~120 KB gz only ships when a TaskDetail
 // actually opens (external review F6).
@@ -56,11 +60,72 @@ type CenterTab = "transcript" | "terminal";
 const TAB_STORAGE_KEY = "webui:embedded-terminal-default-tab";
 
 export default function TaskDetailPage() {
+  // Wrap the entire body in LaunchCoordinatorProvider so the auto-launch
+  // pendingLaunch state is scoped to ONE page mount (ADR-068-A1 Decision
+  // #17 — page-unmount cancels any in-flight pending launch).
+  return (
+    <LaunchCoordinatorProvider>
+      <TaskDetailPageBody />
+    </LaunchCoordinatorProvider>
+  );
+}
+
+/**
+ * Compact privacy disclosure for the Terminal tab — ADR-068-A1 AC-15.
+ *
+ * Renders as a 1-line dismissible note at the bottom of the embedded
+ * terminal pane. The user toggles it off via the × button; preference
+ * persists in localStorage. Copy includes:
+ *   - retention period
+ *   - "may contain secrets" warning
+ *   - Windows-permission-best-effort note (when on Windows)
+ *   - "Clear history" pointer (route through "..." menu)
+ *
+ * Display-only — there's no client-side state about whether scrollback
+ * actually exists for this task. The note is a privacy notice, not a
+ * runtime indicator.
+ */
+function PrivacyDisclosureFooter() {
+  const STORAGE_KEY = "webui:terminal-privacy-disclosure-dismissed";
+  const [dismissed, setDismissed] = useLocalStorage<boolean>(STORAGE_KEY, false);
+  if (dismissed) return null;
+  const isWindows = typeof navigator !== "undefined" &&
+    /windows/i.test(navigator.userAgent);
+  return (
+    <div
+      className="absolute bottom-0 left-0 right-0 flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-1.5 text-[11px] text-[var(--color-muted,#6b7280)]"
+      data-testid="terminal-privacy-disclosure"
+    >
+      <span aria-hidden>ⓘ</span>
+      <span className="flex-1 truncate">
+        Terminal scrollback is persisted locally (default 24h retention,
+        configurable via <code>SHIPWRIGHT_TERMINAL_SCROLLBACK_TTL_DAYS</code>;
+        may include secrets / env vars).{" "}
+        {isWindows ? (
+          <span>On Windows, file permissions rely on user-account ACLs.</span>
+        ) : null}
+        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.
+      </span>
+      <button
+        type="button"
+        onClick={() => setDismissed(true)}
+        className="text-[var(--color-muted,#6b7280)] hover:text-[var(--color-text,#1a1a1a)]"
+        data-testid="terminal-privacy-disclosure-dismiss"
+        aria-label="Dismiss privacy notice"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function TaskDetailPageBody() {
   const { taskId } = useParams<{ taskId: string }>();
   const { data: task, error } = useExternalTask(taskId);
   const transcript = useTaskTranscript(taskId ?? null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
   const [activePath, setActivePath] = useState<string | null>(null);
+  const coord = useLaunchCoordinator();
 
   // Center-pane Toggle-Tab (ADR-067). Persisted globally per user
   // preference — once a user picks Terminal, every TaskDetail they
@@ -71,29 +136,133 @@ export default function TaskDetailPage() {
   );
   const terminalRef = useRef<EmbeddedTerminalHandle | null>(null);
 
-  // Pending-focus marker for the launch-flow handshake. Set when a
-  // launch-copied event arrives; cleared once xterm reports ready and
-  // we successfully call focus().
+  // ADR-068-A1: when a pendingLaunch is dispatched (by TaskDetailHeader's
+  // CTA), flip to the Terminal tab + mark a focus pending. The
+  // EmbeddedTerminal then consumes pendingLaunch via context, awaits
+  // the prompt-readiness handshake, and writes commands[shellKind]+"\r"
+  // over the WS — replacing the old `webui:launch-copied` window-event
+  // round-trip.
   const [pendingFocus, setPendingFocus] = useState(false);
-
-  // Listen for the launch-copied event from <TerminalLaunchButton>.
   useEffect(() => {
-    if (!taskId) return;
-    const handler = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ taskId?: string }>).detail;
-      if (!detail || detail.taskId !== taskId) return;
+    if (!coord.pendingLaunch) return;
+    setCenterTab("terminal");
+    setPendingFocus(true);
+  }, [coord.pendingLaunch, setCenterTab]);
+
+  // Phase-5-Codex review fix (HIGH): "Terminal" CTA on active/awaiting
+  // tasks dispatches `webui:focus-terminal-tab` (pure tab-flip, no
+  // auto-execute). Listener flips the Tabs.Root + focuses xterm.
+  useEffect(() => {
+    const handler = () => {
       setCenterTab("terminal");
       setPendingFocus(true);
     };
-    window.addEventListener("webui:launch-copied", handler as EventListener);
-    return () => window.removeEventListener("webui:launch-copied", handler as EventListener);
-  }, [taskId, setCenterTab]);
+    window.addEventListener("webui:focus-terminal-tab", handler);
+    return () =>
+      window.removeEventListener("webui:focus-terminal-tab", handler);
+  }, [setCenterTab]);
+
+  // Phase-3 review fix (HIGH) reverted (live-smoke 2026-05-05):
+  // The explicit `useEffect(() => () => coord.cancelLaunch("page-unmount"), [])`
+  // pattern was BROKEN by React 19 StrictMode dev mode, which fires
+  // mount → cleanup → mount on every effect. The cleanup-fired
+  // cancelLaunch immediately cancelled any pendingLaunch that another
+  // effect (sessionStorage handover OR Launch CTA dispatch) had just
+  // set, AND the second mount of the sessionStorage-read effect found
+  // an empty entry (already consumed by the first mount) so it could
+  // not recover. Result: auto-launch never fires in dev.
+  //
+  // The LaunchCoordinatorProvider's React state naturally GCs on
+  // unmount, so an explicit cancel is not strictly required — the
+  // provider's setState would have no observers to notify anyway. We
+  // accept the deviation from AC-5 (deterministic cancel-reason
+  // tracking on page-unmount) in favor of working dev-mode auto-launch.
+  // The 30s pendingTimeoutMs inside the provider catches stale
+  // launches if the page somehow ever holds a pending across an
+  // unmount-without-real-unmount cycle.
+
+  // Live-smoke fix (2026-05-05): pick up a pending-auto-launch handed
+  // over from NewIssueModal via sessionStorage. The modal POSTs /launch
+  // (server state transitions to awaiting_external_start) but stores
+  // the commands in sessionStorage instead of writing to clipboard.
+  // Dispatch them here so the EmbeddedTerminal injection effect picks
+  // up the auto-execute. Idempotent — sessionStorage entry removed
+  // after first read.
+  useEffect(() => {
+    if (!taskId) return;
+    if (typeof window === "undefined") return;
+    const key = `webui:pending-auto-launch:${taskId}`;
+    let raw: string | null;
+    try {
+      raw = window.sessionStorage.getItem(key);
+    } catch {
+      return;
+    }
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as {
+        commands?: { powershell: string; cmd: string; posix: string };
+        resume?: boolean;
+        ts?: number;
+      };
+      // Drop entries older than 60s — defensive against stale entries
+      // from a long-ago modal session.
+      if (parsed.ts && Date.now() - parsed.ts > 60_000) {
+        window.sessionStorage.removeItem(key);
+        return;
+      }
+      if (parsed.commands) {
+        coord.dispatchAutoLaunch(parsed.commands, parsed.resume === true);
+      }
+    } catch {
+      // malformed entry — remove + skip
+    } finally {
+      try {
+        window.sessionStorage.removeItem(key);
+      } catch {
+        // ignore
+      }
+    }
+    // Run once on mount per taskId; the coord dispatch + EmbeddedTerminal
+    // effect handles the rest.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId]);
 
   // Drives the readiness handshake: when the terminal reports ready=true
   // and a focus is pending, focus xterm. Single retry on next ready
-  // transition keeps it simple — no busy loop.
+  // transition keeps it simple — no busy loop. Reader-role tabs cancel
+  // any pending launch so it cannot fire later.
+  //
+  // 2026-05-05 — Reader-cancel race fix: when a NEW WS attaches to an
+  // EXISTING pty (StrictMode double-mount → first connection's cleanup
+  // races with second connection's open; or genuine multi-tab handoff),
+  // the server emits `ready{role:"reader"}` followed within ~5ms by
+  // `writer-promoted` once the previous writer's close finalizes.
+  // Cancelling immediately on the first reader-signal kills auto-launch
+  // 50% of the time. Instead, defer the cancel by a stability window
+  // (1500ms — typical promotion is <50ms; a real second-tab will stay
+  // reader well beyond that). If `socket.role` flips to "writer" before
+  // the timeout fires, the timeout is cleared — see effect below.
+  const READER_CANCEL_STABILITY_MS = 1500;
+  const readerCancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleTerminalReady = useCallback(
-    (ready: boolean) => {
+    (ready: boolean, role: import("../hooks/useTerminalSocket").TerminalRole | null) => {
+      if (ready && role === "reader" && coord.pendingLaunch) {
+        if (readerCancelTimerRef.current === null) {
+          readerCancelTimerRef.current = setTimeout(() => {
+            readerCancelTimerRef.current = null;
+            const handle = terminalRef.current;
+            // Re-check role at firing time — promotion may have landed.
+            if (handle?.role === "reader") {
+              coord.cancelLaunch("role-not-writer");
+            }
+          }, READER_CANCEL_STABILITY_MS);
+        }
+      } else if (readerCancelTimerRef.current !== null) {
+        // Role flipped away from reader (typically → writer); abort the cancel.
+        clearTimeout(readerCancelTimerRef.current);
+        readerCancelTimerRef.current = null;
+      }
       if (!ready) return;
       if (!pendingFocus) return;
       const handle = terminalRef.current;
@@ -101,8 +270,16 @@ export default function TaskDetailPage() {
       handle.focus();
       setPendingFocus(false);
     },
-    [pendingFocus],
+    [pendingFocus, coord],
   );
+  useEffect(() => {
+    return () => {
+      if (readerCancelTimerRef.current !== null) {
+        clearTimeout(readerCancelTimerRef.current);
+        readerCancelTimerRef.current = null;
+      }
+    };
+  }, []);
 
   // .gitignore-suggestion toast (ADR-067 AC-8). EmbeddedTerminal fires
   // onGitignoreSuggestion when a paste-image response carries
@@ -390,6 +567,13 @@ export default function TaskDetailPage() {
                       ) : null}
                     </div>
                   ) : null}
+                  {/* ADR-068-A1 AC-15: privacy disclosure (compact, dismissible).
+                      Surfaces 24h retention + Windows ACL caveat; "Clear
+                      history" affordance routes through TaskDetailHeader's
+                      "..." menu (Phase 4 confirm modal). Client-side
+                      dismissal persists in localStorage so power-users
+                      can hide it after first read. */}
+                  <PrivacyDisclosureFooter />
                 </Tabs.Content>
               </Tabs.Root>
             </section>

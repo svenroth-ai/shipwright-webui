@@ -247,14 +247,22 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(c.role).toBe("reader");
   });
 
-  it("detaching the LAST connection kills the pty (no promotion)", () => {
+  it("detaching the LAST connection KEEPS the pty alive (ADR-068-A1 Replay-on-Attach)", () => {
+    // 2026-05-05 — last-detach no longer kills the pty. The previous
+    // policy collided with the Replay-on-Attach contract: any
+    // TaskBoard ↔ TaskDetail navigation closed the WS, killed the pty,
+    // and produced a brand-new shell with no claude session. Orphan GC
+    // now relies on the 30-min idle ceiling + explicit user actions
+    // (Stop terminal session / DELETE task / server shutdown).
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
     const fake = spawn.lastPty();
     const wsA = { id: "A" };
     mgr.attach("t1", wsA);
     mgr.detach("t1", wsA);
-    expect(fake.__killed).toBe(true);
+    expect(fake.__killed).toBe(false);
+    // pty entry still exists — re-attach must succeed without re-spawn.
+    expect(mgr.get("t1")).toBeDefined();
   });
 
   it("attach() is idempotent for the same conn — re-attach keeps writer role (external review F6 regression fence)", () => {
@@ -297,7 +305,11 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.hasActiveWriter("unknown-task")).toBe(false);
   });
 
-  it("when last connection detaches, the pty is killed automatically", () => {
+  it("explicit kill() terminates the pty (Stop / Close / DELETE entry points)", () => {
+    // 2026-05-05 — pty teardown is now driven by explicit user actions or
+    // the 30-min idle ceiling, not by last-detach. This test pins down
+    // the explicit-kill path that "Stop terminal session", DELETE task
+    // cascade, and server shutdown all flow through.
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
     const fake = spawn.lastPty();
@@ -305,7 +317,10 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     mgr.attach("t1", wsA);
     expect(fake.__killed).toBe(false);
     mgr.detach("t1", wsA);
+    expect(fake.__killed).toBe(false);
+    mgr.kill("t1");
     expect(fake.__killed).toBe(true);
+    expect(mgr.get("t1")).toBeUndefined();
   });
 });
 

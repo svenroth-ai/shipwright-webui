@@ -196,6 +196,12 @@ export function createExternalRoutes(args: {
    * touch the filesystem; production wires the real reader.
    */
   readRunConfig?: (projectPath: string) => Promise<RunConfigReadResult>;
+  /**
+   * Iterate-2026-05-04 (ADR-068-A1) — best-effort scrollback cleanup
+   * cascade on DELETE /api/external/tasks/:id. Optional for tests;
+   * production wires the singleton ScrollbackStore.
+   */
+  scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
 }) {
   const app = new Hono();
   const {
@@ -205,6 +211,7 @@ export function createExternalRoutes(args: {
     getProjectById,
     previewManager,
     loadProfile: injectedLoadProfile,
+    scrollbackClearBestEffort,
   } = args;
   const profileResolver =
     injectedLoadProfile ??
@@ -305,6 +312,16 @@ export function createExternalRoutes(args: {
       }
     }
 
+    // 2026-05-05 — Save-to-Backlog wiring. Persist the chosen action id at
+    // create-time so a later TaskCard "Launch" click can recover the right
+    // command_template via routes.ts:421 fallback. Catalog membership is
+    // not validated here — the /launch handler already rejects unknown ids
+    // (`unknown_action_id` 400). Empty/non-string actionId is dropped.
+    const createActionId =
+      typeof body.actionId === "string" && body.actionId.trim().length > 0
+        ? body.actionId.trim()
+        : undefined;
+
     const task = store.create({
       title,
       cwd,
@@ -312,6 +329,7 @@ export function createExternalRoutes(args: {
       projectId,
       phase,
       phaseLabel,
+      actionId: createActionId,
       sessionUuid: phaseTaskRefs.sessionUuid,
       phaseTaskId: phaseTaskRefs.phaseTaskId,
       runId: phaseTaskRefs.runId,
@@ -1057,9 +1075,20 @@ export function createExternalRoutes(args: {
   });
 
   app.delete("/api/external/tasks/:id", async (c) => {
-    const deleted = store.delete(c.req.param("id"));
+    const taskId = c.req.param("id");
+    const deleted = store.delete(taskId);
     if (!deleted) return c.json({ error: "Task not found" }, 404);
     await store.persist();
+    // Iterate-2026-05-04 (ADR-068-A1): cascade-clean scrollback files.
+    // Best-effort — task delete is authoritative even if scrollback
+    // unlink fails. Errors logged inside scrollbackClearBestEffort.
+    if (scrollbackClearBestEffort) {
+      try {
+        await scrollbackClearBestEffort(taskId);
+      } catch {
+        // best-effort
+      }
+    }
     return c.json({ ok: true });
   });
 

@@ -39,7 +39,6 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import type {
-  CopyCommandForms,
   ExternalTask,
   ExternalTaskState,
 } from "../../lib/externalApi";
@@ -52,6 +51,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { useTaskTranscript } from "../../hooks/useTaskTranscript";
 import { formatRelativeTime } from "../../lib/formatTime";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
+import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import {
   EditableTaskTitle,
   type EditableTaskTitleHandle,
@@ -138,10 +138,11 @@ function isTerminalState(state: ExternalTask["state"]): boolean {
   return state === "done";
 }
 
-function pickPlatformCommand(commands: CopyCommandForms): string {
-  if (typeof navigator === "undefined") return commands.posix;
-  return /windows/i.test(navigator.userAgent) ? commands.powershell : commands.posix;
-}
+// pickPlatformCommand was removed in iterate-2026-05-04 (ADR-068-A1):
+// the auto-launch flow now picks the shell-form via the WS ready
+// envelope's `shellKind` (server-authoritative), not navigator.userAgent.
+// The CopyCommandForms type still flows through `coord.pendingLaunch`
+// where EmbeddedTerminal indexes by shellKind directly.
 
 async function writeClipboard(text: string): Promise<void> {
   // Try the modern Clipboard API first. ADR-067 regression note: when
@@ -187,6 +188,7 @@ export function TaskDetailHeader({ task }: Props) {
   const deleteMut = useDeleteExternalTask();
   const projectsQ = useProjects();
   const transcript = useTaskTranscript(task.taskId);
+  const coord = useLaunchCoordinator();
 
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
   const [ctaError, setCtaError] = useState<string | null>(null);
@@ -230,6 +232,10 @@ export function TaskDetailHeader({ task }: Props) {
   // map into `lib/phaseStyle.ts` so TaskCard reuses the same palette —
   // keeps the kanban dot + chip styling consistent with the header badge.
   const phase = useMemo(() => {
+    // Plain Claude (new-plain) has no phase by design — the title is a
+    // free-form chat title, so neither persisted-phase nor keyword-
+    // fallback should render a phase pill on the header.
+    if (task.actionId === "new-plain") return null;
     if (task.phaseLabel && task.phase) {
       const style = getPhaseStyle(task.phase);
       return { label: task.phaseLabel, cls: style.cls, dot: style.dot };
@@ -241,7 +247,7 @@ export function TaskDetailHeader({ task }: Props) {
     if (!guess) return null;
     const style = getPhaseStyle(guess.id);
     return { label: guess.label, cls: style.cls, dot: style.dot };
-  }, [task.phase, task.phaseLabel, task.title]);
+  }, [task.actionId, task.phase, task.phaseLabel, task.title]);
 
   // Compute "last event" from transcript ticks (polling). When transcript is
   // still loading we fall back to launchedAt / createdAt.
@@ -271,54 +277,140 @@ export function TaskDetailHeader({ task }: Props) {
     copyResetTimer.current = setTimeout(() => setCopiedLabel(null), 1800);
   }, []);
 
-  // ADR-067: dispatch a typed window event after the clipboard write
-  // succeeds so TaskDetailPage's launch-flow side-effect (flip to
-  // Terminal tab + focus xterm) fires. The header CTA is the primary
-  // launch surface — without this dispatch, only the now-secondary
-  // <TerminalLaunchButton> path triggered the side-effect, leaving the
-  // most-clicked CTA broken for the embedded-terminal flow.
-  const dispatchLaunchCopied = useCallback(() => {
-    if (typeof window === "undefined") return;
-    window.dispatchEvent(
-      new CustomEvent("webui:launch-copied", { detail: { taskId: task.taskId } }),
-    );
-  }, [task.taskId]);
+  // ADR-068-A1: dispatch into the LaunchCoordinator (replaces the previous
+  // `webui:launch-copied` window event + clipboard.writeText flow). The
+  // EmbeddedTerminal consumes pendingLaunch via context and writes
+  // `commands[shellKind] + "\r"` over the WS once the prompt-readiness
+  // handshake clears. CTA disabled while pendingLaunch !== null OR
+  // launchMut.isPending so rapid-clicks queue depth stays = 1.
+  // Phase-3 review fix (HIGH): /spawn prewarm is best-effort but its
+  // status IS checked. Network failure is tolerated (ws-upgrade will
+  // ensure-or-create on first attach), but a 4xx/5xx response is
+  // surfaced so the user knows the prewarm rejected (e.g.
+  // task_cwd_unresolvable, pty_spawn_rejected). On 4xx/5xx we still
+  // dispatch the auto-launch — the WS upgrade path is authoritative —
+  // but we surface a non-blocking error message.
+  const prewarmPty = useCallback(async (taskId: string): Promise<string | null> => {
+    try {
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(taskId)}/spawn`,
+        { method: "POST" },
+      );
+      if (res.ok) return null;
+      const detail = await res.text().catch(() => "");
+      return `prewarm ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`;
+    } catch (err) {
+      // Network errors are non-fatal — ws-upgrade will spawn.
+      return err instanceof Error
+        ? `prewarm network error: ${err.message}`
+        : "prewarm network error";
+    }
+  }, []);
 
+  // Live-smoke fix (2026-05-05): prewarm fires fire-and-forget AFTER
+  // dispatch, NOT before. Reason — the original `await prewarmPty()` BEFORE
+  // dispatchAutoLaunch could hang silently (Vite ws proxy ECONNABORTED was
+  // observed once during a fresh connect cycle), blocking the dispatch
+  // entirely. The WS-upgrade itself is the AUTHORITATIVE pty creation
+  // path (ADR-067 + ADR-068-A1) — /spawn is only a latency optimization.
+  // Decoupling them means: even if prewarm hangs, dispatch fires
+  // immediately, EmbeddedTerminal connects + spawns pty via /ws, and
+  // auto-execute proceeds.
   const handleLaunch = useCallback(async () => {
     setCtaError(null);
+    if (launchMut.isPending || coord.pendingLaunch) return;
     try {
       const { commands } = await launchMut.mutateAsync({
         taskId: task.taskId,
         resume: false,
       });
-      const command = pickPlatformCommand(commands);
-      await writeClipboard(command);
-      flashCopied("Launch command copied");
-      dispatchLaunchCopied();
+      coord.dispatchAutoLaunch(commands, false);
+      flashCopied("Launching…");
+      // Fire-and-forget prewarm — surfaces a warning if it 4xx/5xxs but
+      // does not block dispatch.
+      void prewarmPty(task.taskId).then((issue) => {
+        if (issue) setCtaError(issue);
+      });
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
+  }, [launchMut, task.taskId, flashCopied, coord, prewarmPty]);
 
   const handleResume = useCallback(async () => {
     setCtaError(null);
+    if (launchMut.isPending || coord.pendingLaunch) return;
     try {
       const { commands } = await launchMut.mutateAsync({
         taskId: task.taskId,
         resume: true,
       });
-      const command = pickPlatformCommand(commands);
-      await writeClipboard(command);
-      flashCopied("Resume command copied");
-      dispatchLaunchCopied();
+      coord.dispatchAutoLaunch(commands, true);
+      flashCopied("Resuming…");
+      void prewarmPty(task.taskId).then((issue) => {
+        if (issue) setCtaError(issue);
+      });
     } catch (err) {
       setCtaError(err instanceof Error ? err.message : String(err));
     }
-  }, [launchMut, task.taskId, flashCopied, dispatchLaunchCopied]);
+  }, [launchMut, task.taskId, flashCopied, coord, prewarmPty]);
 
   const handleClose = useCallback(() => {
+    // Iterate-2026-05-04 (ADR-068-A1, post-Phase-5-review): "Close task"
+    // is a registry-state action ONLY — flips state to "done". The
+    // embedded-terminal pty lifecycle is owned by separate actions
+    // ("Stop terminal session" menu item below + nav-away which fires
+    // last-conn-close → pty.kill). Piggybacking pty teardown on a
+    // registry-state action was flagged as a UX behavior change beyond
+    // spec; reverted.
     closeMut.mutate(task.taskId);
   }, [closeMut, task.taskId]);
+
+  // ADR-068-A1: explicit "Stop terminal session" action — kills the
+  // embedded-terminal pty without touching the registry state. Best-
+  // effort; failures are logged via console.warn (the user is unlikely
+  // to care if a stop fails — the pty will idle out at 30 min anyway).
+  const handleStopTerminal = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(task.taskId)}/close`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[task-detail] stop-terminal returned HTTP ${res.status}`,
+        );
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[task-detail] stop-terminal failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }, [task.taskId]);
+
+  // Iterate-2026-05-04 (ADR-068-A1): "Clear terminal history" — destructive
+  // cleanup of disk-backed scrollback. Surfaced via "..." overflow menu;
+  // confirm-modal in the page layer guards accidental clicks.
+  const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
+  const [clearHistoryError, setClearHistoryError] = useState<string | null>(null);
+  const handleConfirmClearHistory = useCallback(async () => {
+    setClearHistoryError(null);
+    try {
+      const res = await fetch(
+        `/api/terminal/${encodeURIComponent(task.taskId)}/clear-scrollback`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        setClearHistoryError(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`);
+        return;
+      }
+      setConfirmClearHistoryOpen(false);
+    } catch (err) {
+      setClearHistoryError(err instanceof Error ? err.message : String(err));
+    }
+  }, [task.taskId]);
 
   const handleDelete = useCallback(() => {
     if (
@@ -483,7 +575,7 @@ export function TaskDetailHeader({ task }: Props) {
           <button
             type="button"
             onClick={() => void handleLaunch()}
-            disabled={launchMut.isPending}
+            disabled={launchMut.isPending || coord.pendingLaunch !== null}
             className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition disabled:opacity-60"
             style={{ background: "var(--color-success, #059669)" }}
             onMouseEnter={(ev) => {
@@ -494,13 +586,13 @@ export function TaskDetailHeader({ task }: Props) {
             }}
             data-testid="cta-launch-in-terminal"
             data-color="green"
-            aria-label="Launch command — copy to clipboard"
+            aria-label="Launch — auto-execute in embedded terminal"
           >
             <TerminalIcon size={14} />
             {launchMut.isPending
               ? "Preparing…"
-              : copiedLabel === "Launch command copied"
-              ? "Copied — paste into terminal"
+              : copiedLabel === "Launching…"
+              ? "Sent — terminal opening"
               : "Launch"}
           </button>
         )}
@@ -508,36 +600,47 @@ export function TaskDetailHeader({ task }: Props) {
           <button
             type="button"
             onClick={() => void handleResume()}
-            disabled={launchMut.isPending}
+            disabled={launchMut.isPending || coord.pendingLaunch !== null}
             className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60"
             data-testid="cta-copy-resume-command"
             data-color="orange"
-            aria-label="Resume command — copy to clipboard"
+            aria-label="Resume — auto-execute in embedded terminal"
           >
             <TerminalIcon size={14} />
             {launchMut.isPending
               ? "Preparing…"
-              : copiedLabel === "Resume command copied"
-              ? "Copied — paste into terminal"
+              : copiedLabel === "Resuming…"
+              ? "Sent — terminal opening"
               : "Resume"}
           </button>
         )}
         {cta === "terminal" && (
           <button
             type="button"
-            onClick={() => void handleResume()}
-            disabled={launchMut.isPending}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:opacity-60"
+            onClick={() => {
+              // Phase-5-Codex review fix (HIGH): for state=active|
+              // awaiting_external_start, "Terminal" was calling
+              // handleResume() which auto-executed claude --resume —
+              // unwanted side-effect when the user just wants to look
+              // at a live session. Now this CTA is a pure nav-flip:
+              // dispatch a no-op into the coord that toggles the
+              // Terminal tab. Resume is reachable via state=idle (CTA
+              // becomes orange "Resume" automatically when pty dies +
+              // mtime drifts > 2 min — see external/routes.ts state
+              // computation).
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(
+                  new CustomEvent("webui:focus-terminal-tab"),
+                );
+              }
+            }}
+            className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover,#5a4f48)]"
             data-testid="cta-terminal"
             data-color="brown"
-            aria-label="Terminal — copy resume command to clipboard"
+            aria-label="Terminal — open the embedded terminal pane"
           >
             <TerminalIcon size={14} />
-            {launchMut.isPending
-              ? "Preparing…"
-              : copiedLabel === "Resume command copied"
-              ? "Copied — paste into terminal"
-              : "Terminal"}
+            Terminal
           </button>
         )}
 
@@ -610,6 +713,14 @@ export function TaskDetailHeader({ task }: Props) {
                 Close task
               </DropdownMenu.Item>
               <DropdownMenu.Item
+                onSelect={() => void handleStopTerminal()}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                data-testid="task-detail-menu-stop-terminal"
+              >
+                <X size={14} className="text-[var(--color-muted,#6b7280)]" />
+                Stop terminal session
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
                 onSelect={() => handleDelete()}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-error,#DC2626)] outline-none transition hover:bg-[var(--color-error,#DC2626)]/10"
                 data-testid="task-detail-menu-delete"
@@ -619,6 +730,20 @@ export function TaskDetailHeader({ task }: Props) {
                   className="text-[var(--color-error,#DC2626)]"
                 />
                 Delete task
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                onSelect={(e) => {
+                  e.preventDefault();
+                  setConfirmClearHistoryOpen(true);
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-error,#DC2626)] outline-none transition hover:bg-[var(--color-error,#DC2626)]/10"
+                data-testid="task-detail-menu-clear-history"
+              >
+                <Trash2
+                  size={14}
+                  className="text-[var(--color-error,#DC2626)]"
+                />
+                Clear terminal history
               </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 h-px bg-[var(--color-border,#e0dbd4)]" />
               <DropdownMenu.Item
@@ -671,6 +796,59 @@ export function TaskDetailHeader({ task }: Props) {
           });
         }}
       />
+
+      {/* ADR-068-A1: Clear-history confirm modal. Inline (vs reusing
+          ConfirmDeleteDialog which is task-shaped) so the copy is
+          terminal-specific + the destructive action is contained. */}
+      {confirmClearHistoryOpen ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30"
+          data-testid="confirm-clear-history-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmClearHistoryOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-[var(--radius-card,12px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] p-5 shadow-[var(--shadow-card,0_6px_30px_rgba(0,0,0,0.10))]"
+            data-testid="confirm-clear-history-dialog"
+          >
+            <h2 className="text-[15px] font-semibold text-[var(--color-text,#1a1a1a)]">
+              Clear terminal history?
+            </h2>
+            <p className="mt-2 text-[13px] text-[var(--color-muted,#6b7280)]">
+              The persisted terminal scrollback for this task will be deleted
+              from disk. The active session (if any) keeps running. This
+              cannot be undone.
+            </p>
+            {clearHistoryError ? (
+              <p
+                className="mt-3 text-[12px] text-[var(--color-error,#DC2626)]"
+                data-testid="confirm-clear-history-error"
+              >
+                Failed: {clearHistoryError}
+              </p>
+            ) : null}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmClearHistoryOpen(false)}
+                className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] px-3 py-1.5 text-[12px] text-[var(--color-text,#1a1a1a)] transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                data-testid="confirm-clear-history-cancel"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleConfirmClearHistory()}
+                className="rounded-[var(--radius-button,8px)] bg-[var(--color-error,#DC2626)] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:opacity-90"
+                data-testid="confirm-clear-history-confirm"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

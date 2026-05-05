@@ -282,6 +282,13 @@ export class SdkSessionsStore {
     phase?: string;
     phaseLabel?: string;
     /**
+     * 2026-05-05 — Save-to-Backlog wiring. Persisted at create-time so
+     * a later TaskCard "Launch" click on a draft task recovers the right
+     * command_template via routes.ts:421 fallback. The route validates
+     * catalog membership at /launch time (`unknown_action_id` 400).
+     */
+    actionId?: string;
+    /**
      * v3 — iterate/multi-session-run-orchestrator-v2. When the caller
      * passes a sessionUuid (Continue Pipeline path), it overrides the
      * auto-generated one — the framework's orchestrator has pre-bound
@@ -316,6 +323,7 @@ export class SdkSessionsStore {
     };
     if (args.phase) task.phase = args.phase;
     if (args.phaseLabel) task.phaseLabel = args.phaseLabel;
+    if (args.actionId) task.actionId = args.actionId;
     if (args.phaseTaskId) task.phaseTaskId = args.phaseTaskId;
     if (args.runId) task.runId = args.runId;
     if (typeof args.parentRunMaster === "boolean") {
@@ -473,6 +481,32 @@ function validateExternalTask(
   const parentRunMaster =
     typeof r.parentRunMaster === "boolean" ? r.parentRunMaster : undefined;
 
+  // 2026-05-05 — preserve action-context fields persisted via store.patch()
+  // (set at /launch time) and via store.create() actionId (Save-to-Backlog).
+  // These were silently dropped on disk-reload before, causing every server
+  // restart to lose the right command_template for backlog tasks → vanilla
+  // claude on next Launch click.
+  const actionId =
+    typeof r.actionId === "string" && r.actionId.trim().length > 0
+      ? r.actionId.trim()
+      : undefined;
+  const phase =
+    typeof r.phase === "string" && r.phase.trim().length > 0
+      ? r.phase.trim()
+      : undefined;
+  const phaseLabel =
+    typeof r.phaseLabel === "string" && r.phaseLabel.trim().length > 0
+      ? r.phaseLabel.trim()
+      : undefined;
+  const description =
+    typeof r.description === "string" && r.description.length > 0
+      ? r.description
+      : undefined;
+  const autonomy =
+    r.autonomy === "guided" || r.autonomy === "autonomous"
+      ? (r.autonomy as "guided" | "autonomous")
+      : undefined;
+
   return {
     taskId,
     sessionUuid: r.sessionUuid,
@@ -489,6 +523,11 @@ function validateExternalTask(
     lastJsonlSeenMtimeMs:
       typeof r.lastJsonlSeenMtimeMs === "number" ? r.lastJsonlSeenMtimeMs : undefined,
     inbox,
+    ...(actionId ? { actionId } : {}),
+    ...(phase ? { phase } : {}),
+    ...(phaseLabel ? { phaseLabel } : {}),
+    ...(description ? { description } : {}),
+    ...(autonomy ? { autonomy } : {}),
     ...(phaseTaskId ? { phaseTaskId } : {}),
     ...(runId ? { runId } : {}),
     ...(parentRunMaster !== undefined ? { parentRunMaster } : {}),

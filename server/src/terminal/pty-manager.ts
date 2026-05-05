@@ -10,8 +10,11 @@
  *     spawn() is idempotent for the same taskId (no dual-creation race).
  *   - Writer ownership is bound to the live WS connection identity;
  *     detach clears the writer slot synchronously.
- *   - Last-connection-close kills the pty (no orphans on tab close).
- *   - 30-min idle ceiling forces kill regardless (defence in depth).
+ *   - Last-connection-close keeps the pty alive (ADR-068-A1 Replay-on-
+ *     Attach contract). Navigation away from TaskDetail must NOT kill
+ *     a running claude session; the user re-attaches by navigating back.
+ *   - 30-min idle ceiling forces kill (the orphan GC mechanism). Plus
+ *     explicit user "Stop terminal session" + DELETE task cascade.
  *   - Per-conn outbound buffer cap with drop-oldest backpressure.
  *   - Shell-aware path quoting via quotePathForShell() — used by the
  *     image-paste flow so cwd-with-spaces does not break the prompt.
@@ -21,6 +24,7 @@
  */
 
 import path from "node:path";
+import type { ScrollbackStore } from "./scrollback-store.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -33,6 +37,14 @@ export interface PtyHandleApi {
   write(data: string): void;
   resize(cols: number, rows: number): void;
   kill(signal?: string): void;
+  /**
+   * Optional pause/resume — used by the replay-on-attach flow (ADR-068-A1)
+   * to halt live pty output while the WS replays scrollback from disk.
+   * `@lydell/node-pty`'s IPty exposes both; tests with a fake pty can
+   * leave them undefined (no-op semantics).
+   */
+  pause?(): void;
+  resume?(): void;
 }
 
 export type PtySpawnFn = (
@@ -178,6 +190,13 @@ export interface PtyManagerOpts {
   wsBufferBytes?: number;
   /** PTY auto-kill ceiling on idleness; default 30 min. */
   idleTimeoutMs?: number;
+  /**
+   * Optional scrollback store (ADR-068-A1). When provided, every pty.onData
+   * chunk is appended to disk before broadcast. closeStream is called on
+   * pty.kill so file descriptors are released cleanly. Tests can omit this
+   * for native-binary-free coverage.
+   */
+  scrollbackStore?: ScrollbackStore;
 }
 
 export class PtyManager {
@@ -185,16 +204,28 @@ export class PtyManager {
   private readonly spawnFn: PtySpawnFn;
   private readonly wsBufferBytes: number;
   private readonly idleTimeoutMs: number;
+  private readonly scrollbackStore: ScrollbackStore | undefined;
 
   constructor(opts: PtyManagerOpts) {
     this.spawnFn = opts.spawn;
     this.wsBufferBytes = opts.wsBufferBytes ?? 1_048_576;
     this.idleTimeoutMs = opts.idleTimeoutMs ?? 1_800_000;
+    this.scrollbackStore = opts.scrollbackStore;
   }
 
   /** Look up a handle by taskId. Returns undefined if not yet spawned. */
   get(taskId: string): PtyHandleMeta | undefined {
     return this.entries.get(taskId)?.meta;
+  }
+
+  /**
+   * Return the set of taskIds with a live pty entry. Used by the daily
+   * scrollback sweep (ADR-068-A1, AC-11) to skip clearing files for
+   * tasks whose pty is still running but whose `sdk-sessions.json` state
+   * has drifted (e.g. session ended mid-run).
+   */
+  getLiveTaskIds(): Set<string> {
+    return new Set(this.entries.keys());
   }
 
   /** Idempotent ensure-or-create. */
@@ -231,6 +262,20 @@ export class PtyManager {
     // Forward pty output to all subscribers + reset idle timer.
     pty.onData((data) => {
       this.touchIdle(entry);
+      // ADR-068-A1: persist to disk before broadcast. Synchronous via
+      // fs.appendFileSync so subsequent reads see the bytes immediately.
+      // Wrapped in try/catch so a disk error / rotation-buffer-overflow
+      // never breaks the broadcaster.
+      if (this.scrollbackStore) {
+        try {
+          this.scrollbackStore.append(taskId, Buffer.from(data, "utf8"));
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] scrollback append failed for ${taskId}: ${(err as Error).message}`,
+          );
+        }
+      }
       for (const cb of entry.dataSubs) {
         try {
           cb(data);
@@ -273,11 +318,59 @@ export class PtyManager {
       // best-effort
     }
     this.cleanup(taskId);
+    // ADR-068-A1: release scrollback FD lifecycle. Best-effort + non-throwing
+    // — if the queue is busy with rotation, closeStream resolves after that
+    // settles. Detached from kill() return so kill() stays sync.
+    if (this.scrollbackStore) {
+      void this.scrollbackStore
+        .closeStream(taskId)
+        .catch((err: unknown) => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] scrollback closeStream failed for ${taskId}: ${(err as Error).message}`,
+          );
+        });
+    }
   }
 
   killAll(): void {
     const taskIds = [...this.entries.keys()];
     for (const id of taskIds) this.kill(id);
+  }
+
+  /**
+   * Pause the live pty (ADR-068-A1). Called by the WS upgrade `onOpen`
+   * before reading scrollback from disk so live output doesn't pile up
+   * in the per-conn liveBuffer during replay-render. Pty-pause has a
+   * global side-effect: ALL attached connections see no live data
+   * until resume() is called. Documented + accepted; multi-tab fairness
+   * is deferred (replay completes in <1s typical).
+   */
+  pause(taskId: string): void {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.pty.pause) return;
+    try {
+      entry.pty.pause();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] pause failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /** Counterpart to pause(). Idempotent — calling on a non-paused pty is a no-op. */
+  resume(taskId: string): void {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.pty.resume) return;
+    try {
+      entry.pty.resume();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] resume failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   /**
@@ -356,8 +449,21 @@ export class PtyManager {
   /**
    * Detach a WS conn. If conn was writer, the slot is freed and any
    * remaining reader connection is promoted to writer (with onPromoteToWriter
-   * fired so the routes layer can notify that client). If this was the
-   * last connection on the entry, the pty is killed instead.
+   * fired so the routes layer can notify that client).
+   *
+   * 2026-05-05 — last-detach NO LONGER kills the pty. The previous
+   * "no orphan tab leak" policy collided fundamentally with ADR-068-A1
+   * (Iterate 5) Replay-on-Attach: any TaskBoard ↔ TaskDetail navigation
+   * closes the WS, the server killed the pty, and re-attaching produced
+   * a brand-new shell with no claude session — the symptom users report
+   * as "Session bleibt nicht aktiv". Orphan management now relies on:
+   *   - 30-min idle ceiling (touchIdle on every pty.onData)
+   *   - explicit user "Stop terminal session" menu action
+   *   - DELETE task cascade (Phase 4 Close-task-kills-pty)
+   *   - server shutdown
+   * The pty's process tree is bounded, the scrollback file is bounded
+   * (1 MiB rotated), and the daily sweep TTL also catches abandoned
+   * scrollback for tasks whose pty has long since exited.
    */
   detach(taskId: string, conn: unknown): void {
     const entry = this.entries.get(taskId);
@@ -367,10 +473,6 @@ export class PtyManager {
     entry.backpressureRaised.delete(conn);
     const wasWriter = entry.writer === conn;
     if (wasWriter) entry.writer = null;
-    if (entry.connSubs.size === 0) {
-      this.kill(taskId);
-      return;
-    }
     if (wasWriter) {
       // Promote the oldest remaining connection to writer (Map iteration
       // order is insertion order). Closes the StrictMode double-mount race

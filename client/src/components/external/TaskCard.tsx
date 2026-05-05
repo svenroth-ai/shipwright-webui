@@ -264,6 +264,10 @@ export function TaskCard({ task }: Props) {
         <div className="flex flex-wrap items-center gap-1.5">
           <StatePill state={task.state} />
           {(() => {
+            // Plain Claude (new-plain) has no phase by design — the title
+            // is a free-form chat title, so the keyword-fallback would
+            // emit bogus phases (e.g. "build my prototype" → build).
+            if (task.actionId === "new-plain") return null;
             const phaseId =
               task.phase ?? derivePhaseFromTitle(task.title)?.id ?? null;
             const phaseLabel =
@@ -345,7 +349,14 @@ export function TaskCard({ task }: Props) {
                     variant="solid"
                     color="brown"
                     size="xs"
-                    resume={true}
+                    // 2026-05-05 — `awaiting_external_start` has no claude
+                    // session to resume yet (the prior Launch click never
+                    // produced a JSONL — that's what `awaiting_external_start`
+                    // means). Resume here would emit `claude --resume <uuid>`
+                    // and fail at runtime. `active` IS running, so resume is
+                    // valid — at worst the user has to drop the original
+                    // session first, but the command itself is correct.
+                    resume={task.state === "active"}
                     label="Terminal"
                   />
                 </span>
