@@ -43,6 +43,7 @@ import * as fsSync from "node:fs";
 import * as path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import PQueue from "p-queue";
+import { ScrollbackSanitizer } from "./scrollback-sanitizer.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -109,6 +110,13 @@ interface PerTaskState {
   rotationBufferBytes: number;
   /** Per-task serialized queue for rotate / read / clear. */
   queue: PQueue;
+  /**
+   * AC-1 (iterate-2026-05-05) — sanitizer that strips cursor-control +
+   * repaint sequences from the byte stream before disk persistence.
+   * One instance per task so chunk-boundary state (mid-CSI / mid-OSC /
+   * mid-CRLF) carries across `pty.onData` calls.
+   */
+  sanitizer: ScrollbackSanitizer;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,14 +172,26 @@ export class ScrollbackStore {
 
     const st = this.getOrInitState(taskId);
 
+    // AC-1 (iterate-2026-05-05): sanitize before persistence. The live
+    // broadcast in PtyManager keeps the raw bytes; only the disk path
+    // runs through the sanitizer. Held state (mid-CSI / mid-OSC / mid-CRLF)
+    // carries across calls via st.sanitizer.
+    const sanitized = st.sanitizer.feed(data);
+    if (sanitized.byteLength === 0) {
+      // The chunk was entirely cursor-control / repaint bytes (e.g. a
+      // standalone "\x1b[H\x1b[K" frame) — nothing to persist for this
+      // chunk. Held state in st.sanitizer is preserved for the next call.
+      return true;
+    }
+
     // Rotation in flight → buffer (NEVER drop chunks; ANSI/UTF-8 corruption).
     if (st.state !== "NORMAL") {
-      this.bufferDuringRotation(taskId, st, data);
+      this.bufferDuringRotation(taskId, st, sanitized);
       return true;
     }
 
     try {
-      fsSync.appendFileSync(this.taskFilePath(taskId), data, {
+      fsSync.appendFileSync(this.taskFilePath(taskId), sanitized, {
         mode: this.fileMode,
       });
     } catch (err) {
@@ -183,7 +203,7 @@ export class ScrollbackStore {
       return false;
     }
 
-    st.size += data.byteLength;
+    st.size += sanitized.byteLength;
 
     if (st.size > this.opts.maxBytesPerTask) {
       this.scheduleRotation(taskId, st);
@@ -410,6 +430,7 @@ export class ScrollbackStore {
         rotationBuffer: [],
         rotationBufferBytes: 0,
         queue: new PQueue({ concurrency: 1 }),
+        sanitizer: new ScrollbackSanitizer(),
       };
       this.states.set(taskId, st);
     }
@@ -596,10 +617,27 @@ export class ScrollbackStore {
 
     if (!liveBuf && !archiveBuf) return "";
 
+    // AC-1 (iterate-2026-05-05): legacy-file compat. v0.8.0 wrote raw
+    // pty bytes to disk, including cursor-control sequences that re-execute
+    // on replay and corrupt the rendered scrollback. Re-run the sanitizer
+    // here — for v0.8.1+ files it's a near-no-op (already sanitized on
+    // append); for v0.8.0 files it strips the corruption-causing bytes.
+    const readSanitizer = new ScrollbackSanitizer();
+    let cleanArchive: Buffer | null = null;
+    let cleanLive: Buffer | null = null;
+    if (archiveBuf) {
+      cleanArchive = readSanitizer.feed(archiveBuf);
+    }
+    if (liveBuf) {
+      cleanLive = readSanitizer.feed(liveBuf);
+    }
+    const flush = readSanitizer.flush();
+
     const decoder = new StringDecoder("utf8");
     let out = "";
-    if (archiveBuf) out += decoder.write(archiveBuf);
-    if (liveBuf) out += decoder.write(liveBuf);
+    if (cleanArchive) out += decoder.write(cleanArchive);
+    if (cleanLive) out += decoder.write(cleanLive);
+    if (flush.byteLength > 0) out += decoder.write(flush);
     out += decoder.end();
 
     // Tail to maxBytesPerTask of UTF-8-encoded length.
@@ -658,6 +696,10 @@ export class ScrollbackStore {
       st.rotationBuffer = [];
       st.rotationBufferBytes = 0;
       st.state = "NORMAL";
+      // AC-1: clear() resets the disk file; the sanitizer must
+      // forget any in-progress sequence so the next append starts
+      // from GROUND state.
+      st.sanitizer.reset();
     }
   }
 }
