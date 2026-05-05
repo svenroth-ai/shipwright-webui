@@ -1,1 +1,0 @@
-Embedded-terminal one-click auto-launch — clicking Launch in TaskDetailHeader now flips to the Terminal tab and writes the launch command directly into the embedded shell (zero clipboard interaction; ADR-068-A1)
