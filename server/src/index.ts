@@ -277,6 +277,10 @@ if (isMainModule) {
         wsBufferBytes: config.terminalWsBufferBytes,
         idleTimeoutMs: config.terminalIdleTimeoutMs,
         scrollbackStore,
+        // AC-3b (iterate-2026-05-05) — enable the writer-stuck watchdog
+        // in production. Capability auto-detected against the live WS;
+        // logs warn + degrades to ws.close-driven release if missing.
+        watchdogEnabled: true,
       });
 
       // Boot-time TTL sweep — bounded, oldest-first, active-aware.
