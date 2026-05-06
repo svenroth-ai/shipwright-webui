@@ -27,6 +27,29 @@ export interface TerminalReadyInfo {
   role: TerminalRole;
   shellKind: "pwsh" | "cmd" | "posix";
   cwd: string;
+  /**
+   * Iterate v0.8.2 AC-7 — server bypassed pty spawn because the task is
+   * in a terminal state (`done` / `launch_failed`). UI should render a
+   * "Session ended" banner instead of an input cursor; the server will
+   * close the WS after the replay envelopes.
+   */
+  replayOnly: boolean;
+  /**
+   * Iterate v0.8.2 AC-8 — total persisted scrollback bytes for this
+   * task. 0 when the store is disabled or the task has never written
+   * scrollback. Disclosure footer renders only when > 0.
+   */
+  scrollbackBytes: number;
+  /**
+   * Iterate v0.8.2 AC-9 — retention TTL surfaced for the disclosure
+   * footer copy.
+   */
+  retentionDays: number;
+  /**
+   * Iterate v0.8.2 AC-9 — resolved scrollback dir for the disclosure
+   * footer copy.
+   */
+  scrollbackDir: string;
 }
 
 export interface UseTerminalSocketOptions {
@@ -57,6 +80,16 @@ export interface UseTerminalSocketResult {
    * of the launch command. Null until ready envelope arrives.
    */
   shellKind: TerminalReadyInfo["shellKind"] | null;
+  /**
+   * Iterate v0.8.2 AC-7/8/9 — surfaced from the ready envelope so the
+   * page-layer (TaskDetailPage) can render the conditional disclosure
+   * footer + the "Session ended" replay-only banner. Null until ready
+   * envelope arrives.
+   */
+  replayOnly: boolean | null;
+  scrollbackBytes: number | null;
+  retentionDays: number | null;
+  scrollbackDir: string | null;
   /** Last error message, if any. */
   lastError: string | null;
   /** Number of reconnect attempts since last successful connect. */
@@ -113,6 +146,10 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const [ready, setReady] = useState(false);
   const [role, setRole] = useState<TerminalRole | null>(null);
   const [shellKind, setShellKind] = useState<TerminalReadyInfo["shellKind"] | null>(null);
+  const [replayOnly, setReplayOnly] = useState<boolean | null>(null);
+  const [scrollbackBytes, setScrollbackBytes] = useState<number | null>(null);
+  const [retentionDays, setRetentionDays] = useState<number | null>(null);
+  const [scrollbackDir, setScrollbackDir] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -139,6 +176,10 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setReady(false);
       setRole(null);
       setShellKind(null);
+      setReplayOnly(null);
+      setScrollbackBytes(null);
+      setRetentionDays(null);
+      setScrollbackDir(null);
       setOpen(false);
       return;
     }
@@ -187,6 +228,26 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           if (env.shellKind === "pwsh" || env.shellKind === "cmd" || env.shellKind === "posix") {
             setShellKind(env.shellKind);
           }
+          // Iterate v0.8.2 AC-7/8/9 — defensive parse for the new ready
+          // envelope fields. `replayOnly` defaults to false to match the
+          // pre-v0.8.2 server behavior; the bytes/retention fields stay
+          // null when absent so the page layer can opt-out cleanly.
+          setReplayOnly(typeof env.replayOnly === "boolean" ? env.replayOnly : false);
+          setScrollbackBytes(
+            typeof env.scrollbackBytes === "number" && env.scrollbackBytes >= 0
+              ? env.scrollbackBytes
+              : null,
+          );
+          setRetentionDays(
+            typeof env.retentionDays === "number" && env.retentionDays > 0
+              ? env.retentionDays
+              : null,
+          );
+          setScrollbackDir(
+            typeof env.scrollbackDir === "string" && env.scrollbackDir.length > 0
+              ? env.scrollbackDir
+              : null,
+          );
           setReady(true);
           return;
         }
@@ -201,6 +262,19 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         }
         if (env.type === "read_only") {
           onReadOnlyRef.current?.();
+          return;
+        }
+        if (env.type === "scrollback-meta") {
+          // Iterate v0.8.2 AC-8/AC-9 follow-up envelope. Server sends
+          // this after the async bytes() probe resolves so the
+          // disclosure footer can render with the precise value
+          // without delaying the original `ready` envelope.
+          if (
+            typeof env.scrollbackBytes === "number" &&
+            env.scrollbackBytes >= 0
+          ) {
+            setScrollbackBytes(env.scrollbackBytes);
+          }
           return;
         }
         if (env.type === "writer-promoted") {
@@ -279,9 +353,25 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setReady(false);
       setRole(null);
       setShellKind(null);
+      setReplayOnly(null);
+      setScrollbackBytes(null);
+      setRetentionDays(null);
+      setScrollbackDir(null);
       setOpen(false);
     };
   }, [enabled, taskId, urlOverride]);
 
-  return { ready, role, shellKind, lastError, reconnectAttempts, send, open };
+  return {
+    ready,
+    role,
+    shellKind,
+    replayOnly,
+    scrollbackBytes,
+    retentionDays,
+    scrollbackDir,
+    lastError,
+    reconnectAttempts,
+    send,
+    open,
+  };
 }

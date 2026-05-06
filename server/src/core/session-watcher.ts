@@ -63,13 +63,32 @@ export class SessionWatcher {
    * Resolve the on-disk JSONL for a given pre-bound session UUID.
    * Returns null if no file matches yet (common during
    * `awaiting_external_start` before the user pastes).
+   *
+   * Iterate v0.8.2 AC-5 (awaiting-launch state lag — diagnosis): when
+   * SHIPWRIGHT_DEBUG_AWAITING_LAUNCH=1, log each polled subdirectory +
+   * match outcome. The known-good lower bound is ~5–15 s for Claude's
+   * first JSONL write + 2–5 s server poll cadence (~20 s total). If
+   * the field reports >30 s, the most likely cause is an encoded-cwd
+   * mismatch — the pty was started under one cwd but `Set-Location`'d
+   * before launch, while task.cwd records the original. The log shows
+   * BOTH the directories walked AND a no-match outcome so the operator
+   * can compare against the encoded cwd they expected.
    */
   async findByUuid(sessionUuid: string): Promise<JsonlLocation | null> {
+    const debug =
+      process.env.SHIPWRIGHT_DEBUG_AWAITING_LAUNCH === "1" ||
+      process.env.SHIPWRIGHT_DEBUG_AWAITING_LAUNCH === "true";
     const wanted = `${sessionUuid.toLowerCase()}.jsonl`;
     let subs: string[];
     try {
       subs = await this.deps.readdir(this.deps.projectsDir);
     } catch {
+      if (debug) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[awaiting-launch] readdir(projectsDir) failed for uuid=${sessionUuid} dir=${this.deps.projectsDir}`,
+        );
+      }
       return null;
     }
     for (const sub of subs) {
@@ -91,11 +110,23 @@ export class SessionWatcher {
         const fp = path.join(subPath, f);
         try {
           const fs = await this.deps.stat(fp);
+          if (debug) {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[awaiting-launch] HIT uuid=${sessionUuid} encodedCwd=${sub} size=${fs.size}`,
+            );
+          }
           return { path: fp, encodedCwd: sub, mtimeMs: fs.mtimeMs, sizeBytes: fs.size };
         } catch {
           return null;
         }
       }
+    }
+    if (debug) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `[awaiting-launch] miss uuid=${sessionUuid} walked=${subs.length} encodedCwds=${subs.slice(0, 8).join(",")}${subs.length > 8 ? ",…" : ""}`,
+      );
     }
     return null;
   }

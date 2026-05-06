@@ -401,6 +401,9 @@ if (isMainModule) {
         upgradeWebSocket,
         pastesKeepLast: config.claudePastesKeepLast,
         scrollbackStore,
+        // Iterate v0.8.2 AC-9 — retention + dir surfaced in `ready`.
+        retentionDays: config.terminalScrollbackTtlDays,
+        scrollbackDirHint: config.terminalScrollbackDir,
       })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).

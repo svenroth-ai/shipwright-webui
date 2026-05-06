@@ -3,17 +3,21 @@
  * flow (iterate-2026-05-03 / ADR-067). Pure module: routes.ts wraps the
  * HTTP envelope.
  *
- * Storage layout: <task.cwd>/.claude-pastes/img-<unix-ms>-<8 hex>.png
+ * Storage layout: <task.cwd>/.shipwright-webui/pastes/img-<unix-ms>-<8 hex>.png
  *   - filename includes random hex to avoid collision under rapid pastes
  *     within the same millisecond (external review F17a).
  *   - prune sorts by parsed timestamp from the filename, with fs mtime as
  *     tiebreaker only — deterministic on filesystems with low mtime
  *     resolution (F17b).
+ *   - Iterate v0.8.2 AC-6: directory moved from `.claude-pastes/` →
+ *     `.shipwright-webui/pastes/` to align with the convention dir the
+ *     rest of webui already writes to. Existing `.claude-pastes/` files
+ *     stay where they are; only NEW pastes land in the new path.
  *
  * Path-safety: callers MUST hand a `task.cwd` that has been validated
  * upstream. This module re-applies `pathGuard` + `realPathGuard` against
- * the .claude-pastes dir (after mkdir) so a malicious symlink in the
- * project tree can't redirect writes outside the cwd (F11 generalisation).
+ * the pastes dir (after mkdir) so a malicious symlink in the project
+ * tree can't redirect writes outside the cwd (F11 generalisation).
  *
  * Mime + size: PNG / JPEG / WEBP / GIF whitelisted (magic-byte sniff is
  * the source of truth — Content-Type headers are advisory). Hard cap at
@@ -29,7 +33,13 @@ import crypto from "node:crypto";
 import { pathGuard, realPathGuard } from "../core/path-guard.js";
 
 export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
-export const PASTES_DIR = ".claude-pastes";
+// Iterate v0.8.2 AC-6: pastes now live under the project-level webui
+// convention dir. Joined with `path.join` for cross-platform separators.
+export const PASTES_DIR = path.join(".shipwright-webui", "pastes");
+// Iterate v0.8.2 AC-6: gitignore suggestion now points at the parent
+// convention dir — one entry covers pastes + any future webui-only
+// scratch surfaces.
+export const PASTES_GITIGNORE_HINT = ".shipwright-webui/";
 
 export type ImageKind = "png" | "jpeg" | "webp" | "gif";
 
@@ -114,6 +124,11 @@ export interface PruneResult {
 /**
  * Keep the `n` newest `img-*` files in `dir` (by parsed-timestamp primary,
  * fs mtime tiebreaker), unlink the rest. Idempotent + symlink-safe.
+ *
+ * Iterate v0.8.2 AC-4: stat() calls run in parallel via Promise.all.
+ * Sequential per-file stats added measurable latency on Windows where each
+ * syscall is ~50-100 ms; with a 20-deep `keepLast` window this could
+ * dominate the paste roundtrip on its own.
  */
 export async function pruneKeepLastN(dir: string, n: number): Promise<PruneResult> {
   let entries: string[];
@@ -125,17 +140,18 @@ export async function pruneKeepLastN(dir: string, n: number): Promise<PruneResul
   const candidates = entries.filter((e) => /^img-/.test(e));
   if (candidates.length <= n) return { kept: candidates, deleted: [] };
 
-  const enriched: Array<{ name: string; ts: number; mtime: number }> = [];
-  for (const name of candidates) {
-    let mtime = 0;
-    try {
-      const st = await fs.stat(path.join(dir, name));
-      mtime = st.mtimeMs;
-    } catch {
-      mtime = 0;
-    }
-    enriched.push({ name, ts: parseFilenameTimestamp(name), mtime });
-  }
+  const enriched = await Promise.all(
+    candidates.map(async (name) => {
+      let mtime = 0;
+      try {
+        const st = await fs.stat(path.join(dir, name));
+        mtime = st.mtimeMs;
+      } catch {
+        mtime = 0;
+      }
+      return { name, ts: parseFilenameTimestamp(name), mtime };
+    }),
+  );
   // Sort newest-first by parsed timestamp, mtime tiebreaker, name as final.
   enriched.sort((a, b) => {
     const aTs = Number.isNaN(a.ts) ? -Infinity : a.ts;
@@ -147,13 +163,17 @@ export async function pruneKeepLastN(dir: string, n: number): Promise<PruneResul
 
   const kept = enriched.slice(0, n).map((e) => e.name);
   const drop = enriched.slice(n).map((e) => e.name);
-  for (const name of drop) {
-    try {
-      await fs.unlink(path.join(dir, name));
-    } catch {
-      // best-effort; raced delete is fine
-    }
-  }
+  // Iterate v0.8.2 AC-4: unlinks run in parallel — best-effort, raced
+  // deletes are still fine.
+  await Promise.all(
+    drop.map(async (name) => {
+      try {
+        await fs.unlink(path.join(dir, name));
+      } catch {
+        /* best-effort */
+      }
+    }),
+  );
   return { kept, deleted: drop };
 }
 
@@ -235,30 +255,39 @@ export async function savePastedImage(opts: SaveOpts): Promise<SaveResult> {
     );
   }
 
-  const prune = await pruneKeepLastN(realDirGuard.absolute, keepLast);
-
-  // Gitignore-suggestion check: only when .gitignore EXISTS and does not
-  // already mention .claude-pastes/. Missing .gitignore → no suggestion
-  // (we don't propose creating one out of thin air).
-  let gitignoreSuggestion = false;
-  try {
-    const giPath = path.join(cwd, ".gitignore");
-    const giContents = await fs.readFile(giPath, "utf8");
-    if (!/\.claude-pastes\/?(\s|$)/.test(giContents)) {
-      gitignoreSuggestion = true;
-    }
-  } catch {
-    /* missing .gitignore — no suggestion */
-  }
+  // Iterate v0.8.2 AC-4: prune + gitignore-check run in parallel — they
+  // touch disjoint paths and were a measurable serialised tail on Windows.
+  // Iterate v0.8.2 AC-6: gitignore detection accepts EITHER the legacy
+  // `.claude-pastes/` line OR the new `.shipwright-webui/` line so users
+  // who already gitignored the legacy dir don't get a stale suggestion.
+  const [prune, gitignoreSuggestion] = await Promise.all([
+    pruneKeepLastN(realDirGuard.absolute, keepLast),
+    (async () => {
+      try {
+        const giPath = path.join(cwd, ".gitignore");
+        const giContents = await fs.readFile(giPath, "utf8");
+        const hasShipwrightLine = /\.shipwright-webui\/?(\s|$)/.test(giContents);
+        const hasLegacyLine = /\.claude-pastes\/?(\s|$)/.test(giContents);
+        return !hasShipwrightLine && !hasLegacyLine;
+      } catch {
+        return false;
+      }
+    })(),
+  ]);
 
   return { absolutePath: realAbsolute, kind, gitignoreSuggestion, prune };
 }
 
 /**
- * Idempotent append of `.claude-pastes/` to `<cwd>/.gitignore`. Returns
+ * Idempotent append of `.shipwright-webui/` to `<cwd>/.gitignore`. Returns
  * true if the line was appended, false if it was already present or the
  * file is missing. Caller is expected to have already gone through
  * pathGuard + realPathGuard on the .gitignore target.
+ *
+ * Iterate v0.8.2 AC-6: the entry now points at the parent webui convention
+ * dir; legacy `.claude-pastes/` lines are accepted as already-covering so
+ * a project that gitignored the old layout does not get a duplicate
+ * append.
  */
 export async function appendGitignoreLine(absoluteGitignorePath: string): Promise<boolean> {
   let contents: string;
@@ -267,10 +296,17 @@ export async function appendGitignoreLine(absoluteGitignorePath: string): Promis
   } catch {
     return false;
   }
-  if (/\.claude-pastes\/?(\s|$)/.test(contents)) {
+  if (
+    /\.shipwright-webui\/?(\s|$)/.test(contents) ||
+    /\.claude-pastes\/?(\s|$)/.test(contents)
+  ) {
     return false;
   }
   const sep = contents.endsWith("\n") || contents.length === 0 ? "" : "\n";
-  await fs.writeFile(absoluteGitignorePath, contents + sep + ".claude-pastes/\n", "utf8");
+  await fs.writeFile(
+    absoluteGitignorePath,
+    contents + sep + PASTES_GITIGNORE_HINT + "\n",
+    "utf8",
+  );
   return true;
 }

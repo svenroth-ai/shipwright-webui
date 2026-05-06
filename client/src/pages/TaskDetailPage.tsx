@@ -71,26 +71,48 @@ export default function TaskDetailPage() {
 }
 
 /**
- * Compact privacy disclosure for the Terminal tab — ADR-068-A1 AC-15.
+ * Compact privacy disclosure for the Terminal tab — ADR-068-A1 AC-15
+ * (extended in iterate v0.8.2 AC-8 / AC-9).
  *
  * Renders as a 1-line dismissible note at the bottom of the embedded
  * terminal pane. The user toggles it off via the × button; preference
  * persists in localStorage. Copy includes:
- *   - retention period
+ *   - retention period (interpolated from server config — AC-9)
+ *   - resolved scrollback dir (interpolated from server config — AC-9)
  *   - "may contain secrets" warning
  *   - Windows-permission-best-effort note (when on Windows)
  *   - "Clear history" pointer (route through "..." menu)
  *
- * Display-only — there's no client-side state about whether scrollback
- * actually exists for this task. The note is a privacy notice, not a
- * runtime indicator.
+ * AC-8: footer renders only when the server reports scrollbackBytes > 0
+ * for the current task. Fresh tasks with no persisted scrollback get
+ * no footer at all.
  */
-function PrivacyDisclosureFooter() {
+function PrivacyDisclosureFooter({
+  scrollbackBytes,
+  retentionDays,
+  scrollbackDir,
+}: {
+  scrollbackBytes: number | null;
+  retentionDays: number | null;
+  scrollbackDir: string | null;
+}) {
   const STORAGE_KEY = "webui:terminal-privacy-disclosure-dismissed";
   const [dismissed, setDismissed] = useLocalStorage<boolean>(STORAGE_KEY, false);
+  // AC-8: hide entirely when server reports zero scrollback for this task.
+  if (typeof scrollbackBytes === "number" && scrollbackBytes <= 0) return null;
   if (dismissed) return null;
   const isWindows = typeof navigator !== "undefined" &&
     /windows/i.test(navigator.userAgent);
+  // AC-9: interpolate retention copy. Fall back to "1 day" + a generic
+  // env-var hint if the server hasn't reported the value yet — guards
+  // against a flicker before the ready envelope arrives. The plural is
+  // `day(s)` because i18n is out of scope for this iterate.
+  const days = typeof retentionDays === "number" && retentionDays > 0
+    ? retentionDays
+    : 1;
+  const dir = scrollbackDir && scrollbackDir.length > 0
+    ? scrollbackDir
+    : null;
   return (
     <div
       className="absolute bottom-0 left-0 right-0 flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-1.5 text-[11px] text-[var(--color-muted,#6b7280)]"
@@ -98,9 +120,9 @@ function PrivacyDisclosureFooter() {
     >
       <span aria-hidden>ⓘ</span>
       <span className="flex-1 truncate">
-        Terminal scrollback is persisted locally (default 24h retention,
-        configurable via <code>SHIPWRIGHT_TERMINAL_SCROLLBACK_TTL_DAYS</code>;
-        may include secrets / env vars).{" "}
+        Terminal scrollback persists for {days} day(s){dir ? (
+          <> at <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">{dir}</code></>
+        ) : null}. May contain command output including secrets / env vars.{" "}
         {isWindows ? (
           <span>On Windows, file permissions rely on user-account ACLs.</span>
         ) : null}
@@ -135,6 +157,21 @@ function TaskDetailPageBody() {
     "terminal",
   );
   const terminalRef = useRef<EmbeddedTerminalHandle | null>(null);
+
+  // Iterate v0.8.2 AC-7/8/9 — terminal ready-envelope metadata surfaced
+  // by EmbeddedTerminal via onTerminalMeta. Drives the conditional
+  // disclosure footer (AC-8) + retention copy interpolation (AC-9).
+  const [terminalMeta, setTerminalMeta] = useState<{
+    replayOnly: boolean | null;
+    scrollbackBytes: number | null;
+    retentionDays: number | null;
+    scrollbackDir: string | null;
+  }>({
+    replayOnly: null,
+    scrollbackBytes: null,
+    retentionDays: null,
+    scrollbackDir: null,
+  });
 
   // ADR-068-A1: when a pendingLaunch is dispatched (by TaskDetailHeader's
   // CTA), flip to the Terminal tab + mark a focus pending. The
@@ -508,6 +545,7 @@ function TaskDetailPageBody() {
                         onReadyChange={handleTerminalReady}
                         onGitignoreSuggestion={handleGitignoreSuggestion}
                         onPasteImageError={handlePasteImageError}
+                        onTerminalMeta={setTerminalMeta}
                       />
                     ) : null}
                   </Suspense>
@@ -567,13 +605,18 @@ function TaskDetailPageBody() {
                       ) : null}
                     </div>
                   ) : null}
-                  {/* ADR-068-A1 AC-15: privacy disclosure (compact, dismissible).
-                      Surfaces 24h retention + Windows ACL caveat; "Clear
-                      history" affordance routes through TaskDetailHeader's
-                      "..." menu (Phase 4 confirm modal). Client-side
-                      dismissal persists in localStorage so power-users
-                      can hide it after first read. */}
-                  <PrivacyDisclosureFooter />
+                  {/* ADR-068-A1 AC-15 + iterate v0.8.2 AC-8/AC-9: privacy
+                      disclosure (compact, dismissible). Renders only when
+                      the server reports scrollbackBytes > 0 for this task
+                      (AC-8). Retention copy interpolates the actual TTL +
+                      resolved scrollback dir from the ready envelope (AC-9).
+                      "Clear history" affordance still routes through the
+                      "..." menu. */}
+                  <PrivacyDisclosureFooter
+                    scrollbackBytes={terminalMeta.scrollbackBytes}
+                    retentionDays={terminalMeta.retentionDays}
+                    scrollbackDir={terminalMeta.scrollbackDir}
+                  />
                 </Tabs.Content>
               </Tabs.Root>
             </section>
