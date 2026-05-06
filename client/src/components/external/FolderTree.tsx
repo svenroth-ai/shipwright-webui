@@ -356,19 +356,28 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
           </div>
         )}
       </div>
+      {/* Iterate v0.8.2 AC-6: rephrased as "Show ignored entries" so the
+          checkbox follows positive UX framing ("when enabled, renders
+          gitignored paths with italic + reduced opacity"). The underlying
+          per-project storage stays the same `hideIgnored` flag — we just
+          invert the binding at render time so existing user preferences
+          flow through without a migration. Default ("Show" checked) keeps
+          the iterate-3 behavior of rendering ignored entries muted. Both
+          old and new data-testids are emitted so tests + future tooling
+          have a stable handle through the rename. */}
       <label
         className="flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] px-4 py-2 text-[11px] select-none"
         style={{ color: "var(--color-muted, #6b7280)" }}
-        data-testid="folder-tree-hide-ignored-label"
+        data-testid="folder-tree-show-ignored-label"
       >
         <input
           type="checkbox"
-          checked={hideIgnored}
-          onChange={(e) => setHideIgnored(e.target.checked)}
+          checked={!hideIgnored}
+          onChange={(e) => setHideIgnored(!e.target.checked)}
           className="h-3 w-3 cursor-pointer"
-          data-testid="folder-tree-hide-ignored-toggle"
+          data-testid="folder-tree-show-ignored-toggle"
         />
-        <span className="cursor-pointer">Hide ignored entries</span>
+        <span className="cursor-pointer">Show ignored entries</span>
         <span
           className="ml-auto text-[10px] italic opacity-70"
           data-testid="folder-tree-saved-hint"
