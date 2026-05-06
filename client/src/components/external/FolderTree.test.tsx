@@ -110,8 +110,8 @@ describe("FolderTree — root fetch + lazy expand", () => {
   });
 });
 
-describe("FolderTree — hide-ignored toggle", () => {
-  it("ignored entries render muted with data-ignored=\"true\" by default", async () => {
+describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
+  it("ignored entries render muted + italic with data-ignored=\"true\" by default", async () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
     render(
       <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />,
@@ -120,21 +120,35 @@ describe("FolderTree — hide-ignored toggle", () => {
     const ignoredRow = screen.getByTestId("folder-tree-row-.git");
     expect(ignoredRow.getAttribute("data-ignored")).toBe("true");
     expect(ignoredRow.className).toContain("opacity-60");
+    expect(ignoredRow.className).toContain("italic");
   });
 
-  it("toggle ON → ignored entries hidden entirely; persists per-project", async () => {
+  it("default checkbox state is checked (Show ignored entries → ON)", async () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
     render(
       <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />,
     );
     await waitFor(() => screen.getByTestId("folder-tree-row-.git"));
     const checkbox = screen.getByTestId(
-      "folder-tree-hide-ignored-toggle",
+      "folder-tree-show-ignored-toggle",
+    ) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("uncheck Show ignored entries → ignored entries hidden entirely; persists per-project", async () => {
+    globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
+    render(
+      <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />,
+    );
+    await waitFor(() => screen.getByTestId("folder-tree-row-.git"));
+    const checkbox = screen.getByTestId(
+      "folder-tree-show-ignored-toggle",
     ) as HTMLInputElement;
     await act(async () => {
       fireEvent.click(checkbox);
     });
-    expect(checkbox.checked).toBe(true);
+    // Show=off ⇒ checkbox unchecked, but the underlying hideIgnored flag is true.
+    expect(checkbox.checked).toBe(false);
     await waitFor(() => {
       expect(screen.queryByTestId("folder-tree-row-.git")).toBeNull();
     });

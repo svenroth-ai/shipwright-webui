@@ -98,8 +98,12 @@ function PrivacyDisclosureFooter({
 }) {
   const STORAGE_KEY = "webui:terminal-privacy-disclosure-dismissed";
   const [dismissed, setDismissed] = useLocalStorage<boolean>(STORAGE_KEY, false);
-  // AC-8: hide entirely when server reports zero scrollback for this task.
-  if (typeof scrollbackBytes === "number" && scrollbackBytes <= 0) return null;
+  // AC-8: hide entirely until the server has POSITIVELY reported a
+  // non-zero scrollback byte count. `null` means we have not received the
+  // ready / scrollback-meta envelope yet (or the WS is not open at all);
+  // we intentionally hide in that case so a fresh task with no scrollback
+  // does not flicker the footer in the gap between mount and ready.
+  if (scrollbackBytes === null || scrollbackBytes <= 0) return null;
   if (dismissed) return null;
   const isWindows = typeof navigator !== "undefined" &&
     /windows/i.test(navigator.userAgent);
