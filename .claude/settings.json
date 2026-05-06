@@ -1,14 +1,1 @@
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run ${CLAUDE_PLUGIN_ROOT}/../../shared/scripts/hooks/suggest_iterate.py"
-          }
-        ]
-      }
-    ]
-  }
-}
+{}
