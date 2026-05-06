@@ -289,6 +289,62 @@ describe("<EmbeddedTerminal>", () => {
     expect(ws.sent.some((s) => s.includes("ignored-by-image-wins"))).toBe(false);
   });
 
+  it("paste-handler — Ctrl+V parity: paste dispatched on a deeper descendant inside container is still captured (AC-3)", async () => {
+    // Iterate v0.8.2 AC-3: xterm's internal textarea sits inside the
+    // outer container; a Ctrl+V paste event whose target is that
+    // textarea (or any other descendant) must still hit our handler.
+    // The handler is registered on `document` with capture phase so it
+    // fires before xterm's own paste-handling on the textarea can
+    // pre-empt us.
+    const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const wrap = container.querySelector('[data-testid="embedded-terminal-canvas"]') as HTMLDivElement;
+    // Inject a synthetic descendant — stand-in for xterm's textarea.
+    const fakeTextarea = document.createElement("textarea");
+    wrap.appendChild(fakeTextarea);
+    fakeTextarea.focus();
+
+    const dt = new FakeDataTransfer();
+    const blob = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], {
+      type: "image/png",
+    });
+    const file = new File([blob], "ctrlv-paste.png", { type: "image/png" });
+    dt.items.add(file);
+    const ev = fakeClipboardEvent(dt);
+
+    await act(async () => {
+      fakeTextarea.dispatchEvent(ev);
+    });
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "/api/terminal/t1/paste-image",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("paste-handler — paste OUTSIDE the container is ignored (handler stays scoped after move to document)", async () => {
+    // Iterate v0.8.2 AC-3 boundary check: moving the listener to
+    // `document` must NOT make it react to pastes in unrelated parts
+    // of the page. Scope is enforced via `container.contains(target)`.
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const outside = document.createElement("textarea");
+    document.body.appendChild(outside);
+
+    const dt = new FakeDataTransfer();
+    dt.items.add("hello", "text/plain");
+    const ev = fakeClipboardEvent(dt);
+
+    await act(async () => {
+      outside.dispatchEvent(ev);
+    });
+
+    expect(ev.defaultPrevented).toBe(false);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    document.body.removeChild(outside);
+  });
+
   it("paste-handler — no clipboard items at all: handler is a no-op (no preventDefault, no fetch)", async () => {
     const { container } = render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});

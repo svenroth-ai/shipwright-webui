@@ -67,7 +67,7 @@ describe("parseFilenameTimestamp", () => {
 });
 
 describe("savePastedImage", () => {
-  it("writes a png with the expected filename pattern under .claude-pastes/", async () => {
+  it("writes a png with the expected filename pattern under .shipwright-webui/pastes/", async () => {
     const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
     expect(r.kind).toBe("png");
     const dir = path.join(tmpDir, PASTES_DIR);
@@ -123,14 +123,26 @@ describe("savePastedImage", () => {
     }
   });
 
-  it("gitignoreSuggestion=true when .gitignore exists but does NOT mention .claude-pastes/", async () => {
+  it("gitignoreSuggestion=true when .gitignore exists but mentions neither pastes path", async () => {
     await fs.writeFile(path.join(tmpDir, ".gitignore"), "node_modules/\n");
     const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
     expect(r.gitignoreSuggestion).toBe(true);
   });
 
-  it("gitignoreSuggestion=false when .gitignore already contains .claude-pastes/", async () => {
-    await fs.writeFile(path.join(tmpDir, ".gitignore"), "node_modules/\n.claude-pastes/\n");
+  it("gitignoreSuggestion=false when .gitignore already contains the new .shipwright-webui/ line (AC-6)", async () => {
+    await fs.writeFile(
+      path.join(tmpDir, ".gitignore"),
+      "node_modules/\n.shipwright-webui/\n",
+    );
+    const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
+    expect(r.gitignoreSuggestion).toBe(false);
+  });
+
+  it("gitignoreSuggestion=false when .gitignore still has the legacy .claude-pastes/ line (AC-6 backwards-compat)", async () => {
+    await fs.writeFile(
+      path.join(tmpDir, ".gitignore"),
+      "node_modules/\n.claude-pastes/\n",
+    );
     const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
     expect(r.gitignoreSuggestion).toBe(false);
   });
@@ -144,7 +156,7 @@ describe("savePastedImage", () => {
 describe("pruneKeepLastN", () => {
   it("is a no-op when count <= n", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
-    await fs.mkdir(dir);
+    await fs.mkdir(dir, { recursive: true });
     for (let i = 0; i < 3; i++) {
       await fs.writeFile(path.join(dir, `img-${i}-${"a".repeat(8)}.png`), PNG);
     }
@@ -155,7 +167,7 @@ describe("pruneKeepLastN", () => {
 
   it("ignores non-img files in the same dir", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
-    await fs.mkdir(dir);
+    await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, "img-1-aaaaaaaa.png"), PNG);
     await fs.writeFile(path.join(dir, "README.txt"), "doc");
     const r = await pruneKeepLastN(dir, 1);
@@ -165,7 +177,7 @@ describe("pruneKeepLastN", () => {
 
   it("deletes the oldest by parsed-timestamp primary order", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
-    await fs.mkdir(dir);
+    await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, "img-100-aaaaaaaa.png"), PNG);
     await fs.writeFile(path.join(dir, "img-200-bbbbbbbb.png"), PNG);
     await fs.writeFile(path.join(dir, "img-300-cccccccc.png"), PNG);
@@ -176,16 +188,23 @@ describe("pruneKeepLastN", () => {
 });
 
 describe("appendGitignoreLine", () => {
-  it("appends .claude-pastes/ when missing", async () => {
+  it("appends .shipwright-webui/ when missing (AC-6)", async () => {
     const gi = path.join(tmpDir, ".gitignore");
     await fs.writeFile(gi, "node_modules/\n");
     const did = await appendGitignoreLine(gi);
     expect(did).toBe(true);
     const after = await fs.readFile(gi, "utf8");
-    expect(after).toMatch(/\.claude-pastes\//);
+    expect(after).toMatch(/\.shipwright-webui\//);
   });
 
   it("is idempotent — second call is a no-op", async () => {
+    const gi = path.join(tmpDir, ".gitignore");
+    await fs.writeFile(gi, "node_modules/\n.shipwright-webui/\n");
+    const did = await appendGitignoreLine(gi);
+    expect(did).toBe(false);
+  });
+
+  it("treats a legacy .claude-pastes/ line as already-covered (AC-6 backwards-compat)", async () => {
     const gi = path.join(tmpDir, ".gitignore");
     await fs.writeFile(gi, "node_modules/\n.claude-pastes/\n");
     const did = await appendGitignoreLine(gi);
@@ -202,6 +221,6 @@ describe("appendGitignoreLine", () => {
     await fs.writeFile(gi, "node_modules/");
     await appendGitignoreLine(gi);
     const after = await fs.readFile(gi, "utf8");
-    expect(after).toBe("node_modules/\n.claude-pastes/\n");
+    expect(after).toBe("node_modules/\n.shipwright-webui/\n");
   });
 });

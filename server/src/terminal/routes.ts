@@ -65,6 +65,19 @@ export interface TerminalRoutesDeps {
    * with PtyManager so append + replay see the same disk state.
    */
   scrollbackStore?: ScrollbackStore;
+  /**
+   * Iterate v0.8.2 AC-9 — retention TTL surfaced in the WS `ready`
+   * envelope so the disclosure footer can interpolate the actual value.
+   * Defaults to 1 day to match `SHIPWRIGHT_TERMINAL_SCROLLBACK_TTL_DAYS`
+   * default in config.ts.
+   */
+  retentionDays?: number;
+  /**
+   * Iterate v0.8.2 AC-9 — resolved scrollback directory path surfaced
+   * in the WS `ready` envelope. Defaults to a placeholder when no
+   * scrollbackStore is wired (test config).
+   */
+  scrollbackDirHint?: string;
 }
 
 function defaultAllowedOrigins(origin: string | null): boolean {
@@ -159,6 +172,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   const resolveShell = deps.resolveShell ?? defaultResolveShell;
   const pastesKeepLast = deps.pastesKeepLast ?? 20;
   const scrollbackStore = deps.scrollbackStore;
+  // Iterate v0.8.2 AC-9: defaults match config.ts so a wired path is
+  // always preferred but the constructor stays optional.
+  const retentionDays = deps.retentionDays ?? 1;
+  const scrollbackDirHint = deps.scrollbackDirHint ?? "<scrollback>";
 
   return (app: Hono): Hono => {
     // --- POST /api/terminal/:taskId/spawn — idempotent prewarm ------------
@@ -231,10 +248,24 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
 
     // --- POST /api/terminal/:taskId/paste-image ---------------------------
     // Multipart/form-data with field "image: File". Saves to
-    // <task.cwd>/.claude-pastes/img-<ts>-<rand>.<ext>, prunes to keep-last-N,
-    // and pty.write()s the shell-quoted absolute path into the buffer
+    // <task.cwd>/.shipwright-webui/pastes/img-<ts>-<rand>.<ext> (iterate v0.8.2
+    // AC-6 — moved from `.claude-pastes/`), prunes to keep-last-N, and
+    // pty.write()s the shell-quoted absolute path into the buffer
     // (followed by a trailing space). 413 fast-fail on large Content-Length.
     app.post("/api/terminal/:taskId/paste-image", async (c) => {
+      // Iterate v0.8.2 AC-4: structured timing logs gated by
+      // SHIPWRIGHT_DEBUG_PASTE_TIMING. Off in prod by default; flip on
+      // when diagnosing the latency of the full clipboard→pty roundtrip.
+      const debugTiming =
+        process.env.SHIPWRIGHT_DEBUG_PASTE_TIMING === "1" ||
+        process.env.SHIPWRIGHT_DEBUG_PASTE_TIMING === "true";
+      const t0 = debugTiming ? performance.now() : 0;
+      const mark = (label: string): void => {
+        if (!debugTiming) return;
+        const elapsed = (performance.now() - t0).toFixed(1);
+        // eslint-disable-next-line no-console
+        console.log(`[paste-image] ${label} t+${elapsed}ms`);
+      };
       const taskId = c.req.param("taskId");
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
       const task = store.get(taskId);
@@ -264,6 +295,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       } catch (err) {
         return c.json({ error: "invalid_multipart", detail: String((err as Error).message) }, 400);
       }
+      mark("parseBody-done");
       const file = body.image;
       if (!(file instanceof File)) {
         return c.json({ error: "missing_image_field" }, 400);
@@ -274,6 +306,7 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       } catch (err) {
         return c.json({ error: "image_read_failed", detail: String((err as Error).message) }, 400);
       }
+      mark(`bytes-extracted size=${bytes.byteLength}`);
 
       // External review F3 (v2): if no pty exists yet, ensure-or-create
       // it so paste-image works even when the user pastes into a freshly
@@ -298,12 +331,14 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           bytes,
           keepLast: pastesKeepLast,
         });
+        mark("savePastedImage-done");
         let ptyWritten = false;
         if (meta && ptyManager.hasActiveWriter(taskId)) {
           const quoted = quotePathForShell(result.absolutePath, meta.shellKind);
           ptyManager.write(taskId, quoted + " ");
           ptyWritten = true;
         }
+        mark(`response-out ptyWritten=${ptyWritten}`);
         return c.json({
           path: result.absolutePath,
           kind: result.kind,
@@ -325,9 +360,9 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
     });
 
     // --- POST /api/terminal/:taskId/append-gitignore ----------------------
-    // Idempotent append of `.claude-pastes/` to <task.cwd>/.gitignore.
-    // realpath-guarded so a symlinked .gitignore can't redirect the write
-    // outside cwd (external review F11).
+    // Idempotent append of `.shipwright-webui/` to <task.cwd>/.gitignore
+    // (iterate v0.8.2 AC-6). realpath-guarded so a symlinked .gitignore can't
+    // redirect the write outside cwd (external review F11).
     app.post("/api/terminal/:taskId/append-gitignore", async (c) => {
       const taskId = c.req.param("taskId");
       if (!taskId) return c.json({ error: "missing_task_id" }, 400);
@@ -369,6 +404,56 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       }
     });
 
+    // Iterate v0.8.2 AC-7/8/9 — shared chunked-replay helper. Used by
+    // both the live and replay-only branches so the envelope sequence
+    // (replay_start → replay_chunk* → replay_separator → replay_end)
+    // stays bit-for-bit identical.
+    const sendReplayChunked = async (
+      ws: { send(d: string): void; bufferedAmount?: number },
+      replay: string,
+    ): Promise<void> => {
+      if (replay.length === 0) return;
+      const utf8 = Buffer.from(replay, "utf8");
+      const totalBytes = utf8.byteLength;
+      try {
+        ws.send(JSON.stringify({ type: "replay_start", totalBytes }));
+      } catch { /* ignore */ }
+      const HWM = 1_048_576;
+      const CHUNK_SIZE = 65536;
+      const decoder = new StringDecoder("utf8");
+      const readBufferedAmount = (): number => {
+        const maybe = (ws as unknown as { bufferedAmount?: number })
+          .bufferedAmount;
+        return typeof maybe === "number" ? maybe : 0;
+      };
+      for (let i = 0; i < utf8.byteLength; i += CHUNK_SIZE) {
+        while (readBufferedAmount() > HWM) {
+          await new Promise((r) => setTimeout(r, 10));
+        }
+        const chunkBuf = utf8.subarray(i, i + CHUNK_SIZE);
+        const chunkStr = decoder.write(chunkBuf);
+        if (chunkStr.length > 0) {
+          try {
+            ws.send(
+              JSON.stringify({ type: "replay_chunk", payload: chunkStr }),
+            );
+          } catch { /* ignore */ }
+        }
+      }
+      const tail = decoder.end();
+      if (tail.length > 0) {
+        try {
+          ws.send(JSON.stringify({ type: "replay_chunk", payload: tail }));
+        } catch { /* ignore */ }
+      }
+      const sep =
+        "\r\n\x1b[2m\x1b[33m── Shipwright: scrollback restored from disk; live shell below ──\x1b[0m\r\n";
+      try {
+        ws.send(JSON.stringify({ type: "replay_separator", payload: sep }));
+        ws.send(JSON.stringify({ type: "replay_end" }));
+      } catch { /* ignore */ }
+    };
+
     // --- GET /api/terminal/:taskId/ws — authoritative lifecycle entry ----
     app.get(
       "/api/terminal/:taskId/ws",
@@ -385,6 +470,67 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         if (!task) throw new Error("task_not_found");
         const trustedCwd = resolveTrustedCwd(task.cwd);
         if (!trustedCwd) throw new Error("task_cwd_unresolvable");
+
+        // Iterate v0.8.2 AC-7: replay-only mode for terminal tasks that
+        // have already finished. Skip pty spawn + attach entirely; the
+        // WS only serves the historical scrollback and then closes.
+        const isReplayOnly =
+          task.state === "done" || task.state === "launch_failed";
+
+        if (isReplayOnly) {
+          return {
+            onOpen(_evt, ws) {
+              void (async () => {
+                let scrollbackBytes = 0;
+                if (scrollbackStore && !scrollbackStore.disabled) {
+                  try {
+                    scrollbackBytes = await scrollbackStore.bytes(taskId);
+                  } catch { /* fall through with 0 */ }
+                }
+                try {
+                  ws.send(
+                    JSON.stringify({
+                      type: "ready",
+                      role: "reader",
+                      shellKind: null,
+                      cwd: trustedCwd,
+                      replayOnly: true,
+                      scrollbackBytes,
+                      retentionDays,
+                      scrollbackDir: scrollbackDirHint,
+                    }),
+                  );
+                } catch { /* ignore */ }
+                if (
+                  scrollbackStore &&
+                  !scrollbackStore.disabled &&
+                  scrollbackBytes > 0
+                ) {
+                  try {
+                    const replay = await scrollbackStore.read(taskId);
+                    await sendReplayChunked(
+                      ws as unknown as Parameters<typeof sendReplayChunked>[0],
+                      replay,
+                    );
+                  } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                      `[terminal] replay-only replay failed for ${taskId}: ${(err as Error).message}`,
+                    );
+                  }
+                }
+                // Close cleanly — no live shell to keep open.
+                try {
+                  (ws as unknown as { close?: (code?: number) => void }).close?.(
+                    1000,
+                  );
+                } catch { /* ignore */ }
+              })();
+            },
+            // No onMessage / onClose / onError needed — there is no
+            // pty to detach from. The runtime tolerates omitted handlers.
+          };
+        }
 
         // Ensure-or-create the pty against the realpath-validated cwd.
         const meta = ptyManager.spawn(taskId, {
@@ -447,6 +593,13 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
               },
             });
 
+            // Iterate v0.8.2 AC-8/AC-9: ready envelope stays SYNC to
+            // preserve the auto-launch handshake timing (Spec 76
+            // regressed when ready was moved into the async IIFE).
+            // scrollbackBytes is initialised to 0 here; the precise
+            // value is computed inside the IIFE and emitted via a
+            // follow-up `scrollback-meta` envelope so the disclosure
+            // footer can update once the bytes() probe resolves.
             try {
               ws.send(
                 JSON.stringify({
@@ -454,6 +607,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   role,
                   shellKind: meta.shellKind,
                   cwd: meta.cwd,
+                  replayOnly: false,
+                  scrollbackBytes: 0,
+                  retentionDays,
+                  scrollbackDir: scrollbackDirHint,
                 }),
               );
               // External code-review F8: also emit an explicit
@@ -477,71 +634,20 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                 // AC-3a (iterate-2026-05-05): per-conn pause stake so
                 // multi-tab replay doesn't cross-trigger pty.resume.
                 ptyManager.pauseForConn(taskId, connToken);
-                const replay = await scrollbackStore.read(taskId);
-                if (replay.length > 0) {
-                  const utf8 = Buffer.from(replay, "utf8");
-                  const totalBytes = utf8.byteLength;
-                  try {
-                    ws.send(
-                      JSON.stringify({ type: "replay_start", totalBytes }),
-                    );
-                  } catch { /* ignore */ }
-
-                  const HWM = 1_048_576;
-                  const CHUNK_SIZE = 65536;
-                  const decoder = new StringDecoder("utf8");
-                  // bufferedAmount is on the underlying socket — @hono/node-ws
-                  // exposes WSContext, not the raw WebSocket. Read it via
-                  // unknown-cast so we don't fight the type without dropping
-                  // safety further than necessary.
-                  const readBufferedAmount = (): number => {
-                    const maybe = (ws as unknown as { bufferedAmount?: number })
-                      .bufferedAmount;
-                    return typeof maybe === "number" ? maybe : 0;
-                  };
-                  for (let i = 0; i < utf8.byteLength; i += CHUNK_SIZE) {
-                    while (readBufferedAmount() > HWM) {
-                      await new Promise((r) => setTimeout(r, 10));
-                    }
-                    const chunkBuf = utf8.subarray(i, i + CHUNK_SIZE);
-                    const chunkStr = decoder.write(chunkBuf);
-                    if (chunkStr.length > 0) {
-                      try {
-                        ws.send(
-                          JSON.stringify({
-                            type: "replay_chunk",
-                            payload: chunkStr,
-                          }),
-                        );
-                      } catch { /* ignore */ }
-                    }
-                  }
-                  const tail = decoder.end();
-                  if (tail.length > 0) {
-                    try {
-                      ws.send(
-                        JSON.stringify({
-                          type: "replay_chunk",
-                          payload: tail,
-                        }),
-                      );
-                    } catch { /* ignore */ }
-                  }
-
-                  // Yellow-dim ANSI separator banner — visible but
-                  // unobtrusive. Marks the boundary between historical
-                  // scrollback and the live shell prompt below.
-                  const sep =
-                    "\r\n\x1b[2m\x1b[33m── Shipwright: scrollback restored from disk; live shell below ──\x1b[0m\r\n";
-                  try {
-                    ws.send(
-                      JSON.stringify({
-                        type: "replay_separator",
-                        payload: sep,
-                      }),
-                    );
-                    ws.send(JSON.stringify({ type: "replay_end" }));
-                  } catch { /* ignore */ }
+                const scrollbackBytes = await scrollbackStore.bytes(taskId);
+                // AC-8/AC-9 follow-up envelope so the disclosure footer
+                // updates once the bytes() probe resolves.
+                try {
+                  ws.send(
+                    JSON.stringify({ type: "scrollback-meta", scrollbackBytes }),
+                  );
+                } catch { /* ignore */ }
+                if (scrollbackBytes > 0) {
+                  const replay = await scrollbackStore.read(taskId);
+                  await sendReplayChunked(
+                    ws as unknown as Parameters<typeof sendReplayChunked>[0],
+                    replay,
+                  );
                 }
                 flushLiveBuffer();
                 replayDone = true;
