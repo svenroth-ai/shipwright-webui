@@ -309,7 +309,7 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
                 data-selected={isSelected || undefined}
                 tabIndex={row.path === (focusedPath ?? visibleRows[0]?.path) ? 0 : -1}
                 className={`flex w-full items-center gap-1 truncate rounded-sm px-1.5 py-0.5 text-left text-[12px] transition ${
-                  row.ignored ? "opacity-60" : ""
+                  row.ignored ? "italic opacity-60" : ""
                 } ${
                   isSelected
                     ? "bg-[var(--color-primary,#6b5e56)]/15 font-medium"

@@ -36,6 +36,7 @@ import {
   type TerminalRole,
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
+import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
 
 export interface EmbeddedTerminalHandle {
   focus(): void;
@@ -91,13 +92,36 @@ export interface EmbeddedTerminalProps {
    * so the parent can show a toast instead of swallowing the failure.
    */
   onPasteImageError?: (detail: string) => void;
+  /**
+   * Iterate v0.8.2 AC-7/8/9 — surface the server-derived ready-envelope
+   * fields (replayOnly, scrollbackBytes, retentionDays, scrollbackDir)
+   * to the parent so it can render the conditional disclosure footer
+   * and the "Session ended" replay-only banner. Fields stay null until
+   * the ready envelope arrives.
+   */
+  onTerminalMeta?: (meta: {
+    replayOnly: boolean | null;
+    scrollbackBytes: number | null;
+    retentionDays: number | null;
+    scrollbackDir: string | null;
+  }) => void;
 }
 
 const RESIZE_THROTTLE_MS = 250;
 
 export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTerminalProps>(
   function EmbeddedTerminal(
-    { taskId, active, socketUrlOverride, socketEnabled = true, onGitignoreSuggestion, onBackpressure, onReadyChange, onPasteImageError },
+    {
+      taskId,
+      active,
+      socketUrlOverride,
+      socketEnabled = true,
+      onGitignoreSuggestion,
+      onBackpressure,
+      onReadyChange,
+      onPasteImageError,
+      onTerminalMeta,
+    },
     ref,
   ) {
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -159,6 +183,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     useEffect(() => {
       onReadyChange?.(socket.ready, socket.role);
     }, [socket.ready, socket.role, onReadyChange]);
+
+    // Iterate v0.8.2 AC-7/8/9 — surface the new ready-envelope fields.
+    useEffect(() => {
+      onTerminalMeta?.({
+        replayOnly: socket.replayOnly,
+        scrollbackBytes: socket.scrollbackBytes,
+        retentionDays: socket.retentionDays,
+        scrollbackDir: socket.scrollbackDir,
+      });
+    }, [
+      socket.replayOnly,
+      socket.scrollbackBytes,
+      socket.retentionDays,
+      socket.scrollbackDir,
+      onTerminalMeta,
+    ]);
 
     // Imperative API exposed to the parent.
     useImperativeHandle(
@@ -273,15 +313,29 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       const container = containerRef.current;
       if (!container) return;
 
-      // Bind xterm's theme to the project's brand palette. xterm's
-      // default ANSI colors target a dark background — bright yellow
-      // (#E5E510), bright cyan, etc. wash out on the warm beige
-      // `--color-bg = #f5f0eb`. We pin ALL 16 ANSI slots to a
-      // light-theme palette tuned for ~3:1+ contrast on beige and
-      // mapped to brand semantic colors (warning=amber, error=red,
-      // success=emerald) where the slot has a natural correspondence.
+      // Iterate v0.8.2 AC-2 (black-on-black input rendering): the embedded
+      // terminal is a shell pane that primarily hosts Claude Code's TUI
+      // (ADR-067). Claude's TUI input box assumes a dark terminal: when
+      // mounted on the light brand palette, its self-styled fg/bg slots
+      // collided with our `white = #6b5e56` brand-brown to produce
+      // illegible black-on-near-black input. Per spec option (b), switch
+      // the embedded terminal to a dark theme ONCE at session start
+      // (terminal-creation = session-start) so Claude TUI renders cleanly
+      // and a typed shell prompt still reads at WCAG AA.
+      //
+      // Palette is tuned so:
+      //   - foreground (#f5f0eb cream) on background (#1a1a1a) ≥ 12:1
+      //   - every normal ANSI slot 0–7 lands ≥ 4.5:1 against background
+      //     EXCEPT the `black` slot (intentional — text written `\e[30m`
+      //     on the default bg should stay near-black; reverse-video flips
+      //     fg/bg so the input box gets the high-contrast cream-on-dark)
+      //   - the `white` slot is a real near-white (#e5e0d8), not the
+      //     brand-brown that triggered the regression.
+      // Brand semantics still flow through CSS-vars where the slot has a
+      // natural correspondence (error = red, success = emerald, etc.).
       const cssVar = (name: string, fallback: string) =>
         getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
+      const palette = EMBEDDED_TERMINAL_PALETTE;
       const term = new Terminal({
         convertEol: false,
         cursorBlink: true,
@@ -289,30 +343,30 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
         fontSize: 13,
         theme: {
-          background: cssVar("--color-bg", "#f5f0eb"),
-          foreground: cssVar("--color-text", "#1a1a1a"),
-          cursor: cssVar("--color-text", "#1a1a1a"),
-          cursorAccent: cssVar("--color-bg", "#f5f0eb"),
-          selectionBackground: cssVar("--color-primary", "#6b5e56") + "33",
-          // Normal ANSI 0–7 — darker variants of the bright set so
-          // bold/highlight stays distinguishable.
-          black: "#1a1a1a",
-          red: "#B91C1C",
-          green: "#047857",
-          yellow: "#B45309",     // amber-brown, NOT pure yellow
-          blue: "#1D4ED8",
-          magenta: "#7C3AED",
-          cyan: "#0E7490",
-          white: "#6b5e56",       // brand brown — "white" on beige is invisible
-          // Bright ANSI 8–15 — pinned to brand semantic colors where possible.
-          brightBlack: "#525252",
-          brightRed: cssVar("--color-error", "#DC2626"),
-          brightGreen: cssVar("--color-success", "#059669"),
-          brightYellow: cssVar("--color-warning", "#D97706"),
-          brightBlue: cssVar("--color-info", "#3B82F6"),
-          brightMagenta: cssVar("--color-purple", "#8B5CF6"),
-          brightCyan: "#0891B2",
-          brightWhite: cssVar("--color-text", "#1a1a1a"),
+          background: palette.background,
+          foreground: palette.foreground,
+          cursor: palette.cursor,
+          cursorAccent: palette.cursorAccent,
+          selectionBackground: palette.selectionBackground,
+          black: palette.black,
+          red: palette.red,
+          green: palette.green,
+          yellow: palette.yellow,
+          blue: palette.blue,
+          magenta: palette.magenta,
+          cyan: palette.cyan,
+          white: palette.white,
+          brightBlack: palette.brightBlack,
+          // Brand semantics still flow through CSS-vars where the slot
+          // has a natural correspondence; fallback matches the static
+          // palette so test luminance assertions stay deterministic.
+          brightRed: cssVar("--color-error", palette.brightRed),
+          brightGreen: cssVar("--color-success", palette.brightGreen),
+          brightYellow: cssVar("--color-warning", palette.brightYellow),
+          brightBlue: cssVar("--color-info", palette.brightBlue),
+          brightMagenta: cssVar("--color-purple", palette.brightMagenta),
+          brightCyan: palette.brightCyan,
+          brightWhite: palette.brightWhite,
         },
         scrollback: 5000,
         allowProposedApi: false,
@@ -394,10 +448,21 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     }, [active, socket]);
 
     // DOM paste handler (capture phase) — image-wins precedence per AC-6.
+    //
+    // Iterate v0.8.2 AC-3 (Ctrl+V parity with Alt+V): the listener is
+    // attached to `document` instead of `container` so xterm's internal
+    // textarea-level paste handling cannot pre-empt us. Capture phase on
+    // document is the first DOM dispatch step, before any listener on
+    // xterm's textarea or its parents. We still scope the handler with
+    // `container.contains(target)` so it never reacts to pastes in
+    // unrelated parts of the page.
     useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
       const handler = (ev: ClipboardEvent) => {
+        const target = ev.target as Node | null;
+        if (!target || !container.contains(target)) return;
+
         const items = ev.clipboardData?.items;
         if (!items || items.length === 0) return;
 
@@ -458,9 +523,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           if (text) socket.send({ type: "data", payload: text });
         }
       };
-      container.addEventListener("paste", handler, { capture: true });
+      document.addEventListener("paste", handler, { capture: true });
       return () => {
-        container.removeEventListener("paste", handler, { capture: true } as EventListenerOptions);
+        document.removeEventListener(
+          "paste",
+          handler,
+          { capture: true } as EventListenerOptions,
+        );
       };
     }, [taskId, socket, onGitignoreSuggestion, onPasteImageError]);
 
@@ -494,6 +563,18 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             data-testid="embedded-terminal-readonly"
           >
             Read-only — another tab is the active writer for this task.
+          </div>
+        ) : null}
+        {socket.replayOnly === true ? (
+          // Iterate v0.8.2 AC-7 — replay-only banner. Server bypassed
+          // pty spawn because the task is in a terminal state (`done` /
+          // `launch_failed`); the WS only serves the historical
+          // scrollback and then closes.
+          <div
+            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)]"
+            data-testid="embedded-terminal-replay-only"
+          >
+            Session ended — viewing historical terminal scrollback only.
           </div>
         ) : null}
         {previewCommand ? (
