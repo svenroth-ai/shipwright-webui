@@ -732,9 +732,14 @@ export function TaskDetailHeader({ task }: Props) {
                 Delete task
               </DropdownMenu.Item>
               <DropdownMenu.Item
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setConfirmClearHistoryOpen(true);
+                onSelect={() => {
+                  // Iterate v0.8.2 AC-1 (Spec 74 modal flake):
+                  // Let the dropdown close cleanly (no preventDefault), then
+                  // open the confirm modal on the next animation frame. Without
+                  // this, the dropdown's still-active dismiss frame races
+                  // Playwright's `toBeVisible` on the dialog under Windows
+                  // ConPTY and times out at 30 s.
+                  requestAnimationFrame(() => setConfirmClearHistoryOpen(true));
                 }}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-error,#DC2626)] outline-none transition hover:bg-[var(--color-error,#DC2626)]/10"
                 data-testid="task-detail-menu-clear-history"

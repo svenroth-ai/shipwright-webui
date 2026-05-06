@@ -167,11 +167,11 @@ test.describe("ADR-067 — Embedded terminal", () => {
     }
   });
 
-  test("POST /paste-image stores an image under .claude-pastes/ and surfaces gitignoreSuggestion", async ({ request }) => {
+  test("POST /paste-image stores an image under .shipwright-webui/pastes/ and surfaces gitignoreSuggestion (iterate v0.8.2 AC-6)", async ({ request }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd);
     try {
-      // Plant a .gitignore that does NOT mention .claude-pastes/.
+      // Plant a .gitignore that does NOT mention either pastes path.
       await fs.writeFile(path.join(cwd, ".gitignore"), "node_modules/\n", "utf8");
 
       // Minimal valid PNG (8-byte signature + IHDR-ish stub).
@@ -197,8 +197,10 @@ test.describe("ADR-067 — Embedded terminal", () => {
       };
       expect(body.kind).toBe("png");
       expect(body.gitignoreSuggestion).toBe(true);
-      // File on disk.
-      const dirEntries = await fs.readdir(path.join(cwd, ".claude-pastes"));
+      // File on disk under the new pastes layout.
+      const dirEntries = await fs.readdir(
+        path.join(cwd, ".shipwright-webui", "pastes"),
+      );
       expect(dirEntries.length).toBe(1);
       expect(dirEntries[0]).toMatch(/^img-\d+-[0-9a-f]{8}\.png$/);
     } finally {
@@ -227,18 +229,18 @@ test.describe("ADR-067 — Embedded terminal", () => {
     }
   });
 
-  test("POST /append-gitignore is idempotent and writes the .claude-pastes/ line", async ({ request }) => {
+  test("POST /append-gitignore is idempotent and writes the .shipwright-webui/ line (iterate v0.8.2 AC-6)", async ({ request }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd);
     try {
       await fs.writeFile(path.join(cwd, ".gitignore"), "node_modules/\n", "utf8");
 
-      // First call: appends.
+      // First call: appends the new convention dir.
       const r1 = await request.post(`/api/terminal/${taskId}/append-gitignore`);
       expect(r1.status()).toBe(204);
 
       const after1 = await fs.readFile(path.join(cwd, ".gitignore"), "utf8");
-      expect(after1).toMatch(/\.claude-pastes\//);
+      expect(after1).toMatch(/\.shipwright-webui\//);
 
       // Second call: idempotent (200 OK with already_present reason).
       const r2 = await request.post(`/api/terminal/${taskId}/append-gitignore`);
