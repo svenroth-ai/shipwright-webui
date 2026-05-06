@@ -1,1 +1,0 @@
-Embedded terminal scrollback no longer corrupts visual history on re-attach (AC-1). ScrollbackStore now strips cursor-control / repaint sequences before persistence while preserving SGR colors and text; legacy v0.8.0 scrollback files self-heal on first replay (no migration script needed). New e2e Spec 77 covers TUI-heavy replay fidelity.

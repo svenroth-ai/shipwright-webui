@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.8.1] - 2026-05-06
+
+### Fixed
+
+- Embedded terminal scrollback no longer corrupts visual history on re-attach (AC-1). ScrollbackStore now strips cursor-control / repaint sequences before persistence while preserving SGR colors and text; legacy v0.8.0 scrollback files self-heal on first replay (no migration script needed). New e2e Spec 77 covers TUI-heavy replay fidelity.
+- Embedded terminal no longer leaves a re-attached tab stuck as read-only under high pty-output volume (AC-3). pty-manager gains per-conn pause refcount + writer-stuck watchdog (drainage-based, capability-detected per-conn). New e2e Spec 78 reproduces the original UAT scenario.
+
 ## [v0.8.0] - 2026-05-05
 
 ### Added
