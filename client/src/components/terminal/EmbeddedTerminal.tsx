@@ -22,6 +22,7 @@
 
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -37,6 +38,10 @@ import {
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
+import {
+  readClipboardForPaste,
+  shouldInterceptCtrlV,
+} from "./clipboard-paste";
 
 export interface EmbeddedTerminalHandle {
   focus(): void;
@@ -199,6 +204,95 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       socket.scrollbackDir,
       onTerminalMeta,
     ]);
+
+    // Iterate v0.8.3 AC-1 — shared image-upload helper + Ctrl+V handler.
+    //
+    // v0.8.2 moved the DOM `paste` listener to document/capture-phase,
+    // but real-browser Ctrl+V never reached it: xterm's keybinding
+    // bypasses ClipboardEvent and uses async `navigator.clipboard.readText()`,
+    // which resolves to text only — image-paste from a bare PowerShell
+    // prompt landed nowhere. The fix installs `attachCustomKeyEventHandler`
+    // that suppresses xterm's Ctrl+V default and drives the structured
+    // `navigator.clipboard.read()` API ourselves. Both paths (DOM `paste`
+    // event AND Ctrl+V keydown) route image blobs through `uploadPasteBlob`
+    // so success / error / gitignore surfaces stay consistent.
+    const uploadPasteBlob = useCallback(
+      async (blob: Blob, filename: string): Promise<void> => {
+        const form = new FormData();
+        form.append("image", blob, filename);
+        const url = `/api/terminal/${encodeURIComponent(taskId)}/paste-image`;
+        try {
+          const res = await fetch(url, { method: "POST", body: form });
+          if (!res.ok) {
+            let detail = `HTTP ${res.status}`;
+            try {
+              const body = (await res.json().catch(() => null)) as
+                | { error?: string }
+                | null;
+              if (body?.error) detail = body.error;
+            } catch {
+              /* fall through */
+            }
+            onPasteImageError?.(detail);
+            return;
+          }
+          const body = (await res.json().catch(() => null)) as
+            | { gitignoreSuggestion?: boolean }
+            | null;
+          if (body?.gitignoreSuggestion) {
+            onGitignoreSuggestion?.();
+          }
+        } catch (err) {
+          onPasteImageError?.(err instanceof Error ? err.message : String(err));
+        }
+      },
+      [taskId, onGitignoreSuggestion, onPasteImageError],
+    );
+
+    // Ctrl+V key-handler ref. Updated whenever upstream callbacks /
+    // socket change so the closure injected into xterm always sees the
+    // latest versions without re-mounting xterm itself (which would
+    // discard scrollback). The xterm-mount useEffect (deps: []) reads
+    // this ref via `attachCustomKeyEventHandler` exactly once.
+    const ctrlVHandlerRef = useRef<(ev: KeyboardEvent) => boolean>(() => true);
+    useEffect(() => {
+      ctrlVHandlerRef.current = (ev: KeyboardEvent): boolean => {
+        if (!shouldInterceptCtrlV(ev)) return true;
+        // Firefox / non-secure-context fallback: if structured clipboard
+        // read is unavailable, let xterm's own Ctrl+V (text-only via
+        // readText) run unchanged. We intentionally do NOT preventDefault
+        // here so the historical behaviour stays intact.
+        if (
+          typeof navigator === "undefined" ||
+          typeof navigator.clipboard?.read !== "function"
+        ) {
+          return true;
+        }
+        ev.preventDefault();
+        ev.stopPropagation();
+        void (async () => {
+          const payload = await readClipboardForPaste(navigator);
+          if (payload.kind === "image") {
+            await uploadPasteBlob(payload.blob, payload.filename);
+            return;
+          }
+          if (payload.kind === "text") {
+            if (payload.text) {
+              socket.send({ type: "data", payload: payload.text });
+            }
+            return;
+          }
+          if (payload.kind === "error") {
+            onPasteImageError?.(payload.detail);
+            return;
+          }
+          // 'empty' / 'unsupported' → silent fall-through. Empty
+          // clipboard is normal user behaviour; 'unsupported' is
+          // already gated above (we returned true before suppressing).
+        })();
+        return false;
+      };
+    }, [uploadPasteBlob, socket, onPasteImageError]);
 
     // Imperative API exposed to the parent.
     useImperativeHandle(
@@ -382,6 +476,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         /* container may not have non-zero size yet */
       }
 
+      // Iterate v0.8.3 AC-1 — install the Ctrl+V interceptor. The
+      // closure forwards to `ctrlVHandlerRef.current` so updates to
+      // upstream callbacks / socket take effect without remounting
+      // xterm (which would discard scrollback). Returning true keeps
+      // xterm processing the key normally; returning false suppresses
+      // xterm's default and we drive navigator.clipboard.read()
+      // ourselves.
+      term.attachCustomKeyEventHandler((ev) => ctrlVHandlerRef.current(ev));
+
       termRef.current = term;
       fitAddonRef.current = fit;
 
@@ -466,7 +569,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         const items = ev.clipboardData?.items;
         if (!items || items.length === 0) return;
 
-        // Find first image item (image-wins precedence).
+        // Find first image item (image-wins precedence). Iterate v0.8.3
+        // refactor — upload routed through the shared `uploadPasteBlob`
+        // so this path stays in lock-step with the Ctrl+V keydown path.
         for (let i = 0; i < items.length; i++) {
           const it = items[i];
           if (it.kind === "file" && it.type.startsWith("image/")) {
@@ -474,37 +579,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             ev.stopPropagation();
             const blob = it.getAsFile();
             if (!blob) return;
-            const form = new FormData();
-            form.append("image", blob, `paste-${Date.now()}.png`);
-            const url = `/api/terminal/${encodeURIComponent(taskId)}/paste-image`;
-            void fetch(url, { method: "POST", body: form })
-              .then(async (res) => {
-                if (!res.ok) {
-                  // External review F-v2: surface paste-image failures
-                  // instead of silently swallowing them. Reuse the
-                  // backpressure callback path with a structured detail.
-                  let detail = `HTTP ${res.status}`;
-                  try {
-                    const body = (await res.json().catch(() => null)) as
-                      | { error?: string }
-                      | null;
-                    if (body?.error) detail = body.error;
-                  } catch {
-                    /* fall through */
-                  }
-                  onPasteImageError?.(detail);
-                  return;
-                }
-                const body = (await res.json().catch(() => null)) as
-                  | { gitignoreSuggestion?: boolean }
-                  | null;
-                if (body?.gitignoreSuggestion) {
-                  onGitignoreSuggestion?.();
-                }
-              })
-              .catch((err) => {
-                onPasteImageError?.(err instanceof Error ? err.message : String(err));
-              });
+            void uploadPasteBlob(blob, `paste-${Date.now()}.png`);
             return;
           }
         }
@@ -531,7 +606,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           { capture: true } as EventListenerOptions,
         );
       };
-    }, [taskId, socket, onGitignoreSuggestion, onPasteImageError]);
+    }, [uploadPasteBlob, socket]);
 
     // ADR-068-A1 AC-16 (Phase-5-Codex review fix): about-to-run preview
     // banner. Visible while a pendingLaunch token exists for THIS
