@@ -130,7 +130,8 @@ function PrivacyDisclosureFooter({
         {isWindows ? (
           <span>On Windows, file permissions rely on user-account ACLs.</span>
         ) : null}
-        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.
+        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.{" "}
+        Image pastes inside Claude Code's TUI land in <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">~/.claude/image-cache/&lt;sessionId&gt;/</code> (managed by Claude Code, not WebUI).
       </span>
       <button
         type="button"
