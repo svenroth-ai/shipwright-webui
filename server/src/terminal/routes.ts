@@ -542,6 +542,35 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           onOpen(_evt, ws) {
             const { role } = ptyManager.attach(taskId, connToken);
 
+            // Iterate v0.8.5 AC-4 — new-plain (`/api/external/launch`
+            // with actionId === "new-plain") tasks never write a JSONL
+            // until the user types their first message inside Claude
+            // (per known_issues.md "Awaiting-launch state — expected
+            // latency band"). The transcript-poll-driven state machine
+            // can therefore never flip these tasks out of
+            // `awaiting_external_start`, even though Claude is plainly
+            // reachable in the embedded terminal — confusing UX.
+            //
+            // Pty-up is the operator's mental model of "active" for
+            // new-plain. When the WS upgrade succeeds and the task is
+            // in `awaiting_external_start` AND was launched as
+            // new-plain, flip it to `active` immediately. The
+            // transcript-poll path remains authoritative for all other
+            // actionIds (slash-command launches; resume; fork) — they
+            // write JSONL at first prompt and the existing
+            // !firstJsonlObservedAt branch handles them.
+            if (
+              task.state === "awaiting_external_start" &&
+              task.actionId === "new-plain"
+            ) {
+              store.patch(taskId, { state: "active" });
+              // Don't set firstJsonlObservedAt — pty-up is not the
+              // same evidence as JSONL-on-disk; the existing
+              // transcript-poll transition will set the timestamp
+              // correctly when the user actually types something.
+              void store.persist();
+            }
+
             // ADR-068-A1 replay flow:
             //   1. Subscribe with a liveBuffer so we don't miss live output
             //      while reading scrollback from disk.
