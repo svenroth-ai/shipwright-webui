@@ -24,6 +24,7 @@ import * as lockfile from "proper-lockfile";
 
 import { getConfig } from "./config.js";
 import { formatBindError } from "./lib/bind-errors.js";
+import { resolveHonoHost } from "./lib/resolveHonoHost.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { requestLogger } from "./middleware/logger.js";
 import { ProjectManager } from "./core/project-manager.js";
@@ -510,11 +511,19 @@ if (isMainModule) {
       // port, etc.) produce a deterministic operator-facing line and
       // a non-zero exit instead of a silent half-startup. No probe
       // before bind — that would be TOCTOU-racy on Windows.
+      // Default = 127.0.0.1 (loopback). HONO_HOST=true binds dual-stack
+      // (`::`); HONO_HOST=<addr> binds that interface. See resolveHonoHost.ts
+      // and docs/guide.md §9.1 for the full contract.
+      const honoHost = resolveHonoHost(process.env);
       const server = serve(
-        { fetch: app.fetch, port: config.port },
+        { fetch: app.fetch, port: config.port, hostname: honoHost },
         (info) => {
+          const reachableLabel =
+            honoHost === "127.0.0.1" || honoHost === "::1"
+              ? "localhost"
+              : info.address || honoHost;
           console.log(
-            `Shipwright Command Center listening on http://localhost:${info.port}`,
+            `Shipwright Command Center listening on http://${reachableLabel}:${info.port} (bind=${honoHost})`,
           );
         },
       );

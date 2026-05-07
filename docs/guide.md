@@ -432,6 +432,7 @@ folder, or wire your own slash skills into the menu.
 | `PORT` | `3847` | Backend port. The frontend reads this so `/api` calls hit the right backend. |
 | `VITE_PORT` | `5173` | Frontend port. Fails loud on collision (no silent half-start). |
 | `VITE_HOST` | _(unset)_ | Bind the Vite dev server to a non-loopback interface for multi-device access (Tailscale / LAN). `true` = `0.0.0.0` (all interfaces); `<hostname-or-ip>` = a specific interface. Unset = loopback only (default; safe in untrusted Wi-Fi). |
+| `HONO_HOST` | _(unset → loopback)_ | Bind the Hono backend to a non-loopback interface. `true` = `::` (dual-stack all interfaces); `<hostname-or-ip>` = a specific interface. Unset = `127.0.0.1` (default; safe). For the typical Tailscale-from-phone flow you do **not** need this — Vite proxies `/api` to `localhost:3847` locally, so leaving the backend on loopback is correct. Only set `HONO_HOST` if you want clients to call the backend directly (no Vite proxy). |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
 
@@ -476,10 +477,36 @@ When the variable is honoured, `npm run dev`'s output gains a
 var didn't reach the Vite process — check you're in a fresh shell that
 inherits it.
 
-The Hono backend on `3847` does **not** need to change: Vite proxies
-`/api` to it locally, so the Hono port stays loopback-only and only the
-frontend port is exposed. Keep `VITE_HOST` unset on untrusted networks
-(café, hotel) — the loopback default is the safe choice there.
+The Hono backend on `3847` does **not** need to change for this flow:
+Vite proxies `/api` to `localhost:3847` locally, so the backend stays on
+loopback (its default since v0.8.4) and only the frontend port is
+exposed. Keep `VITE_HOST` unset on untrusted networks (café, hotel) —
+the loopback default is the safe choice there.
+
+#### Reaching the backend directly (rare; bypass Vite proxy)
+
+Almost no one needs this. The 99% workflow keeps the backend on
+loopback and reaches it through Vite's `/api` proxy on `5173`. But if
+you're running an external client (a custom dashboard, a curl-based
+smoke check from another box, an integration test driver) that can't
+go through Vite, opt in with `HONO_HOST`:
+
+```powershell
+$env:HONO_HOST="true"; cd server; npm run dev
+```
+
+Same shell-syntax matrix as `VITE_HOST` (bash `HONO_HOST=true npm run
+dev`, cmd.exe `set HONO_HOST=true && npm run dev`,
+PowerShell-persistent `[Environment]::SetEnvironmentVariable("HONO_HOST","true","User")`).
+The startup line confirms the bind: `listening on http://...:3847
+(bind=...)` — `bind=127.0.0.1` is loopback, `bind=::` is all
+interfaces.
+
+> **Breaking change vs. v0.8.3 and earlier.** Before v0.8.4 the backend
+> bound to `::` (all interfaces) implicitly because `serve()` was
+> called without `hostname`. If your workflow relied on hitting
+> `http://<this-machine>:3847/api/...` from another device, set
+> `HONO_HOST=true` to restore it. The Vite-proxy flow is unaffected.
 
 Refresh the bundled snapshot any time:
 
