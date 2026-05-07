@@ -113,12 +113,14 @@ export function TaskCard({ task }: Props) {
   // visually. Launch is the only primary action for that set; Resume
   // only makes sense once a task has actually been launched.
   // iterate 3.7f (Sven UAT 2026-04-22): only `draft` gets the green Launch
-  // button. `awaiting_external_start` + `active` get a brown Terminal button
-  // (command is already copied — next step is switching to a terminal). `idle`
-  // gets a brown Resume button (Claude process ended; explicit resume needed).
+  // button. `awaiting_external_start` + `active` previously got a brown
+  // Terminal button — REMOVED in v0.8.6 AC-4. The card body itself is
+  // the click target for opening the task detail page (which lands on
+  // the Terminal tab when that's the persisted preference); a
+  // dedicated Terminal CTA was redundant with that click affordance.
+  // `idle` keeps the brown Resume button (Claude process ended;
+  // explicit resume needed).
   const isBacklog = task.state === "draft";
-  const isTerminalNeeded =
-    task.state === "awaiting_external_start" || task.state === "active";
   const isDone = task.state === "done";
 
   // Iterate 3.7e-b1 (plan S1.6): deterministic color derived from
@@ -342,25 +344,12 @@ export function TaskCard({ task }: Props) {
                   />
                 </span>
               )}
-              {isTerminalNeeded && (
-                <span data-testid={`task-card-terminal-${task.taskId}`}>
-                  <TerminalLaunchButton
-                    task={task}
-                    variant="solid"
-                    color="brown"
-                    size="xs"
-                    // 2026-05-05 — `awaiting_external_start` has no claude
-                    // session to resume yet (the prior Launch click never
-                    // produced a JSONL — that's what `awaiting_external_start`
-                    // means). Resume here would emit `claude --resume <uuid>`
-                    // and fail at runtime. `active` IS running, so resume is
-                    // valid — at worst the user has to drop the original
-                    // session first, but the command itself is correct.
-                    resume={task.state === "active"}
-                    label="Terminal"
-                  />
-                </span>
-              )}
+              {/* Iterate v0.8.6 AC-4 — removed the brown "Terminal"
+                  CTA on `awaiting_external_start` / `active`. Click on
+                  the card body opens the task detail page (which
+                  lands on the Terminal tab when persisted preference
+                  says so); a dedicated CTA duplicated that affordance.
+                  `idle` keeps Resume below. */}
               {task.state === "idle" && (
                 <span data-testid={`task-card-resume-${task.taskId}`}>
                   <TerminalLaunchButton

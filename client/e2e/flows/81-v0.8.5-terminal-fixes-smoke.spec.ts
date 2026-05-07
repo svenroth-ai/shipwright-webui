@@ -143,8 +143,9 @@ test.describe("Spec 81 — v0.8.5 terminal fixes smoke", () => {
       expect(styles.paddingRight).toBe("8px");
       expect(styles.paddingBottom).toBe("8px");
       expect(styles.paddingLeft).toBe("8px");
-      // rounded-md = 6px
-      expect(styles.borderRadius).toBe("6px");
+      // v0.8.6 AC-1 — rounded corners removed (visually out of place
+      // against the rest of the WebUI's square chrome).
+      expect(styles.borderRadius).toBe("0px");
     } finally {
       await deleteTask(request, taskId);
       await cleanupCwd(cwd);
