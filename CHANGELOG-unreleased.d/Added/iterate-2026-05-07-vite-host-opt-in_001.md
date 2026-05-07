@@ -1,0 +1,1 @@
+VITE_HOST env var to opt the Vite dev server into non-loopback binding for multi-device access (Tailscale / LAN). Default stays loopback only — `VITE_HOST=true` binds 0.0.0.0 with allowedHosts unblocked, `VITE_HOST=<host|ip>` binds a specific interface. Hono backend port stays loopback (Vite proxies /api locally).

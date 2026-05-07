@@ -431,11 +431,33 @@ folder, or wire your own slash skills into the menu.
 |---|---|---|
 | `PORT` | `3847` | Backend port. The frontend reads this so `/api` calls hit the right backend. |
 | `VITE_PORT` | `5173` | Frontend port. Fails loud on collision (no silent half-start). |
+| `VITE_HOST` | _(unset)_ | Bind the Vite dev server to a non-loopback interface for multi-device access (Tailscale / LAN). `true` = `0.0.0.0` (all interfaces); `<hostname-or-ip>` = a specific interface. Unset = loopback only (default; safe in untrusted Wi-Fi). |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
 
 Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`.
+
+#### Reaching the dev server from another device (Tailscale / LAN)
+
+By default Vite binds to loopback only — the Command Center is
+unreachable from your phone, tablet, or another desktop. To open it up
+on a trusted network (for example over Tailscale MagicDNS like
+`http://webui-host.tailnet.ts.net:5173`), opt in with `VITE_HOST`:
+
+```bash
+VITE_HOST=true npm run dev
+```
+
+`VITE_HOST=true` binds `0.0.0.0` and unblocks Vite 6's host-header check
+so MagicDNS hostnames stop returning `Blocked request. This host is not
+allowed.`. To bind a single interface instead, pass an address —
+`VITE_HOST=100.64.0.1 npm run dev` or `VITE_HOST=webui-host.tailnet.ts.net npm run dev`.
+
+The Hono backend on `3847` does **not** need to change: Vite proxies
+`/api` to it locally, so the Hono port stays loopback-only and only the
+frontend port is exposed. Keep `VITE_HOST` unset on untrusted networks
+(café, hotel) — the loopback default is the safe choice there.
 
 Refresh the bundled snapshot any time:
 
