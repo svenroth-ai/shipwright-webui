@@ -124,39 +124,93 @@ test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
     }, SHIPWRIGHT_WEBUI_PROJECT_ID);
   });
 
-  test("AC-2: terminal content does not accumulate across Task → Board → Task navigation", async ({
+  test("AC-2: terminal full-buffer (incl. scrollback) does not accumulate across Task → Board → Task navigation", async ({
     page,
     request,
   }) => {
     const cwd = await makeTaskCwd();
     const taskId = await createAndLaunch(request, cwd, "ac2-noaccumulate");
     try {
-      // First visit — wait for ready + initial pty output (PowerShell
-      // prompt or claude banner). Capture the full xterm rendered text.
       await page.goto(`/tasks/${taskId}`);
       await expect(
         page.getByTestId("embedded-terminal"),
       ).toHaveAttribute("data-ws-ready", "true", { timeout: 15_000 });
-      // Allow a 2s grace for the pty to emit its prompt + scrollback
-      // replay (server-side replay is async, see routes.ts L620+).
+      // First-visit grace: pty emits prompt + (optional) replay.
       await page.waitForTimeout(2_000);
 
-      const captureXtermText = async (): Promise<string> => {
+      // Emit a deterministic banner-shaped payload via keystrokes so
+      // the test does NOT depend on Claude actually being launched in
+      // the pty (new-plain stays on a bare shell prompt). 20 unique
+      // BANNER lines + a marker — enough volume that scrollback
+      // accumulation is detectable in the buffer-line count even with
+      // some natural prompt-redraw drift.
+      // PowerShell on Windows is the default shell; on POSIX the same
+      // for-loop syntax works in bash via `seq`. For cross-shell
+      // compatibility, use a simple `echo` chain instead.
+      await page.getByTestId("embedded-terminal-canvas").click();
+      const bannerCmd = Array.from(
+        { length: 20 },
+        (_, i) => `echo BANNER_LINE_${String(i).padStart(2, "0")}`,
+      ).join("; ");
+      await page.keyboard.type(bannerCmd);
+      await page.keyboard.press("Enter");
+      // Allow the pty to echo the command + emit all 20 lines + redraw
+      // the prompt afterwards.
+      await page.waitForTimeout(2_500);
+
+      // Capture FULL xterm buffer (visible viewport AND scrollback) via
+      // the test-only window.__embeddedTerminal handle. `.xterm-rows`
+      // on its own would only show the visible viewport — which masks
+      // scrollback accumulation, the user-visible bug we're chasing.
+      const captureBufferStats = async (): Promise<{
+        lineCount: number;
+        outputLineCount: number;
+      }> => {
         return page.evaluate(() => {
-          // .xterm-rows is the xterm-rendered visible buffer; its
-          // textContent has the line-broken rendering minus ANSI.
-          const rows = document.querySelector(".xterm-rows");
-          return rows ? (rows.textContent ?? "") : "";
+          const term = (
+            window as unknown as {
+              __embeddedTerminal?: {
+                buffer: {
+                  active: {
+                    length: number;
+                    getLine(i: number): { translateToString(): string } | undefined;
+                  };
+                };
+              } | null;
+            }
+          ).__embeddedTerminal;
+          if (!term) return { lineCount: -1, outputLineCount: -1 };
+          const lineCount = term.buffer.active.length;
+          // Count standalone output lines that match exactly
+          // `BANNER_LINE_NN` (no shell prompt prefix). The user typed
+          // ONE long `echo X; echo Y; ...` command which produces 20
+          // such standalone output lines — one per echo. These do NOT
+          // appear in the typed command echo (the command has them as
+          // substrings of `echo BANNER_LINE_NN` not as standalone
+          // lines), and PowerShell's READLINE repaint of the input
+          // line never produces standalone-`BANNER_LINE_NN` content
+          // either.
+          //
+          // So a SINGLE typed-and-executed run gives exactly 20 of
+          // these. A replay of the same disk content gives 20 again.
+          // Accumulation across N visits would give N×20.
+          let outputLineCount = 0;
+          const exact = /^BANNER_LINE_\d{2}$/;
+          for (let i = 0; i < lineCount; i++) {
+            const line = term.buffer.active.getLine(i);
+            if (!line) continue;
+            const text = line.translateToString().trim();
+            if (exact.test(text)) outputLineCount += 1;
+          }
+          return { lineCount, outputLineCount };
         });
       };
 
-      const initialText = await captureXtermText();
-      // Sanity: terminal should have rendered SOMETHING by now (pwsh
-      // prompt at minimum; new-plain doesn't auto-emit a Claude banner
-      // pre-first-message). If empty, the test environment is wrong.
-      // We do NOT assert specific content because the prompt format
-      // is shell-specific.
-      expect(initialText.length).toBeGreaterThan(0);
+      const initial = await captureBufferStats();
+      // Sanity: must have emitted exactly 20 standalone `BANNER_LINE_NN`
+      // output lines (one per echo in the typed command). Less than that
+      // means the keystroke fixture didn't run all 20.
+      expect(initial.outputLineCount).toBe(20);
 
       // Round-trip 1: Task → Board → Task
       await page.goto(`/`);
@@ -165,8 +219,8 @@ test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
       await expect(
         page.getByTestId("embedded-terminal"),
       ).toHaveAttribute("data-ws-ready", "true", { timeout: 15_000 });
-      await page.waitForTimeout(2_000);
-      const afterTrip1 = await captureXtermText();
+      await page.waitForTimeout(2_500);
+      const afterTrip1 = await captureBufferStats();
 
       // Round-trip 2 (more pressure)
       await page.goto(`/`);
@@ -175,21 +229,16 @@ test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
       await expect(
         page.getByTestId("embedded-terminal"),
       ).toHaveAttribute("data-ws-ready", "true", { timeout: 15_000 });
-      await page.waitForTimeout(2_000);
-      const afterTrip2 = await captureXtermText();
+      await page.waitForTimeout(2_500);
+      const afterTrip2 = await captureBufferStats();
 
-      // Idempotency contract: the rendered text size after revisit
-      // should be APPROXIMATELY the initial size (within a small grace
-      // for the pty emitting an additional newline / prompt redraw).
-      // If the bug reproduces, afterTrip{1,2}.length will be ~N×
-      // initialText.length where N = number of revisits.
-      const tolerance = 2_000; // allow ~2 KiB drift for legit re-prompts
-      expect(afterTrip1.length).toBeLessThanOrEqual(
-        initialText.length + tolerance,
-      );
-      expect(afterTrip2.length).toBeLessThanOrEqual(
-        initialText.length + tolerance,
-      );
+      // Idempotency contract: there should be EXACTLY 20 standalone
+      // `BANNER_LINE_NN` output lines after each revisit — same as
+      // the initial. The disk scrollback contains ONE run; one replay
+      // paints it once into a fresh xterm. Accumulation would push
+      // the count to 40, 60, …
+      expect(afterTrip1.outputLineCount).toBe(20);
+      expect(afterTrip2.outputLineCount).toBe(20);
     } finally {
       await deleteTask(request, taskId);
       await cleanupCwd(cwd);

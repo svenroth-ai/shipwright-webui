@@ -448,6 +448,12 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
 
       termRef.current = term;
       fitAddonRef.current = fit;
+      // Iterate v0.8.6 AC-2 diagnostics — expose the active xterm
+      // instance on window so Playwright can read `term.buffer.active`
+      // line counts (scrollback INCLUDED — `.xterm-rows` only carries
+      // the visible viewport, which masks scrollback accumulation).
+      // Cleanup nulls it on dispose. Single ref, no production impact.
+      (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = term;
 
       // Forward keystrokes / paste-text into the socket.
       const onDataDispose = term.onData((data) => {
@@ -455,6 +461,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       });
 
       // ResizeObserver keeps xterm column count in sync with the container.
+      // Iterate v0.8.6 AC-2 — client-side dedupe of no-op resizes.
+      // ConPTY emits a SIGWINCH-driven READLINE redraw on every
+      // pty.resize call, even when dims are unchanged. The server-side
+      // PtyManager.resize already dedupes; this layer prevents the
+      // redundant WS message from being sent at all (cleaner traces +
+      // smaller load when 6+ WS connections happen due to StrictMode
+      // double-mount × revisit).
+      let lastSentCols = -1;
+      let lastSentRows = -1;
       const resizeAndSend = () => {
         try {
           fit.fit();
@@ -463,6 +478,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         }
         const cols = term.cols;
         const rows = term.rows;
+        if (cols === lastSentCols && rows === lastSentRows) return;
+        lastSentCols = cols;
+        lastSentRows = rows;
         socket.send({ type: "resize", cols, rows });
       };
       const ro = new ResizeObserver(() => {
@@ -490,6 +508,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         term.dispose();
         termRef.current = null;
         fitAddonRef.current = null;
+        (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = null;
       };
       // socket.send is stable via useCallback; we intentionally don't depend
       // on `socket` here because re-mounting xterm on every reconnect would
@@ -498,6 +517,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     }, []);
 
     // When the tab becomes active, re-fit (hidden containers report 0x0).
+    // Iterate v0.8.6 AC-2 — dedupe no-op resize sends here too; same
+    // rationale as the ResizeObserver path above.
+    const lastActiveResizeRef = useRef<{ cols: number; rows: number }>({ cols: -1, rows: -1 });
     useEffect(() => {
       if (!active) return;
       const fit = fitAddonRef.current;
@@ -508,7 +530,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       } catch {
         /* ignore */
       }
-      socket.send({ type: "resize", cols: term.cols, rows: term.rows });
+      const cols = term.cols;
+      const rows = term.rows;
+      if (
+        cols !== lastActiveResizeRef.current.cols ||
+        rows !== lastActiveResizeRef.current.rows
+      ) {
+        lastActiveResizeRef.current = { cols, rows };
+        socket.send({ type: "resize", cols, rows });
+      }
     }, [active, socket]);
 
     // DOM paste handler (capture phase) — image-wins precedence per AC-6.

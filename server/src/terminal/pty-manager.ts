@@ -176,6 +176,18 @@ interface PtyEntry {
   connSubs: Map<unknown, ConnectionSubscription>;
   /** First connection becomes writer; null when no writer is currently bound. */
   writer: unknown | null;
+  /**
+   * Iterate v0.8.6 AC-2 — last (cols, rows) handed to pty.resize().
+   * Used to dedupe no-op resizes that otherwise trigger PowerShell to
+   * repaint its READLINE buffer (version banner + prompt + typed line)
+   * via SIGWINCH on every WS attach. Each repaint is ~1 KiB of data
+   * envelope flooding the xterm buffer with duplicate content — visible
+   * as the "100 banner" accumulation. ConPTY emits the redraw on every
+   * resize call, even when dims are unchanged, so the dedupe must live
+   * here (node-pty / ConPTY does not gate it internally).
+   */
+  lastResizeCols: number | null;
+  lastResizeRows: number | null;
   /** Idle timer for the safety ceiling. */
   idleTimer: ReturnType<typeof setTimeout> | null;
   /** Pending outbound bytes per connection (used for drop-oldest decision). */
@@ -322,6 +334,8 @@ export class PtyManager {
       dataSubs: new Set(),
       connSubs: new Map(),
       writer: null,
+      lastResizeCols: null,
+      lastResizeRows: null,
       idleTimer: null,
       pendingByConn: new Map(),
       backpressureRaised: new Map(),
@@ -378,6 +392,20 @@ export class PtyManager {
   resize(taskId: string, cols: number, rows: number): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
+    // Iterate v0.8.6 AC-2 — dedupe no-op resizes. ConPTY (and node-pty)
+    // emit a SIGWINCH-driven redraw on EVERY pty.resize call, even when
+    // (cols, rows) match the current state. PowerShell's READLINE
+    // responds to that by repainting "version banner + prompt + typed
+    // line" — ~1 KiB per redraw. With multiple WS attaches per visit
+    // (StrictMode double-mount) and multiple visits per session, this
+    // accumulates as the "100 Claude banner" symptom in xterm. Skip
+    // the call when nothing changed; the pty already has the right
+    // dimensions.
+    if (entry.lastResizeCols === cols && entry.lastResizeRows === rows) {
+      return;
+    }
+    entry.lastResizeCols = cols;
+    entry.lastResizeRows = rows;
     entry.pty.resize(cols, rows);
   }
 
