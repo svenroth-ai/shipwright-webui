@@ -443,16 +443,38 @@ Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 By default Vite binds to loopback only — the Command Center is
 unreachable from your phone, tablet, or another desktop. To open it up
 on a trusted network (for example over Tailscale MagicDNS like
-`http://webui-host.tailnet.ts.net:5173`), opt in with `VITE_HOST`:
+`http://webui-host.tailnet.ts.net:5173`), opt in with `VITE_HOST`.
 
-```bash
-VITE_HOST=true npm run dev
+The exact syntax depends on your shell:
+
+| Shell | One-shot (this run only) | Persistent (current session) |
+|---|---|---|
+| Bash / zsh / sh | `VITE_HOST=true npm run dev` | `export VITE_HOST=true` |
+| PowerShell (Windows / pwsh) | `$env:VITE_HOST="true"; npm run dev` | `$env:VITE_HOST="true"` |
+| cmd.exe | `set VITE_HOST=true && npm run dev` | `set VITE_HOST=true` |
+
+To make it survive new shells on Windows without exposing yourself
+in foreign Wi-Fi (café / hotel), set it persistently in User scope and
+unset it before you travel:
+
+```powershell
+# Set:    [Environment]::SetEnvironmentVariable("VITE_HOST","true","User")
+# Unset:  [Environment]::SetEnvironmentVariable("VITE_HOST",$null,"User")
 ```
 
-`VITE_HOST=true` binds `0.0.0.0` and unblocks Vite 6's host-header check
-so MagicDNS hostnames stop returning `Blocked request. This host is not
-allowed.`. To bind a single interface instead, pass an address —
-`VITE_HOST=100.64.0.1 npm run dev` or `VITE_HOST=webui-host.tailnet.ts.net npm run dev`.
+`VITE_HOST=true` binds `0.0.0.0` (or `::` on dual-stack hosts) and
+unblocks Vite 6's host-header check so MagicDNS hostnames stop
+returning `Blocked request. This host is not allowed.`. To bind a
+single interface instead, pass an address — e.g.
+`VITE_HOST=100.64.0.1 npm run dev` (bash) or
+`$env:VITE_HOST="webui-host.tailnet.ts.net"; npm run dev`
+(PowerShell).
+
+When the variable is honoured, `npm run dev`'s output gains a
+`Network: http://<your-ip>:5173/` line (instead of the default
+`Network: use --host to expose`). If you don't see that line, the env
+var didn't reach the Vite process — check you're in a fresh shell that
+inherits it.
 
 The Hono backend on `3847` does **not** need to change: Vite proxies
 `/api` to it locally, so the Hono port stays loopback-only and only the
