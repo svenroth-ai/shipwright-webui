@@ -25,6 +25,7 @@ import * as lockfile from "proper-lockfile";
 import { getConfig } from "./config.js";
 import { formatBindError } from "./lib/bind-errors.js";
 import { resolveHonoHost } from "./lib/resolveHonoHost.js";
+import { resolveTrustedOrigins } from "./lib/resolveTrustedOrigins.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { requestLogger } from "./middleware/logger.js";
 import { ProjectManager } from "./core/project-manager.js";
@@ -55,11 +56,19 @@ const startTime = Date.now();
 
 export const app = new Hono();
 
+// Iterate v0.8.4 — CORS origin gate now defers to
+// `resolveTrustedOrigins(process.env)` so it widens consistently with
+// `HONO_HOST` / `WEBUI_TRUSTED_ORIGINS`. Same policy as the WS upgrade
+// gate in `terminal/routes.ts`. Default (no env vars set) is
+// loopback-only — and stricter than the prior `origin.includes("localhost")`
+// substring check, which would have matched
+// `http://evil-localhost-attack.com`.
+const corsOriginPolicy = resolveTrustedOrigins(process.env);
 app.use(
   "*",
   cors({
     origin: (origin) => {
-      if (origin && origin.includes("localhost")) return origin;
+      if (origin && corsOriginPolicy.isAllowed(origin)) return origin;
       return null;
     },
   }),
@@ -524,6 +533,12 @@ if (isMainModule) {
               : info.address || honoHost;
           console.log(
             `Shipwright Command Center listening on http://${reachableLabel}:${info.port} (bind=${honoHost})`,
+          );
+          // Iterate v0.8.4 — surface the trusted-origin policy so a
+          // mute terminal over Tailscale immediately shows whether the
+          // gate is loopback-only (the bug we just fixed) or widened.
+          console.log(
+            `Trusted-Origin policy: ${corsOriginPolicy.describe()}`,
           );
         },
       );
