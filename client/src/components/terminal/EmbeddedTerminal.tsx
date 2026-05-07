@@ -625,8 +625,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         : null;
 
     return (
+      // Iterate v0.8.3 AC-2 — outer padding so the xterm canvas does not
+      // hug the pane edge. `p-2` (8px) + `rounded-md` give a small visual
+      // breathing room; xterm's FitAddon picks up the padded inner box
+      // automatically via ResizeObserver. Inherits the dark background
+      // from xterm itself — no parent bg override is necessary because
+      // the `bg-[var(--color-surface)]` of TaskDetailPage's tab content
+      // shows through the padding strip.
       <div
-        className="flex h-full min-h-0 w-full flex-col"
+        className="flex h-full min-h-0 w-full flex-col p-2 rounded-md"
         data-testid="embedded-terminal"
         data-ws-open={socket.open ? "true" : "false"}
         data-ws-ready={socket.ready ? "true" : "false"}
