@@ -169,6 +169,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         lastPtyDataAtRef.current = Date.now();
         termRef.current?.write(chunk);
       },
+      onReplayStart: () => {
+        // Iterate v0.8.5 AC-3 — defensive: clear xterm before each
+        // replay so re-attach inside the same EmbeddedTerminal instance
+        // (e.g. WS reconnect mid-session) does NOT visually stack a
+        // second copy of the historical scrollback on top of the first.
+        // For the typical mount-fresh-xterm-then-replay path this is a
+        // no-op (xterm is already empty); for any future reconnect path
+        // it guarantees idempotent replay rendering.
+        try {
+          termRef.current?.clear();
+        } catch {
+          /* xterm may be mid-dispose; ignore */
+        }
+      },
       onBackpressure: (info) => {
         onBackpressure?.(info);
       },

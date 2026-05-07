@@ -14,6 +14,7 @@ import { createRef } from "react";
 const writeSpy = vi.fn<(d: string) => void>();
 const focusSpy = vi.fn();
 const disposeSpy = vi.fn();
+const clearSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
 
@@ -24,6 +25,7 @@ vi.mock("@xterm/xterm", () => ({
     write: writeSpy,
     focus: focusSpy,
     dispose: disposeSpy,
+    clear: clearSpy,
     loadAddon: vi.fn(),
     open: vi.fn(),
     onData(cb: (d: string) => void) {
@@ -157,6 +159,7 @@ describe("<EmbeddedTerminal>", () => {
     writeSpy.mockClear();
     focusSpy.mockClear();
     disposeSpy.mockClear();
+    clearSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
 
@@ -384,6 +387,38 @@ describe("<EmbeddedTerminal>", () => {
   // The DOM `paste` listener (right-click → Paste menu, programmatic
   // paste, Edge/Chrome legacy paths) is still covered by the
   // "paste-handler — …" cases above.
+
+  // Iterate v0.8.5 AC-3 — defensive replay-clear regression.
+  // EmbeddedTerminal subscribes to `replay_start` and calls term.clear()
+  // before scrollback chunks land. For a freshly-mounted xterm this is
+  // a visual no-op (already empty); for any future WS-reconnect path
+  // that hits the same EmbeddedTerminal instance it guarantees that
+  // a second replay does NOT stack on top of the first.
+  it("calls term.clear() when the replay_start envelope arrives", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    expect(ws).toBeDefined();
+    // Initially clear() should NOT have been called (no replay yet).
+    expect(clearSpy).not.toHaveBeenCalled();
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 1024 }));
+    });
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls term.clear() AGAIN if a second replay_start arrives (e.g. WS reconnect mid-session)", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
+      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "first" }));
+      ws.__message(JSON.stringify({ type: "replay_end" }));
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 200 }));
+    });
+    expect(clearSpy).toHaveBeenCalledTimes(2);
+  });
 
   it("surfaces gitignoreSuggestion=true via onGitignoreSuggestion callback", async () => {
     const fetchMock = vi.fn(async () => ({
