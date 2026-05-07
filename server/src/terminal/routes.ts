@@ -30,6 +30,7 @@ import { StringDecoder } from "node:string_decoder";
 
 import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 import { pathGuard, realPathGuard } from "../core/path-guard.js";
+import { resolveTrustedOrigins } from "../lib/resolveTrustedOrigins.js";
 import type {
   PtyHandleApi,
   PtyManager,
@@ -80,22 +81,17 @@ export interface TerminalRoutesDeps {
   scrollbackDirHint?: string;
 }
 
+// Iterate v0.8.4 — the WS upgrade Origin gate now defers to
+// `resolveTrustedOrigins(process.env)` so it widens consistently with
+// `HONO_HOST` / `WEBUI_TRUSTED_ORIGINS`. The default (no env vars set)
+// remains loopback-only, identical to the pre-iterate behaviour.
+//
+// External code-review F4 still binds: `null` / empty Origin is
+// rejected unconditionally (browsers always send an Origin header on
+// WS upgrades from a real page; absent = non-browser caller, which
+// falls outside the CORS contract regardless of policy mode).
 function defaultAllowedOrigins(origin: string | null): boolean {
-  // External code-review F4: refuse missing/null Origin. The browser
-  // always sends an Origin header on WS upgrades from a real page; an
-  // absent header indicates a non-browser caller (curl, scripted client),
-  // which falls outside the loopback-CORS posture.
-  if (!origin) return false;
-  try {
-    const u = new URL(origin);
-    return (
-      u.hostname === "localhost" ||
-      u.hostname === "127.0.0.1" ||
-      u.hostname === "::1"
-    );
-  } catch {
-    return false;
-  }
+  return resolveTrustedOrigins(process.env).isAllowed(origin);
 }
 
 /**
