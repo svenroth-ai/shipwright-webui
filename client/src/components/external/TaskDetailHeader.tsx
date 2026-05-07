@@ -121,15 +121,18 @@ const STATE_BADGE: Record<
   },
 };
 
-type CtaMode = "launch" | "resume" | "terminal" | "none";
+type CtaMode = "launch" | "resume" | "none";
 
 function ctaFor(state: ExternalTask["state"]): CtaMode {
   if (state === "draft") return "launch";
-  // iterate 3.7f (Sven UAT 2026-04-22): awaiting_external_start means "Launch
-  // command was copied to clipboard, user needs to paste it in a terminal".
-  // The next logical action is to switch to that terminal — label "Terminal"
-  // (same clipboard action as Resume; the copied command is the same).
-  if (state === "awaiting_external_start" || state === "active") return "terminal";
+  // Iterate v0.8.5 AC-6: drop the "Terminal" CTA for active /
+  // awaiting_external_start. The button only flipped the inline
+  // Tabs.Trigger row (pure UI nav, no auto-execute) — duplicating the
+  // tab-row that already lives inside the page. Header now shows
+  // status badge only for these states; user clicks the inline
+  // `Terminal` Tabs.Trigger to switch panes. Resume CTA stays available
+  // for state=idle (pty died + mtime drifted > 2min — see
+  // external/routes.ts state computation).
   if (state === "idle") return "resume";
   return "none";
 }
@@ -614,35 +617,9 @@ export function TaskDetailHeader({ task }: Props) {
               : "Resume"}
           </button>
         )}
-        {cta === "terminal" && (
-          <button
-            type="button"
-            onClick={() => {
-              // Phase-5-Codex review fix (HIGH): for state=active|
-              // awaiting_external_start, "Terminal" was calling
-              // handleResume() which auto-executed claude --resume —
-              // unwanted side-effect when the user just wants to look
-              // at a live session. Now this CTA is a pure nav-flip:
-              // dispatch a no-op into the coord that toggles the
-              // Terminal tab. Resume is reachable via state=idle (CTA
-              // becomes orange "Resume" automatically when pty dies +
-              // mtime drifts > 2 min — see external/routes.ts state
-              // computation).
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(
-                  new CustomEvent("webui:focus-terminal-tab"),
-                );
-              }
-            }}
-            className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-primary-hover,#5a4f48)]"
-            data-testid="cta-terminal"
-            data-color="brown"
-            aria-label="Terminal — open the embedded terminal pane"
-          >
-            <TerminalIcon size={14} />
-            Terminal
-          </button>
-        )}
+        {/* Iterate v0.8.5 AC-6: removed the "Terminal" CTA — see
+            ctaFor() above for the new matrix. The inline `Terminal`
+            Tabs.Trigger inside the page covers the tab-flip. */}
 
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>

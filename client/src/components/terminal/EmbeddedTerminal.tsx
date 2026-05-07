@@ -38,10 +38,6 @@ import {
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
-import {
-  readClipboardForPaste,
-  shouldInterceptCtrlV,
-} from "./clipboard-paste";
 
 export interface EmbeddedTerminalHandle {
   focus(): void;
@@ -205,17 +201,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       onTerminalMeta,
     ]);
 
-    // Iterate v0.8.3 AC-1 — shared image-upload helper + Ctrl+V handler.
+    // Shared image-upload helper.
     //
-    // v0.8.2 moved the DOM `paste` listener to document/capture-phase,
-    // but real-browser Ctrl+V never reached it: xterm's keybinding
-    // bypasses ClipboardEvent and uses async `navigator.clipboard.readText()`,
-    // which resolves to text only — image-paste from a bare PowerShell
-    // prompt landed nowhere. The fix installs `attachCustomKeyEventHandler`
-    // that suppresses xterm's Ctrl+V default and drives the structured
-    // `navigator.clipboard.read()` API ourselves. Both paths (DOM `paste`
-    // event AND Ctrl+V keydown) route image blobs through `uploadPasteBlob`
-    // so success / error / gitignore surfaces stay consistent.
+    // The DOM `paste` event listener (right-click → Paste menu;
+    // programmatic paste; Edge/Chrome legacy paths) routes image blobs
+    // through this single fetch so success / error / gitignore surfaces
+    // stay consistent.
+    //
+    // History: v0.8.3 AC-1 added a second consumer here — a
+    // `term.attachCustomKeyEventHandler` Ctrl+V interceptor that drove
+    // `navigator.clipboard.read()` directly. v0.8.5 AC-2 reverted that
+    // path because the value didn't justify the surface in production:
+    // Alt+V via Claude Code's TUI clipboard pipeline is the supported
+    // image-paste flow (lands under `~/.claude/image-cache/...`), and
+    // the v0.8.3 Ctrl+V path never produced a reliable round-trip in
+    // the user's daily flow. The DOM `paste` listener below remains as
+    // defense-in-depth for non-keyboard paste paths.
     const uploadPasteBlob = useCallback(
       async (blob: Blob, filename: string): Promise<void> => {
         const form = new FormData();
@@ -248,51 +249,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       },
       [taskId, onGitignoreSuggestion, onPasteImageError],
     );
-
-    // Ctrl+V key-handler ref. Updated whenever upstream callbacks /
-    // socket change so the closure injected into xterm always sees the
-    // latest versions without re-mounting xterm itself (which would
-    // discard scrollback). The xterm-mount useEffect (deps: []) reads
-    // this ref via `attachCustomKeyEventHandler` exactly once.
-    const ctrlVHandlerRef = useRef<(ev: KeyboardEvent) => boolean>(() => true);
-    useEffect(() => {
-      ctrlVHandlerRef.current = (ev: KeyboardEvent): boolean => {
-        if (!shouldInterceptCtrlV(ev)) return true;
-        // Firefox / non-secure-context fallback: if structured clipboard
-        // read is unavailable, let xterm's own Ctrl+V (text-only via
-        // readText) run unchanged. We intentionally do NOT preventDefault
-        // here so the historical behaviour stays intact.
-        if (
-          typeof navigator === "undefined" ||
-          typeof navigator.clipboard?.read !== "function"
-        ) {
-          return true;
-        }
-        ev.preventDefault();
-        ev.stopPropagation();
-        void (async () => {
-          const payload = await readClipboardForPaste(navigator);
-          if (payload.kind === "image") {
-            await uploadPasteBlob(payload.blob, payload.filename);
-            return;
-          }
-          if (payload.kind === "text") {
-            if (payload.text) {
-              socket.send({ type: "data", payload: payload.text });
-            }
-            return;
-          }
-          if (payload.kind === "error") {
-            onPasteImageError?.(payload.detail);
-            return;
-          }
-          // 'empty' / 'unsupported' → silent fall-through. Empty
-          // clipboard is normal user behaviour; 'unsupported' is
-          // already gated above (we returned true before suppressing).
-        })();
-        return false;
-      };
-    }, [uploadPasteBlob, socket, onPasteImageError]);
 
     // Imperative API exposed to the parent.
     useImperativeHandle(
@@ -475,15 +431,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       } catch {
         /* container may not have non-zero size yet */
       }
-
-      // Iterate v0.8.3 AC-1 — install the Ctrl+V interceptor. The
-      // closure forwards to `ctrlVHandlerRef.current` so updates to
-      // upstream callbacks / socket take effect without remounting
-      // xterm (which would discard scrollback). Returning true keeps
-      // xterm processing the key normally; returning false suppresses
-      // xterm's default and we drive navigator.clipboard.read()
-      // ourselves.
-      term.attachCustomKeyEventHandler((ev) => ctrlVHandlerRef.current(ev));
 
       termRef.current = term;
       fitAddonRef.current = fit;
