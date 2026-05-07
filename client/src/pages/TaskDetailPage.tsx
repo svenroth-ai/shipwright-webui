@@ -118,8 +118,14 @@ function PrivacyDisclosureFooter({
     ? scrollbackDir
     : null;
   return (
+    // Iterate v0.8.3 AC-2 — match the EmbeddedTerminal's outer p-2/rounded-md
+    // wrapper. With 8px padding around the xterm canvas, the previous
+    // `bottom-0 left-0 right-0` flush-edge footer would have read as
+    // belonging to the parent surface, not the terminal box. Inset to
+    // bottom-2/left-2/right-2 + rounded-md so the footer visually
+    // belongs to the padded box.
     <div
-      className="absolute bottom-0 left-0 right-0 flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-1.5 text-[11px] text-[var(--color-muted,#6b7280)]"
+      className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-md border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-1.5 text-[11px] text-[var(--color-muted,#6b7280)]"
       data-testid="terminal-privacy-disclosure"
     >
       <span aria-hidden>ⓘ</span>
@@ -130,7 +136,8 @@ function PrivacyDisclosureFooter({
         {isWindows ? (
           <span>On Windows, file permissions rely on user-account ACLs.</span>
         ) : null}
-        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.
+        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.{" "}
+        Image pastes inside Claude Code's TUI land in <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">~/.claude/image-cache/&lt;sessionId&gt;/</code> (managed by Claude Code, not WebUI).
       </span>
       <button
         type="button"
