@@ -183,6 +183,21 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           /* xterm may be mid-dispose; ignore */
         }
       },
+      onReplayEnd: () => {
+        // Iterate v0.8.6 follow-up — after the chunked replay finishes
+        // painting the historical scrollback + the separator banner,
+        // scroll xterm to the bottom of the buffer so the live shell
+        // prompt is in view immediately. Without this, the viewport
+        // stays at the buffer top (where the historical command-echo
+        // landed) and the user has to scroll down manually to find
+        // the live prompt below the "── Shipwright: scrollback
+        // restored from disk; live shell below ──" separator.
+        try {
+          termRef.current?.scrollToBottom();
+        } catch {
+          /* xterm may be mid-dispose; ignore */
+        }
+      },
       onBackpressure: (info) => {
         onBackpressure?.(info);
       },
