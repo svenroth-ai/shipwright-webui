@@ -625,15 +625,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         : null;
 
     return (
-      // Iterate v0.8.3 AC-2 — outer padding so the xterm canvas does not
-      // hug the pane edge. `p-2` (8px) + `rounded-md` give a small visual
-      // breathing room; xterm's FitAddon picks up the padded inner box
-      // automatically via ResizeObserver. Inherits the dark background
-      // from xterm itself — no parent bg override is necessary because
-      // the `bg-[var(--color-surface)]` of TaskDetailPage's tab content
-      // shows through the padding strip.
+      // Iterate v0.8.5 AC-1 — single-layer wrapper carries the dark
+      // background AND the inner padding. v0.8.3 had only `p-2 rounded-md`
+      // (no bg-color) which produced an 8px ring of parent surface +
+      // xterm flush against the dark edge. v0.8.5 simplifies: black
+      // extends to the wrapper edge (no outer ring), text/cursor sits
+      // 8px inset on all four sides via inner padding. xterm's FitAddon
+      // picks up the padded inner box via ResizeObserver.
+      //
+      // Conditional banners (read-only / replay-only / preview-command)
+      // span full wrapper width via negative margin (`-mx-2 -mt-2 mb-2`)
+      // so they read as a header strip ON the dark frame, not an
+      // island floating inside the padding.
       <div
-        className="flex h-full min-h-0 w-full flex-col p-2 rounded-md"
+        className="flex h-full min-h-0 w-full flex-col bg-[#1a1a1a] rounded-md p-2"
         data-testid="embedded-terminal"
         data-ws-open={socket.open ? "true" : "false"}
         data-ws-ready={socket.ready ? "true" : "false"}
@@ -641,7 +646,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       >
         {readOnly ? (
           <div
-            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)] rounded-t-md"
             data-testid="embedded-terminal-readonly"
           >
             Read-only — another tab is the active writer for this task.
@@ -653,7 +658,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           // `launch_failed`); the WS only serves the historical
           // scrollback and then closes.
           <div
-            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)]"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)] rounded-t-md"
             data-testid="embedded-terminal-replay-only"
           >
             Session ended — viewing historical terminal scrollback only.
@@ -661,7 +666,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         ) : null}
         {previewCommand ? (
           <div
-            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)]"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)] rounded-t-md"
             data-testid="embedded-terminal-launch-preview"
           >
             <span className="opacity-70" aria-hidden>About to run:</span>{" "}
