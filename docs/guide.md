@@ -433,6 +433,7 @@ folder, or wire your own slash skills into the menu.
 | `VITE_PORT` | `5173` | Frontend port. Fails loud on collision (no silent half-start). |
 | `VITE_HOST` | _(unset)_ | Bind the Vite dev server to a non-loopback interface for multi-device access (Tailscale / LAN). `true` = `0.0.0.0` (all interfaces); `<hostname-or-ip>` = a specific interface. Unset = loopback only (default; safe in untrusted Wi-Fi). |
 | `HONO_HOST` | _(unset → loopback)_ | Bind the Hono backend to a non-loopback interface. `true` = `::` (dual-stack all interfaces); `<hostname-or-ip>` = a specific interface. Unset = `127.0.0.1` (default; safe). For the typical Tailscale-from-phone flow you do **not** need this — Vite proxies `/api` to `localhost:3847` locally, so leaving the backend on loopback is correct. Only set `HONO_HOST` if you want clients to call the backend directly (no Vite proxy). |
+| `WEBUI_TRUSTED_ORIGINS` | _(unset)_ | Comma-separated allowlist of `Origin` values the WS upgrade + HTTP CORS middleware accept. When unset, the policy follows `HONO_HOST`: loopback-only by default, "any non-empty Origin" when `HONO_HOST` is set. Use this to opt into multi-device access (e.g. `http://pc-dinovo-002.tail4353f0.ts.net:5173`) while keeping the gate narrow. Boot log prints the resolved policy. |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
 
@@ -482,6 +483,59 @@ Vite proxies `/api` to `localhost:3847` locally, so the backend stays on
 loopback (its default since v0.8.4) and only the frontend port is
 exposed. Keep `VITE_HOST` unset on untrusted networks (café, hotel) —
 the loopback default is the safe choice there.
+
+##### Embedded terminal over Tailscale — Trusted-Origin gate (v0.8.4)
+
+The WS upgrade for `/api/terminal/:taskId/ws` and the HTTP CORS
+middleware both check the browser's `Origin` header against a
+trusted-origin policy. By default, only `localhost / 127.0.0.1 / ::1`
+origins are accepted — so a tab opened at
+`http://pc-dinovo-002.tail4353f0.ts.net:5173` would load the page (Vite
+proxies `/api` same-origin) but the **embedded terminal stays mute**:
+Vite forwards the browser's original Tailscale-MagicDNS Origin to the
+WS upgrade, the gate rejects it, and no `ready` envelope ever arrives.
+
+Two ways to widen:
+
+1. **Implicit (simplest, follows `HONO_HOST` posture):** if `HONO_HOST`
+   is set to anything non-empty, the gate accepts any non-empty
+   Origin. Most users on Tailscale already set `VITE_HOST=true` for
+   the page itself; setting `HONO_HOST=true` alongside is sufficient
+   even if you don't actually call the backend directly — the WS gate
+   keys off the env var, not the bind itself. Anonymous (`null` /
+   missing) Origin is still rejected (curl / scripted callers fall
+   outside the browser CORS contract regardless).
+
+2. **Explicit allowlist (narrower, recommended on shared / untrusted
+   networks):** set `WEBUI_TRUSTED_ORIGINS` to the comma-separated set
+   of `<scheme>://<host>[:<port>]` values you actually use:
+
+   ```powershell
+   # PowerShell — persistent, User-scope:
+   [Environment]::SetEnvironmentVariable(
+     "WEBUI_TRUSTED_ORIGINS",
+     "http://localhost:5173,http://pc-dinovo-002.tail4353f0.ts.net:5173",
+     "User"
+   )
+   ```
+
+   ```bash
+   # bash / zsh — current shell:
+   export WEBUI_TRUSTED_ORIGINS="http://localhost:5173,http://pc-dinovo-002.tail4353f0.ts.net:5173"
+   ```
+
+   The allowlist takes precedence over `HONO_HOST` (narrowest match
+   wins). Each entry is compared as an exact string against the
+   incoming Origin — no wildcards, no scheme rewriting; list every
+   `host:port` you actually use.
+
+The boot log confirms the resolved policy on every server start, e.g.
+`Trusted-Origin policy: HONO_HOST=true → any non-empty Origin
+accepted (set WEBUI_TRUSTED_ORIGINS to narrow)` or `Trusted-Origin
+policy: WEBUI_TRUSTED_ORIGINS allowlist (2 entries):
+http://localhost:5173, http://pc-dinovo-002.tail4353f0.ts.net:5173`.
+If you see `loopback-only` and your terminal is mute over Tailscale —
+that's the gate; widen via one of the env vars above.
 
 #### Reaching the backend directly (rare; bypass Vite proxy)
 
