@@ -594,12 +594,16 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // 8px inset on all four sides via inner padding. xterm's FitAddon
       // picks up the padded inner box via ResizeObserver.
       //
+      // v0.8.6 AC-1 — rounded corners dropped (`rounded-md` was visually
+      // out of place against the rest of the WebUI's square chrome).
+      // Same with the banner `rounded-t-md` below.
+      //
       // Conditional banners (read-only / replay-only / preview-command)
       // span full wrapper width via negative margin (`-mx-2 -mt-2 mb-2`)
       // so they read as a header strip ON the dark frame, not an
       // island floating inside the padding.
       <div
-        className="flex h-full min-h-0 w-full flex-col bg-[#1a1a1a] rounded-md p-2"
+        className="flex h-full min-h-0 w-full flex-col bg-[#1a1a1a] p-2"
         data-testid="embedded-terminal"
         data-ws-open={socket.open ? "true" : "false"}
         data-ws-ready={socket.ready ? "true" : "false"}
@@ -607,7 +611,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       >
         {readOnly ? (
           <div
-            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)] rounded-t-md"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
             data-testid="embedded-terminal-readonly"
           >
             Read-only — another tab is the active writer for this task.
@@ -619,7 +623,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           // `launch_failed`); the WS only serves the historical
           // scrollback and then closes.
           <div
-            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)] rounded-t-md"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)]"
             data-testid="embedded-terminal-replay-only"
           >
             Session ended — viewing historical terminal scrollback only.
@@ -627,7 +631,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         ) : null}
         {previewCommand ? (
           <div
-            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)] rounded-t-md"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)]"
             data-testid="embedded-terminal-launch-preview"
           >
             <span className="opacity-70" aria-hidden>About to run:</span>{" "}
