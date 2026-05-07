@@ -15,6 +15,7 @@ const writeSpy = vi.fn<(d: string) => void>();
 const focusSpy = vi.fn();
 const disposeSpy = vi.fn();
 const clearSpy = vi.fn();
+const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
 
@@ -26,6 +27,7 @@ vi.mock("@xterm/xterm", () => ({
     focus: focusSpy,
     dispose: disposeSpy,
     clear: clearSpy,
+    scrollToBottom: scrollToBottomSpy,
     loadAddon: vi.fn(),
     open: vi.fn(),
     onData(cb: (d: string) => void) {
@@ -160,6 +162,7 @@ describe("<EmbeddedTerminal>", () => {
     focusSpy.mockClear();
     disposeSpy.mockClear();
     clearSpy.mockClear();
+    scrollToBottomSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
 
@@ -418,6 +421,25 @@ describe("<EmbeddedTerminal>", () => {
       ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 200 }));
     });
     expect(clearSpy).toHaveBeenCalledTimes(2);
+  });
+
+  // Iterate v0.8.6 follow-up — after replay completes, EmbeddedTerminal
+  // scrolls xterm to the bottom of the buffer so the live shell prompt
+  // is visible immediately. Without this, the viewport stays at the
+  // buffer top (showing replayed content) and the user has to scroll
+  // down manually past the "scrollback restored from disk; live shell
+  // below" separator to interact.
+  it("calls term.scrollToBottom() after replay_end so the live shell is in view", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    expect(scrollToBottomSpy).not.toHaveBeenCalled();
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
+      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "history" }));
+      ws.__message(JSON.stringify({ type: "replay_end" }));
+    });
+    expect(scrollToBottomSpy).toHaveBeenCalledTimes(1);
   });
 
   it("surfaces gitignoreSuggestion=true via onGitignoreSuggestion callback", async () => {
