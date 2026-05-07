@@ -38,10 +38,6 @@ import {
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
-import {
-  readClipboardForPaste,
-  shouldInterceptCtrlV,
-} from "./clipboard-paste";
 
 export interface EmbeddedTerminalHandle {
   focus(): void;
@@ -173,6 +169,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         lastPtyDataAtRef.current = Date.now();
         termRef.current?.write(chunk);
       },
+      onReplayStart: () => {
+        // Iterate v0.8.5 AC-3 — defensive: clear xterm before each
+        // replay so re-attach inside the same EmbeddedTerminal instance
+        // (e.g. WS reconnect mid-session) does NOT visually stack a
+        // second copy of the historical scrollback on top of the first.
+        // For the typical mount-fresh-xterm-then-replay path this is a
+        // no-op (xterm is already empty); for any future reconnect path
+        // it guarantees idempotent replay rendering.
+        try {
+          termRef.current?.clear();
+        } catch {
+          /* xterm may be mid-dispose; ignore */
+        }
+      },
       onBackpressure: (info) => {
         onBackpressure?.(info);
       },
@@ -205,17 +215,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       onTerminalMeta,
     ]);
 
-    // Iterate v0.8.3 AC-1 — shared image-upload helper + Ctrl+V handler.
+    // Shared image-upload helper.
     //
-    // v0.8.2 moved the DOM `paste` listener to document/capture-phase,
-    // but real-browser Ctrl+V never reached it: xterm's keybinding
-    // bypasses ClipboardEvent and uses async `navigator.clipboard.readText()`,
-    // which resolves to text only — image-paste from a bare PowerShell
-    // prompt landed nowhere. The fix installs `attachCustomKeyEventHandler`
-    // that suppresses xterm's Ctrl+V default and drives the structured
-    // `navigator.clipboard.read()` API ourselves. Both paths (DOM `paste`
-    // event AND Ctrl+V keydown) route image blobs through `uploadPasteBlob`
-    // so success / error / gitignore surfaces stay consistent.
+    // The DOM `paste` event listener (right-click → Paste menu;
+    // programmatic paste; Edge/Chrome legacy paths) routes image blobs
+    // through this single fetch so success / error / gitignore surfaces
+    // stay consistent.
+    //
+    // History: v0.8.3 AC-1 added a second consumer here — a
+    // `term.attachCustomKeyEventHandler` Ctrl+V interceptor that drove
+    // `navigator.clipboard.read()` directly. v0.8.5 AC-2 reverted that
+    // path because the value didn't justify the surface in production:
+    // Alt+V via Claude Code's TUI clipboard pipeline is the supported
+    // image-paste flow (lands under `~/.claude/image-cache/...`), and
+    // the v0.8.3 Ctrl+V path never produced a reliable round-trip in
+    // the user's daily flow. The DOM `paste` listener below remains as
+    // defense-in-depth for non-keyboard paste paths.
     const uploadPasteBlob = useCallback(
       async (blob: Blob, filename: string): Promise<void> => {
         const form = new FormData();
@@ -248,51 +263,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       },
       [taskId, onGitignoreSuggestion, onPasteImageError],
     );
-
-    // Ctrl+V key-handler ref. Updated whenever upstream callbacks /
-    // socket change so the closure injected into xterm always sees the
-    // latest versions without re-mounting xterm itself (which would
-    // discard scrollback). The xterm-mount useEffect (deps: []) reads
-    // this ref via `attachCustomKeyEventHandler` exactly once.
-    const ctrlVHandlerRef = useRef<(ev: KeyboardEvent) => boolean>(() => true);
-    useEffect(() => {
-      ctrlVHandlerRef.current = (ev: KeyboardEvent): boolean => {
-        if (!shouldInterceptCtrlV(ev)) return true;
-        // Firefox / non-secure-context fallback: if structured clipboard
-        // read is unavailable, let xterm's own Ctrl+V (text-only via
-        // readText) run unchanged. We intentionally do NOT preventDefault
-        // here so the historical behaviour stays intact.
-        if (
-          typeof navigator === "undefined" ||
-          typeof navigator.clipboard?.read !== "function"
-        ) {
-          return true;
-        }
-        ev.preventDefault();
-        ev.stopPropagation();
-        void (async () => {
-          const payload = await readClipboardForPaste(navigator);
-          if (payload.kind === "image") {
-            await uploadPasteBlob(payload.blob, payload.filename);
-            return;
-          }
-          if (payload.kind === "text") {
-            if (payload.text) {
-              socket.send({ type: "data", payload: payload.text });
-            }
-            return;
-          }
-          if (payload.kind === "error") {
-            onPasteImageError?.(payload.detail);
-            return;
-          }
-          // 'empty' / 'unsupported' → silent fall-through. Empty
-          // clipboard is normal user behaviour; 'unsupported' is
-          // already gated above (we returned true before suppressing).
-        })();
-        return false;
-      };
-    }, [uploadPasteBlob, socket, onPasteImageError]);
 
     // Imperative API exposed to the parent.
     useImperativeHandle(
@@ -476,15 +446,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         /* container may not have non-zero size yet */
       }
 
-      // Iterate v0.8.3 AC-1 — install the Ctrl+V interceptor. The
-      // closure forwards to `ctrlVHandlerRef.current` so updates to
-      // upstream callbacks / socket take effect without remounting
-      // xterm (which would discard scrollback). Returning true keeps
-      // xterm processing the key normally; returning false suppresses
-      // xterm's default and we drive navigator.clipboard.read()
-      // ourselves.
-      term.attachCustomKeyEventHandler((ev) => ctrlVHandlerRef.current(ev));
-
       termRef.current = term;
       fitAddonRef.current = fit;
 
@@ -625,15 +586,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         : null;
 
     return (
-      // Iterate v0.8.3 AC-2 — outer padding so the xterm canvas does not
-      // hug the pane edge. `p-2` (8px) + `rounded-md` give a small visual
-      // breathing room; xterm's FitAddon picks up the padded inner box
-      // automatically via ResizeObserver. Inherits the dark background
-      // from xterm itself — no parent bg override is necessary because
-      // the `bg-[var(--color-surface)]` of TaskDetailPage's tab content
-      // shows through the padding strip.
+      // Iterate v0.8.5 AC-1 — single-layer wrapper carries the dark
+      // background AND the inner padding. v0.8.3 had only `p-2 rounded-md`
+      // (no bg-color) which produced an 8px ring of parent surface +
+      // xterm flush against the dark edge. v0.8.5 simplifies: black
+      // extends to the wrapper edge (no outer ring), text/cursor sits
+      // 8px inset on all four sides via inner padding. xterm's FitAddon
+      // picks up the padded inner box via ResizeObserver.
+      //
+      // Conditional banners (read-only / replay-only / preview-command)
+      // span full wrapper width via negative margin (`-mx-2 -mt-2 mb-2`)
+      // so they read as a header strip ON the dark frame, not an
+      // island floating inside the padding.
       <div
-        className="flex h-full min-h-0 w-full flex-col p-2 rounded-md"
+        className="flex h-full min-h-0 w-full flex-col bg-[#1a1a1a] rounded-md p-2"
         data-testid="embedded-terminal"
         data-ws-open={socket.open ? "true" : "false"}
         data-ws-ready={socket.ready ? "true" : "false"}
@@ -641,7 +607,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       >
         {readOnly ? (
           <div
-            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)] rounded-t-md"
             data-testid="embedded-terminal-readonly"
           >
             Read-only — another tab is the active writer for this task.
@@ -653,7 +619,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           // `launch_failed`); the WS only serves the historical
           // scrollback and then closes.
           <div
-            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)]"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-1 text-[11px] text-[var(--color-muted,#6b7280)] rounded-t-md"
             data-testid="embedded-terminal-replay-only"
           >
             Session ended — viewing historical terminal scrollback only.
@@ -661,7 +627,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         ) : null}
         {previewCommand ? (
           <div
-            className="border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)]"
+            className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-info-bg,#eff6ff)] px-3 py-1 font-mono text-[11px] text-[var(--color-info,#1d4ed8)] rounded-t-md"
             data-testid="embedded-terminal-launch-preview"
           >
             <span className="opacity-70" aria-hidden>About to run:</span>{" "}
