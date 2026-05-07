@@ -197,18 +197,10 @@ function TaskDetailPageBody() {
     setPendingFocus(true);
   }, [coord.pendingLaunch, setCenterTab]);
 
-  // Phase-5-Codex review fix (HIGH): "Terminal" CTA on active/awaiting
-  // tasks dispatches `webui:focus-terminal-tab` (pure tab-flip, no
-  // auto-execute). Listener flips the Tabs.Root + focuses xterm.
-  useEffect(() => {
-    const handler = () => {
-      setCenterTab("terminal");
-      setPendingFocus(true);
-    };
-    window.addEventListener("webui:focus-terminal-tab", handler);
-    return () =>
-      window.removeEventListener("webui:focus-terminal-tab", handler);
-  }, [setCenterTab]);
+  // Iterate v0.8.5 AC-6: the `webui:focus-terminal-tab` event listener
+  // was removed alongside the Terminal-CTA in TaskDetailHeader (the
+  // only dispatcher). The inline `Terminal` Tabs.Trigger inside the
+  // page now owns the tab-flip directly via Radix Tabs state.
 
   // Phase-3 review fix (HIGH) reverted (live-smoke 2026-05-05):
   // The explicit `useEffect(() => () => coord.cancelLaunch("page-unmount"), [])`
