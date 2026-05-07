@@ -1,0 +1,1 @@
+New-plain Claude tasks (no initial slash command) now transition `awaiting_external_start → active` the moment the WS upgrade succeeds, instead of waiting forever for a JSONL line that arrives only after the user's first message. Task badge matches user mental model "Claude is reachable in the terminal = active".

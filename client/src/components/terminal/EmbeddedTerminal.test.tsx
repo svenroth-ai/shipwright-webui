@@ -14,12 +14,9 @@ import { createRef } from "react";
 const writeSpy = vi.fn<(d: string) => void>();
 const focusSpy = vi.fn();
 const disposeSpy = vi.fn();
+const clearSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
-// Iterate v0.8.3 AC-1 — capture the function the component registers
-// via term.attachCustomKeyEventHandler so wiring tests can drive it
-// directly with synthesized KeyboardEvent objects.
-let registeredKeyHandler: ((ev: KeyboardEvent) => boolean) | null = null;
 
 vi.mock("@xterm/xterm", () => ({
   Terminal: vi.fn().mockImplementation(() => ({
@@ -28,14 +25,12 @@ vi.mock("@xterm/xterm", () => ({
     write: writeSpy,
     focus: focusSpy,
     dispose: disposeSpy,
+    clear: clearSpy,
     loadAddon: vi.fn(),
     open: vi.fn(),
     onData(cb: (d: string) => void) {
       onDataHandlers.push(cb);
       return { dispose: vi.fn() };
-    },
-    attachCustomKeyEventHandler(handler: (ev: KeyboardEvent) => boolean) {
-      registeredKeyHandler = handler;
     },
   })),
 }));
@@ -164,9 +159,9 @@ describe("<EmbeddedTerminal>", () => {
     writeSpy.mockClear();
     focusSpy.mockClear();
     disposeSpy.mockClear();
+    clearSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
-    registeredKeyHandler = null;
 
     // ResizeObserver stub for jsdom.
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
@@ -387,146 +382,42 @@ describe("<EmbeddedTerminal>", () => {
     expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
   });
 
-  // ---------------------------------------------------------------------
-  // Iterate v0.8.3 AC-1 — Ctrl+V real-fix wiring tests.
-  //
-  // The synchronous decision tree of `shouldInterceptCtrlV` is covered
-  // exhaustively in `clipboard-paste.test.ts`. These wiring tests prove
-  // that EmbeddedTerminal actually REGISTERS that decision tree with
-  // xterm via attachCustomKeyEventHandler, that the registered handler
-  // returns the correct boolean for each shape of KeyboardEvent, and
-  // that the Firefox / non-secure-context fallback path lets xterm's
-  // own Ctrl+V (text-only) run unchanged.
-  //
-  // The async clipboard.read → /paste-image upload flow is covered by:
-  //   - clipboard-paste.test.ts (pure decoder)
-  //   - Spec 80 (real-browser e2e via grantPermissions + clipboard.write)
-  // ---------------------------------------------------------------------
-  describe("Ctrl+V real-fix (v0.8.3 AC-1) — attachCustomKeyEventHandler wiring", () => {
-    function withClipboardRead<T>(fn: () => T): T {
-      // jsdom's navigator.clipboard is a no-op. Patch a fake `read`
-      // method ONLY for the duration of this test so the gate path
-      // ("clipboard.read available → suppress xterm default") is
-      // exercised. Restore afterwards so the Firefox-fallback test
-      // below sees the unpatched shape.
-      const orig = (navigator as unknown as {
-        clipboard?: { read?: unknown };
-      }).clipboard;
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: {
-          read: vi.fn(async () => []),
-        },
-      });
-      try {
-        return fn();
-      } finally {
-        if (orig === undefined) {
-          delete (navigator as unknown as { clipboard?: unknown }).clipboard;
-        } else {
-          Object.defineProperty(navigator, "clipboard", {
-            configurable: true,
-            value: orig,
-          });
-        }
-      }
-    }
+  // Iterate v0.8.3 AC-1 wiring tests for `attachCustomKeyEventHandler`
+  // were removed in v0.8.5 AC-2 alongside the Ctrl+V interceptor itself.
+  // The DOM `paste` listener (right-click → Paste menu, programmatic
+  // paste, Edge/Chrome legacy paths) is still covered by the
+  // "paste-handler — …" cases above.
 
-    it("registers a custom key event handler with xterm at mount", async () => {
-      render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      expect(registeredKeyHandler).not.toBeNull();
+  // Iterate v0.8.5 AC-3 — defensive replay-clear regression.
+  // EmbeddedTerminal subscribes to `replay_start` and calls term.clear()
+  // before scrollback chunks land. For a freshly-mounted xterm this is
+  // a visual no-op (already empty); for any future WS-reconnect path
+  // that hits the same EmbeddedTerminal instance it guarantees that
+  // a second replay does NOT stack on top of the first.
+  it("calls term.clear() when the replay_start envelope arrives", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    expect(ws).toBeDefined();
+    // Initially clear() should NOT have been called (no replay yet).
+    expect(clearSpy).not.toHaveBeenCalled();
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 1024 }));
     });
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+  });
 
-    it("Ctrl+V keydown — registered handler suppresses xterm default (returns false) and preventDefaults the event", async () => {
-      render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      withClipboardRead(() => {
-        const ev = new KeyboardEvent("keydown", {
-          key: "v",
-          ctrlKey: true,
-          cancelable: true,
-        });
-        const result = registeredKeyHandler!(ev);
-        expect(result).toBe(false);
-        expect(ev.defaultPrevented).toBe(true);
-      });
+  it("calls term.clear() AGAIN if a second replay_start arrives (e.g. WS reconnect mid-session)", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
+      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "first" }));
+      ws.__message(JSON.stringify({ type: "replay_end" }));
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 200 }));
     });
-
-    it("Ctrl+C keydown — registered handler is a passthrough (returns true, no preventDefault)", async () => {
-      render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      withClipboardRead(() => {
-        const ev = new KeyboardEvent("keydown", {
-          key: "c",
-          ctrlKey: true,
-          cancelable: true,
-        });
-        const result = registeredKeyHandler!(ev);
-        expect(result).toBe(true);
-        expect(ev.defaultPrevented).toBe(false);
-      });
-    });
-
-    it("Ctrl+V keyup — passthrough (only keydown drives the async clipboard.read flow)", async () => {
-      render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      withClipboardRead(() => {
-        const ev = new KeyboardEvent("keyup", {
-          key: "v",
-          ctrlKey: true,
-          cancelable: true,
-        });
-        expect(registeredKeyHandler!(ev)).toBe(true);
-      });
-    });
-
-    it("Ctrl+Shift+V — passthrough so xterm's bracketed-paste shortcut survives", async () => {
-      render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      withClipboardRead(() => {
-        const ev = new KeyboardEvent("keydown", {
-          key: "v",
-          ctrlKey: true,
-          shiftKey: true,
-          cancelable: true,
-        });
-        expect(registeredKeyHandler!(ev)).toBe(true);
-      });
-    });
-
-    it("Ctrl+V keydown — Firefox / non-secure-context fallback (no clipboard.read available) returns true so xterm's own readText path runs", async () => {
-      render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      // Patch clipboard so `read` is missing — historic v0.8.2 path still
-      // wins in this case, with no preventDefault called.
-      const orig = (navigator as unknown as {
-        clipboard?: { read?: unknown; readText?: unknown };
-      }).clipboard;
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: { readText: vi.fn(async () => "") }, // no .read
-      });
-      try {
-        const ev = new KeyboardEvent("keydown", {
-          key: "v",
-          ctrlKey: true,
-          cancelable: true,
-        });
-        const result = registeredKeyHandler!(ev);
-        expect(result).toBe(true);
-        expect(ev.defaultPrevented).toBe(false);
-      } finally {
-        if (orig === undefined) {
-          delete (navigator as unknown as { clipboard?: unknown }).clipboard;
-        } else {
-          Object.defineProperty(navigator, "clipboard", {
-            configurable: true,
-            value: orig,
-          });
-        }
-      }
-    });
+    expect(clearSpy).toHaveBeenCalledTimes(2);
   });
 
   it("surfaces gitignoreSuggestion=true via onGitignoreSuggestion callback", async () => {

@@ -1,0 +1,1 @@
+Embedded terminal calls `term.clear()` before each scrollback replay so a future WS-reconnect path that hits the same xterm instance cannot stack a second copy of historical scrollback on top of the first. Defense-in-depth; for the typical fresh-mount-then-replay flow this is a visual no-op.
