@@ -108,7 +108,7 @@ export async function readClipboardForPaste(
     if (item.types.includes("text/plain")) {
       try {
         const blob = await item.getType("text/plain");
-        const text = await blob.text();
+        const text = await readBlobAsText(blob);
         // Empty-text fall-through stays in the `text` arm — caller
         // decides whether to suppress empty payloads or send them as a
         // bare carriage-return (it shouldn't, but the policy lives in
@@ -124,4 +124,25 @@ export async function readClipboardForPaste(
   }
 
   return { kind: "empty" };
+}
+
+// jsdom does NOT implement `Blob.prototype.text()` (documented in
+// `.shipwright/agent_docs/conventions.md` § Learnings). Real browsers
+// have it since 2020. Tiny FileReader polyfill keeps both paths working
+// without forcing the test to fake the production decoder API.
+async function readBlobAsText(blob: Blob): Promise<string> {
+  if (typeof blob.text === "function") {
+    return blob.text();
+  }
+  if (typeof FileReader === "undefined") {
+    throw new Error("Blob.text() and FileReader both unavailable");
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      resolve(typeof reader.result === "string" ? reader.result : "");
+    reader.onerror = () =>
+      reject(reader.error ?? new Error("FileReader failed"));
+    reader.readAsText(blob);
+  });
 }
