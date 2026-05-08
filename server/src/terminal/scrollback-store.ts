@@ -98,6 +98,86 @@ export class ScrollbackStoreError extends Error {
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 
+/**
+ * iterate-2026-05-08 v0.8.7 AC-3 — replay-time collapse of repeated
+ * PowerShell-startup banner bursts. Pure function over the raw scrollback
+ * string; called by `readForReplay()` only — disk content untouched.
+ *
+ * Trigger conditions (all must hold for each tuple within a single
+ * shell-lifetime span — between AC-2 markers / start / end of buffer):
+ *   1. Match the bounded banner regex `(?:OSC title)?PowerShell N.N.N
+ *      \r\n(?:PS prompt)?` — bounded sub-patterns prevent ReDoS.
+ *   2. Tuple is preceded by ≥10 consecutive `\r\n` lines (the post-
+ *      resize CRLF block signature observed in pwsh respawn cycles).
+ *   3. ≥2 such tuples in the same span trigger the collapse — single
+ *      mid-stream banners are preserved verbatim.
+ *
+ * On collapse: keep the LAST banner-burst (closest to "current state");
+ * replace the earlier ones with a single dim-grey marker line:
+ *
+ *     \r\n\x1b[2m── N earlier banners collapsed ──\x1b[m\r\n
+ *
+ * Collapse is per-span — never crosses an AC-2 shell-stopped marker.
+ */
+const SHELL_STOPPED_MARKER_RE =
+  /\r\n\x1b\[2m──── shell stopped at \d{2}:\d{2}:\d{2} ────\x1b\[m\r\n/g;
+
+const BANNER_BURST_RE =
+  // ≥10 CRLF lines preceding (post-resize signature)
+  // (?:\x1b\]0;[^\x07]{0,256}\x07)? — bounded OSC title-set
+  // PowerShell N.N.N\r\n — version banner (anchored shape)
+  // (?:PS [^\r\n>]{0,512}>[ \t]*)? — bounded prompt path; trailing
+  //   whitespace is SPACE/TAB only — NEVER `\s*` because that includes
+  //   newlines and would greedily eat the NEXT banner-burst's
+  //   ≥10-CRLF prefix, breaking subsequent matches.
+  /(?:\r\n){10,}(?:\x1b\]0;[^\x07]{0,256}\x07)?PowerShell \d+\.\d+\.\d+\r\n(?:PS [^\r\n>]{0,512}>[ \t]*)?/g;
+
+function collapseSpan(span: string): string {
+  // Reset lastIndex on the global regex (function-scoped reuse).
+  BANNER_BURST_RE.lastIndex = 0;
+  const matches: RegExpExecArray[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = BANNER_BURST_RE.exec(span)) !== null) {
+    matches.push(m);
+    // Defensive: zero-width matches would loop forever.
+    if (m.index === BANNER_BURST_RE.lastIndex) BANNER_BURST_RE.lastIndex++;
+  }
+  if (matches.length < 2) return span;
+
+  const earlierCount = matches.length - 1;
+  const collapseMarker =
+    `\r\n\x1b[2m── ${earlierCount} earlier banner${earlierCount === 1 ? "" : "s"} collapsed ──\x1b[m\r\n`;
+  const last = matches[matches.length - 1];
+  const first = matches[0];
+
+  // pre-burst content + collapse marker + LAST burst + post-burst content
+  return (
+    span.slice(0, first.index) +
+    collapseMarker +
+    span.slice(last.index, last.index + last[0].length) +
+    span.slice(last.index + last[0].length)
+  );
+}
+
+export function collapsePowerShellBoilerplate(raw: string): string {
+  // Reset lastIndex on the global marker regex.
+  SHELL_STOPPED_MARKER_RE.lastIndex = 0;
+  const parts = raw.split(SHELL_STOPPED_MARKER_RE);
+  if (parts.length === 1) {
+    // No AC-2 markers — single span.
+    return collapseSpan(raw);
+  }
+  // Recover the original markers (split discards them).
+  SHELL_STOPPED_MARKER_RE.lastIndex = 0;
+  const markers = raw.match(SHELL_STOPPED_MARKER_RE) ?? [];
+  let result = collapseSpan(parts[0]);
+  for (let i = 0; i < markers.length; i++) {
+    result += markers[i];
+    result += collapseSpan(parts[i + 1] ?? "");
+  }
+  return result;
+}
+
 type RotationState = "NORMAL" | "ROTATING" | "ROTATION_FLUSH";
 
 interface PerTaskState {
@@ -257,6 +337,29 @@ export class ScrollbackStore {
       }
     }
     return total;
+  }
+
+  /**
+   * iterate-2026-05-08 v0.8.7 AC-3 — read the scrollback for **WS replay
+   * only**, applying replay-time collapse of repeated PowerShell-startup
+   * banner bursts. The disk file is unchanged; this is purely a
+   * presentation transform.
+   *
+   * Per external plan review (gemini high + openai high):
+   *   - `read()` and `bytes()` STAY RAW so `scrollback-meta` envelope
+   *     accounting + privacy disclosure copy stay accurate.
+   *   - Bounded regex (`[^\a]{0,256}` / `[^\r\n>]{0,512}`) — no
+   *     ReDoS / catastrophic-backtracking on long histories.
+   *   - Collapse never crosses an AC-2 `──── shell stopped at ────`
+   *     marker (split by markers, collapse each span, rejoin).
+   *   - Whitelist trigger: ≥10-CRLF prefix + bounded banner + ≥2
+   *     such tuples within one span. Single mid-stream "PowerShell
+   *     7.6.1" is NEVER collapsed.
+   */
+  async readForReplay(taskId: string): Promise<string> {
+    const raw = await this.read(taskId);
+    if (!raw) return raw;
+    return collapsePowerShellBoilerplate(raw);
   }
 
   /**
