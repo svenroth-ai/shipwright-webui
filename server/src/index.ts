@@ -398,6 +398,9 @@ if (isMainModule) {
           // ADR-068-A1: cascade-clean scrollback on DELETE /tasks/:id.
           scrollbackClearBestEffort: (taskId: string) =>
             scrollbackStore.clearBestEffort(taskId),
+          // iterate-2026-05-08 v0.8.7 AC-1: live-pty lookup so transcript
+          // poll can flip new-plain `active → idle` after pty-kill.
+          ptyManager: { get: (taskId: string) => ptyManager.get(taskId) },
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));

@@ -52,6 +52,7 @@ describe("PATCH /api/external/tasks/:id — projectId (section 02)", () => {
         store,
         watcher,
         getKnownProjectIds: knownProjectIds,
+        ptyManager: { get: () => undefined },
       }),
     );
   });

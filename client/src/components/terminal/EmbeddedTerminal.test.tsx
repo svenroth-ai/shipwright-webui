@@ -19,6 +19,24 @@ const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
 
+// iterate-2026-05-08 v0.8.7 AC-4 — mock xterm's `buffer.active` so tests
+// can verify that the marker-count footer reads from the buffer (not from
+// chunk substring counting). Tests push string lines into mockBufferLines
+// before triggering replay_end.
+const mockBufferLines: string[] = [];
+const mockBufferActive = {
+  get length() {
+    return mockBufferLines.length;
+  },
+  getLine(i: number) {
+    if (i < 0 || i >= mockBufferLines.length) return undefined;
+    const text = mockBufferLines[i];
+    return {
+      translateToString: (_trim?: boolean) => text,
+    };
+  },
+};
+
 vi.mock("@xterm/xterm", () => ({
   Terminal: vi.fn().mockImplementation(() => ({
     cols: 120,
@@ -34,6 +52,7 @@ vi.mock("@xterm/xterm", () => ({
       onDataHandlers.push(cb);
       return { dispose: vi.fn() };
     },
+    buffer: { active: mockBufferActive },
   })),
 }));
 vi.mock("@xterm/addon-fit", () => ({
@@ -165,6 +184,7 @@ describe("<EmbeddedTerminal>", () => {
     scrollToBottomSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
+    mockBufferLines.length = 0;
 
     // ResizeObserver stub for jsdom.
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
@@ -473,5 +493,213 @@ describe("<EmbeddedTerminal>", () => {
       await new Promise((r) => setTimeout(r, 0));
     });
     expect(toastFires).toBe(1);
+  });
+
+  // -------------------------------------------------------------------
+  // iterate-2026-05-08 v0.8.7 AC-4 — historical-shell-sessions footer.
+  //
+  // After replay_end fires AND the xterm buffer contains ≥2 of the
+  // `──── shell stopped at` markers, render a dim footer with the
+  // count + a "Clear history" button. Per external plan review: count
+  // is read from `term.buffer.active` AFTER replay_end (xterm reassembled
+  // chunk-split markers), NOT from per-chunk substring counting.
+  // -------------------------------------------------------------------
+  describe("AC-4 — stopped-sessions footer", () => {
+    function fireReplayCycle(ws: FakeWebSocket): Promise<void> {
+      return act(async () => {
+        ws.__message(JSON.stringify({ type: "replay_start" }));
+        ws.__message(JSON.stringify({ type: "replay_end" }));
+      });
+    }
+
+    it("renders footer with N=3 when buffer contains 3 marker lines", async () => {
+      // Pre-seed the mock buffer with 3 lines containing the marker substring.
+      mockBufferLines.push(
+        "ls",
+        "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m",
+        "PowerShell 7.6.1",
+        "\x1b[2m──── shell stopped at 13:00:01 ────\x1b[m",
+        "PS C:\\>",
+        "\x1b[2m──── shell stopped at 13:30:42 ────\x1b[m",
+        "PS C:\\>",
+      );
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await fireReplayCycle(ws);
+
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).not.toBeNull();
+      expect(footer?.textContent).toContain("3");
+      expect(footer?.textContent?.toLowerCase()).toContain("beendete shell-sessions");
+      const btn = container.querySelector(
+        '[data-testid="embedded-terminal-clear-history-button"]',
+      );
+      expect(btn).not.toBeNull();
+    });
+
+    it("hides footer when buffer has 0 markers", async () => {
+      // No markers in buffer.
+      mockBufferLines.push("ls", "echo hi", "PS C:\\>");
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await fireReplayCycle(ws);
+
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).toBeNull();
+    });
+
+    it("hides footer when buffer has only 1 marker (no banner-spam for fresh tasks)", async () => {
+      mockBufferLines.push(
+        "ls",
+        "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m",
+        "PS C:\\>",
+      );
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await fireReplayCycle(ws);
+
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).toBeNull();
+    });
+
+    it("Clear history button calls /clear-scrollback after confirm; footer hides on success", async () => {
+      mockBufferLines.push(
+        "\x1b[2m──── shell stopped at 12:00:00 ────\x1b[m",
+        "\x1b[2m──── shell stopped at 13:00:00 ────\x1b[m",
+        "PS C:\\>",
+      );
+
+      // Mock window.confirm to return true.
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      const fetchSpy = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchSpy.mockClear();
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await fireReplayCycle(ws);
+
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).not.toBeNull();
+
+      const btn = container.querySelector(
+        '[data-testid="embedded-terminal-clear-history-button"]',
+      ) as HTMLButtonElement;
+      await act(async () => {
+        btn.click();
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(fetchSpy).toHaveBeenCalledWith(
+        "/api/terminal/t1/clear-scrollback",
+        expect.objectContaining({ method: "POST" }),
+      );
+
+      // Footer hides because count resets to 0 on success.
+      const footerAfter = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footerAfter).toBeNull();
+
+      confirmSpy.mockRestore();
+    });
+
+    it("counts markers via REPLAY ACCUMULATOR (chunks split mid-marker), not just buffer scan", async () => {
+      // Per external code review (openai 2026-05-08 medium #4): the
+      // production path no longer scans `term.buffer.active` after
+      // replay_end — it accumulates `replay_chunk` payloads into a
+      // string buffer between replay_start/replay_end and counts the
+      // SHELL_STOPPED_SUBSTRING substring there. This test exercises
+      // that production path explicitly: marker arrives split across
+      // 3 chunks (a worst-case smaller-than-marker-length frame
+      // pattern). A pure buffer-scan implementation would miss the
+      // split marker; the accumulator catches it because the chunks
+      // concatenate before counting.
+      mockBufferLines.length = 0; // empty buffer — accumulator must do the work
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+
+      // Open the replay window.
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "replay_start" }));
+      });
+
+      // Three marker strings split across many small chunks.
+      const fullMarker = "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m\r\n";
+      const fixture = `prefix-content\r\n${fullMarker}middle-content\r\n${fullMarker}more-content\r\n${fullMarker}suffix`;
+      // Send char-by-char to mimic worst-case chunk fragmentation.
+      for (let i = 0; i < fixture.length; i++) {
+        await act(async () => {
+          ws.__message(JSON.stringify({ type: "replay_chunk", payload: fixture[i] }));
+        });
+      }
+
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "replay_end" }));
+      });
+
+      // Footer renders with N=3 (counted via accumulator — buffer was
+      // not populated by the mock, so buffer-scan would return 0).
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).not.toBeNull();
+      expect(footer?.textContent).toContain("3");
+      expect(footer?.textContent?.toLowerCase()).toContain("beendete shell-sessions");
+    });
+
+    it("Clear history button is a no-op when user declines confirm", async () => {
+      mockBufferLines.push(
+        "\x1b[2m──── shell stopped at 12:00:00 ────\x1b[m",
+        "\x1b[2m──── shell stopped at 13:00:00 ────\x1b[m",
+      );
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const fetchSpy = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
+      fetchSpy.mockClear();
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await fireReplayCycle(ws);
+
+      const btn = container.querySelector(
+        '[data-testid="embedded-terminal-clear-history-button"]',
+      ) as HTMLButtonElement;
+      await act(async () => {
+        btn.click();
+      });
+
+      expect(confirmSpy).toHaveBeenCalled();
+      // No fetch call to clear-scrollback because user declined.
+      const clearCall = fetchSpy.mock.calls.find(
+        (c) => typeof c[0] === "string" && c[0].includes("/clear-scrollback"),
+      );
+      expect(clearCall).toBeUndefined();
+
+      // Footer remains visible.
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).not.toBeNull();
+
+      confirmSpy.mockRestore();
+    });
   });
 });
