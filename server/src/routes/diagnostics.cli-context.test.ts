@@ -89,4 +89,50 @@ describe("AC-4 — diagnostics.claudeCli.diagnostic surfaces lookup context when
     // troubleshooting (e.g., "I have an old version installed somewhere
     // on PATH — which path is it?").
   });
+
+  it("checkedFallbacks entries are annotated with (exists)/(missing) (external review fix — openai medium #5)", async () => {
+    const json = await probe(() => ({
+      raw: "",
+      parsed: null,
+      supported: false,
+    }));
+    const fallbacks = (json.claudeCli.diagnostic as { checkedFallbacks: string[] }).checkedFallbacks;
+    expect(fallbacks.length).toBeGreaterThan(0);
+    // Every entry must end with " (exists)" or " (missing)" — operators
+    // need to spot the case where a path EXISTS on disk but PATH
+    // lookup didn't surface it (= "add this dir to PATH or set
+    // SHIPWRIGHT_CLAUDE_BIN").
+    for (const entry of fallbacks) {
+      expect(entry).toMatch(/ \((exists|missing)\)$/);
+    }
+  });
+
+  it("envOverride is included with annotation when SHIPWRIGHT_CLAUDE_BIN is set (external review fix — openai medium #2)", async () => {
+    const prev = process.env.SHIPWRIGHT_CLAUDE_BIN;
+    try {
+      // Set to a path that surely doesn't exist for the assertion.
+      process.env.SHIPWRIGHT_CLAUDE_BIN = "/this/path/does/not/exist/claude";
+      const json = await probe(() => ({ raw: "", parsed: null, supported: false }));
+      const diag = json.claudeCli.diagnostic as { envOverride: string | null };
+      expect(diag.envOverride).toBe("/this/path/does/not/exist/claude (missing)");
+    } finally {
+      if (prev === undefined) {
+        delete process.env.SHIPWRIGHT_CLAUDE_BIN;
+      } else {
+        process.env.SHIPWRIGHT_CLAUDE_BIN = prev;
+      }
+    }
+  });
+
+  it("envOverride is null when SHIPWRIGHT_CLAUDE_BIN is unset", async () => {
+    const prev = process.env.SHIPWRIGHT_CLAUDE_BIN;
+    delete process.env.SHIPWRIGHT_CLAUDE_BIN;
+    try {
+      const json = await probe(() => ({ raw: "", parsed: null, supported: false }));
+      const diag = json.claudeCli.diagnostic as { envOverride: string | null };
+      expect(diag.envOverride).toBeNull();
+    } finally {
+      if (prev !== undefined) process.env.SHIPWRIGHT_CLAUDE_BIN = prev;
+    }
+  });
 });

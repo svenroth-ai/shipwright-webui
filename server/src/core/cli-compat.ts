@@ -139,6 +139,12 @@ export function resolveClaudeBinWith(deps: ResolveClaudeBinDeps): string | null 
   // (2) Primary lookup via `where` / `which`. Wrapped in try so a
   //     missing system binary (rare on Windows, possible on minimal
   //     POSIX containers) doesn't preempt the curated fallback.
+  //
+  // External code review fix (gemini high): `where claude` on Windows
+  // emits `INFO: Could not find files for the given pattern(s).` to
+  // STDOUT (not stderr) when no match. Filter that out, otherwise the
+  // first-line fallback would parse the INFO line as a path and the
+  // existsSync check at the call-site would never run.
   let primaryResult: string | null = null;
   try {
     const lookup = isWin ? "where" : "which";
@@ -147,12 +153,20 @@ export function resolveClaudeBinWith(deps: ResolveClaudeBinDeps): string | null 
       const lines = ((r.stdout ?? "") as string)
         .split(/\r?\n/)
         .map((l) => l.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter((l) => !/^INFO:/i.test(l)); // drop `where`'s "Could not find" notice
       if (isWin) {
         const dotCmd = lines.find((l) => /\.cmd$/i.test(l));
         if (dotCmd) primaryResult = dotCmd;
       }
       primaryResult = primaryResult ?? lines[0] ?? null;
+      // Defense-in-depth: ensure the resolved path actually exists on
+      // disk. `where` can sometimes return stale alias entries that
+      // no longer point at a real file (operator un-installed claude
+      // but kept the App Execution Alias entry).
+      if (primaryResult && !deps.existsSync(primaryResult)) {
+        primaryResult = null;
+      }
     }
   } catch {
     /* fall through to curated paths */
@@ -205,18 +219,43 @@ export function selfHealClaudePath(deps: SelfHealClaudePathDeps): SelfHealResult
   const isWin = deps.platform === "win32";
   const sep = isWin ? ";" : ":";
   const parentDir = path.dirname(deps.bin);
-  const currentPath = deps.env.PATH ?? "";
+
+  // External code review fix (openai medium): on Windows, environment
+  // variables are case-insensitive AND many process spawners expose the
+  // path variable as `Path` rather than `PATH`. If we always read+write
+  // `env.PATH`, we may be looking at an empty string while the real
+  // value lives at `Path` — and child processes that inherit `Path`
+  // would not see the prepended dir. Detect the existing key (any
+  // case) on Windows and update it in place.
+  let pathKey = "PATH";
+  if (isWin) {
+    for (const k of Object.keys(deps.env)) {
+      if (k.toLowerCase() === "path") {
+        pathKey = k;
+        break;
+      }
+    }
+  }
+
+  const currentPath = deps.env[pathKey] ?? "";
   const entries = currentPath.length > 0 ? currentPath.split(sep) : [];
-  const norm = (s: string) => (isWin ? s.toLowerCase() : s);
+  // Normalize both sides identically: strip trailing slashes/backslashes
+  // (`C:\foo\` vs `C:\foo`), and case-fold on Windows.
+  const stripTrailing = (s: string) => s.replace(/[\\/]+$/, "");
+  const norm = (s: string) => {
+    const t = stripTrailing(s);
+    return isWin ? t.toLowerCase() : t;
+  };
   const parentNorm = norm(parentDir);
-  const alreadyPresent = entries.some((e) => norm(e.replace(/[\\/]+$/, "")) === parentNorm);
+  const alreadyPresent = entries.some((e) => norm(e) === parentNorm);
   if (alreadyPresent) {
     return { augmented: false, parentDir };
   }
-  deps.env.PATH = currentPath.length > 0 ? `${parentDir}${sep}${currentPath}` : parentDir;
+  deps.env[pathKey] =
+    currentPath.length > 0 ? `${parentDir}${sep}${currentPath}` : parentDir;
   // eslint-disable-next-line no-console
   console.warn(
-    `[cli-compat] PATH self-heal: prepended ${parentDir} (claude resolved via fallback; child-process spawns inherit augmented PATH)`,
+    `[cli-compat] PATH self-heal: prepended ${parentDir} into env.${pathKey} (claude resolved via fallback; child-process spawns inherit augmented PATH)`,
   );
   return { augmented: true, parentDir };
 }
