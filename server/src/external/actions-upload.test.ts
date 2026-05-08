@@ -104,6 +104,7 @@ describe("POST /api/projects/:id/actions-upload", () => {
         getProjectById: (id) =>
           id === PROJECT_ID ? defaultProject() : undefined,
         getKnownProjectIds: () => new Set([PROJECT_ID]),
+        ptyManager: { get: () => undefined },
       }),
     );
   });
@@ -374,6 +375,7 @@ describe("DELETE /api/projects/:id/actions-upload", () => {
         watcher,
         getProjectById: (id) =>
           id === PROJECT_ID ? defaultProject() : undefined,
+        ptyManager: { get: () => undefined },
       }),
     );
   });

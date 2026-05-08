@@ -202,6 +202,18 @@ export function createExternalRoutes(args: {
    * production wires the singleton ScrollbackStore.
    */
   scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
+  /**
+   * iterate-2026-05-08 v0.8.7 AC-1 — required injection of the pty
+   * lookup so the transcript poll can flip `new-plain` tasks from
+   * `active` → `idle` when the pty is gone (idle-ceiling, /close,
+   * server-restart, DELETE cascade).
+   *
+   * Required (NOT optional) per external plan review 2026-05-08
+   * (gemini + openai): optional production dependencies hide
+   * misconfiguration. Tests pass `{ get: () => undefined }`; the
+   * production caller in `index.ts` passes the singleton.
+   */
+  ptyManager: { get(taskId: string): unknown };
 }) {
   const app = new Hono();
   const {
@@ -212,6 +224,7 @@ export function createExternalRoutes(args: {
     previewManager,
     loadProfile: injectedLoadProfile,
     scrollbackClearBestEffort,
+    ptyManager,
   } = args;
   const profileResolver =
     injectedLoadProfile ??
@@ -843,6 +856,19 @@ export function createExternalRoutes(args: {
     if (result.status === "missing") {
       if (task.firstJsonlObservedAt && task.state !== "jsonl_missing") {
         store.patch(task.taskId, { state: "jsonl_missing" });
+        await store.persist();
+      } else if (
+        // iterate-2026-05-08 v0.8.7 AC-1 — `new-plain` tasks never write
+        // JSONL (per known_issues.md). Without this branch, AC-4's pty-up
+        // active-state never decays back to `idle` after pty-kill, so the
+        // header CTA stays empty (Resume only renders for state=idle).
+        // Idempotent by construction: only fires when state===active +
+        // pty entry is gone. Subsequent polls see state=idle + skip.
+        task.actionId === "new-plain" &&
+        task.state === "active" &&
+        ptyManager.get(task.taskId) === undefined
+      ) {
+        store.patch(task.taskId, { state: "idle" });
         await store.persist();
       }
       return c.json({ status: "missing", task: store.get(task.taskId) });

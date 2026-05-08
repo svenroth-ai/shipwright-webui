@@ -46,7 +46,10 @@ describe("poc-external routes — integration", () => {
     await store.load();
     const watcher = new SessionWatcher({ projectsDir });
     app = new Hono();
-    app.route("/", createExternalRoutes({ store, watcher }));
+    app.route(
+      "/",
+      createExternalRoutes({ store, watcher, ptyManager: { get: () => undefined } }),
+    );
     app.route(
       "/",
       createDiagnosticsRoutes({

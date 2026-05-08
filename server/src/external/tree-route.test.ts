@@ -100,6 +100,7 @@ describe("GET /api/external/projects/:projectId/tree (section 04a)", () => {
         store,
         watcher,
         getProjectById: (id) => (id === projectId ? project : undefined),
+        ptyManager: { get: () => undefined },
       }),
     );
   });
