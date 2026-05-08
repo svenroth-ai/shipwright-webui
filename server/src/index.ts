@@ -31,7 +31,12 @@ import { requestLogger } from "./middleware/logger.js";
 import { ProjectManager } from "./core/project-manager.js";
 import { SdkSessionsStore } from "./core/sdk-sessions-store.js";
 import { SessionWatcher } from "./core/session-watcher.js";
-import { probeClaudeVersion, type ClaudeVersionInfo } from "./core/cli-compat.js";
+import {
+  probeClaudeVersion,
+  resolveClaudeBin,
+  selfHealClaudePath,
+  type ClaudeVersionInfo,
+} from "./core/cli-compat.js";
 import { PreviewSessionManager } from "./core/preview-session-manager.js";
 import {
   loadProfile as loadProfileReal,
@@ -227,6 +232,21 @@ if (isMainModule) {
       // Claude CLI version probe (refreshed on demand; post-upgrade clients
       // see the new number without a server restart).
       let claudeVersion: ClaudeVersionInfo = probeClaudeVersion();
+
+      // iterate-2026-05-08 v0.8.8 AC-3 — boot-time PATH self-heal. When
+      // the AC-2 fallback resolved a binary that's NOT on the server's
+      // process.env.PATH (typical: claude installed into ~/.local/bin/
+      // but server started from a shell whose PATH didn't include that
+      // dir), prepend the parent dir so subsequent child-process spawns
+      // (node-pty pwsh / preview-session-manager) inherit the augmented
+      // PATH. Idempotent — no-op when parent dir is already on PATH.
+      const resolvedBin = resolveClaudeBin();
+      selfHealClaudePath({
+        bin: resolvedBin,
+        env: process.env,
+        platform: process.platform,
+      });
+
       const versionInfo = (): ClaudeVersionInfo => {
         if (!claudeVersion.raw) claudeVersion = probeClaudeVersion();
         return claudeVersion;

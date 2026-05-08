@@ -741,10 +741,22 @@ export function createExternalRoutes(args: {
 
     // Legacy fallback: no actionId, unresolvable project, or resume flag.
     if (!commands) {
+      // iterate-2026-05-08 v0.8.8 AC-1 — Resume on `new-plain` tasks
+      // semantically can't work: Claude only writes a JSONL transcript
+      // AFTER the user types their first message inside the TUI. So
+      // `claude --resume <sessionUuid>` always fails with "No conversation
+      // found" for a new-plain task whose pty died before the first
+      // message. v0.8.7 AC-1 unblocked the Resume CTA for these tasks
+      // (idle transition on pty-gone); this gate makes the Resume click
+      // actually USEFUL by emitting a FRESH launch (`--session-id <uuid>`,
+      // no `--resume` flag) so Claude opens a new TUI session under the
+      // same task identity.
+      const effectiveResume =
+        resume && task.actionId !== "new-plain";
       commands = buildCopyCommands({
         sessionUuid: task.sessionUuid,
         cwd: task.cwd,
-        resume,
+        resume: effectiveResume,
         pluginDirs: task.pluginDirs,
         title: task.title,
       });
