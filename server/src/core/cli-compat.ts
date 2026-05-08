@@ -8,7 +8,9 @@
  */
 
 import { spawnSync, spawn } from "node:child_process";
+import { existsSync as fsExistsSync } from "node:fs";
 import { platform } from "node:os";
+import path from "node:path";
 
 export const MIN_SUPPORTED_CLI = "2.1.114";
 /**
@@ -75,20 +77,188 @@ export function isSupported(parsed: ClaudeVersionInfo["parsed"]): boolean {
   return parsed.patch >= min.patch;
 }
 
-/** Resolve an absolute path to the claude CLI. Handles Windows `.cmd` shim. */
+/**
+ * Resolve an absolute path to the claude CLI.
+ *
+ * iterate-2026-05-08 v0.8.8 AC-2 — multi-strategy lookup:
+ *
+ *   1. `SHIPWRIGHT_CLAUDE_BIN` env override (operator pin). Loud reject
+ *      if the path doesn't exist — falling back silently would mask
+ *      misconfiguration that the operator explicitly set.
+ *
+ *   2. Primary: `where claude` (Windows) / `which claude` (POSIX).
+ *      Inherits the launching shell's PATH. Prefers `.cmd` shim on
+ *      Windows when multiple results match.
+ *
+ *   3. Fallback: walk a curated list of known install paths. Catches
+ *      the common case where the launching shell's PATH did NOT include
+ *      `~/.local/bin/`, npm-global, winget shim — even though the binary
+ *      exists on disk. Empirically observed: tsx-watch reload after a
+ *      shell change, claude installed AFTER server start, and so on.
+ *
+ *   4. Returns null when nothing resolves. `/api/diagnostics` then
+ *      reports `claudeCli.supported = false` and the UI shows the
+ *      "Claude Code CLI not found" warning.
+ *
+ * Logs a structured stderr line on every fallback hit so production
+ * operators can diagnose PATH-drift in the server log without DevTools.
+ */
 export function resolveClaudeBin(): string | null {
-  const isWin = platform() === "win32";
-  const lookup = isWin ? "where" : "which";
-  const r = spawnSync(lookup, ["claude"], { encoding: "utf-8", shell: false });
-  const lines = ((r.stdout ?? "") as string)
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (isWin) {
-    const dotCmd = lines.find((l) => /\.cmd$/i.test(l));
-    if (dotCmd) return dotCmd;
+  return resolveClaudeBinWith({
+    platform: platform(),
+    spawnSync,
+    existsSync: fsExistsSync,
+    env: process.env,
+  });
+}
+
+export interface ResolveClaudeBinDeps {
+  platform: NodeJS.Platform | string;
+  spawnSync: typeof spawnSync;
+  existsSync: (p: string) => boolean;
+  env: Record<string, string | undefined>;
+}
+
+/** Test-friendly variant of resolveClaudeBin — all environment hooks injectable. */
+export function resolveClaudeBinWith(deps: ResolveClaudeBinDeps): string | null {
+  const isWin = deps.platform === "win32";
+
+  // (1) Env override — explicit operator pin.
+  const override = deps.env.SHIPWRIGHT_CLAUDE_BIN?.trim();
+  if (override) {
+    if (deps.existsSync(override)) return override;
+    // Loud reject — operator set this on purpose; falling back silently
+    // would hide the typo.
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[cli-compat] SHIPWRIGHT_CLAUDE_BIN=${override} does not exist; resolveClaudeBin returning null`,
+    );
+    return null;
   }
-  return lines[0] ?? null;
+
+  // (2) Primary lookup via `where` / `which`. Wrapped in try so a
+  //     missing system binary (rare on Windows, possible on minimal
+  //     POSIX containers) doesn't preempt the curated fallback.
+  let primaryResult: string | null = null;
+  try {
+    const lookup = isWin ? "where" : "which";
+    const r = deps.spawnSync(lookup, ["claude"], { encoding: "utf-8", shell: false });
+    if (!(r as { error?: unknown }).error) {
+      const lines = ((r.stdout ?? "") as string)
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (isWin) {
+        const dotCmd = lines.find((l) => /\.cmd$/i.test(l));
+        if (dotCmd) primaryResult = dotCmd;
+      }
+      primaryResult = primaryResult ?? lines[0] ?? null;
+    }
+  } catch {
+    /* fall through to curated paths */
+  }
+  if (primaryResult) return primaryResult;
+
+  // (3) Curated fallback paths. Per-platform, priority-ordered.
+  const candidates = curatedCandidates(isWin, deps.env);
+  for (const candidate of candidates) {
+    if (deps.existsSync(candidate)) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[cli-compat] resolved claude via fallback path: ${candidate} (PATH lookup empty — operator may want to add the parent dir to PATH OR set SHIPWRIGHT_CLAUDE_BIN)`,
+      );
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * iterate-2026-05-08 v0.8.8 AC-3 — boot-time PATH self-heal.
+ *
+ * When the AC-2 fallback resolved a binary that lives in a directory
+ * NOT on `process.env.PATH`, prepend that directory so subsequent
+ * child processes (node-pty, preview-session-manager) inherit the
+ * augmented PATH. Common scenario: user installed claude into
+ * `~/.local/bin/`, opened the server from a shell that doesn't
+ * source the PATH-extending dotfile (e.g. PowerShell from a fresh
+ * Windows session).
+ *
+ * Idempotent — case-insensitive comparison on Windows, case-sensitive
+ * on POSIX. Loud-logs the prepend so production operators see PATH
+ * drift in the boot log.
+ */
+export interface SelfHealClaudePathDeps {
+  bin: string | null;
+  env: Record<string, string | undefined>;
+  platform: NodeJS.Platform | string;
+}
+
+export interface SelfHealResult {
+  augmented: boolean;
+  parentDir: string | null;
+}
+
+export function selfHealClaudePath(deps: SelfHealClaudePathDeps): SelfHealResult {
+  if (!deps.bin) return { augmented: false, parentDir: null };
+  const isWin = deps.platform === "win32";
+  const sep = isWin ? ";" : ":";
+  const parentDir = path.dirname(deps.bin);
+  const currentPath = deps.env.PATH ?? "";
+  const entries = currentPath.length > 0 ? currentPath.split(sep) : [];
+  const norm = (s: string) => (isWin ? s.toLowerCase() : s);
+  const parentNorm = norm(parentDir);
+  const alreadyPresent = entries.some((e) => norm(e.replace(/[\\/]+$/, "")) === parentNorm);
+  if (alreadyPresent) {
+    return { augmented: false, parentDir };
+  }
+  deps.env.PATH = currentPath.length > 0 ? `${parentDir}${sep}${currentPath}` : parentDir;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[cli-compat] PATH self-heal: prepended ${parentDir} (claude resolved via fallback; child-process spawns inherit augmented PATH)`,
+  );
+  return { augmented: true, parentDir };
+}
+
+function curatedCandidates(
+  isWin: boolean,
+  env: Record<string, string | undefined>,
+): string[] {
+  if (isWin) {
+    const userProfile = env.USERPROFILE ?? "";
+    const appData = env.APPDATA ?? "";
+    const localAppData = env.LOCALAPPDATA ?? "";
+    const programFiles = env.ProgramFiles ?? "";
+    const c: string[] = [];
+    if (userProfile) {
+      c.push(path.join(userProfile, ".local", "bin", "claude.exe"));
+      c.push(path.join(userProfile, ".local", "bin", "claude.cmd"));
+    }
+    if (appData) {
+      // npm global install
+      c.push(path.join(appData, "npm", "claude.cmd"));
+      c.push(path.join(appData, "npm", "claude.exe"));
+    }
+    if (localAppData) {
+      // winget shim
+      c.push(path.join(localAppData, "Microsoft", "WinGet", "Links", "claude.exe"));
+    }
+    if (programFiles) {
+      c.push(path.join(programFiles, "Claude Code", "claude.exe"));
+    }
+    return c;
+  }
+  // POSIX
+  const home = env.HOME ?? "";
+  const c: string[] = [];
+  if (home) {
+    c.push(path.posix.join(home, ".local", "bin", "claude"));
+    c.push(path.posix.join(home, ".npm-global", "bin", "claude"));
+  }
+  c.push("/usr/local/bin/claude");
+  c.push("/opt/homebrew/bin/claude"); // Apple Silicon Homebrew
+  return c;
 }
 
 /** Thin async wrapper — same outcome as probeClaudeVersion, non-blocking. */
