@@ -72,18 +72,31 @@ const PROMPT_POLL_MS = 50;
 
 /**
  * iterate-2026-05-08 v0.8.7 AC-4 — count `──── shell stopped at`
- * substrings across xterm's buffer (visible viewport + scrollback).
- * Called once at `replay_end` so the parser has reassembled any
- * chunk-split markers into contiguous lines (per external plan review:
- * scanning per-chunk would miss split markers).
+ * substrings.
  *
- * `term.buffer.active.length` returns the total line count
- * (scrollback included). Each `getLine(i).translateToString(true)`
- * trims trailing whitespace.
+ * Two counting modes:
+ *   - Accumulator (PRIMARY) — sum substring matches across all
+ *     replay_chunk payloads received between replay_start and replay_end.
+ *     Chunk-split markers are handled by holding a small overlap from
+ *     the previous chunk's tail (`SHELL_STOPPED_SUBSTRING.length - 1`
+ *     bytes) so a marker split across two chunks still matches.
+ *
+ *   - Buffer-scan (FALLBACK / xterm-mock tests) — iterate
+ *     `term.buffer.active.getLine(i).translateToString(true)`.
+ *     Used by the unit tests where we control the buffer mock; in
+ *     production the replay's content can be wiped by pty2's
+ *     `\x1b[2J\x1b[H` initial sequence AFTER replay_end fires, so
+ *     buffer-scan reads zero counts when the live shell starts fresh.
+ *     The accumulator captures the marker count BEFORE the wipe.
+ *
+ * Production (Replay) flow: accumulator wins. Test flow with mocked
+ * xterm + no live-data wipe: buffer scan fills in correctly. The
+ * Math.max() resolves disagreement in favor of the higher-count
+ * source (preserves AC-4 behavior in both flows).
  */
 const SHELL_STOPPED_SUBSTRING = "──── shell stopped at";
 
-function countShellStoppedMarkers(term: Terminal | null): number {
+function countShellStoppedMarkersInBuffer(term: Terminal | null): number {
   if (!term) return 0;
   const buf = term.buffer?.active;
   if (!buf) return 0;
@@ -94,6 +107,19 @@ function countShellStoppedMarkers(term: Terminal | null): number {
     if (line.translateToString(true).includes(SHELL_STOPPED_SUBSTRING)) {
       count++;
     }
+  }
+  return count;
+}
+
+function countSubstringOccurrences(s: string, sub: string): number {
+  if (sub.length === 0) return 0;
+  let count = 0;
+  let from = 0;
+  while (true) {
+    const idx = s.indexOf(sub, from);
+    if (idx === -1) break;
+    count++;
+    from = idx + sub.length;
   }
   return count;
 }
@@ -166,6 +192,16 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const [stoppedSessionsCount, setStoppedSessionsCount] = useState(0);
     const [clearInFlight, setClearInFlight] = useState(false);
     const [clearError, setClearError] = useState<string | null>(null);
+    // Accumulator across replay_chunk envelopes. Reset on replay_start;
+    // counted at replay_end. Holds an overlap window so chunk-split
+    // markers still match across boundaries. `inReplayRef` gates whether
+    // onData payloads count (replay_chunk/separator route through onData
+    // per useTerminalSocket; live `data` envelopes after replay_end do
+    // NOT count).
+    const inReplayRef = useRef(false);
+    const replayAccumulatorRef = useRef<{ count: number; tail: string }>(
+      { count: 0, tail: "" },
+    );
 
     // ADR-068-A1 — auto-launch coordination state (refs survive re-renders).
     const coord = useLaunchCoordinator();
@@ -203,6 +239,26 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // burst counts as activity and resets the 250ms quiesce window.
         if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
         lastPtyDataAtRef.current = Date.now();
+        // iterate-2026-05-08 v0.8.7 AC-4 — accumulate marker count
+        // during replay. replay_chunk + replay_separator envelopes
+        // route through onData (per useTerminalSocket) — gate on
+        // inReplayRef so live `data` envelopes after replay_end
+        // do NOT pollute the count. Overlap window
+        // (`SHELL_STOPPED_SUBSTRING.length - 1`) carried via tail
+        // so a marker split across two WS frames still matches.
+        if (inReplayRef.current) {
+          const acc = replayAccumulatorRef.current;
+          const probe = acc.tail + chunk;
+          acc.count += countSubstringOccurrences(probe, SHELL_STOPPED_SUBSTRING);
+          // Keep enough tail to bridge a chunk-boundary split:
+          // (SHELL_STOPPED_SUBSTRING.length - 1) is the worst case
+          // where the marker spans two chunks with one byte in chunk N
+          // and rest in chunk N+1. The tail itself was already counted
+          // in the previous iteration's probe; subtract that overlap
+          // by setting tail to ONLY the trailing portion of `chunk`.
+          const overlap = SHELL_STOPPED_SUBSTRING.length - 1;
+          acc.tail = chunk.length > overlap ? chunk.slice(-overlap) : chunk;
+        }
         termRef.current?.write(chunk);
       },
       onReplayStart: () => {
@@ -218,6 +274,11 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         } catch {
           /* xterm may be mid-dispose; ignore */
         }
+        // iterate-2026-05-08 v0.8.7 AC-4 — open the marker accumulator
+        // window. Cleared at replay_start so a re-attach starts fresh
+        // (the accumulator does NOT carry across replay sessions).
+        inReplayRef.current = true;
+        replayAccumulatorRef.current = { count: 0, tail: "" };
       },
       onReplayEnd: () => {
         // Iterate v0.8.6 follow-up — after the chunked replay finishes
@@ -233,16 +294,24 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         } catch {
           /* xterm may be mid-dispose; ignore */
         }
-        // iterate-2026-05-08 v0.8.7 AC-4 — count `──── shell stopped at`
-        // markers in the now-fully-painted xterm buffer. Per external
-        // plan review (gemini low + openai #12): scan `term.buffer.active`
-        // AFTER replay_end so the parser has reassembled chunk-split
-        // markers into contiguous lines. Per-chunk substring counting
-        // would miss markers split across WS frames.
+        // iterate-2026-05-08 v0.8.7 AC-4 — finalize marker count.
+        // Two sources reconciled via Math.max:
+        //   (a) accumulator (PRIMARY in production): captures marker
+        //       count in the replay payload BEFORE pty2's initial
+        //       \x1b[2J\x1b[H wipes the xterm buffer. (Empirically
+        //       observed: replay paints marker → live data wipes
+        //       buffer → buffer-scan returns 0.)
+        //   (b) buffer scan (FALLBACK for unit tests with mocked xterm
+        //       and no live-data wipe): handles environments where
+        //       there's no subsequent buffer wipe.
         try {
-          setStoppedSessionsCount(countShellStoppedMarkers(termRef.current));
+          const accumulatorCount = replayAccumulatorRef.current.count;
+          const bufferCount = countShellStoppedMarkersInBuffer(termRef.current);
+          setStoppedSessionsCount(Math.max(accumulatorCount, bufferCount));
         } catch {
           /* ignore — buffer probe is non-critical */
+        } finally {
+          inReplayRef.current = false;
         }
       },
       onBackpressure: (info) => {
