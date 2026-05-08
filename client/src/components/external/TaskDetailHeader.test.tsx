@@ -104,16 +104,20 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
-  it("awaiting_external_start → 'Terminal' CTA (iterate 3.7f — Sven UAT)", () => {
-    // Command already copied to clipboard; user should switch to terminal.
+  it("awaiting_external_start → NO CTA (v0.8.5 AC-6 — header CTA matrix shrank)", () => {
+    // v0.8.5 AC-6: TaskDetailHeader CTA matrix collapsed to draft→Launch,
+    // idle→Resume, all other states → NO primary CTA (status badge only).
+    // The inline Tabs.Trigger row handles tab-flips inside the page;
+    // duplicate "Terminal" CTA in the header was removed.
     renderHeader(makeTask({ state: "awaiting_external_start" }));
-    expect(screen.getByTestId("cta-terminal")).toBeTruthy();
+    expect(screen.queryByTestId("cta-terminal")).toBeNull();
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
-  it("active → 'Terminal' CTA (iterate 3.7f — Sven UAT)", () => {
+  it("active → NO CTA (v0.8.5 AC-6 — header CTA matrix shrank)", () => {
     renderHeader(makeTask({ state: "active" }));
-    expect(screen.getByTestId("cta-terminal")).toBeTruthy();
+    expect(screen.queryByTestId("cta-terminal")).toBeNull();
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
   });
@@ -191,38 +195,18 @@ describe("TaskDetailHeader — behavior", () => {
     });
   });
 
-  it("Terminal CTA (active) is a pure tab-flip — does NOT post /launch (post-Phase-5-Codex review fix)", async () => {
-    // Phase-5-Codex review fix (HIGH): "Terminal" CTA on active/awaiting
-    // tasks no longer auto-executes claude --resume. The user expectation
-    // for an active task is "let me see what's running" — clicking
-    // Terminal should JUST switch the tab. Resume only fires from
-    // state=idle (CTA becomes orange "Resume" automatically) OR via the
-    // "..." menu when the user explicitly wants it.
-    const fetchInner = vi.fn(async (url: string | URL | Request, _init?: RequestInit) => {
-      const u = String(url);
-      // Should NOT be called for /launch on Terminal click.
-      if (u.includes("/launch")) {
-        throw new Error(
-          `unexpected /launch call from Terminal CTA: ${u}`,
-        );
-      }
-      return new Response("{}", { status: 200 });
-    });
+  it("active state has no Terminal CTA (v0.8.5 AC-6 — Terminal CTA + focus-tab event removed)", async () => {
+    // v0.8.5 AC-6: TaskDetailHeader's Terminal CTA was REMOVED (along with
+    // its `webui:focus-terminal-tab` window event). The inline Tabs.Trigger
+    // row inside TaskDetailPage handles tab-flips directly. This test
+    // serves as a regression fence — if a future iterate accidentally
+    // re-introduces the CTA, this assertion fails loud.
+    const fetchInner = vi.fn(async () =>
+      new Response("{}", { status: 200 }),
+    );
     renderHeader(makeTask({ state: "active" }), fetchInner);
-
-    let dispatchedFocus = false;
-    const focusHandler = () => {
-      dispatchedFocus = true;
-    };
-    window.addEventListener("webui:focus-terminal-tab", focusHandler);
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("cta-terminal"));
-    });
-
-    window.removeEventListener("webui:focus-terminal-tab", focusHandler);
-    expect(dispatchedFocus).toBe(true);
-    // The Terminal CTA must NOT have triggered any /launch call.
+    expect(screen.queryByTestId("cta-terminal")).toBeNull();
+    // No /launch must fire either — there's no CTA to click.
     const launchCall = fetchInner.mock.calls.find(
       (c) => c[0] !== undefined && String(c[0]).includes("/launch"),
     );
@@ -253,23 +237,38 @@ describe("TaskDetailHeader — behavior", () => {
     });
   });
 
-  it("state transitions re-render CTA without remount", () => {
+  it("state transitions re-render CTA without remount (v0.8.5 AC-6 matrix)", () => {
     const { rerender, qc } = renderHeader(makeTask({ state: "draft" }));
     expect(screen.getByTestId("cta-launch-in-terminal")).toBeTruthy();
-    // Simulate state transition via cache. iterate 3.7f: active → Terminal
-    // (not Resume). Idle → Resume remains.
-    const updated = makeTask({ state: "active" });
-    qc.setQueryData(["external-task", updated.taskId], updated);
+    // v0.8.5 AC-6: draft→Launch, idle→Resume, all-other-states → NO CTA.
+    // Verify the matrix end-to-end by stepping draft → active (no CTA) →
+    // idle (Resume CTA). All transitions occur via TanStack cache update,
+    // proving the component re-renders without remount.
+    const activeTask = makeTask({ state: "active" });
+    qc.setQueryData(["external-task", activeTask.taskId], activeTask);
     rerender(
       <MemoryRouter>
         <QueryClientProvider client={qc}>
-          <TaskDetailHeader task={updated} />
+          <TaskDetailHeader task={activeTask} />
         </QueryClientProvider>
       </MemoryRouter>,
     );
-    expect(screen.getByTestId("cta-terminal")).toBeTruthy();
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+    expect(screen.queryByTestId("cta-terminal")).toBeNull();
+
+    // Now step active → idle: Resume CTA reappears.
+    const idleTask = makeTask({ state: "idle" });
+    qc.setQueryData(["external-task", idleTask.taskId], idleTask);
+    rerender(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <TaskDetailHeader task={idleTask} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
   });
 });
 
