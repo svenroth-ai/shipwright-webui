@@ -201,8 +201,9 @@ describe("TaskDetailHeader — behavior", () => {
     // row inside TaskDetailPage handles tab-flips directly. This test
     // serves as a regression fence — if a future iterate accidentally
     // re-introduces the CTA, this assertion fails loud.
-    const fetchInner = vi.fn(async () =>
-      new Response("{}", { status: 200 }),
+    const fetchInner = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response("{}", { status: 200 }),
     );
     renderHeader(makeTask({ state: "active" }), fetchInner);
     expect(screen.queryByTestId("cta-terminal")).toBeNull();
