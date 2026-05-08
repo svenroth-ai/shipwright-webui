@@ -417,6 +417,21 @@ export class PtyManager {
    * Marker bytes flow through the same `scrollbackStore.append()` path
    * as live `pty.onData` output, so `scrollbackBytes` accounting on
    * the `scrollback-meta` envelope reflects them correctly.
+   *
+   * **Timing safety (per external code review openai 2026-05-08 high):**
+   *
+   * `ScrollbackStore.append()` uses `fs.appendFileSync` (one open-write-
+   * close syscall sequence per call — see `scrollback-store.ts` header
+   * "Architecture invariants"). It is FULLY SYNCHRONOUS — the marker
+   * bytes are durable on disk before this function returns. There is
+   * no per-task WriteStream that could be closed mid-write; closeStream
+   * is a no-op for the file (only resets the per-task size cache).
+   *
+   * Therefore: the kill→onExit→appendMarker→cleanup sequence is safe.
+   * cleanup deletes the pty entry from `this.entries` BUT does not
+   * touch `this.scrollbackStore.states` — append() looks up by taskId
+   * + reopens the file via O_APPEND each call, so a deleted entry has
+   * no effect on subsequent append correctness.
    */
   private appendShellStoppedMarker(taskId: string): void {
     if (!this.scrollbackStore) return;

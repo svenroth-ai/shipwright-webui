@@ -619,6 +619,52 @@ describe("<EmbeddedTerminal>", () => {
       confirmSpy.mockRestore();
     });
 
+    it("counts markers via REPLAY ACCUMULATOR (chunks split mid-marker), not just buffer scan", async () => {
+      // Per external code review (openai 2026-05-08 medium #4): the
+      // production path no longer scans `term.buffer.active` after
+      // replay_end — it accumulates `replay_chunk` payloads into a
+      // string buffer between replay_start/replay_end and counts the
+      // SHELL_STOPPED_SUBSTRING substring there. This test exercises
+      // that production path explicitly: marker arrives split across
+      // 3 chunks (a worst-case smaller-than-marker-length frame
+      // pattern). A pure buffer-scan implementation would miss the
+      // split marker; the accumulator catches it because the chunks
+      // concatenate before counting.
+      mockBufferLines.length = 0; // empty buffer — accumulator must do the work
+
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+
+      // Open the replay window.
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "replay_start" }));
+      });
+
+      // Three marker strings split across many small chunks.
+      const fullMarker = "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m\r\n";
+      const fixture = `prefix-content\r\n${fullMarker}middle-content\r\n${fullMarker}more-content\r\n${fullMarker}suffix`;
+      // Send char-by-char to mimic worst-case chunk fragmentation.
+      for (let i = 0; i < fixture.length; i++) {
+        await act(async () => {
+          ws.__message(JSON.stringify({ type: "replay_chunk", payload: fixture[i] }));
+        });
+      }
+
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "replay_end" }));
+      });
+
+      // Footer renders with N=3 (counted via accumulator — buffer was
+      // not populated by the mock, so buffer-scan would return 0).
+      const footer = container.querySelector(
+        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
+      );
+      expect(footer).not.toBeNull();
+      expect(footer?.textContent).toContain("3");
+      expect(footer?.textContent?.toLowerCase()).toContain("beendete shell-sessions");
+    });
+
     it("Clear history button is a no-op when user declines confirm", async () => {
       mockBufferLines.push(
         "\x1b[2m──── shell stopped at 12:00:00 ────\x1b[m",
