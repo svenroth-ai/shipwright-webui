@@ -503,7 +503,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   scrollbackBytes > 0
                 ) {
                   try {
-                    const replay = await scrollbackStore.read(taskId);
+                    // iterate-2026-05-08 v0.8.7 AC-3 — replay path uses the
+                  // collapse-aware reader. `scrollbackStore.read()` stays
+                  // raw for `bytes()` accounting + privacy-disclosure UI.
+                  const replay = await scrollbackStore.readForReplay(taskId);
                     await sendReplayChunked(
                       ws as unknown as Parameters<typeof sendReplayChunked>[0],
                       replay,
@@ -668,7 +671,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   );
                 } catch { /* ignore */ }
                 if (scrollbackBytes > 0) {
-                  const replay = await scrollbackStore.read(taskId);
+                  // iterate-2026-05-08 v0.8.7 AC-3 — replay path uses the
+                  // collapse-aware reader. `scrollbackStore.read()` stays
+                  // raw for `bytes()` accounting + privacy-disclosure UI.
+                  const replay = await scrollbackStore.readForReplay(taskId);
                   await sendReplayChunked(
                     ws as unknown as Parameters<typeof sendReplayChunked>[0],
                     replay,
