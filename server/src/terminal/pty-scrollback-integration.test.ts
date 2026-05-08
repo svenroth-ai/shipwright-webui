@@ -124,7 +124,12 @@ describe("PtyManager + ScrollbackStore integration (ADR-068-A1)", () => {
     // is still readable on disk (not deleted, just stream invalidated).
     await new Promise((r) => setImmediate(r));
     await new Promise((r) => setImmediate(r));
-    expect(await store.read(TASK)).toBe("data");
+    // iterate-2026-05-08 v0.8.7 AC-2: kill now also appends a shell-stopped
+    // marker before closing the stream. The original "data" prefix is
+    // preserved; the marker follows.
+    const content = await store.read(TASK);
+    expect(content).toContain("data");
+    expect(content).toMatch(/──── shell stopped at \d{2}:\d{2}:\d{2} ────/);
   });
 
   it("pty.pause / pty.resume forwarded by manager", () => {
