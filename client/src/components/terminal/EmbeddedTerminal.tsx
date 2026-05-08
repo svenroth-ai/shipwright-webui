@@ -193,15 +193,19 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const [clearInFlight, setClearInFlight] = useState(false);
     const [clearError, setClearError] = useState<string | null>(null);
     // Accumulator across replay_chunk envelopes. Reset on replay_start;
-    // counted at replay_end. Holds an overlap window so chunk-split
-    // markers still match across boundaries. `inReplayRef` gates whether
-    // onData payloads count (replay_chunk/separator route through onData
-    // per useTerminalSocket; live `data` envelopes after replay_end do
-    // NOT count).
+    // counted ONCE at replay_end. Per external code review (gemini medium):
+    // a tail-only retention strategy can drop marker prefixes when chunks
+    // arrive smaller than the marker length (e.g. 1-byte chunks). The
+    // simpler robust approach: concatenate all replay payloads, count at
+    // the end, free the buffer immediately. Replay payload is bounded by
+    // `maxBytesPerTask` (1 MiB live + 1 MiB rotated = 2 MiB worst case),
+    // which V8 handles trivially.
+    //
+    // `inReplayRef` gates which onData chunks accumulate — replay_chunk +
+    // replay_separator route through onData (per useTerminalSocket); live
+    // `data` envelopes after replay_end do NOT count.
     const inReplayRef = useRef(false);
-    const replayAccumulatorRef = useRef<{ count: number; tail: string }>(
-      { count: 0, tail: "" },
-    );
+    const replayBufferRef = useRef<string[]>([]);
 
     // ADR-068-A1 — auto-launch coordination state (refs survive re-renders).
     const coord = useLaunchCoordinator();
@@ -239,25 +243,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // burst counts as activity and resets the 250ms quiesce window.
         if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
         lastPtyDataAtRef.current = Date.now();
-        // iterate-2026-05-08 v0.8.7 AC-4 — accumulate marker count
-        // during replay. replay_chunk + replay_separator envelopes
-        // route through onData (per useTerminalSocket) — gate on
-        // inReplayRef so live `data` envelopes after replay_end
-        // do NOT pollute the count. Overlap window
-        // (`SHELL_STOPPED_SUBSTRING.length - 1`) carried via tail
-        // so a marker split across two WS frames still matches.
+        // iterate-2026-05-08 v0.8.7 AC-4 — accumulate replay payloads
+        // verbatim. replay_chunk + replay_separator envelopes route
+        // through onData (per useTerminalSocket) — gate on inReplayRef
+        // so live `data` envelopes after replay_end do NOT contribute.
+        // Counting happens ONCE in onReplayEnd.
         if (inReplayRef.current) {
-          const acc = replayAccumulatorRef.current;
-          const probe = acc.tail + chunk;
-          acc.count += countSubstringOccurrences(probe, SHELL_STOPPED_SUBSTRING);
-          // Keep enough tail to bridge a chunk-boundary split:
-          // (SHELL_STOPPED_SUBSTRING.length - 1) is the worst case
-          // where the marker spans two chunks with one byte in chunk N
-          // and rest in chunk N+1. The tail itself was already counted
-          // in the previous iteration's probe; subtract that overlap
-          // by setting tail to ONLY the trailing portion of `chunk`.
-          const overlap = SHELL_STOPPED_SUBSTRING.length - 1;
-          acc.tail = chunk.length > overlap ? chunk.slice(-overlap) : chunk;
+          replayBufferRef.current.push(chunk);
         }
         termRef.current?.write(chunk);
       },
@@ -278,7 +270,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // window. Cleared at replay_start so a re-attach starts fresh
         // (the accumulator does NOT carry across replay sessions).
         inReplayRef.current = true;
-        replayAccumulatorRef.current = { count: 0, tail: "" };
+        replayBufferRef.current = [];
       },
       onReplayEnd: () => {
         // Iterate v0.8.6 follow-up — after the chunked replay finishes
@@ -305,13 +297,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         //       and no live-data wipe): handles environments where
         //       there's no subsequent buffer wipe.
         try {
-          const accumulatorCount = replayAccumulatorRef.current.count;
+          // Concatenate the chunk buffer once (avoid string-grow N²).
+          const replayed = replayBufferRef.current.join("");
+          const accumulatorCount = countSubstringOccurrences(
+            replayed,
+            SHELL_STOPPED_SUBSTRING,
+          );
           const bufferCount = countShellStoppedMarkersInBuffer(termRef.current);
           setStoppedSessionsCount(Math.max(accumulatorCount, bufferCount));
         } catch {
           /* ignore — buffer probe is non-critical */
         } finally {
           inReplayRef.current = false;
+          // Free buffer memory immediately (replay payload up to ~2 MiB).
+          replayBufferRef.current = [];
         }
       },
       onBackpressure: (info) => {
