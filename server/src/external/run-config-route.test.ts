@@ -75,6 +75,7 @@ async function makeApp(args: {
       getProjectById: (id) =>
         project && id === projectId ? project : undefined,
       readRunConfig: args.reader,
+      ptyManager: { get: () => undefined },
     }),
   );
   return app;

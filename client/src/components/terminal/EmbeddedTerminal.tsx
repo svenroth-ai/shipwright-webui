@@ -26,6 +26,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -68,6 +69,60 @@ const PROMPT_QUIESCE_MS = 250;
 const PROMPT_READY_NO_DATA_GRACE_MS = 1500;
 const PROMPT_HARD_CAP_MS = 15_000;
 const PROMPT_POLL_MS = 50;
+
+/**
+ * iterate-2026-05-08 v0.8.7 AC-4 — count `──── shell stopped at`
+ * substrings.
+ *
+ * Two counting modes:
+ *   - Accumulator (PRIMARY) — sum substring matches across all
+ *     replay_chunk payloads received between replay_start and replay_end.
+ *     Chunk-split markers are handled by holding a small overlap from
+ *     the previous chunk's tail (`SHELL_STOPPED_SUBSTRING.length - 1`
+ *     bytes) so a marker split across two chunks still matches.
+ *
+ *   - Buffer-scan (FALLBACK / xterm-mock tests) — iterate
+ *     `term.buffer.active.getLine(i).translateToString(true)`.
+ *     Used by the unit tests where we control the buffer mock; in
+ *     production the replay's content can be wiped by pty2's
+ *     `\x1b[2J\x1b[H` initial sequence AFTER replay_end fires, so
+ *     buffer-scan reads zero counts when the live shell starts fresh.
+ *     The accumulator captures the marker count BEFORE the wipe.
+ *
+ * Production (Replay) flow: accumulator wins. Test flow with mocked
+ * xterm + no live-data wipe: buffer scan fills in correctly. The
+ * Math.max() resolves disagreement in favor of the higher-count
+ * source (preserves AC-4 behavior in both flows).
+ */
+const SHELL_STOPPED_SUBSTRING = "──── shell stopped at";
+
+function countShellStoppedMarkersInBuffer(term: Terminal | null): number {
+  if (!term) return 0;
+  const buf = term.buffer?.active;
+  if (!buf) return 0;
+  let count = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const line = buf.getLine(i);
+    if (!line) continue;
+    if (line.translateToString(true).includes(SHELL_STOPPED_SUBSTRING)) {
+      count++;
+    }
+  }
+  return count;
+}
+
+function countSubstringOccurrences(s: string, sub: string): number {
+  if (sub.length === 0) return 0;
+  let count = 0;
+  let from = 0;
+  while (true) {
+    const idx = s.indexOf(sub, from);
+    if (idx === -1) break;
+    count++;
+    from = idx + sub.length;
+  }
+  return count;
+}
 
 export interface EmbeddedTerminalProps {
   taskId: string;
@@ -131,6 +186,27 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastResizeAtRef = useRef(0);
     const lastResizePendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    // iterate-2026-05-08 v0.8.7 AC-4 — count of `──── shell stopped at ────`
+    // markers in the replay. Re-derived at every `replay_end` and at every
+    // successful clear-scrollback. Footer banner renders when ≥ 2.
+    const [stoppedSessionsCount, setStoppedSessionsCount] = useState(0);
+    const [clearInFlight, setClearInFlight] = useState(false);
+    const [clearError, setClearError] = useState<string | null>(null);
+    // Accumulator across replay_chunk envelopes. Reset on replay_start;
+    // counted ONCE at replay_end. Per external code review (gemini medium):
+    // a tail-only retention strategy can drop marker prefixes when chunks
+    // arrive smaller than the marker length (e.g. 1-byte chunks). The
+    // simpler robust approach: concatenate all replay payloads, count at
+    // the end, free the buffer immediately. Replay payload is bounded by
+    // `maxBytesPerTask` (1 MiB live + 1 MiB rotated = 2 MiB worst case),
+    // which V8 handles trivially.
+    //
+    // `inReplayRef` gates which onData chunks accumulate — replay_chunk +
+    // replay_separator route through onData (per useTerminalSocket); live
+    // `data` envelopes after replay_end do NOT count.
+    const inReplayRef = useRef(false);
+    const replayBufferRef = useRef<string[]>([]);
+
     // ADR-068-A1 — auto-launch coordination state (refs survive re-renders).
     const coord = useLaunchCoordinator();
     const consumedTokensRef = useRef<Set<number>>(new Set());
@@ -167,6 +243,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // burst counts as activity and resets the 250ms quiesce window.
         if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
         lastPtyDataAtRef.current = Date.now();
+        // iterate-2026-05-08 v0.8.7 AC-4 — accumulate replay payloads
+        // verbatim. replay_chunk + replay_separator envelopes route
+        // through onData (per useTerminalSocket) — gate on inReplayRef
+        // so live `data` envelopes after replay_end do NOT contribute.
+        // Counting happens ONCE in onReplayEnd.
+        if (inReplayRef.current) {
+          replayBufferRef.current.push(chunk);
+        }
         termRef.current?.write(chunk);
       },
       onReplayStart: () => {
@@ -182,6 +266,11 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         } catch {
           /* xterm may be mid-dispose; ignore */
         }
+        // iterate-2026-05-08 v0.8.7 AC-4 — open the marker accumulator
+        // window. Cleared at replay_start so a re-attach starts fresh
+        // (the accumulator does NOT carry across replay sessions).
+        inReplayRef.current = true;
+        replayBufferRef.current = [];
       },
       onReplayEnd: () => {
         // Iterate v0.8.6 follow-up — after the chunked replay finishes
@@ -196,6 +285,32 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           termRef.current?.scrollToBottom();
         } catch {
           /* xterm may be mid-dispose; ignore */
+        }
+        // iterate-2026-05-08 v0.8.7 AC-4 — finalize marker count.
+        // Two sources reconciled via Math.max:
+        //   (a) accumulator (PRIMARY in production): captures marker
+        //       count in the replay payload BEFORE pty2's initial
+        //       \x1b[2J\x1b[H wipes the xterm buffer. (Empirically
+        //       observed: replay paints marker → live data wipes
+        //       buffer → buffer-scan returns 0.)
+        //   (b) buffer scan (FALLBACK for unit tests with mocked xterm
+        //       and no live-data wipe): handles environments where
+        //       there's no subsequent buffer wipe.
+        try {
+          // Concatenate the chunk buffer once (avoid string-grow N²).
+          const replayed = replayBufferRef.current.join("");
+          const accumulatorCount = countSubstringOccurrences(
+            replayed,
+            SHELL_STOPPED_SUBSTRING,
+          );
+          const bufferCount = countShellStoppedMarkersInBuffer(termRef.current);
+          setStoppedSessionsCount(Math.max(accumulatorCount, bufferCount));
+        } catch {
+          /* ignore — buffer probe is non-critical */
+        } finally {
+          inReplayRef.current = false;
+          // Free buffer memory immediately (replay payload up to ~2 MiB).
+          replayBufferRef.current = [];
         }
       },
       onBackpressure: (info) => {
@@ -295,6 +410,40 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       }),
       [socket.ready, socket.role],
     );
+
+    // iterate-2026-05-08 v0.8.7 AC-4 — clear-history handler. Uses
+    // `window.confirm()` for a minimal-surface destructive guard
+    // (matches the existing "..." overflow menu's confirm-modal contract:
+    // ask before clearing user-visible scrollback). Calls the existing
+    // `/clear-scrollback` endpoint (no new server surface needed).
+    // On success: count resets to 0 → footer hides without remount.
+    const handleClearHistory = useCallback(async () => {
+      if (clearInFlight) return;
+      const ok = window.confirm(
+        `Clear ${stoppedSessionsCount} stopped Shell-Session entries from terminal scrollback? This deletes the on-disk history for this task.`,
+      );
+      if (!ok) return;
+      setClearError(null);
+      setClearInFlight(true);
+      try {
+        const res = await fetch(
+          `/api/terminal/${encodeURIComponent(taskId)}/clear-scrollback`,
+          { method: "POST" },
+        );
+        if (!res.ok) {
+          const detail = await res.text().catch(() => "");
+          setClearError(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`);
+          return;
+        }
+        // Reset count locally; the next replay (after re-attach) will
+        // confirm it's empty. Footer hides immediately on the visible side.
+        setStoppedSessionsCount(0);
+      } catch (err) {
+        setClearError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setClearInFlight(false);
+      }
+    }, [clearInFlight, stoppedSessionsCount, taskId]);
 
     // ADR-068-A1: auto-launch flow.
     //
@@ -689,6 +838,35 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           tabIndex={-1}
           data-testid="embedded-terminal-canvas"
         />
+        {stoppedSessionsCount >= 2 ? (
+          // iterate-2026-05-08 v0.8.7 AC-4 — historical-shell-sessions
+          // disclosure footer. Renders below the xterm canvas (NOT a
+          // header strip) once at least 2 `──── shell stopped at` markers
+          // are present in the replay. "Clear history" reuses the existing
+          // /clear-scrollback endpoint (server-side surface unchanged).
+          <div
+            className="-mx-2 -mb-2 mt-2 flex items-center justify-between gap-3 border-t border-[var(--color-border,#3f3f46)] bg-[#1a1a1a] px-3 py-1 text-[11px] text-[var(--color-muted,#9ca3af)]"
+            data-testid="embedded-terminal-stopped-sessions-footer"
+          >
+            <span>
+              Scrollback enthält {stoppedSessionsCount} beendete Shell-Sessions.
+              {clearError ? (
+                <span className="ml-2 text-[var(--color-warning,#f59e0b)]">
+                  {clearError}
+                </span>
+              ) : null}
+            </span>
+            <button
+              type="button"
+              onClick={handleClearHistory}
+              disabled={clearInFlight}
+              className="rounded border border-[var(--color-border,#3f3f46)] px-2 py-0.5 text-[11px] hover:bg-[#2a2a2a] disabled:opacity-50"
+              data-testid="embedded-terminal-clear-history-button"
+            >
+              {clearInFlight ? "Clearing…" : "Clear history"}
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   },

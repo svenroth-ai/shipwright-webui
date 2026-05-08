@@ -130,6 +130,7 @@ describe("actions/preview/stub routes", () => {
         getKnownProjectIds: () => new Set([PROJECT_ID]),
         previewManager: previewMgr,
         loadProfile: () => fakeProfile(),
+        ptyManager: { get: () => undefined },
       }),
     );
   });
@@ -282,6 +283,7 @@ describe("actions/preview/stub routes", () => {
         getProjectById: (id) => (id === PROJECT_ID ? defaultProject() : undefined),
         previewManager: mgr,
         loadProfile: () => fakeProfile(),
+        ptyManager: { get: () => undefined },
       }),
     );
 
@@ -321,6 +323,7 @@ describe("actions/preview/stub routes", () => {
             : undefined,
         previewManager: previewMgr,
         loadProfile: () => null,
+        ptyManager: { get: () => undefined },
       }),
     );
     const r = await fakeApp.request(

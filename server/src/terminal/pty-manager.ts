@@ -213,6 +213,17 @@ interface PtyEntry {
    * conditions that trigger the bug).
    */
   bufferedExceededSince: Map<unknown, number | null>;
+  /**
+   * iterate-2026-05-08 v0.8.7 AC-2 — set to `true` by `kill(taskId)` and
+   * by the idle-ceiling timer BEFORE invoking `entry.pty.kill()`. The
+   * `pty.onExit` handler appends a `──── shell stopped at HH:MM:SS ────`
+   * marker to disk-scrollback when this flag is true; a natural shell
+   * exit (closing=false) writes no marker. Closing-flag dedupe ensures
+   * duplicate kill() calls produce ONE marker total — the second
+   * kill sees the entry already gone (cleanup ran via onExit) and
+   * is a no-op.
+   */
+  closing: boolean;
 }
 
 export interface PtyManagerOpts {
@@ -342,6 +353,7 @@ export class PtyManager {
       pauseRefCount: 0,
       pausedConns: new Set(),
       bufferedExceededSince: new Map(),
+      closing: false,
     };
     this.entries.set(taskId, entry);
 
@@ -375,11 +387,64 @@ export class PtyManager {
     });
 
     pty.onExit(() => {
+      // iterate-2026-05-08 v0.8.7 AC-2 — when this exit was triggered by
+      // an INTENTIONAL kill (kill(taskId) or idle-ceiling timer set
+      // entry.closing=true before invoking pty.kill), append a single
+      // dim-grey marker frame to disk-scrollback. Natural exits (user
+      // typed `exit`, shell crashed) leave closing=false → no marker.
+      // Append happens AFTER the dying-process flush bytes (per external
+      // review gemini medium): pty.onExit fires once the process has
+      // closed its stdio handles, so onData has drained.
+      if (entry.closing && this.scrollbackStore) {
+        this.appendShellStoppedMarker(taskId);
+      }
       this.cleanup(taskId);
     });
 
     this.touchIdle(entry);
     return meta;
+  }
+
+  /**
+   * iterate-2026-05-08 v0.8.7 AC-2 — append a single dim-grey ANSI marker
+   * frame to disk-scrollback. Best-effort; failures logged via
+   * console.warn and never thrown (caller is in onExit cleanup which
+   * MUST be infallible). Exact format:
+   *
+   *     \r\n\x1b[2m──── shell stopped at HH:MM:SS ────\x1b[m\r\n
+   *
+   * `\x1b[2m` = SGR dim. Box-drawing char `─` is U+2500 (3 UTF-8 bytes).
+   * Marker bytes flow through the same `scrollbackStore.append()` path
+   * as live `pty.onData` output, so `scrollbackBytes` accounting on
+   * the `scrollback-meta` envelope reflects them correctly.
+   *
+   * **Timing safety (per external code review openai 2026-05-08 high):**
+   *
+   * `ScrollbackStore.append()` uses `fs.appendFileSync` (one open-write-
+   * close syscall sequence per call — see `scrollback-store.ts` header
+   * "Architecture invariants"). It is FULLY SYNCHRONOUS — the marker
+   * bytes are durable on disk before this function returns. There is
+   * no per-task WriteStream that could be closed mid-write; closeStream
+   * is a no-op for the file (only resets the per-task size cache).
+   *
+   * Therefore: the kill→onExit→appendMarker→cleanup sequence is safe.
+   * cleanup deletes the pty entry from `this.entries` BUT does not
+   * touch `this.scrollbackStore.states` — append() looks up by taskId
+   * + reopens the file via O_APPEND each call, so a deleted entry has
+   * no effect on subsequent append correctness.
+   */
+  private appendShellStoppedMarker(taskId: string): void {
+    if (!this.scrollbackStore) return;
+    try {
+      const ts = new Date().toISOString().slice(11, 19);
+      const marker = `\r\n\x1b[2m──── shell stopped at ${ts} ────\x1b[m\r\n`;
+      this.scrollbackStore.append(taskId, Buffer.from(marker, "utf8"));
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] shell-stopped marker append failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
   }
 
   write(taskId: string, data: string): void {
@@ -412,6 +477,11 @@ export class PtyManager {
   kill(taskId: string): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
+    // iterate-2026-05-08 v0.8.7 AC-2 — flag intentional kill so onExit
+    // appends the marker. Closing-flag dedupe: a duplicate kill() lands
+    // here AFTER onExit fired + cleanup ran, so `entries.get` returns
+    // undefined and the function returns early — no second marker.
+    entry.closing = true;
     try {
       entry.pty.kill();
     } catch {
@@ -645,7 +715,10 @@ export class PtyManager {
   private touchIdle(entry: PtyEntry): void {
     if (entry.idleTimer) clearTimeout(entry.idleTimer);
     entry.idleTimer = setTimeout(() => {
-      // Idle ceiling reached — force kill.
+      // Idle ceiling reached — force kill. iterate-2026-05-08 v0.8.7
+      // AC-2: flag intentional kill so the onExit handler appends
+      // the marker before cleanup deletes the entry.
+      entry.closing = true;
       try {
         entry.pty.kill();
       } catch {
