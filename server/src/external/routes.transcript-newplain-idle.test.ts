@@ -133,20 +133,45 @@ describe("AC-1 — transcript poll patches new-plain `active → idle` when pty 
     expect(body.task.state).toBe("active");
   });
 
-  it("is idempotent: subsequent polls do not flap state once patched", async () => {
+  it("is idempotent: subsequent polls do not flap state OR re-emit patches once transitioned", async () => {
+    // External code review (openai medium): not just "state stays idle"
+    // — the underlying `store.patch` call must fire exactly once across
+    // repeated polls. An implementation that redundantly calls
+    // `patch + persist` on every poll after the first would still keep
+    // state=idle but waste IO + potentially churn `sdk-sessions.json`.
     const taskId = await createTask({ actionId: "new-plain", title: "idempotent" });
     await patchState(taskId, "active");
 
-    const first = await pollTranscript(taskId);
-    expect(first.body.task.state).toBe("idle");
+    // Spy on store.patch — count calls AFTER baseline state setup.
+    const baseline = (store as unknown as { _patchCount?: number })._patchCount ?? 0;
+    const origPatch = store.patch.bind(store);
+    let patchCallsForTask = 0;
+    store.patch = ((id: string, p: unknown) => {
+      if (id === taskId) patchCallsForTask++;
+      return origPatch(id, p as never);
+    }) as typeof store.patch;
+    void baseline; // silence unused warning
 
-    // Re-poll N=3 times
-    const second = await pollTranscript(taskId);
-    const third = await pollTranscript(taskId);
-    const fourth = await pollTranscript(taskId);
-    expect(second.body.task.state).toBe("idle");
-    expect(third.body.task.state).toBe("idle");
-    expect(fourth.body.task.state).toBe("idle");
+    try {
+      const first = await pollTranscript(taskId);
+      expect(first.body.task.state).toBe("idle");
+      // Exactly ONE patch call so far for this task (the active→idle
+      // transition fired once).
+      expect(patchCallsForTask).toBe(1);
+
+      // Re-poll N=3 times
+      const second = await pollTranscript(taskId);
+      const third = await pollTranscript(taskId);
+      const fourth = await pollTranscript(taskId);
+      expect(second.body.task.state).toBe("idle");
+      expect(third.body.task.state).toBe("idle");
+      expect(fourth.body.task.state).toBe("idle");
+      // Subsequent polls SHORT-CIRCUIT (state===active guard fails) → no
+      // additional patches. Total count stays at exactly 1.
+      expect(patchCallsForTask).toBe(1);
+    } finally {
+      store.patch = origPatch;
+    }
   });
 
   it("does NOT patch when state is already `idle` (no-op short-circuit)", async () => {

@@ -111,6 +111,35 @@ describe("AC-3 — readForReplay() collapses PowerShell-banner-bursts", () => {
     expect(replayed).not.toMatch(/earlier banners? collapsed/);
   });
 
+  it("readForReplay() preserves user-content BETWEEN banner bursts (external review fix — openai high)", async () => {
+    // External code review (openai high) — original `collapseSpan` dropped
+    // ALL content between the first and last matched burst, including
+    // legitimate user output emitted between pty respawns. The fix walks
+    // each match individually and only replaces the burst tokens.
+    const span =
+      "OUTER\r\n" +
+      CRLF_BLOCK_40 + ps() +
+      "user typed something between burst 1 and 2\r\n" +
+      "more user output\r\n" +
+      CRLF_BLOCK_40 + ps() +
+      "TAIL\r\n";
+    await seed(span);
+
+    const replayed = await store.readForReplay(TASK);
+    // The user content MUST be preserved.
+    expect(replayed).toContain("user typed something between burst 1 and 2");
+    expect(replayed).toContain("more user output");
+    // Outer + tail content preserved (start-of-buffer "OUTER" survives;
+    // its trailing CRLF is consumed by the burst regex's `(\r\n){10,}`
+    // prefix match — that's expected and visually equivalent on replay
+    // because the burst's own CRLF block carries the line break).
+    expect(replayed).toContain("OUTER");
+    expect(replayed).toContain("TAIL");
+    // 1 banner survives (the LAST one) + 1 collapse marker.
+    expect((replayed.match(/PowerShell 7\.6\.1\r\n/g) || []).length).toBe(1);
+    expect(replayed).toMatch(/── 1 earlier banner collapsed ──/);
+  });
+
   it("readForReplay() collapses INDEPENDENTLY across shell-stopped markers (never crosses)", async () => {
     // 3 banners — marker — 3 banners. Each side collapses to 1+marker.
     const spanA =

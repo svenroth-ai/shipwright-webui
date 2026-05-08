@@ -144,19 +144,34 @@ function collapseSpan(span: string): string {
   }
   if (matches.length < 2) return span;
 
+  // Per external code review (openai high) — preserve any non-boilerplate
+  // content BETWEEN matched bursts (e.g. user output a command between
+  // pty respawns). Walk the span piece-by-piece: keep inter-match
+  // content; replace each burst with empty EXCEPT the last (which we
+  // keep, prefixed with the collapse marker indicating how many earlier
+  // bursts were collapsed).
   const earlierCount = matches.length - 1;
   const collapseMarker =
     `\r\n\x1b[2m── ${earlierCount} earlier banner${earlierCount === 1 ? "" : "s"} collapsed ──\x1b[m\r\n`;
-  const last = matches[matches.length - 1];
-  const first = matches[0];
 
-  // pre-burst content + collapse marker + LAST burst + post-burst content
-  return (
-    span.slice(0, first.index) +
-    collapseMarker +
-    span.slice(last.index, last.index + last[0].length) +
-    span.slice(last.index + last[0].length)
-  );
+  let result = "";
+  let cursor = 0;
+  for (let i = 0; i < matches.length; i++) {
+    const match = matches[i];
+    const isLast = i === matches.length - 1;
+    // Always keep content from cursor to start of this match (preserves
+    // user output between bursts).
+    result += span.slice(cursor, match.index);
+    if (isLast) {
+      // Marker BEFORE the last burst, then the last burst itself.
+      result += collapseMarker + match[0];
+    }
+    // Earlier bursts: replaced with empty string (collapsed).
+    cursor = match.index + match[0].length;
+  }
+  // Tail after the last match.
+  result += span.slice(cursor);
+  return result;
 }
 
 export function collapsePowerShellBoilerplate(raw: string): string {

@@ -226,6 +226,16 @@ export function createExternalRoutes(args: {
     scrollbackClearBestEffort,
     ptyManager,
   } = args;
+  // iterate-2026-05-08 v0.8.7 AC-1 — runtime guard (per external code
+  // review openai medium): TypeScript-only requirement is bypassable in
+  // plain JS or via type-erased callsites. Validate the contract at
+  // construction time so the failure surfaces here, not at the first
+  // transcript-poll N requests later.
+  if (!ptyManager || typeof ptyManager.get !== "function") {
+    throw new Error(
+      "createExternalRoutes: required arg `ptyManager` is missing or invalid (must expose `get(taskId)`)",
+    );
+  }
   const profileResolver =
     injectedLoadProfile ??
     ((name: string) => loadProfile(name, getProfilesDir()) as PreviewProfile | null);
