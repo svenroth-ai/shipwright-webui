@@ -26,6 +26,13 @@ export interface ClaudeCliDiagnostic {
   pathSample: string[];
   /** Curated fallback paths the resolver checked when PATH lookup was empty. */
   checkedFallbacks: string[];
+  /**
+   * iterate-2026-05-08 v0.8.8 external-review fix (openai medium #2) —
+   * surface the SHIPWRIGHT_CLAUDE_BIN env override status so the
+   * operator can spot a typo'd override instantly. `null` = unset;
+   * otherwise the resolved path + an `(exists)` / `(missing)` annotation.
+   */
+  envOverride: string | null;
 }
 
 export interface DiagnosticsSnapshot {
@@ -106,7 +113,11 @@ function buildClaudeCliDiagnostic(): ClaudeCliDiagnostic {
   // sees "this one exists but PATH lookup didn't find it" vs "none of
   // the curated paths exist".
   const annotated = checkedFallbacks.map((p) => `${p} (${existsSync(p) ? "exists" : "missing"})`);
-  return { whereOutput, pathSample, checkedFallbacks: annotated };
+  const overrideRaw = process.env.SHIPWRIGHT_CLAUDE_BIN?.trim();
+  const envOverride = overrideRaw
+    ? `${overrideRaw} (${existsSync(overrideRaw) ? "exists" : "missing"})`
+    : null;
+  return { whereOutput, pathSample, checkedFallbacks: annotated, envOverride };
 }
 
 export function createDiagnosticsRoutes(args: {

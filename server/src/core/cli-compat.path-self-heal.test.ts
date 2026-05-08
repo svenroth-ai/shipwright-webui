@@ -98,4 +98,38 @@ describe("AC-3 — boot-time PATH self-heal for claude bin's parent dir", () => 
     expect(result.augmented).toBe(true);
     expect(env.PATH).toBe("/home/test/.local/bin");
   });
+
+  it("Windows: updates env.Path (not PATH) when only `Path` key exists (external review fix — openai medium)", () => {
+    // node-pty / many spawners on Windows expose the path variable as
+    // `Path` (mixed-case). If we always wrote to `env.PATH`, the
+    // existing `Path` value would shadow ours and child processes
+    // would inherit the un-augmented PATH. Detect existing key
+    // case-insensitively and update IT.
+    const env: Record<string, string | undefined> = {
+      Path: "C:\\Windows\\System32;C:\\Other",
+    };
+    const result = selfHealClaudePath({
+      bin: "C:\\Users\\Test\\.local\\bin\\claude.exe",
+      env,
+      platform: "win32",
+    });
+    expect(result.augmented).toBe(true);
+    // The Path key got updated, NOT a new PATH key.
+    expect(env.Path?.startsWith("C:\\Users\\Test\\.local\\bin;")).toBe(true);
+    expect(env.PATH).toBeUndefined();
+  });
+
+  it("Windows: idempotent against `Path` key already containing parent dir (case-insensitive)", () => {
+    const env: Record<string, string | undefined> = {
+      Path: "C:\\Windows\\System32;c:\\users\\test\\.LOCAL\\BIN\\;C:\\Other",
+    };
+    const before = env.Path;
+    const result = selfHealClaudePath({
+      bin: "C:\\Users\\Test\\.local\\bin\\claude.exe",
+      env,
+      platform: "win32",
+    });
+    expect(result.augmented).toBe(false);
+    expect(env.Path).toBe(before);
+  });
 });
