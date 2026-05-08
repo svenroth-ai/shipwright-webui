@@ -84,6 +84,7 @@ async function makeContext(args: { configReader?: RunConfigReadResult } = {}) {
       getKnownProjectIds: () => new Set([PROJECT.id]),
       getProjectById: (id) => (id === PROJECT.id ? PROJECT : undefined),
       readRunConfig: async () => reader,
+      ptyManager: { get: () => undefined },
     }),
   );
   return { app, store };
