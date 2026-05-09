@@ -1,0 +1,1 @@
+`server/src/test/no-cross-package-imports.test.ts` — comment-aware regex drift-guard rejecting `from "../../../client/..."` static imports (any depth, any intermediate path), dynamic `import(...)`, and multi-line `import \n from` splits. 8 vitest cases including 7 sanity sub-tests. Companion to existing `server/src/types/action-schema-sync.test.ts` content-parity test.

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import * as fs from "fs";
-import type { Project } from "../../../client/src/types/project.js";
+import type { Project } from "../types/project.js";
 import { AppError } from "../middleware/error-handler.js";
 // Plan D'' Sub-iterate 3: bridge/config-reader is deleted. `mode` is no
 // longer server-derived; the client treats `undefined` as "standalone"
