@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { GlobalSettings } from "../../../client/src/types/settings.js";
+import type { GlobalSettings } from "../types/settings.js";
 
 export interface SettingsDeps {
   readFile: (path: string, encoding: string) => Promise<string>;
