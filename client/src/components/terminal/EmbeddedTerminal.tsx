@@ -273,16 +273,43 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         replayBufferRef.current = [];
       },
       onReplayEnd: () => {
-        // Iterate v0.8.6 follow-up — after the chunked replay finishes
-        // painting the historical scrollback + the separator banner,
-        // scroll xterm to the bottom of the buffer so the live shell
-        // prompt is in view immediately. Without this, the viewport
-        // stays at the buffer top (where the historical command-echo
-        // landed) and the user has to scroll down manually to find
-        // the live prompt below the "── Shipwright: scrollback
-        // restored from disk; live shell below ──" separator.
+        // Iterate v0.8.6 follow-up — scroll xterm to the bottom of the
+        // buffer so the visible viewport is positioned at the active
+        // area (vs. floating somewhere in scrollback).
+        //
+        // Iterate v0.8.9 (this iterate) — push the replayed content out
+        // of xterm's ACTIVE AREA into the scrollback ABOVE before the
+        // live shell starts writing. v0.8.6 alone left the replay (incl.
+        // separator banner) sitting in the active area; the cursor parked
+        // at row N+1 of replay; live shell content (PowerShell + Claude
+        // TUI) wrote from cursor → ended up at the BOTTOM of the visible
+        // viewport with replay/empty rows above. Compounded by TERM=dumb
+        // (set in server/src/terminal/routes.ts createNodePtySpawnFn for
+        // the chalk brand-color hack) which suppresses ConPTY's own
+        // \x1b[2J\x1b[H startup emit, so nothing else clears the active
+        // area for the live shell either.
+        //
+        // Writing `term.rows` × \r\n advances the cursor past the bottom
+        // of the active area; each \n at the bottom row triggers a
+        // scroll-up that moves the topmost active row into scrollback.
+        // After `rows` newlines the entire active area is blank and the
+        // replayed content is in scrollback. Then \x1b[H homes the
+        // cursor at (0,0) of the now-empty active area; the live shell
+        // renders from there — TOP of the viewport.
+        //
+        // Replay history remains accessible by scrolling up. Marker
+        // counting still works: replayBufferRef.current was populated
+        // BEFORE these writes (during onData → inReplayRef gate), and
+        // the buffer-scan fallback safely returns 0 since the active
+        // area is now blank — Math.max() picks the higher count from
+        // the accumulator.
+        const term = termRef.current;
         try {
-          termRef.current?.scrollToBottom();
+          if (term) {
+            term.write("\r\n".repeat(term.rows));
+            term.write("\x1b[H");
+            term.scrollToBottom();
+          }
         } catch {
           /* xterm may be mid-dispose; ignore */
         }

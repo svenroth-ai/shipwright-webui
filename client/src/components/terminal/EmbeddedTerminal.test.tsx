@@ -462,6 +462,45 @@ describe("<EmbeddedTerminal>", () => {
     expect(scrollToBottomSpy).toHaveBeenCalledTimes(1);
   });
 
+  // iterate-2026-05-09 v0.8.9 — replay-pushdown so live shell renders at
+  // the top of the visible viewport.
+  //
+  // Bug fixed: after replay_end the historical scrollback (incl. separator
+  // banner) sat in xterm's ACTIVE AREA. Cursor parked at row N+1 (end of
+  // replay). Live shell content (PowerShell + Claude TUI) wrote from
+  // cursor → rendered BELOW replay → viewport showed replay at top, live
+  // shell at the bottom. Compounded by TERM=dumb (set in
+  // server/src/terminal/routes.ts createNodePtySpawnFn for the chalk
+  // brand-color hack) which suppresses ConPTY's own \x1b[2J\x1b[H startup
+  // emit, so nothing else clears the active area for the live shell.
+  //
+  // Fix: after replay_end push `term.rows` worth of \r\n into xterm so
+  // the entire replayed content scrolls out of the active area into the
+  // scrollback above, then write \x1b[H to home the cursor on the now-
+  // empty active area. Live shell then renders from row 0 of the
+  // viewport. Replay history stays accessible by scrolling up.
+  it("after replay_end pushes replay into scrollback and homes the cursor (so live shell renders at viewport top)", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
+      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "history" }));
+      ws.__message(JSON.stringify({ type: "replay_end" }));
+    });
+    const calls = writeSpy.mock.calls.map((c) => c[0]);
+    // Mock Terminal exposes rows=30 (see vi.mock above).
+    expect(calls).toContain("\r\n".repeat(30));
+    expect(calls).toContain("\x1b[H");
+    // Order matters: pushdown first (advances cursor past active-area
+    // bottom — scrolls replay into scrollback), THEN cursor-home so the
+    // live shell starts at row 0 of the now-empty active area.
+    const pushIdx = calls.lastIndexOf("\r\n".repeat(30));
+    const homeIdx = calls.lastIndexOf("\x1b[H");
+    expect(pushIdx).toBeGreaterThanOrEqual(0);
+    expect(homeIdx).toBeGreaterThan(pushIdx);
+  });
+
   it("surfaces gitignoreSuggestion=true via onGitignoreSuggestion callback", async () => {
     const fetchMock = vi.fn(async () => ({
       ok: true,
