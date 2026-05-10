@@ -1,1 +1,0 @@
-Hono backend now binds to 127.0.0.1 (loopback) by default. Set HONO_HOST=true (or <host|ip>) to bind on a non-loopback interface for direct API access. This is a breaking change vs. <=v0.8.3 implicit `::` bind; the typical Vite-proxy-to-localhost workflow is unaffected.

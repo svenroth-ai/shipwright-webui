@@ -1,1 +1,0 @@
-Server `npm run build` now exits 0 — retired the 4 documented tsc baseline errors (cross-package type imports + missing `@types/proper-lockfile`) so `scripts/install-windows.ps1` step [3/4] runs clean. Shared shapes now mirrored under `server/src/types/`; comment-aware drift-guard test prevents regression. ADR-080.

@@ -1,1 +1,0 @@
-Embedded terminal canvas now has 8px outer padding (`p-2 rounded-md`) so it no longer hugs the tab-panel edge; privacy disclosure footer inset to `bottom-2 left-2 right-2 rounded-md border` to match. xterm's `FitAddon` resizes to the padded inner box automatically.
