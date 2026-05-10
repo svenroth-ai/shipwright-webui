@@ -20,6 +20,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { serve } from "@hono/node-server";
 import fs from "fs";
 import { readFile, writeFile } from "fs/promises";
+import { execSync } from "node:child_process";
 import * as lockfile from "proper-lockfile";
 
 import { getConfig } from "./config.js";
@@ -68,7 +69,15 @@ export const app = new Hono();
 // loopback-only — and stricter than the prior `origin.includes("localhost")`
 // substring check, which would have matched
 // `http://evil-localhost-attack.com`.
-const corsOriginPolicy = resolveTrustedOrigins(process.env);
+//
+// ADR-083 — pass tailscaleExec so SHIPWRIGHT_NETWORK_PROFILE=tailscale
+// drives the policy too (loopback + tailscale-IP + *.ts.net allowed).
+const tailscaleExecForOrigin = (cmd: string, opts?: object) =>
+  String(execSync(cmd, opts as Parameters<typeof execSync>[1]));
+const corsOriginPolicy = resolveTrustedOrigins(
+  process.env,
+  tailscaleExecForOrigin,
+);
 app.use(
   "*",
   cors({

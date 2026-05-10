@@ -183,3 +183,161 @@ describe("resolveTrustedOrigins — explicit allowlist (mode='allowlist')", () =
     ).toBe("loopback");
   });
 });
+
+// ============================================================================
+// ADR-083 — SHIPWRIGHT_NETWORK_PROFILE drives the Origin policy
+// ============================================================================
+
+import { vi } from "vitest";
+
+const fakeTailscaleExec = (ip = "100.105.29.88") => vi.fn(() => `${ip}\n`);
+
+describe("resolveTrustedOrigins — SHIPWRIGHT_NETWORK_PROFILE=tailscale", () => {
+  const policy = resolveTrustedOrigins(
+    { SHIPWRIGHT_NETWORK_PROFILE: "tailscale" },
+    fakeTailscaleExec("100.105.29.88"),
+  );
+
+  it("mode is 'profile-tailscale'", () => {
+    expect(policy.mode).toBe("profile-tailscale");
+  });
+
+  it("accepts the resolved Tailscale-IPv4 Origin", () => {
+    expect(policy.isAllowed("http://100.105.29.88:5173")).toBe(true);
+  });
+
+  it("accepts a MagicDNS hostname Origin (the failure that motivated this fix)", () => {
+    expect(
+      policy.isAllowed("http://pc-dinovo-002.tail4353f0.ts.net:5173"),
+    ).toBe(true);
+  });
+
+  it("accepts any *.ts.net subdomain (Tailscale MagicDNS namespace)", () => {
+    expect(policy.isAllowed("http://phone.tail4353f0.ts.net:5173")).toBe(true);
+    expect(policy.isAllowed("https://laptop.tail123abc.ts.net")).toBe(true);
+  });
+
+  it("accepts loopback Origin so localhost still works from dev machine", () => {
+    expect(policy.isAllowed("http://localhost:5173")).toBe(true);
+    expect(policy.isAllowed("http://127.0.0.1:5173")).toBe(true);
+  });
+
+  it("rejects a LAN-IP Origin not on the Tailscale interface", () => {
+    expect(policy.isAllowed("http://192.168.1.50:5173")).toBe(false);
+  });
+
+  it("rejects a different Tailscale-IP than the resolved one", () => {
+    expect(policy.isAllowed("http://100.42.42.42:5173")).toBe(false);
+  });
+
+  it("rejects an unrelated hostname", () => {
+    expect(policy.isAllowed("http://evil.example.com")).toBe(false);
+  });
+
+  it("rejects substring lookalike (ts.net.evil.com)", () => {
+    expect(policy.isAllowed("http://attacker.ts.net.evil.com")).toBe(false);
+  });
+
+  it("rejects empty / null Origin (curl-style)", () => {
+    expect(policy.isAllowed(null)).toBe(false);
+    expect(policy.isAllowed("")).toBe(false);
+  });
+
+  it("rejects garbage Origin strings", () => {
+    expect(policy.isAllowed("not-a-url")).toBe(false);
+  });
+
+  it("describe() mentions tailscale-IP + *.ts.net", () => {
+    expect(policy.describe()).toMatch(/tailscale/);
+    expect(policy.describe()).toMatch(/100\.105\.29\.88/);
+    expect(policy.describe()).toMatch(/ts\.net/);
+  });
+});
+
+describe("resolveTrustedOrigins — SHIPWRIGHT_NETWORK_PROFILE=local", () => {
+  const policy = resolveTrustedOrigins(
+    { SHIPWRIGHT_NETWORK_PROFILE: "local" },
+    fakeTailscaleExec(),
+  );
+
+  it("mode falls through to 'loopback' (same as default)", () => {
+    expect(policy.mode).toBe("loopback");
+  });
+
+  it("accepts loopback", () => {
+    expect(policy.isAllowed("http://localhost:5173")).toBe(true);
+  });
+
+  it("rejects tailscale-IP origins", () => {
+    expect(policy.isAllowed("http://100.105.29.88:5173")).toBe(false);
+  });
+
+  it("rejects MagicDNS origins", () => {
+    expect(
+      policy.isAllowed("http://pc-dinovo-002.tail4353f0.ts.net:5173"),
+    ).toBe(false);
+  });
+});
+
+describe("resolveTrustedOrigins — SHIPWRIGHT_NETWORK_PROFILE=open", () => {
+  const policy = resolveTrustedOrigins(
+    { SHIPWRIGHT_NETWORK_PROFILE: "open" },
+    fakeTailscaleExec(),
+  );
+
+  it("mode is 'any'", () => {
+    expect(policy.mode).toBe("any");
+  });
+
+  it("accepts any non-empty Origin (including LAN IPs)", () => {
+    expect(policy.isAllowed("http://192.168.1.50:5173")).toBe(true);
+    expect(policy.isAllowed("http://localhost:5173")).toBe(true);
+    expect(policy.isAllowed("http://pc-dinovo-002.tail4353f0.ts.net:5173")).toBe(true);
+  });
+
+  it("still rejects null / empty Origin (curl-style)", () => {
+    expect(policy.isAllowed(null)).toBe(false);
+    expect(policy.isAllowed("")).toBe(false);
+  });
+});
+
+describe("resolveTrustedOrigins — precedence: explicit env wins over profile", () => {
+  it("WEBUI_TRUSTED_ORIGINS wins over SHIPWRIGHT_NETWORK_PROFILE=tailscale", () => {
+    const policy = resolveTrustedOrigins(
+      {
+        WEBUI_TRUSTED_ORIGINS: "http://only-this.example.com",
+        SHIPWRIGHT_NETWORK_PROFILE: "tailscale",
+      },
+      fakeTailscaleExec(),
+    );
+    expect(policy.mode).toBe("allowlist");
+    expect(policy.isAllowed("http://only-this.example.com")).toBe(true);
+    expect(policy.isAllowed("http://100.105.29.88:5173")).toBe(false);
+  });
+
+  it("HONO_HOST wins over SHIPWRIGHT_NETWORK_PROFILE=tailscale", () => {
+    const policy = resolveTrustedOrigins(
+      {
+        HONO_HOST: "0.0.0.0",
+        SHIPWRIGHT_NETWORK_PROFILE: "tailscale",
+      },
+      fakeTailscaleExec(),
+    );
+    expect(policy.mode).toBe("any");
+  });
+
+  it("without exec, profile is ignored (fall through to default loopback)", () => {
+    const policy = resolveTrustedOrigins({
+      SHIPWRIGHT_NETWORK_PROFILE: "tailscale",
+    });
+    expect(policy.mode).toBe("loopback");
+  });
+
+  it("invalid profile does NOT crash the resolver (falls through to default)", () => {
+    const policy = resolveTrustedOrigins(
+      { SHIPWRIGHT_NETWORK_PROFILE: "everywhere" },
+      fakeTailscaleExec(),
+    );
+    expect(policy.mode).toBe("loopback");
+  });
+});
