@@ -1,5 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { resolveHonoHost } from "./resolveHonoHost.js";
+
+const fakeTailscaleExec = (ip = "100.64.0.1") => vi.fn(() => `${ip}\n`);
 
 describe("resolveHonoHost", () => {
   it("returns 127.0.0.1 when HONO_HOST is unset (loopback-only safe default)", () => {
@@ -35,5 +37,67 @@ describe("resolveHonoHost", () => {
   it("trims surrounding whitespace from HONO_HOST", () => {
     expect(resolveHonoHost({ HONO_HOST: "  true  " })).toBe("::");
     expect(resolveHonoHost({ HONO_HOST: "  127.0.0.1  " })).toBe("127.0.0.1");
+  });
+
+  // === Network profile fallback (ADR-08X) ===
+
+  it("whitespace-only HONO_HOST treated as unset (falls through to profile/default)", () => {
+    expect(
+      resolveHonoHost(
+        {
+          HONO_HOST: "   ",
+          SHIPWRIGHT_NETWORK_PROFILE: "open",
+        },
+        fakeTailscaleExec(),
+      ),
+    ).toBe("0.0.0.0");
+  });
+
+  it("explicit HONO_HOST overrides SHIPWRIGHT_NETWORK_PROFILE (backward compat)", () => {
+    expect(
+      resolveHonoHost(
+        {
+          HONO_HOST: "127.0.0.1",
+          SHIPWRIGHT_NETWORK_PROFILE: "tailscale",
+        },
+        fakeTailscaleExec(),
+      ),
+    ).toBe("127.0.0.1");
+  });
+
+  it("SHIPWRIGHT_NETWORK_PROFILE=local → 127.0.0.1", () => {
+    expect(
+      resolveHonoHost(
+        { SHIPWRIGHT_NETWORK_PROFILE: "local" },
+        fakeTailscaleExec(),
+      ),
+    ).toBe("127.0.0.1");
+  });
+
+  it("SHIPWRIGHT_NETWORK_PROFILE=tailscale → resolved IP", () => {
+    expect(
+      resolveHonoHost(
+        { SHIPWRIGHT_NETWORK_PROFILE: "tailscale" },
+        fakeTailscaleExec("100.105.29.88"),
+      ),
+    ).toBe("100.105.29.88");
+  });
+
+  it("SHIPWRIGHT_NETWORK_PROFILE=open → 0.0.0.0", () => {
+    expect(
+      resolveHonoHost(
+        { SHIPWRIGHT_NETWORK_PROFILE: "open" },
+        fakeTailscaleExec(),
+      ),
+    ).toBe("0.0.0.0");
+  });
+
+  it("invalid SHIPWRIGHT_NETWORK_PROFILE throws", () => {
+    expect(() =>
+      resolveHonoHost(
+        { SHIPWRIGHT_NETWORK_PROFILE: "everywhere" },
+        fakeTailscaleExec(),
+      ),
+    ).toThrow();
   });
 });

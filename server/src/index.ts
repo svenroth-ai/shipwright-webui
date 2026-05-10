@@ -547,6 +547,29 @@ if (isMainModule) {
       // (`::`); HONO_HOST=<addr> binds that interface. See resolveHonoHost.ts
       // and docs/guide.md §9.1 for the full contract.
       const honoHost = resolveHonoHost(process.env);
+      // ADR-08X exposure warning. Two paths (mirrors vite.config.ts):
+      //   1. SHIPWRIGHT_NETWORK_PROFILE=open — emits exact AC-3 wording.
+      //   2. Explicit HONO_HOST=true/0.0.0.0/:: with profile NOT set —
+      //      legacy-escape-hatch warning (OpenAI iterate review #9).
+      const explicitProfileOpen =
+        process.env.SHIPWRIGHT_NETWORK_PROFILE?.trim() === "open";
+      const explicitWildcardBind =
+        honoHost === "0.0.0.0" || honoHost === "::" || honoHost === "true";
+      if (explicitProfileOpen) {
+        console.warn(
+          "[network-profile] WARNING: profile=open — server is exposed on " +
+            "every interface; use only on trusted networks",
+        );
+      } else if (explicitWildcardBind) {
+        console.warn(
+          `[network-profile] WARNING: Hono server is binding to all ` +
+            `interfaces (${honoHost}) via explicit HONO_HOST — exposed to ` +
+            `every reachable network. Use only on trusted networks ` +
+            `(home/office). Consider switching to ` +
+            `SHIPWRIGHT_NETWORK_PROFILE=tailscale in .env.local when on ` +
+            `untrusted Wi-Fi.`,
+        );
+      }
       const server = serve(
         { fetch: app.fetch, port: config.port, hostname: honoHost },
         (info) => {
