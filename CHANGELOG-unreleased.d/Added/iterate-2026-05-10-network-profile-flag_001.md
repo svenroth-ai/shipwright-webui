@@ -1,0 +1,1 @@
+`SHIPWRIGHT_NETWORK_PROFILE` env-flag (`local` | `tailscale` | `open`) — switches both Vite + Hono dev-server bind in one place via `.env.local`. Tailscale auto-detect via `tailscale ip -4` (2s timeout, env-override fallback). Profile=open emits AC-3-exact security warning at startup. ADR-081.

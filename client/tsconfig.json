@@ -18,5 +18,13 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "src/lib/resolveTailscaleIp.ts",
+    "src/lib/resolveTailscaleIp.test.ts",
+    "src/lib/resolveNetworkProfile.ts",
+    "src/lib/resolveNetworkProfile.test.ts",
+    "src/lib/resolveProxyTarget.ts",
+    "src/lib/resolveProxyTarget.test.ts"
+  ]
 }

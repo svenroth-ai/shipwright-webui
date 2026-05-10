@@ -10,9 +10,32 @@
 // `HONO_HOST=true` => "::" so dual-stack accept hits both IPv4 and IPv6
 // callers without an explicit second bind — same trick Vite plays with
 // `host: true`.
-export function resolveHonoHost(env: Record<string, string | undefined>): string {
+//
+// SHIPWRIGHT_NETWORK_PROFILE precedence (ADR-08X):
+//   1. Explicit HONO_HOST (trimmed non-empty) wins. Backward-compatible.
+//   2. Else SHIPWRIGHT_NETWORK_PROFILE drives the bind via
+//      resolveNetworkProfile (local / tailscale / open).
+//   3. Else 127.0.0.1 (existing default).
+
+import { execSync } from "node:child_process";
+import { resolveNetworkProfile } from "./resolveNetworkProfile.js";
+import type { TailscaleIpExec } from "./resolveTailscaleIp.js";
+
+const defaultExec: TailscaleIpExec = (cmd, opts) =>
+  String(execSync(cmd, opts as Parameters<typeof execSync>[1]));
+
+export function resolveHonoHost(
+  env: Record<string, string | undefined>,
+  exec: TailscaleIpExec = defaultExec,
+): string {
   const raw = env.HONO_HOST?.trim();
-  if (!raw) return "127.0.0.1";
-  if (raw === "true" || raw === "1") return "::";
-  return raw;
+  if (raw) {
+    if (raw === "true" || raw === "1") return "::";
+    return raw;
+  }
+
+  const profile = resolveNetworkProfile(env, exec);
+  if (profile) return profile.host;
+
+  return "127.0.0.1";
 }
