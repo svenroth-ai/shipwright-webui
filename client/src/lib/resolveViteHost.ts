@@ -59,6 +59,17 @@ export function resolveViteHost(
   if (profile.profile === 'open') {
     return { host: '0.0.0.0', allowedHosts: true };
   }
-  // tailscale
-  return { host: profile.host, allowedHosts: [profile.host] };
+  // tailscale: bind to the resolved IPv4 + accept that IP AND any
+  // MagicDNS hostname under `.ts.net` (Tailscale's DNS namespace).
+  // Users typically access via the MagicDNS name (e.g.
+  // `pc-dinovo-002.tail<id>.ts.net`) rather than the raw IP — without
+  // the wildcard Vite 6 returns "Blocked request. This host is not
+  // allowed." even though the request came from a peer authenticated
+  // on the Tailscale mesh. The `.ts.net` allow is scoped narrowly
+  // enough: reaching the bound port already requires Tailscale auth,
+  // so the host-header surface is intra-mesh only.
+  return {
+    host: profile.host,
+    allowedHosts: [profile.host, '.ts.net'],
+  };
 }
