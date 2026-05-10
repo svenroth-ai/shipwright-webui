@@ -1,1 +1,0 @@
-Embedded terminal: text/cursor now sits 8px inset from the dark canvas edge (single-layer `bg-[#1a1a1a] rounded-md p-2` wrapper instead of v0.8.3's outer-ring-only padding). Conditional banners (read-only / replay-only / about-to-run) span full wrapper width as a header strip on the dark frame.

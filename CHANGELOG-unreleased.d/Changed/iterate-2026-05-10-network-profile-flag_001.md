@@ -1,1 +1,0 @@
-Vite `/api` proxy target now follows the resolved Hono bind (was hardcoded `localhost:3847`) — closes ECONNREFUSED gap when Hono binds non-loopback under `tailscale` profile. Proxy uses 127.0.0.1 even when bind is 0.0.0.0 (wildcard not routable as HTTP destination).

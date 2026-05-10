@@ -1,1 +1,0 @@
-Removed the "Terminal" header CTA on `awaiting_external_start` / `active` tasks. The button only flipped to the inline Terminal Tabs.Trigger that already lives inside the page — duplicate UX. Header CTA matrix is now: `draft` → Launch, `idle` → Resume, all other states → no primary CTA (status badge only).

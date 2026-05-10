@@ -1,1 +1,0 @@
-Privacy disclosure footer copy now mentions Claude Code's TUI image-paste path (`~/.claude/image-cache/<sessionId>/`) so users understand the path-of-record split between WebUI's shell-prompt path (`<task.cwd>/.shipwright-webui/pastes/`) and Claude Code's own clipboard pipeline. Long-form documentation in `.shipwright/agent_docs/known_issues.md` § "Image-paste path-of-record".
