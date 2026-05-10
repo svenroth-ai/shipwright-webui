@@ -12,7 +12,7 @@
  * for direct HTTP calls if the frontend ever moves off loopback.
  *
  * This helper resolves a single coherent policy consumed by both
- * gates, with three modes layered safest-default-first:
+ * gates, with four modes layered safest-default-first:
  *
  *   1. Explicit allowlist via `WEBUI_TRUSTED_ORIGINS=<comma-separated>` —
  *      narrowest match, takes precedence. Each entry compared as a
@@ -24,7 +24,24 @@
  *      the resulting tailnet/LAN is the consistent posture. Anonymous /
  *      missing Origin is still rejected (curl / scripted callers fall
  *      outside the browser CORS contract).
- *   3. Default — loopback-only (`localhost` / `127.0.0.1` / `::1`).
+ *   3. `SHIPWRIGHT_NETWORK_PROFILE` (ADR-081) drives a profile-aware
+ *      allowlist (added by ADR-083 — Origin-Gate follow-up to make the
+ *      tailscale profile end-to-end functional, terminal + CORS
+ *      included):
+ *        - `local`     → loopback-only (same shape as default)
+ *        - `tailscale` → loopback + resolved Tailscale-IPv4 +
+ *                        `*.ts.net` (Tailscale MagicDNS namespace).
+ *                        Mirrors Vite's allowedHosts policy so the
+ *                        embedded terminal + paste-image + WS replay
+ *                        all work via MagicDNS without manual
+ *                        `WEBUI_TRUSTED_ORIGINS` config.
+ *        - `open`      → any non-empty Origin (same shape as HONO_HOST
+ *                        opt-in; explicit operator opt-in to bind on
+ *                        every interface).
+ *      Only consulted when an `exec` is supplied so unit tests that
+ *      don't care about the profile path can still call the function
+ *      with no second argument.
+ *   4. Default — loopback-only (`localhost` / `127.0.0.1` / `::1`).
  *      Identical to the pre-iterate behaviour; safe in untrusted Wi-Fi.
  *
  * The helper returns an opaque policy object so the caller does not
@@ -32,7 +49,14 @@
  * `describe()` returns a single-line human summary for the boot log.
  */
 
-export type TrustedOriginMode = "loopback" | "any" | "allowlist";
+import { resolveNetworkProfile } from "./resolveNetworkProfile.js";
+import type { TailscaleIpExec } from "./resolveTailscaleIp.js";
+
+export type TrustedOriginMode =
+  | "loopback"
+  | "any"
+  | "allowlist"
+  | "profile-tailscale";
 
 export interface TrustedOriginPolicy {
   mode: TrustedOriginMode;
@@ -57,6 +81,7 @@ function isLoopbackOrigin(origin: string): boolean {
 
 export function resolveTrustedOrigins(
   env: Record<string, string | undefined>,
+  exec?: TailscaleIpExec,
 ): TrustedOriginPolicy {
   // (1) Explicit allowlist — narrowest, takes precedence.
   const rawList = env.WEBUI_TRUSTED_ORIGINS?.trim();
@@ -91,11 +116,60 @@ export function resolveTrustedOrigins(
     };
   }
 
-  // (3) Safe default — loopback-only.
+  // (3) SHIPWRIGHT_NETWORK_PROFILE — profile-aware allowlist (ADR-083).
+  //     Only consulted when an `exec` is supplied; tests without
+  //     subprocess access fall through to the default loopback-only.
+  if (exec) {
+    let profile;
+    try {
+      profile = resolveNetworkProfile(env, exec);
+    } catch {
+      // Invalid profile value already throws at boot via resolveHonoHost;
+      // here we don't want to crash the policy resolver in addition.
+      profile = undefined;
+    }
+    if (profile) {
+      if (profile.profile === "open") {
+        return {
+          mode: "any",
+          isAllowed: (origin) => Boolean(origin && origin.length > 0),
+          describe: () =>
+            `SHIPWRIGHT_NETWORK_PROFILE=open → any non-empty Origin accepted`,
+        };
+      }
+      if (profile.profile === "tailscale") {
+        const tailscaleIp = profile.host;
+        return {
+          mode: "profile-tailscale",
+          isAllowed: (origin) => {
+            if (!origin) return false;
+            try {
+              const u = new URL(origin);
+              if (LOOPBACK_HOSTS.has(u.hostname)) return true;
+              if (u.hostname === tailscaleIp) return true;
+              // Tailscale MagicDNS namespace — any *.ts.net hostname.
+              // Reaching the bound port already requires Tailscale-mesh
+              // auth so the host-header surface is intra-mesh only;
+              // same scoping argument as Vite allowedHosts.
+              if (u.hostname.endsWith(".ts.net")) return true;
+              return false;
+            } catch {
+              return false;
+            }
+          },
+          describe: () =>
+            `SHIPWRIGHT_NETWORK_PROFILE=tailscale → loopback + ${tailscaleIp} + *.ts.net accepted`,
+        };
+      }
+      // profile === 'local' → fall through to default loopback (same shape).
+    }
+  }
+
+  // (4) Safe default — loopback-only.
   return {
     mode: "loopback",
     isAllowed: (origin) => Boolean(origin) && isLoopbackOrigin(origin as string),
     describe: () =>
-      "loopback-only (localhost / 127.0.0.1 / ::1) — set HONO_HOST or WEBUI_TRUSTED_ORIGINS to widen",
+      "loopback-only (localhost / 127.0.0.1 / ::1) — set HONO_HOST, WEBUI_TRUSTED_ORIGINS, or SHIPWRIGHT_NETWORK_PROFILE to widen",
   };
 }
