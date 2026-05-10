@@ -87,9 +87,13 @@ describe('resolveViteHost', () => {
     ).toBeUndefined();
   });
 
-  it('profile=tailscale → host=<ip>, allowedHosts=[<ip>] (narrow, NOT true)', () => {
-    // External review (Gemini #3 + OpenAI #2 HIGH): for tailscale
-    // profile, allowedHosts must be a narrow allowlist, not `true`.
+  it('profile=tailscale → host=<ip>, allowedHosts=[<ip>, ".ts.net"] (IP + MagicDNS namespace)', () => {
+    // External review (Gemini #3 + OpenAI #2 HIGH on ADR-081): for
+    // tailscale profile, allowedHosts is a narrow allowlist, NOT
+    // `true`. Includes (a) the resolved IPv4 (numeric access) AND
+    // (b) the Tailscale MagicDNS namespace `.ts.net` wildcard so
+    // users hitting `<host>.tail<id>.ts.net` (the typical workflow)
+    // also pass Vite's host-header check.
     expect(
       resolveViteHost(
         { SHIPWRIGHT_NETWORK_PROFILE: 'tailscale' },
@@ -97,7 +101,7 @@ describe('resolveViteHost', () => {
       ),
     ).toEqual({
       host: '100.64.0.1',
-      allowedHosts: ['100.64.0.1'],
+      allowedHosts: ['100.64.0.1', '.ts.net'],
     });
   });
 

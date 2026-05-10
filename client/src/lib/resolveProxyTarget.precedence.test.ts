@@ -85,7 +85,7 @@ describe("env-merge precedence (.env.local vs process.env)", () => {
     );
     expect(resolveViteHost(env, fakeTailscaleExec("100.64.0.1"))).toEqual({
       host: "100.64.0.1",
-      allowedHosts: ["100.64.0.1"],
+      allowedHosts: ["100.64.0.1", ".ts.net"],
     });
   });
 
