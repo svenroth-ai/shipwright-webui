@@ -431,14 +431,69 @@ folder, or wire your own slash skills into the menu.
 |---|---|---|
 | `PORT` | `3847` | Backend port. The frontend reads this so `/api` calls hit the right backend. |
 | `VITE_PORT` | `5173` | Frontend port. Fails loud on collision (no silent half-start). |
-| `VITE_HOST` | _(unset)_ | Bind the Vite dev server to a non-loopback interface for multi-device access (Tailscale / LAN). `true` = `0.0.0.0` (all interfaces); `<hostname-or-ip>` = a specific interface. Unset = loopback only (default; safe in untrusted Wi-Fi). |
-| `HONO_HOST` | _(unset → loopback)_ | Bind the Hono backend to a non-loopback interface. `true` = `::` (dual-stack all interfaces); `<hostname-or-ip>` = a specific interface. Unset = `127.0.0.1` (default; safe). For the typical Tailscale-from-phone flow you do **not** need this — Vite proxies `/api` to `localhost:3847` locally, so leaving the backend on loopback is correct. Only set `HONO_HOST` if you want clients to call the backend directly (no Vite proxy). |
+| `SHIPWRIGHT_NETWORK_PROFILE` | _(unset → loopback)_ | **Recommended** for dev-server bind security. One flag steers BOTH Vite + Hono: `local` (only `127.0.0.1`, safe everywhere), `tailscale` (only the Tailscale IPv4, café-safe), `open` (all interfaces — startup warning emits; trusted networks only). Lowercase only. Read from `.env.local` since v0.9.x — see § 9.1.1 below. |
+| `SHIPWRIGHT_TAILSCALE_IP` | _(unset → auto-detect)_ | Override the Tailscale-IPv4 auto-detection that `SHIPWRIGHT_NETWORK_PROFILE=tailscale` runs via `tailscale ip -4` (2-second timeout). Set this when `tailscale` CLI isn't on PATH or the host has multiple Tailscale interfaces. |
+| `VITE_HOST` | _(unset)_ | **Legacy fine-grained override.** Bind the Vite dev server to a non-loopback interface. `true` = `0.0.0.0`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE` when set. Prefer the profile flag above for new setups. |
+| `HONO_HOST` | _(unset → loopback)_ | **Legacy fine-grained override.** Bind the Hono backend to a non-loopback interface. `true` = `::`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE`. For typical Tailscale-from-phone you do **not** need this — Vite proxies `/api` to `localhost:3847`. Only set `HONO_HOST` if clients call the backend directly. |
 | `WEBUI_TRUSTED_ORIGINS` | _(unset)_ | Comma-separated allowlist of `Origin` values the WS upgrade + HTTP CORS middleware accept. When unset, the policy follows `HONO_HOST`: loopback-only by default, "any non-empty Origin" when `HONO_HOST` is set. Use this to opt into multi-device access (e.g. `http://pc-dinovo-002.tail4353f0.ts.net:5173`) while keeping the gate narrow. Boot log prints the resolved policy. |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
 
 Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`.
+
+#### 9.1.1 `SHIPWRIGHT_NETWORK_PROFILE` — one flag, three modes (recommended)
+
+The simplest way to switch dev-server bind security per context. Edit
+`.env.local` at the repo root (copy from `.env.example` if you don't
+have one yet), pick a profile, restart both dev servers — done. Both
+halves read the same `.env.local` automatically (server via Node's
+`--env-file-if-exists`; client via Vite's `loadEnv` with
+`envDir: <repo-root>`).
+
+```env
+# .env.local — pick ONE
+SHIPWRIGHT_NETWORK_PROFILE=local        # loopback only — safe everywhere (default)
+SHIPWRIGHT_NETWORK_PROFILE=tailscale    # Tailscale interface only — café-safe + reachable
+SHIPWRIGHT_NETWORK_PROFILE=open         # all interfaces — TRUSTED networks only
+```
+
+**`local`** binds both Vite (`:5173`) and Hono (`:3847`) to `127.0.0.1`.
+Default behavior when the flag is unset. Only reachable from this host.
+
+**`tailscale`** runs `tailscale ip -4` (2-second timeout) and binds both
+halves to the resulting IPv4 (e.g. `100.105.29.88`). The Tailscale
+mesh is authenticated + encrypted — only your paired devices reach
+the address. The café / hotel WLAN interface is **not** exposed. If
+auto-detection fails (CLI missing, daemon offline, multiple
+interfaces), set `SHIPWRIGHT_TAILSCALE_IP=<your-ip>` explicitly. On
+the local machine, access via `http://<tailscale-ip>:5173/` —
+`localhost` won't work in this profile (intentional; you use the same
+URL everywhere).
+
+**`open`** binds both halves to `0.0.0.0`. ⚠️ **Only on trusted
+networks** (home / office). The startup logs print:
+
+```
+[network-profile] WARNING: profile=open — server is exposed on
+every interface; use only on trusted networks
+```
+
+The dev-server `/api` proxy follows the same bind decision: when
+Hono is on Tailscale-IP, Vite proxies there; otherwise loopback.
+
+**Precedence:** an explicit `VITE_HOST` / `HONO_HOST` (CLI prefix or
+shell-export) wins over the profile. Useful for one-shot overrides;
+for everyday use the profile flag in `.env.local` is enough.
+
+**Switching networks:** edit `.env.local`, kill both dev servers, run
+`npm run dev` again on each side. No shell environment to manage.
+
+##### Legacy: `VITE_HOST` / `HONO_HOST` direct opt-in
+
+The historical way to expose the dev server. Still supported (and
+documented below) for fine-grained control (e.g. bind to a specific
+LAN IP). For most users `SHIPWRIGHT_NETWORK_PROFILE` is enough.
 
 #### Reaching the dev server from another device (Tailscale / LAN)
 
