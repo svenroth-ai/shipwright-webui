@@ -25,6 +25,8 @@
 
 import path from "node:path";
 import type { ScrollbackStore } from "./scrollback-store.js";
+import { HeadlessMirror } from "./headless-mirror.js";
+import type { SnapshotStore } from "./snapshot-store.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -170,6 +172,17 @@ export function quotePathForShell(absPath: string, kind: ShellKind): string {
 interface PtyEntry {
   meta: PtyHandleMeta;
   pty: PtyHandleApi;
+  /**
+   * Iterate-2026-05-11 (ADR-088) — optional @xterm/headless mirror.
+   * Present when `headlessMirrorEnabled` was true at construction time.
+   * Lifetime mirrors the pty entry: created in spawn(), serialized to
+   * disk and disposed in cleanup() (via the snapshot-finalize path).
+   *
+   * Architecture invariant #1 from the plan-of-record: headless mirrors
+   * exist only for LIVE ptys. There is no in-memory mirror for
+   * idle/completed tasks — only the on-disk snapshot file.
+   */
+  mirror: HeadlessMirror | null;
   /** Module-level data subscribers (used by tests + observability). */
   dataSubs: Set<(data: string) => void>;
   /** Per-WS-connection subscribers (used by the routes WS bridge). */
@@ -251,6 +264,15 @@ export interface PtyManagerOpts {
   watchdogIntervalMs?: number;
   /** Time source override for tests. Defaults to Date.now. */
   now?: () => number;
+  /**
+   * Iterate-2026-05-11 (ADR-088) — wire the @xterm/headless mirror per
+   * live pty. Disk persistence is delegated to `snapshotStore.write()`
+   * on pty.kill. Default OFF (Iterate A flag-off contract). Both
+   * `headlessMirrorEnabled === true` AND a non-undefined `snapshotStore`
+   * are required for the mirror to be wired; either alone is a no-op.
+   */
+  headlessMirrorEnabled?: boolean;
+  snapshotStore?: SnapshotStore;
 }
 
 /** Sentinel for the legacy token-less pause()/resume() API. */
@@ -262,6 +284,8 @@ export class PtyManager {
   private readonly wsBufferBytes: number;
   private readonly idleTimeoutMs: number;
   private readonly scrollbackStore: ScrollbackStore | undefined;
+  private readonly snapshotStore: SnapshotStore | undefined;
+  private readonly headlessMirrorEnabled: boolean;
   private readonly watchdogStuckThresholdBytes: number;
   private readonly watchdogStuckDurationMs: number;
   private readonly watchdogIntervalMs: number;
@@ -288,6 +312,12 @@ export class PtyManager {
     this.wsBufferBytes = opts.wsBufferBytes ?? 1_048_576;
     this.idleTimeoutMs = opts.idleTimeoutMs ?? 1_800_000;
     this.scrollbackStore = opts.scrollbackStore;
+    this.snapshotStore = opts.snapshotStore;
+    // Mirror requires BOTH flag-on AND a configured store. Either alone
+    // is a no-op so misconfiguration cannot leak in-memory Terminals
+    // without a persistence path.
+    this.headlessMirrorEnabled =
+      (opts.headlessMirrorEnabled ?? false) && !!opts.snapshotStore;
     this.watchdogStuckThresholdBytes =
       opts.watchdogStuckThresholdBytes ?? 524_288; // 512 KiB
     this.watchdogStuckDurationMs = opts.watchdogStuckDurationMs ?? 2_000;
@@ -339,9 +369,23 @@ export class PtyManager {
       cols: opts.cols ?? 120,
       rows: opts.rows ?? 30,
     });
+    // ADR-088: optional headless mirror. Created here so the mirror's
+    // lifetime is co-extensive with the entry; disposed in cleanup().
+    // Cols/rows match the pty-spawn defaults so the mirror sees the
+    // same initial dimensions the shell does. Subsequent resize() calls
+    // forward to both pty and mirror.
+    const mirror = this.headlessMirrorEnabled
+      ? new HeadlessMirror({
+          taskId,
+          cols: opts.cols ?? 120,
+          rows: opts.rows ?? 30,
+        })
+      : null;
+
     const entry: PtyEntry = {
       meta,
       pty,
+      mirror,
       dataSubs: new Set(),
       connSubs: new Map(),
       writer: null,
@@ -373,6 +417,22 @@ export class PtyManager {
             `[pty-manager] scrollback append failed for ${taskId}: ${(err as Error).message}`,
           );
         }
+      }
+      // ADR-088: shadow-write to the headless mirror. The mirror's
+      // write() returns a Promise that resolves after the parser
+      // callback fires; we kick it off but DO NOT await — the
+      // broadcast must stay synchronous so the WS write loop is not
+      // serialized behind xterm.js's parser. The promise resolves on
+      // the next microtask and any throw is swallowed by `.catch`.
+      // Architecture invariant #3 (await before serialize) is held by
+      // serializeStable() at snapshot time — not by every chunk write.
+      if (entry.mirror) {
+        entry.mirror.write(data).catch((err) => {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] headless mirror write failed for ${taskId}: ${(err as Error).message}`,
+          );
+        });
       }
       for (const cb of entry.dataSubs) {
         try {
@@ -472,6 +532,18 @@ export class PtyManager {
     entry.lastResizeCols = cols;
     entry.lastResizeRows = rows;
     entry.pty.resize(cols, rows);
+    // ADR-088: keep the headless mirror's dimensions in lockstep so the
+    // M2 stabilization at snapshot time uses the right cols/rows.
+    if (entry.mirror) {
+      try {
+        entry.mirror.resize(cols, rows);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[pty-manager] mirror resize failed for ${taskId}: ${(err as Error).message}`,
+        );
+      }
+    }
   }
 
   kill(taskId: string): void {
@@ -710,6 +782,59 @@ export class PtyManager {
     if (!entry) return;
     if (entry.idleTimer) clearTimeout(entry.idleTimer);
     this.entries.delete(taskId);
+    // ADR-088: finalize the headless mirror snapshot, then dispose.
+    // Detached from the cleanup return because serializeStable() is
+    // async and cleanup is sync (called from onExit + kill). Failures
+    // never propagate — kill path must stay infallible. The mirror's
+    // own resources are freed in the finally block.
+    if (entry.mirror && this.snapshotStore) {
+      void this.finalizeMirrorSnapshot(taskId, entry.mirror);
+    } else if (entry.mirror) {
+      // No snapshot store wired — just dispose so the Terminal frees.
+      try {
+        entry.mirror.dispose();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  /**
+   * ADR-088 — produce the M2 stable snapshot and persist it. Best-effort:
+   * a disk failure here MUST NOT crash kill / onExit. Logs a structured
+   * warn on failure so observability picks it up.
+   *
+   * Why this is detached + async: kill() / onExit are synchronous
+   * lifecycle hooks. The double-serialize cycle costs ~10 ms per the
+   * spike — small but non-zero. Detaching keeps the close path
+   * responsive and avoids back-pressuring the broadcaster.
+   */
+  private async finalizeMirrorSnapshot(
+    taskId: string,
+    mirror: HeadlessMirror,
+  ): Promise<void> {
+    try {
+      const stable = await mirror.serializeStable();
+      const { cols, rows } = mirror.dimensions;
+      if (this.snapshotStore) {
+        await this.snapshotStore.write(taskId, {
+          cols,
+          rows,
+          data: stable,
+        });
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] snapshot finalize failed for ${taskId}: ${(err as Error).message}`,
+      );
+    } finally {
+      try {
+        mirror.dispose();
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   private touchIdle(entry: PtyEntry): void {

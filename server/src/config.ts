@@ -38,6 +38,16 @@ export interface ServerConfig {
   terminalScrollbackTtlDays: number;
   /** Bound on TTL sweep per pass — protects against unbounded boot work on huge dirs. Default 100. */
   terminalSweepMaxFilesPerPass: number;
+  /**
+   * Iterate-2026-05-11 (ADR-088) — @xterm/headless mirror shadow-write.
+   * When enabled, every live pty also has a server-side headless
+   * Terminal mirror; on pty.kill the M2 double-serialize snapshot is
+   * persisted alongside the legacy scrollback. Default OFF in iterate A
+   * (no behavior change); flipped to default ON in iterate B once the
+   * replay protocol consumes the snapshot. Plan-of-record:
+   * `.shipwright/planning/embedded-terminal-refactor-headless.md`.
+   */
+  terminalHeadlessMirror: boolean;
 }
 
 function clampPositiveInt(raw: string | undefined, fallback: number): number {
@@ -94,5 +104,7 @@ export function getConfig(): ServerConfig {
       process.env.SHIPWRIGHT_TERMINAL_SWEEP_MAX_FILES_PER_PASS,
       100,
     ),
+    terminalHeadlessMirror:
+      process.env.SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR === "1",
   };
 }
