@@ -649,11 +649,52 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
               }
             } catch { /* ignore */ }
 
+            // iterate-2026-05-11 v0.9.4 (ADR-086) — for `new-plain` tasks
+            // Claude TUI on Windows ConPTY emits per-keystroke input-field
+            // redraws + footer rotations as raw bytes in the MAIN buffer
+            // (no `\x1b[?1049h` alt-screen entry). The ADR-069 sanitizer
+            // strips the cursor-position controls (`\x1b[K`, `\x1b[<n>G`,
+            // `\x1b[A/B/C/D`) but preserves the character bytes — every
+            // keystroke + footer-state-change stacks linearly in scrollback.
+            // On replay the visible buffer is unreadable. Empirical
+            // verification: ~/.shipwright-webui/terminal-scrollback/<taskId>.log
+            // for a real new-plain task shows ghost characters, repeated
+            // footer hints, and prior-session typed text bleeding through.
+            //
+            // Cleanest fix: for new-plain skip the disk-scrollback replay
+            // entirely on attach. Live pty attaches; Claude redraws its
+            // current frame on the next render tick. Trade-off: user loses
+            // scrollback-restore-on-attach for new-plain. The "Clear
+            // history" affordance in the overflow menu still wipes the
+            // on-disk bytes if the user wants them gone. The privacy
+            // footer suppresses for new-plain because we report 0 bytes
+            // in the follow-up `scrollback-meta` envelope (consistent
+            // with the skipped replay; bytes are still on disk and the
+            // overflow menu can clear them).
+            const skipReplayForNewPlain = task.actionId === "new-plain";
+
             // Async replay (IIFE so onOpen stays sync). On error, just
             // flush the liveBuffer + flip replayDone — the live shell
             // continues to work; only the historical replay was lost.
             void (async () => {
-              if (!scrollbackStore || scrollbackStore.disabled) {
+              if (
+                !scrollbackStore ||
+                scrollbackStore.disabled ||
+                skipReplayForNewPlain
+              ) {
+                if (skipReplayForNewPlain) {
+                  // Emit the scrollback-meta envelope with 0 bytes so the
+                  // privacy footer in the client does NOT render — the
+                  // replay-on-attach contract that drove the disclosure
+                  // copy ("Terminal scrollback persists for 1 day(s) at
+                  // <dir>...") is bypassed for new-plain; reporting >0
+                  // bytes while skipping replay would confuse users.
+                  try {
+                    ws.send(
+                      JSON.stringify({ type: "scrollback-meta", scrollbackBytes: 0 }),
+                    );
+                  } catch { /* ignore */ }
+                }
                 flushLiveBuffer();
                 replayDone = true;
                 return;

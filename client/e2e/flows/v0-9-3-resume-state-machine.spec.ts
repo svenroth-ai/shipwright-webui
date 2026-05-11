@@ -25,6 +25,16 @@ const TASK_ID = "31b4076d-5a0a-4c62-b176-63553c165c03";
 test("AC-1 + AC-2: Resume click on idle new-plain converges to active and STAYS active across multiple poll cycles", async ({ page }) => {
   test.setTimeout(45_000);
 
+  // Pre-flight (v0.9.4): skip if the repro task has been deleted.
+  const taskExists = await page.request
+    .get(`/api/external/tasks/${TASK_ID}`)
+    .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
+    .catch(() => false);
+  test.skip(
+    !taskExists,
+    `Repro task ${TASK_ID} no longer exists — state-machine regression fence requires this exact task.`,
+  );
+
   const pageErrors: string[] = [];
   page.on("pageerror", (err) => pageErrors.push(err.message));
 
@@ -130,6 +140,15 @@ test("AC-1 + AC-2: Resume click on idle new-plain converges to active and STAYS 
 
 test("AC-2: Resume button hides within 2.5s of clicking it on idle new-plain", async ({ page }) => {
   test.setTimeout(30_000);
+
+  const taskExists = await page.request
+    .get(`/api/external/tasks/${TASK_ID}`)
+    .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
+    .catch(() => false);
+  test.skip(
+    !taskExists,
+    `Repro task ${TASK_ID} no longer exists — same precondition as AC-1.`,
+  );
 
   await page.goto(`/tasks/${TASK_ID}`, {
     waitUntil: "domcontentloaded",
