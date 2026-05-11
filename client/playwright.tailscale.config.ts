@@ -1,21 +1,25 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /*
- * Tailscale-target Playwright config for iterate-2026-05-10-tailscale-ws-real-browser-fix.
- *
- * Points at the user's running dev stack on the Tailscale interface
- * (Hono on 100.64.0.1:3847, Vite on 100.64.0.1:5173 narrow-bound
- * via SHIPWRIGHT_NETWORK_PROFILE=tailscale). Does NOT auto-start the
- * dev servers — assumes they're already running on the host.
+ * Tailscale-target Playwright config — points at the user's running dev
+ * stack on the Tailscale interface (Hono on :3847, Vite on :5173, bound
+ * via SHIPWRIGHT_NETWORK_PROFILE=tailscale or HONO_HOST/VITE_HOST). Does
+ * NOT auto-start the dev servers — assumes they're already up.
  *
  * Run: npx playwright test --config=playwright.tailscale.config.ts
  *
  * The default `playwright.config.ts` keeps targeting localhost for the
- * existing E2E specs that don't care about the network profile.
+ * existing E2E specs that don't care about the network profile. Tailscale
+ * specs are explicit-list rather than glob to avoid accidentally globbing
+ * in underscore-prefixed diagnostic specs (per ADR-084 external review
+ * gemini #4).
  */
 export default defineConfig({
   testDir: './e2e/flows',
-  testMatch: /v091-tailscale-ws\.spec\.ts/,
+  testMatch: [
+    'v091-tailscale-ws.spec.ts',
+    'v0-9-2-embedded-terminal-mount-races.spec.ts',
+  ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 0,
