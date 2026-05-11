@@ -55,6 +55,7 @@ import {
   createNodePtySpawnFn,
 } from "./terminal/routes.js";
 import { ScrollbackStore } from "./terminal/scrollback-store.js";
+import { SnapshotStore } from "./terminal/snapshot-store.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 
 const config = getConfig();
@@ -306,6 +307,30 @@ if (isMainModule) {
           }),
         );
       }
+
+      // Iterate-2026-05-11 (ADR-088) — server-side @xterm/headless mirror
+      // snapshots. SnapshotStore shares the scrollback directory but
+      // owns a separate `.snapshot` extension so the existing rotation
+      // / sanitize / sweep machinery is undisturbed. Default OFF — only
+      // wired into PtyManager when SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR=1
+      // is set. Init is best-effort; failure logs and disables mirror.
+      const snapshotStore = new SnapshotStore(config.terminalScrollbackDir);
+      let snapshotStoreReady = false;
+      if (config.terminalHeadlessMirror) {
+        try {
+          await snapshotStore.init();
+          snapshotStoreReady = true;
+        } catch (err) {
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message:
+                "snapshot store init failed; headless-mirror disabled this session",
+              error: String(err).slice(0, 200),
+            }),
+          );
+        }
+      }
       // Iterate 4 (ADR-067) — embedded-terminal pty manager.
       // PtyManager owns shell-pty lifecycle (Plan-D''-conform: shells only,
       // never `claude`). Construction is async because the @lydell/node-pty
@@ -316,11 +341,28 @@ if (isMainModule) {
         wsBufferBytes: config.terminalWsBufferBytes,
         idleTimeoutMs: config.terminalIdleTimeoutMs,
         scrollbackStore,
+        // ADR-088 — wire the headless mirror only when both the env
+        // flag is set AND the snapshot store initialised successfully.
+        // Either alone is a no-op (see PtyManager constructor; mirror
+        // requires both signals).
+        headlessMirrorEnabled:
+          config.terminalHeadlessMirror && snapshotStoreReady,
+        snapshotStore: snapshotStoreReady ? snapshotStore : undefined,
         // AC-3b (iterate-2026-05-05) — enable the writer-stuck watchdog
         // in production. Capability auto-detected against the live WS;
         // logs warn + degrades to ws.close-driven release if missing.
         watchdogEnabled: true,
       });
+      if (config.terminalHeadlessMirror && snapshotStoreReady) {
+        console.log(
+          JSON.stringify({
+            level: "info",
+            message:
+              "headless-mirror enabled (ADR-088); shadow-snapshots write alongside legacy scrollback",
+            dir: config.terminalScrollbackDir,
+          }),
+        );
+      }
 
       // Boot-time TTL sweep — bounded, oldest-first, active-aware.
       // AC-11 active definition: task in sdk-sessions.json with state ∈
