@@ -238,24 +238,26 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
     }
   });
 
-  test("AC-3: legacy chunked-replay fallback works when no snapshot exists (regression fence)", async ({
+  test("AC-3 (ADR-087 retirement): legacy chunked-replay envelopes are NEVER emitted, no matter the snapshot state", async ({
     page,
   }) => {
+    // Iterate C (ADR-087) retired the chunked-replay path. The server
+    // MUST NEVER emit `replay_start` / `replay_chunk` /
+    // `replay_separator` / `replay_end` for any task — whether or not
+    // a snapshot exists on disk. When no snapshot exists, the client
+    // simply receives no replay history (blank terminal with live
+    // shell), by design.
     test.setTimeout(30_000);
 
     const tasks = await listTasks(page);
-    // Pick a task with disk-scrollback bytes and NO snapshot. We
-    // ensure no snapshot by deleting it first (best-effort) then
-    // attaching. The legacy path is the regression fence for
-    // pre-Iterate-B tasks.
     const target = tasks.find(
       (t) =>
         t.state !== "launching" &&
-        t.actionId !== "new-plain" &&
         t.state !== "done" &&
         t.state !== "launch_failed",
     );
-    test.skip(!target, "No suitable task in session for legacy fence.");
+    test.skip(!target, "No suitable task in session for retirement fence.");
+    // Ensure no snapshot on disk so the "fallback" path is forced.
     await removeSnapshotFor(target!.taskId);
 
     const capture = attachWsCapture(page);
@@ -274,20 +276,17 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
     const envTypes = (ws?.envelopes ?? []).map((e) => e.type);
     // eslint-disable-next-line no-console
     console.log(
-      `[ADR-089 AC-3] task=${target!.taskId} envelopes=${JSON.stringify(envTypes)}`,
+      `[ADR-087 AC-3] task=${target!.taskId} envelopes=${JSON.stringify(envTypes)}`,
     );
 
-    // STRICT: snapshot envelope MUST NOT fire when no snapshot exists.
-    expect(envTypes).not.toContain("replay_snapshot");
-    // Chunked envelopes fire iff the task has scrollback bytes; if
-    // bytes>0 we expect replay_start, otherwise nothing.
-    const meta = ws!.envelopes.find((e) => e.type === "scrollback-meta");
-    const bytes =
-      (meta?.parsed as { scrollbackBytes?: number })?.scrollbackBytes ?? 0;
-    if (bytes > 0) {
-      expect(envTypes).toContain("replay_start");
-      expect(envTypes).toContain("replay_end");
-    }
+    // STRICT: chunked envelopes MUST NEVER appear in the stream.
+    expect(envTypes).not.toContain("replay_start");
+    expect(envTypes).not.toContain("replay_chunk");
+    expect(envTypes).not.toContain("replay_separator");
+    expect(envTypes).not.toContain("replay_end");
+    // Snapshot may or may not appear depending on whether the live
+    // pty produced enough state to write one — both outcomes are
+    // valid per the plan's "no replay" trade-off.
   });
 
   test("AC-4: resize before refresh + replay restores correctly via replay_snapshot", async ({

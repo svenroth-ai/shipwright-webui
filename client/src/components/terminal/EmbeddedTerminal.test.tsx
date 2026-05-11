@@ -19,21 +19,17 @@ const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
 
-// iterate-2026-05-08 v0.8.7 AC-4 — mock xterm's `buffer.active` so tests
-// can verify that the marker-count footer reads from the buffer (not from
-// chunk substring counting). Tests push string lines into mockBufferLines
-// before triggering replay_end.
-const mockBufferLines: string[] = [];
+// Iterate C (ADR-087): the v0.8.7 marker-count footer was retired; the
+// mock xterm buffer fields below are kept minimal — they only need to
+// satisfy the few tests that still touch `term.buffer` (none currently
+// — left here as a defensive no-op so future tests don't need to
+// re-mock from scratch).
 const mockBufferActive = {
   get length() {
-    return mockBufferLines.length;
+    return 0;
   },
-  getLine(i: number) {
-    if (i < 0 || i >= mockBufferLines.length) return undefined;
-    const text = mockBufferLines[i];
-    return {
-      translateToString: (_trim?: boolean) => text,
-    };
+  getLine(_i: number) {
+    return undefined;
   },
 };
 
@@ -184,7 +180,6 @@ describe("<EmbeddedTerminal>", () => {
     scrollToBottomSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
-    mockBufferLines.length = 0;
 
     // ResizeObserver stub for jsdom.
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
@@ -468,94 +463,47 @@ describe("<EmbeddedTerminal>", () => {
   // paste, Edge/Chrome legacy paths) is still covered by the
   // "paste-handler — …" cases above.
 
-  // Iterate v0.8.5 AC-3 — defensive replay-clear regression.
-  // EmbeddedTerminal subscribes to `replay_start` and calls term.clear()
-  // before scrollback chunks land. For a freshly-mounted xterm this is
-  // a visual no-op (already empty); for any future WS-reconnect path
-  // that hits the same EmbeddedTerminal instance it guarantees that
-  // a second replay does NOT stack on top of the first.
-  it("calls term.clear() when the replay_start envelope arrives", async () => {
+  // Iterate C (ADR-087) — the legacy chunked-replay envelopes
+  // (replay_start / replay_chunk / replay_separator / replay_end) are
+  // retired. The server emits a single `replay_snapshot` envelope when
+  // a cell-state snapshot exists; the client writes once via
+  // term.reset() + term.write(data) + term.scrollToBottom().
+  it("ADR-087: writes the replay_snapshot data via term.reset + term.write + scrollToBottom", async () => {
     render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});
     const ws = FakeWebSocket.instances[0];
-    expect(ws).toBeDefined();
-    // Initially clear() should NOT have been called (no replay yet).
-    expect(clearSpy).not.toHaveBeenCalled();
     await act(async () => {
-      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 1024 }));
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "SNAPSHOT-PAYLOAD",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "5.5.0",
+        }),
+      );
     });
-    expect(clearSpy).toHaveBeenCalledTimes(1);
+    const writes = writeSpy.mock.calls.map((c) => c[0]);
+    expect(writes).toContain("SNAPSHOT-PAYLOAD");
+    expect(scrollToBottomSpy).toHaveBeenCalled();
   });
 
-  it("calls term.clear() AGAIN if a second replay_start arrives (e.g. WS reconnect mid-session)", async () => {
+  it("ADR-087: stale legacy chunked-replay envelopes are silently ignored", async () => {
+    // Mid-deploy server/client skew: if a stale server emits
+    // replay_chunk envelopes, the client MUST NOT crash and MUST NOT
+    // write the payloads (they're raw byte streams the snapshot path
+    // has retired in favor of cell-state replay).
     render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});
     const ws = FakeWebSocket.instances[0];
+    const writesBefore = writeSpy.mock.calls.length;
     await act(async () => {
       ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
-      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "first" }));
-      ws.__message(JSON.stringify({ type: "replay_end" }));
-      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 200 }));
-    });
-    expect(clearSpy).toHaveBeenCalledTimes(2);
-  });
-
-  // Iterate v0.8.6 follow-up — after replay completes, EmbeddedTerminal
-  // scrolls xterm to the bottom of the buffer so the live shell prompt
-  // is visible immediately. Without this, the viewport stays at the
-  // buffer top (showing replayed content) and the user has to scroll
-  // down manually past the "scrollback restored from disk; live shell
-  // below" separator to interact.
-  it("calls term.scrollToBottom() after replay_end so the live shell is in view", async () => {
-    render(<EmbeddedTerminal taskId="t1" active />);
-    await act(async () => {});
-    const ws = FakeWebSocket.instances[0];
-    expect(scrollToBottomSpy).not.toHaveBeenCalled();
-    await act(async () => {
-      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
-      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "history" }));
+      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "old" }));
       ws.__message(JSON.stringify({ type: "replay_end" }));
     });
-    expect(scrollToBottomSpy).toHaveBeenCalledTimes(1);
-  });
-
-  // iterate-2026-05-09 v0.8.9 — replay-pushdown so live shell renders at
-  // the top of the visible viewport.
-  //
-  // Bug fixed: after replay_end the historical scrollback (incl. separator
-  // banner) sat in xterm's ACTIVE AREA. Cursor parked at row N+1 (end of
-  // replay). Live shell content (PowerShell + Claude TUI) wrote from
-  // cursor → rendered BELOW replay → viewport showed replay at top, live
-  // shell at the bottom. Compounded by TERM=dumb (set in
-  // server/src/terminal/routes.ts createNodePtySpawnFn for the chalk
-  // brand-color hack) which suppresses ConPTY's own \x1b[2J\x1b[H startup
-  // emit, so nothing else clears the active area for the live shell.
-  //
-  // Fix: after replay_end push `term.rows` worth of \r\n into xterm so
-  // the entire replayed content scrolls out of the active area into the
-  // scrollback above, then write \x1b[H to home the cursor on the now-
-  // empty active area. Live shell then renders from row 0 of the
-  // viewport. Replay history stays accessible by scrolling up.
-  it("after replay_end pushes replay into scrollback and homes the cursor (so live shell renders at viewport top)", async () => {
-    render(<EmbeddedTerminal taskId="t1" active />);
-    await act(async () => {});
-    const ws = FakeWebSocket.instances[0];
-    await act(async () => {
-      ws.__message(JSON.stringify({ type: "replay_start", totalBytes: 100 }));
-      ws.__message(JSON.stringify({ type: "replay_chunk", payload: "history" }));
-      ws.__message(JSON.stringify({ type: "replay_end" }));
-    });
-    const calls = writeSpy.mock.calls.map((c) => c[0]);
-    // Mock Terminal exposes rows=30 (see vi.mock above).
-    expect(calls).toContain("\r\n".repeat(30));
-    expect(calls).toContain("\x1b[H");
-    // Order matters: pushdown first (advances cursor past active-area
-    // bottom — scrolls replay into scrollback), THEN cursor-home so the
-    // live shell starts at row 0 of the now-empty active area.
-    const pushIdx = calls.lastIndexOf("\r\n".repeat(30));
-    const homeIdx = calls.lastIndexOf("\x1b[H");
-    expect(pushIdx).toBeGreaterThanOrEqual(0);
-    expect(homeIdx).toBeGreaterThan(pushIdx);
+    // No new write call from the retired envelopes.
+    expect(writeSpy.mock.calls.length).toBe(writesBefore);
   });
 
   it("surfaces gitignoreSuggestion=true via onGitignoreSuggestion callback", async () => {
@@ -591,211 +539,9 @@ describe("<EmbeddedTerminal>", () => {
     expect(toastFires).toBe(1);
   });
 
-  // -------------------------------------------------------------------
-  // iterate-2026-05-08 v0.8.7 AC-4 — historical-shell-sessions footer.
-  //
-  // After replay_end fires AND the xterm buffer contains ≥2 of the
-  // `──── shell stopped at` markers, render a dim footer with the
-  // count + a "Clear history" button. Per external plan review: count
-  // is read from `term.buffer.active` AFTER replay_end (xterm reassembled
-  // chunk-split markers), NOT from per-chunk substring counting.
-  // -------------------------------------------------------------------
-  describe("AC-4 — stopped-sessions footer", () => {
-    function fireReplayCycle(ws: FakeWebSocket): Promise<void> {
-      return act(async () => {
-        ws.__message(JSON.stringify({ type: "replay_start" }));
-        ws.__message(JSON.stringify({ type: "replay_end" }));
-      });
-    }
-
-    it("renders footer with N=3 when buffer contains 3 marker lines", async () => {
-      // Pre-seed the mock buffer with 3 lines containing the marker substring.
-      mockBufferLines.push(
-        "ls",
-        "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m",
-        "PowerShell 7.6.1",
-        "\x1b[2m──── shell stopped at 13:00:01 ────\x1b[m",
-        "PS C:\\>",
-        "\x1b[2m──── shell stopped at 13:30:42 ────\x1b[m",
-        "PS C:\\>",
-      );
-
-      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      const ws = FakeWebSocket.instances[0];
-      await fireReplayCycle(ws);
-
-      const footer = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footer).not.toBeNull();
-      expect(footer?.textContent).toContain("3");
-      expect(footer?.textContent?.toLowerCase()).toContain("beendete shell-sessions");
-      const btn = container.querySelector(
-        '[data-testid="embedded-terminal-clear-history-button"]',
-      );
-      expect(btn).not.toBeNull();
-    });
-
-    it("hides footer when buffer has 0 markers", async () => {
-      // No markers in buffer.
-      mockBufferLines.push("ls", "echo hi", "PS C:\\>");
-
-      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      const ws = FakeWebSocket.instances[0];
-      await fireReplayCycle(ws);
-
-      const footer = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footer).toBeNull();
-    });
-
-    it("hides footer when buffer has only 1 marker (no banner-spam for fresh tasks)", async () => {
-      mockBufferLines.push(
-        "ls",
-        "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m",
-        "PS C:\\>",
-      );
-
-      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      const ws = FakeWebSocket.instances[0];
-      await fireReplayCycle(ws);
-
-      const footer = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footer).toBeNull();
-    });
-
-    it("Clear history button calls /clear-scrollback after confirm; footer hides on success", async () => {
-      mockBufferLines.push(
-        "\x1b[2m──── shell stopped at 12:00:00 ────\x1b[m",
-        "\x1b[2m──── shell stopped at 13:00:00 ────\x1b[m",
-        "PS C:\\>",
-      );
-
-      // Mock window.confirm to return true.
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
-      const fetchSpy = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
-      fetchSpy.mockClear();
-
-      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      const ws = FakeWebSocket.instances[0];
-      await fireReplayCycle(ws);
-
-      const footer = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footer).not.toBeNull();
-
-      const btn = container.querySelector(
-        '[data-testid="embedded-terminal-clear-history-button"]',
-      ) as HTMLButtonElement;
-      await act(async () => {
-        btn.click();
-        await new Promise((r) => setTimeout(r, 0));
-      });
-
-      expect(confirmSpy).toHaveBeenCalled();
-      expect(fetchSpy).toHaveBeenCalledWith(
-        "/api/terminal/t1/clear-scrollback",
-        expect.objectContaining({ method: "POST" }),
-      );
-
-      // Footer hides because count resets to 0 on success.
-      const footerAfter = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footerAfter).toBeNull();
-
-      confirmSpy.mockRestore();
-    });
-
-    it("counts markers via REPLAY ACCUMULATOR (chunks split mid-marker), not just buffer scan", async () => {
-      // Per external code review (openai 2026-05-08 medium #4): the
-      // production path no longer scans `term.buffer.active` after
-      // replay_end — it accumulates `replay_chunk` payloads into a
-      // string buffer between replay_start/replay_end and counts the
-      // SHELL_STOPPED_SUBSTRING substring there. This test exercises
-      // that production path explicitly: marker arrives split across
-      // 3 chunks (a worst-case smaller-than-marker-length frame
-      // pattern). A pure buffer-scan implementation would miss the
-      // split marker; the accumulator catches it because the chunks
-      // concatenate before counting.
-      mockBufferLines.length = 0; // empty buffer — accumulator must do the work
-
-      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      const ws = FakeWebSocket.instances[0];
-
-      // Open the replay window.
-      await act(async () => {
-        ws.__message(JSON.stringify({ type: "replay_start" }));
-      });
-
-      // Three marker strings split across many small chunks.
-      const fullMarker = "\x1b[2m──── shell stopped at 12:34:56 ────\x1b[m\r\n";
-      const fixture = `prefix-content\r\n${fullMarker}middle-content\r\n${fullMarker}more-content\r\n${fullMarker}suffix`;
-      // Send char-by-char to mimic worst-case chunk fragmentation.
-      for (let i = 0; i < fixture.length; i++) {
-        await act(async () => {
-          ws.__message(JSON.stringify({ type: "replay_chunk", payload: fixture[i] }));
-        });
-      }
-
-      await act(async () => {
-        ws.__message(JSON.stringify({ type: "replay_end" }));
-      });
-
-      // Footer renders with N=3 (counted via accumulator — buffer was
-      // not populated by the mock, so buffer-scan would return 0).
-      const footer = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footer).not.toBeNull();
-      expect(footer?.textContent).toContain("3");
-      expect(footer?.textContent?.toLowerCase()).toContain("beendete shell-sessions");
-    });
-
-    it("Clear history button is a no-op when user declines confirm", async () => {
-      mockBufferLines.push(
-        "\x1b[2m──── shell stopped at 12:00:00 ────\x1b[m",
-        "\x1b[2m──── shell stopped at 13:00:00 ────\x1b[m",
-      );
-      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-      const fetchSpy = globalThis.fetch as unknown as ReturnType<typeof vi.fn>;
-      fetchSpy.mockClear();
-
-      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-      await act(async () => {});
-      const ws = FakeWebSocket.instances[0];
-      await fireReplayCycle(ws);
-
-      const btn = container.querySelector(
-        '[data-testid="embedded-terminal-clear-history-button"]',
-      ) as HTMLButtonElement;
-      await act(async () => {
-        btn.click();
-      });
-
-      expect(confirmSpy).toHaveBeenCalled();
-      // No fetch call to clear-scrollback because user declined.
-      const clearCall = fetchSpy.mock.calls.find(
-        (c) => typeof c[0] === "string" && c[0].includes("/clear-scrollback"),
-      );
-      expect(clearCall).toBeUndefined();
-
-      // Footer remains visible.
-      const footer = container.querySelector(
-        '[data-testid="embedded-terminal-stopped-sessions-footer"]',
-      );
-      expect(footer).not.toBeNull();
-
-      confirmSpy.mockRestore();
-    });
-  });
+  // Iterate C (ADR-087) — the v0.8.7 stopped-sessions footer + Clear
+  // history button were tied to the chunked-replay marker accumulator;
+  // both were retired alongside the legacy replay envelopes. The
+  // `/clear-scrollback` server endpoint still exists (surfaced via the
+  // kebab "..." overflow menu in TaskCard / TaskDetailHeader).
 });

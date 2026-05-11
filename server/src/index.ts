@@ -56,6 +56,8 @@ import {
 } from "./terminal/routes.js";
 import { ScrollbackStore } from "./terminal/scrollback-store.js";
 import { SnapshotStore } from "./terminal/snapshot-store.js";
+import { runBootWipe } from "./terminal/boot-wipe.js";
+import { probeHeadlessDeps } from "./terminal/headless-probe.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 
 const config = getConfig();
@@ -308,15 +310,65 @@ if (isMainModule) {
         );
       }
 
+      // Iterate C (ADR-087) — one-shot wipe of legacy `*.log*` files.
+      // The chunked-replay path is retired in this iterate; the on-disk
+      // scrollback files have no replay consumer. Wipe them once,
+      // mark the directory, never wipe again. Idempotency marker
+      // protects against repeat-runs. Best-effort; boot continues on
+      // failure. Snapshot files (`.snapshot`) are PRESERVED.
+      try {
+        const wipeResult = await runBootWipe({
+          dir: config.terminalScrollbackDir,
+        });
+        if (wipeResult.deleted > 0 || wipeResult.errors > 0) {
+          console.log(
+            JSON.stringify({
+              level: "info",
+              message: "iterate-C scrollback wipe",
+              deleted: wipeResult.deleted,
+              errors: wipeResult.errors,
+              markerWritten: wipeResult.markerWritten,
+            }),
+          );
+        }
+      } catch (err) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message: "iterate-C scrollback wipe threw; continuing boot",
+            error: String(err).slice(0, 200),
+          }),
+        );
+      }
+
+      // Iterate C (ADR-087, MEDIUM-B2 fix) — pre-probe @xterm/headless +
+      // @xterm/addon-serialize via dynamic import. On failure, downgrade
+      // headlessMirrorEnabled=false so the server boots cleanly without
+      // snapshots (rather than crashing on the static ESM import at
+      // load time). Trade-off documented in ADR-087: without snapshots
+      // the client sees a blank terminal with a live shell.
+      const headlessProbe = await probeHeadlessDeps();
+      if (!headlessProbe.ok) {
+        console.warn(
+          JSON.stringify({
+            level: "warn",
+            message:
+              "headless-mirror dependencies missing; mirror disabled this session (ADR-087 MEDIUM-B2 graceful fallback)",
+            reason: headlessProbe.reason,
+          }),
+        );
+      }
+      const headlessMirrorEnabledEffective =
+        config.terminalHeadlessMirror && headlessProbe.ok;
+
       // Iterate-2026-05-11 (ADR-088) — server-side @xterm/headless mirror
       // snapshots. SnapshotStore shares the scrollback directory but
       // owns a separate `.snapshot` extension so the existing rotation
-      // / sanitize / sweep machinery is undisturbed. Default OFF — only
-      // wired into PtyManager when SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR=1
-      // is set. Init is best-effort; failure logs and disables mirror.
+      // / sweep machinery is undisturbed. Init is best-effort; failure
+      // logs and disables mirror.
       const snapshotStore = new SnapshotStore(config.terminalScrollbackDir);
       let snapshotStoreReady = false;
-      if (config.terminalHeadlessMirror) {
+      if (headlessMirrorEnabledEffective) {
         try {
           await snapshotStore.init();
           snapshotStoreReady = true;
@@ -345,20 +397,23 @@ if (isMainModule) {
         // flag is set AND the snapshot store initialised successfully.
         // Either alone is a no-op (see PtyManager constructor; mirror
         // requires both signals).
+        // Iterate C (ADR-087, MEDIUM-B2) — `headlessMirrorEnabledEffective`
+        // additionally captures the dynamic-import probe result so a
+        // missing `@xterm/headless` package downgrades cleanly here.
         headlessMirrorEnabled:
-          config.terminalHeadlessMirror && snapshotStoreReady,
+          headlessMirrorEnabledEffective && snapshotStoreReady,
         snapshotStore: snapshotStoreReady ? snapshotStore : undefined,
         // AC-3b (iterate-2026-05-05) — enable the writer-stuck watchdog
         // in production. Capability auto-detected against the live WS;
         // logs warn + degrades to ws.close-driven release if missing.
         watchdogEnabled: true,
       });
-      if (config.terminalHeadlessMirror && snapshotStoreReady) {
+      if (headlessMirrorEnabledEffective && snapshotStoreReady) {
         console.log(
           JSON.stringify({
             level: "info",
             message:
-              "headless-mirror enabled (ADR-088); shadow-snapshots write alongside legacy scrollback",
+              "headless-mirror enabled (ADR-088/087); cell-state snapshots are the sole replay primitive",
             dir: config.terminalScrollbackDir,
           }),
         );
@@ -469,6 +524,12 @@ if (isMainModule) {
           // ADR-068-A1: cascade-clean scrollback on DELETE /tasks/:id.
           scrollbackClearBestEffort: (taskId: string) =>
             scrollbackStore.clearBestEffort(taskId),
+          // Iterate C (ADR-087, MEDIUM-B1 fix): cascade-clean cell-state
+          // snapshot on DELETE /tasks/:id. Snapshots may contain secrets;
+          // the 24-h TTL is a backstop, the task delete is the
+          // authoritative privacy boundary.
+          snapshotClearBestEffort: (taskId: string) =>
+            snapshotStore.clearBestEffort(taskId),
           // iterate-2026-05-08 v0.8.7 AC-1: live-pty lookup so transcript
           // poll can flip new-plain `active → idle` after pty-kill.
           ptyManager: { get: (taskId: string) => ptyManager.get(taskId) },
@@ -492,27 +553,21 @@ if (isMainModule) {
       // was added; 101 Switching Protocols after.
       // ADR-089 (Iterate B) — resolve the currently-pinned
       // @xterm/headless version once at boot so the WS replay path can
-      // version-gate snapshot envelopes. Best-effort: failures fall
-      // back to "no version gate" (any snapshot version accepted).
-      // This mirrors snapshot-store.ts's package-json probe.
-      let expectedTerminalVersion: string | undefined;
-      try {
-        const headlessPkgPath = await import("@xterm/headless/package.json", {
-          with: { type: "json" },
-        });
-        const pkg = headlessPkgPath.default as { version?: string };
-        if (pkg.version) expectedTerminalVersion = pkg.version;
-      } catch {
-        // Fall back to fs read at the same candidate paths used by
-        // snapshot-store. Best-effort; if all fail we just don't gate.
+      // version-gate snapshot envelopes. The Iterate-C boot probe
+      // (`headlessProbe.terminalVersion`) is the primary source; we
+      // keep fs-fallback as a defensive secondary path in case the
+      // dynamic import worked but the package.json read returned null.
+      let expectedTerminalVersion: string | undefined =
+        headlessProbe.terminalVersion ?? undefined;
+      if (!expectedTerminalVersion) {
         try {
           const { readFileSync } = await import("node:fs");
           const { fileURLToPath } = await import("node:url");
-          const path = await import("node:path");
-          const here = path.dirname(fileURLToPath(import.meta.url));
+          const pathMod = await import("node:path");
+          const here = pathMod.dirname(fileURLToPath(import.meta.url));
           for (const cand of [
-            path.resolve(here, "../node_modules/@xterm/headless/package.json"),
-            path.resolve(here, "../../node_modules/@xterm/headless/package.json"),
+            pathMod.resolve(here, "../node_modules/@xterm/headless/package.json"),
+            pathMod.resolve(here, "../../node_modules/@xterm/headless/package.json"),
           ]) {
             try {
               const json = JSON.parse(readFileSync(cand, "utf8")) as {
@@ -539,9 +594,9 @@ if (isMainModule) {
         // ADR-089 — wire the snapshot store + expected version so the WS
         // replay branch uses the new envelope when a snapshot exists.
         // The snapshot store is created above (ADR-088); we only pass it
-        // through here when the flag is ON AND init succeeded.
+        // through here when the flag is effectively ON (config + probe).
         snapshotStore:
-          config.terminalHeadlessMirror && snapshotStoreReady
+          headlessMirrorEnabledEffective && snapshotStoreReady
             ? snapshotStore
             : undefined,
         expectedTerminalVersion,
