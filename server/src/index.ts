@@ -437,6 +437,17 @@ if (isMainModule) {
       // Iterate 4 (ADR-067) + Iterate 5 (ADR-068-A1) — embedded terminal
       // routes (REST + WS upgrade). scrollbackStore wires replay-on-attach
       // + Stop/Clear semantics + disabled-mode propagation.
+      //
+      // ADR-084 (iterate v0.9.1) — pass the boot-time-resolved
+      // `corsOriginPolicy.isAllowed` as `allowedOrigins` so the WS
+      // upgrade gate uses the SAME policy as the HTTP CORS middleware.
+      // Without this wiring the gate falls back to `defaultAllowedOrigins`
+      // → `resolveTrustedOrigins(process.env)` WITHOUT exec → loopback
+      // only — which silently rejects every non-loopback Origin even
+      // when SHIPWRIGHT_NETWORK_PROFILE=tailscale was meant to widen the
+      // policy. Empirically reproduced via curl WS-upgrade probe with
+      // MagicDNS Origin (500 Internal Server Error) before this line
+      // was added; 101 Switching Protocols after.
       createTerminalRoutes({
         store: sdkSessionsStore,
         ptyManager,
@@ -446,6 +457,7 @@ if (isMainModule) {
         // Iterate v0.8.2 AC-9 — retention + dir surfaced in `ready`.
         retentionDays: config.terminalScrollbackTtlDays,
         scrollbackDirHint: config.terminalScrollbackDir,
+        allowedOrigins: corsOriginPolicy.isAllowed,
       })(app);
 
       // Section 03 — boot-time profile coherence check (plan § 2.1 matrix).
