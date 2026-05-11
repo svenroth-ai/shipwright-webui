@@ -39,12 +39,16 @@ export interface ServerConfig {
   /** Bound on TTL sweep per pass — protects against unbounded boot work on huge dirs. Default 100. */
   terminalSweepMaxFilesPerPass: number;
   /**
-   * Iterate-2026-05-11 (ADR-088) — @xterm/headless mirror shadow-write.
-   * When enabled, every live pty also has a server-side headless
-   * Terminal mirror; on pty.kill the M2 double-serialize snapshot is
-   * persisted alongside the legacy scrollback. Default OFF in iterate A
-   * (no behavior change); flipped to default ON in iterate B once the
-   * replay protocol consumes the snapshot. Plan-of-record:
+   * Iterate-2026-05-11 (ADR-088 / ADR-089) — @xterm/headless mirror
+   * shadow-write + snapshot-based replay. When enabled, every live pty
+   * has a server-side headless Terminal mirror; on pty.kill the M2
+   * double-serialize snapshot is persisted; on WS attach the snapshot
+   * is replayed via a single `replay_snapshot` envelope (legacy chunked
+   * scrollback is the fallback for tasks created before the flag
+   * landed, or when the snapshot's terminalVersion does not match).
+   *
+   * Iterate B (ADR-089): default flipped from OFF to ON. Opt-out is
+   * `SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR=0`. Plan-of-record:
    * `.shipwright/planning/embedded-terminal-refactor-headless.md`.
    */
   terminalHeadlessMirror: boolean;
@@ -104,7 +108,13 @@ export function getConfig(): ServerConfig {
       process.env.SHIPWRIGHT_TERMINAL_SWEEP_MAX_FILES_PER_PASS,
       100,
     ),
+    // ADR-089 (Iterate B) — default ON. Opt-out by setting the env var
+    // to `0`. Empty / unset / any value other than `0` enables the
+    // mirror + snapshot path. Test bypass: NODE_ENV-aware overrides
+    // could be added later; for now there is no need (the production
+    // path is default-on; tests construct PtyManager / routes with
+    // their own flags).
     terminalHeadlessMirror:
-      process.env.SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR === "1",
+      process.env.SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR !== "0",
   };
 }

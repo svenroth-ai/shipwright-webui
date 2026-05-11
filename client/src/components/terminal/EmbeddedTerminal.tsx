@@ -354,6 +354,68 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         inReplayRef.current = true;
         replayBufferRef.current = [];
       },
+      onReplaySnapshot: ({ data, cols, rows, terminalVersion }) => {
+        // ADR-089 (Iterate B) — single-envelope cell-state replay. The
+        // server has already stabilised the payload via M2 double-
+        // serialize, so the client writes ONCE into xterm; no
+        // banner-grace, no resize-before-write, no pushdown logic.
+        // ADR-079's pushdown + banner-grace remain in place for the
+        // legacy chunked path (used as fallback when no snapshot
+        // exists on disk OR version mismatch) — Iterate C retires them.
+        const term = termRef.current;
+        if (!term) return;
+        // Best-effort version-family check. Server's version gate is the
+        // authoritative accept/reject layer; this is just a console
+        // warning when minor versions drift inside the same major.
+        if (terminalVersion) {
+          try {
+            // Heuristic: log a warn when major numbers differ. We can't
+            // reliably read xterm.js's version from the package at
+            // runtime in production builds (no package.json import on
+            // client), so the assertion is purely server-versus-server.
+            // eslint-disable-next-line no-console
+            const major = terminalVersion.split(".")[0];
+            if (major && major !== "5") {
+              // eslint-disable-next-line no-console
+              console.warn(
+                `[terminal] replay_snapshot served by xterm major ${major}; client xterm.js is major 5 — visual artifacts possible`,
+              );
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+        try {
+          // External code review (openai medium): use `term.reset()`,
+          // NOT `term.clear()`. `clear()` only wipes scrollback above
+          // the viewport — the active screen content remains. On
+          // re-attach within the same component instance (WS reconnect
+          // mid-session), `clear()` would let old viewport content
+          // visually merge with the replayed snapshot. `reset()`
+          // re-initialises cursor + viewport + scrollback so the
+          // snapshot writes into a truly fresh state.
+          try {
+            term.reset();
+          } catch {
+            /* xterm mid-dispose; ignore */
+          }
+          term.write(data);
+          term.scrollToBottom();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[terminal] replay_snapshot write failed: ${(err as Error).message}`,
+          );
+        }
+        // Mute the marker accumulator — the snapshot path doesn't
+        // surface shell-stopped markers via byte stream; it's a
+        // cell-state replay. Count cleanly stays at 0 unless a future
+        // iterate wires marker detection into the cell buffer scan.
+        // Reference resolved-but-unused dims so a downstream consumer
+        // adding `cols`/`rows` lookups in this scope is type-checked.
+        void cols;
+        void rows;
+      },
       onReplayEnd: () => {
         // Iterate v0.8.6 follow-up — scroll xterm to the bottom of the
         // buffer so the visible viewport is positioned at the active
