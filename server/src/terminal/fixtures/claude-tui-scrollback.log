@@ -1,0 +1,317 @@
+[m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]0;C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.1.0_x64__8wekyb3d8bbwe\pwsh.exePowerShell 7.6.1
+PS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui> PowerShell 7.6.1
+PS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[91m> [93mSet-Location [36m'C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui' [90m-ErrorAction [37mStop; [93mclaude [90m--session-id [37me53d384a-ac66-408e-a5a5-019095ca22e2 [90m--name [36m"'Project Creation Dia                                                                       [m
+> [93mSet-Location [36m'C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui' [90m-ErrorAction [37mStop; [93mclaude [90m--session-id [37me53d384a-ac66-408e-a5a5-019095ca22e2 [90m--name [36m"'Project Creation Dialog'"
+[m]0;claude]0;✳ 'Project Creation Dialog'[31m ▐[40m▛███▜[49m▌[m[1mClaudeCode[37m[22mv2.1.138[31m
+▝▜[40m█████[49m▛▘[37mOpus4.7(1Mcontext)·ClaudeMax[31m
+ ▘▘▝▝[37m~\mycorpGmbH\AIBackup-Documents\03Development\shipwright-webui[36m────────────────────────────────────────────────────────────────────────────────────────────[30m[46m 'Project Creation Dialog' [36m[49m──[m
+> [7mT[2m[27mry"writeatestfor<filepath>"[36m[22m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)◉xhigh·/effort[m[7m [27m[93m● Auto mode lets Claude handle permission prompts automatically — Claude checks each tool call for risky actions[m
+  [93mand prompt injection before executing. Actions Claude identifies as safe are executed, while actions Claude [m
+  [93midentifies as risky are blocked and Claude may try a different approach. Ideal for long-running tasks. Sessions         are slightly more expensive. Claude can make mistakes that allow harmful commands to run, it's recommended toonlyuseinisolatedenvironments.Shift+Tabtochangemode.[36m────────────────────────────────────────────────────────────────────────────────────────────[30m[46m 'Project Creation Dialog' [36m[49m──[m
+> [7m [36m[27m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)◉xhigh·/effort[mI[7m [27mm[7m [27m [7m [27mP[7m [27mr[7m [27mj[7m [27me[7m [27mc[7m [27mt[7m [27m[7m [27m[7m [27m[7m [27m[7m [27mo[7m [27mj[7m [27me[7m [27mc[7m [27mt[7m [27m [7m [27mr[7m [27me[7m [27mc[7m [27m[7m [27m[7m [27m[7m [27mc[7m [27mr[7m [27me[7m [27ma[7m [27mt[7m [27mi[7m [27mo[7m [27mn[7m [27m [7m [27md[7m [27mi[7m [27ma[7m [27ml[7m [27mo[7m [27mg[7m [27m [7m [27m[93m28 skill descriptions dropped · /doctor for details[mf[7m [27me[7m [27mh[7m [27ml[7m [27mt[7m [27m [7m [27m[7m [27m[7m [27me[7m [27m[7m [27mt[7m [27m[7m [27me[7m [27mn[7m [27m [7m [27md[7m [27mi[7m [27me[7m [27m [7m [27ma[7m [27mn[7m [27md[7m [27me[7m [27mr[7m [27me[7m [27mn[7m [27m [7m [27mT[7m [27me[7m [27mc[7m [27mh[7m [27m [7m [27mS[7m [27mt[7m [27ma[7m [27mkc[7m [27ms[7m [27m.[7m [27m[7m [27m[7m [27m[7m [27m[7m [27mc[7m [27mk[7m [27ms[7m [27m.[7m [27m [7m [27mD[7m [27mi[7m [27me[7m [27m [7m [27mw[7m [27me[7m [27mr[7m [27md[7m [27me[7m [27mn[7m [27m [7m [27mg[7m [27ml[7m [27ma[7m [27mu[7m [27me[7m [27m [7m [27m[7m [27m[7m [27mb[7m [27me[7m [27m [7m [27mi[7m [27mc[7m [27mh[7m [27m [7m [27mn[7m [27mc[7m [27mi[7m [27mh[7m [27mt[7m [27m[7m [27m[7m [27m[7m [27m[7m [27mi[7m [27mc[7m [27mh[7m [27mt[7m [27m [7m [27ms[7m [27ma[7m [27mu[7m [27mb[7m [27me[7m [27mr[7m [27m [7m [27mg[7m [27me[7m [27mkl[7m [27me[7m [27ms[7m [27me[7m [27mn[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27ml[7m [27me[7m [27ms[7m [27me[7m [27mn[7m [27m.[7m [27m [7m [27mW[7m [27mi[7m [27mr[7m [27m [7m [27mh[7m [27ma[7m [27mb[7m [27me[7m [27mn[7m [27m [7m [27me[7m [27mi[7m [27mg[7m [27me[7m [27m      
+  eigen[7m [27m[36m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)[mt[7m [27ml[7m [27mi[7m [27mc[7m [27mh[7m [27m [7m [27mm[7m [27me[7m [27mh[7m [27mr[7m [27m [7m [27ma[7m [27ml[7m [27ms[7m [27m [7m [27mn[7m [27mu[7m [27mr[7m [27m [7m [27me[7m [27mi[7m [27me[7m [27mn[7m [27m[7m [27m[7m [27mn[7m [27me[7m [27m [7m [27mu[7m [27mn[7m [27md[7m [27m [7m [27mC[7m [27mu[7m [27ms[7m [27mt[7m [27mo[7m [27mm[7m [27m.[7m [27m [7m [27mK[7m [27ma[7m [27mn[7m [27mn[7m [27ms[7m [27mt[7m [27m [7m [27md[7m [27mu[7m [27m [7m [27mm[7m [27ma[7m [27ml[7m [27m [7m [27me[7m [27mi[7m [27mn[7m [27me[7m [27m [7m [27ma[7m [27mn[7m [27ma[7m [27ml[7m [27my[7m [27ms[7m [27me[7m [27m [7m [27mm[7m [27ma[7m [27mc[7m [27mh[7m [27me[7m [27mn[7m [27m [7m [27ma[7m [27ml[7m [27ms[7m [27m [7m [27mB[7m [27ma[7m [27mi[7m [27ms[7m [27m [7m [27m[7m [27m[7m [27m[7m [27ms[7m [27miu[7m [27ms[7m [27m [7m [27mf[7m [27m[7m [27m[7m [27m[7m [27m[7m [27ms[7m [27m [7m [27mf[7m [27mü[7m [27mr[7m [27m [7m [27me[7m [27mi[7m [27mn[7m [27me[7m [27mn[7m [27m [7m [27ms[7m [27m[7m [27mi[7m [27mt[7m [27me[7m [27mr[7m [27ma[7m [27mt[7m [27me[7m [27m?[7m [27m [7m [27m[7m [27m[36m
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[m  [37mPress Ctrl-C again to exit[m
+
+[93m⏵⏵ auto mode on [37m(shift+tab to cycle)[mProjectCreationDialog[7m [27m[7mP[27mP[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[37mTip: ctrl+s to stash[m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[37mPress Ctrl-C again to exit[m[93m⏵⏵ auto mode on [37m(shift+tab to cycle)[m[37mPress Ctrl-C again to exit[m[93m⏵⏵ auto mode on [37m(shift+tab to cycle)[m[37mPasting…[m[93m⏵⏵ auto mode on [37m(shift+tab to cycle)No image found in clipboard. Use alt+v to paste images.[mI[7m [27mm[7m [27m [7m [27mP[7m [27mr[7m [27mo[7m [27mj[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[37mChecking for updates[m[37mChecking for updates[m[37mChecking for updates[m[mPowerShell 7.6.1
+]0;C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.1.0_x64__8wekyb3d8bbwe\pwsh.exePS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui> [m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]0;C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.1.0_x64__8wekyb3d8bbwe\pwsh.exePowerShell 7.6.1
+PS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui> PowerShell 7.6.1
+PS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui> [93mS[97m[2m[3met-Location 'C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui' -ErrorAction Stop; claude --session-id e53d384a-ac66-408e-a5a5-019095ca22e2 --name "'Project Creation Dialog'"[m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+> [93mSet-Location [36m'C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui' [90m-ErrorAction [37mStop; & [93mclaude [90m--session-id [36m'e53d384a-ac66-408e-a5a5-019095ca22e2' [90m--add-dir [36m'C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui' [90m--name [36m'Project Creation Dialog'
+[m]0;claude]0;✳ Project Creation Dialog[31m ▐[40m▛███▜[49m▌[m[1mClaudeCode[37m[22mv2.1.138[31m
+▝▜[40m█████[49m▛▘[37mOpus4.7(1Mcontext)·ClaudeMax[31m
+ ▘▘▝▝[37m~\mycorpGmbH\AIBackup-Documents\03Development\shipwright-webui[36m────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[m
+> [7mT[2m[27mry"fixlinterrors"[36m[22m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)◉xhigh·/effort[m[93m● Auto mode lets Claude handle permission prompts automatically — Claude checks[m
+  [93meach tool call for risky actions and prompt injection before executing. Actions [m
+  [93mClaude identifies as safe are executed, while actions Claude identifies as riskyare blcke and Claude may try a different approach. Ideal for long-runningtasks.Sessionsareslightlymoreexpensive.Claudecanmakemistakesthatallowharmfulcommandstorun,it'srecommendedtoonlyuseinisolatedenvironments.Shift+Tabtochangemode.[36m────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[m
+> [7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)◉xhigh·/effort[mv[7m [27m[7m [27m[37mPasting…[m[93m28 skill descriptions dropped · /doctor for details[m[93m⏵⏵ auto mode on [37m(shift+tab to cycle)Noimagefoundinclipboard.Usealt+vtopasteimages.[m    [93m28 skill descriptions dropped · /doctor for details[m[37mPasting…[93m28 skill descriptions dropped · /doctor for details[m
+
+[93m⏵⏵ auto mode on [37m(shift+tab to cycle)Noimagefoundinclipboard.Usealt+vtopasteimages.[m
+[36m────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[m
+[97m
+───────────────────────────────────────────────────────────────────────────────────────────[m  [97m[1mRewind[m[37m
+Nothingtorewindtoyet.[3mEsctocancel[m                                                                                           [36m────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[m> [7m [27m                                                                                        [36m───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵ auto mode on [37m(shift+tab to cycle)◉ xhigh · /effort[m
+
+
+
+[36m────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[m                                                                                           [97m───────────────────────────────────────────────────────────────────────────────────────────[m  [97m[1mRewind[m                                                                                   [37m
+Nothingtorewindtoyet.[3mEsctocancel[m                                                                                           [36m────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[m> [7m [27m                                                                                        [36m───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵ auto mode on [37m(shift+tab to cycle)◉ xhigh · /effort[m
+
+
+
+[7m [27mImProjectDialoguewirdderTechStackausgewählt.Aktuellgibtesdortnurden
+  Supabase Tech Stack, aber es gibt mehr. Scheint hard verdrahtet zu sein, sollte aber     dynamisch gerendert werden. Kannst dudasanalysierendamitwireinensaubereniteratemachenkönnen?[7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)[m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[m  [93m⏵⏵ auto mode on [37m(shift+tab to cycle)[m
+
+[7m [27m  [7m [27m   [7m [27m    [7m [27m     [7m [27m      [7m [27m       [7m [27m        [7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27mdy[7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[m  [93m⏵⏵ auto mode on [37m(shift+tab to cycle)[m
+
+[7m [27m  [7m [27m   [7m [27m    [7m [27m     [7m [27m      [7m [27m       [7m [27m        [7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27mSupaba[7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[m  [93m⏵⏵ auto mode on [37m(shift+tab to cycle)[m
+
+[7m [27m  [7m [27m   [7m [27m    [7m [27m     [7m [27m      [7m [27m       [7m [27m        [7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27m[37mTip: ctrl+s to stash[m[7m [27m[7m [27m[7m [27m[7m [27m[7m [27mImProjectDialoguewirdderTechStackausgewählt.Aktuellgibtesdortnurden
+  Supabase Tech Stack, aber es gibt mehr. Scheint hard verdrahtet zu sein, sollte aber     dynamisch gerendert werden. Kannst dudasanalysierendamitwireinensaubereniteratemachenkönnen?[7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)[m]0;⠂ Project Creation Dialog[30m[40m> [97mIm Project Dialogue wird der Tech Stack ausgewählt. Aktuell gibt es dort nur den         [39m  [97mSupabase Tech Stack, aber es gibt mehr. Scheint hard verdrahtet zu sein, sollte aber     [39m  [97mdynamisch gerendert werden. Kannst du das analysieren damit wir einen sauberen iterate   [39m  [97mmachen können?                                                                           [m[31m
+✶ Mistin[93mg…[m[36m
+────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[37m
+> [m[7m [36m[27m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)·esctointerrupt[m[31m✻[93mn[m[31mng…[m[31m✽[m[31m✻[m[31m✶[m[31m*[m[31m✢[m[31m·[93mM[m]0;⠐ Project Creation Dialog[93mi[m[93ms[m[31mMi[93mti[m[31m✢s[93mn[m[31mt[93mg[m[31m*i[93m…[m[31mn[m[31m✶g…[m[31m✻[m[31m✽[m[31m✻[m]0;⠂ Project Creation Dialog[31m✶[m[31m*[m[31m✢[m[93mM[m[31m·[93mi[m[93ms[m[31mMi[93mti[m[31m✢s[93mn[m[31mt[93mg[m[31m*i[93m…[m[31mng[m[31m✶…[m]0;⠐ Project Creation Dialog[31m✻[m[31m✽[m[37m(3s · thinking)[m[31m✻[m[31m✶[m[31m*[m[31m✢[m[31m·[m[31m✢[m[31m*[37m4[m[31m✶[m[31m✻[m[31m✽[m[31m✻[m[37m●[mSearching for [1m1[22m pattern…[37m(ctrl+o to expand)[31m✻ Misting… [37m(4s · ↓ 13 tokens · thinking)[m
+[30m[46m Project Creation Dialog [37m[49m
+> [36m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)·esctointerrupt[m[37m25[m[31m✶[37m38[m[37m50[m[31m*[37m63[m[31m✢[37m575ought for 2s)[m[1m2[22ms… [37m(ctrl+o to expand)
+  ⎿  "client/src/components/wizard/**/*.tsx"[m
+[31m
+·Misting[93m… [37m(5s · ↓88 tokens · thought for 2s)[m
+[36m
+────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[37m> [36m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)·esctointerrupt[m[37m100 tokens · thought for 2s)[m[31m✢[93mg[37m7[m[37m13[m[1m3[37m[22m28[m[31m*[37m33[m[31m✶[93mn[37m7[m[37m40[m[31m✻[93mi[31m…[37m3[m[37m7[m[1m4[31m[22m✽[37m51[m[31ming[37m63[m[37mserverrutes/profiles.ts"[m[37m76[m[37m688[m[31m✻[37m201[m[37m↑13[m[31m✶[37m26[m[37m38[m[31m*[37m51[m[31m✢[93mMi[37m63[m[31m·M[93mst[37m76[m[31mis[93min[37m88[m[31mti[93mg…[37m301[m[31m✢n[37m13[m[31m*g…[37m26[m[37m32[m[31m✶[37m78[m[31m✻[37m43[m[31m✽[37m7[m[37m50[m[37m3[m[31m✻[37m4[m[37m5[m[31m✶[37m6[m[31m*[m[93mMi[37m7[m[31m✢M[93mst[37m8[m[31m·i[93mi[37m89[m[31ms[93mn[m[31mti[93mg…[37m60[m[31m✢ng[37m1[m[31m*…[37m2[m[31m✶[37m3[m[31m✻[37m4[m[37m5[m[31m✽[m[37m6[m[31m✻[37m7[m[37m98[m[31m✶[m[31m*[93mM[37m9[m[31m✢[93mis[m[31mMi[93mti[m[31m·s[93mn[m[31mti[93mg…[m[31m✢ng[m[31m…[m[31m*[m[31m✶[m[37m10s · ↑ 369 tokens · thought for 2s)[m[31m✻[m[31m✽[m[31m✻[m[31m✶[m[31m*[93mM[m[93mis[m[31m✢Mi[93mti[m[31m·st[93mng[m[31min[93m…[m[31mg[37m1[m[31m✢…[m[31m*[m[31m✶[m[31m✻[m[31m✽[m[31m✻[m[31m✶[93mM[m[31m*[93mis[37m2[m[31mM[93mt[37m↓[m[93mM[31mt[37minking)[m[31m✢[m[31m·[m[31ms[m[31m✢i[m[31m*[m[31mM[m[31m✶[m[31m✻[m[31m✽[37m3[m[31m✻[37m82[m,reading [1m1[22m file… [37m(ctrl+o to expand)407[m[37m32[m[31m✶[37m44[m[37m52[m[31m*[37m8[m[31m✢[37m63[m[37m8[m[37m72[m[37m9[m[37mserver\src\core\profile-oader.ts82[m[31m·[37m3[m[37m4[m[37m6[m[37m7[m[31m✢[37m48[m[37m9[m[37m95[m[31m*[37m501[m[37m6ought for 1s)[m[31m✶[37m10[m[37m3[m[37m6[m[1m2[22ms… [37m(ctrl+o to expand)[31m✻[37m21[m[37mrutes\profiles.ts[31m✽[37m5[m[37m8[m[37m9[m[37m35[m[31m✻[37m41[m[37m6[m[31m✶[37m50[m[31m*[37m3[m[37m56[m[37m62[m[1m3[22m[31m✢[37m7[m[37mclientcmponents\wizard\StackProfileStep.tsx[m[31m·[37m72[m[37m5[m[37m80[m[1m4[37m[22m91[m[31m✢[m[31m*[37m604[m[37m16[m[37m↑29[m[37m41[m[31m✶[37m54[m[31m✻[37m66[m[37mserverpofiles\README.md[m[37m79[m[31m✽[37m91[m[37m6704[m[31m✻[37m16[m[93mMi[37m29[m[31m✶[93ms[37m41[m[31m*Mi[93mti[37m54[m[31m✢st[93mng[37m66[m[31mi[93m…[37m79[m[31m·ng[37m91[m[31m…[37m804[m[37m16[m[31m✢[37m29[m[31m*[37m41[m[37m78[m[31m✶[37m54[m[31m✻[37m9[m[37m63[m[31m✽[37m6[m[37m9[m[37m70[m[31m✻[93mMi[37m1[m[31m✶[93ms[m[31mMi[93mti[37m2[m[31m*s[93mn[37m3[m[31m✢ti[93mg…[37m4[m[31mng[37m8[m[31m·…[37m5[m[37m6[m[31m✢[37m7[m[31m*[37m8[m[31m✶[37m9[m[31m✻[37m80[m[31m✽[37m1[m[37m2[m[37m↓94[m[31m✻[37m9907[m[37m19[m[31m✶[37m32[m[31m*[37m44[m[37m57[m[37m69[m[31m✢[37m82[m[31m·[37m8[m[37m93[m[37m8[m[31m✢[37m1.0k tokens · thought for 1s)[m[31m*[m[31m✶[37m20[m[31m✻[m[31m✽[m[31m✻[m[31m✶[m[1m5[37m[22mclientsc\components\wizard\ProjectWizard.tsx[m[31m*[m[31m✢[m[31m·[m[37m1[m[37m1[m[31m✢[m[31m*[m[1m6[37m[22mserverpofiles\supabase-nextjs.son[31m✶[m[31m✻[m[31m✽[m[31m✻[93m…[m[31m✶[37m2[m[31m*[93mg[m[37m$ cat "C:\Userusername\your company\AI Backup - Documents\03 Development\shipwright-webui\server\package.json"[m
+[31m
+*Mistin[93mg… [37m(22s · ↓1.1k tokens · thought for 1s)[m
+[36m
+────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[37m> [36m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)·esctointerrupt[m[31m✢[m[33mMisting…[m[31m·[37m2[m[93mMisting…[m[31m✢[m[31m*[m[31m✶[m[31m✻[37m33[m[31m✽[m[31mMisting…[37m↑[m[93mMi[m[31m✻M[93mst[m[31mis[93min[m[31m✶t[93mg[m[31m*in[93m…[37m4[m[31mg[m[31m✢…[m[31m·[m[31m✢[37m4[m[31m*[m[31m✶[m[31m✻[m[31m✽[m[93mMi[m[31mM[93mst[m[31m✻i[93mi[m[31m✶st[93mng[m[31mi[93m…[m[31m*ng[37m5[m[31m✢…[m[31m·[m[31m✢[m[31m*[m[31m✶[m[31m✻[m[31m✽[93mM[37m6[m[93mis[m[31mMi[93mti[m[31m✻s[93mn[m[31m✶ti[93mg…[m[31mng…[37m↓[m[31m*[m[31m✢[m[31m·[37m5[m[31m✢[m[37m7[m[31m*[m [37mSearched for [1m4[22m patterns, read [1m6[22m files (ctrl+o to expand)[m
+[97m
+●[mGot it. Now let me check the EnvVarsStep and ConfirmationSteptoseehowtheprofileisconsumeddownstream,pluswhethertheupstreammonorepoprofilesexistlocally.
+[37m
+●[mReading[1m1[22mfile…[37m(ctrl+o to expand)[m
+[31m
+* Misting… [37m(27s · ↓1.5k tokens · thought for 1s)[m
+[36m
+────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[37m
+> [36m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)·esctointerrupt[m[31m✶[m[31m✻[m[31m✽[m[37m6[m[93m…[m[31m✻[m[93mg[m[31m✶[m[31m*[m[93mn[37m8[m[31m✢[m[31m·[93mi[31m…[m[93mt[31mg[m[31m✢[m[31m*[m[31m✶[93ms[31mn[m[37m  ⎿  client\src\components\wizard\EnvVarsStep.tsx[m
+[31m
+✶Mi[93msti[31mng… [37m(28s · ↓1.6k tokens · thought for 1s)[m
+[36m
+────────────────────────────────────────────────────────────────[30m[46m Project Creation Dialog [36m[49m──[37m> [36m
+───────────────────────────────────────────────────────────────────────────────────────────[93m⏵⏵automodeon [37m(shift+tabtocycle)·esctointerrupt[m[31m✻[93mi[31mi[m[31m✽[m[93mM[31mt[m[37m9[m[31m✻[m[31ms[m[31m✶[m[31m*i[mSrchingor [1m1[22mpattern, reading [1m1[22mfile…[37m(ctrl+o to expand)[m[1m2[22ms… [37m(ctrl+o to expand)ConfimaionStep.tsx[m[31m✢[m[31m·M[m[1m2[22ms, reading [1m2[22m files… [37m(ctrl+o to expand)[m[31m✢[m[31m*[m[mPowerShell 7.6.1
+]0;C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.1.0_x64__8wekyb3d8bbwe\pwsh.exePS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui> PowerShell 7.6.1
+PS C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright-webui>    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[2m──── shell stopped at 19:42:59 ────[m
