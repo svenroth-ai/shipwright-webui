@@ -1,0 +1,1 @@
+Embedded terminal: uncaught xterm pageerror 'Cannot read properties of undefined (reading dimensions)' on mount/unmount race no longer surfaces — disposedRef + safeFit + pre-dispose _renderService.dimensions stub make xterm's internal async tails (Viewport.syncScrollArea / Renderer.refresh) safe (ADR-084 AC-2).

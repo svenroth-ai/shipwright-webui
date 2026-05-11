@@ -165,6 +165,83 @@ export interface EmbeddedTerminalProps {
 
 const RESIZE_THROTTLE_MS = 250;
 
+/**
+ * v0.9.2 (ADR-084) — read-only banner grace window. After a fresh `ready`
+ * envelope arrives, suppress the read-only banner for this many ms even if
+ * the underlying socket role is "reader". The transient role=reader window
+ * is real under React.StrictMode dev double-mount: mount-1 takes writer,
+ * mount-2 opens before mount-1's close hits the server, so mount-2 gets
+ * `role:"reader"` on its `ready` envelope. The server promotes mount-2 to
+ * writer the moment mount-1's close arrives (writer-promoted envelope,
+ * synchronous in `PtyManager.detach` per the regression fence in
+ * `server/src/terminal/pty-manager.test.ts`). Within a network RTT — well
+ * inside this grace window.
+ *
+ * Re-anchored on every fresh `ready` envelope (NOT just on taskId change)
+ * so a WS reconnect on the same task also re-arms cleanly.
+ */
+const READONLY_BANNER_GRACE_MS = 1500;
+
+/**
+ * v0.9.2 (ADR-084) — defense against two xterm hazards:
+ *
+ *   (a) post-dispose stragglers: an async tail of `fit.fit()` running after
+ *       `term.dispose()` would access `term._core._renderService.dimensions`
+ *       (nulled by dispose) and throw `Cannot read properties of undefined
+ *       (reading 'dimensions')`. That async tail escapes the existing
+ *       try/catch frames around the synchronous `fit.fit()` call.
+ *
+ *   (b) pre-renderer-ready: between `new Terminal()` and the first
+ *       fully-rendered frame, `_renderService` may exist but `dimensions`
+ *       reports zero `css.cell.width / height`. FitAddon's
+ *       `proposeDimensions()` would then compute `Math.floor(width/0) → NaN`
+ *       or otherwise mispropose.
+ *
+ * Brittleness guard (per ADR-084 external review gemini #2): if `_core` or
+ * `_renderService` is missing ENTIRELY (e.g. a future xterm refactor
+ * renames the private internals), we DON'T silently short-circuit —
+ * fall through to fit.fit() inside the try/catch so the path keeps
+ * working. Only "renderer present but dimensions invalid" short-circuits.
+ *
+ * xterm version pinned to @xterm/xterm@^5 (see client/package.json).
+ *
+ * Helper accepts `disposed` as a plain boolean — caller passes
+ * `disposedRef.current` so React's render isolation doesn't capture a
+ * stale `false` (per external review openai #4).
+ */
+type XtermCorePeek = {
+  _renderService?: {
+    dimensions?: {
+      css?: { cell?: { width?: number; height?: number } };
+    };
+  };
+};
+function safeFit(
+  fit: FitAddon | null,
+  term: Terminal | null,
+  disposed: boolean,
+): boolean {
+  if (disposed || !fit || !term) return false;
+  try {
+    const core = (term as unknown as { _core?: XtermCorePeek })._core;
+    if (core?._renderService) {
+      const dims = core._renderService.dimensions;
+      const cellW = dims?.css?.cell?.width ?? 0;
+      const cellH = dims?.css?.cell?.height ?? 0;
+      // Renderer present but dimensions zero/missing → pre-ready → skip.
+      // If _core or _renderService is MISSING entirely we fall through to
+      // fit.fit() below (brittleness guard).
+      if (!dims || cellW === 0 || cellH === 0) return false;
+    }
+    fit.fit();
+    return true;
+  } catch {
+    // Catches the async-tail TypeError from accessing dimensions on a
+    // disposed renderer (the main bug class this helper closes).
+    return false;
+  }
+}
+
 export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTerminalProps>(
   function EmbeddedTerminal(
     {
@@ -185,6 +262,11 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const fitAddonRef = useRef<FitAddon | null>(null);
     const lastResizeAtRef = useRef(0);
     const lastResizePendingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // v0.9.2 (ADR-084) — flipped to `true` as the FIRST step of mount-effect
+    // cleanup (BEFORE term.dispose()). Any straggler async tail that wins
+    // the race against the rest of cleanup is short-circuited by safeFit()
+    // before it can dereference a nulled `_renderService`.
+    const disposedRef = useRef(false);
 
     // iterate-2026-05-08 v0.8.7 AC-4 — count of `──── shell stopped at ────`
     // markers in the replay. Re-derived at every `replay_end` and at every
@@ -345,11 +427,45 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       },
     });
 
-    // Derive the read-only state from socket.role — flipping cleanly
-    // when the server promotes us via the writer-promoted envelope
-    // (closes the StrictMode double-mount race; the previous local
-    // setReadOnly(true) state never cleared on promotion).
-    const readOnly = socket.role === "reader";
+    // v0.9.2 (ADR-084) — read-only banner with a 1500 ms grace window
+    // anchored on the rising edge of `socket.ready`. The grace closes the
+    // StrictMode-mount-1-takes-writer / mount-2-briefly-reader / promotion
+    // race: the writer-promoted envelope reaches mount-2 within a network
+    // RTT (synchronous server-side per `pty-manager.test.ts`), well inside
+    // 1500 ms. After the grace window the banner DOES render if the role
+    // is genuinely stable at "reader" (a second real tab is open).
+    //
+    // Two effects feed `readOnlyArmed`:
+    //   (1) [socket.ready] effect — on the rising edge (false → true),
+    //       reset `armed = false` (banner hidden). New WS attach within
+    //       the same component lifetime (reconnect) re-arms cleanly.
+    //   (2) [socket.role, socket.ready] effect — schedules the arm-timer
+    //       when ready AND role === "reader"; cleans up its own timer on
+    //       every dep change. Effects don't share state with each other,
+    //       so the gemini #1 ordering hazard does not apply.
+    //
+    // Data-send behavior stays tied to actual `socket.role` server-side
+    // gate (`server/src/terminal/routes.ts onMessage` checks getRole and
+    // emits `read_only` envelope). The grace is purely visual debounce.
+    const [readOnlyArmed, setReadOnlyArmed] = useState(false);
+    const prevReadyRef = useRef(false);
+    useEffect(() => {
+      if (socket.ready && !prevReadyRef.current) {
+        setReadOnlyArmed(false);
+      }
+      prevReadyRef.current = socket.ready;
+    }, [socket.ready]);
+    useEffect(() => {
+      if (!socket.ready || socket.role !== "reader") {
+        setReadOnlyArmed(false);
+        return;
+      }
+      const t = setTimeout(() => {
+        setReadOnlyArmed(true);
+      }, READONLY_BANNER_GRACE_MS);
+      return () => clearTimeout(t);
+    }, [socket.role, socket.ready]);
+    const readOnly = readOnlyArmed && socket.role === "reader";
 
     // Surface ready for the launch-flow handshake.
     useEffect(() => {
@@ -631,11 +747,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       term.loadAddon(fit);
       term.loadAddon(links);
       term.open(container);
-      try {
-        fit.fit();
-      } catch {
-        /* container may not have non-zero size yet */
-      }
+      // v0.9.2 (ADR-084) — reset disposedRef in case StrictMode re-runs
+      // this mount-effect (the cleanup function flipped it to true on the
+      // previous unmount; React preserves useRef across mounts).
+      disposedRef.current = false;
+      // Initial fit. safeFit returns false if the renderer isn't yet ready
+      // (pre-first-frame zero cell dims) — that's fine, the ResizeObserver
+      // will fire as soon as the container settles.
+      safeFit(fit, term, disposedRef.current);
 
       termRef.current = term;
       fitAddonRef.current = fit;
@@ -662,11 +781,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       let lastSentCols = -1;
       let lastSentRows = -1;
       const resizeAndSend = () => {
-        try {
-          fit.fit();
-        } catch {
-          return;
-        }
+        // v0.9.2 (ADR-084) — safeFit short-circuits when disposed OR when
+        // the renderer reports zero cell dims; either case means we have
+        // nothing useful to send.
+        if (!safeFit(fit, term, disposedRef.current)) return;
         const cols = term.cols;
         const rows = term.rows;
         if (cols === lastSentCols && rows === lastSentRows) return;
@@ -690,12 +808,74 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       ro.observe(container);
 
       return () => {
+        // v0.9.2 (ADR-084) — cleanup ordering matters. `disposedRef` is
+        // flipped FIRST so any straggler async tail of OUR code (safeFit
+        // call sites, throttled resize setTimeout) short-circuits in
+        // `safeFit` before dereferencing the post-dispose nulled
+        // `_renderService`. The wrapped try/catch is defense-in-depth;
+        // the disposedRef gate is the primary guarantee for our paths.
+        disposedRef.current = true;
         ro.disconnect();
         if (lastResizePendingRef.current) {
           clearTimeout(lastResizePendingRef.current);
           lastResizePendingRef.current = null;
         }
         onDataDispose.dispose();
+
+        // v0.9.2 (ADR-084) — defensive against XTERM-INTERNAL async tails:
+        // term.write / term.scrollToBottom / term.resize queue internal
+        // RAF callbacks (`Viewport.syncScrollArea`, `Renderer.refresh`)
+        // that fire LATER and access `_renderService.dimensions` via a
+        // getter chain. xterm.dispose() nulls the underlying renderer
+        // but does NOT cancel those queued callbacks, so the next
+        // animation frame after dispose throws
+        // `Cannot read properties of undefined (reading 'dimensions')`
+        // from xterm_xterm.js Viewport.syncScrollArea.
+        //
+        // Pre-emptively stub the `dimensions` getter to return safe
+        // zero-dim shapes BEFORE invoking term.dispose(). Straggler
+        // Viewport / Renderer callbacks then compute scroll positions
+        // against zero dims (harmless no-op) instead of throwing.
+        //
+        // The stub is bounded to dispose-time (this exact component
+        // instance, about to be torn down) and uses private xterm
+        // internals (_core, _renderService) under a try/catch so a
+        // future xterm refactor breaks loudly via the catch instead
+        // of permanently disabling resize. xterm version pinned to
+        // @xterm/xterm@^5.
+        try {
+          type XtermInternalsForStub = {
+            _renderService?: {
+              dimensions?: unknown;
+            };
+          };
+          const core = (term as unknown as { _core?: XtermInternalsForStub })._core;
+          const rs = core?._renderService;
+          if (rs) {
+            const safeDims = {
+              css: {
+                cell: { width: 0, height: 0 },
+                canvas: { width: 0, height: 0 },
+              },
+              device: {
+                cell: { width: 0, height: 0 },
+                canvas: { width: 0, height: 0 },
+              },
+            };
+            Object.defineProperty(rs, "dimensions", {
+              configurable: true,
+              get: () => safeDims,
+            });
+          }
+        } catch {
+          /* getter may be non-configurable in future xterm; fall through */
+        }
+
+        // Per external code-review openai HIGH #2: do NOT swallow
+        // term.dispose() failures. The dimensions-stub above prevents
+        // the known xterm-internal async-tail throw; a separate dispose
+        // failure would be a real correctness regression we WANT to
+        // surface, not mask. Let unexpected errors propagate.
         term.dispose();
         termRef.current = null;
         fitAddonRef.current = null;
@@ -716,11 +896,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       const fit = fitAddonRef.current;
       const term = termRef.current;
       if (!fit || !term) return;
-      try {
-        fit.fit();
-      } catch {
-        /* ignore */
-      }
+      // v0.9.2 (ADR-084) — same safeFit hardening as the ResizeObserver
+      // path. If safeFit returns false (disposed / pre-renderer-ready)
+      // we still emit a resize WS frame from `term.cols / term.rows` —
+      // the term getter reads the current internal cols/rows which were
+      // set on the last successful fit OR on construction (defaults
+      // 120×30). That's a safe no-op vs. sending NaN dims.
+      safeFit(fit, term, disposedRef.current);
       const cols = term.cols;
       const rows = term.rows;
       if (
