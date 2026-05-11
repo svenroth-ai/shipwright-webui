@@ -160,51 +160,31 @@ describe("ScrollbackStore — append + read", () => {
   });
 
   it("ANSI escape sequences round-trip without corruption", async () => {
-    // SGR sequences are preserved by the AC-1 sanitizer.
+    // Raw bytes (including SGR) are persisted verbatim — see Iterate-C ADR-087.
     const ansi = "\x1b[31mred\x1b[0m \x1b[1mbold\x1b[0m";
     store.append(VALID_TASK_ID, Buffer.from(ansi, "utf8"));
     await flushMicrotasks();
     expect(await store.read(VALID_TASK_ID)).toBe(ansi);
   });
 
-  it("AC-1: cursor-control sequences are stripped on append", async () => {
-    // \x1b[H + \x1b[K + \x1b[2J — repaint triggers — must not survive to disk.
-    // SGR + plain text remain intact.
-    const noisy =
+  it("Iterate C (ADR-087): raw pty bytes are persisted VERBATIM — sanitizer retired", async () => {
+    // The ADR-069 sanitizer has been retired in Iterate C. The disk
+    // file now mirrors the pty's raw byte stream — cursor controls,
+    // erase sequences, and SGR all flow through unchanged. The
+    // cell-state snapshot path (ADR-088/089) is the replay primitive;
+    // it produces a serialised rendered terminal from the live byte
+    // stream regardless of what the legacy `.log` file holds.
+    const raw =
       "\x1b[Hhello\x1b[K\r\n\x1b[31mred\x1b[0m\x1b[2Jworld";
-    store.append(VALID_TASK_ID, Buffer.from(noisy, "utf8"));
+    store.append(VALID_TASK_ID, Buffer.from(raw, "utf8"));
     await flushMicrotasks();
     const out = await store.read(VALID_TASK_ID);
-    expect(out).not.toMatch(/\x1b\[H/);
-    expect(out).not.toMatch(/\x1b\[K/);
-    expect(out).not.toMatch(/\x1b\[2J/);
-    expect(out).toContain("hello");
-    expect(out).toContain("world");
-    expect(out).toContain("\x1b[31m");
-    expect(out).toContain("\x1b[0m");
+    // Verbatim: every byte from the input must survive to disk.
+    expect(out).toBe(raw);
   });
 
-  it("AC-1: legacy v0.8.0 files (raw cursor codes on disk) re-attach cleanly", async () => {
-    // Simulate a pre-upgrade scrollback file by writing raw bytes
-    // bypassing the sanitizer.
-    const legacy =
-      "\x1b[H\x1b[2Jold session\x1b[K\r\n\x1b[1;36mPS> \x1b[0m";
-    const filePath = path.join(dir, `${VALID_TASK_ID}.log`);
-    await fs.writeFile(filePath, legacy);
-
-    // Read should sanitize the raw cursor codes from the legacy file.
-    const out = await store.read(VALID_TASK_ID);
-    expect(out).not.toMatch(/\x1b\[H/);
-    expect(out).not.toMatch(/\x1b\[2J/);
-    expect(out).not.toMatch(/\x1b\[K/);
-    expect(out).toContain("old session");
-    expect(out).toContain("PS> ");
-    expect(out).toContain("\x1b[1;36m");
-    expect(out).toContain("\x1b[0m");
-  });
-
-  it("AC-1: chunk-boundary CSI sequences preserved across appends", async () => {
-    // Split a SGR sequence across two appends — must round-trip.
+  it("Iterate C: chunk-boundary CSI sequences round-trip verbatim", async () => {
+    // Two append calls — the raw bytes are concatenated as-is.
     store.append(VALID_TASK_ID, Buffer.from("hello \x1b[3", "utf8"));
     store.append(VALID_TASK_ID, Buffer.from("1mred\x1b[0m world", "utf8"));
     await flushMicrotasks();
@@ -212,12 +192,11 @@ describe("ScrollbackStore — append + read", () => {
     expect(out).toBe("hello \x1b[31mred\x1b[0m world");
   });
 
-  it("AC-1: 50-redraw repaint fixture — persisted scrollback has no cursor codes", async () => {
-    // PowerShell-style prompt repaint: each iteration emits cursor-home,
-    // erase-display, then a colored header line. Without sanitization,
-    // disk would carry every \x1b[H + \x1b[2J + \x1b[K and replay
-    // re-executes them. With sanitization, ONLY the printable text +
-    // SGR colors survive.
+  it("Iterate C: 50-redraw repaint fixture — full byte sequence persisted verbatim", async () => {
+    // Sanity check that no sanitizer is silently stripping anything.
+    // The cell-state snapshot path consumes the LIVE byte stream from
+    // pty.onData, not this disk file, so verbatim persistence is the
+    // correct invariant.
     const redraw =
       "\x1b[H\x1b[2J\x1b[1;36mPowerShell 7.6.1\x1b[0m\x1b[K\r\nPS C:\\> ";
     for (let i = 0; i < 50; i++) {
@@ -225,19 +204,7 @@ describe("ScrollbackStore — append + read", () => {
     }
     await flushMicrotasks();
     const out = await store.read(VALID_TASK_ID);
-
-    // No cursor-control codes remain.
-    expect(out).not.toMatch(/\x1b\[\d*;?\d*H/); // no cursor-home / abs-pos
-    expect(out).not.toMatch(/\x1b\[\d*J/); // no erase-in-display
-    expect(out).not.toMatch(/\x1b\[\d*K/); // no erase-in-line
-    // SGR survives — color rendering still works on replay.
-    expect(out).toContain("\x1b[1;36m");
-    expect(out).toContain("\x1b[0m");
-    // Visible text reads as a linearized log (every iteration's text is
-    // present; we don't assert exact-once dedup — that would require
-    // xterm-headless cell-state serialization deferred to v0.10).
-    expect(out).toContain("PowerShell 7.6.1");
-    expect(out).toContain("PS C:\\> ");
+    expect(out).toBe(redraw.repeat(50));
   });
 
   it("size cache reflects appended bytes", async () => {

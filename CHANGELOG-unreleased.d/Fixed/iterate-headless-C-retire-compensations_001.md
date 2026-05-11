@@ -1,0 +1,1 @@
+DELETE /tasks/:id now cascade-clears the cell-state snapshot file alongside scrollback (MEDIUM-B1 privacy boundary). Boot-time pre-probe of @xterm/headless + @xterm/addon-serialize gracefully downgrades the mirror flag on missing/corrupt packages instead of crashing the server (MEDIUM-B2). (ADR-087)
