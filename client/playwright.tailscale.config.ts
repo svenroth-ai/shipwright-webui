@@ -20,6 +20,7 @@ export default defineConfig({
     'v091-tailscale-ws.spec.ts',
     'v0-9-2-embedded-terminal-mount-races.spec.ts',
     'v0-9-3-resume-state-machine.spec.ts',
+    'v0-9-4-skip-replay-newplain.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
