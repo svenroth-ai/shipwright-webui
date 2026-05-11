@@ -42,6 +42,19 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
   test("AC-1: no transient readonly banner across the 1500ms grace window", async ({ page }) => {
     test.setTimeout(30_000);
 
+    // Pre-flight (added v0.9.4): if the repro task has been deleted from
+    // the user's task list, skip cleanly. The regression-fence value is
+    // proportional to having a real task to drive — without it the spec
+    // can't observe the mount-races it's named after.
+    const taskExists = await page.request
+      .get(`/api/external/tasks/${TASK_ID}`)
+      .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
+      .catch(() => false);
+    test.skip(
+      !taskExists,
+      `Repro task ${TASK_ID} no longer exists in the user's task list — regression fence requires this exact task to drive the StrictMode mount-race scenario.`,
+    );
+
     const pageErrors: { msg: string; stack: string }[] = [];
     page.on("pageerror", (err) =>
       pageErrors.push({ msg: err.message, stack: err.stack ?? "" }),
@@ -137,6 +150,15 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
 
   test("AC-2: no dimensions pageerror during mount + replay + resume click", async ({ page }) => {
     test.setTimeout(45_000);
+
+    const taskExists = await page.request
+      .get(`/api/external/tasks/${TASK_ID}`)
+      .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
+      .catch(() => false);
+    test.skip(
+      !taskExists,
+      `Repro task ${TASK_ID} no longer exists — same precondition as AC-1.`,
+    );
 
     const pageErrors: { msg: string; stack: string }[] = [];
     page.on("pageerror", (err) =>
