@@ -1,0 +1,5 @@
+# Binary test fixtures — prevent CRLF normalization on commit/checkout.
+# Captured terminal scrollback contains raw ESC sequences and mixed
+# line endings that must round-trip byte-exact through Git on both
+# POSIX and Windows checkouts.
+server/src/terminal/fixtures/*.log binary
