@@ -490,12 +490,61 @@ if (isMainModule) {
       // policy. Empirically reproduced via curl WS-upgrade probe with
       // MagicDNS Origin (500 Internal Server Error) before this line
       // was added; 101 Switching Protocols after.
+      // ADR-089 (Iterate B) — resolve the currently-pinned
+      // @xterm/headless version once at boot so the WS replay path can
+      // version-gate snapshot envelopes. Best-effort: failures fall
+      // back to "no version gate" (any snapshot version accepted).
+      // This mirrors snapshot-store.ts's package-json probe.
+      let expectedTerminalVersion: string | undefined;
+      try {
+        const headlessPkgPath = await import("@xterm/headless/package.json", {
+          with: { type: "json" },
+        });
+        const pkg = headlessPkgPath.default as { version?: string };
+        if (pkg.version) expectedTerminalVersion = pkg.version;
+      } catch {
+        // Fall back to fs read at the same candidate paths used by
+        // snapshot-store. Best-effort; if all fail we just don't gate.
+        try {
+          const { readFileSync } = await import("node:fs");
+          const { fileURLToPath } = await import("node:url");
+          const path = await import("node:path");
+          const here = path.dirname(fileURLToPath(import.meta.url));
+          for (const cand of [
+            path.resolve(here, "../node_modules/@xterm/headless/package.json"),
+            path.resolve(here, "../../node_modules/@xterm/headless/package.json"),
+          ]) {
+            try {
+              const json = JSON.parse(readFileSync(cand, "utf8")) as {
+                version?: string;
+              };
+              if (json.version) {
+                expectedTerminalVersion = json.version;
+                break;
+              }
+            } catch {
+              /* try next */
+            }
+          }
+        } catch {
+          /* fall through with undefined */
+        }
+      }
       createTerminalRoutes({
         store: sdkSessionsStore,
         ptyManager,
         upgradeWebSocket,
         pastesKeepLast: config.claudePastesKeepLast,
         scrollbackStore,
+        // ADR-089 — wire the snapshot store + expected version so the WS
+        // replay branch uses the new envelope when a snapshot exists.
+        // The snapshot store is created above (ADR-088); we only pass it
+        // through here when the flag is ON AND init succeeded.
+        snapshotStore:
+          config.terminalHeadlessMirror && snapshotStoreReady
+            ? snapshotStore
+            : undefined,
+        expectedTerminalVersion,
         // Iterate v0.8.2 AC-9 — retention + dir surfaced in `ready`.
         retentionDays: config.terminalScrollbackTtlDays,
         scrollbackDirHint: config.terminalScrollbackDir,

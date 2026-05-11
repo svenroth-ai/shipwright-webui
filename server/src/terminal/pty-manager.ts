@@ -834,6 +834,19 @@ export class PtyManager {
       } catch {
         /* ignore */
       }
+      // ADR-089 (external review gemini): release the snapshot-store's
+      // per-task write queue so the Map cannot grow unboundedly for
+      // long-lived processes that churn through many tasks. The
+      // queue's onIdle() is awaited internally so any concurrent
+      // write (rare — finalize is the only write surface) completes
+      // before the entry is dropped.
+      if (this.snapshotStore) {
+        try {
+          await this.snapshotStore.releaseQueue(taskId);
+        } catch {
+          /* best-effort */
+        }
+      }
     }
   }
 

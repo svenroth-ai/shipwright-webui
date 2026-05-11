@@ -220,4 +220,116 @@ describe("useTerminalSocket", () => {
     unmount();
     expect(ws.readyState).toBe(FakeWebSocket.CLOSED);
   });
+
+  // ADR-089 (Iterate B) — replay_snapshot envelope routing.
+  it("routes replay_snapshot envelope to onReplaySnapshot callback once", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const calls: Array<{
+      data: string;
+      cols: number;
+      rows: number;
+      terminalVersion: string;
+    }> = [];
+    renderHook(() =>
+      useTerminalSocket({
+        taskId: "t1",
+        onReplaySnapshot: (info) => calls.push(info),
+      }),
+    );
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "\x1b[2J\x1b[Hcell state",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "5.5.0",
+        }),
+      );
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toEqual({
+      data: "\x1b[2J\x1b[Hcell state",
+      cols: 80,
+      rows: 24,
+      terminalVersion: "5.5.0",
+    });
+  });
+
+  it("ignores malformed replay_snapshot envelopes (missing fields)", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const calls: unknown[] = [];
+    renderHook(() =>
+      useTerminalSocket({
+        taskId: "t1",
+        onReplaySnapshot: (info) => calls.push(info),
+      }),
+    );
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      // Missing `data` field — must be ignored, not throw.
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "5.5.0",
+        }),
+      );
+      // Missing `cols` — also ignored.
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "x",
+          rows: 24,
+          terminalVersion: "5.5.0",
+        }),
+      );
+    });
+    expect(calls).toEqual([]);
+  });
+
+  it("does not interfere with the legacy chunked replay envelopes", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const dataReceived: string[] = [];
+    const snapshotReceived: unknown[] = [];
+    const starts: Array<{ totalBytes: number }> = [];
+    const ends: number[] = [];
+    renderHook(() =>
+      useTerminalSocket({
+        taskId: "t1",
+        onData: (d) => dataReceived.push(d),
+        onReplayStart: (info) => starts.push(info),
+        onReplayEnd: () => ends.push(1),
+        onReplaySnapshot: (info) => snapshotReceived.push(info),
+      }),
+    );
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({ type: "replay_start", totalBytes: 5 }),
+      );
+      ws.__message(
+        JSON.stringify({ type: "replay_chunk", payload: "hello" }),
+      );
+      ws.__message(JSON.stringify({ type: "replay_end" }));
+    });
+    expect(starts).toEqual([{ totalBytes: 5 }]);
+    expect(dataReceived).toEqual(["hello"]);
+    expect(ends).toEqual([1]);
+    expect(snapshotReceived).toEqual([]);
+  });
 });
