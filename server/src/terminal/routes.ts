@@ -74,17 +74,19 @@ export interface TerminalRoutesDeps {
    * store. When wired AND a snapshot exists on disk for the task AND
    * the snapshot's `terminalVersion` matches the currently-pinned
    * `@xterm/headless` version, the WS attach emits a single
-   * `replay_snapshot` envelope and skips the legacy chunked replay.
-   * Otherwise the existing chunked path is used (legacy fallback).
+   * `replay_snapshot` envelope. When missing or version-mismatched
+   * (Iterate C, ADR-087), no replay history is sent — the client gets
+   * a blank terminal with a live shell. The legacy chunked-replay
+   * fallback path has been retired.
    */
   snapshotStore?: SnapshotStore;
   /**
    * Iterate-2026-05-11 (ADR-089) — currently-pinned `@xterm/headless`
    * version. Used to gate the snapshot path: header.terminalVersion
    * must equal this string for the snapshot to be served, otherwise
-   * we fall back to the chunked path. Production wires the value
-   * read from `@xterm/headless`'s package.json so the gate stays
-   * coupled to the npm pin.
+   * no replay history is sent (Iterate C / ADR-087 retired the chunked
+   * fallback). Production wires the value read from `@xterm/headless`'s
+   * package.json so the gate stays coupled to the npm pin.
    */
   expectedTerminalVersion?: string;
   /**
@@ -199,7 +201,9 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   // ADR-089 Iterate B — try to read + version-gate a snapshot. Returns
   // the parsed record when usable; null when missing, malformed, or
   // version-mismatched. Best-effort: a read error logs a warn and
-  // returns null so the caller falls back to the legacy chunked path.
+  // returns null → caller emits no replay envelope (blank terminal with
+  // live shell). The legacy chunked-replay fallback was retired in
+  // Iterate C (ADR-087).
   const tryReadSnapshot = (taskId: string): Promise<SnapshotRecord | null> =>
     tryReadSnapshotShared(snapshotStore, taskId, expectedTerminalVersion);
 
@@ -570,13 +574,16 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
               void store.persist();
             }
 
-            // ADR-068-A1 replay flow:
+            // ADR-068-A1 replay flow (post-ADR-087 / Iterate C):
             //   1. Subscribe with a liveBuffer so we don't miss live output
-            //      while reading scrollback from disk.
+            //      while the snapshot read + send happens.
             //   2. Pause pty (avoids OOM on slow xterm-render under
             //      backgrounded-tab conditions — Decision #15).
             //   3. Send `ready` envelope.
-            //   4. Read scrollback + chunked replay envelopes.
+            //   4. Emit a single `replay_snapshot` envelope when a usable
+            //      snapshot exists; otherwise emit no replay history
+            //      (blank terminal with live shell — the chunked
+            //      replay_start/chunk/separator/end fallback was retired).
             //   5. Flush liveBuffer + flip replayDone.
             //   6. Resume pty.
             const liveBuffer: string[] = [];

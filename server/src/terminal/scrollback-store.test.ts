@@ -160,7 +160,7 @@ describe("ScrollbackStore — append + read", () => {
   });
 
   it("ANSI escape sequences round-trip without corruption", async () => {
-    // SGR sequences are preserved by the AC-1 sanitizer.
+    // Raw bytes (including SGR) are persisted verbatim — see Iterate-C ADR-087.
     const ansi = "\x1b[31mred\x1b[0m \x1b[1mbold\x1b[0m";
     store.append(VALID_TASK_ID, Buffer.from(ansi, "utf8"));
     await flushMicrotasks();

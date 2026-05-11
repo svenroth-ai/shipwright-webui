@@ -6,10 +6,11 @@
  * StringDecoder so multi-byte UTF-8 split across the rotation boundary
  * round-trips cleanly.
  *
- * Iterate C (ADR-087, 2026-05-12): the chunked-replay path that used to
- * consume `read()` / `readForReplay()` is RETIRED. Cell-state snapshots
- * (snapshot-store + @xterm/headless mirror, ADR-088/089) are the sole
- * replay primitive. This module remains for two surviving consumers:
+ * Iterate C (ADR-087, 2026-05-12): the chunked-replay path that used
+ * to consume `read()` (via the now-deleted `readForReplay()` accessor)
+ * is RETIRED. Cell-state snapshots (snapshot-store + @xterm/headless
+ * mirror, ADR-088/089) are the sole replay primitive. This module
+ * remains for two surviving consumers:
  *   - `bytes()` — surfaced in the WS `ready` envelope `scrollbackBytes`
  *     field so the privacy-disclosure footer can render.
  *   - `clear()` / `clearBestEffort()` — user-clear button + DELETE

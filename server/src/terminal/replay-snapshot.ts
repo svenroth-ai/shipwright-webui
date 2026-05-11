@@ -1,16 +1,16 @@
 /*
- * replay-snapshot.ts — Iterate B (ADR-089).
+ * replay-snapshot.ts — Iterate B (ADR-089), updated Iterate C (ADR-087).
  *
  * Helpers for the WS replay-snapshot path (cell-state snapshot envelope
- * supersedes the chunked scrollback replay). Extracted out of routes.ts
- * so the version-gate decision is unit-testable without standing up a
- * full WS stack.
+ * superseded — and as of Iterate C, fully replaced — the chunked
+ * scrollback replay). Extracted out of routes.ts so the version-gate
+ * decision is unit-testable without standing up a full WS stack.
  *
  * Two public entry points:
  *   - `tryReadSnapshot(store, taskId, expectedVersion)` — read + parse +
  *     version-gate the on-disk snapshot. Returns the record when usable,
- *     null when missing / read-error / version-mismatch (caller falls
- *     back to chunked replay).
+ *     null when missing / read-error / version-mismatched → caller
+ *     emits no replay envelope (blank terminal with live shell).
  *   - `buildReplaySnapshotEnvelope(rec)` — produce the wire JSON.
  *
  * Decision: version-gate is configurable via `expectedVersion`. When
@@ -49,9 +49,10 @@ export function buildReplaySnapshotEnvelope(
  *   - null when absent (ENOENT — pre-Iterate-B task; no snapshot),
  *     unreadable (logged), or version-mismatched (logged).
  *
- * Best-effort: a read error returns null + console.warn so the caller
- * falls through to the chunked replay path. Plan invariant #5: version
- * mismatch is fallback, NOT crash.
+ * Best-effort: a read error returns null + console.warn → no replay
+ * history is sent (blank terminal with live shell; Iterate C / ADR-087
+ * retired the chunked-replay fallback). Plan invariant #5: version
+ * mismatch is no-replay, NOT crash.
  */
 export async function tryReadSnapshot(
   store: SnapshotStore | undefined,
@@ -72,7 +73,7 @@ export async function tryReadSnapshot(
   if (!rec) return null;
   if (expectedVersion && rec.terminalVersion !== expectedVersion) {
     logWarn(
-      `[terminal] snapshot version mismatch for ${taskId}: file=${rec.terminalVersion} expected=${expectedVersion} — falling back to chunked replay`,
+      `[terminal] snapshot version mismatch for ${taskId}: file=${rec.terminalVersion} expected=${expectedVersion} — no replay history will be sent`,
     );
     return null;
   }
