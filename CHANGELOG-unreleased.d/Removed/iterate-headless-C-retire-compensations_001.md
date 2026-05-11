@@ -1,0 +1,1 @@
+Retired ADR-069 sanitizer + ADR-077 collapse/footer + ADR-079 pushdown + ADR-086 skip-for-new-plain. Deleted scrollback-sanitizer.ts, collapsePowerShellBoilerplate, readForReplay, legacy chunked-replay WS envelopes (replay_start/replay_chunk/replay_separator/replay_end). The chunked replay path is GONE — cell-state snapshots (ADR-088/089) are the sole replay primitive. (ADR-087)

@@ -70,60 +70,6 @@ const PROMPT_READY_NO_DATA_GRACE_MS = 1500;
 const PROMPT_HARD_CAP_MS = 15_000;
 const PROMPT_POLL_MS = 50;
 
-/**
- * iterate-2026-05-08 v0.8.7 AC-4 — count `──── shell stopped at`
- * substrings.
- *
- * Two counting modes:
- *   - Accumulator (PRIMARY) — sum substring matches across all
- *     replay_chunk payloads received between replay_start and replay_end.
- *     Chunk-split markers are handled by holding a small overlap from
- *     the previous chunk's tail (`SHELL_STOPPED_SUBSTRING.length - 1`
- *     bytes) so a marker split across two chunks still matches.
- *
- *   - Buffer-scan (FALLBACK / xterm-mock tests) — iterate
- *     `term.buffer.active.getLine(i).translateToString(true)`.
- *     Used by the unit tests where we control the buffer mock; in
- *     production the replay's content can be wiped by pty2's
- *     `\x1b[2J\x1b[H` initial sequence AFTER replay_end fires, so
- *     buffer-scan reads zero counts when the live shell starts fresh.
- *     The accumulator captures the marker count BEFORE the wipe.
- *
- * Production (Replay) flow: accumulator wins. Test flow with mocked
- * xterm + no live-data wipe: buffer scan fills in correctly. The
- * Math.max() resolves disagreement in favor of the higher-count
- * source (preserves AC-4 behavior in both flows).
- */
-const SHELL_STOPPED_SUBSTRING = "──── shell stopped at";
-
-function countShellStoppedMarkersInBuffer(term: Terminal | null): number {
-  if (!term) return 0;
-  const buf = term.buffer?.active;
-  if (!buf) return 0;
-  let count = 0;
-  for (let i = 0; i < buf.length; i++) {
-    const line = buf.getLine(i);
-    if (!line) continue;
-    if (line.translateToString(true).includes(SHELL_STOPPED_SUBSTRING)) {
-      count++;
-    }
-  }
-  return count;
-}
-
-function countSubstringOccurrences(s: string, sub: string): number {
-  if (sub.length === 0) return 0;
-  let count = 0;
-  let from = 0;
-  while (true) {
-    const idx = s.indexOf(sub, from);
-    if (idx === -1) break;
-    count++;
-    from = idx + sub.length;
-  }
-  return count;
-}
-
 export interface EmbeddedTerminalProps {
   taskId: string;
   /**
@@ -268,26 +214,11 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // before it can dereference a nulled `_renderService`.
     const disposedRef = useRef(false);
 
-    // iterate-2026-05-08 v0.8.7 AC-4 — count of `──── shell stopped at ────`
-    // markers in the replay. Re-derived at every `replay_end` and at every
-    // successful clear-scrollback. Footer banner renders when ≥ 2.
-    const [stoppedSessionsCount, setStoppedSessionsCount] = useState(0);
-    const [clearInFlight, setClearInFlight] = useState(false);
-    const [clearError, setClearError] = useState<string | null>(null);
-    // Accumulator across replay_chunk envelopes. Reset on replay_start;
-    // counted ONCE at replay_end. Per external code review (gemini medium):
-    // a tail-only retention strategy can drop marker prefixes when chunks
-    // arrive smaller than the marker length (e.g. 1-byte chunks). The
-    // simpler robust approach: concatenate all replay payloads, count at
-    // the end, free the buffer immediately. Replay payload is bounded by
-    // `maxBytesPerTask` (1 MiB live + 1 MiB rotated = 2 MiB worst case),
-    // which V8 handles trivially.
-    //
-    // `inReplayRef` gates which onData chunks accumulate — replay_chunk +
-    // replay_separator route through onData (per useTerminalSocket); live
-    // `data` envelopes after replay_end do NOT count.
-    const inReplayRef = useRef(false);
-    const replayBufferRef = useRef<string[]>([]);
+    // Iterate C (ADR-087) — the v0.8.7 stopped-sessions footer + clear-history
+    // button were tied to the chunked-replay accumulator (counted shell-stopped
+    // markers across `replay_chunk` envelopes). With the chunked path retired,
+    // cell-state snapshots don't surface those markers via byte stream; the
+    // disclosure footer logic was removed alongside the legacy replay envelopes.
 
     // ADR-068-A1 — auto-launch coordination state (refs survive re-renders).
     const coord = useLaunchCoordinator();
@@ -325,55 +256,23 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // burst counts as activity and resets the 250ms quiesce window.
         if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
         lastPtyDataAtRef.current = Date.now();
-        // iterate-2026-05-08 v0.8.7 AC-4 — accumulate replay payloads
-        // verbatim. replay_chunk + replay_separator envelopes route
-        // through onData (per useTerminalSocket) — gate on inReplayRef
-        // so live `data` envelopes after replay_end do NOT contribute.
-        // Counting happens ONCE in onReplayEnd.
-        if (inReplayRef.current) {
-          replayBufferRef.current.push(chunk);
-        }
         termRef.current?.write(chunk);
       },
-      onReplayStart: () => {
-        // Iterate v0.8.5 AC-3 — defensive: clear xterm before each
-        // replay so re-attach inside the same EmbeddedTerminal instance
-        // (e.g. WS reconnect mid-session) does NOT visually stack a
-        // second copy of the historical scrollback on top of the first.
-        // For the typical mount-fresh-xterm-then-replay path this is a
-        // no-op (xterm is already empty); for any future reconnect path
-        // it guarantees idempotent replay rendering.
-        try {
-          termRef.current?.clear();
-        } catch {
-          /* xterm may be mid-dispose; ignore */
-        }
-        // iterate-2026-05-08 v0.8.7 AC-4 — open the marker accumulator
-        // window. Cleared at replay_start so a re-attach starts fresh
-        // (the accumulator does NOT carry across replay sessions).
-        inReplayRef.current = true;
-        replayBufferRef.current = [];
-      },
-      onReplaySnapshot: ({ data, cols, rows, terminalVersion }) => {
-        // ADR-089 (Iterate B) — single-envelope cell-state replay. The
-        // server has already stabilised the payload via M2 double-
-        // serialize, so the client writes ONCE into xterm; no
-        // banner-grace, no resize-before-write, no pushdown logic.
-        // ADR-079's pushdown + banner-grace remain in place for the
-        // legacy chunked path (used as fallback when no snapshot
-        // exists on disk OR version mismatch) — Iterate C retires them.
+      onReplaySnapshot: ({ data, terminalVersion }) => {
+        // ADR-087/089 — single-envelope cell-state replay. The server
+        // has already stabilised the payload via M2 double-serialize, so
+        // the client writes ONCE into xterm. ADR-079 pushdown +
+        // ADR-077 banner-grace + ADR-086 skip-for-new-plain were all
+        // legacy byte-stream compensations and have been retired in
+        // Iterate C — the cell-state path does NOT exhibit any of
+        // those problems by construction.
         const term = termRef.current;
         if (!term) return;
         // Best-effort version-family check. Server's version gate is the
         // authoritative accept/reject layer; this is just a console
-        // warning when minor versions drift inside the same major.
+        // warning when minor versions drift across the same major.
         if (terminalVersion) {
           try {
-            // Heuristic: log a warn when major numbers differ. We can't
-            // reliably read xterm.js's version from the package at
-            // runtime in production builds (no package.json import on
-            // client), so the assertion is purely server-versus-server.
-            // eslint-disable-next-line no-console
             const major = terminalVersion.split(".")[0];
             if (major && major !== "5") {
               // eslint-disable-next-line no-console
@@ -386,14 +285,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           }
         }
         try {
-          // External code review (openai medium): use `term.reset()`,
-          // NOT `term.clear()`. `clear()` only wipes scrollback above
-          // the viewport — the active screen content remains. On
-          // re-attach within the same component instance (WS reconnect
-          // mid-session), `clear()` would let old viewport content
-          // visually merge with the replayed snapshot. `reset()`
-          // re-initialises cursor + viewport + scrollback so the
-          // snapshot writes into a truly fresh state.
+          // Use `term.reset()` (not `clear()`) — `clear()` only wipes
+          // scrollback above the viewport; `reset()` re-initialises
+          // cursor + viewport + scrollback so the snapshot writes into
+          // a truly fresh state on re-attach.
           try {
             term.reset();
           } catch {
@@ -406,82 +301,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           console.warn(
             `[terminal] replay_snapshot write failed: ${(err as Error).message}`,
           );
-        }
-        // Mute the marker accumulator — the snapshot path doesn't
-        // surface shell-stopped markers via byte stream; it's a
-        // cell-state replay. Count cleanly stays at 0 unless a future
-        // iterate wires marker detection into the cell buffer scan.
-        // Reference resolved-but-unused dims so a downstream consumer
-        // adding `cols`/`rows` lookups in this scope is type-checked.
-        void cols;
-        void rows;
-      },
-      onReplayEnd: () => {
-        // Iterate v0.8.6 follow-up — scroll xterm to the bottom of the
-        // buffer so the visible viewport is positioned at the active
-        // area (vs. floating somewhere in scrollback).
-        //
-        // Iterate v0.8.9 (this iterate) — push the replayed content out
-        // of xterm's ACTIVE AREA into the scrollback ABOVE before the
-        // live shell starts writing. v0.8.6 alone left the replay (incl.
-        // separator banner) sitting in the active area; the cursor parked
-        // at row N+1 of replay; live shell content (PowerShell + Claude
-        // TUI) wrote from cursor → ended up at the BOTTOM of the visible
-        // viewport with replay/empty rows above. Compounded by TERM=dumb
-        // (set in server/src/terminal/routes.ts createNodePtySpawnFn for
-        // the chalk brand-color hack) which suppresses ConPTY's own
-        // \x1b[2J\x1b[H startup emit, so nothing else clears the active
-        // area for the live shell either.
-        //
-        // Writing `term.rows` × \r\n advances the cursor past the bottom
-        // of the active area; each \n at the bottom row triggers a
-        // scroll-up that moves the topmost active row into scrollback.
-        // After `rows` newlines the entire active area is blank and the
-        // replayed content is in scrollback. Then \x1b[H homes the
-        // cursor at (0,0) of the now-empty active area; the live shell
-        // renders from there — TOP of the viewport.
-        //
-        // Replay history remains accessible by scrolling up. Marker
-        // counting still works: replayBufferRef.current was populated
-        // BEFORE these writes (during onData → inReplayRef gate), and
-        // the buffer-scan fallback safely returns 0 since the active
-        // area is now blank — Math.max() picks the higher count from
-        // the accumulator.
-        const term = termRef.current;
-        try {
-          if (term) {
-            term.write("\r\n".repeat(term.rows));
-            term.write("\x1b[H");
-            term.scrollToBottom();
-          }
-        } catch {
-          /* xterm may be mid-dispose; ignore */
-        }
-        // iterate-2026-05-08 v0.8.7 AC-4 — finalize marker count.
-        // Two sources reconciled via Math.max:
-        //   (a) accumulator (PRIMARY in production): captures marker
-        //       count in the replay payload BEFORE pty2's initial
-        //       \x1b[2J\x1b[H wipes the xterm buffer. (Empirically
-        //       observed: replay paints marker → live data wipes
-        //       buffer → buffer-scan returns 0.)
-        //   (b) buffer scan (FALLBACK for unit tests with mocked xterm
-        //       and no live-data wipe): handles environments where
-        //       there's no subsequent buffer wipe.
-        try {
-          // Concatenate the chunk buffer once (avoid string-grow N²).
-          const replayed = replayBufferRef.current.join("");
-          const accumulatorCount = countSubstringOccurrences(
-            replayed,
-            SHELL_STOPPED_SUBSTRING,
-          );
-          const bufferCount = countShellStoppedMarkersInBuffer(termRef.current);
-          setStoppedSessionsCount(Math.max(accumulatorCount, bufferCount));
-        } catch {
-          /* ignore — buffer probe is non-critical */
-        } finally {
-          inReplayRef.current = false;
-          // Free buffer memory immediately (replay payload up to ~2 MiB).
-          replayBufferRef.current = [];
         }
       },
       onBackpressure: (info) => {
@@ -616,39 +435,12 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       [socket.ready, socket.role],
     );
 
-    // iterate-2026-05-08 v0.8.7 AC-4 — clear-history handler. Uses
-    // `window.confirm()` for a minimal-surface destructive guard
-    // (matches the existing "..." overflow menu's confirm-modal contract:
-    // ask before clearing user-visible scrollback). Calls the existing
-    // `/clear-scrollback` endpoint (no new server surface needed).
-    // On success: count resets to 0 → footer hides without remount.
-    const handleClearHistory = useCallback(async () => {
-      if (clearInFlight) return;
-      const ok = window.confirm(
-        `Clear ${stoppedSessionsCount} stopped Shell-Session entries from terminal scrollback? This deletes the on-disk history for this task.`,
-      );
-      if (!ok) return;
-      setClearError(null);
-      setClearInFlight(true);
-      try {
-        const res = await fetch(
-          `/api/terminal/${encodeURIComponent(taskId)}/clear-scrollback`,
-          { method: "POST" },
-        );
-        if (!res.ok) {
-          const detail = await res.text().catch(() => "");
-          setClearError(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`);
-          return;
-        }
-        // Reset count locally; the next replay (after re-attach) will
-        // confirm it's empty. Footer hides immediately on the visible side.
-        setStoppedSessionsCount(0);
-      } catch (err) {
-        setClearError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setClearInFlight(false);
-      }
-    }, [clearInFlight, stoppedSessionsCount, taskId]);
+    // Iterate C (ADR-087) — the v0.8.7 clear-history button + handler
+    // were tied to the chunked-replay marker-accumulator footer.
+    // With the chunked path retired the footer doesn't render and the
+    // handler is gone. The /clear-scrollback endpoint remains alive on
+    // the server (still wired to the kebab "..." overflow menu via the
+    // existing TaskCard / TaskDetailHeader surfaces).
 
     // ADR-068-A1: auto-launch flow.
     //
@@ -1109,35 +901,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           tabIndex={-1}
           data-testid="embedded-terminal-canvas"
         />
-        {stoppedSessionsCount >= 2 ? (
-          // iterate-2026-05-08 v0.8.7 AC-4 — historical-shell-sessions
-          // disclosure footer. Renders below the xterm canvas (NOT a
-          // header strip) once at least 2 `──── shell stopped at` markers
-          // are present in the replay. "Clear history" reuses the existing
-          // /clear-scrollback endpoint (server-side surface unchanged).
-          <div
-            className="-mx-2 -mb-2 mt-2 flex items-center justify-between gap-3 border-t border-[var(--color-border,#3f3f46)] bg-[#1a1a1a] px-3 py-1 text-[11px] text-[var(--color-muted,#9ca3af)]"
-            data-testid="embedded-terminal-stopped-sessions-footer"
-          >
-            <span>
-              Scrollback enthält {stoppedSessionsCount} beendete Shell-Sessions.
-              {clearError ? (
-                <span className="ml-2 text-[var(--color-warning,#f59e0b)]">
-                  {clearError}
-                </span>
-              ) : null}
-            </span>
-            <button
-              type="button"
-              onClick={handleClearHistory}
-              disabled={clearInFlight}
-              className="rounded border border-[var(--color-border,#3f3f46)] px-2 py-0.5 text-[11px] hover:bg-[#2a2a2a] disabled:opacity-50"
-              data-testid="embedded-terminal-clear-history-button"
-            >
-              {clearInFlight ? "Clearing…" : "Clear history"}
-            </button>
-          </div>
-        ) : null}
       </div>
     );
   },

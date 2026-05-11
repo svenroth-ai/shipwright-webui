@@ -203,6 +203,15 @@ export function createExternalRoutes(args: {
    */
   scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
   /**
+   * Iterate-2026-05-12 (ADR-087, MEDIUM-B1 fix) — best-effort snapshot
+   * cleanup cascade on DELETE /api/external/tasks/:id. Optional for
+   * tests; production wires the singleton SnapshotStore. Snapshots
+   * capture rendered cell-state and may contain secrets; the 24-h TTL
+   * is a backstop, the task delete is the authoritative privacy
+   * boundary.
+   */
+  snapshotClearBestEffort?: (taskId: string) => Promise<void>;
+  /**
    * iterate-2026-05-08 v0.8.7 AC-1 — required injection of the pty
    * lookup so the transcript poll can flip `new-plain` tasks from
    * `active` → `idle` when the pty is gone (idle-ceiling, /close,
@@ -224,6 +233,7 @@ export function createExternalRoutes(args: {
     previewManager,
     loadProfile: injectedLoadProfile,
     scrollbackClearBestEffort,
+    snapshotClearBestEffort,
     ptyManager,
   } = args;
   // iterate-2026-05-08 v0.8.7 AC-1 — runtime guard (per external code
@@ -1163,6 +1173,17 @@ export function createExternalRoutes(args: {
     if (scrollbackClearBestEffort) {
       try {
         await scrollbackClearBestEffort(taskId);
+      } catch {
+        // best-effort
+      }
+    }
+    // Iterate-2026-05-12 (ADR-087, MEDIUM-B1 fix): cascade-clean snapshot
+    // file. Snapshots capture rendered cell-state (may contain secrets);
+    // the 24-h TTL is a backstop, the task delete is the authoritative
+    // privacy boundary. Best-effort symmetric to scrollback.
+    if (snapshotClearBestEffort) {
+      try {
+        await snapshotClearBestEffort(taskId);
       } catch {
         // best-effort
       }
