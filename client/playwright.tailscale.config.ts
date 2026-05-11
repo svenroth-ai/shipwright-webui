@@ -19,6 +19,7 @@ export default defineConfig({
   testMatch: [
     'v091-tailscale-ws.spec.ts',
     'v0-9-2-embedded-terminal-mount-races.spec.ts',
+    'v0-9-3-resume-state-machine.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
