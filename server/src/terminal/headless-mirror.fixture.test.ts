@@ -155,9 +155,14 @@ describe("HeadlessMirror — fixture round-trip (Iterate A / ADR-088)", () => {
     mirror.dispose();
   });
 
-  it("fixture exists and is the captured 30 986-byte log", () => {
+  it("fixture exists and is the LF-normalized captured Claude TUI scrollback", () => {
+    // Original capture was 30 986 bytes. Git stored an LF-normalized blob
+    // (30 671 bytes) because the fixture was committed before .gitattributes
+    // pinned *.log under fixtures/ as binary. The LF-normalized stream
+    // still parses cleanly through @xterm/headless; round-trip equality
+    // (the three tests below) is the substantive invariant.
     const stats = fs.statSync(FIXTURE_PATH);
-    expect(stats.size).toBe(30986);
+    expect(stats.size).toBe(30671);
   });
 
   it("a. random chunking (1–1024 B): replay visible-line equals mirror", async () => {
