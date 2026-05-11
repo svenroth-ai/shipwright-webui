@@ -1,0 +1,1 @@
+Embedded terminal: Resume click on idle new-plain tasks now correctly converges to active state within one transcript-poll cycle and stays active; previously the state ping-ponged idle↔active because the active→idle JSONL-mtime decay fired unconditionally even when the pty was alive. Pty existence is now the authoritative signal for new-plain (ADR-085).
