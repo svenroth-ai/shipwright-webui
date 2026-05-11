@@ -218,7 +218,14 @@ export function selfHealClaudePath(deps: SelfHealClaudePathDeps): SelfHealResult
   if (!deps.bin) return { augmented: false, parentDir: null };
   const isWin = deps.platform === "win32";
   const sep = isWin ? ";" : ":";
-  const parentDir = path.dirname(deps.bin);
+  // Use the explicit platform's path module — NOT the runner-native
+  // `path` default. The runner is POSIX on Linux CI, which silently
+  // mis-parses `C:\...` inputs as a single basename and returns "."
+  // from `dirname`. Empirically: the 4 win32 test cases below passed on
+  // Windows dev machines but failed on Ubuntu CI for 9 push-runs after
+  // v0.8.5 because of this exact gap.
+  const pathMod = isWin ? path.win32 : path.posix;
+  const parentDir = pathMod.dirname(deps.bin);
 
   // External code review fix (openai medium): on Windows, environment
   // variables are case-insensitive AND many process spawners expose the
