@@ -298,21 +298,21 @@ describe("useTerminalSocket", () => {
     expect(calls).toEqual([]);
   });
 
-  it("does not interfere with the legacy chunked replay envelopes", async () => {
+  it("Iterate C (ADR-087) — legacy chunked-replay envelopes are IGNORED", async () => {
+    // The server no longer emits replay_start / replay_chunk /
+    // replay_separator / replay_end. If a stale server (mid-deploy
+    // skew) emits them anyway, the client MUST NOT call onData on
+    // those payloads, MUST NOT crash, MUST NOT call any chunked hook.
     Object.defineProperty(window, "location", {
       writable: true,
       value: new URL("http://localhost/x"),
     });
     const dataReceived: string[] = [];
     const snapshotReceived: unknown[] = [];
-    const starts: Array<{ totalBytes: number }> = [];
-    const ends: number[] = [];
     renderHook(() =>
       useTerminalSocket({
         taskId: "t1",
         onData: (d) => dataReceived.push(d),
-        onReplayStart: (info) => starts.push(info),
-        onReplayEnd: () => ends.push(1),
         onReplaySnapshot: (info) => snapshotReceived.push(info),
       }),
     );
@@ -325,11 +325,13 @@ describe("useTerminalSocket", () => {
       ws.__message(
         JSON.stringify({ type: "replay_chunk", payload: "hello" }),
       );
+      ws.__message(
+        JSON.stringify({ type: "replay_separator", payload: "sep" }),
+      );
       ws.__message(JSON.stringify({ type: "replay_end" }));
     });
-    expect(starts).toEqual([{ totalBytes: 5 }]);
-    expect(dataReceived).toEqual(["hello"]);
-    expect(ends).toEqual([1]);
+    // No onData calls — the chunked payloads are silently dropped.
+    expect(dataReceived).toEqual([]);
     expect(snapshotReceived).toEqual([]);
   });
 });

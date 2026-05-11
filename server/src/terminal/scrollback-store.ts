@@ -4,9 +4,23 @@
  * Per-task append-only file at `<scrollbackDir>/<taskId>.log` (rotated to
  * `.log.1` at `maxBytesPerTask`). Read-back combines both files via
  * StringDecoder so multi-byte UTF-8 split across the rotation boundary
- * round-trips cleanly. Replay-on-attach (in routes.ts WS upgrade)
- * reads the last `maxBytesPerTask` bytes and chunks them over the
- * WebSocket.
+ * round-trips cleanly.
+ *
+ * Iterate C (ADR-087, 2026-05-12): the chunked-replay path that used
+ * to consume `read()` (via the now-deleted `readForReplay()` accessor)
+ * is RETIRED. Cell-state snapshots (snapshot-store + @xterm/headless
+ * mirror, ADR-088/089) are the sole replay primitive. This module
+ * remains for two surviving consumers:
+ *   - `bytes()` — surfaced in the WS `ready` envelope `scrollbackBytes`
+ *     field so the privacy-disclosure footer can render.
+ *   - `clear()` / `clearBestEffort()` — user-clear button + DELETE
+ *     cascade still wipe the disk file even though it has no replay
+ *     consumer (privacy contract).
+ *
+ * The sanitizer + replay-time PowerShell-boilerplate collapse (formerly
+ * ADR-069 / ADR-077 compensations) are GONE. Disk content is now raw
+ * pty bytes; consumers reading via `read()` get those bytes verbatim.
+ * No production code path currently calls `read()` post-Iterate-C.
  *
  * Architecture invariants (frozen by external review v3→v7 + Round 4):
  *   - append() uses fs.appendFileSync (one syscall sequence per call —
@@ -43,7 +57,6 @@ import * as fsSync from "node:fs";
 import * as path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import PQueue from "p-queue";
-import { ScrollbackSanitizer } from "./scrollback-sanitizer.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -98,101 +111,6 @@ export class ScrollbackStoreError extends Error {
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 
-/**
- * iterate-2026-05-08 v0.8.7 AC-3 — replay-time collapse of repeated
- * PowerShell-startup banner bursts. Pure function over the raw scrollback
- * string; called by `readForReplay()` only — disk content untouched.
- *
- * Trigger conditions (all must hold for each tuple within a single
- * shell-lifetime span — between AC-2 markers / start / end of buffer):
- *   1. Match the bounded banner regex `(?:OSC title)?PowerShell N.N.N
- *      \r\n(?:PS prompt)?` — bounded sub-patterns prevent ReDoS.
- *   2. Tuple is preceded by ≥10 consecutive `\r\n` lines (the post-
- *      resize CRLF block signature observed in pwsh respawn cycles).
- *   3. ≥2 such tuples in the same span trigger the collapse — single
- *      mid-stream banners are preserved verbatim.
- *
- * On collapse: keep the LAST banner-burst (closest to "current state");
- * replace the earlier ones with a single dim-grey marker line:
- *
- *     \r\n\x1b[2m── N earlier banners collapsed ──\x1b[m\r\n
- *
- * Collapse is per-span — never crosses an AC-2 shell-stopped marker.
- */
-const SHELL_STOPPED_MARKER_RE =
-  /\r\n\x1b\[2m──── shell stopped at \d{2}:\d{2}:\d{2} ────\x1b\[m\r\n/g;
-
-const BANNER_BURST_RE =
-  // ≥10 CRLF lines preceding (post-resize signature)
-  // (?:\x1b\]0;[^\x07]{0,256}\x07)? — bounded OSC title-set
-  // PowerShell N.N.N\r\n — version banner (anchored shape)
-  // (?:PS [^\r\n>]{0,512}>[ \t]*)? — bounded prompt path; trailing
-  //   whitespace is SPACE/TAB only — NEVER `\s*` because that includes
-  //   newlines and would greedily eat the NEXT banner-burst's
-  //   ≥10-CRLF prefix, breaking subsequent matches.
-  /(?:\r\n){10,}(?:\x1b\]0;[^\x07]{0,256}\x07)?PowerShell \d+\.\d+\.\d+\r\n(?:PS [^\r\n>]{0,512}>[ \t]*)?/g;
-
-function collapseSpan(span: string): string {
-  // Reset lastIndex on the global regex (function-scoped reuse).
-  BANNER_BURST_RE.lastIndex = 0;
-  const matches: RegExpExecArray[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = BANNER_BURST_RE.exec(span)) !== null) {
-    matches.push(m);
-    // Defensive: zero-width matches would loop forever.
-    if (m.index === BANNER_BURST_RE.lastIndex) BANNER_BURST_RE.lastIndex++;
-  }
-  if (matches.length < 2) return span;
-
-  // Per external code review (openai high) — preserve any non-boilerplate
-  // content BETWEEN matched bursts (e.g. user output a command between
-  // pty respawns). Walk the span piece-by-piece: keep inter-match
-  // content; replace each burst with empty EXCEPT the last (which we
-  // keep, prefixed with the collapse marker indicating how many earlier
-  // bursts were collapsed).
-  const earlierCount = matches.length - 1;
-  const collapseMarker =
-    `\r\n\x1b[2m── ${earlierCount} earlier banner${earlierCount === 1 ? "" : "s"} collapsed ──\x1b[m\r\n`;
-
-  let result = "";
-  let cursor = 0;
-  for (let i = 0; i < matches.length; i++) {
-    const match = matches[i];
-    const isLast = i === matches.length - 1;
-    // Always keep content from cursor to start of this match (preserves
-    // user output between bursts).
-    result += span.slice(cursor, match.index);
-    if (isLast) {
-      // Marker BEFORE the last burst, then the last burst itself.
-      result += collapseMarker + match[0];
-    }
-    // Earlier bursts: replaced with empty string (collapsed).
-    cursor = match.index + match[0].length;
-  }
-  // Tail after the last match.
-  result += span.slice(cursor);
-  return result;
-}
-
-export function collapsePowerShellBoilerplate(raw: string): string {
-  // Reset lastIndex on the global marker regex.
-  SHELL_STOPPED_MARKER_RE.lastIndex = 0;
-  const parts = raw.split(SHELL_STOPPED_MARKER_RE);
-  if (parts.length === 1) {
-    // No AC-2 markers — single span.
-    return collapseSpan(raw);
-  }
-  // Recover the original markers (split discards them).
-  SHELL_STOPPED_MARKER_RE.lastIndex = 0;
-  const markers = raw.match(SHELL_STOPPED_MARKER_RE) ?? [];
-  let result = collapseSpan(parts[0]);
-  for (let i = 0; i < markers.length; i++) {
-    result += markers[i];
-    result += collapseSpan(parts[i + 1] ?? "");
-  }
-  return result;
-}
-
 type RotationState = "NORMAL" | "ROTATING" | "ROTATION_FLUSH";
 
 interface PerTaskState {
@@ -205,13 +123,6 @@ interface PerTaskState {
   rotationBufferBytes: number;
   /** Per-task serialized queue for rotate / read / clear. */
   queue: PQueue;
-  /**
-   * AC-1 (iterate-2026-05-05) — sanitizer that strips cursor-control +
-   * repaint sequences from the byte stream before disk persistence.
-   * One instance per task so chunk-boundary state (mid-CSI / mid-OSC /
-   * mid-CRLF) carries across `pty.onData` calls.
-   */
-  sanitizer: ScrollbackSanitizer;
 }
 
 // ---------------------------------------------------------------------------
@@ -267,26 +178,21 @@ export class ScrollbackStore {
 
     const st = this.getOrInitState(taskId);
 
-    // AC-1 (iterate-2026-05-05): sanitize before persistence. The live
-    // broadcast in PtyManager keeps the raw bytes; only the disk path
-    // runs through the sanitizer. Held state (mid-CSI / mid-OSC / mid-CRLF)
-    // carries across calls via st.sanitizer.
-    const sanitized = st.sanitizer.feed(data);
-    if (sanitized.byteLength === 0) {
-      // The chunk was entirely cursor-control / repaint bytes (e.g. a
-      // standalone "\x1b[H\x1b[K" frame) — nothing to persist for this
-      // chunk. Held state in st.sanitizer is preserved for the next call.
-      return true;
-    }
+    // Iterate C (ADR-087): the ADR-069 sanitizer has been retired. Disk
+    // content is now raw pty bytes — the cell-state snapshot store
+    // (ADR-088/089) is the sole replay primitive, and snapshots are
+    // produced by @xterm/headless from the live byte stream regardless
+    // of what the disk file holds. `read()` still returns these raw
+    // bytes verbatim for any diagnostic consumer.
 
     // Rotation in flight → buffer (NEVER drop chunks; ANSI/UTF-8 corruption).
     if (st.state !== "NORMAL") {
-      this.bufferDuringRotation(taskId, st, sanitized);
+      this.bufferDuringRotation(taskId, st, data);
       return true;
     }
 
     try {
-      fsSync.appendFileSync(this.taskFilePath(taskId), sanitized, {
+      fsSync.appendFileSync(this.taskFilePath(taskId), data, {
         mode: this.fileMode,
       });
     } catch (err) {
@@ -298,7 +204,7 @@ export class ScrollbackStore {
       return false;
     }
 
-    st.size += sanitized.byteLength;
+    st.size += data.byteLength;
 
     if (st.size > this.opts.maxBytesPerTask) {
       this.scheduleRotation(taskId, st);
@@ -352,29 +258,6 @@ export class ScrollbackStore {
       }
     }
     return total;
-  }
-
-  /**
-   * iterate-2026-05-08 v0.8.7 AC-3 — read the scrollback for **WS replay
-   * only**, applying replay-time collapse of repeated PowerShell-startup
-   * banner bursts. The disk file is unchanged; this is purely a
-   * presentation transform.
-   *
-   * Per external plan review (gemini high + openai high):
-   *   - `read()` and `bytes()` STAY RAW so `scrollback-meta` envelope
-   *     accounting + privacy disclosure copy stay accurate.
-   *   - Bounded regex (`[^\a]{0,256}` / `[^\r\n>]{0,512}`) — no
-   *     ReDoS / catastrophic-backtracking on long histories.
-   *   - Collapse never crosses an AC-2 `──── shell stopped at ────`
-   *     marker (split by markers, collapse each span, rejoin).
-   *   - Whitelist trigger: ≥10-CRLF prefix + bounded banner + ≥2
-   *     such tuples within one span. Single mid-stream "PowerShell
-   *     7.6.1" is NEVER collapsed.
-   */
-  async readForReplay(taskId: string): Promise<string> {
-    const raw = await this.read(taskId);
-    if (!raw) return raw;
-    return collapsePowerShellBoilerplate(raw);
   }
 
   /**
@@ -548,7 +431,6 @@ export class ScrollbackStore {
         rotationBuffer: [],
         rotationBufferBytes: 0,
         queue: new PQueue({ concurrency: 1 }),
-        sanitizer: new ScrollbackSanitizer(),
       };
       this.states.set(taskId, st);
     }
@@ -735,27 +617,14 @@ export class ScrollbackStore {
 
     if (!liveBuf && !archiveBuf) return "";
 
-    // AC-1 (iterate-2026-05-05): legacy-file compat. v0.8.0 wrote raw
-    // pty bytes to disk, including cursor-control sequences that re-execute
-    // on replay and corrupt the rendered scrollback. Re-run the sanitizer
-    // here — for v0.8.1+ files it's a near-no-op (already sanitized on
-    // append); for v0.8.0 files it strips the corruption-causing bytes.
-    const readSanitizer = new ScrollbackSanitizer();
-    let cleanArchive: Buffer | null = null;
-    let cleanLive: Buffer | null = null;
-    if (archiveBuf) {
-      cleanArchive = readSanitizer.feed(archiveBuf);
-    }
-    if (liveBuf) {
-      cleanLive = readSanitizer.feed(liveBuf);
-    }
-    const flush = readSanitizer.flush();
-
+    // Iterate C (ADR-087) — the ADR-069 sanitizer is RETIRED. We return
+    // the raw bytes verbatim. UTF-8 decode is still done via
+    // StringDecoder so multi-byte codepoints split across the rotation
+    // boundary round-trip cleanly.
     const decoder = new StringDecoder("utf8");
     let out = "";
-    if (cleanArchive) out += decoder.write(cleanArchive);
-    if (cleanLive) out += decoder.write(cleanLive);
-    if (flush.byteLength > 0) out += decoder.write(flush);
+    if (archiveBuf) out += decoder.write(archiveBuf);
+    if (liveBuf) out += decoder.write(liveBuf);
     out += decoder.end();
 
     // Tail to maxBytesPerTask of UTF-8-encoded length.
@@ -814,10 +683,6 @@ export class ScrollbackStore {
       st.rotationBuffer = [];
       st.rotationBufferBytes = 0;
       st.state = "NORMAL";
-      // AC-1: clear() resets the disk file; the sanitizer must
-      // forget any in-progress sequence so the next append starts
-      // from GROUND state.
-      st.sanitizer.reset();
     }
   }
 }

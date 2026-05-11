@@ -9,15 +9,19 @@
  *                              {type:"data",payload}
  *                              {type:"backpressure",droppedBytes}
  *                              {type:"read_only"}
- *                              {type:"replay_start",totalBytes}      [ADR-068-A1]
- *                              {type:"replay_chunk",payload}         [ADR-068-A1]
- *                              {type:"replay_separator",payload}     [ADR-068-A1]
- *                              {type:"replay_end"}                    [ADR-068-A1]
- *                              {type:"replay_snapshot",data,cols,rows,terminalVersion} [ADR-089]
+ *                              {type:"replay_snapshot",data,cols,rows,terminalVersion} [ADR-087/089]
+ *                              {type:"scrollback-meta",scrollbackBytes}
+ *                              {type:"writer-promoted"} | {type:"second-attach"}
  *   - Outbound JSON envelope: {type:"data",payload}  | {type:"resize",cols,rows}
  *   - `ready === true` exactly when the socket is OPEN AND a server-side
  *     `ready` envelope has arrived. The TaskDetail launch-flow waits on
  *     this before calling term.focus().
+ *
+ * Iterate C (ADR-087): the legacy chunked-replay envelopes
+ * (`replay_start` / `replay_chunk` / `replay_separator` / `replay_end`)
+ * are RETIRED. The server emits a single `replay_snapshot` envelope
+ * when a cell-state snapshot exists; otherwise the client gets no
+ * replay history at all (blank terminal with live shell).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -65,16 +69,14 @@ export interface UseTerminalSocketOptions {
   onBackpressure?: (info: { droppedBytes: number }) => void;
   /** Called on inbound `read_only` envelope. */
   onReadOnly?: () => void;
-  /** ADR-068-A1: replay lifecycle hooks. Optional — replay chunks fall back to onData. */
-  onReplayStart?: (info: { totalBytes: number }) => void;
-  onReplayEnd?: () => void;
   /**
-   * ADR-089 (Iterate B) — single-envelope snapshot replay. When the
-   * server has a fresh cell-state snapshot for this task whose
-   * `terminalVersion` matches the client's xterm.js family, it emits
-   * one `replay_snapshot` envelope instead of the chunked sequence.
-   * Consumer writes `data` ONCE into xterm — no banner-grace,
-   * no resize-before-write (server stabilised via M2 double-serialize).
+   * ADR-087/089 — single-envelope snapshot replay. When the server has
+   * a fresh cell-state snapshot for this task whose `terminalVersion`
+   * matches the client's xterm.js family, it emits one
+   * `replay_snapshot` envelope. Consumer writes `data` ONCE into
+   * xterm — server stabilised via M2 double-serialize. Iterate C
+   * retired the legacy chunked-replay path entirely; this is now the
+   * only replay envelope.
    *
    * `terminalVersion` is the server-side `@xterm/headless` version
    * that produced the payload; consumer MAY warn on minor mismatch
@@ -137,8 +139,6 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     onData,
     onBackpressure,
     onReadOnly,
-    onReplayStart,
-    onReplayEnd,
     onReplaySnapshot,
   } = opts;
 
@@ -146,8 +146,6 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const onDataRef = useRef(onData);
   const onBackpressureRef = useRef(onBackpressure);
   const onReadOnlyRef = useRef(onReadOnly);
-  const onReplayStartRef = useRef(onReplayStart);
-  const onReplayEndRef = useRef(onReplayEnd);
   const onReplaySnapshotRef = useRef(onReplaySnapshot);
   useEffect(() => {
     onDataRef.current = onData;
@@ -158,12 +156,6 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   useEffect(() => {
     onReadOnlyRef.current = onReadOnly;
   }, [onReadOnly]);
-  useEffect(() => {
-    onReplayStartRef.current = onReplayStart;
-  }, [onReplayStart]);
-  useEffect(() => {
-    onReplayEndRef.current = onReplayEnd;
-  }, [onReplayEnd]);
   useEffect(() => {
     onReplaySnapshotRef.current = onReplaySnapshot;
   }, [onReplaySnapshot]);
@@ -310,30 +302,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           setRole("writer");
           return;
         }
-        // ADR-068-A1 — replay envelopes route into onData (xterm renders
-        // identically), with optional lifecycle hooks for UX surfaces
-        // (e.g. progress bar, "scrollback restored" toast).
-        if (env.type === "replay_start") {
-          const total = typeof env.totalBytes === "number" ? env.totalBytes : 0;
-          onReplayStartRef.current?.({ totalBytes: total });
-          return;
-        }
-        if (env.type === "replay_chunk" && typeof env.payload === "string") {
-          onDataRef.current?.(env.payload);
-          return;
-        }
-        if (env.type === "replay_separator" && typeof env.payload === "string") {
-          onDataRef.current?.(env.payload);
-          return;
-        }
-        if (env.type === "replay_end") {
-          onReplayEndRef.current?.();
-          return;
-        }
-        // ADR-089 (Iterate B) — single-envelope snapshot path. Server
-        // emits this when a cell-state snapshot exists for the task AND
-        // the snapshot's terminalVersion matches the server's pinned
-        // version. Consumer writes `data` ONCE.
+        // Iterate C (ADR-087): the legacy chunked-replay envelopes
+        // (`replay_start` / `replay_chunk` / `replay_separator` /
+        // `replay_end`) have been retired. The server emits a single
+        // `replay_snapshot` envelope; consumer writes `data` ONCE.
+        // Cell-state snapshots are produced by @xterm/headless +
+        // addon-serialize and stabilised via the M2 double-serialize.
         if (
           env.type === "replay_snapshot" &&
           typeof env.data === "string" &&

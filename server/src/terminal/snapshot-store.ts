@@ -319,6 +319,24 @@ export class SnapshotStore {
     }
   }
 
+  /**
+   * Best-effort variant — used by task-delete cascade (Iterate C
+   * MEDIUM-B1 fix). Silently no-ops on malformed taskId; logs warn on
+   * any clear failure but does not throw. Mirrors scrollback-store's
+   * `clearBestEffort` contract.
+   */
+  async clearBestEffort(taskId: string): Promise<void> {
+    if (!UUID_PATTERN.test(taskId)) return;
+    try {
+      await this.clear(taskId);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[snapshot] clearBestEffort failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
   /** Delete the snapshot file. Idempotent. */
   async clear(taskId: string): Promise<void> {
     this.validateTaskId(taskId);
