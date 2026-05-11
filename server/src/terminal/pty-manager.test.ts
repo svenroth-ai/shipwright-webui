@@ -293,6 +293,33 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.getRole("t1", wsA)).toBe("writer");
   });
 
+  it("writer-promoted callback fires SYNCHRONOUSLY inside detach() — required by client banner-grace (ADR-084 AC-1)", () => {
+    // The client's 1500ms read-only banner grace (EmbeddedTerminal.tsx)
+    // assumes that when StrictMode mount-1 detaches, the server promotes
+    // mount-2 → writer SYNCHRONOUSLY, so `writer-promoted` reaches the
+    // client within a network RTT — well inside the grace window. If the
+    // server-side promotion ever moves into a microtask / setImmediate /
+    // setTimeout(0), the banner becomes a UX flicker (banner armed →
+    // briefly visible → hidden by writer-promoted). Lock the contract.
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const wsB = { id: "B" };
+    mgr.attach("t1", wsA);
+    mgr.attach("t1", wsB);
+    let promoted = false;
+    mgr.subscribeForConnection("t1", wsB, {
+      onData: () => undefined,
+      onPromoteToWriter: () => {
+        promoted = true;
+      },
+    });
+    // Call detach + assert SAME tick — no `await` between detach + check.
+    mgr.detach("t1", wsA);
+    expect(promoted).toBe(true); // promotion is synchronous.
+    expect(mgr.getRole("t1", wsB)).toBe("writer");
+  });
+
   it("hasActiveWriter reflects writer-slot occupancy (used by /paste-image gate)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });

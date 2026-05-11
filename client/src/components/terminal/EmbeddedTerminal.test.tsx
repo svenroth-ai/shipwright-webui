@@ -386,23 +386,80 @@ describe("<EmbeddedTerminal>", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("renders the read-only banner when ready arrives with role=reader, and clears it on writer-promoted (StrictMode race fence)", async () => {
-    const { container } = render(<EmbeddedTerminal taskId="t1" active />);
-    await act(async () => {});
-    const ws = FakeWebSocket.instances[0];
-    // No ready yet → no banner.
-    expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
-    await act(async () => {
-      ws.__message(
-        JSON.stringify({ type: "ready", role: "reader", shellKind: "pwsh", cwd: "C:\\x" }),
-      );
-    });
-    expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).not.toBeNull();
-    // Promotion clears the banner.
-    await act(async () => {
-      ws.__message(JSON.stringify({ type: "writer-promoted" }));
-    });
-    expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+  it("read-only banner is suppressed for 1500 ms after ready (ADR-084 AC-1 banner-grace), then armed if role stays reader, then cleared on writer-promoted (StrictMode race fence)", async () => {
+    // v0.9.2 (ADR-084) — the banner now waits 1500 ms after a fresh `ready`
+    // envelope to avoid flashing during the StrictMode-mount-1-takes-writer
+    // / mount-2-briefly-reader window before writer-promoted arrives. The
+    // server-side promotion contract is locked by
+    // `server/src/terminal/pty-manager.test.ts` writer-promoted suite.
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      // No ready yet → no banner.
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({ type: "ready", role: "reader", shellKind: "pwsh", cwd: "C:\\x" }),
+        );
+      });
+      // Within the grace window — banner is STILL hidden even though
+      // role=reader. This is the v0.9.2 fix.
+      await act(async () => {
+        vi.advanceTimersByTime(1400);
+      });
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+      // Past the grace window — role is genuinely stable at reader, banner
+      // is now armed and visible.
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).not.toBeNull();
+      // Promotion clears the banner.
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "writer-promoted" }));
+      });
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("read-only banner is cleared by writer-promoted DURING the grace window (no transient flash) — ADR-084 AC-1", async () => {
+    // The realistic StrictMode case: mount-1 takes writer, mount-2 opens
+    // with role=reader, then mount-1 close fires within a few hundred ms
+    // → writer-promoted reaches mount-2 INSIDE the 1500 ms grace. Banner
+    // must never have rendered.
+    vi.useFakeTimers();
+    try {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({ type: "ready", role: "reader", shellKind: "pwsh", cwd: "C:\\x" }),
+        );
+      });
+      // Mid-grace — banner hidden.
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+      // writer-promoted lands → role flips to writer → banner stays hidden
+      // for the rest of the grace AND after it (would-be-arm-timer is
+      // cleared by the effect's dep-change cleanup).
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "writer-promoted" }));
+      });
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(container.querySelector('[data-testid="embedded-terminal-readonly"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // Iterate v0.8.3 AC-1 wiring tests for `attachCustomKeyEventHandler`
