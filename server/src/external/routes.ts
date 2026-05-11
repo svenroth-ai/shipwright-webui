@@ -923,7 +923,37 @@ export function createExternalRoutes(args: {
       // task whose firstJsonlObservedAt is already set.
       nextState = "active";
     } else if (task.state === "active" && now - mtime > ACTIVE_IDLE_THRESHOLD_MS) {
-      nextState = "idle";
+      // iterate-2026-05-11 v0.9.3 AC-1 (ADR-085) — for `new-plain` tasks
+      // the JSONL mtime is meaningless (Claude doesn't write to it until
+      // the user types their first message inside the TUI). Using mtime
+      // as the active→idle decay signal made the state ping-pong every
+      // transcript-poll cycle right after a Resume click: /launch sets
+      // awaiting → poll flips to active (line 920-924) → next poll fires
+      // this branch (mtime stale) → idle → user sees Resume button → clicks
+      // again → ad infinitum. Empirical reproduction at task 31b4076d-...
+      // showed 53× accumulated launch-command echoes in disk-scrollback.
+      //
+      // For new-plain the AUTHORITATIVE active→idle signal is pty entry
+      // gone (the v0.8.7 AC-1 path at L889 inside the result="missing"
+      // branch). When result="ok" (JSONL exists from a prior session),
+      // we trust pty-up as "claude is running" and keep state=active.
+      // When pty goes away, the JSONL file might still exist (status="ok")
+      // OR get rotated/deleted (status="missing") — in either case the
+      // result="missing" branch will eventually catch it (Claude exit
+      // typically cleans up the JSONL line buffer; on Windows ConPTY exit
+      // the pty entry is gone almost instantly via PtyManager.cleanup).
+      // Trading a slightly delayed idle transition for a stable active
+      // state is the right call: the user's mental model is "claude is
+      // running, Resume button should be hidden", and that wins over
+      // catching the exact second of decay.
+      if (
+        task.actionId === "new-plain" &&
+        ptyManager.get(task.taskId) !== undefined
+      ) {
+        // Keep nextState = task.state (active).
+      } else {
+        nextState = "idle";
+      }
     } else if (task.state === "idle" && now - mtime <= IDLE_REACTIVATE_THRESHOLD_MS) {
       nextState = "active";
     }
