@@ -46,6 +46,8 @@
 import * as fsAsync from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomBytes } from "node:crypto";
+import PQueue from "p-queue";
 
 // Pinned terminal-emulator version that produced the snapshot payload.
 // Sourced from @xterm/headless's package.json at module load. We do NOT
@@ -120,11 +122,22 @@ export interface SnapshotRecord extends SnapshotHeader {
   data: string;
 }
 
+export type SnapshotRenameFn = (from: string, to: string) => Promise<void>;
+
 export interface SnapshotStoreOpts {
   /** POSIX file mode for `<taskId>.snapshot`. Ignored on Windows. */
   fileMode?: number;
   /** POSIX dir mode for the snapshot directory. Ignored on Windows. */
   dirMode?: number;
+  /**
+   * Iterate B — Windows EBUSY/EPERM retry budget on fs.rename. Mirrors
+   * scrollback-store's `renameMaxAttempts` (default 3). Windows AV
+   * scanners + recent-write windows produce transient EBUSY; without
+   * retry every transient EBUSY = lost snapshot.
+   */
+  renameMaxAttempts?: number;
+  /** Custom rename function for tests (simulate Windows EBUSY). */
+  renameFn?: SnapshotRenameFn;
 }
 
 /**
@@ -141,7 +154,29 @@ export interface SnapshotStoreOpts {
 export class SnapshotStore {
   private readonly fileMode: number;
   private readonly dirMode: number;
+  private readonly renameMaxAttempts: number;
+  private readonly renameFn: SnapshotRenameFn;
   private resolvedDir: string | null = null;
+  /**
+   * Iterate B (close MEDIUM-1 from A's code review) — per-task PQueue
+   * (concurrency=1) serializes all WRITE operations for the same taskId.
+   * Two simultaneous `write(taskId, …)` calls for the same task — possible
+   * under fast kill→respawn→kill cycles, test loops, or server-restart
+   * races — would otherwise collide on the tmp file path
+   * (`<taskId>.snapshot.tmp-<pid>-<ms>`), and one writer's `writeFile`
+   * could clobber the other's tmp file before its `rename` lands.
+   *
+   * Mirrors scrollback-store.ts's per-task queue pattern. Read/has/clear
+   * stay unqueued — they only touch the FINAL `<taskId>.snapshot` path,
+   * not the tmp staging path, and fs.rename is atomic against concurrent
+   * readers on every supported platform.
+   *
+   * The random suffix on the tmp path (crypto.randomBytes(4)) is a
+   * belt-AND-braces second defense: if a future iterate routes writes
+   * around the queue (e.g. cross-process), the suffix still rules out
+   * same-millisecond collision.
+   */
+  private readonly writeQueues = new Map<string, PQueue>();
 
   constructor(
     public readonly dir: string,
@@ -149,6 +184,8 @@ export class SnapshotStore {
   ) {
     this.fileMode = opts.fileMode ?? 0o600;
     this.dirMode = opts.dirMode ?? 0o700;
+    this.renameMaxAttempts = opts.renameMaxAttempts ?? 3;
+    this.renameFn = opts.renameFn ?? ((from, to) => fsAsync.rename(from, to));
   }
 
   /** Idempotent — creates dir + caches resolved path. */
@@ -161,15 +198,40 @@ export class SnapshotStore {
    * snapshot for the same task is overwritten. Caller MUST pass cols/rows
    * matching the headless-mirror's current dimensions; we embed them in
    * the header verbatim.
+   *
+   * Iterate B (close MEDIUM-1, MEDIUM-2 from A's code review):
+   *   - Per-task PQueue serializes concurrent writes for the same taskId.
+   *   - Tmp filename includes a 4-byte crypto random suffix so even if a
+   *     future iterate routes writes around the queue, same-millisecond
+   *     collisions remain impossible.
+   *   - fs.rename retries on EBUSY/EPERM (Windows AV scanner transients)
+   *     with 50→100→200 ms backoff. Matches scrollback-store.safeRename
+   *     budget so durability characteristics are identical at both
+   *     write surfaces.
    */
   async write(
     taskId: string,
     payload: { cols: number; rows: number; data: string },
   ): Promise<void> {
     this.validateTaskId(taskId);
+    const queue = this.getOrCreateWriteQueue(taskId);
+    await queue.add(() => this.writeLocked(taskId, payload));
+  }
+
+  private async writeLocked(
+    taskId: string,
+    payload: { cols: number; rows: number; data: string },
+  ): Promise<void> {
     const dir = await this.ensureDirResolved();
     const final = await this.resolveTargetPath(taskId);
-    const tmp = path.join(dir, `${taskId}.snapshot.tmp-${process.pid}-${Date.now()}`);
+    // crypto.randomBytes(4) yields 8 hex chars → 4 294 967 296 keyspace
+    // per pid+ms combination. Combined with pid + ms this is collision-
+    // free in practice.
+    const rand = randomBytes(4).toString("hex");
+    const tmp = path.join(
+      dir,
+      `${taskId}.snapshot.tmp-${process.pid}-${Date.now()}-${rand}`,
+    );
 
     const terminalVersion = await readTerminalVersion();
     const header =
@@ -178,9 +240,10 @@ export class SnapshotStore {
 
     await fsAsync.writeFile(tmp, body, { encoding: "utf8", mode: this.fileMode });
     try {
-      await fsAsync.rename(tmp, final);
+      await this.safeRename(tmp, final);
     } catch (err) {
-      // Clean up the tmp file if rename failed (e.g. EBUSY mid-flight).
+      // Clean up the tmp file if rename failed terminally (e.g. EACCES
+      // — non-retryable, or EBUSY budget exhausted).
       try {
         await fsAsync.unlink(tmp);
       } catch {
@@ -188,6 +251,42 @@ export class SnapshotStore {
       }
       throw err;
     }
+  }
+
+  /**
+   * Retry-on-EBUSY wrapper for fs.rename. Mirrors scrollback-store's
+   * safeRename — Windows AV scanners + recent-write windows produce
+   * transient EBUSY/EPERM that resolve within ~100 ms. Three attempts
+   * with 50→100→200 ms backoff (no jitter; predictable for tests).
+   */
+  private async safeRename(from: string, to: string): Promise<void> {
+    let lastErr: NodeJS.ErrnoException | null = null;
+    for (let attempt = 0; attempt < this.renameMaxAttempts; attempt++) {
+      try {
+        await this.renameFn(from, to);
+        return;
+      } catch (err) {
+        lastErr = err as NodeJS.ErrnoException;
+        const code = lastErr.code;
+        if (code !== "EBUSY" && code !== "EPERM") throw err;
+        // Exponential-ish backoff: 50, 100, 200 ms. The last attempt
+        // does NOT wait — there is no further attempt after it.
+        if (attempt < this.renameMaxAttempts - 1) {
+          const delay = 50 * Math.pow(2, attempt);
+          await new Promise((r) => setTimeout(r, delay));
+        }
+      }
+    }
+    if (lastErr) throw lastErr;
+  }
+
+  private getOrCreateWriteQueue(taskId: string): PQueue {
+    let q = this.writeQueues.get(taskId);
+    if (!q) {
+      q = new PQueue({ concurrency: 1 });
+      this.writeQueues.set(taskId, q);
+    }
+    return q;
   }
 
   /**
@@ -230,6 +329,40 @@ export class SnapshotStore {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
       throw err;
     }
+    // External review (gemini): drop the per-task write queue once
+    // the snapshot is cleared so the Map cannot grow unboundedly
+    // for sessions that churn through many tasks. The queue may still
+    // be processing a concurrent write; we await onIdle FIRST so the
+    // in-flight write completes before we drop the reference.
+    const q = this.writeQueues.get(taskId);
+    if (q) {
+      try {
+        await q.onIdle();
+      } catch {
+        /* best-effort */
+      }
+      this.writeQueues.delete(taskId);
+    }
+  }
+
+  /**
+   * Iterate B — drop the per-task write queue when the caller is
+   * confident no further writes will arrive (typical: pty-manager.cleanup
+   * after the final finalizeMirrorSnapshot has resolved). Idempotent.
+   * The queue's onIdle() is awaited before deletion so any pending
+   * work completes; subsequent writes for the same task would create
+   * a fresh queue.
+   */
+  async releaseQueue(taskId: string): Promise<void> {
+    if (!UUID_PATTERN.test(taskId)) return;
+    const q = this.writeQueues.get(taskId);
+    if (!q) return;
+    try {
+      await q.onIdle();
+    } catch {
+      /* best-effort */
+    }
+    this.writeQueues.delete(taskId);
   }
 
   // --- internals ----------------------------------------------------------

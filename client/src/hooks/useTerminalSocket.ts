@@ -13,6 +13,7 @@
  *                              {type:"replay_chunk",payload}         [ADR-068-A1]
  *                              {type:"replay_separator",payload}     [ADR-068-A1]
  *                              {type:"replay_end"}                    [ADR-068-A1]
+ *                              {type:"replay_snapshot",data,cols,rows,terminalVersion} [ADR-089]
  *   - Outbound JSON envelope: {type:"data",payload}  | {type:"resize",cols,rows}
  *   - `ready === true` exactly when the socket is OPEN AND a server-side
  *     `ready` envelope has arrived. The TaskDetail launch-flow waits on
@@ -67,6 +68,25 @@ export interface UseTerminalSocketOptions {
   /** ADR-068-A1: replay lifecycle hooks. Optional — replay chunks fall back to onData. */
   onReplayStart?: (info: { totalBytes: number }) => void;
   onReplayEnd?: () => void;
+  /**
+   * ADR-089 (Iterate B) — single-envelope snapshot replay. When the
+   * server has a fresh cell-state snapshot for this task whose
+   * `terminalVersion` matches the client's xterm.js family, it emits
+   * one `replay_snapshot` envelope instead of the chunked sequence.
+   * Consumer writes `data` ONCE into xterm — no banner-grace,
+   * no resize-before-write (server stabilised via M2 double-serialize).
+   *
+   * `terminalVersion` is the server-side `@xterm/headless` version
+   * that produced the payload; consumer MAY warn on minor mismatch
+   * but still write (server's version gate is the authoritative
+   * accept/reject layer).
+   */
+  onReplaySnapshot?: (info: {
+    data: string;
+    cols: number;
+    rows: number;
+    terminalVersion: string;
+  }) => void;
 }
 
 export interface UseTerminalSocketResult {
@@ -119,6 +139,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     onReadOnly,
     onReplayStart,
     onReplayEnd,
+    onReplaySnapshot,
   } = opts;
 
   // Stable refs for callbacks so the effect doesn't tear down on every parent re-render.
@@ -127,6 +148,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const onReadOnlyRef = useRef(onReadOnly);
   const onReplayStartRef = useRef(onReplayStart);
   const onReplayEndRef = useRef(onReplayEnd);
+  const onReplaySnapshotRef = useRef(onReplaySnapshot);
   useEffect(() => {
     onDataRef.current = onData;
   }, [onData]);
@@ -142,6 +164,9 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   useEffect(() => {
     onReplayEndRef.current = onReplayEnd;
   }, [onReplayEnd]);
+  useEffect(() => {
+    onReplaySnapshotRef.current = onReplaySnapshot;
+  }, [onReplaySnapshot]);
 
   const [ready, setReady] = useState(false);
   const [role, setRole] = useState<TerminalRole | null>(null);
@@ -303,6 +328,25 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         }
         if (env.type === "replay_end") {
           onReplayEndRef.current?.();
+          return;
+        }
+        // ADR-089 (Iterate B) — single-envelope snapshot path. Server
+        // emits this when a cell-state snapshot exists for the task AND
+        // the snapshot's terminalVersion matches the server's pinned
+        // version. Consumer writes `data` ONCE.
+        if (
+          env.type === "replay_snapshot" &&
+          typeof env.data === "string" &&
+          typeof env.cols === "number" &&
+          typeof env.rows === "number" &&
+          typeof env.terminalVersion === "string"
+        ) {
+          onReplaySnapshotRef.current?.({
+            data: env.data,
+            cols: env.cols,
+            rows: env.rows,
+            terminalVersion: env.terminalVersion,
+          });
           return;
         }
       });

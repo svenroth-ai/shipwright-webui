@@ -45,6 +45,11 @@ import {
   savePastedImage,
 } from "./image-paste.js";
 import type { ScrollbackStore } from "./scrollback-store.js";
+import type { SnapshotStore, SnapshotRecord } from "./snapshot-store.js";
+import {
+  buildReplaySnapshotEnvelope,
+  tryReadSnapshot as tryReadSnapshotShared,
+} from "./replay-snapshot.js";
 
 export interface TerminalRoutesDeps {
   store: SdkSessionsStore;
@@ -66,6 +71,24 @@ export interface TerminalRoutesDeps {
    * with PtyManager so append + replay see the same disk state.
    */
   scrollbackStore?: ScrollbackStore;
+  /**
+   * Iterate-2026-05-11 (ADR-089, Iterate B) — headless-mirror snapshot
+   * store. When wired AND a snapshot exists on disk for the task AND
+   * the snapshot's `terminalVersion` matches the currently-pinned
+   * `@xterm/headless` version, the WS attach emits a single
+   * `replay_snapshot` envelope and skips the legacy chunked replay.
+   * Otherwise the existing chunked path is used (legacy fallback).
+   */
+  snapshotStore?: SnapshotStore;
+  /**
+   * Iterate-2026-05-11 (ADR-089) — currently-pinned `@xterm/headless`
+   * version. Used to gate the snapshot path: header.terminalVersion
+   * must equal this string for the snapshot to be served, otherwise
+   * we fall back to the chunked path. Production wires the value
+   * read from `@xterm/headless`'s package.json so the gate stays
+   * coupled to the npm pin.
+   */
+  expectedTerminalVersion?: string;
   /**
    * Iterate v0.8.2 AC-9 — retention TTL surfaced in the WS `ready`
    * envelope so the disclosure footer can interpolate the actual value.
@@ -168,10 +191,34 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   const resolveShell = deps.resolveShell ?? defaultResolveShell;
   const pastesKeepLast = deps.pastesKeepLast ?? 20;
   const scrollbackStore = deps.scrollbackStore;
+  const snapshotStore = deps.snapshotStore;
+  const expectedTerminalVersion = deps.expectedTerminalVersion;
   // Iterate v0.8.2 AC-9: defaults match config.ts so a wired path is
   // always preferred but the constructor stays optional.
   const retentionDays = deps.retentionDays ?? 1;
   const scrollbackDirHint = deps.scrollbackDirHint ?? "<scrollback>";
+
+  // ADR-089 Iterate B — try to read + version-gate a snapshot. Returns
+  // the parsed record when usable; null when missing, malformed, or
+  // version-mismatched. Best-effort: a read error logs a warn and
+  // returns null so the caller falls back to the legacy chunked path.
+  const tryReadSnapshot = (taskId: string): Promise<SnapshotRecord | null> =>
+    tryReadSnapshotShared(snapshotStore, taskId, expectedTerminalVersion);
+
+  // ADR-089 — emit the new single-envelope replay path. Returns true if
+  // a snapshot was sent; false otherwise. Backpressure stays trivial
+  // because the entire snapshot is one WS frame.
+  const sendReplaySnapshot = (
+    ws: { send(d: string): void },
+    rec: SnapshotRecord,
+  ): boolean => {
+    try {
+      ws.send(JSON.stringify(buildReplaySnapshotEnvelope(rec)));
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   return (app: Hono): Hono => {
     // --- POST /api/terminal/:taskId/spawn — idempotent prewarm ------------
@@ -497,7 +544,21 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                     }),
                   );
                 } catch { /* ignore */ }
+                // ADR-089 Iterate B — snapshot-first. Try the snapshot
+                // envelope path; fall back to chunked scrollback when
+                // missing, version-mismatched, OR when the WS send
+                // itself fails (external code review openai medium —
+                // don't silently leave the client with no replay).
+                const snap = await tryReadSnapshot(taskId);
+                let snapshotSent = false;
+                if (snap) {
+                  snapshotSent = sendReplaySnapshot(
+                    ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
+                    snap,
+                  );
+                }
                 if (
+                  !snapshotSent &&
                   scrollbackStore &&
                   !scrollbackStore.disabled &&
                   scrollbackBytes > 0
@@ -656,47 +717,38 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
             // strips the cursor-position controls (`\x1b[K`, `\x1b[<n>G`,
             // `\x1b[A/B/C/D`) but preserves the character bytes — every
             // keystroke + footer-state-change stacks linearly in scrollback.
-            // On replay the visible buffer is unreadable. Empirical
-            // verification: ~/.shipwright-webui/terminal-scrollback/<taskId>.log
-            // for a real new-plain task shows ghost characters, repeated
-            // footer hints, and prior-session typed text bleeding through.
             //
-            // Cleanest fix: for new-plain skip the disk-scrollback replay
-            // entirely on attach. Live pty attaches; Claude redraws its
-            // current frame on the next render tick. Trade-off: user loses
-            // scrollback-restore-on-attach for new-plain. The "Clear
-            // history" affordance in the overflow menu still wipes the
-            // on-disk bytes if the user wants them gone. The privacy
-            // footer suppresses for new-plain because we report 0 bytes
-            // in the follow-up `scrollback-meta` envelope (consistent
-            // with the skipped replay; bytes are still on disk and the
-            // overflow menu can clear them).
-            const skipReplayForNewPlain = task.actionId === "new-plain";
+            // ADR-089 Iterate B amends ADR-086: the cell-state SNAPSHOT
+            // path (replay_snapshot envelope) does NOT exhibit the
+            // byte-stream corruption — the snapshot captures rendered
+            // cell state via @xterm/headless + addon-serialize, which is
+            // exactly what we want to restore. So: try the snapshot path
+            // FIRST for new-plain too; only fall back to skip-replay if
+            // there is no valid snapshot AND chunked replay is the only
+            // option. Pre-Iterate-B tasks (no snapshot on disk) still
+            // skip the legacy chunked path to avoid the ADR-086 regression.
+            const skipChunkedReplayForNewPlain = task.actionId === "new-plain";
 
             // Async replay (IIFE so onOpen stays sync). On error, just
             // flush the liveBuffer + flip replayDone — the live shell
             // continues to work; only the historical replay was lost.
             void (async () => {
-              if (
-                !scrollbackStore ||
-                scrollbackStore.disabled ||
-                skipReplayForNewPlain
-              ) {
-                if (skipReplayForNewPlain) {
-                  // Emit the scrollback-meta envelope with 0 bytes so the
-                  // privacy footer in the client does NOT render — the
-                  // replay-on-attach contract that drove the disclosure
-                  // copy ("Terminal scrollback persists for 1 day(s) at
-                  // <dir>...") is bypassed for new-plain; reporting >0
-                  // bytes while skipping replay would confuse users.
-                  try {
-                    ws.send(
-                      JSON.stringify({ type: "scrollback-meta", scrollbackBytes: 0 }),
+              if (!scrollbackStore || scrollbackStore.disabled) {
+                // No persistence at all — try snapshot only.
+                try {
+                  ptyManager.pauseForConn(taskId, connToken);
+                  const snap = await tryReadSnapshot(taskId);
+                  if (snap) {
+                    sendReplaySnapshot(
+                      ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
+                      snap,
                     );
-                  } catch { /* ignore */ }
+                  }
+                } finally {
+                  flushLiveBuffer();
+                  replayDone = true;
+                  ptyManager.resumeForConn(taskId, connToken);
                 }
-                flushLiveBuffer();
-                replayDone = true;
                 return;
               }
               try {
@@ -706,12 +758,45 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                 const scrollbackBytes = await scrollbackStore.bytes(taskId);
                 // AC-8/AC-9 follow-up envelope so the disclosure footer
                 // updates once the bytes() probe resolves.
+                // For new-plain we suppress the privacy footer (legacy
+                // chunked path will be skipped; bytes=0 keeps the
+                // disclosure copy consistent with what the user sees).
+                const reportedBytes = skipChunkedReplayForNewPlain
+                  ? 0
+                  : scrollbackBytes;
                 try {
                   ws.send(
-                    JSON.stringify({ type: "scrollback-meta", scrollbackBytes }),
+                    JSON.stringify({
+                      type: "scrollback-meta",
+                      scrollbackBytes: reportedBytes,
+                    }),
                   );
                 } catch { /* ignore */ }
-                if (scrollbackBytes > 0) {
+                // ADR-089 Iterate B — snapshot-first. The snapshot
+                // captures cell-state in xterm-serialize format; one
+                // envelope replaces the chunked scrollback path. Pty
+                // remains paused throughout (ADR-068-A1 contract is
+                // identical for both paths). This branch fires for
+                // new-plain AND non-new-plain — cell-state has no
+                // ADR-086 corruption problem.
+                // External review (openai medium): if WS send fails,
+                // fall back to chunked replay rather than silently
+                // leaving the client with no replay history.
+                const snap = await tryReadSnapshot(taskId);
+                let snapshotSent = false;
+                if (snap) {
+                  snapshotSent = sendReplaySnapshot(
+                    ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
+                    snap,
+                  );
+                }
+                if (
+                  !snapshotSent &&
+                  !skipChunkedReplayForNewPlain &&
+                  scrollbackBytes > 0
+                ) {
+                  // Legacy fallback — pre-Iterate-B tasks (no snapshot
+                  // on disk) OR version-mismatch.
                   // iterate-2026-05-08 v0.8.7 AC-3 — replay path uses the
                   // collapse-aware reader. `scrollbackStore.read()` stays
                   // raw for `bytes()` accounting + privacy-disclosure UI.
