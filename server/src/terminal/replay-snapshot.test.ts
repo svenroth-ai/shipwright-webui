@@ -110,13 +110,14 @@ describe("tryReadSnapshot", () => {
   it("returns null + warns when terminalVersion mismatches expected", async () => {
     // Write a real snapshot through the production path; the header
     // embeds the actual runtime version. Then ask tryReadSnapshot to
-    // expect a DIFFERENT version → must fall back.
+    // expect a DIFFERENT version → must return null (no replay history
+    // sent; Iterate C / ADR-087 retired the chunked fallback).
     await store.write(VALID, { cols: 80, rows: 24, data: "snapshot data" });
     const rec = await tryReadSnapshot(store, VALID, "999.0.0", warnSpy);
     expect(rec).toBeNull();
     expect(warnSpy).toHaveBeenCalledOnce();
     expect(warnSpy.mock.calls[0][0]).toMatch(
-      /version mismatch.*expected=999\.0\.0.*falling back to chunked replay/,
+      /version mismatch.*expected=999\.0\.0.*no replay history will be sent/,
     );
   });
 

@@ -214,12 +214,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // before it can dereference a nulled `_renderService`.
     const disposedRef = useRef(false);
 
-    // Iterate C (ADR-087) — the v0.8.7 stopped-sessions footer + clear-history
-    // button were tied to the chunked-replay accumulator (counted shell-stopped
-    // markers across `replay_chunk` envelopes). With the chunked path retired,
-    // cell-state snapshots don't surface those markers via byte stream; the
-    // disclosure footer logic was removed alongside the legacy replay envelopes.
-
     // ADR-068-A1 — auto-launch coordination state (refs survive re-renders).
     const coord = useLaunchCoordinator();
     const consumedTokensRef = useRef<Set<number>>(new Set());
@@ -434,13 +428,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       }),
       [socket.ready, socket.role],
     );
-
-    // Iterate C (ADR-087) — the v0.8.7 clear-history button + handler
-    // were tied to the chunked-replay marker-accumulator footer.
-    // With the chunked path retired the footer doesn't render and the
-    // handler is gone. The /clear-scrollback endpoint remains alive on
-    // the server (still wired to the kebab "..." overflow menu via the
-    // existing TaskCard / TaskDetailHeader surfaces).
 
     // ADR-068-A1: auto-launch flow.
     //

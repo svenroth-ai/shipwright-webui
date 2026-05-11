@@ -12,13 +12,16 @@
  *        and the client MUST render the data into xterm.js DOM.
  *        Verified line-by-line against the serialised payload —
  *        rendered text content must contain the snapshot's data.
- *   AC-3 Legacy fallback: when no snapshot file exists, the WS MUST
- *        fall back to the existing chunked replay envelopes (regression
- *        fence for pre-Iterate-B tasks). The AC-3 reviewer recommended
- *        also asserting close-on-replay-only — we cover that in a
- *        dedicated assertion when a `done` task is available, otherwise
- *        skip cleanly (the contract holds for any task that's not
- *        currently launching).
+ *   AC-3 No-snapshot path (post-ADR-087 / Iterate C retirement fence):
+ *        when no snapshot file exists, the WS MUST emit zero replay
+ *        envelopes (no `replay_snapshot`, no `replay_start` /
+ *        `replay_chunk` / `replay_separator` / `replay_end` — the
+ *        chunked-fallback path was retired in Iterate C). The client
+ *        sees a blank terminal with a live shell. The AC-3 reviewer
+ *        recommended also asserting close-on-replay-only — we cover
+ *        that in a dedicated assertion when a `done` task is available,
+ *        otherwise skip cleanly (the contract holds for any task
+ *        that's not currently launching).
  *   AC-4 Resize+refresh+replay: a real cols/rows resize before refresh
  *        does NOT corrupt the post-refresh replay. The snapshot's
  *        cols/rows reflect the LATEST pty dims at finalize time (per
