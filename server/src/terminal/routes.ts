@@ -207,6 +207,31 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   const tryReadSnapshot = (taskId: string): Promise<SnapshotRecord | null> =>
     tryReadSnapshotShared(snapshotStore, taskId, expectedTerminalVersion);
 
+  // ADR-092 Iterate E — replay-snapshot resolution.
+  //
+  // Precedence (per external plan review HIGH — Gemini #1 + OpenAI #2,
+  // both reviewers concurrent): **live mirror wins over disk**. A
+  // stale disk snapshot is possible whenever the LAST WS detached and
+  // wrote-on-detach, but the shell kept producing output afterwards
+  // (e.g. background process logged a line). Re-attach must NOT serve
+  // the older disk image — the live mirror has the newer state.
+  //
+  // Disk is the fallback path for server-restart scenarios (the
+  // mirror is gone because the Node process restarted; only the
+  // last-detach disk write survives). The cleanup-time write
+  // (`pty.kill` → `finalizeMirrorSnapshot`) also takes the disk path
+  // for done/exited tasks.
+  //
+  // Returns null only when BOTH paths return null (no mirror AND no
+  // disk file). Best-effort; never throws.
+  const resolveReplaySnapshot = async (
+    taskId: string,
+  ): Promise<SnapshotRecord | null> => {
+    const live = await ptyManager.serializeMirrorIfLive(taskId);
+    if (live) return live;
+    return tryReadSnapshot(taskId);
+  };
+
   // ADR-089 — emit the new single-envelope replay path. Returns true if
   // a snapshot was sent; false otherwise. Backpressure stays trivial
   // because the entire snapshot is one WS frame.
@@ -680,7 +705,14 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                     }),
                   );
                 } catch { /* ignore */ }
-                const snap = await tryReadSnapshot(taskId);
+                // ADR-092 (Iterate E) — live mirror FIRST, disk snapshot
+                // FALLBACK. Closes the ADR-091 bug where re-attach to a
+                // live pty (no prior kill → no disk snapshot) yielded a
+                // blank terminal, AND avoids serving a stale disk
+                // snapshot when last-detach flushed but the shell
+                // produced more output after. Disk is the fallback for
+                // done/exited tasks and post-server-restart scenarios.
+                const snap = await resolveReplaySnapshot(taskId);
                 if (snap) {
                   sendReplaySnapshot(
                     ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
@@ -729,10 +761,40 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
             }
           },
           onClose() {
-            ptyManager.detach(taskId, connToken);
+            // ADR-092 (Iterate E) — snapshot-on-detach resilience.
+            // `detachAndCount` performs the detach + post-state read
+            // as a single atomic observation (external code review
+            // OpenAI HIGH #1 — split-step "check count → detach →
+            // check count" was vulnerable to a concurrent attach
+            // landing between the two reads). Only when the
+            // post-detach count is 0 do we flush the mirror to disk
+            // so a future re-attach (or server restart) finds a
+            // usable snapshot via `tryReadSnapshot`. The pty stays
+            // alive; only persistence fires here. Fire-and-forget
+            // — never block the WS close handshake.
+            const { remainingAttachCount } = ptyManager.detachAndCount(
+              taskId,
+              connToken,
+            );
+            if (remainingAttachCount === 0) {
+              // flushMirrorSnapshot wraps its async body in try/catch
+              // internally — no rejection escapes (per Gemini LOW #3
+              // / OpenAI MED #4: ensures no unhandled rejection noise
+              // from this fire-and-forget call). SnapshotStore.write
+              // is per-task PQueue-serialized (snapshot-store.ts —
+              // Iterate B MEDIUM-1) so overlapping calls cannot
+              // corrupt the file.
+              void ptyManager.flushMirrorSnapshot(taskId);
+            }
           },
           onError() {
-            ptyManager.detach(taskId, connToken);
+            const { remainingAttachCount } = ptyManager.detachAndCount(
+              taskId,
+              connToken,
+            );
+            if (remainingAttachCount === 0) {
+              void ptyManager.flushMirrorSnapshot(taskId);
+            }
           },
         };
       }),

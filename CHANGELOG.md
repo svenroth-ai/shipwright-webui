@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Live-pty replay across SPA navigation** (ADR-092 — closes ADR-091). Navigating away from a TaskDetail with an active embedded terminal and back no longer renders a blank terminal. Two new write surfaces in `PtyManager`: (1) `serializeMirrorIfLive(taskId)` returns an in-memory SnapshotRecord from the live `@xterm/headless` mirror — used by the WS attach replay path as the PRIMARY source (live wins over disk to avoid serving stale snapshots after last-detach flushes); (2) `flushMirrorSnapshot(taskId)` writes the live mirror to disk WITHOUT disposing it — fired from the WS detach handler when `attachCount` drops to 0, providing server-restart resilience. New `detachAndCount(taskId, conn)` collapses the detach + post-count read into a single atomic observation, closing a race surfaced by external code review. Regression guard at `client/e2e/flows/v0-9-6-live-pty-replay.spec.ts` (promoted from the D-bis probe) hard-asserts outcome A; 4-type live-pty matrix at `client/e2e/flows/v0-9-6-live-pty-matrix.spec.ts` covers new-plain / new-task / new-iterate / new-pipeline on local + tailscale. 21 new server-side unit + integration tests. WS protocol unchanged — same `replay_snapshot` envelope (ADR-089) carries the live-mirror serialize output.
+
 ## [v0.9.0] - 2026-05-10
 
 ### Added
