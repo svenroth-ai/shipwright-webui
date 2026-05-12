@@ -31,6 +31,7 @@ import {
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 
 import {
@@ -548,12 +549,24 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       const cssVar = (name: string, fallback: string) =>
         getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
       const palette = EMBEDDED_TERMINAL_PALETTE;
+      // Iterate F (ADR-093) — Vorbild-Alignment vs `siteboon/claudecodeui`.
+      // The four flipped knobs (convertEol, allowProposedApi, scrollback,
+      // explicit windowsMode) match the reference repo's Claude-TUI-clean
+      // configuration. `convertEol: true` is the load-bearing one: Claude
+      // TUI's status pane redraw uses cursor positioning that assumes
+      // CR-LF-normalised line endings; with `convertEol: false` a stray
+      // LF-only byte sent the cursor down without column reset and the
+      // status pane "stacked" visually on each redraw.
       const term = new Terminal({
-        convertEol: false,
+        convertEol: true,
         cursorBlink: true,
         fontFamily:
           'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
         fontSize: 13,
+        // Vorbild-parity: explicit windowsMode=false. xterm.js auto-detects
+        // off the user-agent string; we pin it here so the intent is
+        // documented and any future user-agent edge cases stay deterministic.
+        windowsMode: false,
         theme: {
           background: palette.background,
           foreground: palette.foreground,
@@ -580,14 +593,31 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           brightCyan: palette.brightCyan,
           brightWhite: palette.brightWhite,
         },
-        scrollback: 5000,
-        allowProposedApi: false,
+        scrollback: 10000,
+        allowProposedApi: true,
       });
       const fit = new FitAddon();
       const links = new WebLinksAddon();
       term.loadAddon(fit);
       term.loadAddon(links);
       term.open(container);
+      // Iterate F (ADR-093) — WebGL renderer for atomic full-frame redraws.
+      // Reduces incremental Canvas/DOM partial-redraw artifacts under
+      // Claude TUI's high-frequency status-pane redraw pattern. WebGL must
+      // be loaded AFTER term.open(container) — addon-webgl needs an attached
+      // DOM context. Try/catch documents the Canvas/DOM fallback path:
+      // headless test envs (jsdom), browsers with WebGL disabled, or hosts
+      // where the GPU is blacklisted all land cleanly in the default
+      // renderer without crashing the mount.
+      try {
+        const webgl = new WebglAddon();
+        term.loadAddon(webgl);
+      } catch (err) {
+        console.warn(
+          "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
+          err instanceof Error ? err.message : String(err),
+        );
+      }
       // v0.9.2 (ADR-084) — reset disposedRef in case StrictMode re-runs
       // this mount-effect (the cleanup function flipped it to true on the
       // previous unmount; React preserves useRef across mounts).
