@@ -21,6 +21,11 @@ export default defineConfig({
     'v0-9-2-embedded-terminal-mount-races.spec.ts',
     'v0-9-3-resume-state-machine.spec.ts',
     'v0-9-4-skip-replay-newplain.spec.ts',
+    // Iterate E (ADR-092) — live-pty replay regression guard + matrix.
+    // Producer-side fix; network-independent. Tailscale coverage is
+    // best-effort per ADR-092 spec.
+    'v0-9-6-live-pty-replay.spec.ts',
+    'v0-9-6-live-pty-matrix.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,

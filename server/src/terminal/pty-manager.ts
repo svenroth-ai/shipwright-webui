@@ -26,7 +26,7 @@
 import path from "node:path";
 import type { ScrollbackStore } from "./scrollback-store.js";
 import { HeadlessMirror } from "./headless-mirror.js";
-import type { SnapshotStore } from "./snapshot-store.js";
+import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -273,6 +273,18 @@ export interface PtyManagerOpts {
    */
   headlessMirrorEnabled?: boolean;
   snapshotStore?: SnapshotStore;
+  /**
+   * Iterate-2026-05-12 (ADR-092) — pinned `@xterm/headless` version
+   * string. Used by `serializeMirrorIfLive()` so the in-memory
+   * SnapshotRecord it returns carries the same `terminalVersion` value
+   * that the WS replay path's `tryReadSnapshot` version-gate expects.
+   * When undefined (test config), the returned record's
+   * `terminalVersion` defaults to `"unknown"` — matching SnapshotStore's
+   * last-resort sentinel. Disk-write path (flushMirrorSnapshot) does
+   * NOT use this value; SnapshotStore.write() reads its own from
+   * @xterm/headless's package.json on disk.
+   */
+  expectedTerminalVersion?: string;
 }
 
 /** Sentinel for the legacy token-less pause()/resume() API. */
@@ -286,6 +298,7 @@ export class PtyManager {
   private readonly scrollbackStore: ScrollbackStore | undefined;
   private readonly snapshotStore: SnapshotStore | undefined;
   private readonly headlessMirrorEnabled: boolean;
+  private readonly expectedTerminalVersion: string;
   private readonly watchdogStuckThresholdBytes: number;
   private readonly watchdogStuckDurationMs: number;
   private readonly watchdogIntervalMs: number;
@@ -318,6 +331,7 @@ export class PtyManager {
     // without a persistence path.
     this.headlessMirrorEnabled =
       (opts.headlessMirrorEnabled ?? false) && !!opts.snapshotStore;
+    this.expectedTerminalVersion = opts.expectedTerminalVersion ?? "unknown";
     this.watchdogStuckThresholdBytes =
       opts.watchdogStuckThresholdBytes ?? 524_288; // 512 KiB
     this.watchdogStuckDurationMs = opts.watchdogStuckDurationMs ?? 2_000;
@@ -708,6 +722,98 @@ export class PtyManager {
     return entry.writer !== null;
   }
 
+  /**
+   * Iterate E (ADR-092) — number of currently-attached WS connections
+   * for the task. Includes writer + every reader. The routes WS-close
+   * handler uses this to decide whether to trigger
+   * `flushMirrorSnapshot` (only when the count drops to 0).
+   *
+   * Returns 0 for unknown tasks (no entry).
+   */
+  attachCount(taskId: string): number {
+    const entry = this.entries.get(taskId);
+    if (!entry) return 0;
+    return entry.connSubs.size;
+  }
+
+  /**
+   * Iterate E (ADR-092) — serialize the live headless mirror on demand
+   * and return a SnapshotRecord (NOT written to disk). Used by the WS
+   * attach replay flow as a fallback when `tryReadSnapshot` returns
+   * null for a LIVE pty: without this path, re-attach to a live pty
+   * yields a blank terminal (the original ADR-091 bug).
+   *
+   * Returns null when:
+   *   - no entry for `taskId`,
+   *   - entry exists but `mirror === null` (flag-disabled OR
+   *     initialization refused),
+   *   - `mirror.serializeStable()` throws (e.g. mirror in cleanup).
+   *
+   * The returned record's `terminalVersion` is the value passed via
+   * `PtyManagerOpts.expectedTerminalVersion` at construction time —
+   * keeping it coupled to the same pinned `@xterm/headless` version
+   * the WS replay path's version-gate expects. When unset, defaults
+   * to `"unknown"` matching SnapshotStore's last-resort sentinel.
+   *
+   * Best-effort: never throws; logs warn on serialize failure.
+   */
+  async serializeMirrorIfLive(taskId: string): Promise<SnapshotRecord | null> {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.mirror) return null;
+    try {
+      const stable = await entry.mirror.serializeStable();
+      const { cols, rows } = entry.mirror.dimensions;
+      return {
+        version: "v1",
+        terminalVersion: this.expectedTerminalVersion,
+        cols,
+        rows,
+        data: stable,
+      };
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] live-mirror serialize failed for ${taskId}: ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Iterate E (ADR-092) — persist the live headless mirror to disk via
+   * `SnapshotStore.write()`, but do NOT dispose the mirror. The pty
+   * stays alive so subsequent `pty.onData` chunks keep mirroring and
+   * subsequent `serializeMirrorIfLive()` calls still return fresh
+   * state.
+   *
+   * This is the "snapshot-on-detach" half of the ADR-092 fix: when the
+   * last WS subscriber detaches, the routes layer fires this so the
+   * next attach (potentially after server restart) finds an on-disk
+   * snapshot at `tryReadSnapshot`. Without it, a Hono restart loses
+   * every live-pty's state since the last `pty.kill`.
+   *
+   * No-op when:
+   *   - no entry for `taskId`,
+   *   - entry has no mirror (flag off),
+   *   - no `snapshotStore` wired.
+   *
+   * Best-effort: never throws. Caller can fire-and-forget.
+   */
+  async flushMirrorSnapshot(taskId: string): Promise<void> {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.mirror || !this.snapshotStore) return;
+    try {
+      const stable = await entry.mirror.serializeStable();
+      const { cols, rows } = entry.mirror.dimensions;
+      await this.snapshotStore.write(taskId, { cols, rows, data: stable });
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pty-manager] flushMirrorSnapshot failed for ${taskId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
   /** Replace the placeholder subscription with the routes' real callbacks. */
   subscribeForConnection(taskId: string, conn: unknown, sub: ConnectionSubscription): void {
     const entry = this.entries.get(taskId);
@@ -716,6 +822,26 @@ export class PtyManager {
     if (!entry.pendingByConn.has(conn)) {
       entry.pendingByConn.set(conn, { bytes: 0, queue: [] });
     }
+  }
+
+  /**
+   * Iterate E (ADR-092) — detach + count-after.
+   *
+   * Returns `{ remainingAttachCount }` so routes layer can decide on the
+   * snapshot-on-last-detach trigger atomically with the detach itself —
+   * closes the race the external code review (OpenAI HIGH #1) flagged
+   * in the original split-step design (check count → detach → check
+   * count again was vulnerable to concurrent attach landing in
+   * between).
+   *
+   * Detaches AND returns the post-detach count in one observation; the
+   * caller's "becameZero" branch is `remainingAttachCount === 0`. The
+   * underlying `connSubs.delete` is synchronous, so no inter-step
+   * window remains.
+   */
+  detachAndCount(taskId: string, conn: unknown): { remainingAttachCount: number } {
+    this.detach(taskId, conn);
+    return { remainingAttachCount: this.attachCount(taskId) };
   }
 
   /**

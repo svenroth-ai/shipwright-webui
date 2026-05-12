@@ -403,6 +403,14 @@ if (isMainModule) {
         headlessMirrorEnabled:
           headlessMirrorEnabledEffective && snapshotStoreReady,
         snapshotStore: snapshotStoreReady ? snapshotStore : undefined,
+        // ADR-092 (Iterate E) — pinned @xterm/headless version. Used by
+        // serializeMirrorIfLive() so the in-memory SnapshotRecord
+        // returned to the WS replay path carries the same
+        // terminalVersion the disk-side gate (tryReadSnapshot) expects.
+        // The probe is the primary source; fs-fallback for
+        // expectedTerminalVersion happens further below (kept as a
+        // defensive secondary path for the disk-read gate).
+        expectedTerminalVersion: headlessProbe.terminalVersion ?? undefined,
         // AC-3b (iterate-2026-05-05) — enable the writer-stuck watchdog
         // in production. Capability auto-detected against the live WS;
         // logs warn + degrades to ws.close-driven release if missing.
