@@ -18,10 +18,18 @@
  *      wait-output → navigate-away → navigate-back → assert WS attached
  *   B. Rendering — `<type>-fixture` text must be present in .xterm-rows
  *      after navigate-back
- *   C. Cursor    — buffer.active.cursorX/Y close to pre-navigate value
- *      (≤ one row delta — accounts for prompt redraw)
+ *   C. Cursor    — cursor is NOT at origin after re-attach. Since the
+ *      test types `echo <fixture>` + ENTER before navigate-away, the
+ *      cursor MUST have advanced off (0,0): we assert
+ *      `cursorX > 0 || cursorY > 0 || baseY > 0`. A row-count check
+ *      (`length > 1`) is kept as a secondary signal — but the hard
+ *      constraint is the non-origin position, since a fresh-pty
+ *      regression with a single redraw row would otherwise sneak
+ *      past. Resize-on-attach is tolerated (no exact pre/post delta
+ *      requirement); only the "not a hard reset" property is
+ *      asserted.
  *   D. Single-pty — implicit via axes B+C: if rendering preserves
- *      the typed fixture text AND cursor position is non-(0,0)
+ *      the typed fixture text AND cursor position is non-origin
  *      after navigate-back, the underlying pty must be the same one
  *      that received the input (a fresh pty would start blank with
  *      cursor at (0,0)). An explicit pty.pid probe would require a
@@ -249,15 +257,29 @@ test.describe("Iterate E (ADR-092) — live-pty preservation 4-type matrix", () 
         `${type}: '${cell.fixture}' missing from .xterm-rows after navigate-back — ADR-092 fix not in effect for this task type`,
       ).toBeTruthy();
 
-      // Axis C — Cursor: roughly preserved (we accept any non-(0,0)
-      // reset because resize-on-attach may collapse cursor onto the
-      // prompt redraw line). The contract is: cursor is NOT a hard
-      // reset (length > 1 row of buffer content, etc.).
+      // Axis C — Cursor: NOT at origin. The test typed
+      // `echo <fixture>` + ENTER before navigate-away, so the cursor
+      // must have advanced off (0,0). A fresh pty would start at
+      // (cursorX=0, cursorY=0, baseY=0) with one empty row; we reject
+      // exactly that shape. Resize-on-attach is tolerated (we do not
+      // require an exact pre/post delta — see file header docstring),
+      // but the hard "not a hard reset" constraint stands.
       expect(cell.cursorAfter, "cursor probe returned null").not.toBeNull();
-      expect(cell.cursorAfter!.length).toBeGreaterThan(1);
+      const cur = cell.cursorAfter!;
+      expect(
+        cur.cursorX > 0 || cur.cursorY > 0 || cur.baseY > 0,
+        `${type}: cursor at hard-reset origin after navigate-back ` +
+          `(cursorX=${cur.cursorX}, cursorY=${cur.cursorY}, baseY=${cur.baseY}) — ` +
+          `looks like a fresh pty, not a re-attach`,
+      ).toBeTruthy();
+      // Secondary signal: buffer has more than one row of content.
+      // Strictly weaker than the position check above, kept as
+      // belt-and-braces against probes that capture position from a
+      // stale renderer frame.
+      expect(cur.length).toBeGreaterThan(1);
 
       // Axis D — Single-pty: implicit via axes B+C. The combination
-      // "fixtureSeenAfterNav AND cursorAfter.length > 1" is only
+      // "fixtureSeenAfterNav AND cursor at non-origin" is only
       // achievable when the post-navigate WS attached to the SAME
       // pty as the pre-navigate WS — a fresh pty would render a
       // blank buffer with cursor at (0,0). Already asserted above.

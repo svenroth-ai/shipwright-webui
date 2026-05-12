@@ -705,11 +705,13 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                     }),
                   );
                 } catch { /* ignore */ }
-                // ADR-092 (Iterate E) — disk-first, fall back to a
-                // serialize-on-attach of the live mirror so re-attach
-                // to a LIVE pty (no prior kill → no disk snapshot)
-                // still restores terminal state. Closes the ADR-091
-                // empirical bug.
+                // ADR-092 (Iterate E) — live mirror FIRST, disk snapshot
+                // FALLBACK. Closes the ADR-091 bug where re-attach to a
+                // live pty (no prior kill → no disk snapshot) yielded a
+                // blank terminal, AND avoids serving a stale disk
+                // snapshot when last-detach flushed but the shell
+                // produced more output after. Disk is the fallback for
+                // done/exited tasks and post-server-restart scenarios.
                 const snap = await resolveReplaySnapshot(taskId);
                 if (snap) {
                   sendReplaySnapshot(
