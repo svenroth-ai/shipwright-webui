@@ -57,6 +57,12 @@ vi.mock("@xterm/addon-fit", () => ({
 vi.mock("@xterm/addon-web-links", () => ({
   WebLinksAddon: vi.fn().mockImplementation(() => ({ activate: vi.fn(), dispose: vi.fn() })),
 }));
+// Iterate F (ADR-093) — addon-webgl loaded with try/catch fallback. The mock
+// returns a constructor that doesn't throw, so the try-branch lands; jsdom
+// has no real WebGL context but EmbeddedTerminal never asserts against it.
+vi.mock("@xterm/addon-webgl", () => ({
+  WebglAddon: vi.fn().mockImplementation(() => ({ activate: vi.fn(), dispose: vi.fn() })),
+}));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
 // --- FakeWebSocket (mirrors the hook test's shape) ------------------------
