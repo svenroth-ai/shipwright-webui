@@ -46,25 +46,30 @@ describe("getConfig", () => {
     expect(config.registryDir).toContain(".shipwright-webui");
   });
 
-  // Iterate G (ADR-095) — terminalNoFlicker default-on + opt-out semantics.
-  it("terminalNoFlicker defaults to true when SHIPWRIGHT_TERMINAL_NO_FLICKER is unset", () => {
+  // Iterate G (ADR-095), inverted Iterate I (ADR-097) — terminalNoFlicker
+  // default-OFF + opt-IN semantics. xterm.js 6.0.0 honours DECSET 2026
+  // natively so the alt-screen workaround is no longer the baseline.
+  it("terminalNoFlicker defaults to false when SHIPWRIGHT_TERMINAL_NO_FLICKER is unset", () => {
     delete process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER;
     const config = getConfig();
-    expect(config.terminalNoFlicker).toBe(true);
-  });
-
-  it("terminalNoFlicker stays true for non-'0' values (empty / any string)", () => {
-    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "";
-    expect(getConfig().terminalNoFlicker).toBe(true);
-    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "1";
-    expect(getConfig().terminalNoFlicker).toBe(true);
-    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "true";
-    expect(getConfig().terminalNoFlicker).toBe(true);
-  });
-
-  it("terminalNoFlicker flips to false on SHIPWRIGHT_TERMINAL_NO_FLICKER='0' (opt-out)", () => {
-    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "0";
-    const config = getConfig();
     expect(config.terminalNoFlicker).toBe(false);
+  });
+
+  it("terminalNoFlicker stays false for non-'1' values (empty / '0' / arbitrary string)", () => {
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "";
+    expect(getConfig().terminalNoFlicker).toBe(false);
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "0";
+    expect(getConfig().terminalNoFlicker).toBe(false);
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "true";
+    // ADR-097: canonical-truthy gate accepts ONLY the literal "1".
+    // `"true"` / `"yes"` / `"on"` etc. are intentionally not honoured
+    // so the contract stays tight and unambiguous.
+    expect(getConfig().terminalNoFlicker).toBe(false);
+  });
+
+  it("terminalNoFlicker flips to true on SHIPWRIGHT_TERMINAL_NO_FLICKER='1' (opt-in)", () => {
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "1";
+    const config = getConfig();
+    expect(config.terminalNoFlicker).toBe(true);
   });
 });

@@ -1,12 +1,17 @@
 /*
- * pty-env-flicker.test.ts — Iterate G (ADR-095).
+ * pty-env-flicker.test.ts — Iterate G (ADR-095), inverted Iterate I (ADR-097).
  *
  * Unit-tests `buildSpawnEnv` — the pure helper that constructs the env
  * map handed to `@lydell/node-pty`. Native-binary-free; covers the
- * default-on / opt-out / caller-override semantics for
- * `CLAUDE_CODE_NO_FLICKER` (Anthropic's official workaround for the
- * Claude TUI flicker on terminals that don't implement DECSET 2026 —
+ * default-OFF / opt-in / caller-override semantics for
+ * `CLAUDE_CODE_NO_FLICKER` (Anthropic's workaround for the Claude TUI
+ * flicker on terminals that don't implement DECSET 2026 —
  * https://code.claude.com/docs/en/fullscreen).
+ *
+ * ADR-097 inverted ADR-095's default: xterm.js 6.0.0 honours DECSET
+ * 2026 natively in the main buffer so the alt-screen workaround is no
+ * longer the baseline. The opt-in shape is forward-compatible (no
+ * churn if Anthropic deprecates `CLAUDE_CODE_NO_FLICKER`).
  *
  * Why a helper test (vs end-to-end pty spawn): the iterate touches a
  * single field in a single env map. End-to-end coverage would require
@@ -18,32 +23,23 @@
 import { describe, expect, it } from "vitest";
 import { buildSpawnEnv } from "./routes.js";
 
-describe("buildSpawnEnv — Iterate G CLAUDE_CODE_NO_FLICKER injection", () => {
-  it("sets CLAUDE_CODE_NO_FLICKER=1 by default (env var unset)", () => {
+describe("buildSpawnEnv — Iterate I (ADR-097) CLAUDE_CODE_NO_FLICKER injection (default OFF, opt-in)", () => {
+  it("OMITS CLAUDE_CODE_NO_FLICKER by default (env var unset)", () => {
     const baseEnv: Record<string, string | undefined> = { PATH: "/usr/bin" };
     const env = buildSpawnEnv(baseEnv);
-    expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
+    expect("CLAUDE_CODE_NO_FLICKER" in env).toBe(false);
   });
 
-  it("sets CLAUDE_CODE_NO_FLICKER=1 when SHIPWRIGHT_TERMINAL_NO_FLICKER=''", () => {
+  it("OMITS CLAUDE_CODE_NO_FLICKER when SHIPWRIGHT_TERMINAL_NO_FLICKER=''", () => {
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin",
       SHIPWRIGHT_TERMINAL_NO_FLICKER: "",
     };
     const env = buildSpawnEnv(baseEnv);
-    expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
+    expect("CLAUDE_CODE_NO_FLICKER" in env).toBe(false);
   });
 
-  it("sets CLAUDE_CODE_NO_FLICKER=1 when SHIPWRIGHT_TERMINAL_NO_FLICKER=1 (any non-'0' value)", () => {
-    const baseEnv: Record<string, string | undefined> = {
-      PATH: "/usr/bin",
-      SHIPWRIGHT_TERMINAL_NO_FLICKER: "1",
-    };
-    const env = buildSpawnEnv(baseEnv);
-    expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
-  });
-
-  it("OMITS CLAUDE_CODE_NO_FLICKER when SHIPWRIGHT_TERMINAL_NO_FLICKER='0' (opt-out)", () => {
+  it("OMITS CLAUDE_CODE_NO_FLICKER when SHIPWRIGHT_TERMINAL_NO_FLICKER='0' (legacy opt-out, now redundant with default)", () => {
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin",
       SHIPWRIGHT_TERMINAL_NO_FLICKER: "0",
@@ -52,11 +48,35 @@ describe("buildSpawnEnv — Iterate G CLAUDE_CODE_NO_FLICKER injection", () => {
     expect("CLAUDE_CODE_NO_FLICKER" in env).toBe(false);
   });
 
-  it("opt-out wins even if upstream had CLAUDE_CODE_NO_FLICKER already set", () => {
+  it("OMITS CLAUDE_CODE_NO_FLICKER for any non-'1' value (canonical-truthy gate)", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      SHIPWRIGHT_TERMINAL_NO_FLICKER: "true",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    // ADR-097: only the literal string "1" opts in. Other truthy-looking
+    // values (`"true"`, `"yes"`, `"on"`) are intentionally NOT honoured
+    // so the contract stays tight and unambiguous.
+    expect("CLAUDE_CODE_NO_FLICKER" in env).toBe(false);
+  });
+
+  it("SETS CLAUDE_CODE_NO_FLICKER='1' when SHIPWRIGHT_TERMINAL_NO_FLICKER='1' (opt-in)", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      SHIPWRIGHT_TERMINAL_NO_FLICKER: "1",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
+  });
+
+  it("default-OFF wins even if upstream had CLAUDE_CODE_NO_FLICKER already set", () => {
+    // Mirror image of the ADR-095 opt-out-wins guarantee: with no
+    // explicit opt-in flag, an upstream-leaked CLAUDE_CODE_NO_FLICKER
+    // is scrubbed so the child shell sees the documented default
+    // (alt-screen path INACTIVE, main-buffer rendering ACTIVE).
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin",
       CLAUDE_CODE_NO_FLICKER: "1",
-      SHIPWRIGHT_TERMINAL_NO_FLICKER: "0",
     };
     const env = buildSpawnEnv(baseEnv);
     expect("CLAUDE_CODE_NO_FLICKER" in env).toBe(false);
@@ -74,23 +94,26 @@ describe("buildSpawnEnv — Iterate G CLAUDE_CODE_NO_FLICKER injection", () => {
     expect(env.FORCE_COLOR).toBe("1");
   });
 
-  it("caller-supplied env overrides (test escape hatch) — non-opt-out path", () => {
-    const baseEnv: Record<string, string | undefined> = { PATH: "/usr/bin" };
+  it("caller-supplied env overrides (test escape hatch) — opt-IN path", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      SHIPWRIGHT_TERMINAL_NO_FLICKER: "1",
+    };
     const callerEnv = { CLAUDE_CODE_NO_FLICKER: "explicit-test-value" };
     const env = buildSpawnEnv(baseEnv, callerEnv);
-    // Caller wins over the helper's default when opt-out is NOT in
-    // force. Used by tests + future per-task overrides.
+    // Caller wins over the helper's opt-in default of "1" when the
+    // opt-in flag IS in force. Used by tests + future per-task overrides.
     expect(env.CLAUDE_CODE_NO_FLICKER).toBe("explicit-test-value");
   });
 
-  it("opt-out wins over caller-supplied CLAUDE_CODE_NO_FLICKER (external code-review fix)", () => {
-    // External code-review finding (openai medium, 2026-05-13):
-    // allowing the caller to silently reintroduce CLAUDE_CODE_NO_FLICKER
-    // would break the opt-out contract from ADR-095. The opt-out wins;
-    // the rest of the caller env still flows through.
+  it("default-OFF wins over caller-supplied CLAUDE_CODE_NO_FLICKER (ADR-097 contract)", () => {
+    // ADR-097 contract: without explicit opt-in, the caller cannot
+    // silently re-introduce CLAUDE_CODE_NO_FLICKER. Mirrors the
+    // ADR-095 opt-out-wins guarantee verbatim, inverted to the
+    // opt-in default. Other caller-env vars still flow through.
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin",
-      SHIPWRIGHT_TERMINAL_NO_FLICKER: "0",
+      // no SHIPWRIGHT_TERMINAL_NO_FLICKER (default OFF)
     };
     const callerEnv = {
       CLAUDE_CODE_NO_FLICKER: "would-reintroduce",

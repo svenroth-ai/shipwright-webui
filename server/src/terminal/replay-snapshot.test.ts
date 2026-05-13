@@ -33,8 +33,8 @@ const VALID = "11111111-2222-3333-4444-555555555555";
 describe("buildReplaySnapshotEnvelope", () => {
   it("produces the wire-shape envelope", () => {
     const env = buildReplaySnapshotEnvelope({
-      version: "v1",
-      terminalVersion: "5.5.0",
+      version: "v2",
+      terminalVersion: "6.0.0",
       cols: 120,
       rows: 30,
       data: "\x1b[2J\x1b[Hhello",
@@ -44,15 +44,15 @@ describe("buildReplaySnapshotEnvelope", () => {
       data: "\x1b[2J\x1b[Hhello",
       cols: 120,
       rows: 30,
-      terminalVersion: "5.5.0",
+      terminalVersion: "6.0.0",
     });
   });
 
   it("preserves the data verbatim including newlines and UTF-8 multi-byte", () => {
     const payload = "line 1\r\n你好 🚀\r\nline 3";
     const env = buildReplaySnapshotEnvelope({
-      version: "v1",
-      terminalVersion: "5.5.0",
+      version: "v2",
+      terminalVersion: "6.0.0",
       cols: 80,
       rows: 24,
       data: payload,
@@ -83,13 +83,13 @@ describe("tryReadSnapshot", () => {
   });
 
   it("returns null when store is undefined", async () => {
-    const rec = await tryReadSnapshot(undefined, VALID, "5.5.0", warnSpy);
+    const rec = await tryReadSnapshot(undefined, VALID, "6.0.0", warnSpy);
     expect(rec).toBeNull();
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
   it("returns null when snapshot is absent (pre-Iterate-B task)", async () => {
-    const rec = await tryReadSnapshot(store, VALID, "5.5.0", warnSpy);
+    const rec = await tryReadSnapshot(store, VALID, "6.0.0", warnSpy);
     expect(rec).toBeNull();
     // ENOENT is not an error condition — no warning expected.
     expect(warnSpy).not.toHaveBeenCalled();
@@ -101,7 +101,7 @@ describe("tryReadSnapshot", () => {
         throw new Error("disk failure");
       },
     } as unknown as SnapshotStore;
-    const rec = await tryReadSnapshot(throwingStore, VALID, "5.5.0", warnSpy);
+    const rec = await tryReadSnapshot(throwingStore, VALID, "6.0.0", warnSpy);
     expect(rec).toBeNull();
     expect(warnSpy).toHaveBeenCalledOnce();
     expect(warnSpy.mock.calls[0][0]).toMatch(/snapshot read failed.*disk failure/);
@@ -149,17 +149,43 @@ describe("tryReadSnapshot", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it("returns null + warns when expectedVersion is set but the file's version is empty/malformed (defensive)", async () => {
-    // Construct a record with a hostile version string and write it via
-    // a low-level file write so we bypass the writer's strict embed.
+  it("returns null + warns when expectedVersion is set but the file's terminalVersion is hostile/malformed (defensive)", async () => {
+    // Construct a record with a hostile terminalVersion string and write
+    // it via a low-level file write so we bypass the writer's strict embed.
+    // The envelope version is v2 (current); the terminalVersion field
+    // (after `xterm@`) is the hostile token. After ADR-097 the loader
+    // only accepts v2; an unknown-version envelope is rejected at parse
+    // time which also produces a null+warn via the read-failed branch.
     const filePath = path.join(tmpDir, `${VALID}.snapshot`);
     await fs.writeFile(
       filePath,
-      "# shipwright-snapshot v1 xterm@ATTACKER 80x24\nx",
+      "# shipwright-snapshot v2 xterm@ATTACKER 80x24\nx",
       { encoding: "utf8" },
     );
-    const rec = await tryReadSnapshot(store, VALID, "5.5.0", warnSpy);
+    const rec = await tryReadSnapshot(store, VALID, "6.0.0", warnSpy);
     expect(rec).toBeNull();
     expect(warnSpy).toHaveBeenCalledOnce();
+  });
+
+  it("returns null + warns when the on-disk envelope is a legacy v1 (ADR-097 regression-guard)", async () => {
+    // Pre-upgrade tasks have v1 snapshots on disk. The loader rejects
+    // them with SnapshotStoreError("unknown_version", …) → tryReadSnapshot
+    // catches that, logs a warn, and returns null so the WS-attach
+    // surface emits no replay envelope (blank terminal with live shell —
+    // ADR-087 trade-off). This guards against a future regression that
+    // silently re-accepts v1 envelopes without an explicit envelope-format
+    // review (which would require a fresh M2 fixed-point re-verify).
+    const filePath = path.join(tmpDir, `${VALID}.snapshot`);
+    await fs.writeFile(
+      filePath,
+      "# shipwright-snapshot v1 xterm@5.5.0 120x30\nlegacy payload",
+      { encoding: "utf8" },
+    );
+    const rec = await tryReadSnapshot(store, VALID, "6.0.0", warnSpy);
+    expect(rec).toBeNull();
+    expect(warnSpy).toHaveBeenCalledOnce();
+    expect(warnSpy.mock.calls[0][0]).toMatch(
+      /snapshot read failed.*Unknown snapshot version: v1/,
+    );
   });
 });

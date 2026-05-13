@@ -114,7 +114,7 @@ describe("PtyManager — serializeMirrorIfLive (ADR-092 AC #2)", () => {
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -124,8 +124,8 @@ describe("PtyManager — serializeMirrorIfLive (ADR-092 AC #2)", () => {
 
     const rec = await mgr.serializeMirrorIfLive(TASK);
     expect(rec).not.toBeNull();
-    expect(rec!.version).toBe("v1");
-    expect(rec!.terminalVersion).toBe("5.5.0");
+    expect(rec!.version).toBe("v2");
+    expect(rec!.terminalVersion).toBe("6.0.0");
     expect(rec!.cols).toBe(120);
     expect(rec!.rows).toBe(30);
     // M2 stable serialize output is non-empty when content was written.
@@ -141,7 +141,7 @@ describe("PtyManager — serializeMirrorIfLive (ADR-092 AC #2)", () => {
       spawn: spawn.fn,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     const rec = await mgr.serializeMirrorIfLive(TASK);
@@ -169,7 +169,7 @@ describe("PtyManager — serializeMirrorIfLive (ADR-092 AC #2)", () => {
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -236,7 +236,7 @@ describe("PtyManager — flushMirrorSnapshot (ADR-092 AC #3)", () => {
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -325,7 +325,7 @@ describe("PtyManager — flushMirrorSnapshot (ADR-092 AC #3)", () => {
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -482,7 +482,7 @@ describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)"
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -533,7 +533,7 @@ describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)"
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -572,7 +572,7 @@ describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)"
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -599,7 +599,7 @@ describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)"
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -651,7 +651,7 @@ describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)"
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
@@ -701,7 +701,7 @@ describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)"
       scrollbackStore: scrollback,
       headlessMirrorEnabled: true,
       snapshotStore: snapshot,
-      expectedTerminalVersion: "5.5.0",
+      expectedTerminalVersion: "6.0.0",
       idleTimeoutMs: 60_000,
     });
     mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });

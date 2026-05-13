@@ -32,9 +32,10 @@
  *     `~/.shipwright-webui/terminal-scrollback/<taskId>.snapshot` for
  *     the test target task; per-test teardown removes it. The user's
  *     normal scrollback `.log` files are NEVER touched.
- *   - The xterm.js pinned version (5.5.0) matches the server's pinned
- *     `@xterm/headless` version (also 5.5.0; architecture invariant
- *     #4 from the planning doc — both pinned EXACT, same major).
+ *   - The xterm.js pinned version (6.0.0) matches the server's pinned
+ *     `@xterm/headless` version (also 6.0.0; architecture invariant
+ *     #4 from the planning doc, amended in ADR-097 — both pinned EXACT,
+ *     same major).
  *
  * This file IS the F0.5 web surface_verification runner for Iterate B.
  */
@@ -50,9 +51,10 @@ const SCROLLBACK_DIR = path.join(
   "terminal-scrollback",
 );
 
-// Pinned by the architecture invariant in the planning doc. Mirrors
-// the value in server/node_modules/@xterm/headless/package.json.
-const PINNED_TERMINAL_VERSION = "5.5.0";
+// Pinned by the architecture invariant in the planning doc (amended in
+// ADR-097: 5.5.0 → 6.0.0 + envelope v1 → v2). Mirrors the value in
+// server/node_modules/@xterm/headless/package.json.
+const PINNED_TERMINAL_VERSION = "6.0.0";
 
 interface WsEnvelope {
   type: string;
@@ -125,7 +127,7 @@ async function writeSnapshotFor(
   rows: number,
   data: string,
 ): Promise<void> {
-  const header = `# shipwright-snapshot v1 xterm@${PINNED_TERMINAL_VERSION} ${cols}x${rows}\n`;
+  const header = `# shipwright-snapshot v2 xterm@${PINNED_TERMINAL_VERSION} ${cols}x${rows}\n`;
   const body = header + data;
   await fs.mkdir(SCROLLBACK_DIR, { recursive: true });
   await fs.writeFile(path.join(SCROLLBACK_DIR, `${taskId}.snapshot`), body, {
