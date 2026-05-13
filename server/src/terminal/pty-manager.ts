@@ -934,6 +934,33 @@ export class PtyManager {
    * lifecycle hooks. The double-serialize cycle costs ~10 ms per the
    * spike — small but non-zero. Detaching keeps the close path
    * responsive and avoids back-pressuring the broadcaster.
+   *
+   * Iterate H (ADR-096) — snapshot preservation heuristic:
+   *
+   * Before writing, compare the new payload's byte length against any
+   * existing on-disk snapshot. If the new one is substantially smaller
+   * (<60 % of existing), preserve the existing snapshot and skip the
+   * write. Rationale: a Claude TUI shutdown emits `DECRST 1049` (leave
+   * alt-screen) before pty.onExit fires; those bytes are processed by
+   * the mirror before serializeStable() runs, yielding an almost-empty
+   * cell-state. The previous `flushMirrorSnapshot`-from-last-detach
+   * snapshot (Iterate E ADR-092) captured a richer state and is the
+   * correct artifact for replay — finalize must not clobber it on the
+   * way out.
+   *
+   * Edge cases handled below:
+   *   - No existing snapshot (`read` returns null) → write the new one
+   *     (first writer wins; the comparison never fires).
+   *   - `read` throws (malformed header, IO error) → log + write the
+   *     new one (best-effort fallback; do not lose data on read fail).
+   *   - New payload is empty + existing has content → preserve existing
+   *     (subsumed by the 60 % rule; explicit for readability).
+   *   - mirror.dispose() + releaseQueue still run in `finally` on every
+   *     branch (skip or write).
+   *
+   * The 60 % threshold is heuristic and the skip-decision is logged via
+   * `console.warn` so observability picks up misclassifications without
+   * a code change.
    */
   private async finalizeMirrorSnapshot(
     taskId: string,
@@ -943,11 +970,43 @@ export class PtyManager {
       const stable = await mirror.serializeStable();
       const { cols, rows } = mirror.dimensions;
       if (this.snapshotStore) {
-        await this.snapshotStore.write(taskId, {
-          cols,
-          rows,
-          data: stable,
-        });
+        // Iterate H ADR-096 — snapshot preservation gate. Read any
+        // existing on-disk snapshot first; if its payload is
+        // substantially larger than the about-to-write one, prefer
+        // the older snapshot. Read failures fall through to write
+        // (best-effort — don't lose data on a stat/parse error).
+        let existingDataLen = 0;
+        try {
+          const existing = await this.snapshotStore.read(taskId);
+          if (existing) {
+            existingDataLen = existing.data.length;
+          }
+        } catch (readErr) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] finalize: existing snapshot read failed for ${taskId} (${(readErr as Error).message}) — proceeding with write`,
+          );
+          // existingDataLen stays 0 → comparison below won't fire,
+          // new snapshot will be written.
+        }
+        const newDataLen = stable.length;
+        if (
+          existingDataLen > 0 &&
+          newDataLen < existingDataLen * 0.6
+        ) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[pty-manager] finalizeMirrorSnapshot: preserving last-detach snapshot for ${taskId} (new=${newDataLen}B, existing=${existingDataLen}B — likely Claude TUI exit clear, ADR-096)`,
+          );
+          // Skip the write. existing snapshot stays; mirror still
+          // disposed in the finally block.
+        } else {
+          await this.snapshotStore.write(taskId, {
+            cols,
+            rows,
+            data: stable,
+          });
+        }
       }
     } catch (err) {
       // eslint-disable-next-line no-console
