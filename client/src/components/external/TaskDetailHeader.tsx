@@ -6,12 +6,15 @@
  *   - breadcrumb `Projects › <project.name>` above the title row
  *   - title + state badge (pulsing dot, color-coded to state) + project chip
  *   - sub-line: phase tag · Started {ago} · last event {ago} · {model}
- *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants):
+ *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants
+ *     + Iterate G ADR-095 liveSession gating):
  *       draft / awaiting_external_start           → GREEN Launch
  *                                                   (var(--color-success))
- *       active / idle                             → BROWN Resume
+ *       idle + liveSession=false / undefined      → BROWN Resume
  *                                                   (var(--color-primary))
- *       done / launch_failed / jsonl_missing      → no CTA
+ *       idle + liveSession=true                   → no CTA (live pty;
+ *                                                   user types directly)
+ *       active / done / launch_failed / jsonl_missing → no CTA
  *     Terminal icon is always left of the label on both buttons.
  *   - 3-dots menu: Rename · Copy session UUID · Close · Delete · debug toggle
  *
@@ -123,7 +126,10 @@ const STATE_BADGE: Record<
 
 type CtaMode = "launch" | "resume" | "none";
 
-function ctaFor(state: ExternalTask["state"]): CtaMode {
+function ctaFor(
+  state: ExternalTask["state"],
+  liveSession: boolean | undefined,
+): CtaMode {
   if (state === "draft") return "launch";
   // Iterate v0.8.5 AC-6: drop the "Terminal" CTA for active /
   // awaiting_external_start. The button only flipped the inline
@@ -133,7 +139,21 @@ function ctaFor(state: ExternalTask["state"]): CtaMode {
   // `Terminal` Tabs.Trigger to switch panes. Resume CTA stays available
   // for state=idle (pty died + mtime drifted > 2min — see
   // external/routes.ts state computation).
-  if (state === "idle") return "resume";
+  //
+  // Iterate G (ADR-095): when a live pty entry exists for the task
+  // (`liveSession === true`) the embedded-terminal session is
+  // intact — the user types directly into the running shell instead
+  // of pasting `claude --resume` (which would either error on a
+  // shell already inside Claude, or spawn a nested instance). Hide
+  // the Resume CTA in that case. `liveSession === undefined` (older
+  // server response that doesn't yet expose the field) falls back to
+  // the legacy state-only logic so the button reappears under
+  // back-compat — conservative: prefer to surface Resume rather
+  // than leave the user without an action.
+  if (state === "idle") {
+    if (liveSession === true) return "none";
+    return "resume";
+  }
   return "none";
 }
 
@@ -206,7 +226,7 @@ export function TaskDetailHeader({ task }: Props) {
   const uuidResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<EditableTaskTitleHandle | null>(null);
 
-  const cta = ctaFor(task.state);
+  const cta = ctaFor(task.state, task.liveSession);
   const badge = STATE_BADGE[task.state];
 
   const projectName = useMemo(() => {

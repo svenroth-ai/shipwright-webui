@@ -122,9 +122,43 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
   });
 
-  it("idle → 'Resume' CTA", () => {
+  it("idle → 'Resume' CTA (liveSession undefined — back-compat)", () => {
     renderHeader(makeTask({ state: "idle" }));
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  // Iterate G (ADR-095) — Resume CTA gating on liveSession.
+  it("idle + liveSession=false → 'Resume' CTA (pty gone, session needs re-establishment)", () => {
+    renderHeader(makeTask({ state: "idle", liveSession: false }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("idle + liveSession=true → NO CTA (live pty; user types directly, ADR-095)", () => {
+    renderHeader(makeTask({ state: "idle", liveSession: true }));
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+  });
+
+  // External code-review finding (openai medium, 2026-05-13) — regression
+  // fence proving the component actually consumes `task.liveSession`
+  // rather than ignoring it and relying on the legacy state-only path.
+  // Same state, flipping only liveSession, must flip CTA visibility.
+  it("idle: liveSession toggle alone flips Resume CTA visibility (consumption proof)", () => {
+    const { rerender, qc } = renderHeader(
+      makeTask({ state: "idle", liveSession: false }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+
+    const live = makeTask({ state: "idle", liveSession: true });
+    qc.setQueryData(["external-task", live.taskId], live);
+    rerender(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <TaskDetailHeader task={live} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
   it("done → NO CTA", () => {
