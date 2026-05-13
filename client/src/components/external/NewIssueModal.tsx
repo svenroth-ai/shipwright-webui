@@ -457,7 +457,7 @@ export function NewIssueModal({
   );
 
   // v0.4.1 — gate submit on the actions catalog being loaded. Before the
-  // fix, fast typists could click Launch & Copy before useProjectActions
+  // fix, fast typists could click Launch before useProjectActions
   // resolved → the modal had `phases = []` → `currentPhase = undefined` →
   // `body.phase` not sent → server persisted task without phase, and
   // TaskDetailHeader's title-keyword fallback then mis-classified
@@ -921,7 +921,7 @@ export function NewIssueModal({
                   label="Command preview"
                   hint={
                     mode === "new-task"
-                      ? "phase drives the slash command · only used when you click Launch & Copy"
+                      ? "phase drives the slash command · auto-runs in the embedded terminal on Launch"
                       : "generated from .webui/actions.json · auto-updates"
                   }
                 >
@@ -969,8 +969,8 @@ export function NewIssueModal({
                   >
                     Save to Backlog:
                   </strong>{" "}
-                  command is <em>not</em> copied — task parks in the Backlog
-                  column until you start it.
+                  task lands in the Backlog column as a draft — nothing
+                  spawns, nothing copies.
                   <br />
                   <strong
                     className="font-semibold"
@@ -978,9 +978,8 @@ export function NewIssueModal({
                   >
                     Launch:
                   </strong>{" "}
-                  command is copied to your clipboard + task moves to In
-                  Progress + TaskDetail opens. Paste in your terminal; webui
-                  follows the JSONL from there.
+                  task moves to In&nbsp;Progress, TaskDetail opens, and the
+                  command runs automatically in the embedded terminal there.
                 </div>
               </div>
 
@@ -1135,9 +1134,9 @@ function modeHeading(mode: Mode, action: ActionDefinition | null): string {
 
 function modeSubheading(mode: Mode, action: ActionDefinition | null): string {
   if (mode === "new-pipeline")
-    return "Full Shipwright SDLC. Save it to the Backlog, or Launch now to copy the command and start immediately.";
+    return "Full Shipwright SDLC. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal.";
   if (mode === "new-iterate")
-    return "Lightweight change on a completed project. Save it to the Backlog, or Launch now to copy the command and start immediately.";
+    return "Lightweight change on a completed project. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal.";
   if (mode === "new-plain")
     return "Plain Claude session in this project's directory. No skill, no slash command — just a chat.";
   // 2026-04-25 — generic subheading prefers the action's own description
@@ -1146,9 +1145,9 @@ function modeSubheading(mode: Mode, action: ActionDefinition | null): string {
   if (mode === "generic")
     return (
       action?.description ??
-      "Custom action from this project's .webui/actions.json. Save it to the Backlog, or Launch now to copy the command."
+      "Custom action from this project's .webui/actions.json. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal."
     );
-  return "Standalone task scoped to a Shipwright phase. Save it to the Backlog, or Launch now to copy the command and start immediately.";
+  return "Standalone task scoped to a Shipwright phase. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal.";
 }
 
 /**
