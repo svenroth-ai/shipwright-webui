@@ -99,3 +99,45 @@ describe("TaskCard — phase badge (AC-B)", () => {
     expect(badge.dataset.phaseSource).toBe("task");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Iterate H (ADR-096) — Resume CTA liveSession gating on the TaskCard.
+//
+// Mirrors the TaskDetailHeader.ctaFor() logic from Iterate G ADR-095:
+// when the pty is alive (`liveSession === true`) and the task is in
+// the `idle` state, we hide the Resume CTA — the user types directly
+// into the live shell instead of pasting `claude --resume <uuid>`
+// (which would either error or spawn a nested Claude instance).
+//
+// `liveSession === undefined` (back-compat — server response without
+// the field) falls back to surfacing Resume; conservative same default
+// the TaskDetailHeader uses.
+// ---------------------------------------------------------------------------
+describe("TaskCard — Resume CTA liveSession gating (ADR-096)", () => {
+  it("HIDES Resume button when state=idle + liveSession=true (pty alive)", () => {
+    renderCard(baseTask({ state: "idle", liveSession: true }));
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("SHOWS Resume button when state=idle + liveSession=false (pty gone)", () => {
+    renderCard(baseTask({ state: "idle", liveSession: false }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume button when state=idle + liveSession=undefined (back-compat)", () => {
+    // Older server response without the liveSession field — fall back to
+    // surfacing Resume. Conservative: prefer the action button to be
+    // available rather than withheld silently.
+    renderCard(baseTask({ state: "idle" }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("does NOT render Resume on state=done regardless of liveSession (outer !isDone gate)", () => {
+    // Done tasks render no action buttons; sanity check that state takes
+    // precedence over liveSession at the outer gate.
+    renderCard(baseTask({ state: "done", liveSession: true }));
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+    renderCard(baseTask({ state: "done", liveSession: false }));
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+});
