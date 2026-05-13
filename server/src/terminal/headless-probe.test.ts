@@ -24,13 +24,13 @@ describe("probeHeadlessDeps — synthetic stub paths", () => {
         return { default: { SerializeAddon: class {} } };
       }
       if (spec === "@xterm/headless/package.json") {
-        return { default: { version: "5.5.0" } };
+        return { default: { version: "6.0.0" } };
       }
       throw new Error(`unexpected import: ${spec}`);
     });
     const r = await probeHeadlessDeps(importer);
     expect(r.ok).toBe(true);
-    expect(r.terminalVersion).toBe("5.5.0");
+    expect(r.terminalVersion).toBe("6.0.0");
     expect(r.reason).toBeNull();
   });
 

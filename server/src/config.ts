@@ -53,14 +53,20 @@ export interface ServerConfig {
    */
   terminalHeadlessMirror: boolean;
   /**
-   * Iterate G (ADR-095) — Claude TUI flicker workaround. When `true`
-   * (default), every pty spawned for the embedded terminal carries
+   * Iterate G (ADR-095) — Claude TUI flicker workaround. When `true`,
+   * every pty spawned for the embedded terminal carries
    * `CLAUDE_CODE_NO_FLICKER=1` in its env, instructing Claude Code to
    * render into the alt-screen buffer (vim/htop-style) and bypass the
-   * per-frame ANSI cursor moves that xterm.js 5.5.0 can't batch
-   * (no DECSET 2026 support). Opt-out via
-   * `SHIPWRIGHT_TERMINAL_NO_FLICKER=0` for users who prefer the
-   * classic renderer (e.g. to preserve browser Cmd+F search). Docs:
+   * per-frame ANSI cursor moves that xterm.js 5.5.0 couldn't batch.
+   *
+   * Iterate I (ADR-097) — default REVERTED from ON to OFF. xterm.js
+   * 6.0.0 implements DECSET 2026 / Synchronized Output natively, so
+   * Claude TUI's frame batching is honoured in the main buffer and
+   * the alt-screen workaround is no longer needed for flicker-free
+   * rendering. The flag is retained as a DEFENSIVE OPT-IN: users on
+   * older Claude Code versions, or who prefer the alt-screen UX (vim
+   * Cmd+F friendly, etc.), can still enable it via
+   * `SHIPWRIGHT_TERMINAL_NO_FLICKER=1`. Docs:
    * https://code.claude.com/docs/en/fullscreen.
    *
    * The field is for diagnostics + structured logging. The actual env
@@ -133,10 +139,13 @@ export function getConfig(): ServerConfig {
     // their own flags).
     terminalHeadlessMirror:
       process.env.SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR !== "0",
-    // Iterate G (ADR-095) — Claude TUI flicker workaround. Default ON;
-    // opt-out via `SHIPWRIGHT_TERMINAL_NO_FLICKER=0`. Same parse rule
-    // as `terminalHeadlessMirror` (empty / unset / any value other
-    // than literal "0" → enabled).
-    terminalNoFlicker: process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER !== "0",
+    // Iterate G (ADR-095) — Claude TUI flicker workaround. ADR-097
+    // reverted the default from ON to OFF: xterm.js 6.0.0 honours
+    // DECSET 2026 natively so the alt-screen path is no longer the
+    // baseline. Opt-IN via `SHIPWRIGHT_TERMINAL_NO_FLICKER=1` (any
+    // value other than literal "1" → disabled, matching the
+    // canonical-truthy "1" convention rather than the inverted-falsy
+    // "0" used by `terminalHeadlessMirror`).
+    terminalNoFlicker: process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER === "1",
   };
 }
