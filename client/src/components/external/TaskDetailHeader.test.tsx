@@ -115,11 +115,48 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
-  it("active → NO CTA (v0.8.5 AC-6 — header CTA matrix shrank)", () => {
+  // Iterate L (resume-cta-active-state) — `active + liveSession` matrix
+  // mirrors the existing `idle + liveSession` matrix below. Before this
+  // iterate, `active` rendered NO CTA regardless of liveSession; that
+  // dead-ended users whose pty died (server restart, etc.) while the
+  // JSONL was still fresh — no path back without manually typing
+  // `claude --resume <uuid>` in an external terminal.
+  it("active + liveSession=undefined → 'Resume' CTA (back-compat)", () => {
     renderHeader(makeTask({ state: "active" }));
-    expect(screen.queryByTestId("cta-terminal")).toBeNull();
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("active + liveSession=false → 'Resume' CTA (pty gone, session recovery)", () => {
+    renderHeader(makeTask({ state: "active", liveSession: false }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("active + liveSession=true → NO CTA (live pty; user types directly)", () => {
+    renderHeader(makeTask({ state: "active", liveSession: true }));
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+    expect(screen.queryByTestId("cta-terminal")).toBeNull();
+  });
+
+  it("active: liveSession toggle alone flips Resume CTA visibility (consumption proof)", () => {
+    // Same regression fence as the idle variant below — proves the
+    // component actually consumes `task.liveSession` on state=active and
+    // doesn't fall back to a hardcoded "active → no CTA" branch.
+    const { rerender, qc } = renderHeader(
+      makeTask({ state: "active", liveSession: false }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+
+    const live = makeTask({ state: "active", liveSession: true });
+    qc.setQueryData(["external-task", live.taskId], live);
+    rerender(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <TaskDetailHeader task={live} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
   it("idle → 'Resume' CTA (liveSession undefined — back-compat)", () => {
@@ -272,19 +309,24 @@ describe("TaskDetailHeader — behavior", () => {
     });
   });
 
-  it("state transitions re-render CTA without remount (v0.8.5 AC-6 matrix)", () => {
+  it("state transitions re-render CTA without remount (matrix end-to-end)", () => {
     const { rerender, qc } = renderHeader(makeTask({ state: "draft" }));
     expect(screen.getByTestId("cta-launch-in-terminal")).toBeTruthy();
-    // v0.8.5 AC-6: draft→Launch, idle→Resume, all-other-states → NO CTA.
-    // Verify the matrix end-to-end by stepping draft → active (no CTA) →
-    // idle (Resume CTA). All transitions occur via TanStack cache update,
+    // Verify the matrix end-to-end by stepping draft → active+liveSession=true
+    // (no CTA: pty alive, user types directly) → idle+liveSession=false
+    // (Resume CTA: pty died). All transitions occur via TanStack cache update,
     // proving the component re-renders without remount.
-    const activeTask = makeTask({ state: "active" });
-    qc.setQueryData(["external-task", activeTask.taskId], activeTask);
+    //
+    // Iterate L (resume-cta-active-state) — middle step previously used
+    // `state=active` with no liveSession field, which surfaced no CTA under
+    // the old matrix. Post-iterate-L, `active+undefined` surfaces Resume, so
+    // the regression-fence narrative is now draft → active+live → idle+dead.
+    const activeLiveTask = makeTask({ state: "active", liveSession: true });
+    qc.setQueryData(["external-task", activeLiveTask.taskId], activeLiveTask);
     rerender(
       <MemoryRouter>
         <QueryClientProvider client={qc}>
-          <TaskDetailHeader task={activeTask} />
+          <TaskDetailHeader task={activeLiveTask} />
         </QueryClientProvider>
       </MemoryRouter>,
     );
@@ -292,13 +334,13 @@ describe("TaskDetailHeader — behavior", () => {
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
     expect(screen.queryByTestId("cta-terminal")).toBeNull();
 
-    // Now step active → idle: Resume CTA reappears.
-    const idleTask = makeTask({ state: "idle" });
-    qc.setQueryData(["external-task", idleTask.taskId], idleTask);
+    // Now step active+live → idle+dead: Resume CTA appears.
+    const idleDeadTask = makeTask({ state: "idle", liveSession: false });
+    qc.setQueryData(["external-task", idleDeadTask.taskId], idleDeadTask);
     rerender(
       <MemoryRouter>
         <QueryClientProvider client={qc}>
-          <TaskDetailHeader task={idleTask} />
+          <TaskDetailHeader task={idleDeadTask} />
         </QueryClientProvider>
       </MemoryRouter>,
     );

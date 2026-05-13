@@ -7,14 +7,17 @@
  *   - title + state badge (pulsing dot, color-coded to state) + project chip
  *   - sub-line: phase tag · Started {ago} · last event {ago} · {model}
  *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants
- *     + Iterate G ADR-095 liveSession gating):
- *       draft / awaiting_external_start           → GREEN Launch
- *                                                   (var(--color-success))
- *       idle + liveSession=false / undefined      → BROWN Resume
- *                                                   (var(--color-primary))
- *       idle + liveSession=true                   → no CTA (live pty;
- *                                                   user types directly)
- *       active / done / launch_failed / jsonl_missing → no CTA
+ *     + Iterate G ADR-095 liveSession gating
+ *     + Iterate L resume-cta-active-state — `active` joins the gated
+ *       matrix so users can recover when the pty died but JSONL is
+ *       still fresh):
+ *       draft / awaiting_external_start                   → GREEN Launch
+ *                                                           (var(--color-success))
+ *       (active | idle) + liveSession=false / undefined   → BROWN Resume
+ *                                                           (var(--color-primary))
+ *       (active | idle) + liveSession=true                → no CTA (live pty;
+ *                                                           user types directly)
+ *       done / launch_failed / jsonl_missing              → no CTA
  *     Terminal icon is always left of the label on both buttons.
  *   - 3-dots menu: Rename · Copy session UUID · Close · Delete · debug toggle
  *
@@ -136,9 +139,7 @@ function ctaFor(
   // Tabs.Trigger row (pure UI nav, no auto-execute) — duplicating the
   // tab-row that already lives inside the page. Header now shows
   // status badge only for these states; user clicks the inline
-  // `Terminal` Tabs.Trigger to switch panes. Resume CTA stays available
-  // for state=idle (pty died + mtime drifted > 2min — see
-  // external/routes.ts state computation).
+  // `Terminal` Tabs.Trigger to switch panes.
   //
   // Iterate G (ADR-095): when a live pty entry exists for the task
   // (`liveSession === true`) the embedded-terminal session is
@@ -147,10 +148,19 @@ function ctaFor(
   // shell already inside Claude, or spawn a nested instance). Hide
   // the Resume CTA in that case. `liveSession === undefined` (older
   // server response that doesn't yet expose the field) falls back to
-  // the legacy state-only logic so the button reappears under
-  // back-compat — conservative: prefer to surface Resume rather
-  // than leave the user without an action.
-  if (state === "idle") {
+  // surfacing Resume — conservative: prefer the action button to be
+  // available rather than withheld silently.
+  //
+  // Iterate L (resume-cta-active-state): `active` joins the gated
+  // matrix on the same liveSession axis. Before this iterate, `active`
+  // rendered NO CTA regardless of liveSession — which dead-ended users
+  // whose pty died (server restart, etc.) while the JSONL was still
+  // fresh. The `liveSession` signal already distinguishes "Claude
+  // running in the embedded terminal" from "JSONL is fresh but the pty
+  // is gone", so the same idle-style branch is safe here. Same single
+  // "Resume" label — the user-side reason for resuming is irrelevant
+  // (no "Recover" differentiation; see memory feedback_resume_label_singular).
+  if (state === "idle" || state === "active") {
     if (liveSession === true) return "none";
     return "resume";
   }
