@@ -150,7 +150,12 @@ const READONLY_BANNER_GRACE_MS = 1500;
  * fall through to fit.fit() inside the try/catch so the path keeps
  * working. Only "renderer present but dimensions invalid" short-circuits.
  *
- * xterm version pinned to @xterm/xterm@^5 (see client/package.json).
+ * xterm version pinned to @xterm/xterm@^6 (see client/package.json — ADR-097
+ * bumped 5.5.0 → 6.0.0). The `_core._renderService.dimensions` private peek
+ * still matches on 6.x (verified empirically via the EmbeddedTerminal unit
+ * tests). The brittleness-guard fall-through path means a future 6.x refactor
+ * that renames the private internals degrades to "fit.fit() inside try/catch"
+ * — safe, not silent.
  *
  * Helper accepts `disposed` as a plain boolean — caller passes
  * `disposedRef.current` so React's render isolation doesn't capture a
@@ -269,10 +274,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (terminalVersion) {
           try {
             const major = terminalVersion.split(".")[0];
-            if (major && major !== "5") {
+            if (major && major !== "6") {
               // eslint-disable-next-line no-console
               console.warn(
-                `[terminal] replay_snapshot served by xterm major ${major}; client xterm.js is major 5 — visual artifacts possible`,
+                `[terminal] replay_snapshot served by xterm major ${major}; client xterm.js is major 6 — visual artifacts possible`,
               );
             }
           } catch {
@@ -550,23 +555,28 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
       const palette = EMBEDDED_TERMINAL_PALETTE;
       // Iterate F (ADR-093) — Vorbild-Alignment vs `siteboon/claudecodeui`.
-      // The four flipped knobs (convertEol, allowProposedApi, scrollback,
-      // explicit windowsMode) match the reference repo's Claude-TUI-clean
+      // The three remaining flipped knobs (convertEol, allowProposedApi,
+      // scrollback) match the reference repo's Claude-TUI-clean
       // configuration. `convertEol: true` is the load-bearing one: Claude
       // TUI's status pane redraw uses cursor positioning that assumes
       // CR-LF-normalised line endings; with `convertEol: false` a stray
       // LF-only byte sent the cursor down without column reset and the
       // status pane "stacked" visually on each redraw.
+      //
+      // Iterate I (ADR-097) — the fourth knob (`windowsMode: false`) was
+      // removed when xterm.js 6.0.0 retired the option: 6.x detects the
+      // Windows path purely from `process.platform` / userAgent with no
+      // public override, so an explicit `false` is at best a no-op and at
+      // worst a type-error on the `ITerminalOptions` interface. Native
+      // DECSET 2026 / Synchronized Output (the headline 6.0 feature) also
+      // means the original "windowsMode flicker workaround" rationale is
+      // no longer load-bearing.
       const term = new Terminal({
         convertEol: true,
         cursorBlink: true,
         fontFamily:
           'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
         fontSize: 13,
-        // Vorbild-parity: explicit windowsMode=false. xterm.js auto-detects
-        // off the user-agent string; we pin it here so the intent is
-        // documented and any future user-agent edge cases stay deterministic.
-        windowsMode: false,
         theme: {
           background: palette.background,
           foreground: palette.foreground,
@@ -713,7 +723,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // internals (_core, _renderService) under a try/catch so a
         // future xterm refactor breaks loudly via the catch instead
         // of permanently disabling resize. xterm version pinned to
-        // @xterm/xterm@^5.
+        // @xterm/xterm@^6 (ADR-097: bumped from ^5 in Iterate I).
         try {
           type XtermInternalsForStub = {
             _renderService?: {

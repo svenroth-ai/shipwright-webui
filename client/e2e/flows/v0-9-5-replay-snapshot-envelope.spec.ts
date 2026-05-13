@@ -32,9 +32,10 @@
  *     `~/.shipwright-webui/terminal-scrollback/<taskId>.snapshot` for
  *     the test target task; per-test teardown removes it. The user's
  *     normal scrollback `.log` files are NEVER touched.
- *   - The xterm.js pinned version (5.5.0) matches the server's pinned
- *     `@xterm/headless` version (also 5.5.0; architecture invariant
- *     #4 from the planning doc — both pinned EXACT, same major).
+ *   - The xterm.js pinned version (6.0.0) matches the server's pinned
+ *     `@xterm/headless` version (also 6.0.0; architecture invariant
+ *     #4 from the planning doc, amended in ADR-097 — both pinned EXACT,
+ *     same major).
  *
  * This file IS the F0.5 web surface_verification runner for Iterate B.
  */
@@ -50,9 +51,10 @@ const SCROLLBACK_DIR = path.join(
   "terminal-scrollback",
 );
 
-// Pinned by the architecture invariant in the planning doc. Mirrors
-// the value in server/node_modules/@xterm/headless/package.json.
-const PINNED_TERMINAL_VERSION = "5.5.0";
+// Pinned by the architecture invariant in the planning doc (amended in
+// ADR-097: 5.5.0 → 6.0.0 + envelope v1 → v2). Mirrors the value in
+// server/node_modules/@xterm/headless/package.json.
+const PINNED_TERMINAL_VERSION = "6.0.0";
 
 interface WsEnvelope {
   type: string;
@@ -125,7 +127,7 @@ async function writeSnapshotFor(
   rows: number,
   data: string,
 ): Promise<void> {
-  const header = `# shipwright-snapshot v1 xterm@${PINNED_TERMINAL_VERSION} ${cols}x${rows}\n`;
+  const header = `# shipwright-snapshot v2 xterm@${PINNED_TERMINAL_VERSION} ${cols}x${rows}\n`;
   const body = header + data;
   await fs.mkdir(SCROLLBACK_DIR, { recursive: true });
   await fs.writeFile(path.join(SCROLLBACK_DIR, `${taskId}.snapshot`), body, {
@@ -229,13 +231,27 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       expect(snap!.parsed!.rows).toBe(24);
       expect(snap!.parsed!.terminalVersion).toBe(PINNED_TERMINAL_VERSION);
 
-      // DOM-render assertion. xterm.js must contain the unique marker
-      // in its rendered viewport AFTER receiving the envelope.
-      const xterm = page.locator(".xterm-rows");
-      await expect(xterm).toBeVisible({ timeout: 5_000 });
-      // The marker rendered SOMEWHERE in the visible rows — confirms
-      // term.write(data) executed.
-      await expect(xterm).toContainText(MARKER, { timeout: 5_000 });
+      // DOM-render assertion (ADR-097 migration). xterm.js 6.0 + WebGL
+      // renderer no longer mirrors text into `.xterm-rows > div`; read
+      // from the xterm buffer via the test handle exposed by
+      // EmbeddedTerminal. The marker rendered SOMEWHERE in the buffer
+      // confirms term.write(data) executed.
+      await expect(page.locator('[data-testid="embedded-terminal"]')).toBeVisible({ timeout: 5_000 });
+      await expect.poll(async () => {
+        const text = await page.evaluate(() => {
+          const w = window as unknown as { __embeddedTerminal?: { buffer: { active: { length: number; getLine(y: number): { translateToString(t?: boolean): string } | undefined } } } | null };
+          const t = w.__embeddedTerminal;
+          if (!t) return "";
+          const buf = t.buffer.active;
+          const lines: string[] = [];
+          for (let y = 0; y < buf.length; y++) {
+            const l = buf.getLine(y);
+            if (l) lines.push(l.translateToString(false));
+          }
+          return lines.join("\n");
+        });
+        return text;
+      }, { timeout: 5_000 }).toContain(MARKER);
     } finally {
       await removeSnapshotFor(target!.taskId);
     }
@@ -360,10 +376,25 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       expect(snap!.parsed!.cols).toBe(RESIZED_COLS);
       expect(snap!.parsed!.rows).toBe(RESIZED_ROWS);
 
-      // STRICT: DOM renders the marker after refresh.
-      const xterm = page.locator(".xterm-rows");
-      await expect(xterm).toBeVisible({ timeout: 5_000 });
-      await expect(xterm).toContainText(MARKER, { timeout: 5_000 });
+      // STRICT: DOM renders the marker after refresh (ADR-097 migration —
+      // read from xterm buffer; .xterm-rows is no longer populated under
+      // xterm 6.0 + WebGL).
+      await expect(page.locator('[data-testid="embedded-terminal"]')).toBeVisible({ timeout: 5_000 });
+      await expect.poll(async () => {
+        const text = await page.evaluate(() => {
+          const w = window as unknown as { __embeddedTerminal?: { buffer: { active: { length: number; getLine(y: number): { translateToString(t?: boolean): string } | undefined } } } | null };
+          const t = w.__embeddedTerminal;
+          if (!t) return "";
+          const buf = t.buffer.active;
+          const lines: string[] = [];
+          for (let y = 0; y < buf.length; y++) {
+            const l = buf.getLine(y);
+            if (l) lines.push(l.translateToString(false));
+          }
+          return lines.join("\n");
+        });
+        return text;
+      }, { timeout: 5_000 }).toContain(MARKER);
 
       // Suppress unused variable lint: capture1 documents the pre-
       // refresh WS lifecycle the test exercises.

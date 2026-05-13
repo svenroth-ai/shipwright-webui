@@ -485,7 +485,7 @@ describe("<EmbeddedTerminal>", () => {
           data: "SNAPSHOT-PAYLOAD",
           cols: 80,
           rows: 24,
-          terminalVersion: "5.5.0",
+          terminalVersion: "6.0.0",
         }),
       );
     });

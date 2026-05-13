@@ -764,7 +764,7 @@ export class PtyManager {
       const stable = await entry.mirror.serializeStable();
       const { cols, rows } = entry.mirror.dimensions;
       return {
-        version: "v1",
+        version: "v2",
         terminalVersion: this.expectedTerminalVersion,
         cols,
         rows,

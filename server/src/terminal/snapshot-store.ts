@@ -8,12 +8,12 @@
  *
  * File format (UTF-8 plain text):
  *
- *     # shipwright-snapshot v1 xterm@<terminalVersion> <cols>x<rows>\n
+ *     # shipwright-snapshot v2 xterm@<terminalVersion> <cols>x<rows>\n
  *     <serializedPayload>
  *
  * Example header:
  *
- *     # shipwright-snapshot v1 xterm@5.5.0 120x30
+ *     # shipwright-snapshot v2 xterm@6.0.0 120x30
  *
  * Header semantics (external review OpenAI #8 — disambiguation):
  *   `<cols>x<rows>` is the FINAL terminal size at the moment the
@@ -24,14 +24,20 @@
  *   shape so the serialize→write idempotence (M2) holds.
  *
  * Version semantics:
- *   - `v1` is the current envelope version. Bump on incompatible header
- *     changes (e.g. adding a hash field, JSON envelope, …).
+ *   - `v2` is the current envelope version. Bumped from `v1` in Iterate
+ *     I (ADR-097) when @xterm/headless was upgraded 5.5.0 → 6.0.0. The
+ *     loader rejects v1 with `unknown_version` — pre-upgrade tasks
+ *     surface as "no replay envelope, blank terminal with live shell"
+ *     (per ADR-087 trade-off). Bump on incompatible header changes
+ *     (e.g. adding a hash field, JSON envelope, or any future xterm
+ *     major where the addon-serialize byte-stream is not guaranteed
+ *     parser-compatible across versions).
  *   - `xterm@<version>` is the @xterm/headless / @xterm/addon-serialize
  *     PINNED version that produced the payload (architecture
- *     invariant #4 in the plan-of-record). On read, the caller MAY
- *     reject snapshots whose terminalVersion does not match the
- *     currently-pinned version — Iterate A only embeds it; Iterate B
- *     wires the strict-match policy at the replay path.
+ *     invariant #4 in the plan-of-record, amended in ADR-097). On read,
+ *     the caller MAY reject snapshots whose terminalVersion does not
+ *     match the currently-pinned version — Iterate A only embeds it;
+ *     Iterate B wires the strict-match policy at the replay path.
  *
  * Path-safety: reuses the same UUID + realpath patterns as
  * scrollback-store.ts. UUID format is validated on every public method;
@@ -95,7 +101,13 @@ export function _resetTerminalVersionCacheForTesting(): void {
 }
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
-const SUPPORTED_VERSIONS = new Set<string>(["v1"]);
+// ADR-097: bumped from v1 to v2 when @xterm/headless was upgraded
+// 5.5.0 → 6.0.0. Loader rejects v1 (and any other unknown version)
+// with `unknown_version`; the caller (replay-snapshot.ts) treats that
+// the same as ENOENT — no replay envelope is emitted, the client
+// gets a blank terminal with live shell. See ADR-097 § Snapshot
+// envelope bump rationale.
+const SUPPORTED_VERSIONS = new Set<string>(["v2"]);
 
 export class SnapshotStoreError extends Error {
   constructor(
@@ -112,7 +124,7 @@ export class SnapshotStoreError extends Error {
 }
 
 export interface SnapshotHeader {
-  version: "v1";
+  version: "v2";
   terminalVersion: string;
   cols: number;
   rows: number;
@@ -235,7 +247,7 @@ export class SnapshotStore {
 
     const terminalVersion = await readTerminalVersion();
     const header =
-      `# shipwright-snapshot v1 xterm@${terminalVersion} ${payload.cols}x${payload.rows}\n`;
+      `# shipwright-snapshot v2 xterm@${terminalVersion} ${payload.cols}x${payload.rows}\n`;
     const body = header + payload.data;
 
     await fsAsync.writeFile(tmp, body, { encoding: "utf8", mode: this.fileMode });
@@ -492,7 +504,7 @@ export function parseSnapshotEnvelope(raw: string): SnapshotRecord {
     );
   }
   return {
-    version: version as "v1",
+    version: version as "v2",
     terminalVersion: m[2],
     cols,
     rows,
