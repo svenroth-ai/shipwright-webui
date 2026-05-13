@@ -82,7 +82,7 @@ describe("SnapshotStore — boundary probe: producer→file→consumer round-tri
     await store.write(VALID, { cols: 80, rows: 24, data: "" });
     const rec = await store.read(VALID);
     expect(rec).not.toBeNull();
-    expect(rec!.version).toBe("v1");
+    expect(rec!.version).toBe("v2");
     expect(rec!.cols).toBe(80);
     expect(rec!.rows).toBe(24);
     expect(rec!.data).toBe("");
@@ -132,7 +132,7 @@ describe("SnapshotStore — boundary probe: producer→file→consumer round-tri
 
 describe("SnapshotStore — header parser", () => {
   it("rejects malformed envelope (no newline)", () => {
-    expect(() => parseSnapshotEnvelope("# shipwright-snapshot v1 xterm@5.5.0 80x24"))
+    expect(() => parseSnapshotEnvelope("# shipwright-snapshot v2 xterm@6.0.0 80x24"))
       .toThrow(/snapshot envelope has no newline/);
   });
   it("rejects malformed header (wrong shape)", () => {
@@ -141,33 +141,46 @@ describe("SnapshotStore — header parser", () => {
   });
   it("rejects unknown version (v99)", () => {
     expect(() =>
-      parseSnapshotEnvelope("# shipwright-snapshot v99 xterm@5.5.0 80x24\npayload"),
+      parseSnapshotEnvelope("# shipwright-snapshot v99 xterm@6.0.0 80x24\npayload"),
     ).toThrow(/Unknown snapshot version: v99/);
   });
-  it("accepts well-formed v1 header", () => {
+  it("rejects legacy v1 envelope written before ADR-097 (xterm 5.5.0)", () => {
+    // ADR-097 — pre-upgrade tasks have v1 snapshots on disk. The loader
+    // rejects them with `unknown_version`; the replay-snapshot helper
+    // catches SnapshotStoreError and treats it as "no replay envelope,
+    // blank terminal with live shell" (ADR-087 trade-off). This is the
+    // explicit regression-guard that a future iterate cannot silently
+    // re-introduce v1 acceptance without an envelope-format review.
+    expect(() =>
+      parseSnapshotEnvelope(
+        "# shipwright-snapshot v1 xterm@5.5.0 120x30\npayload",
+      ),
+    ).toThrow(/Unknown snapshot version: v1/);
+  });
+  it("accepts well-formed v2 header", () => {
     const rec = parseSnapshotEnvelope(
-      "# shipwright-snapshot v1 xterm@5.5.0 120x30\npayload\nwith\nnewlines",
+      "# shipwright-snapshot v2 xterm@6.0.0 120x30\npayload\nwith\nnewlines",
     );
-    expect(rec.version).toBe("v1");
-    expect(rec.terminalVersion).toBe("5.5.0");
+    expect(rec.version).toBe("v2");
+    expect(rec.terminalVersion).toBe("6.0.0");
     expect(rec.cols).toBe(120);
     expect(rec.rows).toBe(30);
     expect(rec.data).toBe("payload\nwith\nnewlines");
   });
   it("rejects 0x0 dimensions (external code review MEDIUM)", () => {
     expect(() =>
-      parseSnapshotEnvelope("# shipwright-snapshot v1 xterm@5.5.0 0x0\npayload"),
+      parseSnapshotEnvelope("# shipwright-snapshot v2 xterm@6.0.0 0x0\npayload"),
     ).toThrow(/dims out of range/);
   });
   it("rejects oversized dimensions (DoS defense)", () => {
     expect(() =>
-      parseSnapshotEnvelope("# shipwright-snapshot v1 xterm@5.5.0 99999x99999\npayload"),
+      parseSnapshotEnvelope("# shipwright-snapshot v2 xterm@6.0.0 99999x99999\npayload"),
     ).toThrow(/dims out of range/);
   });
   it("rejects oversized header (>512 bytes)", () => {
     const longVer = "X".repeat(500);
     expect(() =>
-      parseSnapshotEnvelope(`# shipwright-snapshot v1 xterm@${longVer} 80x24\npayload`),
+      parseSnapshotEnvelope(`# shipwright-snapshot v2 xterm@${longVer} 80x24\npayload`),
     ).toThrow(/header exceeds 512 bytes/);
   });
 });
@@ -212,13 +225,13 @@ describe("SnapshotStore — file operations", () => {
     await store.write(VALID, { cols: 80, rows: 24, data: "x" });
     const filePath = path.join(tmpDir, `${VALID}.snapshot`);
     const raw = await fs.readFile(filePath, "utf8");
-    // Plan invariant #4 — pinned version is read from package.json.
-    expect(raw.startsWith("# shipwright-snapshot v1 xterm@")).toBe(true);
-    // The plan currently pins 5.5.0; if the pin changes, the header
-    // automatically tracks the package.json value, so we only assert
-    // the shape and the dims.
+    // Plan invariant #4 (amended by ADR-097: pin is now 6.0.0).
+    expect(raw.startsWith("# shipwright-snapshot v2 xterm@")).toBe(true);
+    // The header automatically tracks the @xterm/headless package.json
+    // version, so we only assert shape + dims (the package.json read is
+    // separately tested via the version-cache invariants).
     expect(raw).toMatch(
-      /^# shipwright-snapshot v1 xterm@\d+\.\d+\.\d+ 80x24\n/,
+      /^# shipwright-snapshot v2 xterm@\d+\.\d+\.\d+ 80x24\n/,
     );
   });
 

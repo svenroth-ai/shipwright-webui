@@ -174,7 +174,7 @@ describe("PtyManager + HeadlessMirror integration (ADR-088 Iterate A)", () => {
       expect(await snapshot.has(TASK)).toBe(true);
       const rec = await snapshot.read(TASK);
       expect(rec).not.toBeNull();
-      expect(rec!.version).toBe("v1");
+      expect(rec!.version).toBe("v2");
       expect(rec!.cols).toBe(120);
       expect(rec!.rows).toBe(30);
       // Legacy scrollback also intact.
@@ -224,7 +224,7 @@ describe("PtyManager + HeadlessMirror integration (ADR-088 Iterate A)", () => {
       expect(rec!.rows).toBe(24);
     });
 
-    it("snapshot file uses the v1 envelope shape parseable by parseSnapshotEnvelope", async () => {
+    it("snapshot file uses the v2 envelope shape parseable by parseSnapshotEnvelope", async () => {
       const mgr = new PtyManager({
         spawn: spawn.fn,
         scrollbackStore: scrollback,
@@ -243,7 +243,7 @@ describe("PtyManager + HeadlessMirror integration (ADR-088 Iterate A)", () => {
       // Round-trip parse — confirms producer's bytes round-trip through
       // the parser. This is the producer→file→consumer boundary probe.
       const rec = parseSnapshotEnvelope(raw);
-      expect(rec.version).toBe("v1");
+      expect(rec.version).toBe("v2");
       expect(rec.cols).toBe(120);
       expect(rec.rows).toBe(30);
     });

@@ -248,7 +248,7 @@ describe("useTerminalSocket", () => {
           data: "\x1b[2J\x1b[Hcell state",
           cols: 80,
           rows: 24,
-          terminalVersion: "5.5.0",
+          terminalVersion: "6.0.0",
         }),
       );
     });
@@ -257,7 +257,7 @@ describe("useTerminalSocket", () => {
       data: "\x1b[2J\x1b[Hcell state",
       cols: 80,
       rows: 24,
-      terminalVersion: "5.5.0",
+      terminalVersion: "6.0.0",
     });
   });
 
@@ -282,7 +282,7 @@ describe("useTerminalSocket", () => {
           type: "replay_snapshot",
           cols: 80,
           rows: 24,
-          terminalVersion: "5.5.0",
+          terminalVersion: "6.0.0",
         }),
       );
       // Missing `cols` — also ignored.
@@ -291,7 +291,7 @@ describe("useTerminalSocket", () => {
           type: "replay_snapshot",
           data: "x",
           rows: 24,
-          terminalVersion: "5.5.0",
+          terminalVersion: "6.0.0",
         }),
       );
     });
