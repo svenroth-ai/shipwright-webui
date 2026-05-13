@@ -810,35 +810,44 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
 // ---------------------------------------------------------------------------
 
 /**
- * Iterate G (ADR-095), amended Iterate I (ADR-097) — pure helper that
- * builds the env map handed to the spawned pty. Factored out of
- * `createNodePtySpawnFn` so it can be unit-tested without the native
- * node-pty binary.
+ * Iterate G (ADR-095), amended Iterate I (ADR-097), restored Iterate J
+ * (ADR-098) — pure helper that builds the env map handed to the spawned
+ * pty. Factored out of `createNodePtySpawnFn` so it can be unit-tested
+ * without the native node-pty binary.
  *
  * Layered as: baseProcessEnv → TERM/COLORTERM/FORCE_COLOR brand-fit
- * overrides (ADR-067) → CLAUDE_CODE_NO_FLICKER toggle (ADR-095/ADR-097)
- * → caller-supplied opts.env (last-write-wins so tests / future callers
- * can override anything).
+ * overrides (ADR-067) → CLAUDE_CODE_NO_FLICKER toggle
+ * (ADR-095/ADR-097/ADR-098) → caller-supplied opts.env (last-write-wins
+ * for most keys; the default-on CLAUDE_CODE_NO_FLICKER is protected
+ * from accidental caller silent-revert — see opt-out-wins symmetry
+ * below).
  *
- * CLAUDE_CODE_NO_FLICKER (ADR-097):
- *   - Default OFF: the key is NOT written into the env map. Claude TUI
- *     renders into the main buffer and xterm.js 6.0.0 honours DECSET
- *     2026 / Synchronized Output natively, so frame batching is
- *     flicker-free without the alt-screen workaround.
- *   - Opt-IN via SHIPWRIGHT_TERMINAL_NO_FLICKER=1: emits `"1"`. Falls
- *     back to Anthropic's documented alt-screen renderer (vim/htop-style
- *     full-screen mode). Useful for older Claude Code versions
- *     (< v2.1.89, predating native DECSET 2026 reception) or users who
- *     prefer the alt-screen UX (vim Cmd+F support; classic terminal
- *     fullscreen feel). Docs: https://code.claude.com/docs/en/fullscreen.
+ * CLAUDE_CODE_NO_FLICKER (ADR-098):
+ *   - Default ON: the key is written as `"1"` into the env map.
+ *     Claude Code renders into the alt-screen buffer (vim/htop-style),
+ *     bypassing per-frame ANSI cursor moves entirely. Required because
+ *     Claude Code 2.1.139 emits ZERO DECSET 2026 / Synchronized Output
+ *     sequences in its main-buffer rendering (empirical: 265 711-byte
+ *     live scrollback, 0 `\x1b[?2026h` / 0 `\x1b[?2026l`, 21 690 raw
+ *     CUP sequences). xterm 6.0's native sync-output honour has
+ *     nothing to batch because the producer never opts in.
+ *     Claude Code Issue #37283 remains open. Docs:
+ *     https://code.claude.com/docs/en/fullscreen.
+ *   - Opt-OUT via SHIPWRIGHT_TERMINAL_NO_FLICKER=0: the key is deleted
+ *     from the env map so the child shell sees whatever (if anything)
+ *     the upstream env set. Useful for users who explicitly want
+ *     Claude in the main buffer (Cmd+F scrollback search, mouse
+ *     capture, etc.) and are willing to accept the visible flicker
+ *     around streaming output.
  *
- * Inversion from ADR-095's default-ON: empirical UAT in Iterate I
- * confirmed that the native main-buffer path with xterm 6.0.0 has the
- * same visual quality as the alt-screen path for the working-state
- * animation, AND preserves browser-native scrollback search (Cmd+F)
- * that the alt-screen path consumed. The flag-as-opt-in shape is
- * forward-compatible: if Anthropic deprecates `CLAUDE_CODE_NO_FLICKER`
- * the absent-by-default behaviour means no churn.
+ * Reversion from ADR-097's opt-in default: ADR-097 hypothesised that
+ * xterm 6's DECSET 2026 honour would batch Claude TUI's main-buffer
+ * frames flicker-free. UAT post-Iterate-I falsified the hypothesis;
+ * ADR-098 documents the empirical scrollback investigation. The
+ * default-on stance from ADR-095 is restored verbatim. The
+ * "opt-out wins over caller-env override" semantic (ADR-095, external
+ * code review openai medium, 2026-05-13) is preserved as the
+ * symmetric default-on regression fence.
  */
 export function buildSpawnEnv(
   baseProcessEnv: Record<string, string | undefined>,
@@ -868,31 +877,32 @@ export function buildSpawnEnv(
     COLORTERM: "",
     FORCE_COLOR: "1",
   };
-  // Iterate G (ADR-095) inverted by Iterate I (ADR-097): Claude TUI
-  // flicker workaround. Default OFF — DECSET 2026 / Synchronized
-  // Output is honoured natively by xterm.js 6.0.0 in the main buffer
-  // so the alt-screen workaround is no longer the baseline. Explicit
-  // opt-IN via SHIPWRIGHT_TERMINAL_NO_FLICKER=1.
-  const optedIn = baseProcessEnv.SHIPWRIGHT_TERMINAL_NO_FLICKER === "1";
-  if (optedIn) {
-    env.CLAUDE_CODE_NO_FLICKER = "1";
-  } else {
-    // Default + explicit-off path: ensure the key is absent so the child
-    // shell sees whatever (if anything) the upstream env set. We delete
+  // Iterate G (ADR-095), restored Iterate J (ADR-098) after the
+  // Iterate I (ADR-097) opt-in attempt was empirically falsified.
+  // Claude TUI flicker workaround: default ON — Claude Code 2.1.139
+  // emits zero DECSET 2026 sequences in its main-buffer rendering, so
+  // xterm 6.0's native Synchronized-Output honour cannot batch frames
+  // the producer never wraps. Opt-OUT via SHIPWRIGHT_TERMINAL_NO_FLICKER=0.
+  const optedOut = baseProcessEnv.SHIPWRIGHT_TERMINAL_NO_FLICKER === "0";
+  if (optedOut) {
+    // Explicit-off path: ensure the key is absent so the child shell
+    // sees whatever (if anything) the upstream env set. We delete
     // rather than set to undefined because undefined keys can survive
     // some spread operations in TypeScript erasure paths.
     delete env.CLAUDE_CODE_NO_FLICKER;
+  } else {
+    env.CLAUDE_CODE_NO_FLICKER = "1";
   }
   // Caller-supplied env wins for ALL keys EXCEPT CLAUDE_CODE_NO_FLICKER
-  // when the user has NOT explicitly opted in via SHIPWRIGHT_TERMINAL_NO_FLICKER=1.
-  // The same symmetry as ADR-095's opt-out-wins-over-caller-env (external
-  // code review openai medium, 2026-05-13) applies here in reverse:
-  // allowing the caller to silently inject the key would break the
-  // default-OFF contract documented in ADR-097. The default wins; the
-  // rest of the caller env still flows through.
+  // when the user has explicitly opted OUT via SHIPWRIGHT_TERMINAL_NO_FLICKER=0.
+  // External code review (openai medium, 2026-05-13) — allowing the
+  // caller to silently re-inject the key would break the documented
+  // opt-out contract. The opt-out wins; the rest of the caller env
+  // still flows through. Symmetric to ADR-097's opt-in-wins fence,
+  // now restored to the ADR-095 default-on stance per ADR-098.
   if (callerEnv) {
     for (const [k, v] of Object.entries(callerEnv)) {
-      if (!optedIn && k === "CLAUDE_CODE_NO_FLICKER") continue;
+      if (optedOut && k === "CLAUDE_CODE_NO_FLICKER") continue;
       env[k] = v;
     }
   }
