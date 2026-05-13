@@ -231,13 +231,27 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       expect(snap!.parsed!.rows).toBe(24);
       expect(snap!.parsed!.terminalVersion).toBe(PINNED_TERMINAL_VERSION);
 
-      // DOM-render assertion. xterm.js must contain the unique marker
-      // in its rendered viewport AFTER receiving the envelope.
-      const xterm = page.locator(".xterm-rows");
-      await expect(xterm).toBeVisible({ timeout: 5_000 });
-      // The marker rendered SOMEWHERE in the visible rows — confirms
-      // term.write(data) executed.
-      await expect(xterm).toContainText(MARKER, { timeout: 5_000 });
+      // DOM-render assertion (ADR-097 migration). xterm.js 6.0 + WebGL
+      // renderer no longer mirrors text into `.xterm-rows > div`; read
+      // from the xterm buffer via the test handle exposed by
+      // EmbeddedTerminal. The marker rendered SOMEWHERE in the buffer
+      // confirms term.write(data) executed.
+      await expect(page.locator('[data-testid="embedded-terminal"]')).toBeVisible({ timeout: 5_000 });
+      await expect.poll(async () => {
+        const text = await page.evaluate(() => {
+          const w = window as unknown as { __embeddedTerminal?: { buffer: { active: { length: number; getLine(y: number): { translateToString(t?: boolean): string } | undefined } } } | null };
+          const t = w.__embeddedTerminal;
+          if (!t) return "";
+          const buf = t.buffer.active;
+          const lines: string[] = [];
+          for (let y = 0; y < buf.length; y++) {
+            const l = buf.getLine(y);
+            if (l) lines.push(l.translateToString(false));
+          }
+          return lines.join("\n");
+        });
+        return text;
+      }, { timeout: 5_000 }).toContain(MARKER);
     } finally {
       await removeSnapshotFor(target!.taskId);
     }
@@ -362,10 +376,25 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       expect(snap!.parsed!.cols).toBe(RESIZED_COLS);
       expect(snap!.parsed!.rows).toBe(RESIZED_ROWS);
 
-      // STRICT: DOM renders the marker after refresh.
-      const xterm = page.locator(".xterm-rows");
-      await expect(xterm).toBeVisible({ timeout: 5_000 });
-      await expect(xterm).toContainText(MARKER, { timeout: 5_000 });
+      // STRICT: DOM renders the marker after refresh (ADR-097 migration —
+      // read from xterm buffer; .xterm-rows is no longer populated under
+      // xterm 6.0 + WebGL).
+      await expect(page.locator('[data-testid="embedded-terminal"]')).toBeVisible({ timeout: 5_000 });
+      await expect.poll(async () => {
+        const text = await page.evaluate(() => {
+          const w = window as unknown as { __embeddedTerminal?: { buffer: { active: { length: number; getLine(y: number): { translateToString(t?: boolean): string } | undefined } } } | null };
+          const t = w.__embeddedTerminal;
+          if (!t) return "";
+          const buf = t.buffer.active;
+          const lines: string[] = [];
+          for (let y = 0; y < buf.length; y++) {
+            const l = buf.getLine(y);
+            if (l) lines.push(l.translateToString(false));
+          }
+          return lines.join("\n");
+        });
+        return text;
+      }, { timeout: 5_000 }).toContain(MARKER);
 
       // Suppress unused variable lint: capture1 documents the pre-
       // refresh WS lifecycle the test exercises.
