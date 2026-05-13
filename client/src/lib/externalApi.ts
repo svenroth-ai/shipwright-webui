@@ -60,6 +60,22 @@ export interface ExternalTask {
   firstJsonlObservedAt?: string;
   lastJsonlSeenMtimeMs?: number;
   inbox: ExternalTaskInboxState;
+  /**
+   * Iterate G (ADR-095) — server-computed flag, NOT persisted on disk.
+   * Reflects whether `PtyManager.entries` currently holds an entry for
+   * this task at response-time (i.e. an embedded-terminal pty is alive
+   * and Claude TUI is likely running).
+   *
+   * Used by `TaskDetailHeader` to gate the header Resume CTA: when
+   * `liveSession === true`, the Resume button is hidden — the user
+   * types directly into the live shell. When `false` / `undefined`
+   * (back-compat with pre-G server responses + test fixtures), the
+   * Resume CTA follows the legacy state-only logic.
+   *
+   * Treat `undefined` as `false` (conservative: show Resume) for
+   * back-compat.
+   */
+  liveSession?: boolean;
 }
 
 export interface CopyCommandForms {

@@ -45,4 +45,26 @@ describe("getConfig", () => {
     const config = getConfig();
     expect(config.registryDir).toContain(".shipwright-webui");
   });
+
+  // Iterate G (ADR-095) — terminalNoFlicker default-on + opt-out semantics.
+  it("terminalNoFlicker defaults to true when SHIPWRIGHT_TERMINAL_NO_FLICKER is unset", () => {
+    delete process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER;
+    const config = getConfig();
+    expect(config.terminalNoFlicker).toBe(true);
+  });
+
+  it("terminalNoFlicker stays true for non-'0' values (empty / any string)", () => {
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "";
+    expect(getConfig().terminalNoFlicker).toBe(true);
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "1";
+    expect(getConfig().terminalNoFlicker).toBe(true);
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "true";
+    expect(getConfig().terminalNoFlicker).toBe(true);
+  });
+
+  it("terminalNoFlicker flips to false on SHIPWRIGHT_TERMINAL_NO_FLICKER='0' (opt-out)", () => {
+    process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER = "0";
+    const config = getConfig();
+    expect(config.terminalNoFlicker).toBe(false);
+  });
 });
