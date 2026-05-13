@@ -9,7 +9,7 @@ Code workflow they already love.
 ## Table of contents
 
 1. [What is the Command Center?](#1-what-is-the-command-center)
-2. [Why copy-paste? The architecture in plain English](#2-why-copy-paste-the-architecture-in-plain-english)
+2. [How Launch works — the architecture in plain English](#2-how-launch-works--the-architecture-in-plain-english)
 3. [Recommended setup — Warp + Command Center](#3-recommended-setup--warp--command-center)
 4. [Installation](#4-installation)
 5. [Your first project — step by step](#5-your-first-project--step-by-step)
@@ -59,40 +59,44 @@ Command Center stops being a luxury.
 
 ---
 
-## 2. Why copy-paste? The architecture in plain English
+## 2. How Launch works — the architecture in plain English
 
-When you hit **Launch** on a task, the Command Center doesn't run
-Claude. Instead it gives you a copy-paste command:
+When you hit **Launch** on a task, the Command Center generates a
+command like:
 
 ```
 claude --session-id <uuid> --name "Build: login redirect" /shipwright-build planning/03-login.md
 ```
 
-You paste this in your own terminal (or VS Code's integrated terminal,
-or any other terminal), Claude starts there, and the Command Center
-**watches** the resulting transcript file on disk. It updates the
-Kanban board live as Claude works.
+The task detail page that opens contains an **embedded terminal pane**.
+The command auto-runs there — no copy-paste step in the default flow —
+and the Command Center **watches** the resulting transcript file on
+disk, updating the Kanban board live as Claude works.
 
 **Why this design?**
 
-- **Maximum flexibility.** You stay in control of the Claude process.
-  Pause it, restart it, attach a debugger, run it inside `screen` or
-  `tmux`, send it to a remote machine — your choice. The Command Center
-  doesn't care; it just follows the file.
+- **No spawned Claude under the hood.** The embedded terminal hosts a
+  shell (your `pwsh` / `bash` / `zsh`); your click on Launch is what
+  authorizes the shell to start, and the Claude command runs inside that
+  shell. The web server itself never spawns a Claude process —
+  architecture, plugin compatibility, and your CLI updates all stay
+  exactly the same as if you ran the command yourself.
 - **No CLI / SDK lock-in.** The Command Center doesn't depend on any
   specific Claude SDK version, IDE plugin, or RPC protocol. Anthropic
-  ships a new CLI feature → you get it in your terminal immediately,
-  no Command Center update needed.
-- **No surprise side effects.** The Command Center can't accidentally
-  start, kill, or modify a Claude session. The clipboard is the only
-  channel between the dashboard and the actual work.
+  ships a new CLI feature → you get it in the embedded terminal (and in
+  your own terminal) immediately, no Command Center update needed.
+- **You can still use your own terminal.** The launch command is also
+  available from the task detail page; copy it into Warp, Windows
+  Terminal, or any other terminal if you prefer that workflow. The
+  Command Center watches the transcript file the same way regardless of
+  where Claude is actually running.
 - **Multiple windows, multiple tabs.** Two browser tabs open? Both work.
   Refresh? Picks up where you left off. The Command Center is stateless
   on every read.
 
 You'll see the same model in every action — **Save to Backlog** parks a
-task without a command, **Launch** copies the command and opens the
-task page so you can paste and start.
+task without launching anything, **Launch** auto-runs the command in
+the task's embedded terminal and opens the page.
 
 ---
 
@@ -260,26 +264,29 @@ Pick one. A modal opens.
 - **Autonomy** (Pipeline / Iterate) — *Guided* (Claude asks before each
   major step) or *Autonomous* (Claude pushes through).
 
-You'll see a **live command preview** — exactly what will be copied to
-your clipboard.
+You'll see a **live command preview** — exactly what will run when you
+click Launch.
 
-### 6.3 Two buttons: Save to Backlog vs. Launch & Copy
+### 6.3 Two buttons: Save to Backlog vs. Launch
 
 - **Save to Backlog** — writes the task to the Kanban Backlog column.
-  No command, no clipboard. Pick this when you're planning ahead.
-- **Launch & Copy** — copies the command to your clipboard, marks the
-  task as **In Progress**, and opens the task detail page.
+  Nothing spawns, nothing runs. Pick this when you're planning ahead.
+- **Launch** — marks the task as **In Progress**, opens the task detail
+  page, and auto-runs the command in the embedded terminal pane there.
 
-For now, click **Launch & Copy**.
+For now, click **Launch**.
 
-### 6.4 Paste in your terminal
+### 6.4 Watch it run in the embedded terminal
 
-Switch to your terminal (Warp, the VS Code integrated terminal, …),
-make sure you're in the project folder, and **paste**. Claude starts.
+The task detail page opens with an embedded terminal pane already
+focused on the project folder. The launch command auto-runs there —
+you'll see the shell prompt, then `cd "<your project path>" && claude
+...`, then Claude's first output.
 
-> The pasted command begins with `cd "<your project path>" && claude
-> ...`, so even if your terminal was sitting in your home folder,
-> Claude lands in the right place automatically.
+> **Prefer your own terminal?** The same command is available from the
+> task detail page — copy it into Warp, the VS Code integrated terminal,
+> Windows Terminal, or anywhere else and run it manually. The Command
+> Center watches the transcript file the same way either way.
 
 ### 6.5 Watch the transcript
 
@@ -334,8 +341,8 @@ To advance the pipeline, you have two equivalent paths:
 
 Both paths run the same flow: re-read run-config, look up (or create)
 the matching webui shadow task, build the launch command for the
-phase's pre-bound `--session-id`, copy it to your clipboard, and
-navigate to the new task detail page. Paste in your terminal as usual.
+phase's pre-bound `--session-id`, and navigate to the new task detail
+page. The command auto-runs in the embedded terminal there.
 
 > Repeated clicks for the same phase task reuse the existing shadow —
 > no duplicates appear in the Kanban.
@@ -951,15 +958,23 @@ Validate against [§9.3 Schema reference](#93-custom-actions).
 
 ### I clicked Launch but nothing happens / no transcript appears
 
-After Launch you have to **paste the command** in your terminal. The
-Command Center never starts Claude itself. The task detail page sits at
-"Awaiting external start" until Claude actually runs and writes the
-session file.
+In the default flow the launch command auto-runs in the task detail
+page's embedded terminal. The web server itself never spawns Claude —
+the embedded terminal hosts a shell and the Claude command runs inside
+it. The task sits at "Awaiting external start" until Claude actually
+runs and writes the session file.
 
-If the file *does* exist but the dashboard doesn't pick it up, check:
+If the embedded terminal pane is blank, check that:
+
+- The shell process started — there's a prompt visible in the pane.
+- The launch command itself appeared in the pane (you should see the
+  full `claude --session-id ... /shipwright-...` line).
+
+If you're running Claude in your own terminal instead (Warp, Windows
+Terminal, …) and the dashboard doesn't pick up the transcript, check:
 
 - The project's **path** in the Command Center matches the folder you
-  pasted the command in.
+  ran the command in.
 - The session UUID matches: open the latest file in
   `~/.claude/projects/<encoded-cwd>/` and check the first line.
 - The `/api/diagnostics` page in the dashboard for any session-watcher
