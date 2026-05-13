@@ -970,7 +970,7 @@ export function NewIssueModal({
                     Save to Backlog:
                   </strong>{" "}
                   task lands in the Backlog column as a draft — nothing
-                  spawns, nothing copies.
+                  spawns.
                   <br />
                   <strong
                     className="font-semibold"
