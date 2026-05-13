@@ -52,6 +52,23 @@ export interface ServerConfig {
    * `.shipwright/planning/embedded-terminal-refactor-headless.md`.
    */
   terminalHeadlessMirror: boolean;
+  /**
+   * Iterate G (ADR-095) — Claude TUI flicker workaround. When `true`
+   * (default), every pty spawned for the embedded terminal carries
+   * `CLAUDE_CODE_NO_FLICKER=1` in its env, instructing Claude Code to
+   * render into the alt-screen buffer (vim/htop-style) and bypass the
+   * per-frame ANSI cursor moves that xterm.js 5.5.0 can't batch
+   * (no DECSET 2026 support). Opt-out via
+   * `SHIPWRIGHT_TERMINAL_NO_FLICKER=0` for users who prefer the
+   * classic renderer (e.g. to preserve browser Cmd+F search). Docs:
+   * https://code.claude.com/docs/en/fullscreen.
+   *
+   * The field is for diagnostics + structured logging. The actual env
+   * injection lives in `terminal/routes.ts buildSpawnEnv` which reads
+   * `process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER` directly so the spawn
+   * factory does not have to thread a `ServerConfig` reference.
+   */
+  terminalNoFlicker: boolean;
 }
 
 function clampPositiveInt(raw: string | undefined, fallback: number): number {
@@ -116,5 +133,10 @@ export function getConfig(): ServerConfig {
     // their own flags).
     terminalHeadlessMirror:
       process.env.SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR !== "0",
+    // Iterate G (ADR-095) — Claude TUI flicker workaround. Default ON;
+    // opt-out via `SHIPWRIGHT_TERMINAL_NO_FLICKER=0`. Same parse rule
+    // as `terminalHeadlessMirror` (empty / unset / any value other
+    // than literal "0" → enabled).
+    terminalNoFlicker: process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER !== "0",
   };
 }
