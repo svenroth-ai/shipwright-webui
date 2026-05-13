@@ -57,16 +57,25 @@ export interface ServerConfig {
    * every pty spawned for the embedded terminal carries
    * `CLAUDE_CODE_NO_FLICKER=1` in its env, instructing Claude Code to
    * render into the alt-screen buffer (vim/htop-style) and bypass the
-   * per-frame ANSI cursor moves that xterm.js 5.5.0 couldn't batch.
+   * per-frame ANSI cursor moves that xterm.js can't batch unless the
+   * producer wraps frames in DECSET 2026 / Synchronized Output.
    *
-   * Iterate I (ADR-097) — default REVERTED from ON to OFF. xterm.js
-   * 6.0.0 implements DECSET 2026 / Synchronized Output natively, so
-   * Claude TUI's frame batching is honoured in the main buffer and
-   * the alt-screen workaround is no longer needed for flicker-free
-   * rendering. The flag is retained as a DEFENSIVE OPT-IN: users on
-   * older Claude Code versions, or who prefer the alt-screen UX (vim
-   * Cmd+F friendly, etc.), can still enable it via
-   * `SHIPWRIGHT_TERMINAL_NO_FLICKER=1`. Docs:
+   * Iterate I (ADR-097) tried flipping the default OFF on the
+   * hypothesis that xterm.js 6.0.0's native DECSET 2026 support would
+   * batch Claude TUI's main-buffer frames flicker-free. Iterate J
+   * (ADR-098) falsified that hypothesis empirically: a 265 711-byte
+   * live Claude Code 2.1.139 scrollback contains ZERO `\x1b[?2026h`
+   * or `\x1b[?2026l` sequences (21 690 raw CUP sequences, but no
+   * Synchronized-Output bracket pairs). Claude Code does not wrap
+   * its frames; xterm 6's native sync support has nothing to batch.
+   * Claude Code Issue #37283 remains open at the time of ADR-098.
+   *
+   * Therefore: default is RESTORED to ON. Opt-out via
+   * `SHIPWRIGHT_TERMINAL_NO_FLICKER=0` (empty / unset / `"1"` / any
+   * other value → injected). Trade-off retained: alt-screen mode
+   * costs browser-native Cmd+F of conversation history, mouse
+   * capture, fixed input box — accepted because visible flicker
+   * degrades every streaming response. Docs:
    * https://code.claude.com/docs/en/fullscreen.
    *
    * The field is for diagnostics + structured logging. The actual env
@@ -139,13 +148,17 @@ export function getConfig(): ServerConfig {
     // their own flags).
     terminalHeadlessMirror:
       process.env.SHIPWRIGHT_TERMINAL_HEADLESS_MIRROR !== "0",
-    // Iterate G (ADR-095) — Claude TUI flicker workaround. ADR-097
-    // reverted the default from ON to OFF: xterm.js 6.0.0 honours
-    // DECSET 2026 natively so the alt-screen path is no longer the
-    // baseline. Opt-IN via `SHIPWRIGHT_TERMINAL_NO_FLICKER=1` (any
-    // value other than literal "1" → disabled, matching the
-    // canonical-truthy "1" convention rather than the inverted-falsy
-    // "0" used by `terminalHeadlessMirror`).
-    terminalNoFlicker: process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER === "1",
+    // Iterate J (ADR-098) — default restored to ON after empirical
+    // verification (265 KB live Claude Code 2.1.139 scrollback: zero
+    // DECSET 2026 sequences in main-buffer rendering). xterm 6.0's
+    // native sync-output honour has nothing to batch because Claude
+    // Code does not wrap its frames; ADR-097's opt-in default was the
+    // wrong inference. Opt-out via `SHIPWRIGHT_TERMINAL_NO_FLICKER=0`
+    // (any other value → enabled, matching the inverted-falsy "0"
+    // convention used by `terminalHeadlessMirror`). Iterate G's
+    // ADR-095 default-on stance is restored verbatim. Claude Code
+    // Issue #37283 remains open; revisit when DECSET 2026 is emitted
+    // by Claude itself.
+    terminalNoFlicker: process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER !== "0",
   };
 }
