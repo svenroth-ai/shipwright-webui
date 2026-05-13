@@ -251,6 +251,28 @@ export function createExternalRoutes(args: {
     ((name: string) => loadProfile(name, getProfilesDir()) as PreviewProfile | null);
   const runConfigReader = args.readRunConfig ?? ((p: string) => defaultReadRunConfig(p));
 
+  /**
+   * Iterate G (ADR-095) — augment a serialized task with `liveSession`,
+   * derived from `ptyManager.get(taskId) !== undefined`. The persisted
+   * `ExternalTask` shape on disk does NOT include this field; it is
+   * computed at response time from in-memory pty state. The client
+   * uses it to gate the header Resume CTA — while the pty is alive,
+   * the user types directly into the embedded terminal instead.
+   *
+   * Defensive: handles undefined / null input (returns it unchanged)
+   * so callers that already 404'd can still pass-through. Returns a
+   * shallow clone so callers don't mutate the live store entry.
+   */
+  function withLiveSession<T extends ExternalTask | undefined | null>(
+    task: T,
+  ): T extends ExternalTask ? ExternalTask & { liveSession: boolean } : T {
+    if (!task) return task as never;
+    return {
+      ...task,
+      liveSession: ptyManager.get(task.taskId) !== undefined,
+    } as never;
+  }
+
   app.post("/api/external/tasks", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const title = typeof body.title === "string" && body.title.trim()
@@ -341,7 +363,7 @@ export function createExternalRoutes(args: {
     if (phaseTaskRefs.phaseTaskId) {
       const existing = store.findByPhaseTaskId(phaseTaskRefs.phaseTaskId);
       if (existing) {
-        return c.json({ task: existing, reused: true });
+        return c.json({ task: withLiveSession(existing), reused: true });
       }
     }
 
@@ -369,7 +391,7 @@ export function createExternalRoutes(args: {
       parentRunMaster: phaseTaskRefs.parentRunMaster,
     });
     await store.persist();
-    return c.json({ task });
+    return c.json({ task: withLiveSession(task) });
   });
 
   app.get("/api/external/tasks", (c) => {
@@ -380,14 +402,18 @@ export function createExternalRoutes(args: {
     // bucket.
     const filter = c.req.query("projectId");
     const all = store.list();
-    const tasks = filter ? all.filter((t) => t.projectId === filter) : all;
+    const filtered = filter ? all.filter((t) => t.projectId === filter) : all;
+    // Iterate G (ADR-095): augment each entry with `liveSession` so the
+    // header Resume CTA can hide while the pty is alive.
+    const tasks = filtered.map((t) => withLiveSession(t));
     return c.json({ tasks });
   });
 
   app.get("/api/external/tasks/:id", (c) => {
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
-    return c.json({ task });
+    // Iterate G (ADR-095) — augment with liveSession.
+    return c.json({ task: withLiveSession(task) });
   });
 
   app.post("/api/external/tasks/:id/launch", async (c) => {
@@ -773,7 +799,7 @@ export function createExternalRoutes(args: {
     }
     const updated = store.patch(task.taskId, taskUpdate);
     await store.persist();
-    return c.json({ task: updated, commands });
+    return c.json({ task: withLiveSession(updated), commands });
   });
 
   /**
@@ -834,7 +860,7 @@ export function createExternalRoutes(args: {
       }
       throw err;
     }
-    return c.json({ task: store.get(task.taskId) });
+    return c.json({ task: withLiveSession(store.get(task.taskId)) });
   });
 
   app.post("/api/external/tasks/:id/fork", async (c) => {
@@ -868,7 +894,7 @@ export function createExternalRoutes(args: {
       launchedAt: new Date().toISOString(),
     });
     await store.persist();
-    return c.json({ task: store.get(child.taskId), commands });
+    return c.json({ task: withLiveSession(store.get(child.taskId)), commands });
   });
 
   app.get("/api/external/tasks/:id/transcript", async (c) => {
@@ -903,13 +929,16 @@ export function createExternalRoutes(args: {
         store.patch(task.taskId, { state: "idle" });
         await store.persist();
       }
-      return c.json({ status: "missing", task: store.get(task.taskId) });
+      return c.json({
+        status: "missing",
+        task: withLiveSession(store.get(task.taskId)),
+      });
     }
 
     if (result.status === "rotated") {
       return c.json({
         status: "rotated",
-        task,
+        task: withLiveSession(task),
         currentFingerprint: result.currentFingerprint,
       });
     }
@@ -976,7 +1005,7 @@ export function createExternalRoutes(args: {
     return c.json({
       status: "ok",
       chunk: result.chunk,
-      task: store.get(task.taskId),
+      task: withLiveSession(store.get(task.taskId)),
     });
   });
 
@@ -1159,7 +1188,7 @@ export function createExternalRoutes(args: {
     if (!task) return c.json({ error: "Task not found" }, 404);
     const updated = store.patch(task.taskId, { state: "done" });
     await store.persist();
-    return c.json({ task: updated });
+    return c.json({ task: withLiveSession(updated) });
   });
 
   app.delete("/api/external/tasks/:id", async (c) => {

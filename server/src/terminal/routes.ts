@@ -809,36 +809,95 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
 // dependency-injection-friendly + native-binary-free in tests.
 // ---------------------------------------------------------------------------
 
+/**
+ * Iterate G (ADR-095) — pure helper that builds the env map handed to
+ * the spawned pty. Factored out of `createNodePtySpawnFn` so it can be
+ * unit-tested without the native node-pty binary.
+ *
+ * Layered as: baseProcessEnv → TERM/COLORTERM/FORCE_COLOR brand-fit
+ * overrides (ADR-067) → CLAUDE_CODE_NO_FLICKER toggle (ADR-095) →
+ * caller-supplied opts.env (last-write-wins so tests / future callers
+ * can override anything).
+ *
+ * CLAUDE_CODE_NO_FLICKER:
+ *   - Default ON: emits `"1"`. Anthropic's official workaround for the
+ *     Claude TUI flicker on terminals that don't implement DECSET 2026
+ *     (Synchronized Output) — xterm.js 5.5.0 doesn't. Renders into the
+ *     alt-screen buffer (vim/htop-style) so per-frame ANSI cursor
+ *     moves never flash. Requires Claude Code ≥ v2.1.89. Docs:
+ *     https://code.claude.com/docs/en/fullscreen
+ *   - Opt-out via SHIPWRIGHT_TERMINAL_NO_FLICKER=0: the key is NOT
+ *     written into the env map at all (vs writing "0" or undefined),
+ *     so the child shell inherits its upstream un-set state. This
+ *     matches "user explicitly disabled" semantics without leaking
+ *     a literal "0" string into a contract Anthropic might change.
+ */
+export function buildSpawnEnv(
+  baseProcessEnv: Record<string, string | undefined>,
+  callerEnv?: Record<string, string | undefined>,
+): Record<string, string | undefined> {
+  // ADR-067 brand fit on Windows: chalk's `supports-color` package
+  // has a hardcoded Windows branch that returns level 3 (truecolor)
+  // for Windows 10 build ≥14931 — REGARDLESS of TERM, COLORTERM, or
+  // FORCE_COLOR=1. Claude Code uses chalk under ink, so its
+  // "auto mode on" banner emits RGB \x1b[38;2;...m escapes that
+  // bypass our 16-slot xterm theme and render the original neon
+  // yellow on beige.
+  //
+  // The single escape hatch in supports-color:
+  //
+  //   if (env.TERM === 'dumb') { return min; }   // min = FORCE_COLOR || 0
+  //
+  // So `TERM=dumb` + `FORCE_COLOR=1` returns level 1 (16-color),
+  // which falls into our brand theme. Trade-off: ncurses-based tools
+  // (vim, less, htop) also see TERM=dumb and disable their colors;
+  // power users can override per-shell via `$env:TERM = "xterm"`
+  // before invoking those tools. For Claude Code as the primary
+  // workload of this pane, brand consistency wins over vim color.
+  const env: Record<string, string | undefined> = {
+    ...baseProcessEnv,
+    TERM: "dumb",
+    COLORTERM: "",
+    FORCE_COLOR: "1",
+  };
+  // Iterate G (ADR-095) — Claude TUI flicker workaround. Default ON;
+  // explicit opt-out via SHIPWRIGHT_TERMINAL_NO_FLICKER=0.
+  const optedOut = baseProcessEnv.SHIPWRIGHT_TERMINAL_NO_FLICKER === "0";
+  if (optedOut) {
+    // Explicit opt-out: ensure the key is absent so the child shell
+    // sees whatever (if anything) the upstream env set. We delete
+    // rather than set to undefined because undefined keys can survive
+    // some spread operations in TypeScript erasure paths.
+    delete env.CLAUDE_CODE_NO_FLICKER;
+  } else {
+    env.CLAUDE_CODE_NO_FLICKER = "1";
+  }
+  // Caller-supplied env wins for ALL keys EXCEPT CLAUDE_CODE_NO_FLICKER
+  // when the user has explicitly opted out via SHIPWRIGHT_TERMINAL_NO_FLICKER=0.
+  // External code-review finding (openai medium, 2026-05-13): allowing the
+  // caller to silently reintroduce the key would break the opt-out
+  // contract documented in ADR-095 (and the acceptance criterion that
+  // says "the env map does NOT contain a CLAUDE_CODE_NO_FLICKER key"
+  // under opt-out). The opt-out wins; the rest of the caller env still
+  // flows through.
+  if (callerEnv) {
+    for (const [k, v] of Object.entries(callerEnv)) {
+      if (optedOut && k === "CLAUDE_CODE_NO_FLICKER") continue;
+      env[k] = v;
+    }
+  }
+  return env;
+}
+
 export async function createNodePtySpawnFn(): Promise<PtySpawnFn> {
   // Lazy import keeps the native binary out of the module-load path for
   // unit tests that mock PtyManager.
   const { spawn: nodePtySpawn } = await import("@lydell/node-pty");
   return (shell, args, opts) => {
-    // ADR-067 brand fit on Windows: chalk's `supports-color` package
-    // has a hardcoded Windows branch that returns level 3 (truecolor)
-    // for Windows 10 build ≥14931 — REGARDLESS of TERM, COLORTERM, or
-    // FORCE_COLOR=1. Claude Code uses chalk under ink, so its
-    // "auto mode on" banner emits RGB \x1b[38;2;...m escapes that
-    // bypass our 16-slot xterm theme and render the original neon
-    // yellow on beige.
-    //
-    // The single escape hatch in supports-color:
-    //
-    //   if (env.TERM === 'dumb') { return min; }   // min = FORCE_COLOR || 0
-    //
-    // So `TERM=dumb` + `FORCE_COLOR=1` returns level 1 (16-color),
-    // which falls into our brand theme. Trade-off: ncurses-based tools
-    // (vim, less, htop) also see TERM=dumb and disable their colors;
-    // power users can override per-shell via `$env:TERM = "xterm"`
-    // before invoking those tools. For Claude Code as the primary
-    // workload of this pane, brand consistency wins over vim color.
-    const termEnv: Record<string, string | undefined> = {
-      ...(process.env as Record<string, string>),
-      TERM: "dumb",
-      COLORTERM: "",
-      FORCE_COLOR: "1",
-      ...(opts.env ?? {}),
-    };
+    const termEnv = buildSpawnEnv(
+      process.env as Record<string, string | undefined>,
+      opts.env,
+    );
     const handle = nodePtySpawn(shell, args, {
       cwd: opts.cwd,
       cols: opts.cols ?? 120,
