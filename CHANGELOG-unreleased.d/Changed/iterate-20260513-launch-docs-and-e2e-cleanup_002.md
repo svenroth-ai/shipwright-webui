@@ -1,0 +1,1 @@
+e2e flows/70-a-taskboard-save-launch.spec.ts renamed Launch test to reflect auto-execute reality and added a hard `embedded-terminal` mount assertion as a positive regression guard (clipboard soft-check kept as the privacy-mode fallback verification).

@@ -8,8 +8,13 @@
  *                       in the Backlog (Draft) column, task persists after
  *                       a full reload.
  *   - Launch:           modal closes, task transitions to a non-draft
- *                       state, clipboard receives the launch command,
- *                       browser navigates to /tasks/<taskId>.
+ *                       state, browser navigates to /tasks/<taskId>, and
+ *                       the embedded terminal pane mounts on TaskDetail
+ *                       (proves the auto-execute hand-off path —
+ *                       sessionStorage → LaunchCoordinator → WS data-frame
+ *                       per ADR-068-A1). The clipboard fallback (active
+ *                       only when sessionStorage is disabled / privacy
+ *                       mode) is verified via a soft-assert.
  *
  * This spec targets the live servers (localhost:3847 backend + localhost:5173
  * vite) and cleans up the tasks it creates.
@@ -117,12 +122,15 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     await request.delete(`http://localhost:3847/api/external/tasks/${newTaskId}`);
   });
 
-  test("Launch copies the command to clipboard and navigates to /tasks/:id", async ({
+  test("Launch auto-runs in the embedded terminal and navigates to /tasks/:id", async ({
     page,
     context,
     request,
   }) => {
-    // Permission for clipboard-read; write is granted by default for same-origin.
+    // Permission for clipboard-read covers the privacy-mode fallback path.
+    // Default flow (ADR-068-A1) hands the launch command to TaskDetail via
+    // sessionStorage → LaunchCoordinator → WS data-frame; clipboard is
+    // touched only when sessionStorage write fails (privacy mode).
     await context.grantPermissions(["clipboard-read", "clipboard-write"], {
       origin: "http://localhost:5173",
     });
@@ -169,12 +177,20 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     await page.waitForURL(new RegExp(`/tasks/${newTaskId}$`), { timeout: 5_000 });
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
 
+    // Embedded-terminal pane must mount — proves the auto-execute path is
+    // live (TaskDetail renders EmbeddedTerminal which consumes the
+    // sessionStorage hand-off via LaunchCoordinator). If this regressed,
+    // the user-facing flow would fall back to the clipboard-only path
+    // without any indication on TaskDetail.
+    await expect(page.getByTestId("embedded-terminal")).toBeVisible({ timeout: 10_000 });
+
     page.off("dialog", dialogListener);
     // No native dialog should fire on a successful launch either.
     expect.soft(dialogs, "no native alert/confirm/prompt on Launch").toEqual([]);
 
-    // Clipboard read — compare against the server-returned command string.
-    // grantPermissions('clipboard-read') should make this work in Chromium.
+    // Clipboard read — privacy-mode fallback only (active when
+    // sessionStorage is disabled). grantPermissions('clipboard-read')
+    // should make this work in Chromium when the fallback fired.
     let clipboard = "";
     try {
       clipboard = await page.evaluate(async () => {
@@ -189,15 +205,16 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     }
 
     if (clipboard.length > 0) {
+      // Fallback path fired (sessionStorage was disabled) — the launch
+      // command should match what the server returned.
       expect(clipboard).toContain("claude");
-      // It should match one of the three shell forms the server returned.
       const formsMatch =
         clipboard === launchBody.commands?.powershell ||
         clipboard === launchBody.commands?.posix;
       expect.soft(formsMatch, "clipboard should match a server-returned shell form").toBeTruthy();
     } else {
-      // Browser refused clipboard-read even with permission — verify the
-      // server response still has the command shape we expect.
+      // Default path: sessionStorage hand-off worked, clipboard untouched.
+      // Verify the server response still has the command shape we expect.
       expect.soft(expectedClipboardText).toMatch(/claude\s+\/shipwright-/);
     }
 
