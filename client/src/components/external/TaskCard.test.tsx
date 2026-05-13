@@ -101,71 +101,62 @@ describe("TaskCard — phase badge (AC-B)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Iterate H (ADR-096) — Resume CTA liveSession gating on the TaskCard.
+// Iterate L (resume-cta-active-state) — TaskCard Resume CTA matrix.
 //
-// Mirrors the TaskDetailHeader.ctaFor() logic from Iterate G ADR-095:
-// when the pty is alive (`liveSession === true`) and the task is in
-// the `idle` state, we hide the Resume CTA — the user types directly
-// into the live shell instead of pasting `claude --resume <uuid>`
-// (which would either error or spawn a nested Claude instance).
-//
-// `liveSession === undefined` (back-compat — server response without
-// the field) falls back to surfacing Resume; conservative same default
-// the TaskDetailHeader uses.
-//
-// Iterate L (resume-cta-active-state) — extends the gating to `state=active`
-// as well: when the JSONL is fresh but the pty is gone (e.g. server
-// restart killed the embedded-terminal pty while Claude was logically
-// still running in the JSONL), the user previously had no UI path back.
-// Same single "Resume" label — the user-side reason for resuming is
-// irrelevant (see memory: feedback_resume_label_singular.md).
+// The earlier ADR-095 / ADR-096 liveSession-gating was falsified
+// empirically: `liveSession` is computed from `ptyManager.get(taskId)
+// !== undefined`, which only checks "a pty entry exists in PtyManager",
+// not "Claude is in pty foreground". The most common stuck-state was
+// the misfire — Claude TUI exited but the parent shell (pwsh) survived
+// → pty alive → liveSession=true → Resume hidden → user had no UI
+// path back. Iterate L drops the gating: Resume now always shows for
+// `(idle | active)`. Single "Resume" label everywhere (see memory
+// feedback_resume_label_singular).
 // ---------------------------------------------------------------------------
-describe("TaskCard — Resume CTA liveSession gating (ADR-096)", () => {
-  it("HIDES Resume button when state=idle + liveSession=true (pty alive)", () => {
+describe("TaskCard — Resume CTA matrix (Iterate L)", () => {
+  it("SHOWS Resume when state=idle + liveSession=true (gating dropped)", () => {
+    // Regression fence for the falsification: even when the server
+    // reports liveSession=true (pty entry exists), Resume MUST show.
     renderCard(baseTask({ state: "idle", liveSession: true }));
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
   });
 
-  it("SHOWS Resume button when state=idle + liveSession=false (pty gone)", () => {
+  it("SHOWS Resume when state=idle + liveSession=false", () => {
     renderCard(baseTask({ state: "idle", liveSession: false }));
     expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
   });
 
-  it("SHOWS Resume button when state=idle + liveSession=undefined (back-compat)", () => {
-    // Older server response without the liveSession field — fall back to
-    // surfacing Resume. Conservative: prefer the action button to be
-    // available rather than withheld silently.
+  it("SHOWS Resume when state=idle + liveSession=undefined", () => {
     renderCard(baseTask({ state: "idle" }));
     expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
   });
 
+  it("SHOWS Resume when state=active + liveSession=true (gating dropped)", () => {
+    // Empirical reproducer: task with PowerShell shell alive but Claude
+    // TUI exited. Resume MUST show.
+    renderCard(baseTask({ state: "active", liveSession: true }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume when state=active + liveSession=false", () => {
+    renderCard(baseTask({ state: "active", liveSession: false }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume when state=active + liveSession=undefined", () => {
+    renderCard(baseTask({ state: "active" }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
   it("does NOT render Resume on state=done regardless of liveSession (outer !isDone gate)", () => {
-    // Done tasks render no action buttons; sanity check that state takes
-    // precedence over liveSession at the outer gate.
     renderCard(baseTask({ state: "done", liveSession: true }));
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
     renderCard(baseTask({ state: "done", liveSession: false }));
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
   });
 
-  // Iterate L (resume-cta-active-state) — same matrix, state=active.
-  it("HIDES Resume button when state=active + liveSession=true (pty alive)", () => {
-    renderCard(baseTask({ state: "active", liveSession: true }));
+  it("does NOT render Resume on state=draft (Launch is the action there)", () => {
+    renderCard(baseTask({ state: "draft" }));
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
-  });
-
-  it("SHOWS Resume button when state=active + liveSession=false (pty gone)", () => {
-    // The recovery case: JSONL is fresh (state=active), but the embedded
-    // pty died (server restart, etc.). User needs a path back without
-    // editing JSON or remembering the session-uuid.
-    renderCard(baseTask({ state: "active", liveSession: false }));
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-
-  it("SHOWS Resume button when state=active + liveSession=undefined (back-compat)", () => {
-    // Older server response without the liveSession field — same conservative
-    // fall-back as the idle branch.
-    renderCard(baseTask({ state: "active" }));
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
   });
 });

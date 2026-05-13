@@ -6,18 +6,15 @@
  *   - breadcrumb `Projects › <project.name>` above the title row
  *   - title + state badge (pulsing dot, color-coded to state) + project chip
  *   - sub-line: phase tag · Started {ago} · last event {ago} · {model}
- *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants
- *     + Iterate G ADR-095 liveSession gating
- *     + Iterate L resume-cta-active-state — `active` joins the gated
- *       matrix so users can recover when the pty died but JSONL is
- *       still fresh):
- *       draft / awaiting_external_start                   → GREEN Launch
- *                                                           (var(--color-success))
- *       (active | idle) + liveSession=false / undefined   → BROWN Resume
- *                                                           (var(--color-primary))
- *       (active | idle) + liveSession=true                → no CTA (live pty;
- *                                                           user types directly)
- *       done / launch_failed / jsonl_missing              → no CTA
+ *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants;
+ *     Iterate L resume-cta-active-state dropped the ADR-095/096
+ *     liveSession gating after empirical falsification — the signal only
+ *     reflected "pty alive", not "Claude in foreground"):
+ *       draft / awaiting_external_start            → GREEN Launch
+ *                                                    (var(--color-success))
+ *       active / idle                              → BROWN Resume
+ *                                                    (var(--color-primary))
+ *       done / launch_failed / jsonl_missing       → no CTA
  *     Terminal icon is always left of the label on both buttons.
  *   - 3-dots menu: Rename · Copy session UUID · Close · Delete · debug toggle
  *
@@ -129,10 +126,7 @@ const STATE_BADGE: Record<
 
 type CtaMode = "launch" | "resume" | "none";
 
-function ctaFor(
-  state: ExternalTask["state"],
-  liveSession: boolean | undefined,
-): CtaMode {
+function ctaFor(state: ExternalTask["state"]): CtaMode {
   if (state === "draft") return "launch";
   // Iterate v0.8.5 AC-6: drop the "Terminal" CTA for active /
   // awaiting_external_start. The button only flipped the inline
@@ -141,29 +135,28 @@ function ctaFor(
   // status badge only for these states; user clicks the inline
   // `Terminal` Tabs.Trigger to switch panes.
   //
-  // Iterate G (ADR-095): when a live pty entry exists for the task
-  // (`liveSession === true`) the embedded-terminal session is
-  // intact — the user types directly into the running shell instead
-  // of pasting `claude --resume` (which would either error on a
-  // shell already inside Claude, or spawn a nested instance). Hide
-  // the Resume CTA in that case. `liveSession === undefined` (older
-  // server response that doesn't yet expose the field) falls back to
-  // surfacing Resume — conservative: prefer the action button to be
-  // available rather than withheld silently.
+  // Iterate L (resume-cta-active-state): always surface Resume for
+  // `(idle | active)`. The earlier ADR-095 / ADR-096 attempt to gate
+  // Resume on `liveSession=true` (hide button while pty alive) was
+  // falsified empirically — `liveSession` is computed from
+  // `ptyManager.get(taskId) !== undefined` (server/src/external/routes.ts),
+  // which only checks "a pty entry exists", NOT "Claude is in the pty
+  // foreground". The most common stuck-state is exactly the case the
+  // gating misfired on: Claude TUI exited (Ctrl+C, /quit, crash) but
+  // the parent shell (pwsh) survived → pty alive → liveSession=true →
+  // Resume hidden → user has no UI path back, even though pasting
+  // `claude --resume <uuid>` into the live shell would do exactly the
+  // right thing.
   //
-  // Iterate L (resume-cta-active-state): `active` joins the gated
-  // matrix on the same liveSession axis. Before this iterate, `active`
-  // rendered NO CTA regardless of liveSession — which dead-ended users
-  // whose pty died (server restart, etc.) while the JSONL was still
-  // fresh. The `liveSession` signal already distinguishes "Claude
-  // running in the embedded terminal" from "JSONL is fresh but the pty
-  // is gone", so the same idle-style branch is safe here. Same single
-  // "Resume" label — the user-side reason for resuming is irrelevant
-  // (no "Recover" differentiation; see memory feedback_resume_label_singular).
-  if (state === "idle" || state === "active") {
-    if (liveSession === true) return "none";
-    return "resume";
-  }
+  // Single "Resume" label everywhere (no Recover differentiation, see
+  // memory feedback_resume_label_singular). The `liveSession` field
+  // remains on the API surface for diagnostic / future use, but is no
+  // longer load-bearing in the client-side CTA matrix. The
+  // architectural protection (no nested-Claude spawn) lives one layer
+  // down in pty-manager's shell-only spawn whitelist + ADR-068-A1's
+  // user-initiated-Klausel — an explicit Resume click satisfies the
+  // user-initiated requirement.
+  if (state === "idle" || state === "active") return "resume";
   return "none";
 }
 
@@ -236,7 +229,7 @@ export function TaskDetailHeader({ task }: Props) {
   const uuidResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<EditableTaskTitleHandle | null>(null);
 
-  const cta = ctaFor(task.state, task.liveSession);
+  const cta = ctaFor(task.state);
   const badge = STATE_BADGE[task.state];
 
   const projectName = useMemo(() => {

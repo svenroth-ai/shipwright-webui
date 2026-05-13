@@ -350,35 +350,28 @@ export function TaskCard({ task }: Props) {
                   lands on the Terminal tab when persisted preference
                   says so); a dedicated CTA duplicated that affordance.
 
-                  Iterate H (ADR-096) — liveSession gating mirror of
-                  TaskDetailHeader's ctaFor(): hide the Resume button
-                  when the pty is alive (Claude TUI running or one
-                  keystroke away inside the shell) so pasting
-                  `claude --resume <uuid>` would either error or spawn
-                  a nested Claude. `liveSession === undefined`
-                  (back-compat, older server response without the
-                  field) falls back to surfacing Resume — conservative;
-                  same default TaskDetailHeader uses.
-
-                  Iterate L (resume-cta-active-state) — `active` joins
-                  the gated matrix on the same liveSession axis as
-                  `idle`. Recovery case: JSONL is fresh but the
-                  embedded pty died (server restart, etc.). Same
-                  single "Resume" label — the user-side reason for
-                  resuming is irrelevant (see memory:
-                  feedback_resume_label_singular). */}
-              {(task.state === "idle" || task.state === "active") &&
-                task.liveSession !== true && (
-                  <span data-testid={`task-card-resume-${task.taskId}`}>
-                    <TerminalLaunchButton
-                      task={task}
-                      variant="solid"
-                      color="orange"
-                      size="xs"
-                      resume={true}
-                    />
-                  </span>
-                )}
+                  Iterate L (resume-cta-active-state) — Resume is now
+                  always shown for `(idle | active)` regardless of
+                  `liveSession`. The earlier ADR-095 / ADR-096
+                  liveSession-gating was falsified empirically: the
+                  signal only checks "a pty entry exists in PtyManager",
+                  not "Claude is in pty foreground". The most common
+                  stuck-state is exactly the misfire — Claude TUI
+                  exited but the parent shell (pwsh) survived → pty
+                  alive → liveSession=true → Resume hidden → user has
+                  no UI path back. Single "Resume" label everywhere
+                  (see memory feedback_resume_label_singular). */}
+              {(task.state === "idle" || task.state === "active") && (
+                <span data-testid={`task-card-resume-${task.taskId}`}>
+                  <TerminalLaunchButton
+                    task={task}
+                    variant="solid"
+                    color="orange"
+                    size="xs"
+                    resume={true}
+                  />
+                </span>
+              )}
             </div>
           )}
         </div>
