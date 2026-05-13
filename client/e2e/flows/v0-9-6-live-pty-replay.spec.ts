@@ -104,7 +104,33 @@ function attachWsCapture(page: Page): WsCapture[] {
 }
 
 async function readXtermRows(page: Page): Promise<string[]> {
-  return await page.locator(".xterm-rows > div").allTextContents();
+  // ADR-097 — xterm.js 6.0 + WebGL renderer no longer mirrors text into
+  // `.xterm-rows > div` (the renderer paints directly on canvas). Read
+  // from the xterm buffer via the `window.__embeddedTerminal` test handle
+  // (same mechanism as `readCursorPos`). This matches the production
+  // contract — server's M2 fixed-point asserts visible-buffer equality
+  // via the identical `translateToString(false)` call.
+  return await page.evaluate(() => {
+    const w = window as unknown as {
+      __embeddedTerminal?: {
+        buffer: {
+          active: {
+            length: number;
+            getLine(y: number): { translateToString(trimRight?: boolean): string } | undefined;
+          };
+        };
+      } | null;
+    };
+    const term = w.__embeddedTerminal;
+    if (!term) return [];
+    const buf = term.buffer.active;
+    const out: string[] = [];
+    for (let y = 0; y < buf.length; y++) {
+      const line = buf.getLine(y);
+      out.push(line ? line.translateToString(false) : "");
+    }
+    return out;
+  });
 }
 
 async function readCursorPos(page: Page): Promise<{ cursorX: number; cursorY: number; baseY: number; length: number } | null> {
