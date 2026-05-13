@@ -1,0 +1,1 @@
+Surface Resume CTA on state=active when pty is gone (header CTA + TaskCard action). Previously a dead-end when the embedded terminal pty died (server restart, parallel-session port kill) while Claude was logically still alive in the JSONL; same single "Resume" label, no recovery-vs-resume differentiation.

@@ -112,6 +112,13 @@ describe("TaskCard — phase badge (AC-B)", () => {
 // `liveSession === undefined` (back-compat — server response without
 // the field) falls back to surfacing Resume; conservative same default
 // the TaskDetailHeader uses.
+//
+// Iterate L (resume-cta-active-state) — extends the gating to `state=active`
+// as well: when the JSONL is fresh but the pty is gone (e.g. server
+// restart killed the embedded-terminal pty while Claude was logically
+// still running in the JSONL), the user previously had no UI path back.
+// Same single "Resume" label — the user-side reason for resuming is
+// irrelevant (see memory: feedback_resume_label_singular.md).
 // ---------------------------------------------------------------------------
 describe("TaskCard — Resume CTA liveSession gating (ADR-096)", () => {
   it("HIDES Resume button when state=idle + liveSession=true (pty alive)", () => {
@@ -139,5 +146,26 @@ describe("TaskCard — Resume CTA liveSession gating (ADR-096)", () => {
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
     renderCard(baseTask({ state: "done", liveSession: false }));
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  // Iterate L (resume-cta-active-state) — same matrix, state=active.
+  it("HIDES Resume button when state=active + liveSession=true (pty alive)", () => {
+    renderCard(baseTask({ state: "active", liveSession: true }));
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("SHOWS Resume button when state=active + liveSession=false (pty gone)", () => {
+    // The recovery case: JSONL is fresh (state=active), but the embedded
+    // pty died (server restart, etc.). User needs a path back without
+    // editing JSON or remembering the session-uuid.
+    renderCard(baseTask({ state: "active", liveSession: false }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume button when state=active + liveSession=undefined (back-compat)", () => {
+    // Older server response without the liveSession field — same conservative
+    // fall-back as the idle branch.
+    renderCard(baseTask({ state: "active" }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
   });
 });
