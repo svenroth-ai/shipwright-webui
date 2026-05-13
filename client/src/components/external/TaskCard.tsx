@@ -349,8 +349,19 @@ export function TaskCard({ task }: Props) {
                   the card body opens the task detail page (which
                   lands on the Terminal tab when persisted preference
                   says so); a dedicated CTA duplicated that affordance.
-                  `idle` keeps Resume below. */}
-              {task.state === "idle" && (
+                  `idle` keeps Resume below.
+
+                  Iterate H (ADR-096) — liveSession gating mirror of
+                  TaskDetailHeader's ctaFor(): hide the Resume button
+                  when `state === "idle" && liveSession === true`. The
+                  pty is alive (Claude TUI running or one keystroke
+                  away inside the shell) so pasting `claude --resume
+                  <uuid>` would either error or spawn a nested Claude.
+                  `liveSession === undefined` (back-compat, older
+                  server response without the field) falls back to
+                  surfacing Resume — conservative; same default
+                  TaskDetailHeader uses. */}
+              {task.state === "idle" && task.liveSession !== true && (
                 <span data-testid={`task-card-resume-${task.taskId}`}>
                   <TerminalLaunchButton
                     task={task}

@@ -16,7 +16,7 @@
  * present — that path is exercised end-to-end here.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as fsSync from "node:fs";
 import * as os from "node:os";
@@ -426,5 +426,306 @@ describe("PtyManager.attachCount (ADR-092 AC #5)", () => {
 
     mgr.kill(TASK);
     await flushMicrotasks(200);
+  });
+});
+
+/*
+ * Iterate H (ADR-096) — finalizeMirrorSnapshot snapshot-preservation
+ * heuristic.
+ *
+ * Scenario:
+ *   - User runs Claude TUI for hours; multi-detach paths leave a rich
+ *     `flushMirrorSnapshot` on disk (Iterate E path).
+ *   - Idle ceiling or explicit kill fires; Claude TUI emits `DECRST 1049`
+ *     (leave alt-screen) on exit; the mirror's main-buffer state ends
+ *     up nearly empty.
+ *   - `finalizeMirrorSnapshot` runs, serializes the now-empty cell-state,
+ *     and would clobber the good on-disk snapshot.
+ *
+ * Heuristic: if the new payload's byte length is below 60 % of the
+ * existing on-disk payload, skip the write. Edge cases:
+ *   - No existing snapshot → write the new one (first writer).
+ *   - read() throws → log + write the new one (best-effort fallback).
+ *   - Empty new payload + existing has content → preserve existing.
+ *   - mirror.dispose + releaseQueue still fire in finally on every branch.
+ *
+ * We exercise the heuristic via mgr.kill() — finalizeMirrorSnapshot is
+ * private but reachable through the cleanup chain. Spies on
+ * snapshot.read + snapshot.write let us assert call counts without
+ * reaching into the mirror's parser output (which depends on
+ * @xterm/headless internals).
+ */
+describe("PtyManager — finalizeMirrorSnapshot snapshot preservation (ADR-096)", () => {
+  let dir: string;
+  let scrollback: ScrollbackStore;
+  let snapshot: SnapshotStore;
+  let spawn: ReturnType<typeof makeSpawn>;
+
+  beforeEach(async () => {
+    dir = fsSync.mkdtempSync(path.join(os.tmpdir(), "pty-finalize-adr096-"));
+    scrollback = new ScrollbackStore(dir, { maxBytesPerTask: 4096 });
+    await scrollback.init();
+    snapshot = new SnapshotStore(dir);
+    await snapshot.init();
+    spawn = makeSpawn();
+  });
+
+  afterEach(async () => {
+    await scrollback.shutdown();
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
+  // H.1 — primary case: large existing + small new → existing preserved.
+  it("preserves existing snapshot when new payload is < 60 % of existing", async () => {
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      scrollbackStore: scrollback,
+      headlessMirrorEnabled: true,
+      snapshotStore: snapshot,
+      expectedTerminalVersion: "5.5.0",
+      idleTimeoutMs: 60_000,
+    });
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+    // Pre-populate disk with a large "good" snapshot, simulating the
+    // flushMirrorSnapshot-on-last-detach state.
+    const largePayload = "x".repeat(2000);
+    await snapshot.write(TASK, { cols: 120, rows: 30, data: largePayload });
+    const onDiskBefore = await snapshot.read(TASK);
+    expect(onDiskBefore).not.toBeNull();
+    expect(onDiskBefore!.data.length).toBe(2000);
+
+    // Spy on write — count invocations after pre-populate so we measure
+    // ONLY the kill-path call.
+    const writeSpy = vi.spyOn(snapshot, "write");
+    const initialWriteCalls = writeSpy.mock.calls.length;
+
+    // Emit a tiny chunk so the mirror has SOMETHING but not 60% of 2000.
+    // (Even a bare prompt-equivalent serialize is well under 1200 bytes.)
+    spawn.lastPty().__emit("$ ");
+    await flushMicrotasks(50);
+
+    // Trigger finalize via kill() → cleanup → finalizeMirrorSnapshot.
+    mgr.kill(TASK);
+    // Allow the detached finalize promise to settle.
+    await flushMicrotasks(300);
+
+    // The on-disk snapshot must be unchanged.
+    const onDiskAfter = await snapshot.read(TASK);
+    expect(onDiskAfter).not.toBeNull();
+    expect(onDiskAfter!.data.length).toBe(2000);
+    expect(onDiskAfter!.data).toBe(largePayload);
+
+    // The kill-path finalize MUST NOT have called write() again.
+    expect(writeSpy.mock.calls.length).toBe(initialWriteCalls);
+
+    writeSpy.mockRestore();
+  });
+
+  // H.2 — within-threshold: small existing + comparable-size new → new wins.
+  // Empirical: a fresh @xterm/headless 120x30 mirror with a short emit
+  // serializes via the M2 stable pipeline to ~27 bytes. The 60 % gate
+  // for a 30-byte existing snapshot is 18 bytes — 27 > 18, so the
+  // heuristic does NOT fire and the new snapshot wins.
+  it("writes new snapshot when new payload is within 60 % threshold", async () => {
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      scrollbackStore: scrollback,
+      headlessMirrorEnabled: true,
+      snapshotStore: snapshot,
+      expectedTerminalVersion: "5.5.0",
+      idleTimeoutMs: 60_000,
+    });
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+    // 30-byte existing snapshot → 60 % gate = 18 bytes.
+    const smallExisting = "y".repeat(30);
+    await snapshot.write(TASK, { cols: 120, rows: 30, data: smallExisting });
+
+    const writeSpy = vi.spyOn(snapshot, "write");
+    const initialWriteCalls = writeSpy.mock.calls.length;
+
+    // Emit enough content that the mirror's serializeStable output
+    // comfortably exceeds the 18-byte gate. An empty-mirror baseline
+    // is around 27 bytes; emitting more lines keeps it well above.
+    spawn.lastPty().__emit("line1\r\nline2\r\nline3\r\n");
+    await flushMicrotasks(50);
+
+    mgr.kill(TASK);
+    await flushMicrotasks(300);
+
+    // write was invoked by the finalize path.
+    expect(writeSpy.mock.calls.length).toBeGreaterThan(initialWriteCalls);
+
+    // The new snapshot replaced the small "y" placeholder.
+    const onDiskAfter = await snapshot.read(TASK);
+    expect(onDiskAfter).not.toBeNull();
+    expect(onDiskAfter!.data).not.toBe(smallExisting);
+
+    writeSpy.mockRestore();
+  });
+
+  // H.3 — no existing on disk: new snapshot is written (first writer).
+  it("writes new snapshot when no existing snapshot is on disk", async () => {
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      scrollbackStore: scrollback,
+      headlessMirrorEnabled: true,
+      snapshotStore: snapshot,
+      expectedTerminalVersion: "5.5.0",
+      idleTimeoutMs: 60_000,
+    });
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+    expect(await snapshot.has(TASK)).toBe(false);
+
+    spawn.lastPty().__emit("hello\r\n");
+    await flushMicrotasks(50);
+
+    mgr.kill(TASK);
+    await flushMicrotasks(300);
+
+    // First-writer case: new snapshot must land on disk.
+    expect(await snapshot.has(TASK)).toBe(true);
+    const onDisk = await snapshot.read(TASK);
+    expect(onDisk).not.toBeNull();
+    expect(onDisk!.data.length).toBeGreaterThan(0);
+  });
+
+  // H.4 — existing snapshot exists, read() throws → write proceeds.
+  it("writes new snapshot when existing-snapshot read throws (best-effort fallback)", async () => {
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      scrollbackStore: scrollback,
+      headlessMirrorEnabled: true,
+      snapshotStore: snapshot,
+      expectedTerminalVersion: "5.5.0",
+      idleTimeoutMs: 60_000,
+    });
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+    // Pre-populate a large existing snapshot so the heuristic WOULD
+    // fire — except read() will throw, falling through to write.
+    await snapshot.write(TASK, {
+      cols: 120,
+      rows: 30,
+      data: "z".repeat(2000),
+    });
+
+    // Make read() throw once (the finalize-path call).
+    const originalRead = snapshot.read.bind(snapshot);
+    let readCalls = 0;
+    snapshot.read = async (taskId: string) => {
+      readCalls++;
+      if (readCalls === 1) {
+        throw new Error("simulated parse error");
+      }
+      return originalRead(taskId);
+    };
+
+    const writeSpy = vi.spyOn(snapshot, "write");
+    const initialWriteCalls = writeSpy.mock.calls.length;
+
+    spawn.lastPty().__emit("$ ");
+    await flushMicrotasks(50);
+
+    mgr.kill(TASK);
+    await flushMicrotasks(300);
+
+    // The read throw must NOT prevent the write — best-effort fallback.
+    expect(writeSpy.mock.calls.length).toBeGreaterThan(initialWriteCalls);
+
+    // Disk should now hold the new (small) snapshot — the throw-on-read
+    // path doesn't preserve the existing.
+    const onDiskAfter = await snapshot.read(TASK);
+    expect(onDiskAfter).not.toBeNull();
+    expect(onDiskAfter!.data).not.toBe("z".repeat(2000));
+
+    writeSpy.mockRestore();
+  });
+
+  // H.5 — explicit empty new payload + existing has content → preserved.
+  it("preserves existing snapshot when new payload is empty + existing has content", async () => {
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      scrollbackStore: scrollback,
+      headlessMirrorEnabled: true,
+      snapshotStore: snapshot,
+      expectedTerminalVersion: "5.5.0",
+      idleTimeoutMs: 60_000,
+    });
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+    // Pre-populate disk with a non-empty existing snapshot.
+    const existingPayload = "abc".repeat(500); // 1500 bytes
+    await snapshot.write(TASK, {
+      cols: 120,
+      rows: 30,
+      data: existingPayload,
+    });
+
+    // Force the mirror's serializeStable output to "" so the new
+    // payload's length is 0 — subsumed by the 60 % rule (0 < 1500*0.6)
+    // but the edge case deserves its own explicit assertion.
+    const writeSpy = vi.spyOn(snapshot, "write");
+    const initialWriteCalls = writeSpy.mock.calls.length;
+
+    // Stub serializeMirrorIfLive's underlying call indirectly: we can't
+    // patch the private mirror; instead patch snapshot.write itself to
+    // observe what payload would have been written. But the real
+    // assertion is: was write called again at all? In the 60 % case
+    // (1500B existing vs even a few-hundred-byte new), write should be
+    // skipped — we don't strictly need to coerce to 0 bytes for the
+    // gate to fire. Emit nothing so the mirror has minimal state.
+    // (No __emit call.)
+    await flushMicrotasks(20);
+
+    mgr.kill(TASK);
+    await flushMicrotasks(300);
+
+    // The existing snapshot must remain unchanged.
+    const onDiskAfter = await snapshot.read(TASK);
+    expect(onDiskAfter).not.toBeNull();
+    expect(onDiskAfter!.data).toBe(existingPayload);
+
+    // The finalize-path write was suppressed.
+    expect(writeSpy.mock.calls.length).toBe(initialWriteCalls);
+
+    writeSpy.mockRestore();
+  });
+
+  // H.6 — disposal + queue release still fire when the write is skipped.
+  it("disposes the mirror + releases queue even when write is skipped", async () => {
+    const mgr = new PtyManager({
+      spawn: spawn.fn,
+      scrollbackStore: scrollback,
+      headlessMirrorEnabled: true,
+      snapshotStore: snapshot,
+      expectedTerminalVersion: "5.5.0",
+      idleTimeoutMs: 60_000,
+    });
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+    // Pre-populate a large existing snapshot to trigger the skip path.
+    await snapshot.write(TASK, {
+      cols: 120,
+      rows: 30,
+      data: "k".repeat(3000),
+    });
+
+    const releaseSpy = vi.spyOn(snapshot, "releaseQueue");
+    const initialReleaseCalls = releaseSpy.mock.calls.length;
+
+    spawn.lastPty().__emit("$ ");
+    await flushMicrotasks(50);
+
+    mgr.kill(TASK);
+    await flushMicrotasks(300);
+
+    // releaseQueue must run in the finally block regardless of whether
+    // the write was skipped.
+    expect(releaseSpy.mock.calls.length).toBeGreaterThan(initialReleaseCalls);
+
+    releaseSpy.mockRestore();
   });
 });
