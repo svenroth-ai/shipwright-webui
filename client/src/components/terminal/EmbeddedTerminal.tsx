@@ -664,10 +664,28 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // the mount. The 2026-05-14 WebGL-off A/B probe confirmed Canvas/DOM
       // alt-screen rendering is severely worse than WebGL — fallback is a
       // graceful-degradation surface, not a target configuration.
+      // Iterate K follow-up (ADR-099, 2026-05-14) — capture the WebglAddon
+      // reference so we can periodically call `clearTextureAtlas()` as a
+      // workaround for xterm.js issue #5847 (open) and #4534. xterm 6.0.0's
+      // WebGL texture atlas accumulates "doubled cache entries" / atlas-
+      // page coordinate drift after sustained streaming of color-attribute
+      // cells (exactly what Claude TUI emits). Symptom: visible smearing /
+      // ghosting / glyph substitution on rows with ANSI color attributes,
+      // recovered only by atlas clear, resize, or remount.
+      //
+      // VS Code exposes `forceRedraw() { this.raw.clearTextureAtlas(); }`
+      // and calls it on OS resume; their workload triggers the bug less
+      // often. Ours (continuous Claude streaming with per-word color
+      // toggles) accumulates faster, so we also clear periodically.
+      // Trade-off: each clear causes a single-frame atlas-rebuild flicker
+      // — much less visually disruptive than the residual smearing the
+      // user reported.
+      let webglRef: WebglAddon | null = null;
       try {
-        const webgl = new WebglAddon();
-        term.loadAddon(webgl);
+        webglRef = new WebglAddon();
+        term.loadAddon(webglRef);
       } catch (err) {
+        webglRef = null;
         console.warn(
           "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
           err instanceof Error ? err.message : String(err),
@@ -734,6 +752,40 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       });
       ro.observe(container);
 
+      // Iterate K follow-up (ADR-099) — periodic + on-scroll texture-atlas
+      // clear, working around xterm.js issue #5847. The atlas accumulates
+      // doubled cache entries / coordinate drift after sustained streaming;
+      // clearing forces a rebuild which restores correct glyph-to-cache
+      // mapping. Two triggers:
+      //
+      //   1. `term.onScroll` — when the user actively scrolls, smearing is
+      //      most visible at the bottom rows (per #5847 repro). Clearing
+      //      here costs one rebuild flicker but pays back in clean scroll.
+      //      Debounced by xterm's own onScroll batching (one fire per
+      //      scroll burst, not per line).
+      //
+      //   2. Periodic 30s while mounted — defensive sweep against silent
+      //      accumulation while the user reads without scrolling. 30s
+      //      matches the empirical "60%+ of a screenful" onset in #5847
+      //      for typical Claude streaming rates. Skip when disposed.
+      //
+      // No-op if webglRef is null (Canvas/DOM fallback path).
+      const ATLAS_CLEAR_INTERVAL_MS = 30_000;
+      let onScrollDispose: { dispose: () => void } | null = null;
+      let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
+      if (webglRef) {
+        const safeClearAtlas = () => {
+          if (disposedRef.current || !webglRef) return;
+          try {
+            webglRef.clearTextureAtlas();
+          } catch {
+            /* atlas may have been disposed mid-call; safe to ignore */
+          }
+        };
+        onScrollDispose = term.onScroll(safeClearAtlas);
+        atlasClearTimer = setInterval(safeClearAtlas, ATLAS_CLEAR_INTERVAL_MS);
+      }
+
       return () => {
         // v0.9.2 (ADR-084) — cleanup ordering matters. `disposedRef` is
         // flipped FIRST so any straggler async tail of OUR code (safeFit
@@ -746,6 +798,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (lastResizePendingRef.current) {
           clearTimeout(lastResizePendingRef.current);
           lastResizePendingRef.current = null;
+        }
+        // Iterate K follow-up — atlas-clear triggers cleanup.
+        if (atlasClearTimer) {
+          clearInterval(atlasClearTimer);
+          atlasClearTimer = null;
+        }
+        if (onScrollDispose) {
+          onScrollDispose.dispose();
+          onScrollDispose = null;
         }
         onDataDispose.dispose();
 
