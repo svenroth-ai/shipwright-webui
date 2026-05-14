@@ -31,6 +31,9 @@ const mockBufferActive = {
   getLine(_i: number) {
     return undefined;
   },
+  // Iterate K v4 (ADR-099) — alt-screen-skip check reads this.
+  // Default to "normal" so the workaround runs in tests.
+  type: "normal" as const,
 };
 
 vi.mock("@xterm/xterm", () => ({
@@ -48,6 +51,19 @@ vi.mock("@xterm/xterm", () => ({
       onDataHandlers.push(cb);
       return { dispose: vi.fn() };
     },
+    // Iterate K follow-up (ADR-099) — texture-atlas-clear workaround
+    // wires `term.onScroll` to call WebglAddon.clearTextureAtlas. Mock
+    // returns a disposable; tests don't assert against scroll behavior.
+    onScroll: vi.fn(() => ({ dispose: vi.fn() })),
+    // refresh(start, end) — Iterate K v2 calls this after each atlas
+    // clear so row-renderer repaints from the fresh atlas (mimicking
+    // VS Code's forceRefresh()). Mock is a no-op spy.
+    refresh: vi.fn(),
+    // onWriteParsed — Iterate K v3 conditional uses this as activity
+    // signal to gate the periodic atlas clear (skip when terminal is
+    // idle). Mock returns a disposable; tests don't assert on activity
+    // counting.
+    onWriteParsed: vi.fn(() => ({ dispose: vi.fn() })),
     buffer: { active: mockBufferActive },
   })),
 }));
@@ -61,7 +77,13 @@ vi.mock("@xterm/addon-web-links", () => ({
 // returns a constructor that doesn't throw, so the try-branch lands; jsdom
 // has no real WebGL context but EmbeddedTerminal never asserts against it.
 vi.mock("@xterm/addon-webgl", () => ({
-  WebglAddon: vi.fn().mockImplementation(() => ({ activate: vi.fn(), dispose: vi.fn() })),
+  // Iterate K follow-up (ADR-099) — `clearTextureAtlas` is the
+  // documented workaround for xterm.js #5847 atlas-merge bug.
+  WebglAddon: vi.fn().mockImplementation(() => ({
+    activate: vi.fn(),
+    dispose: vi.fn(),
+    clearTextureAtlas: vi.fn(),
+  })),
 }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
