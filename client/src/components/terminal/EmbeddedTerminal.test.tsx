@@ -48,6 +48,10 @@ vi.mock("@xterm/xterm", () => ({
       onDataHandlers.push(cb);
       return { dispose: vi.fn() };
     },
+    // Iterate K follow-up (ADR-099) — texture-atlas-clear workaround
+    // wires `term.onScroll` to call WebglAddon.clearTextureAtlas. Mock
+    // returns a disposable; tests don't assert against scroll behavior.
+    onScroll: vi.fn(() => ({ dispose: vi.fn() })),
     buffer: { active: mockBufferActive },
   })),
 }));
@@ -61,7 +65,13 @@ vi.mock("@xterm/addon-web-links", () => ({
 // returns a constructor that doesn't throw, so the try-branch lands; jsdom
 // has no real WebGL context but EmbeddedTerminal never asserts against it.
 vi.mock("@xterm/addon-webgl", () => ({
-  WebglAddon: vi.fn().mockImplementation(() => ({ activate: vi.fn(), dispose: vi.fn() })),
+  // Iterate K follow-up (ADR-099) — `clearTextureAtlas` is the
+  // documented workaround for xterm.js #5847 atlas-merge bug.
+  WebglAddon: vi.fn().mockImplementation(() => ({
+    activate: vi.fn(),
+    dispose: vi.fn(),
+    clearTextureAtlas: vi.fn(),
+  })),
 }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
