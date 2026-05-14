@@ -63,19 +63,34 @@ export interface ExternalTask {
   /**
    * Iterate G (ADR-095) — server-computed flag, NOT persisted on disk.
    * Reflects whether `PtyManager.entries` currently holds an entry for
-   * this task at response-time (i.e. an embedded-terminal pty is alive
-   * and Claude TUI is likely running).
+   * this task at response-time (i.e. an embedded-terminal pty is alive,
+   * which is NOT the same as "Claude is running in the pty" — see
+   * Iterate L falsification below).
    *
-   * Used by `TaskDetailHeader` to gate the header Resume CTA: when
-   * `liveSession === true`, the Resume button is hidden — the user
-   * types directly into the live shell. When `false` / `undefined`
-   * (back-compat with pre-G server responses + test fixtures), the
-   * Resume CTA follows the legacy state-only logic.
-   *
-   * Treat `undefined` as `false` (conservative: show Resume) for
-   * back-compat.
+   * Iterate L (resume-cta-active-state) — `liveSession` is no longer
+   * load-bearing in the client CTA matrix; the empirical reproducer
+   * showed `liveSession=true` covers both "Claude foreground" (correct
+   * to hide Resume) AND "Claude exited, parent shell still alive"
+   * (wrong to hide Resume). The new `altScreenActive` field is the
+   * actual Claude-foreground proxy. `liveSession` stays exposed for
+   * diagnostics + back-compat with code that already consumes it.
    */
   liveSession?: boolean;
+  /**
+   * Iterate L (resume-cta-active-state) — server-computed flag,
+   * derived from `HeadlessMirror.buffer.active.type === "alternate"`.
+   * `true` while an alt-screen TUI (Claude, vim, htop, …) is in pty
+   * foreground; `false` when the normal-buffer shell prompt is active,
+   * the mirror is disabled (`headless-probe` failure), or no pty
+   * exists for the task.
+   *
+   * Used by `TaskDetailHeader.ctaFor()` + `TaskCard` action matrix to
+   * hide the Resume CTA while a TUI is foregrounded — a misclick
+   * would inject `claude --resume <uuid>` bytes into the running
+   * app's input handler. Treat `undefined` as `false` (conservative:
+   * show Resume) for back-compat with pre-iterate-L server responses.
+   */
+  altScreenActive?: boolean;
 }
 
 export interface CopyCommandForms {

@@ -115,46 +115,87 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
-  it("active → NO CTA (v0.8.5 AC-6 — header CTA matrix shrank)", () => {
+  // Iterate L (resume-cta-active-state) — Resume CTA is now ALWAYS
+  // shown for `(idle | active)` regardless of `liveSession`. The
+  // earlier ADR-095 / ADR-096 liveSession gating was falsified
+  // empirically: the signal only reflects "pty entry exists in
+  // PtyManager", not "Claude is in pty foreground". The most common
+  // stuck-state was the misfire — Claude TUI exited but the parent
+  // shell (pwsh) survived → pty alive → liveSession=true → Resume
+  // hidden → user had no UI path back. Single "Resume" label everywhere.
+  it("active + liveSession=undefined → 'Resume' CTA", () => {
     renderHeader(makeTask({ state: "active" }));
-    expect(screen.queryByTestId("cta-terminal")).toBeNull();
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
-  it("idle → 'Resume' CTA (liveSession undefined — back-compat)", () => {
+  it("active + liveSession=false → 'Resume' CTA (pty gone, session recovery)", () => {
+    renderHeader(makeTask({ state: "active", liveSession: false }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("active + liveSession=true → 'Resume' CTA (gating dropped — Iterate L)", () => {
+    // Regression fence for the falsification: even when the server
+    // reports liveSession=true (pty entry exists), Resume MUST show
+    // because the signal does not actually reflect "Claude is in pty
+    // foreground". Empirical reproducer: task with PowerShell shell
+    // alive but Claude TUI exited.
+    renderHeader(makeTask({ state: "active", liveSession: true }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("idle + liveSession=undefined → 'Resume' CTA", () => {
     renderHeader(makeTask({ state: "idle" }));
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
-  // Iterate G (ADR-095) — Resume CTA gating on liveSession.
-  it("idle + liveSession=false → 'Resume' CTA (pty gone, session needs re-establishment)", () => {
+  it("idle + liveSession=false → 'Resume' CTA (pty gone)", () => {
     renderHeader(makeTask({ state: "idle", liveSession: false }));
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
-  it("idle + liveSession=true → NO CTA (live pty; user types directly, ADR-095)", () => {
+  it("idle + liveSession=true → 'Resume' CTA (gating dropped — Iterate L)", () => {
+    // Same regression fence as the active variant — liveSession=true
+    // on idle previously hid Resume; post-iterate-L it MUST show.
     renderHeader(makeTask({ state: "idle", liveSession: true }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  // Iterate L — `altScreenActive` matrix. This is the replacement
+  // signal: it's true iff a TUI is in pty foreground (Claude alt-
+  // screen, vim, htop, …). When a TUI is foregrounded, the user
+  // types into it directly; surfacing Resume would be misleading.
+  it("active + altScreenActive=true → NO CTA (TUI in foreground)", () => {
+    renderHeader(makeTask({ state: "active", altScreenActive: true }));
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
   });
 
-  // External code-review finding (openai medium, 2026-05-13) — regression
-  // fence proving the component actually consumes `task.liveSession`
-  // rather than ignoring it and relying on the legacy state-only path.
-  // Same state, flipping only liveSession, must flip CTA visibility.
-  it("idle: liveSession toggle alone flips Resume CTA visibility (consumption proof)", () => {
+  it("idle + altScreenActive=true → NO CTA (TUI in foreground)", () => {
+    renderHeader(makeTask({ state: "idle", altScreenActive: true }));
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+  });
+
+  it("active + altScreenActive=false → 'Resume' CTA (shell prompt, TUI gone)", () => {
+    renderHeader(makeTask({ state: "active", altScreenActive: false }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("altScreenActive toggle alone flips Resume CTA (consumption proof)", () => {
+    // Regression fence proving the component reads `altScreenActive`
+    // rather than ignoring it. Flip the field only — state stays the
+    // same — and the CTA must flip visibility.
     const { rerender, qc } = renderHeader(
-      makeTask({ state: "idle", liveSession: false }),
+      makeTask({ state: "active", altScreenActive: false }),
     );
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
 
-    const live = makeTask({ state: "idle", liveSession: true });
-    qc.setQueryData(["external-task", live.taskId], live);
+    const tui = makeTask({ state: "active", altScreenActive: true });
+    qc.setQueryData(["external-task", tui.taskId], tui);
     rerender(
       <MemoryRouter>
         <QueryClientProvider client={qc}>
-          <TaskDetailHeader task={live} />
+          <TaskDetailHeader task={tui} />
         </QueryClientProvider>
       </MemoryRouter>,
     );
@@ -272,27 +313,27 @@ describe("TaskDetailHeader — behavior", () => {
     });
   });
 
-  it("state transitions re-render CTA without remount (v0.8.5 AC-6 matrix)", () => {
+  it("state transitions re-render CTA without remount (matrix end-to-end)", () => {
     const { rerender, qc } = renderHeader(makeTask({ state: "draft" }));
     expect(screen.getByTestId("cta-launch-in-terminal")).toBeTruthy();
-    // v0.8.5 AC-6: draft→Launch, idle→Resume, all-other-states → NO CTA.
-    // Verify the matrix end-to-end by stepping draft → active (no CTA) →
-    // idle (Resume CTA). All transitions occur via TanStack cache update,
-    // proving the component re-renders without remount.
-    const activeTask = makeTask({ state: "active" });
-    qc.setQueryData(["external-task", activeTask.taskId], activeTask);
+    // Step draft (Launch) → awaiting_external_start (no CTA) → idle (Resume).
+    // Post-iterate-L matrix: `(idle | active)` always shows Resume, so we
+    // use `awaiting_external_start` as the "no CTA" middle step. All
+    // transitions occur via TanStack cache update, proving the component
+    // re-renders without remount.
+    const awaitTask = makeTask({ state: "awaiting_external_start" });
+    qc.setQueryData(["external-task", awaitTask.taskId], awaitTask);
     rerender(
       <MemoryRouter>
         <QueryClientProvider client={qc}>
-          <TaskDetailHeader task={activeTask} />
+          <TaskDetailHeader task={awaitTask} />
         </QueryClientProvider>
       </MemoryRouter>,
     );
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-    expect(screen.queryByTestId("cta-terminal")).toBeNull();
 
-    // Now step active → idle: Resume CTA reappears.
+    // awaiting → idle: Resume CTA appears.
     const idleTask = makeTask({ state: "idle" });
     qc.setQueryData(["external-task", idleTask.taskId], idleTask);
     rerender(
