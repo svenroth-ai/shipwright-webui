@@ -28,12 +28,43 @@ export interface ReplaySnapshotEnvelope {
   terminalVersion: string;
 }
 
+/**
+ * Iterate K follow-up (ADR-099, 2026-05-14) — `@xterm/addon-serialize`
+ * 0.19.0 `_serializeModes()` ONLY emits the `mouseTrackingMode` selector
+ * (one of `?9h` / `?1000h` / `?1002h` / `?1003h`) and never the
+ * `mouseEncoding` (SGR `?1006h`, URXVT `?1015h`, UTF8 `?1005h`).
+ *
+ * Verified empirically: Claude Code 2.1.140 emits both `?1000h` (mouse
+ * tracking) AND `?1006h` (SGR mouse encoding) at session start. After
+ * snapshot serialize → replay roundtrip, `?1006h` is missing. The
+ * re-attached terminal has mouse tracking ON but in the LEGACY encoding,
+ * which Claude TUI's wheel-event handler does NOT parse. The user-
+ * visible symptom: "manchmal kann ich nicht mehr scrollen wenn ich
+ * rausgehe und wieder rein" (scroll dead after detach+re-attach to a
+ * Claude TUI session that was using mouse-driven scroll).
+ *
+ * Workaround: if the serialized body contains a mouse-tracking enter,
+ * append `?1006h` to the envelope so SGR encoding is also restored.
+ * Safe-when-redundant: xterm.js noops the set when the mode is already
+ * on, and modern TUIs (Claude included) want SGR encoding when mouse
+ * tracking is on.
+ *
+ * Long-term fix is upstream in xterm.js addon-serialize. This is a
+ * pragmatic stop-gap on our serve-time envelope path.
+ */
+const MOUSE_TRACKING_ENTER_RE = /\x1b\[\?(?:9|1000|1002|1003)h/;
+const MOUSE_SGR_ENCODING = "\x1b[?1006h";
+
 export function buildReplaySnapshotEnvelope(
   rec: SnapshotRecord,
 ): ReplaySnapshotEnvelope {
+  let data = rec.data;
+  if (MOUSE_TRACKING_ENTER_RE.test(data) && !data.includes(MOUSE_SGR_ENCODING)) {
+    data = data + MOUSE_SGR_ENCODING;
+  }
   return {
     type: "replay_snapshot",
-    data: rec.data,
+    data,
     cols: rec.cols,
     rows: rec.rows,
     terminalVersion: rec.terminalVersion,

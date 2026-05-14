@@ -59,6 +59,68 @@ describe("buildReplaySnapshotEnvelope", () => {
     });
     expect(env.data).toBe(payload);
   });
+
+  /*
+   * Iterate K follow-up — `@xterm/addon-serialize` 0.19.0 omits the
+   * mouseEncoding mode (`?1006h` for SGR). Without it, re-attached
+   * sessions get mouse-tracking-ON but in the legacy encoding format
+   * that Claude TUI's wheel-event handler does not parse. Symptom:
+   * scroll dies after detach+re-attach. We augment the envelope's data
+   * tail with `?1006h` whenever a mouse-tracking enter is present and
+   * `?1006h` itself is not already in the body.
+   */
+  it("appends ?1006h when serialized data contains ?1000h (vt200 mouse)", () => {
+    const data = "\x1b[2J\x1b[Hhello\x1b[?2004h\x1b[?1004h\x1b[?1000h";
+    const env = buildReplaySnapshotEnvelope({
+      version: "v2",
+      terminalVersion: "6.0.0",
+      cols: 120,
+      rows: 30,
+      data,
+    });
+    expect(env.data).toBe(data + "\x1b[?1006h");
+  });
+
+  it("appends ?1006h for ?1002h (btn-event) and ?1003h (any-event) mouse modes", () => {
+    for (const mode of ["1002", "1003", "9"]) {
+      const data = `cells\x1b[?${mode}h`;
+      const env = buildReplaySnapshotEnvelope({
+        version: "v2",
+        terminalVersion: "6.0.0",
+        cols: 80,
+        rows: 24,
+        data,
+      });
+      expect(env.data).toBe(data + "\x1b[?1006h");
+    }
+  });
+
+  it("does NOT append ?1006h when no mouse-tracking mode is present", () => {
+    const data = "\x1b[Hsome cells\x1b[?2004h\x1b[?1004h";
+    const env = buildReplaySnapshotEnvelope({
+      version: "v2",
+      terminalVersion: "6.0.0",
+      cols: 80,
+      rows: 24,
+      data,
+    });
+    expect(env.data).toBe(data);
+    expect(env.data).not.toContain("\x1b[?1006h");
+  });
+
+  it("does NOT double-append when ?1006h is already in the body", () => {
+    const data = "cells\x1b[?1000h\x1b[?1006h";
+    const env = buildReplaySnapshotEnvelope({
+      version: "v2",
+      terminalVersion: "6.0.0",
+      cols: 80,
+      rows: 24,
+      data,
+    });
+    // Augmentation guard prevents duplication.
+    expect(env.data).toBe(data);
+    expect((env.data.match(/\x1b\[\?1006h/g) || []).length).toBe(1);
+  });
 });
 
 describe("tryReadSnapshot", () => {
