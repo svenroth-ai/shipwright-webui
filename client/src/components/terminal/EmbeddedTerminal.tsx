@@ -226,6 +226,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastPtyDataAtRef = useRef(0);
     const dataSeenInitiallyRef = useRef(false);
     const injectionInFlightRef = useRef(false);
+    // Iterate K v9 (ADR-099) — cross-effect bridge so the auto-launch
+    // effect can trigger the atlas-maintenance pass that lives inside
+    // the mount effect's `if (webglRef && atlasMaintenanceEnabled)`
+    // closure. The mount effect populates this ref AFTER defining
+    // safeAtlasMaintenance and nulls it on cleanup. Null when WebGL
+    // initialisation failed OR the kill switch is on — optional
+    // chaining at the call site handles both cases.
+    const safeAtlasMaintenanceRef = useRef<(() => void) | null>(null);
 
     // 2026-05-05 — Race-Fix: TaskDetail's route is registered as the SAME
     // <TaskDetailPage/> element across `/tasks/:taskId` so React keeps the
@@ -517,6 +525,41 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         consumedTokensRef.current.add(pending.launchToken);
         socket.send({ type: "data", payload: cmd + "\r" });
         coord.consumeLaunch(pending.launchToken);
+
+        // Iterate K v9 (ADR-099) — post-launch-settle backstop. The
+        // burst-after-quiet trigger (v6, gated on
+        // `now - lastWriteTime > 2000ms`) and the post-mount-settle
+        // backstop (v7, scheduled at mount-time +3s) both miss the
+        // case where Resume is clicked in a tab that has been
+        // mounted for a long time:
+        //   - Mount happened minutes/hours ago; postMountSettleTimer
+        //     fired long ago and is gone.
+        //   - The auto-launch typing echo (pwsh echoes each char of
+        //     the `claude --resume <uuid> --name "..."` command back
+        //     over the WS) keeps `lastWriteTime` continuously fresh
+        //     for ~50-500 ms, depending on shell-render cadence.
+        //   - Claude's startup writes (snapshot replay + alt-screen
+        //     setup) land within ~500-1500 ms of the command echo
+        //     ending — well inside the 2 s quiet window.
+        // → burst-trigger never fires; the only remaining trigger
+        //   is the 10 s periodic interval (gated on writes>0). User
+        //   sees 10 s of stale atlas before the periodic kicks in
+        //   (empirical UAT 2026-05-14: "es hat resume nicht
+        //   gegriffen, erst nach 10s gut").
+        //
+        // Schedule a one-shot maintenance pass at +4 s after the
+        // launch dispatch — long enough for Claude's TUI init to
+        // complete (typically <2 s on a warm pty), short enough to
+        // beat the periodic. Unconditional (no `writes>0` gate)
+        // because Resume guarantees writes will happen; defensive
+        // gating would just hide bugs. `disposedRef` short-circuits
+        // if the user navigates away within the window; optional
+        // chaining handles the kill-switch + Canvas/DOM fallback
+        // paths where the ref was never populated.
+        setTimeout(() => {
+          if (disposedRef.current) return;
+          safeAtlasMaintenanceRef.current?.();
+        }, 4_000);
       })().finally(() => {
         injectionInFlightRef.current = false;
       });
@@ -925,6 +968,11 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             /* atlas may have been disposed mid-call; safe to ignore */
           }
         };
+        // Iterate K v9 (ADR-099) — publish the maintenance callback
+        // to the cross-effect ref so the auto-launch effect can
+        // schedule a post-launch-settle pass (see auto-launch effect
+        // above). Cleared in the cleanup return below.
+        safeAtlasMaintenanceRef.current = safeAtlasMaintenance;
         // Always maintain on user-initiated scroll (smearing or stale
         // cursor most visible when user actively reads scrolled rows).
         onScrollDispose = term.onScroll(safeAtlasMaintenance);
@@ -1012,6 +1060,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           clearTimeout(postMountSettleTimer);
           postMountSettleTimer = null;
         }
+        // Iterate K v9 — clear the cross-effect bridge so straggler
+        // post-launch-settle timers short-circuit cleanly via the
+        // optional chain at the call site.
+        safeAtlasMaintenanceRef.current = null;
         if (onScrollDispose) {
           onScrollDispose.dispose();
           onScrollDispose = null;
