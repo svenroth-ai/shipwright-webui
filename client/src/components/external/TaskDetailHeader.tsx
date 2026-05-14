@@ -6,15 +6,17 @@
  *   - breadcrumb `Projects › <project.name>` above the title row
  *   - title + state badge (pulsing dot, color-coded to state) + project chip
  *   - sub-line: phase tag · Started {ago} · last event {ago} · {model}
- *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants
- *     + Iterate G ADR-095 liveSession gating):
- *       draft / awaiting_external_start           → GREEN Launch
- *                                                   (var(--color-success))
- *       idle + liveSession=false / undefined      → BROWN Resume
- *                                                   (var(--color-primary))
- *       idle + liveSession=true                   → no CTA (live pty;
- *                                                   user types directly)
- *       active / done / launch_failed / jsonl_missing → no CTA
+ *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants;
+ *     Iterate L resume-cta-active-state replaced the ADR-095/096
+ *     `liveSession` gating with `altScreenActive` after empirical
+ *     falsification — `liveSession` was "pty alive", not "Claude in
+ *     foreground"):
+ *       draft / awaiting_external_start            → GREEN Launch
+ *                                                    (var(--color-success))
+ *       (active | idle) + altScreenActive=true     → no CTA (TUI live)
+ *       (active | idle) + altScreenActive=false/   → BROWN Resume
+ *                         undefined                  (var(--color-primary))
+ *       done / launch_failed / jsonl_missing       → no CTA
  *     Terminal icon is always left of the label on both buttons.
  *   - 3-dots menu: Rename · Copy session UUID · Close · Delete · debug toggle
  *
@@ -128,7 +130,7 @@ type CtaMode = "launch" | "resume" | "none";
 
 function ctaFor(
   state: ExternalTask["state"],
-  liveSession: boolean | undefined,
+  altScreenActive: boolean | undefined,
 ): CtaMode {
   if (state === "draft") return "launch";
   // Iterate v0.8.5 AC-6: drop the "Terminal" CTA for active /
@@ -136,22 +138,35 @@ function ctaFor(
   // Tabs.Trigger row (pure UI nav, no auto-execute) — duplicating the
   // tab-row that already lives inside the page. Header now shows
   // status badge only for these states; user clicks the inline
-  // `Terminal` Tabs.Trigger to switch panes. Resume CTA stays available
-  // for state=idle (pty died + mtime drifted > 2min — see
-  // external/routes.ts state computation).
+  // `Terminal` Tabs.Trigger to switch panes.
   //
-  // Iterate G (ADR-095): when a live pty entry exists for the task
-  // (`liveSession === true`) the embedded-terminal session is
-  // intact — the user types directly into the running shell instead
-  // of pasting `claude --resume` (which would either error on a
-  // shell already inside Claude, or spawn a nested instance). Hide
-  // the Resume CTA in that case. `liveSession === undefined` (older
-  // server response that doesn't yet expose the field) falls back to
-  // the legacy state-only logic so the button reappears under
-  // back-compat — conservative: prefer to surface Resume rather
-  // than leave the user without an action.
-  if (state === "idle") {
-    if (liveSession === true) return "none";
+  // Iterate L (resume-cta-active-state):
+  //   - The earlier ADR-095 / ADR-096 `liveSession` gating was
+  //     falsified empirically — `liveSession` is "pty exists in
+  //     PtyManager", not "Claude is in pty foreground". The pty
+  //     hosts a shell (pwsh) which outlives Claude.
+  //   - Replacement signal: `altScreenActive` (server-computed from
+  //     the @xterm/headless mirror's `buffer.active.type ===
+  //     "alternate"`). True iff a TUI (Claude, vim, htop, …) is in
+  //     pty foreground. False otherwise — including "shell prompt
+  //     visible after Claude exited", which is the recovery state
+  //     where Resume MUST be available.
+  //
+  // Matrix:
+  //   (idle | active) + altScreenActive=true       → no CTA (TUI live)
+  //   (idle | active) + altScreenActive=false/undef → Resume
+  //
+  // `altScreenActive === undefined` (pre-iterate-L server, mirror
+  // disabled by headless-probe, etc.) falls back to surfacing Resume —
+  // conservative: prefer the recovery action to silent withholding.
+  //
+  // Single "Resume" label everywhere (no Recover differentiation, see
+  // memory feedback_resume_label_singular). Architectural protection
+  // against nested-Claude lives in pty-manager's shell-only spawn
+  // whitelist + ADR-068-A1's user-initiated clause (an explicit
+  // Resume click satisfies user-initiated).
+  if (state === "idle" || state === "active") {
+    if (altScreenActive === true) return "none";
     return "resume";
   }
   return "none";
@@ -226,7 +241,7 @@ export function TaskDetailHeader({ task }: Props) {
   const uuidResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<EditableTaskTitleHandle | null>(null);
 
-  const cta = ctaFor(task.state, task.liveSession);
+  const cta = ctaFor(task.state, task.altScreenActive);
   const badge = STATE_BADGE[task.state];
 
   const projectName = useMemo(() => {

@@ -1,21 +1,28 @@
 /*
  * routes.launch-newplain-resume.test.ts — iterate v0.8.8 AC-1
+ * + Iterate L resume-cta-active-state refinement.
  *
- * For `new-plain` tasks, `Resume` semantically can't work — Claude only
- * writes a JSONL transcript AFTER the user types their first message
- * inside the TUI. So `claude --resume <sessionUuid>` always fails with
- * "No conversation found" for a new-plain task whose pty died before
- * the user got to type anything.
+ * For `new-plain` tasks BEFORE the first JSONL write, `Resume`
+ * semantically can't work — Claude only writes a JSONL transcript
+ * AFTER the user types their first message inside the TUI. So
+ * `claude --resume <sessionUuid>` fails with "No conversation found"
+ * for a new-plain task whose pty died before the user got to type
+ * anything. v0.8.8 AC-1 made the Resume click in that case emit a
+ * FRESH launch (`--session-id <uuid>`, no `--resume`) so Claude
+ * opens a new TUI session under the same task identity.
  *
- * v0.8.7 AC-1 unblocked the Resume CTA for these tasks (when pty is
- * gone, state flips active → idle → Resume CTA renders). v0.8.8 AC-1
- * makes that Resume click actually USEFUL by emitting a FRESH launch
- * (with `--session-id <uuid>`, no `--resume` flag) so Claude opens a
- * new TUI session under the same task identity.
+ * Iterate L (resume-cta-active-state) — empirical reproducer caught
+ * the over-aggressive form of that gate: a new-plain task whose
+ * JSONL DOES exist (user typed messages) still got forced through
+ * the fresh-launch branch, which Claude then rejects with
+ * "Session ID <uuid> is already in use" because the SQLite session
+ * registry holds the lock. Refinement: gate also on
+ * `firstJsonlObservedAt` — if the JSONL has been observed, emit the
+ * real `--resume` regardless of actionId.
  *
- * Non-new-plain tasks (slash-command launches, regular adopted tasks,
- * forks) keep the existing `--resume <uuid>` semantics — those
- * actually have JSONL on disk to resume from.
+ * Non-new-plain tasks keep the existing `--resume <uuid>`
+ * semantics; their JSONL existence is taken for granted by the
+ * legacy flow.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -89,25 +96,43 @@ describe("AC-1 — POST /launch with resume=true on `new-plain` emits FRESH laun
     return res.json() as Promise<{ commands: { powershell: string; cmd: string; posix: string } }>;
   }
 
-  it("new-plain + resume=true → commands omit --resume (fresh launch with --session-id)", async () => {
-    const { taskId, sessionUuid } = await createTask({ actionId: "new-plain", title: "ac1-resume-newplain" });
+  it("new-plain + resume=true + JSONL NOT observed → fresh launch (--session-id, v0.8.8 original)", async () => {
+    // Original v0.8.8 case preserved: brand-new task, user clicked Resume
+    // before typing anything, no JSONL on disk → --resume would fail with
+    // "No conversation found", so emit fresh --session-id launch instead.
+    const { taskId, sessionUuid } = await createTask({ actionId: "new-plain", title: "ac1-resume-newplain-no-jsonl" });
     const { commands } = await postLaunch(taskId, { resume: true });
 
-    // No `--resume` anywhere — that's the bug we're fixing.
     expect(commands.powershell).not.toMatch(/--resume\b/);
     expect(commands.cmd).not.toMatch(/--resume\b/);
     expect(commands.posix).not.toMatch(/--resume\b/);
 
-    // Fresh launch shape: `--session-id <uuid>` + Claude defaults
-    // (per-shell quoting: PowerShell single-quotes, cmd double-quotes,
-    // posix single-quotes).
     expect(commands.powershell).toContain(`--session-id '${sessionUuid}'`);
     expect(commands.cmd).toContain(`--session-id "${sessionUuid}"`);
     expect(commands.posix).toContain(`--session-id '${sessionUuid}'`);
   });
 
-  it("new-plain + resume=false → commands omit --resume (existing fresh-launch behavior unchanged)", async () => {
+  it("new-plain + resume=true + JSONL OBSERVED → real --resume (Iterate L fix)", async () => {
+    // Iterate L empirical reproducer: a new-plain task where the user
+    // typed messages → JSONL exists → SQLite session registry holds the
+    // lock. Previously v0.8.8 forced fresh launch, which Claude rejected
+    // with "Session ID is already in use". Fix: detect
+    // firstJsonlObservedAt and route to --resume.
+    const { taskId, sessionUuid } = await createTask({ actionId: "new-plain", title: "ac1-resume-newplain-jsonl" });
+    // Simulate the watcher having observed the JSONL by patching the
+    // task. In production this is set by SessionWatcher when the
+    // <uuid>.jsonl file first appears under ~/.claude/projects/.
+    store.patch(taskId, { firstJsonlObservedAt: new Date().toISOString() });
+    const { commands } = await postLaunch(taskId, { resume: true });
+
+    expect(commands.powershell).toMatch(/--resume '/);
+    expect(commands.powershell).toContain(`--resume '${sessionUuid}'`);
+    expect(commands.powershell).not.toMatch(/--session-id\b/);
+  });
+
+  it("new-plain + resume=false → fresh launch regardless of JSONL observation", async () => {
     const { taskId, sessionUuid } = await createTask({ actionId: "new-plain", title: "ac1-fresh-newplain" });
+    store.patch(taskId, { firstJsonlObservedAt: new Date().toISOString() });
     const { commands } = await postLaunch(taskId, { resume: false });
 
     expect(commands.powershell).not.toMatch(/--resume\b/);
