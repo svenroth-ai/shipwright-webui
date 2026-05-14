@@ -752,29 +752,46 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       });
       ro.observe(container);
 
-      // Iterate K follow-up v2 (ADR-099) — periodic + on-scroll texture-
-      // atlas clear + full row-refresh, working around xterm.js issue #5847.
+      // Iterate K follow-up v3 (ADR-099) — CONDITIONAL atlas clear + full
+      // row-refresh, working around xterm.js issue #5847.
       //
-      // v1 (commit bd9e3ea) used 30s periodic interval + onScroll trigger.
-      // Live-UAT 2026-05-14 16:39 showed residual column-0 fragments
-      // ("rWeb Search", "1Fetch", "So-", "Mi-") still visible on screen
-      // while the @xterm/headless server-mirror buffer was clean — confirms
-      // the residue is atlas-corruption alone, but 30s is too generous a
-      // window. Tightened to 10s + added `term.refresh(0, rows-1)` AFTER
-      // each atlas clear so the full row-renderer pass redraws every cell
-      // from the (now-rebuilt) atlas. VS Code's parallel pattern:
-      //   forceRedraw() { this.raw.clearTextureAtlas(); }
-      //   forceRefresh() { this._core.viewport?._innerRefresh(); }
-      // We combine both into one safeClearAtlasAndRefresh() call.
+      // History:
+      //   v1 (bd9e3ea) — 30s periodic + onScroll. Smearing built up
+      //     within window.
+      //   v2 (4e8f938) — 10s periodic + term.refresh() after atlas clear.
+      //     Smearing fully addressed but periodic flicker fired even when
+      //     terminal was idle (user reading without streaming).
+      //   v3 (this commit) — conditional: only clear when there has been
+      //     terminal activity since the last clear, OR the user actively
+      //     scrolled. Idle reading no longer produces periodic flicker.
       //
-      // Trade-off: each clear+refresh costs one render frame; at 10s that's
-      // 6 micro-flickers per minute. Empirically less disruptive than the
-      // residual smearing (which is constant after onset, not periodic).
+      // VS Code's pattern (xtermTerminal.ts:600 forceRedraw +
+      // terminalNativeContribution.ts._onOsResume) clears only on OS
+      // resume — works for their workload (developer terminal, not
+      // primary content). Ours is Claude TUI streaming = primary
+      // content, so we need to clear more often during activity, but
+      // can stay quiet during reading.
+      //
+      // Mechanism:
+      //   - term.onWriteParsed → increment writesSinceLastClear (free,
+      //     xterm fires this after every byte-batch parse)
+      //   - term.onScroll → immediate clear (user-initiated, always)
+      //   - setInterval 10s → clear ONLY if writesSinceLastClear > 0,
+      //     then reset the counter
+      //
+      // Result:
+      //   - Active Claude streaming: clear every 10s during streaming
+      //     (same cadence as v2; bounds smearing accumulation).
+      //   - Idle terminal after Claude finishes: at most 1 final clear
+      //     within 10s of last byte arriving, then silence.
+      //   - User scrolling: immediate clear on every scroll burst.
       //
       // No-op if webglRef is null (Canvas/DOM fallback path).
       const ATLAS_CLEAR_INTERVAL_MS = 10_000;
       let onScrollDispose: { dispose: () => void } | null = null;
+      let onWriteParsedDispose: { dispose: () => void } | null = null;
       let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
+      let writesSinceLastClear = 0;
       if (webglRef) {
         const safeClearAtlasAndRefresh = () => {
           if (disposedRef.current || !webglRef) return;
@@ -791,11 +808,23 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             /* atlas may have been disposed mid-call; safe to ignore */
           }
         };
+        // Always clear on user-initiated scroll (smearing most visible
+        // when user actively reads scrolled rows).
         onScrollDispose = term.onScroll(safeClearAtlasAndRefresh);
-        atlasClearTimer = setInterval(
-          safeClearAtlasAndRefresh,
-          ATLAS_CLEAR_INTERVAL_MS,
-        );
+        // Track every parsed byte-batch. Cheap counter — xterm.js fires
+        // onWriteParsed after each internal write batch.
+        onWriteParsedDispose = term.onWriteParsed(() => {
+          writesSinceLastClear++;
+        });
+        // Conditional periodic: only clear if there was activity since
+        // the last clear. When the terminal is idle (user just reading
+        // a finished session), the counter stays 0 → no clear → no
+        // flicker.
+        atlasClearTimer = setInterval(() => {
+          if (writesSinceLastClear === 0) return;
+          writesSinceLastClear = 0;
+          safeClearAtlasAndRefresh();
+        }, ATLAS_CLEAR_INTERVAL_MS);
       }
 
       return () => {
@@ -819,6 +848,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (onScrollDispose) {
           onScrollDispose.dispose();
           onScrollDispose = null;
+        }
+        if (onWriteParsedDispose) {
+          onWriteParsedDispose.dispose();
+          onWriteParsedDispose = null;
         }
         onDataDispose.dispose();
 
