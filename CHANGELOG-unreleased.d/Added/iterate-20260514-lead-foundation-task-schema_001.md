@@ -1,0 +1,1 @@
+lead-foundation-task-schema (leadwright Phase 1): 13 optional fields on ExternalTask (domain, priority, complexityHint, tags, blockedBy + 8 daemon-owned: leadParentTaskId, poFeedback, claimToken, claimedBy, claimedAt, claimPid, leadHandoff, promotedFromTriageId). schemaVersion stays 3; additive only; per-field soft-drop on malformed shapes (ADR-100).

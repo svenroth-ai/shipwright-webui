@@ -107,9 +107,16 @@ describe("NewIssueModal", () => {
     expect(hint.textContent?.replace(/\s+/g, " ").trim()).toBe("Esc to cancel");
   });
 
-  it("has NO priority field anywhere (FR-03.21 regression)", () => {
+  it("renders no priority field on an action whose modal_fields omit it (preserves FR-03.21 default-UI contract)", () => {
+    // iterate-2026-05-14 lead-foundation: the old FR-03.21 unconditional
+    // ban is REPLACED by an opt-in via modal_fields. The default fixture
+    // TASK_ACTION here has no modal_fields → no leadwright inputs render.
     renderModal();
-    expect(screen.queryByText(/priority/i)).toBeNull();
+    expect(screen.queryByTestId("new-issue-priority-select")).toBeNull();
+    expect(screen.queryByTestId("new-issue-domain-input")).toBeNull();
+    expect(screen.queryByTestId("new-issue-complexity-hint-select")).toBeNull();
+    expect(screen.queryByTestId("new-issue-tags-input")).toBeNull();
+    expect(screen.queryByTestId("new-issue-blocked-by-input")).toBeNull();
   });
 
   it("returns null when action is null (closed dropdown state)", () => {
@@ -915,6 +922,256 @@ describe("NewIssueModal", () => {
         expect(body).toBeTruthy();
         expect(JSON.parse(body!).actionId).toBe("new-content-orchestrator");
       });
+    });
+  });
+});
+
+// ---------- iterate-2026-05-14 lead-foundation-task-schema ----------
+//
+// Five leadwright-routing fields land in the modal — `domain`, `priority`,
+// `complexityHint`, `tags`, `blockedBy`. Rendering is OPT-IN per action
+// via `modal_fields`; the inputs flow into createTask() so the values
+// land on the persisted ExternalTask record. External review MED-5
+// (XSS-safe rendering) and LOW-11 (submission payload shape) are
+// covered here.
+
+const TASK_ACTION_WITH_LEAD: ActionDefinition = {
+  id: "new-task",
+  label: "New task",
+  kind: "external_launch",
+  command_template: "claude /shipwright-{task.phase}",
+  modal_fields: [
+    "title",
+    "phase",
+    "description",
+    "domain",
+    "priority",
+    "complexityHint",
+    "tags",
+    "blockedBy",
+  ],
+};
+
+const ITERATE_ACTION_WITH_LEAD: ActionDefinition = {
+  id: "new-iterate",
+  label: "New iterate",
+  kind: "external_launch",
+  command_template: "claude /shipwright-iterate",
+  modal_fields: [
+    "title",
+    "autonomy",
+    "description",
+    "domain",
+    "priority",
+    "complexityHint",
+    "tags",
+    "blockedBy",
+  ],
+};
+
+const ACTIONS_WITH_LEAD: ResolvedProjectActions = {
+  ...SAMPLE_ACTIONS,
+  actions: [TASK_ACTION_WITH_LEAD, ITERATE_ACTION_WITH_LEAD, PIPELINE_ACTION],
+};
+
+describe("NewIssueModal — lead-foundation inputs (iterate-2026-05-14)", () => {
+  it("renders all 5 leadwright inputs on new-task when modal_fields opts in", () => {
+    renderModal({
+      action: TASK_ACTION_WITH_LEAD,
+      projectActions: ACTIONS_WITH_LEAD,
+    });
+    expect(screen.getByTestId("new-issue-domain-input")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-priority-select")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-complexity-hint-select")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-tags-input")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-blocked-by-input")).toBeTruthy();
+  });
+
+  it("renders all 5 leadwright inputs on new-iterate when modal_fields opts in", () => {
+    renderModal({
+      action: ITERATE_ACTION_WITH_LEAD,
+      projectActions: ACTIONS_WITH_LEAD,
+    });
+    expect(screen.getByTestId("new-issue-domain-input")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-priority-select")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-complexity-hint-select")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-tags-input")).toBeTruthy();
+    expect(screen.getByTestId("new-issue-blocked-by-input")).toBeTruthy();
+  });
+
+  it("hides every leadwright input on new-pipeline (action has no leadwright modal_fields)", () => {
+    renderModal({
+      action: PIPELINE_ACTION,
+      projectActions: ACTIONS_WITH_LEAD,
+    });
+    expect(screen.queryByTestId("new-issue-domain-input")).toBeNull();
+    expect(screen.queryByTestId("new-issue-priority-select")).toBeNull();
+    expect(screen.queryByTestId("new-issue-complexity-hint-select")).toBeNull();
+    expect(screen.queryByTestId("new-issue-tags-input")).toBeNull();
+    expect(screen.queryByTestId("new-issue-blocked-by-input")).toBeNull();
+  });
+
+  it("hides individual inputs whose name is not in modal_fields", () => {
+    const partial: ActionDefinition = {
+      ...TASK_ACTION_WITH_LEAD,
+      modal_fields: ["title", "phase", "description", "domain"], // only domain
+    };
+    renderModal({
+      action: partial,
+      projectActions: { ...ACTIONS_WITH_LEAD, actions: [partial, PIPELINE_ACTION] },
+    });
+    expect(screen.getByTestId("new-issue-domain-input")).toBeTruthy();
+    expect(screen.queryByTestId("new-issue-priority-select")).toBeNull();
+    expect(screen.queryByTestId("new-issue-complexity-hint-select")).toBeNull();
+    expect(screen.queryByTestId("new-issue-tags-input")).toBeNull();
+    expect(screen.queryByTestId("new-issue-blocked-by-input")).toBeNull();
+  });
+
+  it("Save-to-Backlog: leadwright values land in POST /tasks body (normalized)", async () => {
+    // External review LOW-11: assert the outgoing payload, not just
+    // input rendering. Tags + blockedBy split on commas + trim + filter
+    // empties on the client; the server soft-drops anything still
+    // malformed.
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/api/external/tasks") && init?.method === "POST") {
+        (fetchMock as unknown as { _createBody?: string })._createBody =
+          init.body as string;
+        return new Response(
+          JSON.stringify({
+            task: {
+              taskId: "new-task-id",
+              sessionUuid: "uuid",
+              cwd: "/p",
+              pluginDirs: [],
+              title: "lead task",
+              projectId: "proj-1",
+              state: "draft",
+              createdAt: "x",
+              inbox: {
+                pendingToolUseIds: [],
+                dismissedToolUseIds: [],
+                lastProcessedByteOffset: 0,
+              },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    renderModal({
+      action: TASK_ACTION_WITH_LEAD,
+      projectActions: ACTIONS_WITH_LEAD,
+      writeToClipboard: async () => undefined,
+      onToast: () => {},
+    });
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "lead task" },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-domain-input"), {
+        target: { value: "shipwright" },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-priority-select"), {
+        target: { value: "P1" },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-complexity-hint-select"), {
+        target: { value: "medium" },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-tags-input"), {
+        target: { value: "auth, billing ,  ,empty-trims" },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-blocked-by-input"), {
+        target: { value: "task-x, task-y" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-save-btn"));
+    });
+
+    await waitFor(() => {
+      const body = (fetchMock as unknown as { _createBody?: string })
+        ._createBody;
+      expect(body).toBeTruthy();
+      const parsed = JSON.parse(body!);
+      expect(parsed.domain).toBe("shipwright");
+      expect(parsed.priority).toBe("P1");
+      expect(parsed.complexityHint).toBe("medium");
+      expect(parsed.tags).toEqual(["auth", "billing", "empty-trims"]);
+      expect(parsed.blockedBy).toEqual(["task-x", "task-y"]);
+    });
+  });
+
+  it("omits empty leadwright fields from the POST body (no empty-string leakage)", async () => {
+    // Filling the inputs and then clearing them must not result in
+    // `domain: ""` or `tags: []` in the payload — keep the on-disk
+    // sdk-sessions.json quiet.
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/api/external/tasks") && init?.method === "POST") {
+        (fetchMock as unknown as { _createBody?: string })._createBody =
+          init.body as string;
+        return new Response(
+          JSON.stringify({
+            task: {
+              taskId: "id2",
+              sessionUuid: "u",
+              cwd: "/p",
+              pluginDirs: [],
+              title: "x",
+              projectId: "proj-1",
+              state: "draft",
+              createdAt: "x",
+              inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    renderModal({
+      action: TASK_ACTION_WITH_LEAD,
+      projectActions: ACTIONS_WITH_LEAD,
+      writeToClipboard: async () => undefined,
+      onToast: () => {},
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "no leadwright" },
+      });
+    });
+    // Don't fill any leadwright input.
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-save-btn"));
+    });
+
+    await waitFor(() => {
+      const body = (fetchMock as unknown as { _createBody?: string })
+        ._createBody;
+      expect(body).toBeTruthy();
+      const parsed = JSON.parse(body!);
+      expect("domain" in parsed).toBe(false);
+      expect("priority" in parsed).toBe(false);
+      expect("complexityHint" in parsed).toBe(false);
+      expect("tags" in parsed).toBe(false);
+      expect("blockedBy" in parsed).toBe(false);
     });
   });
 });

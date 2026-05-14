@@ -1,0 +1,1 @@
+POST /api/external/tasks: accepts the 5 user-creatable leadwright fields (domain, priority, complexityHint, tags, blockedBy). Daemon-owned fields ignored on this route (narrow write surface). bundled new-task + new-iterate modal_fields render the inputs opt-in via action.modal_fields gate (ADR-100).

@@ -65,6 +65,11 @@ const INITIAL_PROMPT_PLACEHOLDER = "{task.initial_prompt}";
  * Modal field allowlist (per AD-03.13). `complexity:radio:small,medium,large`
  * is explicitly removed; the new iterate modal uses complexity auto-detect
  * at skill-invocation time, not a pre-launch field.
+ *
+ * iterate-2026-05-14 lead-foundation-task-schema: 5 leadwright-routing
+ * names added (`domain`, `priority`, `complexityHint`, `tags`,
+ * `blockedBy`). They follow the same bare-name rule — anything with a
+ * `:type:` suffix (e.g. `complexity:radio:...`) is still rejected.
  */
 const SUPPORTED_MODAL_FIELDS = new Set([
   "title",
@@ -72,6 +77,12 @@ const SUPPORTED_MODAL_FIELDS = new Set([
   "description",
   "autonomy",
   "project", // read-only strip or dropdown — not user-input but may appear in modal_fields for the `all projects` branch
+  // lead-foundation-task-schema (iterate-2026-05-14, leadwright Phase 1)
+  "domain",
+  "priority",
+  "complexityHint",
+  "tags",
+  "blockedBy",
 ]);
 
 const VALID_AUTONOMY = new Set(["guided", "autonomous"]);
