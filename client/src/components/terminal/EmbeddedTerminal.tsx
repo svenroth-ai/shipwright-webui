@@ -793,48 +793,64 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
       let writesSinceLastClear = 0;
       if (webglRef) {
-        const safeClearAtlasAndRefresh = () => {
+        // Iterate K v5 (ADR-099, 2026-05-14) — split into TWO behaviors
+        // based on buffer type:
+        //
+        //   - Main buffer  : clearTextureAtlas() + refresh(0, rows-1)
+        //     Full workaround for xterm.js #5847 atlas-merge bug. Atlas
+        //     corruption accumulates here under sustained Claude TUI
+        //     streaming (NO_FLICKER mode); the clear forces a rebuild,
+        //     the refresh repaints all "unchanged" cells from the fresh
+        //     atlas.
+        //
+        //   - Alt-screen  : refresh(0, rows-1) ONLY, no atlas clear.
+        //     Two reasons:
+        //       (a) In alt-screen Claude redraws cells aggressively
+        //           every frame (ED2+full repaint), so atlas
+        //           corruption doesn't accumulate the same way.
+        //       (b) The full atlas rebuild SUPERIMPOSES on Claude's
+        //           own per-frame redraw producing visibly WORSE
+        //           flicker than no workaround (empirical UAT v3 on
+        //           task 58be94c5).
+        //     Plain refresh() is much cheaper than clearTextureAtlas —
+        //     just marks rows dirty for the next render pass — and is
+        //     enough to clear stale cursor-render-layer ghosts that
+        //     xterm 6.0's WebGL renderer leaves behind when cursor
+        //     positioning jumps from the right edge back to the left.
+        const safeAtlasMaintenance = () => {
           if (disposedRef.current || !webglRef) return;
-          // Iterate K v4 (ADR-099, 2026-05-14) — skip the workaround when
-          // Claude/the TUI is in alt-screen (`?1049h`). Empirical UAT
-          // showed that in alt-screen mode the periodic clearTextureAtlas
-          // + term.refresh() SUPERIMPOSES on Claude's own ED2+redraw per-
-          // frame cadence (Claude bypasses NO_FLICKER for some tasks),
-          // producing visibly WORSE flicker than no workaround. In alt-
-          // screen, atlas corruption accumulates much less (Claude
-          // redraws aggressively anyway), so the workaround's cost
-          // outweighs its benefit there. Re-enabled on the next clear
-          // tick once the buffer flips back to normal.
-          if (term.buffer.active.type === "alternate") return;
+          const inAltScreen = term.buffer.active.type === "alternate";
           try {
-            webglRef.clearTextureAtlas();
-            // Force a row-renderer pass after atlas rebuild so every
-            // visible cell paints from the fresh atlas. Without this,
-            // cells xterm believes are "unchanged" since the corruption
-            // window stay stale until something else dirties them
-            // (per the #5847 repro: "stale vertex data on rows that
-            // _updateModel skips because the cells appear 'unchanged'").
+            if (!inAltScreen) {
+              webglRef.clearTextureAtlas();
+            }
+            // Both paths run a row-renderer pass. In main-buffer this
+            // repaints every visible cell from the just-rebuilt atlas
+            // (so cells xterm thought were "unchanged" since the
+            // corruption window get fresh paint). In alt-screen this
+            // gives xterm a chance to re-evaluate cursor render layer
+            // + cell state (clears stale cursor ghosts).
             if (term.rows > 0) term.refresh(0, term.rows - 1);
           } catch {
             /* atlas may have been disposed mid-call; safe to ignore */
           }
         };
-        // Always clear on user-initiated scroll (smearing most visible
-        // when user actively reads scrolled rows).
-        onScrollDispose = term.onScroll(safeClearAtlasAndRefresh);
+        // Always maintain on user-initiated scroll (smearing or stale
+        // cursor most visible when user actively reads scrolled rows).
+        onScrollDispose = term.onScroll(safeAtlasMaintenance);
         // Track every parsed byte-batch. Cheap counter — xterm.js fires
         // onWriteParsed after each internal write batch.
         onWriteParsedDispose = term.onWriteParsed(() => {
           writesSinceLastClear++;
         });
-        // Conditional periodic: only clear if there was activity since
-        // the last clear. When the terminal is idle (user just reading
-        // a finished session), the counter stays 0 → no clear → no
-        // flicker.
+        // Conditional periodic: only run maintenance if there was
+        // activity since the last tick. When the terminal is idle (user
+        // just reading a finished session), the counter stays 0 → no
+        // maintenance → no flicker.
         atlasClearTimer = setInterval(() => {
           if (writesSinceLastClear === 0) return;
           writesSinceLastClear = 0;
-          safeClearAtlasAndRefresh();
+          safeAtlasMaintenance();
         }, ATLAS_CLEAR_INTERVAL_MS);
       }
 
