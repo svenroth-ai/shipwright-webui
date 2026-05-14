@@ -80,6 +80,30 @@ export interface ExternalTaskInboxState {
   lastProcessedByteOffset: number;
 }
 
+/**
+ * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+ * Canonical source: leadwright/lib/lead-task-extension.ts (separate repo).
+ * Inlined here per the spec's "Open questions" — the duplicated surface
+ * is ~30 LOC and avoids cross-repo npm-link coupling. Field shapes are
+ * locked; do not extend without revisiting that decision.
+ *
+ * Sub-object on `ExternalTask.leadHandoff` capturing the daemon-recorded
+ * outcome of a lead-claimed task. Status is the discriminator; a row
+ * whose status is outside the enum has the entire field dropped on load.
+ */
+export interface LeadHandoff {
+  leadId: string;
+  status: "completed" | "escalated" | "failed";
+  beatsUsed: number;
+  subIterateIds?: string[];
+  summary: string;
+  escalationReason?: string;
+  learningsExtracted?: boolean;
+}
+
+export type LeadPriority = "P0" | "P1" | "P2" | "P3";
+export type LeadComplexityHint = "small" | "medium" | "large";
+
 export interface ExternalTask {
   taskId: string;
   sessionUuid: string;
@@ -130,6 +154,36 @@ export interface ExternalTask {
   phaseTaskId?: string;
   runId?: string;
   parentRunMaster?: boolean;
+  /**
+   * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+   * All 13 fields additive + optional. schemaVersion stays at 3; the
+   * persisted shape only writes keys that are actually set (no
+   * `"leadHandoff": null` noise). Loader soft-drops malformed values
+   * per-field rather than failing the whole row — mirrors the existing
+   * forward-compat tolerance for `phaseTaskId` / `runId` / `parentRunMaster`.
+   *
+   * User-creatable (POST /api/external/tasks accepts these 5 directly):
+   *   domain, priority, complexityHint, tags, blockedBy
+   *
+   * Daemon-owned (set by the leadwright claim helper or promote producer
+   * — NOT writable from the webui create route; see external review
+   * MED-4 enforcement in routes.ts):
+   *   leadParentTaskId, poFeedback, claimToken, claimedBy, claimedAt,
+   *   claimPid, leadHandoff, promotedFromTriageId
+   */
+  domain?: string;
+  priority?: LeadPriority;
+  complexityHint?: LeadComplexityHint;
+  tags?: string[];
+  blockedBy?: string[];
+  leadParentTaskId?: string;
+  poFeedback?: string;
+  claimToken?: string;
+  claimedBy?: string;
+  claimedAt?: string;
+  claimPid?: number;
+  leadHandoff?: LeadHandoff;
+  promotedFromTriageId?: string;
   createdAt: string;
   launchedAt?: string;
   firstJsonlObservedAt?: string;
@@ -300,6 +354,18 @@ export class SdkSessionsStore {
     phaseTaskId?: string;
     runId?: string;
     parentRunMaster?: boolean;
+    /**
+     * iterate-2026-05-14 lead-foundation-task-schema — only the 5
+     * user-creatable fields are accepted here. The daemon-owned fields
+     * (`claimToken`, `leadHandoff`, etc.) are NOT exposed on the create
+     * signature; the daemon mutates them via the claim helper that lives
+     * in the leadwright repo. External review MED-4.
+     */
+    domain?: string;
+    priority?: LeadPriority;
+    complexityHint?: LeadComplexityHint;
+    tags?: string[];
+    blockedBy?: string[];
   }): ExternalTask {
     const task: ExternalTask = {
       taskId: randomUUID(),
@@ -329,6 +395,15 @@ export class SdkSessionsStore {
     if (typeof args.parentRunMaster === "boolean") {
       task.parentRunMaster = args.parentRunMaster;
     }
+    // iterate-2026-05-14 lead-foundation: only assign when the caller
+    // actually passed the field, so omitted fields stay absent (not
+    // present-as-undefined) in the in-memory record. The dropUndefined
+    // pass in persist() then keeps the JSON file quiet.
+    if (typeof args.domain === "string") task.domain = args.domain;
+    if (args.priority) task.priority = args.priority;
+    if (args.complexityHint) task.complexityHint = args.complexityHint;
+    if (Array.isArray(args.tags)) task.tags = args.tags;
+    if (Array.isArray(args.blockedBy)) task.blockedBy = args.blockedBy;
     this.sessions.set(task.taskId, task);
     return task;
   }
@@ -507,6 +582,102 @@ function validateExternalTask(
       ? (r.autonomy as "guided" | "autonomous")
       : undefined;
 
+  // iterate-2026-05-14 lead-foundation-task-schema — per-field soft-drop
+  // validation. Forward-compat: tolerated on v1/v2/v3 rows alike (matches
+  // the existing phaseTaskId / runId / parentRunMaster pattern). Bad
+  // shapes drop the offending field only; the rest of the row survives.
+  const domain =
+    typeof r.domain === "string" && r.domain.length > 0 ? r.domain : undefined;
+  const priority =
+    r.priority === "P0" ||
+    r.priority === "P1" ||
+    r.priority === "P2" ||
+    r.priority === "P3"
+      ? (r.priority as LeadPriority)
+      : undefined;
+  const complexityHint =
+    r.complexityHint === "small" ||
+    r.complexityHint === "medium" ||
+    r.complexityHint === "large"
+      ? (r.complexityHint as LeadComplexityHint)
+      : undefined;
+  // `tags` and `blockedBy` MUST be arrays. A non-array value (string,
+  // object, null) drops the whole field. Mixed-type arrays are filtered
+  // down to the strings, consistent with `pluginDirs` handling above.
+  const tags = Array.isArray(r.tags)
+    ? (r.tags as unknown[]).filter((x): x is string => typeof x === "string")
+    : undefined;
+  const blockedBy = Array.isArray(r.blockedBy)
+    ? (r.blockedBy as unknown[]).filter((x): x is string => typeof x === "string")
+    : undefined;
+  const leadParentTaskId =
+    typeof r.leadParentTaskId === "string" && r.leadParentTaskId.length > 0
+      ? r.leadParentTaskId
+      : undefined;
+  const poFeedback =
+    typeof r.poFeedback === "string" && r.poFeedback.length > 0
+      ? r.poFeedback
+      : undefined;
+  const claimToken =
+    typeof r.claimToken === "string" && r.claimToken.length > 0
+      ? r.claimToken
+      : undefined;
+  const claimedBy =
+    typeof r.claimedBy === "string" && r.claimedBy.length > 0
+      ? r.claimedBy
+      : undefined;
+  const claimedAt =
+    typeof r.claimedAt === "string" && r.claimedAt.length > 0
+      ? r.claimedAt
+      : undefined;
+  const claimPid =
+    typeof r.claimPid === "number" && Number.isFinite(r.claimPid)
+      ? r.claimPid
+      : undefined;
+  const promotedFromTriageId =
+    typeof r.promotedFromTriageId === "string" && r.promotedFromTriageId.length > 0
+      ? r.promotedFromTriageId
+      : undefined;
+  // leadHandoff: atomic — either the whole sub-object passes validation
+  // or it's dropped. status is the discriminator; leadId + status +
+  // beatsUsed + summary are required; sub-fields are optional.
+  const rawHandoff = r.leadHandoff;
+  let leadHandoff: LeadHandoff | undefined = undefined;
+  if (rawHandoff && typeof rawHandoff === "object" && !Array.isArray(rawHandoff)) {
+    const h = rawHandoff as Record<string, unknown>;
+    const status =
+      h.status === "completed" || h.status === "escalated" || h.status === "failed"
+        ? (h.status as LeadHandoff["status"])
+        : undefined;
+    if (
+      status !== undefined &&
+      typeof h.leadId === "string" &&
+      h.leadId.length > 0 &&
+      typeof h.beatsUsed === "number" &&
+      Number.isFinite(h.beatsUsed) &&
+      typeof h.summary === "string"
+    ) {
+      const handoff: LeadHandoff = {
+        leadId: h.leadId,
+        status,
+        beatsUsed: h.beatsUsed,
+        summary: h.summary,
+      };
+      if (Array.isArray(h.subIterateIds)) {
+        handoff.subIterateIds = (h.subIterateIds as unknown[]).filter(
+          (x): x is string => typeof x === "string",
+        );
+      }
+      if (typeof h.escalationReason === "string" && h.escalationReason.length > 0) {
+        handoff.escalationReason = h.escalationReason;
+      }
+      if (typeof h.learningsExtracted === "boolean") {
+        handoff.learningsExtracted = h.learningsExtracted;
+      }
+      leadHandoff = handoff;
+    }
+  }
+
   return {
     taskId,
     sessionUuid: r.sessionUuid,
@@ -531,5 +702,20 @@ function validateExternalTask(
     ...(phaseTaskId ? { phaseTaskId } : {}),
     ...(runId ? { runId } : {}),
     ...(parentRunMaster !== undefined ? { parentRunMaster } : {}),
+    // iterate-2026-05-14 lead-foundation — spread only when defined so
+    // the on-disk JSON stays quiet for legacy / non-lead tasks.
+    ...(domain !== undefined ? { domain } : {}),
+    ...(priority !== undefined ? { priority } : {}),
+    ...(complexityHint !== undefined ? { complexityHint } : {}),
+    ...(tags !== undefined ? { tags } : {}),
+    ...(blockedBy !== undefined ? { blockedBy } : {}),
+    ...(leadParentTaskId !== undefined ? { leadParentTaskId } : {}),
+    ...(poFeedback !== undefined ? { poFeedback } : {}),
+    ...(claimToken !== undefined ? { claimToken } : {}),
+    ...(claimedBy !== undefined ? { claimedBy } : {}),
+    ...(claimedAt !== undefined ? { claimedAt } : {}),
+    ...(claimPid !== undefined ? { claimPid } : {}),
+    ...(leadHandoff !== undefined ? { leadHandoff } : {}),
+    ...(promotedFromTriageId !== undefined ? { promotedFromTriageId } : {}),
   };
 }

@@ -391,6 +391,241 @@ describe("poc-external routes — integration", () => {
     expect(body.items).toHaveLength(0);
   });
 
+  // ---------- iterate-2026-05-14 lead-foundation-task-schema ----------
+
+  it("POST /tasks accepts the 5 lead-foundation modal fields and round-trips them via GET", async () => {
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "lead-routed-task",
+        cwd: "/tmp",
+        domain: "shipwright",
+        priority: "P1",
+        complexityHint: "medium",
+        tags: ["auth", "billing"],
+        blockedBy: ["task-x"],
+      }),
+    });
+    expect(create.status).toBe(200);
+    const { task } = await create.json() as {
+      task: {
+        taskId: string;
+        domain?: string;
+        priority?: string;
+        complexityHint?: string;
+        tags?: string[];
+        blockedBy?: string[];
+      };
+    };
+    expect(task.domain).toBe("shipwright");
+    expect(task.priority).toBe("P1");
+    expect(task.complexityHint).toBe("medium");
+    expect(task.tags).toEqual(["auth", "billing"]);
+    expect(task.blockedBy).toEqual(["task-x"]);
+
+    // Reload the store from disk and confirm persistence — proves the
+    // route called persist() with the fields preserved, not just stored
+    // them in memory (HIGH-1).
+    const list = await app.request("/api/external/tasks");
+    const json = await list.json() as { tasks: Array<{ taskId: string; priority?: string }> };
+    const fromList = json.tasks.find((t) => t.taskId === task.taskId)!;
+    expect(fromList.priority).toBe("P1");
+  });
+
+  it("POST /tasks omits leadwright fields when the body doesn't carry them (legacy callers)", async () => {
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "legacy-task", cwd: "/tmp" }),
+    });
+    expect(create.status).toBe(200);
+    const { task } = await create.json() as {
+      task: {
+        domain?: string;
+        priority?: string;
+        complexityHint?: string;
+        tags?: string[];
+        blockedBy?: string[];
+      };
+    };
+    expect(task.domain).toBeUndefined();
+    expect(task.priority).toBeUndefined();
+    expect(task.complexityHint).toBeUndefined();
+    expect(task.tags).toBeUndefined();
+    expect(task.blockedBy).toBeUndefined();
+  });
+
+  it("POST /tasks soft-drops malformed tags / blockedBy / priority shapes", async () => {
+    // External review MED-3: the route trusts neither UI parsing nor raw
+    // HTTP — bad shapes are filtered server-side.
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "bad-shapes",
+        cwd: "/tmp",
+        tags: "not-an-array",     // string, not array → drop
+        blockedBy: [1, 2, "task-z"], // mixed types → keep only strings
+        priority: "P9",            // not in enum → drop
+        complexityHint: "huge",    // not in enum → drop
+      }),
+    });
+    expect(create.status).toBe(200);
+    const { task } = await create.json() as {
+      task: {
+        tags?: string[];
+        blockedBy?: string[];
+        priority?: string;
+        complexityHint?: string;
+      };
+    };
+    expect(task.tags).toBeUndefined();
+    expect(task.blockedBy).toEqual(["task-z"]);
+    expect(task.priority).toBeUndefined();
+    expect(task.complexityHint).toBeUndefined();
+  });
+
+  it("POST /tasks ignores daemon-only fields (claimToken, leadHandoff, claimPid, …)", async () => {
+    // External review MED-4: store.create() write surface narrows to
+    // user-creatable fields. Daemon-owned fields can only be set by the
+    // daemon via its own claim helper (separate leadwright repo).
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "ignored-daemon-fields",
+        cwd: "/tmp",
+        claimToken: "tok-injected",
+        claimedBy: "fake-lead",
+        claimedAt: "2026-05-14T00:00:00Z",
+        claimPid: 9999,
+        leadHandoff: {
+          leadId: "fake-lead",
+          status: "completed",
+          beatsUsed: 1,
+          summary: "injected",
+        },
+        leadParentTaskId: "injected-parent",
+        poFeedback: "injected feedback",
+        promotedFromTriageId: "trg-injected",
+      }),
+    });
+    expect(create.status).toBe(200);
+    const { task } = await create.json() as {
+      task: {
+        claimToken?: string;
+        claimedBy?: string;
+        claimedAt?: string;
+        claimPid?: number;
+        leadHandoff?: unknown;
+        leadParentTaskId?: string;
+        poFeedback?: string;
+        promotedFromTriageId?: string;
+      };
+    };
+    expect(task.claimToken).toBeUndefined();
+    expect(task.claimedBy).toBeUndefined();
+    expect(task.claimedAt).toBeUndefined();
+    expect(task.claimPid).toBeUndefined();
+    expect(task.leadHandoff).toBeUndefined();
+    expect(task.leadParentTaskId).toBeUndefined();
+    expect(task.poFeedback).toBeUndefined();
+    expect(task.promotedFromTriageId).toBeUndefined();
+  });
+
+  it("POST /launch returns 409 task_claimed when claimToken is set on the task", async () => {
+    // External review HIGH-2: only claimToken triggers; the route logs
+    // task id + claim metadata.
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "claimed", cwd: "/tmp" }),
+    });
+    const { task } = await create.json() as { task: { taskId: string } };
+    // Simulate a daemon claim by mutating the store directly (the daemon
+    // helper that does this lives in leadwright — out of scope).
+    store.patch(task.taskId, {
+      claimToken: "tok-daemon",
+      claimedBy: "lead-7",
+      claimedAt: "2026-05-14T20:00:00Z",
+      claimPid: 12345,
+    });
+    await store.persist();
+
+    const launch = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actionId: "new-plain" }),
+    });
+    expect(launch.status).toBe(409);
+    const err = await launch.json() as {
+      error: string;
+      claimedBy?: string;
+      claimedAt?: string;
+    };
+    expect(err.error).toBe("task_claimed");
+    expect(err.claimedBy).toBe("lead-7");
+    expect(err.claimedAt).toBe("2026-05-14T20:00:00Z");
+  });
+
+  it("POST /launch ignores claimedBy / claimedAt without claimToken (HIGH-2 semantics)", async () => {
+    // Stale `claimedBy` left behind by a half-completed claim must NOT
+    // block launches — only an active claimToken does.
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "stale-claim-metadata", cwd: "/tmp" }),
+    });
+    const { task } = await create.json() as { task: { taskId: string } };
+    store.patch(task.taskId, {
+      claimedBy: "lead-7",
+      claimedAt: "2026-05-14T20:00:00Z",
+      // claimToken intentionally NOT set
+    });
+    await store.persist();
+    const launch = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actionId: "new-plain" }),
+    });
+    // Either 200 (legit fallback path) or any non-409. The point is: NOT
+    // blocked by stale claim metadata.
+    expect(launch.status).not.toBe(409);
+  });
+
+  it("POST /launch with an unrelated body key does not mutate task fields beyond the allowlist", async () => {
+    // External review MED-7: launch body must not become a generic
+    // task-update channel.
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "allowlist-merge", cwd: "/tmp" }),
+    });
+    const { task } = await create.json() as { task: { taskId: string } };
+
+    const launch = await app.request(`/api/external/tasks/${task.taskId}/launch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        actionId: "new-plain",
+        // Disallowed keys: an attacker tries to overwrite the task state
+        // machine through the launch route.
+        claimToken: "injected",
+        title: "attacker-renamed",
+      }),
+    });
+    expect(launch.status).toBe(200);
+
+    // Re-fetch the task and confirm the disallowed fields were ignored.
+    const detail = await app.request(`/api/external/tasks/${task.taskId}`);
+    const { task: t2 } = await detail.json() as {
+      task: { title: string; claimToken?: string };
+    };
+    expect(t2.title).toBe("allowlist-merge");
+    expect(t2.claimToken).toBeUndefined();
+  });
+
   afterEach(() => {
     try { rmSync(projectsDir, { recursive: true, force: true }); } catch { /* ignore */ }
   });

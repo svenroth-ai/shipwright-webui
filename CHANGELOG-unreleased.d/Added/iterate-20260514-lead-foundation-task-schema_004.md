@@ -1,0 +1,1 @@
+MasterTaskCard: priority badge (P0..P3), domain chip (text-only), and blockedBy indicator (✓ all done / ⏳N pending / ❌ failed) sourced from the master shadow ExternalTask matched by runId + parentRunMaster (ADR-100).
