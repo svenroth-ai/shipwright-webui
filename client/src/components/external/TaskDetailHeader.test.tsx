@@ -160,6 +160,48 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
+  // Iterate L — `altScreenActive` matrix. This is the replacement
+  // signal: it's true iff a TUI is in pty foreground (Claude alt-
+  // screen, vim, htop, …). When a TUI is foregrounded, the user
+  // types into it directly; surfacing Resume would be misleading.
+  it("active + altScreenActive=true → NO CTA (TUI in foreground)", () => {
+    renderHeader(makeTask({ state: "active", altScreenActive: true }));
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+  });
+
+  it("idle + altScreenActive=true → NO CTA (TUI in foreground)", () => {
+    renderHeader(makeTask({ state: "idle", altScreenActive: true }));
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+  });
+
+  it("active + altScreenActive=false → 'Resume' CTA (shell prompt, TUI gone)", () => {
+    renderHeader(makeTask({ state: "active", altScreenActive: false }));
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+  });
+
+  it("altScreenActive toggle alone flips Resume CTA (consumption proof)", () => {
+    // Regression fence proving the component reads `altScreenActive`
+    // rather than ignoring it. Flip the field only — state stays the
+    // same — and the CTA must flip visibility.
+    const { rerender, qc } = renderHeader(
+      makeTask({ state: "active", altScreenActive: false }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+
+    const tui = makeTask({ state: "active", altScreenActive: true });
+    qc.setQueryData(["external-task", tui.taskId], tui);
+    rerender(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <TaskDetailHeader task={tui} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+  });
+
   it("done → NO CTA", () => {
     renderHeader(makeTask({ state: "done" }));
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();

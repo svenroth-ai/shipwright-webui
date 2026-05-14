@@ -355,6 +355,31 @@ export class PtyManager {
   }
 
   /**
+   * Iterate L (resume-cta-active-state) — proxy to `HeadlessMirror.
+   * isAltBufferActive()` for a given task. Returns:
+   *   - `true`  when an alt-screen TUI (Claude / vim / htop / …) is in
+   *             pty foreground (DECSET 1049 active in the mirror's
+   *             buffer state)
+   *   - `false` when the mirror is in the normal buffer (shell prompt
+   *             visible, no TUI), OR no mirror exists for the task, OR
+   *             the headless mirror is disabled by `headless-probe.ts`.
+   *
+   * Used by the /tasks API to derive the `altScreenActive` field that
+   * the client uses to gate the Resume CTA: while a TUI is running the
+   * user types directly into it, so showing Resume would be misleading
+   * and a misclick would inject `claude --resume <uuid>` bytes into
+   * the running app's input handler. The `false`-on-missing-mirror
+   * default is conservative — same posture as ADR-095's
+   * `liveSession === undefined` back-compat: prefer to surface the
+   * Resume action than to silently withhold it.
+   */
+  isAltBufferActive(taskId: string): boolean {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.mirror) return false;
+    return entry.mirror.isAltBufferActive();
+  }
+
+  /**
    * Return the set of taskIds with a live pty entry. Used by the daily
    * scrollback sweep (ADR-068-A1, AC-11) to skip clearing files for
    * tasks whose pty is still running but whose `sdk-sessions.json` state

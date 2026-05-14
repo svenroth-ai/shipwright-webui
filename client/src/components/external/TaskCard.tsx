@@ -350,28 +350,27 @@ export function TaskCard({ task }: Props) {
                   lands on the Terminal tab when persisted preference
                   says so); a dedicated CTA duplicated that affordance.
 
-                  Iterate L (resume-cta-active-state) — Resume is now
-                  always shown for `(idle | active)` regardless of
-                  `liveSession`. The earlier ADR-095 / ADR-096
-                  liveSession-gating was falsified empirically: the
-                  signal only checks "a pty entry exists in PtyManager",
-                  not "Claude is in pty foreground". The most common
-                  stuck-state is exactly the misfire — Claude TUI
-                  exited but the parent shell (pwsh) survived → pty
-                  alive → liveSession=true → Resume hidden → user has
-                  no UI path back. Single "Resume" label everywhere
-                  (see memory feedback_resume_label_singular). */}
-              {(task.state === "idle" || task.state === "active") && (
-                <span data-testid={`task-card-resume-${task.taskId}`}>
-                  <TerminalLaunchButton
-                    task={task}
-                    variant="solid"
-                    color="orange"
-                    size="xs"
-                    resume={true}
-                  />
-                </span>
-              )}
+                  Iterate L (resume-cta-active-state) — `altScreenActive`
+                  replaces the falsified `liveSession` signal. Resume
+                  shows for `(idle | active)` UNLESS a TUI (Claude,
+                  vim, htop, …) is in pty foreground
+                  (altScreenActive=true). `liveSession` is no longer
+                  consulted by this matrix (it conflated "pty exists"
+                  with "Claude foreground" and dead-ended users whose
+                  pty hosted only a bare shell). Single "Resume" label
+                  (memory feedback_resume_label_singular). */}
+              {(task.state === "idle" || task.state === "active") &&
+                task.altScreenActive !== true && (
+                  <span data-testid={`task-card-resume-${task.taskId}`}>
+                    <TerminalLaunchButton
+                      task={task}
+                      variant="solid"
+                      color="orange"
+                      size="xs"
+                      resume={true}
+                    />
+                  </span>
+                )}
             </div>
           )}
         </div>
