@@ -52,6 +52,10 @@ vi.mock("@xterm/xterm", () => ({
     // wires `term.onScroll` to call WebglAddon.clearTextureAtlas. Mock
     // returns a disposable; tests don't assert against scroll behavior.
     onScroll: vi.fn(() => ({ dispose: vi.fn() })),
+    // refresh(start, end) — Iterate K v2 calls this after each atlas
+    // clear so row-renderer repaints from the fresh atlas (mimicking
+    // VS Code's forceRefresh()). Mock is a no-op spy.
+    refresh: vi.fn(),
     buffer: { active: mockBufferActive },
   })),
 }));
