@@ -802,11 +802,29 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // scroll, and the periodic interval was the only mechanism
       // before this trigger.
       const RESUME_BURST_QUIET_MS = 2_000;
+      // Iterate K v7 (ADR-099, 2026-05-14) — post-mount initial
+      // maintenance. After fresh mount (page reload, navigate-back,
+      // initial open) lastWriteTime in v6 started at 0 — the gate
+      // `lastWriteTime > 0` excluded the very first write batch, so a
+      // Resume burst arriving immediately after the snapshot-replay
+      // write missed the immediate trigger and had to wait for the
+      // 10s periodic. Two changes:
+      //   1. Initialize lastWriteTime to a value PRIOR-TO-mount by
+      //      more-than-quiet-window so the FIRST write after mount
+      //      qualifies as "after quiet" → trigger fires.
+      //   2. Schedule one unconditional maintenance after
+      //      POST_MOUNT_SETTLE_MS as a backstop — catches the case
+      //      where multiple bursts arrive within the quiet window
+      //      (mount → snapshot replay → Resume burst all <1s apart).
+      const POST_MOUNT_SETTLE_MS = 3_000;
       let onScrollDispose: { dispose: () => void } | null = null;
       let onWriteParsedDispose: { dispose: () => void } | null = null;
       let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
+      let postMountSettleTimer: ReturnType<typeof setTimeout> | null = null;
       let writesSinceLastClear = 0;
-      let lastWriteTime = 0;
+      // v7: initialize to "mount-time minus quiet+1ms" so first write
+      // after mount qualifies as "after quiet" and triggers maintenance.
+      let lastWriteTime = Date.now() - RESUME_BURST_QUIET_MS - 1;
       if (webglRef) {
         // Iterate K v5 (ADR-099, 2026-05-14) — split into TWO behaviors
         // based on buffer type:
@@ -856,17 +874,16 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // Track every parsed byte-batch. Cheap counter — xterm.js fires
         // onWriteParsed after each internal write batch.
         //
-        // Iterate K v6 — ALSO: if the gap since the last write exceeded
-        // RESUME_BURST_QUIET_MS, treat this firing as the start of a
-        // Resume / re-attach / wake-up burst and run maintenance
-        // immediately (don't wait for the 10s periodic). This makes
-        // Resume's first frames smear-free.
+        // Iterate K v6 + v7 — if the gap since the last byte-batch
+        // exceeded RESUME_BURST_QUIET_MS, treat this firing as the
+        // start of a Resume / re-attach / wake-up / post-mount burst
+        // and run maintenance immediately (don't wait for the 10s
+        // periodic). v7: lastWriteTime is now pre-initialized to
+        // mount-time minus quiet-window+1ms, so the FIRST write after
+        // a fresh mount also qualifies.
         onWriteParsedDispose = term.onWriteParsed(() => {
           const now = Date.now();
-          if (
-            lastWriteTime > 0 &&
-            now - lastWriteTime > RESUME_BURST_QUIET_MS
-          ) {
+          if (now - lastWriteTime > RESUME_BURST_QUIET_MS) {
             // First write after a meaningful quiet window — burst
             // start. Reset the counter so the next periodic tick
             // doesn't re-fire too quickly.
@@ -877,6 +894,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           }
           lastWriteTime = now;
         });
+        // Iterate K v7 — post-mount settle backstop. If the resume
+        // burst arrives so quickly after mount that it's bundled with
+        // the snapshot-replay write (both <quiet-window apart from
+        // each other), neither qualifies as "after quiet" individually
+        // and the burst-trigger doesn't fire. The settle timer
+        // unconditionally runs maintenance once at POST_MOUNT_SETTLE_MS,
+        // catching this case before the 10s periodic would.
+        postMountSettleTimer = setTimeout(() => {
+          postMountSettleTimer = null;
+          if (writesSinceLastClear > 0) {
+            writesSinceLastClear = 0;
+            safeAtlasMaintenance();
+          }
+        }, POST_MOUNT_SETTLE_MS);
         // Conditional periodic: only run maintenance if there was
         // activity since the last tick. When the terminal is idle (user
         // just reading a finished session), the counter stays 0 → no
@@ -905,6 +936,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (atlasClearTimer) {
           clearInterval(atlasClearTimer);
           atlasClearTimer = null;
+        }
+        if (postMountSettleTimer) {
+          clearTimeout(postMountSettleTimer);
+          postMountSettleTimer = null;
         }
         if (onScrollDispose) {
           onScrollDispose.dispose();
