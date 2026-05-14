@@ -91,6 +91,52 @@ export interface ExternalTask {
    * show Resume) for back-compat with pre-iterate-L server responses.
    */
   altScreenActive?: boolean;
+  /**
+   * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+   *
+   * Verbatim mirror of `server/src/core/sdk-sessions-store.ts`'s
+   * ExternalTask extension. Canonical source: leadwright/lib/
+   * lead-task-extension.ts (separate repo). Drift between this mirror
+   * and the server side is caught by the cross-package import guard.
+   *
+   * User-creatable: domain, priority, complexityHint, tags, blockedBy.
+   * Daemon-owned (set only by the leadwright claim helper / promote
+   * producer — NOT writable via webui POST routes):
+   *   leadParentTaskId, poFeedback, claimToken, claimedBy, claimedAt,
+   *   claimPid, leadHandoff, promotedFromTriageId.
+   *
+   * v3 schemaVersion is unchanged; all fields optional + additive.
+   */
+  domain?: string;
+  priority?: "P0" | "P1" | "P2" | "P3";
+  complexityHint?: "small" | "medium" | "large";
+  tags?: string[];
+  blockedBy?: string[];
+  leadParentTaskId?: string;
+  poFeedback?: string;
+  claimToken?: string;
+  claimedBy?: string;
+  claimedAt?: string;
+  claimPid?: number;
+  leadHandoff?: {
+    leadId: string;
+    status: "completed" | "escalated" | "failed";
+    beatsUsed: number;
+    subIterateIds?: string[];
+    summary: string;
+    escalationReason?: string;
+    learningsExtracted?: boolean;
+  };
+  promotedFromTriageId?: string;
+  /**
+   * iterate-2026-05-14 — passed through from sdk-sessions.json's
+   * `parentRunMaster` flag. When true, this task is the "master
+   * conversation" shadow for its `runId`. MasterTaskCard uses
+   * (runId, parentRunMaster === true) to find the source of header-level
+   * leadwright badges (priority / domain / blockedBy).
+   */
+  parentRunMaster?: boolean;
+  runId?: string;
 }
 
 export interface CopyCommandForms {
@@ -198,6 +244,20 @@ export async function createTask(args: {
   runId?: string;
   sessionUuid?: string;
   parentRunMaster?: boolean;
+  /**
+   * iterate-2026-05-14 lead-foundation-task-schema — five user-creatable
+   * leadwright fields. All optional + only included in the POST body
+   * when the caller sets them (NewIssueModal omits keys whose input is
+   * empty). The server soft-drops malformed shapes per the wire-level
+   * contract. Daemon-owned fields (claimToken, leadHandoff, …) are NOT
+   * accepted here — the daemon mutates them via the claim helper in the
+   * leadwright repo.
+   */
+  domain?: string;
+  priority?: "P0" | "P1" | "P2" | "P3";
+  complexityHint?: "small" | "medium" | "large";
+  tags?: string[];
+  blockedBy?: string[];
 }): Promise<ExternalTask> {
   // Server may respond with `{task, reused: true}` when an existing
   // phase-task shadow is reused (idempotency). The `reused` flag is

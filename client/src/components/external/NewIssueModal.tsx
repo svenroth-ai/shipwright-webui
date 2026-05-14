@@ -11,7 +11,13 @@
  *   - Pipeline + Iterate modes: AutonomyToggle; Task mode omits it (FR-03.72).
  *   - Helper-box body distinguishes Save vs Launch semantics.
  *   - Footer is the single-line `<kbd>Esc</kbd> to cancel` hint (FR-03.92).
- *   - NO priority field anywhere (FR-03.21 regression).
+ *   - NO priority field anywhere by default (FR-03.21 regression).
+ *     Iterate-2026-05-14 (lead-foundation-task-schema, leadwright Phase 1)
+ *     amends this: a `priority` input renders when the action's
+ *     `modal_fields` array explicitly includes `"priority"`. The same
+ *     opt-in gate applies to `domain` / `complexityHint` / `tags` /
+ *     `blockedBy`. Actions without these names in `modal_fields`
+ *     continue to render the original FR-03.21 UI unchanged.
  *
  * Phase B2 — iterate 3 remediation (2026-04-20):
  *   - Per-mode palette (task=amber / pipeline=purple / iterate=emerald) applied
@@ -252,6 +258,26 @@ export function NewIssueModal({
   // start `false` (opt-in) and toggle via the enable-checkbox.
   const [paramEnabled, setParamEnabled] = useState<Record<string, boolean>>({});
 
+  // iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+  // Five user-creatable routing fields. State stays local until submit;
+  // each field is included in the POST body ONLY when non-empty so the
+  // server-side soft-drop never has to fire for empty client input.
+  const [leadDomain, setLeadDomain] = useState("");
+  const [leadPriority, setLeadPriority] = useState<"" | "P0" | "P1" | "P2" | "P3">("");
+  const [leadComplexityHint, setLeadComplexityHint] = useState<"" | "small" | "medium" | "large">("");
+  const [leadTagsRaw, setLeadTagsRaw] = useState("");
+  const [leadBlockedByRaw, setLeadBlockedByRaw] = useState("");
+
+  // Which leadwright inputs to render is gated on the action's
+  // `modal_fields` array. Actions without these names hide the inputs
+  // entirely (preserves the FR-03.21 default-UI contract for actions
+  // that have not opted in).
+  const showLeadDomain = action?.modal_fields?.includes("domain") ?? false;
+  const showLeadPriority = action?.modal_fields?.includes("priority") ?? false;
+  const showLeadComplexityHint = action?.modal_fields?.includes("complexityHint") ?? false;
+  const showLeadTags = action?.modal_fields?.includes("tags") ?? false;
+  const showLeadBlockedBy = action?.modal_fields?.includes("blockedBy") ?? false;
+
   // iterate/v030-five-ux-fixes (review M5 / regression guard) — the
   // reset-form effect must fire ONLY when the modal opens (false → true),
   // NOT every time projectActions / phases / scopedProject identity
@@ -290,6 +316,14 @@ export function NewIssueModal({
     setParamValues({});
     setRevealedSecrets({});
     setParamEnabled({});
+    // iterate-2026-05-14 lead-foundation — reset all 5 fields when the
+    // modal opens. Empty string == "input not filled" so the submit
+    // path knows to omit the key.
+    setLeadDomain("");
+    setLeadPriority("");
+    setLeadComplexityHint("");
+    setLeadTagsRaw("");
+    setLeadBlockedByRaw("");
   }, [open]);
 
   // iterate/launch-cli-parameters § 4 — Schema-Lookup. Switch on the
@@ -510,6 +544,12 @@ export function NewIssueModal({
           projectId: string;
           phase?: string;
           actionId?: string;
+          // iterate-2026-05-14 lead-foundation — 5 user-creatable fields.
+          domain?: string;
+          priority?: "P0" | "P1" | "P2" | "P3";
+          complexityHint?: "small" | "medium" | "large";
+          tags?: string[];
+          blockedBy?: string[];
         } = {
           title: title.trim(),
           cwd: selectedProject.path,
@@ -523,6 +563,34 @@ export function NewIssueModal({
         };
         if (mode === "new-task" && currentPhase) {
           createPayload.phase = currentPhase.id;
+        }
+        // iterate-2026-05-14 lead-foundation-task-schema — only attach
+        // each field when (a) the action opted in via modal_fields AND
+        // (b) the user actually filled the input. Empty-string trim
+        // suppresses no-op writes; tags / blockedBy split on commas +
+        // filter empties (external review LOW-11).
+        if (showLeadDomain && leadDomain.trim().length > 0) {
+          createPayload.domain = leadDomain.trim();
+        }
+        if (showLeadPriority && leadPriority !== "") {
+          createPayload.priority = leadPriority;
+        }
+        if (showLeadComplexityHint && leadComplexityHint !== "") {
+          createPayload.complexityHint = leadComplexityHint;
+        }
+        if (showLeadTags) {
+          const tags = leadTagsRaw
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+          if (tags.length > 0) createPayload.tags = tags;
+        }
+        if (showLeadBlockedBy) {
+          const blockedBy = leadBlockedByRaw
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+          if (blockedBy.length > 0) createPayload.blockedBy = blockedBy;
         }
         const task = await createTask(createPayload);
 
@@ -637,6 +705,18 @@ export function NewIssueModal({
       paramValues,
       paramEnabled,
       showAutonomyToggle,
+      // iterate-2026-05-14 lead-foundation — visibility gates + values.
+      showLeadDomain,
+      showLeadPriority,
+      showLeadComplexityHint,
+      showLeadTags,
+      showLeadBlockedBy,
+      leadDomain,
+      leadPriority,
+      leadComplexityHint,
+      leadTagsRaw,
+      leadBlockedByRaw,
+      action,
     ],
   );
 
@@ -796,6 +876,106 @@ export function NewIssueModal({
                   className="min-h-[108px] w-full resize-y rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
                 />
               </FieldLabel>
+
+              {/*
+                iterate-2026-05-14 lead-foundation-task-schema — leadwright
+                Phase 1 routing inputs. Each rendered ONLY when the action's
+                modal_fields opted in (preserves the FR-03.21 default-UI
+                contract: actions without these names see no leadwright UI).
+                Native <input>/<select> primitives — no new dependencies.
+                Values are normalized on submit (trim + comma-split + filter
+                empties) and omitted from the POST body when empty.
+              */}
+              {(showLeadDomain ||
+                showLeadPriority ||
+                showLeadComplexityHint ||
+                showLeadTags ||
+                showLeadBlockedBy) && (
+                <div
+                  data-testid="new-issue-lead-fields"
+                  className="grid grid-cols-2 gap-3"
+                >
+                  {showLeadDomain && (
+                    <FieldLabel label="Domain" hint="optional — routing key">
+                      <input
+                        type="text"
+                        value={leadDomain}
+                        onChange={(e) => setLeadDomain(e.target.value)}
+                        data-testid="new-issue-domain-input"
+                        placeholder="e.g. shipwright"
+                        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+                      />
+                    </FieldLabel>
+                  )}
+                  {showLeadPriority && (
+                    <FieldLabel label="Priority" hint="optional">
+                      <select
+                        value={leadPriority}
+                        onChange={(e) =>
+                          setLeadPriority(e.target.value as typeof leadPriority)
+                        }
+                        data-testid="new-issue-priority-select"
+                        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+                      >
+                        <option value="">— unset —</option>
+                        <option value="P0">P0 (critical)</option>
+                        <option value="P1">P1 (high)</option>
+                        <option value="P2">P2 (medium)</option>
+                        <option value="P3">P3 (low)</option>
+                      </select>
+                    </FieldLabel>
+                  )}
+                  {showLeadComplexityHint && (
+                    <FieldLabel label="Complexity hint" hint="optional">
+                      <select
+                        value={leadComplexityHint}
+                        onChange={(e) =>
+                          setLeadComplexityHint(
+                            e.target.value as typeof leadComplexityHint,
+                          )
+                        }
+                        data-testid="new-issue-complexity-hint-select"
+                        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+                      >
+                        <option value="">— unset —</option>
+                        <option value="small">small</option>
+                        <option value="medium">medium</option>
+                        <option value="large">large</option>
+                      </select>
+                    </FieldLabel>
+                  )}
+                  {showLeadTags && (
+                    <FieldLabel
+                      label="Tags"
+                      hint="optional — comma-separated"
+                    >
+                      <input
+                        type="text"
+                        value={leadTagsRaw}
+                        onChange={(e) => setLeadTagsRaw(e.target.value)}
+                        data-testid="new-issue-tags-input"
+                        placeholder="auth, billing"
+                        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+                      />
+                    </FieldLabel>
+                  )}
+                  {showLeadBlockedBy && (
+                    <FieldLabel
+                      label="Blocked by"
+                      hint="optional — taskIds, comma-separated"
+                    >
+                      <input
+                        type="text"
+                        value={leadBlockedByRaw}
+                        onChange={(e) => setLeadBlockedByRaw(e.target.value)}
+                        data-testid="new-issue-blocked-by-input"
+                        placeholder="task-x, task-y"
+                        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+                      />
+                    </FieldLabel>
+                  )}
+                </div>
+              )}
 
               {/* iterate/v030-five-ux-fixes (P2) — Required parameters
                   rendered OUTSIDE the Advanced collapsible so the user

@@ -10,7 +10,7 @@
       "kind": "external_launch",
       "description": "Plain Claude invocation scoped to a Shipwright phase. Fire-and-forget — no pipeline state.",
       "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.phase_label}: {task.title}\" {plugin.dirs} {task.initial_prompt}",
-      "modal_fields": ["title", "phase", "description"],
+      "modal_fields": ["title", "phase", "description", "domain", "priority", "complexityHint", "tags", "blockedBy"],
       "phase_parameters": {
         "adopt": [
           { "name": "dry-run", "type": "boolean", "label": "Dry run", "cli_flag": "--dry-run", "helpText": "Simulate adoption without commits" },
@@ -56,7 +56,7 @@
       "kind": "external_launch",
       "description": "Run the complexity-adaptive iterate skill against an existing project.",
       "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"Iterate: {task.title}\" {plugin.dirs} {task.initial_prompt}",
-      "modal_fields": ["title", "autonomy", "description"],
+      "modal_fields": ["title", "autonomy", "description", "domain", "priority", "complexityHint", "tags", "blockedBy"],
       "parameters": [
         { "name": "type", "type": "enum", "label": "Change type", "enum": ["feature", "change", "bug"], "cli_flag": "--type", "value_separator": "space", "helpText": "Auto-detected if omitted" }
       ]

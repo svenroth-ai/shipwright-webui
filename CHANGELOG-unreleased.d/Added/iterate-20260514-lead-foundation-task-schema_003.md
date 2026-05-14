@@ -1,0 +1,1 @@
+POST /api/external/tasks/:id/launch: 409 task_claimed when task.claimToken is set, so user launches step aside while the leadwright daemon owns the task. Only claimToken triggers; stale claimedBy/claimedAt is advisory (ADR-100).
