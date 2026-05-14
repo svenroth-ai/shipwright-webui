@@ -366,6 +366,14 @@ export class SdkSessionsStore {
     complexityHint?: LeadComplexityHint;
     tags?: string[];
     blockedBy?: string[];
+    /**
+     * iterate-2026-05-14 triage-tab (ADR-101) — back-ref to the upstream
+     * triage item id (`trg-<8hex>`). Set EXCLUSIVELY by the
+     * `/api/triage/:projectId/promote` route. Public POST
+     * `/api/external/tasks` does NOT accept this field (narrow write
+     * surface, mirrors the ADR-100 MED-4 pattern for daemon-only fields).
+     */
+    promotedFromTriageId?: string;
   }): ExternalTask {
     const task: ExternalTask = {
       taskId: randomUUID(),
@@ -404,6 +412,13 @@ export class SdkSessionsStore {
     if (args.complexityHint) task.complexityHint = args.complexityHint;
     if (Array.isArray(args.tags)) task.tags = args.tags;
     if (Array.isArray(args.blockedBy)) task.blockedBy = args.blockedBy;
+    // iterate-2026-05-14 triage-tab (ADR-101): back-ref to the upstream
+    // triage item that the operator promoted. Set ONLY by the
+    // /api/triage/:projectId/promote route (NOT exposed to public POST
+    // /api/external/tasks); the daemon-only-fields pattern from ADR-100.
+    if (typeof args.promotedFromTriageId === "string") {
+      task.promotedFromTriageId = args.promotedFromTriageId;
+    }
     this.sessions.set(task.taskId, task);
     return task;
   }
@@ -420,6 +435,25 @@ export class SdkSessionsStore {
   findByPhaseTaskId(phaseTaskId: string): ExternalTask | undefined {
     for (const t of this.sessions.values()) {
       if (t.phaseTaskId === phaseTaskId && t.state !== "done") return t;
+    }
+    return undefined;
+  }
+
+  /**
+   * iterate-2026-05-14 triage-tab (ADR-101) — find an existing task by
+   * `promotedFromTriageId`. Used by the promote route to make
+   * Promote idempotent: if a previous attempt completed step 5 (created
+   * task) but step 7 (status flip) failed, the retry must NOT create
+   * another task — it must reuse the existing one and re-attempt the
+   * status flip. Mirrors the `findByPhaseTaskId` pattern.
+   *
+   * Includes done-state tasks too (unlike findByPhaseTaskId): a triage
+   * item promoted to a task that's been completed should still block
+   * a re-promote attempt; the back-ref is unique per triage id.
+   */
+  findByPromotedFromTriageId(triageId: string): ExternalTask | undefined {
+    for (const t of this.sessions.values()) {
+      if (t.promotedFromTriageId === triageId) return t;
     }
     return undefined;
   }
