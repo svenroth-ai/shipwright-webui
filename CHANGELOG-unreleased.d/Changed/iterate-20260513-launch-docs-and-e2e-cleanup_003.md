@@ -1,0 +1,1 @@
+CLAUDE.md WHAT/Architecture rules + TaskDetailPage Structure line aligned to the embedded-terminal auto-execute Launch flow (ADR-068-A1); retired references to LaunchRow / CopyCommandCard and the "user pastes them" / "Strg+V then Enter" copy-paste language. Copy-command remains documented as fallback for users with external terminals.
