@@ -778,17 +778,29 @@ export function createExternalRoutes(args: {
     // Legacy fallback: no actionId, unresolvable project, or resume flag.
     if (!commands) {
       // iterate-2026-05-08 v0.8.8 AC-1 — Resume on `new-plain` tasks
-      // semantically can't work: Claude only writes a JSONL transcript
-      // AFTER the user types their first message inside the TUI. So
-      // `claude --resume <sessionUuid>` always fails with "No conversation
-      // found" for a new-plain task whose pty died before the first
-      // message. v0.8.7 AC-1 unblocked the Resume CTA for these tasks
-      // (idle transition on pty-gone); this gate makes the Resume click
-      // actually USEFUL by emitting a FRESH launch (`--session-id <uuid>`,
-      // no `--resume` flag) so Claude opens a new TUI session under the
-      // same task identity.
+      // BEFORE the first JSONL write semantically can't work: Claude
+      // only writes a JSONL transcript AFTER the user types their first
+      // message inside the TUI. `claude --resume <sessionUuid>` fails
+      // with "No conversation found" for a new-plain task whose pty
+      // died before the first message. The v0.8.8 fix emitted a FRESH
+      // launch (`--session-id <uuid>`) so Claude opens a new TUI
+      // session under the same task identity.
+      //
+      // Iterate L (resume-cta-active-state) — refine the gate using
+      // `firstJsonlObservedAt`. Empirical reproducer (task
+      // "Anpassung Tool Tips 2", 2026-05-14): a new-plain task whose
+      // JSONL DOES exist (user typed messages) had its Resume click
+      // forced through the fresh-launch branch, which Claude rejected
+      // with "Session ID <uuid> is already in use" — the SQLite lock
+      // for the established session is held by Claude's session
+      // registry. With JSONL already on disk, `--resume` is the
+      // correct command shape (Claude finds the conversation, takes
+      // the lock cleanly, restores the TUI). v0.8.8's original case
+      // (JSONL never written) is preserved: when
+      // firstJsonlObservedAt is undefined, still emit fresh launch.
+      const jsonlObserved = Boolean(task.firstJsonlObservedAt);
       const effectiveResume =
-        resume && task.actionId !== "new-plain";
+        resume && (task.actionId !== "new-plain" || jsonlObserved);
       commands = buildCopyCommands({
         sessionUuid: task.sessionUuid,
         cwd: task.cwd,
