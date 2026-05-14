@@ -125,4 +125,78 @@ describe("validateActionsSchema — 5 negative cases (O24)", () => {
     expect(err).toBeDefined();
     expect(err?.field).toBe("complexity:radio:small,medium,large");
   });
+
+  // ---------- iterate-2026-05-14 lead-foundation-task-schema ----------
+  //
+  // Five new modal-field names land in SUPPORTED_MODAL_FIELDS to support
+  // leadwright daemon routing. The stale `complexity:radio:...` regression
+  // fence (test #5 above) MUST stay green to prove the new names are
+  // added by allowlisting, not by relaxing the colon-suffix rejection.
+
+  it("accepts the 5 lead-foundation modal-field names on new-task / new-iterate", () => {
+    const errs = validateActionsSchema({
+      schemaVersion: 1,
+      defaults: { autonomy: "guided" },
+      actions: [
+        {
+          id: "new-task",
+          label: "New task",
+          kind: "external_launch",
+          command_template: "x",
+          modal_fields: [
+            "title",
+            "phase",
+            "description",
+            "domain",
+            "priority",
+            "complexityHint",
+            "tags",
+            "blockedBy",
+          ],
+        },
+        {
+          id: "new-iterate",
+          label: "New iterate",
+          kind: "external_launch",
+          command_template: "y",
+          modal_fields: [
+            "title",
+            "autonomy",
+            "description",
+            "domain",
+            "priority",
+            "complexityHint",
+            "tags",
+            "blockedBy",
+          ],
+        },
+      ],
+      phases: [{ id: "build", label: "Build" }],
+      preview: { enabled: false },
+    });
+    const unsupported = errs.filter((e) => e.code === "unsupported_modal_field");
+    expect(unsupported).toEqual([]);
+  });
+
+  it("still rejects a stray modal-field name even when the 5 new ones are accepted", () => {
+    const errs = validateActionsSchema({
+      schemaVersion: 1,
+      defaults: { autonomy: "guided" },
+      actions: [
+        {
+          id: "a",
+          label: "a",
+          kind: "external_launch",
+          command_template: "x",
+          modal_fields: ["title", "domain", "stray_lead_field"],
+        },
+      ],
+      phases: [{ id: "build", label: "Build" }],
+      preview: { enabled: false },
+    });
+    const err = errs.find(
+      (e) => e.code === "unsupported_modal_field" && e.field === "stray_lead_field",
+    );
+    expect(err).toBeDefined();
+  });
 });

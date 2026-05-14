@@ -398,6 +398,16 @@ export function createExternalRoutes(args: {
         ? body.actionId.trim()
         : undefined;
 
+    // iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+    // Five user-creatable routing fields land here with the same soft-drop
+    // semantics as the disk validator: malformed shapes are filtered, not
+    // rejected, so the body of a legacy client doesn't have to know about
+    // these fields. Daemon-owned fields (claimToken / leadHandoff / etc.)
+    // are NOT accepted on this route — they're set by the leadwright
+    // claim helper that lives in the separate leadwright repo. External
+    // review MED-4.
+    const leadFields = readLeadCreateFields(body);
+
     const task = store.create({
       title,
       cwd,
@@ -410,6 +420,7 @@ export function createExternalRoutes(args: {
       phaseTaskId: phaseTaskRefs.phaseTaskId,
       runId: phaseTaskRefs.runId,
       parentRunMaster: phaseTaskRefs.parentRunMaster,
+      ...leadFields,
     });
     await store.persist();
     return c.json({ task: withLiveSession(task) });
@@ -461,6 +472,43 @@ export function createExternalRoutes(args: {
     if (task.state === "done") {
       return c.json(
         { error: "launch_invalid_state", state: task.state },
+        409,
+      );
+    }
+
+    // iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+    //
+    // The leadwright daemon claims tasks via a compare-and-swap helper
+    // (in the separate leadwright repo) that sets `claimToken` + audit
+    // fields. While a task is claimed the user-level launch route MUST
+    // step aside so the user and the daemon don't fight over the same
+    // session (stale SQLite lock, interleaved JSONL, double-running
+    // shells).
+    //
+    // External review HIGH-2: only `claimToken` triggers the 409. Stale
+    // `claimedBy` / `claimedAt` left behind by a half-completed claim
+    // are advisory only — they get logged so an operator can diagnose,
+    // but they don't block launches. The diagnostic log captures
+    // taskId + claim metadata so a stuck claim is greppable.
+    if (typeof task.claimToken === "string" && task.claimToken.length > 0) {
+      // Best-effort observability — match the project-manager style for
+      // structured warn logs so the operator can grep on level + message.
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "task_claimed: launch refused while claimToken is set",
+          taskId: task.taskId,
+          claimedBy: task.claimedBy,
+          claimedAt: task.claimedAt,
+          claimPid: task.claimPid,
+        }),
+      );
+      return c.json(
+        {
+          error: "task_claimed",
+          claimedBy: task.claimedBy,
+          claimedAt: task.claimedAt,
+        },
         409,
       );
     }
@@ -2141,6 +2189,61 @@ function validateProjectIdOrError(
     return { error: "unknown_project_id", projectId: candidate };
   }
   return null;
+}
+
+/**
+ * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
+ *
+ * Read + soft-drop the 5 user-creatable leadwright fields from a create
+ * or launch body. Mirrors `validateExternalTask`'s per-field tolerance:
+ * malformed shapes are filtered out, the rest survive. Daemon-owned
+ * fields (claimToken, claimedBy, claimedAt, claimPid, leadHandoff,
+ * leadParentTaskId, poFeedback, promotedFromTriageId) are deliberately
+ * NOT read here — they live on the persisted type for daemon mutation
+ * but the user-facing route ignores them (external review MED-4).
+ *
+ * The function returns an object whose keys are only present when the
+ * corresponding input field was well-formed; this lets the caller spread
+ * the result into store.create() / store.patch() without overriding
+ * existing values with undefined.
+ */
+function readLeadCreateFields(body: Record<string, unknown>): {
+  domain?: string;
+  priority?: "P0" | "P1" | "P2" | "P3";
+  complexityHint?: "small" | "medium" | "large";
+  tags?: string[];
+  blockedBy?: string[];
+} {
+  const out: ReturnType<typeof readLeadCreateFields> = {};
+  if (typeof body.domain === "string" && body.domain.length > 0) {
+    out.domain = body.domain;
+  }
+  if (
+    body.priority === "P0" ||
+    body.priority === "P1" ||
+    body.priority === "P2" ||
+    body.priority === "P3"
+  ) {
+    out.priority = body.priority;
+  }
+  if (
+    body.complexityHint === "small" ||
+    body.complexityHint === "medium" ||
+    body.complexityHint === "large"
+  ) {
+    out.complexityHint = body.complexityHint;
+  }
+  if (Array.isArray(body.tags)) {
+    out.tags = (body.tags as unknown[]).filter(
+      (x): x is string => typeof x === "string",
+    );
+  }
+  if (Array.isArray(body.blockedBy)) {
+    out.blockedBy = (body.blockedBy as unknown[]).filter(
+      (x): x is string => typeof x === "string",
+    );
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

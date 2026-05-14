@@ -71,6 +71,49 @@ export function MasterTaskCard({
     return m;
   }, [tasks]);
 
+  // iterate-2026-05-14 lead-foundation-task-schema — find the master
+  // shadow for this Run. Per the schema, the master conversation shadow
+  // sets `parentRunMaster === true` AND has matching `runId`. There
+  // should only ever be one such shadow; defensive `find()` picks the
+  // first match. When no master shadow exists, leadwright badges hide.
+  const masterShadow = useMemo(
+    () =>
+      tasks.find(
+        (t) => t.runId === config.runId && t.parentRunMaster === true,
+      ),
+    [tasks, config.runId],
+  );
+
+  // iterate-2026-05-14 — `blockedBy` resolution. Unknown ids count as
+  // pending (per external review MED-6). Duplicates are de-duped via
+  // Set. Self-references (the master shadow blocking itself) count as
+  // pending since `state===done` for `masterShadow` is unlikely while
+  // it's the master of an in-progress Run — but no crash.
+  const blockedSummary = useMemo(() => {
+    if (!masterShadow?.blockedBy || masterShadow.blockedBy.length === 0) {
+      return null;
+    }
+    const unique = Array.from(new Set(masterShadow.blockedBy));
+    const byId = new Map(tasks.map((t) => [t.taskId, t]));
+    let pending = 0;
+    let failed = 0;
+    for (const id of unique) {
+      const t = byId.get(id);
+      if (!t) {
+        pending += 1; // unknown → pending
+        continue;
+      }
+      if (t.state === "launch_failed") {
+        failed += 1;
+      } else if (t.state !== "done") {
+        pending += 1;
+      }
+    }
+    const state: "done" | "pending" | "failed" =
+      failed > 0 ? "failed" : pending > 0 ? "pending" : "done";
+    return { state, pending, failed, total: unique.length };
+  }, [masterShadow, tasks]);
+
   const failedTasks = useMemo(
     () => config.phase_tasks.filter((t) => t.status === "failed"),
     [config.phase_tasks],
@@ -135,6 +178,77 @@ export function MasterTaskCard({
           )}
           {config.runConditions.securityEnabled && (
             <Chip data-testid={`master-card-chip-security-${config.runId}`}>security</Chip>
+          )}
+          {/*
+            iterate-2026-05-14 lead-foundation-task-schema — leadwright
+            badges. Sourced from the master-shadow ExternalTask (matched
+            by runId + parentRunMaster===true). All three are display-only.
+            Free-text fields render via React text-node interpolation —
+            no dangerouslySetInnerHTML anywhere (external review MED-5).
+          */}
+          {blockedSummary && (
+            <span
+              data-testid={`master-card-blocked-${config.runId}`}
+              data-state={blockedSummary.state}
+              className={
+                "inline-flex items-center gap-1 rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+                (blockedSummary.state === "done"
+                  ? "bg-[#dcfce7] text-[#166534]"
+                  : blockedSummary.state === "failed"
+                    ? "bg-[#fee2e2] text-[#b91c1c]"
+                    : "bg-[#fef3c7] text-[#a16207]")
+              }
+              title={
+                blockedSummary.state === "done"
+                  ? `${blockedSummary.total} blocker${blockedSummary.total === 1 ? "" : "s"} all done`
+                  : blockedSummary.state === "failed"
+                    ? `${blockedSummary.failed} blocker${blockedSummary.failed === 1 ? "" : "s"} failed`
+                    : `${blockedSummary.pending} blocker${blockedSummary.pending === 1 ? "" : "s"} pending`
+              }
+            >
+              {blockedSummary.state === "done" ? (
+                <>
+                  <CheckCircle2 size={11} aria-hidden="true" />
+                  blocked
+                </>
+              ) : blockedSummary.state === "failed" ? (
+                <>
+                  <XCircle size={11} aria-hidden="true" />
+                  blocked
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={11} aria-hidden="true" />
+                  blocked {blockedSummary.pending}
+                </>
+              )}
+            </span>
+          )}
+          {masterShadow?.priority && (
+            <span
+              data-testid={`master-card-priority-${config.runId}`}
+              data-severity={masterShadow.priority}
+              className={
+                "inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
+                (masterShadow.priority === "P0"
+                  ? "bg-[#fee2e2] text-[#b91c1c]"
+                  : masterShadow.priority === "P1"
+                    ? "bg-[#ffedd5] text-[#c2410c]"
+                    : masterShadow.priority === "P2"
+                      ? "bg-[#fef3c7] text-[#a16207]"
+                      : "bg-[#f1f5f9] text-[#475569]")
+              }
+            >
+              {masterShadow.priority}
+            </span>
+          )}
+          {typeof masterShadow?.domain === "string" && masterShadow.domain.length > 0 && (
+            <span
+              data-testid={`master-card-domain-${config.runId}`}
+              className="inline-flex items-center rounded-[6px] bg-[var(--color-muted-bg,#ede8e1)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-muted,#6b7280)]"
+            >
+              {masterShadow.domain}
+            </span>
           )}
         </div>
       </div>

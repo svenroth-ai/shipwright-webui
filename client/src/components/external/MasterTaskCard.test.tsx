@@ -30,6 +30,7 @@ import { MasterTaskCard } from "./MasterTaskCard";
 import { server } from "../../test/mocks/server";
 import type { Project } from "../../types";
 import type { PhaseTask, RunConfigV2 } from "../../lib/run-config-v2";
+import type { ExternalTask } from "../../lib/externalApi";
 
 const PROJECT: Project = {
   id: "p-test",
@@ -442,5 +443,281 @@ describe("MasterTaskCard — child row navigation (shadow lookup)", () => {
     expect(row.getAttribute("role")).toBeNull();
     expect(row.getAttribute("tabindex")).toBeNull();
     expect(row.getAttribute("data-navigable")).toBe("false");
+  });
+});
+
+// ---------- iterate-2026-05-14 lead-foundation-task-schema ----------
+//
+// Render priority badge + domain chip + blockedBy indicator at the
+// MasterTaskCard header level when a "master shadow" ExternalTask is
+// linked to the same Run (matched by `runId === config.runId &&
+// parentRunMaster === true`). The fields come from that master
+// shadow's leadwright-extended `ExternalTask` record. Display-only.
+
+describe("MasterTaskCard — lead-foundation badges (iterate-2026-05-14)", () => {
+  function masterShadow(
+    cfg: RunConfigV2,
+    overrides: Partial<ExternalTask>,
+  ): Array<Partial<ExternalTask>> {
+    return [
+      {
+        taskId: "task-master-shadow",
+        sessionUuid: cfg.phase_tasks[0].sessionUuid,
+        runId: cfg.runId,
+        parentRunMaster: true,
+        title: "Master shadow",
+        projectId: PROJECT.id,
+        state: "active",
+        cwd: "/proj",
+        pluginDirs: [],
+        createdAt: "2026-04-25T08:00:00.000Z",
+        inbox: {
+          pendingToolUseIds: [],
+          dismissedToolUseIds: [],
+          lastProcessedByteOffset: 0,
+        },
+        ...overrides,
+      },
+    ];
+  }
+
+  function renderWithShadow(shadowTasks: Array<Partial<ExternalTask>>) {
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({ tasks: shadowTasks }),
+      ),
+    );
+    return renderCard({ config: makeConfig() });
+  }
+
+  it("renders P0 badge with the high-severity color treatment", async () => {
+    const cfg = makeConfig();
+    renderWithShadow(masterShadow(cfg, { priority: "P0" }));
+    const badge = await screen.findByTestId(
+      "master-card-priority-run-a1b2c3d4",
+    );
+    expect(badge.textContent).toBe("P0");
+    // Severity is encoded as a data-attribute (the actual color comes
+    // from CSS — test the contract, not the pixel).
+    expect(badge.getAttribute("data-severity")).toBe("P0");
+  });
+
+  it("renders P1 / P2 / P3 badges with distinct data-severity values", async () => {
+    const cfg = makeConfig();
+    // P1
+    const { rerender } = renderWithShadow(masterShadow(cfg, { priority: "P1" }));
+    expect(
+      (await screen.findByTestId("master-card-priority-run-a1b2c3d4")).getAttribute(
+        "data-severity",
+      ),
+    ).toBe("P1");
+    rerender(<div />); // reset
+
+    // We use re-renders rather than re-mocking the server because each
+    // renderCard sets up its own QueryClient.
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: masterShadow(cfg, { priority: "P2" }),
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    expect(
+      (await screen.findByTestId("master-card-priority-run-a1b2c3d4")).getAttribute(
+        "data-severity",
+      ),
+    ).toBe("P2");
+  });
+
+  it("omits the priority badge when the master shadow has no priority", async () => {
+    const cfg = makeConfig();
+    renderWithShadow(masterShadow(cfg, {})); // no priority
+    // Allow shadow tasks to load, then assert badge is absent.
+    await waitFor(() => {
+      // Sanity: the card itself rendered.
+      expect(screen.getByText("Run-a1b2")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("master-card-priority-run-a1b2c3d4"),
+    ).toBeNull();
+  });
+
+  it("renders the domain chip as plain text (no HTML injection)", async () => {
+    // External review MED-5: free-text fields render as React text nodes.
+    // A `<script>` tag in `domain` must appear as escaped text, not as a
+    // DOM <script> element.
+    const cfg = makeConfig();
+    renderWithShadow(
+      masterShadow(cfg, { domain: "<script>alert('xss')</script>" }),
+    );
+    const chip = await screen.findByTestId(
+      "master-card-domain-run-a1b2c3d4",
+    );
+    expect(chip.textContent).toBe("<script>alert('xss')</script>");
+    // No actual script element rendered.
+    expect(chip.querySelector("script")).toBeNull();
+  });
+
+  it("omits the domain chip when the master shadow has no domain", async () => {
+    const cfg = makeConfig();
+    renderWithShadow(masterShadow(cfg, {}));
+    await waitFor(() => {
+      expect(screen.getByText("Run-a1b2")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("master-card-domain-run-a1b2c3d4")).toBeNull();
+  });
+
+  it("renders blockedBy indicator: ✓ all done when every blocker is in state=done", async () => {
+    const cfg = makeConfig();
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: [
+            // Master shadow with blockedBy referencing two task ids.
+            ...masterShadow(cfg, {
+              blockedBy: ["task-a", "task-b"],
+            }),
+            { taskId: "task-a", sessionUuid: "u-a", state: "done", title: "A", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+            { taskId: "task-b", sessionUuid: "u-b", state: "done", title: "B", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+          ],
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    const indicator = await screen.findByTestId(
+      "master-card-blocked-run-a1b2c3d4",
+    );
+    expect(indicator.getAttribute("data-state")).toBe("done");
+  });
+
+  it("renders blockedBy indicator: ⏳ N pending when some blockers are not done", async () => {
+    const cfg = makeConfig();
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: [
+            ...masterShadow(cfg, { blockedBy: ["task-a", "task-b", "task-c"] }),
+            { taskId: "task-a", sessionUuid: "u-a", state: "done", title: "A", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+            { taskId: "task-b", sessionUuid: "u-b", state: "active", title: "B", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+            { taskId: "task-c", sessionUuid: "u-c", state: "draft", title: "C", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+          ],
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    const indicator = await screen.findByTestId(
+      "master-card-blocked-run-a1b2c3d4",
+    );
+    expect(indicator.getAttribute("data-state")).toBe("pending");
+    // Pending count includes blockers not in state=done AND unknown ids.
+    expect(indicator.textContent).toContain("2");
+  });
+
+  it("renders blockedBy indicator: ❌ failed blocker when any blocker is failed/launch_failed", async () => {
+    const cfg = makeConfig();
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: [
+            ...masterShadow(cfg, { blockedBy: ["task-a", "task-b"] }),
+            { taskId: "task-a", sessionUuid: "u-a", state: "done", title: "A", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+            { taskId: "task-b", sessionUuid: "u-b", state: "launch_failed", title: "B", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+          ],
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    const indicator = await screen.findByTestId(
+      "master-card-blocked-run-a1b2c3d4",
+    );
+    expect(indicator.getAttribute("data-state")).toBe("failed");
+  });
+
+  it("blockedBy indicator counts unknown blocker ids as pending (external review MED-6)", async () => {
+    const cfg = makeConfig();
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: [
+            ...masterShadow(cfg, { blockedBy: ["task-unknown-1", "task-unknown-2"] }),
+          ],
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    const indicator = await screen.findByTestId(
+      "master-card-blocked-run-a1b2c3d4",
+    );
+    expect(indicator.getAttribute("data-state")).toBe("pending");
+    expect(indicator.textContent).toContain("2");
+  });
+
+  it("blockedBy indicator de-dupes duplicate blocker ids (external review MED-6)", async () => {
+    const cfg = makeConfig();
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: [
+            // Two duplicates + one unique pending blocker → 2 unique pending.
+            ...masterShadow(cfg, { blockedBy: ["task-a", "task-a", "task-b"] }),
+            { taskId: "task-a", sessionUuid: "u-a", state: "active", title: "A", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+            { taskId: "task-b", sessionUuid: "u-b", state: "active", title: "B", projectId: PROJECT.id, cwd: "/p", pluginDirs: [], createdAt: "x", inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 } },
+          ],
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    const indicator = await screen.findByTestId(
+      "master-card-blocked-run-a1b2c3d4",
+    );
+    expect(indicator.getAttribute("data-state")).toBe("pending");
+    expect(indicator.textContent).toContain("2");
+  });
+
+  it("omits the blockedBy indicator when array is empty or undefined", async () => {
+    const cfg = makeConfig();
+    renderWithShadow(masterShadow(cfg, { blockedBy: [] }));
+    await waitFor(() => {
+      expect(screen.getByText("Run-a1b2")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("master-card-blocked-run-a1b2c3d4"),
+    ).toBeNull();
+  });
+
+  it("ignores non-master shadows for the badge data source", async () => {
+    // Two shadows for this Run, neither parentRunMaster=true. Badges
+    // must NOT pick a non-master shadow as the source.
+    const cfg = makeConfig();
+    server.use(
+      http.get("/api/external/tasks", () =>
+        HttpResponse.json({
+          tasks: [
+            {
+              taskId: "shadow-1",
+              sessionUuid: cfg.phase_tasks[0].sessionUuid,
+              runId: cfg.runId,
+              parentRunMaster: false,
+              priority: "P0", // would be wrong to surface this at the master
+              title: "phase shadow",
+              projectId: PROJECT.id,
+              state: "active",
+              cwd: "/p",
+              pluginDirs: [],
+              createdAt: "x",
+              inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
+            },
+          ],
+        }),
+      ),
+    );
+    renderCard({ config: cfg });
+    await waitFor(() => {
+      expect(screen.getByText("Run-a1b2")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("master-card-priority-run-a1b2c3d4"),
+    ).toBeNull();
   });
 });
