@@ -89,8 +89,36 @@ export interface ExternalTask {
    * would inject `claude --resume <uuid>` bytes into the running
    * app's input handler. Treat `undefined` as `false` (conservative:
    * show Resume) for back-compat with pre-iterate-L server responses.
+   *
+   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
+   * `altScreenActive` was falsified for the common Claude case by
+   * ADR-098: with `CLAUDE_CODE_NO_FLICKER=1` default-on, Claude
+   * renders in MAIN buffer, not alt-screen, so `altScreenActive`
+   * stays `false` during active Claude streaming. The Resume CTA gate
+   * now combines `altScreenActive` with `lastPtyDataAt` (see below)
+   * to detect "Claude is foreground" robustly across both buffer
+   * modes.
    */
   altScreenActive?: boolean;
+  /**
+   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
+   * server-computed timestamp (epoch-ms) of the most recent
+   * `pty.onData` chunk for the task's live pty, or `null` if the
+   * pty hasn't emitted any output yet or no pty entry exists.
+   *
+   * Used by `TaskCard` (and downstream by `TaskDetailHeader.ctaFor()`)
+   * to gate the Resume CTA in BOTH alt-screen and main-buffer cases:
+   * if `Date.now() - lastPtyDataAt < 15_000` the pty has been
+   * actively producing output recently → some foreground process
+   * (Claude, vim, htop, an interactive script, …) is engaged → hide
+   * Resume. After 15 s of silence the gate falls through and Resume
+   * re-appears, covering the "Claude exited, pty became bare shell"
+   * recovery path.
+   *
+   * Verbatim mirror of `server/src/types/external-task.ts`. Drift is
+   * caught by the cross-package import guard test.
+   */
+  lastPtyDataAt?: number | null;
   /**
    * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
    *
