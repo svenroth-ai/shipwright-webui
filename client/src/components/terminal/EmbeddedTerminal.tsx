@@ -788,10 +788,25 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       //
       // No-op if webglRef is null (Canvas/DOM fallback path).
       const ATLAS_CLEAR_INTERVAL_MS = 10_000;
+      // Iterate K v6 (ADR-099, 2026-05-14) — first-burst-after-quiet
+      // trigger threshold. When `term.onWriteParsed` fires AND the
+      // gap since the last byte-batch exceeds this, treat it as a
+      // Resume / re-attach / Claude-was-idle-now-streaming-again
+      // burst and run maintenance IMMEDIATELY (don't wait for the
+      // 10s periodic). 2s is empirically chosen: longer than natural
+      // mid-streaming pauses (Claude's between-tool-call gaps are
+      // typically <500ms), shorter than typical user think-time.
+      // Also: mouse-capture mode (?1000h/1002h/1003h, set by Claude
+      // TUI even under NO_FLICKER) makes wheel events go to Claude
+      // not xterm — so `term.onScroll` doesn't fire on user wheel-
+      // scroll, and the periodic interval was the only mechanism
+      // before this trigger.
+      const RESUME_BURST_QUIET_MS = 2_000;
       let onScrollDispose: { dispose: () => void } | null = null;
       let onWriteParsedDispose: { dispose: () => void } | null = null;
       let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
       let writesSinceLastClear = 0;
+      let lastWriteTime = 0;
       if (webglRef) {
         // Iterate K v5 (ADR-099, 2026-05-14) — split into TWO behaviors
         // based on buffer type:
@@ -840,8 +855,27 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         onScrollDispose = term.onScroll(safeAtlasMaintenance);
         // Track every parsed byte-batch. Cheap counter — xterm.js fires
         // onWriteParsed after each internal write batch.
+        //
+        // Iterate K v6 — ALSO: if the gap since the last write exceeded
+        // RESUME_BURST_QUIET_MS, treat this firing as the start of a
+        // Resume / re-attach / wake-up burst and run maintenance
+        // immediately (don't wait for the 10s periodic). This makes
+        // Resume's first frames smear-free.
         onWriteParsedDispose = term.onWriteParsed(() => {
-          writesSinceLastClear++;
+          const now = Date.now();
+          if (
+            lastWriteTime > 0 &&
+            now - lastWriteTime > RESUME_BURST_QUIET_MS
+          ) {
+            // First write after a meaningful quiet window — burst
+            // start. Reset the counter so the next periodic tick
+            // doesn't re-fire too quickly.
+            writesSinceLastClear = 0;
+            safeAtlasMaintenance();
+          } else {
+            writesSinceLastClear++;
+          }
+          lastWriteTime = now;
         });
         // Conditional periodic: only run maintenance if there was
         // activity since the last tick. When the terminal is idle (user
