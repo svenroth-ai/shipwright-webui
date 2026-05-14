@@ -31,6 +31,9 @@ const mockBufferActive = {
   getLine(_i: number) {
     return undefined;
   },
+  // Iterate K v4 (ADR-099) — alt-screen-skip check reads this.
+  // Default to "normal" so the workaround runs in tests.
+  type: "normal" as const,
 };
 
 vi.mock("@xterm/xterm", () => ({

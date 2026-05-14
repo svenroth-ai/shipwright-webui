@@ -795,6 +795,17 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       if (webglRef) {
         const safeClearAtlasAndRefresh = () => {
           if (disposedRef.current || !webglRef) return;
+          // Iterate K v4 (ADR-099, 2026-05-14) — skip the workaround when
+          // Claude/the TUI is in alt-screen (`?1049h`). Empirical UAT
+          // showed that in alt-screen mode the periodic clearTextureAtlas
+          // + term.refresh() SUPERIMPOSES on Claude's own ED2+redraw per-
+          // frame cadence (Claude bypasses NO_FLICKER for some tasks),
+          // producing visibly WORSE flicker than no workaround. In alt-
+          // screen, atlas corruption accumulates much less (Claude
+          // redraws aggressively anyway), so the workaround's cost
+          // outweighs its benefit there. Re-enabled on the next clear
+          // tick once the buffer flips back to normal.
+          if (term.buffer.active.type === "alternate") return;
           try {
             webglRef.clearTextureAtlas();
             // Force a row-renderer pass after atlas rebuild so every
