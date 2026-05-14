@@ -56,6 +56,11 @@ vi.mock("@xterm/xterm", () => ({
     // clear so row-renderer repaints from the fresh atlas (mimicking
     // VS Code's forceRefresh()). Mock is a no-op spy.
     refresh: vi.fn(),
+    // onWriteParsed — Iterate K v3 conditional uses this as activity
+    // signal to gate the periodic atlas clear (skip when terminal is
+    // idle). Mock returns a disposable; tests don't assert on activity
+    // counting.
+    onWriteParsed: vi.fn(() => ({ dispose: vi.fn() })),
     buffer: { active: mockBufferActive },
   })),
 }));
