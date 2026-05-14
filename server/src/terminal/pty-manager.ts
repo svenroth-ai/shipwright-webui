@@ -237,6 +237,30 @@ interface PtyEntry {
    * is a no-op.
    */
   closing: boolean;
+  /**
+   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
+   * timestamp of the last `pty.onData` chunk in epoch-ms. Updated on
+   * every emit from the pty (in the `pty.onData((data) => …)` handler
+   * around line 444). Used by `/api/external/tasks` to derive
+   * "Claude-is-currently-foreground-in-the-pty" without depending on
+   * the alt-screen-mode signal that ADR-098 broke (with
+   * `CLAUDE_CODE_NO_FLICKER=1` default-on Claude renders in main-buffer
+   * → `altScreenActive` stays false even during active streaming, so
+   * Iterate L's TaskCard gate `task.altScreenActive !== true` always
+   * passes and the Resume button shows during active sessions).
+   *
+   * The client TaskCard combines this with `firstJsonlObservedAt` +
+   * a 15 s window (`Date.now() - lastPtyDataAt < 15_000`) to decide
+   * "Claude is foreground" robustly across both buffer modes.
+   *
+   * `null` until the first `pty.onData` chunk; means "pty exists but
+   * hasn't produced any output yet" (cold pty, race with WS attach).
+   * The client treats `null` as "not recently active" — conservative;
+   * Resume button MAY appear briefly during the cold-pty window
+   * (typically <500 ms), but that's strictly better than the current
+   * "always shows during streaming" failure mode.
+   */
+  lastPtyDataAt: number | null;
 }
 
 export interface PtyManagerOpts {
@@ -380,6 +404,30 @@ export class PtyManager {
   }
 
   /**
+   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
+   * timestamp of the last `pty.onData` chunk in epoch-ms, or `null`
+   * if the pty hasn't emitted anything yet (cold pty / no entry).
+   *
+   * Client gate (TaskCard Resume CTA): hide Resume while
+   * `Date.now() - lastPtyDataAt < 15_000` (combined with
+   * `liveSession` + `firstJsonlObservedAt`). Replaces the
+   * ADR-098-broken assumption that Claude always uses alt-screen
+   * (with `CLAUDE_CODE_NO_FLICKER=1` default-on Claude renders in
+   * main-buffer, so `altScreenActive` stays false during active
+   * streaming and Iterate L's gate fails).
+   *
+   * Returns `null` rather than `0` for the no-entry / never-emitted
+   * case so callers can distinguish "never active" from "active at
+   * t=0 (epoch)" — the client's `Date.now() - x < 15_000` check
+   * correctly treats `null` as "not recent" via `null - undefined`
+   * NaN comparison falling through to `false`.
+   */
+  getLastPtyDataAt(taskId: string): number | null {
+    const entry = this.entries.get(taskId);
+    return entry?.lastPtyDataAt ?? null;
+  }
+
+  /**
    * Return the set of taskIds with a live pty entry. Used by the daily
    * scrollback sweep (ADR-068-A1, AC-11) to skip clearing files for
    * tasks whose pty is still running but whose `sdk-sessions.json` state
@@ -437,12 +485,21 @@ export class PtyManager {
       pausedConns: new Set(),
       bufferedExceededSince: new Map(),
       closing: false,
+      // Iterate M (resume-cta-active-state-followup) — `null` until the
+      // first pty.onData chunk. See PtyEntry.lastPtyDataAt comment.
+      lastPtyDataAt: null,
     };
     this.entries.set(taskId, entry);
 
     // Forward pty output to all subscribers + reset idle timer.
     pty.onData((data) => {
       this.touchIdle(entry);
+      // Iterate M (resume-cta-active-state-followup) — bump the
+      // pty-foreground-activity timestamp. Surfaced via
+      // `getLastPtyDataAt()` + `/api/external/tasks` for the client
+      // Resume-CTA gate (replaces the ADR-098-broken altScreenActive
+      // assumption that Claude always uses alt-screen).
+      entry.lastPtyDataAt = Date.now();
       // ADR-068-A1: persist to disk before broadcast. Synchronous via
       // fs.appendFileSync so subsequent reads see the bytes immediately.
       // Wrapped in try/catch so a disk error / rotation-buffer-overflow
