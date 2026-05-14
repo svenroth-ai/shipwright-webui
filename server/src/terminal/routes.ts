@@ -871,6 +871,18 @@ export function buildSpawnEnv(
   // power users can override per-shell via `$env:TERM = "xterm"`
   // before invoking those tools. For Claude Code as the primary
   // workload of this pane, brand consistency wins over vim color.
+  //
+  // Iterate K UAT 2026-05-14: empirically tested `TERM=xterm-256color`
+  // (siteboon-parity) hoping it would unlock Claude/Ink sync-output
+  // emission. Falsified: byte-stream histogram of pre/post scrollback
+  // for the same task showed 0 DECSET 2026 sequences in BOTH eras.
+  // TERM=dumb does NOT block Claude's sync-output. It DOES, however,
+  // suppress PowerShell 7's xterm window manipulation + cursor-shape
+  // + ED2 sequences emitted on each PSReadLine prompt redraw — which
+  // added visible new flicker / minor smearing on Strg+C return to
+  // shell. Keeping TERM=dumb. Real flicker fix is xterm.js side:
+  // scrollOnEraseInDisplay (see EmbeddedTerminal.tsx) — see xtermjs
+  // issue #5620 + maintainer @jerch's diagnosis.
   const env: Record<string, string | undefined> = {
     ...baseProcessEnv,
     TERM: "dumb",
