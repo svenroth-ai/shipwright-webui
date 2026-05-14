@@ -709,6 +709,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // the visible viewport, which masks scrollback accumulation).
       // Cleanup nulls it on dispose. Single ref, no production impact.
       (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = term;
+      // Iterate K v8 (ADR-099) — also expose the WebglAddon instance so
+      // the Playwright probe spec can monkey-patch
+      // `clearTextureAtlas()` for scenario instrumentation. Null when
+      // WebGL initialisation failed (Canvas/DOM fallback). Cleanup
+      // mirrors `__embeddedTerminal`.
+      (
+        window as unknown as { __embeddedTerminalWebglAddon?: WebglAddon | null }
+      ).__embeddedTerminalWebglAddon = webglRef;
 
       // Forward keystrokes / paste-text into the socket.
       const onDataDispose = term.onData((data) => {
@@ -817,10 +825,37 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       //      where multiple bursts arrive within the quiet window
       //      (mount → snapshot replay → Resume burst all <1s apart).
       const POST_MOUNT_SETTLE_MS = 3_000;
+      // Iterate K v8 (ADR-099, 2026-05-14) — DOM wheel listener for
+      // user-initiated scroll during streaming. xterm's `term.onScroll`
+      // only fires for content-driven scroll (new lines pushing the
+      // viewport), NOT for user wheel/keyboard scroll. The semantics are
+      // documented in xterm.js issues #3864 + #3201 — during fast output,
+      // `viewportY` transiently equals `baseY` while xterm's parser is
+      // mid-batch, so an `onScroll` based pin-state would falsely re-pin.
+      // Tabby's `tabby-terminal/src/frontends/xtermFrontend.ts` dropped
+      // `onScroll` for the same reason and listens to wheel/keyboard
+      // events on the container instead.
+      //
+      // Additional motivation: when Claude TUI has mouse capture enabled
+      // (?1000h / ?1002h / ?1003h / SGR ?1006h) the wheel event is
+      // forwarded TO Claude as a mouse-report, not to xterm's scroll
+      // viewport — so `term.onScroll` is silent on user-wheel during
+      // active Claude sessions. The DOM `wheel` listener fires on the
+      // container regardless of internal forwarding, so we ALWAYS see
+      // the user-intended-scroll signal and can run the atlas-maintenance
+      // pass for cursor-ghost / smearing cleanup.
+      //
+      // 150 ms debounce matches the Tabby pattern: rapid wheel events
+      // collapse into one maintenance pass after the user finishes
+      // scrolling. The 250 ms ResizeObserver throttle is similar in
+      // intent — coalesce noisy DOM events.
+      const WHEEL_DEBOUNCE_MS = 150;
       let onScrollDispose: { dispose: () => void } | null = null;
       let onWriteParsedDispose: { dispose: () => void } | null = null;
       let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
       let postMountSettleTimer: ReturnType<typeof setTimeout> | null = null;
+      let wheelDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+      let onWheel: (() => void) | null = null;
       let writesSinceLastClear = 0;
       // v7: initialize to "mount-time minus quiet+1ms" so first write
       // after mount qualifies as "after quiet" and triggers maintenance.
@@ -917,6 +952,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           writesSinceLastClear = 0;
           safeAtlasMaintenance();
         }, ATLAS_CLEAR_INTERVAL_MS);
+        // Iterate K v8 — DOM wheel listener with 150ms debounce. Bubble
+        // phase (no `capture: true`) so xterm's internal handling runs
+        // first, matching Tabby's pattern. `passive: true` keeps the
+        // browser scroll path unblocked. The handler schedules a single
+        // `safeAtlasMaintenance()` after the user stops scrolling; rapid
+        // wheel events coalesce into one maintenance pass.
+        onWheel = () => {
+          if (wheelDebounceTimer) clearTimeout(wheelDebounceTimer);
+          wheelDebounceTimer = setTimeout(() => {
+            wheelDebounceTimer = null;
+            if (!disposedRef.current && webglRef) safeAtlasMaintenance();
+          }, WHEEL_DEBOUNCE_MS);
+        };
+        container.addEventListener("wheel", onWheel, { passive: true });
       }
 
       return () => {
@@ -948,6 +997,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (onWriteParsedDispose) {
           onWriteParsedDispose.dispose();
           onWriteParsedDispose = null;
+        }
+        // Iterate K v8 — wheel listener cleanup.
+        if (onWheel) {
+          container.removeEventListener("wheel", onWheel);
+          onWheel = null;
+        }
+        if (wheelDebounceTimer) {
+          clearTimeout(wheelDebounceTimer);
+          wheelDebounceTimer = null;
         }
         onDataDispose.dispose();
 
@@ -1009,6 +1067,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         termRef.current = null;
         fitAddonRef.current = null;
         (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = null;
+        (
+          window as unknown as { __embeddedTerminalWebglAddon?: WebglAddon | null }
+        ).__embeddedTerminalWebglAddon = null;
       };
       // socket.send is stable via useCallback; we intentionally don't depend
       // on `socket` here because re-mounting xterm on every reconnect would
