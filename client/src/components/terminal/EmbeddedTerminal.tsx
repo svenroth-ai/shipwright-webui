@@ -752,38 +752,50 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       });
       ro.observe(container);
 
-      // Iterate K follow-up (ADR-099) — periodic + on-scroll texture-atlas
-      // clear, working around xterm.js issue #5847. The atlas accumulates
-      // doubled cache entries / coordinate drift after sustained streaming;
-      // clearing forces a rebuild which restores correct glyph-to-cache
-      // mapping. Two triggers:
+      // Iterate K follow-up v2 (ADR-099) — periodic + on-scroll texture-
+      // atlas clear + full row-refresh, working around xterm.js issue #5847.
       //
-      //   1. `term.onScroll` — when the user actively scrolls, smearing is
-      //      most visible at the bottom rows (per #5847 repro). Clearing
-      //      here costs one rebuild flicker but pays back in clean scroll.
-      //      Debounced by xterm's own onScroll batching (one fire per
-      //      scroll burst, not per line).
+      // v1 (commit bd9e3ea) used 30s periodic interval + onScroll trigger.
+      // Live-UAT 2026-05-14 16:39 showed residual column-0 fragments
+      // ("rWeb Search", "1Fetch", "So-", "Mi-") still visible on screen
+      // while the @xterm/headless server-mirror buffer was clean — confirms
+      // the residue is atlas-corruption alone, but 30s is too generous a
+      // window. Tightened to 10s + added `term.refresh(0, rows-1)` AFTER
+      // each atlas clear so the full row-renderer pass redraws every cell
+      // from the (now-rebuilt) atlas. VS Code's parallel pattern:
+      //   forceRedraw() { this.raw.clearTextureAtlas(); }
+      //   forceRefresh() { this._core.viewport?._innerRefresh(); }
+      // We combine both into one safeClearAtlasAndRefresh() call.
       //
-      //   2. Periodic 30s while mounted — defensive sweep against silent
-      //      accumulation while the user reads without scrolling. 30s
-      //      matches the empirical "60%+ of a screenful" onset in #5847
-      //      for typical Claude streaming rates. Skip when disposed.
+      // Trade-off: each clear+refresh costs one render frame; at 10s that's
+      // 6 micro-flickers per minute. Empirically less disruptive than the
+      // residual smearing (which is constant after onset, not periodic).
       //
       // No-op if webglRef is null (Canvas/DOM fallback path).
-      const ATLAS_CLEAR_INTERVAL_MS = 30_000;
+      const ATLAS_CLEAR_INTERVAL_MS = 10_000;
       let onScrollDispose: { dispose: () => void } | null = null;
       let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
       if (webglRef) {
-        const safeClearAtlas = () => {
+        const safeClearAtlasAndRefresh = () => {
           if (disposedRef.current || !webglRef) return;
           try {
             webglRef.clearTextureAtlas();
+            // Force a row-renderer pass after atlas rebuild so every
+            // visible cell paints from the fresh atlas. Without this,
+            // cells xterm believes are "unchanged" since the corruption
+            // window stay stale until something else dirties them
+            // (per the #5847 repro: "stale vertex data on rows that
+            // _updateModel skips because the cells appear 'unchanged'").
+            if (term.rows > 0) term.refresh(0, term.rows - 1);
           } catch {
             /* atlas may have been disposed mid-call; safe to ignore */
           }
         };
-        onScrollDispose = term.onScroll(safeClearAtlas);
-        atlasClearTimer = setInterval(safeClearAtlas, ATLAS_CLEAR_INTERVAL_MS);
+        onScrollDispose = term.onScroll(safeClearAtlasAndRefresh);
+        atlasClearTimer = setInterval(
+          safeClearAtlasAndRefresh,
+          ATLAS_CLEAR_INTERVAL_MS,
+        );
       }
 
       return () => {
