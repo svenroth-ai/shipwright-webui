@@ -222,7 +222,15 @@ export function createExternalRoutes(args: {
    * misconfiguration. Tests pass `{ get: () => undefined }`; the
    * production caller in `index.ts` passes the singleton.
    */
-  ptyManager: { get(taskId: string): unknown };
+  ptyManager: {
+    get(taskId: string): unknown;
+    // Iterate L (resume-cta-active-state) — optional in the interface
+    // for test back-compat (existing fixtures pass `{ get: () => undefined }`).
+    // The /tasks augmentation calls it via `?.()` so missing-impl is
+    // treated as `altScreenActive: false` — same conservative default
+    // as the production PtyManager when no mirror exists for the task.
+    isAltBufferActive?(taskId: string): boolean;
+  };
 }) {
   const app = new Hono();
   const {
@@ -255,9 +263,19 @@ export function createExternalRoutes(args: {
    * Iterate G (ADR-095) — augment a serialized task with `liveSession`,
    * derived from `ptyManager.get(taskId) !== undefined`. The persisted
    * `ExternalTask` shape on disk does NOT include this field; it is
-   * computed at response time from in-memory pty state. The client
-   * uses it to gate the header Resume CTA — while the pty is alive,
-   * the user types directly into the embedded terminal instead.
+   * computed at response time from in-memory pty state.
+   *
+   * Iterate L (resume-cta-active-state) — additionally augment with
+   * `altScreenActive`, derived from the @xterm/headless mirror's
+   * `buffer.active.type === "alternate"`. Used by the client to gate
+   * the Resume CTA: while a TUI (Claude, vim, htop, …) is in pty
+   * foreground, the user types directly into it; surfacing Resume
+   * would be misleading and a misclick would inject `claude --resume`
+   * bytes into the running app. `liveSession` stays exposed for
+   * diagnostics but is no longer load-bearing in the client matrix —
+   * the empirical falsification (memory livesession-is-pty-not-claude)
+   * showed it conflated "pty exists" with "Claude foreground". The
+   * new `altScreenActive` separates those two concepts cleanly.
    *
    * Defensive: handles undefined / null input (returns it unchanged)
    * so callers that already 404'd can still pass-through. Returns a
@@ -265,11 +283,14 @@ export function createExternalRoutes(args: {
    */
   function withLiveSession<T extends ExternalTask | undefined | null>(
     task: T,
-  ): T extends ExternalTask ? ExternalTask & { liveSession: boolean } : T {
+  ): T extends ExternalTask
+    ? ExternalTask & { liveSession: boolean; altScreenActive: boolean }
+    : T {
     if (!task) return task as never;
     return {
       ...task,
       liveSession: ptyManager.get(task.taskId) !== undefined,
+      altScreenActive: ptyManager.isAltBufferActive?.(task.taskId) ?? false,
     } as never;
   }
 

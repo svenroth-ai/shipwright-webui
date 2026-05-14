@@ -159,4 +159,24 @@ describe("TaskCard — Resume CTA matrix (Iterate L)", () => {
     renderCard(baseTask({ state: "draft" }));
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
   });
+
+  // Iterate L — `altScreenActive` matrix. Hides Resume when a TUI is
+  // in pty foreground (Claude alt-screen, vim, htop, …) so a misclick
+  // doesn't inject `claude --resume <uuid>` bytes into the running
+  // app's input handler. Same semantic on TaskCard as on
+  // TaskDetailHeader.
+  it("HIDES Resume when state=active + altScreenActive=true (TUI in foreground)", () => {
+    renderCard(baseTask({ state: "active", altScreenActive: true }));
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("HIDES Resume when state=idle + altScreenActive=true (TUI in foreground)", () => {
+    renderCard(baseTask({ state: "idle", altScreenActive: true }));
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("SHOWS Resume when state=active + altScreenActive=false (shell prompt)", () => {
+    renderCard(baseTask({ state: "active", altScreenActive: false }));
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
 });

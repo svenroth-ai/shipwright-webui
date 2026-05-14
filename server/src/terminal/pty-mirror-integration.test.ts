@@ -152,6 +152,67 @@ describe("PtyManager + HeadlessMirror integration (ADR-088 Iterate A)", () => {
     });
   });
 
+  // ----------- Iterate L — isAltBufferActive --------------------------
+  //
+  // PtyManager.isAltBufferActive(taskId) proxies to
+  // HeadlessMirror.isAltBufferActive(), which reads
+  // `term.buffer.active.type === "alternate"`. Used by the /tasks API
+  // augmentation to derive the client-facing `altScreenActive` field
+  // that gates the Resume CTA (hidden while a TUI is foregrounded).
+
+  describe("Iterate L — isAltBufferActive", () => {
+    it("returns false for a task with no live pty", () => {
+      const mgr = new PtyManager({
+        spawn: spawn.fn,
+        scrollbackStore: scrollback,
+        headlessMirrorEnabled: true,
+        snapshotStore: snapshot,
+        idleTimeoutMs: 60_000,
+      });
+      expect(mgr.isAltBufferActive(TASK)).toBe(false);
+    });
+
+    it("returns false for a task with mirror disabled (flag-off path)", async () => {
+      const mgr = new PtyManager({
+        spawn: spawn.fn,
+        scrollbackStore: scrollback,
+        // No headlessMirrorEnabled — entry.mirror is null.
+        idleTimeoutMs: 60_000,
+      });
+      mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+      spawn.lastPty().__emit("hello\r\n");
+      await flushMicrotasks(50);
+      expect(mgr.isAltBufferActive(TASK)).toBe(false);
+    });
+
+    it("flips false→true on DECSET 1049 and back on DECRST 1049", async () => {
+      const mgr = new PtyManager({
+        spawn: spawn.fn,
+        scrollbackStore: scrollback,
+        headlessMirrorEnabled: true,
+        snapshotStore: snapshot,
+        idleTimeoutMs: 60_000,
+      });
+      mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+
+      // Phase 1 — normal buffer (just a shell prompt).
+      spawn.lastPty().__emit("PS> ");
+      await flushMicrotasks(50);
+      expect(mgr.isAltBufferActive(TASK)).toBe(false);
+
+      // Phase 2 — enter alt-screen (Claude / vim / htop typical signal).
+      spawn.lastPty().__emit("\x1b[?1049h");
+      spawn.lastPty().__emit("TUI content\r\n");
+      await flushMicrotasks(50);
+      expect(mgr.isAltBufferActive(TASK)).toBe(true);
+
+      // Phase 3 — exit alt-screen (TUI closed cleanly).
+      spawn.lastPty().__emit("\x1b[?1049l");
+      await flushMicrotasks(50);
+      expect(mgr.isAltBufferActive(TASK)).toBe(false);
+    });
+  });
+
   // ----------- AC #2 — flag ON shadow-writes snapshot -------------------
 
   describe("flag ON — shadow-writes snapshot on kill", () => {
