@@ -860,7 +860,29 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // v7: initialize to "mount-time minus quiet+1ms" so first write
       // after mount qualifies as "after quiet" and triggers maintenance.
       let lastWriteTime = Date.now() - RESUME_BURST_QUIET_MS - 1;
-      if (webglRef) {
+      // Iterate K UAT instrumentation (ADR-099) — query-param kill
+      // switch for A/B visual validation of the atlas-corruption
+      // workaround. `?atlasMaintenance=off` short-circuits the entire
+      // `if (webglRef)` block: no clears, no refreshes, no wheel /
+      // onScroll / onWriteParsed listeners. Result is the same
+      // baseline behaviour we'd have on a build without the workaround
+      // — side-by-side comparable against the default-on path.
+      //
+      // Default is "on". The param is a probe-only escape hatch with
+      // no UI surface and no production traffic. Lives forever in
+      // source so the A/B test in `probe-iterate-k-smearing-ab.mjs`
+      // can be re-run on any future xterm.js version bump (matches
+      // the "Falsifiability" entry in ADR-099 § Decision § 2).
+      const atlasMaintenanceEnabled = (() => {
+        try {
+          return new URLSearchParams(window.location.search).get(
+            "atlasMaintenance",
+          ) !== "off";
+        } catch {
+          return true;
+        }
+      })();
+      if (webglRef && atlasMaintenanceEnabled) {
         // Iterate K v5 (ADR-099, 2026-05-14) — split into TWO behaviors
         // based on buffer type:
         //
