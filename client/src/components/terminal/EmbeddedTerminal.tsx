@@ -605,20 +605,65 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         },
         scrollback: 10000,
         allowProposedApi: true,
+        // Iterate K (ADR-099) — rescale glyphs that exceed cell width so
+        // they don't bleed into the next cell. xterm 6.0's default is
+        // `false`, which Daniel Imms documents as a real bug in
+        // xtermjs/xterm.js#5100 ("Overlapping glyphs don't merge AA
+        // gracefully"). The symptom matches our user-reported "Verschmie-
+        // rungen" / smearing: on glyphs like `m`, `w`, `@`, and some
+        // Unicode in narrow fonts, the rendered glyph width exceeds the
+        // monospace cell width by a few px. Without rescale, those pixels
+        // bleed into the adjacent cell — visually a smear at high-
+        // frequency micro-updates (e.g. Claude TUI emits per-word writes
+        // separated by `\x1b[1C` cursor-rights, so wide glyphs end up
+        // touching at almost every cell boundary).
+        //
+        // VS Code sets this via terminalConfiguration setting
+        // `terminal.integrated.rescaleOverlappingGlyphs` which defaults
+        // to `true`. Their xtermTerminal.ts threads it through.
+        rescaleOverlappingGlyphs: true,
+        // Note (Iterate K UAT 2026-05-14): `scrollOnEraseInDisplay: true`
+        // was tested here as VS Code-parity for AI-CLI ED2-driven scrollbar-
+        // shake (per xterm.js issue #5620 + @jerch on #5801). The option
+        // was added in xterm 6.0.0 and does NOT exist in the 5.5.0 typings.
+        // We're running 5.5.0 de facto (post-ADR-097 npm-install drift —
+        // package.json says 6.0.0 but node_modules has 5.5.0) so the
+        // option is a tsc compile error here. Removed; revisit after
+        // a real `npm install` brings the runtime to 6.0.0. Even then
+        // it's defense-in-depth for our NO_FLICKER=1 path, since Claude
+        // emits zero ED2 sequences under that env.
       });
       const fit = new FitAddon();
       const links = new WebLinksAddon();
       term.loadAddon(fit);
       term.loadAddon(links);
-      term.open(container);
-      // Iterate F (ADR-093) — WebGL renderer for atomic full-frame redraws.
-      // Reduces incremental Canvas/DOM partial-redraw artifacts under
-      // Claude TUI's high-frequency status-pane redraw pattern. WebGL must
-      // be loaded AFTER term.open(container) — addon-webgl needs an attached
-      // DOM context. Try/catch documents the Canvas/DOM fallback path:
-      // headless test envs (jsdom), browsers with WebGL disabled, or hosts
-      // where the GPU is blacklisted all land cleanly in the default
-      // renderer without crashing the mount.
+      // Iterate K (ADR-099) — WebGL loaded BEFORE term.open(container) so the
+      // DOM renderer never initializes. Without this, xterm.js stands up the
+      // DOM renderer at open(), renders the first frames, then tears it down
+      // and swaps to WebGL when the addon is loaded post-open — leaking
+      // partial-redraw state into Claude TUI's high-frequency alt-screen
+      // CUP-heavy stream (smearing, column-0 fragments, click-flicker).
+      //
+      // Cross-referenced against three xterm.js consumers:
+      //   1. xtermjs/xterm.js demo/client/client.ts:342-354 — official
+      //      maintainer demo loads WebGL BEFORE open() (canonical pattern).
+      //   2. siteboon/claudecodeui src/components/shell/hooks/
+      //      useShellTerminal.ts:87-104 — same "before open" order.
+      //   3. microsoft/vscode src/vs/workbench/contrib/terminal/browser/
+      //      xterm/xtermTerminal.ts:495 — currently AFTER open() with an
+      //      explicit `// TODO: Move before open so the DOM renderer doesn't
+      //      initialize` from the xterm.js BDFL's own team.
+      // ADR-093's "WebGL must be loaded AFTER term.open(container) — addon-
+      // webgl needs an attached DOM context" claim was incorrect:
+      // WebglAddon.activate() registers core.onWillOpen if !terminal.element,
+      // deferring real initialization until open() fires.
+      //
+      // Try/catch documents the Canvas/DOM fallback path: headless test envs
+      // (jsdom), browsers with WebGL disabled, or hosts where the GPU is
+      // blacklisted all land cleanly in the default renderer without crashing
+      // the mount. The 2026-05-14 WebGL-off A/B probe confirmed Canvas/DOM
+      // alt-screen rendering is severely worse than WebGL — fallback is a
+      // graceful-degradation surface, not a target configuration.
       try {
         const webgl = new WebglAddon();
         term.loadAddon(webgl);
@@ -628,6 +673,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           err instanceof Error ? err.message : String(err),
         );
       }
+      term.open(container);
       // v0.9.2 (ADR-084) — reset disposedRef in case StrictMode re-runs
       // this mount-effect (the cleanup function flipped it to true on the
       // previous unmount; React preserves useRef across mounts).
