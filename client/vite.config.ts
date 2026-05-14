@@ -98,6 +98,55 @@ export default defineConfig(({ mode }) => {
           target: proxyTarget,
           ws: true,
           changeOrigin: true,
+          // Iterate K follow-up (ADR-099, 2026-05-14) — make the Vite WS
+          // proxy robust against abrupt client/backend disconnects.
+          //
+          // Symptom: `[vite] ws proxy socket error: Error: read ECONNRESET`
+          // (and ECONNABORTED on write) crashes the dev server with exit
+          // code 127 when the embedded-terminal WebSocket is torn down
+          // abruptly — e.g. on Hono restart, on rapid TaskDetailPage
+          // navigation, on browser tab close mid-upgrade.
+          //
+          // Root cause: Vite 6.x's WS proxy (http-proxy) emits 'error'
+          // events on the wrapped socket; Vite's default handler re-emits
+          // which propagates to the process and exits dev. Attaching our
+          // own listeners on both `proxy.on('error')` AND the WS client
+          // socket from `proxyReqWs` swallows the well-known
+          // ECONNRESET/ECONNABORTED disconnect codes (expected during
+          // normal WS lifecycle) while still logging genuine errors.
+          configure: (proxy) => {
+            const isExpectedDisconnect = (err) => {
+              const code = err && err.code;
+              return code === 'ECONNRESET' || code === 'ECONNABORTED' || code === 'EPIPE';
+            };
+            proxy.on('error', (err, _req, res) => {
+              if (isExpectedDisconnect(err)) {
+                // Expected — peer closed mid-RT. Don't log spam, don't crash.
+                return;
+              }
+              console.warn(`[vite proxy] error: ${err.message}`);
+              try {
+                if (res && 'writeHead' in res && !res.headersSent) {
+                  res.writeHead(502, { 'Content-Type': 'text/plain' });
+                  res.end('proxy error');
+                }
+              } catch {
+                /* socket may have torn down */
+              }
+            });
+            proxy.on('proxyReqWs', (_proxyReq, _req, socket) => {
+              socket.on('error', (err) => {
+                if (isExpectedDisconnect(err)) return;
+                console.warn(`[vite proxy] WS client socket: ${err.message}`);
+              });
+            });
+            proxy.on('open', (socket) => {
+              socket.on('error', (err) => {
+                if (isExpectedDisconnect(err)) return;
+                console.warn(`[vite proxy] WS upstream socket: ${err.message}`);
+              });
+            });
+          },
         },
       },
     },
