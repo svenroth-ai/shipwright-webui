@@ -226,6 +226,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastPtyDataAtRef = useRef(0);
     const dataSeenInitiallyRef = useRef(false);
     const injectionInFlightRef = useRef(false);
+    // Iterate K v9 (ADR-099) — cross-effect bridge so the auto-launch
+    // effect can trigger the atlas-maintenance pass that lives inside
+    // the mount effect's `if (webglRef && atlasMaintenanceEnabled)`
+    // closure. The mount effect populates this ref AFTER defining
+    // safeAtlasMaintenance and nulls it on cleanup. Null when WebGL
+    // initialisation failed OR the kill switch is on — optional
+    // chaining at the call site handles both cases.
+    const safeAtlasMaintenanceRef = useRef<(() => void) | null>(null);
 
     // 2026-05-05 — Race-Fix: TaskDetail's route is registered as the SAME
     // <TaskDetailPage/> element across `/tasks/:taskId` so React keeps the
@@ -517,6 +525,41 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         consumedTokensRef.current.add(pending.launchToken);
         socket.send({ type: "data", payload: cmd + "\r" });
         coord.consumeLaunch(pending.launchToken);
+
+        // Iterate K v9 (ADR-099) — post-launch-settle backstop. The
+        // burst-after-quiet trigger (v6, gated on
+        // `now - lastWriteTime > 2000ms`) and the post-mount-settle
+        // backstop (v7, scheduled at mount-time +3s) both miss the
+        // case where Resume is clicked in a tab that has been
+        // mounted for a long time:
+        //   - Mount happened minutes/hours ago; postMountSettleTimer
+        //     fired long ago and is gone.
+        //   - The auto-launch typing echo (pwsh echoes each char of
+        //     the `claude --resume <uuid> --name "..."` command back
+        //     over the WS) keeps `lastWriteTime` continuously fresh
+        //     for ~50-500 ms, depending on shell-render cadence.
+        //   - Claude's startup writes (snapshot replay + alt-screen
+        //     setup) land within ~500-1500 ms of the command echo
+        //     ending — well inside the 2 s quiet window.
+        // → burst-trigger never fires; the only remaining trigger
+        //   is the 10 s periodic interval (gated on writes>0). User
+        //   sees 10 s of stale atlas before the periodic kicks in
+        //   (empirical UAT 2026-05-14: "es hat resume nicht
+        //   gegriffen, erst nach 10s gut").
+        //
+        // Schedule a one-shot maintenance pass at +4 s after the
+        // launch dispatch — long enough for Claude's TUI init to
+        // complete (typically <2 s on a warm pty), short enough to
+        // beat the periodic. Unconditional (no `writes>0` gate)
+        // because Resume guarantees writes will happen; defensive
+        // gating would just hide bugs. `disposedRef` short-circuits
+        // if the user navigates away within the window; optional
+        // chaining handles the kill-switch + Canvas/DOM fallback
+        // paths where the ref was never populated.
+        setTimeout(() => {
+          if (disposedRef.current) return;
+          safeAtlasMaintenanceRef.current?.();
+        }, 4_000);
       })().finally(() => {
         injectionInFlightRef.current = false;
       });
@@ -664,10 +707,28 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // the mount. The 2026-05-14 WebGL-off A/B probe confirmed Canvas/DOM
       // alt-screen rendering is severely worse than WebGL — fallback is a
       // graceful-degradation surface, not a target configuration.
+      // Iterate K follow-up (ADR-099, 2026-05-14) — capture the WebglAddon
+      // reference so we can periodically call `clearTextureAtlas()` as a
+      // workaround for xterm.js issue #5847 (open) and #4534. xterm 6.0.0's
+      // WebGL texture atlas accumulates "doubled cache entries" / atlas-
+      // page coordinate drift after sustained streaming of color-attribute
+      // cells (exactly what Claude TUI emits). Symptom: visible smearing /
+      // ghosting / glyph substitution on rows with ANSI color attributes,
+      // recovered only by atlas clear, resize, or remount.
+      //
+      // VS Code exposes `forceRedraw() { this.raw.clearTextureAtlas(); }`
+      // and calls it on OS resume; their workload triggers the bug less
+      // often. Ours (continuous Claude streaming with per-word color
+      // toggles) accumulates faster, so we also clear periodically.
+      // Trade-off: each clear causes a single-frame atlas-rebuild flicker
+      // — much less visually disruptive than the residual smearing the
+      // user reported.
+      let webglRef: WebglAddon | null = null;
       try {
-        const webgl = new WebglAddon();
-        term.loadAddon(webgl);
+        webglRef = new WebglAddon();
+        term.loadAddon(webglRef);
       } catch (err) {
+        webglRef = null;
         console.warn(
           "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
           err instanceof Error ? err.message : String(err),
@@ -691,6 +752,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // the visible viewport, which masks scrollback accumulation).
       // Cleanup nulls it on dispose. Single ref, no production impact.
       (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = term;
+      // Iterate K v8 (ADR-099) — also expose the WebglAddon instance so
+      // the Playwright probe spec can monkey-patch
+      // `clearTextureAtlas()` for scenario instrumentation. Null when
+      // WebGL initialisation failed (Canvas/DOM fallback). Cleanup
+      // mirrors `__embeddedTerminal`.
+      (
+        window as unknown as { __embeddedTerminalWebglAddon?: WebglAddon | null }
+      ).__embeddedTerminalWebglAddon = webglRef;
 
       // Forward keystrokes / paste-text into the socket.
       const onDataDispose = term.onData((data) => {
@@ -734,6 +803,241 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       });
       ro.observe(container);
 
+      // Iterate K follow-up v3 (ADR-099) — CONDITIONAL atlas clear + full
+      // row-refresh, working around xterm.js issue #5847.
+      //
+      // History:
+      //   v1 (bd9e3ea) — 30s periodic + onScroll. Smearing built up
+      //     within window.
+      //   v2 (4e8f938) — 10s periodic + term.refresh() after atlas clear.
+      //     Smearing fully addressed but periodic flicker fired even when
+      //     terminal was idle (user reading without streaming).
+      //   v3 (this commit) — conditional: only clear when there has been
+      //     terminal activity since the last clear, OR the user actively
+      //     scrolled. Idle reading no longer produces periodic flicker.
+      //
+      // VS Code's pattern (xtermTerminal.ts:600 forceRedraw +
+      // terminalNativeContribution.ts._onOsResume) clears only on OS
+      // resume — works for their workload (developer terminal, not
+      // primary content). Ours is Claude TUI streaming = primary
+      // content, so we need to clear more often during activity, but
+      // can stay quiet during reading.
+      //
+      // Mechanism:
+      //   - term.onWriteParsed → increment writesSinceLastClear (free,
+      //     xterm fires this after every byte-batch parse)
+      //   - term.onScroll → immediate clear (user-initiated, always)
+      //   - setInterval 10s → clear ONLY if writesSinceLastClear > 0,
+      //     then reset the counter
+      //
+      // Result:
+      //   - Active Claude streaming: clear every 10s during streaming
+      //     (same cadence as v2; bounds smearing accumulation).
+      //   - Idle terminal after Claude finishes: at most 1 final clear
+      //     within 10s of last byte arriving, then silence.
+      //   - User scrolling: immediate clear on every scroll burst.
+      //
+      // No-op if webglRef is null (Canvas/DOM fallback path).
+      const ATLAS_CLEAR_INTERVAL_MS = 10_000;
+      // Iterate K v6 (ADR-099, 2026-05-14) — first-burst-after-quiet
+      // trigger threshold. When `term.onWriteParsed` fires AND the
+      // gap since the last byte-batch exceeds this, treat it as a
+      // Resume / re-attach / Claude-was-idle-now-streaming-again
+      // burst and run maintenance IMMEDIATELY (don't wait for the
+      // 10s periodic). 2s is empirically chosen: longer than natural
+      // mid-streaming pauses (Claude's between-tool-call gaps are
+      // typically <500ms), shorter than typical user think-time.
+      // Also: mouse-capture mode (?1000h/1002h/1003h, set by Claude
+      // TUI even under NO_FLICKER) makes wheel events go to Claude
+      // not xterm — so `term.onScroll` doesn't fire on user wheel-
+      // scroll, and the periodic interval was the only mechanism
+      // before this trigger.
+      const RESUME_BURST_QUIET_MS = 2_000;
+      // Iterate K v7 (ADR-099, 2026-05-14) — post-mount initial
+      // maintenance. After fresh mount (page reload, navigate-back,
+      // initial open) lastWriteTime in v6 started at 0 — the gate
+      // `lastWriteTime > 0` excluded the very first write batch, so a
+      // Resume burst arriving immediately after the snapshot-replay
+      // write missed the immediate trigger and had to wait for the
+      // 10s periodic. Two changes:
+      //   1. Initialize lastWriteTime to a value PRIOR-TO-mount by
+      //      more-than-quiet-window so the FIRST write after mount
+      //      qualifies as "after quiet" → trigger fires.
+      //   2. Schedule one unconditional maintenance after
+      //      POST_MOUNT_SETTLE_MS as a backstop — catches the case
+      //      where multiple bursts arrive within the quiet window
+      //      (mount → snapshot replay → Resume burst all <1s apart).
+      const POST_MOUNT_SETTLE_MS = 3_000;
+      // Iterate K v8 (ADR-099, 2026-05-14) — DOM wheel listener for
+      // user-initiated scroll during streaming. xterm's `term.onScroll`
+      // only fires for content-driven scroll (new lines pushing the
+      // viewport), NOT for user wheel/keyboard scroll. The semantics are
+      // documented in xterm.js issues #3864 + #3201 — during fast output,
+      // `viewportY` transiently equals `baseY` while xterm's parser is
+      // mid-batch, so an `onScroll` based pin-state would falsely re-pin.
+      // Tabby's `tabby-terminal/src/frontends/xtermFrontend.ts` dropped
+      // `onScroll` for the same reason and listens to wheel/keyboard
+      // events on the container instead.
+      //
+      // Additional motivation: when Claude TUI has mouse capture enabled
+      // (?1000h / ?1002h / ?1003h / SGR ?1006h) the wheel event is
+      // forwarded TO Claude as a mouse-report, not to xterm's scroll
+      // viewport — so `term.onScroll` is silent on user-wheel during
+      // active Claude sessions. The DOM `wheel` listener fires on the
+      // container regardless of internal forwarding, so we ALWAYS see
+      // the user-intended-scroll signal and can run the atlas-maintenance
+      // pass for cursor-ghost / smearing cleanup.
+      //
+      // 150 ms debounce matches the Tabby pattern: rapid wheel events
+      // collapse into one maintenance pass after the user finishes
+      // scrolling. The 250 ms ResizeObserver throttle is similar in
+      // intent — coalesce noisy DOM events.
+      const WHEEL_DEBOUNCE_MS = 150;
+      let onScrollDispose: { dispose: () => void } | null = null;
+      let onWriteParsedDispose: { dispose: () => void } | null = null;
+      let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
+      let postMountSettleTimer: ReturnType<typeof setTimeout> | null = null;
+      let wheelDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+      let onWheel: (() => void) | null = null;
+      let writesSinceLastClear = 0;
+      // v7: initialize to "mount-time minus quiet+1ms" so first write
+      // after mount qualifies as "after quiet" and triggers maintenance.
+      let lastWriteTime = Date.now() - RESUME_BURST_QUIET_MS - 1;
+      // Iterate K UAT instrumentation (ADR-099) — query-param kill
+      // switch for A/B visual validation of the atlas-corruption
+      // workaround. `?atlasMaintenance=off` short-circuits the entire
+      // `if (webglRef)` block: no clears, no refreshes, no wheel /
+      // onScroll / onWriteParsed listeners. Result is the same
+      // baseline behaviour we'd have on a build without the workaround
+      // — side-by-side comparable against the default-on path.
+      //
+      // Default is "on". The param is a probe-only escape hatch with
+      // no UI surface and no production traffic. Lives forever in
+      // source so the A/B test in `probe-iterate-k-smearing-ab.mjs`
+      // can be re-run on any future xterm.js version bump (matches
+      // the "Falsifiability" entry in ADR-099 § Decision § 2).
+      const atlasMaintenanceEnabled = (() => {
+        try {
+          return new URLSearchParams(window.location.search).get(
+            "atlasMaintenance",
+          ) !== "off";
+        } catch {
+          return true;
+        }
+      })();
+      if (webglRef && atlasMaintenanceEnabled) {
+        // Iterate K v5 (ADR-099, 2026-05-14) — split into TWO behaviors
+        // based on buffer type:
+        //
+        //   - Main buffer  : clearTextureAtlas() + refresh(0, rows-1)
+        //     Full workaround for xterm.js #5847 atlas-merge bug. Atlas
+        //     corruption accumulates here under sustained Claude TUI
+        //     streaming (NO_FLICKER mode); the clear forces a rebuild,
+        //     the refresh repaints all "unchanged" cells from the fresh
+        //     atlas.
+        //
+        //   - Alt-screen  : refresh(0, rows-1) ONLY, no atlas clear.
+        //     Two reasons:
+        //       (a) In alt-screen Claude redraws cells aggressively
+        //           every frame (ED2+full repaint), so atlas
+        //           corruption doesn't accumulate the same way.
+        //       (b) The full atlas rebuild SUPERIMPOSES on Claude's
+        //           own per-frame redraw producing visibly WORSE
+        //           flicker than no workaround (empirical UAT v3 on
+        //           task 58be94c5).
+        //     Plain refresh() is much cheaper than clearTextureAtlas —
+        //     just marks rows dirty for the next render pass — and is
+        //     enough to clear stale cursor-render-layer ghosts that
+        //     xterm 6.0's WebGL renderer leaves behind when cursor
+        //     positioning jumps from the right edge back to the left.
+        const safeAtlasMaintenance = () => {
+          if (disposedRef.current || !webglRef) return;
+          const inAltScreen = term.buffer.active.type === "alternate";
+          try {
+            if (!inAltScreen) {
+              webglRef.clearTextureAtlas();
+            }
+            // Both paths run a row-renderer pass. In main-buffer this
+            // repaints every visible cell from the just-rebuilt atlas
+            // (so cells xterm thought were "unchanged" since the
+            // corruption window get fresh paint). In alt-screen this
+            // gives xterm a chance to re-evaluate cursor render layer
+            // + cell state (clears stale cursor ghosts).
+            if (term.rows > 0) term.refresh(0, term.rows - 1);
+          } catch {
+            /* atlas may have been disposed mid-call; safe to ignore */
+          }
+        };
+        // Iterate K v9 (ADR-099) — publish the maintenance callback
+        // to the cross-effect ref so the auto-launch effect can
+        // schedule a post-launch-settle pass (see auto-launch effect
+        // above). Cleared in the cleanup return below.
+        safeAtlasMaintenanceRef.current = safeAtlasMaintenance;
+        // Always maintain on user-initiated scroll (smearing or stale
+        // cursor most visible when user actively reads scrolled rows).
+        onScrollDispose = term.onScroll(safeAtlasMaintenance);
+        // Track every parsed byte-batch. Cheap counter — xterm.js fires
+        // onWriteParsed after each internal write batch.
+        //
+        // Iterate K v6 + v7 — if the gap since the last byte-batch
+        // exceeded RESUME_BURST_QUIET_MS, treat this firing as the
+        // start of a Resume / re-attach / wake-up / post-mount burst
+        // and run maintenance immediately (don't wait for the 10s
+        // periodic). v7: lastWriteTime is now pre-initialized to
+        // mount-time minus quiet-window+1ms, so the FIRST write after
+        // a fresh mount also qualifies.
+        onWriteParsedDispose = term.onWriteParsed(() => {
+          const now = Date.now();
+          if (now - lastWriteTime > RESUME_BURST_QUIET_MS) {
+            // First write after a meaningful quiet window — burst
+            // start. Reset the counter so the next periodic tick
+            // doesn't re-fire too quickly.
+            writesSinceLastClear = 0;
+            safeAtlasMaintenance();
+          } else {
+            writesSinceLastClear++;
+          }
+          lastWriteTime = now;
+        });
+        // Iterate K v7 — post-mount settle backstop. If the resume
+        // burst arrives so quickly after mount that it's bundled with
+        // the snapshot-replay write (both <quiet-window apart from
+        // each other), neither qualifies as "after quiet" individually
+        // and the burst-trigger doesn't fire. The settle timer
+        // unconditionally runs maintenance once at POST_MOUNT_SETTLE_MS,
+        // catching this case before the 10s periodic would.
+        postMountSettleTimer = setTimeout(() => {
+          postMountSettleTimer = null;
+          if (writesSinceLastClear > 0) {
+            writesSinceLastClear = 0;
+            safeAtlasMaintenance();
+          }
+        }, POST_MOUNT_SETTLE_MS);
+        // Conditional periodic: only run maintenance if there was
+        // activity since the last tick. When the terminal is idle (user
+        // just reading a finished session), the counter stays 0 → no
+        // maintenance → no flicker.
+        atlasClearTimer = setInterval(() => {
+          if (writesSinceLastClear === 0) return;
+          writesSinceLastClear = 0;
+          safeAtlasMaintenance();
+        }, ATLAS_CLEAR_INTERVAL_MS);
+        // Iterate K v8 — DOM wheel listener with 150ms debounce. Bubble
+        // phase (no `capture: true`) so xterm's internal handling runs
+        // first, matching Tabby's pattern. `passive: true` keeps the
+        // browser scroll path unblocked. The handler schedules a single
+        // `safeAtlasMaintenance()` after the user stops scrolling; rapid
+        // wheel events coalesce into one maintenance pass.
+        onWheel = () => {
+          if (wheelDebounceTimer) clearTimeout(wheelDebounceTimer);
+          wheelDebounceTimer = setTimeout(() => {
+            wheelDebounceTimer = null;
+            if (!disposedRef.current && webglRef) safeAtlasMaintenance();
+          }, WHEEL_DEBOUNCE_MS);
+        };
+        container.addEventListener("wheel", onWheel, { passive: true });
+      }
+
       return () => {
         // v0.9.2 (ADR-084) — cleanup ordering matters. `disposedRef` is
         // flipped FIRST so any straggler async tail of OUR code (safeFit
@@ -746,6 +1050,36 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         if (lastResizePendingRef.current) {
           clearTimeout(lastResizePendingRef.current);
           lastResizePendingRef.current = null;
+        }
+        // Iterate K follow-up — atlas-clear triggers cleanup.
+        if (atlasClearTimer) {
+          clearInterval(atlasClearTimer);
+          atlasClearTimer = null;
+        }
+        if (postMountSettleTimer) {
+          clearTimeout(postMountSettleTimer);
+          postMountSettleTimer = null;
+        }
+        // Iterate K v9 — clear the cross-effect bridge so straggler
+        // post-launch-settle timers short-circuit cleanly via the
+        // optional chain at the call site.
+        safeAtlasMaintenanceRef.current = null;
+        if (onScrollDispose) {
+          onScrollDispose.dispose();
+          onScrollDispose = null;
+        }
+        if (onWriteParsedDispose) {
+          onWriteParsedDispose.dispose();
+          onWriteParsedDispose = null;
+        }
+        // Iterate K v8 — wheel listener cleanup.
+        if (onWheel) {
+          container.removeEventListener("wheel", onWheel);
+          onWheel = null;
+        }
+        if (wheelDebounceTimer) {
+          clearTimeout(wheelDebounceTimer);
+          wheelDebounceTimer = null;
         }
         onDataDispose.dispose();
 
@@ -807,6 +1141,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         termRef.current = null;
         fitAddonRef.current = null;
         (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = null;
+        (
+          window as unknown as { __embeddedTerminalWebglAddon?: WebglAddon | null }
+        ).__embeddedTerminalWebglAddon = null;
       };
       // socket.send is stable via useCallback; we intentionally don't depend
       // on `socket` here because re-mounting xterm on every reconnect would
