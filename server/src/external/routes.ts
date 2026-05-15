@@ -78,7 +78,7 @@ import {
 } from "../types/run-config-v2.js";
 import { SessionWatcher } from "../core/session-watcher.js";
 import { parseSessionJsonl } from "../core/session-parser.js";
-import { deriveInbox, DEFAULT_USER_BLOCKING_TOOLS } from "../core/inbox-derive.js";
+import { deriveSessionInbox, DEFAULT_USER_BLOCKING_TOOLS } from "../core/inbox-derive.js";
 import {
   SdkSessionsStore,
   UNASSIGNED_PROJECT_ID,
@@ -115,12 +115,28 @@ interface InboxDeriveCacheEntry {
   mtimeMs: number;
   contentLength: number;
   dismissedKey: string;
-  entries: Array<{
-    toolUseId: string;
-    toolName: string;
-    input: unknown;
-    taskTitle: string;
-  }>;
+  /**
+   * Cached inbox rows for this session. Discriminated union (iterate
+   * 2026-05-15 inbox-awaiting-user): `ask_tool` is an unanswered
+   * AskUserQuestion tool_use; `text_question` is a plain-text end-of-turn
+   * question detected by `detectAwaitingUserQuestion`. Text questions carry
+   * NO tool fields — they auto-clear on the next user turn (no dismiss).
+   */
+  entries: Array<
+    | {
+        kind: "ask_tool";
+        toolUseId: string;
+        toolName: string;
+        input: unknown;
+        taskTitle: string;
+      }
+    | {
+        kind: "text_question";
+        questionId: string;
+        questionText: string;
+        taskTitle: string;
+      }
+  >;
   pendingIds: string[];
 }
 const inboxDeriveCache = new Map<string, InboxDeriveCacheEntry>();
@@ -1121,15 +1137,30 @@ export function createExternalRoutes(args: {
     // still does the full scan; warm calls (no new events, no new
     // dismissals) short-circuit to the cached entries array. Mirrors
     // the mtime-cache pattern in `core/project-actions-loader.ts`.
-    type AggregatedEntry = {
-      taskId: string;
-      sessionUuid: string;
-      taskTitle: string;
-      toolUseId: string;
-      toolName: string;
-      input: unknown;
-      bestEffort: true;
-    };
+    // Discriminated union on `kind` (iterate 2026-05-15 inbox-awaiting-user).
+    // `ask_tool` carries the AskUserQuestion tool_use fields; `text_question`
+    // carries only the detected question text — no fake tool fields, no
+    // AUQ-field leakage (external review #1).
+    type AggregatedEntry =
+      | {
+          kind: "ask_tool";
+          taskId: string;
+          sessionUuid: string;
+          taskTitle: string;
+          toolUseId: string;
+          toolName: string;
+          input: unknown;
+          bestEffort: true;
+        }
+      | {
+          kind: "text_question";
+          taskId: string;
+          sessionUuid: string;
+          taskTitle: string;
+          questionId: string;
+          questionText: string;
+          bestEffort: true;
+        };
     const out: AggregatedEntry[] = [];
     let storeDirty = false;
     for (const task of store.list()) {
@@ -1163,15 +1194,28 @@ export function createExternalRoutes(args: {
           cached.dismissedKey === dismissedKey
         ) {
           for (const e of cached.entries) {
-            out.push({
-              taskId: task.taskId,
-              sessionUuid: task.sessionUuid,
-              taskTitle: e.taskTitle,
-              toolUseId: e.toolUseId,
-              toolName: e.toolName,
-              input: e.input,
-              bestEffort: true,
-            });
+            if (e.kind === "text_question") {
+              out.push({
+                kind: "text_question",
+                taskId: task.taskId,
+                sessionUuid: task.sessionUuid,
+                taskTitle: e.taskTitle,
+                questionId: e.questionId,
+                questionText: e.questionText,
+                bestEffort: true,
+              });
+            } else {
+              out.push({
+                kind: "ask_tool",
+                taskId: task.taskId,
+                sessionUuid: task.sessionUuid,
+                taskTitle: e.taskTitle,
+                toolUseId: e.toolUseId,
+                toolName: e.toolName,
+                input: e.input,
+                bestEffort: true,
+              });
+            }
           }
           continue;
         }
@@ -1209,7 +1253,11 @@ export function createExternalRoutes(args: {
         continue;
       }
       const parsed = parseSessionJsonl(content);
-      const result = deriveInbox({
+      // `deriveSessionInbox` runs both detection paths and applies the
+      // precedence rule in one place: a pending tool_use (AskUserQuestion)
+      // wins — `textQuestion` is null whenever `pending` is non-empty
+      // (iterate 2026-05-15 inbox-awaiting-user).
+      const result = deriveSessionInbox({
         events: parsed.events,
         allowlist: DEFAULT_USER_BLOCKING_TOOLS,
         dismissed: new Set(task.inbox.dismissedToolUseIds),
@@ -1217,18 +1265,41 @@ export function createExternalRoutes(args: {
       const cacheEntries: InboxDeriveCacheEntry["entries"] = [];
       for (const e of result.pending) {
         cacheEntries.push({
+          kind: "ask_tool",
           toolUseId: e.toolUseId,
           toolName: e.toolName,
           input: e.input,
           taskTitle: task.title,
         });
         out.push({
+          kind: "ask_tool",
           taskId: task.taskId,
           sessionUuid: task.sessionUuid,
           taskTitle: task.title,
           toolUseId: e.toolUseId,
           toolName: e.toolName,
           input: e.input,
+          bestEffort: true,
+        });
+      }
+      // Plain-text "awaiting user" question — mutually exclusive with the
+      // tool_use rows above by construction. Recomputed every cold derive
+      // (mtime-keyed cache) so it self-clears the moment the user replies;
+      // no `pendingToolUseIds` persistence, no dismiss machinery.
+      if (result.textQuestion) {
+        cacheEntries.push({
+          kind: "text_question",
+          questionId: result.textQuestion.questionId,
+          questionText: result.textQuestion.questionText,
+          taskTitle: task.title,
+        });
+        out.push({
+          kind: "text_question",
+          taskId: task.taskId,
+          sessionUuid: task.sessionUuid,
+          taskTitle: task.title,
+          questionId: result.textQuestion.questionId,
+          questionText: result.textQuestion.questionText,
           bestEffort: true,
         });
       }

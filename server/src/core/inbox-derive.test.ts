@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 
-import { deriveInbox, DEFAULT_USER_BLOCKING_TOOLS } from "./inbox-derive.js";
+import {
+  deriveInbox,
+  deriveSessionInbox,
+  detectAwaitingUserQuestion,
+  DEFAULT_USER_BLOCKING_TOOLS,
+  MAX_QUESTION_TEXT_LEN,
+} from "./inbox-derive.js";
 import { parseSessionJsonl } from "./session-parser.js";
 
 function build(events: unknown[]): string {
@@ -84,5 +90,201 @@ describe("deriveInbox — allowlist filter", () => {
     const r = deriveInbox({ events });
     expect(r.pending).toHaveLength(1);
     expect(r.pending[0].toolUseId).toBe("t2");
+  });
+});
+
+// ---------- iterate-2026-05-15 inbox-awaiting-user ----------
+
+function assistantText(text: string, uuid = "a1"): Record<string, unknown> {
+  return {
+    type: "assistant",
+    uuid,
+    sessionId: "s",
+    message: { content: [{ type: "text", text }] },
+  };
+}
+
+function userMsg(text: string): Record<string, unknown> {
+  return { type: "user", sessionId: "s", message: { content: text } };
+}
+
+/** A non-conversational metadata event (agent-name, permission-mode, …). */
+function meta(type: string): Record<string, unknown> {
+  return { type, sessionId: "s" };
+}
+
+describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () => {
+  it("AC-1: detects an assistant turn whose text ends with a question mark", () => {
+    const { events } = parseSessionJsonl(
+      build([userMsg("go"), assistantText("Shall I proceed to build?", "q1")]),
+    );
+    const q = detectAwaitingUserQuestion(events);
+    expect(q).not.toBeNull();
+    expect(q?.questionId).toBe("q1");
+    expect(q?.questionText).toContain("Shall I proceed");
+  });
+
+  it("AC-2: detects a numbered option list with no trailing '?'", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("status"),
+        assistantText(
+          "Here is how we can continue:\n1. Resume the run\n2. Abandon it\n3. Start parallel work",
+          "q2",
+        ),
+      ]),
+    );
+    expect(detectAwaitingUserQuestion(events)).not.toBeNull();
+  });
+
+  it("detects a lettered + bold-numbered option list", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("x"),
+        assistantText("Pick one:\n**1.** small\n**2.** medium\n**3.** large", "q3"),
+      ]),
+    );
+    expect(detectAwaitingUserQuestion(events)).not.toBeNull();
+    const { events: e2 } = parseSessionJsonl(
+      build([userMsg("x"), assistantText("Options:\na) keep\nb) drop", "q3b")]),
+    );
+    expect(detectAwaitingUserQuestion(e2)).not.toBeNull();
+  });
+
+  it("AC-3: returns null once a real user reply follows the question", () => {
+    const { events } = parseSessionJsonl(
+      build([assistantText("Shall I proceed?", "q4"), userMsg("yes, go")]),
+    );
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("AC-4: returns null when the last assistant event carries a tool_use", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("go"),
+        assistantText("Should I continue?", "q5"),
+        assistantWithToolUse("t9", "Bash"),
+      ]),
+    );
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("returns null when the last conversational event is a user message", () => {
+    const { events } = parseSessionJsonl(build([userMsg("do the thing")]));
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("returns null when the last conversational event is a tool_result", () => {
+    const { events } = parseSessionJsonl(
+      build([assistantWithToolUse("t1", "Bash"), userWithToolResult("t1")]),
+    );
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("returns null for a plain statement turn (no question shape)", () => {
+    const { events } = parseSessionJsonl(
+      build([userMsg("go"), assistantText("Done. All tests pass and the branch is merged.", "q6")]),
+    );
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("returns null when a list is mid-report and substantial prose follows it", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("report"),
+        assistantText(
+          "I changed:\n1. the parser\n2. the route\nThe report is complete and every single test in the full suite passed cleanly.",
+          "q7",
+        ),
+      ]),
+    );
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("detects a question/list followed only by a short closing line", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("x"),
+        assistantText("How shall we proceed?\n1. Option A\n2. Option B\nLet me know.", "q8"),
+      ]),
+    );
+    expect(detectAwaitingUserQuestion(events)).not.toBeNull();
+  });
+
+  it("ignores a '?' that only appears inside a fenced code block", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("x"),
+        assistantText(
+          "I ran this query for you:\n```sql\nSELECT * FROM users WHERE active = ?;\n```\nThat is the final result.",
+          "q9",
+        ),
+      ]),
+    );
+    expect(detectAwaitingUserQuestion(events)).toBeNull();
+  });
+
+  it("tolerates trailing markdown / quotes after the question mark", () => {
+    const { events } = parseSessionJsonl(
+      build([userMsg("x"), assistantText("**Shall I proceed?**", "q10")]),
+    );
+    expect(detectAwaitingUserQuestion(events)).not.toBeNull();
+  });
+
+  it("skips interleaved non-conversational events when locating the turn", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("go"),
+        assistantText("Want me to continue?", "q11"),
+        meta("agent-name"),
+        meta("permission-mode"),
+      ]),
+    );
+    const q = detectAwaitingUserQuestion(events);
+    expect(q).not.toBeNull();
+    expect(q?.questionId).toBe("q11");
+  });
+
+  it("uses the LAST assistant event uuid as questionId across a multi-event turn", () => {
+    const { events } = parseSessionJsonl(
+      build([
+        userMsg("go"),
+        assistantText("Here are the options.", "turn-first"),
+        assistantText("1. Keep it\n2. Drop it", "turn-last"),
+      ]),
+    );
+    const q = detectAwaitingUserQuestion(events);
+    expect(q).not.toBeNull();
+    expect(q?.questionId).toBe("turn-last");
+    expect(q?.questionText).toContain("Here are the options.");
+  });
+
+  it("caps questionText at MAX_QUESTION_TEXT_LEN", () => {
+    const huge = "x".repeat(MAX_QUESTION_TEXT_LEN + 5000) + "\nProceed?";
+    const { events } = parseSessionJsonl(build([userMsg("go"), assistantText(huge, "q12")]));
+    const q = detectAwaitingUserQuestion(events);
+    expect(q).not.toBeNull();
+    expect(q!.questionText.length).toBeLessThanOrEqual(MAX_QUESTION_TEXT_LEN + 1);
+  });
+});
+
+describe("deriveSessionInbox — AUQ precedence over text questions", () => {
+  it("a pending AskUserQuestion suppresses the text-question path", () => {
+    const { events } = parseSessionJsonl(
+      build([userMsg("go"), assistantWithToolUse("t1", "AskUserQuestion")]),
+    );
+    const r = deriveSessionInbox({ events });
+    expect(r.pending).toHaveLength(1);
+    expect(r.textQuestion).toBeNull();
+  });
+
+  it("surfaces a text question when no tool_use is pending", () => {
+    const { events } = parseSessionJsonl(
+      build([userMsg("go"), assistantText("Shall I proceed?", "q1")]),
+    );
+    const r = deriveSessionInbox({ events });
+    expect(r.pending).toHaveLength(0);
+    expect(r.textQuestion).not.toBeNull();
+    expect(r.textQuestion?.questionId).toBe("q1");
   });
 });
