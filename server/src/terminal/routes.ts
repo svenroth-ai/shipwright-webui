@@ -49,6 +49,42 @@ import {
   tryReadSnapshot as tryReadSnapshotShared,
 } from "./replay-snapshot.js";
 
+/**
+ * ADR-104 (iterate-20260515-terminal-smear-reset) — derive the
+ * `terminalReset` flag carried by the WS `ready` envelope.
+ *
+ * `true` exactly when this WS attach FRESHLY created the pty
+ * (`ptyExistedBefore === false` — `ptyManager.get` returned undefined
+ * immediately before `spawn`) AND the task already had a Claude session
+ * (`firstJsonlObservedAt` set). That is the "the previous embedded
+ * terminal was lost — a server restart / crash killed the pty
+ * mid-session" signal that drives the EmbeddedTerminal reset banner.
+ *
+ * `false` on first-ever launch (no prior JSONL) and on re-attach to a
+ * still-live pty (navigate-away-and-back never kills the pty, so
+ * `spawn()` returns the existing handle).
+ *
+ * Known false-negative band (code review, ADR-104): `firstJsonlObservedAt`
+ * is read from the in-memory store, which reflects the last value
+ * persisted to `sdk-sessions.json`. It is RESTORED from disk at server
+ * boot, so after a normal restart it is available for any task whose
+ * transcript poll ever persisted it. The narrow miss: a task whose JSONL
+ * first appeared, was observed by a poll, but crashed before the
+ * follow-up `store.persist()` flushed — the field is `undefined` on
+ * reload and the banner does not show. This degrades to the pre-ADR-104
+ * behaviour (no banner) — never a false positive, never a regression —
+ * so the precise (cheap, no-false-positive) `firstJsonlObservedAt`
+ * signal is kept over a live JSONL-path stat. A live stat would also
+ * have to encode the `~/.claude/projects/<cwd>` path and could fire on
+ * a pty that ran a bare shell with no Claude session.
+ */
+export function deriveTerminalReset(
+  ptyExistedBefore: boolean,
+  firstJsonlObservedAt: string | null | undefined,
+): boolean {
+  return !ptyExistedBefore && Boolean(firstJsonlObservedAt);
+}
+
 export interface TerminalRoutesDeps {
   store: SdkSessionsStore;
   ptyManager: PtyManager;
@@ -524,6 +560,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                       shellKind: null,
                       cwd: trustedCwd,
                       replayOnly: true,
+                      // ADR-104 — replay-only tasks (done / launch_failed)
+                      // never carry a reset banner: no pty is spawned and
+                      // Resume is not applicable in a terminal state.
+                      terminalReset: false,
                       scrollbackBytes,
                       retentionDays,
                       scrollbackDir: scrollbackDirHint,
@@ -556,11 +596,22 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           };
         }
 
+        // ADR-104 — capture pty-existence on the synchronous line
+        // IMMEDIATELY before spawn(). Race-free: there is no `await`
+        // between this probe and spawn(), and Node is single-threaded,
+        // so no concurrent WS attach can create the pty in between.
+        const ptyExistedBeforeAttach = ptyManager.get(taskId) !== undefined;
         // Ensure-or-create the pty against the realpath-validated cwd.
         const meta = ptyManager.spawn(taskId, {
           cwd: trustedCwd,
           shell: resolveShell(),
         });
+        // ADR-104 — true when this attach freshly re-created the pty
+        // after a prior Claude session was lost (server restart / crash).
+        const terminalReset = deriveTerminalReset(
+          ptyExistedBeforeAttach,
+          task.firstJsonlObservedAt,
+        );
 
         // Per-connection identity is the WSContext (re-used in attach/detach).
         // We build it inline to keep references stable across handlers.
@@ -664,6 +715,8 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   shellKind: meta.shellKind,
                   cwd: meta.cwd,
                   replayOnly: false,
+                  // ADR-104 — drives the EmbeddedTerminal reset banner.
+                  terminalReset,
                   scrollbackBytes: 0,
                   retentionDays,
                   scrollbackDir: scrollbackDirHint,

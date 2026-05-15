@@ -112,6 +112,14 @@ export interface UseTerminalSocketResult {
   scrollbackBytes: number | null;
   retentionDays: number | null;
   scrollbackDir: string | null;
+  /**
+   * ADR-104 (iterate-20260515-terminal-smear-reset) — true when this WS
+   * attach freshly re-created the pty after a prior Claude session was
+   * lost (server restart / crash). Drives the EmbeddedTerminal reset
+   * banner. Null until the `ready` envelope arrives; `false` when an
+   * older server omits the field (back-compat).
+   */
+  terminalReset: boolean | null;
   /** Last error message, if any. */
   lastError: string | null;
   /** Number of reconnect attempts since last successful connect. */
@@ -167,6 +175,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const [scrollbackBytes, setScrollbackBytes] = useState<number | null>(null);
   const [retentionDays, setRetentionDays] = useState<number | null>(null);
   const [scrollbackDir, setScrollbackDir] = useState<string | null>(null);
+  const [terminalReset, setTerminalReset] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -197,6 +206,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setScrollbackBytes(null);
       setRetentionDays(null);
       setScrollbackDir(null);
+      setTerminalReset(null);
       setOpen(false);
       return;
     }
@@ -264,6 +274,11 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
             typeof env.scrollbackDir === "string" && env.scrollbackDir.length > 0
               ? env.scrollbackDir
               : null,
+          );
+          // ADR-104 — reset-banner signal. Defaults to false when an
+          // older server omits the field (back-compat).
+          setTerminalReset(
+            typeof env.terminalReset === "boolean" ? env.terminalReset : false,
           );
           setReady(true);
           return;
@@ -375,6 +390,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setScrollbackBytes(null);
       setRetentionDays(null);
       setScrollbackDir(null);
+      setTerminalReset(null);
       setOpen(false);
     };
   }, [enabled, taskId, urlOverride]);
@@ -387,6 +403,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     scrollbackBytes,
     retentionDays,
     scrollbackDir,
+    terminalReset,
     lastError,
     reconnectAttempts,
     send,
