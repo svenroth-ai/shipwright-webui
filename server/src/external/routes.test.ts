@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 
 import { SdkSessionsStore, type SdkSessionsStoreDeps } from "../core/sdk-sessions-store.js";
 import { SessionWatcher } from "../core/session-watcher.js";
-import { createExternalRoutes } from "./routes.js";
+import { createExternalRoutes, clearInboxDeriveCache } from "./routes.js";
 import { createDiagnosticsRoutes } from "../routes/diagnostics.js";
 
 function inMemoryDeps(): SdkSessionsStoreDeps & { _files: Map<string, string> } {
@@ -357,8 +357,11 @@ describe("poc-external routes — integration", () => {
     writeFileSync(path.join(encodedDir, `${task.sessionUuid}.jsonl`), content, "utf-8");
 
     const res = await app.request("/api/external/inbox");
-    const body = await res.json() as { items: Array<{ toolUseId: string; bestEffort: boolean }> };
+    const body = await res.json() as {
+      items: Array<{ kind: string; toolUseId: string; bestEffort: boolean }>;
+    };
     expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("ask_tool");
     expect(body.items[0].toolUseId).toBe("t1");
     expect(body.items[0].bestEffort).toBe(true);
   });
@@ -389,6 +392,115 @@ describe("poc-external routes — integration", () => {
     const reread = await app.request("/api/external/inbox");
     const body = await reread.json() as { items: unknown[] };
     expect(body.items).toHaveLength(0);
+  });
+
+  // ---------- iterate 2026-05-15 inbox-awaiting-user ----------
+  // The Inbox now also surfaces plain-text end-of-turn questions (no
+  // tool_use block) — see `core/inbox-derive.ts:detectAwaitingUserQuestion`.
+
+  /** Drops a synthetic JSONL for a task's session under the watched dir. */
+  function seedSessionJsonl(sessionUuid: string, lines: object[]): void {
+    const encodedDir = path.join(projectsDir, "enc");
+    mkdirSync(encodedDir, { recursive: true });
+    writeFileSync(
+      path.join(encodedDir, `${sessionUuid}.jsonl`),
+      lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
+      "utf-8",
+    );
+  }
+
+  async function createTask(): Promise<{ taskId: string; sessionUuid: string }> {
+    const create = await app.request("/api/external/tasks", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "t", cwd: "/tmp" }),
+    });
+    const { task } = await create.json() as {
+      task: { taskId: string; sessionUuid: string };
+    };
+    return task;
+  }
+
+  it("GET /inbox surfaces a plain-text question (last turn ends with '?')", async () => {
+    const task = await createTask();
+    seedSessionJsonl(task.sessionUuid, [
+      {
+        type: "assistant", uuid: "evt-q1", sessionId: task.sessionUuid,
+        message: { content: [{ type: "text", text: "I can do A or B. Which do you prefer?" }] },
+      },
+    ]);
+
+    const res = await app.request("/api/external/inbox");
+    const body = await res.json() as {
+      items: Array<Record<string, unknown>>;
+    };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("text_question");
+    expect(body.items[0].questionId).toBe("evt-q1");
+    expect(body.items[0].questionText).toContain("Which do you prefer?");
+    expect(body.items[0].bestEffort).toBe(true);
+    // text_question rows carry NO tool fields (discriminated union — no
+    // AUQ-field leakage).
+    expect("toolUseId" in body.items[0]).toBe(false);
+    expect("toolName" in body.items[0]).toBe(false);
+  });
+
+  it("GET /inbox: a pending tool_use suppresses the text_question (precedence)", async () => {
+    const task = await createTask();
+    // Last assistant turn has BOTH question-shaped text AND a pending
+    // AskUserQuestion tool_use — only the ask_tool row must surface.
+    seedSessionJsonl(task.sessionUuid, [
+      {
+        type: "assistant", uuid: "evt-mix", sessionId: task.sessionUuid,
+        message: {
+          content: [
+            { type: "text", text: "How should I proceed?" },
+            { type: "tool_use", id: "t9", name: "AskUserQuestion", input: {} },
+          ],
+        },
+      },
+    ]);
+
+    const res = await app.request("/api/external/inbox");
+    const body = await res.json() as { items: Array<Record<string, unknown>> };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("ask_tool");
+    expect(body.items[0].toolUseId).toBe("t9");
+  });
+
+  it("GET /inbox: a text_question auto-clears once the user replies", async () => {
+    const task = await createTask();
+    seedSessionJsonl(task.sessionUuid, [
+      {
+        type: "assistant", uuid: "evt-q2", sessionId: task.sessionUuid,
+        message: { content: [{ type: "text", text: "Ready to merge?" }] },
+      },
+    ]);
+
+    const before = await (await app.request("/api/external/inbox")).json() as {
+      items: Array<Record<string, unknown>>;
+    };
+    expect(before.items).toHaveLength(1);
+    expect(before.items[0].kind).toBe("text_question");
+
+    // User replies in the terminal — a `user` event lands after the turn.
+    seedSessionJsonl(task.sessionUuid, [
+      {
+        type: "assistant", uuid: "evt-q2", sessionId: task.sessionUuid,
+        message: { content: [{ type: "text", text: "Ready to merge?" }] },
+      },
+      {
+        type: "user", uuid: "evt-r2", sessionId: task.sessionUuid,
+        message: { content: "yes, go" },
+      },
+    ]);
+    // Re-derive from scratch (mtime would also bust the cache; clearing
+    // makes the test independent of filesystem timestamp granularity).
+    clearInboxDeriveCache();
+
+    const after = await (await app.request("/api/external/inbox")).json() as {
+      items: unknown[];
+    };
+    expect(after.items).toHaveLength(0);
   });
 
   // ---------- iterate-2026-05-14 lead-foundation-task-schema ----------
