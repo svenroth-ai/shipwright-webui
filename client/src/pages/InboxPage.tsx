@@ -57,7 +57,13 @@ import { classifyPhase } from "../lib/classifyPhase";
 import { formatRelativeTime } from "../lib/formatTime";
 import { UNASSIGNED_PROJECT_ID } from "../lib/projectIds";
 import { getProjectColor } from "../lib/projectColor";
-import type { CopyCommandForms, ExternalTask, InboxItem } from "../lib/externalApi";
+import type {
+  AskToolInboxItem,
+  CopyCommandForms,
+  ExternalTask,
+  InboxItem,
+  TextQuestionInboxItem,
+} from "../lib/externalApi";
 import type { Project } from "../types";
 
 // Known phase ids (mirrors PIPELINE_PHASES but we intentionally don't couple
@@ -361,7 +367,7 @@ function ProjectSection({
 
               <div className="flex flex-col" style={{ gap: "12px" }}>
                 {sg.items.map((item) => (
-                  <InboxCard key={item.toolUseId} item={item} task={task} />
+                  <InboxCard key={inboxItemKey(item)} item={item} task={task} />
                 ))}
               </div>
             </section>
@@ -387,8 +393,32 @@ const PHASE_ICON: Record<
   changelog: Workflow,
 };
 
+/** Stable React key / testid base for an inbox item, kind-aware. */
+function inboxItemKey(item: InboxItem): string {
+  return item.kind === "ask_tool" ? item.toolUseId : item.questionId;
+}
+
 /**
- * InboxCard — read-only Ask-bubble at Inbox density.
+ * InboxCard — dispatches on `item.kind` (iterate 2026-05-15
+ * inbox-awaiting-user):
+ *  - `ask_tool`      → `AskToolCard`      (read-only Ask-bubble + Answer CTA)
+ *  - `text_question` → `TextQuestionCard` (plain-text question, no CTA)
+ */
+function InboxCard({
+  item,
+  task,
+}: {
+  item: InboxItem;
+  task: ExternalTask | undefined;
+}) {
+  if (item.kind === "text_question") {
+    return <TextQuestionCard item={item} task={task} />;
+  }
+  return <AskToolCard item={item} task={task} />;
+}
+
+/**
+ * AskToolCard — read-only Ask-bubble at Inbox density.
  *
  * Shape (3.7d-b3):
  *   ┌──┬───────────────────────────────────────────────────┐
@@ -403,11 +433,11 @@ const PHASE_ICON: Record<
  * The whole card is click-through → /tasks/<taskId>. The Resume button
  * stops propagation so clicking it only copies the resume command.
  */
-function InboxCard({
+function AskToolCard({
   item,
   task,
 }: {
-  item: InboxItem;
+  item: AskToolInboxItem;
   task: ExternalTask | undefined;
 }) {
   const navigate = useNavigate();
@@ -603,6 +633,139 @@ function InboxCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * TextQuestionCard — a plain-text "awaiting user" question Claude printed
+ * in the terminal with no `AskUserQuestion` tool_use (iterate 2026-05-15
+ * inbox-awaiting-user). Same card chrome as `AskToolCard` (amber left
+ * strip, context pill, time-ago, whole-card click-through to TaskDetail)
+ * but the body is the detected question text — there is NO Answer button
+ * and NO dismiss: the row auto-clears server-side once the user replies.
+ *
+ * `questionText` is rendered as escaped plain-text React children (never
+ * markdown/HTML — XSS hardening, external review #10) with `pre-wrap` so a
+ * numbered option-menu keeps its line layout; line-clamped so a long turn
+ * cannot blow out the card.
+ */
+function TextQuestionCard({
+  item,
+  task,
+}: {
+  item: TextQuestionInboxItem;
+  task: ExternalTask | undefined;
+}) {
+  const navigate = useNavigate();
+
+  const phase = useMemo<string | null>(() => {
+    if (!task?.title) return null;
+    return classifyPhase(task.title, KNOWN_PHASES as unknown as string[]);
+  }, [task?.title]);
+
+  const timeAgo = useMemo<string | null>(() => {
+    const stamp = task?.launchedAt ?? task?.createdAt;
+    return stamp ? formatRelativeTime(stamp) : null;
+  }, [task?.launchedAt, task?.createdAt]);
+
+  const handleCardClick = () => {
+    if (!task) return;
+    navigate(`/tasks/${task.taskId}`);
+  };
+  const handleCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!task) return;
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      navigate(`/tasks/${task.taskId}`);
+    }
+  };
+
+  const PhaseIcon = phase ? PHASE_ICON[phase] : null;
+
+  return (
+    <div
+      className="transition-opacity"
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        borderLeft: "3px solid var(--color-warning)",
+        borderRadius: "var(--radius-button)",
+        padding: "22px 24px",
+        boxShadow: "var(--shadow-sm)",
+        maxWidth: "720px",
+        cursor: task ? "pointer" : "default",
+      }}
+      role={task ? "button" : undefined}
+      tabIndex={task ? 0 : undefined}
+      aria-label={task ? `Open task ${task.title}` : undefined}
+      onClick={task ? handleCardClick : undefined}
+      onKeyDown={task ? handleCardKeyDown : undefined}
+      data-testid={`inbox-card-${item.questionId}`}
+    >
+      {/* Top row: context pill + time-ago. Read-only. */}
+      <div className="mb-[12px] flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {phase && PhaseIcon && task && (
+            <span
+              className="inline-flex items-center gap-[5px] rounded-[12px] font-semibold uppercase"
+              style={{
+                background: "var(--color-muted-bg)",
+                color: "var(--color-muted)",
+                fontSize: "11px",
+                padding: "3px 10px",
+                letterSpacing: "0.02em",
+              }}
+              data-testid={`inbox-task-context-pill-${item.questionId}`}
+            >
+              <PhaseIcon size={12} />
+              <span className="truncate">
+                {phase} / {task.title}
+              </span>
+            </span>
+          )}
+        </div>
+        {timeAgo && (
+          <span
+            className="shrink-0 text-[12px] font-normal"
+            style={{ color: "var(--color-muted)" }}
+          >
+            {timeAgo}
+          </span>
+        )}
+      </div>
+
+      {/* "Awaiting your reply" label — distinguishes a plain-text question
+          from an AskUserQuestion card without a header of its own. */}
+      <div
+        className="font-semibold uppercase"
+        style={{
+          fontSize: "11px",
+          letterSpacing: "0.6px",
+          color: "var(--color-muted)",
+          marginBottom: "6px",
+        }}
+      >
+        Awaiting your reply
+      </div>
+
+      {/* Detected question text — escaped plain-text, pre-wrap so numbered
+          menus keep their layout, line-clamped against runaway turns. */}
+      <div
+        data-testid={`inbox-question-text-${item.questionId}`}
+        style={{
+          fontSize: "14px",
+          color: "var(--color-text)",
+          lineHeight: 1.5,
+          whiteSpace: "pre-wrap",
+          display: "-webkit-box",
+          WebkitLineClamp: 8,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {item.questionText}
+      </div>
     </div>
   );
 }

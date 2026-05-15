@@ -27,7 +27,12 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import InboxPage from "./InboxPage";
-import type { ExternalTask, InboxItem } from "../lib/externalApi";
+import type {
+  AskToolInboxItem,
+  ExternalTask,
+  InboxItem,
+  TextQuestionInboxItem,
+} from "../lib/externalApi";
 import type { Project } from "../types";
 
 // Hoisted mocks must be declared before the imports that consume them.
@@ -76,14 +81,32 @@ function makeTask(overrides: Partial<ExternalTask>): ExternalTask {
   };
 }
 
-function makeItem(overrides: Partial<InboxItem>): InboxItem {
+function makeAskItem(
+  overrides: Partial<AskToolInboxItem> = {},
+): AskToolInboxItem {
   return {
+    kind: "ask_tool",
     taskId: "task-1",
     sessionUuid: "sess-1",
     taskTitle: "task-1",
     toolUseId: "tu-1",
     toolName: "AskUserQuestion",
     input: { parts: [{ question: "proceed?" }] },
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
+function makeTextItem(
+  overrides: Partial<TextQuestionInboxItem> = {},
+): TextQuestionInboxItem {
+  return {
+    kind: "text_question",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    questionId: "q-1",
+    questionText: "How should I proceed?",
     bestEffort: true,
     ...overrides,
   };
@@ -154,13 +177,13 @@ const TASK_B = makeTask({
   projectId: "proj-b",
 });
 
-const ITEM_A = makeItem({
+const ITEM_A = makeAskItem({
   taskId: "task-A",
   sessionUuid: "sess-A",
   taskTitle: "Task in project A",
   toolUseId: "tu-A",
 });
-const ITEM_B = makeItem({
+const ITEM_B = makeAskItem({
   taskId: "task-B",
   sessionUuid: "sess-B",
   taskTitle: "Task in project B",
@@ -204,7 +227,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
   });
 
   it("tasks with no matching project land in an Unassigned bucket", () => {
-    const ORPHAN_ITEM = makeItem({
+    const ORPHAN_ITEM = makeAskItem({
       taskId: "task-orphan",
       sessionUuid: "sess-orphan",
       toolUseId: "tu-orphan",
@@ -288,7 +311,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
   });
 
   it("renders option chips as display-only (no button / onclick)", () => {
-    const ITEM_WITH_OPTIONS = makeItem({
+    const ITEM_WITH_OPTIONS = makeAskItem({
       toolUseId: "tu-opts",
       taskId: "task-A",
       sessionUuid: "sess-A",
@@ -371,5 +394,111 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     expect(screen.queryByTestId("task-detail-stub")).not.toBeInTheDocument();
     // Page marker still present.
     expect(screen.getByTestId("inbox-page")).toBeInTheDocument();
+  });
+});
+
+// ---------- iterate 2026-05-15 inbox-awaiting-user ----------
+describe("InboxPage — text_question cards", () => {
+  beforeEach(() => {
+    mockedInbox.mockReset();
+    mockedTasks.mockReset();
+    mockedProjects.mockReset();
+  });
+
+  it("renders a text_question card showing the detected question text", () => {
+    const item = makeTextItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      questionId: "q-A",
+      questionText: "Option 1 or Option 2 — which should I build?",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+
+    expect(screen.getByTestId("inbox-card-q-A")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-question-text-q-A")).toHaveTextContent(
+      "Option 1 or Option 2 — which should I build?",
+    );
+    // The "awaiting" affordance label.
+    expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
+  });
+
+  it("text_question cards show NO option chips and NO Answer/dismiss button", () => {
+    const item = makeTextItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      questionId: "q-A",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    const { container } = renderPage();
+
+    // Auto-clear semantics: no dismiss, no Answer/Resume CTA.
+    expect(screen.queryByTestId("inbox-resume-q-A")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("inbox-copy-resume-q-A")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("inbox-option-chip-0")).not.toBeInTheDocument();
+    // No interactive button anywhere inside the card.
+    expect(
+      container.querySelector('[data-testid="inbox-card-q-A"] button'),
+    ).toBeNull();
+  });
+
+  it("text_question card click-through navigates to /tasks/<taskId>", () => {
+    const item = makeTextItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      questionId: "q-A",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+
+    const card = screen.getByTestId("inbox-card-q-A");
+    expect(card).toHaveAttribute("role", "button");
+    fireEvent.click(card);
+    expect(screen.getByTestId("task-detail-stub")).toBeInTheDocument();
+  });
+
+  it("renders questionText as escaped plain-text — no HTML injection", () => {
+    const item = makeTextItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      questionId: "q-A",
+      questionText: "<script>alert(1)</script> Shall I proceed?",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    const { container } = renderPage();
+
+    // The literal markup is shown as text, not parsed into a node.
+    expect(screen.getByTestId("inbox-question-text-q-A")).toHaveTextContent(
+      "<script>alert(1)</script> Shall I proceed?",
+    );
+    expect(container.querySelector("script")).toBeNull();
+  });
+
+  it("ask_tool and text_question cards render side by side across sessions", () => {
+    // Precedence (`deriveSessionInbox`) means a single session never yields
+    // BOTH kinds — a pending tool_use suppresses the text question (spec
+    // AC-5). But the aggregate inbox across tasks does mix them. This proves
+    // the `InboxCard` dispatcher + `inboxItemKey` handle a mixed item list.
+    const ask = makeAskItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      taskTitle: "Task in project A",
+      toolUseId: "tu-A",
+    });
+    const text = makeTextItem({
+      taskId: "task-B",
+      sessionUuid: "sess-B",
+      taskTitle: "Task in project B",
+      questionId: "q-B",
+    });
+    wireHooks({
+      items: [ask, text],
+      tasks: [TASK_A, TASK_B],
+      projects: [PROJECT_A, PROJECT_B],
+    });
+    renderPage();
+
+    expect(screen.getByTestId("inbox-card-tu-A")).toBeInTheDocument();
+    expect(screen.getByTestId("inbox-card-q-B")).toBeInTheDocument();
   });
 });
