@@ -141,6 +141,14 @@ export function PromoteModal({
               <h3 className="text-sm font-medium text-stone-900">
                 {item.title}
               </h3>
+              {item.dedupKey && (
+                <p
+                  className="text-[10px] text-stone-500 font-mono"
+                  data-testid="promote-dedupKey"
+                >
+                  dedup: {item.dedupKey}
+                </p>
+              )}
               <p className="text-xs text-stone-600 whitespace-pre-wrap">
                 {item.detail}
               </p>

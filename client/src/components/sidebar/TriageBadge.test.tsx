@@ -24,4 +24,14 @@ describe("TriageBadge", () => {
     expect(badge.className).toContain("bg-orange-500");
     expect(badge.className).not.toContain("bg-red-500");
   });
+
+  it("clamps negative counts to 0 (hides the badge)", () => {
+    const { container } = render(<TriageBadge count={-5} />);
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("clamps non-finite counts (NaN) to 0", () => {
+    const { container } = render(<TriageBadge count={NaN} />);
+    expect(container.firstChild).toBeNull();
+  });
 });
