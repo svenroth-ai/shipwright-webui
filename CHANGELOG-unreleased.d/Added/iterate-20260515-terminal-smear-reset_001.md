@@ -1,1 +1,0 @@
-Embedded terminal: a 'terminal was reset' banner now appears when the pty is freshly re-created after a prior Claude session was lost (server restart / crash), prompting the user to click Resume instead of leaving a silent shell prompt (ADR-104)

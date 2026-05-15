@@ -1,1 +1,0 @@
-Triage tab + Promote bridge: webui consumer for `<project>/.shipwright/triage.jsonl` with Promote/Dismiss/Snooze actions. Promote is a cross-store transaction (sdk-sessions.json + triage.jsonl) that creates an ExternalTask with the new `promotedFromTriageId` back-ref and is idempotent on retry. Sidebar shows aggregate `Triage (N)` badge (orange). FR-01.30 / ADR-101.
