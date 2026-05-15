@@ -1,1 +1,0 @@
-Embedded terminal: fixed replay-snapshot smearing/flicker on remount during active Claude streaming — the post-snapshot atlas-maintenance pass now runs in the term.write completion callback instead of a setTimeout(0) that raced the still-in-flight parse (ADR-104; codex-rescue root cause, supersedes the ADR-099 v1-v10 symptom patches)

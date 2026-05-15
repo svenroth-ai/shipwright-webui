@@ -1,1 +1,0 @@
-Project Wizard stack-profile step now renders dynamically from GET /api/profiles instead of a hardcoded 2-entry array; bundled snapshot at server/profiles/ refreshed with vite-hono + python-plugin-monorepo (ADR-094).

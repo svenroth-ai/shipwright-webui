@@ -1,1 +1,0 @@
-Single replay_snapshot WS envelope is now the sole replay protocol. Added one-shot wipe of legacy <scrollbackDir>/*.log* at first boot post-deploy (idempotency marker .iterate-c-wiped.marker; snapshot files preserved). (ADR-087)
