@@ -76,9 +76,9 @@ export function TriageDetailModal({
     <>
       <Dialog.Root open={open} onOpenChange={onOpenChange}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
+          <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-40" />
           <Dialog.Content
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[640px] max-w-[90vw] max-h-[85vh] overflow-y-auto bg-white rounded-lg shadow-xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[640px] max-w-[90vw] max-h-[85vh] overflow-y-auto bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)]"
             data-testid="triage-detail-modal"
           >
             <div className="p-6">
@@ -97,10 +97,10 @@ export function TriageDetailModal({
                 <Dialog.Close asChild>
                   <button
                     type="button"
-                    className="p-1 rounded hover:bg-stone-100"
+                    className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors"
                     aria-label="Close"
                   >
-                    <X className="w-4 h-4" />
+                    <X size={18} />
                   </button>
                 </Dialog.Close>
               </div>
@@ -175,12 +175,12 @@ export function TriageDetailModal({
                       {error}
                     </div>
                   )}
-                  <div className="flex justify-end gap-2 mt-4">
+                  <div className="flex justify-end gap-2.5 mt-4">
                     <button
                       type="button"
                       onClick={onDismiss}
                       disabled={dismiss.isPending || snooze.isPending}
-                      className="px-3 py-1.5 text-sm rounded border border-stone-300 hover:bg-stone-50 disabled:opacity-50 inline-flex items-center gap-1.5"
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-dismiss"
                     >
                       {dismiss.isPending && (
@@ -192,7 +192,7 @@ export function TriageDetailModal({
                       type="button"
                       onClick={onSnooze}
                       disabled={dismiss.isPending || snooze.isPending}
-                      className="px-3 py-1.5 text-sm rounded border border-stone-300 hover:bg-stone-50 disabled:opacity-50 inline-flex items-center gap-1.5"
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-snooze"
                     >
                       {snooze.isPending && (
@@ -203,7 +203,7 @@ export function TriageDetailModal({
                     <button
                       type="button"
                       onClick={() => setPromoteOpen(true)}
-                      className="px-3 py-1.5 text-sm rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-promote"
                     >
                       Promote

@@ -22,7 +22,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { TaskDetailHeader } from "./TaskDetailHeader";
 import type { ExternalTask } from "../../lib/externalApi";
@@ -521,5 +521,119 @@ describe("TaskDetailHeader — phase badge source (2026-04-23)", () => {
     );
     // Regex still catches "plan" → renders "Plan" badge as before.
     expect(screen.getByText("Plan")).toBeTruthy();
+  });
+});
+
+// ── iterate-2026-05-15-close-task-redirect ──
+//
+// BUG: "Close task" in the 3-dots menu flipped the task to `done` but
+// left the user stranded on the TaskDetail route. "Delete task" already
+// navigated back to the board ("/") on success — Close did not. Both
+// actions remove the task from the user's active focus, so both must
+// return to the board. The fix mirrors `handleDelete`'s navigation by
+// passing an `onSuccess` callback to `closeMut.mutate`.
+describe("TaskDetailHeader — Close task redirects to board", () => {
+  /**
+   * Render variant with a real route table so the post-close navigation
+   * is observable as an OUTCOME (the board route renders) rather than an
+   * internal-state assertion.
+   */
+  function renderHeaderWithBoard(
+    task: ExternalTask,
+    fetchMock?: ReturnType<typeof vi.fn>,
+  ) {
+    const qc = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    qc.setQueryData(["projects"], PROJECTS);
+    qc.setQueryData(["external-task", task.taskId], task);
+    const wrap = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes("/api/projects") && !u.includes("/api/external/")) {
+        return new Response(JSON.stringify({ data: PROJECTS }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return fetchMock ? fetchMock(url, init) : new Response("{}", { status: 200 });
+    });
+    globalThis.fetch = wrap as unknown as typeof fetch;
+    return render(
+      <MemoryRouter initialEntries={[`/tasks/${task.taskId}`]}>
+        <QueryClientProvider client={qc}>
+          <Routes>
+            <Route
+              path="/"
+              element={<div data-testid="task-board-stub">BOARD</div>}
+            />
+            <Route
+              path="/tasks/:taskId"
+              element={<TaskDetailHeader task={task} />}
+            />
+          </Routes>
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+  }
+
+  it("Close task → POST /close AND navigates back to the task board", async () => {
+    const user = userEvent.setup();
+    const fetchInner = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes("/close")) {
+        return new Response(
+          JSON.stringify({ task: { ...makeTask(), state: "done" } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+    renderHeaderWithBoard(makeTask({ state: "active" }), fetchInner);
+
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    await user.click(screen.getByTestId("task-detail-menu-close"));
+
+    // The server-side state flip still fires (POST /close).
+    await waitFor(() => {
+      expect(
+        fetchInner.mock.calls.some((c) => String(c[0]).includes("/close")),
+      ).toBe(true);
+    });
+    // ...and the redirect lands on the board route.
+    await waitFor(() => {
+      expect(screen.getByTestId("task-board-stub")).toBeInTheDocument();
+    });
+  });
+
+  it("Close task → /close fails → stays on TaskDetail (navigation is onSuccess-gated)", async () => {
+    const user = userEvent.setup();
+    const fetchInner = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes("/close")) {
+        return new Response(JSON.stringify({ error: "close_failed" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("{}", { status: 200 });
+    });
+    renderHeaderWithBoard(makeTask({ state: "active" }), fetchInner);
+
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    await user.click(screen.getByTestId("task-detail-menu-close"));
+
+    await waitFor(() => {
+      expect(
+        fetchInner.mock.calls.some((c) => String(c[0]).includes("/close")),
+      ).toBe(true);
+    });
+    // Cross a macrotask boundary so the close mutation's promise chain
+    // fully settles. A successful close would have navigated by now; a
+    // 500 must NOT — navigation is gated on `onSuccess`.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(screen.queryByTestId("task-board-stub")).toBeNull();
+    expect(screen.getByTestId("task-detail-header")).toBeInTheDocument();
   });
 });
