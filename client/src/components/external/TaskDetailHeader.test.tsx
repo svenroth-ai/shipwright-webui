@@ -214,136 +214,83 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
-  // Iterate M (resume-cta-active-state-followup, 2026-05-15) —
-  // compound `isPtyForegroundActive` gate. ADR-098 made Claude render
-  // in MAIN buffer (NO_FLICKER=1 default-on), so altScreenActive stays
-  // false during active Claude streaming and Iterate L's gate fails.
-  // The header now ALSO hides Resume when `liveSession +
-  // firstJsonlObservedAt + (now - lastPtyDataAt < 15_000)`.
+  // ADR-102 (iterate-20260515-resume-cta-jsonl-signal) — the Resume gate
+  // moved off `lastPtyDataAt` (a webui-embedded-pty signal that is null
+  // whenever Claude runs in the user's own terminal — the Plan-D''
+  // default) onto `lastJsonlSeenMtimeMs`, via the shared
+  // resumeCtaGate.isClaudeRecentlyActive helper. `altScreenActive` and
+  // `lastPtyDataAt` remain as supplementary OR-signals.
 
-  const recent = () => Date.now() - 5_000;
-  const stale = () => Date.now() - 20_000;
+  const freshJsonl = () => Date.now() - 5_000;
+  const staleJsonl = () => Date.now() - 120_000;
+  const recentPty = () => Date.now() - 5_000;
+  const stalePty = () => Date.now() - 20_000;
 
-  it("active + Claude in main-buffer (lastPtyDataAt recent) → NO CTA", () => {
+  it("active + fresh JSONL + liveSession:false + lastPtyDataAt:null → NO CTA (Claude in own terminal — the exact Iterate M miss)", () => {
     renderHeader(
       makeTask({
         state: "active",
-        altScreenActive: false, // NO_FLICKER=1 default-on
-        liveSession: true,
-        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-        lastPtyDataAt: recent(),
+        altScreenActive: false,
+        liveSession: false,
+        lastPtyDataAt: null,
+        lastJsonlSeenMtimeMs: freshJsonl(),
       }),
     );
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
-  it("active + Claude exited (lastPtyDataAt > 15s stale) → Resume CTA", () => {
+  it("active + stale JSONL + no other signal → Resume CTA (Claude idle / exited)", () => {
     renderHeader(
       makeTask({
         state: "active",
         altScreenActive: false,
-        liveSession: true,
-        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-        lastPtyDataAt: stale(),
+        liveSession: false,
+        lastPtyDataAt: null,
+        lastJsonlSeenMtimeMs: staleJsonl(),
       }),
     );
     expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
   });
 
-  it("active + liveSession=true but firstJsonlObservedAt missing → Resume CTA (Claude never launched)", () => {
-    renderHeader(
-      makeTask({
-        state: "active",
-        altScreenActive: false,
-        liveSession: true,
-        firstJsonlObservedAt: undefined,
-        lastPtyDataAt: recent(),
-      }),
-    );
-    expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
-  });
-
-  it("idle + ptyForegroundActive=true → NO CTA (same compound gate as active)", () => {
+  it("idle + fresh JSONL → NO CTA (same gate as active)", () => {
     renderHeader(
       makeTask({
         state: "idle",
-        altScreenActive: false,
-        liveSession: true,
-        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-        lastPtyDataAt: recent(),
+        lastPtyDataAt: null,
+        lastJsonlSeenMtimeMs: freshJsonl(),
       }),
     );
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
+
+  it("active + stale JSONL but recent lastPtyDataAt → NO CTA (embedded-pty OR-signal kept)", () => {
+    renderHeader(
+      makeTask({
+        state: "active",
+        altScreenActive: false,
+        lastJsonlSeenMtimeMs: staleJsonl(),
+        lastPtyDataAt: recentPty(),
+      }),
+    );
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+  });
+
+  it("active + every signal stale → Resume CTA", () => {
+    renderHeader(
+      makeTask({
+        state: "active",
+        altScreenActive: false,
+        lastJsonlSeenMtimeMs: staleJsonl(),
+        lastPtyDataAt: stalePty(),
+      }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
+  });
 });
 
-// Iterate M — direct unit test for the exported helper.
-describe("isPtyForegroundActive helper (Iterate M)", () => {
-  // Imported lazily to avoid TLS dependency-loop with the header module.
-  // The helper is exported alongside `PTY_RECENT_ACTIVITY_MS`.
-  it("returns false when liveSession is undefined", async () => {
-    const { isPtyForegroundActive } = await import("./TaskDetailHeader");
-    expect(
-      isPtyForegroundActive({
-        liveSession: undefined,
-        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-        lastPtyDataAt: Date.now(),
-      }),
-    ).toBe(false);
-  });
-
-  it("returns false when firstJsonlObservedAt is missing", async () => {
-    const { isPtyForegroundActive } = await import("./TaskDetailHeader");
-    expect(
-      isPtyForegroundActive({
-        liveSession: true,
-        firstJsonlObservedAt: undefined,
-        lastPtyDataAt: Date.now(),
-      }),
-    ).toBe(false);
-  });
-
-  it("returns false when lastPtyDataAt is null", async () => {
-    const { isPtyForegroundActive } = await import("./TaskDetailHeader");
-    expect(
-      isPtyForegroundActive({
-        liveSession: true,
-        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-        lastPtyDataAt: null,
-      }),
-    ).toBe(false);
-  });
-
-  it("returns true within the 15 s window", async () => {
-    const { isPtyForegroundActive, PTY_RECENT_ACTIVITY_MS } = await import("./TaskDetailHeader");
-    const fixedNow = 1_000_000_000_000;
-    expect(
-      isPtyForegroundActive(
-        {
-          liveSession: true,
-          firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-          lastPtyDataAt: fixedNow - (PTY_RECENT_ACTIVITY_MS - 1),
-        },
-        fixedNow,
-      ),
-    ).toBe(true);
-  });
-
-  it("returns false at exactly the 15 s boundary", async () => {
-    const { isPtyForegroundActive, PTY_RECENT_ACTIVITY_MS } = await import("./TaskDetailHeader");
-    const fixedNow = 1_000_000_000_000;
-    expect(
-      isPtyForegroundActive(
-        {
-          liveSession: true,
-          firstJsonlObservedAt: "2026-05-14T21:40:00Z",
-          lastPtyDataAt: fixedNow - PTY_RECENT_ACTIVITY_MS, // exactly at boundary → < check is false
-        },
-        fixedNow,
-      ),
-    ).toBe(false);
-  });
-});
+// The activity-gate helper itself (isClaudeRecentlyActive) is unit-tested
+// directly in resumeCtaGate.test.ts; here we only assert the header's
+// CTA wiring consumes it.
 
 describe("TaskDetailHeader — behavior", () => {
   it("Launch CTA posts /launch with resume=false + dispatches into LaunchCoordinator (ADR-068-A1)", async () => {

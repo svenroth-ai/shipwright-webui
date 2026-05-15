@@ -132,6 +132,71 @@ export class SessionWatcher {
   }
 
   /**
+   * Batch variant of {@link findByUuid} — resolves many session UUIDs in
+   * a SINGLE `~/.claude/projects` walk. `GET /api/external/tasks` uses
+   * this so the board delivers a LIVE JSONL mtime for every task in one
+   * scan (ADR-102 — the Resume-CTA gate must not be fed the stale
+   * persisted `lastJsonlSeenMtimeMs`, which only the transcript endpoint
+   * of the currently-open detail page refreshes).
+   *
+   * Returns a Map keyed by LOWERCASE uuid. UUIDs with no matching file
+   * on disk are simply absent from the result (same as `findByUuid`
+   * returning null). An empty input set short-circuits with no walk.
+   */
+  async findManyByUuid(
+    uuids: Set<string>,
+  ): Promise<Map<string, JsonlLocation>> {
+    const out = new Map<string, JsonlLocation>();
+    // `<uuid>.jsonl` (lowercase) -> uuid (lowercase)
+    const wanted = new Map<string, string>();
+    for (const u of uuids) {
+      const lc = u.toLowerCase();
+      wanted.set(`${lc}.jsonl`, lc);
+    }
+    if (wanted.size === 0) return out;
+
+    let subs: string[];
+    try {
+      subs = await this.deps.readdir(this.deps.projectsDir);
+    } catch {
+      return out;
+    }
+    for (const sub of subs) {
+      if (out.size === wanted.size) break; // all resolved — stop the walk early
+      const subPath = path.join(this.deps.projectsDir, sub);
+      try {
+        const s = await this.deps.stat(subPath);
+        if (!s.isDirectory()) continue;
+      } catch {
+        continue;
+      }
+      let files: string[];
+      try {
+        files = await this.deps.readdir(subPath);
+      } catch {
+        continue;
+      }
+      for (const f of files) {
+        const uuid = wanted.get(f.toLowerCase());
+        if (!uuid || out.has(uuid)) continue;
+        const fp = path.join(subPath, f);
+        try {
+          const fst = await this.deps.stat(fp);
+          out.set(uuid, {
+            path: fp,
+            encodedCwd: sub,
+            mtimeMs: fst.mtimeMs,
+            sizeBytes: fst.size,
+          });
+        } catch {
+          /* unreadable — leave absent, mirrors findByUuid's null path */
+        }
+      }
+    }
+    return out;
+  }
+
+  /**
    * Read a byte-range from the JSONL with torn-read retry + UTF-8 safe
    * chunk trimming. Always returns content ending on `\n` so the client
    * never sees a partial line (and `\n` is safe to split on even in the

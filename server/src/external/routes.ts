@@ -318,6 +318,25 @@ export function createExternalRoutes(args: {
     } as never;
   }
 
+  /**
+   * ADR-102 — response-only override of `lastJsonlSeenMtimeMs` with a
+   * LIVE JSONL mtime. The persisted store field is refreshed ONLY by the
+   * transcript endpoint (`GET /tasks/:id/transcript`), which polls only
+   * for the currently-open detail page; on the board (`GET /tasks`) and
+   * on `GET /tasks/:id` it would otherwise be frozen ~60 s after the
+   * detail page closes, and the Resume-CTA gate
+   * (`resumeCtaGate.isClaudeRecentlyActive`) would mis-fire. Not
+   * persisted — mirrors the `withLiveSession` augmentation pattern.
+   */
+  function withLiveJsonlMtime<T extends ExternalTask>(
+    task: T,
+    liveMtimeMs: number | undefined,
+  ): T {
+    return liveMtimeMs != null
+      ? { ...task, lastJsonlSeenMtimeMs: liveMtimeMs }
+      : task;
+  }
+
   app.post("/api/external/tasks", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const title = typeof body.title === "string" && body.title.trim()
@@ -450,7 +469,7 @@ export function createExternalRoutes(args: {
     return c.json({ task: withLiveSession(task) });
   });
 
-  app.get("/api/external/tasks", (c) => {
+  app.get("/api/external/tasks", async (c) => {
     // Section 02 — optional ?projectId=<id> filter. Unvalidated on read
     // (unknown id → empty list, not 400) because an orphaned URL from a
     // deleted project is a benign state, not a user error. The reserved
@@ -461,15 +480,33 @@ export function createExternalRoutes(args: {
     const filtered = filter ? all.filter((t) => t.projectId === filter) : all;
     // Iterate G (ADR-095): augment each entry with `liveSession` so the
     // header Resume CTA can hide while the pty is alive.
-    const tasks = filtered.map((t) => withLiveSession(t));
+    // ADR-102: also deliver a LIVE `lastJsonlSeenMtimeMs` per task — one
+    // `~/.claude/projects` walk for the whole board — so the Resume-CTA
+    // gate is not fed the stale persisted value (it is otherwise only
+    // refreshed by the open detail page's transcript poll).
+    const locs = await watcher.findManyByUuid(
+      new Set(filtered.map((t) => t.sessionUuid.toLowerCase())),
+    );
+    const tasks = filtered.map((t) =>
+      withLiveJsonlMtime(
+        withLiveSession(t),
+        locs.get(t.sessionUuid.toLowerCase())?.mtimeMs,
+      ),
+    );
     return c.json({ tasks });
   });
 
-  app.get("/api/external/tasks/:id", (c) => {
+  app.get("/api/external/tasks/:id", async (c) => {
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
     // Iterate G (ADR-095) — augment with liveSession.
-    return c.json({ task: withLiveSession(task) });
+    // ADR-102 — live JSONL mtime (see GET /tasks): the header's task is
+    // sourced from this endpoint, so a frozen mtime would stale its
+    // Resume gate between transcript polls.
+    const loc = await watcher.findByUuid(task.sessionUuid);
+    return c.json({
+      task: withLiveJsonlMtime(withLiveSession(task), loc?.mtimeMs),
+    });
   });
 
   app.post("/api/external/tasks/:id/launch", async (c) => {
