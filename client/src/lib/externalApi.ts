@@ -186,15 +186,38 @@ export type TranscriptResponse =
   | { status: "missing"; task: ExternalTask }
   | { status: "rotated"; task: ExternalTask; currentFingerprint: string };
 
-export interface InboxItem {
+/**
+ * A pending Inbox interaction. Discriminated union on `kind` (iterate
+ * 2026-05-15 inbox-awaiting-user):
+ *  - `ask_tool` — an unanswered `AskUserQuestion` (or other allowlisted)
+ *    tool_use, dismissable.
+ *  - `text_question` — a plain-text end-of-turn question Claude printed in
+ *    the terminal with no tool_use block. Carries only the detected text;
+ *    auto-clears on the next user reply (no dismiss action).
+ */
+interface InboxItemCommon {
   taskId: string;
   sessionUuid: string;
   taskTitle: string;
+  bestEffort: true;
+}
+
+export interface AskToolInboxItem extends InboxItemCommon {
+  kind: "ask_tool";
   toolUseId: string;
   toolName: string;
   input: unknown;
-  bestEffort: true;
 }
+
+export interface TextQuestionInboxItem extends InboxItemCommon {
+  kind: "text_question";
+  /** uuid of the trailing turn's last assistant event — stable id. */
+  questionId: string;
+  /** Detected question text, server-capped at 2000 chars. */
+  questionText: string;
+}
+
+export type InboxItem = AskToolInboxItem | TextQuestionInboxItem;
 
 export interface DiagnosticsSnapshot {
   claudeCli: {
