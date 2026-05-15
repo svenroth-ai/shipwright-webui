@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 
 import { createTriageLock } from "./triage-lock.js";
 
-describe("createTriageLock — collision-safe triage.jsonl lock (ADR-104)", () => {
+describe("createTriageLock — collision-safe triage.jsonl lock (ADR-106)", () => {
   let workDir: string | undefined;
 
   afterEach(() => {

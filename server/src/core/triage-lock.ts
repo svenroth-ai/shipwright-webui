@@ -1,6 +1,6 @@
 /*
  * triage-lock.ts — collision-safe proper-lockfile factory for the
- * Triage routes (ADR-104, iterate-20260515-triage-promote-500).
+ * Triage routes (ADR-106, iterate-20260515-triage-promote-500).
  *
  * Why this exists:
  *   `<project>/.shipwright/triage.jsonl` is locked by TWO independent,

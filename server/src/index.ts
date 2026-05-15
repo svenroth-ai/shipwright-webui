@@ -564,7 +564,7 @@ if (isMainModule) {
             if (!p || p.synthesized) return undefined;
             return { id: p.id, path: p.path, synthesized: p.synthesized };
           },
-          // ADR-104: collision-safe `.weblock` lock path so the webui
+          // ADR-106: collision-safe `.weblock` lock path so the webui
           // never clashes with the Python `_FileLock` regular-file
           // sidecar at `triage.jsonl.lock` (RC1). The route no longer
           // takes a separate sdk-sessions lock (RC2 — store.persist()

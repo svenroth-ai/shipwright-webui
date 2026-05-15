@@ -67,7 +67,7 @@ export interface TriageRoutesDeps {
    * Cross-process file lock for the triage.jsonl path. MUST use a
    * collision-safe lockfile path (`.weblock`) so it never clashes with
    * the Python `_FileLock` regular-file sidecar at `<file>.lock` — see
-   * core/triage-lock.ts (`createTriageLock`) and ADR-104. In tests this
+   * core/triage-lock.ts (`createTriageLock`) and ADR-106. In tests this
    * is an in-process mutex.
    */
   lock: (path: string) => Promise<() => Promise<void>>;
@@ -189,7 +189,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    // RC3 (ADR-104, spec AC4): a missing triage.jsonl means the item
+    // RC3 (ADR-106, spec AC4): a missing triage.jsonl means the item
     // cannot exist — answer 404 BEFORE touching the lock. proper-lockfile
     // would ENOENT on a missing target anyway, and there is nothing to
     // contend on.
@@ -240,7 +240,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       let taskId: string;
       let recovered: boolean;
 
-      // RC2 fix (ADR-104): create-or-recover with NO route-held
+      // RC2 fix (ADR-106): create-or-recover with NO route-held
       // sdk-sessions lock. `store.persist()` takes its own
       // proper-lockfile lock internally; a second route-level lock on
       // the same sdk-sessions.json was the non-reentrant self-deadlock
@@ -258,7 +258,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         // memory but failed its persist() (e.g. ELOCKED → 503), leaving
         // it off-disk. persist() is idempotent, so a re-run on an
         // already-persisted task is a harmless full rewrite (external
-        // code review, ADR-104).
+        // code review, ADR-106).
         taskId = existing.taskId;
         recovered = true;
         await deps.store.persist();
@@ -379,7 +379,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    // RC3 (ADR-104, spec AC4): missing triage.jsonl → 404 before the
+    // RC3 (ADR-106, spec AC4): missing triage.jsonl → 404 before the
     // lock (nothing to contend on; proper-lockfile would ENOENT).
     if (!existsSync(pathRes.absolute)) {
       return c.json(
@@ -590,7 +590,7 @@ function mergeTags(defaults: string[], userTags: string[]): string[] {
 }
 
 // ----------------------------------------------------------------------
-// Lock-failure classification (ADR-104, RC3)
+// Lock-failure classification (ADR-106, RC3)
 // ----------------------------------------------------------------------
 
 /**
@@ -627,7 +627,7 @@ function lockUnavailable(c: Context) {
  * the preceding `return`/`throw`; a failed unlock (lock dir removed
  * externally, perms changed) must not turn a successful 201/200 — or a
  * deliberate 503 — into an opaque 500. The failure is logged and
- * swallowed (external code review, ADR-104).
+ * swallowed (external code review, ADR-106).
  */
 async function releaseQuietly(release: () => Promise<void>): Promise<void> {
   try {
