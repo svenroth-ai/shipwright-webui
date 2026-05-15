@@ -105,9 +105,9 @@ export function PromoteModal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 backdrop-blur-[4px] z-40" />
         <Dialog.Content
-          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[540px] max-w-[90vw] bg-white rounded-lg shadow-xl"
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[540px] max-w-[90vw] bg-[var(--color-surface)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)]"
           data-testid="triage-promote-modal"
         >
           <form onSubmit={onSubmit} className="p-6">
@@ -124,10 +124,10 @@ export function PromoteModal({
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="p-1 rounded hover:bg-stone-100"
+                  className="w-8 h-8 flex items-center justify-center rounded-md text-[var(--color-muted)] hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] transition-colors"
                   aria-label="Close"
                 >
-                  <X className="w-4 h-4" />
+                  <X size={18} />
                 </button>
               </Dialog.Close>
             </div>
@@ -233,11 +233,11 @@ export function PromoteModal({
               </div>
             )}
 
-            <div className="flex justify-end gap-2 mt-5">
+            <div className="flex justify-end gap-2.5 mt-5">
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="px-3 py-1.5 text-sm rounded border border-stone-300 hover:bg-stone-50"
+                  className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors inline-flex items-center justify-center"
                 >
                   Cancel
                 </button>
@@ -245,7 +245,7 @@ export function PromoteModal({
               <button
                 type="submit"
                 disabled={promote.isPending}
-                className="px-3 py-1.5 text-sm rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                 data-testid="promote-submit"
               >
                 {promote.isPending && (
