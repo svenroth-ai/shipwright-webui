@@ -1,0 +1,13 @@
+{
+  "_comment": "Project-local override for /shipwright-compliance detective audit. Merges shallowly over the plugin _DEFAULT_CONFIG (audit_detector.py). Only keys present here override; everything else keeps plugin defaults. shipwright-webui is an adopted monorepo-style project with no plan-config splits, so conventional-commit scopes are cross-cutting component names rather than split slugs — the g2_stoplist below enumerates every scope in active use so G2 stops flagging them. Added 2026-05-15 as part of the Iterate K/M compliance-hygiene cleanup.",
+  "g2_stoplist": [
+    "webui", "core", "api", "test", "tests", "ci", "deps",
+    "build", "docs", "chore", "deploy", "iterate", "release",
+    "compliance", "security", "shipwright", "scripts", "shared",
+    "changelog",
+    "terminal", "client", "server", "e2e", "dev", "guide",
+    "workflows", "cli-compat", "lead-foundation", "triage",
+    "wizard", "readme", "claude-md",
+    "client,server", "server,client", "server,test"
+  ]
+}
