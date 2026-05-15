@@ -91,10 +91,10 @@ import { getProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
-// Iterate M (resume-cta-active-state-followup) — shared with
-// TaskDetailHeader's ctaFor(). Single source of truth for the
-// "Claude is foreground" detection across both UI surfaces.
-import { isPtyForegroundActive } from "./TaskDetailHeader";
+// ADR-102 — shared Resume-CTA activity gate. Single source of truth for
+// both TaskCard and TaskDetailHeader; a standalone module so neither
+// surface cross-imports the other (Iterate M review finding M-2).
+import { isClaudeRecentlyActive } from "./resumeCtaGate";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -348,53 +348,20 @@ export function TaskCard({ task }: Props) {
                   />
                 </span>
               )}
-              {/* Iterate v0.8.6 AC-4 — removed the brown "Terminal"
-                  CTA on `awaiting_external_start` / `active`. Click on
-                  the card body opens the task detail page (which
-                  lands on the Terminal tab when persisted preference
-                  says so); a dedicated CTA duplicated that affordance.
+              {/* Iterate v0.8.6 AC-4 — no brown "Terminal" CTA on
+                  `awaiting_external_start` / `active`; the card body
+                  click opens the task detail page.
 
-                  Iterate L (resume-cta-active-state) — `altScreenActive`
-                  replaces the falsified `liveSession` signal. Resume
-                  shows for `(idle | active)` UNLESS a TUI (Claude,
-                  vim, htop, …) is in pty foreground
-                  (altScreenActive=true). `liveSession` is no longer
-                  consulted by this matrix (it conflated "pty exists"
-                  with "Claude foreground" and dead-ended users whose
-                  pty hosted only a bare shell). Single "Resume" label
-                  (memory feedback_resume_label_singular).
-
-                  Iterate M (resume-cta-active-state-followup,
-                  2026-05-15) — ADR-098 restored
-                  `CLAUDE_CODE_NO_FLICKER=1` as default-on, which
-                  makes Claude render in MAIN buffer rather than
-                  alt-screen. The Iterate-L gate `altScreenActive
-                  !== true` therefore ALWAYS passes during active
-                  Claude streaming (since altScreenActive stays
-                  false in main-buffer) → Resume button visible
-                  the whole time Claude is working (Sven UAT
-                  2026-05-14: "Resume kommt zu schnell. Das
-                  Terminal ist noch da und der Resume Knopf kommt
-                  in der ersten Sekunde wenn man zurück zum Board
-                  geht. aber alles ist noch gut.").
-
-                  Fix: combine `altScreenActive` with `lastPtyDataAt`
-                  (new server-augmented field). If the pty has
-                  emitted any output in the last 15 s → some
-                  foreground process is engaged → hide Resume. The
-                  15 s window covers Claude's mid-thinking pauses
-                  (typically <5 s) plus a safety margin; after
-                  15 s of true silence the gate falls through and
-                  Resume re-appears, covering the "Claude exited,
-                  pty became bare shell" recovery path.
-
-                  `lastPtyDataAt` typed as `number | null`; the
-                  `Number(…)` coerces null to NaN so the
-                  `< 15_000` comparison falls through to `false`
-                  (treats null as "not recent" — conservative). */}
+                  ADR-102 — Resume shows for `(idle | active)` unless
+                  `resumeCtaGate.isClaudeRecentlyActive` reports Claude
+                  is plausibly mid-work. That helper gates primarily on
+                  `lastJsonlSeenMtimeMs` (the JSONL mtime, observable
+                  however Claude was launched); the falsified Iterate-L
+                  `altScreenActive` and Iterate-M `lastPtyDataAt` signals
+                  are folded in as supplementary OR-signals. Single
+                  "Resume" label (memory feedback_resume_label_singular). */}
               {(task.state === "idle" || task.state === "active") &&
-                task.altScreenActive !== true &&
-                !isPtyForegroundActive(task) && (
+                !isClaudeRecentlyActive(task) && (
                   <span data-testid={`task-card-resume-${task.taskId}`}>
                     <TerminalLaunchButton
                       task={task}

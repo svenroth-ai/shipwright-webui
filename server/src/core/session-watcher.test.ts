@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+  mkdirSync,
+  utimesSync,
+} from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -144,5 +150,76 @@ describe("computeFingerprint", () => {
       sizeBytes: 999,
     };
     expect(computeFingerprint(loc)).toBe("1234:999");
+  });
+});
+
+// ADR-102 (resume-cta-jsonl-signal) — batch JSONL discovery. `GET
+// /api/external/tasks` needs a LIVE mtime for every task in one walk so
+// the board's Resume-CTA gate is not fed a stale persisted value.
+describe("SessionWatcher.findManyByUuid", () => {
+  const UUID_A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+  const UUID_B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
+  const UUID_C = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+
+  let projectsDir: string;
+  beforeEach(() => {
+    projectsDir = mkdtempSync(path.join(tmpdir(), "sw-many-"));
+  });
+  afterEach(() => {
+    try { rmSync(projectsDir, { recursive: true, force: true }); } catch { /* ignore */ }
+  });
+
+  it("resolves multiple uuids across separate project dirs in one walk", async () => {
+    const encA = path.join(projectsDir, "encA");
+    const encB = path.join(projectsDir, "encB");
+    mkdirSync(encA, { recursive: true });
+    mkdirSync(encB, { recursive: true });
+    writeFileSync(path.join(encA, `${UUID_A}.jsonl`), "a\n");
+    writeFileSync(path.join(encB, `${UUID_B}.jsonl`), "bb\n");
+    const watcher = new SessionWatcher({ projectsDir });
+    const out = await watcher.findManyByUuid(new Set([UUID_A, UUID_B]));
+    expect(out.get(UUID_A)?.encodedCwd).toBe("encA");
+    expect(out.get(UUID_B)?.sizeBytes).toBe(3);
+    expect(typeof out.get(UUID_A)?.mtimeMs).toBe("number");
+  });
+
+  it("omits uuids with no matching file (board tasks whose JSONL doesn't exist yet)", async () => {
+    const enc = path.join(projectsDir, "enc");
+    mkdirSync(enc, { recursive: true });
+    writeFileSync(path.join(enc, `${UUID_A}.jsonl`), "a\n");
+    const watcher = new SessionWatcher({ projectsDir });
+    const out = await watcher.findManyByUuid(new Set([UUID_A, UUID_C]));
+    expect(out.has(UUID_A)).toBe(true);
+    expect(out.has(UUID_C)).toBe(false);
+  });
+
+  it("returns an empty map for an empty input set (no directory walk needed)", async () => {
+    const watcher = new SessionWatcher({ projectsDir });
+    const out = await watcher.findManyByUuid(new Set());
+    expect(out.size).toBe(0);
+  });
+
+  it("keys the result by lowercase uuid regardless of input casing", async () => {
+    const enc = path.join(projectsDir, "enc");
+    mkdirSync(enc, { recursive: true });
+    writeFileSync(path.join(enc, `${UUID_A}.jsonl`), "a\n");
+    const watcher = new SessionWatcher({ projectsDir });
+    const out = await watcher.findManyByUuid(new Set([UUID_A.toUpperCase()]));
+    expect(out.get(UUID_A)).toBeDefined();
+  });
+
+  it("re-stats live — a fresh write moves the reported mtime forward", async () => {
+    // This is the property the H-1 fix depends on: the board endpoint
+    // must see the JSONL mtime as it is NOW, not a frozen store value.
+    const enc = path.join(projectsDir, "enc");
+    mkdirSync(enc, { recursive: true });
+    const fp = path.join(enc, `${UUID_A}.jsonl`);
+    writeFileSync(fp, "first\n");
+    const watcher = new SessionWatcher({ projectsDir });
+    const before = (await watcher.findManyByUuid(new Set([UUID_A]))).get(UUID_A)!;
+    const future = new Date(Date.now() + 120_000);
+    utimesSync(fp, future, future);
+    const after = (await watcher.findManyByUuid(new Set([UUID_A]))).get(UUID_A)!;
+    expect(after.mtimeMs).toBeGreaterThan(before.mtimeMs);
   });
 });
