@@ -15,6 +15,8 @@ import { describe, it, expect } from "vitest";
 
 import { TaskCard } from "./TaskCard";
 import type { ExternalTask } from "../../lib/externalApi";
+import { queryKeys } from "../../lib/queryKeys";
+import type { Project } from "../../types";
 
 function baseTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
   return {
@@ -269,5 +271,100 @@ describe("TaskCard — Resume CTA matrix (ADR-102 — JSONL activity gate)", () 
       }),
     );
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// iterate-2026-05-15-taskcard-project-pill (ADR-105) — TaskCard project pill.
+//
+// The faint 3 px left-edge strip was hard to read on a multi-project board.
+// The card meta row now leads with a project pill: the owning project's
+// name beside a solid dot, both colored with the project's accent color
+// (custom `settings.color` or hash-derived hue). The pill is the leftmost
+// element of the meta row — left of the status pill.
+// ---------------------------------------------------------------------------
+function makeProject(overrides: Partial<Project> = {}): Project {
+  return {
+    id: "project-001",
+    name: "Webui",
+    path: "/tmp/project",
+    profile: "vite-hono",
+    status: "active",
+    lastActive: "2026-05-15T00:00:00Z",
+    createdAt: "2026-05-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
+/** Render a TaskCard with the projects query pre-seeded so `useProjects()`
+ *  resolves synchronously instead of returning the empty-list default. */
+function renderCardWithProjects(task: ExternalTask, projects: Project[]) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  qc.setQueryData(queryKeys.projects.all, projects);
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <TaskCard task={task} />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+describe("TaskCard — project pill (ADR-105)", () => {
+  it("renders a project pill with the owning project's name", () => {
+    renderCardWithProjects(baseTask({ projectId: "project-001" }), [
+      makeProject({ id: "project-001", name: "Shipwright WebUI" }),
+    ]);
+    const pill = screen.getByTestId("task-card-project-task-1");
+    expect(pill.textContent).toContain("Shipwright WebUI");
+    expect(pill.dataset.projectId).toBe("project-001");
+  });
+
+  it("falls back to the raw projectId when project metadata has not loaded", () => {
+    // renderCard seeds no projects → useProjects() returns [] → no match.
+    renderCard(baseTask({ projectId: "project-001" }));
+    const pill = screen.getByTestId("task-card-project-task-1");
+    expect(pill.textContent).toContain("project-001");
+  });
+
+  it("places the project pill as the leftmost element of the meta row (left of the status pill)", () => {
+    renderCardWithProjects(baseTask({ projectId: "project-001", state: "active" }), [
+      makeProject({ id: "project-001", name: "Webui" }),
+    ]);
+    const metaRow = screen.getByTestId("task-card-meta-task-1");
+    expect(metaRow.firstElementChild).toBe(
+      screen.getByTestId("task-card-project-task-1"),
+    );
+    // The status pill text ("active") must appear after the project pill.
+    const pill = screen.getByTestId("task-card-project-task-1");
+    const statePillText = Array.from(metaRow.children).find(
+      (el) => el.textContent === "active",
+    );
+    expect(statePillText).toBeTruthy();
+    expect(
+      pill.compareDocumentPosition(statePillText as Node) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("colors the pill with the project's custom accent color when settings.color is set", () => {
+    renderCardWithProjects(baseTask({ projectId: "project-001" }), [
+      makeProject({ id: "project-001", settings: { color: "#D99285" } }),
+    ]);
+    const pill = screen.getByTestId("task-card-project-task-1");
+    expect(pill.dataset.projectColor).toBe("#D99285");
+  });
+
+  it("renders the project pill on every card state (draft / active / done)", () => {
+    for (const state of ["draft", "active", "done"] as const) {
+      const { unmount } = renderCardWithProjects(
+        baseTask({ taskId: `t-${state}`, projectId: "project-001", state }),
+        [makeProject({ id: "project-001", name: "Webui" })],
+      );
+      expect(
+        screen.getByTestId(`task-card-project-t-${state}`).textContent,
+      ).toContain("Webui");
+      unmount();
+    }
   });
 });
