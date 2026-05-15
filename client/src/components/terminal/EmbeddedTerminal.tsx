@@ -304,6 +304,36 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           }
           term.write(data);
           term.scrollToBottom();
+          // Iterate K v10 (ADR-099) — schedule a maintenance pass right
+          // after the snapshot write lands. UAT 2026-05-14: re-mount
+          // after navigate-back during active Claude streaming
+          // produced "extremes flickern und auch starkes verschmieren
+          // links". Root cause: the replay_snapshot is a large chunk
+          // (often ~100 KiB+ of cell-state on long sessions); v6's
+          // burst-trigger fires ONCE at the start of `term.write(data)`
+          // (since `lastWriteTime` was pre-initialized to
+          // before-quiet-window), but the REST of the write — plus
+          // any immediately-following live-pty bytes — accumulates
+          // fresh atlas corruption with no further maintenance
+          // until v7's post-mount-settle at +3s or the 10s periodic.
+          //
+          // Schedule maintenance via `setTimeout(0)` (microtask-after-
+          // browser-paint) so xterm finishes its parser pipeline +
+          // commits the writes to the renderer BEFORE we ask the
+          // WebGL atlas to be cleared. Without the deferral, the
+          // clear can race with the still-in-flight write and the
+          // refresh repaints from an atlas that's about to be
+          // overwritten — exactly the "left smearing" pattern the
+          // UAT reported.
+          //
+          // Defensive: `safeAtlasMaintenanceRef.current?.()` handles
+          // (a) the kill-switch path (`?atlasMaintenance=off` — ref
+          // never populated), (b) the Canvas/DOM fallback (no
+          // WebglAddon → ref never populated), and (c) component
+          // mid-dispose between write and timer firing
+          // (`disposedRef.current` inside `safeAtlasMaintenance`
+          // short-circuits).
+          setTimeout(() => safeAtlasMaintenanceRef.current?.(), 0);
         } catch (err) {
           // eslint-disable-next-line no-console
           console.warn(
