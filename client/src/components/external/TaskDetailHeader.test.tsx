@@ -213,6 +213,136 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
+
+  // Iterate M (resume-cta-active-state-followup, 2026-05-15) —
+  // compound `isPtyForegroundActive` gate. ADR-098 made Claude render
+  // in MAIN buffer (NO_FLICKER=1 default-on), so altScreenActive stays
+  // false during active Claude streaming and Iterate L's gate fails.
+  // The header now ALSO hides Resume when `liveSession +
+  // firstJsonlObservedAt + (now - lastPtyDataAt < 15_000)`.
+
+  const recent = () => Date.now() - 5_000;
+  const stale = () => Date.now() - 20_000;
+
+  it("active + Claude in main-buffer (lastPtyDataAt recent) → NO CTA", () => {
+    renderHeader(
+      makeTask({
+        state: "active",
+        altScreenActive: false, // NO_FLICKER=1 default-on
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+  });
+
+  it("active + Claude exited (lastPtyDataAt > 15s stale) → Resume CTA", () => {
+    renderHeader(
+      makeTask({
+        state: "active",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: stale(),
+      }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
+  });
+
+  it("active + liveSession=true but firstJsonlObservedAt missing → Resume CTA (Claude never launched)", () => {
+    renderHeader(
+      makeTask({
+        state: "active",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: undefined,
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
+  });
+
+  it("idle + ptyForegroundActive=true → NO CTA (same compound gate as active)", () => {
+    renderHeader(
+      makeTask({
+        state: "idle",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+  });
+});
+
+// Iterate M — direct unit test for the exported helper.
+describe("isPtyForegroundActive helper (Iterate M)", () => {
+  // Imported lazily to avoid TLS dependency-loop with the header module.
+  // The helper is exported alongside `PTY_RECENT_ACTIVITY_MS`.
+  it("returns false when liveSession is undefined", async () => {
+    const { isPtyForegroundActive } = await import("./TaskDetailHeader");
+    expect(
+      isPtyForegroundActive({
+        liveSession: undefined,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: Date.now(),
+      }),
+    ).toBe(false);
+  });
+
+  it("returns false when firstJsonlObservedAt is missing", async () => {
+    const { isPtyForegroundActive } = await import("./TaskDetailHeader");
+    expect(
+      isPtyForegroundActive({
+        liveSession: true,
+        firstJsonlObservedAt: undefined,
+        lastPtyDataAt: Date.now(),
+      }),
+    ).toBe(false);
+  });
+
+  it("returns false when lastPtyDataAt is null", async () => {
+    const { isPtyForegroundActive } = await import("./TaskDetailHeader");
+    expect(
+      isPtyForegroundActive({
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("returns true within the 15 s window", async () => {
+    const { isPtyForegroundActive, PTY_RECENT_ACTIVITY_MS } = await import("./TaskDetailHeader");
+    const fixedNow = 1_000_000_000_000;
+    expect(
+      isPtyForegroundActive(
+        {
+          liveSession: true,
+          firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+          lastPtyDataAt: fixedNow - (PTY_RECENT_ACTIVITY_MS - 1),
+        },
+        fixedNow,
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false at exactly the 15 s boundary", async () => {
+    const { isPtyForegroundActive, PTY_RECENT_ACTIVITY_MS } = await import("./TaskDetailHeader");
+    const fixedNow = 1_000_000_000_000;
+    expect(
+      isPtyForegroundActive(
+        {
+          liveSession: true,
+          firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+          lastPtyDataAt: fixedNow - PTY_RECENT_ACTIVITY_MS, // exactly at boundary → < check is false
+        },
+        fixedNow,
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("TaskDetailHeader — behavior", () => {

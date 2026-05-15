@@ -91,6 +91,10 @@ import { getProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+// Iterate M (resume-cta-active-state-followup) — shared with
+// TaskDetailHeader's ctaFor(). Single source of truth for the
+// "Claude is foreground" detection across both UI surfaces.
+import { isPtyForegroundActive } from "./TaskDetailHeader";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -358,9 +362,39 @@ export function TaskCard({ task }: Props) {
                   consulted by this matrix (it conflated "pty exists"
                   with "Claude foreground" and dead-ended users whose
                   pty hosted only a bare shell). Single "Resume" label
-                  (memory feedback_resume_label_singular). */}
+                  (memory feedback_resume_label_singular).
+
+                  Iterate M (resume-cta-active-state-followup,
+                  2026-05-15) — ADR-098 restored
+                  `CLAUDE_CODE_NO_FLICKER=1` as default-on, which
+                  makes Claude render in MAIN buffer rather than
+                  alt-screen. The Iterate-L gate `altScreenActive
+                  !== true` therefore ALWAYS passes during active
+                  Claude streaming (since altScreenActive stays
+                  false in main-buffer) → Resume button visible
+                  the whole time Claude is working (Sven UAT
+                  2026-05-14: "Resume kommt zu schnell. Das
+                  Terminal ist noch da und der Resume Knopf kommt
+                  in der ersten Sekunde wenn man zurück zum Board
+                  geht. aber alles ist noch gut.").
+
+                  Fix: combine `altScreenActive` with `lastPtyDataAt`
+                  (new server-augmented field). If the pty has
+                  emitted any output in the last 15 s → some
+                  foreground process is engaged → hide Resume. The
+                  15 s window covers Claude's mid-thinking pauses
+                  (typically <5 s) plus a safety margin; after
+                  15 s of true silence the gate falls through and
+                  Resume re-appears, covering the "Claude exited,
+                  pty became bare shell" recovery path.
+
+                  `lastPtyDataAt` typed as `number | null`; the
+                  `Number(…)` coerces null to NaN so the
+                  `< 15_000` comparison falls through to `false`
+                  (treats null as "not recent" — conservative). */}
               {(task.state === "idle" || task.state === "active") &&
-                task.altScreenActive !== true && (
+                task.altScreenActive !== true &&
+                !isPtyForegroundActive(task) && (
                   <span data-testid={`task-card-resume-${task.taskId}`}>
                     <TerminalLaunchButton
                       task={task}

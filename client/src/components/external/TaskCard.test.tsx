@@ -180,3 +180,107 @@ describe("TaskCard — Resume CTA matrix (Iterate L)", () => {
     expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
   });
 });
+
+// Iterate M (resume-cta-active-state-followup, 2026-05-15) —
+// compound `isPtyForegroundActive` gate. ADR-098 made Claude render in
+// MAIN buffer (NO_FLICKER=1 default-on), so `altScreenActive` stays
+// false during active Claude streaming and Iterate L's gate fails.
+// The new compound signal: `liveSession && firstJsonlObservedAt &&
+// (Date.now() - lastPtyDataAt < 15_000)` covers Claude-in-main-buffer
+// AND alt-screen TUIs in a single rule.
+describe("TaskCard — Resume CTA matrix (Iterate M — ptyForegroundActive)", () => {
+  // Test fixture: recent activity = "less than 15 s ago".
+  const recent = () => Date.now() - 5_000;
+  const stale = () => Date.now() - 20_000;
+
+  it("HIDES Resume when liveSession + firstJsonlObservedAt + recent lastPtyDataAt (Claude in main-buffer)", () => {
+    renderCard(
+      baseTask({
+        state: "active",
+        altScreenActive: false, // NO_FLICKER=1 default — main buffer
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("SHOWS Resume when lastPtyDataAt is older than 15 s (Claude exited / pty idle)", () => {
+    renderCard(
+      baseTask({
+        state: "active",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: stale(),
+      }),
+    );
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume when liveSession=true but firstJsonlObservedAt is missing (Claude never launched)", () => {
+    renderCard(
+      baseTask({
+        state: "active",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: undefined,
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume when liveSession=false (no pty entry)", () => {
+    renderCard(
+      baseTask({
+        state: "active",
+        altScreenActive: false,
+        liveSession: false,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("SHOWS Resume when lastPtyDataAt is null (cold pty before first chunk)", () => {
+    renderCard(
+      baseTask({
+        state: "active",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: null,
+      }),
+    );
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+  });
+
+  it("HIDES Resume when altScreenActive=true regardless of pty activity (Iterate L still in force for alt-screen TUIs)", () => {
+    renderCard(
+      baseTask({
+        state: "active",
+        altScreenActive: true,
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: stale(), // stale but alt-screen still wins
+      }),
+    );
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("HIDES Resume on state=idle + Claude-in-main-buffer signal (same compound gate)", () => {
+    renderCard(
+      baseTask({
+        state: "idle",
+        altScreenActive: false,
+        liveSession: true,
+        firstJsonlObservedAt: "2026-05-14T21:40:00Z",
+        lastPtyDataAt: recent(),
+      }),
+    );
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+});
