@@ -447,8 +447,15 @@ export function TaskDetailHeader({ task }: Props) {
     // last-conn-close → pty.kill). Piggybacking pty teardown on a
     // registry-state action was flagged as a UX behavior change beyond
     // spec; reverted.
-    closeMut.mutate(task.taskId);
-  }, [closeMut, task.taskId]);
+    //
+    // iterate-2026-05-15-close-task-redirect: navigate back to the board
+    // on success — mirrors `handleDelete`. Closing a task removes it from
+    // the user's active focus just like deleting does; leaving the user
+    // on the now-`done` TaskDetail route was the reported bug.
+    closeMut.mutate(task.taskId, {
+      onSuccess: () => navigate("/"),
+    });
+  }, [closeMut, navigate, task.taskId]);
 
   // ADR-068-A1: explicit "Stop terminal session" action — kills the
   // embedded-terminal pty without touching the registry state. Best-
