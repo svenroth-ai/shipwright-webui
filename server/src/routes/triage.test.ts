@@ -428,7 +428,7 @@ describe("triage routes: POST /api/triage/:projectId/promote", () => {
     expect(b2.task.taskId).toBe(taskIdAfterPartial); // same task, no orphan
   });
 
-  it("concurrent same-id promote: only one task created (Promise.all)", async () => {
+  it("concurrent same-id promote: 1 task minted, both responses share taskId, exactly one is recovered", async () => {
     const [r1, r2] = await Promise.all([
       promote({
         triageId: "trg-bbbb2222",
@@ -443,8 +443,15 @@ describe("triage routes: POST /api/triage/:projectId/promote", () => {
         tags: [],
       }),
     ]);
-    // Both 201 (one fresh, one recovered)
-    expect([r1.status, r2.status].sort()).toEqual([201, 201]);
+    expect(r1.status).toBe(201);
+    expect(r2.status).toBe(201);
+    const b1 = await r1.json();
+    const b2 = await r2.json();
+    expect(b1.task.taskId).toBe(b2.task.taskId); // both responses share taskId
+    // Exactly one is `recovered: true` (the second to enter the
+    // sessions-lock critical section); the other is `recovered: false`.
+    const recoveredFlags = [b1.recovered, b2.recovered].sort();
+    expect(recoveredFlags).toEqual([false, true]);
     const taskIds = [...h.store.list()]
       .filter((t) => t.promotedFromTriageId === "trg-bbbb2222")
       .map((t) => t.taskId);

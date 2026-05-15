@@ -200,36 +200,48 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       if (!item) {
         return c.json({ error: "triage_item_not_found", triageId: parsed.value.triageId }, 404);
       }
-      // Idempotency check (under triage lock so concurrent same-id promotes
-      // serialize): does an ExternalTask already exist for this triageId?
-      const existing = deps.store.findByPromotedFromTriageId(
-        parsed.value.triageId,
-      );
+
+      // Status pre-check (held under triage lock; serializes same-id
+      // concurrent promotes via the triage path lock).
+      if (item.status !== "triage") {
+        // Already promoted/dismissed/snoozed by some actor. Allow if we
+        // own the back-ref (idempotent recovery from prior partial-promote);
+        // otherwise reject with 409.
+        const preExisting = deps.store.findByPromotedFromTriageId(
+          parsed.value.triageId,
+        );
+        if (!preExisting) {
+          return c.json(
+            {
+              error: "triage_item_not_in_triage_state",
+              actualStatus: item.status,
+            },
+            409,
+          );
+        }
+      }
+
       let taskId: string;
       let recovered: boolean;
 
-      if (item.status !== "triage" && !existing) {
-        // Already promoted/dismissed/snoozed by some OTHER actor (no
-        // back-ref → not our prior partial-promote). Reject 409.
-        return c.json(
-          {
-            error: "triage_item_not_in_triage_state",
-            actualStatus: item.status,
-          },
-          409,
+      // Acquire sdk-sessions lock for the create-or-recover atomic block.
+      // External-code-review fix: re-check findByPromotedFromTriageId
+      // INSIDE the sessions lock (defense in depth — even if some future
+      // caller bypasses the triage lock, the duplicate-create race is
+      // closed at the sdk-sessions critical section).
+      const releaseSessions = await deps.lock(deps.sessionsLockPath);
+      try {
+        const existingUnderLock = deps.store.findByPromotedFromTriageId(
+          parsed.value.triageId,
         );
-      }
-
-      if (existing) {
-        // Idempotent recovery — reuse the prior task (whether item.status
-        // is "triage" or "promoted"). Skip step 6 (create), proceed to
-        // step 7 (status flip; idempotent because last-status-wins).
-        taskId = existing.taskId;
-        recovered = true;
-      } else {
-        // Fresh promote: lock sdk-sessions, create task, persist.
-        const releaseSessions = await deps.lock(deps.sessionsLockPath);
-        try {
+        if (existingUnderLock) {
+          // Idempotent recovery — reuse the prior task. Skip step 6
+          // (create), proceed to step 7 (status flip; idempotent
+          // because last-status-wins).
+          taskId = existingUnderLock.taskId;
+          recovered = true;
+        } else {
+          // Fresh promote: create task, persist.
           const defaultTags = [
             `source:${item.source}`,
             `severity:${item.severity}`,
@@ -249,9 +261,9 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           await deps.store.persist();
           taskId = created.taskId;
           recovered = false;
-        } finally {
-          await releaseSessions();
         }
+      } finally {
+        await releaseSessions();
       }
 
       // Step 7: append status flip to triage.jsonl.
