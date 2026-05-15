@@ -12,6 +12,8 @@
  * See conventions.md "Lock acquisition order".
  */
 
+import { existsSync } from "node:fs";
+
 import { Hono } from "hono";
 import type { Context } from "hono";
 
@@ -62,17 +64,13 @@ export interface TriageRoutesDeps {
   /** sdk-sessions store (find/create/persist). */
   store: SdkSessionsStore;
   /**
-   * Lock helper — wrap a callback under a cross-process file lock for
-   * the given target path. In production this is `proper-lockfile.lock`
-   * with retries; in tests a no-op or in-process mutex.
+   * Cross-process file lock for the triage.jsonl path. MUST use a
+   * collision-safe lockfile path (`.weblock`) so it never clashes with
+   * the Python `_FileLock` regular-file sidecar at `<file>.lock` — see
+   * core/triage-lock.ts (`createTriageLock`) and ADR-106. In tests this
+   * is an in-process mutex.
    */
   lock: (path: string) => Promise<() => Promise<void>>;
-  /**
-   * Absolute path to sdk-sessions.json. Used by the promote route to
-   * acquire the cross-process write lock on the store. Wired in
-   * server/src/index.ts to `${config.registryDir}/sdk-sessions.json`.
-   */
-  sessionsLockPath: string;
   /** Failure injection for tests — when set, replaces appendStatusEvent. */
   appendStatusEventOverride?: typeof appendStatusEvent;
   /** Pinnable now-provider for tests. */
@@ -191,9 +189,27 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    // Lock #1 (FIRST per global lock-order convention): triage.jsonl
-    const releaseTriage = await deps.lock(pathRes.absolute);
-    let releasedTriage = false;
+    // RC3 (ADR-106, spec AC4): a missing triage.jsonl means the item
+    // cannot exist — answer 404 BEFORE touching the lock. proper-lockfile
+    // would ENOENT on a missing target anyway, and there is nothing to
+    // contend on.
+    if (!existsSync(pathRes.absolute)) {
+      return c.json(
+        { error: "triage_item_not_found", triageId: parsed.value.triageId },
+        404,
+      );
+    }
+
+    // Lock #1 (FIRST per global lock-order convention): triage.jsonl.
+    // Genuine contention (`ELOCKED` — another webui tab, or the Python
+    // `_FileLock` producer) degrades to a clean 503, never an opaque 500.
+    let releaseTriage: () => Promise<void>;
+    try {
+      releaseTriage = await deps.lock(pathRes.absolute);
+    } catch (err) {
+      if (isElockedError(err)) return lockUnavailable(c);
+      throw err;
+    }
     try {
       const items = readAllItems(pathRes.absolute);
       const item = findItemById(items, parsed.value.triageId);
@@ -224,46 +240,49 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       let taskId: string;
       let recovered: boolean;
 
-      // Acquire sdk-sessions lock for the create-or-recover atomic block.
-      // External-code-review fix: re-check findByPromotedFromTriageId
-      // INSIDE the sessions lock (defense in depth — even if some future
-      // caller bypasses the triage lock, the duplicate-create race is
-      // closed at the sdk-sessions critical section).
-      const releaseSessions = await deps.lock(deps.sessionsLockPath);
-      try {
-        const existingUnderLock = deps.store.findByPromotedFromTriageId(
-          parsed.value.triageId,
-        );
-        if (existingUnderLock) {
-          // Idempotent recovery — reuse the prior task. Skip step 6
-          // (create), proceed to step 7 (status flip; idempotent
-          // because last-status-wins).
-          taskId = existingUnderLock.taskId;
-          recovered = true;
-        } else {
-          // Fresh promote: create task, persist.
-          const defaultTags = [
-            `source:${item.source}`,
-            `severity:${item.severity}`,
-            `triage:${parsed.value.triageId}`,
-          ];
-          const allTags = mergeTags(defaultTags, parsed.value.tags);
-          const created: ExternalTask = deps.store.create({
-            title: item.title,
-            cwd: project.path,
-            projectId,
-            domain: parsed.value.domain,
-            priority: parsed.value.priority,
-            complexityHint: parsed.value.complexityHint,
-            tags: allTags,
-            promotedFromTriageId: parsed.value.triageId,
-          });
-          await deps.store.persist();
-          taskId = created.taskId;
-          recovered = false;
-        }
-      } finally {
-        await releaseSessions();
+      // RC2 fix (ADR-106): create-or-recover with NO route-held
+      // sdk-sessions lock. `store.persist()` takes its own
+      // proper-lockfile lock internally; a second route-level lock on
+      // the same sdk-sessions.json was the non-reentrant self-deadlock
+      // (proper-lockfile is not reentrant → inner lock `ELOCKED` → 500).
+      // Same-id concurrent promotes are already serialized by the
+      // triage.jsonl lock held above; the back-ref lookup below stays
+      // as the idempotent create-vs-recover decision.
+      const existing = deps.store.findByPromotedFromTriageId(
+        parsed.value.triageId,
+      );
+      if (existing) {
+        // Idempotent recovery — reuse the prior task, then proceed to
+        // the status flip (idempotent: last-status-wins). Re-persist
+        // defensively: a prior attempt may have created the task in
+        // memory but failed its persist() (e.g. ELOCKED → 503), leaving
+        // it off-disk. persist() is idempotent, so a re-run on an
+        // already-persisted task is a harmless full rewrite (external
+        // code review, ADR-106).
+        taskId = existing.taskId;
+        recovered = true;
+        await deps.store.persist();
+      } else {
+        // Fresh promote: create task, persist.
+        const defaultTags = [
+          `source:${item.source}`,
+          `severity:${item.severity}`,
+          `triage:${parsed.value.triageId}`,
+        ];
+        const allTags = mergeTags(defaultTags, parsed.value.tags);
+        const created: ExternalTask = deps.store.create({
+          title: item.title,
+          cwd: project.path,
+          projectId,
+          domain: parsed.value.domain,
+          priority: parsed.value.priority,
+          complexityHint: parsed.value.complexityHint,
+          tags: allTags,
+          promotedFromTriageId: parsed.value.triageId,
+        });
+        await deps.store.persist();
+        taskId = created.taskId;
+        recovered = false;
       }
 
       // Step 7: append status flip to triage.jsonl.
@@ -307,11 +326,13 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         recovered,
       };
       return c.json(response, 201);
+    } catch (err) {
+      // `store.persist()` ELOCKED — same contention class as the
+      // triage lock → clean 503, not an opaque 500.
+      if (isElockedError(err)) return lockUnavailable(c);
+      throw err;
     } finally {
-      if (!releasedTriage) {
-        releasedTriage = true;
-        await releaseTriage();
-      }
+      await releaseQuietly(releaseTriage);
     }
   });
 
@@ -358,7 +379,23 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
 
-    const release = await deps.lock(pathRes.absolute);
+    // RC3 (ADR-106, spec AC4): missing triage.jsonl → 404 before the
+    // lock (nothing to contend on; proper-lockfile would ENOENT).
+    if (!existsSync(pathRes.absolute)) {
+      return c.json(
+        { error: "triage_item_not_found", triageId: parsed.value.triageId },
+        404,
+      );
+    }
+
+    // Genuine lock contention (`ELOCKED`) degrades to a clean 503.
+    let release: () => Promise<void>;
+    try {
+      release = await deps.lock(pathRes.absolute);
+    } catch (err) {
+      if (isElockedError(err)) return lockUnavailable(c);
+      throw err;
+    }
     try {
       const items = readAllItems(pathRes.absolute);
       const item = findItemById(items, parsed.value.triageId);
@@ -415,7 +452,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       }
       return c.json({ triageId: parsed.value.triageId, newStatus });
     } finally {
-      await release();
+      await releaseQuietly(release);
     }
   }
 
@@ -550,5 +587,59 @@ function mergeTags(defaults: string[], userTags: string[]): string[] {
     }
   }
   return out;
+}
+
+// ----------------------------------------------------------------------
+// Lock-failure classification (ADR-106, RC3)
+// ----------------------------------------------------------------------
+
+/**
+ * `proper-lockfile` signals genuine contention with `code: "ELOCKED"`
+ * (the lock is held — by another webui tab, or by the Python `_FileLock`
+ * producer if the `.weblock`/`.lock` paths ever realign). Any other error
+ * (EACCES, ENOENT, EPERM, …) is a real filesystem fault, not contention.
+ */
+function isElockedError(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: unknown }).code === "ELOCKED"
+  );
+}
+
+/**
+ * 503 response for genuine lock contention. Generic, retry-oriented
+ * wording — never leaks the raw error or a filesystem path (spec AC4).
+ */
+function lockUnavailable(c: Context) {
+  return c.json(
+    {
+      error: "lock_unavailable",
+      message: "Triage storage is busy — please retry in a moment.",
+    },
+    503,
+  );
+}
+
+/**
+ * Release a proper-lockfile lock in a `finally` WITHOUT clobbering the
+ * route's already-determined response. A `finally` that throws overrides
+ * the preceding `return`/`throw`; a failed unlock (lock dir removed
+ * externally, perms changed) must not turn a successful 201/200 — or a
+ * deliberate 503 — into an opaque 500. The failure is logged and
+ * swallowed (external code review, ADR-106).
+ */
+async function releaseQuietly(release: () => Promise<void>): Promise<void> {
+  try {
+    await release();
+  } catch (err) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        message: "triage route: lock release failed (ignored)",
+        error: String(err).slice(0, 200),
+      }),
+    );
+  }
 }
 

@@ -50,6 +50,7 @@ import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createTriageRoutes } from "./routes/triage.js";
+import { createTriageLock } from "./core/triage-lock.js";
 import { PtyManager } from "./terminal/pty-manager.js";
 import {
   createTerminalRoutes,
@@ -563,8 +564,12 @@ if (isMainModule) {
             if (!p || p.synthesized) return undefined;
             return { id: p.id, path: p.path, synthesized: p.synthesized };
           },
-          lock: lockPath,
-          sessionsLockPath: sdkSessionsPath,
+          // ADR-106: collision-safe `.weblock` lock path so the webui
+          // never clashes with the Python `_FileLock` regular-file
+          // sidecar at `triage.jsonl.lock` (RC1). The route no longer
+          // takes a separate sdk-sessions lock (RC2 — store.persist()
+          // locks itself), so `sessionsLockPath` is gone.
+          lock: createTriageLock(),
         }),
       );
 
