@@ -542,7 +542,7 @@ describe("triage routes: dismiss + snooze", () => {
   });
 });
 
-describe("triage routes: lock-failure handling (ADR-104)", () => {
+describe("triage routes: lock-failure handling (ADR-106)", () => {
   let h: Harness;
 
   afterEach(() => h?.cleanup());

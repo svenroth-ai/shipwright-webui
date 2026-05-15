@@ -1,6 +1,6 @@
 /*
  * triage.real-lock.test.ts — surface=api integration test for
- * iterate-20260515-triage-promote-500 (ADR-104).
+ * iterate-20260515-triage-promote-500 (ADR-106).
  *
  * The mock-lock unit tests (triage.test.ts) prove the ROUTE LOGIC —
  * status codes, validation, idempotency — but an in-process mutex
@@ -150,7 +150,7 @@ async function makeRealHarness(): Promise<RealHarness> {
 
 const POST = { method: "POST", headers: { "content-type": "application/json" } };
 
-describe("triage routes — real proper-lockfile integration (ADR-104)", () => {
+describe("triage routes — real proper-lockfile integration (ADR-106)", () => {
   const harnesses: RealHarness[] = [];
   afterEach(() => {
     for (const h of harnesses.splice(0)) h.cleanup();
