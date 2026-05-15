@@ -1,1 +1,0 @@
-Engines field (`node >=20.12.0`) in both `server/package.json` and `client/package.json`. Formalizes the previously-implicit Node version requirement that ADR-082's `--env-file-if-exists` Node flag depends on.
