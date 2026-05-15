@@ -334,4 +334,46 @@ describe("useTerminalSocket", () => {
     expect(dataReceived).toEqual([]);
     expect(snapshotReceived).toEqual([]);
   });
+
+  // ADR-104 (iterate-20260515-terminal-smear-reset) — the `ready`
+  // envelope carries a `terminalReset` boolean. True = this WS attach
+  // freshly re-created the pty after a prior Claude session was lost
+  // (server restart / crash). Drives the EmbeddedTerminal reset banner.
+  it("ADR-104: exposes terminalReset=true from the ready envelope", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "writer",
+          shellKind: "pwsh",
+          cwd: "C:\\x",
+          terminalReset: true,
+        }),
+      );
+    });
+    expect(result.current.terminalReset).toBe(true);
+  });
+
+  it("ADR-104: terminalReset defaults to false when the field is absent (old-server back-compat)", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({ type: "ready", role: "writer", shellKind: "pwsh", cwd: "C:\\x" }),
+      );
+    });
+    expect(result.current.terminalReset).toBe(false);
+  });
 });
