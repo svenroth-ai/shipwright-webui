@@ -14,6 +14,20 @@ interface TriageItemCardProps {
   onClick: () => void;
 }
 
+/**
+ * Best-effort relative-time formatter for the originalTs ISO timestamp.
+ * Falls back to the raw ISO string on parse failure (defense in depth).
+ */
+function formatRelative(iso: string): string {
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return iso;
+  const deltaSec = Math.floor((Date.now() - t) / 1000);
+  if (deltaSec < 60) return `${deltaSec}s ago`;
+  if (deltaSec < 3600) return `${Math.floor(deltaSec / 60)}m ago`;
+  if (deltaSec < 86_400) return `${Math.floor(deltaSec / 3600)}h ago`;
+  return `${Math.floor(deltaSec / 86_400)}d ago`;
+}
+
 export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
   return (
     <button
@@ -28,6 +42,13 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
         <span className="text-[11px] text-stone-500 font-mono">{item.id}</span>
         <span className="text-[11px] text-stone-500">
           → {item.suggestedPriority} / {item.suggestedDomain}
+        </span>
+        <span
+          className="text-[11px] text-stone-400 ml-auto"
+          title={item.originalTs}
+          data-testid={`triage-item-${item.id}-relative-ts`}
+        >
+          {formatRelative(item.originalTs)}
         </span>
       </div>
       <h3 className="text-sm font-medium text-stone-900 mb-1">{item.title}</h3>
