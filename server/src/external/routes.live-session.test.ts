@@ -19,7 +19,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -170,5 +170,78 @@ describe("external routes — liveSession augmentation (Iterate G, ADR-095)", ()
     res = await app.request(`/api/external/tasks/${task.taskId}`);
     json = (await res.json()) as { task: { liveSession: boolean } };
     expect(json.task.liveSession).toBe(false);
+  });
+
+  // ADR-102 (resume-cta-jsonl-signal) — H-1 regression fence. The
+  // persisted `lastJsonlSeenMtimeMs` is refreshed ONLY by the transcript
+  // endpoint of the currently-open detail page. The board (`GET /tasks`)
+  // and `GET /tasks/:id` MUST re-stat the JSONL live, or the Resume-CTA
+  // gate reads a frozen mtime and Resume re-appears on actively-working
+  // tasks. These tests never call the transcript endpoint — the store's
+  // `lastJsonlSeenMtimeMs` is `undefined` — so a fresh value can only
+  // come from a live re-stat.
+
+  it("GET /tasks delivers a LIVE lastJsonlSeenMtimeMs (re-stat'd, not the stale store value)", async () => {
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "board-fresh", cwd: "/tmp" }),
+    });
+    const { task } = (await create.json()) as {
+      task: { taskId: string; sessionUuid: string };
+    };
+    // Simulate Claude writing the JSONL — detail page never opened.
+    const enc = path.join(projectsDir, "encoded-cwd");
+    mkdirSync(enc, { recursive: true });
+    const jsonl = path.join(enc, `${task.sessionUuid}.jsonl`);
+    writeFileSync(jsonl, '{"type":"x"}\n');
+    const freshMtime = statSync(jsonl).mtimeMs;
+
+    const list = await app.request("/api/external/tasks");
+    const json = (await list.json()) as {
+      tasks: Array<{ taskId: string; lastJsonlSeenMtimeMs?: number }>;
+    };
+    const row = json.tasks.find((t) => t.taskId === task.taskId);
+    expect(row).toBeDefined();
+    // Pre-ADR-102 this was `undefined` (nothing re-stat'd the file).
+    expect(row!.lastJsonlSeenMtimeMs).toBe(freshMtime);
+  });
+
+  it("GET /tasks/:id also delivers the live lastJsonlSeenMtimeMs", async () => {
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "detail-fresh", cwd: "/tmp" }),
+    });
+    const { task } = (await create.json()) as {
+      task: { taskId: string; sessionUuid: string };
+    };
+    const enc = path.join(projectsDir, "enc-detail");
+    mkdirSync(enc, { recursive: true });
+    const jsonl = path.join(enc, `${task.sessionUuid}.jsonl`);
+    writeFileSync(jsonl, "{}\n");
+    const freshMtime = statSync(jsonl).mtimeMs;
+
+    const res = await app.request(`/api/external/tasks/${task.taskId}`);
+    const json = (await res.json()) as {
+      task: { lastJsonlSeenMtimeMs?: number };
+    };
+    expect(json.task.lastJsonlSeenMtimeMs).toBe(freshMtime);
+  });
+
+  it("GET /tasks omits lastJsonlSeenMtimeMs when no JSONL exists yet (no false-fresh)", async () => {
+    const create = await app.request("/api/external/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "no-jsonl", cwd: "/tmp" }),
+    });
+    const { task } = (await create.json()) as { task: { taskId: string } };
+    const list = await app.request("/api/external/tasks");
+    const json = (await list.json()) as {
+      tasks: Array<{ taskId: string; lastJsonlSeenMtimeMs?: number }>;
+    };
+    const row = json.tasks.find((t) => t.taskId === task.taskId);
+    expect(row).toBeDefined();
+    expect(row!.lastJsonlSeenMtimeMs).toBeUndefined();
   });
 });
