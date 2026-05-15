@@ -73,7 +73,9 @@ interface Harness {
   setOverride: (fn?: TriageRoutesDeps["appendStatusEventOverride"]) => void;
 }
 
-async function makeHarness(): Promise<Harness> {
+async function makeHarness(
+  opts: { lock?: TriageRoutesDeps["lock"] } = {},
+): Promise<Harness> {
   _clearCache_TEST_ONLY();
   const workDir = mkdtempSync(path.join(tmpdir(), "triage-routes-"));
   const projectAPath = path.join(workDir, "project-a");
@@ -99,8 +101,7 @@ async function makeHarness(): Promise<Harness> {
     getAllProjects: () => projects,
     getProjectById: (id) => projectMap.get(id),
     store,
-    lock: inProcessLock(),
-    sessionsLockPath: "/tmp/test/sdk-sessions.json",
+    lock: opts.lock ?? inProcessLock(),
     appendStatusEventOverride: (args) =>
       (appendOverride ?? appendStatusEvent)(args),
     now: () => "2026-05-14T20:00:00Z",
@@ -538,5 +539,106 @@ describe("triage routes: dismiss + snooze", () => {
       body: JSON.stringify({}),
     });
     expect(res.status).toBe(400);
+  });
+});
+
+describe("triage routes: lock-failure handling (ADR-104)", () => {
+  let h: Harness;
+
+  afterEach(() => h?.cleanup());
+
+  /** A lock dep that always rejects with proper-lockfile's `ELOCKED`. */
+  function elockedLock(): TriageRoutesDeps["lock"] {
+    return async () => {
+      throw Object.assign(new Error("Lock file is already being held"), {
+        code: "ELOCKED",
+      });
+    };
+  }
+
+  /** A lock dep that rejects with a non-contention filesystem error. */
+  function eaccesLock(): TriageRoutesDeps["lock"] {
+    return async () => {
+      throw Object.assign(new Error("permission denied"), { code: "EACCES" });
+    };
+  }
+
+  it("promote → 503 lock_unavailable when the triage lock is contended (ELOCKED)", async () => {
+    h = await makeHarness({ lock: elockedLock() });
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a/promote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triageId: "trg-aaaa1111",
+        priority: "P0",
+        domain: "engineering",
+        tags: [],
+      }),
+    });
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.error).toBe("lock_unavailable");
+    // The 503 body must not leak the raw error / a filesystem path.
+    expect(JSON.stringify(body)).not.toContain("ELOCKED");
+  });
+
+  it("promote → 500 (not 503) when the lock throws a non-contention FS error", async () => {
+    h = await makeHarness({ lock: eaccesLock() });
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a/promote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triageId: "trg-aaaa1111",
+        priority: "P0",
+        domain: "engineering",
+        tags: [],
+      }),
+    });
+    expect(res.status).toBe(500);
+  });
+
+  it("dismiss → 503 lock_unavailable when the triage lock is contended", async () => {
+    h = await makeHarness({ lock: elockedLock() });
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a/dismiss", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ triageId: "trg-aaaa1111" }),
+    });
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("lock_unavailable");
+  });
+
+  it("snooze → 503 lock_unavailable when the triage lock is contended", async () => {
+    h = await makeHarness({ lock: elockedLock() });
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a/snooze", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ triageId: "trg-aaaa1111", reason: null }),
+    });
+    expect(res.status).toBe(503);
+    expect((await res.json()).error).toBe("lock_unavailable");
+  });
+
+  it("promote → 404 (before locking) when triage.jsonl does not exist", async () => {
+    // proj-b is never seeded — its triage.jsonl is absent.
+    h = await makeHarness({ lock: elockedLock() });
+    const res = await h.app.request("/api/triage/proj-b/promote", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        triageId: "trg-aaaa1111",
+        priority: "P0",
+        domain: "engineering",
+        tags: [],
+      }),
+    });
+    // Missing file → no items can exist → 404, and the lock is never
+    // reached (so the ELOCKED lock above never fires).
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe("triage_item_not_found");
   });
 });
