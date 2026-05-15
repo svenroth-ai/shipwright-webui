@@ -1,0 +1,1 @@
+Triage tab restyled — item cards now sit on a white surface with a subtle shadow (was low-contrast beige-on-beige), and the detail / promote dialogs adopt the Project Creation wizard surface treatment (blurred overlay, card radius/shadow tokens, wizard-style close + footer buttons).
