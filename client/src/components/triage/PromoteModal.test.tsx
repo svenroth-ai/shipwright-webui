@@ -164,4 +164,14 @@ describe("PromoteModal", () => {
     );
     expect(mockMutate).not.toHaveBeenCalled();
   });
+
+  // iterate-20260515-triage-card-styling — dialog shell matches the
+  // Project Creation wizard (white --color-surface + card radius/shadow).
+  it("dialog surface matches the Project Creation wizard tokens", () => {
+    renderModal();
+    const content = screen.getByTestId("triage-promote-modal");
+    expect(content).toHaveClass("bg-[var(--color-surface)]");
+    expect(content).toHaveClass("rounded-[var(--radius-card)]");
+    expect(content).toHaveClass("shadow-[var(--shadow-card)]");
+  });
 });
