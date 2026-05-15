@@ -1,0 +1,1 @@
+Resume button no longer appears on actively-working tasks (task board + task header) — the activity gate keys on JSONL write-time, observable however Claude was launched, instead of an embedded-terminal-only signal that is null in the external-launch (Plan-D'') default
