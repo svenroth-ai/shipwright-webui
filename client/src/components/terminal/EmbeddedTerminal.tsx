@@ -234,6 +234,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // initialisation failed OR the kill switch is on — optional
     // chaining at the call site handles both cases.
     const safeAtlasMaintenanceRef = useRef<(() => void) | null>(null);
+    // ADR-104 (iterate-20260515-terminal-smear-reset) — true while a
+    // `replay_snapshot` `term.write` is still parsing. The onWriteParsed
+    // burst-trigger early-returns during this window so its
+    // clearTextureAtlas() maintenance pass cannot race the in-flight
+    // async write — codex:codex-rescue root cause of the ADR-099 remount
+    // smear: every patch up to v10 chased the symptom because the
+    // setTimeout(0) maintenance ALWAYS raced the async write.
+    const replaySnapshotInFlightRef = useRef(false);
 
     // 2026-05-05 — Race-Fix: TaskDetail's route is registered as the SAME
     // <TaskDetailPage/> element across `/tasks/:taskId` so React keeps the
@@ -253,6 +261,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       lastPtyDataAtRef.current = 0;
       dataSeenInitiallyRef.current = false;
       injectionInFlightRef.current = false;
+      replaySnapshotInFlightRef.current = false;
+      // ADR-104 — a different task gets a fresh reset-banner evaluation.
+      setResetBannerDismissed(false);
     }, [taskId]);
 
     const socket = useTerminalSocket({
@@ -292,49 +303,52 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             /* ignore */
           }
         }
+        // Iterate K v10 (ADR-099) scheduled the post-snapshot
+        // maintenance pass via `setTimeout(0)`. UAT 2026-05-14 still saw
+        // "extremes flickern und starkes verschmieren links" on re-mount
+        // during active streaming. codex:codex-rescue root cause
+        // (ADR-104): the ~100 KiB `replay_snapshot` is parsed by xterm
+        // ASYNCHRONOUSLY; the `setTimeout(0)` fired BEFORE `term.write`
+        // finished parsing, so `clearTextureAtlas()` raced the still-in-
+        // flight write. Every ADR-099 patch up to v10 chased that
+        // symptom — the real cause is "maintenance always raced the
+        // async write."
+        //
+        // The fix: `term.write(data, callback)` is xterm's correct
+        // "after parse" hook. Maintenance (scrollToBottom + atlas pass)
+        // runs ONLY in the completion callback; `replaySnapshotInFlightRef`
+        // suppresses the onWriteParsed burst-trigger for the duration of
+        // the parse so it cannot race either.
+        replaySnapshotInFlightRef.current = true;
         try {
-          // Use `term.reset()` (not `clear()`) — `clear()` only wipes
-          // scrollback above the viewport; `reset()` re-initialises
-          // cursor + viewport + scrollback so the snapshot writes into
-          // a truly fresh state on re-attach.
+          // `term.reset()` (not `clear()`) re-initialises cursor +
+          // viewport + scrollback so the snapshot writes into a truly
+          // fresh state on re-attach.
           try {
             term.reset();
           } catch {
             /* xterm mid-dispose; ignore */
           }
-          term.write(data);
-          term.scrollToBottom();
-          // Iterate K v10 (ADR-099) — schedule a maintenance pass right
-          // after the snapshot write lands. UAT 2026-05-14: re-mount
-          // after navigate-back during active Claude streaming
-          // produced "extremes flickern und auch starkes verschmieren
-          // links". Root cause: the replay_snapshot is a large chunk
-          // (often ~100 KiB+ of cell-state on long sessions); v6's
-          // burst-trigger fires ONCE at the start of `term.write(data)`
-          // (since `lastWriteTime` was pre-initialized to
-          // before-quiet-window), but the REST of the write — plus
-          // any immediately-following live-pty bytes — accumulates
-          // fresh atlas corruption with no further maintenance
-          // until v7's post-mount-settle at +3s or the 10s periodic.
-          //
-          // Schedule maintenance via `setTimeout(0)` (microtask-after-
-          // browser-paint) so xterm finishes its parser pipeline +
-          // commits the writes to the renderer BEFORE we ask the
-          // WebGL atlas to be cleared. Without the deferral, the
-          // clear can race with the still-in-flight write and the
-          // refresh repaints from an atlas that's about to be
-          // overwritten — exactly the "left smearing" pattern the
-          // UAT reported.
-          //
-          // Defensive: `safeAtlasMaintenanceRef.current?.()` handles
-          // (a) the kill-switch path (`?atlasMaintenance=off` — ref
-          // never populated), (b) the Canvas/DOM fallback (no
-          // WebglAddon → ref never populated), and (c) component
-          // mid-dispose between write and timer firing
-          // (`disposedRef.current` inside `safeAtlasMaintenance`
-          // short-circuits).
-          setTimeout(() => safeAtlasMaintenanceRef.current?.(), 0);
+          term.write(data, () => {
+            replaySnapshotInFlightRef.current = false;
+            // The component may have unmounted, or this xterm instance
+            // may have been replaced, while the parse was in flight.
+            if (disposedRef.current || termRef.current !== term) return;
+            try {
+              term.scrollToBottom();
+              safeAtlasMaintenanceRef.current?.();
+            } catch (err) {
+              // eslint-disable-next-line no-console
+              console.warn(
+                `[terminal] replay_snapshot completion failed: ${(err as Error).message}`,
+              );
+            }
+          });
         } catch (err) {
+          // `term.write` threw synchronously (xterm mid-dispose). Clear
+          // the in-flight flag so the onWriteParsed burst-trigger is not
+          // permanently suppressed (ADR-104 AC-3).
+          replaySnapshotInFlightRef.current = false;
           // eslint-disable-next-line no-console
           console.warn(
             `[terminal] replay_snapshot write failed: ${(err as Error).message}`,
@@ -367,6 +381,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // gate (`server/src/terminal/routes.ts onMessage` checks getRole and
     // emits `read_only` envelope). The grace is purely visual debounce.
     const [readOnlyArmed, setReadOnlyArmed] = useState(false);
+    // ADR-104 — the reset banner is dismissable; the flag resets on
+    // taskId change (see the [taskId] effect above).
+    const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
     const prevReadyRef = useRef(false);
     useEffect(() => {
       if (socket.ready && !prevReadyRef.current) {
@@ -769,6 +786,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // this mount-effect (the cleanup function flipped it to true on the
       // previous unmount; React preserves useRef across mounts).
       disposedRef.current = false;
+      // ADR-104 — defensively clear the in-flight flag on (re-)mount.
+      // The completion callback + the synchronous-throw catch already
+      // clear it on every reachable path; this guards the theoretical
+      // case where a prior xterm was disposed with a snapshot write
+      // still queued (xterm drops the completion callback) so the flag
+      // cannot leak `true` into a fresh xterm instance and permanently
+      // suppress the onWriteParsed burst-trigger.
+      replaySnapshotInFlightRef.current = false;
       // Initial fit. safeFit returns false if the renderer isn't yet ready
       // (pre-first-frame zero cell dims) — that's fine, the ResizeObserver
       // will fire as soon as the container settles.
@@ -1017,6 +1042,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // mount-time minus quiet-window+1ms, so the FIRST write after
         // a fresh mount also qualifies.
         onWriteParsedDispose = term.onWriteParsed(() => {
+          // ADR-104 — while a replay_snapshot write is parsing, its
+          // completion callback owns the single post-snapshot
+          // maintenance pass. Suppress the burst-trigger here so a
+          // mid-parse onWriteParsed firing cannot race the in-flight
+          // write with clearTextureAtlas() (the ADR-099-v10 smear bug).
+          // Advancing the counter keeps periodic-maintenance accounting
+          // correct (these parse batches were real activity); advancing
+          // `lastWriteTime` is ALSO load-bearing — it keeps the timestamp
+          // fresh so the FIRST post-snapshot onWriteParsed does not see a
+          // stale quiet window and re-fire the burst-trigger redundantly
+          // (the completion callback already ran one maintenance pass).
+          if (replaySnapshotInFlightRef.current) {
+            writesSinceLastClear++;
+            lastWriteTime = Date.now();
+            return;
+          }
           const now = Date.now();
           if (now - lastWriteTime > RESUME_BURST_QUIET_MS) {
             // First write after a meaningful quiet window — burst
@@ -1282,6 +1323,17 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             : coord.pendingLaunch.commands.posix
         : null;
 
+    // ADR-104 (iterate-20260515-terminal-smear-reset) — reset banner.
+    // Surfaced when the WS attach freshly re-created the pty after a
+    // prior Claude session was lost (server restart / crash — see
+    // `deriveTerminalReset` in server/src/terminal/routes.ts). Hidden
+    // once a launch is dispatched (`pendingLaunch` set — the about-to-run
+    // preview banner takes over) or the user dismisses it.
+    const showResetBanner =
+      socket.terminalReset === true &&
+      !coord.pendingLaunch &&
+      !resetBannerDismissed;
+
     return (
       // Iterate v0.8.5 AC-1 — single-layer wrapper carries the dark
       // background AND the inner padding. v0.8.3 had only `p-2 rounded-md`
@@ -1312,6 +1364,30 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             data-testid="embedded-terminal-readonly"
           >
             Read-only — another tab is the active writer for this task.
+          </div>
+        ) : null}
+        {showResetBanner ? (
+          // ADR-104 — terminal-reset banner. The pty was freshly
+          // re-created after a prior Claude session was lost; tell the
+          // user to Resume instead of leaving them at a silent shell.
+          <div
+            className="-mx-2 -mt-2 mb-2 flex items-start justify-between gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
+            data-testid="embedded-terminal-reset"
+          >
+            <span>
+              Terminal was reset — the previous Claude session was
+              interrupted (the server may have restarted). Click{" "}
+              <strong>Resume</strong> to continue.
+            </span>
+            <button
+              type="button"
+              onClick={() => setResetBannerDismissed(true)}
+              className="shrink-0 rounded px-1 leading-none text-[var(--color-warning,#9a3412)] hover:bg-black/5"
+              data-testid="embedded-terminal-reset-dismiss"
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
           </div>
         ) : null}
         {socket.replayOnly === true ? (

@@ -11,13 +11,34 @@ import { act, render, waitFor } from "@testing-library/react";
 import { createRef } from "react";
 
 // --- xterm mocks -----------------------------------------------------------
-const writeSpy = vi.fn<(d: string) => void>();
+const writeSpy = vi.fn<(d: string, cb?: () => void) => void>();
 const focusSpy = vi.fn();
 const disposeSpy = vi.fn();
 const clearSpy = vi.fn();
+const resetSpy = vi.fn();
 const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
+
+// ADR-104 (iterate-20260515-terminal-smear-reset) — deterministic control
+// over xterm's async write parse. `term.write(data, cb)` DEFERS `cb` into
+// `writeCompletions` (mirrors xterm's "callback fires after parse") instead
+// of invoking it inline, so a test can observe the in-flight window.
+// `onWriteParsed` handlers are captured so a test can fire them mid-write
+// to simulate the chunked parse of a large replay snapshot.
+// `writeShouldThrow` drives the synchronous-throw robustness path (AC-3).
+const onWriteParsedHandlers: Array<() => void> = [];
+const writeCompletions: Array<() => void> = [];
+let writeShouldThrow = false;
+function flushWriteCompletions(): void {
+  const pending = writeCompletions.splice(0, writeCompletions.length);
+  for (const cb of pending) cb();
+}
+function fireWriteParsed(times = 1): void {
+  for (let i = 0; i < times; i++) {
+    for (const h of [...onWriteParsedHandlers]) h();
+  }
+}
 
 // Iterate C (ADR-087): the v0.8.7 marker-count footer was retired; the
 // mock xterm buffer fields below are kept minimal — they only need to
@@ -40,10 +61,24 @@ vi.mock("@xterm/xterm", () => ({
   Terminal: vi.fn().mockImplementation(() => ({
     cols: 120,
     rows: 30,
-    write: writeSpy,
+    // ADR-104 — `write(data, cb?)` records via writeSpy, optionally throws
+    // (AC-3 robustness path), and DEFERS the completion callback into
+    // `writeCompletions` so a test can observe the in-flight window.
+    // writeSpy is called with EXACTLY the args the component passed
+    // (no trailing `undefined`) so single-arg call assertions still hold.
+    write(d: string, cb?: () => void) {
+      if (cb === undefined) writeSpy(d);
+      else writeSpy(d, cb);
+      if (writeShouldThrow) throw new Error("simulated xterm write failure");
+      if (typeof cb === "function") writeCompletions.push(cb);
+    },
     focus: focusSpy,
     dispose: disposeSpy,
     clear: clearSpy,
+    // ADR-104 — `onReplaySnapshot` calls term.reset() before the snapshot
+    // write; the prod code wraps it in try/catch (xterm mid-dispose) but
+    // the mock provides it as a real spy for fidelity.
+    reset: resetSpy,
     scrollToBottom: scrollToBottomSpy,
     loadAddon: vi.fn(),
     open: vi.fn(),
@@ -60,10 +95,12 @@ vi.mock("@xterm/xterm", () => ({
     // VS Code's forceRefresh()). Mock is a no-op spy.
     refresh: vi.fn(),
     // onWriteParsed — Iterate K v3 conditional uses this as activity
-    // signal to gate the periodic atlas clear (skip when terminal is
-    // idle). Mock returns a disposable; tests don't assert on activity
-    // counting.
-    onWriteParsed: vi.fn(() => ({ dispose: vi.fn() })),
+    // signal. ADR-104 — capture the handler so a test can fire it
+    // mid-write (simulating xterm's chunked parse of a big snapshot).
+    onWriteParsed(cb: () => void) {
+      onWriteParsedHandlers.push(cb);
+      return { dispose: vi.fn() };
+    },
     buffer: { active: mockBufferActive },
   })),
 }));
@@ -205,9 +242,13 @@ describe("<EmbeddedTerminal>", () => {
     focusSpy.mockClear();
     disposeSpy.mockClear();
     clearSpy.mockClear();
+    resetSpy.mockClear();
     scrollToBottomSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
+    onWriteParsedHandlers.length = 0;
+    writeCompletions.length = 0;
+    writeShouldThrow = false;
 
     // ResizeObserver stub for jsdom.
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
@@ -496,7 +537,7 @@ describe("<EmbeddedTerminal>", () => {
   // retired. The server emits a single `replay_snapshot` envelope when
   // a cell-state snapshot exists; the client writes once via
   // term.reset() + term.write(data) + term.scrollToBottom().
-  it("ADR-087: writes the replay_snapshot data via term.reset + term.write + scrollToBottom", async () => {
+  it("ADR-087/ADR-104: writes replay_snapshot via term.reset + term.write(data,callback); scrollToBottom runs in the write-completion callback", async () => {
     render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});
     const ws = FakeWebSocket.instances[0];
@@ -513,7 +554,87 @@ describe("<EmbeddedTerminal>", () => {
     });
     const writes = writeSpy.mock.calls.map((c) => c[0]);
     expect(writes).toContain("SNAPSHOT-PAYLOAD");
+    // ADR-104 — the snapshot write passes a completion callback.
+    expect(writeSpy).toHaveBeenCalledWith(
+      "SNAPSHOT-PAYLOAD",
+      expect.any(Function),
+    );
+    // ADR-104 (AC-1) — scrollToBottom moved OUT of the ADR-099-v10
+    // setTimeout(0) that raced the in-flight parse; it now runs only
+    // inside the term.write completion callback.
+    expect(scrollToBottomSpy).not.toHaveBeenCalled();
+    await act(async () => {
+      flushWriteCompletions();
+    });
     expect(scrollToBottomSpy).toHaveBeenCalled();
+  });
+
+  it("ADR-104 (AC-2): onWriteParsed firings DURING an in-flight snapshot write do not trigger atlas maintenance; the completion callback triggers it exactly once", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "BIG-SNAPSHOT",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "6.0.0",
+        }),
+      );
+    });
+    const webgl = (
+      window as unknown as {
+        __embeddedTerminalWebglAddon?: { clearTextureAtlas: ReturnType<typeof vi.fn> };
+      }
+    ).__embeddedTerminalWebglAddon;
+    expect(webgl).toBeTruthy();
+    // The write callback is deferred → the snapshot write is "in flight".
+    // xterm fires onWriteParsed once per parse batch of the ~100 KiB
+    // payload; the ADR-099-v10 burst-trigger would race clearTextureAtlas
+    // against the still-in-flight write. The in-flight guard suppresses it.
+    await act(async () => {
+      fireWriteParsed(5);
+    });
+    expect(webgl!.clearTextureAtlas).not.toHaveBeenCalled();
+    // Completion callback → exactly one maintenance pass.
+    await act(async () => {
+      flushWriteCompletions();
+    });
+    expect(webgl!.clearTextureAtlas).toHaveBeenCalledTimes(1);
+  });
+
+  it("ADR-104 (AC-3): a synchronous term.write throw clears the in-flight flag so atlas maintenance is not permanently suppressed", async () => {
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    const webgl = (
+      window as unknown as {
+        __embeddedTerminalWebglAddon?: { clearTextureAtlas: ReturnType<typeof vi.fn> };
+      }
+    ).__embeddedTerminalWebglAddon;
+    expect(webgl).toBeTruthy();
+    // term.write throws synchronously during the snapshot write.
+    writeShouldThrow = true;
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "WILL-THROW",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "6.0.0",
+        }),
+      );
+    });
+    // The throw is caught; without the AC-3 fix the in-flight flag would
+    // be stuck `true` and every later onWriteParsed would early-return.
+    writeShouldThrow = false;
+    await act(async () => {
+      fireWriteParsed(1);
+    });
+    expect(webgl!.clearTextureAtlas).toHaveBeenCalled();
   });
 
   it("ADR-087: stale legacy chunked-replay envelopes are silently ignored", async () => {
@@ -572,4 +693,73 @@ describe("<EmbeddedTerminal>", () => {
   // both were retired alongside the legacy replay envelopes. The
   // `/clear-scrollback` server endpoint still exists (surfaced via the
   // kebab "..." overflow menu in TaskCard / TaskDetailHeader).
+
+  // ADR-104 (iterate-20260515-terminal-smear-reset) — reset banner.
+  // When the WS `ready` envelope reports `terminalReset: true` (a fresh
+  // pty was spawned after a prior Claude session was lost — server
+  // restart / crash), the terminal surfaces a warning banner instead of
+  // leaving the user staring at a silent PowerShell prompt.
+  it("ADR-104 (AC-6): renders the reset banner when ready envelope has terminalReset:true", async () => {
+    const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    expect(
+      container.querySelector('[data-testid="embedded-terminal-reset"]'),
+    ).toBeNull();
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "writer",
+          shellKind: "pwsh",
+          cwd: "C:\\x",
+          terminalReset: true,
+        }),
+      );
+    });
+    expect(
+      container.querySelector('[data-testid="embedded-terminal-reset"]'),
+    ).not.toBeNull();
+  });
+
+  it("ADR-104 (AC-6): no reset banner when terminalReset is absent (normal attach)", async () => {
+    const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({ type: "ready", role: "writer", shellKind: "pwsh", cwd: "C:\\x" }),
+      );
+    });
+    expect(
+      container.querySelector('[data-testid="embedded-terminal-reset"]'),
+    ).toBeNull();
+  });
+
+  it("ADR-104 (AC-6): the reset banner can be dismissed", async () => {
+    const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "writer",
+          shellKind: "pwsh",
+          cwd: "C:\\x",
+          terminalReset: true,
+        }),
+      );
+    });
+    const dismiss = container.querySelector(
+      '[data-testid="embedded-terminal-reset-dismiss"]',
+    ) as HTMLButtonElement | null;
+    expect(dismiss).not.toBeNull();
+    await act(async () => {
+      dismiss!.click();
+    });
+    expect(
+      container.querySelector('[data-testid="embedded-terminal-reset"]'),
+    ).toBeNull();
+  });
 });
