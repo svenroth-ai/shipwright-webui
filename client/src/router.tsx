@@ -4,6 +4,7 @@ import TaskBoardPage from './pages/TaskBoardPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import ProjectsPage from './pages/ProjectsPage';
 import InboxPage from './pages/InboxPage';
+import TriagePage from './pages/TriagePage';
 import SettingsPage from './pages/SettingsPage';
 import DiagnosticsPage from './pages/DiagnosticsPage';
 
@@ -16,6 +17,7 @@ export const router = createBrowserRouter([
       { path: 'tasks/:taskId', element: <TaskDetailPage /> },
       { path: 'projects', element: <ProjectsPage /> },
       { path: 'inbox', element: <InboxPage /> },
+      { path: 'triage', element: <TriagePage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'diagnostics', element: <DiagnosticsPage /> },
     ],

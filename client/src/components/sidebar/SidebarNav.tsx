@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity, Triangle } from 'lucide-react';
 import { SidebarNavItem } from './SidebarNavItem';
 import { InboxBadge } from './InboxBadge';
+import { TriageBadge } from './TriageBadge';
 
 interface SidebarNavProps {
   inboxCount: number;
+  triageCount: number;
 }
 
 function useMediaCollapse() {
@@ -23,7 +25,7 @@ function useMediaCollapse() {
   return [collapsed, setCollapsed] as const;
 }
 
-export function SidebarNav({ inboxCount }: SidebarNavProps) {
+export function SidebarNav({ inboxCount, triageCount }: SidebarNavProps) {
   const [collapsed, setCollapsed] = useMediaCollapse();
 
   return (
@@ -82,6 +84,13 @@ export function SidebarNav({ inboxCount }: SidebarNavProps) {
           label="Inbox"
           to="/inbox"
           badge={<InboxBadge count={inboxCount} />}
+          collapsed={collapsed}
+        />
+        <SidebarNavItem
+          icon={Triangle}
+          label="Triage"
+          to="/triage"
+          badge={<TriageBadge count={triageCount} />}
           collapsed={collapsed}
         />
         <SidebarNavItem
