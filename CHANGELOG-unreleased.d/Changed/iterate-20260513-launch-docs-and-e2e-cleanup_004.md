@@ -1,1 +1,0 @@
-CLAUDE.md Structure block extended with 11 previously-undocumented top-level directories (CHANGELOG-unreleased.d/, docs/, e2e/, server/{profiles,scripts}/, server/src/{lib,test,types}/, server/src/terminal/fixtures/, client/src/stores/, client/src/components/settings/) — closes the SessionStart drift warner without altering any code.

@@ -1,1 +1,0 @@
-Embedded terminal: transient 'Read only' banner flash during React.StrictMode dev double-mount no longer renders — 1500 ms grace window anchored on socket.ready rising edge; banner only arms if role stays reader past the window (ADR-084 AC-1).

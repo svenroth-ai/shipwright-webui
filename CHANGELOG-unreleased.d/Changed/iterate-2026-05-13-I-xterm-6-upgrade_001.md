@@ -1,1 +1,0 @@
-Embedded terminal: upgraded xterm.js stack 5.5.0 → 6.0.0 (client `@xterm/xterm` + addons; server `@xterm/headless` + `@xterm/addon-serialize`). DECSET 2026 / Synchronized Output is now honoured natively in the main buffer, eliminating cursor flicker around Claude TUI animated working-state labels without the alt-screen workaround (ADR-097).
