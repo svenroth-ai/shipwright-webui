@@ -93,6 +93,46 @@ shortcut.
 - Detailed internals + load-bearing DO-NOT guards in [`CLAUDE.md`](CLAUDE.md)
   and `agent_docs/decision_log.md`.
 
+## Triage tab
+
+The `/triage` route surfaces pre-backlog findings from
+`<project>/.shipwright/triage.jsonl` — items written by Phase-Quality,
+compliance, security/performance/F0.5/drift hooks (the producer pattern
+documented in
+[shipwright/docs/triage-inbox.md](https://github.com/svenroth-ai/shipwright/blob/main/docs/triage-inbox.md)).
+
+For each registered project, the page lists items with `status==triage`
+grouped by source (alphabetical), severity-rank-sorted within each
+group. Click an item → detail modal with three actions:
+
+- **Promote** — creates an `ExternalTask` carrying a
+  `promotedFromTriageId` back-ref + auto-merged tags
+  `["source:<x>", "severity:<sev>", "triage:<id>"]`, then flips the
+  triage item to `status==promoted`. Idempotent on retry: a 207
+  partial-promote (status flip failed) returns the new `taskId` so retry
+  reuses it — no orphan tasks.
+- **Dismiss** — appends `status==dismissed` with optional reason. The
+  finding will re-emerge under a NEW triage id if it re-fires.
+- **Snooze** — appends `status==snoozed` with optional reason. Hides the
+  item until the underlying issue re-fires (which produces a new triage
+  id). There is no timed wake-up in this iterate.
+
+Sidebar shows `Triage (N)` (orange badge, distinct from Inbox red)
+aggregated across all registered projects, polling every 30 s with
+exponential backoff on 5xx.
+
+**Cross-process lock note** (ADR-101): WebUI's status writes use
+`proper-lockfile` (directory-based); Python producers (`triage.py`,
+`triage_promote.py`) use `_FileLock` (msvcrt/fcntl byte-locks). The two
+primitives don't compose. Mitigation: append-mode small-write
+line-atomicity at OS level + last-status-wins resolution by file order.
+Real-world risk is bounded to manual `triage_promote.py` invocation
+concurrent with a webui Promote click on the same triage id.
+
+See
+[shipwright/docs/triage-inbox.md](https://github.com/svenroth-ai/shipwright/blob/main/docs/triage-inbox.md)
+for the cross-store contract + producer-side details.
+
 ## Contract with Shipwright plugins
 
 The WebUI reads but never writes:
@@ -103,6 +143,9 @@ The WebUI reads but never writes:
 The WebUI writes only:
 
 - `<project>/.webui/actions.json` — empty stub on demand; user-editable
+- `<project>/.shipwright/triage.jsonl` — appends `status` events from
+  Promote / Dismiss / Snooze actions (FR-01.30, ADR-101). Never writes
+  `append` events (those come from producer hooks).
 - `~/.shipwright-webui/*.json` — own registry
 
 Both artefacts carry a `contractVersion` / `schemaVersion` integer.

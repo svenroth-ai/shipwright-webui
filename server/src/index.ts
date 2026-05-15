@@ -49,6 +49,7 @@ import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
+import { createTriageRoutes } from "./routes/triage.js";
 import { PtyManager } from "./terminal/pty-manager.js";
 import {
   createTerminalRoutes,
@@ -544,6 +545,28 @@ if (isMainModule) {
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
+
+      // FR-01.30 / ADR-101 — Triage Tab routes. Mounts after /api/external
+      // so it inherits the same CORS/Origin gate. The promote route uses
+      // the same `proper-lockfile` pattern as sdk-sessions.json.
+      app.route(
+        "/",
+        createTriageRoutes({
+          store: sdkSessionsStore,
+          getAllProjects: () =>
+            projectManager
+              .getAll()
+              .filter((p) => !p.synthesized)
+              .map((p) => ({ id: p.id, path: p.path, synthesized: p.synthesized })),
+          getProjectById: (id) => {
+            const p = projectManager.getById(id);
+            if (!p || p.synthesized) return undefined;
+            return { id: p.id, path: p.path, synthesized: p.synthesized };
+          },
+          lock: lockPath,
+          sessionsLockPath: sdkSessionsPath,
+        }),
+      );
 
       // Iterate 4 (ADR-067) + Iterate 5 (ADR-068-A1) — embedded terminal
       // routes (REST + WS upgrade). scrollbackStore wires replay-on-attach

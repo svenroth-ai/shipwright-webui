@@ -22,7 +22,7 @@ function renderWithRouter(initialEntries = ['/']) {
   return render(
     <Wrapper>
       <MemoryRouter initialEntries={initialEntries}>
-        <SidebarNav inboxCount={0} />
+        <SidebarNav inboxCount={0} triageCount={0} />
       </MemoryRouter>
     </Wrapper>,
   );
@@ -69,7 +69,7 @@ describe('SidebarNav', () => {
     render(
       <Wrapper>
         <MemoryRouter>
-          <SidebarNav inboxCount={3} />
+          <SidebarNav inboxCount={3} triageCount={0} />
         </MemoryRouter>
       </Wrapper>,
     );
