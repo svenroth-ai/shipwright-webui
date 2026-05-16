@@ -20,31 +20,23 @@ const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
 
-// ADR-104 (iterate-20260515-terminal-smear-reset) — deterministic control
-// over xterm's async write parse. `term.write(data, cb)` DEFERS `cb` into
-// `writeCompletions` (mirrors xterm's "callback fires after parse") instead
-// of invoking it inline, so a test can observe the in-flight window.
-// `onWriteParsed` handlers are captured so a test can fire them mid-write
-// to simulate the chunked parse of a large replay snapshot.
-// `writeShouldThrow` drives the synchronous-throw robustness path (AC-3).
-const onWriteParsedHandlers: Array<() => void> = [];
+// ADR-108 (iterate-20260516-terminal-smear-interleave) — deterministic
+// control over xterm's async write parse. `term.write(data, cb)` DEFERS
+// `cb` into `writeCompletions` (mirrors xterm's "callback fires after
+// parse") instead of invoking it inline, so a test can observe the
+// replay-snapshot in-flight window during which the drain gate queues
+// live `data`. `writeShouldThrow` drives the synchronous-throw robustness
+// path (AC-3).
 const writeCompletions: Array<() => void> = [];
 let writeShouldThrow = false;
 function flushWriteCompletions(): void {
   const pending = writeCompletions.splice(0, writeCompletions.length);
   for (const cb of pending) cb();
 }
-function fireWriteParsed(times = 1): void {
-  for (let i = 0; i < times; i++) {
-    for (const h of [...onWriteParsedHandlers]) h();
-  }
-}
 
-// Iterate C (ADR-087): the v0.8.7 marker-count footer was retired; the
-// mock xterm buffer fields below are kept minimal — they only need to
-// satisfy the few tests that still touch `term.buffer` (none currently
-// — left here as a defensive no-op so future tests don't need to
-// re-mock from scratch).
+// The mock xterm buffer is a defensive no-op — the component no longer
+// reads `term.buffer` after the ADR-099 atlas machinery was removed
+// (ADR-108). Kept minimal so future tests don't re-mock from scratch.
 const mockBufferActive = {
   get length() {
     return 0;
@@ -52,8 +44,6 @@ const mockBufferActive = {
   getLine(_i: number) {
     return undefined;
   },
-  // Iterate K v4 (ADR-099) — alt-screen-skip check reads this.
-  // Default to "normal" so the workaround runs in tests.
   type: "normal" as const,
 };
 
@@ -86,21 +76,6 @@ vi.mock("@xterm/xterm", () => ({
       onDataHandlers.push(cb);
       return { dispose: vi.fn() };
     },
-    // Iterate K follow-up (ADR-099) — texture-atlas-clear workaround
-    // wires `term.onScroll` to call WebglAddon.clearTextureAtlas. Mock
-    // returns a disposable; tests don't assert against scroll behavior.
-    onScroll: vi.fn(() => ({ dispose: vi.fn() })),
-    // refresh(start, end) — Iterate K v2 calls this after each atlas
-    // clear so row-renderer repaints from the fresh atlas (mimicking
-    // VS Code's forceRefresh()). Mock is a no-op spy.
-    refresh: vi.fn(),
-    // onWriteParsed — Iterate K v3 conditional uses this as activity
-    // signal. ADR-104 — capture the handler so a test can fire it
-    // mid-write (simulating xterm's chunked parse of a big snapshot).
-    onWriteParsed(cb: () => void) {
-      onWriteParsedHandlers.push(cb);
-      return { dispose: vi.fn() };
-    },
     buffer: { active: mockBufferActive },
   })),
 }));
@@ -114,12 +89,9 @@ vi.mock("@xterm/addon-web-links", () => ({
 // returns a constructor that doesn't throw, so the try-branch lands; jsdom
 // has no real WebGL context but EmbeddedTerminal never asserts against it.
 vi.mock("@xterm/addon-webgl", () => ({
-  // Iterate K follow-up (ADR-099) — `clearTextureAtlas` is the
-  // documented workaround for xterm.js #5847 atlas-merge bug.
   WebglAddon: vi.fn().mockImplementation(() => ({
     activate: vi.fn(),
     dispose: vi.fn(),
-    clearTextureAtlas: vi.fn(),
   })),
 }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
@@ -222,7 +194,12 @@ function fakeClipboardEvent(dt: FakeDataTransfer): Event {
 }
 
 // --- Tests -----------------------------------------------------------------
-import { EmbeddedTerminal, type EmbeddedTerminalHandle } from "./EmbeddedTerminal";
+import {
+  EmbeddedTerminal,
+  type EmbeddedTerminalHandle,
+  REPLAY_DRAIN_TIMEOUT_MS,
+  REPLAY_DRAIN_MAX_BYTES,
+} from "./EmbeddedTerminal";
 
 describe("<EmbeddedTerminal>", () => {
   let realWS: typeof WebSocket;
@@ -246,7 +223,6 @@ describe("<EmbeddedTerminal>", () => {
     scrollToBottomSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
-    onWriteParsedHandlers.length = 0;
     writeCompletions.length = 0;
     writeShouldThrow = false;
 
@@ -569,72 +545,214 @@ describe("<EmbeddedTerminal>", () => {
     expect(scrollToBottomSpy).toHaveBeenCalled();
   });
 
-  it("ADR-104 (AC-2): onWriteParsed firings DURING an in-flight snapshot write do not trigger atlas maintenance; the completion callback triggers it exactly once", async () => {
-    render(<EmbeddedTerminal taskId="t1" active />);
-    await act(async () => {});
-    const ws = FakeWebSocket.instances[0];
-    await act(async () => {
-      ws.__message(
-        JSON.stringify({
-          type: "replay_snapshot",
-          data: "BIG-SNAPSHOT",
-          cols: 80,
-          rows: 24,
-          terminalVersion: "6.0.0",
-        }),
-      );
-    });
-    const webgl = (
-      window as unknown as {
-        __embeddedTerminalWebglAddon?: { clearTextureAtlas: ReturnType<typeof vi.fn> };
-      }
-    ).__embeddedTerminalWebglAddon;
-    expect(webgl).toBeTruthy();
-    // The write callback is deferred → the snapshot write is "in flight".
-    // xterm fires onWriteParsed once per parse batch of the ~100 KiB
-    // payload; the ADR-099-v10 burst-trigger would race clearTextureAtlas
-    // against the still-in-flight write. The in-flight guard suppresses it.
-    await act(async () => {
-      fireWriteParsed(5);
-    });
-    expect(webgl!.clearTextureAtlas).not.toHaveBeenCalled();
-    // Completion callback → exactly one maintenance pass.
-    await act(async () => {
-      flushWriteCompletions();
-    });
-    expect(webgl!.clearTextureAtlas).toHaveBeenCalledTimes(1);
-  });
+  // ADR-108 (iterate-20260516-terminal-smear-interleave) — replay drain
+  // gate. Bug B: while a `replay_snapshot` term.write parses ASYNCHRONOUSLY,
+  // live `data` envelopes wrote straight to xterm and interleaved with the
+  // in-flight snapshot parse, corrupting the buffer (left-column glyph-
+  // fragment smear). The gate QUEUES live `data` while a snapshot write is
+  // in flight and drains it — as one concatenated write — once the
+  // snapshot's completion callback (or the watchdog) settles the gate.
+  describe("replay drain gate (ADR-108)", () => {
+    const dispatchSnapshot = async (ws: FakeWebSocket, data: string) => {
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({
+            type: "replay_snapshot",
+            data,
+            cols: 80,
+            rows: 24,
+            terminalVersion: "6.0.0",
+          }),
+        );
+      });
+    };
+    const dispatchData = async (ws: FakeWebSocket, payload: string) => {
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "data", payload }));
+      });
+    };
+    const wrote = (d: string) => writeSpy.mock.calls.some((c) => c[0] === d);
 
-  it("ADR-104 (AC-3): a synchronous term.write throw clears the in-flight flag so atlas maintenance is not permanently suppressed", async () => {
-    render(<EmbeddedTerminal taskId="t1" active />);
-    await act(async () => {});
-    const ws = FakeWebSocket.instances[0];
-    const webgl = (
-      window as unknown as {
-        __embeddedTerminalWebglAddon?: { clearTextureAtlas: ReturnType<typeof vi.fn> };
+    it("AC-1: live `data` arriving while a snapshot write is in flight is queued, not written", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await dispatchSnapshot(ws, "SNAP");
+      // Snapshot write recorded; its completion callback is deferred →
+      // the gate is open.
+      expect(writeSpy).toHaveBeenCalledWith("SNAP", expect.any(Function));
+      await dispatchData(ws, "LIVE-1");
+      // The live chunk is queued — NOT written straight to xterm.
+      expect(wrote("LIVE-1")).toBe(false);
+    });
+
+    it("AC-2: queued chunks drain in arrival order as a single concatenated write after the snapshot completes", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await dispatchSnapshot(ws, "SNAP");
+      await dispatchData(ws, "AAA");
+      await dispatchData(ws, "BBB");
+      expect(wrote("AAA")).toBe(false);
+      expect(wrote("BBB")).toBe(false);
+      await act(async () => {
+        flushWriteCompletions();
+      });
+      // One concatenated write, in arrival order, AFTER the snapshot.
+      expect(wrote("AAABBB")).toBe(true);
+      const snapIdx = writeSpy.mock.calls.findIndex((c) => c[0] === "SNAP");
+      const drainIdx = writeSpy.mock.calls.findIndex((c) => c[0] === "AAABBB");
+      expect(snapIdx).toBeGreaterThanOrEqual(0);
+      expect(drainIdx).toBeGreaterThan(snapIdx);
+    });
+
+    it("AC-4: with no replay in flight, `data` envelopes write straight through", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await dispatchData(ws, "STRAIGHT");
+      expect(writeSpy).toHaveBeenCalledWith("STRAIGHT");
+    });
+
+    it("AC-3: a synchronous term.write throw releases the gate — subsequent `data` writes straight through", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      writeShouldThrow = true;
+      await dispatchSnapshot(ws, "WILL-THROW");
+      writeShouldThrow = false;
+      // The catch released the gate — a later live chunk writes straight
+      // through instead of being queued forever.
+      await dispatchData(ws, "AFTER-THROW");
+      expect(writeSpy).toHaveBeenCalledWith("AFTER-THROW");
+    });
+
+    it("AC-3: queued chunks are dropped on unmount; the deferred completion callback is a safe no-op", async () => {
+      const { unmount } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await dispatchSnapshot(ws, "SNAP");
+      await dispatchData(ws, "QUEUED-THEN-DISPOSED");
+      await act(async () => {
+        unmount();
+      });
+      // The completion callback fires after the component is gone — it
+      // must not throw and must not write the orphaned chunk.
+      expect(() => flushWriteCompletions()).not.toThrow();
+      expect(wrote("QUEUED-THEN-DISPOSED")).toBe(false);
+    });
+
+    it("AC-3: the watchdog drains the queue as a single concatenated write when the completion callback never fires", async () => {
+      vi.useFakeTimers();
+      try {
+        render(<EmbeddedTerminal taskId="t1" active />);
+        await act(async () => {});
+        const ws = FakeWebSocket.instances[0];
+        await dispatchSnapshot(ws, "SNAP");
+        await dispatchData(ws, "WATCH-A");
+        await dispatchData(ws, "WATCH-B");
+        expect(wrote("WATCH-A")).toBe(false);
+        expect(wrote("WATCH-B")).toBe(false);
+        // Completion callback is never flushed — only the watchdog can
+        // release the gate.
+        await act(async () => {
+          vi.advanceTimersByTime(REPLAY_DRAIN_TIMEOUT_MS);
+        });
+        // Drained as ONE concatenated write, in arrival order, after the
+        // snapshot — the watchdog path must not write chunk-by-chunk.
+        expect(wrote("WATCH-AWATCH-B")).toBe(true);
+        const snapIdx = writeSpy.mock.calls.findIndex((c) => c[0] === "SNAP");
+        const drainIdx = writeSpy.mock.calls.findIndex(
+          (c) => c[0] === "WATCH-AWATCH-B",
+        );
+        expect(drainIdx).toBeGreaterThan(snapIdx);
+        // Gate released — a later chunk writes straight through.
+        await dispatchData(ws, "POST-WATCHDOG");
+        expect(writeSpy).toHaveBeenCalledWith("POST-WATCHDOG");
+      } finally {
+        vi.useRealTimers();
       }
-    ).__embeddedTerminalWebglAddon;
-    expect(webgl).toBeTruthy();
-    // term.write throws synchronously during the snapshot write.
-    writeShouldThrow = true;
-    await act(async () => {
-      ws.__message(
-        JSON.stringify({
-          type: "replay_snapshot",
-          data: "WILL-THROW",
-          cols: 80,
-          rows: 24,
-          terminalVersion: "6.0.0",
-        }),
+    });
+
+    it("AC-5: once the watchdog has settled the gate, a late completion callback is a no-op (no double drain)", async () => {
+      vi.useFakeTimers();
+      try {
+        render(<EmbeddedTerminal taskId="t1" active />);
+        await act(async () => {});
+        const ws = FakeWebSocket.instances[0];
+        await dispatchSnapshot(ws, "SNAP");
+        await dispatchData(ws, "ONCE");
+        await act(async () => {
+          vi.advanceTimersByTime(REPLAY_DRAIN_TIMEOUT_MS);
+        });
+        expect(
+          writeSpy.mock.calls.filter((c) => c[0] === "ONCE").length,
+        ).toBe(1);
+        // The real completion callback fires LATE — its generation is
+        // stale, so it must not drain "ONCE" a second time.
+        await act(async () => {
+          flushWriteCompletions();
+        });
+        expect(
+          writeSpy.mock.calls.filter((c) => c[0] === "ONCE").length,
+        ).toBe(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("AC-5: a new replay_snapshot supersedes live data queued for the prior snapshot window", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await dispatchSnapshot(ws, "SNAP-1");
+      await dispatchData(ws, "STALE");
+      // Second snapshot arrives while SNAP-1's completion is still
+      // deferred — it re-arms the gate and supersedes "STALE".
+      await dispatchSnapshot(ws, "SNAP-2");
+      await dispatchData(ws, "FRESH");
+      await act(async () => {
+        flushWriteCompletions();
+      });
+      // SNAP-1's stale callback is a no-op; SNAP-2's callback drains only
+      // the post-SNAP-2 chunk. "STALE" is dropped, never written.
+      expect(wrote("STALE")).toBe(false);
+      expect(wrote("FRESH")).toBe(true);
+    });
+
+    it("AC-3: queue byte-cap drops the OLDEST chunks; newest live data survives", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await dispatchSnapshot(ws, "SNAP");
+      // Two fillers, each just over half the cap → together they exceed
+      // it, forcing the ring-buffer trim.
+      const fillerSize = Math.ceil(REPLAY_DRAIN_MAX_BYTES / 2) + 1024;
+      const big1 = "B1" + "x".repeat(fillerSize);
+      const big2 = "B2" + "y".repeat(fillerSize);
+      await dispatchData(ws, "OLDEST-MARKER");
+      await dispatchData(ws, big1);
+      await dispatchData(ws, big2); // total > cap → oldest dropped
+      await dispatchData(ws, "NEWEST-MARKER");
+      // Gate stayed CLOSED throughout the overflow trim — the ONLY write
+      // so far is the snapshot itself; no chunk was force-drained.
+      expect(writeSpy.mock.calls.every((c) => c[0] === "SNAP")).toBe(true);
+      expect(wrote("OLDEST-MARKER")).toBe(false);
+      await act(async () => {
+        flushWriteCompletions();
+      });
+      const drainCall = writeSpy.mock.calls.find(
+        (c) => typeof c[0] === "string" && c[0].includes("NEWEST-MARKER"),
       );
+      expect(drainCall).toBeDefined();
+      const drained = drainCall![0];
+      // Oldest chunks (the marker + big1) were trimmed; big2 + the newest
+      // marker survive, in order.
+      expect(drained.includes("OLDEST-MARKER")).toBe(false);
+      expect(drained.includes("B1")).toBe(false);
+      expect(drained.startsWith("B2")).toBe(true);
+      expect(drained.endsWith("NEWEST-MARKER")).toBe(true);
     });
-    // The throw is caught; without the AC-3 fix the in-flight flag would
-    // be stuck `true` and every later onWriteParsed would early-return.
-    writeShouldThrow = false;
-    await act(async () => {
-      fireWriteParsed(1);
-    });
-    expect(webgl!.clearTextureAtlas).toHaveBeenCalled();
   });
 
   it("ADR-087: stale legacy chunked-replay envelopes are silently ignored", async () => {
