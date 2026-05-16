@@ -10,7 +10,7 @@ Code workflow they already love.
 
 1. [What is the Command Center?](#1-what-is-the-command-center)
 2. [How Launch works — the architecture in plain English](#2-how-launch-works--the-architecture-in-plain-english)
-3. [Recommended setup — Warp + Command Center](#3-recommended-setup--warp--command-center)
+3. [Recommended setup](#3-recommended-setup)
 4. [Installation](#4-installation)
 5. [Your first project — step by step](#5-your-first-project--step-by-step)
 6. [Daily workflow](#6-daily-workflow)
@@ -43,6 +43,9 @@ you one place to see every Shipwright project at a glance:
 - **Inbox** — every "Claude is asking permission for..." pinned in one
   list, regardless of which project. No more missed prompts in
   background terminals.
+- **Triage** — pre-backlog findings from Shipwright's quality, security,
+  and compliance hooks, collected per project. Promote the ones worth
+  acting on into tasks; dismiss or snooze the rest (see [§6.8](#68-the-triage-tab)).
 - **Diagnostics** — Claude CLI version, session count, watcher health,
   all on one page.
 - **Custom actions** — you can wire your own slash skills (e.g. a
@@ -100,18 +103,26 @@ the task's embedded terminal and opens the page.
 
 ---
 
-## 3. Recommended setup — Warp + Command Center
+## 3. Recommended setup
 
-Two extra windows next to your usual editor:
+For the everyday flow you need **one** extra window next to your usual
+editor — the Command Center browser tab:
 
 | Window | What it does |
 |---|---|
-| **[Warp](https://www.warp.dev/) terminal** | Where you actually run Claude after pasting the Command Center's command. Warp is recommended because it gives you a **session tree** (every Claude run as a separate, named tab), a **folder tree** of the current directory, and a side **preview** pane. You can run three projects in parallel and never lose where you are. |
-| **Command Center** (browser tab on `localhost:5173`) | Your status board. See what's done, what's running, what's waiting on you. Open task detail pages to read the live transcript. |
+| **Command Center** (browser tab on `localhost:5173`) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work — all without leaving the browser. |
 
-Any modern terminal works (Windows Terminal, iTerm2, Hyper, …) — Warp
-just makes the multi-project flow smoother. If you don't already use
-Warp, try it once: install from <https://www.warp.dev/>.
+Because the Command Center has its own embedded terminal, you do **not**
+need a separate terminal app for the normal Launch → watch → done loop.
+
+**Prefer your own terminal?** Every task detail page also exposes the
+launch command for copy-paste, so you can run Claude in
+[Warp](https://www.warp.dev/), Windows Terminal, iTerm2, or the VS Code
+integrated terminal instead. Warp in particular gives you a session
+tree, a folder tree, and a side preview pane that some people like for
+juggling several projects. The Command Center watches the JSONL
+transcript exactly the same way no matter where Claude actually runs —
+so this is purely a matter of taste.
 
 ---
 
@@ -359,6 +370,37 @@ schema v2 (i.e. an older Shipwright run), the Pipelines lane stays
 hidden and the Kanban behaves exactly like before — no functional
 change for non-pipeline workflows.
 
+### 6.8 The Triage tab
+
+Not everything worth your attention is a task you filed. Several
+Shipwright hooks — Phase-Quality, compliance, security, performance,
+drift detection — surface *findings*: things worth a look before they
+turn into real work. Instead of cluttering the Kanban backlog, they
+land in a per-project file (`<project>/.shipwright/triage.jsonl`) and
+the Command Center collects them on the **Triage** tab in the left
+sidebar.
+
+The sidebar carries a `Triage (N)` badge — orange, to set it apart from
+the red Inbox badge — counting open findings across every registered
+project. Open the tab and they're grouped by which hook produced them,
+severity-sorted within each group.
+
+Click a finding for a detail view with three actions:
+
+- **Promote** — turns the finding into a real task in the Kanban
+  Backlog, tagged with its source and severity and back-linked to the
+  triage item. Use this once you've decided to act on it. Promote is
+  safe to retry — a half-finished promote reuses the same task instead
+  of creating a duplicate.
+- **Dismiss** — drops the finding. If the underlying issue is still
+  there next time the hook runs, it re-appears as a fresh triage item.
+- **Snooze** — hides the finding for now. Same re-surfacing behaviour as
+  Dismiss; there's no timed wake-up, snooze just means "not now".
+
+A project with no `.shipwright/triage.jsonl` simply contributes nothing
+to the tab — nothing to set up, and nothing breaks if the file never
+appears.
+
 ---
 
 ## 7. Updating the Command Center
@@ -445,6 +487,7 @@ folder, or wire your own slash skills into the menu.
 | `WEBUI_TRUSTED_ORIGINS` | _(unset)_ | Comma-separated allowlist of `Origin` values the WS upgrade + HTTP CORS middleware accept. When unset, the policy follows `HONO_HOST`: loopback-only by default, "any non-empty Origin" when `HONO_HOST` is set. Use this to opt into multi-device access (e.g. `http://webui-host.tailnet.ts.net:5173`) while keeping the gate narrow. Boot log prints the resolved policy. |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
+| `SHIPWRIGHT_CLAUDE_BIN` | _(unset → auto-detect)_ | Absolute path to your `claude` executable. The Command Center normally finds it via `PATH` plus a list of known install locations; set this only when auto-detection fails — i.e. `/api/diagnostics` reports "Claude Code CLI not found" even though `claude --version` works in your shell. A path that doesn't exist is rejected loudly rather than silently ignored. |
 
 Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`.
