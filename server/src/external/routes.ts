@@ -528,6 +528,17 @@ export function createExternalRoutes(args: {
   app.post("/api/external/tasks/:id/launch", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const resume = Boolean(body.resume);
+    // resume-cta-rework (2026-05-16) — `dryRun` builds the command
+    // strings and returns them WITHOUT the `awaiting_external_start`
+    // state mutation or the persist. "Copy Resume command" (the
+    // ⋯-menu escape hatch) needs the resume command string but must
+    // not flip the task's state. A dryRun skips ONLY the `done`
+    // launch-guard (copying a command off a closed task is harmless,
+    // read-only, no race). It deliberately does NOT bypass the
+    // `claimToken` guard: a leadwright-claimed task is owned by the
+    // daemon, and a copied command the user then runs would race it
+    // for the session lock — exactly what that guard exists to stop.
+    const dryRun = Boolean(body.dryRun);
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
 
@@ -546,7 +557,7 @@ export function createExternalRoutes(args: {
     // clipboard hiccup). `done` is terminal — closing a task is an
     // explicit user action and a re-launch after close is almost always
     // unintended.
-    if (task.state === "done") {
+    if (task.state === "done" && !dryRun) {
       return c.json(
         { error: "launch_invalid_state", state: task.state },
         409,
@@ -954,6 +965,10 @@ export function createExternalRoutes(args: {
         pluginDirs: task.pluginDirs,
         title: task.title,
       });
+    }
+    if (dryRun) {
+      // Pure command-string build — no state mutation, no persist.
+      return c.json({ task: withLiveSession(task), commands });
     }
     const updated = store.patch(task.taskId, taskUpdate);
     await store.persist();
