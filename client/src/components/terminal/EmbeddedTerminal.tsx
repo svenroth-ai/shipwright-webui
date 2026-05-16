@@ -38,7 +38,10 @@ import {
   useTerminalSocket,
   type TerminalRole,
 } from "../../hooks/useTerminalSocket";
-import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
+import {
+  useLaunchCoordinator,
+  type CopyCommandForms,
+} from "../../contexts/LaunchCoordinatorContext";
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
 
 export interface EmbeddedTerminalHandle {
@@ -244,6 +247,16 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastPtyDataAtRef = useRef(0);
     const dataSeenInitiallyRef = useRef(false);
     const injectionInFlightRef = useRef(false);
+    // resume-cta-rework (2026-05-16) — one-shot auto-inject guard.
+    // Flips to `true` once a launch command has been auto-sent into the
+    // CURRENT pty's lifetime. A subsequent Launch/Resume click must NOT
+    // auto-send: the pty may now be running Claude, and a stray
+    // `claude --resume …` typed into a live Claude session is the bug
+    // the user reported ("had to laboriously delete it"). The second
+    // click instead surfaces an explicit "Send to terminal" confirm
+    // (`manualSendPending`). Reset on a fresh pty — (re-)mount, taskId
+    // change, WS `terminalReset`.
+    const launchInjectedThisPtyLifetimeRef = useRef(false);
     // ADR-108 (iterate-20260516-terminal-smear-interleave) — replay drain
     // gate. `replaySnapshotInFlightRef` is true while a `replay_snapshot`
     // `term.write` is still parsing asynchronously; during that window the
@@ -326,6 +339,10 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       lastPtyDataAtRef.current = 0;
       dataSeenInitiallyRef.current = false;
       injectionInFlightRef.current = false;
+      // resume-cta-rework — a different task is a different pty: the
+      // one-shot inject guard re-arms and any parked manual-send drops.
+      launchInjectedThisPtyLifetimeRef.current = false;
+      setManualSendPending(null);
       // ADR-108 — a new task starts with a fully reset replay drain gate.
       resetReplayGate();
       // ADR-104 — a different task gets a fresh reset-banner evaluation.
@@ -468,6 +485,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // ADR-104 — the reset banner is dismissable; the flag resets on
     // taskId change (see the [taskId] effect above).
     const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
+    // resume-cta-rework (2026-05-16) — when a Launch/Resume click lands
+    // on a pty that already had a launch injected (the one-shot guard
+    // fired), the three-shell-form commands are parked here and
+    // surfaced as an explicit "Send to terminal" confirm banner — never
+    // auto-sent. The resume-vs-fresh distinction is already baked into
+    // each command string by the launcher, so only `commands` is kept.
+    const [manualSendPending, setManualSendPending] = useState<
+      { commands: CopyCommandForms } | null
+    >(null);
     const prevReadyRef = useRef(false);
     useEffect(() => {
       if (socket.ready && !prevReadyRef.current) {
@@ -595,6 +621,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // Cancelled / expired clientside while we waited.
       if (pending.expiresAt <= Date.now()) return;
 
+      // resume-cta-rework (2026-05-16) — one-shot guard. webui already
+      // AUTO-INJECTED a launch into THIS pty's lifetime, so that launch
+      // is plausibly still running Claude. Auto-sending again would
+      // type `claude --resume …` straight into it. Park the command
+      // behind an explicit "Send to terminal" confirm (AC-2
+      // confirm-on-reuse) and release the coordinator token so the CTA
+      // re-enables. Scope note: this guards the webui-auto-inject path
+      // only — a Claude the user started by hand-typing into the pane
+      // is not detected (see the iterate spec's Out of Scope).
+      if (launchInjectedThisPtyLifetimeRef.current) {
+        consumedTokensRef.current.add(pending.launchToken);
+        setManualSendPending({ commands: pending.commands });
+        coord.consumeLaunch(pending.launchToken);
+        return;
+      }
+
       let cancelled = false;
       injectionInFlightRef.current = true;
 
@@ -655,6 +697,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
 
         consumedTokensRef.current.add(pending.launchToken);
         socket.send({ type: "data", payload: cmd + "\r" });
+        // resume-cta-rework — the pty has now had a launch injected;
+        // any further launch this lifetime routes through manual confirm.
+        launchInjectedThisPtyLifetimeRef.current = true;
         coord.consumeLaunch(pending.launchToken);
       })().finally(() => {
         injectionInFlightRef.current = false;
@@ -664,6 +709,49 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         cancelled = true;
       };
     }, [coord, socket.ready, socket.role, socket.shellKind, coord.pendingLaunch]);
+
+    // resume-cta-rework (2026-05-16) — explicit confirm for a launch
+    // into a pty that already had one injected (the one-shot guard
+    // parked the command in `manualSendPending`). Sends the
+    // shell-appropriate bytes immediately: the user clicking this IS
+    // the confirmation that the terminal is at a usable prompt, so
+    // there is no prompt-readiness handshake — the pty is mid-session,
+    // not freshly spawned.
+    const handleManualSend = useCallback(() => {
+      const pending = manualSendPending;
+      if (!pending) return;
+      if (!socket.ready || socket.role !== "writer" || !socket.shellKind) {
+        return;
+      }
+      const cmd =
+        socket.shellKind === "pwsh"
+          ? pending.commands.powershell
+          : socket.shellKind === "cmd"
+            ? pending.commands.cmd
+            : pending.commands.posix;
+      socket.send({ type: "data", payload: cmd + "\r" });
+      setManualSendPending(null);
+      // Narrow deps: `socket` is a fresh object each render, so
+      // depending on it whole would defeat the memo. `socket.send` is
+      // stable (useCallback in useTerminalSocket); the rest are values.
+    }, [
+      manualSendPending,
+      socket.ready,
+      socket.role,
+      socket.shellKind,
+      socket.send,
+    ]);
+
+    // resume-cta-rework — a WS `terminalReset` means a FRESH pty
+    // replaced a lost session. Re-arm the one-shot guard so the first
+    // launch into the new pty auto-injects again, and drop any parked
+    // manual-send (it referenced the dead pty).
+    useEffect(() => {
+      if (socket.terminalReset === true) {
+        launchInjectedThisPtyLifetimeRef.current = false;
+        setManualSendPending(null);
+      }
+    }, [socket.terminalReset]);
 
     // Mount xterm + addons exactly once per component lifetime.
     useEffect(() => {
@@ -828,6 +916,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // this mount-effect (the cleanup function flipped it to true on the
       // previous unmount; React preserves useRef across mounts).
       disposedRef.current = false;
+      // resume-cta-rework — a freshly mounted component owns a fresh
+      // pty; re-arm the one-shot auto-inject guard.
+      launchInjectedThisPtyLifetimeRef.current = false;
       // ADR-108 — defensively reset the replay drain gate on (re-)mount.
       // The completion callback, watchdog and synchronous-throw catch
       // release it on every reachable path; this guards the theoretical
@@ -1076,6 +1167,18 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             : coord.pendingLaunch.commands.posix
         : null;
 
+    // resume-cta-rework (2026-05-16) — the parked command for the
+    // explicit "Send to terminal" confirm banner (one-shot guard). Null
+    // until a second launch lands on an already-used pty.
+    const manualSendCommand =
+      manualSendPending && socket.shellKind
+        ? socket.shellKind === "pwsh"
+          ? manualSendPending.commands.powershell
+          : socket.shellKind === "cmd"
+            ? manualSendPending.commands.cmd
+            : manualSendPending.commands.posix
+        : null;
+
     // ADR-104 (iterate-20260515-terminal-smear-reset) — reset banner.
     // Surfaced when the WS attach freshly re-created the pty after a
     // prior Claude session was lost (server restart / crash — see
@@ -1162,6 +1265,47 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           >
             <span className="opacity-70" aria-hidden>About to run:</span>{" "}
             <span className="break-all">{previewCommand}</span>
+          </div>
+        ) : null}
+        {manualSendCommand ? (
+          // resume-cta-rework (2026-05-16) — confirm-on-reuse banner.
+          // The one-shot guard fired: this pty already had a launch
+          // injected, so auto-run is suppressed. The command sits here
+          // behind an explicit "Send to terminal" button so it can
+          // never land inside a running Claude session.
+          <div
+            className="-mx-2 -mt-2 mb-2 flex flex-col gap-1 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1.5 text-[11px] text-[var(--color-warning,#9a3412)]"
+            data-testid="embedded-terminal-manual-send"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span>
+                This terminal already has a session — auto-run is
+                disabled so the command can't land inside a running
+                Claude. Send it only when the shell is back at a prompt.
+              </span>
+              <button
+                type="button"
+                onClick={() => setManualSendPending(null)}
+                className="shrink-0 rounded px-1 leading-none hover:bg-black/5"
+                data-testid="embedded-terminal-manual-send-dismiss"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 break-all font-mono opacity-80">
+                {manualSendCommand}
+              </span>
+              <button
+                type="button"
+                onClick={handleManualSend}
+                className="shrink-0 rounded bg-[var(--color-warning,#9a3412)] px-2 py-0.5 font-semibold text-white transition hover:opacity-90"
+                data-testid="embedded-terminal-manual-send-button"
+              >
+                Send to terminal
+              </button>
+            </div>
           </div>
         ) : null}
         <div
