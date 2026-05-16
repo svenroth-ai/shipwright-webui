@@ -110,6 +110,7 @@ Two hard rules, survivors of every review round:
         sidebar/                # Sidebar navigation
         wizard/                 # Project Wizard (4-step modal)
         settings/               # ActionsConfigCard.tsx — Settings-page actions config UI
+        triage/                 # Triage Tab (ADR-101): TriageItemCard / TriageDetailModal / PromoteModal / TriageBadgeUI. Read-only view of .shipwright/triage.jsonl; promote → ExternalTask, dismiss/snooze → status events. All fields rendered as plain text (XSS-safe, ADR-100 mirror).
       external/
         session-parser.ts       # Client-side parser (typed events for rendering)
       hooks/                    # TanStack Query + polling hooks; useTerminalSocket (ADR-067 — WS bridge for EmbeddedTerminal, ws/wss inferred, ready handshake, reconnect backoff). Iterate C (ADR-087): single `replay_snapshot` envelope (cell-state); the legacy chunked envelopes (replay_start/replay_chunk/replay_separator/replay_end) are RETIRED — incoming stale-server frames are silently dropped.
