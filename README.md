@@ -1,15 +1,22 @@
 # Shipwright Command Center
 
-Local web app that observes multiple Claude Code sessions in parallel.
-Works alongside the [Shipwright SDLC plugins](https://github.com/svenroth-ai/shipwright)
-but runs as a standalone tool — you launch Claude in your own terminal
-(or VS Code) and the Command Center watches the JSONL transcript at
+Local web app that observes and orchestrates multiple Claude Code
+sessions in parallel. Works alongside the [Shipwright SDLC
+plugins](https://github.com/svenroth-ai/shipwright) but runs as a
+standalone tool: you click **Launch** on a task and the pre-bound
+`claude --session-id <uuid> …` command auto-runs in an **embedded
+terminal pane** (xterm.js + a real shell, right on the task page). The
+Command Center watches the resulting JSONL transcript at
 `~/.claude/projects/<cwd>/<uuid>.jsonl` to render a live kanban board,
-chat transcript, inbox, and diagnostics for every registered project.
+chat transcript, inbox, triage, and diagnostics for every registered
+project. Prefer your own terminal (or VS Code)? Copy the same command
+and run it there — the observer behaves identically either way.
 
-**Architectural rule of record** (ADR-034): this app spawns **no** Claude
-process. The user's terminal is the source of truth; the Command Center
-is a read-only observer.
+**Architectural rule of record** (ADR-034 + ADR-068-A1): the web server
+spawns **no** Claude process. The embedded terminal hosts only a
+whitelisted shell; your click on Launch authorizes that shell, and the
+Claude command runs inside it. The Command Center stays a read-only
+observer of the JSONL transcript.
 
 Extracted from the Shipwright monorepo on 2026-04-24. Full pre-split
 history is preserved; see the `genesis-from-shipwright-v0.3.2` tag.
@@ -83,6 +90,10 @@ shortcut.
 ## Architecture
 
 - Hono (Node 20+) + React 19 (Vite 6) + TailwindCSS 4 + Radix UI.
+- Embedded terminal pane per task — xterm.js in the browser, node-pty
+  on the server, restricted to a shell-binary whitelist (never `claude`
+  directly). Launch auto-runs the command via a client-side WebSocket
+  data-frame; the server never spawns Claude (ADR-067 + ADR-068-A1).
 - No chat composer, no SSE transcript, no chokidar. 1 s client polling
   with byte-range reads; the server is stateless on transcript requests.
 - Multi-project task metadata persisted at
