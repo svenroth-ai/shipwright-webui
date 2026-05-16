@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.11.1] - 2026-05-16
+
+### Fixed
+
+- Embedded terminal: eliminated the left-column glyph smear when scrolling a Claude Code session — xterm.js convertEol was forcing a carriage-return on every bare line-feed, collapsing kept-column content to column 0 (Bug B)
+- Embedded terminal: eliminated the left-column glyph-fragment smear on reattach — live PTY output is now queued behind an in-flight replay-snapshot write (replay drain gate) instead of interleaving with it. The ADR-099 WebGL atlas-maintenance workaround is removed (ADR-108).
+
 ## [v0.11.0] - 2026-05-15
 
 ### Added

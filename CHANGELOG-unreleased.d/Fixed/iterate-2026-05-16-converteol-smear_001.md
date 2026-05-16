@@ -1,1 +1,0 @@
-Embedded terminal: eliminated the left-column glyph smear when scrolling a Claude Code session — xterm.js convertEol was forcing a carriage-return on every bare line-feed, collapsing kept-column content to column 0 (Bug B)
