@@ -1,0 +1,1 @@
+Embedded terminal: a Launch/Resume click can no longer be auto-typed into a Claude session already running in the pane — a second launch into a live terminal now asks for an explicit Send to terminal confirmation
