@@ -91,10 +91,6 @@ import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
-// ADR-102 — shared Resume-CTA activity gate. Single source of truth for
-// both TaskCard and TaskDetailHeader; a standalone module so neither
-// surface cross-imports the other (Iterate M review finding M-2).
-import { isClaudeRecentlyActive } from "./resumeCtaGate";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -369,26 +365,24 @@ export function TaskCard({ task }: Props) {
                   `awaiting_external_start` / `active`; the card body
                   click opens the task detail page.
 
-                  ADR-102 — Resume shows for `(idle | active)` unless
-                  `resumeCtaGate.isClaudeRecentlyActive` reports Claude
-                  is plausibly mid-work. That helper gates primarily on
-                  `lastJsonlSeenMtimeMs` (the JSONL mtime, observable
-                  however Claude was launched); the falsified Iterate-L
-                  `altScreenActive` and Iterate-M `lastPtyDataAt` signals
-                  are folded in as supplementary OR-signals. Single
+                  resume-cta-rework (2026-05-16) — Resume shows for every
+                  `(idle | active)` task, unconditionally. The former
+                  activity gate (`isClaudeRecentlyActive`) is removed:
+                  webui cannot observe Claude process-liveness, and
+                  clicking Resume on a live session is harmless (`claude
+                  --resume` errors "Session ID already in use"). Single
                   "Resume" label (memory feedback_resume_label_singular). */}
-              {(task.state === "idle" || task.state === "active") &&
-                !isClaudeRecentlyActive(task) && (
-                  <span data-testid={`task-card-resume-${task.taskId}`}>
-                    <TerminalLaunchButton
-                      task={task}
-                      variant="solid"
-                      color="orange"
-                      size="xs"
-                      resume={true}
-                    />
-                  </span>
-                )}
+              {(task.state === "idle" || task.state === "active") && (
+                <span data-testid={`task-card-resume-${task.taskId}`}>
+                  <TerminalLaunchButton
+                    task={task}
+                    variant="solid"
+                    color="orange"
+                    size="xs"
+                    resume={true}
+                  />
+                </span>
+              )}
             </div>
           )}
         </div>
