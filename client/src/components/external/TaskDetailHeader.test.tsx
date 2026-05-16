@@ -160,46 +160,36 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
-  // Iterate L — `altScreenActive` matrix. This is the replacement
-  // signal: it's true iff a TUI is in pty foreground (Claude alt-
-  // screen, vim, htop, …). When a TUI is foregrounded, the user
-  // types into it directly; surfacing Resume would be misleading.
-  it("active + altScreenActive=true → NO CTA (TUI in foreground)", () => {
+  // resume-cta-rework (2026-05-16) — the activity gate is REMOVED.
+  // Resume shows for every (idle | active) task regardless of
+  // altScreenActive / lastPtyDataAt / lastJsonlSeenMtimeMs. All four
+  // prior gate signals were empirically falsified; webui cannot
+  // observe Claude process-liveness. This block is the regression
+  // fence proving the gate did not creep back.
+  it("active + altScreenActive=true → 'Resume' CTA (gate removed)", () => {
     renderHeader(makeTask({ state: "active", altScreenActive: true }));
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
-  it("idle + altScreenActive=true → NO CTA (TUI in foreground)", () => {
+  it("idle + altScreenActive=true → 'Resume' CTA (gate removed)", () => {
     renderHeader(makeTask({ state: "idle", altScreenActive: true }));
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
-  });
-
-  it("active + altScreenActive=false → 'Resume' CTA (shell prompt, TUI gone)", () => {
-    renderHeader(makeTask({ state: "active", altScreenActive: false }));
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
   });
 
-  it("altScreenActive toggle alone flips Resume CTA (consumption proof)", () => {
-    // Regression fence proving the component reads `altScreenActive`
-    // rather than ignoring it. Flip the field only — state stays the
-    // same — and the CTA must flip visibility.
-    const { rerender, qc } = renderHeader(
-      makeTask({ state: "active", altScreenActive: false }),
+  it("active + every former gate-signal 'recently active' → 'Resume' still shows", () => {
+    // The exact configuration the old isClaudeRecentlyActive gate hid
+    // Resume for: fresh JSONL mtime + alt-screen + recent pty data.
+    // Post-rework the CTA MUST show — clicking Resume on a live
+    // session is harmless ("Session ID already in use").
+    renderHeader(
+      makeTask({
+        state: "active",
+        altScreenActive: true,
+        lastPtyDataAt: Date.now() - 1_000,
+        lastJsonlSeenMtimeMs: Date.now() - 1_000,
+      }),
     );
     expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
-
-    const tui = makeTask({ state: "active", altScreenActive: true });
-    qc.setQueryData(["external-task", tui.taskId], tui);
-    rerender(
-      <MemoryRouter>
-        <QueryClientProvider client={qc}>
-          <TaskDetailHeader task={tui} />
-        </QueryClientProvider>
-      </MemoryRouter>,
-    );
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
 
   it("done → NO CTA", () => {
@@ -213,84 +203,7 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
     expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
     expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
   });
-
-  // ADR-102 (iterate-20260515-resume-cta-jsonl-signal) — the Resume gate
-  // moved off `lastPtyDataAt` (a webui-embedded-pty signal that is null
-  // whenever Claude runs in the user's own terminal — the Plan-D''
-  // default) onto `lastJsonlSeenMtimeMs`, via the shared
-  // resumeCtaGate.isClaudeRecentlyActive helper. `altScreenActive` and
-  // `lastPtyDataAt` remain as supplementary OR-signals.
-
-  const freshJsonl = () => Date.now() - 5_000;
-  const staleJsonl = () => Date.now() - 120_000;
-  const recentPty = () => Date.now() - 5_000;
-  const stalePty = () => Date.now() - 20_000;
-
-  it("active + fresh JSONL + liveSession:false + lastPtyDataAt:null → NO CTA (Claude in own terminal — the exact Iterate M miss)", () => {
-    renderHeader(
-      makeTask({
-        state: "active",
-        altScreenActive: false,
-        liveSession: false,
-        lastPtyDataAt: null,
-        lastJsonlSeenMtimeMs: freshJsonl(),
-      }),
-    );
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-  });
-
-  it("active + stale JSONL + no other signal → Resume CTA (Claude idle / exited)", () => {
-    renderHeader(
-      makeTask({
-        state: "active",
-        altScreenActive: false,
-        liveSession: false,
-        lastPtyDataAt: null,
-        lastJsonlSeenMtimeMs: staleJsonl(),
-      }),
-    );
-    expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
-  });
-
-  it("idle + fresh JSONL → NO CTA (same gate as active)", () => {
-    renderHeader(
-      makeTask({
-        state: "idle",
-        lastPtyDataAt: null,
-        lastJsonlSeenMtimeMs: freshJsonl(),
-      }),
-    );
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-  });
-
-  it("active + stale JSONL but recent lastPtyDataAt → NO CTA (embedded-pty OR-signal kept)", () => {
-    renderHeader(
-      makeTask({
-        state: "active",
-        altScreenActive: false,
-        lastJsonlSeenMtimeMs: staleJsonl(),
-        lastPtyDataAt: recentPty(),
-      }),
-    );
-    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
-  });
-
-  it("active + every signal stale → Resume CTA", () => {
-    renderHeader(
-      makeTask({
-        state: "active",
-        altScreenActive: false,
-        lastJsonlSeenMtimeMs: staleJsonl(),
-        lastPtyDataAt: stalePty(),
-      }),
-    );
-    expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
-  });
 });
-
-// The activity-gate helper itself (isClaudeRecentlyActive) is unit-tested
-// directly in resumeCtaGate.test.ts; here we only assert the header's
-// CTA wiring consumes it.
 
 describe("TaskDetailHeader — behavior", () => {
   it("Launch CTA posts /launch with resume=false + dispatches into LaunchCoordinator (ADR-068-A1)", async () => {
@@ -582,5 +495,133 @@ describe("TaskDetailHeader — Close task redirects to board", () => {
     });
     expect(screen.queryByTestId("task-board-stub")).toBeNull();
     expect(screen.getByTestId("task-detail-header")).toBeInTheDocument();
+  });
+});
+
+// ── resume-cta-rework (2026-05-16) — ⋯-menu copy actions ──
+//
+// AC-3 "Copy Resume command" + AC-4 "Copy session UUID". Both copy via
+// lib/clipboard.copyText AFTER the menu closes (no focus-trap), and
+// surface success/failure through the `task-detail-menu-notice` span —
+// the prior silent `catch {}` is gone.
+describe("TaskDetailHeader — ⋯-menu copy actions", () => {
+  function stubClipboard(writeText: () => Promise<void>) {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+      writable: true,
+    });
+  }
+
+  it("AC-4: Copy session UUID writes the UUID to the clipboard + shows a success notice", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(async () => {});
+    stubClipboard(writeText);
+    const task = makeTask({ state: "active" });
+    renderHeader(task);
+
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu-copy-uuid"));
+    await user.click(screen.getByTestId("task-detail-menu-copy-uuid"));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(task.sessionUuid);
+    });
+    const notice = await screen.findByTestId("task-detail-menu-notice");
+    expect(notice.dataset.kind).toBe("ok");
+  });
+
+  it("AC-4: a denied clipboard surfaces an error notice (no longer silent)", async () => {
+    const user = userEvent.setup();
+    // Modern API rejects; this jsdom has no execCommand → copyText
+    // rejects, and the menu handler must surface that as an error.
+    stubClipboard(
+      vi.fn(async () => {
+        throw new Error("NotAllowedError");
+      }),
+    );
+    renderHeader(makeTask({ state: "active" }));
+
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu-copy-uuid"));
+    await user.click(screen.getByTestId("task-detail-menu-copy-uuid"));
+
+    const notice = await screen.findByTestId("task-detail-menu-notice");
+    expect(notice.dataset.kind).toBe("err");
+  });
+
+  it("AC-3: 'Copy Resume command' is present for a launched task, absent on draft", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderHeader(makeTask({ state: "draft" }));
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    expect(
+      screen.queryByTestId("task-detail-menu-copy-resume-command"),
+    ).toBeNull();
+    unmount();
+
+    renderHeader(makeTask({ state: "active" }));
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    expect(
+      screen.getByTestId("task-detail-menu-copy-resume-command"),
+    ).toBeTruthy();
+  });
+
+  it("AC-3: Copy Resume command POSTs /launch dryRun + copies the resume command", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(async () => {});
+    stubClipboard(writeText);
+    // The copied form is OS-picked (Windows → PowerShell, else POSIX);
+    // pin a Windows UA so the assertion below is deterministic.
+    Object.defineProperty(navigator, "userAgent", {
+      value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+      configurable: true,
+    });
+    const fetchInner = vi.fn(
+      async (url: string | URL | Request, _init?: RequestInit) => {
+        if (String(url).includes("/launch")) {
+          return new Response(
+            JSON.stringify({
+              task: { ...makeTask(), state: "active" },
+              commands: {
+                powershell: "& claude --resume 'uuid' --name 'x'",
+                cmd: 'claude --resume "uuid"',
+                posix: "claude --resume 'uuid'",
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response("{}", { status: 200 });
+      },
+    );
+    renderHeader(makeTask({ state: "active" }), fetchInner);
+
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() =>
+      screen.getByTestId("task-detail-menu-copy-resume-command"),
+    );
+    await user.click(
+      screen.getByTestId("task-detail-menu-copy-resume-command"),
+    );
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(
+        "& claude --resume 'uuid' --name 'x'",
+      );
+    });
+    // The /launch POST MUST carry dryRun + resume so the task state is
+    // not flipped to awaiting_external_start by a mere copy.
+    const launchCall = fetchInner.mock.calls.find((c) =>
+      String(c[0]).includes("/launch"),
+    );
+    expect(launchCall).toBeDefined();
+    const body = JSON.parse(
+      (launchCall?.[1] as RequestInit).body as string,
+    );
+    expect(body).toMatchObject({ resume: true, dryRun: true });
+    const notice = await screen.findByTestId("task-detail-menu-notice");
+    expect(notice.dataset.kind).toBe("ok");
   });
 });
