@@ -693,25 +693,31 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       const cssVar = (name: string, fallback: string) =>
         getComputedStyle(document.body).getPropertyValue(name).trim() || fallback;
       const palette = EMBEDDED_TERMINAL_PALETTE;
-      // Iterate F (ADR-093) — Vorbild-Alignment vs `siteboon/claudecodeui`.
-      // The three remaining flipped knobs (convertEol, allowProposedApi,
-      // scrollback) match the reference repo's Claude-TUI-clean
-      // configuration. `convertEol: true` is the load-bearing one: Claude
-      // TUI's status pane redraw uses cursor positioning that assumes
-      // CR-LF-normalised line endings; with `convertEol: false` a stray
-      // LF-only byte sent the cursor down without column reset and the
-      // status pane "stacked" visually on each redraw.
+      // convertEol — MUST stay `false`. ConPTY, and Claude Code's TUI
+      // running under it, emits a bare LF as "cursor down, keep column";
+      // a real terminal honours that. `convertEol: true` makes xterm.js
+      // additionally carriage-return on every LF, yanking the cursor to
+      // column 0 — the next write then lands at column 0 and smears over
+      // the kept-column content. That is Bug B: the left-column glyph
+      // smear visible when scrolling a Claude Code session.
       //
-      // Iterate I (ADR-097) — the fourth knob (`windowsMode: false`) was
-      // removed when xterm.js 6.0.0 retired the option: 6.x detects the
-      // Windows path purely from `process.platform` / userAgent with no
-      // public override, so an explicit `false` is at best a no-op and at
-      // worst a type-error on the `ITerminalOptions` interface. Native
-      // DECSET 2026 / Synchronized Output (the headline 6.0 feature) also
-      // means the original "windowsMode flicker workaround" rationale is
-      // no longer load-bearing.
+      // ADR-093 (Iterate F) had flipped this knob to `true` as an
+      // xterm-5.x-era mitigation for a status-pane "stacking" redraw.
+      // That flip was itself the root cause of Bug B — confirmed by a
+      // deterministic @xterm/headless repro and user UAT, and now
+      // superseded. Regression guard:
+      // server/src/terminal/embedded-terminal-convert-eol.test.ts.
+      // See decision_log (run-id iterate-2026-05-16-converteol-smear).
+      // ADR-093's other Vorbild-alignment knobs (allowProposedApi,
+      // scrollback — both below) are unaffected and stay as-is.
+      //
+      // Iterate I (ADR-097) — the `windowsMode: false` knob was removed
+      // when xterm.js 6.0.0 retired the option: 6.x detects the Windows
+      // path purely from `process.platform` / userAgent with no public
+      // override, so an explicit `false` is at best a no-op and at worst
+      // a type-error on the `ITerminalOptions` interface.
       const term = new Terminal({
-        convertEol: true,
+        convertEol: false,
         cursorBlink: true,
         fontFamily:
           'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
