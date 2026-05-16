@@ -1,0 +1,1 @@
+Embedded terminal: eliminated the left-column glyph-fragment smear on reattach — live PTY output is now queued behind an in-flight replay-snapshot write (replay drain gate) instead of interleaving with it. The ADR-099 WebGL atlas-maintenance workaround is removed (ADR-108).

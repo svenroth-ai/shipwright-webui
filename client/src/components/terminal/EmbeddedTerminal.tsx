@@ -113,6 +113,24 @@ export interface EmbeddedTerminalProps {
 const RESIZE_THROTTLE_MS = 250;
 
 /**
+ * Replay drain gate (ADR-108, iterate-20260516-terminal-smear-interleave).
+ * While a `replay_snapshot` term.write is parsing asynchronously, live
+ * `data` is queued rather than written so the two writers cannot
+ * interleave and corrupt the xterm buffer (Bug B — left-column smear).
+ *   - REPLAY_DRAIN_TIMEOUT_MS — watchdog ceiling; if the snapshot's
+ *     completion callback never fires, force-release the gate after this.
+ *   - REPLAY_DRAIN_MAX_BYTES — queue size cap, measured in UTF-8 bytes
+ *     (`utf8ByteLength` — string `.length` undercounts CJK/emoji). On
+ *     overflow the OLDEST queued chunks are dropped (ring-buffer trim);
+ *     the gate is NEVER force-drained mid-flight (that re-creates the smear).
+ */
+export const REPLAY_DRAIN_TIMEOUT_MS = 5_000;
+export const REPLAY_DRAIN_MAX_BYTES = 8 * 1024 * 1024;
+
+/** UTF-8 byte length of a string — the replay-drain queue cap is in bytes. */
+const utf8ByteLength = (s: string): number => new TextEncoder().encode(s).length;
+
+/**
  * v0.9.2 (ADR-084) — read-only banner grace window. After a fresh `ready`
  * envelope arrives, suppress the read-only banner for this many ms even if
  * the underlying socket role is "reader". The transient role=reader window
@@ -226,22 +244,69 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     const lastPtyDataAtRef = useRef(0);
     const dataSeenInitiallyRef = useRef(false);
     const injectionInFlightRef = useRef(false);
-    // Iterate K v9 (ADR-099) — cross-effect bridge so the auto-launch
-    // effect can trigger the atlas-maintenance pass that lives inside
-    // the mount effect's `if (webglRef && atlasMaintenanceEnabled)`
-    // closure. The mount effect populates this ref AFTER defining
-    // safeAtlasMaintenance and nulls it on cleanup. Null when WebGL
-    // initialisation failed OR the kill switch is on — optional
-    // chaining at the call site handles both cases.
-    const safeAtlasMaintenanceRef = useRef<(() => void) | null>(null);
-    // ADR-104 (iterate-20260515-terminal-smear-reset) — true while a
-    // `replay_snapshot` `term.write` is still parsing. The onWriteParsed
-    // burst-trigger early-returns during this window so its
-    // clearTextureAtlas() maintenance pass cannot race the in-flight
-    // async write — codex:codex-rescue root cause of the ADR-099 remount
-    // smear: every patch up to v10 chased the symptom because the
-    // setTimeout(0) maintenance ALWAYS raced the async write.
+    // ADR-108 (iterate-20260516-terminal-smear-interleave) — replay drain
+    // gate. `replaySnapshotInFlightRef` is true while a `replay_snapshot`
+    // `term.write` is still parsing asynchronously; during that window the
+    // `onData` handler QUEUES live `data` instead of writing it, so the
+    // snapshot parse and live writes never interleave and corrupt the
+    // xterm buffer (Bug B — left-column glyph-fragment smear).
+    //   - `replayDrainQueueRef` buffers live chunks while the gate is closed.
+    //   - `replayDrainQueueBytesRef` tracks queued size for the byte cap.
+    //   - `replayGenerationRef` is a monotonic gate-instance token: the
+    //     completion callback and the watchdog capture it at arm-time and
+    //     no-op if it has moved on (closes the callback-vs-watchdog
+    //     double-drain race and makes a superseding snapshot clean).
+    //   - `replayWatchdogRef` holds the force-release timer.
     const replaySnapshotInFlightRef = useRef(false);
+    const replayDrainQueueRef = useRef<string[]>([]);
+    const replayDrainQueueBytesRef = useRef(0);
+    const replayGenerationRef = useRef(0);
+    const replayWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearReplayWatchdog = useCallback(() => {
+      if (replayWatchdogRef.current !== null) {
+        clearTimeout(replayWatchdogRef.current);
+        replayWatchdogRef.current = null;
+      }
+    }, []);
+    // Hard reset — taskId change, (re-)mount, unmount cleanup. Bumping the
+    // generation neutralises any pending completion callback / watchdog
+    // from a prior gate instance.
+    const resetReplayGate = useCallback(() => {
+      clearReplayWatchdog();
+      replaySnapshotInFlightRef.current = false;
+      replayDrainQueueRef.current = [];
+      replayDrainQueueBytesRef.current = 0;
+      replayGenerationRef.current += 1;
+    }, [clearReplayWatchdog]);
+    // Idempotent gate-settle: the FIRST of {snapshot completion callback,
+    // watchdog} to run for `generation` drains the queued live data — as a
+    // single concatenated write, single-threaded so no interleave — and
+    // releases the gate. Bumping the generation makes the loser a no-op.
+    const settleReplayGate = useCallback(
+      (generation: number, term: Terminal) => {
+        if (replayGenerationRef.current !== generation) return;
+        replayGenerationRef.current += 1;
+        clearReplayWatchdog();
+        replaySnapshotInFlightRef.current = false;
+        const queued = replayDrainQueueRef.current;
+        replayDrainQueueRef.current = [];
+        replayDrainQueueBytesRef.current = 0;
+        // Unmounted, or the xterm instance was replaced while the snapshot
+        // parse was in flight → drop the queue (nothing to draw on).
+        if (disposedRef.current || termRef.current !== term) return;
+        try {
+          if (queued.length > 0) term.write(queued.join(""));
+          term.scrollToBottom();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[terminal] replay drain failed: ${(err as Error).message}`,
+          );
+        }
+      },
+      [clearReplayWatchdog],
+    );
 
     // 2026-05-05 — Race-Fix: TaskDetail's route is registered as the SAME
     // <TaskDetailPage/> element across `/tasks/:taskId` so React keeps the
@@ -261,34 +326,55 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       lastPtyDataAtRef.current = 0;
       dataSeenInitiallyRef.current = false;
       injectionInFlightRef.current = false;
-      replaySnapshotInFlightRef.current = false;
+      // ADR-108 — a new task starts with a fully reset replay drain gate.
+      resetReplayGate();
       // ADR-104 — a different task gets a fresh reset-banner evaluation.
       setResetBannerDismissed(false);
-    }, [taskId]);
+    }, [taskId, resetReplayGate]);
 
     const socket = useTerminalSocket({
       taskId,
       urlOverride: socketUrlOverride,
       enabled: socketEnabled,
       onData: (chunk) => {
-        // Track quiet-period for prompt-readiness handshake. Any pty.onData
-        // burst counts as activity and resets the 250ms quiesce window.
+        // Prompt-readiness bookkeeping stays UNCONDITIONAL — the byte DID
+        // arrive on the wire (this feeds the ADR-068-A1 auto-launch
+        // handshake, a wire-receipt signal independent of whether the
+        // chunk has been rendered yet).
         if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
         lastPtyDataAtRef.current = Date.now();
+        // ADR-108 — replay drain gate. While a `replay_snapshot` write is
+        // parsing, queue the live chunk instead of writing it, so the two
+        // writers cannot interleave and corrupt the xterm buffer.
+        if (replaySnapshotInFlightRef.current) {
+          const queue = replayDrainQueueRef.current;
+          queue.push(chunk);
+          replayDrainQueueBytesRef.current += utf8ByteLength(chunk);
+          // Byte cap — drop the OLDEST chunks (ring-buffer trim) to stay
+          // bounded. Never force-drain mid-flight: that re-issues
+          // concurrent writes and re-creates the smear (external review
+          // HIGH finding). At least the newest chunk is always kept.
+          while (
+            replayDrainQueueBytesRef.current > REPLAY_DRAIN_MAX_BYTES &&
+            queue.length > 1
+          ) {
+            const dropped = queue.shift();
+            if (dropped !== undefined) {
+              replayDrainQueueBytesRef.current -= utf8ByteLength(dropped);
+            }
+          }
+          return;
+        }
         termRef.current?.write(chunk);
       },
       onReplaySnapshot: ({ data, terminalVersion }) => {
-        // ADR-087/089 — single-envelope cell-state replay. The server
-        // has already stabilised the payload via M2 double-serialize, so
-        // the client writes ONCE into xterm. ADR-079 pushdown +
-        // ADR-077 banner-grace + ADR-086 skip-for-new-plain were all
-        // legacy byte-stream compensations and have been retired in
-        // Iterate C — the cell-state path does NOT exhibit any of
-        // those problems by construction.
+        // ADR-087/089 — single-envelope cell-state replay. The server has
+        // already stabilised the payload via M2 double-serialize, so the
+        // client writes ONCE into xterm.
         const term = termRef.current;
         if (!term) return;
-        // Best-effort version-family check. Server's version gate is the
-        // authoritative accept/reject layer; this is just a console
+        // Best-effort version-family check. The server's version gate is
+        // the authoritative accept/reject layer; this is just a console
         // warning when minor versions drift across the same major.
         if (terminalVersion) {
           try {
@@ -303,23 +389,28 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
             /* ignore */
           }
         }
-        // Iterate K v10 (ADR-099) scheduled the post-snapshot
-        // maintenance pass via `setTimeout(0)`. UAT 2026-05-14 still saw
-        // "extremes flickern und starkes verschmieren links" on re-mount
-        // during active streaming. codex:codex-rescue root cause
-        // (ADR-104): the ~100 KiB `replay_snapshot` is parsed by xterm
-        // ASYNCHRONOUSLY; the `setTimeout(0)` fired BEFORE `term.write`
-        // finished parsing, so `clearTextureAtlas()` raced the still-in-
-        // flight write. Every ADR-099 patch up to v10 chased that
-        // symptom — the real cause is "maintenance always raced the
-        // async write."
-        //
-        // The fix: `term.write(data, callback)` is xterm's correct
-        // "after parse" hook. Maintenance (scrollToBottom + atlas pass)
-        // runs ONLY in the completion callback; `replaySnapshotInFlightRef`
-        // suppresses the onWriteParsed burst-trigger for the duration of
-        // the parse so it cannot race either.
+        // ADR-108 — (re-)arm the replay drain gate. A `replay_snapshot` is
+        // parsed by xterm ASYNCHRONOUSLY; while it parses, the `onData`
+        // handler queues live `data` so the two writers never interleave
+        // (Bug B — the smear is concurrent writes corrupting the buffer).
+        // A fresh snapshot is authoritative: live data queued for a PRIOR
+        // snapshot window is superseded — bumping the generation both
+        // drops that queue and neutralises the prior gate's pending
+        // completion callback + watchdog.
+        replayGenerationRef.current += 1;
+        const generation = replayGenerationRef.current;
+        clearReplayWatchdog();
+        replayDrainQueueRef.current = [];
+        replayDrainQueueBytesRef.current = 0;
         replaySnapshotInFlightRef.current = true;
+        // Watchdog — if xterm drops the completion callback (internal
+        // error / mid-dispose), force-release the gate so live data is not
+        // queued forever. settleReplayGate is idempotent vs. the callback
+        // (whichever runs first wins; the loser sees a stale generation).
+        replayWatchdogRef.current = setTimeout(() => {
+          replayWatchdogRef.current = null;
+          settleReplayGate(generation, term);
+        }, REPLAY_DRAIN_TIMEOUT_MS);
         try {
           // `term.reset()` (not `clear()`) re-initialises cursor +
           // viewport + scrollback so the snapshot writes into a truly
@@ -329,26 +420,19 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           } catch {
             /* xterm mid-dispose; ignore */
           }
+          // `term.write(data, cb)` — xterm's correct "after parse" hook.
+          // The gate drains queued live data inside the completion
+          // callback, after the snapshot parse has fully landed.
           term.write(data, () => {
-            replaySnapshotInFlightRef.current = false;
-            // The component may have unmounted, or this xterm instance
-            // may have been replaced, while the parse was in flight.
-            if (disposedRef.current || termRef.current !== term) return;
-            try {
-              term.scrollToBottom();
-              safeAtlasMaintenanceRef.current?.();
-            } catch (err) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                `[terminal] replay_snapshot completion failed: ${(err as Error).message}`,
-              );
-            }
+            settleReplayGate(generation, term);
           });
         } catch (err) {
-          // `term.write` threw synchronously (xterm mid-dispose). Clear
-          // the in-flight flag so the onWriteParsed burst-trigger is not
-          // permanently suppressed (ADR-104 AC-3).
-          replaySnapshotInFlightRef.current = false;
+          // `term.write` threw synchronously (xterm mid-dispose). Release
+          // the gate and DROP the queued live data — AC-3 requires the
+          // catch to CLEAR the queue, not drain it onto a terminal whose
+          // snapshot write just failed. resetReplayGate bumps the
+          // generation, so the watchdog armed just above also no-ops.
+          resetReplayGate();
           // eslint-disable-next-line no-console
           console.warn(
             `[terminal] replay_snapshot write failed: ${(err as Error).message}`,
@@ -572,41 +656,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         consumedTokensRef.current.add(pending.launchToken);
         socket.send({ type: "data", payload: cmd + "\r" });
         coord.consumeLaunch(pending.launchToken);
-
-        // Iterate K v9 (ADR-099) — post-launch-settle backstop. The
-        // burst-after-quiet trigger (v6, gated on
-        // `now - lastWriteTime > 2000ms`) and the post-mount-settle
-        // backstop (v7, scheduled at mount-time +3s) both miss the
-        // case where Resume is clicked in a tab that has been
-        // mounted for a long time:
-        //   - Mount happened minutes/hours ago; postMountSettleTimer
-        //     fired long ago and is gone.
-        //   - The auto-launch typing echo (pwsh echoes each char of
-        //     the `claude --resume <uuid> --name "..."` command back
-        //     over the WS) keeps `lastWriteTime` continuously fresh
-        //     for ~50-500 ms, depending on shell-render cadence.
-        //   - Claude's startup writes (snapshot replay + alt-screen
-        //     setup) land within ~500-1500 ms of the command echo
-        //     ending — well inside the 2 s quiet window.
-        // → burst-trigger never fires; the only remaining trigger
-        //   is the 10 s periodic interval (gated on writes>0). User
-        //   sees 10 s of stale atlas before the periodic kicks in
-        //   (empirical UAT 2026-05-14: "es hat resume nicht
-        //   gegriffen, erst nach 10s gut").
-        //
-        // Schedule a one-shot maintenance pass at +4 s after the
-        // launch dispatch — long enough for Claude's TUI init to
-        // complete (typically <2 s on a warm pty), short enough to
-        // beat the periodic. Unconditional (no `writes>0` gate)
-        // because Resume guarantees writes will happen; defensive
-        // gating would just hide bugs. `disposedRef` short-circuits
-        // if the user navigates away within the window; optional
-        // chaining handles the kill-switch + Canvas/DOM fallback
-        // paths where the ref was never populated.
-        setTimeout(() => {
-          if (disposedRef.current) return;
-          safeAtlasMaintenanceRef.current?.();
-        }, 4_000);
       })().finally(() => {
         injectionInFlightRef.current = false;
       });
@@ -754,28 +803,15 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // the mount. The 2026-05-14 WebGL-off A/B probe confirmed Canvas/DOM
       // alt-screen rendering is severely worse than WebGL — fallback is a
       // graceful-degradation surface, not a target configuration.
-      // Iterate K follow-up (ADR-099, 2026-05-14) — capture the WebglAddon
-      // reference so we can periodically call `clearTextureAtlas()` as a
-      // workaround for xterm.js issue #5847 (open) and #4534. xterm 6.0.0's
-      // WebGL texture atlas accumulates "doubled cache entries" / atlas-
-      // page coordinate drift after sustained streaming of color-attribute
-      // cells (exactly what Claude TUI emits). Symptom: visible smearing /
-      // ghosting / glyph substitution on rows with ANSI color attributes,
-      // recovered only by atlas clear, resize, or remount.
-      //
-      // VS Code exposes `forceRedraw() { this.raw.clearTextureAtlas(); }`
-      // and calls it on OS resume; their workload triggers the bug less
-      // often. Ours (continuous Claude streaming with per-word color
-      // toggles) accumulates faster, so we also clear periodically.
-      // Trade-off: each clear causes a single-frame atlas-rebuild flicker
-      // — much less visually disruptive than the residual smearing the
-      // user reported.
-      let webglRef: WebglAddon | null = null;
+      // WebGL is loaded unconditionally — the production renderer. The
+      // renderer was empirically ruled out as the Bug B smear cause
+      // (ADR-108: WebGL and DOM both smeared, Canvas was incompatible —
+      // the corruption is in the buffer model, not the GPU atlas). The
+      // try/catch keeps the Canvas/DOM fallback for headless test envs
+      // (jsdom), browsers with WebGL disabled, and GPU-blacklisted hosts.
       try {
-        webglRef = new WebglAddon();
-        term.loadAddon(webglRef);
+        term.loadAddon(new WebglAddon());
       } catch (err) {
-        webglRef = null;
         console.warn(
           "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
           err instanceof Error ? err.message : String(err),
@@ -786,14 +822,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // this mount-effect (the cleanup function flipped it to true on the
       // previous unmount; React preserves useRef across mounts).
       disposedRef.current = false;
-      // ADR-104 — defensively clear the in-flight flag on (re-)mount.
-      // The completion callback + the synchronous-throw catch already
-      // clear it on every reachable path; this guards the theoretical
-      // case where a prior xterm was disposed with a snapshot write
-      // still queued (xterm drops the completion callback) so the flag
-      // cannot leak `true` into a fresh xterm instance and permanently
-      // suppress the onWriteParsed burst-trigger.
-      replaySnapshotInFlightRef.current = false;
+      // ADR-108 — defensively reset the replay drain gate on (re-)mount.
+      // The completion callback, watchdog and synchronous-throw catch
+      // release it on every reachable path; this guards the theoretical
+      // case where a prior xterm was disposed with a snapshot write still
+      // queued (xterm drops the completion callback) so a stale closed
+      // gate cannot leak into a fresh xterm instance.
+      resetReplayGate();
       // Initial fit. safeFit returns false if the renderer isn't yet ready
       // (pre-first-frame zero cell dims) — that's fine, the ResizeObserver
       // will fire as soon as the container settles.
@@ -807,14 +842,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // the visible viewport, which masks scrollback accumulation).
       // Cleanup nulls it on dispose. Single ref, no production impact.
       (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = term;
-      // Iterate K v8 (ADR-099) — also expose the WebglAddon instance so
-      // the Playwright probe spec can monkey-patch
-      // `clearTextureAtlas()` for scenario instrumentation. Null when
-      // WebGL initialisation failed (Canvas/DOM fallback). Cleanup
-      // mirrors `__embeddedTerminal`.
-      (
-        window as unknown as { __embeddedTerminalWebglAddon?: WebglAddon | null }
-      ).__embeddedTerminalWebglAddon = webglRef;
 
       // Forward keystrokes / paste-text into the socket.
       const onDataDispose = term.onData((data) => {
@@ -858,257 +885,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       });
       ro.observe(container);
 
-      // Iterate K follow-up v3 (ADR-099) — CONDITIONAL atlas clear + full
-      // row-refresh, working around xterm.js issue #5847.
-      //
-      // History:
-      //   v1 (bd9e3ea) — 30s periodic + onScroll. Smearing built up
-      //     within window.
-      //   v2 (4e8f938) — 10s periodic + term.refresh() after atlas clear.
-      //     Smearing fully addressed but periodic flicker fired even when
-      //     terminal was idle (user reading without streaming).
-      //   v3 (this commit) — conditional: only clear when there has been
-      //     terminal activity since the last clear, OR the user actively
-      //     scrolled. Idle reading no longer produces periodic flicker.
-      //
-      // VS Code's pattern (xtermTerminal.ts:600 forceRedraw +
-      // terminalNativeContribution.ts._onOsResume) clears only on OS
-      // resume — works for their workload (developer terminal, not
-      // primary content). Ours is Claude TUI streaming = primary
-      // content, so we need to clear more often during activity, but
-      // can stay quiet during reading.
-      //
-      // Mechanism:
-      //   - term.onWriteParsed → increment writesSinceLastClear (free,
-      //     xterm fires this after every byte-batch parse)
-      //   - term.onScroll → immediate clear (user-initiated, always)
-      //   - setInterval 10s → clear ONLY if writesSinceLastClear > 0,
-      //     then reset the counter
-      //
-      // Result:
-      //   - Active Claude streaming: clear every 10s during streaming
-      //     (same cadence as v2; bounds smearing accumulation).
-      //   - Idle terminal after Claude finishes: at most 1 final clear
-      //     within 10s of last byte arriving, then silence.
-      //   - User scrolling: immediate clear on every scroll burst.
-      //
-      // No-op if webglRef is null (Canvas/DOM fallback path).
-      const ATLAS_CLEAR_INTERVAL_MS = 10_000;
-      // Iterate K v6 (ADR-099, 2026-05-14) — first-burst-after-quiet
-      // trigger threshold. When `term.onWriteParsed` fires AND the
-      // gap since the last byte-batch exceeds this, treat it as a
-      // Resume / re-attach / Claude-was-idle-now-streaming-again
-      // burst and run maintenance IMMEDIATELY (don't wait for the
-      // 10s periodic). 2s is empirically chosen: longer than natural
-      // mid-streaming pauses (Claude's between-tool-call gaps are
-      // typically <500ms), shorter than typical user think-time.
-      // Also: mouse-capture mode (?1000h/1002h/1003h, set by Claude
-      // TUI even under NO_FLICKER) makes wheel events go to Claude
-      // not xterm — so `term.onScroll` doesn't fire on user wheel-
-      // scroll, and the periodic interval was the only mechanism
-      // before this trigger.
-      const RESUME_BURST_QUIET_MS = 2_000;
-      // Iterate K v7 (ADR-099, 2026-05-14) — post-mount initial
-      // maintenance. After fresh mount (page reload, navigate-back,
-      // initial open) lastWriteTime in v6 started at 0 — the gate
-      // `lastWriteTime > 0` excluded the very first write batch, so a
-      // Resume burst arriving immediately after the snapshot-replay
-      // write missed the immediate trigger and had to wait for the
-      // 10s periodic. Two changes:
-      //   1. Initialize lastWriteTime to a value PRIOR-TO-mount by
-      //      more-than-quiet-window so the FIRST write after mount
-      //      qualifies as "after quiet" → trigger fires.
-      //   2. Schedule one unconditional maintenance after
-      //      POST_MOUNT_SETTLE_MS as a backstop — catches the case
-      //      where multiple bursts arrive within the quiet window
-      //      (mount → snapshot replay → Resume burst all <1s apart).
-      const POST_MOUNT_SETTLE_MS = 3_000;
-      // Iterate K v8 (ADR-099, 2026-05-14) — DOM wheel listener for
-      // user-initiated scroll during streaming. xterm's `term.onScroll`
-      // only fires for content-driven scroll (new lines pushing the
-      // viewport), NOT for user wheel/keyboard scroll. The semantics are
-      // documented in xterm.js issues #3864 + #3201 — during fast output,
-      // `viewportY` transiently equals `baseY` while xterm's parser is
-      // mid-batch, so an `onScroll` based pin-state would falsely re-pin.
-      // Tabby's `tabby-terminal/src/frontends/xtermFrontend.ts` dropped
-      // `onScroll` for the same reason and listens to wheel/keyboard
-      // events on the container instead.
-      //
-      // Additional motivation: when Claude TUI has mouse capture enabled
-      // (?1000h / ?1002h / ?1003h / SGR ?1006h) the wheel event is
-      // forwarded TO Claude as a mouse-report, not to xterm's scroll
-      // viewport — so `term.onScroll` is silent on user-wheel during
-      // active Claude sessions. The DOM `wheel` listener fires on the
-      // container regardless of internal forwarding, so we ALWAYS see
-      // the user-intended-scroll signal and can run the atlas-maintenance
-      // pass for cursor-ghost / smearing cleanup.
-      //
-      // 150 ms debounce matches the Tabby pattern: rapid wheel events
-      // collapse into one maintenance pass after the user finishes
-      // scrolling. The 250 ms ResizeObserver throttle is similar in
-      // intent — coalesce noisy DOM events.
-      const WHEEL_DEBOUNCE_MS = 150;
-      let onScrollDispose: { dispose: () => void } | null = null;
-      let onWriteParsedDispose: { dispose: () => void } | null = null;
-      let atlasClearTimer: ReturnType<typeof setInterval> | null = null;
-      let postMountSettleTimer: ReturnType<typeof setTimeout> | null = null;
-      let wheelDebounceTimer: ReturnType<typeof setTimeout> | null = null;
-      let onWheel: (() => void) | null = null;
-      let writesSinceLastClear = 0;
-      // v7: initialize to "mount-time minus quiet+1ms" so first write
-      // after mount qualifies as "after quiet" and triggers maintenance.
-      let lastWriteTime = Date.now() - RESUME_BURST_QUIET_MS - 1;
-      // Iterate K UAT instrumentation (ADR-099) — query-param kill
-      // switch for A/B visual validation of the atlas-corruption
-      // workaround. `?atlasMaintenance=off` short-circuits the entire
-      // `if (webglRef)` block: no clears, no refreshes, no wheel /
-      // onScroll / onWriteParsed listeners. Result is the same
-      // baseline behaviour we'd have on a build without the workaround
-      // — side-by-side comparable against the default-on path.
-      //
-      // Default is "on". The param is a probe-only escape hatch with
-      // no UI surface and no production traffic. Lives forever in
-      // source so the A/B test in `probe-iterate-k-smearing-ab.mjs`
-      // can be re-run on any future xterm.js version bump (matches
-      // the "Falsifiability" entry in ADR-099 § Decision § 2).
-      const atlasMaintenanceEnabled = (() => {
-        try {
-          return new URLSearchParams(window.location.search).get(
-            "atlasMaintenance",
-          ) !== "off";
-        } catch {
-          return true;
-        }
-      })();
-      if (webglRef && atlasMaintenanceEnabled) {
-        // Iterate K v5 (ADR-099, 2026-05-14) — split into TWO behaviors
-        // based on buffer type:
-        //
-        //   - Main buffer  : clearTextureAtlas() + refresh(0, rows-1)
-        //     Full workaround for xterm.js #5847 atlas-merge bug. Atlas
-        //     corruption accumulates here under sustained Claude TUI
-        //     streaming (NO_FLICKER mode); the clear forces a rebuild,
-        //     the refresh repaints all "unchanged" cells from the fresh
-        //     atlas.
-        //
-        //   - Alt-screen  : refresh(0, rows-1) ONLY, no atlas clear.
-        //     Two reasons:
-        //       (a) In alt-screen Claude redraws cells aggressively
-        //           every frame (ED2+full repaint), so atlas
-        //           corruption doesn't accumulate the same way.
-        //       (b) The full atlas rebuild SUPERIMPOSES on Claude's
-        //           own per-frame redraw producing visibly WORSE
-        //           flicker than no workaround (empirical UAT v3 on
-        //           task 58be94c5).
-        //     Plain refresh() is much cheaper than clearTextureAtlas —
-        //     just marks rows dirty for the next render pass — and is
-        //     enough to clear stale cursor-render-layer ghosts that
-        //     xterm 6.0's WebGL renderer leaves behind when cursor
-        //     positioning jumps from the right edge back to the left.
-        const safeAtlasMaintenance = () => {
-          if (disposedRef.current || !webglRef) return;
-          const inAltScreen = term.buffer.active.type === "alternate";
-          try {
-            if (!inAltScreen) {
-              webglRef.clearTextureAtlas();
-            }
-            // Both paths run a row-renderer pass. In main-buffer this
-            // repaints every visible cell from the just-rebuilt atlas
-            // (so cells xterm thought were "unchanged" since the
-            // corruption window get fresh paint). In alt-screen this
-            // gives xterm a chance to re-evaluate cursor render layer
-            // + cell state (clears stale cursor ghosts).
-            if (term.rows > 0) term.refresh(0, term.rows - 1);
-          } catch {
-            /* atlas may have been disposed mid-call; safe to ignore */
-          }
-        };
-        // Iterate K v9 (ADR-099) — publish the maintenance callback
-        // to the cross-effect ref so the auto-launch effect can
-        // schedule a post-launch-settle pass (see auto-launch effect
-        // above). Cleared in the cleanup return below.
-        safeAtlasMaintenanceRef.current = safeAtlasMaintenance;
-        // Always maintain on user-initiated scroll (smearing or stale
-        // cursor most visible when user actively reads scrolled rows).
-        onScrollDispose = term.onScroll(safeAtlasMaintenance);
-        // Track every parsed byte-batch. Cheap counter — xterm.js fires
-        // onWriteParsed after each internal write batch.
-        //
-        // Iterate K v6 + v7 — if the gap since the last byte-batch
-        // exceeded RESUME_BURST_QUIET_MS, treat this firing as the
-        // start of a Resume / re-attach / wake-up / post-mount burst
-        // and run maintenance immediately (don't wait for the 10s
-        // periodic). v7: lastWriteTime is now pre-initialized to
-        // mount-time minus quiet-window+1ms, so the FIRST write after
-        // a fresh mount also qualifies.
-        onWriteParsedDispose = term.onWriteParsed(() => {
-          // ADR-104 — while a replay_snapshot write is parsing, its
-          // completion callback owns the single post-snapshot
-          // maintenance pass. Suppress the burst-trigger here so a
-          // mid-parse onWriteParsed firing cannot race the in-flight
-          // write with clearTextureAtlas() (the ADR-099-v10 smear bug).
-          // Advancing the counter keeps periodic-maintenance accounting
-          // correct (these parse batches were real activity); advancing
-          // `lastWriteTime` is ALSO load-bearing — it keeps the timestamp
-          // fresh so the FIRST post-snapshot onWriteParsed does not see a
-          // stale quiet window and re-fire the burst-trigger redundantly
-          // (the completion callback already ran one maintenance pass).
-          if (replaySnapshotInFlightRef.current) {
-            writesSinceLastClear++;
-            lastWriteTime = Date.now();
-            return;
-          }
-          const now = Date.now();
-          if (now - lastWriteTime > RESUME_BURST_QUIET_MS) {
-            // First write after a meaningful quiet window — burst
-            // start. Reset the counter so the next periodic tick
-            // doesn't re-fire too quickly.
-            writesSinceLastClear = 0;
-            safeAtlasMaintenance();
-          } else {
-            writesSinceLastClear++;
-          }
-          lastWriteTime = now;
-        });
-        // Iterate K v7 — post-mount settle backstop. If the resume
-        // burst arrives so quickly after mount that it's bundled with
-        // the snapshot-replay write (both <quiet-window apart from
-        // each other), neither qualifies as "after quiet" individually
-        // and the burst-trigger doesn't fire. The settle timer
-        // unconditionally runs maintenance once at POST_MOUNT_SETTLE_MS,
-        // catching this case before the 10s periodic would.
-        postMountSettleTimer = setTimeout(() => {
-          postMountSettleTimer = null;
-          if (writesSinceLastClear > 0) {
-            writesSinceLastClear = 0;
-            safeAtlasMaintenance();
-          }
-        }, POST_MOUNT_SETTLE_MS);
-        // Conditional periodic: only run maintenance if there was
-        // activity since the last tick. When the terminal is idle (user
-        // just reading a finished session), the counter stays 0 → no
-        // maintenance → no flicker.
-        atlasClearTimer = setInterval(() => {
-          if (writesSinceLastClear === 0) return;
-          writesSinceLastClear = 0;
-          safeAtlasMaintenance();
-        }, ATLAS_CLEAR_INTERVAL_MS);
-        // Iterate K v8 — DOM wheel listener with 150ms debounce. Bubble
-        // phase (no `capture: true`) so xterm's internal handling runs
-        // first, matching Tabby's pattern. `passive: true` keeps the
-        // browser scroll path unblocked. The handler schedules a single
-        // `safeAtlasMaintenance()` after the user stops scrolling; rapid
-        // wheel events coalesce into one maintenance pass.
-        onWheel = () => {
-          if (wheelDebounceTimer) clearTimeout(wheelDebounceTimer);
-          wheelDebounceTimer = setTimeout(() => {
-            wheelDebounceTimer = null;
-            if (!disposedRef.current && webglRef) safeAtlasMaintenance();
-          }, WHEEL_DEBOUNCE_MS);
-        };
-        container.addEventListener("wheel", onWheel, { passive: true });
-      }
-
       return () => {
         // v0.9.2 (ADR-084) — cleanup ordering matters. `disposedRef` is
         // flipped FIRST so any straggler async tail of OUR code (safeFit
@@ -1117,40 +893,14 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // `_renderService`. The wrapped try/catch is defense-in-depth;
         // the disposedRef gate is the primary guarantee for our paths.
         disposedRef.current = true;
+        // ADR-108 — tear down the replay drain gate: cancel the watchdog,
+        // drop the queue, bump the generation so a deferred snapshot
+        // completion callback that fires post-unmount is a no-op.
+        resetReplayGate();
         ro.disconnect();
         if (lastResizePendingRef.current) {
           clearTimeout(lastResizePendingRef.current);
           lastResizePendingRef.current = null;
-        }
-        // Iterate K follow-up — atlas-clear triggers cleanup.
-        if (atlasClearTimer) {
-          clearInterval(atlasClearTimer);
-          atlasClearTimer = null;
-        }
-        if (postMountSettleTimer) {
-          clearTimeout(postMountSettleTimer);
-          postMountSettleTimer = null;
-        }
-        // Iterate K v9 — clear the cross-effect bridge so straggler
-        // post-launch-settle timers short-circuit cleanly via the
-        // optional chain at the call site.
-        safeAtlasMaintenanceRef.current = null;
-        if (onScrollDispose) {
-          onScrollDispose.dispose();
-          onScrollDispose = null;
-        }
-        if (onWriteParsedDispose) {
-          onWriteParsedDispose.dispose();
-          onWriteParsedDispose = null;
-        }
-        // Iterate K v8 — wheel listener cleanup.
-        if (onWheel) {
-          container.removeEventListener("wheel", onWheel);
-          onWheel = null;
-        }
-        if (wheelDebounceTimer) {
-          clearTimeout(wheelDebounceTimer);
-          wheelDebounceTimer = null;
         }
         onDataDispose.dispose();
 
@@ -1212,9 +962,6 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         termRef.current = null;
         fitAddonRef.current = null;
         (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = null;
-        (
-          window as unknown as { __embeddedTerminalWebglAddon?: WebglAddon | null }
-        ).__embeddedTerminalWebglAddon = null;
       };
       // socket.send is stable via useCallback; we intentionally don't depend
       // on `socket` here because re-mounting xterm on every reconnect would
