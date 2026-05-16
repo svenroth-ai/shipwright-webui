@@ -6,17 +6,26 @@
  *   - breadcrumb `Projects › <project.name>` above the title row
  *   - title + state badge (pulsing dot, color-coded to state) + project chip
  *   - sub-line: phase tag · Started {ago} · last event {ago} · {model}
- *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants;
- *     Resume visibility is decided by `resumeCtaGate.isClaudeRecentlyActive`
- *     — ADR-102 corrected the signal to `lastJsonlSeenMtimeMs` after the
- *     Iterate-L `altScreenActive` and Iterate-M `lastPtyDataAt` gates were
- *     both empirically falsified):
- *       draft / awaiting_external_start          → GREEN Launch
- *       (active | idle) + Claude recently active → no CTA
- *       (active | idle) + Claude idle            → BROWN Resume
- *       done / launch_failed / jsonl_missing     → no CTA
+ *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants):
+ *       draft                                → GREEN Launch
+ *       active | idle                        → BROWN Resume (unconditional)
+ *       done / launch_failed / jsonl_missing  → no CTA
  *     Terminal icon is always left of the label on both buttons.
- *   - 3-dots menu: Rename · Copy session UUID · Close · Delete · debug toggle
+ *
+ *     resume-cta-rework (2026-05-16) — the activity GATE is removed. Four
+ *     iterations (L/M/N + the server state machine) tried to predict
+ *     "is Claude still alive" from `altScreenActive` / `lastPtyDataAt` /
+ *     `lastJsonlSeenMtimeMs`; all were falsified. webui cannot observe
+ *     Claude process-liveness in the Plan-D'' default (Claude runs in the
+ *     user's own terminal — no process handle, and the JSONL is an
+ *     event-log, not a liveness beacon). Resume is now ALWAYS offered for
+ *     a launched non-terminal task; the authoritative liveness check is
+ *     Claude's own "Session ID already in use" when `--resume` hits a
+ *     live session. The embedded-pty one-shot inject guard
+ *     (EmbeddedTerminal) is what prevents a stray command from corrupting
+ *     a running session.
+ *   - 3-dots menu: Rename · Copy session UUID · Copy Resume command ·
+ *     Close · Delete · debug toggle
  *
  * Regression guards:
  *   - NO chat composer anywhere (CLAUDE.md DO-NOT #3).
@@ -62,7 +71,7 @@ import {
 import { ProjectChipMenu } from "./ProjectChipMenu";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { SessionMetadata } from "./SessionMetadata";
-import { isClaudeRecentlyActive, type ResumeGateFields } from "./resumeCtaGate";
+import { copyText } from "../../lib/clipboard";
 
 /**
  * State-badge visual definition. Background + foreground use HSL-flavoured
@@ -127,27 +136,18 @@ const STATE_BADGE: Record<
 
 type CtaMode = "launch" | "resume" | "none";
 
-function ctaFor(
-  task: { state: ExternalTask["state"] } & ResumeGateFields,
-  now: number = Date.now(),
-): CtaMode {
+function ctaFor(task: { state: ExternalTask["state"] }): CtaMode {
   if (task.state === "draft") return "launch";
-  // Iterate v0.8.5 AC-6 — no "Terminal" CTA for active /
-  // awaiting_external_start (the inline Tabs.Trigger row covers tab nav).
-  //
-  // ADR-102 — Resume visibility for `(idle | active)` is decided by the
-  // shared `resumeCtaGate.isClaudeRecentlyActive` helper. It gates
-  // primarily on `lastJsonlSeenMtimeMs` (the JSONL mtime, observable
-  // however Claude was launched); the Iterate-L `altScreenActive` and
-  // Iterate-M `lastPtyDataAt` signals were both empirically falsified
-  // (each is null/false whenever Claude runs in the user's own terminal
-  // — the Plan-D'' default) and are kept only as supplementary
-  // OR-signals for the embedded-terminal path. See resumeCtaGate.ts for
-  // the full history. Single "Resume" label everywhere (memory
-  // feedback_resume_label_singular).
-  if (task.state === "idle" || task.state === "active") {
-    return isClaudeRecentlyActive(task, now) ? "none" : "resume";
-  }
+  // resume-cta-rework (2026-05-16) — Resume is offered UNCONDITIONALLY
+  // for every launched non-terminal task. The former activity gate
+  // (`isClaudeRecentlyActive`) is gone: webui cannot tell whether the
+  // Claude process is still alive (Plan-D'' default — Claude in the
+  // user's own terminal — gives webui no process handle, and a quiet
+  // JSONL is produced by both a live-but-idle and an exited Claude).
+  // Clicking Resume on a still-live session is harmless: `claude
+  // --resume` simply errors "Session ID already in use". Single
+  // "Resume" label everywhere (memory feedback_resume_label_singular).
+  if (task.state === "idle" || task.state === "active") return "resume";
   return "none";
 }
 
@@ -161,38 +161,11 @@ function isTerminalState(state: ExternalTask["state"]): boolean {
 // The CopyCommandForms type still flows through `coord.pendingLaunch`
 // where EmbeddedTerminal indexes by shellKind directly.
 
-async function writeClipboard(text: string): Promise<void> {
-  // Try the modern Clipboard API first. ADR-067 regression note: when
-  // the launch CTA fires from inside the embedded-terminal pane, focus
-  // can briefly leave the document during React's pending-state
-  // re-render of the button → `clipboard.writeText` rejects with
-  // NotAllowedError. We catch and fall through to the textarea +
-  // execCommand path so the user always gets the command in their
-  // clipboard.
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return;
-    } catch (err) {
-      console.warn("clipboard.writeText failed, falling back to textarea:", err);
-      // fall through
-    }
-  }
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  ta.style.left = "-9999px";
-  document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
-  try {
-    const ok = document.execCommand("copy");
-    if (!ok) throw new Error("execCommand('copy') returned false");
-  } finally {
-    document.body.removeChild(ta);
-  }
-}
+// Clipboard copy moved to lib/clipboard.ts (`copyText`) — resume-cta-rework
+// (2026-05-16). The prior private `writeClipboard` ran behind a silent
+// `catch {}` at the call site, so a failed copy was indistinguishable
+// from a successful one. `copyText` rejects loudly; the menu handlers
+// below surface the outcome via `menuNotice`.
 
 interface Props {
   task: ExternalTask;
@@ -211,13 +184,22 @@ export function TaskDetailHeader({ task }: Props) {
   const [ctaError, setCtaError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
-  const [uuidCopied, setUuidCopied] = useState(false);
+  // resume-cta-rework (2026-05-16) — transient feedback for the ⋯-menu
+  // copy actions (Copy session UUID / Copy Resume command). Replaces
+  // the old inline "Copied!" pip, which the menu-close now precludes
+  // (the copy is deferred until AFTER the menu closes so the
+  // execCommand fallback has no focus-trap to fight — see
+  // lib/clipboard.ts). Carries both success and failure so a denied
+  // clipboard is no longer silent.
+  const [menuNotice, setMenuNotice] = useState<
+    { kind: "ok" | "err"; text: string } | null
+  >(null);
   // 3.7d-b2 — controls the ProjectChipMenu popover rendered off the
   // "Move to project…" menu item. Opens the popover on the chip's legacy
   // position (near the title) but without rendering the chip itself.
   const [projectPickerOpen, setProjectPickerOpen] = useState(false);
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const uuidResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const menuNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<EditableTaskTitleHandle | null>(null);
 
   const cta = ctaFor(task);
@@ -455,16 +437,74 @@ export function TaskDetailHeader({ task }: Props) {
     titleRef.current?.startEdit();
   }, []);
 
+  const flashMenuNotice = useCallback(
+    (kind: "ok" | "err", text: string) => {
+      setMenuNotice({ kind, text });
+      if (menuNoticeTimer.current) clearTimeout(menuNoticeTimer.current);
+      menuNoticeTimer.current = setTimeout(() => setMenuNotice(null), 2600);
+    },
+    [],
+  );
+
   const handleCopyUuid = useCallback(async () => {
     try {
-      await writeClipboard(task.sessionUuid);
-      setUuidCopied(true);
-      if (uuidResetTimer.current) clearTimeout(uuidResetTimer.current);
-      uuidResetTimer.current = setTimeout(() => setUuidCopied(false), 1500);
-    } catch {
-      /* clipboard denied — no fatal path */
+      await copyText(task.sessionUuid);
+      flashMenuNotice("ok", "Session UUID copied");
+    } catch (err) {
+      // resume-cta-rework — surface the failure instead of the prior
+      // silent `catch {}` (the user could not tell copy had failed).
+      flashMenuNotice(
+        "err",
+        `Copy failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
-  }, [task.sessionUuid]);
+  }, [task.sessionUuid, flashMenuNotice]);
+
+  // resume-cta-rework (2026-05-16) — "Copy Resume command" escape hatch.
+  // When the embedded-terminal auto-execute path is not usable (a
+  // session is already running in the pane, the WS is wedged, …) the
+  // user copies the resume command and pastes it into a terminal of
+  // their choice. The command is fetched via POST /launch with
+  // `dryRun: true` so the task's state is NOT mutated (a copy is not a
+  // launch). The shell form is picked by a userAgent heuristic: the
+  // embedded-terminal auto-launch path knows the real `shellKind` from
+  // the WS envelope, but a clipboard copy has no such signal, so
+  // Windows → PowerShell form, everything else → POSIX form.
+  const handleCopyResumeCommand = useCallback(async () => {
+    try {
+      const res = await fetch(
+        `/api/external/tasks/${encodeURIComponent(task.taskId)}/launch`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resume: true, dryRun: true }),
+        },
+      );
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        throw new Error(
+          `HTTP ${res.status}${detail ? `: ${detail.slice(0, 120)}` : ""}`,
+        );
+      }
+      const body = (await res.json().catch(() => null)) as
+        | { commands?: { powershell?: string; posix?: string } }
+        | null;
+      const isWindows = /windows/i.test(
+        typeof navigator !== "undefined" ? navigator.userAgent : "",
+      );
+      const cmd = isWindows
+        ? body?.commands?.powershell
+        : body?.commands?.posix;
+      if (!cmd) throw new Error("server returned no command");
+      await copyText(cmd);
+      flashMenuNotice("ok", "Resume command copied — paste it in a terminal");
+    } catch (err) {
+      flashMenuNotice(
+        "err",
+        `Copy failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }, [task.taskId, flashMenuNotice]);
 
   return (
     <header
@@ -669,10 +709,15 @@ export function TaskDetailHeader({ task }: Props) {
                 Rename
               </DropdownMenu.Item>
               <DropdownMenu.Item
-                onSelect={(e) => {
-                  // keep menu open briefly so the "Copied!" pip is visible
-                  e.preventDefault();
-                  void handleCopyUuid();
+                onSelect={() => {
+                  // resume-cta-rework — DON'T preventDefault: let Radix
+                  // close the menu so its focus-scope releases, then run
+                  // the copy on the next frame. The execCommand fallback
+                  // in copyText needs no active focus-trap (the prior
+                  // `e.preventDefault()` kept the trap up and broke the
+                  // fallback — copy silently no-op'd). Outcome surfaces
+                  // via `menuNotice`.
+                  requestAnimationFrame(() => void handleCopyUuid());
                 }}
                 className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
                 data-testid="task-detail-menu-copy-uuid"
@@ -681,8 +726,29 @@ export function TaskDetailHeader({ task }: Props) {
                   size={14}
                   className="text-[var(--color-muted,#6b7280)]"
                 />
-                {uuidCopied ? "Copied!" : "Copy session UUID"}
+                Copy session UUID
               </DropdownMenu.Item>
+              {/* resume-cta-rework (2026-05-16) — "Copy Resume command":
+                  the manual escape hatch for when the embedded-terminal
+                  auto-execute is not usable. Absent on `draft` tasks
+                  (nothing launched yet, so nothing to resume). */}
+              {task.state !== "draft" && (
+                <DropdownMenu.Item
+                  onSelect={() => {
+                    requestAnimationFrame(
+                      () => void handleCopyResumeCommand(),
+                    );
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                  data-testid="task-detail-menu-copy-resume-command"
+                >
+                  <Clipboard
+                    size={14}
+                    className="text-[var(--color-muted,#6b7280)]"
+                  />
+                  Copy Resume command
+                </DropdownMenu.Item>
+              )}
               <DropdownMenu.Item
                 onSelect={() => {
                   // Let the Radix DropdownMenu close naturally; wait for
@@ -776,6 +842,31 @@ export function TaskDetailHeader({ task }: Props) {
           data-testid="task-detail-cta-error"
         >
           {ctaError}
+        </span>
+      )}
+
+      {/* resume-cta-rework — transient feedback for the ⋯-menu copy
+          actions. Left-anchored so it never collides with the
+          right-anchored `ctaError`. */}
+      {menuNotice && (
+        <span
+          role="status"
+          className="absolute left-6 top-full mt-1 rounded px-2 py-0.5 text-[11px]"
+          style={
+            menuNotice.kind === "ok"
+              ? {
+                  background: "var(--color-success-bg, #ecfdf5)",
+                  color: "var(--color-success, #059669)",
+                }
+              : {
+                  background: "var(--color-error-bg, rgba(220,38,38,0.1))",
+                  color: "var(--color-error, #DC2626)",
+                }
+          }
+          data-testid="task-detail-menu-notice"
+          data-kind={menuNotice.kind}
+        >
+          {menuNotice.text}
         </span>
       )}
 
