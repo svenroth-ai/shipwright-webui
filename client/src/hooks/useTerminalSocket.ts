@@ -13,6 +13,9 @@
  *                              {type:"scrollback-meta",scrollbackBytes}
  *                              {type:"writer-promoted"} | {type:"second-attach"}
  *   - Outbound JSON envelope: {type:"data",payload}  | {type:"resize",cols,rows}
+ *   - The `ready` envelope additionally carries `terminalReset` (ADR-104)
+ *     and `ptyReused` (fix-resume-guard-survives-reload) — both default
+ *     to `false` when an older server omits them.
  *   - `ready === true` exactly when the socket is OPEN AND a server-side
  *     `ready` envelope has arrived. The TaskDetail launch-flow waits on
  *     this before calling term.focus().
@@ -120,6 +123,19 @@ export interface UseTerminalSocketResult {
    * older server omits the field (back-compat).
    */
   terminalReset: boolean | null;
+  /**
+   * fix-resume-guard-survives-reload (2026-05-17) — true when this WS
+   * attach REUSED a pty that pre-existed the attach (the pty persisted
+   * across a browser reload / navigate-away-and-back) rather than
+   * spawning a fresh one. Drives the EmbeddedTerminal one-shot inject
+   * guard so a post-reload launch parks behind an explicit confirm
+   * instead of auto-injecting `claude --resume …` into a still-live
+   * Claude session. Null until the `ready` envelope arrives; `false`
+   * when an older server omits the field (back-compat). Mutually
+   * exclusive with `terminalReset` — a freshly created pty is not a
+   * reused one.
+   */
+  ptyReused: boolean | null;
   /** Last error message, if any. */
   lastError: string | null;
   /** Number of reconnect attempts since last successful connect. */
@@ -176,6 +192,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const [retentionDays, setRetentionDays] = useState<number | null>(null);
   const [scrollbackDir, setScrollbackDir] = useState<string | null>(null);
   const [terminalReset, setTerminalReset] = useState<boolean | null>(null);
+  const [ptyReused, setPtyReused] = useState<boolean | null>(null);
   const [open, setOpen] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
@@ -207,6 +224,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setRetentionDays(null);
       setScrollbackDir(null);
       setTerminalReset(null);
+      setPtyReused(null);
       setOpen(false);
       return;
     }
@@ -279,6 +297,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           // older server omits the field (back-compat).
           setTerminalReset(
             typeof env.terminalReset === "boolean" ? env.terminalReset : false,
+          );
+          // fix-resume-guard-survives-reload — reused-pty signal for the
+          // one-shot inject guard. Defaults to false when an older
+          // server omits the field (back-compat).
+          setPtyReused(
+            typeof env.ptyReused === "boolean" ? env.ptyReused : false,
           );
           setReady(true);
           return;
@@ -391,6 +415,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setRetentionDays(null);
       setScrollbackDir(null);
       setTerminalReset(null);
+      setPtyReused(null);
       setOpen(false);
     };
   }, [enabled, taskId, urlOverride]);
@@ -404,6 +429,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     retentionDays,
     scrollbackDir,
     terminalReset,
+    ptyReused,
     lastError,
     reconnectAttempts,
     send,

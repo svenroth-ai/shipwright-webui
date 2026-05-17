@@ -257,6 +257,16 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // (`manualSendPending`). Reset on a fresh pty — (re-)mount, taskId
     // change, WS `terminalReset`.
     const launchInjectedThisPtyLifetimeRef = useRef(false);
+    // fix-resume-guard-survives-reload (2026-05-17) — once-per-task latch
+    // for the reused-pty arming of `launchInjectedThisPtyLifetimeRef`
+    // (see the latch effect below). The server's `ready` envelope reports
+    // `ptyReused: true` when the WS attach reused a pty that pre-existed
+    // this component mount (it persisted across a browser reload /
+    // navigate-away-and-back). The latch makes that evaluation happen
+    // exactly once per task so a later WS reconnect — which also reports
+    // `ptyReused: true` — cannot re-arm. Reset on (re-)mount + taskId
+    // change, alongside the guard itself.
+    const ptyReusedGuardEvaluatedRef = useRef(false);
     // ADR-108 (iterate-20260516-terminal-smear-interleave) — replay drain
     // gate. `replaySnapshotInFlightRef` is true while a `replay_snapshot`
     // `term.write` is still parsing asynchronously; during that window the
@@ -342,6 +352,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // resume-cta-rework — a different task is a different pty: the
       // one-shot inject guard re-arms and any parked manual-send drops.
       launchInjectedThisPtyLifetimeRef.current = false;
+      // fix-resume-guard-survives-reload — re-evaluate the reused-pty
+      // signal for the new task's first `ready` envelope.
+      ptyReusedGuardEvaluatedRef.current = false;
       setManualSendPending(null);
       // ADR-108 — a new task starts with a fully reset replay drain gate.
       resetReplayGate();
@@ -599,6 +612,51 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       }),
       [socket.ready, socket.role],
     );
+
+    // fix-resume-guard-survives-reload (2026-05-17) — arm the one-shot
+    // inject guard when the WS attached to a pty that pre-existed this
+    // component mount.
+    //
+    // `launchInjectedThisPtyLifetimeRef` is in-memory per mount. A
+    // browser reload (or navigate-away-and-back) remounts EmbeddedTerminal
+    // with a fresh `false` guard, while the SERVER pty persists (30-min
+    // idle ceiling). Without this, the first post-reload Launch/Resume
+    // would auto-inject `claude --resume …` straight into the still-live
+    // Claude session running in that persisted pty — the exact bug the
+    // one-shot guard exists to prevent, leaking back in on every reload.
+    //
+    // The server's `ready` envelope carries `ptyReused: true` for a
+    // reused pty. On the FIRST `ready` envelope for the current task,
+    // `ptyReused: true` means the pty predates this mount: we cannot
+    // vouch for what is running in it, so arm the guard — a subsequent
+    // Launch/Resume then routes through the explicit "Send to terminal"
+    // confirm (`manualSendPending`) instead of auto-injecting.
+    //
+    // Latched via `ptyReusedGuardEvaluatedRef` so the evaluation happens
+    // exactly once per task: a later WS reconnect within the same mount
+    // also reports `ptyReused: true` (the pty persisted), but must NOT
+    // re-arm — past the first attach the guard is driven solely by the
+    // auto-inject / `terminalReset` / taskId-change logic.
+    //
+    // Declared BEFORE the auto-launch effect below so that, when both run
+    // in the same commit, the guard is armed before auto-inject reads it.
+    //
+    // Known dev-only papercut: under React.StrictMode (dev builds only)
+    // the effect double-invoke makes the second WS attach observe
+    // `ptyReused: true` (the first invoke created the pty), so the guard
+    // arms on a freshly-opened task and the first launch needs one
+    // explicit "Send to terminal" click. Production builds do not
+    // double-invoke StrictMode effects. Accepted: a safe false-positive
+    // (one extra click in dev) over the dangerous false-negative
+    // (auto-inject into a live Claude after a reload).
+    useEffect(() => {
+      if (!socket.ready) return;
+      if (ptyReusedGuardEvaluatedRef.current) return;
+      ptyReusedGuardEvaluatedRef.current = true;
+      if (socket.ptyReused === true) {
+        launchInjectedThisPtyLifetimeRef.current = true;
+      }
+    }, [socket.ready, socket.ptyReused]);
 
     // ADR-068-A1: auto-launch flow.
     //
@@ -919,6 +977,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // resume-cta-rework — a freshly mounted component owns a fresh
       // pty; re-arm the one-shot auto-inject guard.
       launchInjectedThisPtyLifetimeRef.current = false;
+      // fix-resume-guard-survives-reload — a freshly mounted component
+      // re-evaluates the reused-pty signal from scratch.
+      ptyReusedGuardEvaluatedRef.current = false;
       // ADR-108 — defensively reset the replay drain gate on (re-)mount.
       // The completion callback, watchdog and synchronous-throw catch
       // release it on every reachable path; this guards the theoretical

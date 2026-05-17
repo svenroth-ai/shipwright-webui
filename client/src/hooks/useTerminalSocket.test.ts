@@ -376,4 +376,48 @@ describe("useTerminalSocket", () => {
     });
     expect(result.current.terminalReset).toBe(false);
   });
+
+  // fix-resume-guard-survives-reload (2026-05-17) — the `ready` envelope
+  // carries a `ptyReused` boolean. True = this WS attach reused a
+  // pre-existing pty (the pty persisted across a browser reload /
+  // navigate-away-and-back) rather than spawning a fresh one. Drives the
+  // EmbeddedTerminal one-shot inject guard so a post-reload launch does
+  // not auto-inject `claude --resume …` into a still-live Claude session.
+  it("exposes ptyReused=true from the ready envelope", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "writer",
+          shellKind: "pwsh",
+          cwd: "C:\\x",
+          ptyReused: true,
+        }),
+      );
+    });
+    expect(result.current.ptyReused).toBe(true);
+  });
+
+  it("ptyReused defaults to false when the field is absent (old-server back-compat)", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    const { result } = renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({ type: "ready", role: "writer", shellKind: "pwsh", cwd: "C:\\x" }),
+      );
+    });
+    expect(result.current.ptyReused).toBe(false);
+  });
 });
