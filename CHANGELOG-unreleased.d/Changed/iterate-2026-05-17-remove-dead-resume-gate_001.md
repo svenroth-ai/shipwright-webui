@@ -1,0 +1,1 @@
+Removed the unused Resume-CTA liveness-gate server computation (altScreenActive / lastPtyDataAt on /api/external/tasks) and its PtyManager/HeadlessMirror accessors — internal dead-code cleanup with no behavior change (the activity gate was retired in PR #29); also eliminates a flaky terminal integration test.
