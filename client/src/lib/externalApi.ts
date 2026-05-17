@@ -64,61 +64,17 @@ export interface ExternalTask {
    * Iterate G (ADR-095) — server-computed flag, NOT persisted on disk.
    * Reflects whether `PtyManager.entries` currently holds an entry for
    * this task at response-time (i.e. an embedded-terminal pty is alive,
-   * which is NOT the same as "Claude is running in the pty" — see
-   * Iterate L falsification below).
+   * which is NOT the same as "Claude is running in the pty").
    *
-   * Iterate L (resume-cta-active-state) — `liveSession` is no longer
-   * load-bearing in the client CTA matrix; the empirical reproducer
-   * showed `liveSession=true` covers both "Claude foreground" (correct
-   * to hide Resume) AND "Claude exited, parent shell still alive"
-   * (wrong to hide Resume). The new `altScreenActive` field is the
-   * actual Claude-foreground proxy. `liveSession` stays exposed for
-   * diagnostics + back-compat with code that already consumes it.
+   * NOT load-bearing in the client CTA matrix: resume-cta-rework
+   * (2026-05-16) made Resume unconditional for idle|active. The
+   * empirical reproducer showed `liveSession=true` conflates "Claude
+   * foreground" (correct to hide Resume) with "Claude exited, parent
+   * shell still alive" (wrong to hide Resume) — webui cannot observe
+   * Claude process-liveness. Kept exposed for diagnostics + back-compat
+   * with code that already consumes it.
    */
   liveSession?: boolean;
-  /**
-   * Iterate L (resume-cta-active-state) — server-computed flag,
-   * derived from `HeadlessMirror.buffer.active.type === "alternate"`.
-   * `true` while an alt-screen TUI (Claude, vim, htop, …) is in pty
-   * foreground; `false` when the normal-buffer shell prompt is active,
-   * the mirror is disabled (`headless-probe` failure), or no pty
-   * exists for the task.
-   *
-   * Used by `TaskDetailHeader.ctaFor()` + `TaskCard` action matrix to
-   * hide the Resume CTA while a TUI is foregrounded — a misclick
-   * would inject `claude --resume <uuid>` bytes into the running
-   * app's input handler. Treat `undefined` as `false` (conservative:
-   * show Resume) for back-compat with pre-iterate-L server responses.
-   *
-   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
-   * `altScreenActive` was falsified for the common Claude case by
-   * ADR-098: with `CLAUDE_CODE_NO_FLICKER=1` default-on, Claude
-   * renders in MAIN buffer, not alt-screen, so `altScreenActive`
-   * stays `false` during active Claude streaming. The Resume CTA gate
-   * now combines `altScreenActive` with `lastPtyDataAt` (see below)
-   * to detect "Claude is foreground" robustly across both buffer
-   * modes.
-   */
-  altScreenActive?: boolean;
-  /**
-   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
-   * server-computed timestamp (epoch-ms) of the most recent
-   * `pty.onData` chunk for the task's live pty, or `null` if the
-   * pty hasn't emitted any output yet or no pty entry exists.
-   *
-   * Used by `TaskCard` (and downstream by `TaskDetailHeader.ctaFor()`)
-   * to gate the Resume CTA in BOTH alt-screen and main-buffer cases:
-   * if `Date.now() - lastPtyDataAt < 15_000` the pty has been
-   * actively producing output recently → some foreground process
-   * (Claude, vim, htop, an interactive script, …) is engaged → hide
-   * Resume. After 15 s of silence the gate falls through and Resume
-   * re-appears, covering the "Claude exited, pty became bare shell"
-   * recovery path.
-   *
-   * Verbatim mirror of `server/src/types/external-task.ts`. Drift is
-   * caught by the cross-package import guard test.
-   */
-  lastPtyDataAt?: number | null;
   /**
    * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
    *

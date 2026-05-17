@@ -240,18 +240,6 @@ export function createExternalRoutes(args: {
    */
   ptyManager: {
     get(taskId: string): unknown;
-    // Iterate L (resume-cta-active-state) — optional in the interface
-    // for test back-compat (existing fixtures pass `{ get: () => undefined }`).
-    // The /tasks augmentation calls it via `?.()` so missing-impl is
-    // treated as `altScreenActive: false` — same conservative default
-    // as the production PtyManager when no mirror exists for the task.
-    isAltBufferActive?(taskId: string): boolean;
-    // Iterate M (resume-cta-active-state-followup, 2026-05-15) —
-    // optional for the same test-back-compat reason. Missing-impl is
-    // treated as `lastPtyDataAt: null` (= "no recent activity") so
-    // the client gate falls through to the conservative branch (show
-    // Resume) rather than incorrectly hiding it.
-    getLastPtyDataAt?(taskId: string): number | null;
   };
 }) {
   const app = new Hono();
@@ -287,31 +275,6 @@ export function createExternalRoutes(args: {
    * `ExternalTask` shape on disk does NOT include this field; it is
    * computed at response time from in-memory pty state.
    *
-   * Iterate L (resume-cta-active-state) — additionally augment with
-   * `altScreenActive`, derived from the @xterm/headless mirror's
-   * `buffer.active.type === "alternate"`. Used by the client to gate
-   * the Resume CTA: while a TUI (Claude, vim, htop, …) is in pty
-   * foreground, the user types directly into it; surfacing Resume
-   * would be misleading and a misclick would inject `claude --resume`
-   * bytes into the running app. `liveSession` stays exposed for
-   * diagnostics but is no longer load-bearing in the client matrix —
-   * the empirical falsification (memory livesession-is-pty-not-claude)
-   * showed it conflated "pty exists" with "Claude foreground". The
-   * new `altScreenActive` separates those two concepts cleanly.
-   *
-   * Iterate M (resume-cta-active-state-followup, 2026-05-15) —
-   * additionally augment with `lastPtyDataAt` (epoch-ms timestamp of
-   * the most recent `pty.onData` chunk, or `null` if the pty hasn't
-   * emitted anything yet or no entry exists). Reason: ADR-098
-   * restored `CLAUDE_CODE_NO_FLICKER=1` as default-on, which makes
-   * Claude render in MAIN buffer rather than alt-screen. With main-
-   * buffer rendering, `altScreenActive` stays `false` even during
-   * active Claude streaming — Iterate L's gate
-   * `task.altScreenActive !== true` always passes and the Resume
-   * button shows during active sessions. The new `lastPtyDataAt`
-   * field lets the client gate on "recently active in any buffer
-   * mode" rather than "alt-screen mode active".
-   *
    * Defensive: handles undefined / null input (returns it unchanged)
    * so callers that already 404'd can still pass-through. Returns a
    * shallow clone so callers don't mutate the live store entry.
@@ -321,16 +284,12 @@ export function createExternalRoutes(args: {
   ): T extends ExternalTask
     ? ExternalTask & {
         liveSession: boolean;
-        altScreenActive: boolean;
-        lastPtyDataAt: number | null;
       }
     : T {
     if (!task) return task as never;
     return {
       ...task,
       liveSession: ptyManager.get(task.taskId) !== undefined,
-      altScreenActive: ptyManager.isAltBufferActive?.(task.taskId) ?? false,
-      lastPtyDataAt: ptyManager.getLastPtyDataAt?.(task.taskId) ?? null,
     } as never;
   }
 
@@ -528,6 +487,17 @@ export function createExternalRoutes(args: {
   app.post("/api/external/tasks/:id/launch", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const resume = Boolean(body.resume);
+    // resume-cta-rework (2026-05-16) — `dryRun` builds the command
+    // strings and returns them WITHOUT the `awaiting_external_start`
+    // state mutation or the persist. "Copy Resume command" (the
+    // ⋯-menu escape hatch) needs the resume command string but must
+    // not flip the task's state. A dryRun skips ONLY the `done`
+    // launch-guard (copying a command off a closed task is harmless,
+    // read-only, no race). It deliberately does NOT bypass the
+    // `claimToken` guard: a leadwright-claimed task is owned by the
+    // daemon, and a copied command the user then runs would race it
+    // for the session lock — exactly what that guard exists to stop.
+    const dryRun = Boolean(body.dryRun);
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
 
@@ -546,7 +516,7 @@ export function createExternalRoutes(args: {
     // clipboard hiccup). `done` is terminal — closing a task is an
     // explicit user action and a re-launch after close is almost always
     // unintended.
-    if (task.state === "done") {
+    if (task.state === "done" && !dryRun) {
       return c.json(
         { error: "launch_invalid_state", state: task.state },
         409,
@@ -954,6 +924,10 @@ export function createExternalRoutes(args: {
         pluginDirs: task.pluginDirs,
         title: task.title,
       });
+    }
+    if (dryRun) {
+      // Pure command-string build — no state mutation, no persist.
+      return c.json({ task: withLiveSession(task), commands });
     }
     const updated = store.patch(task.taskId, taskUpdate);
     await store.persist();
