@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.12.0] - 2026-05-17
+
+### Added
+
+- Copy Resume command in the task detail ⋯-menu — copies the claude --resume command string for pasting into any terminal, without changing the task's state
+
+### Changed
+
+- Resume is now always available for any launched task — the Resume-CTA activity gate that mispredicted whether Claude was still running (and was empirically falsified four times) has been removed
+- Removed the unused Resume-CTA liveness-gate server computation (altScreenActive / lastPtyDataAt on /api/external/tasks) and its PtyManager/HeadlessMirror accessors — internal dead-code cleanup with no behavior change (the activity gate was retired in PR #29); also eliminates a flaky terminal integration test.
+
+### Fixed
+
+- Copy session UUID in the ⋯-menu now reliably copies to the clipboard and surfaces any failure — a Radix menu focus-trap previously broke the clipboard fallback silently
+- Embedded terminal: a Launch/Resume click can no longer be auto-typed into a Claude session already running in the pane — a second launch into a live terminal now asks for an explicit Send to terminal confirmation
+
 ## [v0.11.1] - 2026-05-16
 
 ### Fixed
