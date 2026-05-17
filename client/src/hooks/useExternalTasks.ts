@@ -5,6 +5,7 @@ import {
   deleteTask,
   getTask,
   listTasks,
+  moveTaskToBacklog,
   renameTask,
   type ExternalTask,
 } from "../lib/externalApi";
@@ -52,6 +53,24 @@ export function useCloseExternalTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: closeTask,
+    onSuccess: (task) => {
+      qc.setQueryData(detailKey(task.taskId), task);
+      void qc.invalidateQueries({ queryKey: LIST_KEY });
+    },
+  });
+}
+
+/**
+ * iterate-2026-05-17-move-to-backlog (FR-01.32) — move an In-Progress
+ * task back to the Backlog column. Mirrors `useCloseExternalTask`: the
+ * `setQueryData(detailKey, …)` write is what flips the TaskDetailHeader
+ * state badge in place (AC-5) without a refetch round-trip; the LIST_KEY
+ * invalidation relocates the card on the TaskBoard.
+ */
+export function useMoveTaskToBacklog() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: moveTaskToBacklog,
     onSuccess: (task) => {
       qc.setQueryData(detailKey(task.taskId), task);
       void qc.invalidateQueries({ queryKey: LIST_KEY });

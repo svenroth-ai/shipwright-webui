@@ -7,10 +7,12 @@
  *   - title + state badge (pulsing dot, color-coded to state) + project chip
  *   - sub-line: phase tag · Started {ago} · last event {ago} · {model}
  *   - state-dependent primary CTA (iterate 3.7e-b2, R3 button variants):
- *       draft                                → GREEN Launch
- *       active | idle                        → BROWN Resume (unconditional)
+ *       draft (never launched)               → GREEN Launch
+ *       draft (already ran — firstJsonlObservedAt set, e.g. moved back
+ *         to the Backlog) | active | idle    → BROWN Resume
  *       done / launch_failed / jsonl_missing  → no CTA
  *     Terminal icon is always left of the label on both buttons.
+ *     (draft Resume branch — iterate-2026-05-17-move-to-backlog AC-6.)
  *
  *     resume-cta-rework (2026-05-16) — the activity GATE is removed. Four
  *     iterations (L/M/N + the server state machine) tried to predict
@@ -25,7 +27,9 @@
  *     (EmbeddedTerminal) is what prevents a stray command from corrupting
  *     a running session.
  *   - 3-dots menu: Rename · Copy session UUID · Copy Resume command ·
- *     Close · Delete · debug toggle
+ *     Move to project… · Move to Backlog (In-Progress states only —
+ *     iterate-2026-05-17-move-to-backlog) · Close · Stop terminal ·
+ *     Delete · Clear terminal history · debug toggle
  *
  * Regression guards:
  *   - NO chat composer anywhere (CLAUDE.md DO-NOT #3).
@@ -46,6 +50,7 @@ import {
   Pencil,
   Terminal as TerminalIcon,
   Trash2,
+  Undo2,
   X,
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -57,12 +62,14 @@ import type {
 import {
   useCloseExternalTask,
   useDeleteExternalTask,
+  useMoveTaskToBacklog,
 } from "../../hooks/useExternalTasks";
 import { useLaunchTask } from "../../hooks/useLaunchTask";
 import { useProjects } from "../../hooks/useProjects";
 import { useTaskTranscript } from "../../hooks/useTaskTranscript";
 import { formatRelativeTime } from "../../lib/formatTime";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
+import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import {
   EditableTaskTitle,
@@ -136,8 +143,17 @@ const STATE_BADGE: Record<
 
 type CtaMode = "launch" | "resume" | "none";
 
-function ctaFor(task: { state: ExternalTask["state"] }): CtaMode {
-  if (task.state === "draft") return "launch";
+function ctaFor(
+  task: Pick<ExternalTask, "state" | "firstJsonlObservedAt">,
+): CtaMode {
+  if (task.state === "draft") {
+    // iterate-2026-05-17-move-to-backlog (FR-01.01 AC-6) — a draft task
+    // that has already run (moved back to the Backlog after a launch)
+    // must Resume its existing session: a fresh `claude --session-id`
+    // against an already-used session is rejected with "Session ID
+    // already in use". A genuinely never-launched draft keeps Launch.
+    return hasLaunchedBefore(task) ? "resume" : "launch";
+  }
   // resume-cta-rework (2026-05-16) — Resume is offered UNCONDITIONALLY
   // for every launched non-terminal task. The former activity gate
   // (`isClaudeRecentlyActive`) is gone: webui cannot tell whether the
@@ -174,6 +190,7 @@ interface Props {
 export function TaskDetailHeader({ task }: Props) {
   const launchMut = useLaunchTask();
   const closeMut = useCloseExternalTask();
+  const backlogMut = useMoveTaskToBacklog();
   const navigate = useNavigate();
   const deleteMut = useDeleteExternalTask();
   const projectsQ = useProjects();
@@ -370,6 +387,15 @@ export function TaskDetailHeader({ task }: Props) {
       onSuccess: () => navigate("/"),
     });
   }, [closeMut, navigate, task.taskId]);
+
+  // iterate-2026-05-17-move-to-backlog (FR-01.32): move this In-Progress
+  // task back to the Backlog column. NO navigation — the user stays on
+  // the detail page; the state badge flips to "Draft" in place because
+  // `useMoveTaskToBacklog` writes the returned task into the detail
+  // query cache (`setQueryData(detailKey, …)`).
+  const handleMoveToBacklog = useCallback(() => {
+    backlogMut.mutate(task.taskId);
+  }, [backlogMut, task.taskId]);
 
   // ADR-068-A1: explicit "Stop terminal session" action — kills the
   // embedded-terminal pty without touching the registry state. Best-
@@ -767,6 +793,21 @@ export function TaskDetailHeader({ task }: Props) {
                 Move to project…
               </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 h-px bg-[var(--color-border,#e0dbd4)]" />
+              {/* iterate-2026-05-17-move-to-backlog (FR-01.32) — move an
+                  In-Progress task back to the Backlog column. Shown only
+                  for the five In-Progress states (absent for `draft` /
+                  `done`). No confirm dialog; no navigation — the state
+                  badge flips to "Draft" in place. */}
+              {isInProgressState(task.state) && (
+                <DropdownMenu.Item
+                  onSelect={() => handleMoveToBacklog()}
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                  data-testid="task-detail-menu-backlog"
+                >
+                  <Undo2 size={14} className="text-[var(--color-muted,#6b7280)]" />
+                  Move to Backlog
+                </DropdownMenu.Item>
+              )}
               <DropdownMenu.Item
                 disabled={isTerminalState(task.state)}
                 onSelect={() => handleClose()}
