@@ -200,6 +200,10 @@ import {
   REPLAY_DRAIN_TIMEOUT_MS,
   REPLAY_DRAIN_MAX_BYTES,
 } from "./EmbeddedTerminal";
+import {
+  LaunchCoordinatorProvider,
+  useLaunchCoordinator,
+} from "../../contexts/LaunchCoordinatorContext";
 
 describe("<EmbeddedTerminal>", () => {
   let realWS: typeof WebSocket;
@@ -879,5 +883,282 @@ describe("<EmbeddedTerminal>", () => {
     expect(
       container.querySelector('[data-testid="embedded-terminal-reset"]'),
     ).toBeNull();
+  });
+
+  // ── resume-cta-rework (2026-05-16) — AC-2 one-shot auto-inject guard ──
+  //
+  // The first launch into a fresh pty auto-injects after the
+  // prompt-readiness handshake (happy path, unchanged). A SECOND
+  // launch into the same still-live pty must NOT auto-send — it parks
+  // behind an explicit "Send to terminal" confirm, so a stray command
+  // can never land inside a running Claude session. The guard re-arms
+  // on a fresh pty (taskId change / remount / WS terminalReset).
+  describe("AC-2 — one-shot auto-inject guard", () => {
+    function AutoLaunchHarness({ taskId }: { taskId: string }) {
+      const coord = useLaunchCoordinator();
+      return (
+        <>
+          <button
+            type="button"
+            data-testid="harness-dispatch"
+            onClick={() =>
+              coord.dispatchAutoLaunch(
+                {
+                  powershell: "& claude --resume 'u'",
+                  cmd: 'claude --resume "u"',
+                  posix: "claude --resume 'u'",
+                },
+                true,
+              )
+            }
+          />
+          <EmbeddedTerminal taskId={taskId} active />
+        </>
+      );
+    }
+
+    /** Count WS frames that carry the launch command into the pty. */
+    function countLaunchSends(ws: FakeWebSocket): number {
+      return ws.sent.filter(
+        (s) => s.includes('"type":"data"') && s.includes("claude --resume"),
+      ).length;
+    }
+
+    async function readyWriter(ws: FakeWebSocket) {
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({
+            type: "ready",
+            role: "writer",
+            shellKind: "pwsh",
+            cwd: "C:\\x",
+          }),
+        );
+      });
+      // A data byte so the prompt-readiness handshake clears on the
+      // 250 ms quiesce path instead of the 1500 ms cold-pty grace.
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "data", payload: "$ " }));
+      });
+    }
+
+    it("first launch into a fresh pty auto-injects the command", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await readyWriter(ws);
+      await act(async () => {
+        (
+          container.querySelector(
+            '[data-testid="harness-dispatch"]',
+          ) as HTMLButtonElement
+        ).click();
+      });
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+    });
+
+    it("a SECOND launch into the same live pty parks behind 'Send to terminal' — no auto-send", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await readyWriter(ws);
+      const dispatch = container.querySelector(
+        '[data-testid="harness-dispatch"]',
+      ) as HTMLButtonElement;
+
+      await act(async () => dispatch.click());
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+
+      // Launch #2 — the one-shot guard fires.
+      await act(async () => dispatch.click());
+      await waitFor(
+        () => {
+          expect(
+            container.querySelector(
+              '[data-testid="embedded-terminal-manual-send"]',
+            ),
+          ).not.toBeNull();
+        },
+        { timeout: 3000 },
+      );
+      // Crucially: NO second command was injected into the pty.
+      expect(countLaunchSends(ws)).toBe(1);
+    });
+
+    it("'Send to terminal' on the parked banner injects the command + clears the banner", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await readyWriter(ws);
+      const dispatch = container.querySelector(
+        '[data-testid="harness-dispatch"]',
+      ) as HTMLButtonElement;
+
+      await act(async () => dispatch.click());
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+      await act(async () => dispatch.click());
+      await waitFor(
+        () => {
+          expect(
+            container.querySelector(
+              '[data-testid="embedded-terminal-manual-send-button"]',
+            ),
+          ).not.toBeNull();
+        },
+        { timeout: 3000 },
+      );
+
+      await act(async () => {
+        (
+          container.querySelector(
+            '[data-testid="embedded-terminal-manual-send-button"]',
+          ) as HTMLButtonElement
+        ).click();
+      });
+      // The explicit confirm sends the command...
+      expect(countLaunchSends(ws)).toBe(2);
+      // ...and the banner clears.
+      expect(
+        container.querySelector(
+          '[data-testid="embedded-terminal-manual-send"]',
+        ),
+      ).toBeNull();
+    });
+
+    it("a fresh pty (new taskId) re-arms the guard — the next launch auto-injects again", async () => {
+      const { container, rerender } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws1 = FakeWebSocket.instances[0];
+      await readyWriter(ws1);
+      await act(async () =>
+        (
+          container.querySelector(
+            '[data-testid="harness-dispatch"]',
+          ) as HTMLButtonElement
+        ).click(),
+      );
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws1)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+
+      // Navigate to a different task — fresh pty; the guard must re-arm.
+      rerender(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t2" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws2 = FakeWebSocket.instances[FakeWebSocket.instances.length - 1];
+      expect(ws2).not.toBe(ws1);
+      await readyWriter(ws2);
+      await act(async () =>
+        (
+          container.querySelector(
+            '[data-testid="harness-dispatch"]',
+          ) as HTMLButtonElement
+        ).click(),
+      );
+      // Auto-inject again (NOT parked) — the t2 pty is fresh.
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws2)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+      expect(
+        container.querySelector(
+          '[data-testid="embedded-terminal-manual-send"]',
+        ),
+      ).toBeNull();
+    });
+
+    it("a WS terminalReset re-arms the guard — the next launch auto-injects again", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await readyWriter(ws);
+      const dispatch = container.querySelector(
+        '[data-testid="harness-dispatch"]',
+      ) as HTMLButtonElement;
+
+      // Launch #1 — auto-injects, sets the one-shot flag.
+      await act(async () => dispatch.click());
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+
+      // A fresh pty replaced the lost session — the server re-attaches
+      // with terminalReset:true. The one-shot guard must re-arm.
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({
+            type: "ready",
+            role: "writer",
+            shellKind: "pwsh",
+            cwd: "C:\\x",
+            terminalReset: true,
+          }),
+        );
+      });
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "data", payload: "$ " }));
+      });
+
+      // Launch #2 — must AUTO-INJECT again (count → 2), NOT park,
+      // because terminalReset re-armed the guard.
+      await act(async () => dispatch.click());
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(2);
+        },
+        { timeout: 3000 },
+      );
+      expect(
+        container.querySelector(
+          '[data-testid="embedded-terminal-manual-send"]',
+        ),
+      ).toBeNull();
+    });
   });
 });

@@ -162,115 +162,24 @@ describe("TaskCard — Resume CTA matrix (Iterate L)", () => {
     expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
   });
 
-  // Iterate L — `altScreenActive` matrix. Hides Resume when a TUI is
-  // in pty foreground (Claude alt-screen, vim, htop, …) so a misclick
-  // doesn't inject `claude --resume <uuid>` bytes into the running
-  // app's input handler. Same semantic on TaskCard as on
-  // TaskDetailHeader.
-  it("HIDES Resume when state=active + altScreenActive=true (TUI in foreground)", () => {
-    renderCard(baseTask({ state: "active", altScreenActive: true }));
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
-  });
-
-  it("HIDES Resume when state=idle + altScreenActive=true (TUI in foreground)", () => {
-    renderCard(baseTask({ state: "idle", altScreenActive: true }));
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
-  });
-
-  it("SHOWS Resume when state=active + altScreenActive=false (shell prompt)", () => {
-    renderCard(baseTask({ state: "active", altScreenActive: false }));
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-});
-
-// ADR-102 (iterate-20260515-resume-cta-jsonl-signal) — the Resume gate
-// moved off `lastPtyDataAt` (a webui-embedded-pty signal, `null` whenever
-// Claude runs in the user's own terminal — the Plan-D'' default) onto
-// `lastJsonlSeenMtimeMs`, via the shared resumeCtaGate.isClaudeRecentlyActive
-// helper (unit-tested directly in resumeCtaGate.test.ts). `altScreenActive`
-// and `lastPtyDataAt` remain as supplementary OR-signals.
-describe("TaskCard — Resume CTA matrix (ADR-102 — JSONL activity gate)", () => {
-  const freshJsonl = () => Date.now() - 5_000;
-  const staleJsonl = () => Date.now() - 120_000;
-  const recentPty = () => Date.now() - 5_000;
-  const stalePty = () => Date.now() - 20_000;
-
-  it("HIDES Resume — fresh JSONL + liveSession:false + lastPtyDataAt:null (Claude in own terminal — the exact Iterate M miss)", () => {
+  // resume-cta-rework (2026-05-16) — the activity gate is REMOVED.
+  // Resume shows for every (idle | active) task. The altScreenActive /
+  // lastPtyDataAt gate signals were deleted outright in
+  // iterate-2026-05-17-remove-dead-resume-gate; liveSession and
+  // lastJsonlSeenMtimeMs still exist but MUST NOT gate the CTA.
+  // Regression fence below.
+  it("SHOWS Resume when every surviving former gate-signal says 'recently active'", () => {
+    // The configuration the old isClaudeRecentlyActive gate hid Resume
+    // for, reduced to the signals still present on ExternalTask — a
+    // live pty + fresh JSONL mtime. Post-rework it MUST show.
     renderCard(
       baseTask({
         state: "active",
-        altScreenActive: false,
-        liveSession: false,
-        lastPtyDataAt: null,
-        lastJsonlSeenMtimeMs: freshJsonl(),
-      }),
-    );
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
-  });
-
-  it("SHOWS Resume — stale JSONL + no other signal (Claude idle / exited)", () => {
-    renderCard(
-      baseTask({
-        state: "active",
-        altScreenActive: false,
-        liveSession: false,
-        lastPtyDataAt: null,
-        lastJsonlSeenMtimeMs: staleJsonl(),
+        liveSession: true,
+        lastJsonlSeenMtimeMs: Date.now() - 1_000,
       }),
     );
     expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-
-  it("SHOWS Resume — no activity fields present at all", () => {
-    renderCard(baseTask({ state: "active" }));
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-
-  it("HIDES Resume — stale JSONL but recent lastPtyDataAt (embedded-pty OR-signal kept)", () => {
-    renderCard(
-      baseTask({
-        state: "active",
-        altScreenActive: false,
-        lastJsonlSeenMtimeMs: staleJsonl(),
-        lastPtyDataAt: recentPty(),
-      }),
-    );
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
-  });
-
-  it("HIDES Resume — altScreenActive=true regardless of other signals (TUI in foreground)", () => {
-    renderCard(
-      baseTask({
-        state: "active",
-        altScreenActive: true,
-        lastJsonlSeenMtimeMs: staleJsonl(),
-        lastPtyDataAt: stalePty(),
-      }),
-    );
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
-  });
-
-  it("SHOWS Resume — every signal stale", () => {
-    renderCard(
-      baseTask({
-        state: "active",
-        altScreenActive: false,
-        lastJsonlSeenMtimeMs: staleJsonl(),
-        lastPtyDataAt: stalePty(),
-      }),
-    );
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-
-  it("HIDES Resume on state=idle + fresh JSONL (same gate as active)", () => {
-    renderCard(
-      baseTask({
-        state: "idle",
-        lastPtyDataAt: null,
-        lastJsonlSeenMtimeMs: freshJsonl(),
-      }),
-    );
-    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
   });
 });
 
