@@ -20,7 +20,6 @@ Two hard rules, survivors of every review round:
 <repo-root>/
   CHANGELOG-unreleased.d/       # Keep-a-Changelog drop-zone for /shipwright-changelog (Added/Changed/Deprecated/Fixed/Removed/Security sub-dirs)
   docs/                         # User-facing guide (guide.md) — linked from "Key Environment Variables" below
-  e2e/                          # /shipwright-adopt-generated Playwright baseline (flows/adopted-baseline.spec.ts) — repo-root suite, distinct from client/e2e/
   scripts/                      # install-windows.ps1, dev-restart.js
   server/                       # Hono backend (port 3847)
     src/
