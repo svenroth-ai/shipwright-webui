@@ -207,25 +207,6 @@ export class HeadlessMirror {
   }
 
   /**
-   * Iterate L (resume-cta-active-state) — report whether the alt-screen
-   * buffer is currently active in the mirror. Used by the API layer to
-   * derive a `altScreenActive` field on /tasks responses so the client
-   * can hide the Resume CTA while a TUI (Claude, vim, htop, etc.) is
-   * in pty foreground — pasting `claude --resume <uuid>` into a live
-   * TUI would either error or feed garbage into the running app's
-   * input handler.
-   *
-   * xterm.js semantics: `term.buffer.active.type === "alternate"` flips
-   * true on DECSET 1049 (enter alt-screen) and false on DECRST 1049
-   * (leave alt-screen). Claude TUI uses 1049; so does pretty much any
-   * full-screen TUI app.
-   */
-  isAltBufferActive(): boolean {
-    if (this.disposed) return false;
-    return this.term.buffer.active.type === "alternate";
-  }
-
-  /**
    * Adjust dimensions. Headless terminal preserves scrollback contents
    * across resize; rewrap behavior follows xterm.js's reflow.
    */
