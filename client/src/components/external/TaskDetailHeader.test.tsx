@@ -161,31 +161,21 @@ describe("TaskDetailHeader — CTA state machine (O31)", () => {
   });
 
   // resume-cta-rework (2026-05-16) — the activity gate is REMOVED.
-  // Resume shows for every (idle | active) task regardless of
-  // altScreenActive / lastPtyDataAt / lastJsonlSeenMtimeMs. All four
-  // prior gate signals were empirically falsified; webui cannot
-  // observe Claude process-liveness. This block is the regression
-  // fence proving the gate did not creep back.
-  it("active + altScreenActive=true → 'Resume' CTA (gate removed)", () => {
-    renderHeader(makeTask({ state: "active", altScreenActive: true }));
-    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
-  });
-
-  it("idle + altScreenActive=true → 'Resume' CTA (gate removed)", () => {
-    renderHeader(makeTask({ state: "idle", altScreenActive: true }));
-    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
-  });
-
-  it("active + every former gate-signal 'recently active' → 'Resume' still shows", () => {
-    // The exact configuration the old isClaudeRecentlyActive gate hid
-    // Resume for: fresh JSONL mtime + alt-screen + recent pty data.
-    // Post-rework the CTA MUST show — clicking Resume on a live
-    // session is harmless ("Session ID already in use").
+  // Resume shows for every (idle | active) task. The altScreenActive /
+  // lastPtyDataAt gate signals were deleted outright in
+  // iterate-2026-05-17-remove-dead-resume-gate; liveSession and
+  // lastJsonlSeenMtimeMs still exist but MUST NOT gate the CTA. This
+  // block is the regression fence proving the gate did not creep back.
+  it("active + every surviving former gate-signal 'recently active' → 'Resume' still shows", () => {
+    // The configuration the old isClaudeRecentlyActive gate hid Resume
+    // for, reduced to the signals that still exist on ExternalTask: a
+    // live pty + fresh JSONL mtime. Post-rework the CTA MUST show —
+    // clicking Resume on a live session is harmless ("Session ID
+    // already in use").
     renderHeader(
       makeTask({
         state: "active",
-        altScreenActive: true,
-        lastPtyDataAt: Date.now() - 1_000,
+        liveSession: true,
         lastJsonlSeenMtimeMs: Date.now() - 1_000,
       }),
     );
