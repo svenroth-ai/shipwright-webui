@@ -564,6 +564,9 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                       // never carry a reset banner: no pty is spawned and
                       // Resume is not applicable in a terminal state.
                       terminalReset: false,
+                      // fix-resume-guard-survives-reload — replay-only
+                      // tasks spawn no pty; there is nothing to reuse.
+                      ptyReused: false,
                       scrollbackBytes,
                       retentionDays,
                       scrollbackDir: scrollbackDirHint,
@@ -717,6 +720,15 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   replayOnly: false,
                   // ADR-104 — drives the EmbeddedTerminal reset banner.
                   terminalReset,
+                  // fix-resume-guard-survives-reload — true when this WS
+                  // attach REUSED a pty that pre-existed the attach (it
+                  // persisted across a browser reload / navigate-back).
+                  // Arms the EmbeddedTerminal one-shot inject guard so a
+                  // post-reload launch parks behind an explicit confirm
+                  // instead of auto-injecting into a live Claude session.
+                  // Mutually exclusive with `terminalReset`: a fresh pty
+                  // (terminalReset can be true) is never a reused one.
+                  ptyReused: ptyExistedBeforeAttach,
                   scrollbackBytes: 0,
                   retentionDays,
                   scrollbackDir: scrollbackDirHint,
