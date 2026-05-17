@@ -163,28 +163,19 @@ describe("TaskCard — Resume CTA matrix (Iterate L)", () => {
   });
 
   // resume-cta-rework (2026-05-16) — the activity gate is REMOVED.
-  // Resume shows for every (idle | active) task regardless of
-  // altScreenActive / lastPtyDataAt / lastJsonlSeenMtimeMs. webui
-  // cannot observe Claude process-liveness; all four prior gate
-  // signals were empirically falsified. Regression fence below.
-  it("SHOWS Resume when state=active + altScreenActive=true (gate removed)", () => {
-    renderCard(baseTask({ state: "active", altScreenActive: true }));
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-
-  it("SHOWS Resume when state=idle + altScreenActive=true (gate removed)", () => {
-    renderCard(baseTask({ state: "idle", altScreenActive: true }));
-    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
-  });
-
-  it("SHOWS Resume when every former gate-signal says 'recently active'", () => {
-    // The exact configuration the old isClaudeRecentlyActive gate hid
-    // Resume for — post-rework it MUST show.
+  // Resume shows for every (idle | active) task. The altScreenActive /
+  // lastPtyDataAt gate signals were deleted outright in
+  // iterate-2026-05-17-remove-dead-resume-gate; liveSession and
+  // lastJsonlSeenMtimeMs still exist but MUST NOT gate the CTA.
+  // Regression fence below.
+  it("SHOWS Resume when every surviving former gate-signal says 'recently active'", () => {
+    // The configuration the old isClaudeRecentlyActive gate hid Resume
+    // for, reduced to the signals still present on ExternalTask — a
+    // live pty + fresh JSONL mtime. Post-rework it MUST show.
     renderCard(
       baseTask({
         state: "active",
-        altScreenActive: true,
-        lastPtyDataAt: Date.now() - 1_000,
+        liveSession: true,
         lastJsonlSeenMtimeMs: Date.now() - 1_000,
       }),
     );
