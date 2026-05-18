@@ -9,7 +9,9 @@
  * The collapse state is a single global UI-density preference — one
  * localStorage key, like the Transcript/Terminal tab pref — NOT keyed per
  * task (avoids unbounded localStorage growth; the brief is short and the
- * preference is "do I want to see briefs at all"). Default: expanded.
+ * preference is "do I want to see briefs at all"). Default: collapsed —
+ * the header stays compact; the user opts in to seeing briefs and the
+ * choice then persists.
  *
  * The description is rendered as a plain text node — React escapes it; no
  * `dangerouslySetInnerHTML`. `whitespace-pre-wrap` keeps authored line
@@ -31,7 +33,7 @@ interface Props {
 export function TaskDescriptionDisclosure({ task }: Props) {
   const [collapsed, setCollapsed] = useLocalStorage<boolean>(
     COLLAPSE_KEY,
-    false,
+    true,
   );
   const description = task.description?.trim() ?? "";
   if (description.length === 0) return null;
