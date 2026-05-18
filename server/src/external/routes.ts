@@ -82,6 +82,7 @@ import { deriveSessionInbox, DEFAULT_USER_BLOCKING_TOOLS } from "../core/inbox-d
 import {
   SdkSessionsStore,
   UNASSIGNED_PROJECT_ID,
+  isBacklogSourceState,
   type ExternalTask,
   type ExternalTaskState,
 } from "../core/sdk-sessions-store.js";
@@ -1044,7 +1045,16 @@ export function createExternalRoutes(args: {
 
     // Apply state-machine transitions based on probe outcome + mtime.
     if (result.status === "missing") {
-      if (task.firstJsonlObservedAt && task.state !== "jsonl_missing") {
+      if (
+        task.firstJsonlObservedAt &&
+        task.state !== "jsonl_missing" &&
+        // iterate-2026-05-17-move-to-backlog (FR-01.32) — a task moved
+        // back to the Backlog is sticky: a transient JSONL-probe miss
+        // must NOT yank a `draft` task into `jsonl_missing` (which would
+        // relocate it out of the Backlog column). `draft` is never a
+        // transition source in the transcript state machine.
+        task.state !== "draft"
+      ) {
         store.patch(task.taskId, { state: "jsonl_missing" });
         await store.persist();
       } else if (
@@ -1082,8 +1092,23 @@ export function createExternalRoutes(args: {
     const patch: Partial<ExternalTask> = { lastJsonlSeenMtimeMs: mtime };
     let nextState: ExternalTaskState = task.state;
     if (!task.firstJsonlObservedAt) {
-      nextState = "active";
+      // First JSONL ever observed for this task — record the timestamp
+      // regardless of state.
       patch.firstJsonlObservedAt = new Date().toISOString();
+      // iterate-2026-05-17-move-to-backlog (FR-01.32 / AC-3) — a task
+      // moved back to the Backlog BEFORE its launch produced a JSONL is
+      // `draft` with `firstJsonlObservedAt` still unset. When that launch
+      // (already dispatched) finally writes a JSONL, this poll must NOT
+      // bump the task out of the Backlog into `active`. The distinguishing
+      // signal is `launchedAt`: a backlogged task came from an In-Progress
+      // state, all of which are reached via /launch (which sets
+      // `launchedAt`). A genuinely fresh, never-launched `draft` has no
+      // `launchedAt` and still bootstraps to `active` on its first JSONL
+      // (the original contract). Either way the timestamp is recorded, so
+      // a later Resume affordance (`hasLaunchedBefore`) stays correct.
+      if (!(task.state === "draft" && task.launchedAt)) {
+        nextState = "active";
+      }
     } else if (
       task.state === "jsonl_missing" ||
       task.state === "awaiting_external_start"
@@ -1375,6 +1400,38 @@ export function createExternalRoutes(args: {
     if (!task) return c.json({ error: "Task not found" }, 404);
     const updated = store.patch(task.taskId, { state: "done" });
     await store.persist();
+    return c.json({ task: withLiveSession(updated) });
+  });
+
+  // iterate-2026-05-17-move-to-backlog (FR-01.32) — move an In-Progress
+  // task back to the Backlog column (`state → draft`). A pure registry-
+  // state flip, sibling of /close: the JSONL and shipwright_run_config.json
+  // are NOT touched. "Backlog" is a re-organisation gesture, not a reset —
+  // every history field (launchedAt, firstJsonlObservedAt,
+  // lastJsonlSeenMtimeMs, actionId, phase, inbox) is preserved; only
+  // `state` changes (store.patch is a shallow merge).
+  app.post("/api/external/tasks/:id/backlog", async (c) => {
+    const task = store.get(c.req.param("id"));
+    if (!task) return c.json({ error: "Task not found" }, 404);
+    // Already in the Backlog → idempotent no-op (the client menu hides the
+    // action for `draft`, but a double-click race must not 409).
+    if (task.state === "draft") {
+      return c.json({ task: withLiveSession(task) });
+    }
+    // Explicit allowlist of the five In-Progress states. `done` (terminal,
+    // out of scope) and any future state fall through to the 409.
+    if (!isBacklogSourceState(task.state)) {
+      return c.json({ error: "backlog_invalid_state", state: task.state }, 409);
+    }
+    const updated = store.patch(task.taskId, { state: "draft" });
+    try {
+      await store.persist();
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ELOCKED") {
+        return c.json({ error: "sdk-sessions.json is locked, retry" }, 409);
+      }
+      throw err;
+    }
     return c.json({ task: withLiveSession(updated) });
   });
 
