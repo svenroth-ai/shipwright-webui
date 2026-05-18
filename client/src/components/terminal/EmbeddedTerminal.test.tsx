@@ -942,6 +942,43 @@ describe("<EmbeddedTerminal>", () => {
       });
     }
 
+    /**
+     * fix-resume-guard-survives-reload (2026-05-17) — like readyWriter,
+     * but the server reports `ptyReused: true`: the WS attach reused a
+     * pty that pre-existed this mount (it persisted across a browser
+     * reload / navigate-away-and-back). `extraReady` lets a caller send a
+     * later `ready` (e.g. a reconnect) with a different `ptyReused`.
+     */
+    async function readyWriterReused(
+      ws: FakeWebSocket,
+      ptyReused: boolean = true,
+    ) {
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({
+            type: "ready",
+            role: "writer",
+            shellKind: "pwsh",
+            cwd: "C:\\x",
+            ptyReused,
+          }),
+        );
+      });
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "data", payload: "$ " }));
+      });
+    }
+
+    function clickDispatch(container: HTMLElement) {
+      return act(async () =>
+        (
+          container.querySelector(
+            '[data-testid="harness-dispatch"]',
+          ) as HTMLButtonElement
+        ).click(),
+      );
+    }
+
     it("first launch into a fresh pty auto-injects the command", async () => {
       const { container } = render(
         <LaunchCoordinatorProvider>
@@ -1151,6 +1188,118 @@ describe("<EmbeddedTerminal>", () => {
       await waitFor(
         () => {
           expect(countLaunchSends(ws)).toBe(2);
+        },
+        { timeout: 3000 },
+      );
+      expect(
+        container.querySelector(
+          '[data-testid="embedded-terminal-manual-send"]',
+        ),
+      ).toBeNull();
+    });
+
+    // ── fix-resume-guard-survives-reload (2026-05-17) ──
+    //
+    // The one-shot guard is in-memory per component mount. A browser
+    // reload (or navigate-away-and-back) remounts EmbeddedTerminal with a
+    // fresh `false` guard while the SERVER pty persists (30-min idle
+    // ceiling). The server's `ready` envelope carries `ptyReused: true`
+    // for that reused pty; the guard arms on the FIRST `ready` so the
+    // first post-reload launch parks behind the explicit "Send to
+    // terminal" confirm instead of auto-injecting `claude --resume …`
+    // into the still-live Claude session.
+    it("a launch into a reused pty (ready ptyReused:true — post-reload) parks behind 'Send to terminal' — no auto-send", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      // Server reports the pty PRE-EXISTED this WS attach — it persisted
+      // across the browser reload while Claude may still be running.
+      await readyWriterReused(ws);
+      // The FIRST launch after the reload — must NOT auto-inject.
+      await clickDispatch(container);
+      await waitFor(
+        () => {
+          expect(
+            container.querySelector(
+              '[data-testid="embedded-terminal-manual-send"]',
+            ),
+          ).not.toBeNull();
+        },
+        { timeout: 3000 },
+      );
+      expect(countLaunchSends(ws)).toBe(0);
+    });
+
+    it("a launch into a freshly-spawned pty (ready ptyReused:false) still auto-injects", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      // Explicit ptyReused:false — a fresh pty must NOT arm the guard.
+      await readyWriterReused(ws, false);
+      await clickDispatch(container);
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(1);
+        },
+        { timeout: 3000 },
+      );
+      expect(
+        container.querySelector(
+          '[data-testid="embedded-terminal-manual-send"]',
+        ),
+      ).toBeNull();
+    });
+
+    it("the reused-pty signal is latched at first ready — a later ready reporting ptyReused:true does not arm the guard", async () => {
+      const { container } = render(
+        <LaunchCoordinatorProvider>
+          <AutoLaunchHarness taskId="t1" />
+        </LaunchCoordinatorProvider>,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      // First ready: a freshly-spawned pty.
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({
+            type: "ready",
+            role: "writer",
+            shellKind: "pwsh",
+            cwd: "C:\\x",
+            ptyReused: false,
+          }),
+        );
+      });
+      // A later ready (e.g. a WS reconnect within the same mount) reports
+      // the pty now persists — but the guard decision was latched at the
+      // FIRST ready, so this must NOT arm the guard.
+      await act(async () => {
+        ws.__message(
+          JSON.stringify({
+            type: "ready",
+            role: "writer",
+            shellKind: "pwsh",
+            cwd: "C:\\x",
+            ptyReused: true,
+          }),
+        );
+      });
+      await act(async () => {
+        ws.__message(JSON.stringify({ type: "data", payload: "$ " }));
+      });
+      await clickDispatch(container);
+      // Auto-injects — the latch ignored the late ptyReused:true.
+      await waitFor(
+        () => {
+          expect(countLaunchSends(ws)).toBe(1);
         },
         { timeout: 3000 },
       );
