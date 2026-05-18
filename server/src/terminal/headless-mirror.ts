@@ -44,6 +44,19 @@ const { SerializeAddon } = addonPkg;
 type XtermTerminal = InstanceType<typeof Terminal>;
 
 /**
+ * DECTCEM (cursor-visibility) restore sequences.
+ *
+ * `@xterm/addon-serialize`'s `_serializeModes()` serializes the public
+ * IModes set + the mouse-tracking selector, but NEVER DECTCEM (`?25`).
+ * `serializeStable()` re-appends exactly one of these so a reattach
+ * reproduces the producer's cursor-visibility state instead of xterm's
+ * always-visible default. Sibling workaround for the same addon-serialize
+ * mode-drop class: `replay-snapshot.ts` re-appends `?1006h`.
+ */
+const CURSOR_HIDE = "\x1b[?25l";
+const CURSOR_SHOW = "\x1b[?25h";
+
+/**
  * Snapshot every line in the active buffer (scrollback + viewport) as
  * strings — used by serializeStableWithCanonicalBuffer to capture the
  * round2 reference. translateToString(false) preserves trailing spaces;
@@ -251,6 +264,10 @@ export class HeadlessMirror {
    * serializeStable() which discards the buffer. The round2 buffer is
    * the contract reference: a client replay of `stable` produces the
    * same lines.
+   *
+   * `stable` additionally carries a trailing DECTCEM (`?25h` / `?25l`):
+   * addon-serialize never serializes cursor visibility, so it is restored
+   * explicitly here — see `readCursorHidden()`.
    */
   async serializeStableWithCanonicalBuffer(): Promise<{
     stable: string;
@@ -265,6 +282,12 @@ export class HeadlessMirror {
     // mirror.write() that arrived just before kill could leave the
     // serialize output missing the trailing payload bytes.
     await this.flushPendingWrites();
+    // Capture DECTCEM from the LIVE mirror now — after the flush so a
+    // trailing ?25 toggle in the last pty chunk is already processed, and
+    // before round1/round2 (which read addon state, not this.term's
+    // cursor mode). addon-serialize drops ?25 entirely; readCursorHidden()
+    // + the append at the return is the restore.
+    const cursorHidden = this.readCursorHidden();
     // Round 1 — serialize the live mirror.
     const liveAddon = new SerializeAddon();
     this.term.loadAddon(liveAddon);
@@ -292,10 +315,38 @@ export class HeadlessMirror {
       });
       const stable = warmAddon.serialize();
       const canonicalLines = snapshotVisibleLines(warm);
-      return { stable, canonicalLines };
+      // DECTCEM restore — append the cursor-visibility mode addon-serialize
+      // never emits. Position-independent and idempotent (xterm no-ops a
+      // redundant mode set), so it does not perturb the M2 fixed point or
+      // the round2 visible buffer (`canonicalLines`) — cursor visibility is
+      // not cell content.
+      const stableWithCursor =
+        stable + (cursorHidden ? CURSOR_HIDE : CURSOR_SHOW);
+      return { stable: stableWithCursor, canonicalLines };
     } finally {
       warmAddon.dispose();
       warm.dispose();
+    }
+  }
+
+  /**
+   * Live mirror's DECTCEM state — `true` when the cursor is hidden.
+   * addon-serialize never serializes `?25`, so `serializeStable()` restores
+   * it explicitly: else a reattach shows a ghost cursor that Claude Code
+   * (fullscreen under `CLAUDE_CODE_NO_FLICKER=1`, ADR-095/098) believes is
+   * hidden, jumping with every CUP redraw. The `_core.coreService` peek is
+   * an internal-surface read (xterm exact-pinned 6.0.0, CLAUDE.md rule 22),
+   * correct across `?25l` / `?25h` AND soft-reset. Unreadable internal →
+   * `false` (pre-fix behaviour) so a future xterm refactor degrades safely.
+   */
+  private readCursorHidden(): boolean {
+    try {
+      const core = (this.term as unknown as {
+        _core?: { coreService?: { isCursorHidden?: boolean } };
+      })._core;
+      return core?.coreService?.isCursorHidden === true;
+    } catch {
+      return false;
     }
   }
 
