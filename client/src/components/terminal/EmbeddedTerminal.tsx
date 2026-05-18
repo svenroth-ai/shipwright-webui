@@ -12,8 +12,13 @@
  *     is uploaded to /api/terminal/:taskId/paste-image (multipart). Server
  *     persists to <task.cwd>/.claude-pastes/img-<ts>-<rand>.png and
  *     pty.write()s the shell-quoted absolute path.
- *   - Text-only clipboard: preventDefault + socket.send({type:"data", payload}).
+ *   - Text-only clipboard: preventDefault + term.paste(text) (bracketed-
+ *     paste safe — iterate-2026-05-18 AC-8).
  *   - Mixed clipboard: image wins; text dropped intentionally.
+ *
+ * Keyboard copy/paste (iterate-2026-05-18 / FR-01.28): a
+ * `term.attachCustomKeyEventHandler` wires Ctrl+C / Ctrl+Insert (copy)
+ * and Ctrl+V / Shift+Insert (paste) — see terminal-clipboard.ts.
  *
  * The component exposes an imperative ref (`focus()`, `ready`) so the
  * launch-flow side-effect in TaskDetailPage can wait for ready === true
@@ -43,6 +48,12 @@ import {
   type CopyCommandForms,
 } from "../../contexts/LaunchCoordinatorContext";
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
+import {
+  createClipboardKeyHandler,
+  readClipboardForPaste,
+  type ClipboardNoticeKind,
+} from "./terminal-clipboard";
+import { copyText } from "../../lib/clipboard";
 
 export interface EmbeddedTerminalHandle {
   focus(): void;
@@ -114,6 +125,35 @@ export interface EmbeddedTerminalProps {
 }
 
 const RESIZE_THROTTLE_MS = 250;
+
+/**
+ * Transient clipboard notice (iterate-2026-05-18). Rendered as a corner
+ * pill OVER the terminal — not a banner-stack strip, so it neither
+ * reflows xterm nor collides with the reset / preview banners.
+ */
+const CLIPBOARD_NOTICE_TEXT: Record<ClipboardNoticeKind, string> = {
+  copied: "Copied",
+  "copy-failed": "Copy failed",
+  "paste-hint":
+    "Keyboard paste needs HTTPS or localhost — use right-click → Paste",
+  "paste-failed": "Paste failed — clipboard permission denied",
+};
+
+/** ms before a notice auto-dismisses. "Copied" is brief; errors/hint linger. */
+const CLIPBOARD_NOTICE_MS: Record<ClipboardNoticeKind, number> = {
+  copied: 2500,
+  "copy-failed": 8000,
+  "paste-hint": 8000,
+  "paste-failed": 8000,
+};
+
+/** Pill tone — copy success vs error vs the non-secure paste hint. */
+const CLIPBOARD_NOTICE_CLASS: Record<ClipboardNoticeKind, string> = {
+  copied: "border-emerald-700 bg-[#0f2417] text-emerald-300",
+  "copy-failed": "border-red-800 bg-[#2a1416] text-red-300",
+  "paste-hint": "border-sky-800 bg-[#0f1d2e] text-sky-300",
+  "paste-failed": "border-red-800 bg-[#2a1416] text-red-300",
+};
 
 /**
  * Replay drain gate (ADR-108, iterate-20260516-terminal-smear-interleave).
@@ -498,6 +538,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // ADR-104 — the reset banner is dismissable; the flag resets on
     // taskId change (see the [taskId] effect above).
     const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
+    // iterate-2026-05-18 — transient copy/paste notice (corner pill).
+    const [clipboardNotice, setClipboardNotice] =
+      useState<ClipboardNoticeKind | null>(null);
     // resume-cta-rework (2026-05-16) — when a Launch/Resume click lands
     // on a pty that already had a launch injected (the one-shot guard
     // fired), the three-shell-form commands are parked here and
@@ -525,6 +568,17 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       return () => clearTimeout(t);
     }, [socket.role, socket.ready]);
     const readOnly = readOnlyArmed && socket.role === "reader";
+
+    // iterate-2026-05-18 — auto-dismiss the clipboard notice. "Copied"
+    // clears quickly; the error / hint notices linger (and carry a ✕).
+    useEffect(() => {
+      if (!clipboardNotice) return;
+      const t = setTimeout(
+        () => setClipboardNotice(null),
+        CLIPBOARD_NOTICE_MS[clipboardNotice],
+      );
+      return () => clearTimeout(t);
+    }, [clipboardNotice]);
 
     // Surface ready for the launch-flow handshake.
     useEffect(() => {
@@ -1001,6 +1055,20 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // Cleanup nulls it on dispose. Single ref, no production impact.
       (window as unknown as { __embeddedTerminal?: Terminal | null }).__embeddedTerminal = term;
 
+      // iterate-2026-05-18 (FR-01.28) — keyboard copy/paste. Registered
+      // once per xterm instance; runs before xterm's own key handling.
+      // Paste routes through term.paste() → the onData handler below, so
+      // the key handler needs no socket reference (no stale closure).
+      term.attachCustomKeyEventHandler(
+        createClipboardKeyHandler({
+          term,
+          isDisposed: () => disposedRef.current,
+          notify: setClipboardNotice,
+          copy: copyText,
+          readClipboard: readClipboardForPaste,
+        }),
+      );
+
       // Forward keystrokes / paste-text into the socket.
       const onDataDispose = term.onData((data) => {
         socket.send({ type: "data", payload: data });
@@ -1199,7 +1267,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           ev.preventDefault();
           ev.stopPropagation();
           const text = ev.clipboardData?.getData("text/plain") ?? "";
-          if (text) socket.send({ type: "data", payload: text });
+          // iterate-2026-05-18 (AC-8) — route through term.paste() so
+          // line endings normalize and bracketed-paste markers wrap the
+          // content; the prior raw socket.send made a multi-line prompt
+          // submit on its first line.
+          if (text && !disposedRef.current) {
+            termRef.current?.paste(text);
+          }
         }
       };
       document.addEventListener("paste", handler, { capture: true });
@@ -1210,7 +1284,9 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           { capture: true } as EventListenerOptions,
         );
       };
-    }, [uploadPasteBlob, socket]);
+      // socket no longer referenced — paste now routes via term.paste()
+      // (iterate-2026-05-18 AC-8); `termRef`/`disposedRef` are refs.
+    }, [uploadPasteBlob]);
 
     // ADR-068-A1 AC-16 (Phase-5-Codex review fix): about-to-run preview
     // banner. Visible while a pendingLaunch token exists for THIS
@@ -1269,7 +1345,7 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // so they read as a header strip ON the dark frame, not an
       // island floating inside the padding.
       <div
-        className="flex h-full min-h-0 w-full flex-col bg-[#1a1a1a] p-2"
+        className="relative flex h-full min-h-0 w-full flex-col bg-[#1a1a1a] p-2"
         data-testid="embedded-terminal"
         data-ws-open={socket.open ? "true" : "false"}
         data-ws-ready={socket.ready ? "true" : "false"}
@@ -1375,6 +1451,28 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           tabIndex={-1}
           data-testid="embedded-terminal-canvas"
         />
+        {clipboardNotice ? (
+          // iterate-2026-05-18 — copy/paste notice. Absolute corner pill
+          // so it never reflows xterm or stacks with the header banners.
+          <div
+            className={`absolute bottom-3 right-3 z-10 flex max-w-[min(90%,28rem)] items-center gap-2 rounded border px-2.5 py-1 text-[11px] shadow-md ${CLIPBOARD_NOTICE_CLASS[clipboardNotice]}`}
+            data-testid="embedded-terminal-clipboard-notice"
+            data-notice-kind={clipboardNotice}
+          >
+            <span>{CLIPBOARD_NOTICE_TEXT[clipboardNotice]}</span>
+            {clipboardNotice !== "copied" ? (
+              <button
+                type="button"
+                onClick={() => setClipboardNotice(null)}
+                className="shrink-0 rounded px-1 leading-none hover:bg-white/10"
+                data-testid="embedded-terminal-clipboard-notice-dismiss"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     );
   },
