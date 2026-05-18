@@ -20,6 +20,20 @@ const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
 
+// iterate-2026-05-18 — copy/paste. `attachCustomKeyEventHandler` records
+// the registered callback so a wiring test can invoke it with a fake
+// KeyboardEvent. `mockSelection` stages xterm's selection state;
+// `pasteSpy` captures `term.paste()`; `clearSelectionSpy` captures clears.
+let keyEventHandler: ((ev: KeyboardEvent) => boolean) | null = null;
+let mockSelection = "";
+const clearSelectionSpy = vi.fn(() => {
+  mockSelection = "";
+});
+const pasteSpy = vi.fn();
+const attachKeyHandlerSpy = vi.fn((cb: (ev: KeyboardEvent) => boolean) => {
+  keyEventHandler = cb;
+});
+
 // ADR-108 (iterate-20260516-terminal-smear-interleave) — deterministic
 // control over xterm's async write parse. `term.write(data, cb)` DEFERS
 // `cb` into `writeCompletions` (mirrors xterm's "callback fires after
@@ -76,6 +90,12 @@ vi.mock("@xterm/xterm", () => ({
       onDataHandlers.push(cb);
       return { dispose: vi.fn() };
     },
+    // iterate-2026-05-18 — copy/paste surface.
+    attachCustomKeyEventHandler: attachKeyHandlerSpy,
+    hasSelection: () => mockSelection.length > 0,
+    getSelection: () => mockSelection,
+    clearSelection: clearSelectionSpy,
+    paste: pasteSpy,
     buffer: { active: mockBufferActive },
   })),
 }));
@@ -229,6 +249,11 @@ describe("<EmbeddedTerminal>", () => {
     onDataHandlers.length = 0;
     writeCompletions.length = 0;
     writeShouldThrow = false;
+    keyEventHandler = null;
+    mockSelection = "";
+    clearSelectionSpy.mockClear();
+    pasteSpy.mockClear();
+    attachKeyHandlerSpy.mockClear();
 
     // ResizeObserver stub for jsdom.
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
@@ -312,11 +337,10 @@ describe("<EmbeddedTerminal>", () => {
     expect(focusSpy).toHaveBeenCalled();
   });
 
-  it("paste-handler — text-only clipboard: preventDefault + socket.send({type:'data'}), no fetch", async () => {
+  it("paste-handler — text-only clipboard: preventDefault + term.paste(), no fetch", async () => {
     const { container } = render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});
     const target = container.querySelector('[data-testid="embedded-terminal-canvas"]') as HTMLDivElement;
-    const ws = FakeWebSocket.instances[0];
 
     const dt = new FakeDataTransfer();
     dt.items.add("hello\nworld", "text/plain");
@@ -326,7 +350,10 @@ describe("<EmbeddedTerminal>", () => {
       target.dispatchEvent(ev);
     });
     expect(ev.defaultPrevented).toBe(true);
-    expect(ws.sent.some((s) => s.includes('"hello\\nworld"'))).toBe(true);
+    // iterate-2026-05-18 (AC-8) — text paste routes through term.paste()
+    // (line-ending + bracketed-paste normalization), not a raw
+    // socket.send that made multi-line prompts submit on the first line.
+    expect(pasteSpy).toHaveBeenCalledWith("hello\nworld");
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
@@ -413,6 +440,105 @@ describe("<EmbeddedTerminal>", () => {
     expect(ev.defaultPrevented).toBe(false);
     expect(globalThis.fetch).not.toHaveBeenCalled();
     document.body.removeChild(outside);
+  });
+
+  // ── iterate-2026-05-18 — keyboard copy/paste wiring (FR-01.28) ──────
+  // The chord classifier + handler decision logic are exhaustively unit-
+  // tested in terminal-clipboard*.test.ts. These tests prove the COMPONENT
+  // wiring: the handler is registered, its deps reach copy/paste/notify,
+  // and the notice pill renders. The real-browser keyboard path is the
+  // Playwright E2E (synthetic events are not sufficient evidence).
+  describe("copy/paste keyboard wiring", () => {
+    const originalClipboard = Object.getOwnPropertyDescriptor(
+      navigator,
+      "clipboard",
+    );
+    afterEach(() => {
+      if (originalClipboard) {
+        Object.defineProperty(navigator, "clipboard", originalClipboard);
+      } else {
+        delete (navigator as { clipboard?: unknown }).clipboard;
+      }
+    });
+    function stubClipboard(value: unknown): void {
+      Object.defineProperty(navigator, "clipboard", {
+        value,
+        configurable: true,
+      });
+    }
+    function keyDown(partial: Partial<KeyboardEvent>): KeyboardEvent {
+      return {
+        type: "keydown",
+        ctrlKey: false,
+        shiftKey: false,
+        metaKey: false,
+        altKey: false,
+        repeat: false,
+        key: "",
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        ...partial,
+      } as unknown as KeyboardEvent;
+    }
+    /** Flush the handler's async `.then` chain + React renders. */
+    async function flush(): Promise<void> {
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    function noticeKind(container: HTMLElement): string | null {
+      return (
+        container
+          .querySelector('[data-testid="embedded-terminal-clipboard-notice"]')
+          ?.getAttribute("data-notice-kind") ?? null
+      );
+    }
+
+    it("registers a custom key handler on mount", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(attachKeyHandlerSpy).toHaveBeenCalledTimes(1);
+      expect(keyEventHandler).not.toBeNull();
+    });
+
+    it("Ctrl+V routes the clipboard text through term.paste()", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      stubClipboard({ readText: vi.fn(async () => "multi\nline\n\nprompt") });
+      act(() => {
+        keyEventHandler?.(keyDown({ ctrlKey: true, key: "v" }));
+      });
+      await flush();
+      expect(pasteSpy).toHaveBeenCalledWith("multi\nline\n\nprompt");
+    });
+
+    it("Ctrl+V in a non-secure context shows the paste-hint pill", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      stubClipboard(undefined); // non-secure context — no Clipboard API
+      act(() => {
+        keyEventHandler?.(keyDown({ ctrlKey: true, key: "v" }));
+      });
+      await flush();
+      expect(noticeKind(container)).toBe("paste-hint");
+    });
+
+    it("Ctrl+C with a selection copies the selected text and shows the 'copied' pill", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const writeText = vi.fn(async () => {});
+      stubClipboard({ writeText });
+      mockSelection = "selected output";
+      act(() => {
+        keyEventHandler?.(keyDown({ ctrlKey: true, key: "c" }));
+      });
+      await flush();
+      // The SELECTED text must flow through copyText → the clipboard —
+      // not just "something was copied" (external review, openai #2).
+      expect(writeText).toHaveBeenCalledWith("selected output");
+      expect(clearSelectionSpy).toHaveBeenCalled();
+      expect(noticeKind(container)).toBe("copied");
+    });
   });
 
   it("paste-handler — no clipboard items at all: handler is a no-op (no preventDefault, no fetch)", async () => {
