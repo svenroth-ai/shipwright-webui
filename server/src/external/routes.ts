@@ -80,6 +80,7 @@ import {
 import { SessionWatcher } from "../core/session-watcher.js";
 import { parseSessionJsonl } from "../core/session-parser.js";
 import { deriveSessionInbox, DEFAULT_USER_BLOCKING_TOOLS } from "../core/inbox-derive.js";
+import { extractTerminalPrompt } from "../core/terminal-prompt-detect.js";
 import {
   SdkSessionsStore,
   UNASSIGNED_PROJECT_ID,
@@ -249,6 +250,14 @@ export function createExternalRoutes(args: {
    */
   ptyManager: {
     get(taskId: string): unknown;
+    /**
+     * iterate-2026-05-18-inbox-terminal-prompts — decoded visible-viewport
+     * text of the task's live headless mirror, or null when there is no
+     * live mirror. Optional: legacy test harnesses pass `{ get }` only;
+     * production (index.ts) wires it. When absent the inbox emits no
+     * `terminal_prompt` rows (graceful — never a crash).
+     */
+    peekTerminalText?(taskId: string): string | null;
   };
 }) {
   const app = new Hono();
@@ -1400,6 +1409,18 @@ export function createExternalRoutes(args: {
           questionId: string;
           questionText: string;
           bestEffort: true;
+        }
+      // iterate-2026-05-18-inbox-terminal-prompts — a waiting
+      // AskUserQuestion picker detected in the LIVE terminal mirror (not
+      // the JSONL — Claude Code journals a tool turn only after it
+      // returns, so a waiting picker is never an unpaired tool_use).
+      | {
+          kind: "terminal_prompt";
+          taskId: string;
+          sessionUuid: string;
+          taskTitle: string;
+          promptText: string;
+          bestEffort: true;
         };
     const out: AggregatedEntry[] = [];
     let storeDirty = false;
@@ -1570,6 +1591,65 @@ export function createExternalRoutes(args: {
         pendingIds: nextPending,
       });
     }
+
+    // ---- Phase 2 (iterate-2026-05-18-inbox-terminal-prompts) ----
+    // `terminal_prompt`: a waiting AskUserQuestion picker is on-screen in
+    // the embedded terminal but never appears in the JSONL. Detect it
+    // from the live @xterm/headless mirror. Runs as a post-pass so the
+    // JSONL derive + its mtime cache above stay byte-identical. Cheap:
+    // an in-memory viewport read (~30 rows) + a regex scan, no I/O — and
+    // it must run every poll because live screen state changes without a
+    // JSONL mtime change. peekTerminalText returns null for tasks with no
+    // live mirror (external-terminal launch, exited pty), so historical
+    // tasks cost only a Map lookup.
+    //
+    // Precedence: ask_tool (JSONL path A) > terminal_prompt > text_question.
+    if (ptyManager.peekTerminalText) {
+      const peek = ptyManager.peekTerminalText.bind(ptyManager);
+      for (const task of store.list()) {
+        if (task.state === "done" || task.state === "launch_failed") continue;
+        // ask_tool wins outright — never double-surface the same task.
+        if (
+          out.some((e) => e.taskId === task.taskId && e.kind === "ask_tool")
+        ) {
+          continue;
+        }
+        let promptText: string | null = null;
+        try {
+          const visible = peek(task.taskId);
+          if (visible) promptText = extractTerminalPrompt(visible);
+        } catch (err) {
+          // Best-effort: a mirror read must never break the inbox. But a
+          // silent swallow hides real regressions (external code review
+          // openai-1) — log with task context before falling back.
+          promptText = null;
+          console.warn(
+            JSON.stringify({
+              level: "warn",
+              message: "inbox terminal_prompt detection failed for task",
+              taskId: task.taskId,
+              error: String(err).slice(0, 200),
+            }),
+          );
+        }
+        if (!promptText) continue;
+        // terminal_prompt supersedes a JSONL text_question for the same
+        // task — the live screen beats the heuristic.
+        const tqIdx = out.findIndex(
+          (e) => e.taskId === task.taskId && e.kind === "text_question",
+        );
+        if (tqIdx >= 0) out.splice(tqIdx, 1);
+        out.push({
+          kind: "terminal_prompt",
+          taskId: task.taskId,
+          sessionUuid: task.sessionUuid,
+          taskTitle: task.title,
+          promptText,
+          bestEffort: true,
+        });
+      }
+    }
+
     if (storeDirty) await store.persist();
     return c.json({ items: out });
   });

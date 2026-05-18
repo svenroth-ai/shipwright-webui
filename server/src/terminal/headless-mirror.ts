@@ -305,6 +305,35 @@ export class HeadlessMirror {
   }
 
   /**
+   * Decoded text of the visible viewport (the bottom page) — scrollback
+   * excluded, ANSI already interpreted into cells. Reads rows
+   * `baseY … baseY + rows` so it always captures the bottom of the
+   * buffer regardless of scroll state. Trailing whitespace per line is
+   * trimmed.
+   *
+   * iterate-2026-05-18-inbox-terminal-prompts: consumed by
+   * `PtyManager.peekTerminalText()` so the inbox can detect a *waiting*
+   * `AskUserQuestion` picker — the picker is on-screen, never in the
+   * JSONL. Best-effort: returns "" on a disposed mirror or any
+   * buffer-read error (never throws — it sits behind an inbox poll).
+   */
+  getVisibleText(): string {
+    if (this.disposed) return "";
+    try {
+      const buf = this.term.buffer.active;
+      const start = buf.baseY;
+      const rows: string[] = [];
+      for (let y = start; y < start + this.rows; y++) {
+        const line = buf.getLine(y);
+        rows.push(line ? line.translateToString(true) : "");
+      }
+      return rows.join("\n");
+    } catch {
+      return "";
+    }
+  }
+
+  /**
    * Idempotent. External code review HIGH: drain pending writes BEFORE
    * disposing the Terminal so any `flushPendingWrites()` awaiters can
    * resolve immediately rather than wait forever on parser callbacks

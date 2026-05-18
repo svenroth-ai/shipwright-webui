@@ -133,13 +133,17 @@ const mockTask = {
   schemaVersion: 3,
 };
 
-function renderPage(): ReturnType<typeof render> {
+function renderPage(
+  navState?: { focusTerminal?: boolean },
+): ReturnType<typeof render> {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter initialEntries={["/tasks/t-123"]}>
+      <MemoryRouter
+        initialEntries={[{ pathname: "/tasks/t-123", state: navState }]}
+      >
         <Routes>
           <Route path="/tasks/:taskId" element={<TaskDetailPage />} />
         </Routes>
@@ -238,6 +242,31 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
       ),
     );
     await waitFor(() => expect(focusSpy).toHaveBeenCalled());
+  });
+
+  // ---------- iterate-2026-05-18-inbox-terminal-prompts (Phase 1) ----------
+
+  it("focuses the terminal when arriving from the Inbox (focusTerminal nav-state)", async () => {
+    renderPage({ focusTerminal: true });
+    await screen.findByTestId("embedded-terminal-mock");
+    // The inbox-origin nav-state forces the Terminal tab + focuses xterm
+    // via the existing pendingFocus → handleTerminalReady path.
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("task-detail-terminal").getAttribute("data-state"),
+      ).toBe("active"),
+    );
+    await waitFor(() => expect(focusSpy).toHaveBeenCalled());
+  });
+
+  it("does NOT focus the terminal on a non-Inbox open (AC2)", async () => {
+    renderPage(); // no focusTerminal nav-state
+    await screen.findByTestId("embedded-terminal-mock");
+    // Let the EmbeddedTerminal mock's onReadyChange callback settle.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(focusSpy).not.toHaveBeenCalled();
   });
 
   it("gitignore-suggestion toast surfaces on EmbeddedTerminal callback; Append calls /append-gitignore", async () => {
