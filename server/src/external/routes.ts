@@ -630,8 +630,18 @@ export function createExternalRoutes(args: {
     // trailer. Without actionId we fall back to the pre-iterate legacy
     // shape (--session-id + --add-dir + --name + --plugin-dir) — that
     // preserves existing Resume/Fork call sites and spec 30/36.
+    // iterate-2026-05-18-fix-resume-description — v0.4.1 (below) made
+    // actionId / phase / phaseLabel "once-set-always-used" (body value
+    // ?? persisted task value) but omitted `description`. As a result
+    // only the NewIssueModal create+launch path — which sends the brief
+    // in the body — injected it; every later launch via useLaunchTask
+    // (the green "Launch" CTA and every "Resume" click both POST only
+    // `{ resume }`) silently dropped the persisted brief. Fall back to
+    // the value persisted on the task at create / edit time.
     const description =
-      typeof body.description === "string" ? body.description : undefined;
+      typeof body.description === "string" && body.description.length > 0
+        ? body.description
+        : task.description;
     const autonomy =
       body.autonomy === "autonomous" || body.autonomy === "guided"
         ? (body.autonomy as "autonomous" | "guided")
@@ -671,6 +681,29 @@ export function createExternalRoutes(args: {
     const actionId = bodyActionId ?? taskActionId;
     const phase = bodyPhase ?? task.phase;
     const phaseLabel = bodyPhaseLabel ?? task.phaseLabel;
+
+    // iterate-2026-05-18-fix-resume-description — a "Resume" click on a
+    // task whose Claude conversation was never established (no
+    // <uuid>.jsonl ever observed on disk → there is nothing to resume)
+    // is semantically a FRESH start. Route it through the substitution
+    // branch below so the brief + slash command are injected exactly
+    // like a direct Launch. A genuine resume (JSONL on disk) stays on
+    // the description-free `--resume` shape — re-injecting the brief as
+    // a new mid-conversation message would be wrong (user decision
+    // 2026-05-18: inject only on fresh starts).
+    //
+    // The `!dryRun` clause keeps the "Copy Resume command" escape hatch
+    // (POSTs `{ resume, dryRun }`) on its pre-fix legacy-fallback path:
+    // a command COPY must never 400 on a missing launch-time parameter
+    // (parameters are not persisted on the task, so the substitution
+    // branch could throw `required_parameter_missing` for e.g. a
+    // build-phase task) — the legacy `--resume` shape is the safe
+    // degrade for the clipboard path.
+    //
+    // `jsonlObserved` is also consumed by the legacy fallback's
+    // `effectiveResume` gate below.
+    const jsonlObserved = Boolean(task.firstJsonlObservedAt);
+    const effectivelyFreshStart = !resume || (!jsonlObserved && !dryRun);
 
     // iterate/launch-cli-parameters § 5 — body parameters validation.
     // Shape: Record<string, string | boolean>; key allowlist is the
@@ -859,7 +892,7 @@ export function createExternalRoutes(args: {
       taskUpdate.title = derivedName;
     }
 
-    if (!commands && actionId && !resume) {
+    if (!commands && actionId && effectivelyFreshStart) {
       const project = getProjectById?.(task.projectId);
       // If the project is resolvable, run the proper substitution path.
       // Unassigned / deleted-project references fall back to legacy.
@@ -974,7 +1007,8 @@ export function createExternalRoutes(args: {
       // the lock cleanly, restores the TUI). v0.8.8's original case
       // (JSONL never written) is preserved: when
       // firstJsonlObservedAt is undefined, still emit fresh launch.
-      const jsonlObserved = Boolean(task.firstJsonlObservedAt);
+      // `jsonlObserved` is hoisted above the branch dispatch — it is
+      // shared with the substitution branch's fresh-start gate.
       const effectiveResume =
         resume && (task.actionId !== "new-plain" || jsonlObserved);
       commands = buildCopyCommands({
