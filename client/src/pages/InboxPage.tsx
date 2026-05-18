@@ -62,6 +62,7 @@ import type {
   CopyCommandForms,
   ExternalTask,
   InboxItem,
+  TerminalPromptInboxItem,
   TextQuestionInboxItem,
 } from "../lib/externalApi";
 import type { Project } from "../types";
@@ -395,14 +396,17 @@ const PHASE_ICON: Record<
 
 /** Stable React key / testid base for an inbox item, kind-aware. */
 function inboxItemKey(item: InboxItem): string {
-  return item.kind === "ask_tool" ? item.toolUseId : item.questionId;
+  if (item.kind === "ask_tool") return item.toolUseId;
+  if (item.kind === "terminal_prompt") return `tp-${item.taskId}`;
+  return item.questionId;
 }
 
 /**
- * InboxCard — dispatches on `item.kind` (iterate 2026-05-15
- * inbox-awaiting-user):
- *  - `ask_tool`      → `AskToolCard`      (read-only Ask-bubble + Answer CTA)
- *  - `text_question` → `TextQuestionCard` (plain-text question, no CTA)
+ * InboxCard — dispatches on `item.kind`:
+ *  - `ask_tool`        → `AskToolCard`     (read-only Ask-bubble + Answer CTA)
+ *  - `text_question`   → `WaitingReplyCard` (plain-text end-of-turn question)
+ *  - `terminal_prompt` → `WaitingReplyCard` (live AskUserQuestion picker
+ *    detected in the embedded terminal — iterate-2026-05-18-inbox-terminal-prompts)
  */
 function InboxCard({
   item,
@@ -411,8 +415,8 @@ function InboxCard({
   item: InboxItem;
   task: ExternalTask | undefined;
 }) {
-  if (item.kind === "text_question") {
-    return <TextQuestionCard item={item} task={task} />;
+  if (item.kind === "text_question" || item.kind === "terminal_prompt") {
+    return <WaitingReplyCard item={item} task={task} />;
   }
   return <AskToolCard item={item} task={task} />;
 }
@@ -460,14 +464,14 @@ function AskToolCard({
 
   const handleCardClick = () => {
     if (!task) return;
-    navigate(`/tasks/${task.taskId}`);
+    navigate(`/tasks/${task.taskId}`, { state: { focusTerminal: true } });
   };
   const handleCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!task) return;
     // Enter + Space activate card click-through (matches native button a11y).
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
       e.preventDefault();
-      navigate(`/tasks/${task.taskId}`);
+      navigate(`/tasks/${task.taskId}`, { state: { focusTerminal: true } });
     }
   };
 
@@ -638,26 +642,35 @@ function AskToolCard({
 }
 
 /**
- * TextQuestionCard — a plain-text "awaiting user" question Claude printed
- * in the terminal with no `AskUserQuestion` tool_use (iterate 2026-05-15
- * inbox-awaiting-user). Same card chrome as `AskToolCard` (amber left
- * strip, context pill, time-ago, whole-card click-through to TaskDetail)
- * but the body is the detected question text — there is NO Answer button
- * and NO dismiss: the row auto-clears server-side once the user replies.
+ * WaitingReplyCard — a read-only "awaiting your reply" card. Handles two
+ * inbox kinds with identical chrome (amber left strip, context pill,
+ * time-ago, whole-card click-through to TaskDetail; NO Answer button, NO
+ * dismiss):
+ *   - `text_question`   — a plain-text end-of-turn question Claude printed
+ *     with no tool_use (iterate 2026-05-15 inbox-awaiting-user).
+ *   - `terminal_prompt` — a waiting AskUserQuestion picker detected in the
+ *     live embedded-terminal mirror (iterate-2026-05-18-inbox-terminal-prompts).
  *
- * `questionText` is rendered as escaped plain-text React children (never
- * markdown/HTML — XSS hardening, external review #10) with `pre-wrap` so a
- * numbered option-menu keeps its line layout; line-clamped so a long turn
- * cannot blow out the card.
+ * The body text is rendered as escaped plain-text React children (never
+ * markdown/HTML — XSS hardening) with `pre-wrap` so a numbered option-menu
+ * keeps its line layout; line-clamped so a long turn cannot blow out the
+ * card.
  */
-function TextQuestionCard({
+function WaitingReplyCard({
   item,
   task,
 }: {
-  item: TextQuestionInboxItem;
+  item: TextQuestionInboxItem | TerminalPromptInboxItem;
   task: ExternalTask | undefined;
 }) {
   const navigate = useNavigate();
+  // text_question keys by its trailing-turn uuid; terminal_prompt keys by
+  // taskId (one live picker per task). `itemKey` feeds the testids;
+  // `bodyText` is the detected question / picker text shown in the body.
+  const itemKey =
+    item.kind === "text_question" ? item.questionId : `tp-${item.taskId}`;
+  const bodyText =
+    item.kind === "text_question" ? item.questionText : item.promptText;
 
   const phase = useMemo<string | null>(() => {
     if (!task?.title) return null;
@@ -671,13 +684,13 @@ function TextQuestionCard({
 
   const handleCardClick = () => {
     if (!task) return;
-    navigate(`/tasks/${task.taskId}`);
+    navigate(`/tasks/${task.taskId}`, { state: { focusTerminal: true } });
   };
   const handleCardKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!task) return;
     if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
       e.preventDefault();
-      navigate(`/tasks/${task.taskId}`);
+      navigate(`/tasks/${task.taskId}`, { state: { focusTerminal: true } });
     }
   };
 
@@ -701,7 +714,7 @@ function TextQuestionCard({
       aria-label={task ? `Open task ${task.title}` : undefined}
       onClick={task ? handleCardClick : undefined}
       onKeyDown={task ? handleCardKeyDown : undefined}
-      data-testid={`inbox-card-${item.questionId}`}
+      data-testid={`inbox-card-${itemKey}`}
     >
       {/* Top row: context pill + time-ago. Read-only. */}
       <div className="mb-[12px] flex items-center justify-between gap-3">
@@ -716,7 +729,7 @@ function TextQuestionCard({
                 padding: "3px 10px",
                 letterSpacing: "0.02em",
               }}
-              data-testid={`inbox-task-context-pill-${item.questionId}`}
+              data-testid={`inbox-task-context-pill-${itemKey}`}
             >
               <PhaseIcon size={12} />
               <span className="truncate">
@@ -752,7 +765,7 @@ function TextQuestionCard({
       {/* Detected question text — escaped plain-text, pre-wrap so numbered
           menus keep their layout, line-clamped against runaway turns. */}
       <div
-        data-testid={`inbox-question-text-${item.questionId}`}
+        data-testid={`inbox-question-text-${itemKey}`}
         style={{
           fontSize: "14px",
           color: "var(--color-text)",
@@ -764,7 +777,7 @@ function TextQuestionCard({
           overflow: "hidden",
         }}
       >
-        {item.questionText}
+        {bodyText}
       </div>
     </div>
   );

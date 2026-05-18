@@ -542,7 +542,14 @@ if (isMainModule) {
             snapshotStore.clearBestEffort(taskId),
           // iterate-2026-05-08 v0.8.7 AC-1: live-pty lookup so transcript
           // poll can flip new-plain `active → idle` after pty-kill.
-          ptyManager: { get: (taskId: string) => ptyManager.get(taskId) },
+          // iterate-2026-05-18-inbox-terminal-prompts: peekTerminalText so
+          // the inbox can detect a waiting AskUserQuestion picker from the
+          // live @xterm/headless mirror.
+          ptyManager: {
+            get: (taskId: string) => ptyManager.get(taskId),
+            peekTerminalText: (taskId: string) =>
+              ptyManager.peekTerminalText(taskId),
+          },
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));

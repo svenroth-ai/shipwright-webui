@@ -32,6 +32,7 @@ Two hard rules, survivors of every review round:
         session-watcher.ts      # Filename-first JSONL discovery + byte-range reader
         session-parser.ts       # Typed events from raw JSONL + unknown-fallback
         inbox-derive.ts         # Pending tool_use extraction (best-effort)
+        terminal-prompt-detect.ts # iterate-2026-05-18: extractTerminalPrompt — waiting AskUserQuestion picker detected from the live @xterm/headless mirror (a waiting picker never reaches the JSONL); /inbox emits it as the terminal_prompt kind
         sdk-sessions-store.ts   # Persistent task store (schemaVersion v1/v2/v3; projectId + iterate-v2 phaseTaskId/runId/parentRunMaster fields; findByPhaseTaskId() for idempotency)
         run-config-reader.ts    # Iterate v2: reads <project.path>/shipwright_run_config.json; per-row fault isolation + torn-read retry + 5s last-good cache. Read-only.
         cli-compat.ts           # Claude CLI version gate (MIN_SUPPORTED_CLI)

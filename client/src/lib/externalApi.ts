@@ -173,7 +173,23 @@ export interface TextQuestionInboxItem extends InboxItemCommon {
   questionText: string;
 }
 
-export type InboxItem = AskToolInboxItem | TextQuestionInboxItem;
+/**
+ * iterate-2026-05-18-inbox-terminal-prompts — a waiting AskUserQuestion
+ * picker detected in the LIVE embedded-terminal mirror. A waiting picker
+ * never appears in the JSONL (Claude Code journals a tool turn only after
+ * it returns), so this is derived from the terminal viewport, not the
+ * transcript. Read-only; auto-clears once the picker is answered.
+ */
+export interface TerminalPromptInboxItem extends InboxItemCommon {
+  kind: "terminal_prompt";
+  /** Visible picker block (question + options + footer), capped at 2000. */
+  promptText: string;
+}
+
+export type InboxItem =
+  | AskToolInboxItem
+  | TextQuestionInboxItem
+  | TerminalPromptInboxItem;
 
 export interface DiagnosticsSnapshot {
   claudeCli: {

@@ -780,6 +780,27 @@ export class PtyManager {
   }
 
   /**
+   * iterate-2026-05-18-inbox-terminal-prompts — decoded visible-viewport
+   * text of the live headless mirror, or `null` when there is no live
+   * mirror for `taskId` (no entry, or `mirror === null` — flag off /
+   * pty exited / external-terminal launch).
+   *
+   * Consumed by the `/api/external/inbox` route to detect a waiting
+   * `AskUserQuestion` picker — the picker is on-screen, never journaled
+   * to the JSONL. Synchronous + best-effort: never throws (it sits
+   * behind a 3 s inbox poll).
+   */
+  peekTerminalText(taskId: string): string | null {
+    const entry = this.entries.get(taskId);
+    if (!entry || !entry.mirror) return null;
+    try {
+      return entry.mirror.getVisibleText();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Iterate E (ADR-092) — persist the live headless mirror to disk via
    * `SnapshotStore.write()`, but do NOT dispose the mirror. The pty
    * stays alive so subsequent `pty.onData` chunks keep mirroring and
