@@ -24,13 +24,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 
 import InboxPage from "./InboxPage";
 import type {
   AskToolInboxItem,
   ExternalTask,
   InboxItem,
+  TerminalPromptInboxItem,
   TextQuestionInboxItem,
 } from "../lib/externalApi";
 import type { Project } from "../types";
@@ -112,6 +119,20 @@ function makeTextItem(
   };
 }
 
+function makeTerminalPromptItem(
+  overrides: Partial<TerminalPromptInboxItem> = {},
+): TerminalPromptInboxItem {
+  return {
+    kind: "terminal_prompt",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    promptText: "Which option?\n  1. Alpha\n  2. Beta\nEnter to select",
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
 function makeProject(overrides: Partial<Project>): Project {
   return {
     id: "proj-a",
@@ -144,6 +165,23 @@ function wireHooks(opts: {
   } as unknown as ReturnType<typeof useProjects>);
 }
 
+/** Task-detail route stub — surfaces the React-Router nav state so a test
+ *  can assert the Inbox cards pass `{ focusTerminal: true }` (Phase 1 of
+ *  iterate-2026-05-18-inbox-terminal-prompts). Keeps the load-bearing
+ *  `task-detail-stub` testid so the pre-existing navigation tests pass. */
+function TaskDetailStub() {
+  const loc = useLocation();
+  const params = useParams();
+  const st = loc.state as { focusTerminal?: boolean } | null;
+  return (
+    <div
+      data-testid="task-detail-stub"
+      data-task-id={params.id ?? ""}
+      data-focus-terminal={String(st?.focusTerminal === true)}
+    />
+  );
+}
+
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -151,10 +189,7 @@ function renderPage() {
       <MemoryRouter initialEntries={["/inbox"]}>
         <Routes>
           <Route path="/inbox" element={<InboxPage />} />
-          <Route
-            path="/tasks/:id"
-            element={<div data-testid="task-detail-stub" />}
-          />
+          <Route path="/tasks/:id" element={<TaskDetailStub />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -474,6 +509,17 @@ describe("InboxPage — text_question cards", () => {
     expect(container.querySelector("script")).toBeNull();
   });
 
+  it("clicking an inbox card navigates to /tasks/:id with { focusTerminal: true } (Phase 1)", () => {
+    wireHooks({ items: [ITEM_A], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+    fireEvent.click(screen.getByTestId("inbox-card-tu-A"));
+    const stub = screen.getByTestId("task-detail-stub");
+    // Lands on the clicked task's detail route…
+    expect(stub).toHaveAttribute("data-task-id", "task-A");
+    // …carrying the focus-terminal intent.
+    expect(stub).toHaveAttribute("data-focus-terminal", "true");
+  });
+
   it("ask_tool and text_question cards render side by side across sessions", () => {
     // Precedence (`deriveSessionInbox`) means a single session never yields
     // BOTH kinds — a pending tool_use suppresses the text question (spec
@@ -500,5 +546,70 @@ describe("InboxPage — text_question cards", () => {
 
     expect(screen.getByTestId("inbox-card-tu-A")).toBeInTheDocument();
     expect(screen.getByTestId("inbox-card-q-B")).toBeInTheDocument();
+  });
+});
+
+// ---------- iterate-2026-05-18-inbox-terminal-prompts ----------
+describe("InboxPage — terminal_prompt cards", () => {
+  beforeEach(() => {
+    mockedInbox.mockReset();
+    mockedTasks.mockReset();
+    mockedProjects.mockReset();
+  });
+
+  it("renders a terminal_prompt card showing the captured picker text", () => {
+    const item = makeTerminalPromptItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      taskTitle: "Task in project A",
+      promptText: "Von wo aus?\n  1. Board\n  2. Detail\nEnter to select",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+
+    expect(screen.getByTestId("inbox-card-tp-task-A")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("inbox-question-text-tp-task-A"),
+    ).toHaveTextContent("Von wo aus?");
+    expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
+  });
+
+  it("terminal_prompt card is read-only — no buttons", () => {
+    const item = makeTerminalPromptItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    const { container } = renderPage();
+    expect(
+      container.querySelector('[data-testid="inbox-card-tp-task-A"] button'),
+    ).toBeNull();
+  });
+
+  it("renders promptText as escaped plain-text — no HTML injection", () => {
+    const item = makeTerminalPromptItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      promptText: "<img src=x onerror=alert(1)> pick one",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    const { container } = renderPage();
+    expect(
+      screen.getByTestId("inbox-question-text-tp-task-A"),
+    ).toHaveTextContent("<img src=x onerror=alert(1)> pick one");
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("terminal_prompt card click carries the focusTerminal nav-state", () => {
+    const item = makeTerminalPromptItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+    fireEvent.click(screen.getByTestId("inbox-card-tp-task-A"));
+    const stub = screen.getByTestId("task-detail-stub");
+    expect(stub).toHaveAttribute("data-task-id", "task-A");
+    expect(stub).toHaveAttribute("data-focus-terminal", "true");
   });
 });

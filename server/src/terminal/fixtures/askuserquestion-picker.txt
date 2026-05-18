@@ -1,0 +1,21 @@
+  ⎿  Read 1 file, ran 1 shell command
+
+  Interview (medium FEATURE). Die zwei entscheidenden Fragen (Resume-Semantik,
+  Geltungsbereich) hast du schon beantwortet. Zwei Scoping-Fragen sind noch offen:
+
+────────────────────────────────────────────────────────────────────────────
+
+←  [ ] Auslöser  [ ] Bestätigung  √ Submit  →
+
+Von wo aus soll man einen Task zurück ins Backlog schieben können?
+
+❯ 1. Board-Card UND Detail-Header (Empfohlen)
+     „Move to Backlog" im ...-Menü der TaskCard auf dem Board UND im ...-Menü
+     des TaskDetailHeader. Konsistent — man muss nicht erst zum Board zurück.
+  2. Nur Board-Card
+     Nur im ...-Menü der TaskCard auf dem TaskBoard. Kleinere Änderung.
+  3. Ich würde 1 plus drag and drop?
+
+  4. Chat about this
+
+Enter to select · Tab/Arrow keys to navigate · Esc to cancel
