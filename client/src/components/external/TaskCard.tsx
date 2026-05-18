@@ -96,6 +96,7 @@ import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
 import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { EditTaskModal } from "./EditTaskModal";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -110,6 +111,10 @@ export function TaskCard({ task }: Props) {
   const backlogMut = useMoveTaskToBacklog();
   const { data: projects = [] } = useProjects();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // iterate-2026-05-18-edit-task-dialog — the Edit Task dialog is opened
+  // from the ⋯ menu via state (NOT nested in the Radix DropdownMenu —
+  // that traps focus and unmounts the dialog when the menu closes).
+  const [editOpen, setEditOpen] = useState(false);
 
   const Icon = stateIcon(task.state);
   const stamp = lastActivity(task);
@@ -250,6 +255,18 @@ export function TaskCard({ task }: Props) {
                   sideOffset={4}
                   className="z-50 min-w-[160px] rounded-[var(--radius-button)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm shadow-[var(--shadow-card)]"
                 >
+                  {/* iterate-2026-05-18-edit-task-dialog — re-edit a
+                      task's fields. Available in every state; the dialog
+                      itself greys out the launch-shaping fields once the
+                      task has started. */}
+                  <DropdownMenu.Item
+                    onClick={(ev) => ev.stopPropagation()}
+                    onSelect={() => setEditOpen(true)}
+                    className="cursor-pointer rounded px-2 py-1 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]"
+                    data-testid={`task-card-edit-${task.taskId}`}
+                  >
+                    Edit task
+                  </DropdownMenu.Item>
                   {/* iterate-2026-05-17-move-to-backlog (FR-01.32):
                       move an In-Progress task back to the Backlog column.
                       Shown only for the five In-Progress states — absent
@@ -442,6 +459,8 @@ export function TaskCard({ task }: Props) {
           setConfirmDelete(false);
         }}
       />
+
+      <EditTaskModal open={editOpen} onOpenChange={setEditOpen} task={task} />
     </>
   );
 }

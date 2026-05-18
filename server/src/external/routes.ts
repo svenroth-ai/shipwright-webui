@@ -29,6 +29,7 @@ import { join, extname, basename } from "node:path";
 import { buildCopyCommands } from "../core/launcher.js";
 import { pathGuard, realPathGuard } from "../core/path-guard.js";
 import { loadIgnore } from "../core/gitignore-cache.js";
+import { isFieldEditable } from "../core/task-editability.js";
 import {
   buildExternalLaunchCommand,
   substitutePlaceholders,
@@ -166,6 +167,13 @@ export function clearInboxDeriveCache(): void {
 /** Hard cap on user-assigned titles. CLI accepts more, but UI legibility
  * (TaskBoard cards, terminal title bar) breaks past ~200 chars. */
 const TITLE_MAX_LENGTH = 200;
+
+/**
+ * Hard cap on the task description / initial prompt. Generous — real
+ * briefs (pasted errors, file references) stay well under it; the cap
+ * just bounds a pathological payload. iterate-2026-05-18-edit-task-dialog.
+ */
+const DESCRIPTION_MAX_LENGTH = 20_000;
 
 export interface ExternalRouteProjectView {
   id: string;
@@ -313,6 +321,44 @@ export function createExternalRoutes(args: {
       : task;
   }
 
+  /**
+   * iterate-2026-05-18-edit-task-dialog — validate a phase id against a
+   * project's actions catalog. Mirrors the inline POST /tasks phase
+   * branch; used by PATCH /tasks/:id when the Edit Task dialog changes a
+   * never-started task's phase. Returns the resolved id + label, or a
+   * structured error body for the route to emit with status 400.
+   */
+  function validatePhaseForProject(
+    rawPhase: string,
+    projectId: string,
+  ):
+    | { phase: string; phaseLabel: string }
+    | { error: Record<string, unknown> } {
+    const project = projectId ? getProjectById?.(projectId) : undefined;
+    if (!project) {
+      return {
+        error: {
+          error: "phase_requires_project",
+          detail:
+            "Phase cannot be validated without a real project — " +
+            "unassigned tasks have no actions catalog.",
+        },
+      };
+    }
+    const loaded = loadActionsForProject(project.path || "");
+    const match = loaded.actions.phases.find((p) => p.id === rawPhase);
+    if (!match) {
+      return {
+        error: {
+          error: "invalid_phase",
+          detail: `Phase '${rawPhase}' is not in this project's actions catalog.`,
+          allowed: loaded.actions.phases.map((p) => p.id),
+        },
+      };
+    }
+    return { phase: match.id, phaseLabel: match.label };
+  }
+
   app.post("/api/external/tasks", async (c) => {
     const body = await c.req.json().catch(() => ({}));
     const title = typeof body.title === "string" && body.title.trim()
@@ -427,6 +473,18 @@ export function createExternalRoutes(args: {
     // review MED-4.
     const leadFields = readLeadCreateFields(body);
 
+    // iterate-2026-05-18-edit-task-dialog — persist the description (the
+    // task brief) on create so "Save to Backlog" no longer drops it.
+    // Same `normalizeDescription` helper as the PATCH route → identical
+    // trim / length / whitespace-only rules on create and edit.
+    const descResult = normalizeDescription(body.description);
+    if (!descResult.ok) {
+      return c.json(
+        { error: "invalid_description", detail: descResult.error },
+        400,
+      );
+    }
+
     const task = store.create({
       title,
       cwd,
@@ -435,6 +493,7 @@ export function createExternalRoutes(args: {
       phase,
       phaseLabel,
       actionId: createActionId,
+      description: descResult.value,
       sessionUuid: phaseTaskRefs.sessionUuid,
       phaseTaskId: phaseTaskRefs.phaseTaskId,
       runId: phaseTaskRefs.runId,
@@ -947,21 +1006,62 @@ export function createExternalRoutes(args: {
    * overwriting silently.
    */
   app.patch("/api/external/tasks/:id", async (c) => {
-    const body = await c.req.json().catch(() => ({}));
+    const rawBody = await c.req.json().catch(() => ({}));
+    // iterate-2026-05-18-edit-task-dialog — the widened PATCH uses the
+    // `in` operator to tell "field omitted" (untouched) from "field
+    // present" (update / clear), so the body MUST be a plain object.
+    const body: Record<string, unknown> =
+      rawBody && typeof rawBody === "object" && !Array.isArray(rawBody)
+        ? (rawBody as Record<string, unknown>)
+        : {};
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
 
-    const hasTitle = typeof body.title === "string";
-    const hasProjectId = typeof body.projectId === "string";
-
-    if (!hasTitle && !hasProjectId) {
+    // The recognized PATCH surface. `title` + `projectId` are the
+    // historical pair (FR-01.09); the rest were added by
+    // iterate-2026-05-18-edit-task-dialog so the Edit Task dialog can
+    // re-edit a Backlog task. Clear-vs-omit contract: a key PRESENT in
+    // the body is an update; an OMITTED key is untouched; `""` / `null`
+    // clears a scalar/enum; `[]` clears an array.
+    const PATCHABLE = [
+      "title",
+      "projectId",
+      "description",
+      "phase",
+      "priority",
+      "complexityHint",
+      "domain",
+      "tags",
+      "blockedBy",
+    ];
+    const present = PATCHABLE.filter((f) => f in body);
+    if (present.length === 0) {
       return c.json({ error: "at_least_one_field_required" }, 400);
+    }
+
+    // Lifecycle gate (fail fast, before per-field validation). The four
+    // launch-shaping fields (description / phase / priority /
+    // complexityHint) freeze once the task has started — see
+    // `core/task-editability.ts`. A stale client that still shows them
+    // editable gets a structured 409 and the WHOLE patch is rejected.
+    const frozenViolations = present.filter((f) => !isFieldEditable(f, task));
+    if (frozenViolations.length > 0) {
+      return c.json(
+        {
+          error: "field_not_editable",
+          fields: frozenViolations,
+          detail:
+            "These fields are frozen once the task has started: " +
+            `${frozenViolations.join(", ")}.`,
+        },
+        409,
+      );
     }
 
     const patch: Partial<ExternalTask> = {};
 
-    if (hasTitle) {
-      if (/[\r\n]/.test(body.title)) {
+    if ("title" in body) {
+      if (typeof body.title !== "string" || /[\r\n]/.test(body.title)) {
         return c.json({ error: "title cannot contain newlines" }, 400);
       }
       const trimmed = body.title.trim();
@@ -974,14 +1074,118 @@ export function createExternalRoutes(args: {
       patch.title = trimmed;
     }
 
-    if (hasProjectId) {
-      const candidate = body.projectId.trim();
-      if (candidate === "") {
+    if ("projectId" in body) {
+      if (typeof body.projectId !== "string" || body.projectId.trim() === "") {
         return c.json({ error: "projectId cannot be empty" }, 400);
       }
+      const candidate = body.projectId.trim();
       const validation = validateProjectIdOrError(candidate, getKnownProjectIds);
       if (validation) return c.json(validation, 400);
       patch.projectId = candidate;
+    }
+
+    if ("description" in body) {
+      const r = normalizeDescription(body.description);
+      if (!r.ok) {
+        return c.json({ error: "invalid_description", detail: r.error }, 400);
+      }
+      patch.description = r.value;
+    }
+
+    if ("phase" in body) {
+      const raw = body.phase;
+      if (raw === "" || raw === null) {
+        patch.phase = undefined;
+        patch.phaseLabel = undefined;
+      } else if (typeof raw === "string" && raw.trim()) {
+        const phaseResult = validatePhaseForProject(
+          raw.trim(),
+          patch.projectId ?? task.projectId,
+        );
+        if ("error" in phaseResult) {
+          return c.json(phaseResult.error, 400);
+        }
+        patch.phase = phaseResult.phase;
+        patch.phaseLabel = phaseResult.phaseLabel;
+      } else {
+        return c.json(
+          { error: "invalid_phase", detail: "phase must be a string or empty" },
+          400,
+        );
+      }
+    }
+
+    if ("priority" in body) {
+      const p = body.priority;
+      if (p === "" || p === null) {
+        patch.priority = undefined;
+      } else if (p === "P0" || p === "P1" || p === "P2" || p === "P3") {
+        patch.priority = p;
+      } else {
+        return c.json(
+          { error: "invalid_priority", detail: "priority must be P0–P3 or empty" },
+          400,
+        );
+      }
+    }
+
+    if ("complexityHint" in body) {
+      const ch = body.complexityHint;
+      if (ch === "" || ch === null) {
+        patch.complexityHint = undefined;
+      } else if (ch === "small" || ch === "medium" || ch === "large") {
+        patch.complexityHint = ch;
+      } else {
+        return c.json(
+          {
+            error: "invalid_complexity_hint",
+            detail: "complexityHint must be small | medium | large or empty",
+          },
+          400,
+        );
+      }
+    }
+
+    if ("domain" in body) {
+      const d = body.domain;
+      if (d === "" || d === null) {
+        patch.domain = undefined;
+      } else if (typeof d === "string") {
+        const trimmed = d.trim();
+        patch.domain = trimmed.length > 0 ? trimmed : undefined;
+      } else {
+        return c.json(
+          { error: "invalid_domain", detail: "domain must be a string" },
+          400,
+        );
+      }
+    }
+
+    if ("tags" in body) {
+      if (!Array.isArray(body.tags)) {
+        return c.json(
+          { error: "invalid_tags", detail: "tags must be an array of strings" },
+          400,
+        );
+      }
+      patch.tags = normalizeStringArray(body.tags);
+    }
+
+    if ("blockedBy" in body) {
+      if (!Array.isArray(body.blockedBy)) {
+        return c.json(
+          {
+            error: "invalid_blocked_by",
+            detail: "blockedBy must be an array of strings",
+          },
+          400,
+        );
+      }
+      // Dedup + drop empties (normalizeStringArray) + drop a
+      // self-reference — a task cannot block itself (external review #7).
+      patch.blockedBy = normalizeStringArray(body.blockedBy).filter(
+        (id) => id !== task.taskId,
+      );
     }
 
     store.patch(task.taskId, patch);
@@ -2352,6 +2556,46 @@ function validateProjectIdOrError(
     return { error: "unknown_project_id", projectId: candidate };
   }
   return null;
+}
+
+/**
+ * iterate-2026-05-18-edit-task-dialog — shared description normalization
+ * for POST /tasks + PATCH /tasks/:id so create and edit enforce
+ * identical rules (external review HIGH/MED — create/edit parity).
+ * `null` / `undefined` / whitespace-only → cleared (value `undefined`);
+ * a real string is trimmed; over-length → a structured error.
+ */
+function normalizeDescription(
+  raw: unknown,
+): { ok: true; value: string | undefined } | { ok: false; error: string } {
+  if (raw === null || raw === undefined) return { ok: true, value: undefined };
+  if (typeof raw !== "string") {
+    return { ok: false, error: "description must be a string" };
+  }
+  if (raw.length > DESCRIPTION_MAX_LENGTH) {
+    return {
+      ok: false,
+      error: `description exceeds ${DESCRIPTION_MAX_LENGTH} characters`,
+    };
+  }
+  const trimmed = raw.trim();
+  return { ok: true, value: trimmed.length > 0 ? trimmed : undefined };
+}
+
+/**
+ * iterate-2026-05-18-edit-task-dialog — normalize a `tags` / `blockedBy`
+ * PATCH array: keep strings only, trim, drop empties, dedupe (order
+ * preserved). Caller-supplied non-array input is rejected upstream.
+ */
+function normalizeStringArray(raw: unknown[]): string[] {
+  const out: string[] = [];
+  for (const x of raw) {
+    if (typeof x !== "string") continue;
+    const t = x.trim();
+    if (t.length === 0 || out.includes(t)) continue;
+    out.push(t);
+  }
+  return out;
 }
 
 /**
