@@ -171,6 +171,66 @@ describe("NewIssueModal", () => {
     expect(write).not.toHaveBeenCalled();
   });
 
+  // iterate-2026-05-18-edit-task-dialog (AC-3) — before this iterate the
+  // Save-to-Backlog path never sent `description`, so a backlogged task
+  // had no brief to show or re-edit. The create POST body must carry it.
+  it("Save-to-Backlog includes the description in the create POST body", async () => {
+    const onOpenChange = vi.fn();
+    renderModal({ onOpenChange, onToast: () => {} });
+
+    let createBody: Record<string, unknown> | null = null;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (
+        String(url).includes("/api/external/tasks") &&
+        !String(url).includes("/launch")
+      ) {
+        createBody = JSON.parse(String(init?.body ?? "{}")) as Record<
+          string,
+          unknown
+        >;
+        return new Response(
+          JSON.stringify({
+            task: {
+              taskId: "task-1",
+              sessionUuid: "00000000-0000-0000-0000-000000000001",
+              cwd: "/tmp/demo",
+              pluginDirs: [],
+              title: "x",
+              projectId: "proj-1",
+              state: "draft",
+              createdAt: "",
+              inbox: {
+                pendingToolUseIds: [],
+                dismissedToolUseIds: [],
+                lastProcessedByteOffset: 0,
+              },
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-title-input"), {
+        target: { value: "Save with brief" },
+      });
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("new-issue-description-input"), {
+        target: { value: "the task brief" },
+      });
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("new-issue-save-btn"));
+    });
+
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(createBody).toMatchObject({ description: "the task brief" });
+  });
+
   // 2026-04-23 — Adopt phase gate. `/shipwright-adopt` is one-shot; once
   // a project is adopted (shipwright_run_config.json exists) the phase
   // option disappears so users can't re-trigger it. We assert on the

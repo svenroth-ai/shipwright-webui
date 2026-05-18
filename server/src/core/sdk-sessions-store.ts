@@ -398,6 +398,13 @@ export class SdkSessionsStore {
      * surface, mirrors the ADR-100 MED-4 pattern for daemon-only fields).
      */
     promotedFromTriageId?: string;
+    /**
+     * iterate-2026-05-18-edit-task-dialog — the task brief / initial
+     * prompt. Previously only persisted by the /launch route; "Save to
+     * Backlog" dropped it entirely. The route trims + length-caps before
+     * calling here, so this method just stores whatever it is handed.
+     */
+    description?: string;
   }): ExternalTask {
     const task: ExternalTask = {
       taskId: randomUUID(),
@@ -422,6 +429,11 @@ export class SdkSessionsStore {
     if (args.phase) task.phase = args.phase;
     if (args.phaseLabel) task.phaseLabel = args.phaseLabel;
     if (args.actionId) task.actionId = args.actionId;
+    // iterate-2026-05-18-edit-task-dialog — persist the description at
+    // create-time so a "Save to Backlog" draft retains its brief.
+    if (typeof args.description === "string" && args.description.length > 0) {
+      task.description = args.description;
+    }
     if (args.phaseTaskId) task.phaseTaskId = args.phaseTaskId;
     if (args.runId) task.runId = args.runId;
     if (typeof args.parentRunMaster === "boolean") {

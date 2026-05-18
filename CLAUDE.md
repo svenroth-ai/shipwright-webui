@@ -91,6 +91,8 @@ Two hard rules, survivors of every review round:
           TaskCard.tsx               # TaskBoard card (state icon + menu + launch)
           ConfirmDeleteDialog.tsx    # Delete confirm for non-terminal states
           SessionMetadata.tsx        # State badge + UUID + cwd + timestamps
+          EditTaskModal.tsx          # iterate-2026-05-18: re-edit task fields; lifecycle-gated (launch-shaping fields freeze once started)
+          TaskDescriptionDisclosure.tsx  # iterate-2026-05-18: collapsible read-only description block in TaskDetailHeader
           # Iterate 3 additions (LaunchRow + CopyCommandCard were removed — replaced by header-level state-dependent CTA):
           FolderTree.tsx             # Lazy-expand gitignore-aware tree (left pane of TaskDetail)
           SmartViewer/               # Right pane of TaskDetail — 5 renderers (Markdown/Code/Text/Image/Mermaid; mermaid lazy-imported, 609 KB chunk)
