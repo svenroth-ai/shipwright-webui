@@ -29,7 +29,10 @@ test.describe("Edit Task dialog", () => {
     await page.goto(`/tasks/${task.taskId}`);
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
 
-    // AC-5/AC-3 — the seeded brief shows in the header disclosure.
+    // AC-5/AC-3 — the description disclosure defaults to collapsed; expand
+    // it once, then the seeded brief shows. The expand preference persists
+    // in localStorage for the rest of this test (incl. across the reload).
+    await page.getByTestId("task-description-toggle").click();
     await expect(page.getByTestId("task-description-body")).toHaveText(
       /original brief/,
     );
