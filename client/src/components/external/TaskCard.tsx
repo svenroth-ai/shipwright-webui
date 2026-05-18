@@ -85,10 +85,15 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import type { ExternalTask, ExternalTaskState } from "../../lib/externalApi";
-import { useCloseExternalTask, useDeleteExternalTask } from "../../hooks/useExternalTasks";
+import {
+  useCloseExternalTask,
+  useDeleteExternalTask,
+  useMoveTaskToBacklog,
+} from "../../hooks/useExternalTasks";
 import { useProjects } from "../../hooks/useProjects";
 import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
+import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 
@@ -102,6 +107,7 @@ export function TaskCard({ task }: Props) {
   const navigate = useNavigate();
   const closeMut = useCloseExternalTask();
   const deleteMut = useDeleteExternalTask();
+  const backlogMut = useMoveTaskToBacklog();
   const { data: projects = [] } = useProjects();
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -122,6 +128,13 @@ export function TaskCard({ task }: Props) {
   // explicit resume needed).
   const isBacklog = task.state === "draft";
   const isDone = task.state === "done";
+  // iterate-2026-05-17-move-to-backlog: a `draft` task that has already
+  // run (JSONL observed) must show Resume, not a fresh Launch — a fresh
+  // `claude --session-id` against an already-used session is rejected
+  // with "Session ID already in use" (FR-01.01 AC-6). `isInProgressState`
+  // gates the "Move to Backlog" menu item (FR-01.32).
+  const launchedBefore = hasLaunchedBefore(task);
+  const canMoveToBacklog = isInProgressState(task.state);
 
   // Iterate 3.7e-b1 (plan S1.6): deterministic color derived from
   // project.settings.color (if set) or hashed projectId (fallback).
@@ -237,6 +250,21 @@ export function TaskCard({ task }: Props) {
                   sideOffset={4}
                   className="z-50 min-w-[160px] rounded-[var(--radius-button)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm shadow-[var(--shadow-card)]"
                 >
+                  {/* iterate-2026-05-17-move-to-backlog (FR-01.32):
+                      move an In-Progress task back to the Backlog column.
+                      Shown only for the five In-Progress states — absent
+                      for `draft` (already there) and `done` (terminal).
+                      No confirm dialog: non-destructive + reversible. */}
+                  {canMoveToBacklog && (
+                    <DropdownMenu.Item
+                      onClick={(ev) => ev.stopPropagation()}
+                      onSelect={() => backlogMut.mutate(task.taskId)}
+                      className="cursor-pointer rounded px-2 py-1 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]"
+                      data-testid={`task-card-backlog-${task.taskId}`}
+                    >
+                      Move to Backlog
+                    </DropdownMenu.Item>
+                  )}
                   <DropdownMenu.Item
                     onClick={(ev) => ev.stopPropagation()}
                     onSelect={() => closeMut.mutate(task.taskId)}
@@ -350,7 +378,11 @@ export function TaskCard({ task }: Props) {
                       → BROWN Resume only (Launch removed — once launched,
                         the intent is to continue).
                     Done → no action (handled by outer `!isDone`). */}
-              {isBacklog && (
+              {/* iterate-2026-05-17-move-to-backlog (FR-01.01 AC-6):
+                  green fresh-Launch only for a never-launched draft. A
+                  draft moved back to Backlog after running falls through
+                  to the orange Resume below. */}
+              {isBacklog && !launchedBefore && (
                 <span data-testid={`task-card-launch-${task.taskId}`}>
                   <TerminalLaunchButton
                     task={task}
@@ -372,7 +404,12 @@ export function TaskCard({ task }: Props) {
                   clicking Resume on a live session is harmless (`claude
                   --resume` errors "Session ID already in use"). Single
                   "Resume" label (memory feedback_resume_label_singular). */}
-              {(task.state === "idle" || task.state === "active") && (
+              {/* iterate-2026-05-17-move-to-backlog (FR-01.01 AC-6):
+                  also covers a backlogged-but-already-run draft — it must
+                  Resume the existing session, not fresh-Launch. */}
+              {((isBacklog && launchedBefore) ||
+                task.state === "idle" ||
+                task.state === "active") && (
                 <span data-testid={`task-card-resume-${task.taskId}`}>
                   <TerminalLaunchButton
                     task={task}

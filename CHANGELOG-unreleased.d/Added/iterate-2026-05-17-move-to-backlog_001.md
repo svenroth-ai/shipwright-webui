@@ -1,0 +1,1 @@
+Move an In-Progress task back to the Backlog column via a "Move to Backlog" item in the TaskCard and task-detail menus (new POST /api/external/tasks/:id/backlog endpoint). A backlogged task that has already run keeps a Resume affordance instead of a fresh Launch.

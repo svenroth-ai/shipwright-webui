@@ -9,9 +9,10 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 
 import { TaskCard } from "./TaskCard";
 import type { ExternalTask } from "../../lib/externalApi";
@@ -275,5 +276,102 @@ describe("TaskCard — project pill (ADR-105)", () => {
       ).toContain("Webui");
       unmount();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// iterate-2026-05-17-move-to-backlog (FR-01.32) — "Move to Backlog" menu item.
+//
+// Shown in the card ⋯-menu for the five In-Progress states; absent for
+// `draft` (already in Backlog) and `done` (terminal). Selecting it POSTs
+// to /api/external/tasks/:id/backlog.
+// ---------------------------------------------------------------------------
+describe("TaskCard — Move to Backlog (FR-01.32)", () => {
+  const IN_PROGRESS = [
+    "awaiting_external_start",
+    "active",
+    "idle",
+    "jsonl_missing",
+    "launch_failed",
+  ] as const;
+
+  it.each(IN_PROGRESS)(
+    "shows the 'Move to Backlog' menu item for state=%s",
+    async (state) => {
+      const user = userEvent.setup();
+      renderCard(baseTask({ state }));
+      await user.click(screen.getByTestId("task-card-menu-task-1"));
+      expect(
+        await screen.findByTestId("task-card-backlog-task-1"),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it.each(["draft", "done"] as const)(
+    "hides the 'Move to Backlog' menu item for state=%s",
+    async (state) => {
+      const user = userEvent.setup();
+      renderCard(baseTask({ state }));
+      await user.click(screen.getByTestId("task-card-menu-task-1"));
+      // Menu IS open (the always-present Close item renders) — only the
+      // backlog item is conditionally absent.
+      await screen.findByTestId("task-card-close-task-1");
+      expect(screen.queryByTestId("task-card-backlog-task-1")).toBeNull();
+    },
+  );
+
+  it("clicking 'Move to Backlog' POSTs to the backlog endpoint", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(
+      async (_url: string | URL | Request, _init?: RequestInit) =>
+        new Response(JSON.stringify({ task: baseTask({ state: "draft" }) }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      renderCard(baseTask({ state: "idle" }));
+      await user.click(screen.getByTestId("task-card-menu-task-1"));
+      await user.click(await screen.findByTestId("task-card-backlog-task-1"));
+      await waitFor(() => {
+        expect(
+          fetchMock.mock.calls.some((c) =>
+            String(c[0]).includes("/api/external/tasks/task-1/backlog"),
+          ),
+        ).toBe(true);
+      });
+      const call = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes("/backlog"),
+      );
+      expect((call?.[1] as RequestInit | undefined)?.method).toBe("POST");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// iterate-2026-05-17-move-to-backlog (FR-01.01 AC-6) — Resume-vs-Launch on a
+// backlogged task. A `draft` task that has already run (firstJsonlObservedAt
+// set) must show Resume, never a fresh Launch — a fresh `claude --session-id`
+// against an already-used session is rejected with "Session ID already in use".
+// ---------------------------------------------------------------------------
+describe("TaskCard — Resume vs Launch on a backlogged task (FR-01.01 AC-6)", () => {
+  it("a never-launched draft shows the green Launch button (regression fence)", () => {
+    renderCard(baseTask({ state: "draft" }));
+    expect(screen.getByTestId("task-card-launch-task-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("task-card-resume-task-1")).toBeNull();
+  });
+
+  it("a draft with firstJsonlObservedAt (moved back after running) shows Resume, not Launch", () => {
+    renderCard(
+      baseTask({
+        state: "draft",
+        firstJsonlObservedAt: "2026-05-17T10:00:00.000Z",
+      }),
+    );
+    expect(screen.getByTestId("task-card-resume-task-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("task-card-launch-task-1")).toBeNull();
   });
 });

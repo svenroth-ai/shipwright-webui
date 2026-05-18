@@ -400,6 +400,21 @@ export async function closeTask(taskId: string): Promise<ExternalTask> {
   return json.task;
 }
 
+/**
+ * iterate-2026-05-17-move-to-backlog (FR-01.32) — move an In-Progress
+ * task back to the Backlog column (`state → draft`). Sibling of
+ * `closeTask`: a pure registry-state flip, JSONL untouched. The server
+ * accepts the five In-Progress states, returns 409 for `done`, and is
+ * idempotent for an already-`draft` task.
+ */
+export async function moveTaskToBacklog(taskId: string): Promise<ExternalTask> {
+  const json = await httpJson<{ task: ExternalTask }>(
+    `${EXTERNAL_API}/tasks/${taskId}/backlog`,
+    { method: "POST" },
+  );
+  return json.task;
+}
+
 export async function deleteTask(taskId: string): Promise<void> {
   await httpJson<{ ok: boolean }>(`${EXTERNAL_API}/tasks/${taskId}`, { method: "DELETE" });
 }

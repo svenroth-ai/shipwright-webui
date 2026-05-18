@@ -67,6 +67,30 @@ export type ExternalTaskState =
   | "done";
 
 /**
+ * The five "In Progress" states — a task that has been launched but is
+ * not yet `done`. These are exactly the states from which a task can be
+ * moved back to the Backlog (`POST /api/external/tasks/:id/backlog`,
+ * iterate-2026-05-17-move-to-backlog / FR-01.32). `draft` (already in
+ * Backlog) and `done` (terminal) are deliberately excluded.
+ *
+ * Verbatim mirror: `client/src/lib/taskLifecycle.ts` IN_PROGRESS_STATES.
+ * The two halves are independent npm workspaces (DO-NOT guard #7 — no
+ * cross-package import); keep this tuple and the client one in sync.
+ */
+export const BACKLOG_SOURCE_STATES = [
+  "awaiting_external_start",
+  "active",
+  "idle",
+  "jsonl_missing",
+  "launch_failed",
+] as const satisfies readonly ExternalTaskState[];
+
+/** True when `state` is one of the five In-Progress {@link BACKLOG_SOURCE_STATES}. */
+export function isBacklogSourceState(state: ExternalTaskState): boolean {
+  return (BACKLOG_SOURCE_STATES as readonly ExternalTaskState[]).includes(state);
+}
+
+/**
  * Reserved projectId sentinel for the "Unassigned" pseudo-project bucket.
  * Kept in sync with client/src/lib/projectIds.ts (intentional duplication
  * per conventions.md — the two sides don't import each other).

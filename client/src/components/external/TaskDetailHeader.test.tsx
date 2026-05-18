@@ -615,3 +615,122 @@ describe("TaskDetailHeader — ⋯-menu copy actions", () => {
     expect(notice.dataset.kind).toBe("ok");
   });
 });
+
+// ── iterate-2026-05-17-move-to-backlog (FR-01.32) — ⋯-menu "Move to Backlog" ──
+//
+// Shown for the five In-Progress states, absent for `draft` / `done`.
+// Selecting it POSTs /api/external/tasks/:id/backlog; the user stays on
+// the detail page (the state badge flips to "Draft" via the cache write).
+describe("TaskDetailHeader — Move to Backlog (FR-01.32)", () => {
+  it.each([
+    "awaiting_external_start",
+    "active",
+    "idle",
+    "jsonl_missing",
+    "launch_failed",
+  ] as const)("shows the 'Move to Backlog' item for state=%s", async (state) => {
+    const user = userEvent.setup();
+    renderHeader(makeTask({ state }));
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    expect(screen.getByTestId("task-detail-menu-backlog")).toBeTruthy();
+  });
+
+  it.each(["draft", "done"] as const)(
+    "hides the 'Move to Backlog' item for state=%s",
+    async (state) => {
+      const user = userEvent.setup();
+      renderHeader(makeTask({ state }));
+      await user.click(screen.getByTestId("task-detail-menu-trigger"));
+      await waitFor(() => screen.getByTestId("task-detail-menu"));
+      expect(screen.queryByTestId("task-detail-menu-backlog")).toBeNull();
+    },
+  );
+
+  it("Move to Backlog → POSTs /backlog, flips the detail cache to draft in place, no navigation", async () => {
+    const user = userEvent.setup();
+    const fetchInner = vi.fn(
+      async (url: string | URL | Request, _init?: RequestInit) => {
+        if (String(url).includes("/backlog")) {
+          return new Response(
+            JSON.stringify({ task: { ...makeTask(), state: "draft" } }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response("{}", { status: 200 });
+      },
+    );
+    const { qc, rerender } = renderHeader(
+      makeTask({ state: "active" }),
+      fetchInner,
+    );
+
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    await user.click(screen.getByTestId("task-detail-menu-backlog"));
+
+    await waitFor(() => {
+      expect(
+        fetchInner.mock.calls.some((c) => String(c[0]).includes("/backlog")),
+      ).toBe(true);
+    });
+    const call = fetchInner.mock.calls.find((c) =>
+      String(c[0]).includes("/backlog"),
+    );
+    expect((call?.[1] as RequestInit | undefined)?.method).toBe("POST");
+    // No navigation — the header is still mounted.
+    expect(screen.getByTestId("task-detail-header")).toBeInTheDocument();
+
+    // AC-5 — the mutation writes the returned task into the detail query
+    // cache (detailKey). That cache entry is what TaskDetailPage feeds
+    // back as the `task` prop, flipping the state badge "in place".
+    await waitFor(() => {
+      const cached = qc.getQueryData(["external-task", "task-42"]) as
+        | ExternalTask
+        | undefined;
+      expect(cached?.state).toBe("draft");
+    });
+    // Re-render with the cached task (exactly what the parent page does)
+    // and confirm the visible state badge now reads "Draft".
+    const flipped = qc.getQueryData([
+      "external-task",
+      "task-42",
+    ]) as ExternalTask;
+    rerender(
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <TaskDetailHeader task={flipped} />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("task-state-badge").textContent).toContain(
+      "Draft",
+    );
+  });
+});
+
+// ── iterate-2026-05-17-move-to-backlog (FR-01.01 AC-6) — draft CTA ──
+//
+// A `draft` task that has already run (firstJsonlObservedAt set, e.g.
+// moved back to Backlog after a launch) must offer Resume, not a fresh
+// Launch — `claude --session-id` against an already-used session is
+// rejected with "Session ID already in use". A never-launched draft
+// keeps the green Launch.
+describe("TaskDetailHeader — draft CTA respects prior run (AC-6)", () => {
+  it("a never-launched draft → Launch CTA (regression fence)", () => {
+    renderHeader(makeTask({ state: "draft" }));
+    expect(screen.getByTestId("cta-launch-in-terminal")).toBeTruthy();
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+  });
+
+  it("a draft with firstJsonlObservedAt → Resume CTA, not Launch", () => {
+    renderHeader(
+      makeTask({
+        state: "draft",
+        firstJsonlObservedAt: "2026-05-17T10:00:00.000Z",
+      }),
+    );
+    expect(screen.getByTestId("cta-copy-resume-command")).toBeTruthy();
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+  });
+});
