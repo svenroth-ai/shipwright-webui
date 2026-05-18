@@ -503,6 +503,105 @@ describe("poc-external routes — integration", () => {
     expect(after.items).toHaveLength(0);
   });
 
+  // ---------- iterate-2026-05-18-inbox-terminal-prompts ----------
+  // The Inbox surfaces a waiting AskUserQuestion picker detected in the
+  // LIVE terminal mirror — a waiting picker never appears in the JSONL.
+
+  const MINI_PICKER = [
+    "Which option do you want?",
+    "  1. Alpha",
+    "  2. Beta",
+    "Enter to select · Tab/Arrow keys to navigate · Esc to cancel",
+  ].join("\n");
+
+  /** Builds a fresh app whose `ptyManager.peekTerminalText` is `peek`
+   *  (omit `peek` to model production without the mirror wired). */
+  function appWithPeek(peek?: (taskId: string) => string | null): Hono {
+    const a = new Hono();
+    a.route(
+      "/",
+      createExternalRoutes({
+        store,
+        watcher: new SessionWatcher({ projectsDir }),
+        ptyManager: peek
+          ? { get: () => undefined, peekTerminalText: peek }
+          : { get: () => undefined },
+      }),
+    );
+    return a;
+  }
+
+  it("GET /inbox surfaces a terminal_prompt from the live mirror (AC3)", async () => {
+    const task = await createTask();
+    clearInboxDeriveCache();
+    const a = appWithPeek((id) => (id === task.taskId ? MINI_PICKER : null));
+    const res = await a.request("/api/external/inbox");
+    const body = (await res.json()) as { items: Array<Record<string, unknown>> };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("terminal_prompt");
+    expect(body.items[0].taskId).toBe(task.taskId);
+    expect(body.items[0].promptText).toContain("Which option do you want?");
+    expect(body.items[0].bestEffort).toBe(true);
+  });
+
+  it("GET /inbox: ordinary terminal output yields no terminal_prompt (AC4)", async () => {
+    await createTask();
+    clearInboxDeriveCache();
+    const a = appWithPeek(() => "PS C:\\repo> npm test\nAll good.\nPS C:\\repo>");
+    const res = await a.request("/api/external/inbox");
+    const body = (await res.json()) as { items: unknown[] };
+    expect(body.items).toHaveLength(0);
+  });
+
+  it("GET /inbox: a pending ask_tool suppresses terminal_prompt (AC7)", async () => {
+    const task = await createTask();
+    seedSessionJsonl(task.sessionUuid, [
+      {
+        type: "assistant",
+        uuid: "evt-a",
+        sessionId: task.sessionUuid,
+        message: {
+          content: [
+            { type: "tool_use", id: "tk", name: "AskUserQuestion", input: {} },
+          ],
+        },
+      },
+    ]);
+    clearInboxDeriveCache();
+    const a = appWithPeek(() => MINI_PICKER);
+    const res = await a.request("/api/external/inbox");
+    const body = (await res.json()) as { items: Array<Record<string, unknown>> };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("ask_tool");
+  });
+
+  it("GET /inbox: terminal_prompt supersedes a JSONL text_question (AC7)", async () => {
+    const task = await createTask();
+    seedSessionJsonl(task.sessionUuid, [
+      {
+        type: "assistant",
+        uuid: "evt-tq",
+        sessionId: task.sessionUuid,
+        message: { content: [{ type: "text", text: "Shall I continue?" }] },
+      },
+    ]);
+    clearInboxDeriveCache();
+    const a = appWithPeek(() => MINI_PICKER);
+    const res = await a.request("/api/external/inbox");
+    const body = (await res.json()) as { items: Array<Record<string, unknown>> };
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].kind).toBe("terminal_prompt");
+  });
+
+  it("GET /inbox: no terminal_prompt when peekTerminalText is unwired (openai-8)", async () => {
+    await createTask();
+    clearInboxDeriveCache();
+    const a = appWithPeek(); // ptyManager without peekTerminalText
+    const res = await a.request("/api/external/inbox");
+    const body = (await res.json()) as { items: unknown[] };
+    expect(body.items).toHaveLength(0);
+  });
+
   // ---------- iterate-2026-05-14 lead-foundation-task-schema ----------
 
   it("POST /tasks accepts the 5 lead-foundation modal fields and round-trips them via GET", async () => {

@@ -28,7 +28,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
 
 import { useExternalTask } from "../hooks/useExternalTasks";
@@ -154,6 +154,8 @@ function PrivacyDisclosureFooter({
 
 function TaskDetailPageBody() {
   const { taskId } = useParams<{ taskId: string }>();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data: task, error } = useExternalTask(taskId);
   const transcript = useTaskTranscript(taskId ?? null);
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
@@ -196,6 +198,32 @@ function TaskDetailPageBody() {
     setCenterTab("terminal");
     setPendingFocus(true);
   }, [coord.pendingLaunch, setCenterTab]);
+
+  // iterate-2026-05-18-inbox-terminal-prompts — Inbox-origin navigation
+  // carries `{ focusTerminal: true }` in React-Router nav state (set by
+  // the InboxPage cards). On arrival, force the Terminal tab + mark a
+  // pending focus so `handleTerminalReady` focuses xterm once the WS
+  // reports ready — the same path the auto-launch CTA uses, and it
+  // composes cleanly with `pendingLaunch` (both just set `pendingFocus`).
+  // Ref-guarded against re-renders; the nav state is then cleared
+  // (replace:true) so an F5 reload / back-forward to this same history
+  // entry does not re-snap focus (external review gemini-1 + openai-1).
+  const inboxFocusConsumedRef = useRef(false);
+  useEffect(() => {
+    if (inboxFocusConsumedRef.current) return;
+    const navState = location.state as { focusTerminal?: boolean } | null;
+    if (navState?.focusTerminal !== true) return;
+    inboxFocusConsumedRef.current = true;
+    setCenterTab("terminal");
+    setPendingFocus(true);
+    navigate(`${location.pathname}${location.search}`, { replace: true });
+  }, [
+    location.pathname,
+    location.search,
+    location.state,
+    navigate,
+    setCenterTab,
+  ]);
 
   // Iterate v0.8.5 AC-6: the `webui:focus-terminal-tab` event listener
   // was removed alongside the Terminal-CTA in TaskDetailHeader (the
