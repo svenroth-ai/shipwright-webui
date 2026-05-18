@@ -7,7 +7,9 @@ import {
   listTasks,
   moveTaskToBacklog,
   renameTask,
+  updateTask,
   type ExternalTask,
+  type TaskUpdatePatch,
 } from "../lib/externalApi";
 
 const LIST_KEY = ["external-tasks"] as const;
@@ -82,6 +84,28 @@ export function useRenameTask() {
   const qc = useQueryClient();
   return useMutation<ExternalTask, Error, { taskId: string; title: string }>({
     mutationFn: ({ taskId, title }) => renameTask(taskId, title),
+    onSuccess: (task) => {
+      qc.setQueryData(detailKey(task.taskId), task);
+      void qc.invalidateQueries({ queryKey: LIST_KEY });
+    },
+  });
+}
+
+/**
+ * iterate-2026-05-18-edit-task-dialog — the Edit Task dialog's save
+ * mutation. PATCHes the editable fields and, on success, writes the
+ * fresh task into the detail cache + invalidates the board list so both
+ * the TaskCard and the TaskDetail header reflect the edit without a
+ * manual refresh (external review — cache-refresh coverage).
+ */
+export function useUpdateTask() {
+  const qc = useQueryClient();
+  return useMutation<
+    ExternalTask,
+    Error,
+    { taskId: string; patch: TaskUpdatePatch }
+  >({
+    mutationFn: ({ taskId, patch }) => updateTask(taskId, patch),
     onSuccess: (task) => {
       qc.setQueryData(detailKey(task.taskId), task);
       void qc.invalidateQueries({ queryKey: LIST_KEY });

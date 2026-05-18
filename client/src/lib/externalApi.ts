@@ -220,6 +220,13 @@ export async function createTask(args: {
   title: string;
   cwd: string;
   pluginDirs?: string[];
+  /**
+   * iterate-2026-05-18-edit-task-dialog — the task brief / initial
+   * prompt. Previously the description was only sent on /launch, so a
+   * "Save to Backlog" task lost it entirely. Sent on create when
+   * non-empty.
+   */
+  description?: string;
   /** Iterate 3 section 02 — optional; server defaults to "unassigned". */
   projectId?: string;
   /**
@@ -389,6 +396,46 @@ export async function assignTaskProject(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ projectId }),
   });
+  return json.task;
+}
+
+/**
+ * iterate-2026-05-18-edit-task-dialog — the Edit Task dialog's save
+ * patch. A field PRESENT here is an update; an OMITTED key is left
+ * untouched server-side. To CLEAR an optional field send `""` (scalar /
+ * enum) or `[]` (array). `title` / `domain` / `tags` / `blockedBy` may be
+ * patched in any task state; `description` / `phase` / `priority` /
+ * `complexityHint` are rejected (`409 field_not_editable`) once the task
+ * has started — see `lib/taskEditability.ts`.
+ */
+export interface TaskUpdatePatch {
+  title?: string;
+  description?: string;
+  phase?: string;
+  priority?: string;
+  complexityHint?: string;
+  domain?: string;
+  tags?: string[];
+  blockedBy?: string[];
+}
+
+/**
+ * PATCH the editable fields of a task. Throws a typed {@link ApiError}
+ * (`field_not_editable` 409, `invalid_phase` / `invalid_priority` 400,
+ * lockfile 409, …) so the caller can branch on `err.code`.
+ */
+export async function updateTask(
+  taskId: string,
+  patch: TaskUpdatePatch,
+): Promise<ExternalTask> {
+  const json = await httpJsonTyped<{ task: ExternalTask }>(
+    `${EXTERNAL_API}/tasks/${taskId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
   return json.task;
 }
 
