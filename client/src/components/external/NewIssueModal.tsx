@@ -544,6 +544,11 @@ export function NewIssueModal({
           projectId: string;
           phase?: string;
           actionId?: string;
+          // iterate-2026-05-18-edit-task-dialog — the description (task
+          // brief) is now persisted on CREATE, not only on /launch.
+          // Before this, "Save to Backlog" dropped the description and
+          // the task had nothing to show or re-edit.
+          description?: string;
           // iterate-2026-05-14 lead-foundation — 5 user-creatable fields.
           domain?: string;
           priority?: "P0" | "P1" | "P2" | "P3";
@@ -563,6 +568,14 @@ export function NewIssueModal({
         };
         if (mode === "new-task" && currentPhase) {
           createPayload.phase = currentPhase.id;
+        }
+        // iterate-2026-05-18-edit-task-dialog — persist the description on
+        // create so a Save-to-Backlog draft keeps its brief. The launch
+        // path still also sends it in the /launch body (harmless — the
+        // server re-applies the same value); the save path now relies on
+        // this line instead of losing the description entirely.
+        if (description.trim().length > 0) {
+          createPayload.description = description.trim();
         }
         // iterate-2026-05-14 lead-foundation-task-schema — only attach
         // each field when (a) the action opted in via modal_fields AND

@@ -79,6 +79,29 @@ describe("SdkSessionsStore — create/list/patch/delete", () => {
     expect(store.delete(task.taskId)).toBe(true);
     expect(store.get(task.taskId)).toBeUndefined();
   });
+
+  // iterate-2026-05-18-edit-task-dialog — the description is persisted at
+  // create-time so a "Save to Backlog" draft retains its brief.
+  it("create persists a non-empty description and survives a reload", async () => {
+    const deps = inMemoryDeps();
+    const a = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await a.load();
+    const task = a.create({ title: "t", cwd: "/tmp", description: "the brief" });
+    expect(task.description).toBe("the brief");
+    await a.persist();
+
+    const b = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await b.load();
+    expect(b.get(task.taskId)!.description).toBe("the brief");
+  });
+
+  it("create omits the description field for an empty value", async () => {
+    const deps = inMemoryDeps();
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", deps);
+    await store.load();
+    const task = store.create({ title: "t", cwd: "/tmp", description: "" });
+    expect(task.description).toBeUndefined();
+  });
 });
 
 describe("SdkSessionsStore — persist/load round-trip", () => {

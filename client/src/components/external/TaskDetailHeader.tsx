@@ -48,6 +48,7 @@ import {
   Folder,
   MoreVertical,
   Pencil,
+  SquarePen,
   Terminal as TerminalIcon,
   Trash2,
   Undo2,
@@ -78,6 +79,8 @@ import {
 import { ProjectChipMenu } from "./ProjectChipMenu";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { SessionMetadata } from "./SessionMetadata";
+import { EditTaskModal } from "./EditTaskModal";
+import { TaskDescriptionDisclosure } from "./TaskDescriptionDisclosure";
 import { copyText } from "../../lib/clipboard";
 
 /**
@@ -200,6 +203,10 @@ export function TaskDetailHeader({ task }: Props) {
   const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
   const [ctaError, setCtaError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  // iterate-2026-05-18-edit-task-dialog — Edit Task dialog open state.
+  // Opened from the ⋯ menu via state (the Radix Dialog is mounted at the
+  // header root, never nested inside the DropdownMenu).
+  const [editOpen, setEditOpen] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   // resume-cta-rework (2026-05-16) — transient feedback for the ⋯-menu
   // copy actions (Copy session UUID / Copy Resume command). Replaces
@@ -645,6 +652,12 @@ export function TaskDetailHeader({ task }: Props) {
             </>
           )}
         </div>
+
+        {/* iterate-2026-05-18-edit-task-dialog — collapsible read-only
+            view of the task brief. Renders only when a description
+            exists; visible in every state (the user asked to see it
+            once the task is In Progress). */}
+        <TaskDescriptionDisclosure task={task} />
       </div>
 
       <div
@@ -733,6 +746,17 @@ export function TaskDetailHeader({ task }: Props) {
               >
                 <Pencil size={14} className="text-[var(--color-muted,#6b7280)]" />
                 Rename
+              </DropdownMenu.Item>
+              {/* iterate-2026-05-18-edit-task-dialog — re-edit the task's
+                  fields. Available in every state; the dialog greys out
+                  the launch-shaping fields once the task has started. */}
+              <DropdownMenu.Item
+                onSelect={() => setEditOpen(true)}
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+                data-testid="task-detail-menu-edit-task"
+              >
+                <SquarePen size={14} className="text-[var(--color-muted,#6b7280)]" />
+                Edit task
               </DropdownMenu.Item>
               <DropdownMenu.Item
                 onSelect={() => {
@@ -984,6 +1008,8 @@ export function TaskDetailHeader({ task }: Props) {
           </div>
         </div>
       ) : null}
+
+      <EditTaskModal open={editOpen} onOpenChange={setEditOpen} task={task} />
     </header>
   );
 }
