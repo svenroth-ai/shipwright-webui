@@ -9,7 +9,7 @@
       "label": "New task",
       "kind": "external_launch",
       "description": "Plain Claude invocation scoped to a Shipwright phase. Fire-and-forget — no pipeline state.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.phase_label}: {task.title}\" {plugin.dirs} {task.initial_prompt}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.session_name} {plugin.dirs} {task.initial_prompt}",
       "modal_fields": ["title", "phase", "description", "domain", "priority", "complexityHint", "tags", "blockedBy"],
       "phase_parameters": {
         "adopt": [
@@ -47,7 +47,7 @@
       "label": "New pipeline",
       "kind": "external_launch",
       "description": "Full Shipwright pipeline — project → design → plan → build → test → deploy → changelog.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"Pipeline: {task.title}\" {plugin.dirs} {task.initial_prompt}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.session_name} {plugin.dirs} {task.initial_prompt}",
       "modal_fields": ["title", "autonomy", "description"]
     },
     {
@@ -55,7 +55,7 @@
       "label": "New iterate",
       "kind": "external_launch",
       "description": "Run the complexity-adaptive iterate skill against an existing project.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"Iterate: {task.title}\" {plugin.dirs} {task.initial_prompt}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.session_name} {plugin.dirs} {task.initial_prompt}",
       "modal_fields": ["title", "autonomy", "description", "domain", "priority", "complexityHint", "tags", "blockedBy"],
       "parameters": [
         { "name": "type", "type": "enum", "label": "Change type", "enum": ["feature", "change", "bug"], "cli_flag": "--type", "value_separator": "space", "helpText": "Auto-detected if omitted" }
@@ -66,7 +66,7 @@
       "label": "Plain Claude",
       "kind": "external_launch",
       "description": "Plain Claude session in this project's directory. No Shipwright skill — just chat.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" {plugin.dirs}{task.description?}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.session_name} {plugin.dirs}{task.description?}",
       "modal_fields": ["title", "description"]
     }
   ],

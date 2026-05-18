@@ -225,18 +225,17 @@ describe("actions-substitute — substituteAllForms", () => {
     // 2026-04-23 — `--project-root` is NOT a Claude CLI flag; replaced with
     // `--add-dir` (the standard flag for additional-directory scoping).
     const template =
-      "claude /shipwright-{task.phase}{task.autonomy_flag?} \\\n    --add-dir {project.path} \\\n    --session-id {task.uuid} \\\n    --name \"{task.phase_label}: {task.title}\" \\\n    {plugin.dirs}{task.description?}";
+      "claude /shipwright-{task.phase}{task.autonomy_flag?} \\\n    --add-dir {project.path} \\\n    --session-id {task.uuid} \\\n    --name {task.session_name} \\\n    {plugin.dirs}{task.description?}";
     const ctx = baseCtx();
     ctx.task.description = "Write docs";
     ctx.pluginDirs = ["/home/sven/plugin"];
     const out = substituteAllForms(template, ctx);
     expect(out.posix).toContain("claude /shipwright-build");
     expect(out.posix).toContain("--add-dir '/home/sven/app'");
-    // phase_label + title are user-editable, so they emerge POSIX-escaped
-    // (single-quoted) inside the surrounding literal double-quotes from the
-    // template. This is the security contract — escaping never relaxes
-    // even when the surrounding template uses a different quote style.
-    expect(out.posix).toContain(`--name "'Build': 'Write docs'"`);
+    // {task.session_name} composes "<phase_label>: <title>" and shell-
+    // escapes it ONCE — a single clean quote pair, never a literal-quote
+    // wrap around an already-escaped value (iterate-2026-05-19).
+    expect(out.posix).toContain(`--name 'Build: Write docs'`);
     expect(out.posix).toContain("--plugin-dir '/home/sven/plugin'");
     // 2026-04-23 — output is flattened to a single line (post-processing).
     // Description trailer is now space-separated, not on a continuation.
@@ -863,17 +862,19 @@ describe("actions-substitute — {task.initial_prompt} integration with full tem
       ],
     });
     ctx.project.path = "/home/sven/app";
+    // Mirrors the bundled new-task command_template verbatim
+    // (default-actions.json) — iterate-2026-05-19 replaced the literal-
+    // quote-wrapped --name with the bare {task.session_name} placeholder.
     const template =
-      `{cd.prefix}claude --session-id {task.uuid} --name "{task.phase_label}: {task.title}" {plugin.dirs} {task.initial_prompt}`;
+      `{cd.prefix}claude --session-id {task.uuid} --name {task.session_name} {plugin.dirs} {task.initial_prompt}`;
     const out = substitutePlaceholders(template, ctx, "posix");
     // The prompt is the LAST argument, single-quoted; --add-dir is gone.
     expect(out).toContain("cd '/home/sven/app' && claude");
     expect(out).toContain("--session-id");
-    // The bundled --name template uses literal `"..."` around two
-    // separately-escaped placeholders — that's pre-existing behaviour.
-    expect(out).toContain("--name");
-    expect(out).toContain("'Adopt'");
-    expect(out).toContain("'audit drift'");
+    // --name is a single cleanly-quoted token "<phase_label>: <title>" —
+    // no literal-quote wrap, no nested quotes.
+    expect(out).toContain("--name 'Adopt: audit drift'");
+    expect(out).not.toContain(`"`);
     expect(out).not.toContain("--add-dir");
     expect(out).not.toContain(" /shipwright-adopt "); // no slash command directly after `claude`
     expect(out).toMatch(/'\/shipwright-adopt --dry-run --scope full_app'$/);
