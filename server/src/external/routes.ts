@@ -35,6 +35,7 @@ import {
   substitutePlaceholders,
   UnknownPhaseError,
   InvalidDescriptionError,
+  InvalidTitleError,
   InvalidParameterError,
   InvalidPlaceholderError,
   type SubstitutionContext,
@@ -970,6 +971,7 @@ export function createExternalRoutes(args: {
           if (
             err instanceof UnknownPhaseError ||
             err instanceof InvalidDescriptionError ||
+            err instanceof InvalidTitleError ||
             err instanceof InvalidParameterError ||
             err instanceof InvalidPlaceholderError
           ) {

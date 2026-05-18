@@ -103,6 +103,15 @@ export class InvalidDescriptionError extends Error {
   }
 }
 
+export class InvalidTitleError extends Error {
+  constructor() {
+    super(
+      "task.title cannot contain newlines (breaks single-line copy-paste)",
+    );
+    this.name = "InvalidTitleError";
+  }
+}
+
 export class InvalidParameterError extends Error {
   readonly cli_flag: string;
   constructor(cli_flag: string, reason: string) {
@@ -152,6 +161,7 @@ const ALLOWED_PLACEHOLDERS = new Set([
   "project.path",
   "task.uuid",
   "task.title",
+  "task.session_name",
   "task.description?",
   "task.phase",
   "task.phase_label",
@@ -260,6 +270,36 @@ function substituteOne(
       return ctx.task.uuid;
     case "task.title":
       return q(ctx.task.title);
+    case "task.session_name": {
+      // iterate-2026-05-19-fix-launch-name-quoting — composes the Claude
+      // session display name (the `--name` value) and shell-escapes it
+      // ONCE. Templates MUST use bare `--name {task.session_name}`, never
+      // `--name "{task.session_name}"`: the result is already a single
+      // shell-quoted token. The previous bundled templates wrapped a
+      // q()-escaped `{task.title}` in literal double-quotes, so Claude
+      // received a name with stray inner quotes (`--name "'My Task'"`).
+      //
+      // Per-action prefix mirrors the historical bundled names; the
+      // three bundled actionId strings below are a contract with
+      // default-actions.json. Unlike {task.initial_prompt} (which throws
+      // UnknownActionError for non-bundled actions — a slash command is
+      // bundled-mode-only), a session NAME is meaningful for every
+      // action, so a non-bundled / custom actionId deliberately falls
+      // back to the bare title rather than throwing.
+      const title = ctx.task.title;
+      let composed: string;
+      if (ctx.actionId === "new-pipeline") {
+        composed = `Pipeline: ${title}`;
+      } else if (ctx.actionId === "new-iterate") {
+        composed = `Iterate: ${title}`;
+      } else if (ctx.actionId === "new-task") {
+        const label = ctx.task.phase_label.trim();
+        composed = label ? `${label}: ${title}` : title;
+      } else {
+        composed = title;
+      }
+      return q(composed);
+    }
     case "task.phase":
       if (!ctx.allowedPhaseIds.has(ctx.task.phase)) {
         throw new UnknownPhaseError(ctx.task.phase);
@@ -399,6 +439,17 @@ export function substitutePlaceholders(
   // fails identically on bad input.
   if (ctx.task.description && /[\r\n]/.test(ctx.task.description)) {
     throw new InvalidDescriptionError();
+  }
+
+  // Pre-flight reject of title newlines (analog to description).
+  // iterate-2026-05-19-fix-launch-name-quoting — the title feeds
+  // {task.title} and {task.session_name} (the `--name` value); an
+  // interior newline would break the single-line copy-paste / WS
+  // auto-execute invariant. The PATCH /tasks handler already rejects
+  // title newlines; the create route only trims — so the substituter
+  // is the fail-closed backstop on the launch path.
+  if (/[\r\n]/.test(ctx.task.title)) {
+    throw new InvalidTitleError();
   }
 
   // Pre-flight reject of parameter newlines (analog to description). The
