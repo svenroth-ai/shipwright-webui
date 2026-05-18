@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.13.0] - 2026-05-18
+
+### Added
+
+- Move an In-Progress task back to the Backlog column via a "Move to Backlog" item in the TaskCard and task-detail menus (new POST /api/external/tasks/:id/backlog endpoint). A backlogged task that has already run keeps a Resume affordance instead of a fresh Launch.
+
+### Fixed
+
+- Production build now copies non-TS runtime assets (src/config/ -> dist/config/) so node dist/index.js no longer returns HTTP 500 on GET /api/external/projects/:id/actions
+- Embedded terminal: the one-shot auto-inject guard now survives a browser reload (or navigate-away-and-back). The WS `ready` envelope carries a new `ptyReused` flag; when the terminal re-attaches to a server pty that persisted across the reload, a post-reload Launch/Resume parks behind the explicit "Send to terminal" confirm instead of auto-injecting `claude --resume` into the still-live Claude session.
+
 ## [v0.12.0] - 2026-05-17
 
 ### Added
