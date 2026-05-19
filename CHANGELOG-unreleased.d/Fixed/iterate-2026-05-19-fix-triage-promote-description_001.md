@@ -1,1 +1,1 @@
-Promoting a triage item to the backlog now carries the item's detail text into the new task's description (it was silently dropped before, leaving promoted tasks with an empty brief)
+Promoting a triage item to the backlog now carries the finding end to end: the new task keeps the triage detail as its description AND launches `/shipwright-iterate` with that brief. Previously the description was dropped on promote and, even when restored, never reached the launched run — the task started with an empty session.
