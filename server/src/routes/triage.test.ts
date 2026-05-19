@@ -270,6 +270,102 @@ describe("triage routes: POST /api/triage/:projectId/promote", () => {
     expect(aaaa.promotedTaskId).toBe(`EXT:${body.task.taskId}`);
   });
 
+  it("carries the triage item's detail as the promoted task description", async () => {
+    const res = await promote({
+      triageId: "trg-aaaa1111",
+      priority: "P1",
+      domain: "engineering",
+      tags: [],
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    const created = h.store.get(body.task.taskId);
+    // makeAppendLine seeds detail = `Detail for ${id}` — the promote route
+    // must carry it into the task's description ("brief"), not drop it.
+    expect(created?.description).toBe("Detail for trg-aaaa1111");
+  });
+
+  it("trims + length-caps an over-long triage detail before persisting it as description", async () => {
+    // Seed an item whose detail (after trimming surrounding whitespace)
+    // exceeds the 20 000-char description cap.
+    const hugeDetail = "   " + "x".repeat(25_000) + "   ";
+    writeFileSync(
+      h.triagePathA,
+      [
+        `{"v":1,"schema":"triage","created":"2026-05-13T08:00:00Z"}`,
+        JSON.stringify({
+          event: "append",
+          id: "trg-cccc3333",
+          ts: "2026-05-13T08:01:00Z",
+          originalTs: "2026-05-13T08:01:00Z",
+          source: "phaseQuality",
+          severity: "high",
+          kind: "bug",
+          title: "Huge-detail item",
+          detail: hugeDetail,
+          evidencePath: null,
+          runId: null,
+          commit: null,
+          dedupKey: "phaseQuality:trg-cccc3333",
+          status: "triage",
+          suggestedPriority: "P1",
+          suggestedDomain: "engineering",
+        }),
+      ].join("\n") + "\n",
+    );
+    _clearCache_TEST_ONLY();
+    const res = await promote({
+      triageId: "trg-cccc3333",
+      priority: "P1",
+      domain: "engineering",
+      tags: [],
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    const created = h.store.get(body.task.taskId);
+    expect(created?.description).toHaveLength(20_000);
+    // Leading whitespace trimmed → first char is content, not a space.
+    expect(created?.description?.startsWith("x")).toBe(true);
+  });
+
+  it("omits description when the triage detail is whitespace-only", async () => {
+    writeFileSync(
+      h.triagePathA,
+      [
+        `{"v":1,"schema":"triage","created":"2026-05-13T08:00:00Z"}`,
+        JSON.stringify({
+          event: "append",
+          id: "trg-dddd4444",
+          ts: "2026-05-13T08:01:00Z",
+          originalTs: "2026-05-13T08:01:00Z",
+          source: "phaseQuality",
+          severity: "high",
+          kind: "bug",
+          title: "Blank-detail item",
+          detail: "   ",
+          evidencePath: null,
+          runId: null,
+          commit: null,
+          dedupKey: "phaseQuality:trg-dddd4444",
+          status: "triage",
+          suggestedPriority: "P1",
+          suggestedDomain: "engineering",
+        }),
+      ].join("\n") + "\n",
+    );
+    _clearCache_TEST_ONLY();
+    const res = await promote({
+      triageId: "trg-dddd4444",
+      priority: "P1",
+      domain: "engineering",
+      tags: [],
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    const created = h.store.get(body.task.taskId);
+    expect(created?.description).toBeUndefined();
+  });
+
   it("idempotent retry: second call reuses existing task, returns recovered=true", async () => {
     const r1 = await promote({
       triageId: "trg-aaaa1111",
