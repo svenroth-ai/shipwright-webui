@@ -492,7 +492,28 @@ describe("InboxPage — text_question cards", () => {
     expect(screen.getByTestId("task-detail-stub")).toBeInTheDocument();
   });
 
-  it("renders questionText as escaped plain-text — no HTML injection", () => {
+  // iterate-2026-05-19-inbox-markdown-render: text_question bodies are
+  // Claude prose, so they render through the XSS-safe <MarkdownText>.
+  it("renders text_question body as markdown (bold, inline code, bullet list)", () => {
+    const item = makeTextItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      questionId: "q-A",
+      questionText: "**Status** check `STATUS.md`\n\n- first\n- second",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+
+    const body = screen.getByTestId("inbox-question-text-q-A");
+    // **Status** → <strong>, `STATUS.md` → <code>, "- " list → two <li>.
+    expect(body.querySelector("strong")).not.toBeNull();
+    expect(body.querySelector("code")).not.toBeNull();
+    expect(body.querySelectorAll("li").length).toBe(2);
+    // The raw markdown markers are consumed — text is formatted, not literal.
+    expect(body.textContent ?? "").not.toContain("**Status**");
+  });
+
+  it("text_question markdown does not execute raw HTML — XSS-safe", () => {
     const item = makeTextItem({
       taskId: "task-A",
       sessionUuid: "sess-A",
@@ -502,11 +523,12 @@ describe("InboxPage — text_question cards", () => {
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     const { container } = renderPage();
 
-    // The literal markup is shown as text, not parsed into a node.
-    expect(screen.getByTestId("inbox-question-text-q-A")).toHaveTextContent(
-      "<script>alert(1)</script> Shall I proceed?",
-    );
+    // react-markdown has no rehype-raw → raw HTML never becomes a live node.
     expect(container.querySelector("script")).toBeNull();
+    // …but the question text is still surfaced to the user.
+    expect(screen.getByTestId("inbox-question-text-q-A")).toHaveTextContent(
+      "Shall I proceed?",
+    );
   });
 
   it("clicking an inbox card navigates to /tasks/:id with { focusTerminal: true } (Phase 1)", () => {
@@ -598,6 +620,24 @@ describe("InboxPage — terminal_prompt cards", () => {
       screen.getByTestId("inbox-question-text-tp-task-A"),
     ).toHaveTextContent("<img src=x onerror=alert(1)> pick one");
     expect(container.querySelector("img")).toBeNull();
+  });
+
+  // iterate-2026-05-19-inbox-markdown-render: a terminal_prompt body is a
+  // live xterm picker (numbered menu + box characters), NOT prose — it must
+  // stay escaped plain-text so markdown never reflows the menu layout.
+  it("terminal_prompt body is NOT markdown-rendered — markdown syntax stays literal", () => {
+    const item = makeTerminalPromptItem({
+      taskId: "task-A",
+      sessionUuid: "sess-A",
+      promptText: "**Pick one**\n  1. Alpha\n  2. Beta",
+    });
+    wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
+    renderPage();
+
+    const body = screen.getByTestId("inbox-question-text-tp-task-A");
+    expect(body.querySelector("strong")).toBeNull();
+    expect(body.querySelector("li")).toBeNull();
+    expect(body.textContent ?? "").toContain("**Pick one**");
   });
 
   it("terminal_prompt card click carries the focusTerminal nav-state", () => {
