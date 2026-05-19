@@ -17,6 +17,7 @@
 # ---------------------------------------------------------------------------
 $repo   = Split-Path -Parent $PSScriptRoot
 $server = Join-Path $repo 'server'
+$client = Join-Path $repo 'client'
 $logDir = Join-Path $env:USERPROFILE '.shipwright-webui'
 $log    = Join-Path $logDir 'server-manual.log'
 
@@ -24,17 +25,31 @@ Write-Host ''
 Write-Host '=== Shipwright WebUI - (re)start Hono (PRODUCTION, background) ===' -ForegroundColor Cyan
 Write-Host ''
 
-# 1. Build FIRST. If this fails, the running server is left alone.
+# 1. Build FIRST (server + client). If EITHER fails, the running server
+#    is left alone. The Hono server serves client/dist in production, so
+#    the client must be built too — otherwise the UI is stale/missing.
 Set-Location $server
 Write-Host 'Building server (npm run build)...' -ForegroundColor Cyan
 & npm run build
 if ($LASTEXITCODE -ne 0) {
   Write-Host ''
-  Write-Host 'BUILD FAILED - the running server was NOT touched.' -ForegroundColor Red
+  Write-Host 'SERVER BUILD FAILED - the running server was NOT touched.' -ForegroundColor Red
   Write-Host 'Fix the errors above, then run this script again.' -ForegroundColor Red
   Read-Host 'Press Enter to close'
   exit 1
 }
+
+Set-Location $client
+Write-Host 'Building client (npm run build)...' -ForegroundColor Cyan
+& npm run build
+if ($LASTEXITCODE -ne 0) {
+  Write-Host ''
+  Write-Host 'CLIENT BUILD FAILED - the running server was NOT touched.' -ForegroundColor Red
+  Write-Host 'Fix the errors above, then run this script again.' -ForegroundColor Red
+  Read-Host 'Press Enter to close'
+  exit 1
+}
+Set-Location $server
 
 # 2. Build OK -> stop the old Hono: port-3847 listener + any `tsx` process
 #    running this repo's server entry (the watch parent and its child).
