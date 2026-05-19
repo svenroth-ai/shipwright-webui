@@ -35,14 +35,13 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Lint
-        run: npx oxlint . || true
-        continue-on-error: true
+        run: npm run lint
 
       - name: Run tests
         run: npm test -- --run
 
   server-checks:
-    name: Server (type + test)
+    name: Server (type + lint + test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -66,6 +65,9 @@ jobs:
         # tracked but tolerated (see CLAUDE.md DO-NOT guard #7). Policy
         # is "no regression"; new code must compile clean.
         continue-on-error: true
+
+      - name: Lint
+        run: npm run lint
 
       - name: Run tests
         run: npm test -- --run

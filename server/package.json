@@ -7,7 +7,8 @@
     "dev:fresh": "node ../scripts/dev-restart.js",
     "build": "tsc && node scripts/copy-assets.mjs",
     "start": "node dist/index.js",
-    "test": "vitest"
+    "test": "vitest",
+    "lint": "oxlint ."
   },
   "engines": {
     "node": ">=20.12.0"
@@ -28,6 +29,7 @@
     "@types/node": "^22.0.0",
     "@types/proper-lockfile": "^4.1.4",
     "@types/shell-quote": "^1.7.5",
+    "oxlint": "^1.66.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
