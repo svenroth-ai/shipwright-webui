@@ -151,7 +151,7 @@ Other scripts (run from the respective subdir):
 npm run build                 # Production build
 npm run test                  # Vitest
 npm run test:e2e              # Playwright (client only)
-npm run lint                  # ESLint
+npm run lint                  # oxlint (client + server)
 npm run typecheck             # tsc --noEmit
 ```
 

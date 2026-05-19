@@ -1,4 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// `index.ts` resolves its CORS Trusted-Origin policy into a module-level
+// `const` (index.ts ~L82) the instant it is imported. A dev shell that
+// exports SHIPWRIGHT_NETWORK_PROFILE / HONO_HOST / WEBUI_TRUSTED_ORIGINS
+// would otherwise widen that policy and falsify the default-loopback
+// CORS assertions below. `vi.hoisted` runs before the `./index.js`
+// import resolves, so scrubbing the vars here pins the default policy
+// regardless of the ambient shell env. A `beforeEach` scrub cannot fix
+// this — the policy is already baked by the time any hook runs.
+vi.hoisted(() => {
+  delete process.env.WEBUI_TRUSTED_ORIGINS;
+  delete process.env.HONO_HOST;
+  delete process.env.SHIPWRIGHT_NETWORK_PROFILE;
+});
+
 import { app } from "./index.js";
 
 describe("GET /api/health", () => {
@@ -44,11 +59,12 @@ describe("CORS", () => {
   });
 
   it("rejects Tailscale MagicDNS Origin in the default loopback-only policy", async () => {
-    // Default test env carries no HONO_HOST / WEBUI_TRUSTED_ORIGINS,
-    // so the policy is loopback-only — Tailscale Origin must NOT
-    // receive CORS approval. (Widening is covered by the
-    // resolveTrustedOrigins.test.ts unit tests; the integration test
-    // here documents the back-compat default.)
+    // The file-level `vi.hoisted` scrub clears HONO_HOST /
+    // WEBUI_TRUSTED_ORIGINS / SHIPWRIGHT_NETWORK_PROFILE before
+    // index.ts is imported, so the policy is loopback-only — Tailscale
+    // Origin must NOT receive CORS approval. (Widening is covered by
+    // the resolveTrustedOrigins.test.ts unit tests; the integration
+    // test here documents the back-compat default.)
     const res = await app.request("/api/health", {
       headers: { Origin: "http://pc-dinovo-002.tail4353f0.ts.net:5173" },
     });
