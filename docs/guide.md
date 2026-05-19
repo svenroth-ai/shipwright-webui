@@ -786,7 +786,7 @@ schema / placeholder mistakes when the page reads the file.
       "label": "Content Orchestrator",
       "kind": "external_launch",
       "description": "Full content pipeline — research, curate, batch-create.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" {plugin.dirs} /content-orchestrator{task.description?}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.title} {plugin.dirs} /content-orchestrator{task.description?}",
       "modal_fields": ["title", "description"]
     },
     {
@@ -794,7 +794,7 @@ schema / placeholder mistakes when the page reads the file.
       "label": "Content Research",
       "kind": "external_launch",
       "description": "Research trending topics.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" {plugin.dirs} /content-research{task.description?}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.title} {plugin.dirs} /content-research{task.description?}",
       "modal_fields": ["title", "description"]
     },
     {
@@ -802,7 +802,7 @@ schema / placeholder mistakes when the page reads the file.
       "label": "Content Creator",
       "kind": "external_launch",
       "description": "Create / update / regenerate articles.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" {plugin.dirs} /content-creator{task.description?}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.title} {plugin.dirs} /content-creator{task.description?}",
       "modal_fields": ["title", "description"]
     },
     {
@@ -810,7 +810,7 @@ schema / placeholder mistakes when the page reads the file.
       "label": "Content Publisher",
       "kind": "external_launch",
       "description": "Publish to Webflow / LinkedIn.",
-      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name \"{task.title}\" {plugin.dirs} /content-publisher{task.description?}",
+      "command_template": "{cd.prefix}claude --session-id {task.uuid} --name {task.title} {plugin.dirs} /content-publisher{task.description?}",
       "modal_fields": ["title", "description"]
     }
   ],
@@ -895,7 +895,8 @@ toggle.
 | `{project.path}` | Project folder absolute path, shell-escaped. |
 | `{cd.prefix}` | `cd <path> && ` (POSIX/cmd) / `Set-Location <path> -ErrorAction Stop; ` (PowerShell). |
 | `{task.uuid}` | Pre-bound session UUID, raw. Use after `--session-id`. |
-| `{task.title}` | Task title, shell-escaped. |
+| `{task.title}` | Task title, shell-escaped. Use bare after `--name` — never `--name "{task.title}"` (the value is already a quoted token; wrapping it double-quotes the name). |
+| `{task.session_name}` | Claude session display name, shell-escaped as one token: `Pipeline: <title>` / `Iterate: <title>` / `<phase>: <title>` for the bundled actions, bare `<title>` for `new-plain` and custom actions. Use bare after `--name`. |
 | `{task.description?}` | Trailing space + escaped description, or empty. Newlines rejected. |
 | `{task.phase}` | Phase id from `phases[].id`. Validated against the catalog. |
 | `{task.phase_label}` | Phase label, shell-escaped. |
@@ -942,6 +943,9 @@ edits on disk only see the read-side validators — the upload-only rows
 
 - `command_template` is tokenised; user input is escaped per shell, not
   evaluated.
+- Placeholders are emitted **pre-quoted as a single shell token** — never
+  wrap one in literal `"…"` or `'…'`. `--name "{task.title}"` double-quotes
+  the value; write `--name {task.title}` (or `--name {task.session_name}`).
 - `{task.initial_prompt}` is bundled-mode only. Custom actions using it
   raise `UnknownActionError`.
 
