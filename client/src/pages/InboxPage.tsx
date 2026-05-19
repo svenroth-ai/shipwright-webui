@@ -33,7 +33,14 @@
  * tests; the new `inbox-resume-<toolUseId>` is also present.
  */
 
-import { useMemo, useState, type KeyboardEvent, type MouseEvent } from "react";
+import {
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Copy,
@@ -48,6 +55,7 @@ import {
   Workflow,
 } from "lucide-react";
 
+import { MarkdownText } from "../components/external/MarkdownText";
 import { extractAskUserPayload } from "../lib/askUserPayload";
 import { useExternalInbox } from "../hooks/useExternalInbox";
 import { useExternalTasks } from "../hooks/useExternalTasks";
@@ -82,6 +90,11 @@ const KNOWN_PHASES = [
   "changelog",
   "deploy",
 ] as const;
+
+/** Inbox card body preview height before the soft fade-out clip kicks in
+ *  (iterate-2026-05-19-inbox-markdown-render). The whole card is
+ *  click-through to TaskDetail for the full content. */
+const MAX_BODY_PREVIEW_PX = 220;
 
 export default function InboxPage() {
   const { data: items = [], isLoading } = useExternalInbox();
@@ -186,7 +199,7 @@ export default function InboxPage() {
       </div>
 
       {/* Body — wrapped in .page-container so Inbox aligns with Projects */}
-      <div className="flex-1 overflow-y-auto" style={{ paddingBlock: "24px 40px" }}>
+      <div className="flex-1 overflow-y-auto" style={{ paddingBlock: "12px 40px" }}>
         <div className="page-container">
           {isLoading && (
             <div className="text-sm" style={{ color: "var(--color-muted)" }}>
@@ -304,7 +317,7 @@ function ProjectSection({
         className="flex cursor-pointer select-none items-center gap-2 outline-none"
         style={{
           listStyle: "none",
-          padding: "6px 4px 10px",
+          padding: "2px 4px 10px",
           color: "var(--color-muted)",
         }}
       >
@@ -485,7 +498,7 @@ function AskToolCard({
         border: "1px solid var(--color-border)",
         borderLeft: "3px solid var(--color-warning)",
         borderRadius: "var(--radius-button)",
-        padding: "22px 24px",
+        padding: "12px 24px 20px",
         boxShadow: "var(--shadow-sm)",
         maxWidth: "720px",
         cursor: task ? "pointer" : "default",
@@ -509,7 +522,7 @@ function AskToolCard({
         aria-hidden="true"
       />
       {/* Top row: context pill + time-ago. Read-only. */}
-      <div className="mb-[12px] flex items-center justify-between gap-3">
+      <div className="mb-[6px] flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {phase && PhaseIcon && task && (
             <span
@@ -671,6 +684,28 @@ function WaitingReplyCard({
     item.kind === "text_question" ? item.questionId : `tp-${item.taskId}`;
   const bodyText =
     item.kind === "text_question" ? item.questionText : item.promptText;
+  // A text_question is Claude prose → markdown. A terminal_prompt is a live
+  // xterm picker (numbered menu + box chars) → escaped plain-text.
+  const isMarkdown = item.kind === "text_question";
+
+  // Long bodies are clipped to a fixed preview height with a soft bottom
+  // fade. `-webkit-line-clamp` no longer clips once the body is markdown
+  // block elements, so overflow is detected by comparing scroll vs client
+  // height; the fade only renders when the body actually overflows.
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+  const [overflowing, setOverflowing] = useState(false);
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    const measure = () => {
+      setOverflowing(el.scrollHeight - el.clientHeight > 1);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [bodyText]);
 
   const phase = useMemo<string | null>(() => {
     if (!task?.title) return null;
@@ -704,7 +739,7 @@ function WaitingReplyCard({
         border: "1px solid var(--color-border)",
         borderLeft: "3px solid var(--color-warning)",
         borderRadius: "var(--radius-button)",
-        padding: "22px 24px",
+        padding: "12px 24px 20px",
         boxShadow: "var(--shadow-sm)",
         maxWidth: "720px",
         cursor: task ? "pointer" : "default",
@@ -717,7 +752,7 @@ function WaitingReplyCard({
       data-testid={`inbox-card-${itemKey}`}
     >
       {/* Top row: context pill + time-ago. Read-only. */}
-      <div className="mb-[12px] flex items-center justify-between gap-3">
+      <div className="mb-[6px] flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {phase && PhaseIcon && task && (
             <span
@@ -762,22 +797,49 @@ function WaitingReplyCard({
         Awaiting your reply
       </div>
 
-      {/* Detected question text — escaped plain-text, pre-wrap so numbered
-          menus keep their layout, line-clamped against runaway turns. */}
+      {/* Detected question / picker text. A text_question is Claude prose →
+          rendered through the XSS-safe <MarkdownText>; a terminal_prompt is
+          a live xterm picker → escaped plain-text pre-wrap so markdown never
+          reflows the numbered menu. The body is clipped to a preview height
+          with a soft bottom fade when it overflows; the whole-card
+          click-through to TaskDetail surfaces the full text. */}
       <div
+        ref={bodyRef}
         data-testid={`inbox-question-text-${itemKey}`}
         style={{
-          fontSize: "14px",
-          color: "var(--color-text)",
-          lineHeight: 1.5,
-          whiteSpace: "pre-wrap",
-          display: "-webkit-box",
-          WebkitLineClamp: 8,
-          WebkitBoxOrient: "vertical",
+          position: "relative",
+          maxHeight: `${MAX_BODY_PREVIEW_PX}px`,
           overflow: "hidden",
         }}
       >
-        {bodyText}
+        {isMarkdown ? (
+          <MarkdownText text={bodyText} />
+        ) : (
+          <div
+            style={{
+              fontSize: "14px",
+              color: "var(--color-text)",
+              lineHeight: 1.5,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {bodyText}
+          </div>
+        )}
+        {overflowing && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              insetInline: 0,
+              bottom: 0,
+              height: "48px",
+              background:
+                "linear-gradient(to bottom, transparent, var(--color-surface))",
+              pointerEvents: "none",
+            }}
+          />
+        )}
       </div>
     </div>
   );
