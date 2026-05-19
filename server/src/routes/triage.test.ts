@@ -285,6 +285,22 @@ describe("triage routes: POST /api/triage/:projectId/promote", () => {
     expect(created?.description).toBe("Detail for trg-aaaa1111");
   });
 
+  it("assigns the new-iterate actionId so launch injects the brief", async () => {
+    // Without an actionId the launch route falls to the legacy path and
+    // never injects the description into the run — the actionId is what
+    // routes the launch through the substitution branch.
+    const res = await promote({
+      triageId: "trg-aaaa1111",
+      priority: "P1",
+      domain: "engineering",
+      tags: [],
+    });
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    const created = h.store.get(body.task.taskId);
+    expect(created?.actionId).toBe("new-iterate");
+  });
+
   it("trims + length-caps an over-long triage detail before persisting it as description", async () => {
     // Seed an item whose detail (after trimming surrounding whitespace)
     // exceeds the 20 000-char description cap.

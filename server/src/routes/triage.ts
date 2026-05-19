@@ -59,6 +59,24 @@ const MAX_REASON_LEN = 500;
  * pathological item could mint an over-long, hard-to-edit task.
  */
 const DESCRIPTION_MAX_LENGTH = 20_000;
+/**
+ * Action assigned to a promoted triage task. The launch route only
+ * injects a task's description into the `claude` command via the
+ * `actionId` → `substitutePlaceholders` branch; a task with no actionId
+ * falls to the legacy path and the brief never reaches the run. A triage
+ * item is by nature a change to a finished project, so `new-iterate` —
+ * which launches `/shipwright-iterate <description>` — is the natural
+ * landing action (a finding that turns out to need no change just ends
+ * the iterate early). `new-iterate` is a bundled action, always present
+ * in the resolved catalog; the launch route still validates it
+ * (`unknown_action_id`) against the project's `.webui/actions.json`. A
+ * custom catalog that removes `new-iterate` therefore yields a loud
+ * 400 on launch — by design. Do NOT add a degrade-to-legacy fallback
+ * here: the legacy launch path has no description placeholder, so a
+ * fallback would silently re-drop the brief — exactly the bug this
+ * constant fixes.
+ */
+const PROMOTED_TASK_ACTION_ID = "new-iterate";
 
 export interface TriageProjectMeta {
   id: string;
@@ -281,14 +299,19 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
         ];
         const allTags = mergeTags(defaultTags, parsed.value.tags);
         // Carry the triage item's `detail` text into the task as its
-        // description (the "brief" / initial prompt). Without this the
-        // promote silently dropped the description; the launch route then
-        // had nothing to forward to the In-Progress session.
+        // description (the "brief" / initial prompt), and assign
+        // PROMOTED_TASK_ACTION_ID so the launch route's substitution
+        // branch actually injects that brief into the run. Without the
+        // actionId the launch falls to the legacy path and the brief is
+        // silently dropped; without the description there is nothing to
+        // inject. Both are required for the triage→backlog→in-progress
+        // chain to carry the brief end to end.
         const description = deriveDescription(item.detail);
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,
           projectId,
+          actionId: PROMOTED_TASK_ACTION_ID,
           domain: parsed.value.domain,
           priority: parsed.value.priority,
           complexityHint: parsed.value.complexityHint,
@@ -610,6 +633,13 @@ function mergeTags(defaults: string[], userTags: string[]): string[] {
  * `detail` is typed `string` but resolved from raw JSONL, so it is
  * defensively re-checked. Whitespace-only → `undefined` (no description
  * field minted); over-length → trimmed and capped at DESCRIPTION_MAX_LENGTH.
+ *
+ * Interior newlines are deliberately PRESERVED — a triage `detail` is
+ * often multi-paragraph and reads better that way in the task UI. The
+ * launch path flattens the description to a single line at substitution
+ * time (`actions-substitute.ts flattenDescription`); do NOT add a
+ * newline / control-char rejection here — that would re-break the
+ * multi-line findings the launch path is built to accept.
  */
 function deriveDescription(detail: unknown): string | undefined {
   if (typeof detail !== "string") return undefined;
