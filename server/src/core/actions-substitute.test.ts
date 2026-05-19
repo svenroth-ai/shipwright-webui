@@ -5,7 +5,6 @@ import {
   substituteAllForms,
   validateTemplate,
   InvalidPlaceholderError,
-  InvalidDescriptionError,
   UnknownPhaseError,
   UnsupportedShellError,
   type SubstitutionContext,
@@ -133,12 +132,13 @@ describe("actions-substitute — positive placeholders across shells", () => {
     expect(out).toBe(` 'Please fix the bug'`);
   });
 
-  it("task.description? rejects embedded newlines", () => {
+  it("task.description? flattens embedded newlines to single spaces", () => {
     const ctx = baseCtx();
-    ctx.task.description = "first line\nsecond line";
-    expect(() =>
-      substitutePlaceholders("{task.description?}", ctx, "posix"),
-    ).toThrow(InvalidDescriptionError);
+    // \n, \r\n and blank-line runs all collapse to one space; the launch
+    // command must stay a single physical line.
+    ctx.task.description = "first line\nsecond line\r\n\r\nthird";
+    const out = substitutePlaceholders("{task.description?}", ctx, "posix");
+    expect(out).toBe(` 'first line second line third'`);
   });
 
   it("task.phase validates against allowedPhaseIds", () => {
@@ -210,13 +210,15 @@ describe("actions-substitute — negative cases", () => {
     ).toThrow(UnsupportedShellError);
   });
 
-  it("description newline rejected even when the template does not reference description", () => {
-    // Input-validation pre-flight — protects future templates.
+  it("a multi-line description no longer fails a template that omits it", () => {
+    // Pre-flight description-newline rejection was removed: a multi-line
+    // description is flattened only by the description placeholders, and
+    // a template that never references the description is unaffected.
     const ctx = baseCtx();
     ctx.task.description = "first\nsecond";
-    expect(() =>
-      substitutePlaceholders("{task.title}", ctx, "posix"),
-    ).toThrow(InvalidDescriptionError);
+    expect(substitutePlaceholders("{task.title}", ctx, "posix")).toBe(
+      `'Write docs'`,
+    );
   });
 });
 
@@ -829,14 +831,18 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     expect(out).toBe("'/shipwright-adopt --note $HOME and `pwd`'");
   });
 
-  it("rejects newline in description (analog to existing behaviour)", () => {
+  it("flattens newlines (LF, CRLF, blank-line runs) in the initial prompt", () => {
+    // {task.initial_prompt} is the branch the triage→launch chain hits
+    // (new-iterate/new-task templates). The whole prompt is one
+    // shell-quoted token; a multi-line brief must collapse to one
+    // physical line so the launch command stays single-line.
     const ctx = ctxFor("new-task", {
       phase: "build",
-      description: "line1\nline2",
+      description: "line1\nline2\r\nline3\n\nline4",
     });
-    expect(() =>
+    expect(
       substitutePlaceholders("{task.initial_prompt}", ctx, "posix"),
-    ).toThrow(InvalidDescriptionError);
+    ).toBe("'/shipwright-build line1 line2 line3 line4'");
   });
 
   it("rejects newline in any param value", () => {

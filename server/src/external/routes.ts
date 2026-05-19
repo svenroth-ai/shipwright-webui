@@ -34,7 +34,6 @@ import {
   buildExternalLaunchCommand,
   substitutePlaceholders,
   UnknownPhaseError,
-  InvalidDescriptionError,
   InvalidTitleError,
   InvalidParameterError,
   InvalidPlaceholderError,
@@ -970,7 +969,6 @@ export function createExternalRoutes(args: {
         } catch (err) {
           if (
             err instanceof UnknownPhaseError ||
-            err instanceof InvalidDescriptionError ||
             err instanceof InvalidTitleError ||
             err instanceof InvalidParameterError ||
             err instanceof InvalidPlaceholderError

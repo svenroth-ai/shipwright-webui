@@ -150,7 +150,7 @@ export interface ExternalTask {
    * (pre-launch-wiring, back-compat test path, or manual API callers
    * that skip the new payload) keep loading cleanly. The launch route
    * persists them AFTER successful substitutePlaceholders — if the
-   * substitution throws (unknown phase, invalid description newline),
+   * substitution throws (unknown phase, newline in title or a parameter),
    * nothing is persisted.
    *
    * 2026-04-25 — iterate-custom-actions-generic-mode. Type widened from a

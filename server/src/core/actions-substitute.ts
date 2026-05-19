@@ -13,9 +13,12 @@
  *     - Replaces every `{placeholder}` / `{placeholder?}` token with its
  *       shell-escaped substitution.
  *     - Unknown placeholder → throws InvalidPlaceholderError.
- *     - `{task.description?}` containing a newline → throws
- *       InvalidDescriptionError BEFORE substitution (the continuation
- *       prefix would break the single-line copy-paste flow).
+ *     - A task description spanning multiple lines is FLATTENED — each
+ *       newline run collapses to a single space — so it survives as a
+ *       single-line `claude` argument. The launch command must stay one
+ *       physical line (copy-paste + embedded-terminal auto-execute both
+ *       break on an embedded newline). A multi-line brief — common for
+ *       triage-promoted tasks — is flattened, never rejected.
  *     - `{task.phase}` that does NOT match ctx.allowedPhaseIds → throws
  *       UnknownPhaseError.
  *     - Unsupported shell form → throws UnsupportedShellError.
@@ -91,15 +94,6 @@ export class InvalidPlaceholderError extends Error {
     this.placeholder = placeholder;
     this.actionId = actionId;
     this.template = template;
-  }
-}
-
-export class InvalidDescriptionError extends Error {
-  constructor() {
-    super(
-      "task.description cannot contain newlines (breaks single-line copy-paste)",
-    );
-    this.name = "InvalidDescriptionError";
   }
 }
 
@@ -206,6 +200,22 @@ function pickEscaper(shellForm: ShellForm): (v: string) => string {
 }
 
 /**
+ * Flatten a task description into a single physical line: every newline
+ * run (LF / CR / CRLF), together with any spaces or tabs hugging it,
+ * collapses to one space, and outer whitespace is trimmed. The launch
+ * command must stay one line — copy-paste and the embedded-terminal
+ * auto-execute (which sends `command + "\r"`) both treat an embedded
+ * newline as a premature Enter. Multi-line briefs (typical for
+ * triage-promoted tasks) are flattened here rather than rejected, so
+ * every action's description placeholder is launch-safe. Returns "" for
+ * undefined / whitespace-only input.
+ */
+function flattenDescription(raw: string | undefined): string {
+  if (!raw) return "";
+  return raw.replace(/[ \t]*[\r\n]+[ \t]*/g, " ").trim();
+}
+
+/**
  * Render a single ResolvedParam to its shell-token form. Always begins
  * with a leading space so the join() in the `task.parameters?` branch
  * stays clean — adjacent placeholders like `{plugin.dirs}{task.parameters?}`
@@ -308,9 +318,10 @@ function substituteOne(
     case "task.phase_label":
       return q(ctx.task.phase_label);
     case "task.description?": {
-      const d = ctx.task.description?.trim();
+      // Multi-line briefs are flattened to one line (see flattenDescription)
+      // rather than rejected — the launch command must stay single-line.
+      const d = flattenDescription(ctx.task.description);
       if (!d) return "";
-      if (/[\r\n]/.test(d)) throw new InvalidDescriptionError();
       // ` \\\n    ` leading continuation prefix — the optional-suffix
       // semantics covered in the header comment.
       return ` \\\n    ${q(d)}`;
@@ -358,7 +369,11 @@ function substituteOne(
           inner += formatParameterRaw(p);
         }
       }
-      const desc = ctx.task.description?.trim();
+      // Flattened to one line — see flattenDescription. The whole prompt
+      // is shell-quoted once by q() below, so a multi-line brief must
+      // already be single-line here or the quoted argument would break
+      // the single-line launch-command invariant.
+      const desc = flattenDescription(ctx.task.description);
       if (desc) {
         inner += ` ${desc}`;
       }
@@ -423,8 +438,9 @@ function substituteOne(
 
 /**
  * Substitute placeholders in `template` for a given shell form. Throws
- * on unknown placeholders, description newlines, unknown phase ids,
- * and unsupported shell forms.
+ * on unknown placeholders, title newlines, parameter newlines, unknown
+ * phase ids, and unsupported shell forms. A multi-line task description
+ * is flattened (not rejected) — see flattenDescription.
  */
 export function substitutePlaceholders(
   template: string,
@@ -435,13 +451,10 @@ export function substitutePlaceholders(
   // still rejects "fish".
   pickEscaper(shellForm);
 
-  // Pre-flight reject of description newlines so every shell form
-  // fails identically on bad input.
-  if (ctx.task.description && /[\r\n]/.test(ctx.task.description)) {
-    throw new InvalidDescriptionError();
-  }
+  // Note: a multi-line `ctx.task.description` is NOT rejected — the
+  // description placeholder branches flatten it via flattenDescription.
 
-  // Pre-flight reject of title newlines (analog to description).
+  // Pre-flight reject of title newlines (analog to parameters below).
   // iterate-2026-05-19-fix-launch-name-quoting — the title feeds
   // {task.title} and {task.session_name} (the `--name` value); an
   // interior newline would break the single-line copy-paste / WS
@@ -558,8 +571,8 @@ export function validateTemplate(
     return null;
   } catch (err) {
     if (err instanceof InvalidPlaceholderError) return err;
-    // Other error classes (UnsupportedShellError, InvalidDescriptionError,
-    // UnknownPhaseError) do not apply to the dry-run context because we
+    // Other error classes (UnsupportedShellError, UnknownPhaseError,
+    // InvalidTitleError) do not apply to the dry-run context because we
     // supply clean values.
     throw err;
   }
