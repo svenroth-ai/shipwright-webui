@@ -49,6 +49,34 @@ const MAX_TAG_LEN = 100;
 const MAX_TAGS = 32;
 const MAX_DOMAIN_LEN = 200;
 const MAX_REASON_LEN = 500;
+/**
+ * Hard cap on the promoted task's description. Verbatim mirror of the
+ * identically-named `DESCRIPTION_MAX_LENGTH` in `external/routes.ts` (the
+ * cap the launch + edit routes enforce via `normalizeDescription`) — the
+ * matching name keeps the two greppable together if they ever need to be
+ * reconciled. A triage `detail` has no producer-side length bound, so it
+ * is capped here before it becomes a task description, otherwise a
+ * pathological item could mint an over-long, hard-to-edit task.
+ */
+const DESCRIPTION_MAX_LENGTH = 20_000;
+/**
+ * Action assigned to a promoted triage task. The launch route only
+ * injects a task's description into the `claude` command via the
+ * `actionId` → `substitutePlaceholders` branch; a task with no actionId
+ * falls to the legacy path and the brief never reaches the run. A triage
+ * item is by nature a change to a finished project, so `new-iterate` —
+ * which launches `/shipwright-iterate <description>` — is the natural
+ * landing action (a finding that turns out to need no change just ends
+ * the iterate early). `new-iterate` is a bundled action, always present
+ * in the resolved catalog; the launch route still validates it
+ * (`unknown_action_id`) against the project's `.webui/actions.json`. A
+ * custom catalog that removes `new-iterate` therefore yields a loud
+ * 400 on launch — by design. Do NOT add a degrade-to-legacy fallback
+ * here: the legacy launch path has no description placeholder, so a
+ * fallback would silently re-drop the brief — exactly the bug this
+ * constant fixes.
+ */
+const PROMOTED_TASK_ACTION_ID = "new-iterate";
 
 export interface TriageProjectMeta {
   id: string;
@@ -270,15 +298,26 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           `triage:${parsed.value.triageId}`,
         ];
         const allTags = mergeTags(defaultTags, parsed.value.tags);
+        // Carry the triage item's `detail` text into the task as its
+        // description (the "brief" / initial prompt), and assign
+        // PROMOTED_TASK_ACTION_ID so the launch route's substitution
+        // branch actually injects that brief into the run. Without the
+        // actionId the launch falls to the legacy path and the brief is
+        // silently dropped; without the description there is nothing to
+        // inject. Both are required for the triage→backlog→in-progress
+        // chain to carry the brief end to end.
+        const description = deriveDescription(item.detail);
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,
           projectId,
+          actionId: PROMOTED_TASK_ACTION_ID,
           domain: parsed.value.domain,
           priority: parsed.value.priority,
           complexityHint: parsed.value.complexityHint,
           tags: allTags,
           promotedFromTriageId: parsed.value.triageId,
+          ...(description !== undefined ? { description } : {}),
         });
         await deps.store.persist();
         taskId = created.taskId;
@@ -587,6 +626,28 @@ function mergeTags(defaults: string[], userTags: string[]): string[] {
     }
   }
   return out;
+}
+
+/**
+ * Derive the promoted task's description from a triage item's `detail`.
+ * `detail` is typed `string` but resolved from raw JSONL, so it is
+ * defensively re-checked. Whitespace-only → `undefined` (no description
+ * field minted); over-length → trimmed and capped at DESCRIPTION_MAX_LENGTH.
+ *
+ * Interior newlines are deliberately PRESERVED — a triage `detail` is
+ * often multi-paragraph and reads better that way in the task UI. The
+ * launch path flattens the description to a single line at substitution
+ * time (`actions-substitute.ts flattenDescription`); do NOT add a
+ * newline / control-char rejection here — that would re-break the
+ * multi-line findings the launch path is built to accept.
+ */
+function deriveDescription(detail: unknown): string | undefined {
+  if (typeof detail !== "string") return undefined;
+  const trimmed = detail.trim();
+  if (!trimmed) return undefined;
+  return trimmed.length > DESCRIPTION_MAX_LENGTH
+    ? trimmed.slice(0, DESCRIPTION_MAX_LENGTH)
+    : trimmed;
 }
 
 // ----------------------------------------------------------------------
