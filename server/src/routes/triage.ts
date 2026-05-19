@@ -49,6 +49,16 @@ const MAX_TAG_LEN = 100;
 const MAX_TAGS = 32;
 const MAX_DOMAIN_LEN = 200;
 const MAX_REASON_LEN = 500;
+/**
+ * Hard cap on the promoted task's description. Verbatim mirror of the
+ * identically-named `DESCRIPTION_MAX_LENGTH` in `external/routes.ts` (the
+ * cap the launch + edit routes enforce via `normalizeDescription`) — the
+ * matching name keeps the two greppable together if they ever need to be
+ * reconciled. A triage `detail` has no producer-side length bound, so it
+ * is capped here before it becomes a task description, otherwise a
+ * pathological item could mint an over-long, hard-to-edit task.
+ */
+const DESCRIPTION_MAX_LENGTH = 20_000;
 
 export interface TriageProjectMeta {
   id: string;
@@ -270,6 +280,11 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           `triage:${parsed.value.triageId}`,
         ];
         const allTags = mergeTags(defaultTags, parsed.value.tags);
+        // Carry the triage item's `detail` text into the task as its
+        // description (the "brief" / initial prompt). Without this the
+        // promote silently dropped the description; the launch route then
+        // had nothing to forward to the In-Progress session.
+        const description = deriveDescription(item.detail);
         const created: ExternalTask = deps.store.create({
           title: item.title,
           cwd: project.path,
@@ -279,6 +294,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
           complexityHint: parsed.value.complexityHint,
           tags: allTags,
           promotedFromTriageId: parsed.value.triageId,
+          ...(description !== undefined ? { description } : {}),
         });
         await deps.store.persist();
         taskId = created.taskId;
@@ -587,6 +603,21 @@ function mergeTags(defaults: string[], userTags: string[]): string[] {
     }
   }
   return out;
+}
+
+/**
+ * Derive the promoted task's description from a triage item's `detail`.
+ * `detail` is typed `string` but resolved from raw JSONL, so it is
+ * defensively re-checked. Whitespace-only → `undefined` (no description
+ * field minted); over-length → trimmed and capped at DESCRIPTION_MAX_LENGTH.
+ */
+function deriveDescription(detail: unknown): string | undefined {
+  if (typeof detail !== "string") return undefined;
+  const trimmed = detail.trim();
+  if (!trimmed) return undefined;
+  return trimmed.length > DESCRIPTION_MAX_LENGTH
+    ? trimmed.slice(0, DESCRIPTION_MAX_LENGTH)
+    : trimmed;
 }
 
 // ----------------------------------------------------------------------
