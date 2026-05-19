@@ -498,7 +498,7 @@ function AskToolCard({
         border: "1px solid var(--color-border)",
         borderLeft: "3px solid var(--color-warning)",
         borderRadius: "var(--radius-button)",
-        padding: "22px 24px",
+        padding: "12px 24px 20px",
         boxShadow: "var(--shadow-sm)",
         maxWidth: "720px",
         cursor: task ? "pointer" : "default",
@@ -522,7 +522,7 @@ function AskToolCard({
         aria-hidden="true"
       />
       {/* Top row: context pill + time-ago. Read-only. */}
-      <div className="mb-[12px] flex items-center justify-between gap-3">
+      <div className="mb-[6px] flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {phase && PhaseIcon && task && (
             <span
@@ -739,7 +739,7 @@ function WaitingReplyCard({
         border: "1px solid var(--color-border)",
         borderLeft: "3px solid var(--color-warning)",
         borderRadius: "var(--radius-button)",
-        padding: "22px 24px",
+        padding: "12px 24px 20px",
         boxShadow: "var(--shadow-sm)",
         maxWidth: "720px",
         cursor: task ? "pointer" : "default",
@@ -752,7 +752,7 @@ function WaitingReplyCard({
       data-testid={`inbox-card-${itemKey}`}
     >
       {/* Top row: context pill + time-ago. Read-only. */}
-      <div className="mb-[12px] flex items-center justify-between gap-3">
+      <div className="mb-[6px] flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {phase && PhaseIcon && task && (
             <span
