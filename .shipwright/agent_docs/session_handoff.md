@@ -2,19 +2,19 @@
 canon_generated: true
 run_id: "iterate-2026-05-20-triage-launch-surface-webui"
 phase: "iterate"
-reason: "iterate: triage-launch-surface-webui Fix-now + launchPayload rendering"
-timestamp: "2026-05-20T21:22:34.170160+00:00"
+reason: "iterate finalization"
+timestamp: "2026-05-20T21:36:13.397818+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-20 21:22:34 UTC
+> Auto-generated 2026-05-20 21:36:13 UTC
 
 ## Session Info
 
-- **Session ID**: 2d5a971d-ec18-4f63-8e99-e540b8769f8f
-- **Timestamp**: 2026-05-20 21:22:34 UTC
-- **Reason**: iterate: triage-launch-surface-webui Fix-now + launchPayload rendering
+- **Session ID**: unknown
+- **Timestamp**: 2026-05-20 21:36:13 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
@@ -51,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/triage-launch-surface-webui
-- **Last Commit**: 0644173 chore(compliance): auto-regenerated artefacts include launch-prep commits
+- **Branch**: main
+- **Last Commit**: 9a4b435 chore(compliance): auto-regenerated artefacts include Phase 0a backfill
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-45adf0de | work_completed | iterate (triage-launch-surface-webui (launchPayload + Fix-now)) | 2026-05-20 |
 | evt-0036a610 | work_completed | iterate (adopt oxlint as the project linter + env-isolate the server CORS test) | 2026-05-19 |
 | evt-3d1274f6 | work_completed | iterate (Inbox card markdown rendering + fade-clip + spacing) | 2026-05-19 |
 | evt-058d9da0 | work_completed | iterate (triage promote carries the brief into the launched run (actionId + newline flatten)) | 2026-05-19 |
 | evt-d508eaff | work_completed | iterate (fix triage promote: carry item.detail into the promoted task description) | 2026-05-19 |
-| evt-223eadce | work_completed | iterate (fix --name double-quoting in bundled launch templates via the {task.session_name} placeholder) | 2026-05-18 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 123
-- **Last iterate**: change — adopt oxlint as the project linter + env-isolate the server CORS test (2026-05-19)
+- **Total work events**: 124
+- **Last iterate**: feature — triage-launch-surface-webui (launchPayload + Fix-now) (2026-05-20)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

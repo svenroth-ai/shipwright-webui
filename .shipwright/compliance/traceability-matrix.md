@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-20T21:22:34Z
+Generated: 2026-05-20T21:37:23Z
 
 ## Requirements Coverage
 
@@ -35,7 +35,7 @@ Generated: 2026-05-20T21:22:34Z
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +24 | 632/632 → 970/970 | 2026-05-18 (iter) | FAIL |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
-| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 | 0/0 → 1156/1156 | 2026-05-19 (iter) | FAIL |
+| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +1 | 0/0 → 2189/2189 | 2026-05-20 (iter) | FAIL |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 
@@ -66,12 +66,12 @@ Generated: 2026-05-20T21:22:34Z
 | HONO_HOST opt-in: backend default-binds loopback, opt-in for non-loopback | iterate | feature | FR-01.31 | 8/8 | 6504911 | 2026-05-07 |
 | v0.8.9 replay-pushdown: live shell at viewport top after replay-on-attach (FR-01.28 v0.8.9 AC-1) | iterate | bug | FR-01.28 | 1500/1500 | 98e8c98 | 2026-05-09 |
 | tsc-baseline-fix: retire 4 documented tsc baseline errors (3x cross-package imports + missing @types/proper-lockfile). server npm run build exits 0; install-windows.ps1 step [3/4] runs clean. Type mirrors under server/src/types/ + comment-aware drift-guard test. ADR-080. | iterate | bug |  | 1508/1508 | 3ab3ad9 | 2026-05-09 |
-| network-profile-flag: SHIPWRIGHT_NETWORK_PROFILE env-flag (local|tailscale|open) unifies Vite + Hono dev-server bind. Tailscale auto-detect via subprocess + env override. Closes Vite-proxy gap when Hono binds non-loopback. ADR-081. | iterate | feature | FR-01.31 | 1586/1586 | 6827d97 | 2026-05-10 |
+| network-profile-flag: SHIPWRIGHT_NETWORK_PROFILE env-flag (local/tailscale/open) unifies Vite + Hono dev-server bind. Tailscale auto-detect via subprocess + env override. Closes Vite-proxy gap when Hono binds non-loopback. ADR-081. | iterate | feature | FR-01.31 | 1586/1586 | 6827d97 | 2026-05-10 |
 | env-local-loading-fix: tsx --env-file-if-exists for server + loadEnv with envDir for Vite. Closes ADR-081 wiring gap. ADR-082. | iterate | bug | FR-01.31 | 1606/1606 | 4479736 | 2026-05-10 |
 | v0.9.2 embedded terminal mount races: 1500ms readOnly banner grace + safeFit/disposedRef/_renderService dimensions stub (ADR-084) | iterate | bug | FR-01.28 | 1631/1631 | 1cdeb9b | 2026-05-11 |
 | v0.9.3 resume state-machine: scope active→idle JSONL-mtime decay to non-new-plain (ADR-085) | iterate | bug | FR-01.28 | 1636/1636 | 4bb3799 | 2026-05-11 |
 | v0.9.4 skip disk-scrollback replay on attach for new-plain tasks (Claude TUI byte-stacking corruption fix; ADR-086) | iterate | bug | FR-01.28 | 1636/1636 | fbfb449 | 2026-05-11 |
-| evt-f4f7c7c5 | iterate | Iterate F (headless-terminal-refactor campaign): xterm.js client config Vorbild-Alignment — convertEol+allowProposedApi+scrollback flips plus WebglAddon load with try/catch fallback (ADR-093). Follow-on to ADR-092 targeting in-session status-pane redraw stacking. | FR-01.28 | 777/777 | 6f715fc | 2026-05-12 |
+| Iterate F headless-terminal-refactor: xterm.js convertEol+allowProposedApi+scrollback alignment + WebglAddon try/catch fallback; follow-on to ADR-092 for in-session status-pane redraw stacking (ADR-093) | iterate | change | FR-01.28 | 777/777 | 6f715fc | 2026-05-12 |
 | dynamic-stack-profiles: wizard step 2 renders from /api/profiles + bundled snapshot refresh (ADR-094) | iterate | change | FR-01.03 | 786/786 | 134a2e2 | 2026-05-12 |
 | Iterate G — Claude TUI flicker env + Resume button gating (ADR-095) | iterate-G | fix |  | 1707/1707 | 5807eb0 | 2026-05-13 |
 | Iterate H — Snapshot preservation on pty death + TaskCard Resume gating (ADR-096) | iterate | bug | FR-01.28, FR-01.11 | 1717/1717 | 17d75c9 | 2026-05-13 |
@@ -166,6 +166,7 @@ Generated: 2026-05-20T21:22:34Z
 | triage promote carries the brief into the launched run (actionId + newline flatten) | iterate | bug | FR-01.30 | 1156/1156 | 3936dbd | 2026-05-19 |
 | Inbox card markdown rendering + fade-clip + spacing | iterate | change | FR-01.13 | 979/979 | 9b91499 | 2026-05-19 |
 | adopt oxlint as the project linter + env-isolate the server CORS test | iterate | change |  | 2135/2135 | e6683d6 | 2026-05-19 |
+| triage-launch-surface-webui (launchPayload + Fix-now) | iterate | feature | FR-01.30 | 2189/2189 | 290263e | 2026-05-20 |
 
 ## Coverage Summary
 
@@ -173,7 +174,7 @@ Generated: 2026-05-20T21:22:34Z
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 53 |
+| Iterate changes | 54 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
