@@ -2,19 +2,19 @@
 canon_generated: true
 run_id: "iterate-2026-05-20-triage-launch-surface-webui"
 phase: "iterate"
-reason: "iterate: triage-launch-surface-webui Fix-now + launchPayload rendering"
-timestamp: "2026-05-20T21:22:34.170160+00:00"
+reason: "iterate finalization"
+timestamp: "2026-05-20T20:58:56.475379+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-20 21:22:34 UTC
+> Auto-generated 2026-05-20 20:58:56 UTC
 
 ## Session Info
 
-- **Session ID**: 2d5a971d-ec18-4f63-8e99-e540b8769f8f
-- **Timestamp**: 2026-05-20 21:22:34 UTC
-- **Reason**: iterate: triage-launch-surface-webui Fix-now + launchPayload rendering
+- **Session ID**: unknown
+- **Timestamp**: 2026-05-20 20:58:56 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
@@ -51,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/triage-launch-surface-webui
-- **Last Commit**: 0644173 chore(compliance): auto-regenerated artefacts include launch-prep commits
+- **Branch**: main
+- **Last Commit**: e88067e chore(events): backfill affected_frs for 18 prior iterates (Phase 0a)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
