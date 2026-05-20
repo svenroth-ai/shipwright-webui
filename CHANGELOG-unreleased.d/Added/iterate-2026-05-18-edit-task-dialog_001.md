@@ -1,1 +1,0 @@
-Edit Task dialog — re-edit a task's title, description, phase, priority, complexity, domain, tags and blocked-by from the TaskCard and TaskDetail menus. Launch-shaping fields (description / phase / priority / complexity) freeze once the task has started; routing metadata stays editable. The task description now also shows in a collapsible block in the TaskDetail header.

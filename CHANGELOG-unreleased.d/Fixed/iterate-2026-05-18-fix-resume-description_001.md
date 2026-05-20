@@ -1,1 +1,0 @@
-Task launches now pass the saved task description (the initial prompt) to Claude on every fresh start — including a Resume that begins a new session — instead of only on the first launch from the New-task dialog

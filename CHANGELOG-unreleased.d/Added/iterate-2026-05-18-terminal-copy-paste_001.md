@@ -1,1 +1,0 @@
-Embedded terminal: keyboard copy (Ctrl+C with a selection, Ctrl+Insert) and paste (Ctrl+V, Shift+Insert); over plain http the terminal shows a hint to use right-click - Paste instead of failing silently

@@ -1,1 +1,0 @@
-Claude session names launched from the WebUI no longer carry stray quote characters — bundled action launch commands now pass --name as a single cleanly-quoted token (e.g. "Pipeline: My Task" instead of "'My Task'")

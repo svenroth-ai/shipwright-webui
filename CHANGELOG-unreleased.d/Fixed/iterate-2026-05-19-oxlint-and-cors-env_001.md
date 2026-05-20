@@ -1,1 +1,0 @@
-Server CORS integration test no longer depends on the dev shell's ambient SHIPWRIGHT_NETWORK_PROFILE / HONO_HOST / WEBUI_TRUSTED_ORIGINS — the default-loopback assertions are pinned via a pre-import env scrub

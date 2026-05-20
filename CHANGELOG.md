@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.14.0] - 2026-05-20
+
+### Added
+
+- Edit Task dialog — re-edit a task's title, description, phase, priority, complexity, domain, tags and blocked-by from the TaskCard and TaskDetail menus. Launch-shaping fields (description / phase / priority / complexity) freeze once the task has started; routing metadata stays editable. The task description now also shows in a collapsible block in the TaskDetail header.
+- Inbox surfaces waiting AskUserQuestion picker questions from the embedded terminal as terminal_prompt rows — interactive prompts that never reach the session transcript
+- Embedded terminal: keyboard copy (Ctrl+C with a selection, Ctrl+Insert) and paste (Ctrl+V, Shift+Insert); over plain http the terminal shows a hint to use right-click - Paste instead of failing silently
+
+### Changed
+
+- Clicking an Inbox card now lands on the task with the embedded terminal focused, ready to answer — no extra click
+- Inbox text_question cards now render Claude's markdown (bold, inline code, lists) via the XSS-safe MarkdownText; long bodies are clipped to a preview height with a soft fade, and the Inbox layout is tighter — less whitespace above the first project group and inside each card.
+- Lint tooling switched to oxlint — `npm run lint` now works in both client and server (previously a dead `eslint` script with no config or dependency); CI runs it as a real step in both jobs
+
+### Fixed
+
+- "Save to Backlog" no longer discards the task description — it is now persisted when the task is created, not only when it is launched.
+- Task launches now pass the saved task description (the initial prompt) to Claude on every fresh start — including a Resume that begins a new session — instead of only on the first launch from the New-task dialog
+- Embedded terminal: the cursor no longer flickers and jumps over Claude's spinner after navigating away from a task and back — the replay snapshot now restores Claude's cursor-visibility (DECTCEM ?25) state, which @xterm/addon-serialize drops
+- Embedded terminal: pasting a long multi-line prompt no longer truncates or mangles blank lines - pasted text now routes through term.paste() (bracketed-paste + line-ending normalization)
+- Claude session names launched from the WebUI no longer carry stray quote characters — bundled action launch commands now pass --name as a single cleanly-quoted token (e.g. "Pipeline: My Task" instead of "'My Task'")
+- Promoting a triage item to the backlog now carries the finding end to end: the new task keeps the triage detail as its description AND launches `/shipwright-iterate` with that brief. Previously the description was dropped on promote and, even when restored, never reached the launched run — the task started with an empty session.
+- Launching a task with a multi-line description no longer fails — the launch command flattens a multi-line brief to a single line instead of rejecting it with a command-substitution error
+- Rendered-markdown lists (Inbox, chat transcript, file viewer) regained their bullet and number markers — Tailwind v4's preflight had silently zeroed list-style on .markdown-body lists.
+- Server CORS integration test no longer depends on the dev shell's ambient SHIPWRIGHT_NETWORK_PROFILE / HONO_HOST / WEBUI_TRUSTED_ORIGINS — the default-loopback assertions are pinned via a pre-import env scrub
+
 ## [v0.13.0] - 2026-05-18
 
 ### Added

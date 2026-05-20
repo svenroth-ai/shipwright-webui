@@ -1,1 +1,0 @@
-Embedded terminal: the cursor no longer flickers and jumps over Claude's spinner after navigating away from a task and back — the replay snapshot now restores Claude's cursor-visibility (DECTCEM ?25) state, which @xterm/addon-serialize drops

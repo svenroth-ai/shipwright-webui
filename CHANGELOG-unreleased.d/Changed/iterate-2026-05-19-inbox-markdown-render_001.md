@@ -1,1 +1,0 @@
-Inbox text_question cards now render Claude's markdown (bold, inline code, lists) via the XSS-safe MarkdownText; long bodies are clipped to a preview height with a soft fade, and the Inbox layout is tighter — less whitespace above the first project group and inside each card.
