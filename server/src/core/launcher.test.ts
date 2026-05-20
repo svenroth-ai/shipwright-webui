@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { buildCopyCommands, copyLauncher, buildCdPrefix } from "./launcher.js";
 
 const SAMPLE_UUID = "00000000-1111-2222-3333-444444444444";
-const WINDOWS_PATH_WITH_SPACE = String.raw`C:\Users\username\your company\AI Backup - Documents\03 Development\shipwright`;
+const WINDOWS_PATH_WITH_SPACE = String.raw`C:\Users\you\projects\shipwright`;
 
 describe("launcher.buildCopyCommands", () => {
   it("emits three shell forms with session-id + cwd", () => {
@@ -32,7 +32,7 @@ describe("launcher.buildCopyCommands", () => {
 
   it("converts path separators to forward slashes for POSIX form", () => {
     const c = buildCopyCommands({ sessionUuid: SAMPLE_UUID, cwd: WINDOWS_PATH_WITH_SPACE });
-    expect(c.posix).toContain("'C:/Users/username/your company/AI Backup - Documents/03 Development/shipwright'");
+    expect(c.posix).toContain("'C:/Users/you/projects/shipwright'");
     expect(c.posix).not.toContain("\\");
   });
 
@@ -83,7 +83,7 @@ describe("launcher.buildCopyCommands", () => {
 
   it("appends --plugin-dir per entry for all three forms", () => {
     const plugins = [
-      String.raw`C:\Users\username\.claude\plugins\cache\shipwright\shipwright-iterate\0.3.0`,
+      String.raw`C:\Users\you\.claude\plugins\cache\shipwright\shipwright-iterate\0.3.0`,
     ];
     const c = buildCopyCommands({
       sessionUuid: SAMPLE_UUID,

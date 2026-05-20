@@ -16,7 +16,7 @@
  *      check; M2 must eliminate the 1-char drift seen in spike T5.
  *
  * The fixture log was captured at:
- *   C:/Users/username/.shipwright-webui/terminal-scrollback/
+ *   C:/Users/you/.shipwright-webui/terminal-scrollback/
  *     2aa752d7-e9c1-43df-a6b7-ca3ca9bb19aa.log (30 986 bytes)
  * and copied into the source tree so CI is reproducible.
  */

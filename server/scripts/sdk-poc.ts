@@ -295,8 +295,8 @@ async function checkA(): Promise<SeedSession | null> {
 }
 
 function encodingObservation(cwd: string, encoded: string): Record<string, string> {
-  // Windows cwd typical: C:\Users\username\AppData\Local\Temp\sdk-poc-a-12345
-  // Encoded typical: ----C--Users-username-AppData-Local-Temp-sdk-poc-a-12345
+  // Windows cwd typical: C:\Users\you\AppData\Local\Temp\sdk-poc-a-12345
+  // Encoded typical: ----C--Users-you-AppData-Local-Temp-sdk-poc-a-12345
   // Hypothesis: replace drive letter + colon + backslash with dashes; backslash -> dash.
   return {
     originalCwd: cwd,

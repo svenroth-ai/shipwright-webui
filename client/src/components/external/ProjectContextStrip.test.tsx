@@ -14,14 +14,14 @@ describe("shortenProjectPath", () => {
   it("returns the last two segments with a leading ellipsis for long paths", () => {
     expect(
       shortenProjectPath(
-        "C:\\Users\\Sven\\mycorp\\AI Backup\\03 Development\\shipwright-webui",
+        "C:\\Users\\you\\projects\\shipwright-webui",
       ),
-    ).toBe("…/03 Development/shipwright-webui");
+    ).toBe("…/projects/shipwright-webui");
   });
 
   it("handles POSIX paths the same as Windows paths", () => {
-    expect(shortenProjectPath("/home/sven/mycorp/03 Development/repo")).toBe(
-      "…/03 Development/repo",
+    expect(shortenProjectPath("/home/you/projects/repo")).toBe(
+      "…/projects/repo",
     );
   });
 
@@ -41,13 +41,13 @@ describe("ProjectContextStrip — narrow-modal robustness (v0.3.2)", () => {
     render(
       <ProjectContextStrip
         name="Shipwright WebUI"
-        path="C:\\Users\\Sven\\your company\\AI Backup\\03 Development\\shipwright-webui"
+        path="C:\\Users\\you\\projects\\shipwright-webui"
       />,
     );
     const name = screen.getByTestId("project-context-name");
     const pathEl = screen.getByTestId("project-context-path");
     expect(name.textContent).toBe("Shipwright WebUI");
-    expect(pathEl.textContent).toBe("…/03 Development/shipwright-webui");
+    expect(pathEl.textContent).toBe("…/projects/shipwright-webui");
     // Tooltip preserves the full path so power users can copy it.
     expect(pathEl.getAttribute("title")).toContain("shipwright-webui");
     expect(pathEl.getAttribute("title")).toContain("C:");
