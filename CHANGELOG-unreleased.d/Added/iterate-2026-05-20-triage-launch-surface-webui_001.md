@@ -1,0 +1,1 @@
+Triage Tab: render the producer-generated launchPayload field (shipwright Iterate A, PR #41) in a code block in the detail modal; control chars stripped via the canonical Python allow-list (byte-equal-tested against a Python-generated fixture).

@@ -56,6 +56,9 @@ shipwright_run_config.json.lock
 # Lokale Git-Worktrees nie committen
 /.worktrees/
 
+# Isolated USERPROFILE used by iterate F0.5 E2E (not part of any source set)
+/.e2e-userprofile/
+
 # Lokaler VS-Code-Multi-Root-Workspace
 /.shipwright-webui/
 

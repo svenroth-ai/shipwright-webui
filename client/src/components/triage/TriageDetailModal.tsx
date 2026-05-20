@@ -5,7 +5,7 @@
  * are simpler — single optional reason input.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, X } from "lucide-react";
 
@@ -14,8 +14,13 @@ import {
   useDismissTriageItem,
   useSnoozeTriageItem,
 } from "../../hooks/useTriage";
+import { copyText } from "../../lib/clipboard";
+import { prepareLaunchPayload } from "../../lib/launchPayload";
 import { SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
+import { LaunchPayloadBlock } from "./LaunchPayloadBlock";
 import { PromoteModal } from "./PromoteModal";
+
+const FIX_NOW_CONFIRMATION_MS = 3000;
 
 interface TriageDetailModalProps {
   open: boolean;
@@ -37,6 +42,66 @@ export function TriageDetailModal({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
+  const [fixNowState, setFixNowState] = useState<
+    | { kind: "idle" }
+    | { kind: "confirming" }
+    | { kind: "failed"; message: string }
+  >({ kind: "idle" });
+  const fixNowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up any pending Fix-now confirmation timer when the modal
+  // closes / unmounts. Without this a stale timer would fire setState
+  // on an unmounted component, OR a second click would not reset the
+  // 3-second window cleanly. External review iterate LOW #8.
+  useEffect(() => {
+    return () => {
+      if (fixNowTimerRef.current !== null) {
+        clearTimeout(fixNowTimerRef.current);
+        fixNowTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  // Reset fix-now status whenever the displayed item changes OR the
+  // modal closes — otherwise a stale "Copied" confirmation from the
+  // previous item can flash on the new item within the 3 s window.
+  // External code review MED #4.
+  useEffect(() => {
+    setFixNowState({ kind: "idle" });
+    if (fixNowTimerRef.current !== null) {
+      clearTimeout(fixNowTimerRef.current);
+      fixNowTimerRef.current = null;
+    }
+  }, [item.id, open]);
+
+  const launchDecision = prepareLaunchPayload(item);
+  const fixNowEnabled = launchDecision.kind === "render";
+
+  const onFixNow = async () => {
+    if (launchDecision.kind !== "render") return; // Defensive — button is gated.
+    // Reset any prior timer so repeated clicks restart the 3 s window
+    // cleanly rather than overlapping.
+    if (fixNowTimerRef.current !== null) {
+      clearTimeout(fixNowTimerRef.current);
+      fixNowTimerRef.current = null;
+    }
+    try {
+      // CRITICAL: copy `cleaned` (control-chars stripped), never the
+      // raw `item.launchPayload`. The rendered <pre> uses the same
+      // string. External review MED #11.
+      await copyText(launchDecision.cleaned);
+      setFixNowState({ kind: "confirming" });
+      fixNowTimerRef.current = setTimeout(() => {
+        setFixNowState({ kind: "idle" });
+        fixNowTimerRef.current = null;
+      }, FIX_NOW_CONFIRMATION_MS);
+    } catch (err) {
+      // External review MED #7 — clipboard failures surface inline.
+      const message =
+        err instanceof Error ? err.message : "Copy failed; select and copy manually.";
+      setFixNowState({ kind: "failed", message });
+    }
+  };
 
   const onDismiss = async () => {
     setError(null);
@@ -152,6 +217,8 @@ export function TriageDetailModal({
                 </p>
               </div>
 
+              <LaunchPayloadBlock item={item} />
+
               {item.status === "triage" && (
                 <div className="border-t border-stone-200 pt-4 mt-4">
                   <label className="block">
@@ -175,7 +242,33 @@ export function TriageDetailModal({
                       {error}
                     </div>
                   )}
-                  <div className="flex justify-end gap-2.5 mt-4">
+                  <div className="flex justify-end gap-2.5 mt-4 items-center">
+                    {fixNowState.kind === "confirming" && (
+                      <span
+                        className="text-xs text-emerald-700 mr-auto"
+                        data-testid="triage-fix-now-confirmation"
+                      >
+                        Copied — paste into your Claude session.
+                      </span>
+                    )}
+                    {fixNowState.kind === "failed" && (
+                      <span
+                        className="text-xs text-red-700 mr-auto"
+                        data-testid="triage-fix-now-failure"
+                      >
+                        Copy failed — select and copy manually. ({fixNowState.message})
+                      </span>
+                    )}
+                    {fixNowEnabled && (
+                      <button
+                        type="button"
+                        onClick={onFixNow}
+                        className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
+                        data-testid="triage-fix-now"
+                      >
+                        Fix now
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={onDismiss}

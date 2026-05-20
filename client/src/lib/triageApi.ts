@@ -33,6 +33,12 @@ export interface TriageItem {
   runId: string | null;
   commit: string | null;
   dedupKey: string | null;
+  /**
+   * Producer-generated ready-to-paste block — see header on
+   * server/src/types/triage.ts (verbatim mirror). Optional so legacy
+   * append events without the field still load cleanly.
+   */
+  launchPayload?: string | null;
   status: TriageStatus;
   suggestedPriority: TriagePriority;
   suggestedDomain: string;

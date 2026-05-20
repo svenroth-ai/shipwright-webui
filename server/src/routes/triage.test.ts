@@ -185,6 +185,71 @@ describe("triage routes: GET /api/triage/:projectId", () => {
     const body = await res.json();
     expect(body.error).toBe("project_not_found");
   });
+
+  it("surfaces launchPayload + null payload + missing-key legacy verbatim through the HTTP response (iterate-2026-05-20-triage-launch-surface-webui MED #1)", async () => {
+    // Three items on the wire:
+    //  - payload present (non-empty string)        → resolved item carries the same string
+    //  - payload explicitly null                   → resolved item carries `null`
+    //  - payload key absent (legacy producer)      → resolved item omits the key entirely
+    // This is the end-to-end gate the resolver-level test alone cannot
+    // catch: future API serialization layers (Zod schemas, response
+    // shaping middleware) would drop unknown keys and silently break
+    // the launch-surface feature.
+    const launch = "/iterate fix code-scanning findings\n\nhttps://example.test";
+    writeFileSync(
+      h.triagePathA,
+      [
+        `{"v":1,"schema":"triage","created":"2026-05-13T08:00:00Z"}`,
+        JSON.stringify({
+          event: "append",
+          id: "trg-pay11111",
+          ts: "2026-05-20T08:00:00Z",
+          originalTs: "2026-05-20T08:00:00Z",
+          source: "github",
+          severity: "high",
+          kind: "bug",
+          title: "GH code-scan",
+          detail: "3 CodeQL alerts",
+          evidencePath: null,
+          runId: null,
+          commit: null,
+          dedupKey: "gh:foo",
+          launchPayload: launch,
+          status: "triage",
+          suggestedPriority: "P1",
+          suggestedDomain: "security",
+        }),
+        JSON.stringify({
+          event: "append",
+          id: "trg-pay22222",
+          ts: "2026-05-20T08:30:00Z",
+          originalTs: "2026-05-20T08:30:00Z",
+          source: "phaseQuality",
+          severity: "low",
+          kind: "improvement",
+          title: "Explicit null",
+          detail: "Producer set launchPayload to null",
+          evidencePath: null,
+          runId: null,
+          commit: null,
+          dedupKey: "phaseQuality:explicit-null",
+          launchPayload: null,
+          status: "triage",
+          suggestedPriority: "P3",
+          suggestedDomain: "engineering",
+        }),
+        makeAppendLine("trg-pay33333"), // missing launchPayload key
+      ].join("\n") + "\n",
+    );
+    const res = await h.app.request("/api/triage/proj-a");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { items: Array<Record<string, unknown>> };
+    expect(body.items).toHaveLength(3);
+    const byId = new Map(body.items.map((i) => [i.id as string, i]));
+    expect(byId.get("trg-pay11111")!.launchPayload).toBe(launch);
+    expect(byId.get("trg-pay22222")!.launchPayload).toBeNull();
+    expect("launchPayload" in byId.get("trg-pay33333")!).toBe(false);
+  });
 });
 
 describe("triage routes: GET /api/triage/counts", () => {
