@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-20 21:22 UTC | Session: 2d5a971d-ec18-4f63-8e99-e540b8769f8f | Run: iterate-2026-05-20-triage-launch-surface-webui
+> Updated: 2026-05-20 21:37 UTC | Session: 6209d2b8-40de-44ca-b8be-966ba156ca38
 
-## Recent Changes (53 iterations)
+## Recent Changes (54 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | adopt oxlint as the project linter + env-isolate the server CORS test | 2135/2135 | e6683d6 |  | 2026-05-19 |
+| feature | triage-launch-surface-webui (launchPayload + Fix-now) | 2189/2189 | 290263e | FR-01.30 | 2026-05-20 |
+| change | adopt oxlint as the project linter + env-isolate the server CORS test | 2135/2135 | e6683d6 | tooling | 2026-05-19 |
 | change | Inbox card markdown rendering + fade-clip + spacing | 979/979 | 9b91499 | FR-01.13 | 2026-05-19 |
 | bug | triage promote carries the brief into the launched run (actionId + newline flatten) | 1156/1156 | 3936dbd | FR-01.30 | 2026-05-19 |
 | bug | fix triage promote: carry item.detail into the promoted task description | 1155/1155 | 3c99c69 | FR-01.30 | 2026-05-19 |
@@ -19,23 +20,23 @@
 | feature | move-to-backlog — POST /api/external/tasks/:id/backlog + Move-to-Backlog menu items + draft-sticky transcript guard + Resume-vs-Launch fix | 1994/1994 | 8e6e1e5 | FR-01.01, FR-01.32 | 2026-05-17 |
 | bug | Resume guard survives a browser reload — ptyReused ready-envelope flag arms the one-shot inject guard on a reused pty | 1939/1940 | 23f4a38 | FR-01.11, FR-01.28 | 2026-05-17 |
 | change | Remove orphaned Resume-CTA liveness-gate code (getLastPtyDataAt/isAltBufferActive/altScreenActive/lastPtyDataAt) — dead since PR #29; eliminates a flaky CI test | 1935/1935 | 641f639 | FR-01.11 | 2026-05-17 |
-| bug | Production build copies non-TS runtime assets into dist/ (fixes /actions HTTP 500) | 1069/1069 | ffdbe80 |  | 2026-05-16 |
+| bug | Production build copies non-TS runtime assets into dist/ (fixes /actions HTTP 500) | 1069/1069 | ffdbe80 | infra | 2026-05-16 |
 | change | Remove Resume-CTA activity gate; one-shot inject guard; Copy Resume command; fix Copy session UUID | 1948/1948 | a520293 | FR-01.28 | 2026-05-16 |
 | bug | terminal-smear-interleave — replay drain gate eliminates the embedded-terminal reattach smear (Bug B); ADR-099 WebGL atlas machinery removed | 892/892 | 316c056 | FR-01.28 | 2026-05-16 |
-| change | — | 0/0 | 038a616 |  | 2026-05-15 |
+| change | — | 0/0 | 038a616 | tooling | 2026-05-15 |
 | bug | terminal-smear-reset — replay-snapshot remount smear fix (term.write callback) + WS reset banner | 1885/1885 | 038a616 | FR-01-embedded-terminal | 2026-05-15 |
 | bug | close-task-redirect — Close task in TaskDetail header now redirects to the task board | 857/857 | bf6db41 | FR-01.15 | 2026-05-15 |
 | change | triage-card-styling — white-surface cards + wizard-matched dialogs | 855/855 | 5e94742 | FR-01.30 | 2026-05-15 |
 | feature | leadwright Phase 1 ExternalTask extension (13 optional fields) | 1780/1780 | c70f848 | FR-01.01, FR-01.08, FR-01.10 | 2026-05-14 |
 | bug | Iterate H — Snapshot preservation on pty death + TaskCard Resume gating (ADR-096) | +10 new, 1717/1717 | 17d75c9 | FR-01.28, FR-01.11 | 2026-05-13 |
 | change | dynamic-stack-profiles: wizard step 2 renders from /api/profiles + bundled snapshot refresh (ADR-094) | 786/786 | 134a2e2 | FR-01.03 | 2026-05-12 |
-| Iterate F (headless-terminal-refactor campaign): xterm.js client config Vorbild-Alignment — convertEol+allowProposedApi+scrollback flips plus WebglAddon load with try/catch fallback (ADR-093). Follow-on to ADR-092 targeting in-session status-pane redraw stacking. | — | 777/777 | 6f715fc | FR-01.28 | 2026-05-12 |
+| change | Iterate F headless-terminal-refactor: xterm.js convertEol+allowProposedApi+scrollback alignment + WebglAddon try/catch fallback; follow-on to ADR-092 for in-session status-pane redraw stacking (ADR-093) | 777/777 | 6f715fc | FR-01.28 | 2026-05-12 |
 | bug | v0.9.4 skip disk-scrollback replay on attach for new-plain tasks (Claude TUI byte-stacking corruption fix; ADR-086) | 1636/1636 | fbfb449 | FR-01.28 | 2026-05-11 |
 | bug | v0.9.3 resume state-machine: scope active→idle JSONL-mtime decay to non-new-plain (ADR-085) | 1636/1636 | 4bb3799 | FR-01.28 | 2026-05-11 |
 | bug | v0.9.2 embedded terminal mount races: 1500ms readOnly banner grace + safeFit/disposedRef/_renderService dimensions stub (ADR-084) | 1631/1631 | 1cdeb9b | FR-01.28 | 2026-05-11 |
 | bug | env-local-loading-fix: tsx --env-file-if-exists for server + loadEnv with envDir for Vite. Closes ADR-081 wiring gap. ADR-082. | 1606/1606 | 4479736 | FR-01.31 | 2026-05-10 |
-| feature | network-profile-flag: SHIPWRIGHT_NETWORK_PROFILE env-flag (local|tailscale|open) unifies Vite + Hono dev-server bind. Tailscale auto-detect via subprocess + env override. Closes Vite-proxy gap when Hono binds non-loopback. ADR-081. | 1586/1586 | 6827d97 | FR-01.31 | 2026-05-10 |
-| bug | tsc-baseline-fix: retire 4 documented tsc baseline errors (3x cross-package imports + missing @types/proper-lockfile). server npm run build exits 0; install-windows.ps1 step [3/4] runs clean. Type mirrors under server/src/types/ + comment-aware drift-guard test. ADR-080. | 1508/1508 | 3ab3ad9 |  | 2026-05-09 |
+| feature | network-profile-flag: SHIPWRIGHT_NETWORK_PROFILE env-flag (local/tailscale/open) unifies Vite + Hono dev-server bind. Tailscale auto-detect via subprocess + env override. Closes Vite-proxy gap when Hono binds non-loopback. ADR-081. | 1586/1586 | 6827d97 | FR-01.31 | 2026-05-10 |
+| bug | tsc-baseline-fix: retire 4 documented tsc baseline errors (3x cross-package imports + missing @types/proper-lockfile). server npm run build exits 0; install-windows.ps1 step [3/4] runs clean. Type mirrors under server/src/types/ + comment-aware drift-guard test. ADR-080. | 1508/1508 | 3ab3ad9 | tooling | 2026-05-09 |
 | bug | v0.8.9 replay-pushdown: live shell at viewport top after replay-on-attach (FR-01.28 v0.8.9 AC-1) | 1500/1500 | 98e8c98 | FR-01.28 | 2026-05-09 |
 | feature | HONO_HOST opt-in: backend default-binds loopback, opt-in for non-loopback | 8/8 | 6504911 | FR-01.31 | 2026-05-07 |
 | feature | HONO_HOST opt-in: backend default-binds loopback, opt-in for non-loopback | 8/8 | 825cdcf | FR-01.31 | 2026-05-07 |
