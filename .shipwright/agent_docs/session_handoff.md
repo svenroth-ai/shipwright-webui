@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-19-oxlint-and-cors-env"
+run_id: "iterate-2026-05-20-triage-launch-surface-webui"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-05-20T13:02:03.534906+00:00"
+reason: "iterate: triage-launch-surface-webui Fix-now + launchPayload rendering"
+timestamp: "2026-05-20T21:22:34.170160+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-20 13:02:03 UTC
+> Auto-generated 2026-05-20 21:22:34 UTC
 
 ## Session Info
 
-- **Session ID**: unknown
-- **Timestamp**: 2026-05-20 13:02:03 UTC
-- **Reason**: iterate finalization
+- **Session ID**: 2d5a971d-ec18-4f63-8e99-e540b8769f8f
+- **Timestamp**: 2026-05-20 21:22:34 UTC
+- **Reason**: iterate: triage-launch-surface-webui Fix-now + launchPayload rendering
 
 ## Last Iterate
 
@@ -25,6 +25,20 @@ timestamp: "2026-05-20T13:02:03.534906+00:00"
 - **Branch**: iterate/oxlint-and-cors-env
 - **ADR**: iterate-2026-05-19-oxlint-and-cors-env
 - **Tests passed**: True
+
+## Current Iterate Progress
+
+- **Branch**: iterate/triage-launch-surface-webui
+- **Run ID**: iterate-2026-05-20-triage-launch-surface-webui
+- **Spec**: .shipwright/planning/iterate/2026-05-20-triage-launch-surface-webui.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-05-17T21:27:36))
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
@@ -37,8 +51,8 @@ timestamp: "2026-05-20T13:02:03.534906+00:00"
 
 ## Git State
 
-- **Branch**: chore/launch-prep
-- **Last Commit**: 265f923 chore(compliance): refresh commit SHAs after history rewrite
+- **Branch**: iterate/triage-launch-surface-webui
+- **Last Commit**: 0644173 chore(compliance): auto-regenerated artefacts include launch-prep commits
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read

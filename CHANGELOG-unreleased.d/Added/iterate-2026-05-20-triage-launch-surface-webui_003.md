@@ -1,0 +1,1 @@
+Triage Tab: github-source items with a missing or empty launchPayload now surface the verbatim loud-failure placeholder "no launch payload - producer bug; please report" instead of silently degrading.

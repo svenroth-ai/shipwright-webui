@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-05-20T13:02:03Z
-Total commits: 382
+Generated: 2026-05-20T21:22:34Z
+Total commits: 383
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 382
 pie title Commit Types
     "fix" : 159
     "feat" : 114
-    "chore" : 54
+    "chore" : 55
     "docs" : 29
     "refactor" : 13
     "test" : 8
@@ -302,10 +302,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 54 commits
+### Chores (chore) — 55 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-20 | compliance | auto-regenerated artefacts include launch-prep commits | 0644173a48e7 |
 | 2026-05-20 | compliance | refresh commit SHAs after history rewrite | 265f92300ef9 |
 | 2026-05-20 | launch-prep | drop stale skill-compliance docs, fix doc path refs | cad4ac958640 |
 | 2026-05-20 | launch-prep | scrub local paths, Tailscale host and IP | b4767626bba5 |
@@ -445,7 +446,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 382 |
+| Total commits | 383 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 382 |
+| Human-authored commits | 383 |
 
