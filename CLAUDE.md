@@ -9,7 +9,7 @@
 
 Plan of record: [`~/.claude/plans/plan-d-double-prime-external-launch.md`](../.claude/plans/plan-d-double-prime-external-launch.md).
 PoC findings that shaped the implementation: [`~/.claude/plans/external-launch-poc-results.md`](../.claude/plans/external-launch-poc-results.md).
-Decision record: `agent_docs/decision_log.md` ADR-034.
+Decision record: `.shipwright/agent_docs/decision_log.md` ADR-034.
 
 Two hard rules, survivors of every review round:
 1. **Webui spawns no Claude process directly.** Users launch in the embedded-terminal pane (ADR-067 + ADR-068-A1, the default path) or in their own external terminal; webui only observes the JSONL. The neutral shell pane (xterm.js + node-pty) keeps Claude execution user-initiated via the explicit Launch / Resume / Relaunch click on the TaskDetail header — that click satisfies the "user-initiated" clause (ADR-068-A1, Architecture rule 19) and a `LaunchCoordinatorContext` dispatch then sends the pre-built command as a WS data-frame after the prompt-readiness handshake clears. The pty-manager whitelist (shell binaries only, never `claude`) is the architectural enforcement line. Copy-to-clipboard remains available for users who prefer their own terminal.
@@ -207,7 +207,7 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 2. **Profile `dev_server.command`** — the spawn target (which command actually starts the dev-server).
 3. **`.webui/actions.json` → `actions.preview.enabled`** — the policy override (user-level opt-out).
 
-`stack.frontend` AND `dev_server.command` must both be present for `<PreviewButton>` to render. `actions.preview.enabled = false` hides it regardless. Boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). The full diagram lives in [`agent_docs/architecture.md`](agent_docs/architecture.md).
+`stack.frontend` AND `dev_server.command` must both be present for `<PreviewButton>` to render. `actions.preview.enabled = false` hides it regardless. Boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). The full diagram lives in [`.shipwright/agent_docs/architecture.md`](.shipwright/agent_docs/architecture.md).
 
 ### DO-NOT regression guards (Iterate 2 / ADR-035)
 1. **DO NOT write into Claude's JSONL files under `~/.claude/projects/`.** Webui is a read-only polling observer of that directory. Title sync uses Claude's first-party `--name` CLI flag at launch time, not JSONL mutation or a sidecar file.

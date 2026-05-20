@@ -102,7 +102,7 @@ shortcut.
 - Claude JSONL discovery is filename-first (`<uuid>.jsonl`); first-line
   sessionId is the sanity check.
 - Detailed internals + load-bearing DO-NOT guards in [`CLAUDE.md`](CLAUDE.md)
-  and `agent_docs/decision_log.md`.
+  and `.shipwright/agent_docs/decision_log.md`.
 
 ## Triage tab
 
