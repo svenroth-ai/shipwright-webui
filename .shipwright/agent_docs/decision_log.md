@@ -6,6 +6,11 @@
 >
 > **Convention:** ADR IDs are zero-padded 3-digit (`ADR-NNN`), monotonically increasing in **insertion order** into the log (not strictly chronological by decision date). The 4-digit form (`ADR-0053`, `ADR-0054`) used briefly on 2026-04-30 was a counting error in /shipwright-adopt — those entries were renumbered to `ADR-065` / `ADR-066` on 2026-05-01 to reconcile with `ADR-053`…`ADR-058` (created 2026-04-23 / 04-24) which Adopt missed when counting prior entries. The targets `ADR-059`…`ADR-064` were already taken by entries committed between 2026-04-30 and 2026-05-01, so the renumber jumped to the first then-free pair.
 
+---
+
+# Part I — Pre-Adoption Decisions
+
+The following entries (24 total: DEC-001..DEC-007 + KD-02.01..KD-02.10 + KD-03.01..KD-03.07) were authored 2026-04-09..2026-04-23, before this repository was onboarded into the Shipwright SDLC on 2026-04-30. They are preserved as historical context in their original format (3 thematic sections below). All subsequent ADRs (ADR-001 onwards) follow the standard Shipwright iterate finalize flow and live in **Part II** below.
 
 ## Project Interview (2026-04-09)
 
@@ -182,6 +187,10 @@
 - **Impact:** No Monaco Editor; rehype-highlight sufficient for code display
 
 ---
+
+# Part II — Shipwright-Managed ADRs
+
+Standard ADR format (`### ADR-NNN: <title>`), managed by `/shipwright-iterate` finalize flow. Insertion order — see numbering note in the header.
 
 ### ADR-001: Dynamic CORS origin matching for localhost
 - **Date:** 2026-04-10
