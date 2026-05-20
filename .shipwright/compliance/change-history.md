@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-05-20T08:43:11Z
-Total commits: 377
+Generated: 2026-05-20T13:02:03Z
+Total commits: 382
 
 ## Commit Distribution
 
@@ -9,8 +9,8 @@ Total commits: 377
 pie title Commit Types
     "fix" : 159
     "feat" : 114
-    "chore" : 50
-    "docs" : 28
+    "chore" : 54
+    "docs" : 29
     "refactor" : 13
     "test" : 8
     "other" : 4
@@ -302,10 +302,14 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 50 commits
+### Chores (chore) — 54 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-20 | compliance | refresh commit SHAs after history rewrite | 265f92300ef9 |
+| 2026-05-20 | launch-prep | drop stale skill-compliance docs, fix doc path refs | cad4ac958640 |
+| 2026-05-20 | launch-prep | scrub local paths, Tailscale host and IP | b4767626bba5 |
+| 2026-05-20 | launch-prep | publish .shipwright/ SDLC documentation | 2265e397dfbf |
 | 2026-05-20 | release | v0.14.0 | 087c18a8121c |
 | 2026-05-19 | tooling | adopt oxlint and env-isolate the CORS test | 100e05f009f0 |
 | 2026-05-18 | release | v0.13.0 | 217f1b6f0d73 |
@@ -357,10 +361,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 28 commits
+### Documentation (docs) — 29 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-20 | governance | add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy | ab6e0998f1be |
 | 2026-05-19 | changelog | record the triage-promote launch-chain fix | 9855e3e21183 |
 | 2026-05-16 | — | note triage/ component dir in CLAUDE.md structure tree | 218cd4c7f7e9 |
 | 2026-05-16 | — | align README + guide with embedded-terminal flow and Triage tab | aa22038cc6a0 |
@@ -440,7 +445,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 377 |
+| Total commits | 382 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 377 |
+| Human-authored commits | 382 |
 

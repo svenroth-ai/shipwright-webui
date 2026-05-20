@@ -3,17 +3,17 @@ canon_generated: true
 run_id: "iterate-2026-05-19-oxlint-and-cors-env"
 phase: "iterate"
 reason: "iterate finalization"
-timestamp: "2026-05-20T08:43:11.784171+00:00"
+timestamp: "2026-05-20T13:02:03.534906+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-20 08:43:11 UTC
+> Auto-generated 2026-05-20 13:02:03 UTC
 
 ## Session Info
 
 - **Session ID**: unknown
-- **Timestamp**: 2026-05-20 08:43:11 UTC
+- **Timestamp**: 2026-05-20 13:02:03 UTC
 - **Reason**: iterate finalization
 
 ## Last Iterate
@@ -37,8 +37,8 @@ timestamp: "2026-05-20T08:43:11.784171+00:00"
 
 ## Git State
 
-- **Branch**: main
-- **Last Commit**: ebc9ece chore(release): v0.14.0
+- **Branch**: chore/launch-prep
+- **Last Commit**: 265f923 chore(compliance): refresh commit SHAs after history rewrite
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read

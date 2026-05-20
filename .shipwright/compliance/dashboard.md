@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-05-20T08:43:11Z
+Generated: 2026-05-20T13:02:03Z
 Profile: vite-hono
 Scope: full_app
 
