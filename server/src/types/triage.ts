@@ -36,6 +36,15 @@ export interface TriageItem {
   runId: string | null;
   commit: string | null;
   dedupKey: string | null;
+  /**
+   * Producer-generated ready-to-paste block (slash command + context +
+   * URL) introduced by shipwright iterate-2026-05-20-triage-launch-surface
+   * (PR #41). Frozen at first append by the producer. Legacy producers
+   * may omit the field entirely; iterate-2026-05-20-triage-launch-surface-webui
+   * surfaces it in the Triage Detail modal as a copy-into-Claude block.
+   * Optional in the type so legacy on-disk events still load.
+   */
+  launchPayload?: string | null;
   status: TriageStatus;
   suggestedPriority: TriagePriority;
   suggestedDomain: string;
