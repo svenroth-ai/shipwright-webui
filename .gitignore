@@ -1,19 +1,4 @@
-# Shipwright pipeline artifacts — bewusst NICHT im Repo
-# Historisch war das anders, siehe 4cc5593 — zurueckgenommen 2026-04-13
-agent_docs/
-compliance/
-designs/
-planning/
-shipwright_*_config.json
-shipwright_test_results.json
-
-# Runtime
-shipwright_events.jsonl
-shipwright_events.jsonl.lock
-.shipwright-webui/
-.shipwright_toolcall_count
-
-# Build
+# Build / dependencies
 node_modules/
 dist/
 *.tsbuildinfo
@@ -30,3 +15,49 @@ client/test-results/
 client/e2e/_minimal-*.png
 client/e2e/_probe-*.png
 shipwright_audit_report.json
+
+# === .shipwright/ Artefakt-Whitelist (kongruent zum Monorepo) ===
+# Alles ignorieren, nur die kanonischen SDLC-Doku-Heimaten freigeben.
+/.shipwright/*
+!/.shipwright/adopt/
+!/.shipwright/agent_docs/
+!/.shipwright/compliance/
+!/.shipwright/designs/
+!/.shipwright/planning/
+# Transiente / interne / generierte Inhalte wieder ausschliessen:
+/.shipwright/adopt/backups/
+/.shipwright/adopt/screenshots/
+/.shipwright/agent_docs/decision-drops/
+/.shipwright/agent_docs/visual/
+/.shipwright/agent_docs/triage-remaining-iterates-handoff.md
+/.shipwright/compliance/skill-compliance/
+
+# === Root shipwright_* Self-Adoption-State ===
+# Default: ignorieren. Ausnahmen: persistente Configs/Events werden bewusst getrackt.
+shipwright_*_config.json
+shipwright_test_results.json
+shipwright_events.jsonl
+shipwright_events.jsonl.lock
+!/shipwright_build_config.json
+!/shipwright_compliance_config.json
+!/shipwright_iterate_config.json
+!/shipwright_plan_config.json
+!/shipwright_project_config.json
+!/shipwright_run_config.json
+!/shipwright_sync_config.json
+!/shipwright_test_results.json
+!/shipwright_events.jsonl
+
+# Root-Locks (multi-writer State)
+CHANGELOG.md.lock
+shipwright_run_config.json.lock
+.shipwright_toolcall_count
+
+# Lokale Git-Worktrees nie committen
+/.worktrees/
+
+# Lokaler VS-Code-Multi-Root-Workspace
+/.shipwright-webui/
+
+# Local launch-prep / one-shot scrub tooling
+/.scrub.py

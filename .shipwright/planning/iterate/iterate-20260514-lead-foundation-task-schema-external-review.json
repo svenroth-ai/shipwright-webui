@@ -1,0 +1,24 @@
+{
+  "run_id": "iterate-20260514-lead-foundation-task-schema",
+  "mode": "iterate",
+  "timestamp": "2026-05-14T20:50:00Z",
+  "providers": ["openai", "gemini"],
+  "openai_status": "success",
+  "gemini_status": "success",
+  "gemini_feedback_null": true,
+  "applied_inline": [
+    "HIGH-1: explicit body-field parsing in POST /tasks + POST /launch, not silent Object.assign; HTTP-level round-trip test added",
+    "HIGH-2: launch-route 409 uses ONLY claimToken (not claimedBy/claimedAt) as trigger; route logs task id + claim metadata on 409; regression test asserts each combo",
+    "MED-3: server-side soft-drop of malformed tags / blockedBy shapes (string instead of array); route-test added",
+    "MED-4: restrict store.create() write surface to user-creatable fields only (domain, priority, complexityHint, tags, blockedBy). Daemon-owned fields not accepted from create route; test that POSTing claimToken in /tasks body is ignored",
+    "MED-5: client tests assert XSS-style chars in domain / leadHandoff.summary render as text nodes (no dangerouslySetInnerHTML path)",
+    "MED-6: blockedBy indicator deterministic behavior — unknown ids count as pending (⏳), duplicates de-duped, self-reference counts as pending; tests added",
+    "MED-7: explicit allowlist when merging launch body into taskUpdate (not Object.assign); test that unknown field is ignored",
+    "MED-8: modal_fields override semantics confirmed by inspection of project-actions-loader.ts; test documents observed behavior",
+    "LOW-9: persistence test asserts omitted optional fields are NOT written as explicit keys (especially leadHandoff)",
+    "LOW-11: modal submission test asserts createTask payload carries normalized values",
+    "LOW-12: grep for FR-03.21 / 'no priority' test assumptions before flipping comment"
+  ],
+  "deferred": [],
+  "evidence_path": ".shipwright/planning/iterate/iterate-20260514-lead-foundation-task-schema-external-review.json"
+}

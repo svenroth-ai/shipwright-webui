@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-07-v0-8-4-trusted-origins-opt-in",
+  "date": "2026-05-07T00:00:00Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/v0.8.4-trusted-origins-opt-in",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-074"
+}

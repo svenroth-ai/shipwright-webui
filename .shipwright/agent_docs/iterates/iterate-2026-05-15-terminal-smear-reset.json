@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-15-terminal-smear-reset",
+  "date": "2026-05-15T17:22:15.217876Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/fix-terminal-smear-reset",
+  "spec": ".shipwright/planning/iterate/2026-05-15-terminal-smear-reset.md",
+  "tests_passed": true,
+  "adr": "ADR-104"
+}

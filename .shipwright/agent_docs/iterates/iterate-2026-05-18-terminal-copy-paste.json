@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-18-terminal-copy-paste",
+  "date": "2026-05-18T21:38:17.910684Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/terminal-copy-paste",
+  "spec": ".shipwright/planning/iterate/2026-05-18-terminal-copy-paste.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-05-18-terminal-copy-paste"
+}

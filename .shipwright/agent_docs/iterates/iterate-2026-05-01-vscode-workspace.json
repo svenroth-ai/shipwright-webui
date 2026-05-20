@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-01-vscode-workspace",
+  "date": "2026-05-01T06:50:41.936047Z",
+  "type": "feature",
+  "complexity": "small",
+  "branch": "iterate/vscode-workspace-on-onboarding",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-059"
+}

@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-05-post-v0-8-stabilization",
+  "date": "2026-05-05T21:53:09.681335Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/post-v0.8-stabilization",
+  "spec": ".shipwright/planning/iterate/2026-05-05-post-v0.8-stabilization.md",
+  "tests_passed": true,
+  "adr": "ADR-069"
+}

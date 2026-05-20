@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-07-vite-host-opt-in",
+  "date": "2026-05-07T09:47:57.847161Z",
+  "type": "feature",
+  "complexity": "small",
+  "branch": "iterate/vite-host-opt-in",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-071"
+}

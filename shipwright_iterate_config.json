@@ -1,0 +1,10 @@
+{
+  "external_review": {
+    "feedback_iterations": 1
+  },
+  "external_code_review": {
+    "enabled": true
+  },
+  "seeded_by_adopt": false,
+  "updated_at": "2026-05-16T09:45:14+00:00"
+}

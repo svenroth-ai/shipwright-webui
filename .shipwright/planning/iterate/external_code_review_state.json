@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "timestamp": "2026-05-17T22:06:30.171967+00:00",
+  "provider": "openrouter",
+  "findings_count": 4,
+  "self_review_fallback_ran": false,
+  "reason": "code-review cascade \u2014 move-to-backlog diff; gemini caught 1 HIGH (transcript ok-branch flips draft->active when JSONL first appears) \u2014 fixed; 2 MEDIUM (AC-5 badge-flip test gap, E2E coverage) \u2014 fixed; 1 LOW (ELOCKED payload) \u2014 rejected, matches existing PATCH route",
+  "review_mode": "code"
+}

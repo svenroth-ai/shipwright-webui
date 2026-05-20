@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-04-embedded-terminal-auto-launch-disk",
+  "date": "2026-05-04T22:56:02.160504Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/embedded-terminal-auto-launch-disk",
+  "spec": ".shipwright/planning/iterate/2026-05-04-embedded-terminal-auto-launch-disk.md",
+  "tests_passed": true,
+  "adr": "ADR-068-A1"
+}

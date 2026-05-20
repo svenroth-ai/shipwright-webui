@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-03-embedded-terminal-launcher",
+  "date": "2026-05-03T20:43:34.793775Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/embedded-terminal-launcher",
+  "spec": ".shipwright/planning/iterate/2026-05-03-embedded-terminal-launcher.md",
+  "tests_passed": true,
+  "adr": "ADR-067"
+}

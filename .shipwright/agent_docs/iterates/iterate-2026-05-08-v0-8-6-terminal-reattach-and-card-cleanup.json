@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-08-v0-8-6-terminal-reattach-and-card-cleanup",
+  "date": "2026-05-08T00:00:00Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/v0.8.6-terminal-reattach-and-card-cleanup",
+  "spec": ".shipwright/planning/iterate/2026-05-08-v0.8.6-terminal-reattach-and-card-cleanup.md",
+  "tests_passed": true,
+  "adr": "ADR-076"
+}

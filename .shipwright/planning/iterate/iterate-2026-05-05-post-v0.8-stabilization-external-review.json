@@ -1,0 +1,102 @@
+{
+  "run_id": "iterate-2026-05-05-post-v0.8-stabilization",
+  "mode": "iterate",
+  "provider": "openrouter",
+  "spec_file": ".shipwright/planning/iterate/2026-05-05-post-v0.8-stabilization.md",
+  "plan_file": ".shipwright/planning/iterate/2026-05-05-post-v0.8-stabilization-miniplan.md",
+  "ts": "2026-05-05T22:50:00Z",
+  "status": "completed",
+  "high_severity_findings": [
+    {
+      "id": "AC-3-watchdog-inverted",
+      "source": "gemini-2 + openai-9",
+      "summary": "lastDataAt resets prevent eviction of a stuck writer when the pty stays busy emitting. Track socket drainage (lastSuccessfulSendAt / bufferedThresholdExceededAt), not pty emission.",
+      "action": "Plan amended — see miniplan §AC-3 v2"
+    },
+    {
+      "id": "AC-1-utf8-and-carry",
+      "source": "gemini-1 + openai-2",
+      "summary": "Naive Buffer→string breaks multi-byte UTF-8 across chunk boundaries. Carry buffer underspecified for CSI vs OSC; truncating at 32 bytes can leak fragments.",
+      "action": "Plan amended — use StringDecoder; carry is protocol-aware (CSI + OSC) with bounded max length; drop incomplete sequence on overflow."
+    },
+    {
+      "id": "AC-2-onData-wrong-direction",
+      "source": "openai-5",
+      "summary": "Client-side term.onData is for INPUT (terminal→backend), not output. Diagnose via WS-frame capture (server-side or Playwright), not term.onData.",
+      "action": "Plan amended — diagnose via Playwright WS-frame capture only; no client-side debug hook ships."
+    },
+    {
+      "id": "AC-3-ownership-spec-vs-plan",
+      "source": "openai-8",
+      "summary": "Spec says routes.ts releases writer; plan says PtyManager watchdog. Reconcile.",
+      "action": "Plan amended — PtyManager owns the watchdog. Spec narrative remains coarse; ADR-068-A2 records the precise ownership."
+    },
+    {
+      "id": "AC-1-format-too-permissive",
+      "source": "openai-1",
+      "summary": "Strip-known-cursor-codes is too permissive. CR-only repaints (\\r without \\n), backspace \\b, etc. still corrupt replay.",
+      "action": "Plan amended — persisted format is now 'printable text + LF + tab + SGR + CRLF'; strip bare CR + backspace; preserve LF and CRLF newlines."
+    },
+    {
+      "id": "AC-3-bufferedAmount-capability",
+      "source": "openai-10",
+      "summary": "Verify @hono/node-ws WSContext exposes meaningful bufferedAmount before building on it.",
+      "action": "Plan amended — capability gate added; if undefined, instrument sends in our own wrapper to track backlog ourselves."
+    }
+  ],
+  "medium_severity_findings": [
+    {
+      "id": "AC-3-refcount-leak-on-force-evict",
+      "source": "gemini-3 + openai-12",
+      "action": "Plan amended — watchdog detach explicitly clears any pause refcount the evicted conn was holding; per-conn pausedForConn Set restored."
+    },
+    {
+      "id": "AC-1-old-scrollback-still-corrupt",
+      "source": "openai-3",
+      "action": "Plan amended — sanitize at read time too. ScrollbackStore.read() runs the same sanitizer over disk bytes, so v0.8.0 files re-attach cleanly without backfill migration."
+    },
+    {
+      "id": "AC-1-test-too-brittle",
+      "source": "openai-4",
+      "action": "Plan amended — assert (a) no cursor-control bytes in persisted output, (b) text reads as a linearized log, NOT exact-once dedup count."
+    },
+    {
+      "id": "AC-2-contrast-matrix-insufficient",
+      "source": "openai-6",
+      "action": "Plan amended — add a fixture-driven assertion against the actual diagnosed escape sequence; contrast-matrix becomes supplemental."
+    },
+    {
+      "id": "AC-3-writer-epoch",
+      "source": "openai-11",
+      "action": "Plan amended — writer slot has a monotonic epoch counter; stale ws.close events for an already-evicted conn are no-ops."
+    },
+    {
+      "id": "AC-3-existing-test-rebaseline",
+      "source": "openai-13",
+      "action": "Plan amended — audit Spec 73/74/75/76 + EmbeddedTerminal.test for role-timing assumptions before coding AC-3."
+    },
+    {
+      "id": "AC-2-debug-bytes-secrets-risk",
+      "source": "openai-14",
+      "action": "Plan amended — debug pathway does NOT ship in app code. Diagnosis runs entirely in Playwright + WS-frame capture (test-only)."
+    }
+  ],
+  "low_severity_findings": [
+    {
+      "id": "AC-2-prefer-option-A",
+      "source": "gemini-4",
+      "action": "Acknowledged — option A (theme remap) preferred. Option B kept as fallback only if diagnosis reveals a structural collision that can't be remapped."
+    },
+    {
+      "id": "AC-1-OSC-carry-overflow",
+      "source": "gemini-5",
+      "action": "Plan amended — carry-buffer is protocol-aware: CSI max 32 bytes, OSC max 4096 bytes (covers typical window-title sequences); overflow drops the in-progress sequence and resyncs."
+    },
+    {
+      "id": "AC-3-promotion-authorization",
+      "source": "openai-15",
+      "action": "Acknowledged — promotion stays within entry.connSubs (already authorized via task.cwd realpath gate at WS upgrade)."
+    }
+  ],
+  "outcome": "branch_a_proceed_with_amendments"
+}

@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-09-v0-8-9-replay-pushdown",
+  "date": "2026-05-09T06:23:39.392997Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "main",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-079"
+}

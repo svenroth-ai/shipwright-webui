@@ -1,0 +1,112 @@
+{
+  "pipeline": [
+    "project",
+    "design",
+    "plan",
+    "build",
+    "test",
+    "changelog",
+    "deploy"
+  ],
+  "status": "needs_validation",
+  "current_step": "changelog",
+  "completed_steps": [
+    "project",
+    "plan",
+    "build",
+    "test"
+  ],
+  "profile": "vite-hono",
+  "scope": "full_app",
+  "autonomy": "supervised",
+  "standalone": false,
+  "adoption": {
+    "adopted_at": "2026-04-30T19:43:37.090192+00:00",
+    "commit_at_adoption": "1c772e3991d0518cdd5ce4a2a8edd6dd24f64d41",
+    "features_inferred": 27,
+    "nested_excluded": [],
+    "plugin_version": "0.1.0"
+  },
+  "phase_history": {
+    "project": [
+      {
+        "outcome": "adopted",
+        "run_id": "adopt-2026-04-30T194337",
+        "at": "2026-04-30T19:43:37.090192+00:00"
+      }
+    ],
+    "plan": [
+      {
+        "outcome": "adopted",
+        "run_id": "adopt-2026-04-30T194337",
+        "at": "2026-04-30T19:43:37.090192+00:00"
+      }
+    ],
+    "build": [
+      {
+        "outcome": "adopted",
+        "run_id": "adopt-2026-04-30T194337",
+        "at": "2026-04-30T19:43:37.090192+00:00"
+      }
+    ],
+    "test": [
+      {
+        "outcome": "adopted-skipped",
+        "run_id": "adopt-2026-04-30T194337",
+        "at": "2026-04-30T19:43:37.090192+00:00"
+      }
+    ],
+    "changelog": [
+      {
+        "run_id": "changelog-v0.8.0-20260505-220522",
+        "date": "2026-05-05",
+        "version": "v0.8.0",
+        "outcome": "tagged",
+        "pr": "https://github.com/svenroth-ai/shipwright-webui/pull/4"
+      },
+      {
+        "run_id": "changelog-v0.8.1-20260506-074357",
+        "date": "2026-05-06",
+        "version": "v0.8.1",
+        "outcome": "tagged"
+      },
+      {
+        "run_id": "changelog-v0.9.0-20260510-082000",
+        "date": "2026-05-10",
+        "version": "v0.9.0",
+        "outcome": "tagged"
+      },
+      {
+        "run_id": "changelog-v0.10.0-20260513-005427",
+        "date": "2026-05-12",
+        "version": "v0.10.0",
+        "outcome": "tagged"
+      },
+      {
+        "run_id": "changelog-v0.11.0-20260515",
+        "date": "2026-05-15",
+        "version": "v0.11.0",
+        "outcome": "tagged"
+      },
+      {
+        "run_id": "changelog-v0.14.0-20260520-090144",
+        "date": "2026-05-20",
+        "version": "v0.14.0",
+        "outcome": "tagged"
+      }
+    ]
+  },
+  "iterate_history": [],
+  "_iterate_migration_state": "complete",
+  "_iterate_migration_ts": "2026-04-30T19:43:37.090192+00:00",
+  "_iterate_migration_quarantined_count": 0,
+  "created_at": "2026-04-30T19:43:37.090192+00:00",
+  "updated_at": "2026-05-20T07:01:45.025139+00:00",
+  "validation_issues": [
+    {
+      "step": "changelog",
+      "severity": "ask",
+      "message": "[canon] F2 ADR status values valid: invalid statuses: [\"ADR-063='reverted via merge revert'\", \"ADR-064='reverted'\"]"
+    }
+  ]
+}

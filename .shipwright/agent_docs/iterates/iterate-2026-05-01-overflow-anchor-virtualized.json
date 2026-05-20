@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-01-overflow-anchor-virtualized",
+  "date": "2026-05-01T10:31:49.862011Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/overflow-anchor-virtualized",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-063"
+}

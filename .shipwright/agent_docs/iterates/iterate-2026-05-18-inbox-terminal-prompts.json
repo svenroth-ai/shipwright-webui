@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-18-inbox-terminal-prompts",
+  "date": "2026-05-18T22:00:19.383568Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/inbox-terminal-prompts",
+  "spec": ".shipwright/planning/iterate/2026-05-18-inbox-terminal-prompts.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-05-18-inbox-terminal-prompts"
+}

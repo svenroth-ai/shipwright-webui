@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-06-v0-8-2-polish",
+  "date": "2026-05-06T07:06:09.221338Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/v0.8.2-polish",
+  "spec": ".shipwright/planning/iterate/2026-05-06-v0.8.2-polish.md",
+  "tests_passed": true,
+  "adr": "ADR-070"
+}

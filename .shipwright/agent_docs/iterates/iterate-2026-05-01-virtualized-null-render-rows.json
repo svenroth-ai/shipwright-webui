@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-01-virtualized-null-render-rows",
+  "date": "2026-05-01T20:08:58.417110Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/virtualized-null-render-rows",
+  "spec": ".shipwright/planning/iterate/2026-05-01-virtualized-null-render-rows.md",
+  "tests_passed": true,
+  "adr": "ADR-065"
+}

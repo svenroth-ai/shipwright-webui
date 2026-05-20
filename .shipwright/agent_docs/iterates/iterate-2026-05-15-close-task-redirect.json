@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-15-close-task-redirect",
+  "date": "2026-05-15T08:47:49.933584Z",
+  "type": "bug",
+  "complexity": "trivial",
+  "branch": "iterate/fix-close-task-redirect",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-103"
+}

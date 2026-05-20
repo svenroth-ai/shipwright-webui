@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-20260430-actions-upload-ui",
+  "date": "2026-04-30T22:00:00Z",
+  "type": "feature",
+  "complexity": "small",
+  "branch": "iterate/actions-upload-ui",
+  "spec": ".shipwright/planning/01-adopted/spec.md#fr-0127-upload--replace--reset-webuiactionsjson",
+  "tests_passed": true,
+  "adr": "ADR-0054"
+}

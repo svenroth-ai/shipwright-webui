@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-11-v0-9-3-resume-state-machine",
+  "date": "2026-05-11T11:40:31.638677Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/v0.9.3-resume-state-machine",
+  "spec": ".shipwright/planning/iterate/2026-05-11-v0-9-3-resume-state-machine.md",
+  "tests_passed": true,
+  "adr": "ADR-085"
+}

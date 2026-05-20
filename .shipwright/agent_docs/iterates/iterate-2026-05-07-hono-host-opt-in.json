@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-07-hono-host-opt-in",
+  "date": "2026-05-07T13:20:26.789544Z",
+  "type": "feature",
+  "complexity": "small",
+  "branch": "iterate/hono-host-opt-in",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "ADR-072"
+}

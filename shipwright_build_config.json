@@ -1,0 +1,17 @@
+{
+  "status": "adopted",
+  "dev_url": null,
+  "profile": "vite-hono",
+  "test_cmd": null,
+  "sections": [
+    {
+      "name": "adopted-baseline",
+      "status": "adopted",
+      "commit": "1c772e3991d0518cdd5ce4a2a8edd6dd24f64d41",
+      "tests_total": 0,
+      "tests_passed": 0
+    }
+  ],
+  "current_split": null,
+  "updated_at": "2026-04-30T19:43:37.086497+00:00"
+}

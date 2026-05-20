@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "timestamp": "2026-05-17T21:27:36.539134+00:00",
+  "provider": "openrouter",
+  "findings_count": 16,
+  "self_review_fallback_ran": false,
+  "reason": "iterate plan review \u2014 move-to-backlog; 2 HIGH (1 accepted as improvement, 1 context-rejected), accepted findings integrated into mini-plan",
+  "review_mode": null
+}

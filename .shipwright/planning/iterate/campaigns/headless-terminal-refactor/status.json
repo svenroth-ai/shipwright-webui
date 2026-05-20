@@ -1,0 +1,37 @@
+{
+  "campaign": "headless-terminal-refactor",
+  "branch_strategy": "stacked",
+  "created_at": "2026-05-11T20:42:25.683477+00:00",
+  "sub_iterates": [
+    {
+      "id": "A",
+      "slug": "headless-mirror-flag",
+      "spec_path": ".shipwright\\planning\\iterate\\campaigns\\headless-terminal-refactor\\sub-iterates\\A-headless-mirror-flag.md",
+      "status": "complete",
+      "commit": "ce5a1bbaa77bf0df9a48ec65c7f3605eea365f63",
+      "branch": "iterate/headless-A-mirror-flag",
+      "tests_passed": null,
+      "tests_total": null
+    },
+    {
+      "id": "B",
+      "slug": "replay-snapshot-protocol",
+      "spec_path": ".shipwright\\planning\\iterate\\campaigns\\headless-terminal-refactor\\sub-iterates\\B-replay-snapshot-protocol.md",
+      "status": "complete",
+      "commit": "1612161135c713c4438888f01cdc6588d6b248e6",
+      "branch": "iterate/headless-B-snapshot-protocol",
+      "tests_passed": null,
+      "tests_total": null
+    },
+    {
+      "id": "C",
+      "slug": "retire-compensations",
+      "spec_path": ".shipwright\\planning\\iterate\\campaigns\\headless-terminal-refactor\\sub-iterates\\C-retire-compensations.md",
+      "status": "complete",
+      "commit": "7c17b0ea06edc7dd327f67d1e60cad0b646c0921",
+      "branch": "iterate/headless-C-retire-compensations",
+      "tests_passed": null,
+      "tests_total": null
+    }
+  ]
+}

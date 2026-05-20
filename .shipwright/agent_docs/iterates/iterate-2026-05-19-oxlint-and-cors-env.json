@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-19-oxlint-and-cors-env",
+  "date": "2026-05-19T18:46:33.833676Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/oxlint-and-cors-env",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-05-19-oxlint-and-cors-env"
+}
