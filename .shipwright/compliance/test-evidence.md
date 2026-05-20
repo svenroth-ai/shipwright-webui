@@ -24,7 +24,7 @@ Generated: 2026-05-20T08:43:11Z
 | 8 | terminal keyboard copy/paste with multi-line paste fidelity | iterate | +0 | 970/970 | PASS | 2026-05-18 |
 | 9 | terminal cursor flicker on remount — restore DECTCEM (?25) cursor visibility in headless-mirror replay snapshots | iterate | +0 | 2045/2045 | PASS | 2026-05-18 |
 | 10 | edit-task-dialog: Edit Task dialog with lifecycle-gated field editability | iterate | +0 | 2042/2042 | PASS | 2026-05-18 |
-| 11 | move-to-backlog — POST /api/external/tasks/:id/backlog + Move-to-Backlog menu items + draft-sticky transcript guard + Resume-vs-Launch fix (rebased onto origin/main afb4dc1) | iterate | +0 | 1985/1985 | PASS | 2026-05-17 |
+| 11 | move-to-backlog — POST /api/external/tasks/:id/backlog + Move-to-Backlog menu items + draft-sticky transcript guard + Resume-vs-Launch fix (rebased onto origin/main 2bb4157) | iterate | +0 | 1985/1985 | PASS | 2026-05-17 |
 | 12 | move-to-backlog — POST /api/external/tasks/:id/backlog + Move-to-Backlog menu items + draft-sticky transcript guard + Resume-vs-Launch fix | iterate | +0 | 1994/1994 | PASS | 2026-05-17 |
 | 13 | Resume guard survives a browser reload — ptyReused ready-envelope flag arms the one-shot inject guard on a reused pty | iterate | +0 | 1939/1940 | FAIL | 2026-05-17 |
 | 14 | Remove orphaned Resume-CTA liveness-gate code (getLastPtyDataAt/isAltBufferActive/altScreenActive/lastPtyDataAt) — dead since PR #29; eliminates a flaky CI test | iterate | +0 | 1935/1935 | PASS | 2026-05-17 |
