@@ -1,11 +1,11 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-19-oxlint-and-cors-env",
-    "date": "2026-05-19",
+    "run_id": "iterate-2026-05-21-triage-fix-now-and-phase-slash",
+    "date": "2026-05-21",
     "unit": {
       "status": "passed",
-      "passed": 2135,
-      "total": 2135
+      "passed": 2193,
+      "total": 2193
     },
     "integration": {
       "status": "not_run",
@@ -18,9 +18,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -30,14 +30,19 @@
     "smoke": {
       "status": "not_run"
     },
-    "degraded": [],
+    "degraded": [
+      {
+        "code": "external_review_skipped_no_api_key",
+        "detail": "GEMINI_API_KEY / OPENAI_API_KEY / OPENROUTER_API_KEY not set; iterate skill Degraded Mode applied — heightened self-review discipline in lieu. See .shipwright/planning/iterate/external_review_state.json."
+      }
+    ],
     "surface_verification": {
-      "surface": "cli",
-      "runner": "npx vitest run (server 1156 + client 979) + SHIPWRIGHT_NETWORK_PROFILE=tailscale npx vitest run src/index.test.ts (RED/GREEN demo) + npm run lint (client + server)",
+      "surface": "web",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.iterate-f05.config.ts client/e2e/flows/triage-fix-now.spec.ts",
       "exit_code": 0,
-      "tests_run": 2135,
-      "evidence_path": "iterate session — RED: 1/6 fail under SHIPWRIGHT_NETWORK_PROFILE=tailscale without the fix; GREEN: 6/6 under tailscale + HONO_HOST + clean env with the fix; full suites server 1156/1156 + client 979/979 (both typechecks + builds exit 0); oxlint exit 0 in both halves (0 errors, 44 pre-existing warnings)",
-      "timestamp": "2026-05-19T20:40:00Z"
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-21-triage-fix-now-and-phase-slash/surface_verification.json",
+      "timestamp": "2026-05-21T09:02:00Z"
     }
   }
 }

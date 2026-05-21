@@ -3,15 +3,25 @@
  * "match the Project Creation wizard" restyle
  * (iterate-20260515-triage-card-styling).
  *
- * Pins the Radix Dialog content to the same design tokens ProjectWizard
- * uses: white `--color-surface`, `--radius-card`, `--shadow-card`.
+ * iterate-2026-05-21-triage-fix-now-and-phase-slash — REPLACED the
+ * iterate-2026-05-20 clipboard-copy Fix-now behaviour with "emit
+ * FixNowIntent to parent". The 8 prior tests covering clipboard
+ * semantics + transient confirmation + timer cleanup are deleted
+ * because their subject (clipboard copy) no longer exists.
  *
- * iterate-2026-05-20-triage-launch-surface-webui ADDED Fix-now CTA
- * tests: button visibility gate, copy-on-click, transient confirmation,
- * clipboard-failure UX, timer cleanup on unmount.
+ * The parent (TriagePage) owns the NewIssueModal mount — see
+ * file header of TriageDetailModal.tsx for the lifecycle rationale.
+ * These tests therefore assert that TriageDetailModal:
+ *   (1) renders Fix-now for every status==="triage" item (AC-7)
+ *   (2) invokes `onFixNow` with the correct intent for github source
+ *       (AC-8) and any other source (AC-9), and closes itself (AC-10)
+ *   (3) surfaces an inline failure when the catalog is missing
+ *       AND does not invoke onFixNow / close (defensive)
+ *
+ * Routing helper drift is covered by `fixNowIntent.test.ts`.
  */
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
@@ -24,12 +34,11 @@ vi.mock("../../hooks/useTriage", () => ({
   usePromoteTriageItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-// Hoisted spy so the mock factory has access without ESM cycle issues
-// (see CLAUDE.md "module-level const reads process.env" learning —
-// same hoist rule applies here for clipboard mocking).
-const { copyTextSpy } = vi.hoisted(() => ({ copyTextSpy: vi.fn() }));
-vi.mock("../../lib/clipboard", () => ({
-  copyText: copyTextSpy,
+const { useProjectActionsSpy } = vi.hoisted(() => ({
+  useProjectActionsSpy: vi.fn(),
+}));
+vi.mock("../../hooks/useProjectActions", () => ({
+  useProjectActions: useProjectActionsSpy,
 }));
 
 function makeWrapper() {
@@ -41,7 +50,7 @@ function makeWrapper() {
   };
 }
 
-const item: TriageItem = {
+const baseItem: TriageItem = {
   id: "trg-cccc3333",
   ts: "2026-05-14T10:00:00Z",
   originalTs: "2026-05-14T10:00:00Z",
@@ -62,7 +71,29 @@ const item: TriageItem = {
   promotedTaskId: null,
 };
 
+// Resolved catalog stub — both new-task + new-iterate present so the
+// Fix-now resolver can find either.
+const catalogReady = {
+  data: {
+    actions: [
+      { id: "new-task", label: "New task", kind: "external_launch" },
+      { id: "new-iterate", label: "New iterate", kind: "external_launch" },
+    ],
+    phases: [
+      { id: "security", label: "Security", color: "#DC2626" },
+    ],
+    defaults: { autonomy: "guided" },
+    preview: { enabled: false },
+  },
+  isLoading: false,
+};
+
 describe("TriageDetailModal styling", () => {
+  beforeEach(() => {
+    useProjectActionsSpy.mockReset();
+    useProjectActionsSpy.mockReturnValue(catalogReady);
+  });
+
   it("dialog surface matches the Project Creation wizard tokens", () => {
     const Wrapper = makeWrapper();
     render(
@@ -71,7 +102,7 @@ describe("TriageDetailModal styling", () => {
           open={true}
           onOpenChange={vi.fn()}
           projectId="proj-a"
-          item={item}
+          item={baseItem}
         />
       </Wrapper>,
     );
@@ -82,183 +113,140 @@ describe("TriageDetailModal styling", () => {
   });
 });
 
-describe("TriageDetailModal — Fix-now CTA (iterate-2026-05-20)", () => {
+describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)", () => {
   beforeEach(() => {
-    copyTextSpy.mockReset();
-    copyTextSpy.mockResolvedValue(undefined);
+    useProjectActionsSpy.mockReset();
+    useProjectActionsSpy.mockReturnValue(catalogReady);
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
-  function renderModal(props: Partial<TriageItem> = {}) {
+  function renderModal(
+    itemOverrides: Partial<TriageItem> = {},
+    handlers: {
+      onOpenChange?: ReturnType<typeof vi.fn>;
+      onFixNow?: ReturnType<typeof vi.fn>;
+    } = {},
+  ) {
+    const onOpenChange = handlers.onOpenChange ?? vi.fn();
+    const onFixNow = handlers.onFixNow ?? vi.fn();
     const Wrapper = makeWrapper();
-    return render(
+    const utils = render(
       <Wrapper>
         <TriageDetailModal
           open={true}
-          onOpenChange={vi.fn()}
+          onOpenChange={onOpenChange}
           projectId="proj-a"
-          item={{ ...item, ...props }}
+          item={{ ...baseItem, ...itemOverrides }}
+          onFixNow={onFixNow}
         />
       </Wrapper>,
     );
+    return { ...utils, onOpenChange, onFixNow };
   }
 
-  it("does NOT render the Fix-now button when the item has no launchPayload", () => {
-    renderModal({ launchPayload: null });
-    expect(screen.queryByTestId("triage-fix-now")).toBeNull();
-  });
-
-  it("does NOT render the Fix-now button on a github item with empty payload (placeholder branch)", () => {
-    renderModal({ source: "github", launchPayload: null });
-    // Block shows the loud-fail placeholder, but no Fix-now button:
-    // there is nothing to copy.
-    expect(screen.queryByTestId("triage-fix-now")).toBeNull();
-    expect(screen.getByTestId("triage-launch-payload-placeholder")).toBeTruthy();
-  });
-
-  it("renders the Fix-now button when a renderable payload exists", () => {
-    renderModal({
-      source: "github",
-      launchPayload: "/iterate fix code-scan",
-    });
+  it("AC-7: renders Fix-now on every status=triage item — even with no launchPayload", () => {
+    renderModal({ launchPayload: null, source: "phaseQuality" });
     expect(screen.getByTestId("triage-fix-now")).toBeTruthy();
   });
 
-  it("copies the cleaned payload to the clipboard (not the raw bytes) on click", async () => {
-    // Raw payload contains ESC + DEL — both must be stripped before
-    // reaching the clipboard. The rendered <pre> shows the cleaned
-    // string; the clipboard must hold the SAME cleaned string.
-    const raw = "good\x1b[31mred\x7fpart";
-    const cleaned = "good[31mredpart";
-    renderModal({ source: "phaseQuality", launchPayload: raw });
-
-    fireEvent.click(screen.getByTestId("triage-fix-now"));
-    // copyText is async; wait a microtask.
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(copyTextSpy).toHaveBeenCalledTimes(1);
-    expect(copyTextSpy).toHaveBeenCalledWith(cleaned);
-    // The <pre> renders the SAME cleaned string.
-    expect(
-      screen.getByTestId("triage-launch-payload-content").textContent,
-    ).toBe(cleaned);
+  it("AC-7: renders Fix-now on a github item with empty launchPayload (was hidden previously)", () => {
+    renderModal({ source: "github", launchPayload: null });
+    expect(screen.getByTestId("triage-fix-now")).toBeTruthy();
   });
 
-  it("shows the transient confirmation for ~3 s, then clears it", async () => {
-    vi.useFakeTimers();
-    renderModal({ source: "phaseQuality", launchPayload: "/iterate something" });
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("triage-fix-now"));
-      await Promise.resolve();
+  it("AC-8: github source → onFixNow called with new-task + security intent + closes modal", () => {
+    const { onOpenChange, onFixNow } = renderModal({
+      source: "github",
+      title: "GitHub security: 35 shipwright-security finding(s) (high)",
+      detail: "Repo svenroth-ai/shipwright | scan output…",
+      suggestedPriority: "P1",
+      suggestedDomain: "engineering",
     });
-
-    // External review MED #5: the test must prove the banner is
-    // visible BEFORE the timeout, not only that it's gone after.
-    // Otherwise an implementation that clears the confirmation
-    // immediately would still pass the post-advance assertion.
-    expect(screen.getByTestId("triage-fix-now-confirmation")).toBeTruthy();
-
-    // Just before the 3 s mark it is still visible.
-    await act(async () => {
-      vi.advanceTimersByTime(2999);
-    });
-    expect(screen.getByTestId("triage-fix-now-confirmation")).toBeTruthy();
-
-    // After crossing 3 s it disappears.
-    await act(async () => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(screen.queryByTestId("triage-fix-now-confirmation")).toBeNull();
-  });
-
-  it("resets the fix-now status when the displayed item changes (MED #4)", async () => {
-    vi.useFakeTimers();
-    const Wrapper = makeWrapper();
-    const itemA: TriageItem = {
-      ...item,
-      id: "trg-aaaaaaaa",
-      source: "phaseQuality",
-      launchPayload: "/iterate first item",
-    };
-    const itemB: TriageItem = {
-      ...item,
-      id: "trg-bbbbbbbb",
-      source: "phaseQuality",
-      launchPayload: "/iterate second item",
-    };
-
-    const { rerender } = render(
-      <Wrapper>
-        <TriageDetailModal
-          open={true}
-          onOpenChange={vi.fn()}
-          projectId="proj-a"
-          item={itemA}
-        />
-      </Wrapper>,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("triage-fix-now"));
-      await Promise.resolve();
-    });
-    expect(screen.getByTestId("triage-fix-now-confirmation")).toBeTruthy();
-
-    // Re-render with the second item BEFORE the 3 s window closes.
-    // Without the fix the stale "Copied" banner would persist on the
-    // newly displayed item.
-    rerender(
-      <Wrapper>
-        <TriageDetailModal
-          open={true}
-          onOpenChange={vi.fn()}
-          projectId="proj-a"
-          item={itemB}
-        />
-      </Wrapper>,
-    );
-
-    expect(screen.queryByTestId("triage-fix-now-confirmation")).toBeNull();
-  });
-
-  it("shows an inline failure line if copyText rejects (clipboard MED #7)", async () => {
-    copyTextSpy.mockRejectedValueOnce(new Error("permission denied"));
-    renderModal({ source: "phaseQuality", launchPayload: "/iterate something" });
 
     fireEvent.click(screen.getByTestId("triage-fix-now"));
 
-    const fail = await waitFor(() => screen.getByTestId("triage-fix-now-failure"));
-    expect(fail.textContent).toContain("Copy failed");
-    expect(fail.textContent).toContain("permission denied");
-    // No confirmation shown.
-    expect(screen.queryByTestId("triage-fix-now-confirmation")).toBeNull();
+    expect(onFixNow).toHaveBeenCalledTimes(1);
+    const intent = onFixNow.mock.calls[0][0];
+    expect(intent.action.id).toBe("new-task");
+    expect(intent.initialPhaseId).toBe("security");
+    expect(intent.initialTitle).toBe(
+      "Fix for GitHub security: 35 shipwright-security finding(s) (high)",
+    );
+    expect(intent.initialDescription).toBe(
+      "Repo svenroth-ai/shipwright | scan output…",
+    );
+    expect(intent.initialPriority).toBe("P1");
+    expect(intent.initialDomain).toBe("engineering");
+    // AC-10: modal closes after handing off.
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
-  it("does not throw if the modal unmounts before the confirmation timer fires (LOW #8)", async () => {
-    vi.useFakeTimers();
-    const Wrapper = makeWrapper();
-    const { unmount } = render(
-      <Wrapper>
-        <TriageDetailModal
-          open={true}
-          onOpenChange={vi.fn()}
-          projectId="proj-a"
-          item={{ ...item, source: "phaseQuality", launchPayload: "/foo" }}
-        />
-      </Wrapper>,
-    );
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("triage-fix-now"));
-      await Promise.resolve();
+  it("AC-9: iterate-source item → onFixNow called with new-iterate intent (no phase pre-fill)", () => {
+    const { onOpenChange, onFixNow } = renderModal({
+      source: "iterate",
+      title: "Serve the WebUI over HTTPS so terminal Ctrl+V paste works over Tailscale",
+      detail: "Follow-up to iterate-2026-05-18-terminal-copy-paste…",
+      suggestedPriority: "P2",
+      suggestedDomain: "engineering",
     });
-    unmount();
-    // Advance the timer AFTER unmount — there should be no setState
-    // call on a missing component. We assert by not throwing.
-    expect(() => vi.advanceTimersByTime(5000)).not.toThrow();
+
+    fireEvent.click(screen.getByTestId("triage-fix-now"));
+
+    expect(onFixNow).toHaveBeenCalledTimes(1);
+    const intent = onFixNow.mock.calls[0][0];
+    expect(intent.action.id).toBe("new-iterate");
+    expect(intent.initialPhaseId).toBeUndefined();
+    expect(intent.initialTitle).toBe(
+      "Fix for Serve the WebUI over HTTPS so terminal Ctrl+V paste works over Tailscale",
+    );
+    expect(intent.initialDescription).toBe(
+      "Follow-up to iterate-2026-05-18-terminal-copy-paste…",
+    );
+    expect(intent.initialPriority).toBe("P2");
+    expect(intent.initialDomain).toBe("engineering");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("AC-9 regression: kind=compliance still routes to new-iterate (source-only discriminator)", () => {
+    // I originally proposed kind=compliance → security. Sven UAT
+    // 2026-05-21 overrode: compliance items in this repo are refactor
+    // / spec-update work, NOT security findings. The pure
+    // source==="github" rule is canonical.
+    const { onFixNow } = renderModal({
+      source: "phaseQuality",
+      kind: "compliance",
+    });
+
+    fireEvent.click(screen.getByTestId("triage-fix-now"));
+
+    expect(onFixNow).toHaveBeenCalledTimes(1);
+    expect(onFixNow.mock.calls[0][0].action.id).toBe("new-iterate");
+    expect(onFixNow.mock.calls[0][0].initialPhaseId).toBeUndefined();
+  });
+
+  it("Defensive: button disabled while catalog still loading", () => {
+    useProjectActionsSpy.mockReturnValue({ data: undefined, isLoading: true });
+    const { onOpenChange, onFixNow } = renderModal({ source: "github" });
+
+    const btn = screen.getByTestId("triage-fix-now");
+    expect(btn).toBeDisabled();
+    fireEvent.click(btn);
+    expect(onFixNow).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("Defensive: permanent-failure catalog (isLoading:false, data:undefined) surfaces inline failure", () => {
+    useProjectActionsSpy.mockReturnValue({ data: undefined, isLoading: false });
+    const { onOpenChange, onFixNow } = renderModal({ source: "github" });
+
+    fireEvent.click(screen.getByTestId("triage-fix-now"));
+
+    expect(onFixNow).not.toHaveBeenCalled();
+    expect(screen.getByTestId("triage-fix-now-failure")).toBeTruthy();
+    // Don't strand the user with no open modal.
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
