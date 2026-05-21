@@ -1,0 +1,1 @@
+Triage Fix-now button now opens NewIssueModal pre-populated (was: copies launchPayload to clipboard). Shows on every status==='triage' item; github-source routes to new-task + phase=security, every other source to new-iterate. Title, description, priority and domain pre-fill from the triage item.

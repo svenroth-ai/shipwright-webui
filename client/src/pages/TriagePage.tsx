@@ -6,7 +6,16 @@
  * → source-grouped (alphabetical, mirrors aggregate_triage.py)
  * → severity-rank-sorted within each source group.
  *
- * Click → opens TriageDetailModal with Promote / Dismiss / Snooze actions.
+ * Click → opens TriageDetailModal with Promote / Dismiss / Snooze /
+ * Fix-now actions.
+ *
+ * iterate-2026-05-21-triage-fix-now-and-phase-slash — TriagePage now
+ * owns the NewIssueModal mount. TriageDetailModal hands up a FixNowIntent
+ * (via `onFixNow`) and self-closes; this page reads the intent into its
+ * own `fixNowModal` state and renders NewIssueModal AT PAGE SCOPE so it
+ * survives the TriageDetailModal unmount (the `{selected && ...}` guard
+ * around TriageDetailModal previously killed the modal before it could
+ * paint).
  *
  * Empty-state copy: verbatim from `aggregate_triage.py` line 170.
  */
@@ -14,9 +23,12 @@
 import { useMemo, useState } from "react";
 
 import { useProjects } from "../hooks/useProjects";
+import { useProjectActions } from "../hooks/useProjectActions";
 import { useTriageCounts, useTriageItems } from "../hooks/useTriage";
 import { TriageItemCard } from "../components/triage/TriageItemCard";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
+import { NewIssueModal } from "../components/external/NewIssueModal";
+import type { FixNowIntent } from "../components/triage/fixNowIntent";
 import type { TriageItem, TriageSeverity } from "../lib/triageApi";
 import { filterTriage } from "../lib/triageApi";
 import type { Project } from "../types";
@@ -29,7 +41,25 @@ const SEVERITY_RANK: Record<TriageSeverity, number> = {
   info: 4,
 };
 
-function PerProjectSection({ project }: { project: Project }) {
+interface FixNowModalState {
+  open: boolean;
+  projectId: string | null;
+  intent: FixNowIntent | null;
+}
+
+const FIX_NOW_INITIAL: FixNowModalState = {
+  open: false,
+  projectId: null,
+  intent: null,
+};
+
+function PerProjectSection({
+  project,
+  onFixNow,
+}: {
+  project: Project;
+  onFixNow: (projectId: string, intent: FixNowIntent) => void;
+}) {
   const { data: items = [], isLoading } = useTriageItems(project.id);
   const [selected, setSelected] = useState<TriageItem | null>(null);
 
@@ -110,6 +140,7 @@ function PerProjectSection({ project }: { project: Project }) {
           }}
           projectId={project.id}
           item={selected}
+          onFixNow={(intent) => onFixNow(project.id, intent)}
         />
       )}
     </section>
@@ -122,6 +153,21 @@ export default function TriagePage() {
   const realProjects = projects.filter((p) => !p.synthesized);
 
   const totalTriage = counts?.total ?? 0;
+
+  // iterate-2026-05-21 — page-scoped NewIssueModal state. Survives the
+  // unmount-on-close of TriageDetailModal (which the `{selected && …}`
+  // guard in PerProjectSection performs). The projectId is captured at
+  // intent-time so the spawned modal renders in the right project
+  // context even if the user later opens a different project's items.
+  const [fixNowModal, setFixNowModal] = useState<FixNowModalState>(FIX_NOW_INITIAL);
+  // Catalog for the FixNow-target project. Disabled until a project is
+  // selected (intent dispatched) so we don't fetch every project's
+  // catalog upfront.
+  const fixNowProjectActions = useProjectActions(fixNowModal.projectId);
+
+  const onFixNow = (projectId: string, intent: FixNowIntent): void => {
+    setFixNowModal({ open: true, projectId, intent });
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-6 px-4" data-testid="triage-page">
@@ -141,7 +187,11 @@ export default function TriagePage() {
       ) : (
         <>
           {realProjects.map((project) => (
-            <PerProjectSection key={project.id} project={project} />
+            <PerProjectSection
+              key={project.id}
+              project={project}
+              onFixNow={onFixNow}
+            />
           ))}
           {counts !== undefined && totalTriage === 0 && (
             <p
@@ -153,6 +203,22 @@ export default function TriagePage() {
           )}
         </>
       )}
+
+      {/* Page-scoped NewIssueModal — see header docstring. Mounts even
+          when no Fix-now is pending so the prop reset effect can do its
+          work atomically; `action={null}` early-returns inside the
+          modal when there's nothing to render. */}
+      <NewIssueModal
+        open={fixNowModal.open}
+        onOpenChange={(open) => setFixNowModal((p) => ({ ...p, open }))}
+        action={fixNowModal.intent?.action ?? null}
+        projectActions={fixNowProjectActions.data}
+        initialTitle={fixNowModal.intent?.initialTitle}
+        initialDescription={fixNowModal.intent?.initialDescription}
+        initialPhaseId={fixNowModal.intent?.initialPhaseId}
+        initialPriority={fixNowModal.intent?.initialPriority}
+        initialDomain={fixNowModal.intent?.initialDomain}
+      />
     </div>
   );
 }

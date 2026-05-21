@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-20 21:37 UTC | Session: 6209d2b8-40de-44ca-b8be-966ba156ca38
+> Updated: 2026-05-21 07:05 UTC | Session: 3f3c27aa-57d0-492c-ba3e-9f20b626ac96 | Run: iterate-2026-05-21-triage-fix-now-and-phase-slash
 
-## Recent Changes (54 iterations)
+## Recent Changes (55 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | fix-terminal-flicker-on-closed-task | 2184/2184 | dac635f |  | 2026-05-21 |
 | feature | triage-launch-surface-webui (launchPayload + Fix-now) | 2189/2189 | 290263e | FR-01.30 | 2026-05-20 |
 | change | adopt oxlint as the project linter + env-isolate the server CORS test | 2135/2135 | e6683d6 | tooling | 2026-05-19 |
 | change | Inbox card markdown rendering + fade-clip + spacing | 979/979 | 9b91499 | FR-01.13 | 2026-05-19 |
@@ -61,7 +62,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-19 | Unit: 2135/2135 | Smoke: not_run | (iterate)
+Last run: 2026-05-21 | Unit: 2193/2193 | E2E: 2/2 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

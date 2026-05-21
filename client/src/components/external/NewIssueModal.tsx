@@ -91,6 +91,29 @@ export interface NewIssueModalProps {
    *  `window.alert` default was an iterate-3 regression (see
    *  `~/.claude/plans/iterate-3-remediation.md` BUG 1 / Phase A3). */
   onToast?: (msg: string, sev: "info" | "error") => void;
+  /**
+   * iterate-2026-05-21-triage-fix-now-and-phase-slash — optional pre-fill
+   * for callers that open the modal pre-populated (e.g. Triage Fix-now).
+   * Consumed only by the `open: false → true` reset effect; defaults
+   * preserve the existing "blank modal on open" behaviour for callers
+   * (CreateMenuSplitButton, PlainClaudeButton) that omit them.
+   *
+   * `initialPhaseId` additionally seeds `phaseOverridden=true` so the
+   * debounced title-classifier (Task mode) cannot move the chosen phase
+   * back to its auto-detected match.
+   *
+   * `initialPriority` / `initialDomain` seed the leadwright Phase 1
+   * inputs (rendered when the action's `modal_fields` opts in — both
+   * `new-task` and `new-iterate` declare them). The Triage Fix-now flow
+   * forwards `item.suggestedPriority` and `item.suggestedDomain` here so
+   * the operator does not have to retype routing metadata that already
+   * lives on the triage item.
+   */
+  initialTitle?: string;
+  initialDescription?: string;
+  initialPhaseId?: string;
+  initialPriority?: "P0" | "P1" | "P2" | "P3";
+  initialDomain?: string;
 }
 
 type SubmitAction = "save" | "launch";
@@ -185,6 +208,11 @@ export function NewIssueModal({
     // BUG 1 — the prior `window.alert` default blocked automation and was
     // hostile UX.
   },
+  initialTitle,
+  initialDescription,
+  initialPhaseId,
+  initialPriority,
+  initialDomain,
 }: NewIssueModalProps) {
   const navigate = useNavigate();
   const { activeProjectId } = useProjectFilter();
@@ -289,27 +317,50 @@ export function NewIssueModal({
     autonomy: AutonomyValue;
     firstPhaseId: string;
     initialProjectId: string;
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash — read pre-fill
+    // through the same ref so a callsite re-render with a new prop
+    // identity doesn't re-trigger the reset effect (e.g. parent
+    // re-renders for an unrelated reason between modal open and close).
+    initialTitle?: string;
+    initialDescription?: string;
+    initialPhaseId?: string;
+    initialPriority?: "P0" | "P1" | "P2" | "P3";
+    initialDomain?: string;
   }>({
     autonomy: projectActions?.defaults.autonomy ?? "guided",
     firstPhaseId: phases[0]?.id ?? "",
     initialProjectId: scopedProject?.id ?? realProjects[0]?.id ?? "",
+    initialTitle,
+    initialDescription,
+    initialPhaseId,
+    initialPriority,
+    initialDomain,
   });
   resetCtxRef.current = {
     autonomy: projectActions?.defaults.autonomy ?? "guided",
     firstPhaseId: phases[0]?.id ?? "",
     initialProjectId: scopedProject?.id ?? realProjects[0]?.id ?? "",
+    initialTitle,
+    initialDescription,
+    initialPhaseId,
+    initialPriority,
+    initialDomain,
   };
 
   useEffect(() => {
     if (!open) return;
     const ctx = resetCtxRef.current;
-    setTitle("");
-    setDescription("");
+    setTitle(ctx.initialTitle ?? "");
+    setDescription(ctx.initialDescription ?? "");
     setError(null);
-    setPhaseOverridden(false);
+    // When a callsite pre-selects a phase (Fix-now from a github-source
+    // triage item), we treat it as a manual override so the debounced
+    // title-classifier doesn't immediately replace it with whatever
+    // matches the title keywords.
+    setPhaseOverridden(Boolean(ctx.initialPhaseId));
     setDetectedTrigger(null);
     setAutonomy(ctx.autonomy);
-    setPhaseId(ctx.firstPhaseId);
+    setPhaseId(ctx.initialPhaseId ?? ctx.firstPhaseId);
     setSelectedProjectId(ctx.initialProjectId);
     // iterate/launch-cli-parameters § 4 — full reset of Advanced state.
     setAdvancedOpen(false);
@@ -319,8 +370,13 @@ export function NewIssueModal({
     // iterate-2026-05-14 lead-foundation — reset all 5 fields when the
     // modal opens. Empty string == "input not filled" so the submit
     // path knows to omit the key.
-    setLeadDomain("");
-    setLeadPriority("");
+    //
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash — domain +
+    // priority pre-fill from a callsite (Triage Fix-now). Read through
+    // the same `ctx` ref so background refetches don't re-arm the
+    // reset effect.
+    setLeadDomain(ctx.initialDomain ?? "");
+    setLeadPriority(ctx.initialPriority ?? "");
     setLeadComplexityHint("");
     setLeadTagsRaw("");
     setLeadBlockedByRaw("");

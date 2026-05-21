@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-20T21:37:23Z
+Generated: 2026-05-21T07:05:26Z
 
 ## Requirements Coverage
 
@@ -167,6 +167,7 @@ Generated: 2026-05-20T21:37:23Z
 | Inbox card markdown rendering + fade-clip + spacing | iterate | change | FR-01.13 | 979/979 | 9b91499 | 2026-05-19 |
 | adopt oxlint as the project linter + env-isolate the server CORS test | iterate | change |  | 2135/2135 | e6683d6 | 2026-05-19 |
 | triage-launch-surface-webui (launchPayload + Fix-now) | iterate | feature | FR-01.30 | 2189/2189 | 290263e | 2026-05-20 |
+| fix-terminal-flicker-on-closed-task | iterate | bug |  | 2184/2184 | dac635f | 2026-05-21 |
 
 ## Coverage Summary
 
@@ -174,7 +175,7 @@ Generated: 2026-05-20T21:37:23Z
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 54 |
+| Iterate changes | 55 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |

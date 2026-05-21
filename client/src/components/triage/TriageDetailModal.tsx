@@ -3,9 +3,20 @@
  *
  * Promote opens the dedicated PromoteModal (form fields). Dismiss + Snooze
  * are simpler — single optional reason input.
+ *
+ * iterate-2026-05-21-triage-fix-now-and-phase-slash — the **Fix now**
+ * CTA semantics changed. Previously (iterate-2026-05-20) it copied the
+ * producer-generated `launchPayload` to the clipboard and showed a
+ * transient confirmation. After this iterate it builds a `FixNowIntent`
+ * via `fixNowIntent.buildFixNowIntent` and bubbles it to the parent via
+ * `onFixNow`. The parent (TriagePage) owns the NewIssueModal mount —
+ * mounting it inside TriageDetailModal would unmount when this dialog
+ * closes on `onOpenChange(false)`, killing the modal before it could
+ * render. `LaunchPayloadBlock` still renders informational payload
+ * text; the legacy clipboard-copy path is removed.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, X } from "lucide-react";
 
@@ -14,13 +25,11 @@ import {
   useDismissTriageItem,
   useSnoozeTriageItem,
 } from "../../hooks/useTriage";
-import { copyText } from "../../lib/clipboard";
-import { prepareLaunchPayload } from "../../lib/launchPayload";
+import { useProjectActions } from "../../hooks/useProjectActions";
 import { SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
 import { LaunchPayloadBlock } from "./LaunchPayloadBlock";
 import { PromoteModal } from "./PromoteModal";
-
-const FIX_NOW_CONFIRMATION_MS = 3000;
+import { buildFixNowIntent, type FixNowIntent } from "./fixNowIntent";
 
 interface TriageDetailModalProps {
   open: boolean;
@@ -28,6 +37,14 @@ interface TriageDetailModalProps {
   projectId: string;
   item: TriageItem;
   onActionComplete?: (kind: "promoted" | "dismissed" | "snoozed") => void;
+  /**
+   * iterate-2026-05-21 — invoked when the operator clicks Fix-now AND
+   * the resolver returns an actionable intent. The parent owns the
+   * NewIssueModal mount (lifecycle reasons — see file header). When
+   * `onFixNow` is omitted (legacy callsites), the Fix-now button still
+   * renders but clicks surface the "no-handler" message inline.
+   */
+  onFixNow?: (intent: FixNowIntent) => void;
 }
 
 export function TriageDetailModal({
@@ -36,71 +53,39 @@ export function TriageDetailModal({
   projectId,
   item,
   onActionComplete,
+  onFixNow,
 }: TriageDetailModalProps) {
   const dismiss = useDismissTriageItem(projectId);
   const snooze = useSnoozeTriageItem(projectId);
+  const projectActions = useProjectActions(projectId);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
-  const [fixNowState, setFixNowState] = useState<
-    | { kind: "idle" }
-    | { kind: "confirming" }
-    | { kind: "failed"; message: string }
-  >({ kind: "idle" });
-  const fixNowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
 
-  // Clean up any pending Fix-now confirmation timer when the modal
-  // closes / unmounts. Without this a stale timer would fire setState
-  // on an unmounted component, OR a second click would not reset the
-  // 3-second window cleanly. External review iterate LOW #8.
+  // Reset the inline failure surface whenever the displayed item or
+  // open-state changes — a stale failure message from a previous click
+  // should not bleed onto the next item / re-open.
   useEffect(() => {
-    return () => {
-      if (fixNowTimerRef.current !== null) {
-        clearTimeout(fixNowTimerRef.current);
-        fixNowTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  // Reset fix-now status whenever the displayed item changes OR the
-  // modal closes — otherwise a stale "Copied" confirmation from the
-  // previous item can flash on the new item within the 3 s window.
-  // External code review MED #4.
-  useEffect(() => {
-    setFixNowState({ kind: "idle" });
-    if (fixNowTimerRef.current !== null) {
-      clearTimeout(fixNowTimerRef.current);
-      fixNowTimerRef.current = null;
-    }
+    setFixNowFailure(null);
   }, [item.id, open]);
 
-  const launchDecision = prepareLaunchPayload(item);
-  const fixNowEnabled = launchDecision.kind === "render";
-
-  const onFixNow = async () => {
-    if (launchDecision.kind !== "render") return; // Defensive — button is gated.
-    // Reset any prior timer so repeated clicks restart the 3 s window
-    // cleanly rather than overlapping.
-    if (fixNowTimerRef.current !== null) {
-      clearTimeout(fixNowTimerRef.current);
-      fixNowTimerRef.current = null;
+  const onFixNowClick = () => {
+    setFixNowFailure(null);
+    if (!onFixNow) {
+      setFixNowFailure("Fix-now handler not wired on this page.");
+      return;
     }
-    try {
-      // CRITICAL: copy `cleaned` (control-chars stripped), never the
-      // raw `item.launchPayload`. The rendered <pre> uses the same
-      // string. External review MED #11.
-      await copyText(launchDecision.cleaned);
-      setFixNowState({ kind: "confirming" });
-      fixNowTimerRef.current = setTimeout(() => {
-        setFixNowState({ kind: "idle" });
-        fixNowTimerRef.current = null;
-      }, FIX_NOW_CONFIRMATION_MS);
-    } catch (err) {
-      // External review MED #7 — clipboard failures surface inline.
-      const message =
-        err instanceof Error ? err.message : "Copy failed; select and copy manually.";
-      setFixNowState({ kind: "failed", message });
+    const result = buildFixNowIntent(item, projectActions.data);
+    if (result.kind === "failed") {
+      setFixNowFailure(result.message);
+      return;
     }
+    // Hand off to the parent BEFORE closing — the parent reads the
+    // intent + sets its own NewIssueModal state. The close then unmounts
+    // this dialog cleanly without affecting the parent-owned modal.
+    onFixNow(result.intent);
+    onOpenChange(false);
   };
 
   const onDismiss = async () => {
@@ -242,33 +227,27 @@ export function TriageDetailModal({
                       {error}
                     </div>
                   )}
+                  {fixNowFailure && (
+                    <div
+                      className="mt-3 p-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded"
+                      data-testid="triage-fix-now-failure"
+                    >
+                      {fixNowFailure}
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2.5 mt-4 items-center">
-                    {fixNowState.kind === "confirming" && (
-                      <span
-                        className="text-xs text-emerald-700 mr-auto"
-                        data-testid="triage-fix-now-confirmation"
-                      >
-                        Copied — paste into your Claude session.
-                      </span>
-                    )}
-                    {fixNowState.kind === "failed" && (
-                      <span
-                        className="text-xs text-red-700 mr-auto"
-                        data-testid="triage-fix-now-failure"
-                      >
-                        Copy failed — select and copy manually. ({fixNowState.message})
-                      </span>
-                    )}
-                    {fixNowEnabled && (
-                      <button
-                        type="button"
-                        onClick={onFixNow}
-                        className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
-                        data-testid="triage-fix-now"
-                      >
-                        Fix now
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={onFixNowClick}
+                      disabled={projectActions.isLoading}
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                      data-testid="triage-fix-now"
+                    >
+                      {projectActions.isLoading && (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      )}
+                      Fix now
+                    </button>
                     <button
                       type="button"
                       onClick={onDismiss}

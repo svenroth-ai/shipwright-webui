@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-21-triage-fix-now-and-phase-slash",
+  "date": "2026-05-21T07:05:37.160425Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/triage-fix-now-and-phase-slash",
+  "spec": ".shipwright/planning/iterate/2026-05-21-triage-fix-now-and-phase-slash.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-05-21-triage-fix-now-and-phase-slash"
+}
