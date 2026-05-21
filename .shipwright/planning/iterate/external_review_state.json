@@ -1,9 +1,10 @@
 {
-  "status": "completed",
-  "timestamp": "2026-05-17T21:27:36.539134+00:00",
-  "provider": "openrouter",
-  "findings_count": 16,
-  "self_review_fallback_ran": false,
-  "reason": "iterate plan review \u2014 move-to-backlog; 2 HIGH (1 accepted as improvement, 1 context-rejected), accepted findings integrated into mini-plan",
-  "review_mode": null
+  "status": "skipped_no_api_key",
+  "timestamp": "2026-05-21T00:00:00+00:00",
+  "provider": "none",
+  "findings_count": 0,
+  "self_review_fallback_ran": true,
+  "reason": "iterate-2026-05-21-triage-fix-now-and-phase-slash: GEMINI_API_KEY / OPENAI_API_KEY / OPENROUTER_API_KEY not set; degraded mode per iterate skill SKILL.md \"review.py unavailable / no API key\" branch. Heightened self-review discipline applied at Step 7.",
+  "review_mode": "iterate",
+  "run_id": "iterate-2026-05-21-triage-fix-now-and-phase-slash"
 }

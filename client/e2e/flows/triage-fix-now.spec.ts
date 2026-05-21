@@ -1,27 +1,34 @@
 /*
- * Spec — triage-fix-now (iterate-2026-05-20-triage-launch-surface-webui).
+ * Spec — triage-fix-now
  *
- * AC: the Triage tab shows the launchPayload (Iterate-A producer field)
- * in a `<pre><code>` block on each open item with a renderable payload,
- * and the Fix-now button copies the cleaned payload to the clipboard
- * with a transient confirmation. This is the F0.5 web-surface gate the
- * unit tests cannot satisfy (they stub `copyText` directly).
+ * iterate-2026-05-21-triage-fix-now-and-phase-slash replaced the
+ * iterate-2026-05-20 clipboard-copy semantics with "open NewIssueModal
+ * pre-populated". This spec is the F0.5 web-surface gate for that
+ * rewire — the unit tests stub `NewIssueModal` away, only a real-stack
+ * run can prove the modal actually mounts with the right action + phase
+ * + pre-fill values once TriageDetailModal closes.
+ *
+ * Two scenarios in one spec — github-source maps to new-task with
+ * phase=security; iterate-source (or any non-github source) maps to
+ * new-iterate without phase pre-fill.
  *
  * Strategy:
- *  1. Create a real on-disk directory `<tmp>/triage-fix-now-{stamp}`.
- *  2. Write `.shipwright/triage.jsonl` with a non-empty launchPayload
- *     item BEFORE registering the project with the WebUI — that way
- *     the 5 s mtime-keyed read cache in `core/triage-store.ts` cannot
- *     return a stale-empty array.
- *  3. POST /api/projects to register it with the running stack.
- *  4. Grant clipboard permissions, navigate to /triage, click the
- *     item, then the Fix-now button. Assert (a) confirmation banner
- *     visible, (b) `navigator.clipboard.readText()` returns the cleaned
- *     payload.
- *  5. Cleanup: DELETE the project + rm the tmp dir.
+ *  1. Create a real on-disk directory `<tmp>/triage-fix-now-{stamp}`
+ *  2. Write `.shipwright/triage.jsonl` with two items (one github, one
+ *     iterate) BEFORE registering the project — the 5 s mtime-keyed
+ *     cache in `core/triage-store.ts` cannot return a stale-empty array
+ *     this way.
+ *  3. POST /api/projects to register it.
+ *  4. Navigate to /triage in-app, open the github item, click Fix-now,
+ *     assert the new-task modal mounts with phase=security pre-filled.
+ *  5. Repeat for the iterate item — assert new-iterate modal with no
+ *     phase picker.
+ *  6. Cleanup: DELETE the project + rm the tmp dir.
  *
- * The test does NOT touch the user's real `~/.shipwright-webui` files —
- * the project entry it adds is removed in afterEach.
+ * The legacy clipboard-copy test from iterate-2026-05-20 is removed
+ * along with its `data-testid="triage-fix-now-confirmation"` /
+ * navigator.clipboard.readText() assertions — both refer to behaviour
+ * that no longer exists.
  */
 
 import { test, expect } from "@playwright/test";
@@ -29,19 +36,7 @@ import { mkdirSync, rmSync, writeFileSync, mkdtempSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
-// Raw payload contains ESC (\x1b) + DEL (\x7f) so the spec actually
-// proves AC-6's "copies the cleaned (control-stripped) payload"
-// requirement. A payload without control chars would let a broken
-// implementation that copied the raw bytes still pass. External
-// review LOW #6.
-const RAW_LAUNCH_PAYLOAD =
-  "/iterate fix code-scanning findings\x1b\n\nRepo: example/repo\nFindings: 3\x7f\nhttps://example.test/security/code-scanning";
-// What the operator sees + what the clipboard receives — control
-// chars stripped per the canonical Python allow-list.
-const CLEANED_LAUNCH_PAYLOAD =
-  "/iterate fix code-scanning findings\n\nRepo: example/repo\nFindings: 3\nhttps://example.test/security/code-scanning";
-
-test.describe("Triage tab — Fix-now CTA (iterate-2026-05-20-triage-launch-surface-webui)", () => {
+test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)", () => {
   let tmpDir = "";
   let projectId = "";
 
@@ -55,26 +50,45 @@ test.describe("Triage tab — Fix-now CTA (iterate-2026-05-20-triage-launch-surf
         JSON.stringify({
           v: 1,
           schema: "triage",
-          created: "2026-05-20T08:00:00Z",
+          created: "2026-05-21T08:00:00Z",
         }),
+        // github-source item — exercises AC-8 (new-task + phase=security).
         JSON.stringify({
           event: "append",
-          id: "trg-e2efix01",
-          ts: "2026-05-20T08:01:00Z",
-          originalTs: "2026-05-20T08:01:00Z",
+          id: "trg-fixghub1",
+          ts: "2026-05-21T08:01:00Z",
+          originalTs: "2026-05-21T08:01:00Z",
           source: "github",
           severity: "high",
           kind: "bug",
-          title: "E2E launch-payload item",
-          detail: "Detail body for the E2E spec",
+          title: "GitHub security: 35 shipwright-security finding(s) (high)",
+          detail: "Repo example/repo | code-scanning: 5 high",
           evidencePath: null,
           runId: null,
           commit: null,
-          dedupKey: "e2e:fix-now",
-          launchPayload: RAW_LAUNCH_PAYLOAD,
+          dedupKey: "e2e:fix-now:github",
           status: "triage",
           suggestedPriority: "P1",
-          suggestedDomain: "security",
+          suggestedDomain: "engineering",
+        }),
+        // iterate-source item — exercises AC-9 (new-iterate, no phase).
+        JSON.stringify({
+          event: "append",
+          id: "trg-fixiter1",
+          ts: "2026-05-21T08:02:00Z",
+          originalTs: "2026-05-21T08:02:00Z",
+          source: "iterate",
+          severity: "medium",
+          kind: "improvement",
+          title: "Re-open a Done/Closed task — counterpart to Move-to-Backlog",
+          detail: "Counterpart direction to iterate-2026-05-17-move-to-backlog",
+          evidencePath: null,
+          runId: null,
+          commit: null,
+          dedupKey: "e2e:fix-now:iterate",
+          status: "triage",
+          suggestedPriority: "P3",
+          suggestedDomain: "engineering",
         }),
       ].join("\n") + "\n",
       "utf-8",
@@ -105,18 +119,9 @@ test.describe("Triage tab — Fix-now CTA (iterate-2026-05-20-triage-launch-surf
     }
   });
 
-  test("renders launchPayload, Fix-now copies cleaned text and shows confirmation", async ({
+  test("github source: Fix-now opens new-task modal pre-filled with phase=security", async ({
     page,
-    context,
   }) => {
-    // Clipboard permissions are required to read it back after the
-    // button click. Grant for the served origin only.
-    const baseUrl =
-      process.env.BASE_URL || "http://localhost:5173";
-    await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: new URL(baseUrl).origin,
-    });
-
     // SPA-fallback gotcha (see CLAUDE.md learning) — production
     // `node dist/index.js` 404s on direct /triage. Land at "/" then
     // navigate in-app via the sidebar link.
@@ -125,40 +130,77 @@ test.describe("Triage tab — Fix-now CTA (iterate-2026-05-20-triage-launch-surf
     await sidebarTriage.click();
     await expect(page).toHaveURL("/triage");
 
-    // The new project's triage item should appear. Counts polling +
-    // listItems polling can take up to 30 s in the worst case; bump
-    // the wait window.
-    const itemCard = page.getByTestId("triage-item-trg-e2efix01");
+    const itemCard = page.getByTestId("triage-item-trg-fixghub1");
     await expect(itemCard).toBeVisible({ timeout: 35_000 });
-
     await itemCard.click();
 
-    // Modal renders + launch-payload block surfaces the cleaned text.
     await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
-    const payloadPre = page.getByTestId("triage-launch-payload-content");
-    await expect(payloadPre).toBeVisible();
-    // The DOM should show the CLEANED text (control chars stripped) —
-    // a broken renderer that emitted the raw payload would fail here.
-    expect(await payloadPre.textContent()).toBe(CLEANED_LAUNCH_PAYLOAD);
 
-    // Fix-now click → confirmation banner + clipboard write.
+    // Fix-now click: TriageDetailModal closes (AC-10), NewIssueModal
+    // opens in new-task mode (AC-8).
     await page.getByTestId("triage-fix-now").click();
-    await expect(page.getByTestId("triage-fix-now-confirmation")).toBeVisible();
 
-    // Clipboard MUST hold the cleaned string (not the raw bytes). The
-    // operator-paste invariant: rendered text === copied text === no
-    // control chars. External review iterate MED #11 + code-review LOW #6.
-    //
-    // Cross-OS line-ending note: Chromium on Windows normalises `\n`
-    // produced by `navigator.clipboard.writeText` to `\r\n` on read.
-    // Comparing both sides after the same normalisation is the correct
-    // invariant — what matters for the operator paste is that the
-    // logical text matches.
-    const clipText = await page.evaluate(() => navigator.clipboard.readText());
-    const normalize = (s: string): string => s.replace(/\r\n/g, "\n");
-    const normalized = normalize(clipText);
-    expect(normalized).toBe(CLEANED_LAUNCH_PAYLOAD);
-    expect(normalized.includes("\x1b")).toBe(false);
-    expect(normalized.includes("\x7f")).toBe(false);
+    const newTaskModal = page.getByTestId("new-issue-modal-new-task");
+    await expect(newTaskModal).toBeVisible();
+    await expect(page.getByTestId("triage-detail-modal")).not.toBeVisible();
+
+    // Title prefill: "Fix for <triage.title>".
+    const titleInput = page.getByTestId("new-issue-title-input");
+    await expect(titleInput).toHaveValue(
+      "Fix for GitHub security: 35 shipwright-security finding(s) (high)",
+    );
+
+    // Description prefill: triage.detail verbatim.
+    const descInput = page.getByTestId("new-issue-description-input");
+    await expect(descInput).toHaveValue(
+      "Repo example/repo | code-scanning: 5 high",
+    );
+
+    // Phase pre-selected to Security. The dropdown trigger renders the
+    // selected phase label inside it.
+    await expect(page.getByTestId("new-issue-phase-select")).toContainText(
+      /Security/i,
+    );
+
+    // Priority + Domain pre-fill from suggestedPriority / suggestedDomain.
+    await expect(page.getByTestId("new-issue-priority-select")).toHaveValue("P1");
+    await expect(page.getByTestId("new-issue-domain-input")).toHaveValue(
+      "engineering",
+    );
+  });
+
+  test("iterate source: Fix-now opens new-iterate modal (no phase picker)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const sidebarTriage = page.getByRole("link", { name: /Triage/i }).first();
+    await sidebarTriage.click();
+    await expect(page).toHaveURL("/triage");
+
+    const itemCard = page.getByTestId("triage-item-trg-fixiter1");
+    await expect(itemCard).toBeVisible({ timeout: 35_000 });
+    await itemCard.click();
+
+    await expect(page.getByTestId("triage-detail-modal")).toBeVisible();
+    await page.getByTestId("triage-fix-now").click();
+
+    const newIterateModal = page.getByTestId("new-issue-modal-new-iterate");
+    await expect(newIterateModal).toBeVisible();
+    await expect(page.getByTestId("triage-detail-modal")).not.toBeVisible();
+
+    await expect(page.getByTestId("new-issue-title-input")).toHaveValue(
+      "Fix for Re-open a Done/Closed task — counterpart to Move-to-Backlog",
+    );
+    await expect(page.getByTestId("new-issue-description-input")).toHaveValue(
+      "Counterpart direction to iterate-2026-05-17-move-to-backlog",
+    );
+    // new-iterate has no phase picker (AC-9).
+    await expect(page.getByTestId("new-issue-phase-select")).toHaveCount(0);
+
+    // Priority + Domain still pre-fill (both modes opted in via modal_fields).
+    await expect(page.getByTestId("new-issue-priority-select")).toHaveValue("P3");
+    await expect(page.getByTestId("new-issue-domain-input")).toHaveValue(
+      "engineering",
+    );
   });
 });

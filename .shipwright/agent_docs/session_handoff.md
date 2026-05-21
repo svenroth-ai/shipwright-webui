@@ -1,38 +1,39 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-20-triage-launch-surface-webui"
+run_id: "iterate-2026-05-21-triage-fix-now-and-phase-slash"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-05-20T21:36:13.397818+00:00"
+reason: "iterate: triage Fix-now opens NewIssueModal pre-populated + 4 phase slashes namespaced"
+timestamp: "2026-05-21T07:05:26.966486+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-20 21:36:13 UTC
+> Auto-generated 2026-05-21 07:05:26 UTC
 
 ## Session Info
 
-- **Session ID**: unknown
-- **Timestamp**: 2026-05-20 21:36:13 UTC
-- **Reason**: iterate finalization
+- **Session ID**: 3f3c27aa-57d0-492c-ba3e-9f20b626ac96
+- **Timestamp**: 2026-05-21 07:05:26 UTC
+- **Reason**: iterate: triage Fix-now opens NewIssueModal pre-populated + 4 phase slashes namespaced
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-19-oxlint-and-cors-env
-- **Date**: 2026-05-19T18:46:33.833676Z
-- **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/oxlint-and-cors-env
-- **ADR**: iterate-2026-05-19-oxlint-and-cors-env
+- **Run ID**: iterate-2026-05-20-triage-launch-surface-webui
+- **Date**: 2026-05-20T21:22:42.718513Z
+- **Type**: feature
+- **Complexity**: medium
+- **Branch**: iterate/triage-launch-surface-webui
+- **ADR**: iterate-2026-05-20-triage-launch-surface-webui
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-05-20-triage-launch-surface-webui.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/triage-launch-surface-webui
-- **Run ID**: iterate-2026-05-20-triage-launch-surface-webui
-- **Spec**: .shipwright/planning/iterate/2026-05-20-triage-launch-surface-webui.md
+- **Branch**: iterate/triage-fix-now-and-phase-slash
+- **Run ID**: iterate-2026-05-21-triage-fix-now-and-phase-slash
+- **Spec**: .shipwright/planning/iterate/2026-05-21-triage-fix-now-and-phase-slash.md
 - **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-05-17T21:27:36))
+- **External Review Marker**: stale (predates spec (2026-05-21T00:00:00))
 
 ### Mandatory replay on Resume
 
@@ -51,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: main
-- **Last Commit**: 9a4b435 chore(compliance): auto-regenerated artefacts include Phase 0a backfill
+- **Branch**: iterate/triage-fix-now-and-phase-slash
+- **Last Commit**: c8a28d1 docs(claude-md): strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-a6586f12 | work_completed | iterate (fix-terminal-flicker-on-closed-task) | 2026-05-21 |
 | evt-45adf0de | work_completed | iterate (triage-launch-surface-webui (launchPayload + Fix-now)) | 2026-05-20 |
 | evt-0036a610 | work_completed | iterate (adopt oxlint as the project linter + env-isolate the server CORS test) | 2026-05-19 |
 | evt-3d1274f6 | work_completed | iterate (Inbox card markdown rendering + fade-clip + spacing) | 2026-05-19 |
 | evt-058d9da0 | work_completed | iterate (triage promote carries the brief into the launched run (actionId + newline flatten)) | 2026-05-19 |
-| evt-d508eaff | work_completed | iterate (fix triage promote: carry item.detail into the promoted task description) | 2026-05-19 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 124
-- **Last iterate**: feature — triage-launch-surface-webui (launchPayload + Fix-now) (2026-05-20)
+- **Total work events**: 125
+- **Last iterate**: bug — fix-terminal-flicker-on-closed-task (2026-05-21)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
