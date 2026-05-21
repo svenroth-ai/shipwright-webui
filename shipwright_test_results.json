@@ -1,11 +1,11 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-22-triage-fix-now-project-preselect",
-    "date": "2026-05-22",
+    "run_id": "iterate-2026-05-21-fix-terminal-flicker-on-closed-task",
+    "date": "2026-05-21",
     "unit": {
       "status": "passed",
-      "passed": 2198,
-      "total": 2198
+      "passed": 2183,
+      "total": 2183
     },
     "integration": {
       "status": "not_run",
@@ -18,9 +18,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "authored_not_run",
-      "passed": 0,
-      "total": 2
+      "status": "passed",
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "skipped",
@@ -30,19 +30,14 @@
     "smoke": {
       "status": "not_run"
     },
-    "degraded": [
-      {
-        "code": "e2e_authored_not_run_bug_small",
-        "detail": "E2E spec extended in client/e2e/flows/triage-fix-now.spec.ts (asserts new-issue-project-select holds the triage projectId for both github and non-github routes) but not executed locally — Phase Matrix BUG-small marks E2E 'if feature+UI', not mandatory. Execution deferred to CI on PR open. Consumer chain proven in isolation by unit tests across fixNowIntent (2 new), TriageDetailModal (1 new), NewIssueModal (2 new) covering the projectId thread end-to-end."
-      },
-      {
-        "code": "browser_verify_skipped_no_dev_server",
-        "detail": "Phase Matrix Browser Verify 'if server up' — no dev server running in worktree. Same coverage rationale as e2e_authored_not_run_bug_small."
-      },
-      {
-        "code": "external_review_skipped_bug_small",
-        "detail": "Phase Matrix External LLM Review: skip at trivial/small. Self-review (Path C Step 6 / Path A Step 7) completed; backwards-compat regression guard test (NewIssueModal initialProjectId absent) passing."
-      }
-    ]
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "cmd /c set USERPROFILE=<temp>&& set HOME=<temp>&& set BASE_URL=http://localhost:5273&& cd client && node_modules\\.bin\\playwright.cmd test --config=playwright.f05-flicker.config.ts e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts --grep AC-6",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-21-fix-terminal-flicker-on-closed-task/surface_verification.log",
+      "timestamp": "2026-05-21T06:22:00Z"
+    }
   }
 }
