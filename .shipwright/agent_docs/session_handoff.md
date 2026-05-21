@@ -1,40 +1,44 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-22-triage-fix-now-project-preselect"
+run_id: "iterate-2026-05-21-fix-terminal-flicker-on-closed-task"
 phase: "iterate"
-reason: "iterate: triage Fix-now project pre-select bug fix"
-timestamp: "2026-05-22T12:40:22.957528+00:00"
+reason: "iterate: fix terminal flicker on closed task"
+timestamp: "2026-05-21T06:28:54.493243+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-22 12:40:22 UTC
+> Auto-generated 2026-05-21 06:28:54 UTC
 
 ## Session Info
 
-- **Session ID**: 481e7cdf-1950-452c-a748-9049ba67064b
-- **Timestamp**: 2026-05-22 12:40:22 UTC
-- **Reason**: iterate: triage Fix-now project pre-select bug fix
+- **Session ID**: 6a061e52-80a8-4093-a074-403c5cbef0b7
+- **Timestamp**: 2026-05-21 06:28:54 UTC
+- **Reason**: iterate: fix terminal flicker on closed task
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-21-triage-fix-now-and-phase-slash
-- **Date**: 2026-05-21T07:05:37.160425Z
-- **Type**: change
+- **Run ID**: iterate-2026-05-20-triage-launch-surface-webui
+- **Date**: 2026-05-20T21:22:42.718513Z
+- **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/triage-fix-now-and-phase-slash
-- **ADR**: iterate-2026-05-21-triage-fix-now-and-phase-slash
+- **Branch**: iterate/triage-launch-surface-webui
+- **ADR**: iterate-2026-05-20-triage-launch-surface-webui
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-05-21-triage-fix-now-and-phase-slash.md
+- **Spec**: .shipwright/planning/iterate/2026-05-20-triage-launch-surface-webui.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/triage-fix-now-project-preselect
-- **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
+- **Branch**: iterate/fix-terminal-flicker-on-closed-task
+- **Run ID**: iterate-2026-05-21-fix-terminal-flicker-on-closed-task
+- **Spec**: .shipwright/planning/iterate/2026-05-21-fix-terminal-flicker-on-closed-task.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-05-17T21:27:36))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -48,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/triage-fix-now-project-preselect
-- **Last Commit**: c502254 Merge pull request #52 from svenroth-ai/iterate/triage-fix-now-and-phase-slash
+- **Branch**: iterate/fix-terminal-flicker-on-closed-task
+- **Last Commit**: c8a28d1 docs(claude-md): strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-663ee6f3 | work_completed | iterate (SPA fallback for /triage, /inbox & friends (Hono server)) | 2026-05-22 |
-| evt-6ca6247c | work_completed | iterate (VERIFICATION: bug+change-type — should pass) | 2026-05-21 |
-| evt-904b92f3 | work_completed | iterate (VERIFICATION: with affected-frs — should pass) | 2026-05-21 |
-| evt-4af079b7 | work_completed | iterate (triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up)) | 2026-05-21 |
-| evt-f7dbb0e8 | work_completed | iterate (triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes) | 2026-05-21 |
+| evt-45adf0de | work_completed | iterate (triage-launch-surface-webui (launchPayload + Fix-now)) | 2026-05-20 |
+| evt-0036a610 | work_completed | iterate (adopt oxlint as the project linter + env-isolate the server CORS test) | 2026-05-19 |
+| evt-3d1274f6 | work_completed | iterate (Inbox card markdown rendering + fade-clip + spacing) | 2026-05-19 |
+| evt-058d9da0 | work_completed | iterate (triage promote carries the brief into the launched run (actionId + newline flatten)) | 2026-05-19 |
+| evt-d508eaff | work_completed | iterate (fix triage promote: carry item.detail into the promoted task description) | 2026-05-19 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 130
-- **Last iterate**: bug — SPA fallback for /triage, /inbox & friends (Hono server) (2026-05-22)
+- **Total work events**: 124
+- **Last iterate**: feature — triage-launch-surface-webui (launchPayload + Fix-now) (2026-05-20)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
