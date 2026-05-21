@@ -663,7 +663,19 @@ function ctxFor(actionId: string, overrides: Partial<SubstitutionContext["task"]
     task: { ...baseCtx().task, ...overrides },
     actionId,
     // initial_prompt branch validates phase against allowedPhaseIds for new-task.
-    allowedPhaseIds: new Set(["build", "test", "design", "adopt", "deploy", "changelog", "compliance"]),
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash — added "plan" + "security"
+    // so the namespaced-phase regression guards (AC-1, AC-3) can pass.
+    allowedPhaseIds: new Set([
+      "build",
+      "test",
+      "design",
+      "plan",
+      "security",
+      "adopt",
+      "deploy",
+      "changelog",
+      "compliance",
+    ]),
   };
 }
 
@@ -682,10 +694,69 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
-  it("renders /shipwright-run for new-pipeline (POSIX)", () => {
+  it("renders /shipwright-run:run for new-pipeline (POSIX)", () => {
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-4 — new-pipeline
+    // emits the namespaced `:run` form so Claude Code skill resolution lands
+    // on the right skill. The bare `/shipwright-run` form failed empirically.
     const ctx = ctxFor("new-pipeline");
     expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
-      "'/shipwright-run'",
+      "'/shipwright-run:run'",
+    );
+  });
+
+  it("renders /shipwright-plan:plan for new-task + phase=plan (AC-1, all shell forms)", () => {
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-1.
+    const ctx = ctxFor("new-task", { phase: "plan" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-plan:plan'",
+    );
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "powershell")).toBe(
+      "'/shipwright-plan:plan'",
+    );
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "cmd")).toBe(
+      `"/shipwright-plan:plan"`,
+    );
+  });
+
+  it("renders /shipwright-test:test for new-task + phase=test (AC-2)", () => {
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-2.
+    const ctx = ctxFor("new-task", { phase: "test" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-test:test'",
+    );
+  });
+
+  it("renders /shipwright-security:security for new-task + phase=security (AC-3, all shell forms)", () => {
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-3.
+    const ctx = ctxFor("new-task", { phase: "security" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-security:security'",
+    );
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "powershell")).toBe(
+      "'/shipwright-security:security'",
+    );
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "cmd")).toBe(
+      `"/shipwright-security:security"`,
+    );
+  });
+
+  it("renders /shipwright-build (bare) for new-task + phase=build — regression guard (AC-5)", () => {
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-5: phases NOT
+    // flagged by the user as broken (build / design / deploy / changelog /
+    // compliance / adopt) keep the bare form. Workaround scope is the four
+    // empirically-broken cases.
+    const ctx = ctxFor("new-task", { phase: "build" });
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-build'",
+    );
+  });
+
+  it("renders /shipwright-iterate (bare) for new-iterate — regression guard (AC-6)", () => {
+    // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-6: iterate skill
+    // resolves correctly bare; user did NOT flag it.
+    const ctx = ctxFor("new-iterate");
+    expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
+      "'/shipwright-iterate'",
     );
   });
 
@@ -712,16 +783,18 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
 
 describe("actions-substitute — {task.initial_prompt} composition", () => {
   it("appends --autonomous when autonomy=autonomous", () => {
+    // iterate-2026-05-21 — slash now emits the namespaced `:run` form.
     const ctx = ctxFor("new-pipeline", { autonomy: "autonomous" });
     expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
-      "'/shipwright-run --autonomous'",
+      "'/shipwright-run:run --autonomous'",
     );
   });
 
   it("omits --autonomous when autonomy=guided or undefined", () => {
+    // iterate-2026-05-21 — slash now emits the namespaced `:run` form.
     const ctxGuided = ctxFor("new-pipeline", { autonomy: "guided" });
     expect(substitutePlaceholders("{task.initial_prompt}", ctxGuided, "posix")).toBe(
-      "'/shipwright-run'",
+      "'/shipwright-run:run'",
     );
   });
 
@@ -739,12 +812,13 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
   });
 
   it("appends description as raw trailing text", () => {
+    // iterate-2026-05-21 — phase=test now emits the namespaced `:test` form.
     const ctx = ctxFor("new-task", {
       phase: "test",
       description: "run vitest suite",
     });
     expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
-      "'/shipwright-test run vitest suite'",
+      "'/shipwright-test:test run vitest suite'",
     );
   });
 

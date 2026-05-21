@@ -171,11 +171,35 @@ const ALLOWED_PLACEHOLDERS = new Set([
  * actionId. The substituter's {task.initial_prompt} branch dispatches on
  * ctx.actionId. Custom actions outside this set must NOT use the
  * placeholder (UnknownActionError).
+ *
+ * iterate-2026-05-21-triage-fix-now-and-phase-slash — workaround for
+ * Claude Code skill resolution: four bundled slash commands fail to
+ * resolve in the bare `/shipwright-<plugin>` form and must be emitted
+ * as the explicit `<plugin>:<skill>` namespaced form. The four flagged
+ * empirically (Sven 2026-05-21):
+ *   - `/shipwright-plan`     → `/shipwright-plan:plan`
+ *   - `/shipwright-test`     → `/shipwright-test:test`
+ *   - `/shipwright-security` → `/shipwright-security:security`
+ *   - `/shipwright-run`      → `/shipwright-run:run`
+ * Every other phase (`build`, `design`, `deploy`, `changelog`, `compliance`,
+ * `adopt`, `project`) AND `/shipwright-iterate` work in the bare form, so
+ * the workaround is intentionally narrow. If more phases break the same
+ * way in future, add them to `NAMESPACED_PHASES`.
+ *
+ * This belongs in webui because Claude Code skill registration is owned
+ * upstream; aligning the plugin names there has been attempted multiple
+ * times without success. Treat as a local compatibility shim.
  */
+const NAMESPACED_PHASES = new Set(["plan", "test", "security"]);
+
 function buildSlashCommand(actionId: string, phase: string): string | null {
-  if (actionId === "new-task") return `/shipwright-${phase}`;
+  if (actionId === "new-task") {
+    return NAMESPACED_PHASES.has(phase)
+      ? `/shipwright-${phase}:${phase}`
+      : `/shipwright-${phase}`;
+  }
   if (actionId === "new-iterate") return `/shipwright-iterate`;
-  if (actionId === "new-pipeline") return `/shipwright-run`;
+  if (actionId === "new-pipeline") return `/shipwright-run:run`;
   return null;
 }
 

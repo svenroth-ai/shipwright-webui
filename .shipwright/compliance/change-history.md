@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-05-20T21:37:23Z
-Total commits: 386
+Generated: 2026-05-21T07:05:26Z
+Total commits: 391
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 159
-    "feat" : 114
-    "chore" : 58
-    "docs" : 29
+    "feat" : 115
+    "chore" : 59
+    "docs" : 32
     "refactor" : 13
     "test" : 8
     "other" : 4
@@ -183,10 +183,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 114 commits
+### Features (feat) — 115 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-20 | triage | render launchPayload + Fix-now copy CTA (iterate B) | 290263e9e694 |
 | 2026-05-19 | inbox | render markdown in text_question cards + fade-clip long bodies | ada164667377 |
 | 2026-05-19 | inbox | surface waiting terminal pickers + focus terminal on Inbox click | 44c191400745 |
 | 2026-05-18 | terminal | keyboard copy/paste with multi-line paste fidelity | 51261a043db3 |
@@ -302,13 +303,14 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 58 commits
+### Chores (chore) — 59 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-05-20 | compliance | auto-regenerated artefacts include Phase 0a backfill | 9a4b43527fff |
-| 2026-05-20 | events | backfill change_type for 4 non-FR iterates (Phase 0a) | 81249607a20e |
-| 2026-05-20 | events | backfill affected_frs for 18 prior iterates (Phase 0a) | e88067e12571 |
+| 2026-05-20 | events | fix two malformed dashboard rows | eaeeb452e983 |
+| 2026-05-20 | compliance | auto-regenerated artefacts include Phase 0a backfill | d07573d9c0bc |
+| 2026-05-20 | events | backfill change_type for 4 non-FR iterates (Phase 0a) | e1c6a98df980 |
+| 2026-05-20 | events | backfill affected_frs for 18 prior iterates (Phase 0a) | 34886a81ad33 |
 | 2026-05-20 | compliance | auto-regenerated artefacts include launch-prep commits | 0644173a48e7 |
 | 2026-05-20 | compliance | refresh commit SHAs after history rewrite | 265f92300ef9 |
 | 2026-05-20 | launch-prep | drop stale skill-compliance docs, fix doc path refs | cad4ac958640 |
@@ -365,10 +367,13 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 29 commits
+### Documentation (docs) — 32 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-21 | claude-md | strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49) | c8a28d1b48e1 |
+| 2026-05-21 | adr | slim down ADR-087/088 + extract details to planning/adr spec files (Phase 0c) (#47) | c9b662b832c1 |
+| 2026-05-20 | adr | add Part I + Part II banners to decision_log | 63859305cb73 |
 | 2026-05-20 | governance | add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy | ab6e0998f1be |
 | 2026-05-19 | changelog | record the triage-promote launch-chain fix | 9855e3e21183 |
 | 2026-05-16 | — | note triage/ component dir in CLAUDE.md structure tree | 218cd4c7f7e9 |
@@ -449,7 +454,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 386 |
+| Total commits | 391 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 386 |
+| Human-authored commits | 391 |
 
