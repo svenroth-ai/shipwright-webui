@@ -1,10 +1,17 @@
 # Project Activity Dashboard
-> Updated: 2026-05-21 06:28 UTC | Session: 6a061e52-80a8-4093-a074-403c5cbef0b7 | Run: iterate-2026-05-21-fix-terminal-flicker-on-closed-task
+> Updated: 2026-05-22 12:48 UTC | Session: 6a061e52-80a8-4093-a074-403c5cbef0b7 | Run: iterate-2026-05-21-fix-terminal-flicker-on-closed-task
 
-## Recent Changes (54 iterations)
+## Recent Changes (61 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | triage Fix-now pre-selects the triage item's project in NewIssueModal | 2198/2198 | 32b7320 | FR-01.30 | 2026-05-22 |
+| bug | SPA fallback for /triage, /inbox & friends (Hono server) | 1174/1174 | 3141866 | infra | 2026-05-22 |
+| bug | VERIFICATION: bug+change-type — should pass | 0/0 | c502254 | tooling | 2026-05-21 |
+| feature | VERIFICATION: with affected-frs — should pass | 0/0 | c502254 | FR-01.01 | 2026-05-21 |
+| change | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up) | 2193/2193 | 4ca5be2 | FR-01.30 | 2026-05-21 |
+| change | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes | 2193/2193 | aa1788c | FR-01.30 | 2026-05-21 |
+| bug | fix-terminal-flicker-on-closed-task | 2184/2184 | dac635f |  | 2026-05-21 |
 | feature | triage-launch-surface-webui (launchPayload + Fix-now) | 2189/2189 | 290263e | FR-01.30 | 2026-05-20 |
 | change | adopt oxlint as the project linter + env-isolate the server CORS test | 2135/2135 | e6683d6 | tooling | 2026-05-19 |
 | change | Inbox card markdown rendering + fade-clip + spacing | 979/979 | 9b91499 | FR-01.13 | 2026-05-19 |

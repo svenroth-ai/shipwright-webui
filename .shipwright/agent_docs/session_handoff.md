@@ -2,30 +2,30 @@
 canon_generated: true
 run_id: "iterate-2026-05-21-fix-terminal-flicker-on-closed-task"
 phase: "iterate"
-reason: "iterate: fix terminal flicker on closed task"
-timestamp: "2026-05-21T06:28:54.493243+00:00"
+reason: "post-rebase regen after merging origin/main"
+timestamp: "2026-05-22T12:48:42.323451+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-21 06:28:54 UTC
+> Auto-generated 2026-05-22 12:48:42 UTC
 
 ## Session Info
 
 - **Session ID**: 6a061e52-80a8-4093-a074-403c5cbef0b7
-- **Timestamp**: 2026-05-21 06:28:54 UTC
-- **Reason**: iterate: fix terminal flicker on closed task
+- **Timestamp**: 2026-05-22 12:48:42 UTC
+- **Reason**: post-rebase regen after merging origin/main
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-20-triage-launch-surface-webui
-- **Date**: 2026-05-20T21:22:42.718513Z
-- **Type**: feature
+- **Run ID**: iterate-2026-05-21-triage-fix-now-and-phase-slash
+- **Date**: 2026-05-21T07:05:37.160425Z
+- **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/triage-launch-surface-webui
-- **ADR**: iterate-2026-05-20-triage-launch-surface-webui
+- **Branch**: iterate/triage-fix-now-and-phase-slash
+- **ADR**: iterate-2026-05-21-triage-fix-now-and-phase-slash
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-05-20-triage-launch-surface-webui.md
+- **Spec**: .shipwright/planning/iterate/2026-05-21-triage-fix-now-and-phase-slash.md
 
 ## Current Iterate Progress
 
@@ -33,7 +33,7 @@ timestamp: "2026-05-21T06:28:54.493243+00:00"
 - **Run ID**: iterate-2026-05-21-fix-terminal-flicker-on-closed-task
 - **Spec**: .shipwright/planning/iterate/2026-05-21-fix-terminal-flicker-on-closed-task.md
 - **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-05-17T21:27:36))
+- **External Review Marker**: stale (predates spec (2026-05-21T00:00:00))
 
 ### Mandatory replay on Resume
 
@@ -53,7 +53,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/fix-terminal-flicker-on-closed-task
-- **Last Commit**: c8a28d1 docs(claude-md): strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49)
+- **Last Commit**: 1f7c809 fix(terminal): stop replay-only WS reconnect loop on closed tasks
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -69,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-45adf0de | work_completed | iterate (triage-launch-surface-webui (launchPayload + Fix-now)) | 2026-05-20 |
-| evt-0036a610 | work_completed | iterate (adopt oxlint as the project linter + env-isolate the server CORS test) | 2026-05-19 |
-| evt-3d1274f6 | work_completed | iterate (Inbox card markdown rendering + fade-clip + spacing) | 2026-05-19 |
-| evt-058d9da0 | work_completed | iterate (triage promote carries the brief into the launched run (actionId + newline flatten)) | 2026-05-19 |
-| evt-d508eaff | work_completed | iterate (fix triage promote: carry item.detail into the promoted task description) | 2026-05-19 |
+| evt-86356188 | work_completed | iterate (triage Fix-now pre-selects the triage item's project in NewIssueModal) | 2026-05-22 |
+| evt-663ee6f3 | work_completed | iterate (SPA fallback for /triage, /inbox & friends (Hono server)) | 2026-05-22 |
+| evt-6ca6247c | work_completed | iterate (VERIFICATION: bug+change-type — should pass) | 2026-05-21 |
+| evt-904b92f3 | work_completed | iterate (VERIFICATION: with affected-frs — should pass) | 2026-05-21 |
+| evt-4af079b7 | work_completed | iterate (triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up)) | 2026-05-21 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 124
-- **Last iterate**: feature — triage-launch-surface-webui (launchPayload + Fix-now) (2026-05-20)
+- **Total work events**: 131
+- **Last iterate**: bug — triage Fix-now pre-selects the triage item's project in NewIssueModal (2026-05-22)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

@@ -1,12 +1,12 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-21T06:28:54Z
+Generated: 2026-05-22T12:48:42.323451+00:00
 
 ## Requirements Coverage
 
 | Requirement | Title | Priority | Verified By | Tests | Last Verified | Status |
 |-------------|-------|----------|-------------|-------|---------------|--------|
-| [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +3 | 624/624 → 2042/2042 | 2026-05-18 (iter) | COVERED |
+| [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +4 | 624/624 → 0/0 | 2026-05-21 (iter) | FAIL |
 | [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +4 | 640/640 → 2062/2062 | 2026-05-18 (iter) | COVERED |
 | [FR-01.03](../../.shipwright/planning/01-adopted/spec.md#fr-0103) | CRUD for the project registry persisted at `~/.shipwright-we... | Must | evt-0c3127ae, evt-33b2e81f | 786/786 → 0/0 | 2026-05-14 (build) | FAIL |
 | [FR-01.04](../../.shipwright/planning/01-adopted/spec.md#fr-0104) | Best-effort surface for pending Claude tool_use blocks (nota... | Must | evt-7c294eb7 | 2062/2062 | 2026-05-18 (iter) | COVERED |
@@ -35,7 +35,7 @@ Generated: 2026-05-21T06:28:54Z
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +24 | 632/632 → 970/970 | 2026-05-18 (iter) | FAIL |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
-| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +1 | 0/0 → 2189/2189 | 2026-05-20 (iter) | FAIL |
+| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 0/0 → 2198/2198 | 2026-05-22 (iter) | FAIL |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 
@@ -167,6 +167,13 @@ Generated: 2026-05-21T06:28:54Z
 | Inbox card markdown rendering + fade-clip + spacing | iterate | change | FR-01.13 | 979/979 | 9b91499 | 2026-05-19 |
 | adopt oxlint as the project linter + env-isolate the server CORS test | iterate | change |  | 2135/2135 | e6683d6 | 2026-05-19 |
 | triage-launch-surface-webui (launchPayload + Fix-now) | iterate | feature | FR-01.30 | 2189/2189 | 290263e | 2026-05-20 |
+| fix-terminal-flicker-on-closed-task | iterate | bug |  | 2184/2184 | dac635f | 2026-05-21 |
+| triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes | iterate | change | FR-01.30 | 2193/2193 | aa1788c | 2026-05-21 |
+| triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up) | iterate | change | FR-01.30 | 2193/2193 | 4ca5be2 | 2026-05-21 |
+| VERIFICATION: with affected-frs — should pass | iterate | feature | FR-01.01 | — | c502254 | 2026-05-21 |
+| VERIFICATION: bug+change-type — should pass | iterate | bug |  | — | c502254 | 2026-05-21 |
+| SPA fallback for /triage, /inbox & friends (Hono server) | iterate | bug |  | 1174/1174 | 3141866 | 2026-05-22 |
+| triage Fix-now pre-selects the triage item's project in NewIssueModal | iterate | bug | FR-01.30 | 2198/2198 | 32b7320 | 2026-05-22 |
 
 ## Coverage Summary
 
@@ -174,28 +181,32 @@ Generated: 2026-05-21T06:28:54Z
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 54 |
+| Iterate changes | 61 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
-
-### Not Verified
-
-- [FR-01.05](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only view of Claude CLI version, the resolved profiles directory, the launc...
-- [FR-01.06](../../.shipwright/planning/01-adopted/spec.md) (Must): Minimal placeholder page. Most settings now live inside the user's Claude client...
-- [FR-01.07](../../.shipwright/planning/01-adopted/spec.md) (Must): Liveness probe used by `dev_server.py`, smoke tests, and the install-windows aut...
-- [FR-01.12](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a UTF-8-safe byte range...
-- [FR-01.14](../../.shipwright/planning/01-adopted/spec.md) (Must): Adds the toolUseId to the dismissed set so subsequent inbox derivations skip it....
-- [FR-01.17](../../.shipwright/planning/01-adopted/spec.md) (Must): Spawns the project's `dev_server.command` (from its stack profile) with `shell: ...
-- [FR-01.18](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only forwarder for `<project.path>/shipwright_run_config.json`. Per-row fau...
-- [FR-01.19](../../.shipwright/planning/01-adopted/spec.md) (Must): Lazy-expand listing for the FolderTree component. Honors gitignore (mtime-cached...
-- [FR-01.20](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads a single file under the project root with the same realpath-based path gua...
-- [FR-01.21](../../.shipwright/planning/01-adopted/spec.md) (Must): One-shot: writes an empty (but schema-valid) `.webui/actions.json` under the pro...
-- [FR-01.22](../../.shipwright/planning/01-adopted/spec.md) (Must): Returns CLI version (refreshed on demand), profiles dir, sample copy-commands, o...
-- [FR-01.23](../../.shipwright/planning/01-adopted/spec.md) (Must): Lists every stack profile from the resolved profiles dir (override → monorepo → ...
-- [FR-01.25](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the project row. PATCH updates name / profile / color. DELETE remove...
-- [FR-01.26](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub ...
-- [FR-01.27](../../.shipwright/planning/01-adopted/spec.md) (Must): Settings page lets the user pick a registered project, see its current actions-s...
 | Total review findings | 0 |
 | Unresolved findings | 0 |
+
+### FRs without tests
+
+- [FR-01.05](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only view of Claude CLI version, the resolved profiles directory, the launc
+- [FR-01.06](../../.shipwright/planning/01-adopted/spec.md) (Must): Minimal placeholder page. Most settings now live inside the user's Claude client
+- [FR-01.07](../../.shipwright/planning/01-adopted/spec.md) (Must): Liveness probe used by `dev_server.py`, smoke tests, and the install-windows aut
+- [FR-01.12](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a UTF-8-safe byte range
+- [FR-01.14](../../.shipwright/planning/01-adopted/spec.md) (Must): Adds the toolUseId to the dismissed set so subsequent inbox derivations skip it.
+- [FR-01.17](../../.shipwright/planning/01-adopted/spec.md) (Must): Spawns the project's `dev_server.command` (from its stack profile) with `shell: 
+- [FR-01.18](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only forwarder for `<project.path>/shipwright_run_config.json`. Per-row fau
+- [FR-01.19](../../.shipwright/planning/01-adopted/spec.md) (Must): Lazy-expand listing for the FolderTree component. Honors gitignore (mtime-cached
+- [FR-01.20](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads a single file under the project root with the same realpath-based path gua
+- [FR-01.21](../../.shipwright/planning/01-adopted/spec.md) (Must): One-shot: writes an empty (but schema-valid) `.webui/actions.json` under the pro
+- [FR-01.22](../../.shipwright/planning/01-adopted/spec.md) (Must): Returns CLI version (refreshed on demand), profiles dir, sample copy-commands, o
+- [FR-01.23](../../.shipwright/planning/01-adopted/spec.md) (Must): Lists every stack profile from the resolved profiles dir (override → monorepo → 
+- [FR-01.25](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the project row. PATCH updates name / profile / color. DELETE remove
+- [FR-01.26](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub 
+- [FR-01.27](../../.shipwright/planning/01-adopted/spec.md) (Must): Settings page lets the user pick a registered project, see its current actions-s
+
+### FRs with stale verification (> 14 days)
+
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 21d ago by `evt-b81d5d5e` (2026-05-01)
 
