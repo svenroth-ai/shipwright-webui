@@ -1,11 +1,11 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-21-triage-fix-now-and-phase-slash",
-    "date": "2026-05-21",
+    "run_id": "iterate-2026-05-22-triage-fix-now-project-preselect",
+    "date": "2026-05-22",
     "unit": {
       "status": "passed",
-      "passed": 2193,
-      "total": 2193
+      "passed": 2198,
+      "total": 2198
     },
     "integration": {
       "status": "not_run",
@@ -18,8 +18,8 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 2,
+      "status": "authored_not_run",
+      "passed": 0,
       "total": 2
     },
     "design_fidelity": {
@@ -32,17 +32,17 @@
     },
     "degraded": [
       {
-        "code": "external_review_skipped_no_api_key",
-        "detail": "GEMINI_API_KEY / OPENAI_API_KEY / OPENROUTER_API_KEY not set; iterate skill Degraded Mode applied — heightened self-review discipline in lieu. See .shipwright/planning/iterate/external_review_state.json."
+        "code": "e2e_authored_not_run_bug_small",
+        "detail": "E2E spec extended in client/e2e/flows/triage-fix-now.spec.ts (asserts new-issue-project-select holds the triage projectId for both github and non-github routes) but not executed locally — Phase Matrix BUG-small marks E2E 'if feature+UI', not mandatory. Execution deferred to CI on PR open. Consumer chain proven in isolation by unit tests across fixNowIntent (2 new), TriageDetailModal (1 new), NewIssueModal (2 new) covering the projectId thread end-to-end."
+      },
+      {
+        "code": "browser_verify_skipped_no_dev_server",
+        "detail": "Phase Matrix Browser Verify 'if server up' — no dev server running in worktree. Same coverage rationale as e2e_authored_not_run_bug_small."
+      },
+      {
+        "code": "external_review_skipped_bug_small",
+        "detail": "Phase Matrix External LLM Review: skip at trivial/small. Self-review (Path C Step 6 / Path A Step 7) completed; backwards-compat regression guard test (NewIssueModal initialProjectId absent) passing."
       }
-    ],
-    "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.iterate-f05.config.ts client/e2e/flows/triage-fix-now.spec.ts",
-      "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-05-21-triage-fix-now-and-phase-slash/surface_verification.json",
-      "timestamp": "2026-05-21T09:02:00Z"
-    }
+    ]
   }
 }
