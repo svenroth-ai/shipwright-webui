@@ -218,6 +218,12 @@ export default function TriagePage() {
         initialPhaseId={fixNowModal.intent?.initialPhaseId}
         initialPriority={fixNowModal.intent?.initialPriority}
         initialDomain={fixNowModal.intent?.initialDomain}
+        // iterate-2026-05-22-triage-fix-now-project-preselect — the
+        // missing wire that caused the original bug. Without this prop
+        // NewIssueModal fell back to realProjects[0] / sidebar filter
+        // and the user had to re-pick the project manually even though
+        // the triage item already knew which project it belonged to.
+        initialProjectId={fixNowModal.intent?.projectId}
       />
     </div>
   );

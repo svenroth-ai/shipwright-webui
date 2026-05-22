@@ -1,10 +1,15 @@
 # Project Activity Dashboard
-> Updated: 2026-05-21 07:05 UTC | Session: 3f3c27aa-57d0-492c-ba3e-9f20b626ac96 | Run: iterate-2026-05-21-triage-fix-now-and-phase-slash
+> Updated: 2026-05-22 12:40 UTC | Session: 481e7cdf-1950-452c-a748-9049ba67064b | Run: iterate-2026-05-22-triage-fix-now-project-preselect
 
-## Recent Changes (55 iterations)
+## Recent Changes (60 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | SPA fallback for /triage, /inbox & friends (Hono server) | 1174/1174 | 3141866 | infra | 2026-05-22 |
+| bug | VERIFICATION: bug+change-type — should pass | 0/0 | c502254 | tooling | 2026-05-21 |
+| feature | VERIFICATION: with affected-frs — should pass | 0/0 | c502254 | FR-01.01 | 2026-05-21 |
+| change | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up) | 2193/2193 | 4ca5be2 | FR-01.30 | 2026-05-21 |
+| change | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes | 2193/2193 | aa1788c | FR-01.30 | 2026-05-21 |
 | bug | fix-terminal-flicker-on-closed-task | 2184/2184 | dac635f |  | 2026-05-21 |
 | feature | triage-launch-surface-webui (launchPayload + Fix-now) | 2189/2189 | 290263e | FR-01.30 | 2026-05-20 |
 | change | adopt oxlint as the project linter + env-isolate the server CORS test | 2135/2135 | e6683d6 | tooling | 2026-05-19 |
@@ -62,7 +67,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-21 | Unit: 2193/2193 | E2E: 2/2 | Smoke: not_run | (iterate)
+Last run: 2026-05-22 | Unit: 2198/2198 | E2E: 0/2 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
