@@ -210,6 +210,19 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it("iterate-2026-05-22: intent.projectId is the prop projectId so TriagePage can pre-select the modal's project", () => {
+    // Bug 2026-05-22: TriagePage's NewIssueModal opened with everything
+    // pre-filled EXCEPT the project, because the intent didn't carry it
+    // and TriagePage's onFixNow callback received projectId separately
+    // but never threaded it to the modal. The intent now carries projectId
+    // explicitly so a single source-of-truth (the intent) drives every
+    // pre-fill — title, description, phase, priority, domain, project.
+    const { onFixNow } = renderModal({ source: "github" });
+    fireEvent.click(screen.getByTestId("triage-fix-now"));
+    expect(onFixNow).toHaveBeenCalledTimes(1);
+    expect(onFixNow.mock.calls[0][0].projectId).toBe("proj-a");
+  });
+
   it("AC-9 regression: kind=compliance still routes to new-iterate (source-only discriminator)", () => {
     // I originally proposed kind=compliance → security. Sven UAT
     // 2026-05-21 overrode: compliance items in this repo are refactor

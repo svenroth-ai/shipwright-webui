@@ -167,6 +167,16 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
     await expect(page.getByTestId("new-issue-domain-input")).toHaveValue(
       "engineering",
     );
+
+    // iterate-2026-05-22-triage-fix-now-project-preselect — the project
+    // dropdown MUST be pre-selected to the triage item's project.
+    // Bug shape (caught here for the first time): the previous E2E
+    // asserted title/description/phase/priority/domain but never the
+    // project, so the modal could silently fall back to realProjects[0]
+    // (alphabetical) and the user had to re-pick the project manually.
+    await expect(
+      page.getByTestId("new-issue-project-select"),
+    ).toHaveValue(projectId);
   });
 
   test("iterate source: Fix-now opens new-iterate modal (no phase picker)", async ({
@@ -202,5 +212,12 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
     await expect(page.getByTestId("new-issue-domain-input")).toHaveValue(
       "engineering",
     );
+
+    // iterate-2026-05-22-triage-fix-now-project-preselect — same project
+    // assertion for the new-iterate route. See comment on the github
+    // case above for rationale.
+    await expect(
+      page.getByTestId("new-issue-project-select"),
+    ).toHaveValue(projectId);
   });
 });
