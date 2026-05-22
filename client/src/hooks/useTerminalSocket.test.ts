@@ -405,6 +405,96 @@ describe("useTerminalSocket", () => {
     expect(result.current.ptyReused).toBe(true);
   });
 
+  // Regression for the "terminal flickers when going back to a closed task"
+  // bug: replay-only attaches are one-shot by server contract (ready +
+  // replay_snapshot + close(1000)). Without this guard the close handler
+  // unconditionally reconnects every ~200 ms (attemptsRef resets to 0 on
+  // every successful open), each reconnect replays the snapshot, and the
+  // user sees a perpetual blank-then-repaint flicker.
+  it("does NOT reconnect after a clean close on a replay-only attach", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    // External-review (code openai medium): drive the full replay-only
+    // wire sequence (ready → replay_snapshot → close 1000) and assert
+    // that the snapshot callback fires EXACTLY once. Without this, a
+    // broken implementation that suppresses reconnects but still
+    // replays multiple times could pass AC-5 while failing AC-4.
+    const snapshots: Array<{ data: string }> = [];
+    renderHook(() =>
+      useTerminalSocket({
+        taskId: "t1",
+        onReplaySnapshot: ({ data }) => snapshots.push({ data }),
+      }),
+    );
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "reader",
+          shellKind: null,
+          cwd: "C:\\x",
+          replayOnly: true,
+        }),
+      );
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "\x1b[2J\x1b[Hreplay-once",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "6.0.0",
+        }),
+      );
+    });
+    // Server-side close after the snapshot: code 1000.
+    await act(async () => {
+      ws.close(1000, "replay-only-done");
+    });
+    // Give any reconnect timer (200ms first backoff) a chance to fire.
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    // AC-5: exactly one WebSocket per visit (no reconnect spam).
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    // AC-4: the snapshot replay path runs exactly once per visit. A
+    // reconnect loop would push 2-N entries here.
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0].data).toBe("\x1b[2J\x1b[Hreplay-once");
+  });
+
+  // Symmetric guard: live attaches still reconnect after abnormal close.
+  it("DOES reconnect after an abnormal close on a live attach", async () => {
+    Object.defineProperty(window, "location", {
+      writable: true,
+      value: new URL("http://localhost/x"),
+    });
+    renderHook(() => useTerminalSocket({ taskId: "t1" }));
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "writer",
+          shellKind: "pwsh",
+          cwd: "C:\\x",
+          replayOnly: false,
+        }),
+      );
+    });
+    await act(async () => {
+      ws.__close(); // code 1006 (abnormal)
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 350));
+    });
+    expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
+  });
+
   it("ptyReused defaults to false when the field is absent (old-server back-compat)", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
