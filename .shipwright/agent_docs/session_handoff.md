@@ -1,8 +1,8 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-22-spa-fallback"
+run_id: "iterate-2026-05-22-compliance-hygiene-phase-0f"
 phase: "iterate"
-reason: "post-rebase onto #51+#54: regen bookkeeping"
+reason: "iterate: compliance documentation hygiene Phase 0f (F4-F7)"
 timestamp: "2026-05-22T12:48:42.323451+00:00"
 ---
 
@@ -12,9 +12,9 @@ timestamp: "2026-05-22T12:48:42.323451+00:00"
 
 ## Session Info
 
-- **Session ID**: 57a2b26b-23e5-43ba-8fee-8022c31064d7
+- **Session ID**: 519629fa-9459-4b6b-859f-64107e250380
 - **Timestamp**: 2026-05-22 12:48:42 UTC
-- **Reason**: post-rebase onto #51+#54: regen bookkeeping
+- **Reason**: iterate: compliance documentation hygiene Phase 0f (F4-F7)
 
 ## Last Iterate
 
@@ -28,7 +28,7 @@ timestamp: "2026-05-22T12:48:42.323451+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/spa-fallback
+- **Branch**: iterate/compliance-hygiene-phase-0f
 - **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
 
 ### Mandatory replay on Resume
@@ -47,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/spa-fallback
-- **Last Commit**: 55d0288 fix(server): SPA fallback to client/dist/index.html for non-/api GETs
+- **Branch**: iterate/compliance-hygiene-phase-0f
+- **Last Commit**: 7dc6d4f Merge pull request #53 from svenroth-ai/iterate/spa-fallback
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
