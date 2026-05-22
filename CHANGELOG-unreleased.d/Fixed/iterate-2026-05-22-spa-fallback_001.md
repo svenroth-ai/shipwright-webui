@@ -1,1 +1,0 @@
-Hard-reload of SPA routes (/triage, /inbox, /tasks/:id, /projects, /diagnostics, /settings) on the production Hono server now returns the SPA shell from `client/dist/index.html` instead of `{"error":"Not found"}` JSON. Unknown `/api/*` routes keep their JSON 404 contract.

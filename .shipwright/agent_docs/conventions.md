@@ -177,3 +177,7 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 - **ADR-086** (2026-05-11): v0.9.4 — Skip disk-scrollback replay on attach for new-plain tasks (Claude TUI corruption fix)
 
 - **iterate-2026-05-19-oxlint-and-cors-env** (2026-05-19): oxlint adopted as the project linter — replaces the dead `eslint src/` script (no eslint dep / no config); `npm run lint` wired in client + server + CI. Server CORS integration test env-isolated via `vi.hoisted()`.
+
+- **ADR-116** (2026-05-20): Triage Tab gains launchPayload rendering + Fix-now CTA (WebUI counterpart to shipwright Iterate A)
+
+- **ADR-119** (2026-05-22): Phase 0f: clear F4-F7 ADR-bloat / arch-marker / CLAUDE.md hygiene

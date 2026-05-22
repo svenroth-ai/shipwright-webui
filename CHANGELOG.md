@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.15.0] - 2026-05-22
+
+### Added
+
+- Triage Tab: render the producer-generated launchPayload field (shipwright Iterate A, PR #41) in a code block in the detail modal; control chars stripped via the canonical Python allow-list (byte-equal-tested against a Python-generated fixture).
+- Triage Tab: Fix-now button copies the cleaned launchPayload to the clipboard (with a transient confirmation banner and inline failure UX) so operators can paste it into a Claude Code session.
+- Triage Tab: github-source items with a missing or empty launchPayload now surface the verbatim loud-failure placeholder "no launch payload - producer bug; please report" instead of silently degrading.
+
+### Changed
+
+- Triage Fix-now button now opens NewIssueModal pre-populated (was: copies launchPayload to clipboard). Shows on every status==='triage' item; github-source routes to new-task + phase=security, every other source to new-iterate. Title, description, priority and domain pre-fill from the triage item.
+- Compliance documentation hygiene (Phase 0f): extracted 5 bloated ADRs (058/095/096/098/099) into .shipwright/planning/adr/ spec files with Details links, added the shipwright:architecture marker to architecture.md, and slimmed CLAUDE.md from 270 to 163 lines (dropped the 112-line file-tree dump and stripped 7 inline iterate annotations). Clears F4/F6/F7 audit findings; F5 resolves in main where decision-drops/ is present.
+
+### Fixed
+
+- Embedded terminal: stop flickering when reopening a closed task. The client no longer reconnects after a clean WS close on a replay-only attach — the server sends ready + replay_snapshot then close(1000) by contract, and unconditional reconnect was triggering an infinite snapshot-replay loop visible as a ~200ms blank-then-repaint cycle. Live attaches still reconnect on abnormal closes.
+- Phase launch commands now emit the namespaced `/shipwright-<plugin>:<skill>` form for plan / test / security / run actions. The bare `/shipwright-plan` etc. failed to resolve to the right skill in Claude Code's resolver; the four empirically-broken cases are now corrected as a local workaround. Other phases (build, design, deploy, changelog, compliance, adopt, project) and `/shipwright-iterate` keep the bare form unchanged.
+- Hard-reload of SPA routes (/triage, /inbox, /tasks/:id, /projects, /diagnostics, /settings) on the production Hono server now returns the SPA shell from `client/dist/index.html` instead of `{"error":"Not found"}` JSON. Unknown `/api/*` routes keep their JSON 404 contract.
+- Triage **Fix now** now pre-selects the triage item's project in the spawned NewIssueModal — previously the modal landed with an empty (or wrong) project dropdown and the operator had to re-pick it manually. `FixNowIntent` now carries `projectId`; `NewIssueModal` accepts an `initialProjectId` prop that overrides the sidebar Project Filter so the triage item's project is the authoritative choice.
+
 ## [v0.14.0] - 2026-05-20
 
 ### Added

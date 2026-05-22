@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-05-22T12:48:42.323451+00:00
-Total commits: 400
+Generated: 2026-05-22T21:15:05.573157+00:00
+Total commits: 402
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 162
+    "fix" : 163
     "feat" : 116
     "chore" : 62
     "docs" : 34
-    "refactor" : 13
+    "refactor" : 14
     "test" : 8
     "other" : 4
     "build" : 1
@@ -19,10 +19,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 162 commits
+### Fixes (fix) — 163 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-22 | compliance | G2 stoplist + regen artifacts (bloat from C.2 detector rollout) | 5c89262cf08f |
 | 2026-05-22 | server | SPA fallback to client/dist/index.html for non-/api GETs | 55d0288bdde4 |
 | 2026-05-21 | terminal | stop replay-only WS reconnect loop on closed tasks | 501d3ac008fc |
 | 2026-05-22 | triage | Fix-now pre-selects the triage item's project in NewIssueModal | 32b7320f6208 |
@@ -413,10 +414,11 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 13 commits
+### Refactoring (refactor) — 14 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-22 | compliance | clear F4-F7 doc-hygiene findings (Phase 0f) | f4d52fdeb787 |
 | 2026-05-17 | terminal | remove orphaned Resume-CTA liveness-gate code | 94e9367e183c |
 | 2026-05-15 | triage | renumber ADR-104 → ADR-106 (number collision) | a1668172b2b8 |
 | 2026-05-15 | triage | white-surface cards + wizard-matched dialogs | 3653d6dacba9 |
@@ -463,7 +465,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 400 |
+| Total commits | 402 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 400 |
+| Human-authored commits | 402 |
 
