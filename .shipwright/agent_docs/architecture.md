@@ -1,4 +1,5 @@
 # Architecture — shipwright-webui
+<!-- shipwright:architecture v=2 last-sync=7dc6d4fa -->
 
 ## System Overview
 

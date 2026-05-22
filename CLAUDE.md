@@ -2,7 +2,7 @@
 
 ## WHAT
 - **Purpose**: Local web application for managing multiple Shipwright SDLC projects in parallel.
-- **Architecture**: Hono backend (Node.js) + React 19 frontend (Vite 6), monorepo in `webui/`. **External-launch model (Plan D'' variant a, 2026-04-19; embedded-terminal auto-execute since Iterate 5 / ADR-068-A1)**: webui owns no Claude subprocess. The user clicks Launch / Resume / Relaunch on the TaskDetail header; the same pre-bound `--session-id <uuid>` command is auto-executed inside the embedded terminal pane (xterm.js + node-pty, shell-only whitelist) via a client-side WS data-frame. Users may still copy the command and run it in their own terminal — webui observes the resulting JSONL at `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` either way.
+- **Architecture**: Hono backend (Node.js) + React 19 frontend (Vite 6), monorepo in `webui/`. **External-launch model (Plan D'' variant a, 2026-04-19; embedded-terminal auto-execute via ADR-068-A1)**: webui owns no Claude subprocess. The user clicks Launch / Resume / Relaunch on the TaskDetail header; the same pre-bound `--session-id <uuid>` command is auto-executed inside the embedded terminal pane (xterm.js + node-pty, shell-only whitelist) via a client-side WS data-frame. Users may still copy the command and run it in their own terminal — webui observes the resulting JSONL at `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` either way.
 - **Stack**: TypeScript strict, Hono, React 19, Vite 6, TailwindCSS 4, Radix UI, TanStack React Query.
 
 ## Architecture reference
@@ -16,116 +16,9 @@ Two hard rules, survivors of every review round:
 2. **Server is stateless on transcript reads.** Client passes `?fromByte=<offset>&expectFingerprint=<fp>`; no per-session byte-offset cache lives server-side. Multi-tab works by construction.
 
 ## Structure
-```
-<repo-root>/
-  CHANGELOG-unreleased.d/       # Keep-a-Changelog drop-zone for /shipwright-changelog (Added/Changed/Deprecated/Fixed/Removed/Security sub-dirs)
-  docs/                         # User-facing guide (guide.md) — linked from "Key Environment Variables" below
-  scripts/                      # install-windows.ps1, dev-restart.js
-  server/                       # Hono backend (port 3847)
-    src/
-      index.ts                  # Server entry (~170 LOC — minimal wiring only)
-      config.ts                 # Env config
-      config/
-        default-actions.json    # Shipwright phase + action catalog (Iterate 3)
-      core/
-        launcher.ts             # Copy-command generator (PS / cmd.exe / POSIX). Exports qPs/qCmd/qPosix for reuse. Iterate v2: optional slashCommand emits as trailing positional arg for phase-task launches.
-        session-watcher.ts      # Filename-first JSONL discovery + byte-range reader
-        session-parser.ts       # Typed events from raw JSONL + unknown-fallback
-        inbox-derive.ts         # Pending tool_use extraction (best-effort)
-        terminal-prompt-detect.ts # iterate-2026-05-18: extractTerminalPrompt — waiting AskUserQuestion picker detected from the live @xterm/headless mirror (a waiting picker never reaches the JSONL); /inbox emits it as the terminal_prompt kind
-        sdk-sessions-store.ts   # Persistent task store (schemaVersion v1/v2/v3; projectId + iterate-v2 phaseTaskId/runId/parentRunMaster fields; findByPhaseTaskId() for idempotency)
-        run-config-reader.ts    # Iterate v2: reads <project.path>/shipwright_run_config.json; per-row fault isolation + torn-read retry + 5s last-good cache. Read-only.
-        cli-compat.ts           # Claude CLI version gate (MIN_SUPPORTED_CLI)
-        project-manager.ts      # Project metadata CRUD (still used)
-        profile-loader.ts       # Stack profile loading (wizard)
-        project-actions-loader.ts  # mtime-cached resolver for .webui/actions.json → default-actions.json fallback (ADR-044)
-        actions-substitute.ts   # placeholder substitution ({project.path}, {task.uuid}, …) w/ per-shell escape (ADR-044)
-        preview-session-manager.ts # Preview subprocess lifecycle (spawn shell:false, keyed by projectId, kill-on-shutdown) (ADR-044)
-        path-guard.ts           # Shared path-traversal guard (realpath + path.relative, NOT startsWith) for tree + file routes (ADR-044)
-        gitignore-cache.ts      # mtime-keyed gitignore rule cache for FolderTree
-      terminal/
-        pty-manager.ts          # Embedded-terminal pty lifecycle: shell-only whitelist, idempotent ensure-or-create, writer/reader roles, backpressure, 30min idle ceiling, ScrollbackStore append on pty.onData (ADR-067, ADR-068-A1)
-        routes.ts               # /api/terminal/:taskId/{ws,spawn,close,paste-image,append-gitignore,clear-scrollback}. WS upgrade is authoritative ensure-or-create; Origin gate = loopback CORS. WS onOpen replay = single `replay_snapshot` envelope; legacy chunked envelopes RETIRED (ADR-067, ADR-087)
-        image-paste.ts          # savePastedImage / pruneKeepLastN / appendGitignoreLine — magic-byte mime sniff; realPathGuard; 8 MiB cap (ADR-067)
-        scrollback-store.ts     # Disk-backed scrollback per-task `<registryDir>/terminal-scrollback/<taskId>.log` (rotated to .log.1 at 1 MiB). 4-state FSM, per-task PQueue, UUID validation + realpath-at-op-time + 0600/0700 perms, EBUSY rename retry, sweepExpired (TTL 1d). Disk content has no replay consumer post-Iterate-C (ADR-068-A1, ADR-087)
-        boot-wipe.ts            # One-shot wipe of legacy *.log* at first boot post-deploy; `.iterate-c-wiped.marker` idempotency; snapshots preserved (ADR-087)
-        headless-probe.ts       # Boot-time dynamic-import probe of @xterm/headless + addon-serialize; on failure downgrades headlessMirrorEnabledEffective=false (ADR-087 MEDIUM-B2)
-        fixtures/               # claude-tui-scrollback.log — real-shell byte-stream fixture for snapshot validation (ADR-088)
-      external/
-        routes.ts               # /api/external/{tasks,launch,transcript,inbox,actions,preview,actions-stub,projects/:id/tree,projects/:id/file,projects/:id/run-config}
-      middleware/
-        error-handler.ts        # Centralized error response middleware
-        logger.ts               # Request logging
-      routes/
-        projects.ts             # GET/POST/PATCH/DELETE /api/projects
-        diagnostics.ts          # GET /api/diagnostics (CLI + launcher + sessions)
-        settings.ts             # GET/PUT /api/settings
-        profiles.ts             # GET /api/profiles
-      lib/                      # Network-profile resolvers: resolveHonoHost / resolveTailscaleIp / resolveNetworkProfile / resolveTrustedOrigins / bind-errors
-      test/                     # Cross-package-import guard (no-cross-package-imports.test.ts) + env-file-loading test
-      types/                    # Shared TS shapes mirrored from client/src/types/ (task, settings, project, action-schema, run-config-v2) — see DO-NOT guard #7
-    profiles/                   # Bundled stack profiles (snapshot of shipwright/shared/profiles/) — see "Profile resolution (post-split)" below
-    scripts/                    # sdk-poc.ts, pwsh-baseline.mjs (sync-profiles helper, baseline probes)
-    package.json
-    tsconfig.json
-  client/                       # React 19 / Vite 6 frontend
-    e2e/                        # Playwright E2E specs (30/32/33/34/35)
-    src/
-      main.tsx
-      App.tsx
-      router.tsx                # react-router-dom route definitions
-      layouts/                  # Layout shells (Main)
-      pages/
-        TaskBoardPage.tsx       # Task list + create (/)
-        TaskDetailPage.tsx      # Three-pane shell (FolderTree / SmartViewer / EmbeddedTerminal); header-level state-dependent Launch/Resume CTA; hosts LaunchCoordinatorContext + SessionMetadata + BubbleTranscript
-        ProjectsPage.tsx        # Project registry + wizard
-        InboxPage.tsx           # Pending interactions (best-effort)
-        DiagnosticsPage.tsx     # CLI + launcher + sessions snapshot
-        SettingsPage.tsx        # Minimal stub (settings moved into user's Claude client)
-      components/
-        external/
-          BubbleTranscript.tsx       # Chat-style transcript (replaces TranscriptViewer)
-          MarkdownText.tsx           # react-markdown wrapper (XSS-safe + code cap)
-          ToolOutputBlock.tsx        # ANSI-stripped tool output
-          TerminalLaunchButton.tsx   # Shared launch CTA (compact / primary / inline)
-          EditableTaskTitle.tsx      # In-place title edit on TaskDetail
-          TaskCard.tsx               # TaskBoard card (state icon + menu + launch)
-          ConfirmDeleteDialog.tsx    # Delete confirm for non-terminal states
-          SessionMetadata.tsx        # State badge + UUID + cwd + timestamps
-          EditTaskModal.tsx          # iterate-2026-05-18: re-edit task fields; lifecycle-gated (launch-shaping fields freeze once started)
-          TaskDescriptionDisclosure.tsx  # iterate-2026-05-18: collapsible read-only description block in TaskDetailHeader
-          # Iterate 3 additions (LaunchRow + CopyCommandCard were removed — replaced by header-level state-dependent CTA):
-          FolderTree.tsx             # Lazy-expand gitignore-aware tree (left pane of TaskDetail)
-          SmartViewer/               # Right pane of TaskDetail — 5 renderers (Markdown/Code/Text/Image/Mermaid; mermaid lazy-imported, 609 KB chunk)
-          NewIssueModal.tsx          # Shared New-* modal body (Pipeline / Iterate / Task variants)
-          PreviewButton.tsx          # Dev-server spawn trigger; visibility-gated by profile.stack.frontend
-          CreateMenuSplitButton.tsx  # Sidebar "+ New ▾" split-button (Pipeline / Iterate / Task / Continue Pipeline)
-          TaskDetailThreePane.tsx    # react-resizable-panels wrapper; persists widths + collapsed state in localStorage
-          # iterate/multi-session-run-orchestrator-v2 additions:
-          MasterTaskCard.tsx         # One card per Run (run-config v2). Children list + state-conditional banners (failed / needs_validation / complete / stale).
-          ContinuePipelineModal.tsx  # "+ New ▾ → Continue Pipeline" target. Picker for readyToLaunchTasks[]; delegates to useContinuePipeline.
-          CopySnippet.tsx            # Small monospace snippet + copy button (used for `recover-phase-task` snippets).
-        terminal/
-          EmbeddedTerminal.tsx       # xterm.js panel lazy-loaded into TaskDetailPage. forwardRef → focus/ready/role. DOM paste-handler (capture phase) image-wins precedence (paste-image route for images, socket.send for text). Resize throttled 250ms. Consumes LaunchCoordinatorContext.pendingLaunch + auto-execute WS data-frame after prompt-readiness handshake. `onReplaySnapshot` writes once via term.reset+write+scrollToBottom (ADR-067, ADR-068-A1, ADR-087)
-        common/
-          DiagnosticsBanner.tsx # Warns when CLI < MIN_SUPPORTED_CLI
-        sidebar/                # Sidebar navigation
-        wizard/                 # Project Wizard (4-step modal)
-        settings/               # ActionsConfigCard.tsx — Settings-page actions config UI
-        triage/                 # Triage Tab: TriageItemCard / TriageDetailModal / PromoteModal / LaunchPayloadBlock / TriageBadgeUI. Read-only view of .shipwright/triage.jsonl; promote → ExternalTask, dismiss/snooze → status events. `<LaunchPayloadBlock>` renders producer-generated `launchPayload` with control-chars stripped via `lib/launchPayload.ts` (Python-canonical, byte-equal parity fixture); **Fix now** copies cleaned payload to clipboard. Missing/empty payload → loud-failure placeholder. All fields plain text (ADR-101, ADR-110)
-      external/
-        session-parser.ts       # Client-side parser (typed events for rendering)
-      hooks/                    # TanStack Query + polling hooks; useTerminalSocket = WS bridge for EmbeddedTerminal (ws/wss inferred, ready handshake, reconnect backoff). Single `replay_snapshot` envelope; stale-server chunked frames silently dropped (ADR-067, ADR-087)
-      lib/                      # externalApi.ts + utilities
-      contexts/                 # React contexts. LaunchCoordinatorContext (scoped to TaskDetailPage) — pendingLaunch token + dispatchAutoLaunch/cancelLaunch/consumeLaunch (ADR-068-A1)
-      stores/                   # Zustand stores (chatStore, turnStatusStore)
-      test/                     # Vitest test utilities
-      types/                    # Shared TypeScript types
-    index.html
-    vite.config.ts
-    package.json
-    tsconfig.json
-```
+
+Two independent npm workspaces — **`server/`** (Hono backend on port 3847, TypeScript strict, routes under `server/src/{routes,external,terminal}/`, core domain modules under `server/src/core/`) and **`client/`** (React 19 + Vite 6 frontend on port 5173, components grouped by UI area under `client/src/components/{external,terminal,sidebar,wizard,settings,triage,common}/`, pages under `client/src/pages/`, Playwright E2E under `client/e2e/`). Compliance + planning + agent docs live under `.shipwright/`. CHANGELOG drops accumulate in `CHANGELOG-unreleased.d/`. Full component-level inventory, data flow, and write-surface map: see [`.shipwright/agent_docs/architecture.md`](.shipwright/agent_docs/architecture.md) and [`.shipwright/agent_docs/component_inventory.md`](.shipwright/agent_docs/component_inventory.md). Detailed file-tree details (which rot fast and duplicate architecture.md / a live `ls`) were removed in the Phase 0f compliance-hygiene cleanup.
+
 
 ## HOW
 
@@ -187,7 +80,7 @@ The snapshot is a copy of `shipwright/shared/profiles/`. Refresh via
 - Files under 300 lines — split if larger.
 - Conventional Commits (feat:, fix:, refactor:, test:, docs:, chore:).
 
-### Architecture rules (post-Plan-D'' + Iterate 2)
+### Architecture rules
 1. **Webui never spawns Claude.** `core/launcher.ts` produces command strings; the embedded-terminal pane auto-executes them via a client-side WS data-frame after an explicit Launch / Resume / Relaunch click (ADR-068-A1), or the user copies and runs them in their own terminal. The pty-manager shell-only whitelist (ADR-067) is the architectural enforcement line. Regression guard: Playwright spec `35-no-chat-panel.spec.ts`.
 2. **Task state is derived from `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` + the persistent store.** Session UUID is pre-bound at task creation via `crypto.randomUUID()`.
 3. **Discovery is filename-first.** `<uuid>.jsonl` is the primary match (PoC finding 1); first-line sessionId is a secondary sanity check.
@@ -199,9 +92,9 @@ The snapshot is a copy of `shipwright/shared/profiles/`. Refresh via
 9. **Plugin dirs must be re-passed on every launch.** `--plugin-dir` does not reliably survive `--resume`.
 10. **MIN_SUPPORTED_CLI is pinned.** See `core/cli-compat.ts`. Anything older shows a banner via `/api/diagnostics`.
 
-### Preview-capability precedence (Iterate 3, plan § 2.1)
+### Preview-capability precedence
 
-Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044). Three sources interact:
+The Preview dev-server spawn path (not Claude — see ADR-044) involves three interacting sources:
 
 1. **Profile `stack.frontend` presence** — the capability gate (is this project a frontend project at all?).
 2. **Profile `dev_server.command`** — the spawn target (which command actually starts the dev-server).
@@ -209,7 +102,7 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 
 `stack.frontend` AND `dev_server.command` must both be present for `<PreviewButton>` to render. `actions.preview.enabled = false` hides it regardless. Boot-time coherence check warns when `stack.frontend` is set but `dev_server.command` is missing (button would render, spawn would 500). The full diagram lives in [`.shipwright/agent_docs/architecture.md`](.shipwright/agent_docs/architecture.md).
 
-### DO-NOT regression guards (Iterate 2 / ADR-035)
+### DO-NOT regression guards (see ADR-035)
 1. **DO NOT write into Claude's JSONL files under `~/.claude/projects/`.** Webui is a read-only polling observer of that directory. Title sync uses Claude's first-party `--name` CLI flag at launch time, not JSONL mutation or a sidecar file.
 2. **Auto-scroll pattern is CSS-first.** `overflow-anchor: auto` + `scroll-padding` on the scroll container is the primary path. `useAutoScroll` (ResizeObserver-light, ref-based, ~50 LOC) is the safety net for Chrome+polling cases. Do NOT reach for stale libraries like `react-scroll-to-bottom`. See ADR-035.
 3. **DO NOT re-introduce a chat composer.** External-launch architecture is load-bearing. See ADR-034. Spec 35 fails the build if a chat-* surface re-appears.
