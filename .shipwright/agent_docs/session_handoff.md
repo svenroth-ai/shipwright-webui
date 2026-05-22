@@ -2,7 +2,7 @@
 canon_generated: true
 run_id: "iterate-2026-05-21-fix-terminal-flicker-on-closed-task"
 phase: "iterate"
-reason: "post-rebase regen after merging origin/main"
+reason: "post-rebase-2 regen after PR #54"
 timestamp: "2026-05-22T12:48:42.323451+00:00"
 ---
 
@@ -14,18 +14,17 @@ timestamp: "2026-05-22T12:48:42.323451+00:00"
 
 - **Session ID**: 6a061e52-80a8-4093-a074-403c5cbef0b7
 - **Timestamp**: 2026-05-22 12:48:42 UTC
-- **Reason**: post-rebase regen after merging origin/main
+- **Reason**: post-rebase-2 regen after PR #54
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-21-triage-fix-now-and-phase-slash
-- **Date**: 2026-05-21T07:05:37.160425Z
-- **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/triage-fix-now-and-phase-slash
-- **ADR**: iterate-2026-05-21-triage-fix-now-and-phase-slash
+- **Run ID**: iterate-2026-05-22-triage-fix-now-project-preselect
+- **Date**: 2026-05-22T12:47:19.899694Z
+- **Type**: bug
+- **Complexity**: small
+- **Branch**: iterate/triage-fix-now-project-preselect
+- **ADR**: iterate-2026-05-22-triage-fix-now-project-preselect
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-05-21-triage-fix-now-and-phase-slash.md
 
 ## Current Iterate Progress
 
@@ -53,7 +52,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/fix-terminal-flicker-on-closed-task
-- **Last Commit**: 1f7c809 fix(terminal): stop replay-only WS reconnect loop on closed tasks
+- **Last Commit**: a8dfe27 chore(compliance): regen post-rebase to include PR #52 in change-history
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
