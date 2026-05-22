@@ -884,12 +884,13 @@ Standard ADR format (`### ADR-NNN: <title>`), managed by `/shipwright-iterate` f
 ### ADR-058: WebUI three-fix bundle: stuck Awaiting-launch state, chat padding, system pills
 - **Date:** 2026-04-24
 - **Section:** Iterate — bug bundle: status-fix + chat-padding + system-pill-filter
-- **Context:** Live-test feedback on TaskDetail: (1) status badge stays on 'Awaiting launch' after re-launch even though terminal is running, (2) chat bubbles flush to chat-column edges, (3) Title/Agent/Permission-mode pills cluttered chat by bypassing the system-message toggle.
-- **Decision:** (1) Add awaiting_external_start to the transcript-poll auto-recover branch (alongside jsonl_missing) so re-launch tasks transition active when JSONL is fresh. (2) Bump BubbleTranscript lateral padding 22px→40px on both PlainBubbles and VirtualBubbles. (3) Introduce SYSTEM_KINDS set covering system + custom-title + agent-name + permission-mode; both filter and toolbar count consult it.
+- **Context:** Live-test feedback on TaskDetail surfaced three issues: stuck status badge after relaunch, chat bubbles flush to chat-column edges, header pills bypassed the system-message toggle.
+- **Decision:** (1) Widen the transcript-poll auto-recover branch to include `awaiting_external_start`. (2) Bump BubbleTranscript lateral padding 22→40 px. (3) Introduce `SYSTEM_KINDS` covering system + custom-title + agent-name + permission-mode; both filter and toolbar count consult it.
 - **Commit:** 89e55bf43b9c471ae8bdc6e610bc6d3a5346eafb
-- **Rationale:** Minimal targeted fixes per Sven's spec. Status-machine fix preserves the (rarely useful) special case where a brand-new task gets its initial transition logged via firstJsonlObservedAt — only the recovery branch is widened. Padding chosen to match comfortable reading inset without making the bubbles narrower than the existing max-width caps. Pill-filter route picks Option A from the analysis (default-hide behind toggle) over Option B (renderer removal) so the data is still inspectable.
-- **Consequences:** (1) Re-launches now self-recover within one polling tick. firstJsonlObservedAt remains the gate for the very first transition. (2) Chat reads as visibly inset; no other layout knobs affected. (3) Show-system-messages toggle now reveals all four pill kinds atomically; default chat is cleaner. iterate-3 chip-variant tests opt-in via the toggle.
-- **Rejected:** Option B for pills (renderer removal): rejected because it loses debug-affordance with no real benefit. Status-fix variant 'don't reset to awaiting_external_start in POST /launch when firstJsonlObservedAt is set': rejected because the 'fresh launch' semantic of POST /launch is load-bearing and changing it risks Resume/Fork regressions.
+- **Rationale:** Minimal targeted fixes. Status-machine widening preserves the first-launch transition gate (`firstJsonlObservedAt`). Pill filter picks default-hide-behind-toggle so the data stays inspectable.
+- **Consequences:** Re-launches self-recover within one polling tick; chat reads visibly inset; system-message toggle now reveals all four pill kinds atomically.
+- **Rejected:** Renderer removal for pills (loses debug affordance); status carve-out in POST `/launch` (would risk Resume/Fork regressions).
+- **Details:** [`.shipwright/planning/adr/058-webui-three-fix-bundle.md`](../planning/adr/058-webui-three-fix-bundle.md) — full Context, Decision, Rationale, Consequences, Rejected.
 
 ---
 
@@ -1683,210 +1684,28 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 ---
 
 ### ADR-095: Claude TUI flicker workaround (CLAUDE_CODE_NO_FLICKER env injection) + Resume-button gating via liveSession
-- **Status:** accepted
+- **Status:** accepted (default-OFF clause reverted by ADR-098; liveSession Resume gate retired by ADR-111)
 - **Date:** 2026-05-13
-- **Section:** Iterate — fix: G — campaign `headless-terminal-refactor`
-- **Context:**
-
-  Two user-reported regressions after v0.10.0 (post-Iterate F merge, ADR-093 in force):
-
-  **Issue 1 — Cursor flicker during Claude TUI streaming output.** User: "Wenn er arbeitet und die typischen Claude Wörter kommen, dass springt vorne und hinten des wortes der Cursor hin und her. Der Cursor flackert."
-
-  This is a widely-documented Claude Code TUI rendering symptom across multiple terminal hosts:
-
-  - claude-code Issue [#37283](https://github.com/anthropics/claude-code/issues/37283) (cursor flicker)
-  - claude-code Issue [#1913](https://github.com/anthropics/claude-code/issues/1913) (text flickering during streaming)
-  - claude-code Issue [#18084](https://github.com/anthropics/claude-code/issues/18084) (cursor jumping)
-  - claude-code Issue [#769](https://github.com/anthropics/claude-code/issues/769) (TUI redraw artifacts)
-  - JetBrains YouTrack IJPL-204106 (same in IDEA's embedded terminal)
-  - Wave Terminal Issue [#2787](https://github.com/wavetermdev/waveterm/issues/2787)
-
-  Root cause: Claude Code TUI uses Ink/React; every streaming output update fires a full re-render that emits a sequence of ANSI cursor moves + writes. Modern terminals batch these via **DECSET 2026 (Synchronized Output)** so the host displays each frame atomically. xterm.js 5.5.0 (our pinned version, ADR-088) does NOT support DECSET 2026 — every intermediate cursor position is visible on screen → cursor visibly jumps back and forth across word boundaries. xterm.js 6.0.0 (released Dec 2024, PR #5453) adds the support but is a breaking-change upgrade (windowsMode removed, Canvas renderer removed) that would also invalidate the ADR-088 `@xterm/headless` snapshot version pin — deferred to a separate Iterate H.
-
-  Anthropic ships an official workaround: `CLAUDE_CODE_NO_FLICKER=1`. With the flag set, Claude Code renders into the alt-screen buffer (vim/htop-style) and bypasses the per-frame ANSI cursor-position writes entirely. Requires Claude Code ≥ v2.1.89 (we run 2.1.139 per `/api/diagnostics`). Anthropic's docs: https://code.claude.com/docs/en/fullscreen.
-
-  **Issue 2 — Resume button obsolete in the common idle/active case.** User: "Resume braucht es glaube ich gar nicht mehr. wenn ich zurück komme zum Task (wenn er idle ist), steht das Terminal immer noch da. der Resume knopf kopiert dann den Resume text in das Terminal, aber das brauchen wir gar nicht. Kann es sein, dass mit dem refactor der Resume knopf obsolet wird?"
-
-  Pre-Campaign: nav-away → return → blank terminal (chunked replay corrupted for new-plain, ADR-086 skip). Resume button paste `claude --resume <uuid>` to re-establish session.
-
-  Post-Campaign (v0.10.0 with Iterate E live-pty serialize + Iterate F xterm config): nav-away → return → terminal shows last state via `replay_snapshot`. If pty alive AND Claude TUI still running, the user can just type into the embedded terminal — Resume is unnecessary friction. If clicked, the resume command pastes `claude --resume <uuid>` into a shell that's already inside Claude → either error or spawns a nested instance.
-
-  Resume IS still needed when the pty is gone (`state ∈ {done, launch_failed, jsonl_missing}` or `state=idle` AND no live pty entry).
-
-- **Decision:**
-
-  Two targeted, scope-bounded fixes; both opt-out-able; both additive at the wire boundary:
-
-  **F1 — `CLAUDE_CODE_NO_FLICKER=1` injected into every pty spawned for the embedded terminal.**
-
-  - `server/src/terminal/routes.ts`: factor the env-construction logic out of `createNodePtySpawnFn` into a pure `buildSpawnEnv(baseProcessEnv, callerEnv?)` helper. The helper layers `baseProcessEnv → ADR-067 brand-fit overrides (TERM=dumb, COLORTERM="", FORCE_COLOR=1) → CLAUDE_CODE_NO_FLICKER toggle → callerEnv`. Toggle semantics: default-on; explicit opt-out via `SHIPWRIGHT_TERMINAL_NO_FLICKER=0` (the literal string `"0"` — empty / unset / any other value keeps the flicker fix enabled). On opt-out, the `CLAUDE_CODE_NO_FLICKER` key is **deleted** from the map (not set to `undefined` or `"0"`) so the child shell sees whatever the upstream env (if anything) had. External code-review fix (openai medium, 2026-05-13): opt-out wins over caller-supplied `CLAUDE_CODE_NO_FLICKER`; the rest of `callerEnv` still flows through.
-  - `server/src/config.ts`: new `terminalNoFlicker: boolean` field for diagnostics + structured logging parity with `terminalHeadlessMirror`. Same parse rule (any value other than `"0"` → true). The actual env injection still reads `process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER` directly in `buildSpawnEnv` because the spawn factory does not thread a `ServerConfig` reference.
-  - `.env.example`: a new section documents `SHIPWRIGHT_TERMINAL_NO_FLICKER` with the trade-off (alt-screen sessions don't leave conversation history in xterm scrollback for browser Cmd+F).
-
-  **F2 — `liveSession: boolean` surfaced on task-state responses; header Resume CTA gated on it.**
-
-  - `server/src/external/routes.ts`: a new closure-scoped `withLiveSession(task)` helper augments each serialized task with `liveSession = ptyManager.get(taskId) !== undefined`. Applied to every route that returns `task` (or `tasks[]`): GET `/tasks`, GET `/tasks/:id`, POST `/tasks` (create + create-with-existing-phaseTaskId reuse), POST `/launch`, POST `/fork`, PATCH `/tasks/:id`, POST `/close`, GET `/transcript` (all three branches: `status="ok"`, `status="missing"`, `status="rotated"`). The augmented field is NOT persisted on disk — computed at the wire boundary from in-memory `PtyManager.entries`. The `ExternalTask` shape in `sdk-sessions.json` is unchanged (additive at HTTP only).
-  - `client/src/lib/externalApi.ts`: optional `liveSession?: boolean` added to `ExternalTask`. Optional so older v1 server responses + test fixtures keep loading; `undefined` is treated as `false` (conservative: show Resume).
-  - `client/src/components/external/TaskDetailHeader.tsx`: `ctaFor(state, liveSession)` updated. When `state === "idle" && liveSession === true`, the function returns `"none"` — the Resume CTA is suppressed because the embedded-terminal pane is the user's interaction surface. All other state → CTA mappings unchanged.
-
-  **Resume CTA visibility matrix (post-G):**
-
-  | state                         | liveSession  | CTA                       |
-  |-------------------------------|--------------|---------------------------|
-  | draft / awaiting_external_start | any        | Launch (green)            |
-  | active                        | any          | none (badge only)         |
-  | idle                          | `true`       | none (user types directly)|
-  | idle                          | `false` / undefined | Resume (orange)    |
-  | done / launch_failed / jsonl_missing | any   | none                      |
-
-- **Rationale:**
-
-  Plan-D″ "user-initiated" invariant (ADR-067) is preserved: webui spawns no Claude process directly. The env injection happens at the SHELL spawn (whitelisted shells only — ADR-067 whitelist intact); Claude Code reads its env when the user types `claude` to invoke it from the embedded terminal. This is identical to setting `CLAUDE_CODE_NO_FLICKER=1` in your shell rc and is therefore not a new Claude-launch surface.
-
-  For Resume gating: `pty entry present` is the single authoritative signal. The server already exposes it via `PtyManager.get(taskId)`; we lift it to the wire boundary without persisting it on disk. The narrow edge case — `idle + pty alive + Claude has exited /exit, shell back at prompt` — loses the Resume CTA. Recoverable manually (user types `claude --resume <uuid>`) or via "Stop terminal session" menu item which kills the pty and surfaces Resume on next poll. The far-larger common case (Claude alive → nav back → button clicked → corrupted prompt) is the priority.
-
-  Why not upgrade xterm.js 6.0 instead: breaking-change upgrade (windowsMode removed, Canvas renderer removed) AND would invalidate the ADR-088 snapshot version pin (header.terminalVersion gate at WS attach). The env-flag workaround is reversible and zero-blast-radius; the upgrade is a multi-iterate refactor. Deferred to an Iterate H if F flicker fix proves insufficient under longer UAT.
-
-  Trade-offs of alt-screen rendering (`CLAUDE_CODE_NO_FLICKER=1`):
-  - **Loss:** Native browser Cmd+F search of the conversation history is degraded — alt-screen content doesn't persist into the xterm scrollback the way normal-screen output does. Mouse capture changes (rougher selection in some scenarios).
-  - **Gain:** No per-frame ANSI cursor-position flicker. Per Anthropic's docs the alt-screen renderer is the default mode in Claude Code's roadmap once DECSET 2026 adoption is broader.
-
-- **Consequences:**
-  - `server/src/terminal/pty-env-flicker.test.ts` (NEW, 9 cases): `buildSpawnEnv` semantics — default-on, opt-out via `=0`, opt-out wins over caller-supplied key (the external-code-review fix), brand-fit preserved, base env passes through.
-  - `server/src/external/routes.live-session.test.ts` (NEW, 5 cases): `GET /tasks` + `GET /tasks/:id` return `liveSession`, flip-flop semantics (`ptyManager.get` evaluated at response-time, never cached on disk).
-  - `server/src/config.test.ts` (+3 cases): default-on, non-"0" values stay true, "0" flips to false.
-  - `client/src/components/external/TaskDetailHeader.test.tsx` (+3 cases): `idle + liveSession=false` → Resume, `idle + liveSession=true` → none, regression-fence "consumption proof" test that flips ONLY `liveSession` and asserts the CTA visibility flips (proves the component consumes the field rather than relying on legacy state-only path).
-  - Server build: tsc clean.
-  - Server tests: 927/927 (was 923; +4 from G).
-  - Client build: tsc + vite clean (`@xterm/addon-webgl` warnings unchanged from F).
-  - Client tests: 780/780 (was 779; +1 from G — the consumption-proof case; the two state-matrix additions overwrote and replaced one prior `idle → resume` test description).
-  - `.env.example` documents the opt-out + the trade-off explicitly.
-  - Manual UAT post-merge required for visual flicker confirmation — automated pixel-diff via Playwright is out of scope (would require a real Claude Code subprocess + DOM + Ink streaming harness).
-- **External Plan Review:** SKIPPED — runner contract gate requires medium+ or risk flag. Iterate G is complexity=small with no risk flags (no `touches_io_boundary` / `touches_shared_infra` — additive env-var injection + additive wire field + conditional render). Status: `skipped_complexity_below_threshold`.
-- **External-Plan-Review-Findings:** N/A (review skipped).
-- **Self-Review (7-item, mandatory always):**
-  1. **Spec Compliance** — PASS: all 11 ACs covered. Env injection (default-on + opt-out + caller-override semantics including the opt-out-wins fix), config field, `.env.example` doc, GET routes augmented with liveSession (list + single + transcript-all-branches + launch + fork + close + patch), client type updated, header CTA gated, tests on both server + client.
-  2. **Error Handling** — PASS: `withLiveSession` defensively passes through `undefined`/`null` so 404-path callers stay safe. `buildSpawnEnv` falls back cleanly when caller env not passed. No new throws.
-  3. **Security Basics** — PASS: no new IO surface, no command construction, no auth changes. `CLAUDE_CODE_NO_FLICKER` is documented Anthropic public API. `liveSession` exposes only "pty alive yes/no" — no PII, no path, no shell content. Plan-D″ pty whitelist + Origin gate unchanged.
-  4. **Test Quality** — PASS: 9 env-helper tests, 5 server route tests including a flip-flop assertion proving response-time computation, 3 config tests, 3 client tests including a consumption-proof regression fence. The external code review's HIGH finding ("no test files") was a false positive — the reviewer's diff didn't include the new untracked files; both are present in the iterate.
-  5. **Performance Basics** — PASS: O(1) `ptyManager.get(taskId)` lookup per task on serialize. Map-based `PtyManager.entries` makes list-augmentation linear in tasks-list size. One shallow clone per task at response time; no measurable cost.
-  6. **Naming & Structure** — PASS: `buildSpawnEnv` named for what it does; `withLiveSession` follows the augmentation-helper pattern. Inline comments reference ADR-095 + Anthropic docs URL + xterm.js 5.5.0 DECSET 2026 context.
-  7. **Affected Boundaries (ADR-024 + references/round-trip-tests.md)** — PASS: no serialized-format change on disk (sdk-sessions.json untouched). `liveSession` is server→client only (HTTP boundary, additive). Round-trip probe N/A — no persisted boundary, no producer/consumer cycle. Env-var injection is process→child boundary; canonical probe is `buildSpawnEnv` unit test (multiple cases covering injection + omission + opt-out priority).
-- **Code Review Cascade:** RAN — runner contract trigger fired (diff > 100 LOC even though complexity=small and no risk flags). External code review via OpenRouter (openai + gemini) surfaced 3 actionable findings:
-  - **MEDIUM (openai)** — `buildSpawnEnv` caller-env override could reintroduce `CLAUDE_CODE_NO_FLICKER` after the opt-out path deleted it. Fixed: opt-out wins over caller-supplied key for that specific key only; other caller env still flows through. New test case added to `pty-env-flicker.test.ts` as a regression fence.
-  - **MEDIUM (openai)** — client tests should explicitly prove `task.liveSession` is consumed (not just legacy state-only path). Fixed: added the "consumption proof" test that flips ONLY `liveSession` (same state) and asserts the CTA toggles.
-  - **MEDIUM (openai)** — spec called for a config smoke test. Fixed: 3 new cases in `config.test.ts` covering default-on / non-"0" / opt-out.
-  - **HIGH (openai)** — false positive: reviewer reported "no pty-env-flicker.test.ts or routes-tasks-list.test.ts" but the diff context did include them; the reviewer's text-extraction missed the new untracked files (the diff was generated via `git diff main > /tmp/g-diff.txt`, which excludes untracked). Test files exist and run green (9 + 5 cases respectively).
-  Internal code-reviewer subagent: `delegated_to_skill` per runner contract — the runner has no Agent tool to spawn subagents.
-- **External-Code-Review-Findings:** see Code Review Cascade above; all addressed before commit.
-- **Confidence Calibration:** SKIPPED — runner contract gate requires medium+ OR `touches_io_boundary`. Iterate G is `small` and the env injection is process→child (not IO boundary in the ADR-024 round-trip sense — no serialized-format producer/consumer cycle). Status: `skipped_complexity_and_no_io_boundary`.
-- **F0.5 Surface Verification:** `surface=cli` with justification (logged at `.shipwright/runs/sub_iterate-20260511-204305-G/surface_verification.json`). The frontend-change detector returned `has_frontend_changes=false` despite the diff touching `client/src/components/external/TaskDetailHeader.tsx`; the detector's heuristic apparently does not classify CTA-visibility-state changes as frontend-impacting. Coverage gap closed by the unit + consumption-proof tests. Manual UAT post-merge confirms visual outcome.
-- **Rejected Alternatives:**
-  1. **Upgrade xterm.js to 6.0** — breaking changes (windowsMode removed, Canvas renderer removed) and would invalidate ADR-088 snapshot version pin. Deferred to a separate Iterate H if the env flag proves insufficient under longer UAT.
-  2. **Keep Resume always visible regardless of liveSession** — preserves the status quo but doesn't fix the user-reported issue. Rejected.
-  3. **Auto-detect "shell is in TUI" via ANSI escape sniffing** — would correctly cover the rare "idle + pty alive + Claude exited" sub-case but adds protocol complexity + a new failure mode. Rejected: the pty-alive heuristic is correct in the dominant common case + the trade-off is explicit.
-  4. **Set `CLAUDE_CODE_NO_FLICKER` only on the first spawn or per task slug** — adds state-tracking complexity. Rejected: env injection is a per-spawn invariant; default-on is the simplest mental model.
-  5. **Persist `liveSession` on disk in `sdk-sessions.json`** — would require state-sync on every pty kill/cleanup. Rejected: derived state from `PtyManager.entries` is authoritative; persisting it would create drift between in-memory truth + stale disk record. Computed-at-response-time keeps the source of truth single.
-- **Falsifiability:** if operator UAT post-merge still observes flicker, the F flag-injection hypothesis is falsified for our deployment (e.g. Claude Code version detection didn't pick up the flag, or alt-screen mode has its own xterm.js 5.5.0 incompatibility). Iterate H (xterm.js 6.0 upgrade) becomes the candidate. If users miss the Resume button in the "shell-back-but-pty-alive" sub-case loudly, an Iterate H' restores it conditionally via a smarter signal (e.g. terminal title bar parsing for `claude` literal).
-- **Files modified:** `server/src/terminal/routes.ts` (factor `buildSpawnEnv`, +71 LOC), `server/src/terminal/pty-env-flicker.test.ts` (NEW, 110 LOC), `server/src/config.ts` (+terminalNoFlicker field, +22 LOC), `server/src/config.test.ts` (+3 cases, +18 LOC), `server/src/external/routes.ts` (+withLiveSession helper, +20 LOC; routes augmented), `server/src/external/routes.live-session.test.ts` (NEW, 174 LOC), `client/src/lib/externalApi.ts` (+liveSession field, +16 LOC), `client/src/components/external/TaskDetailHeader.tsx` (ctaFor gating + comment update, +26 LOC), `client/src/components/external/TaskDetailHeader.test.tsx` (+3 cases, +33 LOC), `.env.example` (+24 LOC docs).
+- **Section:** Iterate G — fix; campaign `headless-terminal-refactor`
+- **Context:** User-reported regressions post-v0.10.0: (1) cursor flicker around Claude TUI streaming output (xterm 5.5.0 lacks DECSET 2026; cursor jumps visibly across word boundaries) and (2) Resume button is obsolete when the embedded terminal pane is alive (pasting `claude --resume <uuid>` into a live Claude shell spawns a nested instance).
+- **Decision:** (F1) Inject `CLAUDE_CODE_NO_FLICKER=1` into every pty via new pure `buildSpawnEnv(base, caller?)` helper; default-on with opt-out via `SHIPWRIGHT_TERMINAL_NO_FLICKER=0` (key DELETED, not set to "0", so child sees upstream env); opt-out wins over caller-env. New `config.ts:terminalNoFlicker`. (F2) New server-side `withLiveSession(task)` HTTP-boundary helper exposes `liveSession = ptyManager.get(taskId) !== undefined` on every task-returning route (not persisted on disk); `TaskDetailHeader.ctaFor(state, liveSession)` suppresses the Resume CTA when `state === "idle" && liveSession === true`.
+- **Commit:** PENDING_F6
+- **Rationale:** Plan-D″ user-initiated invariant preserved — env injection happens at SHELL spawn (whitelist intact); Claude Code reads its env when user types `claude`. `pty entry present` is the single authoritative Resume signal; lifting it to the wire avoids persisting derived state. xterm 6 upgrade rejected here (breaking change + snapshot pin invalidation) and deferred to Iterate I.
+- **Consequences:** 927/927 server tests, 780/780 client. New env-helper unit tests + flip-flop route tests + consumption-proof client tests. `.env.example` documents the alt-screen trade-off (Cmd+F search degraded; flicker eliminated). Manual UAT required for visual confirmation. Code Review Cascade ran (>100 LOC) — 3 MEDIUM findings addressed pre-commit.
+- **Rejected:** Upgrade xterm.js 6.0 (deferred); keep Resume always visible (doesn't fix bug); ANSI-sniff "shell-in-TUI" auto-detect (added protocol complexity); per-spawn-or-per-slug env scoping (state-tracking complexity); persist `liveSession` on disk (drift vs in-memory truth).
+- **Details:** [`.shipwright/planning/adr/095-claude-tui-flicker-workaround.md`](../planning/adr/095-claude-tui-flicker-workaround.md) — full upstream-issue references, Resume-CTA matrix, External Plan Review / Code Review Cascade dispositions (3 fixed + 1 false positive), Self-Review checklist, Falsifiability, all files modified.
 
 ### ADR-096: Iterate H — Snapshot preservation on pty death + TaskCard Resume gating
-- **Status:** accepted
+- **Status:** accepted (60 % preservation heuristic retained even after ADR-098 supersession partial-revert)
 - **Date:** 2026-05-13
-- **Section:** Iterate — fix: H — campaign `headless-terminal-refactor`
-- **Context:**
-
-  Two user-reported regressions after v0.10.1 (post-Iterate G merge, ADR-095 in force).
-
-  **Issue 1 — Empty snapshot after overnight Claude task.** User ran a Claude task overnight; returned next morning to TaskDetail and the embedded terminal was empty. Task state = `idle`, `liveSession = false`. The on-disk snapshot file for task `5124b107-2649-4edb-b0a5-b45873ebae82` was 158 bytes total: the `# shipwright-snapshot v1 xterm@5.5.0 113x47\n` header plus only the cell-state of a freshly-opened PowerShell prompt (`PS C:\…>` + `\e[1C\e[?1004h`). The user's multi-hour Claude conversation history was gone.
-
-  Root-cause chain:
-
-  1. `pty.kill()` (or idle-ceiling timeout, or `Ctrl+C`) sends SIGTERM to Claude Code.
-  2. Claude TUI shuts down. With `CLAUDE_CODE_NO_FLICKER=1` (Iterate G default, ADR-095) Claude renders into the alt-screen buffer; on exit it emits `DECRST 1049` (leave alt-screen). The main buffer state at that moment is whatever the shell wrote before Claude started — typically just a bare PowerShell prompt.
-  3. Bytes flow through `pty.onData` → `entry.mirror.write(data)` → the `@xterm/headless` parser. The mirror's visible buffer ends up as just the bare shell prompt; no Claude content present.
-  4. `pty.onExit` fires → `cleanup(taskId)` → `finalizeMirrorSnapshot(taskId, mirror)`.
-  5. `finalizeMirrorSnapshot` awaits `mirror.serializeStable()` (so the exit-sequence is fully processed) → serializes the now-near-empty cell-state → calls `snapshotStore.write(...)`.
-  6. **`snapshotStore.write` is a `temp-file + rename` ATOMIC OVERWRITE.** Any previously-good snapshot — typically the one `flushMirrorSnapshot` wrote on last-WS-detach (Iterate E ADR-092 path) — is replaced by the 158-byte stub.
-
-  The bug was latent in Iterate E's design from day one: any Claude task that clears its terminal on exit hit it. Iterate G's `CLAUDE_CODE_NO_FLICKER=1` default makes the alt-screen leave guarantee an empty main buffer at exit-time, so it now fires on EVERY Claude task that is killed or whose pty idles out.
-
-  **Issue 2 — TaskCard Resume button missed in Iterate G's gating.** Iterate G gated the Resume CTA on the **TaskDetailHeader**; the equivalent solid-color Resume button on the **TaskCard** in the TaskBoard kanban (rendered by `<TerminalLaunchButton variant="solid" resume>`) was missed. The user sees a Resume button on the card while the Claude session is live; clicking pastes `claude --resume <uuid>` into a shell that is already running Claude — same incorrect behavior the header fix closed.
-
-- **Decision:**
-
-  Two targeted, scope-bounded fixes; both pragmatic mitigations layered on top of the existing snapshot + CTA architecture.
-
-  **F1 — `finalizeMirrorSnapshot` size-comparison heuristic.**
-
-  In `server/src/terminal/pty-manager.ts`, extend `finalizeMirrorSnapshot(taskId, mirror)` with a pre-write check:
-
-  1. Call `snapshotStore.read(taskId)` to load any existing snapshot.
-  2. Compare the new payload's byte length (`stable.length`) against the existing payload's byte length (`existing.data.length`).
-  3. If `existingDataLen > 0 && newDataLen < existingDataLen * 0.6`, skip the `snapshotStore.write` call. Log a `console.warn` line noting taskId + both byte lengths so the decision is observable.
-  4. Mirror.dispose + releaseQueue still fire in the `finally` block on every branch.
-
-  Edge cases:
-  - No existing snapshot → write the new one (first writer wins; comparison never fires).
-  - `snapshotStore.read` throws (malformed header, IO error) → log + write the new one (best-effort fallback; never lose data on read failure).
-  - New payload is empty (`stable.length === 0`) + existing has content → preserve existing (subsumed by the 60 % rule; documented explicitly).
-
-  Threshold rationale: a 60 % gate distinguishes "Claude TUI cleared on exit" (typical shrink to ~1–10 % of pre-exit state) from "user deliberately ran `clear` then closed" (typical shrink to ~50–80 % depending on terminal width). 50 % would miss legitimate exit-clears; 70 % would over-preserve. 60 % is the documented compromise + the skip-decision is logged so misclassifications surface in observability without a code change.
-
-  **F2 — TaskCard Resume liveSession gating.**
-
-  In `client/src/components/external/TaskCard.tsx`, extend the `idle` Resume branch with `task.liveSession !== true`. Mirrors the TaskDetailHeader.ctaFor() pattern from ADR-095:
-
-  ```tsx
-  {task.state === "idle" && task.liveSession !== true && (
-    <span data-testid={`task-card-resume-${task.taskId}`}>
-      <TerminalLaunchButton task={task} variant="solid" color="orange" size="xs" resume={true} />
-    </span>
-  )}
-  ```
-
-  `liveSession === undefined` (back-compat — older server response) falls back to surfacing Resume; same conservative default TaskDetailHeader uses.
-
-- **Rationale:**
-
-  Why not the proper root-cause fix (xterm 6.0 upgrade): xterm.js 6.0's DECSET 2026 support would let us drop `CLAUDE_CODE_NO_FLICKER` and run Claude in normal-screen, eliminating the empty-main-buffer at exit. But the upgrade is a breaking change (windowsMode removed, Canvas renderer removed) AND invalidates the ADR-088 snapshot version pin (`header.terminalVersion`). A parallel session (Pfad B) is exploring it. ADR-096's heuristic is the **pragmatic mitigation** that protects the snapshot regardless of which TUI clears on exit, not just Claude — content-agnostic + 60 % observable.
-
-  Why a size heuristic vs ANSI sniffing for `DECRST 1049`: sniffing couples our snapshot logic to a specific Claude Code output convention. A non-Claude TUI (e.g. `htop` or `vim` opened in the embedded terminal, then closed) hits the same alt-screen leave pattern; the size heuristic catches all of them. The 60 % threshold is heuristic + tunable via observability — explicitly logged on every skip so UAT can refine without a code change.
-
-  Why TaskCard gating mirrors TaskDetailHeader (inline at the call site, not pushed into TerminalLaunchButton): the gating is **policy** (whose surface shows what), the button is **mechanism** (render a stylable solid CTA). Mixing them would couple surface-policy to button mechanism. The TaskDetailHeader's `ctaFor(state, liveSession)` lives at the call site; TaskCard follows the same shape (the conditional render at the call site).
-
-- **Consequences:**
-  - `server/src/terminal/pty-manager-live-snapshot.test.ts` (+6 cases, +200 LOC): size-comparison heuristic — large existing + small new preserves existing, threshold edge writes new, no-existing first-writer, read-throws fallback writes new, empty-new + existing preserved, dispose + releaseQueue still fire on the skip branch.
-  - `client/src/components/external/TaskCard.test.tsx` (+4 cases, +35 LOC): liveSession gating matrix — `idle + liveSession=true` hides Resume, `idle + liveSession=false` shows, `idle + liveSession=undefined` shows (back-compat), `done + liveSession=any` no Resume (state takes precedence at outer `!isDone` gate).
-  - Server build: tsc clean.
-  - Server tests: 933/933 (was 927; +6 from H).
-  - Client build: tsc + vite clean (`@xterm/addon-webgl` warnings unchanged from F).
-  - Client tests: 784/784 (was 780; +4 from H).
-  - Empirical test finding: a fresh `@xterm/headless` 120x30 mirror after a single `__emit("$ ")` serializes via M2 stable pipeline to ~2–27 bytes. This confirms the 60 % heuristic correctly identifies "Claude exited + main buffer is almost empty" against the typical 1–3 KiB cell-state of an active Claude conversation.
-  - The user's reported task `5124b107-2649-4edb-b0a5-b45873ebae82` would have been recovered IF the `flushMirrorSnapshot`-on-last-detach (Iterate E ADR-092) had fired before idle-ceiling triggered `finalizeMirrorSnapshot`. The heuristic protects forward: future tasks that follow the same pattern (multi-hour session, nav-away preserves on-disk snapshot, idle-ceiling kills) will now preserve the conversation snapshot.
-  - Manual UAT post-merge required: (a) launch Claude, type content, kill the shell, reopen TaskDetail — confirm terminal shows pre-exit content; (b) open TaskBoard with a live Claude task — confirm Resume button is hidden on the card.
-- **External Plan Review:** SKIPPED — runner contract gate requires medium+ or risk flag. Iterate H is complexity=small per the spec frontmatter with no risk flags (no `touches_io_boundary` — no serialized-format producer/consumer change; the heuristic operates above the SnapshotRecord layer). Status: `skipped_complexity_below_threshold`.
-- **External-Plan-Review-Findings:** N/A (review skipped).
-- **Self-Review (7-item, mandatory always):**
-  1. **Spec Compliance** — PASS: both AC blocks covered. Snapshot heuristic with all 5 edge cases (large→preserve, within-threshold→write, no-existing→write, read-throws→write, empty-new→preserve) + dispose-still-fires regression-fence. TaskCard gating with all 3 idle-state matrix cases + done-state precedence sanity.
-  2. **Error Handling** — PASS: `snapshotStore.read` failures logged + fall through to write (best-effort; never lose data). `finally` block preserved on every branch. No new throws; the heuristic's branch is a return-from-try, not an early exit.
-  3. **Security Basics** — PASS: no new I/O surface; no user-controlled paths; SnapshotStore.validateTaskId continues to gate every public read/write. No new env-var reads.
-  4. **Test Quality** — PASS: 10 new unit tests (6 server + 4 client) covering decision boundaries (above/below/at-threshold, missing existing, read-error, empty-new, finally-side-effects) + DOM presence matrix. Tests assert observable behavior (disk content, spy call counts, DOM presence) not implementation internals.
-  5. **Performance Basics** — PASS: one extra `snapshotStore.read` call per pty death is a single file open+read of a ≤4-KiB snapshot; same I/O budget the existing `flushMirrorSnapshot` already uses. Adds ~1–5 ms; negligible vs the existing 10 ms serializeStable cost.
-  6. **Naming & Structure** — PASS: changes live inside the existing `finalizeMirrorSnapshot` method (no new public method, no new exports). Inline comments cross-reference ADR-096 + Iterate E ADR-092 + Iterate G ADR-095 so the next iterate has the latest context.
-  7. **Affected Boundaries (ADR-024 + references/round-trip-tests.md)** — PASS: no serialized-format change (the snapshot file's `header + payload` shape is byte-identical; the heuristic is single-writer self-check). No new boundary, no round-trip probe required. The boundary that DOES exist (snapshot-writer → WS-replay-reader) is unaffected — the new path simply skips writing, the existing read path is unchanged.
-- **Code Review Cascade:** SKIPPED — runner contract gate requires medium+ OR risk flag OR diff > 100 LOC. Iterate H is complexity=small per the spec frontmatter with no risk flags; total diff is ≈90 LOC across two source files + ≈250 LOC test additions, all below the gate. Self-Review (Step 3.6) is the only review per runner contract for small + no-flag iterates. Status: `skipped_diff_below_threshold`. Internal code-reviewer subagent: `delegated_to_skill`.
-- **External-Code-Review-Findings:** N/A (cascade skipped per gate).
-- **Confidence Calibration:** SKIPPED — runner contract gate requires medium+ OR `touches_io_boundary`. Iterate H is `small` and the snapshot heuristic is single-writer self-check above the SnapshotRecord layer (not an IO boundary in the ADR-024 round-trip sense). Status: `skipped_complexity_and_no_io_boundary`.
-- **F0.5 Surface Verification:** `surface=cli` per spec frontmatter. The snapshot heuristic is unit-tested with 6 vitest cases exercising the decision boundary; the TaskCard gating mirrors the TaskDetailHeader fix from ADR-095 (which also used cli) with 4 render-matrix tests. A Playwright spec would require driving a real Claude TUI through a real pty in CI, which exceeds the iterate's scope.
-- **Rejected Alternatives:**
-  1. **Periodic snapshot-on-buffer-quiesce writer** — would require a periodic snapshot timer + dirty-tracking on the mirror. Significantly more complex. Same outcome via (a) flushMirrorSnapshot on last-detach (existing Iterate E path) + (b) refusing to overwrite-shrink on finalize (this iterate). Rejected.
-  2. **Hard-gate finalize: always preserve any existing snapshot** — prevents updates in legitimate cases (user ran `clear` then exited; the new snapshot IS correct state). Rejected: the heuristic distinguishes "shrank to <60 %" (suspicious) from "shrank somewhat" (legitimate).
-  3. **Threshold at 50 % / 70 %** — 50 % too permissive (a 500-byte shrink from 1000 hits empty-prompt territory); 70 % too restrictive (a deliberate `clear` could yield a 70 % shrink we should not preserve). 60 % is the compromise; the threshold is heuristic and observability-logged so it can be tuned without a code change if UAT shows misclassification.
-  4. **Sniff post-exit ANSI for `DECRST 1049` specifically** — semantically more precise but couples snapshot logic to Claude Code's specific exit convention. Rejected: the size-comparison heuristic is content-agnostic and survives any TUI that clears on exit (htop, vim, ipython, etc.).
-  5. **Push the TaskCard gating into TerminalLaunchButton** — moves the visibility decision into a shared component. Rejected: the gating is policy (whose surface shows what), the button is mechanism (render a stylable solid CTA); mixing couples policy to mechanism. Mirrors the TaskDetailHeader pattern.
-- **Falsifiability:** if operator UAT post-merge confirms a fresh Claude task that gets killed STILL shows empty terminal on return, the size-heuristic hypothesis is falsified — possible failure modes: (a) the mirror.serializeStable output is comparable in size to the existing snapshot (so the 60 % gate doesn't fire — unlikely for typical Claude conversations >100 lines), or (b) `flushMirrorSnapshot` on last-detach didn't fire (so no good existing snapshot was written before finalize; investigate the Iterate E path). If users miss the Resume button on a TaskCard in the rare "shell-back-but-pty-alive" sub-case (idle + pty alive + Claude exited via `/exit`), an Iterate H' could surface a "Stop terminal session" CTA on the card itself (kills pty → Resume reappears on next poll).
-- **Files modified:** `server/src/terminal/pty-manager.ts` (+heuristic in finalizeMirrorSnapshot, ~30 LOC), `server/src/terminal/pty-manager-live-snapshot.test.ts` (+6 cases, ~200 LOC), `client/src/components/external/TaskCard.tsx` (+liveSession gating + comment update, ~13 LOC), `client/src/components/external/TaskCard.test.tsx` (+4 cases, ~35 LOC), `.shipwright/planning/iterate/2026-05-13-H-snapshot-preservation-taskcard-gating.md` (NEW spec, ~210 LOC).
+- **Section:** Iterate H — fix; campaign `headless-terminal-refactor`
+- **Context:** Two regressions post-v0.10.1 (post-Iterate G merge, ADR-095 in force): (1) overnight Claude task showed an empty terminal on return because `finalizeMirrorSnapshot` atomically OVERWROTE the good `flushMirrorSnapshot` payload with a 158-byte bare-shell stub (the alt-screen-leave under `CLAUDE_CODE_NO_FLICKER=1` empties the main buffer at exit); (2) Iterate G's Resume CTA gating was applied only on `TaskDetailHeader`, missing the equivalent `TaskCard` Resume button on the kanban board.
+- **Decision:** (F1) Extend `finalizeMirrorSnapshot(taskId, mirror)` with a pre-write check: read existing snapshot, compare byte lengths, skip the write when `existingDataLen > 0 && newDataLen < existingDataLen * 0.6` (60 % preservation gate; observability-logged via `console.warn`); `mirror.dispose` + `releaseQueue` still fire in `finally`. Edge cases: no existing snapshot → write; read throws → write (best-effort fallback); empty-new + existing → preserve. (F2) Add `task.liveSession !== true` gate to `TaskCard.tsx`'s `idle` Resume branch (mirrors `TaskDetailHeader.ctaFor` from ADR-095; `undefined` falls back to surfacing Resume).
+- **Commit:** PENDING_F6
+- **Rationale:** xterm 6 upgrade would let us drop `CLAUDE_CODE_NO_FLICKER` and run Claude in normal-screen — but breaking change + snapshot pin invalidation; explored in parallel (Iterate I). The 60 % heuristic is the pragmatic content-agnostic mitigation that protects any TUI that clears on exit (htop, vim, ipython) — not just Claude. Size threshold beats ANSI-sniffing `DECRST 1049` (which couples to one TUI's exit convention). TaskCard gating mirrors TaskDetailHeader's call-site pattern (policy = where; button = mechanism).
+- **Consequences:** Server 933/933 tests, client 784/784 (+10 new: 6 server snapshot-heuristic + 4 client TaskCard-matrix). Empirical anchor: fresh 120x30 mirror after `__emit("$ ")` serializes to 2–27 bytes via M2 stable pipeline vs 1–3 KiB for active Claude — heuristic correctly distinguishes the cases. The originally reported task would have been recovered if `flushMirrorSnapshot` on last-detach had fired before idle-ceiling; the heuristic protects forward.
+- **Rejected:** Periodic snapshot-on-quiesce timer (complex; same outcome via existing flush-on-detach + this iterate); hard-gate "always preserve existing" (prevents legitimate updates after user `clear`); threshold at 50 % / 70 % (too permissive / too restrictive); ANSI `DECRST 1049` sniff (TUI-specific); push gating into `TerminalLaunchButton` (couples policy to mechanism).
+- **Details:** [`.shipwright/planning/adr/096-snapshot-preservation-taskcard-resume.md`](../planning/adr/096-snapshot-preservation-taskcard-resume.md) — full root-cause chain, all 5 heuristic edge cases, External Plan Review / Code Review Cascade / Confidence Calibration skip-rationales, Self-Review checklist, Falsifiability, all files modified.
 
 ### ADR-097: Iterate I — xterm.js 5.5.0 → 6.0.0 upgrade + `CLAUDE_CODE_NO_FLICKER` default flipped to opt-in (SUPERSEDED-IN-PART by ADR-098)
 
@@ -1910,203 +1729,33 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Files modified (still in force):** xterm package.json pins (client + server), `snapshot-store.ts` v2 envelope, `EmbeddedTerminal.tsx` `windowsMode` removal. Reverted by ADR-098: `config.ts:terminalNoFlicker`, `terminal/routes.ts buildSpawnEnv` default branch, `pty-env-flicker.test.ts`, `config.test.ts`.
 
 ### ADR-098: Iterate J — Restore `CLAUDE_CODE_NO_FLICKER=1` default to opt-out (reverts ADR-097's default-OFF clause; restores ADR-095 stance)
-
 - **Status:** accepted
 - **Date:** 2026-05-13
 - **Campaign:** `headless-terminal-refactor`, Iterate J
-- **Type:** fix (config-only revert)
-- **Complexity:** small
-- **Risk flags:** none
-- **Supersedes:** ADR-097's `CLAUDE_CODE_NO_FLICKER` default-OFF clause ONLY (other Iterate I changes — xterm 6 upgrade, snapshot v2, `windowsMode` removal, `@xterm/headless` 6.0.0, Iterate H heuristic, `buildSpawnEnv` helper structure, opt-out-wins-over-caller semantics — ALL RETAINED).
-- **Restores:** ADR-095 default-on stance for `CLAUDE_CODE_NO_FLICKER`.
-
-- **Context:** ADR-097 flipped the `CLAUDE_CODE_NO_FLICKER` env-injection default from ON (opt-out) to OFF (opt-in) on the theoretical assumption that xterm.js 6.0's native DECSET 2026 / Synchronized Output support would batch Claude TUI's main-buffer rendering frames flicker-free. UAT post-merge falsified the hypothesis: with `CLAUDE_CODE_NO_FLICKER=1` unset, the cursor flicker around the animated "working… (Esc to interrupt)" label returns verbatim, identical to the pre-Iterate-G baseline.
-
-- **Empirical evidence:** A direct read of the live Claude TUI scrollback file confirmed the root cause. Probe (run against a real 265 711-byte capture of a working Claude session, `<homedir>/.shipwright-webui/terminal-scrollback/5a5832a3-6e76-44bd-bf10-202b90a7f270.log`):
-
-  ```
-  $ python -c "data=open('<…>/5a5832a3-…-202b90a7f270.log','rb').read(); print(f'size={len(data)}, decset_2026_enter={data.count(b\"\\\\x1b[?2026h\")}, decset_2026_leave={data.count(b\"\\\\x1b[?2026l\")}, cup_sequences={data.count(b\"\\\\x1b[\")}')"
-  size=265711, decset_2026_enter=0, decset_2026_leave=0, cup_sequences=21690
-  ```
-
-  A 265 KB live Claude Code 2.1.139 scrollback contains **21 690 raw cursor-positioning sequences** (`\x1b[…H` / `\x1b[…;…H`) but **zero Synchronized-Output bracket pairs.** xterm 6.0's DECSET 2026 honour is real (the renderer batches frames when the producer wraps them) — but Claude Code does not wrap its frames, so there is nothing for xterm 6 to batch. The Iterate I inference "xterm 6 implements DECSET 2026 → flicker is fixed by xterm 6 alone" was unfounded because the producer side never opts in.
-
-  Confirmation upstream: Claude Code Issue **#37283** ("TUI flickers / cursor jumps in tmux during streaming output (missing DECSET 2026 synchronized output)") remains **open** at the time of this ADR.
-
-- **Decision:**
-  1. Restore `config.ts:terminalNoFlicker` default to `process.env.SHIPWRIGHT_TERMINAL_NO_FLICKER !== "0"` (default-on; opt-out via literal `"0"`; matches `terminalHeadlessMirror` inverted-falsy convention).
-  2. Restore `terminal/routes.ts buildSpawnEnv` default branch to inject `CLAUDE_CODE_NO_FLICKER="1"` unconditionally unless `SHIPWRIGHT_TERMINAL_NO_FLICKER === "0"`.
-  3. Preserve the "opt-out wins over caller-env override" symmetry from Iterate G (external code review openai medium, 2026-05-13) — verbatim, just semantically inverted from Iterate I's "opt-in wins" shape.
-  4. Re-baseline `pty-env-flicker.test.ts` for default-on (10 cases including the regression fence) and `config.test.ts` (3 cases).
-  5. Amend CLAUDE.md DO-NOT regression guard #22 to mark the NO_FLICKER default-OFF clause as superseded by ADR-098; document the empirical falsification path required before any future revert.
-  6. Retain ALL other Iterate I changes verbatim — xterm 6, `@xterm/headless` 6.0.0, snapshot envelope v2, Iterate H 60 % preservation heuristic, `windowsMode` removal, version pins.
-
-- **Rationale:**
-  - The alt-screen path's UX cost (no browser-native Cmd+F of conversation history, mouse capture, fixed input box) was the only argument for ADR-097's flip. With empirical proof that the flip yields the original flicker regression, the trade-off swings back: visible flicker degrades every streaming Claude response, whereas the lost Cmd+F is a recoverable inconvenience (xterm's own scrollback + Strg+Shift+F via xterm search-addon both remain available; the disclosure banner already documents the retention path).
-  - The Iterate H 60 % preservation heuristic STAYS in force as defense-in-depth even though its original load-bearing rationale (alt-screen-leave-empty failure mode) is now active again rather than dormant. The heuristic was added precisely for this branch of the state space.
-  - The fix is the smallest possible diff: two source-code single-line gate flips + a comment block per file + test re-baseline. No new dependency, no architecture change, no new I/O surface.
-
-- **Consequences:**
-  - `server/src/config.ts` (~5 LOC source + doc comment): default flips back; injected as `"1"` whenever `SHIPWRIGHT_TERMINAL_NO_FLICKER !== "0"`.
-  - `server/src/terminal/routes.ts` (~8 LOC source + doc comment): `buildSpawnEnv` default branch injects; opt-out wins over caller-env override (symmetric Iterate G regression fence preserved).
-  - `server/src/terminal/pty-env-flicker.test.ts` (10 cases re-baselined): default-on, empty-still-on, `=0` opt-out, non-`0` defaults-on, explicit `=1` opt-in matches default, default-on wins over upstream, brand-fit overrides, caller-supplied wins on default path, opt-out-wins-over-caller regression fence, base env propagation. 936/936 server tests green (same as post-I baseline).
-  - `server/src/config.test.ts` (3 cases re-baselined): default-on, non-`0` stays on, `=0` opt-out.
-  - `.env.example`: no change needed — Iterate I did not touch it; the file already documents default-on (the prose was the original Iterate G text).
-  - `CLAUDE.md` DO-NOT regression guard #22 NO_FLICKER clause amended to ADR-098 supersession with the empirical falsification path explicit.
-  - `CHANGELOG.md` `[Unreleased] → Fixed` bullet appended.
-  - 784/784 client tests green (no client surface touched).
-
-- **External Plan Review:** SKIPPED — runner contract gate requires medium+ or risk flag. Iterate J is complexity=small per the spec frontmatter with no risk flags (the env-injection layer is single-direction server→child-env, not a serialized-format producer/consumer with a round-trip). Status: `skipped_complexity_below_threshold`.
-
-- **External-Plan-Review-Findings:** N/A (review skipped).
-
-- **Self-Review (7-item, mandatory always):**
-  1. **Spec Compliance** — PASS: all 8 AC items satisfied. `config.ts` default flipped to `!== "0"`; `buildSpawnEnv` opt-out gate `=== "0"` injects `"1"` on default branch + deletes on opt-out; `pty-env-flicker.test.ts` re-baselined for default-on incl. opt-out-wins-over-caller-override regression fence; `config.test.ts` re-baselined; CLAUDE.md DO-NOT guard #22 amended; `.env.example` verified default-on docs already correct.
-  2. **Error Handling** — PASS: no new throw / try-catch surface; the env-injection branch is a pure conditional.
-  3. **Security Basics** — PASS: no new I/O surface, no user-controlled paths, no new env-var reads beyond the already-validated `SHIPWRIGHT_TERMINAL_NO_FLICKER`.
-  4. **Test Quality** — PASS: 10 cases in `pty-env-flicker.test.ts` exercise default-on / opt-out / caller-override matrix + opt-out-wins regression fence + base env propagation. 3 cases in `config.test.ts` re-baselined. Tests assert observable env-map shape, not implementation internals.
-  5. **Performance Basics** — PASS: zero perf impact. Same number of property-write/delete operations per pty spawn; only the inverted gate condition.
-  6. **Naming & Structure** — PASS: no new exports, no new public API, no new files. Inline comments cross-reference ADR-095/097/098 + the empirical anchor + Issue #37283. Variable names (`optedOut`, `callerEnv`) reflect the semantic.
-  7. **Affected Boundaries (ADR-024)** — PASS: no serialized-format change. The boundary in scope is server→pty-child-env (single-direction; no consumer round-trip). The default flip toggles whether one env key flows; no envelope, header, or version change. No round-trip probe required.
-
-- **Code Review Cascade:** SKIPPED — runner contract gate requires medium+ OR risk flag OR diff > 100 LOC. Iterate J is complexity=small per the spec frontmatter with no risk flags; total diff is ~30 LOC source + ~80 LOC test re-baseline + docs, all below the gate. Status: `skipped_diff_below_threshold`. Internal code-reviewer subagent: `delegated_to_skill`.
-
-- **External-Code-Review-Findings:** N/A (cascade skipped per gate).
-
-- **Confidence Calibration:** SKIPPED — runner contract gate requires medium+ OR `touches_io_boundary`. The env-injection path is single-direction (server → pty child env); there is no producer/consumer round-trip to probe. Status: `skipped_complexity_and_no_io_boundary`. The empirical anchor for the change is the 265 KB live Claude TUI scrollback analysis recorded above (Empirical evidence block).
-
-- **F0.5 Surface Verification:** `surface=cli` per spec frontmatter. The flag flip is unit-tested with 10 vitest cases in `pty-env-flicker.test.ts` + 3 in `config.test.ts`. The visual flicker confirmation is deferred to user UAT post-merge (Vite HMR + pty respawn picks up the env change automatically once the user reopens a terminal pane). A Playwright spec would require driving a real Claude TUI through a real pty in CI with frame-stepping renderer inspection — exceeds the iterate's scope and would require shipping a Claude scrollback fixture (privacy + diff bloat).
-
-- **Rejected Alternatives:**
-  1. **Per-task opt-in toggle in EmbeddedTerminal UI** — surfaces an architectural choice the end user cannot meaningfully evaluate; defers the right behaviour (flicker-free out of the box) to a manual click most users will never find. Until Claude Code ships DECSET 2026, default-on is the right answer.
-  2. **DECSET 2026 sniff in `pty-manager.onData` with auto-toggle.** Rejected: env vars are set at spawn time and cannot be changed mid-process; the alt-screen-mode decision is committed at Claude Code startup. Sniffing would itself need the same empirical anchor we already have.
-  3. **Defer to a future Claude Code release that emits DECSET 2026.** Rejected: Issue #37283 is open with no announced fix; cannot block a user-visible regression on upstream.
-  4. **Codify the byte-stream DECSET-2026-absence probe as a vitest fixture-driven test.** Rejected: would require shipping a real Claude TUI scrollback (privacy + diff bloat) AND would need re-validation on every Claude Code version bump. The empirical evidence lives in this ADR instead.
-
-- **Falsifiability:** if a future Claude Code release emits DECSET 2026 in the main buffer AND a real-Claude UAT confirms xterm 6 batches those frames flicker-free without `CLAUDE_CODE_NO_FLICKER`, ADR-098 is falsified and a future Iterate K can flip the default back to OFF (or remove the flag entirely). The required falsification sequence: (1) capture a fresh Claude TUI scrollback; (2) confirm `decset_2026_enter > 0`; (3) toggle `SHIPWRIGHT_TERMINAL_NO_FLICKER=0` in a UAT session; (4) visually verify no cursor flicker around the streaming label; (5) propose Iterate K. Anything short of that empirical sequence is insufficient to revert again.
-
-- **Files modified:** `server/src/config.ts` (~5 LOC source + doc comment), `server/src/terminal/routes.ts` (~8 LOC source + doc comment), `server/src/terminal/pty-env-flicker.test.ts` (10 cases re-baselined, ~140 LOC), `server/src/config.test.ts` (3 cases re-baselined, ~30 LOC), `CLAUDE.md` (DO-NOT regression guard #22 amendment), `.shipwright/agent_docs/decision_log.md` (ADR-097 back-fill + ADR-098 new entry), `CHANGELOG.md` (1 `Fixed` bullet), `.shipwright/planning/iterate/2026-05-13-J-restore-no-flicker-default.md` (NEW spec).
+- **Supersedes:** ADR-097's `CLAUDE_CODE_NO_FLICKER` default-OFF clause ONLY (xterm 6 upgrade, snapshot v2, `windowsMode` removal, `@xterm/headless` 6.0.0, Iterate H heuristic, `buildSpawnEnv` helper, opt-out-wins-over-caller semantics — ALL RETAINED). **Restores:** ADR-095 default-on stance.
+- **Context:** ADR-097 flipped the env default OFF on the theoretical bet that xterm 6's DECSET 2026 support would batch Claude TUI frames flicker-free. UAT post-merge falsified the hypothesis — cursor flicker returned verbatim.
+- **Decision:** Restore `config.ts:terminalNoFlicker` default to `!== "0"`; restore `buildSpawnEnv` default-inject of `CLAUDE_CODE_NO_FLICKER="1"`. Preserve the "opt-out wins over caller-env" symmetry. Re-baseline 10 cases in `pty-env-flicker.test.ts` + 3 in `config.test.ts`. Amend CLAUDE.md DO-NOT guard #22 with the empirical falsification path. Retain ALL other Iterate I changes.
+- **Commit:** PENDING_F6
+- **Empirical anchor:** A 265 KB live Claude Code 2.1.139 scrollback contained **21 690 raw cursor-positioning sequences** (`\x1b[…H`) but **zero DECSET 2026 enter/leave pairs**. xterm 6 honours DECSET 2026 when the producer wraps frames — Claude Code does not. Issue [#37283](https://github.com/anthropics/claude-code/issues/37283) remains open.
+- **Rationale:** Alt-screen Cmd+F cost was the only argument for the flip; empirical flicker proof swings the trade-off back. Smallest possible diff: two single-line gate flips + comment + test re-baseline. Iterate H 60 % preservation heuristic stays in force as defense-in-depth.
+- **Consequences:** 936/936 server tests, 784/784 client. CLAUDE.md DO-NOT guard #22 amended with falsification path. `CHANGELOG.md` Fixed bullet appended.
+- **Rejected:** Per-task opt-in toggle in UI (user cannot meaningfully evaluate); DECSET-2026 ANSI sniff with auto-toggle (env vars are spawn-time only); defer to upstream fix (#37283 has no announced date); fixture-driven test of DECSET-2026 absence (privacy + diff bloat + per-version re-validation).
+- **Details:** [`.shipwright/planning/adr/098-restore-no-flicker-default.md`](../planning/adr/098-restore-no-flicker-default.md) — full empirical-evidence probe output, decision steps, Self-Review checklist, F0.5 surface justification, falsification sequence required for any future revert.
 
 ### ADR-099: Iterate K — xterm.js 6.0 WebGL atlas-corruption workaround + addon-serialize SGR-encoding fix (v1 → v8)
-
 - **Status:** superseded
-- **Superseded by:** ADR-108 — the WebGL atlas-maintenance machinery (clearTextureAtlas / refresh / onScroll / onWriteParsed / wheel / periodic-clear) was deleted. The renderer-bisect probe (iterate-20260516-terminal-smear-interleave) empirically ruled out the GPU atlas as the smear cause (WebGL and DOM both smeared); the real cause was a client-side replay/live-data write interleave, fixed by the ADR-108 replay drain gate. The `__embeddedTerminalWebglAddon` test-handle export and the 3 `probe-iterate-k-*.mjs` harnesses were removed with it.
+- **Superseded by:** ADR-108 — atlas-maintenance machinery deleted after empirical bisect proved both WebGL AND DOM renderers smeared; real cause was a client-side replay/live-data write interleave. The server-side SGR re-emit branch survives.
 - **Status (historical):** accepted
 - **Date:** 2026-05-14
 - **Campaign:** `codex-rescue-altscreen-rendering`, Iterate K
-- **Type:** fix (client-side rendering workaround + server-side replay-envelope SGR re-emit)
-- **Complexity:** medium
-- **Risk flags:** none (pure-frontend rendering layer + additive server snapshot field)
 - **Branch:** `iterate/codex-rescue-altscreen-rendering`
-
-- **Context:** Two upstream bugs in the xterm.js 6.0.0 stack manifest on every sustained Claude Code TUI session in the embedded terminal pane:
-
-  1. **`xtermjs/xterm.js#5847` — WebGL texture-atlas merge corruption** (open, milestone 7.0). The WebGL renderer's atlas page accumulates duplicate cache entries and coordinate drift during sustained per-cell color-attribute streaming (precisely Claude TUI's emit shape: `\x1b[38;5;…m` runs separated by `\x1b[1C` cursor-rights at per-word granularity). Symptom: visible smearing / ghosting / glyph substitution on rows with ANSI color, recovered ONLY by atlas-clear, resize, or remount. VS Code's `forceRedraw()` (xtermTerminal.ts:600) is the same workaround but fires only on OS resume because their workload triggers the bug less often.
-  2. **`@xterm/addon-serialize` 0.14.0 — mouse-encoding mode not serialized.** When the user attaches mid-session, the `replay_snapshot` envelope (ADR-087) replays cell-state via `addon-serialize` but the addon's output does NOT include the `?1006h` / `?1000h` / `?1002h` SGR private modes Claude TUI has enabled. Symptom: after re-attach, mouse-wheel events go to xterm's native scroll-viewport instead of being forwarded to Claude as mouse-reports — so the user's wheel scrolls a frozen historical buffer instead of driving Claude's UI.
-
-  Both surfaces feed into the same user-visible symptom class ("Verschmierungen / smearing / stale-cursor-ghosting after Resume / mouse-wheel after detach goes to the wrong place"). ADR-099 bundles them because the v1–v8 iteration on the WebGL workaround was driven by what the SGR-re-emit fix did NOT cover: even with mouse modes restored, the atlas itself stays corrupted across the snapshot replay and needs an explicit `clearTextureAtlas()` to be recoverable.
-
-- **Decision:**
-  1. **Server-side:** `server/src/terminal/replay-snapshot.ts buildReplaySnapshotEnvelope` re-emits `\x1b[?1006h` (and `?1000h` / `?1002h` when detected as enabled on the headless mirror) at the end of the serialized payload. Same byte-stream contract as ADR-087's snapshot envelope; the version-gate stays at v2.
-  2. **Client-side rendering workaround in `client/src/components/terminal/EmbeddedTerminal.tsx`** — eight-revision evolution converging on a *buffer-type-aware, activity-gated, multi-trigger* atlas-maintenance pass. The single function (`safeAtlasMaintenance()`) runs `webglRef.clearTextureAtlas()` + `term.refresh(0, rows-1)` in main-buffer, `term.refresh(0, rows-1)` ONLY in alt-screen. The triggers are:
-     - **Periodic 10 s interval**, gated by `writesSinceLastClear > 0` (zero flicker when idle — empirically validated to 0 events over 25 s in `task-claude-goal`).
-     - **`term.onScroll`** (content-driven scroll only, fires for new lines pushing the viewport).
-     - **`term.onWriteParsed` burst-after-2-s-quiet** (catches Resume / re-attach / wake-up — first write after a `RESUME_BURST_QUIET_MS = 2000` gap triggers immediate maintenance).
-     - **Post-mount settle backstop at +3 s** (catches the case where the snapshot-replay write + Resume burst arrive bundled within the quiet window).
-     - **DOM `wheel` listener with 150 ms debounce** (Iterate K v8, this commit — user-initiated scroll catches cases where xterm's `onScroll` is silent because mouse-capture mode has been re-emitted from ADR-099 server-side and the wheel is forwarded to Claude instead of to xterm's native scroll).
-  3. **WebGL addon load order**, already merged via PR #12 (`cd6b9f7`): `term.loadAddon(webglRef)` BEFORE `term.open(container)` (the DOM renderer never initialises) + `rescaleOverlappingGlyphs: true` (xterm.js#5100 — fixes wide-glyph cell-overflow smearing for `m` / `w` / `@` / narrow-font Unicode). Cross-referenced against xterm.js demo, siteboon/claudecodeui, microsoft/vscode (which has a `// TODO: Move before open` comment from the xterm.js BDFL's own team).
-
-- **Eight-revision client-side evolution (commits on `iterate/codex-rescue-altscreen-rendering`):**
-
-  | v | Commit | What | Why this wasn't enough |
-  |---|---|---|---|
-  | v1 | `bd9e3ea` | 30 s periodic `clearTextureAtlas` + `term.onScroll` immediate | Smearing built up within window |
-  | v2 | `4e8f938` | 10 s periodic + `term.refresh()` after clear | Periodic flicker fired even when idle |
-  | v3 | `f0ce31a` | Conditional via `onWriteParsed` counter (skip when idle) | Alt-screen heavy-flicker on every clear (superimposed on Claude's per-frame redraw) |
-  | v4 | `bf7b05f` | Skip `clearTextureAtlas` in alt-screen | Stale cursor stayed in alt-screen with no refresh |
-  | v5 | `e9aa804` | Split: main = full clear+refresh, alt = refresh-only | "Resume nicht greift" when snapshot-replay was bundled with the burst |
-  | v6 | `104435b` | Burst-after-2-s-quiet trigger via `onWriteParsed` | Post-fresh-mount the gate `lastWriteTime > 0` excluded the very first write batch |
-  | v7 | `e01bae9` | Pre-init `lastWriteTime` to mount-time minus quiet+1 ms + post-mount settle backstop at +3 s | `term.onScroll` silent on user-wheel during mouse-capture; smearing on scroll-while-streaming |
-  | v8 | this commit | DOM `wheel` listener on `containerRef.current`, 150 ms debounce, bubble-phase passive | Resume-click-in-long-mounted-tab still missed: typing echo defeats burst-trigger; postMountSettleTimer long expired |
-  | v9 | follow-up | Post-launch-settle: one-shot maintenance at +4 s after every `coord.consumeLaunch` (cross-effect bridge via `safeAtlasMaintenanceRef`) | (Empirical anchor: user UAT "es hat resume nicht gegriffen, erst nach 10s gut", 2026-05-14) |
-
-  Plus, off-band: `814620c` server-side `?1006h` re-emit (the SGR fix), `05724ca` Vite WS-proxy hardening (swallow ECONNRESET/ECONNABORTED/EPIPE), `84c014c` cherry-pick of the D-e2e task-type matrix spec.
-
-- **Empirical evidence (Iterate K v8 systematic Playwright probe, 2026-05-14):** Headed probe `client/e2e/probe-iterate-k-scenarios.mjs` ran 10 scenarios (S1–S10) against three live tasks on a Tailscale-attached dev stack. Spies (`WebglAddon.prototype.clearTextureAtlas` + `Terminal.prototype.refresh`) were installed via `page.addInitScript` property-setter accessors on `window.__embeddedTerminal*` so the very first maintenance pass triggered by the mount-effect's snapshot-replay write was captured.
-
-  | Task | State | Critical findings |
-  |---|---|---|
-  | `4a9fe7f2…` Claude /goal | active, alt-screen | S1 post-mount: 1 clear + 58 refresh (mostly `alternate`). S6 idle 25 s: **0 events**. S3 5-wheel-burst: 2 events (debounce coalesced ~5×→2). |
-  | `58be94c5…` Tool Tips 2 | done (replay-only) | 17 176 total events over 62.8 s. **`altClears == 0`** held across ALL 17 176 events — strongest empirical proof of the alt-screen invariant. (Anomalous ~290 refresh/sec rate is pre-existing replay-only WS-reconnect-loop behaviour; not v8-related.) |
-  | `810efeca…` Claude Design | active, alt-screen | S6 idle 25 s: **0 events**. S3 5-wheel: 36 events (33 background + 3 from wheel). S9 single wheel during mouse-capture: 6 events (handler fires through mouse-capture). |
-
-  Cross-task aggregate: `altClears == 0` for every task — the buffer-type-aware split is mechanically airtight.
-
-- **References:**
-  - `xtermjs/xterm.js#5847` (WebGL atlas merge corruption, milestone 7.0) — primary motivator for `clearTextureAtlas` workaround.
-  - `xtermjs/xterm.js#5100` (`rescaleOverlappingGlyphs`) — pre-merge via PR #12.
-  - `xtermjs/xterm.js#5620` (Claude / AI-CLI scrollbar shake) — adjacent symptom class.
-  - `xtermjs/xterm.js#3864` + `#3201` (`onScroll` semantics — content-driven vs user-driven) — direct motivation for v8 DOM wheel listener.
-  - `microsoft/vscode src/vs/workbench/contrib/terminal/browser/xterm/xtermTerminal.ts:600` `forceRedraw` pattern.
-  - `Eugeny/tabby tabby-terminal/src/frontends/xtermFrontend.ts` DOM wheel/keyboard listener pattern (Tabby explicitly dropped `onScroll` for the same reason).
-  - `siteboon/claudecodeui src/components/shell/hooks/useShellTerminal.ts:87-104` reference order-of-init for the addon stack.
-  - `xtermjs/xterm.js demo/client/client.ts:342-354` canonical maintainer demo addon-load-order.
-
-- **Consequences:**
-  - `client/src/components/terminal/EmbeddedTerminal.tsx` (~50 LOC across the v1–v8 evolution, ~25 LOC for the v8 wheel listener including comment block + cleanup + test-handle export).
-  - `server/src/terminal/replay-snapshot.ts` (~10 LOC for the SGR re-emit branch — see `814620c`).
-  - `client/e2e/probe-iterate-k-scenarios.mjs` (NEW, ~280 LOC) — Playwright headed probe; spies are pre-installed via `addInitScript` accessors to catch the very first mount-driven maintenance fire.
-  - `client/playwright-report/iterate-k-v8/` (probe artefacts: per-task `atlas-log.json` + screenshots + `results.json`).
-  - 40/40 client terminal tests green (no behavioural test re-baseline required — the maintenance pass remains transparent to assertion surfaces; `__embeddedTerminalWebglAddon` test-handle export is single-property mirror of the existing `__embeddedTerminal` pattern).
-  - 944/944 server tests green.
-  - User-visible cadence: ~6 micro-flickers per minute during active Claude streaming (atlas rebuild flash on each maintenance pass), zero flicker when idle, additional fire-on-wheel when the user scrolls during streaming.
-  - Smearing / ghosting / cursor-stale reduced from "visibly persistent until manual remount" to "max 10 s window during streaming, immediately resolved on scroll".
-
-- **Rejected alternatives:**
-  1. **Wait for xterm 7.0 to land the upstream fix.** Rejected: open issue with no announced release date; user-visible regression cannot be blocked on upstream cadence.
-  2. **Use `term.onScroll` exclusively for user-wheel detection.** Rejected: `xtermjs/xterm.js#3864` + `#3201` document that `onScroll` fires only for content-driven scroll. Tabby dropped this approach for the same reason (`xtermFrontend.ts` linked above).
-  3. **Patch xterm.js fork to clear atlas on every write-batch.** Rejected: forking the renderer breaks the npm-pinned matched-set contract from ADR-097 (client + server xterm versions must agree byte-for-byte through the snapshot envelope) and would need re-validation on every upstream release.
-  4. **Listen to `keydown` for PgUp/PgDn/Shift+Home in v8.** Lower priority — most users scroll with wheel, and the atlas-corruption symptom is most visible on wheel-driven scroll specifically. Open for a follow-up if accessibility feedback surfaces it. (Tabby's pattern does include keyboard; we deliberately scoped this iterate to wheel.)
-  5. **Drive atlas-maintenance from a single high-frequency `requestAnimationFrame` polling loop.** Rejected: would re-introduce the v1–v2 idle-flicker problem the conditional gate just eliminated.
-
-- **Falsifiability:** ADR-099 is falsified if (a) xterm.js 7.0 ships with `#5847` fixed AND `@xterm/addon-serialize` 0.15+ ships with mouse-encoding round-trip support, AND (b) a real-Claude UAT with all atlas-maintenance triggers DISABLED (commenting out the `if (webglRef)` block in `EmbeddedTerminal.tsx`) shows zero smearing over a 30 min Claude session AND wheel-after-detach correctly forwards to Claude. At that point the workaround should be deleted, the test-handle exports rolled back to just `__embeddedTerminal`, and ADR-099 marked Superseded by the upstream-only path.
-
-- **External Plan Review / Code Review Cascade / Confidence Calibration / F0.5 Surface Verification:** Iterate K is the user-driven UAT-loop branch (`codex-rescue-altscreen-rendering`); the Shipwright iterate-orchestrator phase gates were not entered. Empirical anchor is the systematic Playwright probe documented in "Empirical evidence" above (per-task `atlas-log.json` artefacts committed to `client/playwright-report/iterate-k-v8/`). User UAT post-merge confirms visual cadence.
-
-- **Files modified:** `client/src/components/terminal/EmbeddedTerminal.tsx` (v8 wheel listener + WebGL-addon test-handle export, ~30 LOC), `client/e2e/probe-iterate-k-scenarios.mjs` (NEW, ~280 LOC), `client/e2e/probe-resume-flow.mjs` (NEW earlier on this branch — preserved as the manual probe), `.shipwright/agent_docs/decision_log.md` (this ADR-099 entry), `CHANGELOG.md` (1 `Fixed` bullet — Iterate K consolidated).
-
-- **Empirical-validation-attempt block (post-v8 UAT, 2026-05-14):** After the v8 commit (`f07a66d`), we attempted a SECOND empirical validation pass targeting the visual outcome specifically (rather than the control-flow assertions covered by `probe-iterate-k-scenarios.mjs`). Two probe scripts were authored:
-
-  1. `client/e2e/probe-iterate-k-smearing-ab.mjs` — synthetic Claude-shaped stress (256-color glyphs + cursor-rights, written via `term.write()` directly), screenshots of matched OFF/ON pairs at t=5/15/30/45/60s + post-wheel. Required adding a probe-only query-param kill switch `?atlasMaintenance=off` to `EmbeddedTerminal.tsx` to short-circuit the entire `if (webglRef)` block.
-  2. `client/e2e/probe-iterate-k-smearing-video.mjs` — real-pty version of the same A/B: fresh task per trial (via `POST /api/external/tasks` + cleanup `DELETE`), pwsh `[Console]::Write` 256-color colorblast typed into the embedded terminal pane (real WS → real pty → real xterm WebGL renderer), `recordVideo` enabled (Playwright .webm), 40 s sustained streaming, captures at t=3/8/15/22/30/38 + post-stress + post-wheel.
-
-  **What the empirical attempt validated** ✓:
-    - Kill switch correctly gates the entire maintenance block (OFF: 0 maintenance events / ON: 36 events over 40 s on the video probe, 5 clearTextureAtlas + 5 refresh + 28 lower-level events — exactly the expected 10 s periodic + post-mount-settle backstop cadence for active streaming).
-    - Workaround actively affects WebGL pixel output (matched-pair SHA-256 hashes DIFFER for mid-stream captures on both probes).
-    - v8 wheel listener fires through Claude's mouse capture (observed on `task-claude-design` S9: 6 events from a single wheel during alt-screen mouse-capture mode).
-    - Alt-screen invariant (`altClears == 0`) holds across **17 176** captured events on the scenarios probe — strongest mechanical proof of the v5 buffer-type-aware split.
-    - The documented mid-clear flash (ADR-099 § Consequences, "~6 micro-flickers per minute during active Claude streaming") is REAL and reproducible: the stills A/B probe captured `task-claude-goal` ON @ t=5 mid-clear with a near-empty canvas while OFF showed the rendered content intact.
-
-  **What the empirical attempt did NOT validate** ✗:
-    - Visible smearing reduction in stills. With workaround OFF on the video probe, 40 s of sustained synthetic per-cell color streaming renders just as cleanly as ON — no visible smearing accumulates in the OFF stills despite zero maintenance fires.
-    - Visible smearing reduction in video. The .webm captures both showed similar flickering patterns and similar (low) scroll motion. The synthetic pwsh stream does not appear to reproduce the Claude-TUI-specific cell-update churn that produces user-reported "Verschmierungen" in real-Claude sessions.
-
-  **Honest interpretation:** The bug (xterm.js#5847) likely requires real Claude's specific cell-update churn pattern (color → text overwrite → cursor-jump → re-color → cursor-jump-back, at the rate Claude's renderer emits frames) to manifest in a way that matches the user-reported symptoms. Naive per-cell color emit + cursor-right — even though it matches the ADR-099 § Context description of the trigger shape — does not reproduce the visible bug.
-
-  **Net empirical position for the PR:**
-
-  | Claim | Status |
-  |---|---|
-  | Kill switch correctly gates the entire maintenance block | ✅ proven |
-  | Workaround actively affects WebGL pixel output | ✅ proven |
-  | ON variant introduces visible mid-clear flicker | ✅ proven (documented trade-off; user-acceptable per ADR consequences) |
-  | Alt-screen invariant `altClears == 0` | ✅ proven across 17 176 events |
-  | Visible smearing reduction in synthetic stress | ❌ could not be reproduced |
-  | Visible smearing reduction on real Claude streams | ⚠️ rests on the v1–v7 user UAT history (chronological commit log on this branch); NOT re-validated in this session |
-
-  **Decision:** ship v8 with the kill switch + both probe scripts committed as **regression infrastructure** rather than positive empirical proof. The kill switch (URL param `?atlasMaintenance=off`) is permanent source-level scaffolding for any future post-merge UAT or xterm.js version-bump re-validation. The v1–v7 commit history on this branch (with its embedded user-UAT-driven iteration: "v4: smearing primary fix lief", "v5: stale cursor blieb in alt-screen", "v7: Resume nach reload getestet") IS the load-bearing visual validation for the workaround as a whole; v8 is mechanically the same maintenance pass routed through one additional trigger (DOM wheel) supported by Tabby + xterm.js#3864/#3201 reference patterns.
-
-  **If smearing returns post-merge:** open the affected task in two tabs with `?atlasMaintenance=off` and `?atlasMaintenance=on`, compare visually. Re-run `client/e2e/probe-iterate-k-smearing-video.mjs` with a Claude-launching stress instead of the pwsh colorblast (the scaffolding supports this — only the `keyboard.type(colorBlast)` call needs to be replaced by the auto-launch CTA click + a follow-up prompt-keystroke sequence).
+- **Context:** Two upstream bugs in the xterm.js 6.0 stack manifested on sustained Claude TUI sessions: (1) `xtermjs/xterm.js#5847` — WebGL texture-atlas merge corruption under sustained per-cell color-attribute streaming → visible smearing / ghosting / glyph substitution; (2) `@xterm/addon-serialize` 0.14.0 — mouse-encoding modes (`?1006h` / `?1000h` / `?1002h`) not serialized, so post-attach mouse-wheel events scroll a frozen historical buffer instead of being forwarded to Claude.
+- **Decision:** (Server, retained) `buildReplaySnapshotEnvelope` re-emits the SGR mouse modes at the end of the serialized payload. (Client, deleted by ADR-108) `safeAtlasMaintenance()` runs `clearTextureAtlas + refresh` (main buffer) or `refresh`-only (alt-screen), driven by SEVEN triggers: 10 s gated periodic + `term.onScroll` + `term.onWriteParsed` burst-after-2-s-quiet + post-mount settle (+3 s) + DOM `wheel` listener (150 ms debounce; v8) + post-launch-settle (+4 s; v9). WebGL addon loaded BEFORE `term.open()` (`PR #12`) with `rescaleOverlappingGlyphs: true`.
+- **Commit:** PENDING_F6
+- **Rationale:** xterm 7 upstream fix has no announced date; user-visible regression cannot block on upstream. Renderer-fork option breaks the snapshot version-pin contract. `onScroll` covers content-driven scroll only (xterm.js#3864/#3201); DOM `wheel` covers user-driven scroll under mouse-capture. Buffer-type split avoids alt-screen heavy-flicker (Iterate K v3→v4 finding).
+- **Consequences:** ~6 micro-flickers/min during active Claude streaming, zero flicker idle, additional fire-on-wheel. 40/40 client tests + 944/944 server. Probe artifacts committed to `client/playwright-report/iterate-k-v8/`. **Empirical-validation-attempt result:** kill-switch gating + WebGL pixel-output effect + alt-screen invariant `altClears == 0` over 17 176 events ALL proven; visible smearing reduction in synthetic stress NOT reproduced (real-Claude cell-update churn pattern required, not naive per-cell color emit).
+- **Rejected:** Wait for xterm 7 (no date); `onScroll` exclusively (content-driven only); xterm fork (breaks pin contract); add keydown listener (lower priority than wheel); rAF polling (re-introduces idle flicker).
+- **Details:** [`.shipwright/planning/adr/099-xterm6-webgl-atlas-workaround.md`](../planning/adr/099-xterm6-webgl-atlas-workaround.md) — full eight-revision evolution table, Empirical-validation-attempt block (validated/not-validated/honest-interpretation), 10-scenario Playwright probe matrix, all upstream issue references, Files modified.
 
 
 ---

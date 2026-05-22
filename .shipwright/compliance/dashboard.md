@@ -15,7 +15,7 @@ Scope: full_app
 | Iterate tests passing | 58/61 iterations tested | WARN | 3 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 55 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 0 open | PASS |  |
+| Triage open | 3 open | WARN | 3 actionable item(s) — see ../agent_docs/triage_inbox.md |
 
 ## Project Velocity
 
