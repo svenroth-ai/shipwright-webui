@@ -817,4 +817,27 @@ if (isMainModule) {
 
 app.use("/*", serveStatic({ root: config.staticDir }));
 
+// SPA fallback (iterate-2026-05-22-spa-fallback).
+// Any GET that did not match a real handler or a static asset under
+// `client/dist/` is served the SPA shell (`client/dist/index.html`) so
+// react-router-dom can hydrate the requested route client-side. This
+// fixes hard-reload of /triage, /inbox, /tasks/:id, /projects,
+// /diagnostics, /settings — which previously hit `app.notFound` and
+// returned `{"error":"Not found"}`.
+//
+// /api/* keeps its JSON-404 contract: the fallback `next()`s through
+// to `app.notFound` so any unknown REST route still surfaces as a
+// real 404 instead of an HTML body the client would fail to parse.
+app.get("*", async (c, next) => {
+  if (c.req.path.startsWith("/api/")) {
+    return next();
+  }
+  try {
+    const html = await readFile(`${config.staticDir}/index.html`, "utf-8");
+    return c.html(html);
+  } catch {
+    return next();
+  }
+});
+
 app.notFound((c) => c.json({ error: "Not found" }, 404));
