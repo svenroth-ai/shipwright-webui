@@ -31,6 +31,13 @@ export function isSecuritySource(item: TriageItem): boolean {
 
 export interface FixNowIntent {
   action: ActionDefinition;
+  // iterate-2026-05-22-triage-fix-now-project-preselect — the project
+  // the triage item belongs to. Threaded through the intent so the
+  // parent (TriagePage) can pre-select it in the spawned NewIssueModal.
+  // Before this iterate the project was silently dropped; the modal
+  // fell back to realProjects[0] / sidebar filter and the user had to
+  // re-pick it manually.
+  projectId: string;
   initialTitle: string;
   initialDescription: string;
   initialPhaseId?: string;
@@ -52,6 +59,7 @@ export type FixNowResolution =
 export function buildFixNowIntent(
   item: TriageItem,
   catalog: ResolvedProjectActions | undefined,
+  projectId: string,
 ): FixNowResolution {
   if (!catalog) {
     return {
@@ -73,6 +81,7 @@ export function buildFixNowIntent(
     kind: "ok",
     intent: {
       action,
+      projectId,
       initialTitle: `Fix for ${item.title}`,
       initialDescription: item.detail,
       initialPhaseId: isSecurity ? "security" : undefined,

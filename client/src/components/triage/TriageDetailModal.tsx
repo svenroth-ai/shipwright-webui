@@ -76,7 +76,7 @@ export function TriageDetailModal({
       setFixNowFailure("Fix-now handler not wired on this page.");
       return;
     }
-    const result = buildFixNowIntent(item, projectActions.data);
+    const result = buildFixNowIntent(item, projectActions.data, projectId);
     if (result.kind === "failed") {
       setFixNowFailure(result.message);
       return;

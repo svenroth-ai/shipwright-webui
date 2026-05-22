@@ -114,6 +114,17 @@ export interface NewIssueModalProps {
   initialPhaseId?: string;
   initialPriority?: "P0" | "P1" | "P2" | "P3";
   initialDomain?: string;
+  /**
+   * iterate-2026-05-22-triage-fix-now-project-preselect — explicit
+   * project pre-fill. When set, the modal seeds `selectedProjectId` to
+   * this value on open and IGNORES `useProjectFilter()`'s sidebar
+   * scope. The Triage Fix-now flow uses this so the spawned modal
+   * always lands on the triage item's project, regardless of which
+   * project the sidebar is currently filtered to. Callsites that omit
+   * the prop keep the prior fallback chain
+   * (`scopedProject → realProjects[0]`).
+   */
+  initialProjectId?: string;
 }
 
 type SubmitAction = "save" | "launch";
@@ -213,6 +224,7 @@ export function NewIssueModal({
   initialPhaseId,
   initialPriority,
   initialDomain,
+  initialProjectId,
 }: NewIssueModalProps) {
   const navigate = useNavigate();
   const { activeProjectId } = useProjectFilter();
@@ -243,15 +255,22 @@ export function NewIssueModal({
     [projects],
   );
   const scopedProject: Project | undefined = useMemo(() => {
+    // iterate-2026-05-22-triage-fix-now-project-preselect — an explicit
+    // `initialProjectId` from the callsite (e.g. Triage Fix-now) always
+    // wins over the sidebar filter. Show the dropdown with the right
+    // project pre-selected; the user can still change it. Falling
+    // through to the strip would silently swap to the sidebar-filter
+    // project (the original bug).
+    if (initialProjectId) return undefined;
     if (!activeProjectId || activeProjectId === UNASSIGNED_PROJECT_ID) return undefined;
     return realProjects.find((p) => p.id === activeProjectId);
-  }, [activeProjectId, realProjects]);
+  }, [initialProjectId, activeProjectId, realProjects]);
 
   // Controlled form state, reset on modal open.
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>(
-    scopedProject?.id ?? realProjects[0]?.id ?? "",
+    initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
   );
   const [autonomy, setAutonomy] = useState<AutonomyValue>(
     projectActions?.defaults.autonomy ?? "guided",
@@ -316,7 +335,10 @@ export function NewIssueModal({
   const resetCtxRef = useRef<{
     autonomy: AutonomyValue;
     firstPhaseId: string;
-    initialProjectId: string;
+    // The seed for `selectedProjectId` when the modal opens. Carries the
+    // callsite's `initialProjectId` (Triage Fix-now sets this), otherwise
+    // falls back to the sidebar-scoped project, otherwise realProjects[0].
+    seedProjectId: string;
     // iterate-2026-05-21-triage-fix-now-and-phase-slash — read pre-fill
     // through the same ref so a callsite re-render with a new prop
     // identity doesn't re-trigger the reset effect (e.g. parent
@@ -329,7 +351,8 @@ export function NewIssueModal({
   }>({
     autonomy: projectActions?.defaults.autonomy ?? "guided",
     firstPhaseId: phases[0]?.id ?? "",
-    initialProjectId: scopedProject?.id ?? realProjects[0]?.id ?? "",
+    seedProjectId:
+      initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
     initialTitle,
     initialDescription,
     initialPhaseId,
@@ -339,7 +362,8 @@ export function NewIssueModal({
   resetCtxRef.current = {
     autonomy: projectActions?.defaults.autonomy ?? "guided",
     firstPhaseId: phases[0]?.id ?? "",
-    initialProjectId: scopedProject?.id ?? realProjects[0]?.id ?? "",
+    seedProjectId:
+      initialProjectId ?? scopedProject?.id ?? realProjects[0]?.id ?? "",
     initialTitle,
     initialDescription,
     initialPhaseId,
@@ -361,7 +385,7 @@ export function NewIssueModal({
     setDetectedTrigger(null);
     setAutonomy(ctx.autonomy);
     setPhaseId(ctx.initialPhaseId ?? ctx.firstPhaseId);
-    setSelectedProjectId(ctx.initialProjectId);
+    setSelectedProjectId(ctx.seedProjectId);
     // iterate/launch-cli-parameters § 4 — full reset of Advanced state.
     setAdvancedOpen(false);
     setParamValues({});

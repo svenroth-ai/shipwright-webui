@@ -91,6 +91,7 @@ describe("buildFixNowIntent", () => {
         suggestedDomain: "engineering",
       }),
       catalog,
+      "proj-test",
     );
     expect(result.kind).toBe("ok");
     if (result.kind !== "ok") return;
@@ -113,6 +114,7 @@ describe("buildFixNowIntent", () => {
         suggestedDomain: "platform",
       }),
       catalog,
+      "proj-test",
     );
     expect(result.kind).toBe("ok");
     if (result.kind !== "ok") return;
@@ -127,6 +129,7 @@ describe("buildFixNowIntent", () => {
     const result = buildFixNowIntent(
       makeItem({ source: "github" }),
       undefined,
+      "proj-test",
     );
     expect(result.kind).toBe("failed");
     if (result.kind !== "failed") return;
@@ -141,9 +144,37 @@ describe("buildFixNowIntent", () => {
     const result = buildFixNowIntent(
       makeItem({ source: "github" }),
       partialCatalog,
+      "proj-test",
     );
     expect(result.kind).toBe("failed");
     if (result.kind !== "failed") return;
     expect(result.message).toContain("new-task");
+  });
+
+  // iterate-2026-05-22-triage-fix-now-project-preselect — the project the
+  // triage item belongs to MUST round-trip through the intent so the
+  // parent (TriagePage) can pre-select the right project in the spawned
+  // NewIssueModal. Before this iterate the project was silently dropped
+  // and the modal fell back to realProjects[0] / sidebar filter.
+  it("intent carries projectId so the modal pre-selects the right project (github source)", () => {
+    const result = buildFixNowIntent(
+      makeItem({ source: "github" }),
+      catalog,
+      "proj-zzz",
+    );
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
+    expect(result.intent.projectId).toBe("proj-zzz");
+  });
+
+  it("intent carries projectId for non-github sources too (new-iterate route)", () => {
+    const result = buildFixNowIntent(
+      makeItem({ source: "iterate" }),
+      catalog,
+      "proj-abc",
+    );
+    expect(result.kind).toBe("ok");
+    if (result.kind !== "ok") return;
+    expect(result.intent.projectId).toBe("proj-abc");
   });
 });

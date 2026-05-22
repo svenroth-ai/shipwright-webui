@@ -1235,3 +1235,58 @@ describe("NewIssueModal — lead-foundation inputs (iterate-2026-05-14)", () => 
     });
   });
 });
+
+describe("NewIssueModal — initialProjectId pre-fill (iterate-2026-05-22)", () => {
+  // Bug 2026-05-22: Triage Fix-now opened NewIssueModal with everything
+  // pre-filled EXCEPT the project — the modal fell back to
+  // realProjects[0] / sidebar filter because no `initialProjectId` prop
+  // existed. These tests pin the new prop's behavior so the bug can't
+  // silently regress.
+
+  const PROJECTS_MULTI = [
+    {
+      id: "proj-aaa",
+      name: "aaa-first-alphabetical",
+      path: "/tmp/aaa",
+      profile: "vite-hono",
+      status: "active",
+      createdAt: "2026-04-01",
+      lastActive: "2026-04-20",
+    },
+    {
+      id: "proj-zzz",
+      name: "zzz-target",
+      path: "/tmp/zzz",
+      profile: "vite-hono",
+      status: "active",
+      createdAt: "2026-04-01",
+      lastActive: "2026-04-20",
+    },
+  ];
+
+  it("initialProjectId pre-selects that project in the dropdown (overrides realProjects[0] fallback)", async () => {
+    renderModal({
+      projectsOverride: PROJECTS_MULTI,
+      initialProjectId: "proj-zzz",
+    });
+    await waitFor(() => {
+      const sel = screen.getByTestId(
+        "new-issue-project-select",
+      ) as HTMLSelectElement;
+      expect(sel.value).toBe("proj-zzz");
+    });
+  });
+
+  it("absent initialProjectId keeps existing default-to-first-project behavior (regression guard)", async () => {
+    renderModal({
+      projectsOverride: PROJECTS_MULTI,
+      // No initialProjectId.
+    });
+    await waitFor(() => {
+      const sel = screen.getByTestId(
+        "new-issue-project-select",
+      ) as HTMLSelectElement;
+      expect(sel.value).toBe("proj-aaa");
+    });
+  });
+});
