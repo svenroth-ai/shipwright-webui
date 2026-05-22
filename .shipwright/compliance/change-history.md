@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-05-21T06:28:54Z
-Total commits: 391
+Generated: 2026-05-22T12:48:42.323451+00:00
+Total commits: 395
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 159
-    "feat" : 115
+    "fix" : 160
+    "feat" : 116
     "chore" : 59
-    "docs" : 32
+    "docs" : 34
     "refactor" : 13
     "test" : 8
     "other" : 4
@@ -19,10 +19,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 159 commits
+### Fixes (fix) — 160 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-21 | terminal | stop replay-only WS reconnect loop on closed tasks | 1f7c809f7480 |
 | 2026-05-19 | inbox | tighten card-internal top padding | e87f55812886 |
 | 2026-05-19 | triage | assign new-iterate actionId on promote so launch injects the brief | 6e6d24a58cf3 |
 | 2026-05-19 | launch | flatten newlines in task descriptions instead of rejecting them | da9e63b403a1 |
@@ -183,10 +184,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 115 commits
+### Features (feat) — 116 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-21 | triage | Fix-now opens NewIssueModal; namespace 4 phase slashes | aa1788c876ac |
 | 2026-05-20 | triage | render launchPayload + Fix-now copy CTA (iterate B) | 290263e9e694 |
 | 2026-05-19 | inbox | render markdown in text_question cards + fade-clip long bodies | ada164667377 |
 | 2026-05-19 | inbox | surface waiting terminal pickers + focus terminal on Inbox click | 44c191400745 |
@@ -367,10 +369,12 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 32 commits
+### Documentation (docs) — 34 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-21 | spec | update FR-01.30 ACs for Fix-now NewIssueModal rewire | 4ca5be24c2bf |
+| 2026-05-21 | test-status | record Phase 0d FAIL-row dismissals (webui) (#50) | de956bce683e |
 | 2026-05-21 | claude-md | strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49) | c8a28d1b48e1 |
 | 2026-05-21 | adr | slim down ADR-087/088 + extract details to planning/adr spec files (Phase 0c) (#47) | c9b662b832c1 |
 | 2026-05-20 | adr | add Part I + Part II banners to decision_log | 63859305cb73 |
@@ -454,7 +458,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 391 |
+| Total commits | 395 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 391 |
+| Human-authored commits | 395 |
 

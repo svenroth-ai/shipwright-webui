@@ -1,27 +1,26 @@
 # Compliance Dashboard
 
-Generated: 2026-05-21T06:28:54Z
+Generated: 2026-05-22T12:48:42.323451+00:00
 Profile: vite-hono
 Scope: full_app
 
 ## Quality Indicators
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Pipeline phases completed | 3/7 | WARN |
-| Work events (build) | 0 sections | WARN |
-| Work events (iterate) | 54 changes | INFO |
-| All unit tests passing | 2189/2189 | PASS |
-| All sections reviewed | 0/0 | WARN |
-| Architecture decisions | 113 ADRs | INFO |
-| Iterate tests passing | 53/54 iterations tested | WARN |
-| Dependencies | 0 packages | INFO |
-| Copyleft risk | 0 | PASS |
+| Metric | Value | Status | Why warn? |
+|--------|-------|--------|-----------|
+| Pipeline phases completed | n/a (adopted) | INFO |  |
+| Work events (iterate) | 61 changes | INFO |  |
+| All unit tests passing | 2198/2198 | PASS |  |
+| Architecture decisions | 113 ADRs | INFO |  |
+| Iterate tests passing | 58/61 iterations tested | WARN | 3 iterate(s) without tests — see test-evidence.md |
+| Dependencies | 55 packages | INFO |  |
+| Copyleft risk | 0 | PASS |  |
+| Triage open | 0 open | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 54 changes (2026-05-01 → 2026-05-20)
-- Last activity: 2026-05-20
+- Iterate: 61 changes (2026-05-01 → 2026-05-22)
+- Last activity: 2026-05-22
 
 ## External LLM Review Evidence
 
