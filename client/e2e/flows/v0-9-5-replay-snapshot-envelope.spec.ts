@@ -408,6 +408,83 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
     }
   });
 
+  test("AC-6 (iterate-2026-05-21-fix-terminal-flicker-on-closed-task): replay-only attach does NOT trigger a reconnect storm — count of authoritative WS attaches stays bounded", async ({
+    page,
+  }) => {
+    // Regression for the "terminal flickers when going back to a closed task"
+    // bug. Pre-fix: server closes the replay-only WS with code 1000, client
+    // unconditionally `scheduleReconnect()`s, attemptsRef resets to 0 on
+    // every successful open → infinite reconnect loop, each reconnect
+    // replays the snapshot → visible blank-then-repaint flicker every
+    // ~200 ms. Post-fix: gated on `replayOnlyRef.current === true &&
+    // closeCode === 1000`, no reconnect.
+    test.setTimeout(30_000);
+
+    const tasks = await listTasks(page);
+    const target = tasks.find(
+      (t) => t.state === "done" || t.state === "launch_failed",
+    );
+    test.skip(
+      !target,
+      "No done/launch_failed task in session — flicker regression requires a terminal-state task as fixture.",
+    );
+
+    const MARKER = "ITERATE-FLICKER-FIX-AC6-MARKER";
+    await writeSnapshotFor(target!.taskId, 80, 24, MARKER);
+    try {
+      const capture = attachWsCapture(page);
+      await page.goto(`/tasks/${target!.taskId}`, {
+        waitUntil: "domcontentloaded",
+        timeout: 20_000,
+      });
+      const terminalTab = page.getByRole("tab", { name: /terminal/i });
+      if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await terminalTab.click();
+      }
+      // Wait long enough for the FIRST reconnect-backoff window (200 ms)
+      // PLUS several additional cycles. Pre-fix this window contained
+      // multiple authoritative WS attaches; post-fix it contains exactly
+      // one. 4 s is comfortably > 200 ms + 400 + 800 + 1600 = 3 s of
+      // potential backoff cascade.
+      await page.waitForTimeout(4_000);
+
+      const authoritative = capture.filter(
+        (c) =>
+          c.url.includes(`/api/terminal/${target!.taskId}/ws`) &&
+          c.envelopes.length > 0,
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `[iterate-flicker-fix AC-6] authoritative-ws-count=${authoritative.length} ` +
+          `urls=${JSON.stringify(authoritative.map((a) => a.url))}`,
+      );
+
+      // STRICT: exactly one authoritative WS per visit. Pre-fix this
+      // would be many (memory: decision_log calls out "~290 refresh/sec").
+      // Bound is `<= 2` to be tolerant of React.StrictMode dev
+      // double-mount where mount-1 transiently opens a WS and gets
+      // close-on-replay-only before mount-2 takes over — both could
+      // legitimately register envelopes. Anything beyond 2 indicates
+      // the reconnect loop has re-emerged.
+      expect(authoritative.length, "no reconnect storm").toBeLessThanOrEqual(2);
+
+      // The winning capture got the replay_snapshot envelope exactly
+      // once (per-WS guarantee from the server contract). With the bug,
+      // the same capture object wouldn't see multiple snapshots — each
+      // reconnect creates a NEW capture entry — so the per-WS count is
+      // still 1; the reconnect storm shows up only as elevated capture
+      // count. Both invariants together (capture count + per-WS count)
+      // confirm exactly-one snapshot replay per visit.
+      const winning = authoritative[authoritative.length - 1];
+      const snapshotCount = winning.envelopes.filter(
+        (e) => e.type === "replay_snapshot",
+      ).length;
+      expect(snapshotCount, "exactly one snapshot per WS").toBe(1);
+    } finally {
+      await removeSnapshotFor(target!.taskId);
+    }
+  });
+
   test("AC-5: completed-task replay-only path emits replay_snapshot AND server closes the WS cleanly", async ({
     page,
   }) => {

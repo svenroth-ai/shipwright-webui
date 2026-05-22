@@ -200,6 +200,14 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
+  // Mirror of `replayOnly` from the most-recent `ready` envelope, read by
+  // the close handler. A replay-only attach is one-shot by design: server
+  // sends `ready` + `replay_snapshot`, then closes the WS with code 1000.
+  // Without this signal the close handler unconditionally reconnects,
+  // looping the snapshot replay every ~200 ms (attemptsRef resets to 0 on
+  // every successful open) — visible to the user as a terminal flicker
+  // because each replay does `term.reset()` + `term.write(snapshot)`.
+  const replayOnlyRef = useRef<boolean | null>(null);
 
   const send = useCallback(
     (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => {
@@ -226,8 +234,10 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setTerminalReset(null);
       setPtyReused(null);
       setOpen(false);
+      replayOnlyRef.current = null;
       return;
     }
+    replayOnlyRef.current = null;
     // Per-effect-instance cancelled flag (NOT a shared useRef). Each
     // mount of the effect captures its own `cancelled` in its closures
     // — so a stale close-handler from a previously-unmounted effect
@@ -240,6 +250,13 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
 
     const connect = () => {
       if (cancelled) return;
+      // External-review defense-in-depth (openai medium #1): every fresh
+      // WebSocket attempt — first connect or reconnect — starts with a
+      // clean replay-only ref. The close handler already nulls the ref
+      // after every close, so this is belt-and-braces against any future
+      // path that creates a socket without going through close-then-
+      // schedule-reconnect.
+      replayOnlyRef.current = null;
       const url = urlOverride ?? defaultUrl(taskId);
       let ws: WebSocket;
       try {
@@ -277,7 +294,10 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           // envelope fields. `replayOnly` defaults to false to match the
           // pre-v0.8.2 server behavior; the bytes/retention fields stay
           // null when absent so the page layer can opt-out cleanly.
-          setReplayOnly(typeof env.replayOnly === "boolean" ? env.replayOnly : false);
+          const nextReplayOnly =
+            typeof env.replayOnly === "boolean" ? env.replayOnly : false;
+          setReplayOnly(nextReplayOnly);
+          replayOnlyRef.current = nextReplayOnly;
           setScrollbackBytes(
             typeof env.scrollbackBytes === "number" && env.scrollbackBytes >= 0
               ? env.scrollbackBytes
@@ -363,7 +383,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           return;
         }
       });
-      ws.addEventListener("close", () => {
+      ws.addEventListener("close", (evt) => {
         // CRITICAL: bail out if this effect-instance was cleaned up.
         // Without this, a stale handler from a previously-unmounted
         // effect would still drive socketRef + scheduleReconnect.
@@ -371,6 +391,30 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         setOpen(false);
         setReady(false);
         socketRef.current = null;
+        // Replay-only attaches are one-shot by server contract: after
+        // delivering `ready` + `replay_snapshot` the server closes the
+        // WS with code 1000 (server/src/terminal/routes.ts replay-only
+        // branch). Reconnecting just replays the same snapshot again,
+        // and each replay does term.reset() + term.write(snapshot) —
+        // the user sees a perpetual blank-then-repaint flicker because
+        // attemptsRef resets to 0 on every successful open. Skip
+        // reconnect for that case; abnormal closes (code !== 1000) still
+        // reconnect so a server crash mid-replay can recover.
+        //
+        // NOTE (external-review openai medium #5): this is intentionally
+        // narrow and is NOT a general "don't reconnect on code 1000"
+        // policy — a clean close of a LIVE attach (server graceful
+        // shutdown / restart) still reconnects, because `replayOnlyRef`
+        // is `false` for that case. Do NOT broaden to "any 1000 close"
+        // — that would also suppress reconnect on graceful server
+        // restarts, which is regression-equivalent to the original bug
+        // for live sessions.
+        const closeCode =
+          (evt as { code?: number } | undefined)?.code;
+        const wasReplayOnlyClean =
+          replayOnlyRef.current === true && closeCode === 1000;
+        replayOnlyRef.current = null;
+        if (wasReplayOnlyClean) return;
         scheduleReconnect();
       });
       ws.addEventListener("error", () => {
@@ -417,6 +461,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setTerminalReset(null);
       setPtyReused(null);
       setOpen(false);
+      replayOnlyRef.current = null;
     };
   }, [enabled, taskId, urlOverride]);
 
