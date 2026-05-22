@@ -11,11 +11,11 @@ Scope: full_app
 | Pipeline phases completed | n/a (adopted) | INFO |  |
 | Work events (iterate) | 62 changes | INFO |  |
 | All unit tests passing | 0/0 | WARN | no test events recorded yet |
-| Architecture decisions | 113 ADRs | INFO |  |
+| Architecture decisions | 119 ADRs | INFO |  |
 | Iterate tests passing | 58/62 iterations tested | WARN | 4 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 55 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 8 open | WARN | 8 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Triage open | 0 open | PASS |  |
 
 ## Project Velocity
 

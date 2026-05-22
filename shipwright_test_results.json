@@ -1,26 +1,28 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-22-compliance-hygiene-phase-0f",
-    "date": "2026-05-22",
+    "run_id": "iterate-2026-05-23-terminal-selection-uxd",
+    "date": "2026-05-23",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 64,
+      "total": 64,
+      "scope": "client EmbeddedTerminal.test.tsx (full file). Server vitest re-run separately (1174/1174, no diff)."
     },
     "integration": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "pgtap": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1,
+      "total": 1,
+      "scope": "client/e2e/flows/86-terminal-selection.spec.ts — real Chromium against isolated dev stack on :5174 (Hono on :3848, temp USERPROFILE)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -28,19 +30,18 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "degraded": [
-      "docs-only iterate: no source code modified, no test suite re-run; compliance Group F audit detectors are the verification surface (F4/F6/F7 GREEN; F5 will GREEN in main where decision-drops/ exists)"
+      "client/src/test/doc-sync.test.ts — 11 failures pre-existing on origin/main: Phase 0f compliance-hygiene removed file-tree mentions from CLAUDE.md without updating the test's REQUIRED_TOKENS allowlist. NOT introduced by this iterate; tracked as a follow-up doc-sync re-alignment iterate."
     ],
     "surface_verification": {
-      "surface": "none",
-      "runner": "n/a",
+      "surface": "web",
+      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts e2e/flows/86-terminal-selection.spec.ts --reporter=list",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-05-22-compliance-hygiene-phase-0f/surface_verification.json",
-      "timestamp": "2026-05-22T13:00:00Z",
-      "justification": "Docs-only compliance hygiene: F4 ADR extraction + F5 architecture marker + F6/F7 CLAUDE.md slim-down. No code paths, no UI surface, no API surface. Group F audit detectors are the verification; ran GREEN for F4/F6/F7 in worktree."
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-23-terminal-selection-uxd/surface_verification.json",
+      "timestamp": "2026-05-23T01:04:00Z"
     }
   }
 }

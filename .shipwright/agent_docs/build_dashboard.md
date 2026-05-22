@@ -1,5 +1,5 @@
 # Project Activity Dashboard
-> Updated: 2026-05-22 21:15 UTC | Session: unknown | Run: iterate-2026-05-22-compliance-hygiene-phase-0f
+> Updated: 2026-05-22 21:15 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-selection-uxd
 
 ## Recent Changes (62 iterations)
 
@@ -69,7 +69,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-22 | Smoke: not_run | (iterate)
+Last run: 2026-05-23 | Unit: 64/64 | E2E: 1/1 | Smoke: passed | (iterate)
 
 ## Pipeline
 
