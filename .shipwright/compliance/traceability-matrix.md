@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-21T18:22:56.458164+00:00
+Generated: 2026-05-22T12:48:42.323451+00:00
 
 ## Requirements Coverage
 
@@ -35,7 +35,7 @@ Generated: 2026-05-21T18:22:56.458164+00:00
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +24 | 632/632 → 970/970 | 2026-05-18 (iter) | FAIL |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
-| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +3 | 0/0 → 2193/2193 | 2026-05-21 (iter) | FAIL |
+| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 0/0 → 2198/2198 | 2026-05-22 (iter) | FAIL |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 
@@ -172,6 +172,8 @@ Generated: 2026-05-21T18:22:56.458164+00:00
 | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up) | iterate | change | FR-01.30 | 2193/2193 | 4ca5be2 | 2026-05-21 |
 | VERIFICATION: with affected-frs — should pass | iterate | feature | FR-01.01 | — | c502254 | 2026-05-21 |
 | VERIFICATION: bug+change-type — should pass | iterate | bug |  | — | c502254 | 2026-05-21 |
+| SPA fallback for /triage, /inbox & friends (Hono server) | iterate | bug |  | 1174/1174 | 3141866 | 2026-05-22 |
+| triage Fix-now pre-selects the triage item's project in NewIssueModal | iterate | bug | FR-01.30 | 2198/2198 | 32b7320 | 2026-05-22 |
 
 ## Coverage Summary
 
@@ -179,7 +181,7 @@ Generated: 2026-05-21T18:22:56.458164+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 59 |
+| Iterate changes | 61 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
@@ -206,5 +208,5 @@ Generated: 2026-05-21T18:22:56.458164+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 20d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 21d ago by `evt-b81d5d5e` (2026-05-01)
 
