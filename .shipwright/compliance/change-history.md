@@ -1,7 +1,7 @@
 # Commit Change Log
 
 Generated: 2026-05-22T21:15:05.573157+00:00
-Total commits: 402
+Total commits: 403
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 402
 pie title Commit Types
     "fix" : 163
     "feat" : 116
-    "chore" : 62
+    "chore" : 63
     "docs" : 34
     "refactor" : 14
     "test" : 8
@@ -308,10 +308,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 62 commits
+### Chores (chore) — 63 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-22 | release | v0.15.0 | 40280876e2f4 |
 | 2026-05-22 | compliance | regen bookkeeping after rebase onto #51+#54 | dc791000d709 |
 | 2026-05-22 | compliance | regen change-history after PR #54 landed on main | 373a4ac36080 |
 | 2026-05-22 | compliance | regen post-rebase to include PR #52 in change-history | a8dfe27c8060 |
@@ -465,7 +466,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 402 |
+| Total commits | 403 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 402 |
+| Human-authored commits | 403 |
 
