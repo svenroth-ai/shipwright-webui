@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-22 12:48 UTC | Session: 519629fa-9459-4b6b-859f-64107e250380 | Run: iterate-2026-05-22-compliance-hygiene-phase-0f
+> Updated: 2026-05-22 21:15 UTC | Session: unknown | Run: iterate-2026-05-22-compliance-hygiene-phase-0f
 
-## Recent Changes (61 iterations)
+## Recent Changes (62 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | compliance documentation hygiene Phase 0f (F4-F7) | 0/0 | f4d52fd | compliance | 2026-05-22 |
 | bug | triage Fix-now pre-selects the triage item's project in NewIssueModal | 2198/2198 | 32b7320 | FR-01.30 | 2026-05-22 |
 | bug | SPA fallback for /triage, /inbox & friends (Hono server) | 1174/1174 | 3141866 | infra | 2026-05-22 |
 | bug | VERIFICATION: bug+change-type — should pass | 0/0 | c502254 | tooling | 2026-05-21 |

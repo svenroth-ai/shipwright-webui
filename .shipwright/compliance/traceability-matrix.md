@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-22T12:48:42.323451+00:00
+Generated: 2026-05-22T21:15:05.573157+00:00
 
 ## Requirements Coverage
 
@@ -174,6 +174,7 @@ Generated: 2026-05-22T12:48:42.323451+00:00
 | VERIFICATION: bug+change-type — should pass | iterate | bug |  | — | c502254 | 2026-05-21 |
 | SPA fallback for /triage, /inbox & friends (Hono server) | iterate | bug |  | 1174/1174 | 3141866 | 2026-05-22 |
 | triage Fix-now pre-selects the triage item's project in NewIssueModal | iterate | bug | FR-01.30 | 2198/2198 | 32b7320 | 2026-05-22 |
+| compliance documentation hygiene Phase 0f (F4-F7) | iterate | change |  | — | f4d52fd | 2026-05-22 |
 
 ## Coverage Summary
 
@@ -181,7 +182,7 @@ Generated: 2026-05-22T12:48:42.323451+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 61 |
+| Iterate changes | 62 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |

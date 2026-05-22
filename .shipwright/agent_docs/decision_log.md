@@ -1955,3 +1955,82 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** vi.hoisted is the only mechanism that runs before a static ESM import; a beforeEach scrub is too late. oxlint chosen over an ESLint flat-config because it needs no config, ran with 0 errors, and CI already referenced it ad-hoc.
 - **Consequences:** 'npm run lint' works in both halves (exit 0; 44 pre-existing warnings, 0 errors). CI lint is now a deterministic locked-version error-gate, replacing 'npx oxlint . || true' + continue-on-error. The CORS test passes regardless of ambient shell env (verified under tailscale / HONO_HOST / clean). 2135 tests green. The 44-warning backlog is deliberately left for a future cleanup iterate.
 - **Rejected:** (i) ESLint flat-config + plugins + clearing the never-linted findings backlog: higher effort, deferred. (iii) Delete the dead lint script and only fix docs: leaves the project with no linter.
+
+---
+
+### ADR-116: Triage Tab gains launchPayload rendering + Fix-now CTA (WebUI counterpart to shipwright Iterate A)
+- **Date:** 2026-05-20
+- **Section:** Iterate — feature: triage-launch-surface-webui
+- **Run-ID:** iterate-2026-05-20-triage-launch-surface-webui
+- **Context:** shipwright iterate-2026-05-20-triage-launch-surface (PR #41, merged 2026-05-20) converted .shipwright/triage.jsonl from a finding-mirror into a launch-surface: every append event now carries an optional launchPayload string (slash command + context + URL) frozen at first write by the producer. The WebUI's Triage Tab needed a GUI counterpart so operators don't drop to triage_cli.py just to see the launch block.
+- **Decision:** Surface launchPayload in TriageDetailModal via a new <LaunchPayloadBlock> (renders <pre><code> for non-empty payloads, a verbatim loud-failure placeholder for source=github items with missing/empty/cleaned-empty payloads, nothing for legacy items). A new Fix-now button copies the cleaned payload via lib/clipboard.copyText. Renderability + copy share a single prepareLaunchPayload helper (single source of truth). The WebUI continues using its TS-side status-event writer (ADR-101/ADR-106); subprocess invocation of triage_cli.py was rejected because launchPayload is only on append events the WebUI never writes, so the existing TS-port parity gate already covers the field.
+- **Commit:** (assigned post-merge)
+- **Rationale:** (1) Iterate A's prompt explicitly endorses copy-paste as the v1 fix-now flow ('autonomous subprocess spawn deferred until the launcher pattern is proven'). (2) WebUI Arch rule 1 forbids spawning Claude — clipboard-copy is the only architecturally clean Fix-now. (3) The TS status-event writer has extensive parity tests + the proper-lockfile/.weblock posture; subprocess invocation would add cross-platform fragility (uv-on-Windows .cmd shim, shipwright-checkout path discovery, subprocess timeout) for zero benefit since launchPayload isn't on the write path. (4) prepareLaunchPayload as a single helper closes external review MED #3/4/11 (renderability SoT, github placeholder fires on CLEANED-empty, copy uses cleaned bytes).
+- **Consequences:** + Operators can copy launch payloads from the WebUI without dropping to CLI.\n+ Github producer regressions surface loudly instead of silently degrading.\n+ Single helper enforces 'rendered text === copied text'.\n+ Cross-workspace TriageItem drift guard added (triage-schema-sync.test.ts) — catches future field additions in either half.\n- WebUI clipboard write is non-secure-context-dependent (httponly Tailscale); inline failure UX surfaces this loud (no silent swallow).
+- **Rejected:** Subprocess invocation of shared/scripts/tools/triage_cli.py: rejected because (a) WebUI doesn't write launchPayload, only reads it, so the parity surface is the resolver (already gated), not the writer; (b) the existing TS writer is the established posture; (c) added cross-platform fragility for no architectural gain. Inject-into-active-Claude-session: rejected because (a) WebUI has no cross-route 'foreground terminal' lookup; (b) Arch rule 1 (WebUI never spawns Claude) extends to mid-session prompt injection. The operator's clipboard + manual paste IS the inject mechanism.
+
+---
+
+### ADR-117: Skip WS reconnect on clean close of a replay-only attach
+- **Date:** 2026-05-21
+- **Section:** Iterate — bug: fix-terminal-flicker-on-closed-task
+- **Run-ID:** iterate-2026-05-21-fix-terminal-flicker-on-closed-task
+- **Context:** Closed tasks (state=done/launch_failed) bypass pty spawn; server sends ready+replay_snapshot then close(1000). Pre-fix the client's close handler always called scheduleReconnect(); attemptsRef resets to 0 on every successful open, so the loop was infinite. Each reconnect replayed the snapshot via term.reset()+term.write(), visible as a ~200ms flicker. Decision log already flagged this as the 'pre-existing replay-only WS-reconnect-loop' (line 2040).
+- **Decision:** Gate the close handler's scheduleReconnect() on (replayOnlyRef.current === true && closeCode === 1000). The ref mirrors the most recent ready.replayOnly value; reset on cleanup, disabled branch, and at the top of every new connect(). Live attaches still reconnect on abnormal closes (1006) or any non-1000 graceful close. The pre-existing cancelled-flag short-circuit handles client-initiated unmount cleanly so the new gate never interferes there.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Client-only gate is narrower than the alternative (holding the WS open server-side) and matches the existing server contract that already says 'replay-only attaches are one-shot'. External review (gemini+openai cold-read via OpenRouter) raised 9 findings; 5 actionable items applied to the diff (defense-in-depth ref reset, narrowing comment, snapshot-callback spy in test, E2E StrictMode-tolerant <=2 assertion, spec wording fix); 4 dismissed with explicit reasoning in the iterate spec.
+- **Consequences:** Client opens exactly one WS per visit to a closed task; snapshot replay runs exactly once. Live attaches unchanged. Stale-server back-compat preserved (missing replayOnly field falls back to false, gate never fires). Mixed-version deploy isn't a risk for this product (Hono serves the client statics — same process).
+- **Rejected:** Server-side: keep the replay-only WS open instead of closing — larger blast radius (idle-WS TTL knob, multi-tab idle accounting, fixtures). Pre-emptive close-code-1000 retry budget — would suppress reconnect after graceful server restarts of LIVE attaches, regression-equivalent for live sessions.
+
+---
+
+### ADR-118: Triage Fix-now opens NewIssueModal (lifted to TriagePage); 4 phase slashes namespaced via :skill suffix
+- **Date:** 2026-05-21
+- **Section:** Iterate — change: Triage Fix-now opens NewIssueModal + phase slash namespace workaround
+- **Run-ID:** iterate-2026-05-21-triage-fix-now-and-phase-slash
+- **Context:** Two coupled changes. (1) The iterate-2026-05-20 Fix-now CTA copied launchPayload to clipboard — only renderable for github-source items with a producer payload, dead-end for everything else. (2) Four Claude Code skill resolutions empirically fail in the bare form (Sven 2026-05-21): /shipwright-plan, /shipwright-test, /shipwright-security, /shipwright-run. Upstream plugin-name alignment attempted multiple times, no luck — workaround in webui.
+- **Decision:** (1) Fix-now button now renders on every status==='triage' item. Click builds a FixNowIntent via core/triage/fixNowIntent.buildFixNowIntent (source==='github' → new-task+phase=security, else → new-iterate); intent bubbles up to TriagePage which mounts NewIssueModal at page scope. Pre-fill: title='Fix for '+item.title, description=item.detail, priority=item.suggestedPriority, domain=item.suggestedDomain. (2) buildSlashCommand in actions-substitute.ts emits the namespaced form '/shipwright-<phase>:<phase>' for phase∈{plan,test,security} and '/shipwright-run:run' for new-pipeline; everything else keeps the bare form.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Source-only discriminator validated against Sven's live Triage Tab screenshot 2026-05-21 — github source is always security-scan rollup; iterate/phaseQuality/compliance are iterate-flow. NewIssueModal lifted to TriagePage because the iterate-2026-05-14 TriagePage pattern wraps TriageDetailModal in '{selected && …}' — unmount-on-close would otherwise kill the spawned modal mid-transition. Slash workaround scoped to the four empirically-broken cases; broader sweep risks breaking flows currently working.
+- **Consequences:** Triage Fix-now is now a one-click route into a pre-populated New-* dialog for ALL triage sources, not just github+launchPayload items. The four flagged slashes resolve to the right skill; other phases unchanged. NewIssueModal lifecycle is parent-owned (TriagePage) so it survives the TriageDetailModal unmount. New module client/src/components/triage/fixNowIntent.ts isolates the routing helper for future reuse.
+- **Rejected:** (a) kind==='compliance' branch for security mode — rejected after UAT: compliance items here are refactor/spec work, not security. (b) Namespacing all phases — risks breaking /shipwright-build etc. which work bare. (c) Sibling NewIssueModal inside TriageDetailModal — fails because of the parent's unmount-on-close guard.
+
+---
+
+### ADR-119: Phase 0f: clear F4-F7 ADR-bloat / arch-marker / CLAUDE.md hygiene
+- **Date:** 2026-05-22
+- **Section:** Iterate — change: compliance documentation hygiene (Phase 0f, F4-F7)
+- **Run-ID:** iterate-2026-05-22-compliance-hygiene-phase-0f
+- **Context:** Phase 0c slimmed ADR-087/088 and 0e stripped Iterate annotations from CLAUDE.md, but F4/F5/F6/F7 still flagged 5 bloated ADRs (058/095/096/098/099), a missing architecture marker, CLAUDE.md at 270 lines, and 8 inline iterate references. c0c9338 explicitly deferred F4-F7 to a separate iterate.
+- **Decision:** Extract the 5 bloated ADRs to .shipwright/planning/adr/NNN-slug.md spec files and slim their decision_log entries to compact form with Details links. Add the shipwright:architecture marker to architecture.md. Replace CLAUDE.md's 112-line tree with a 2-sentence summary pointing at architecture.md, and strip iterate annotations from 3 section headers and 1 prose line.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Matches Phase 0c and 0e patterns. Spec files preserve full prose for recoverability; slim decision_log entries retain the decision summary plus the Details link F4 expects.
+- **Consequences:** F4, F6, F7 audit detectors GREEN in worktree (5 bloated ADRs to 0; CLAUDE.md 270 to 163; inline refs 8 to 1). F5 will GREEN in main (decision-drops/ is gitignored, absent in worktree). decision_log.md shrinks; spec files carry full prose. No code paths touched; no FR changes.
+- **Rejected:** Reformat legacy h2 ADRs 045b/065/066 to fit the F4 regex (collides with renumbered h3 IDs); leave CLAUDE.md tree in place (cap is real); remove Iterate H reference from DO-NOT guard 22 (load-bearing, names the 60 percent snapshot heuristic).
+- **Details:** [058-webui-three-fix-bundle.md](../planning/adr/058-webui-three-fix-bundle.md)
+
+---
+
+### ADR-120: Hono SPA fallback to client/dist/index.html for non-/api GETs
+- **Date:** 2026-05-22
+- **Section:** Iterate — bug: SPA fallback for /triage, /inbox & friends
+- **Run-ID:** iterate-2026-05-22-spa-fallback
+- **Context:** Hard-reload on /triage, /inbox, /tasks/:id, /projects, /diagnostics, /settings returned JSON 404 because the production server only wired serveStatic + notFound — no SPA fallback.
+- **Decision:** Add a wildcard app.get('*') handler AFTER serveStatic that reads client/dist/index.html for any non-/api GET; /api/* paths next() through to the existing notFound JSON 404.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Smallest change that fixes the regression; reuses existing readFile import; uses path-prefix check (cheap, deterministic) rather than rebuilding route allow-lists; test seam via SHIPWRIGHT_STATIC_DIR env override avoids depending on a built client/dist in the worktree.
+- **Consequences:** Hard-reload of every SPA route works again; /api/* JSON-404 contract is preserved; index.html unreadable falls back to JSON 404 instead of leaking ENOENT.
+- **Rejected:** Returning index.html from serveStatic's onNotFound — couples the static middleware to SPA policy and obscures the /api guard. Hard-coding the SPA route list — drifts whenever client/src/router.tsx changes.
+
+---
+
+### ADR-121: Thread projectId through FixNowIntent → NewIssueModal
+- **Date:** 2026-05-22
+- **Section:** Iterate — bug: triage Fix-now NewIssueModal pre-selects the right project
+- **Run-ID:** iterate-2026-05-22-triage-fix-now-project-preselect
+- **Context:** Bug 2026-05-22: Triage Fix-now opened NewIssueModal pre-filled with title/description/phase/priority/domain but the project dropdown was blank — user had to re-pick the project manually for every Fix-now click.
+- **Decision:** Add projectId to FixNowIntent (required 3rd arg of buildFixNowIntent); add optional initialProjectId prop to NewIssueModal that overrides scopedProject + realProjects[0] fallback; TriagePage passes intent.projectId to the modal.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Single source of truth on the intent object; matches the pattern of the other initialX props added in iterate-2026-05-21. Alternative considered — pass projectId only at the TriagePage layer without threading through the intent — rejected because future Fix-now callsites (e.g. TriageItemCard hover CTA in the file header rationale) would re-introduce the same gap.
+- **Consequences:** Triage item's project is now the single source of truth for the spawned task; sidebar Project Filter no longer leaks into Fix-now routing. Backwards-compatible at the modal level (initialProjectId is optional).
+- **Rejected:** Bypass the intent and pass projectId only at TriagePage scope: rejected — re-introduces the missing-prop gap for any future callsite.

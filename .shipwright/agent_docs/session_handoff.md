@@ -2,39 +2,29 @@
 canon_generated: true
 run_id: "iterate-2026-05-22-compliance-hygiene-phase-0f"
 phase: "iterate"
-reason: "iterate: compliance documentation hygiene Phase 0f (F4-F7)"
-timestamp: "2026-05-22T12:48:42.323451+00:00"
+reason: "iterate finalization"
+timestamp: "2026-05-22T21:15:05.573157+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-22 12:48:42 UTC
+> Auto-generated 2026-05-22 21:15:05 UTC
 
 ## Session Info
 
-- **Session ID**: 519629fa-9459-4b6b-859f-64107e250380
-- **Timestamp**: 2026-05-22 12:48:42 UTC
-- **Reason**: iterate: compliance documentation hygiene Phase 0f (F4-F7)
+- **Session ID**: unknown
+- **Timestamp**: 2026-05-22 21:15:05 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-22-triage-fix-now-project-preselect
-- **Date**: 2026-05-22T12:47:19.899694Z
-- **Type**: bug
+- **Run ID**: iterate-2026-05-22-compliance-hygiene-phase-0f
+- **Date**: 2026-05-22T21:14:05.543509Z
+- **Type**: change
 - **Complexity**: small
-- **Branch**: iterate/triage-fix-now-project-preselect
-- **ADR**: iterate-2026-05-22-triage-fix-now-project-preselect
-- **Tests passed**: True
-
-## Current Iterate Progress
-
 - **Branch**: iterate/compliance-hygiene-phase-0f
-- **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
-
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Finalization (F0–F11) after all mandatory phases pass
+- **ADR**: iterate-2026-05-22-compliance-hygiene-phase-0f
+- **Tests passed**: True
 
 ## Legacy build state
 
@@ -47,8 +37,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/compliance-hygiene-phase-0f
-- **Last Commit**: 7dc6d4f Merge pull request #53 from svenroth-ai/iterate/spa-fallback
+- **Branch**: main
+- **Last Commit**: 5c89262 fix(compliance): G2 stoplist + regen artifacts (bloat from C.2 detector rollout)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +54,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-980292eb | work_completed | iterate (compliance documentation hygiene Phase 0f (F4-F7)) | 2026-05-22 |
 | evt-86356188 | work_completed | iterate (triage Fix-now pre-selects the triage item's project in NewIssueModal) | 2026-05-22 |
 | evt-663ee6f3 | work_completed | iterate (SPA fallback for /triage, /inbox & friends (Hono server)) | 2026-05-22 |
 | evt-6ca6247c | work_completed | iterate (VERIFICATION: bug+change-type — should pass) | 2026-05-21 |
 | evt-904b92f3 | work_completed | iterate (VERIFICATION: with affected-frs — should pass) | 2026-05-21 |
-| evt-4af079b7 | work_completed | iterate (triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up)) | 2026-05-21 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 131
-- **Last iterate**: bug — triage Fix-now pre-selects the triage item's project in NewIssueModal (2026-05-22)
+- **Total work events**: 132
+- **Last iterate**: change — compliance documentation hygiene Phase 0f (F4-F7) (2026-05-22)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
