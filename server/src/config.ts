@@ -108,7 +108,12 @@ export function getConfig(): ServerConfig {
     ),
     registryDir: path.join(os.homedir(), ".shipwright-webui"),
     heartbeatIntervalMs: 30_000,
-    staticDir: path.resolve(__dirname, "../../client/dist"),
+    // SHIPWRIGHT_STATIC_DIR — test-only seam so spa-fallback.test.ts can
+    // point at a fixture instead of requiring a real `client/dist` build.
+    // Production deploy keeps the default (server/../client/dist).
+    staticDir:
+      process.env.SHIPWRIGHT_STATIC_DIR ??
+      path.resolve(__dirname, "../../client/dist"),
     claudePastesKeepLast: clampPositiveInt(
       process.env.SHIPWRIGHT_CLAUDE_PASTES_KEEP_LAST,
       20,

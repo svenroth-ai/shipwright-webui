@@ -1,43 +1,40 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-21-fix-terminal-flicker-on-closed-task"
+run_id: "iterate-2026-05-22-spa-fallback"
 phase: "iterate"
-reason: "post-rebase-2 regen after PR #54"
-timestamp: "2026-05-22T12:48:42.323451+00:00"
+reason: "iterate: SPA fallback for /triage, /inbox & friends"
+timestamp: "2026-05-21T18:22:56.458164+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-22 12:48:42 UTC
+> Auto-generated 2026-05-21 18:22:56 UTC
 
 ## Session Info
 
-- **Session ID**: 6a061e52-80a8-4093-a074-403c5cbef0b7
-- **Timestamp**: 2026-05-22 12:48:42 UTC
-- **Reason**: post-rebase-2 regen after PR #54
+- **Session ID**: 57a2b26b-23e5-43ba-8fee-8022c31064d7
+- **Timestamp**: 2026-05-21 18:22:56 UTC
+- **Reason**: iterate: SPA fallback for /triage, /inbox & friends
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-22-triage-fix-now-project-preselect
-- **Date**: 2026-05-22T12:47:19.899694Z
-- **Type**: bug
-- **Complexity**: small
-- **Branch**: iterate/triage-fix-now-project-preselect
-- **ADR**: iterate-2026-05-22-triage-fix-now-project-preselect
+- **Run ID**: iterate-2026-05-21-triage-fix-now-and-phase-slash
+- **Date**: 2026-05-21T07:05:37.160425Z
+- **Type**: change
+- **Complexity**: medium
+- **Branch**: iterate/triage-fix-now-and-phase-slash
+- **ADR**: iterate-2026-05-21-triage-fix-now-and-phase-slash
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-05-21-triage-fix-now-and-phase-slash.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-terminal-flicker-on-closed-task
-- **Run ID**: iterate-2026-05-21-fix-terminal-flicker-on-closed-task
-- **Spec**: .shipwright/planning/iterate/2026-05-21-fix-terminal-flicker-on-closed-task.md
-- **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-05-21T00:00:00))
+- **Branch**: iterate/spa-fallback
+- **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -51,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-terminal-flicker-on-closed-task
-- **Last Commit**: a8dfe27 chore(compliance): regen post-rebase to include PR #52 in change-history
+- **Branch**: iterate/spa-fallback
+- **Last Commit**: c502254 Merge pull request #52 from svenroth-ai/iterate/triage-fix-now-and-phase-slash
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +65,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-86356188 | work_completed | iterate (triage Fix-now pre-selects the triage item's project in NewIssueModal) | 2026-05-22 |
-| evt-663ee6f3 | work_completed | iterate (SPA fallback for /triage, /inbox & friends (Hono server)) | 2026-05-22 |
 | evt-6ca6247c | work_completed | iterate (VERIFICATION: bug+change-type — should pass) | 2026-05-21 |
 | evt-904b92f3 | work_completed | iterate (VERIFICATION: with affected-frs — should pass) | 2026-05-21 |
 | evt-4af079b7 | work_completed | iterate (triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up)) | 2026-05-21 |
+| evt-f7dbb0e8 | work_completed | iterate (triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes) | 2026-05-21 |
+| evt-a6586f12 | work_completed | iterate (fix-terminal-flicker-on-closed-task) | 2026-05-21 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 131
-- **Last iterate**: bug — triage Fix-now pre-selects the triage item's project in NewIssueModal (2026-05-22)
+- **Total work events**: 129
+- **Last iterate**: bug — VERIFICATION: bug+change-type — should pass (2026-05-21)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
