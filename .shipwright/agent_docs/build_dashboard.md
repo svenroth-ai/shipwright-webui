@@ -1,12 +1,10 @@
 # Project Activity Dashboard
-> Updated: 2026-05-22 12:48 UTC | Session: 6a061e52-80a8-4093-a074-403c5cbef0b7 | Run: iterate-2026-05-21-fix-terminal-flicker-on-closed-task
+> Updated: 2026-05-21 18:22 UTC | Session: 57a2b26b-23e5-43ba-8fee-8022c31064d7 | Run: iterate-2026-05-22-spa-fallback
 
-## Recent Changes (61 iterations)
+## Recent Changes (59 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| bug | triage Fix-now pre-selects the triage item's project in NewIssueModal | 2198/2198 | 32b7320 | FR-01.30 | 2026-05-22 |
-| bug | SPA fallback for /triage, /inbox & friends (Hono server) | 1174/1174 | 3141866 | infra | 2026-05-22 |
 | bug | VERIFICATION: bug+change-type — should pass | 0/0 | c502254 | tooling | 2026-05-21 |
 | feature | VERIFICATION: with affected-frs — should pass | 0/0 | c502254 | FR-01.01 | 2026-05-21 |
 | change | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up) | 2193/2193 | 4ca5be2 | FR-01.30 | 2026-05-21 |
@@ -68,7 +66,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-21 | Unit: 2183/2183 | E2E: 1/1 | Smoke: not_run | (iterate)
+Last run: 2026-05-22 | Unit: 1174/1174 | Smoke: passed | (iterate)
 
 ## Pipeline
 

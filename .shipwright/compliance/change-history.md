@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-05-22T12:48:42.323451+00:00
-Total commits: 397
+Generated: 2026-05-21T18:22:56.458164+00:00
+Total commits: 394
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 161
+    "fix" : 159
     "feat" : 116
-    "chore" : 60
+    "chore" : 59
     "docs" : 34
     "refactor" : 13
     "test" : 8
@@ -19,12 +19,10 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 161 commits
+### Fixes (fix) — 159 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-05-21 | terminal | stop replay-only WS reconnect loop on closed tasks | 501d3ac008fc |
-| 2026-05-22 | triage | Fix-now pre-selects the triage item's project in NewIssueModal | 32b7320f6208 |
 | 2026-05-19 | inbox | tighten card-internal top padding | e87f55812886 |
 | 2026-05-19 | triage | assign new-iterate actionId on promote so launch injects the brief | 6e6d24a58cf3 |
 | 2026-05-19 | launch | flatten newlines in task descriptions instead of rejecting them | da9e63b403a1 |
@@ -306,11 +304,10 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 60 commits
+### Chores (chore) — 59 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-05-22 | compliance | regen post-rebase to include PR #52 in change-history | a8dfe27c8060 |
 | 2026-05-20 | events | fix two malformed dashboard rows | eaeeb452e983 |
 | 2026-05-20 | compliance | auto-regenerated artefacts include Phase 0a backfill | d07573d9c0bc |
 | 2026-05-20 | events | backfill change_type for 4 non-FR iterates (Phase 0a) | e1c6a98df980 |
@@ -460,7 +457,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 397 |
+| Total commits | 394 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 397 |
+| Human-authored commits | 394 |
 
