@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-23-fix-ci-doc-sync-claude-md",
+  "date": "2026-05-23T21:20:44.677133Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/fix-ci-doc-sync-claude-md",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-05-23-fix-ci-doc-sync-claude-md"
+}
