@@ -4,9 +4,9 @@
     "date": "2026-05-23",
     "unit": {
       "status": "passed",
-      "passed": 68,
-      "total": 68,
-      "scope": "client EmbeddedTerminal.test.tsx (full file; 4 new autofocus cases + 64 existing)"
+      "passed": 69,
+      "total": 69,
+      "scope": "client EmbeddedTerminal.test.tsx (full file; 5 new autofocus cases incl. fit+refresh on active=false→true + 64 existing)"
     },
     "integration": {
       "status": "skipped",
@@ -20,9 +20,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "scope": "client/e2e/flows/86-terminal-selection.spec.ts + 87-terminal-mouse-mode.spec.ts + 88-terminal-tab-autofocus.spec.ts — all green against real Chromium + isolated dev stack on :5174"
+      "passed": 4,
+      "total": 4,
+      "scope": "86-terminal-selection.spec.ts + 87-terminal-mouse-mode.spec.ts + 88-terminal-tab-autofocus.spec.ts (autofocus + canvas-render-broken-repair, 2 tests). All green against real Chromium + isolated dev stack on :5174."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,7 +39,7 @@
       "surface": "web",
       "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts e2e/flows/86-terminal-selection.spec.ts e2e/flows/87-terminal-mouse-mode.spec.ts e2e/flows/88-terminal-tab-autofocus.spec.ts --reporter=list",
       "exit_code": 0,
-      "tests_run": 3,
+      "tests_run": 4,
       "evidence_path": ".shipwright/runs/iterate-2026-05-23-terminal-tab-autofocus/surface_verification.json",
       "timestamp": "2026-05-23T08:57:00Z"
     }

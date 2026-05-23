@@ -118,4 +118,93 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
       await cleanup();
     }
   });
+
+  test("after tab-switch the xterm canvas has non-zero dimensions (render-broken repair)", async ({
+    page,
+    request,
+  }) => {
+    // User-reported render-broken bug: when Transcript is the
+    // persisted default tab, xterm.open(container) runs while the
+    // Terminal container is `display:none` → canvas / WebGL atlas
+    // initialised at 0x0. On first Terminal-tab click the renderer
+    // carries that stale state through the first paint and the
+    // display looks "kaputt" until the next task remount.
+    //
+    // Fix in EmbeddedTerminal.tsx: the autofocus useEffect also
+    // calls `safeFit` + `term.refresh(0, rows-1)` on the
+    // active=false→true transition. This spec proves the canvas
+    // ends up with real (non-zero) dimensions.
+    await fs.mkdir(ARTIFACT_DIR, { recursive: true });
+    const { cleanup } = await setupTerminalTask(page, request);
+    try {
+      const terminalTrigger = page.getByTestId("task-detail-tab-terminal");
+      // Defensive — confirm Transcript was indeed the start state.
+      const transcriptTrigger = page.getByTestId("task-detail-tab-transcript");
+      await expect(transcriptTrigger).toHaveAttribute("data-state", "active");
+      await terminalTrigger.click();
+      await expect(terminalTrigger).toHaveAttribute("data-state", "active");
+      // Allow the autofocus useEffect's setTimeout(0) + fit + refresh
+      // path to flush, plus one paint frame.
+      await page.waitForTimeout(250);
+
+      const canvasDims = await page.evaluate(() => {
+        const w = window as unknown as {
+          __embeddedTerminal?: {
+            element?: HTMLElement;
+            cols: number;
+            rows: number;
+          } | null;
+        };
+        const term = w.__embeddedTerminal;
+        if (!term || !term.element) {
+          return { hookFound: false } as const;
+        }
+        const canvases = Array.from(
+          term.element.querySelectorAll("canvas"),
+        ) as HTMLCanvasElement[];
+        return {
+          hookFound: true,
+          cols: term.cols,
+          rows: term.rows,
+          canvases: canvases.map((c) => ({
+            w: c.width,
+            h: c.height,
+            cssW: c.clientWidth,
+            cssH: c.clientHeight,
+          })),
+        } as const;
+      });
+      if (!canvasDims.hookFound) {
+        await page.screenshot({
+          path: path.join(ARTIFACT_DIR, "no-hook.png"),
+          fullPage: true,
+        });
+        throw new Error("__embeddedTerminal hook missing — xterm not mounted");
+      }
+      // xterm reports its logical grid — must be a real grid, not
+      // 0x0 or 1x1 (which would indicate 0-cell-dim layout).
+      expect(canvasDims.cols).toBeGreaterThan(10);
+      expect(canvasDims.rows).toBeGreaterThan(2);
+      // At least one canvas must have non-zero dimensions. WebGL
+      // renderer pre-fit-on-active would leave canvases at 0x0;
+      // post-fit they should be non-zero.
+      const anyNonZero = canvasDims.canvases.some(
+        (c) => c.w > 0 && c.h > 0 && c.cssW > 0 && c.cssH > 0,
+      );
+      if (!anyNonZero) {
+        await page.screenshot({
+          path: path.join(ARTIFACT_DIR, "zero-canvas.png"),
+          fullPage: true,
+        });
+        // eslint-disable-next-line no-console
+        console.log("canvasDims debug:", JSON.stringify(canvasDims, null, 2));
+      }
+      expect(
+        anyNonZero,
+        "at least one xterm canvas must have non-zero dimensions after tab activation — otherwise the renderer is stuck on the 0x0 atlas it initialised with while the container was display:none",
+      ).toBe(true);
+    } finally {
+      await cleanup();
+    }
+  });
 });
