@@ -2,29 +2,30 @@
 canon_generated: true
 run_id: "iterate-2026-05-23-terminal-selection-uxd"
 phase: "iterate"
-reason: "iterate: terminal-selection-uxd"
-timestamp: "2026-05-22T21:15:05.573157+00:00"
+reason: "iterate: terminal-selection-uxd — empirical mouse-mode coverage"
+timestamp: "2026-05-22T23:11:00.828620+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-22 21:15:05 UTC
+> Auto-generated 2026-05-22 23:11:00 UTC
 
 ## Session Info
 
 - **Session ID**: a54ea378-a0cd-404e-b95d-91919fa66dd3
-- **Timestamp**: 2026-05-22 21:15:05 UTC
-- **Reason**: iterate: terminal-selection-uxd
+- **Timestamp**: 2026-05-22 23:11:00 UTC
+- **Reason**: iterate: terminal-selection-uxd — empirical mouse-mode coverage
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-22-compliance-hygiene-phase-0f
-- **Date**: 2026-05-22T21:14:05.543509Z
+- **Run ID**: iterate-2026-05-23-terminal-selection-uxd
+- **Date**: 2026-05-22T23:06:24.915764Z
 - **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/compliance-hygiene-phase-0f
-- **ADR**: iterate-2026-05-22-compliance-hygiene-phase-0f
+- **Complexity**: medium
+- **Branch**: iterate/terminal-selection-uxd
+- **ADR**: iterate-2026-05-23-terminal-selection-uxd
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-05-23-terminal-selection-uxd.md
 
 ## Current Iterate Progress
 
@@ -52,7 +53,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/terminal-selection-uxd
-- **Last Commit**: 4028087 chore(release): v0.15.0
+- **Last Commit**: 46f9138 docs(spec): append FR-01.28 acceptance criteria for terminal-selection-uxd
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-2dec18ef | work_completed | iterate (spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd) | 2026-05-22 |
+| evt-4fcc3f6f | work_completed | iterate (VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint) | 2026-05-22 |
 | evt-980292eb | work_completed | iterate (compliance documentation hygiene Phase 0f (F4-F7)) | 2026-05-22 |
 | evt-86356188 | work_completed | iterate (triage Fix-now pre-selects the triage item's project in NewIssueModal) | 2026-05-22 |
 | evt-663ee6f3 | work_completed | iterate (SPA fallback for /triage, /inbox & friends (Hono server)) | 2026-05-22 |
-| evt-6ca6247c | work_completed | iterate (VERIFICATION: bug+change-type — should pass) | 2026-05-21 |
-| evt-904b92f3 | work_completed | iterate (VERIFICATION: with affected-frs — should pass) | 2026-05-21 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 132
-- **Last iterate**: change — compliance documentation hygiene Phase 0f (F4-F7) (2026-05-22)
+- **Total work events**: 134
+- **Last iterate**: change — spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd (2026-05-22)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

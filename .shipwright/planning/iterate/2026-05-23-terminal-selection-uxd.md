@@ -104,4 +104,4 @@ Justification: No new write surface; no new file format; no new env var; no new 
 
 ## Status
 
-- **Status:** implemented + verified — 64/64 unit tests green; F0.5 web E2E green (real Chromium + xterm + isolated stack at `localhost:5174`); four rounds of external code review converged on no HIGH findings (round 4 MED items addressed: keyup narrowed to Shift+Arrow/Home/End/Page; dedup ref clears on empty selection; drag-origin tracker re-evaluates per mousedown; AC4 consolidated `toMatchObject`; tightened E2E clipboard equality).
+- **Status:** implemented + verified — 64/64 unit tests green; F0.5 web E2E green (real Chromium + xterm + isolated stack at `localhost:5174`) across TWO surfaces: `86-terminal-selection.spec.ts` (non-mouse-mode drag-select → clipboard) AND `87-terminal-mouse-mode.spec.ts` (mouse-tracking mode banner appears + plain drag blocked + Shift+Drag bypass copies). The user's actual reported problem ("kann nicht markieren beim Claude-Terminal") is mechanically verified by spec 87, not deferred to manual UAT. Four rounds of external code review converged on no HIGH findings.
