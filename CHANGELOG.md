@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.16.0] - 2026-05-23
+
+### Added
+
+- VS Code-aligned terminal selection: rightClickSelectsWord + macOptionClickForcesSelection + matching wordSeparator. Drag-select in a non-mouse-tracking shell auto-fills the OS clipboard via a mouseup-driven copy gated by mousedown-origin + activeElement focus.
+- Dismissable mouse-mode hint badge in the embedded terminal — surfaces when xterm's .enable-mouse-events class engages (Claude TUI etc.) so users discover the Shift+Drag escape hatch for selection.
+- Empirical F0.5 evidence for mouse-tracking mode: spec 87-terminal-mouse-mode.spec.ts drives a real xterm into SGR mouse-mode and proves (a) the Shift+Drag hint banner appears, (b) a plain drag is consumed by mouse-mode (no clipboard overwrite), (c) Shift+Drag bypasses mouse-mode and auto-copies — closes the 'kann nicht markieren beim Claude-Terminal' user report without manual UAT.
+- Embedded terminal auto-focuses on Terminal-tab activation — no extra click into the canvas needed before typing. Mirrors VS Code's integrated terminal. Defers via setTimeout(0) so Radix's CSS state-flip settles first; per-active-window latch prevents focus-stealing on unrelated re-renders. Empirically verified by client/e2e/flows/88-terminal-tab-autofocus.spec.ts.
+
+### Fixed
+
+- Terminal-Tab-Switch render-broken bug: when Transcript was the persisted default and the user later clicked Terminal, xterm's WebGL atlas was stuck at its display:none-initialised 0×0 dims until the next task remount. The autofocus useEffect now also refits + term.refresh() on active=false→true so the renderer paints against real cell dims. Empirically verified by spec 88's second test.
+
 ## [v0.15.0] - 2026-05-22
 
 ### Added
