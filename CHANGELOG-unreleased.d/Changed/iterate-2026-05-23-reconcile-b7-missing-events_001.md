@@ -1,0 +1,1 @@
+Compliance: backfilled 14 retroactive work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow; B7 audit ("every commit since release tag has a matching event") now passes.
