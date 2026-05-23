@@ -1,0 +1,1 @@
+Embedded terminal auto-focuses on Terminal-tab activation — no extra click into the canvas needed before typing. Mirrors VS Code's integrated terminal. Defers via setTimeout(0) so Radix's CSS state-flip settles first; per-active-window latch prevents focus-stealing on unrelated re-renders. Empirically verified by client/e2e/flows/88-terminal-tab-autofocus.spec.ts.
