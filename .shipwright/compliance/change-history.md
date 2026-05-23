@@ -1,17 +1,17 @@
 # Commit Change Log
 
 Generated: 2026-05-23T21:28:21.462880+00:00
-Total commits: 409
+Total commits: 412
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 164
+    "fix" : 165
     "feat" : 118
-    "chore" : 64
+    "chore" : 65
     "docs" : 35
-    "refactor" : 14
+    "refactor" : 15
     "test" : 9
     "other" : 4
     "build" : 1
@@ -19,10 +19,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 164 commits
+### Fixes (fix) — 165 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | test | retarget doc-sync to follow Phase 0f file-map move | bde108f83300 |
 | 2026-05-23 | terminal | refit + refresh on tab activation (render-broken repair) | 207f5c362f5e |
 | 2026-05-22 | compliance | G2 stoplist + regen artifacts (bloat from C.2 detector rollout) | 5c89262cf08f |
 | 2026-05-22 | server | SPA fallback to client/dist/index.html for non-/api GETs | 55d0288bdde4 |
@@ -311,10 +312,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 64 commits
+### Chores (chore) — 65 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | events | record evt-994b3a6e for iterate-2026-05-23-reconcile-b7-missing-events | 0d1702afabf0 |
 | 2026-05-23 | release | v0.16.0 | 34ac661c7b82 |
 | 2026-05-22 | release | v0.15.0 | 40280876e2f4 |
 | 2026-05-22 | compliance | regen bookkeeping after rebase onto #51+#54 | dc791000d709 |
@@ -420,10 +422,11 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 14 commits
+### Refactoring (refactor) — 15 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | compliance | backfill 14 work_completed events for v0.14.0..v0.16.0 | 34038fdea623 |
 | 2026-05-22 | compliance | clear F4-F7 doc-hygiene findings (Phase 0f) | f4d52fdeb787 |
 | 2026-05-17 | terminal | remove orphaned Resume-CTA liveness-gate code | 94e9367e183c |
 | 2026-05-15 | triage | renumber ADR-104 → ADR-106 (number collision) | a1668172b2b8 |
@@ -472,7 +475,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 409 |
+| Total commits | 412 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 409 |
+| Human-authored commits | 412 |
 

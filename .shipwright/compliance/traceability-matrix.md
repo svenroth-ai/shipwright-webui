@@ -191,7 +191,7 @@ Generated: 2026-05-23T21:28:21.462880+00:00
 | chore(launch-prep): scrub local paths, Tailscale host and IP | iterate | change |  | — | b476762 | 2026-05-23 |
 | chore(launch-prep): publish .shipwright/ SDLC documentation | iterate | change |  | — | 2265e39 | 2026-05-23 |
 | doc-sync meta-test follows Phase 0f file-map move | iterate | bug |  | 1066/1066 | bde108f | 2026-05-23 |
-| Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | iterate | change |  | — | — | 2026-05-23 |
+| Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | iterate | change |  | — | 5e086aa | 2026-05-23 |
 
 ## Coverage Summary
 
