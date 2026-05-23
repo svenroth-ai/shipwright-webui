@@ -1,10 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-22 23:11 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-selection-uxd
+> Updated: 2026-05-23 06:58 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-tab-autofocus
 
-## Recent Changes (64 iterations)
+## Recent Changes (66 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Auto-focus xterm on Terminal-tab activation | 68/68 | 14878fc | FR-01.28 | 2026-05-23 |
+| change | Empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 66/66 | 36d08c8 | FR-01.28 | 2026-05-23 |
 | change | spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd | 65/65 | 46f9138 | FR-01.28 | 2026-05-22 |
 | change | VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint | 65/65 | 9e1559b | FR-01.28 | 2026-05-22 |
 | change | compliance documentation hygiene Phase 0f (F4-F7) | 0/0 | f4d52fd | compliance | 2026-05-22 |
@@ -71,7 +73,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-23 | Unit: 64/64 | E2E: 2/2 | Smoke: passed | (iterate)
+Last run: 2026-05-23 | Unit: 68/68 | E2E: 3/3 | Smoke: passed | (iterate)
 
 ## Pipeline
 

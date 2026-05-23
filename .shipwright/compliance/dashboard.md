@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-05-22T23:11:00.828620+00:00
+Generated: 2026-05-23T06:58:37.595950+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -9,18 +9,18 @@ Scope: full_app
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 64 changes | INFO |  |
-| All unit tests passing | 65/65 | PASS |  |
+| Work events (iterate) | 66 changes | INFO |  |
+| All unit tests passing | 68/68 | PASS |  |
 | Architecture decisions | 119 ADRs | INFO |  |
-| Iterate tests passing | 60/64 iterations tested | WARN | 4 iterate(s) without tests — see test-evidence.md |
+| Iterate tests passing | 62/66 iterations tested | WARN | 4 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 55 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 0 open | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 64 changes (2026-05-01 → 2026-05-22)
-- Last activity: 2026-05-22
+- Iterate: 66 changes (2026-05-01 → 2026-05-23)
+- Last activity: 2026-05-23
 
 ## External LLM Review Evidence
 

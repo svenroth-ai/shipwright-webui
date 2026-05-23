@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-05-22T23:11:00.828620+00:00
-Total commits: 405
+Generated: 2026-05-23T06:58:37.595950+00:00
+Total commits: 407
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 163
-    "feat" : 117
+    "feat" : 118
     "chore" : 63
     "docs" : 35
     "refactor" : 14
-    "test" : 8
+    "test" : 9
     "other" : 4
     "build" : 1
 ```
@@ -187,10 +187,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 117 commits
+### Features (feat) — 118 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | terminal | auto-focus xterm on tab activation | 14878fcf98fc |
 | 2026-05-23 | terminal | VS Code-aligned selection + copy-on-select + mouse-mode hint | 9e1559ba2dbb |
 | 2026-05-21 | triage | Fix-now opens NewIssueModal; namespace 4 phase slashes | aa1788c876ac |
 | 2026-05-20 | triage | render launchPayload + Fix-now copy CTA (iterate B) | 290263e9e694 |
@@ -436,10 +437,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 8 commits
+### Tests (test) — 9 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | terminal | empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 36d08c865c35 |
 | 2026-05-12 | client | post-campaign E2E matrix for task types × scenarios (ADR-090) | 0c9e517499e7 |
 | 2026-05-13 | e2e | migrate readXtermRows helper from DOM-locator to buffer-peek | f09b669220b8 |
 | 2026-05-08 | e2e | v0.8.7 Spec 83 — empirical regression for AC-1/2/3/4 | 465f638fcb3e |
@@ -468,7 +470,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 405 |
+| Total commits | 407 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 405 |
+| Human-authored commits | 407 |
 
