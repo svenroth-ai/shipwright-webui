@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-05-23T06:58:37.595950+00:00
-Total commits: 407
+Generated: 2026-05-23T21:20:26.219746+00:00
+Total commits: 409
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 163
+    "fix" : 164
     "feat" : 118
-    "chore" : 63
+    "chore" : 64
     "docs" : 35
     "refactor" : 14
     "test" : 9
@@ -19,10 +19,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 163 commits
+### Fixes (fix) — 164 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | terminal | refit + refresh on tab activation (render-broken repair) | 207f5c362f5e |
 | 2026-05-22 | compliance | G2 stoplist + regen artifacts (bloat from C.2 detector rollout) | 5c89262cf08f |
 | 2026-05-22 | server | SPA fallback to client/dist/index.html for non-/api GETs | 55d0288bdde4 |
 | 2026-05-21 | terminal | stop replay-only WS reconnect loop on closed tasks | 501d3ac008fc |
@@ -310,10 +311,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 63 commits
+### Chores (chore) — 64 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | release | v0.16.0 | 34ac661c7b82 |
 | 2026-05-22 | release | v0.15.0 | 40280876e2f4 |
 | 2026-05-22 | compliance | regen bookkeeping after rebase onto #51+#54 | dc791000d709 |
 | 2026-05-22 | compliance | regen change-history after PR #54 landed on main | 373a4ac36080 |
@@ -470,7 +472,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 407 |
+| Total commits | 409 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 407 |
+| Human-authored commits | 409 |
 

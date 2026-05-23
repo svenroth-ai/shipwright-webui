@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-23T06:58:37.595950+00:00
+Generated: 2026-05-23T21:20:26.219746+00:00
 
 ## Requirements Coverage
 
@@ -33,7 +33,7 @@ Generated: 2026-05-23T06:58:37.595950+00:00
 | [FR-01.25](../../.shipwright/planning/01-adopted/spec.md#fr-0125) | GET returns the project row. PATCH updates name / profile / ... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.26](../../.shipwright/planning/01-adopted/spec.md#fr-0126) | GET returns the current settings JSON. PUT replaces it (lock... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +28 | 632/632 → 68/68 | 2026-05-23 (iter) | FAIL |
+| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +24 | 632/632 → 970/970 | 2026-05-18 (iter) | FAIL |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 0/0 → 2198/2198 | 2026-05-22 (iter) | FAIL |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
@@ -175,10 +175,22 @@ Generated: 2026-05-23T06:58:37.595950+00:00
 | SPA fallback for /triage, /inbox & friends (Hono server) | iterate | bug |  | 1174/1174 | 3141866 | 2026-05-22 |
 | triage Fix-now pre-selects the triage item's project in NewIssueModal | iterate | bug | FR-01.30 | 2198/2198 | 32b7320 | 2026-05-22 |
 | compliance documentation hygiene Phase 0f (F4-F7) | iterate | change |  | — | f4d52fd | 2026-05-22 |
-| VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint | iterate | change | FR-01.28 | 65/65 | 9e1559b | 2026-05-22 |
-| spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd | iterate | change | FR-01.28 | 65/65 | 46f9138 | 2026-05-22 |
-| Empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | iterate | change | FR-01.28 | 66/66 | 36d08c8 | 2026-05-23 |
-| Auto-focus xterm on Terminal-tab activation | iterate | change | FR-01.28 | 68/68 | 14878fc | 2026-05-23 |
+| iterate finalization | iterate | change |  | — | — | 2026-05-23 |
+| docs(test-status): record Phase 0d FAIL-row dismissals (PR #50) | iterate | change |  | — | de956bc | 2026-05-23 |
+| docs(claude-md): strip Iterate annotations + slim DO-NOT guards (Phase 0e, PR #49) | iterate | change |  | — | c8a28d1 | 2026-05-23 |
+| docs(adr): slim down ADR-087/088 + extract details to planning/adr (Phase 0c, PR #47) | iterate | change |  | — | c9b662b | 2026-05-23 |
+| docs(adr): add Part I + Part II banners to decision_log (Phase 0b) | iterate | change |  | — | 6385930 | 2026-05-23 |
+| chore(events): fix two malformed dashboard rows | iterate | change |  | — | eaeeb45 | 2026-05-23 |
+| chore(compliance): auto-regenerated artefacts include Phase 0a backfill | iterate | change |  | — | d07573d | 2026-05-23 |
+| chore(events): backfill change_type for 4 non-FR iterates (Phase 0a) | iterate | change |  | — | e1c6a98 | 2026-05-23 |
+| chore(events): backfill affected_frs for 18 prior iterates (Phase 0a) | iterate | change |  | — | 34886a8 | 2026-05-23 |
+| chore(compliance): auto-regenerated artefacts include launch-prep commits | iterate | change |  | — | 0644173 | 2026-05-23 |
+| chore(compliance): refresh commit SHAs after history rewrite | iterate | change |  | — | 265f923 | 2026-05-23 |
+| docs(governance): add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy | iterate | change |  | — | ab6e099 | 2026-05-23 |
+| chore(launch-prep): drop stale skill-compliance docs, fix doc path refs | iterate | change |  | — | cad4ac9 | 2026-05-23 |
+| chore(launch-prep): scrub local paths, Tailscale host and IP | iterate | change |  | — | b476762 | 2026-05-23 |
+| chore(launch-prep): publish .shipwright/ SDLC documentation | iterate | change |  | — | 2265e39 | 2026-05-23 |
+| doc-sync meta-test follows Phase 0f file-map move | iterate | bug |  | 1066/1066 | — | 2026-05-23 |
 
 ## Coverage Summary
 
@@ -186,7 +198,7 @@ Generated: 2026-05-23T06:58:37.595950+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 66 |
+| Iterate changes | 78 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
@@ -213,5 +225,5 @@ Generated: 2026-05-23T06:58:37.595950+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 21d ago by `evt-b81d5d5e` (2026-05-01)
 

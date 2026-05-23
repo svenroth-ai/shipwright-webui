@@ -1,14 +1,24 @@
 /**
  * Doc-sync meta-test.
  *
- * Iterate 3 shipped 6 new client components + 6 new server modules/configs.
- * `CLAUDE.md` is the single source of truth for the file map and for
- * the load-bearing DO-NOT regression guards. It is easy to ship a new
- * component and forget to list it in CLAUDE.md — this test catches that
- * drift at CI time.
+ * Catches drift between newly-shipped production modules and the
+ * agent-facing documentation surface.
  *
- * Each token below MUST appear at least once in `CLAUDE.md`. When
- * adding new production components/modules in future iterates, extend the
+ * Source-of-truth split (since Phase 0f compliance-hygiene cleanup,
+ * commit f4d52fd, 2026-05-22):
+ *
+ *   - File map (every shipped component / module / config) lives in
+ *     `.shipwright/agent_docs/architecture.md` and
+ *     `.shipwright/agent_docs/component_inventory.md`. The 112-line
+ *     file-tree dump that used to live in `CLAUDE.md` was deleted —
+ *     it duplicated `architecture.md` + `component_inventory.md` and
+ *     rotted fast.
+ *   - Load-bearing DO-NOT regression guards still live in `CLAUDE.md`
+ *     (the always-loaded context for every agent run).
+ *
+ * Each token below MUST appear at least once in the file-map bundle
+ * (CLAUDE.md ∪ architecture.md ∪ component_inventory.md). When adding
+ * new production components/modules in future iterates, extend the
  * list here as part of the same commit.
  *
  * See:
@@ -44,11 +54,12 @@ const REQUIRED_TOKENS = [
   'pty-manager',
   'image-paste',
   // Iterate 5 (ADR-068-A1) — embedded-terminal auto-launch + disk persistence
-  'scrollback-store',
+  'ScrollbackStore',
   'LaunchCoordinatorContext',
 ] as const;
 
 let claudeMd = '';
+let docsBundle = '';
 
 beforeAll(async () => {
   // Dynamic import keeps the TS type-check free of @types/node.
@@ -57,20 +68,34 @@ beforeAll(async () => {
   const path = await import('node:path' as string);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const url = await import('node:url' as string) as any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const here = path.dirname(url.fileURLToPath((import.meta as any).url));
-  // client/src/test → ../../../CLAUDE.md (= CLAUDE.md)
-  const claudeMdPath = path.resolve(here, '../../../CLAUDE.md');
-  claudeMd = fs.readFileSync(claudeMdPath, 'utf8');
+  // client/src/test → ../../../ (= repo root)
+  const repoRoot = path.resolve(here, '../../../');
+  claudeMd = fs.readFileSync(path.join(repoRoot, 'CLAUDE.md'), 'utf8');
+  const architectureMd = fs.readFileSync(
+    path.join(repoRoot, '.shipwright/agent_docs/architecture.md'),
+    'utf8',
+  );
+  const componentInventoryMd = fs.readFileSync(
+    path.join(repoRoot, '.shipwright/agent_docs/component_inventory.md'),
+    'utf8',
+  );
+  // The file-map bundle: each token must appear in at least one of
+  // these three docs. CLAUDE.md kept in the bundle so legacy entries
+  // (preview-session-manager, path-guard, etc. that are already mentioned
+  // in DO-NOT guards) keep counting toward coverage.
+  docsBundle = `${claudeMd}\n${architectureMd}\n${componentInventoryMd}`;
 });
 
-describe('doc-sync: CLAUDE.md file map', () => {
+describe('doc-sync: file-map bundle (CLAUDE.md + architecture.md + component_inventory.md)', () => {
   for (const token of REQUIRED_TOKENS) {
-    it(`lists "${token}" in the file map`, () => {
-      expect(claudeMd).toContain(token);
+    it(`mentions "${token}" in at least one agent-facing doc`, () => {
+      expect(docsBundle).toContain(token);
     });
   }
+});
 
+describe('doc-sync: CLAUDE.md guards', () => {
   it('has at least one reference to ADR-044 (iterate 3 close-out)', () => {
     expect(claudeMd).toMatch(/ADR-044/);
   });
