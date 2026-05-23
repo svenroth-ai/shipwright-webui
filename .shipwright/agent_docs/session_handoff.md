@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-23-terminal-tab-autofocus"
+run_id: "iterate-2026-05-23-fix-ci-doc-sync-claude-md"
 phase: "iterate"
-reason: "iterate: terminal-tab-autofocus + render-broken repair"
-timestamp: "2026-05-23T06:58:37.595950+00:00"
+reason: "iterate: fix doc-sync meta-test (CI failure on main@34ac661)"
+timestamp: "2026-05-23T21:20:26.219746+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-23 06:58:37 UTC
+> Auto-generated 2026-05-23 21:20:26 UTC
 
 ## Session Info
 
-- **Session ID**: a54ea378-a0cd-404e-b95d-91919fa66dd3
-- **Timestamp**: 2026-05-23 06:58:37 UTC
-- **Reason**: iterate: terminal-tab-autofocus + render-broken repair
+- **Session ID**: a09571f2-1ade-4291-b65c-09c5c1b65644
+- **Timestamp**: 2026-05-23 21:20:26 UTC
+- **Reason**: iterate: fix doc-sync meta-test (CI failure on main@34ac661)
 
 ## Last Iterate
 
@@ -28,7 +28,7 @@ timestamp: "2026-05-23T06:58:37.595950+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/terminal-tab-autofocus
+- **Branch**: iterate/fix-ci-doc-sync-claude-md
 - **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
 
 ### Mandatory replay on Resume
@@ -47,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/terminal-tab-autofocus
-- **Last Commit**: 14878fc feat(terminal): auto-focus xterm on tab activation
+- **Branch**: iterate/fix-ci-doc-sync-claude-md
+- **Last Commit**: 34ac661 chore(release): v0.16.0
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,24 +64,24 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-fd263b83 | work_completed | iterate (Auto-focus xterm on Terminal-tab activation) | 2026-05-23 |
-| evt-680361ce | work_completed | iterate (Empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass) | 2026-05-23 |
-| evt-2dec18ef | work_completed | iterate (spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd) | 2026-05-22 |
-| evt-4fcc3f6f | work_completed | iterate (VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint) | 2026-05-22 |
-| evt-980292eb | work_completed | iterate (compliance documentation hygiene Phase 0f (F4-F7)) | 2026-05-22 |
+| evt-efb0e1e3 | work_completed | iterate (doc-sync meta-test follows Phase 0f file-map move) | 2026-05-23 |
+| evt-5be61962 | work_completed | iterate (chore(launch-prep): publish .shipwright/ SDLC documentation) | 2026-05-23 |
+| evt-9da1a669 | work_completed | iterate (chore(launch-prep): scrub local paths, Tailscale host and IP) | 2026-05-23 |
+| evt-0e23fcba | work_completed | iterate (chore(launch-prep): drop stale skill-compliance docs, fix doc path refs) | 2026-05-23 |
+| evt-370f608f | work_completed | iterate (docs(governance): add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy) | 2026-05-23 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 136
-- **Last iterate**: change — Auto-focus xterm on Terminal-tab activation (2026-05-23)
+- **Total work events**: 148
+- **Last iterate**: bug — doc-sync meta-test follows Phase 0f file-map move (2026-05-23)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-121: Thread projectId through FixNowIntent → NewIssueModal
-- **Date:** 2026-05-22
-- **Section:** Iterate — bug: triage Fix-now NewIssueModal pre-selects the right project
-- **Run-ID:** iterate-2026-05-22-triage-fix-now-project-preselect
-- **Context:** Bug 2026-05-22: Triage Fix-now opened NewIssueModal pre-filled with title/description/phase/priority/domain but the project dropdown was blank — user had to re-pick the project manually for every Fix-now click.
-- **Decision:** Add projectId to FixN
+### ADR-123: Auto-focus xterm on Terminal tab activation
+- **Date:** 2026-05-23
+- **Section:** Iterate — change: terminal tab autofocus
+- **Run-ID:** iterate-2026-05-23-terminal-tab-autofocus
+- **Context:** User reported: clicking the Terminal tab leaves keyboard focus on the tab trigger button — user has to click into the canvas before typing. VS Code's integrated terminal grabs focus automatically on tab switch.
+- **Decision:** Add a useEffect in EmbeddedTerminal.tsx gated on (active, socket.ready) wi

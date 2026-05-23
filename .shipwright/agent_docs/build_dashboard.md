@@ -1,14 +1,26 @@
 # Project Activity Dashboard
-> Updated: 2026-05-23 06:58 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-tab-autofocus
+> Updated: 2026-05-23 21:20 UTC | Session: a09571f2-1ade-4291-b65c-09c5c1b65644 | Run: iterate-2026-05-23-fix-ci-doc-sync-claude-md
 
-## Recent Changes (66 iterations)
+## Recent Changes (78 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Auto-focus xterm on Terminal-tab activation | 68/68 | 14878fc | FR-01.28 | 2026-05-23 |
-| change | Empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 66/66 | 36d08c8 | FR-01.28 | 2026-05-23 |
-| change | spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd | 65/65 | 46f9138 | FR-01.28 | 2026-05-22 |
-| change | VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint | 65/65 | 9e1559b | FR-01.28 | 2026-05-22 |
+| bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 |  | tooling | 2026-05-23 |
+| change | chore(launch-prep): publish .shipwright/ SDLC documentation | 0/0 | 2265e39 | docs | 2026-05-23 |
+| change | chore(launch-prep): scrub local paths, Tailscale host and IP | 0/0 | b476762 | docs | 2026-05-23 |
+| change | chore(launch-prep): drop stale skill-compliance docs, fix doc path refs | 0/0 | cad4ac9 | docs | 2026-05-23 |
+| change | docs(governance): add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy | 0/0 | ab6e099 | docs | 2026-05-23 |
+| change | chore(compliance): refresh commit SHAs after history rewrite | 0/0 | 265f923 | compliance | 2026-05-23 |
+| change | chore(compliance): auto-regenerated artefacts include launch-prep commits | 0/0 | 0644173 | compliance | 2026-05-23 |
+| change | chore(events): backfill affected_frs for 18 prior iterates (Phase 0a) | 0/0 | 34886a8 | compliance | 2026-05-23 |
+| change | chore(events): backfill change_type for 4 non-FR iterates (Phase 0a) | 0/0 | e1c6a98 | compliance | 2026-05-23 |
+| change | chore(compliance): auto-regenerated artefacts include Phase 0a backfill | 0/0 | d07573d | compliance | 2026-05-23 |
+| change | chore(events): fix two malformed dashboard rows | 0/0 | eaeeb45 | compliance | 2026-05-23 |
+| change | docs(adr): add Part I + Part II banners to decision_log (Phase 0b) | 0/0 | 6385930 | docs | 2026-05-23 |
+| change | docs(adr): slim down ADR-087/088 + extract details to planning/adr (Phase 0c, PR #47) | 0/0 | c9b662b | docs | 2026-05-23 |
+| change | docs(claude-md): strip Iterate annotations + slim DO-NOT guards (Phase 0e, PR #49) | 0/0 | c8a28d1 | docs | 2026-05-23 |
+| change | docs(test-status): record Phase 0d FAIL-row dismissals (PR #50) | 0/0 | de956bc | compliance | 2026-05-23 |
+| change | iterate finalization | 0/0 |  |  | 2026-05-23 |
 | change | compliance documentation hygiene Phase 0f (F4-F7) | 0/0 | f4d52fd | compliance | 2026-05-22 |
 | bug | triage Fix-now pre-selects the triage item's project in NewIssueModal | 2198/2198 | 32b7320 | FR-01.30 | 2026-05-22 |
 | bug | SPA fallback for /triage, /inbox & friends (Hono server) | 1174/1174 | 3141866 | infra | 2026-05-22 |
@@ -73,7 +85,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-23 | Unit: 68/68 | E2E: 3/3 | Smoke: passed | (iterate)
+Last run: 2026-05-23 | Unit: 69/69 | E2E: 4/4 | Smoke: passed | (iterate)
 
 ## Pipeline
 
