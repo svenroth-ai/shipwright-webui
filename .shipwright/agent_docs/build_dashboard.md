@@ -1,10 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-22 21:15 UTC | Session: unknown | Run: iterate-2026-05-22-compliance-hygiene-phase-0f
+> Updated: 2026-05-22 23:11 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-selection-uxd
 
-## Recent Changes (62 iterations)
+## Recent Changes (64 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd | 65/65 | 46f9138 | FR-01.28 | 2026-05-22 |
+| change | VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint | 65/65 | 9e1559b | FR-01.28 | 2026-05-22 |
 | change | compliance documentation hygiene Phase 0f (F4-F7) | 0/0 | f4d52fd | compliance | 2026-05-22 |
 | bug | triage Fix-now pre-selects the triage item's project in NewIssueModal | 2198/2198 | 32b7320 | FR-01.30 | 2026-05-22 |
 | bug | SPA fallback for /triage, /inbox & friends (Hono server) | 1174/1174 | 3141866 | infra | 2026-05-22 |
@@ -69,7 +71,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-22 | Smoke: not_run | (iterate)
+Last run: 2026-05-23 | Unit: 64/64 | E2E: 2/2 | Smoke: passed | (iterate)
 
 ## Pipeline
 

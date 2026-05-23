@@ -541,6 +541,56 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     // iterate-2026-05-18 — transient copy/paste notice (corner pill).
     const [clipboardNotice, setClipboardNotice] =
       useState<ClipboardNoticeKind | null>(null);
+    // iterate-2026-05-23 (terminal-selection-uxd) — VS Code-style
+    // copy-on-selection.
+    //
+    // External-review HIGH-1 + HIGH-2 (both reviewers): `onSelectionChange`
+    // fires per cell during a drag and async callbacks lose the browser's
+    // transient-user-activation, so calling `copyText()` from inside the
+    // selection-change handler would (a) spam the OS clipboard 100+ times
+    // per drag and (b) silently fail under strict browser permission
+    // policies (Safari + execCommand fallback). The fix is the
+    // "track-then-flush" pattern lifted from VS Code's terminal contrib
+    // (`terminal.clipboard.contribution.ts:64` — they too key `copyOnSelection`
+    // off `onSelectionChange` but they perform the OS clipboard write via
+    // user-action paths; we mirror that intent by doing the clipboard
+    // write inside native `mouseup` / `keyup` handlers on `term.element`).
+    //
+    //   - `latestSelectionRef` — every `term.onSelectionChange` fire writes
+    //     the current selection here. Cheap (string assignment), bounded
+    //     (last value only).
+    //   - `lastCopiedSelectionRef` — the most recent value we actually
+    //     wrote to the OS clipboard. Dedup: a second mouseup on the same
+    //     selection is a no-op.
+    //
+    // Auto-copy is SILENT (no `notify("copied")`); the existing Ctrl+C
+    // pill remains reserved for explicit copy chords so the notification
+    // semantics stay consistent and users aren't bombarded with toasts on
+    // every drag.
+    const latestSelectionRef = useRef("");
+    const lastCopiedSelectionRef = useRef("");
+    // iterate-2026-05-23 (terminal-selection-uxd) — Shift+Drag
+    // discoverability banner. xterm-core toggles the `.enable-mouse-events`
+    // class on its root element whenever DECSET 1000/1002/1003/1006 is
+    // active (i.e. the foreground app like Claude TUI is consuming mouse
+    // events, blocking drag-select). When that class is present, we show
+    // a small dismissable hint badge so the user discovers Shift+Drag
+    // (xterm.js's built-in escape hatch — its MouseService bypasses mouse
+    // mode when shiftKey is pressed). VS Code relies on a CSS-only signal
+    // (`.xterm.enable-mouse-events { cursor: default }`) which is a quiet
+    // hint; on Windows where cursor-by-app is muted, an in-pane badge is
+    // a stronger affordance.
+    //
+    //   - `mouseEventsActive` mirrors the class presence. Initial state
+    //     is read synchronously when the observer attaches so a terminal
+    //     mounted ALREADY in mouse mode shows the banner immediately
+    //     (external-review MED-7).
+    //   - `bannerDismissed` lets the user × the banner away. Reset to
+    //     `false` on every off→on class transition so a dismiss does not
+    //     stick forever — the user sees it again the next time mouse
+    //     mode engages on a fresh app.
+    const [mouseEventsActive, setMouseEventsActive] = useState(false);
+    const [bannerDismissed, setBannerDismissed] = useState(false);
     // resume-cta-rework (2026-05-16) — when a Launch/Resume click lands
     // on a pty that already had a launch injected (the one-shot guard
     // fired), the three-shell-form commands are parked here and
@@ -967,6 +1017,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // `terminal.integrated.rescaleOverlappingGlyphs` which defaults
         // to `true`. Their xtermTerminal.ts threads it through.
         rescaleOverlappingGlyphs: true,
+        // iterate-2026-05-23 (terminal-selection-uxd) — VS Code-parity
+        // selection knobs. References at commit b433c7d:
+        //   - src/vs/workbench/contrib/terminal/browser/xterm/
+        //     xtermTerminal.ts:226-275 — full options block (sets
+        //     `rightClickSelectsWord`, `macOptionClickForcesSelection`,
+        //     `wordSeparator`).
+        //   - src/vs/workbench/contrib/terminal/common/
+        //     terminalConfiguration.ts — `terminalWordSeparators` default
+        //     `" ()[]{}',\"\`|;:!?"`.
+        // Together with the `MutationObserver`-driven "Shift+Drag" hint
+        // below, these align our drag-/right-click-/double-click selection
+        // behaviour with the VS Code integrated terminal so the embedded
+        // pane no longer feels rougher than the IDE pane.
+        rightClickSelectsWord: true,
+        macOptionClickForcesSelection: true,
+        wordSeparator: " ()[]{}',\"`|;:!?",
         // Note (Iterate K UAT 2026-05-14): `scrollOnEraseInDisplay: true`
         // was tested here as VS Code-parity for AI-CLI ED2-driven scrollbar-
         // shake (per xterm.js issue #5620 + @jerch on #5801). The option
@@ -1069,6 +1135,188 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         }),
       );
 
+      // iterate-2026-05-23 (terminal-selection-uxd) — copy-on-selection.
+      // See `latestSelectionRef` / `lastCopiedSelectionRef` declarations
+      // above for the rationale. Two-step pipeline:
+      //   step 1 — `onSelectionChange` (xterm-side) cheaply tracks the
+      //     current selection on every drag-progress tick.
+      //   step 2 — native `mouseup` / `keyup` on `term.element`
+      //     (browser-side, INSIDE the trusted user activation window)
+      //     flushes the latest tracked value to the OS clipboard via
+      //     `copyText` if (a) it's non-empty after trim, and (b) it
+      //     differs from the last copy.
+      //
+      // `copyText` already handles secure-context vs `execCommand`
+      // fallback (`lib/clipboard.ts`). Failures are silent — auto-copy
+      // is best-effort UX; the explicit Ctrl+C path still surfaces
+      // `copy-failed` for non-recoverable cases.
+      const onSelectionChangeDispose = term.onSelectionChange(() => {
+        if (disposedRef.current) return;
+        // term.getSelection() is the canonical xterm read — it handles
+        // alt-buffer, wrapping, and OS-line-ending normalisation. Don't
+        // try to introspect the buffer directly here.
+        try {
+          const sel = term.getSelection();
+          latestSelectionRef.current = sel;
+          // External-review code-mode round 3, MED #1: when the
+          // selection lifecycle ENDS (xterm fires onSelectionChange
+          // with an empty selection, e.g. after a non-drag click or
+          // explicit clearSelection), reset the dedup so a subsequent
+          // re-selection of the same text DOES copy again. Without
+          // this, copying "foo", clicking elsewhere, then re-selecting
+          // "foo" silently no-ops forever.
+          if (!sel || sel.trim().length === 0) {
+            lastCopiedSelectionRef.current = "";
+          }
+        } catch {
+          // term may be mid-dispose; ignore.
+        }
+      });
+
+      // Capture `term.element` at attach time — xterm sets this during
+      // `term.open(container)` and only nulls it on dispose (which runs
+      // our cleanup below). The MutationObserver, the mousedown-origin
+      // tracker, and the keyup focus gate all key off this reference.
+      const termElement = term.element;
+      // Iterate-2026-05-23 (external-review code-mode round 2, both
+      // reviewers): the previous target-containment gate broke the
+      // legitimate "drag started in terminal, released outside the
+      // canvas" case (browser dispatches mouseup on whatever element
+      // sits under the cursor at release, which for a drag-to-edge is
+      // outside `term.element`). Replace with origin tracking:
+      // mousedown sets `dragStartedInTerminalRef` when the press lands
+      // in the terminal; the next mouseup (anywhere) consumes that
+      // ref — so a drag-out copy succeeds while a stray mouseup
+      // elsewhere with no preceding terminal mousedown is ignored.
+      const dragStartedInTerminalRef = { current: false };
+
+      const onTerminalMousedown = (event: Event) => {
+        if (!termElement) return;
+        const target = event.target as Node | null;
+        // Always re-evaluate — set true if the press is inside the
+        // terminal, false if it's outside. External-review code-mode
+        // round 3 MED #2 (both reviewers): without the outside-clears
+        // arm, a mousedown-inside followed by no-mouseup (alt-tab,
+        // Escape, native context menu) leaves the flag stale. The
+        // NEXT unrelated mousedown outside the terminal then would
+        // not clear it, and the matching mouseup elsewhere would
+        // wrongly consume the stale "drag started inside" signal.
+        dragStartedInTerminalRef.current = !!(
+          target && termElement.contains(target)
+        );
+      };
+
+      const flushSelectionCopy = (event: Event) => {
+        if (disposedRef.current) return;
+        // Gate per event type:
+        //   - mouseup: allow when the drag originated in the terminal
+        //     (mousedown landed inside `term.element`). On any mouseup
+        //     elsewhere with no prior terminal mousedown, refuse. This
+        //     handles drag-to-edge (start inside, end outside) AND
+        //     prevents a stale terminal selection from being harvested
+        //     by an unrelated click on another pane.
+        //   - keyup: gate on `document.activeElement` being inside
+        //     `term.element` — i.e. the xterm helper-textarea has
+        //     focus. Without this, any keystroke in another input
+        //     would silently overwrite the OS clipboard with the
+        //     terminal selection (external-review code-mode MED #2).
+        if (event.type === "mouseup") {
+          if (!dragStartedInTerminalRef.current) {
+            const target = event.target as Node | null;
+            if (!termElement || !target || !termElement.contains(target)) {
+              return;
+            }
+          }
+          // Consume the flag — the next mouseup must re-arm via a
+          // fresh terminal-origin mousedown.
+          dragStartedInTerminalRef.current = false;
+        } else if (event.type === "keyup") {
+          // External-review code-mode round 4 MED #2: a blanket
+          // keyup-while-terminal-focused gate fires on EVERY key
+          // release (Tab, Escape, ordinary typing), risking surprising
+          // clipboard writes of stale terminal selection. Narrow to
+          // Shift + arrow/Home/End/Page — the only keys xterm's
+          // accessibility-mode keyboard selection plausibly uses to
+          // extend a selection. Drag-select with the mouse remains
+          // the primary flow (covered by the mouseup branch above).
+          const ke = event as KeyboardEvent;
+          if (!ke.shiftKey) return;
+          if (!/^(Arrow|Home|End|Page)/.test(ke.key)) return;
+          const active = document.activeElement;
+          if (!termElement || !active || !termElement.contains(active)) return;
+        }
+        // Read DIRECTLY from xterm — `latestSelectionRef` is a hint
+        // only. By the time our document-scope listener runs, xterm's
+        // own MouseService has already finalised the selection (it
+        // listens at document too, but registered first during
+        // `term.open`), so `term.getSelection()` is the canonical and
+        // up-to-date source.
+        const t = termRef.current;
+        let raw = "";
+        try {
+          if (t && t.hasSelection()) raw = t.getSelection();
+        } catch {
+          /* term mid-dispose */
+        }
+        if (!raw) raw = latestSelectionRef.current;
+        if (!raw || raw.trim().length === 0) return;
+        if (raw === lastCopiedSelectionRef.current) return;
+        // Optimistically claim the dedup slot BEFORE the async write
+        // resolves — a `mouseup` storm (two events firing before the
+        // first promise settles) must not double-copy. On failure we
+        // intentionally do NOT roll back: the explicit Ctrl+C path is
+        // the supported retry, and the user can simply re-select.
+        lastCopiedSelectionRef.current = raw;
+        void copyText(raw).catch(() => {
+          /* silent — see comment block above */
+        });
+      };
+
+      // Attach all three listeners at DOCUMENT scope. The mousedown
+      // captures interaction origin; mouseup/keyup are the flush
+      // triggers gated as described above.
+      document.addEventListener("mousedown", onTerminalMousedown);
+      document.addEventListener("mouseup", flushSelectionCopy);
+      document.addEventListener("keyup", flushSelectionCopy);
+
+      // iterate-2026-05-23 (terminal-selection-uxd) — Shift+Drag
+      // discoverability banner driven by xterm's `.enable-mouse-events`
+      // class on `term.element`. xterm-core (`MouseService`) toggles
+      // this whenever the foreground app enables DECSET 1000/1002/1003.
+      // `MutationObserver` is the right primitive: synchronous-on-flush,
+      // no polling, no internal-API peek.
+      let mouseModeObserver: MutationObserver | null = null;
+      if (termElement) {
+        // Synchronous initial-state sync read — terminal mounted with
+        // the class already on the element shows the banner immediately
+        // (external-review MED-7).
+        const initialActive = termElement.classList.contains(
+          "enable-mouse-events",
+        );
+        if (initialActive) {
+          setMouseEventsActive(true);
+          setBannerDismissed(false);
+        }
+        mouseModeObserver = new MutationObserver(() => {
+          if (disposedRef.current) return;
+          const active = termElement.classList.contains("enable-mouse-events");
+          // setMouseEventsActive is a setter — React de-dupes equal
+          // updates, so per-mutation overhead is bounded even if xterm
+          // does multiple class swaps in one frame.
+          setMouseEventsActive((prev) => {
+            if (active && !prev) {
+              // off → on transition re-arms a previously dismissed banner.
+              setBannerDismissed(false);
+            }
+            return active;
+          });
+        });
+        mouseModeObserver.observe(termElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+      }
+
       // Forward keystrokes / paste-text into the socket.
       const onDataDispose = term.onData((data) => {
         socket.send({ type: "data", payload: data });
@@ -1129,6 +1377,22 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           lastResizePendingRef.current = null;
         }
         onDataDispose.dispose();
+        // iterate-2026-05-23 (terminal-selection-uxd) — tear down the
+        // selection-change disposable, the native listeners and the
+        // mouse-mode observer. Order vs term.dispose() below: doing
+        // these FIRST avoids any chance of a late mouseup landing
+        // after term.element is nulled by xterm's own dispose path.
+        try {
+          onSelectionChangeDispose.dispose();
+        } catch {
+          /* ignore — best-effort cleanup */
+        }
+        document.removeEventListener("mousedown", onTerminalMousedown);
+        document.removeEventListener("mouseup", flushSelectionCopy);
+        document.removeEventListener("keyup", flushSelectionCopy);
+        if (mouseModeObserver) {
+          mouseModeObserver.disconnect();
+        }
 
         // v0.9.2 (ADR-084) — defensive against XTERM-INTERNAL async tails:
         // term.write / term.scrollToBottom / term.resize queue internal
@@ -1451,6 +1715,35 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
           tabIndex={-1}
           data-testid="embedded-terminal-canvas"
         />
+        {mouseEventsActive && !bannerDismissed ? (
+          // iterate-2026-05-23 (terminal-selection-uxd) — Shift+Drag
+          // discoverability badge. Renders only when xterm-core has
+          // toggled `.enable-mouse-events` on `term.element` (i.e. the
+          // foreground app — usually Claude TUI — is consuming mouse
+          // events and so blocking drag-select). Top-RIGHT position so
+          // it does not collide with the bottom-right clipboard notice.
+          // `pointer-events-auto` on the badge itself (default) means
+          // the rest of the top-right area still passes clicks through
+          // to xterm. The dismiss button's `onMouseDown` prevents focus
+          // theft (external review MED-3 / gemini).
+          <div
+            className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded border border-sky-800 bg-[#0f1d2e] px-2.5 py-1 text-[11px] text-sky-300 shadow-md"
+            data-testid="embedded-terminal-mouse-mode-hint"
+            role="status"
+          >
+            <span>Maus-Modus aktiv — Shift+Drag zum Markieren</span>
+            <button
+              type="button"
+              onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => setBannerDismissed(true)}
+              className="shrink-0 rounded px-1 leading-none hover:bg-white/10"
+              data-testid="embedded-terminal-mouse-mode-hint-dismiss"
+              aria-label="Hinweis schließen"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
         {clipboardNotice ? (
           // iterate-2026-05-18 — copy/paste notice. Absolute corner pill
           // so it never reflows xterm or stacks with the header banners.

@@ -34,6 +34,28 @@ const attachKeyHandlerSpy = vi.fn((cb: (ev: KeyboardEvent) => boolean) => {
   keyEventHandler = cb;
 });
 
+// iterate-2026-05-23 (terminal-selection-uxd) — selection-change capture +
+// xterm root element exposure for the new copy-on-selection / mouse-mode
+// banner tests.
+//   - `capturedTerminalOpts` is the OPTIONS object the production code
+//     passed to `new Terminal({...})` — lets the test assert
+//     rightClickSelectsWord, macOptionClickForcesSelection, wordSeparator.
+//   - `selectionChangeHandler` is the production code's registered
+//     `term.onSelectionChange(cb)` callback — invoking it simulates a
+//     drag-update without needing to dispatch a real DOM selection.
+//   - `mockTermElement` is the synthetic `term.element` (a real `<div>`)
+//     created per `new Terminal()`. Tests modify its classList to drive
+//     the MutationObserver, and dispatch native MouseEvent/KeyboardEvent
+//     against it to drive the copy-on-mouseup path.
+//   - `preMountElementClasses` is set by a test BEFORE `render()` so the
+//     Terminal mock can attach those classes to the element BEFORE the
+//     component's mount-effect installs the observer — the only way to
+//     exercise the initial-state-sync read of `.enable-mouse-events`.
+let capturedTerminalOpts: Record<string, unknown> | null = null;
+let selectionChangeHandler: (() => void) | null = null;
+let mockTermElement: HTMLDivElement | null = null;
+let preMountElementClasses: string[] = [];
+
 // ADR-108 (iterate-20260516-terminal-smear-interleave) — deterministic
 // control over xterm's async write parse. `term.write(data, cb)` DEFERS
 // `cb` into `writeCompletions` (mirrors xterm's "callback fires after
@@ -62,7 +84,20 @@ const mockBufferActive = {
 };
 
 vi.mock("@xterm/xterm", () => ({
-  Terminal: vi.fn().mockImplementation(() => ({
+  Terminal: vi.fn().mockImplementation((opts?: Record<string, unknown>) => {
+    capturedTerminalOpts = opts ?? null;
+    const el = document.createElement("div");
+    for (const c of preMountElementClasses) el.classList.add(c);
+    // iterate-2026-05-23 — attach to document.body so production gates
+    // (mousedown-origin tracker, `termElement.contains(...)` fallback,
+    // and the keyup `document.activeElement` focus gate) can resolve.
+    // `tabIndex = -1` makes the element programmatically focusable so
+    // a positive keyup test can `mockTermElement.focus()` first.
+    // Cleanup runs in afterEach (`mockTermElement?.remove()`).
+    el.tabIndex = -1;
+    document.body.appendChild(el);
+    mockTermElement = el;
+    return {
     cols: 120,
     rows: 30,
     // ADR-104 — `write(data, cb?)` records via writeSpy, optionally throws
@@ -97,7 +132,15 @@ vi.mock("@xterm/xterm", () => ({
     clearSelection: clearSelectionSpy,
     paste: pasteSpy,
     buffer: { active: mockBufferActive },
-  })),
+    // iterate-2026-05-23 (terminal-selection-uxd) — selection-change
+    // notifier + DOM element for native mouseup / classList tests.
+    element: el,
+    onSelectionChange(cb: () => void) {
+      selectionChangeHandler = cb;
+      return { dispose: vi.fn() };
+    },
+    };
+  }),
 }));
 vi.mock("@xterm/addon-fit", () => ({
   FitAddon: vi.fn().mockImplementation(() => ({ fit: fitSpy, activate: vi.fn(), dispose: vi.fn() })),
@@ -254,6 +297,12 @@ describe("<EmbeddedTerminal>", () => {
     clearSelectionSpy.mockClear();
     pasteSpy.mockClear();
     attachKeyHandlerSpy.mockClear();
+    // iterate-2026-05-23 (terminal-selection-uxd) — reset selection /
+    // element capture so each test sees a fresh element + cleared handler.
+    capturedTerminalOpts = null;
+    selectionChangeHandler = null;
+    mockTermElement = null;
+    preMountElementClasses = [];
 
     // ResizeObserver stub for jsdom.
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
@@ -281,6 +330,12 @@ describe("<EmbeddedTerminal>", () => {
       writable: true,
       value: realWS,
     });
+    // iterate-2026-05-23 — the mock factory appends mockTermElement to
+    // document.body so the production containment gate is satisfied;
+    // detach it after each test so subsequent renders don't accumulate
+    // orphan elements (also keeps the negative-case "outside" test
+    // clean — outside button must not sit next to a stale terminal).
+    mockTermElement?.remove();
     vi.clearAllMocks();
   });
 
@@ -1434,6 +1489,553 @@ describe("<EmbeddedTerminal>", () => {
           '[data-testid="embedded-terminal-manual-send"]',
         ),
       ).toBeNull();
+    });
+  });
+
+  // ── iterate-2026-05-23 (terminal-selection-uxd) — selection UX ─────────
+  //
+  // Three independent surfaces, four describe blocks:
+  //   1. terminal options — VS Code parity (`rightClickSelectsWord`,
+  //      `macOptionClickForcesSelection`, `wordSeparator`).
+  //   2. copy-on-selection — debounce + dedup. External-review HIGH:
+  //      `onSelectionChange` fires per cell during a drag; we MUST NOT
+  //      call copyText() on every fire. Real copy is gated on native
+  //      `mouseup` / `keyup` on `term.element` (preserves browser-required
+  //      transient user activation per Gemini HIGH-2). Identical-selection
+  //      mouseup is deduped via lastCopiedSelectionRef.
+  //   3. mouse-mode banner — MutationObserver on `term.element` class list;
+  //      initial-classList sync read on mount (Openai MED-7); transitions;
+  //      dismiss.
+  //   4. banner focus preservation — close button onMouseDown calls
+  //      preventDefault so the xterm helper-textarea keeps focus
+  //      (Gemini MED-3).
+  describe("terminal options — VS Code parity", () => {
+    it("constructs Terminal with rightClickSelectsWord:true", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(capturedTerminalOpts).not.toBeNull();
+      expect(capturedTerminalOpts?.rightClickSelectsWord).toBe(true);
+    });
+    it("constructs Terminal with macOptionClickForcesSelection:true", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(capturedTerminalOpts?.macOptionClickForcesSelection).toBe(true);
+    });
+    it("constructs Terminal with VS-Code-matching wordSeparator", async () => {
+      // VS Code default: " ()[]{}',\"`|;:!?"
+      // (see microsoft/vscode src/vs/workbench/contrib/terminal/common/
+      //  terminalConfiguration.ts — `terminalWordSeparators` setting default).
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(capturedTerminalOpts?.wordSeparator).toBe(" ()[]{}',\"`|;:!?");
+    });
+    it("preserves convertEol:false (Bug B regression fence — must NOT regress)", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      // convertEol regression fence — DO-NOT guard from
+      // server/src/terminal/embedded-terminal-convert-eol.test.ts.
+      expect(capturedTerminalOpts?.convertEol).toBe(false);
+    });
+    it("preserves allowProposedApi:true (ADR-093 fence — external-review LOW #11)", async () => {
+      // AC4 invariant — must stay alongside the new selection knobs.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(capturedTerminalOpts?.allowProposedApi).toBe(true);
+    });
+    it("preserves rescaleOverlappingGlyphs:true (ADR-099 fence — external-review LOW #11)", async () => {
+      // AC4 invariant — VS-Code-parity glyph metric stays set.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(capturedTerminalOpts?.rescaleOverlappingGlyphs).toBe(true);
+    });
+    it("AC4 consolidated: new selection options + unchanged invariants in one assertion", async () => {
+      // External-review code-mode round 3+4 MED #3 — verifies the
+      // FIVE AC4-relevant options together. `toMatchObject` ignores
+      // unrelated fields (theme, fontFamily, scrollback…) so this
+      // assertion stays robust against unrelated future tuning while
+      // still catching a regression that drops or mutates any of
+      // these five.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(capturedTerminalOpts).toMatchObject({
+        rightClickSelectsWord: true,
+        macOptionClickForcesSelection: true,
+        wordSeparator: " ()[]{}',\"`|;:!?",
+        convertEol: false,
+        allowProposedApi: true,
+        rescaleOverlappingGlyphs: true,
+      });
+    });
+  });
+
+  describe("copy-on-selection — debounce + dedup", () => {
+    /** Last call args passed to navigator.clipboard.writeText (the copyText
+     * fast path) — captured by stubbing the clipboard for each test. */
+    let writeText: ReturnType<typeof vi.fn>;
+    beforeEach(() => {
+      writeText = vi.fn(async (_t: string) => {});
+      Object.defineProperty(navigator, "clipboard", {
+        value: { writeText },
+        configurable: true,
+      });
+    });
+    afterEach(() => {
+      delete (navigator as { clipboard?: unknown }).clipboard;
+    });
+    /** Flush queued microtasks + setTimeout(0) so the copyText promise
+     * settles + React-state setters flush. */
+    const flush = () =>
+      act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+    it("50 onSelectionChange fires during a drag do NOT trigger copyText", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(selectionChangeHandler).not.toBeNull();
+      mockSelection = "drag-in-progress";
+      // Simulate 50 cells of drag-progress — the ref updates, no copy.
+      for (let i = 0; i < 50; i++) {
+        await act(async () => {
+          selectionChangeHandler?.();
+        });
+      }
+      await flush();
+      expect(writeText).not.toHaveBeenCalled();
+    });
+
+    it("mouseup AFTER selection-change fires copyText exactly once", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "hello world";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      expect(mockTermElement).not.toBeNull();
+      await act(async () => {
+        // iterate-2026-05-23 — production listener is on `document`,
+        // gated by `termElement.contains(event.target)`. Dispatch on
+        // the mock element so the event target is INSIDE termElement
+        // and the gate passes. The event bubbles up to document where
+        // the listener catches it.
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(writeText).toHaveBeenCalledWith("hello world");
+    });
+
+    it("second mouseup with the SAME selection is deduped (no double copy)", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "abc";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      await act(async () => {
+        // iterate-2026-05-23 — production listener is on `document`,
+        // gated by `termElement.contains(event.target)`. Dispatch on
+        // the mock element so the event target is INSIDE termElement
+        // and the gate passes. The event bubbles up to document where
+        // the listener catches it.
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      // Same selection still on the ref — second mouseup must NOT re-copy.
+      await act(async () => {
+        // iterate-2026-05-23 — production listener is on `document`,
+        // gated by `termElement.contains(event.target)`. Dispatch on
+        // the mock element so the event target is INSIDE termElement
+        // and the gate passes. The event bubbles up to document where
+        // the listener catches it.
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      expect(writeText).toHaveBeenCalledTimes(1);
+    });
+
+    it("mouseup with empty selection does NOT call copyText", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      await act(async () => {
+        // iterate-2026-05-23 — production listener is on `document`,
+        // gated by `termElement.contains(event.target)`. Dispatch on
+        // the mock element so the event target is INSIDE termElement
+        // and the gate passes. The event bubbles up to document where
+        // the listener catches it.
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      expect(writeText).not.toHaveBeenCalled();
+    });
+
+    it("mouseup with whitespace-only selection does NOT call copyText", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "   \n\t  ";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      await act(async () => {
+        // iterate-2026-05-23 — production listener is on `document`,
+        // gated by `termElement.contains(event.target)`. Dispatch on
+        // the mock element so the event target is INSIDE termElement
+        // and the gate passes. The event bubbles up to document where
+        // the listener catches it.
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      expect(writeText).not.toHaveBeenCalled();
+    });
+
+    it("auto-copy does NOT show the 'copied' notice pill (silent UX)", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "silent";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      await act(async () => {
+        // iterate-2026-05-23 — production listener is on `document`,
+        // gated by `termElement.contains(event.target)`. Dispatch on
+        // the mock element so the event target is INSIDE termElement
+        // and the gate passes. The event bubbles up to document where
+        // the listener catches it.
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      // The 'Copied' pill is reserved for explicit Ctrl+C. Auto-copy is
+      // silent so users don't get a notification on every drag.
+      const notice = container.querySelector(
+        '[data-testid="embedded-terminal-clipboard-notice"]',
+      );
+      expect(notice).toBeNull();
+    });
+
+    it("mouseup OUTSIDE term.element does NOT trigger copy (containment gate)", async () => {
+      // external-review code-mode MED #1 + MED #3 — without the
+      // containment gate a stale terminal selection would be harvested
+      // by a click on any other pane and overwrite the user's OS
+      // clipboard. Reproduce the user-hostile flow: select text in the
+      // terminal, then dispatch mouseup on an UNRELATED node outside
+      // term.element — assert copyText was NOT called.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "do-not-copy-me";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      const outside = document.createElement("button");
+      document.body.appendChild(outside);
+      try {
+        await act(async () => {
+          outside.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        });
+        await flush();
+        expect(writeText).not.toHaveBeenCalled();
+      } finally {
+        outside.remove();
+      }
+    });
+
+    it("keyup OUTSIDE term.element does NOT trigger copy (containment gate)", async () => {
+      // Parallel negative case to the mouseup one above — a keystroke
+      // anywhere in the app must not silently harvest the terminal
+      // selection.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "do-not-copy-me";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      const outside = document.createElement("input");
+      document.body.appendChild(outside);
+      try {
+        await act(async () => {
+          outside.dispatchEvent(
+            new KeyboardEvent("keyup", { bubbles: true }),
+          );
+        });
+        await flush();
+        expect(writeText).not.toHaveBeenCalled();
+      } finally {
+        outside.remove();
+      }
+    });
+
+    it("keyup also flushes the latest selection (Shift+Arrow keyboard select)", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "kbd-select";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      // iterate-2026-05-23 (round-4 narrow): production keyup gate
+      // requires (a) shiftKey, (b) Arrow/Home/End/Page key, (c)
+      // document.activeElement inside termElement. Focus + dispatch
+      // a Shift+ArrowRight to satisfy all three.
+      mockTermElement!.focus();
+      await act(async () => {
+        mockTermElement!.dispatchEvent(
+          new KeyboardEvent("keyup", {
+            bubbles: true,
+            key: "ArrowRight",
+            shiftKey: true,
+          }),
+        );
+      });
+      await flush();
+      expect(writeText).toHaveBeenCalledWith("kbd-select");
+    });
+
+    it("keyup for unrelated keys (Tab, Escape, regular typing) does NOT copy", async () => {
+      // External-review code-mode round 4 MED #2: closes the
+      // surprising-clipboard-overwrite class — ordinary typing while
+      // the terminal is focused must not silently harvest the
+      // selection.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "should-not-copy";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      mockTermElement!.focus();
+      for (const ev of [
+        new KeyboardEvent("keyup", { bubbles: true, key: "a" }),
+        new KeyboardEvent("keyup", { bubbles: true, key: "Tab" }),
+        new KeyboardEvent("keyup", { bubbles: true, key: "Escape" }),
+        // ArrowRight WITHOUT shift — cursor movement, not selection.
+        new KeyboardEvent("keyup", { bubbles: true, key: "ArrowRight" }),
+      ]) {
+        await act(async () => {
+          mockTermElement!.dispatchEvent(ev);
+        });
+      }
+      await flush();
+      expect(writeText).not.toHaveBeenCalled();
+    });
+
+    it("dedup resets when selection becomes empty — re-selecting same text copies again", async () => {
+      // External-review code-mode round 3, MED #1: a user who selects
+      // "foo", clears, then re-selects "foo" later must get the second
+      // copy. Without the empty-selection reset, lastCopiedSelectionRef
+      // sticks to "foo" forever and the second mouseup silently no-ops.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      // First copy of "foo".
+      mockSelection = "foo";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      await act(async () => {
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      expect(writeText).toHaveBeenCalledTimes(1);
+      // Selection clears (user clicks elsewhere, xterm fires
+      // onSelectionChange with the empty selection).
+      mockSelection = "";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      // Re-select the same text.
+      mockSelection = "foo";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      await act(async () => {
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mouseup", { bubbles: true }),
+        );
+      });
+      await flush();
+      // Second copy must fire — the dedup ref was cleared on empty.
+      expect(writeText).toHaveBeenCalledTimes(2);
+      expect(writeText).toHaveBeenLastCalledWith("foo");
+    });
+
+    it("stale drag flag cleared by an outside mousedown (no copy on later unrelated mouseup)", async () => {
+      // External-review code-mode round 3, MED #2: mousedown inside
+      // the terminal sets dragStartedInTerminalRef. If no mouseup
+      // arrives (alt-tab / Escape / context menu), the next mousedown
+      // anywhere must re-evaluate; an outside mousedown clears the
+      // flag so a later mouseup outside cannot consume it.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "stale-flag";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      // (1) press inside — sets flag true.
+      await act(async () => {
+        mockTermElement!.dispatchEvent(
+          new MouseEvent("mousedown", { bubbles: true }),
+        );
+      });
+      const outside = document.createElement("div");
+      document.body.appendChild(outside);
+      try {
+        // (2) NO mouseup fired (alt-tab/escape). Then a fresh
+        //     mousedown OUTSIDE — must clear the flag.
+        await act(async () => {
+          outside.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true }),
+          );
+        });
+        // (3) mouseup outside — flag is false, containment-fallback
+        //     fails → no copy.
+        await act(async () => {
+          outside.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        });
+        await flush();
+        expect(writeText).not.toHaveBeenCalled();
+      } finally {
+        outside.remove();
+      }
+    });
+
+    it("drag-out: mousedown INSIDE then mouseup OUTSIDE the terminal still copies", async () => {
+      // External-review code-mode round 2 (both reviewers, medium+high):
+      // a drag-to-edge release lands the mouseup outside `term.element`.
+      // The previous containment gate broke this legitimate case; the
+      // mousedown-origin tracker now allows it.
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      mockSelection = "drag-out-text";
+      await act(async () => {
+        selectionChangeHandler?.();
+      });
+      const outside = document.createElement("button");
+      document.body.appendChild(outside);
+      try {
+        // (1) press inside the terminal — sets dragStartedInTerminalRef.
+        await act(async () => {
+          mockTermElement!.dispatchEvent(
+            new MouseEvent("mousedown", { bubbles: true }),
+          );
+        });
+        // (2) release outside the terminal — the gate should consume
+        //     the ref and allow the copy.
+        await act(async () => {
+          outside.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+        });
+        await flush();
+        expect(writeText).toHaveBeenCalledTimes(1);
+        expect(writeText).toHaveBeenCalledWith("drag-out-text");
+      } finally {
+        outside.remove();
+      }
+    });
+  });
+
+  describe("mouse-mode banner", () => {
+    /** Locate the banner by testid. Returns null when absent. */
+    const banner = (container: HTMLElement) =>
+      container.querySelector(
+        '[data-testid="embedded-terminal-mouse-mode-hint"]',
+      );
+
+    it("renders the banner when .enable-mouse-events is added post-mount", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(banner(container)).toBeNull();
+      await act(async () => {
+        mockTermElement!.classList.add("enable-mouse-events");
+      });
+      // MutationObserver fires asynchronously — give it a microtask.
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(banner(container)).not.toBeNull();
+    });
+
+    it("hides the banner when .enable-mouse-events is removed", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      await act(async () => {
+        mockTermElement!.classList.add("enable-mouse-events");
+        await Promise.resolve();
+      });
+      expect(banner(container)).not.toBeNull();
+      await act(async () => {
+        mockTermElement!.classList.remove("enable-mouse-events");
+        await Promise.resolve();
+      });
+      expect(banner(container)).toBeNull();
+    });
+
+    it("initial-state sync read: terminal mounted with the class already present shows the banner", async () => {
+      preMountElementClasses = ["enable-mouse-events"];
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      expect(banner(container)).not.toBeNull();
+    });
+
+    it("dismiss button hides the banner; banner re-renders on the next off→on transition", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      await act(async () => {
+        mockTermElement!.classList.add("enable-mouse-events");
+        await Promise.resolve();
+      });
+      const close = container.querySelector(
+        '[data-testid="embedded-terminal-mouse-mode-hint-dismiss"]',
+      ) as HTMLButtonElement | null;
+      expect(close).not.toBeNull();
+      await act(async () => {
+        close!.click();
+      });
+      expect(banner(container)).toBeNull();
+      // Dismiss must not "stick forever" — going off → on re-arms.
+      await act(async () => {
+        mockTermElement!.classList.remove("enable-mouse-events");
+        await Promise.resolve();
+      });
+      await act(async () => {
+        mockTermElement!.classList.add("enable-mouse-events");
+        await Promise.resolve();
+      });
+      expect(banner(container)).not.toBeNull();
+    });
+  });
+
+  describe("banner focus preservation", () => {
+    it("dismiss button's mousedown calls preventDefault (terminal keeps focus)", async () => {
+      const { container } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      await act(async () => {
+        mockTermElement!.classList.add("enable-mouse-events");
+        await Promise.resolve();
+      });
+      const close = container.querySelector(
+        '[data-testid="embedded-terminal-mouse-mode-hint-dismiss"]',
+      ) as HTMLButtonElement;
+      expect(close).not.toBeNull();
+      const ev = new MouseEvent("mousedown", {
+        bubbles: true,
+        cancelable: true,
+      });
+      close.dispatchEvent(ev);
+      // preventDefault flips defaultPrevented to true.
+      expect(ev.defaultPrevented).toBe(true);
     });
   });
 });

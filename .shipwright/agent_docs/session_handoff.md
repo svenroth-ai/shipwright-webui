@@ -1,30 +1,45 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-22-compliance-hygiene-phase-0f"
+run_id: "iterate-2026-05-23-terminal-selection-uxd"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-05-22T21:15:05.573157+00:00"
+reason: "iterate: terminal-selection-uxd — empirical mouse-mode coverage"
+timestamp: "2026-05-22T23:11:00.828620+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-22 21:15:05 UTC
+> Auto-generated 2026-05-22 23:11:00 UTC
 
 ## Session Info
 
-- **Session ID**: unknown
-- **Timestamp**: 2026-05-22 21:15:05 UTC
-- **Reason**: iterate finalization
+- **Session ID**: a54ea378-a0cd-404e-b95d-91919fa66dd3
+- **Timestamp**: 2026-05-22 23:11:00 UTC
+- **Reason**: iterate: terminal-selection-uxd — empirical mouse-mode coverage
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-22-compliance-hygiene-phase-0f
-- **Date**: 2026-05-22T21:14:05.543509Z
+- **Run ID**: iterate-2026-05-23-terminal-selection-uxd
+- **Date**: 2026-05-22T23:06:24.915764Z
 - **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/compliance-hygiene-phase-0f
-- **ADR**: iterate-2026-05-22-compliance-hygiene-phase-0f
+- **Complexity**: medium
+- **Branch**: iterate/terminal-selection-uxd
+- **ADR**: iterate-2026-05-23-terminal-selection-uxd
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-05-23-terminal-selection-uxd.md
+
+## Current Iterate Progress
+
+- **Branch**: iterate/terminal-selection-uxd
+- **Run ID**: iterate-2026-05-23-terminal-selection-uxd
+- **Spec**: .shipwright/planning/iterate/2026-05-23-terminal-selection-uxd.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-05-21T00:00:00))
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
@@ -37,8 +52,8 @@ timestamp: "2026-05-22T21:15:05.573157+00:00"
 
 ## Git State
 
-- **Branch**: main
-- **Last Commit**: 5c89262 fix(compliance): G2 stoplist + regen artifacts (bloat from C.2 detector rollout)
+- **Branch**: iterate/terminal-selection-uxd
+- **Last Commit**: 46f9138 docs(spec): append FR-01.28 acceptance criteria for terminal-selection-uxd
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -54,23 +69,24 @@ timestamp: "2026-05-22T21:15:05.573157+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-2dec18ef | work_completed | iterate (spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd) | 2026-05-22 |
+| evt-4fcc3f6f | work_completed | iterate (VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint) | 2026-05-22 |
 | evt-980292eb | work_completed | iterate (compliance documentation hygiene Phase 0f (F4-F7)) | 2026-05-22 |
 | evt-86356188 | work_completed | iterate (triage Fix-now pre-selects the triage item's project in NewIssueModal) | 2026-05-22 |
 | evt-663ee6f3 | work_completed | iterate (SPA fallback for /triage, /inbox & friends (Hono server)) | 2026-05-22 |
-| evt-6ca6247c | work_completed | iterate (VERIFICATION: bug+change-type — should pass) | 2026-05-21 |
-| evt-904b92f3 | work_completed | iterate (VERIFICATION: with affected-frs — should pass) | 2026-05-21 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 132
-- **Last iterate**: change — compliance documentation hygiene Phase 0f (F4-F7) (2026-05-22)
+- **Total work events**: 134
+- **Last iterate**: change — spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd (2026-05-22)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-115: oxlint replaces the dead lint script; CORS test env-isolated via vi.hoisted
-- **Date:** 2026-05-19
-- **Section:** Iterate — change: oxlint adoption + CORS test env-isolation
-- **Run-ID:** iterate-2026-05-19-oxlint-and-cors-env
-- **Context:** Two pre-existing tooling/test-hygiene defects, surfaced during PR #33. (a) server/src/index.test.ts read process.env ambient; a dev shell with SHIPWRIGHT_NETWORK_PROFILE=tailscale widened the import-time-baked CORS policy and failed the default-loopback
+### ADR-121: Thread projectId through FixNowIntent → NewIssueModal
+- **Date:** 2026-05-22
+- **Section:** Iterate — bug: triage Fix-now NewIssueModal pre-selects the right project
+- **Run-ID:** iterate-2026-05-22-triage-fix-now-project-preselect
+- **Context:** Bug 2026-05-22: Triage Fix-now opened NewIssueModal pre-filled with title/description/phase/priority/domain but the project dropdown was blank — user had to re-pick the project manually for every Fix-now click.
+- **Decision:** Add projectId to FixN
