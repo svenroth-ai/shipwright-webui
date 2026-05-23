@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-22T23:11:00.828620+00:00
+Generated: 2026-05-23T06:01:28.883901+00:00
 
 ## Requirements Coverage
 
@@ -33,7 +33,7 @@ Generated: 2026-05-22T23:11:00.828620+00:00
 | [FR-01.25](../../.shipwright/planning/01-adopted/spec.md#fr-0125) | GET returns the project row. PATCH updates name / profile / ... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.26](../../.shipwright/planning/01-adopted/spec.md#fr-0126) | GET returns the current settings JSON. PUT replaces it (lock... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +26 | 632/632 → 65/65 | 2026-05-22 (iter) | FAIL |
+| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +27 | 632/632 → 66/66 | 2026-05-23 (iter) | FAIL |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 0/0 → 2198/2198 | 2026-05-22 (iter) | FAIL |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
@@ -177,6 +177,7 @@ Generated: 2026-05-22T23:11:00.828620+00:00
 | compliance documentation hygiene Phase 0f (F4-F7) | iterate | change |  | — | f4d52fd | 2026-05-22 |
 | VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint | iterate | change | FR-01.28 | 65/65 | 9e1559b | 2026-05-22 |
 | spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd | iterate | change | FR-01.28 | 65/65 | 46f9138 | 2026-05-22 |
+| Empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | iterate | change | FR-01.28 | 66/66 | 36d08c8 | 2026-05-23 |
 
 ## Coverage Summary
 
@@ -184,7 +185,7 @@ Generated: 2026-05-22T23:11:00.828620+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 64 |
+| Iterate changes | 65 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |

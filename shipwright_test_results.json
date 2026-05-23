@@ -1,12 +1,12 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-23-terminal-selection-uxd",
+    "run_id": "iterate-2026-05-23-terminal-tab-autofocus",
     "date": "2026-05-23",
     "unit": {
       "status": "passed",
-      "passed": 64,
-      "total": 64,
-      "scope": "client EmbeddedTerminal.test.tsx (full file). Server vitest re-run separately (1174/1174, no diff)."
+      "passed": 68,
+      "total": 68,
+      "scope": "client EmbeddedTerminal.test.tsx (full file; 4 new autofocus cases + 64 existing)"
     },
     "integration": {
       "status": "skipped",
@@ -20,9 +20,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "scope": "client/e2e/flows/86-terminal-selection.spec.ts (non-mouse-mode drag → clipboard) + client/e2e/flows/87-terminal-mouse-mode.spec.ts (mouse-tracking mode banner + plain drag blocked + Shift+Drag bypass copies). Both against real Chromium + isolated dev stack on :5174 (Hono on :3848, temp USERPROFILE)."
+      "passed": 3,
+      "total": 3,
+      "scope": "client/e2e/flows/86-terminal-selection.spec.ts + 87-terminal-mouse-mode.spec.ts + 88-terminal-tab-autofocus.spec.ts — all green against real Chromium + isolated dev stack on :5174"
     },
     "design_fidelity": {
       "status": "skipped",
@@ -33,15 +33,15 @@
       "status": "passed"
     },
     "degraded": [
-      "client/src/test/doc-sync.test.ts — 11 failures pre-existing on origin/main: Phase 0f compliance-hygiene removed file-tree mentions from CLAUDE.md without updating the test's REQUIRED_TOKENS allowlist. NOT introduced by this iterate; tracked as a follow-up doc-sync re-alignment iterate."
+      "client/src/test/doc-sync.test.ts — 11 failures unchanged on origin/main (Phase 0f compliance-hygiene REQUIRED_TOKENS drift); NOT introduced by this iterate."
     ],
     "surface_verification": {
       "surface": "web",
-      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts e2e/flows/86-terminal-selection.spec.ts e2e/flows/87-terminal-mouse-mode.spec.ts --reporter=list",
+      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts e2e/flows/86-terminal-selection.spec.ts e2e/flows/87-terminal-mouse-mode.spec.ts e2e/flows/88-terminal-tab-autofocus.spec.ts --reporter=list",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-05-23-terminal-selection-uxd/surface_verification.json",
-      "timestamp": "2026-05-23T01:30:00Z"
+      "tests_run": 3,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-23-terminal-tab-autofocus/surface_verification.json",
+      "timestamp": "2026-05-23T08:57:00Z"
     }
   }
 }

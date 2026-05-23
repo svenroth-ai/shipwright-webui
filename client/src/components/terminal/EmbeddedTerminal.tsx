@@ -619,6 +619,57 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
     }, [socket.role, socket.ready]);
     const readOnly = readOnlyArmed && socket.role === "reader";
 
+    // iterate-2026-05-23 (terminal-tab-autofocus) — auto-focus xterm
+    // when the Terminal tab becomes active. VS Code's integrated
+    // terminal grabs keyboard focus on tab-switch; we mirror that
+    // so users don't have to click the canvas before typing.
+    //
+    // The naïve `useEffect(() => term.focus(), [active, socket.ready])`
+    // would fire `focus()` on EVERY unrelated re-render where both
+    // deps stay true (banner state changes, ResizeObserver updates,
+    // socket.role bumps within a stable-active window). On a page
+    // with another focused input (title editor, settings field,
+    // task-creation modal) that would steal focus mid-typing.
+    //
+    // Guard via a "focused-once-per-active-window" ref: clear when
+    // `active` goes false; set when we focus. Stable-active re-runs
+    // become no-ops because the ref already says "focused for this
+    // window". The `focusTerminal` nav-state path (Inbox-click flow,
+    // iterate-2026-05-18-inbox-terminal-prompts) is orthogonal — it
+    // calls `ref.focus()` imperatively at mount, before this effect
+    // would fire; both end up calling `term.focus()` which is
+    // idempotent in xterm.js.
+    const tabAutoFocusedRef = useRef(false);
+    useEffect(() => {
+      if (!active) {
+        tabAutoFocusedRef.current = false;
+        return;
+      }
+      if (!socket.ready) return;
+      if (tabAutoFocusedRef.current) return;
+      tabAutoFocusedRef.current = true;
+      // Defer one tick so Radix Tabs.Content has flipped its
+      // `data-[state=inactive]:hidden` CSS to visible before we
+      // call `xterm.focus()`. xterm focus internally focuses the
+      // hidden helper-textarea; `focus()` on an element inside a
+      // `display:none` ancestor is a SILENT no-op (HTML spec), and
+      // the click target (the tab trigger button) ends up holding
+      // focus instead. F0.5 spec 88 caught this empirically — see
+      // iterate-2026-05-23-terminal-tab-autofocus. setTimeout(0)
+      // is the cheapest schedule that lands after the layout pass;
+      // rAF is also correct but jsdom doesn't tick rAF naturally,
+      // so the unit tests would need fake-timer plumbing.
+      const t = setTimeout(() => {
+        if (disposedRef.current) return;
+        try {
+          termRef.current?.focus();
+        } catch {
+          /* term mid-dispose — focus is best-effort */
+        }
+      }, 0);
+      return () => clearTimeout(t);
+    }, [active, socket.ready]);
+
     // iterate-2026-05-18 — auto-dismiss the clipboard notice. "Copied"
     // clears quickly; the error / hint notices linger (and carry a ✕).
     useEffect(() => {

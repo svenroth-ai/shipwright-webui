@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-05-22T23:11:00.828620+00:00
-Total commits: 405
+Generated: 2026-05-23T06:01:28.883901+00:00
+Total commits: 406
 
 ## Commit Distribution
 
@@ -12,7 +12,7 @@ pie title Commit Types
     "chore" : 63
     "docs" : 35
     "refactor" : 14
-    "test" : 8
+    "test" : 9
     "other" : 4
     "build" : 1
 ```
@@ -436,10 +436,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 8 commits
+### Tests (test) — 9 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-23 | terminal | empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 36d08c865c35 |
 | 2026-05-12 | client | post-campaign E2E matrix for task types × scenarios (ADR-090) | 0c9e517499e7 |
 | 2026-05-13 | e2e | migrate readXtermRows helper from DOM-locator to buffer-peek | f09b669220b8 |
 | 2026-05-08 | e2e | v0.8.7 Spec 83 — empirical regression for AC-1/2/3/4 | 465f638fcb3e |
@@ -468,7 +469,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 405 |
+| Total commits | 406 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 405 |
+| Human-authored commits | 406 |
 
