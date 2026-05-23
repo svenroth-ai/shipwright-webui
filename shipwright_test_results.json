@@ -1,28 +1,28 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-23-terminal-tab-autofocus",
+    "run_id": "iterate-2026-05-23-reconcile-b7-missing-events",
     "date": "2026-05-23",
     "unit": {
-      "status": "passed",
-      "passed": 69,
-      "total": 69,
-      "scope": "client EmbeddedTerminal.test.tsx (full file; 5 new autofocus cases incl. fit+refresh on active=false→true + 64 existing)"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "scope": "Diff is data-only (events.jsonl backfill + compliance regen + ADR/changelog drops). No .ts/.tsx/.py production code modified — vitest signal would be identical to origin/main."
     },
     "integration": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "pgtap": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 4,
-      "total": 4,
-      "scope": "86-terminal-selection.spec.ts + 87-terminal-mouse-mode.spec.ts + 88-terminal-tab-autofocus.spec.ts (autofocus + canvas-render-broken-repair, 2 tests). All green against real Chromium + isolated dev stack on :5174."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "scope": "No UI/behavior change — events-backfill only."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -30,18 +30,12 @@
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "passed",
+      "scope": "Re-ran detective audit Group B in worktree post-backfill: B7 = pass (no commits since v0.16.0); audit JSON written to shipwright_audit_report.json."
     },
     "degraded": [
-      "client/src/test/doc-sync.test.ts — 11 failures unchanged on origin/main (Phase 0f compliance-hygiene REQUIRED_TOKENS drift); NOT introduced by this iterate."
-    ],
-    "surface_verification": {
-      "surface": "web",
-      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts e2e/flows/86-terminal-selection.spec.ts e2e/flows/87-terminal-mouse-mode.spec.ts e2e/flows/88-terminal-tab-autofocus.spec.ts --reporter=list",
-      "exit_code": 0,
-      "tests_run": 4,
-      "evidence_path": ".shipwright/runs/iterate-2026-05-23-terminal-tab-autofocus/surface_verification.json",
-      "timestamp": "2026-05-23T08:57:00Z"
-    }
+      "F0 vitest/tsc skipped — no source code in diff (events.jsonl backfill + compliance regen + ADR/changelog drops only).",
+      "F0.5 surface_verification = none — small complexity + no UI/behavior change; the meaningful verification is the B7 audit re-run."
+    ]
   }
 }

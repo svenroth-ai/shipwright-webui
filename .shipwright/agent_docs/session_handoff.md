@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-23-fix-ci-doc-sync-claude-md"
+run_id: "iterate-2026-05-23-reconcile-b7-missing-events"
 phase: "iterate"
-reason: "iterate: fix doc-sync meta-test (CI failure on main@34ac661)"
-timestamp: "2026-05-23T21:20:26.219746+00:00"
+reason: "iterate: reconcile B7 missing events (14 commit backfill)"
+timestamp: "2026-05-23T21:28:21.462880+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-23 21:20:26 UTC
+> Auto-generated 2026-05-23 21:28:21 UTC
 
 ## Session Info
 
-- **Session ID**: a09571f2-1ade-4291-b65c-09c5c1b65644
-- **Timestamp**: 2026-05-23 21:20:26 UTC
-- **Reason**: iterate: fix doc-sync meta-test (CI failure on main@34ac661)
+- **Session ID**: 97bb3b83-4f7c-433c-8df2-57eeafaa7e07
+- **Timestamp**: 2026-05-23 21:28:21 UTC
+- **Reason**: iterate: reconcile B7 missing events (14 commit backfill)
 
 ## Last Iterate
 
@@ -28,7 +28,7 @@ timestamp: "2026-05-23T21:20:26.219746+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-ci-doc-sync-claude-md
+- **Branch**: iterate/reconcile-b7-missing-events
 - **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
 
 ### Mandatory replay on Resume
@@ -47,7 +47,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-ci-doc-sync-claude-md
+- **Branch**: iterate/reconcile-b7-missing-events
 - **Last Commit**: 34ac661 chore(release): v0.16.0
 - **Uncommitted Changes**: Yes
 
@@ -64,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-994b3a6e | work_completed | iterate (Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow) | 2026-05-23 |
 | evt-efb0e1e3 | work_completed | iterate (doc-sync meta-test follows Phase 0f file-map move) | 2026-05-23 |
 | evt-5be61962 | work_completed | iterate (chore(launch-prep): publish .shipwright/ SDLC documentation) | 2026-05-23 |
 | evt-9da1a669 | work_completed | iterate (chore(launch-prep): scrub local paths, Tailscale host and IP) | 2026-05-23 |
 | evt-0e23fcba | work_completed | iterate (chore(launch-prep): drop stale skill-compliance docs, fix doc path refs) | 2026-05-23 |
-| evt-370f608f | work_completed | iterate (docs(governance): add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy) | 2026-05-23 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 148
-- **Last iterate**: bug — doc-sync meta-test follows Phase 0f file-map move (2026-05-23)
+- **Total work events**: 149
+- **Last iterate**: change — Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow (2026-05-23)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
