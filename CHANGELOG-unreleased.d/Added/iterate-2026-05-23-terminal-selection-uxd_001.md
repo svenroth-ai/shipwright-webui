@@ -1,1 +1,0 @@
-VS Code-aligned terminal selection: rightClickSelectsWord + macOptionClickForcesSelection + matching wordSeparator. Drag-select in a non-mouse-tracking shell auto-fills the OS clipboard via a mouseup-driven copy gated by mousedown-origin + activeElement focus.

@@ -181,3 +181,7 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 - **ADR-116** (2026-05-20): Triage Tab gains launchPayload rendering + Fix-now CTA (WebUI counterpart to shipwright Iterate A)
 
 - **ADR-119** (2026-05-22): Phase 0f: clear F4-F7 ADR-bloat / arch-marker / CLAUDE.md hygiene
+
+- **ADR-122** (2026-05-23): VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint
+
+- **ADR-123** (2026-05-23): Auto-focus xterm on Terminal tab activation

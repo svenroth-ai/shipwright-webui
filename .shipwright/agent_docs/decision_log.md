@@ -2034,3 +2034,29 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Single source of truth on the intent object; matches the pattern of the other initialX props added in iterate-2026-05-21. Alternative considered — pass projectId only at the TriagePage layer without threading through the intent — rejected because future Fix-now callsites (e.g. TriageItemCard hover CTA in the file header rationale) would re-introduce the same gap.
 - **Consequences:** Triage item's project is now the single source of truth for the spawned task; sidebar Project Filter no longer leaks into Fix-now routing. Backwards-compatible at the modal level (initialProjectId is optional).
 - **Rejected:** Bypass the intent and pass projectId only at TriagePage scope: rejected — re-introduces the missing-prop gap for any future callsite.
+
+---
+
+### ADR-122: VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint
+- **Date:** 2026-05-23
+- **Section:** Iterate — change: terminal selection UX (VS Code parity)
+- **Run-ID:** iterate-2026-05-23-terminal-selection-uxd
+- **Context:** User reported embedded-terminal selection was much worse than VS Code's integrated terminal — drag-select is blocked inside Claude TUI (SGR mouse-mode) and the Shift+Drag escape hatch was undiscoverable. VS Code parity research confirmed the gap.
+- **Decision:** Add VS-Code-aligned Terminal options (rightClickSelectsWord, macOptionClickForcesSelection, wordSeparator). Track selection via term.onSelectionChange (hint) but FIRE copyText only from document-scope mouseup/keyup gated by mousedown-origin + activeElement focus. Render a dismissable banner when .enable-mouse-events class is on term.element.
+- **Commit:** (assigned post-merge)
+- **Rationale:** External iterate review HIGH: onSelectionChange fires per-cell during drag (clipboard spam + lost user activation in strict browsers). Pulling the actual copy to mouseup preserves browser transient-user-activation and naturally debounces. Origin tracking + dedup-on-empty prevent cross-pane clipboard overwrites.
+- **Consequences:** Drag-select inside a non-mouse-tracking shell auto-fills the OS clipboard. The 'Maus-Modus aktiv — Shift+Drag zum Markieren' banner makes the escape hatch discoverable. No new write surface; no new dep; xterm pin (6.0.0) unchanged.
+- **Rejected:** URL-state per-user wordSeparator (premature). Server-side mouse-mode signal via WS envelope (duplicates xterm class). CSS-only ::before hint (not dismissable, not i18n-friendly, unreliable over canvas).
+
+---
+
+### ADR-123: Auto-focus xterm on Terminal tab activation
+- **Date:** 2026-05-23
+- **Section:** Iterate — change: terminal tab autofocus
+- **Run-ID:** iterate-2026-05-23-terminal-tab-autofocus
+- **Context:** User reported: clicking the Terminal tab leaves keyboard focus on the tab trigger button — user has to click into the canvas before typing. VS Code's integrated terminal grabs focus automatically on tab switch.
+- **Decision:** Add a useEffect in EmbeddedTerminal.tsx gated on (active, socket.ready) with a per-active-window latch (tabAutoFocusedRef). On rising edge it defers term.focus() via setTimeout(0) so Radix Tabs.Content's data-[state=inactive]:hidden CSS has settled — focus() on an element inside display:none is a silent no-op.
+- **Commit:** (assigned post-merge)
+- **Rationale:** F0.5 spec 88 caught a synchronous-focus bug that unit tests missed: Radix's CSS state-flip hadn't propagated when the effect ran, so xterm's helper-textarea (still in display:none) silently rejected focus and the tab trigger button kept focus. setTimeout(0) defer is the cheapest fix that lands after the layout pass + remains testable in jsdom (rAF would have required fake-timer plumbing).
+- **Consequences:** Tab-switch to Terminal now lands the cursor in xterm immediately. Stable active=true re-renders are no-ops (no focus-stealing). The orthogonal focusTerminal nav-state path is unchanged.
+- **Rejected:** rAF: harder to test in jsdom. Pulling focus into TaskDetailPage onValueChange: leaks Tabs concerns into the imperative ref consumer. Eager focus without defer: empirically broken (caught by spec 88).
