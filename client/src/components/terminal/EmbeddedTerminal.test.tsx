@@ -2038,4 +2038,99 @@ describe("<EmbeddedTerminal>", () => {
       expect(ev.defaultPrevented).toBe(true);
     });
   });
+
+  // ── iterate-2026-05-23 (terminal-tab-autofocus) — auto-focus on tab
+  //    activation ───────────────────────────────────────────────────────
+  // VS Code's integrated terminal grabs keyboard focus the moment the
+  // Terminal tab becomes active. We were missing that — users had to
+  // click into the canvas first. The fix is a small useEffect gated on
+  // `active && socket.ready`; this block proves the gating + the
+  // no-focus-steal invariant under unrelated re-renders.
+  describe("auto-focus on tab activation", () => {
+    const sendReady = (ws: FakeWebSocket) =>
+      ws.__message(
+        JSON.stringify({
+          type: "ready",
+          role: "writer",
+          shellKind: "pwsh",
+          cwd: "C:\\x",
+        }),
+      );
+    /**
+     * Flush React effects + the setTimeout(0) the autofocus useEffect
+     * schedules. The production code defers `term.focus()` one tick so
+     * Radix Tabs.Content's `data-[state=inactive]:hidden` CSS settles
+     * before xterm tries to focus its hidden helper-textarea (a
+     * `focus()` on an element inside `display:none` is a silent no-op
+     * — F0.5 spec 88 caught this empirically). Tests therefore await
+     * a real macrotask, not just `act(async () => {})`.
+     */
+    const flushAutoFocus = () =>
+      act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+
+    it("mount with active=true: focuses once after ready", async () => {
+      render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      // No focus before ready — the gate keeps focus from firing on
+      // an uninitialised xterm.
+      expect(focusSpy).not.toHaveBeenCalled();
+      await act(async () => {
+        sendReady(ws);
+      });
+      await flushAutoFocus();
+      expect(focusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("mount with active=false: does NOT focus, even after ready", async () => {
+      render(<EmbeddedTerminal taskId="t1" active={false} />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await act(async () => {
+        sendReady(ws);
+      });
+      await flushAutoFocus();
+      expect(focusSpy).not.toHaveBeenCalled();
+    });
+
+    it("transition active=false → active=true after ready: focuses exactly once", async () => {
+      const { rerender } = render(
+        <EmbeddedTerminal taskId="t1" active={false} />,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await act(async () => {
+        sendReady(ws);
+      });
+      await flushAutoFocus();
+      expect(focusSpy).not.toHaveBeenCalled();
+      // User clicks the Terminal tab.
+      rerender(<EmbeddedTerminal taskId="t1" active />);
+      await flushAutoFocus();
+      expect(focusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("stable active=true across unrelated re-renders: focusSpy NOT re-called", async () => {
+      // External-review-anti-pattern guard: this iterate's whole risk
+      // is focus-stealing on every render. The useEffect MUST depend
+      // only on the transition, not on the value, so React's
+      // optimised reconciliation skips re-firing.
+      const { rerender } = render(<EmbeddedTerminal taskId="t1" active />);
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await act(async () => {
+        sendReady(ws);
+      });
+      await flushAutoFocus();
+      expect(focusSpy).toHaveBeenCalledTimes(1);
+      // Three more re-renders with the SAME props — no extra focus calls.
+      for (let i = 0; i < 3; i++) {
+        rerender(<EmbeddedTerminal taskId="t1" active />);
+        await flushAutoFocus();
+      }
+      expect(focusSpy).toHaveBeenCalledTimes(1);
+    });
+  });
 });
