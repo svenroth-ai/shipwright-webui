@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-23 21:20 UTC | Session: a09571f2-1ade-4291-b65c-09c5c1b65644 | Run: iterate-2026-05-23-fix-ci-doc-sync-claude-md
+> Updated: 2026-05-23 21:28 UTC | Session: 97bb3b83-4f7c-433c-8df2-57eeafaa7e07 | Run: iterate-2026-05-23-reconcile-b7-missing-events
 
-## Recent Changes (78 iterations)
+## Recent Changes (79 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 |  | tooling | 2026-05-23 |
+| change | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | 0/0 |  | compliance | 2026-05-23 |
+| bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 | bde108f | tooling | 2026-05-23 |
 | change | chore(launch-prep): publish .shipwright/ SDLC documentation | 0/0 | 2265e39 | docs | 2026-05-23 |
 | change | chore(launch-prep): scrub local paths, Tailscale host and IP | 0/0 | b476762 | docs | 2026-05-23 |
 | change | chore(launch-prep): drop stale skill-compliance docs, fix doc path refs | 0/0 | cad4ac9 | docs | 2026-05-23 |
@@ -85,7 +86,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-23 | Unit: 69/69 | E2E: 4/4 | Smoke: passed | (iterate)
+Last run: 2026-05-23 | Smoke: passed | (iterate)
 
 ## Pipeline
 
