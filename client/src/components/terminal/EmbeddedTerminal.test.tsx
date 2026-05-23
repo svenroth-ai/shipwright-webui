@@ -16,6 +16,7 @@ const focusSpy = vi.fn();
 const disposeSpy = vi.fn();
 const clearSpy = vi.fn();
 const resetSpy = vi.fn();
+const refreshSpy = vi.fn();
 const scrollToBottomSpy = vi.fn();
 const onDataHandlers: Array<(d: string) => void> = [];
 const fitSpy = vi.fn();
@@ -118,6 +119,7 @@ vi.mock("@xterm/xterm", () => ({
     // write; the prod code wraps it in try/catch (xterm mid-dispose) but
     // the mock provides it as a real spy for fidelity.
     reset: resetSpy,
+    refresh: refreshSpy,
     scrollToBottom: scrollToBottomSpy,
     loadAddon: vi.fn(),
     open: vi.fn(),
@@ -287,6 +289,7 @@ describe("<EmbeddedTerminal>", () => {
     disposeSpy.mockClear();
     clearSpy.mockClear();
     resetSpy.mockClear();
+    refreshSpy.mockClear();
     scrollToBottomSpy.mockClear();
     fitSpy.mockClear();
     onDataHandlers.length = 0;
@@ -2110,6 +2113,39 @@ describe("<EmbeddedTerminal>", () => {
       rerender(<EmbeddedTerminal taskId="t1" active />);
       await flushAutoFocus();
       expect(focusSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it("active=false→true also refits + refreshes the renderer (display:none repair)", async () => {
+      // User-reported render-broken bug: when Terminal is NOT the
+      // default tab, `xterm.open(container)` ran while the container
+      // was `display:none` (Tabs.Content data-state=inactive →
+      // hidden). The canvas / WebGL atlas initialised at 0x0; on
+      // first reveal the renderer carried that stale state through
+      // the first paint. Fix: on active=false→true transition, fit
+      // (recomputes cell dims against now-real container size) +
+      // term.refresh(0, rows-1) (forces a full row redraw against
+      // the now-correct atlas). Without this the user sees a broken
+      // display until the next task remount.
+      const { rerender } = render(
+        <EmbeddedTerminal taskId="t1" active={false} />,
+      );
+      await act(async () => {});
+      const ws = FakeWebSocket.instances[0];
+      await act(async () => {
+        sendReady(ws);
+      });
+      await flushAutoFocus();
+      // Nothing yet — active is still false.
+      const fitCallsBefore = fitSpy.mock.calls.length;
+      const refreshCallsBefore = refreshSpy.mock.calls.length;
+      // User clicks Terminal tab → active becomes true.
+      rerender(<EmbeddedTerminal taskId="t1" active />);
+      await flushAutoFocus();
+      // Both fit + refresh fire after the deferred tick.
+      expect(fitSpy.mock.calls.length).toBeGreaterThan(fitCallsBefore);
+      expect(refreshSpy.mock.calls.length).toBeGreaterThan(
+        refreshCallsBefore,
+      );
     });
 
     it("stable active=true across unrelated re-renders: focusSpy NOT re-called", async () => {

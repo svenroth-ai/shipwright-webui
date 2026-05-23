@@ -661,8 +661,28 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
       // so the unit tests would need fake-timer plumbing.
       const t = setTimeout(() => {
         if (disposedRef.current) return;
+        // Repair stale renderer state before focusing. xterm.open()
+        // ran during initial mount when the Terminal-tab container
+        // was `display:none` (Transcript was the persisted default),
+        // so the canvas/WebGL atlas initialised at 0x0. ResizeObserver
+        // does fire on the hide→show transition, but xterm's
+        // internal renderer can carry the stale-zero atlas state
+        // through the first paint — visible to the user as a
+        // "broken" terminal display that only clears after a full
+        // task remount. Fit + refresh forces a complete repaint of
+        // every visible row against the now-real cell dims.
+        const term = termRef.current;
+        const fit = fitAddonRef.current;
+        if (term && fit) {
+          safeFit(fit, term, disposedRef.current);
+          try {
+            term.refresh(0, term.rows - 1);
+          } catch {
+            /* term mid-dispose — refresh is best-effort */
+          }
+        }
         try {
-          termRef.current?.focus();
+          term?.focus();
         } catch {
           /* term mid-dispose — focus is best-effort */
         }

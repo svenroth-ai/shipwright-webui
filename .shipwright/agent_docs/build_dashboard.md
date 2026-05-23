@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-23 06:01 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-tab-autofocus
+> Updated: 2026-05-23 06:58 UTC | Session: a54ea378-a0cd-404e-b95d-91919fa66dd3 | Run: iterate-2026-05-23-terminal-tab-autofocus
 
-## Recent Changes (65 iterations)
+## Recent Changes (66 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Auto-focus xterm on Terminal-tab activation | 68/68 | 14878fc | FR-01.28 | 2026-05-23 |
 | change | Empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 66/66 | 36d08c8 | FR-01.28 | 2026-05-23 |
 | change | spec.md: append FR-01.28 acceptance criteria for terminal-selection-uxd | 65/65 | 46f9138 | FR-01.28 | 2026-05-22 |
 | change | VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint | 65/65 | 9e1559b | FR-01.28 | 2026-05-22 |
