@@ -1,0 +1,1 @@
+FolderTree: `.gitignore` patterns like `/.shipwright/* + !/.shipwright/agent_docs/` now correctly re-include whitelisted subdirs; previously the tree route OR'd the bare-name ignore result and silently overrode every directory-form negation.
