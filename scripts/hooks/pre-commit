@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Shipwright bloat anti-ratchet pre-commit gate (webui twin —
+# Campaign A.defense).  Installed via `scripts/install-hooks.sh`.
+#
+# Blocks commits that ratchet an existing entry in
+# `shipwright_bloat_baseline.json`. New crossings are advisory.
+# Bypass once: `git commit --no-verify`.
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$repo_root" ]; then
+    exit 0
+fi
+
+if [ ! -f "$repo_root/shipwright_bloat_baseline.json" ]; then
+    exit 0
+fi
+
+# Resolve a Python interpreter — try the Windows `py` launcher first
+# (least likely to be shadowed by the Microsoft Store stub), then
+# `python3`, then `python`. Validate each candidate by invoking
+# `--version` — the MS Store stub returns non-zero and prints to
+# stderr, so it will not be selected.
+py=""
+for candidate in py python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+        if "$candidate" --version >/dev/null 2>&1; then
+            py="$candidate"
+            break
+        fi
+    fi
+done
+
+if [ -z "$py" ]; then
+    cat >&2 <<'EOF'
+anti-ratchet pre-commit: no Python interpreter found.
+
+The shipwright-webui bloat-anti-ratchet check requires Python 3.10+.
+Install Python (https://python.org) or skip just this commit:
+
+  git commit --no-verify
+EOF
+    exit 1
+fi
+
+"$py" "$repo_root/scripts/hooks/anti_ratchet_check.py" \
+    --project-root "$repo_root" \
+    --staged
