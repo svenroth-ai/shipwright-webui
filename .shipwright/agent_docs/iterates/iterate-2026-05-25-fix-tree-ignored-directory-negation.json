@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-25-fix-tree-ignored-directory-negation",
+  "date": "2026-05-25T18:47:03.562832Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/fix-tree-ignored-directory-negation",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-05-25-fix-tree-ignored-directory-negation"
+}

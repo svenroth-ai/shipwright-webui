@@ -163,6 +163,44 @@ describe("GET /api/external/projects/:projectId/tree (section 04a)", () => {
     expect(secrets?.ignored).toBe(true);
   });
 
+  it("directory-form negation (e.g. /.shipwright/* + !/.shipwright/agent_docs/) honours re-includes", async () => {
+    // git's "blanket-ignore + selective whitelist" pattern is common for
+    // .shipwright/ artefact whitelists. The negation pattern only
+    // matches the trailing-slash (directory) form, so the code must NOT
+    // collapse it onto the bare-name form before consulting `ignore()`.
+    mkdirSync(path.join(projectDir, ".shipwright", "agent_docs"), { recursive: true });
+    mkdirSync(path.join(projectDir, ".shipwright", "planning"), { recursive: true });
+    mkdirSync(path.join(projectDir, ".shipwright", "internal"), { recursive: true });
+
+    const original = "secrets\n";
+    const future = new Date(Date.now() + 2000);
+    writeFileSync(
+      path.join(projectDir, ".gitignore"),
+      original +
+        "/.shipwright/*\n" +
+        "!/.shipwright/agent_docs/\n" +
+        "!/.shipwright/planning/\n",
+    );
+    utimesSync(path.join(projectDir, ".gitignore"), future, future);
+    __clearGitignoreCacheForTests();
+
+    const res = await app.request(
+      `/api/external/projects/${projectId}/tree?path=.shipwright`,
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      entries: Array<{ name: string; kind: string; ignored: boolean }>;
+    };
+
+    const agentDocs = body.entries.find((e) => e.name === "agent_docs");
+    const planning = body.entries.find((e) => e.name === "planning");
+    const internal = body.entries.find((e) => e.name === "internal");
+
+    expect(agentDocs?.ignored).toBe(false);
+    expect(planning?.ignored).toBe(false);
+    expect(internal?.ignored).toBe(true);
+  });
+
   it("?path=src returns only src's direct children (lazy expand)", async () => {
     const res = await app.request(
       `/api/external/projects/${projectId}/tree?path=src`,
