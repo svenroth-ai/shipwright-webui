@@ -1,12 +1,12 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-23-reconcile-b7-missing-events",
-    "date": "2026-05-23",
+    "run_id": "iterate-2026-05-25-fix-tree-ignored-directory-negation",
+    "date": "2026-05-25",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "scope": "Diff is data-only (events.jsonl backfill + compliance regen + ADR/changelog drops). No .ts/.tsx/.py production code modified — vitest signal would be identical to origin/main."
+      "status": "passed",
+      "passed": 1175,
+      "total": 1175,
+      "scope": "Full server vitest suite. Targeted regression: tree-route.test.ts adds 'directory-form negation honours re-includes' (12 tests in file, all passing). Adjacent file-route + routes tests re-run (64 tests total) post-rename-fix — clean."
     },
     "integration": {
       "status": "not_run",
@@ -22,7 +22,7 @@
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "scope": "No UI/behavior change — events-backfill only."
+      "scope": "Phase Matrix: BUG/small/no UI-touch (server-only) → E2E not required."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -30,12 +30,19 @@
       "total": 0
     },
     "smoke": {
-      "status": "passed",
-      "scope": "Re-ran detective audit Group B in worktree post-backfill: B7 = pass (no commits since v0.16.0); audit JSON written to shipwright_audit_report.json."
+      "status": "skipped"
+    },
+    "surface_verification": {
+      "surface": "none",
+      "runner": "",
+      "exit_code": 0,
+      "tests_run": 0,
+      "evidence_path": "",
+      "timestamp": "2026-05-25T20:46:00Z",
+      "justification": "Advisory at small complexity + touches_public_api (no io_boundary, no UI code touched). The unit test mounts the actual Hono route via app.request() and exercises the full handler lifecycle — identical to a port-bound server, only the TCP socket is missing. Diff is 12 lines of behavior change in one map() callback."
     },
     "degraded": [
-      "F0 vitest/tsc skipped — no source code in diff (events.jsonl backfill + compliance regen + ADR/changelog drops only).",
-      "F0.5 surface_verification = none — small complexity + no UI/behavior change; the meaningful verification is the B7 audit re-run."
+      "External LLM code review degraded: no OPENAI/GEMINI/ANTHROPIC keys in env → fell back to a fresh-eyes general-purpose subagent review (one LOW finding addressed: relpath shadowing renamed to entryRelpath)."
     ]
   }
 }
