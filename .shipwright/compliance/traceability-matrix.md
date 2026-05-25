@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-25T18:46:55.727908+00:00
+Generated: 2026-05-25T19:06:56.133671+00:00
 
 ## Requirements Coverage
 
@@ -192,7 +192,8 @@ Generated: 2026-05-25T18:46:55.727908+00:00
 | chore(launch-prep): publish .shipwright/ SDLC documentation | iterate | change |  | — | 2265e39 | 2026-05-23 |
 | doc-sync meta-test follows Phase 0f file-map move | iterate | bug |  | 1066/1066 | bde108f | 2026-05-23 |
 | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | iterate | change |  | — | 5e086aa | 2026-05-23 |
-| tree-route directory-form negation | iterate | bug |  | 1175/1175 | — | 2026-05-25 |
+| tree-route directory-form negation | iterate | bug |  | 1175/1175 | 5c7f539 | 2026-05-25 |
+| terminal touchscreen scroll | iterate | bug |  | 1081/1081 | 389b454 | 2026-05-25 |
 
 ## Coverage Summary
 
@@ -200,7 +201,7 @@ Generated: 2026-05-25T18:46:55.727908+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 80 |
+| Iterate changes | 81 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |

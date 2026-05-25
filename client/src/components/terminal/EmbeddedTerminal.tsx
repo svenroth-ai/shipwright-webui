@@ -53,6 +53,7 @@ import {
   readClipboardForPaste,
   type ClipboardNoticeKind,
 } from "./terminal-clipboard";
+import { attachTouchScroll } from "./touch-scroll";
 import { copyText } from "../../lib/clipboard";
 
 export interface EmbeddedTerminalHandle {
@@ -1206,6 +1207,13 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         }),
       );
 
+      // iterate-2026-05-25-fix-terminal-touch-scroll — one-finger pan-to-scroll.
+      // xterm 6.x's `.xterm-scrollable-element` listens to `wheel` events but
+      // registers no `touch*` listeners, so finger drag on a touchscreen did
+      // nothing while a mouse wheel worked. attachTouchScroll fills the gap;
+      // disposeTouchScroll is torn down alongside the other listeners below.
+      const disposeTouchScroll = attachTouchScroll(term, container);
+
       // iterate-2026-05-23 (terminal-selection-uxd) — copy-on-selection.
       // See `latestSelectionRef` / `lastCopiedSelectionRef` declarations
       // above for the rationale. Two-step pipeline:
@@ -1455,6 +1463,11 @@ export const EmbeddedTerminal = forwardRef<EmbeddedTerminalHandle, EmbeddedTermi
         // after term.element is nulled by xterm's own dispose path.
         try {
           onSelectionChangeDispose.dispose();
+        } catch {
+          /* ignore — best-effort cleanup */
+        }
+        try {
+          disposeTouchScroll();
         } catch {
           /* ignore — best-effort cleanup */
         }
