@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-25 18:46 UTC | Session: 3ccd2831-b188-45a6-bb2c-5ac7a4d869f0 | Run: iterate-2026-05-25-fix-tree-ignored-directory-negation
+> Updated: 2026-05-25 19:06 UTC | Session: 3ccd2831-b188-45a6-bb2c-5ac7a4d869f0 | Run: iterate-2026-05-25-fix-terminal-touch-scroll
 
-## Recent Changes (80 iterations)
+## Recent Changes (81 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| bug | tree-route directory-form negation | 1175/1175 |  | tooling | 2026-05-25 |
+| bug | terminal touchscreen scroll | 1081/1081 |  | tooling | 2026-05-25 |
+| bug | tree-route directory-form negation | 1175/1175 | 5c7f539 | tooling | 2026-05-25 |
 | change | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | 0/0 | 5e086aa | compliance | 2026-05-23 |
 | bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 | bde108f | tooling | 2026-05-23 |
 | change | chore(launch-prep): publish .shipwright/ SDLC documentation | 0/0 | 2265e39 | docs | 2026-05-23 |
@@ -87,7 +88,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-25 | Unit: 1175/1175 | Smoke: skipped | (iterate)
+Last run: 2026-05-25 | Unit: 1081/1081 | Smoke: deferred | (iterate)
 
 ## Pipeline
 

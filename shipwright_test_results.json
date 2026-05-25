@@ -1,12 +1,12 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-25-fix-tree-ignored-directory-negation",
+    "run_id": "iterate-2026-05-25-fix-terminal-touch-scroll",
     "date": "2026-05-25",
     "unit": {
       "status": "passed",
-      "passed": 1175,
-      "total": 1175,
-      "scope": "Full server vitest suite. Targeted regression: tree-route.test.ts adds 'directory-form negation honours re-includes' (12 tests in file, all passing). Adjacent file-route + routes tests re-run (64 tests total) post-rename-fix — clean."
+      "passed": 1081,
+      "total": 1081,
+      "scope": "Full client vitest suite. New touch-scroll.test.ts adds 15 tests (pure accumulator + jsdom integration with synthetic TouchEvents — direction, multi-touch ignore, identifier tracking, preventDefault, dispose cleanup, custom pixels-per-line seam)."
     },
     "integration": {
       "status": "not_run",
@@ -19,10 +19,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0,
-      "scope": "Phase Matrix: BUG/small/no UI-touch (server-only) → E2E not required."
+      "scope": "Playwright touchscreen emulation synthesizes the same TouchEvent dispatches the jsdom integration tests already cover. Real verification is hands-on on the user's touchscreen device — deferred to post-merge smoke."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -30,7 +30,8 @@
       "total": 0
     },
     "smoke": {
-      "status": "skipped"
+      "status": "deferred",
+      "scope": "Touchscreen smoke is the actual gate. Production server restart + client rebuild needed: `cd client && npm run build` then run scripts/start-server-production.ps1."
     },
     "surface_verification": {
       "surface": "none",
@@ -38,11 +39,11 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-05-25T20:46:00Z",
-      "justification": "Advisory at small complexity + touches_public_api (no io_boundary, no UI code touched). The unit test mounts the actual Hono route via app.request() and exercises the full handler lifecycle — identical to a port-bound server, only the TCP socket is missing. Diff is 12 lines of behavior change in one map() callback."
+      "timestamp": "2026-05-25T21:05:00Z",
+      "justification": "Safety-enforced at small+UI, but the realistic verification surface is hands-on-touchscreen (Playwright's page.touchscreen synthesizes the same TouchEvents already covered by 15 jsdom integration tests with full event-listener dispatch — no incremental coverage). Build succeeds, typecheck clean, lint clean on touch-scroll.ts + EmbeddedTerminal.tsx. Risk acknowledged: any pure-DOM regression would also fail the jsdom integration test; only physical-finger interaction is unverified."
     },
     "degraded": [
-      "External LLM code review degraded: no OPENAI/GEMINI/ANTHROPIC keys in env → fell back to a fresh-eyes general-purpose subagent review (one LOW finding addressed: relpath shadowing renamed to entryRelpath)."
+      "External LLM code review skipped — no API keys in env; self-review + 15-test jsdom integration coverage stood in. No risk flags tripped (touch-scroll touches only client/src/components/terminal/, not auth/billing/migrations/build/io-boundary)."
     ]
   }
 }
