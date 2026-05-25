@@ -5,7 +5,7 @@
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| bug | terminal touchscreen scroll | 1081/1081 |  | tooling | 2026-05-25 |
+| bug | terminal touchscreen scroll | 1081/1081 | 389b454 | tooling | 2026-05-25 |
 | bug | tree-route directory-form negation | 1175/1175 | 5c7f539 | tooling | 2026-05-25 |
 | change | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | 0/0 | 5e086aa | compliance | 2026-05-23 |
 | bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 | bde108f | tooling | 2026-05-23 |
