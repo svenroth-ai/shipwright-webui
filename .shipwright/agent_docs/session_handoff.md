@@ -2,7 +2,7 @@
 canon_generated: true
 run_id: "iterate-2026-05-25-fix-terminal-touch-scroll"
 phase: "iterate"
-reason: "iterate: fix terminal touchscreen scroll"
+reason: "regen post-rebase onto PR #60"
 timestamp: "2026-05-25T19:06:56.133671+00:00"
 ---
 
@@ -14,16 +14,16 @@ timestamp: "2026-05-25T19:06:56.133671+00:00"
 
 - **Session ID**: 3ccd2831-b188-45a6-bb2c-5ac7a4d869f0
 - **Timestamp**: 2026-05-25 19:06:56 UTC
-- **Reason**: iterate: fix terminal touchscreen scroll
+- **Reason**: regen post-rebase onto PR #60
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-23-reconcile-b7-missing-events
-- **Date**: 2026-05-23T21:28:30.851020Z
-- **Type**: change
+- **Run ID**: iterate-2026-05-25-fix-terminal-touch-scroll
+- **Date**: 2026-05-25T19:07:15.309074Z
+- **Type**: bug
 - **Complexity**: small
-- **Branch**: iterate/reconcile-b7-missing-events
-- **ADR**: iterate-2026-05-23-reconcile-b7-missing-events
+- **Branch**: iterate/fix-terminal-touch-scroll
+- **ADR**: iterate-2026-05-25-fix-terminal-touch-scroll
 - **Tests passed**: True
 
 ## Current Iterate Progress
@@ -48,7 +48,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/fix-terminal-touch-scroll
-- **Last Commit**: 6a624c3 Merge pull request #59 from svenroth-ai/iterate/reconcile-b7-missing-events
+- **Last Commit**: 4a2138f fix(client/terminal): one-finger pan-to-scroll on touchscreens
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
