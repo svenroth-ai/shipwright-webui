@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-23 21:28 UTC | Session: 97bb3b83-4f7c-433c-8df2-57eeafaa7e07 | Run: iterate-2026-05-23-reconcile-b7-missing-events
+> Updated: 2026-05-25 18:46 UTC | Session: 3ccd2831-b188-45a6-bb2c-5ac7a4d869f0 | Run: iterate-2026-05-25-fix-tree-ignored-directory-negation
 
-## Recent Changes (79 iterations)
+## Recent Changes (80 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | 0/0 |  | compliance | 2026-05-23 |
+| bug | tree-route directory-form negation | 1175/1175 |  | tooling | 2026-05-25 |
+| change | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | 0/0 | 5e086aa | compliance | 2026-05-23 |
 | bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 | bde108f | tooling | 2026-05-23 |
 | change | chore(launch-prep): publish .shipwright/ SDLC documentation | 0/0 | 2265e39 | docs | 2026-05-23 |
 | change | chore(launch-prep): scrub local paths, Tailscale host and IP | 0/0 | b476762 | docs | 2026-05-23 |
@@ -86,7 +87,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-23 | Smoke: passed | (iterate)
+Last run: 2026-05-25 | Unit: 1175/1175 | Smoke: skipped | (iterate)
 
 ## Pipeline
 

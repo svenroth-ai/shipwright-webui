@@ -2108,11 +2108,13 @@ export function createExternalRoutes(args: {
 
     const out = entries.map((d) => {
       const kind: "file" | "dir" = d.isDirectory() ? "dir" : "file";
-      // `ignore` requires a relative path. It treats trailing slashes as a
-      // directory hint, which affects pattern semantics.
-      const testPathBase = subPrefix ? `${subPrefix}/${d.name}` : d.name;
-      const testPath = kind === "dir" ? `${testPathBase}/` : testPathBase;
-      const ignored = ig.ignores(testPath) || ig.ignores(testPathBase);
+      // `ignore` requires a relative path. Trailing slash signals "directory"
+      // and is load-bearing for negation patterns like `!/.shipwright/agent_docs/`
+      // — testing the bare form would silently match the broader `/.shipwright/*`
+      // rule and defeat the re-include.
+      const entryRelpath = subPrefix ? `${subPrefix}/${d.name}` : d.name;
+      const testPath = kind === "dir" ? `${entryRelpath}/` : entryRelpath;
+      const ignored = ig.ignores(testPath);
       return { name: d.name, kind, ignored };
     });
 
