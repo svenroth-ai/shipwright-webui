@@ -558,8 +558,8 @@
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
       "current": 1198,
-      "state": "grandfathered",
-      "adr": null
+      "state": "exception",
+      "adr": "ADR-101"
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
