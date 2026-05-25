@@ -1,0 +1,1 @@
+Embedded terminal: one-finger touchscreen drag now scrolls the viewport. xterm 6.x's scrollable element listens only to `wheel` events; added a small dedicated module (`client/src/components/terminal/touch-scroll.ts`) that translates touchmove deltas into `term.scrollLines()` calls (multi-touch left to browser native, sub-line remainders accumulated).
