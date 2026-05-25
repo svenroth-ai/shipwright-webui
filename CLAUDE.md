@@ -5,6 +5,40 @@
 - **Architecture**: Hono backend (Node.js) + React 19 frontend (Vite 6), monorepo in `webui/`. **External-launch model (Plan D'' variant a, 2026-04-19; embedded-terminal auto-execute via ADR-068-A1)**: webui owns no Claude subprocess. The user clicks Launch / Resume / Relaunch on the TaskDetail header; the same pre-bound `--session-id <uuid>` command is auto-executed inside the embedded terminal pane (xterm.js + node-pty, shell-only whitelist) via a client-side WS data-frame. Users may still copy the command and run it in their own terminal — webui observes the resulting JSONL at `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` either way.
 - **Stack**: TypeScript strict, Hono, React 19, Vite 6, TailwindCSS 4, Radix UI, TanStack React Query.
 
+## Shared vocabulary
+
+Allowlist · Ratchet · Anti-Ratchet · Producer · Action-Unit · Canon-Gate —
+shipwright-wide terminology lives in
+[`../shipwright/shared/glossary.md`](../shipwright/shared/glossary.md)
+(sibling clone, Campaign A.defense, MIT). If you don't have a sibling
+shipwright checkout, the same file is reachable at
+https://github.com/svenroth-ai/shipwright/blob/main/shared/glossary.md.
+Mandatory reference for the bloat anti-ratchet rule + ADR-template
+fields (Ousterhout / YAGNI / Chesterton-Fence / Re-Review-Date /
+Incident-Reference).
+
+## Pre-commit hooks
+
+Contributors must install the bloat anti-ratchet pre-commit hook
+**once per clone**:
+
+```bash
+bash scripts/install-hooks.sh       # POSIX / Git-Bash on Windows
+.\scripts\install-hooks.ps1         # PowerShell on Windows
+```
+
+This sets `git config core.hooksPath scripts/hooks` (idempotent;
+refuses to overwrite an existing different value without `--force`).
+The hook only blocks commits that ratchet an existing entry in
+`shipwright_bloat_baseline.json` — new crossings are advisory and are
+caught by the Group H detective audit (in the shipwright dev repo,
+not webui).  Python 3.10+ is required to run the hook; the install
+script prints a remediation message if Python is missing.
+
+Vendored from `shipwright/shared/scripts/hooks/anti_ratchet_check.py`
+(see `scripts/hooks/anti_ratchet_check.py` header for canonical-source
+hash + version).
+
 ## Architecture reference
 
 Plan of record: [`~/.claude/plans/plan-d-double-prime-external-launch.md`](../.claude/plans/plan-d-double-prime-external-launch.md).

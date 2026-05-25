@@ -1,0 +1,607 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "path": "client/e2e/flows/73-embedded-terminal.spec.ts",
+      "limit": 300,
+      "current": 454,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/75-launch-matrix-and-session-persistence.spec.ts",
+      "limit": 300,
+      "current": 456,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/79-v0.8.2-polish-smoke.spec.ts",
+      "limit": 300,
+      "current": 326,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/82-v0.8.6-terminal-reattach-smoke.spec.ts",
+      "limit": 300,
+      "current": 323,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/83-v0.8.7-scrollback-hygiene.spec.ts",
+      "limit": 300,
+      "current": 366,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts",
+      "limit": 300,
+      "current": 545,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/v0-9-5-task-type-matrix.spec.ts",
+      "limit": 300,
+      "current": 682,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/v0-9-6-live-pty-matrix.spec.ts",
+      "limit": 300,
+      "current": 312,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/e2e/flows/v0-9-6-live-pty-replay.spec.ts",
+      "limit": 300,
+      "current": 372,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/BubbleTranscript.test.tsx",
+      "limit": 300,
+      "current": 1229,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/BubbleTranscript.tsx",
+      "limit": 300,
+      "current": 1618,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/ContinuePipelineModal.tsx",
+      "limit": 300,
+      "current": 321,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/EditTaskModal.tsx",
+      "limit": 300,
+      "current": 439,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/FolderTree.tsx",
+      "limit": 300,
+      "current": 398,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/MasterTaskCard.test.tsx",
+      "limit": 300,
+      "current": 723,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/MasterTaskCard.tsx",
+      "limit": 300,
+      "current": 640,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/NewIssueModal.test.tsx",
+      "limit": 300,
+      "current": 1292,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/NewIssueModal.tsx",
+      "limit": 300,
+      "current": 1516,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/ParamField.test.tsx",
+      "limit": 300,
+      "current": 346,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/ParamField.tsx",
+      "limit": 300,
+      "current": 322,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/SmartViewer.tsx",
+      "limit": 300,
+      "current": 321,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TaskCard.test.tsx",
+      "limit": 300,
+      "current": 377,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TaskCard.tsx",
+      "limit": 300,
+      "current": 609,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TaskDetailHeader.test.tsx",
+      "limit": 300,
+      "current": 736,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TaskDetailHeader.tsx",
+      "limit": 300,
+      "current": 1015,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TaskList.tsx",
+      "limit": 300,
+      "current": 534,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TaskListCard.tsx",
+      "limit": 300,
+      "current": 350,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/external/TerminalLaunchButton.tsx",
+      "limit": 300,
+      "current": 336,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/settings/ActionsConfigCard.test.tsx",
+      "limit": 300,
+      "current": 323,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/settings/ActionsConfigCard.tsx",
+      "limit": 300,
+      "current": 408,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
+      "limit": 300,
+      "current": 2172,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
+      "limit": 300,
+      "current": 1856,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/triage/TriageDetailModal.tsx",
+      "limit": 300,
+      "current": 302,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/components/wizard/ProjectWizard.tsx",
+      "limit": 300,
+      "current": 481,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/external/session-parser.test.ts",
+      "limit": 300,
+      "current": 731,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/external/session-parser.ts",
+      "limit": 300,
+      "current": 716,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/hooks/useSSE.test.ts",
+      "limit": 300,
+      "current": 360,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/hooks/useTerminalSocket.test.ts",
+      "limit": 300,
+      "current": 513,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/hooks/useTerminalSocket.ts",
+      "limit": 300,
+      "current": 483,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/lib/externalApi.ts",
+      "limit": 300,
+      "current": 863,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/pages/InboxPage.test.tsx",
+      "limit": 300,
+      "current": 655,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/pages/InboxPage.tsx",
+      "limit": 300,
+      "current": 967,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/pages/ProjectsPage.tsx",
+      "limit": 300,
+      "current": 439,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/pages/TaskBoardPage.tsx",
+      "limit": 300,
+      "current": 646,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/pages/TaskDetailPage.test.tsx",
+      "limit": 300,
+      "current": 362,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "client/src/pages/TaskDetailPage.tsx",
+      "limit": 300,
+      "current": 676,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/scripts/sdk-poc.ts",
+      "limit": 300,
+      "current": 893,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/actions-schema-validator.test.ts",
+      "limit": 300,
+      "current": 635,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/actions-schema-validator.ts",
+      "limit": 300,
+      "current": 432,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/actions-substitute.test.ts",
+      "limit": 300,
+      "current": 973,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/actions-substitute.ts",
+      "limit": 300,
+      "current": 603,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/cli-compat.ts",
+      "limit": 300,
+      "current": 330,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/launcher.test.ts",
+      "limit": 300,
+      "current": 440,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/parameter-resolver.ts",
+      "limit": 300,
+      "current": 346,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/preview-session-manager.test.ts",
+      "limit": 300,
+      "current": 341,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/preview-session-manager.ts",
+      "limit": 300,
+      "current": 393,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/project-manager.test.ts",
+      "limit": 300,
+      "current": 480,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/project-manager.ts",
+      "limit": 300,
+      "current": 420,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/run-config-reader.ts",
+      "limit": 300,
+      "current": 439,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/schema-migration.test.ts",
+      "limit": 300,
+      "current": 338,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/sdk-sessions-store.test.ts",
+      "limit": 300,
+      "current": 557,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/core/sdk-sessions-store.ts",
+      "limit": 300,
+      "current": 791,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/actions-routes.test.ts",
+      "limit": 300,
+      "current": 1213,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/actions-upload.test.ts",
+      "limit": 300,
+      "current": 454,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/file-route.test.ts",
+      "limit": 300,
+      "current": 312,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/phase-task-launch.test.ts",
+      "limit": 300,
+      "current": 383,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/routes.edit-fields.test.ts",
+      "limit": 300,
+      "current": 388,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/routes.test.ts",
+      "limit": 300,
+      "current": 843,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/external/routes.ts",
+      "limit": 300,
+      "current": 2879,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/index.ts",
+      "limit": 300,
+      "current": 843,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/lib/resolveTrustedOrigins.test.ts",
+      "limit": 300,
+      "current": 343,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/routes/triage.real-lock.test.ts",
+      "limit": 300,
+      "current": 308,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/routes/triage.test.ts",
+      "limit": 300,
+      "current": 821,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/routes/triage.ts",
+      "limit": 300,
+      "current": 706,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/headless-mirror.ts",
+      "limit": 300,
+      "current": 417,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/image-paste.ts",
+      "limit": 300,
+      "current": 312,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/pty-manager-live-snapshot.test.ts",
+      "limit": 300,
+      "current": 731,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/pty-manager-watchdog.test.ts",
+      "limit": 300,
+      "current": 310,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/pty-manager.test.ts",
+      "limit": 300,
+      "current": 487,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/pty-manager.ts",
+      "limit": 300,
+      "current": 1198,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
+      "limit": 300,
+      "current": 569,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/routes.ts",
+      "limit": 300,
+      "current": 1013,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/scrollback-store.test.ts",
+      "limit": 300,
+      "current": 636,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/scrollback-store.ts",
+      "limit": 300,
+      "current": 688,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/snapshot-store.test.ts",
+      "limit": 300,
+      "current": 423,
+      "state": "grandfathered",
+      "adr": null
+    },
+    {
+      "path": "server/src/terminal/snapshot-store.ts",
+      "limit": 300,
+      "current": 513,
+      "state": "grandfathered",
+      "adr": null
+    }
+  ]
+}
