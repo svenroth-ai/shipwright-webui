@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-05-25T18:46:55.727908+00:00
-Total commits: 413
+Generated: 2026-05-25T19:06:56.133671+00:00
+Total commits: 415
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 165
+    "fix" : 167
     "feat" : 118
     "chore" : 66
     "docs" : 35
@@ -19,10 +19,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 165 commits
+### Fixes (fix) — 167 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-25 | client/terminal | one-finger pan-to-scroll on touchscreens | 4a2138f91481 |
+| 2026-05-25 | server/external | tree route honours .gitignore directory-form negations | 5c7f53955e36 |
 | 2026-05-23 | test | retarget doc-sync to follow Phase 0f file-map move | bde108f83300 |
 | 2026-05-23 | terminal | refit + refresh on tab activation (render-broken repair) | 207f5c362f5e |
 | 2026-05-22 | compliance | G2 stoplist + regen artifacts (bloat from C.2 detector rollout) | 5c89262cf08f |
@@ -476,7 +478,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 413 |
+| Total commits | 415 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 413 |
+| Human-authored commits | 415 |
 
