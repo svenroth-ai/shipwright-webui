@@ -114,20 +114,6 @@
       "adr": null
     },
     {
-      "path": "client/src/components/external/NewIssueModal.test.tsx",
-      "limit": 300,
-      "current": 1292,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
-      "path": "client/src/components/external/NewIssueModal.tsx",
-      "limit": 300,
-      "current": 1516,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "client/src/components/external/ParamField.test.tsx",
       "limit": 300,
       "current": 346,
