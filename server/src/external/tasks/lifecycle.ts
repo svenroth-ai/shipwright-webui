@@ -1,0 +1,141 @@
+/*
+ * external/tasks/lifecycle.ts — POST /tasks/:id/fork, /close, /backlog +
+ * DELETE /tasks/:id.
+ *
+ * fork — clone a task with a parent linkage + emit fresh launch commands.
+ * close — `state → done` (terminal).
+ * backlog — `state → draft` (FR-01.32, move back to Backlog column).
+ * delete — drop the task + cascade-clear scrollback + snapshot.
+ *
+ * ADR-068-A1 + ADR-087 — DELETE cascade-clears scrollback files +
+ * snapshot files. Best-effort; the task delete is the authoritative
+ * privacy boundary.
+ *
+ * CLAUDE.md rule 6 — backlog's `store.persist` returns 409 on ELOCKED
+ * (proper-lockfile contention).
+ */
+
+import type { Hono } from "hono";
+
+import { buildCopyCommands } from "../../core/launcher.js";
+import {
+  SdkSessionsStore,
+  isBacklogSourceState,
+} from "../../core/sdk-sessions-store.js";
+import { withLiveSession } from "../_shared/helpers.js";
+
+export function registerTasksLifecycle(
+  app: Hono,
+  deps: {
+    store: SdkSessionsStore;
+    ptyManager: { get(taskId: string): unknown };
+    scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
+    snapshotClearBestEffort?: (taskId: string) => Promise<void>;
+  },
+): void {
+  const {
+    store,
+    ptyManager,
+    scrollbackClearBestEffort,
+    snapshotClearBestEffort,
+  } = deps;
+
+  app.post("/api/external/tasks/:id/fork", async (c) => {
+    const parent = store.get(c.req.param("id"));
+    if (!parent) return c.json({ error: "Parent task not found" }, 404);
+    const body = await c.req.json().catch(() => ({}));
+    const title =
+      typeof body.title === "string" && body.title.trim()
+        ? body.title.trim()
+        : `${parent.title} — fork`;
+    const child = store.create({
+      title,
+      cwd: parent.cwd,
+      pluginDirs: parent.pluginDirs,
+      parentTaskId: parent.taskId,
+      parentSessionUuid: parent.sessionUuid,
+      // Section 02 — forks inherit the parent's projectId.
+      projectId: parent.projectId,
+    });
+    const commands = buildCopyCommands({
+      sessionUuid: child.sessionUuid,
+      cwd: child.cwd,
+      fork: true,
+      parentSessionUuid: parent.sessionUuid,
+      pluginDirs: child.pluginDirs,
+      title: child.title,
+    });
+    store.patch(child.taskId, {
+      state: "awaiting_external_start",
+      launchedAt: new Date().toISOString(),
+    });
+    await store.persist();
+    return c.json({
+      task: withLiveSession(store.get(child.taskId), ptyManager),
+      commands,
+    });
+  });
+
+  app.post("/api/external/tasks/:id/close", async (c) => {
+    const task = store.get(c.req.param("id"));
+    if (!task) return c.json({ error: "Task not found" }, 404);
+    const updated = store.patch(task.taskId, { state: "done" });
+    await store.persist();
+    return c.json({ task: withLiveSession(updated, ptyManager) });
+  });
+
+  // iterate-2026-05-17-move-to-backlog (FR-01.32) — move an In-Progress
+  // task back to the Backlog column (`state → draft`). A pure registry-
+  // state flip, sibling of /close: the JSONL and shipwright_run_config.json
+  // are NOT touched. Every history field is preserved; only `state` changes.
+  app.post("/api/external/tasks/:id/backlog", async (c) => {
+    const task = store.get(c.req.param("id"));
+    if (!task) return c.json({ error: "Task not found" }, 404);
+    // Already in the Backlog → idempotent no-op.
+    if (task.state === "draft") {
+      return c.json({ task: withLiveSession(task, ptyManager) });
+    }
+    // Explicit allowlist of the five In-Progress states.
+    if (!isBacklogSourceState(task.state)) {
+      return c.json(
+        { error: "backlog_invalid_state", state: task.state },
+        409,
+      );
+    }
+    const updated = store.patch(task.taskId, { state: "draft" });
+    try {
+      await store.persist();
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ELOCKED") {
+        return c.json({ error: "sdk-sessions.json is locked, retry" }, 409);
+      }
+      throw err;
+    }
+    return c.json({ task: withLiveSession(updated, ptyManager) });
+  });
+
+  app.delete("/api/external/tasks/:id", async (c) => {
+    const taskId = c.req.param("id");
+    const deleted = store.delete(taskId);
+    if (!deleted) return c.json({ error: "Task not found" }, 404);
+    await store.persist();
+    // ADR-068-A1: cascade-clean scrollback files. Best-effort.
+    if (scrollbackClearBestEffort) {
+      try {
+        await scrollbackClearBestEffort(taskId);
+      } catch {
+        /* best-effort */
+      }
+    }
+    // ADR-087 MEDIUM-B1: cascade-clean snapshot file. Best-effort —
+    // task delete is the authoritative privacy boundary.
+    if (snapshotClearBestEffort) {
+      try {
+        await snapshotClearBestEffort(taskId);
+      } catch {
+        /* best-effort */
+      }
+    }
+    return c.json({ ok: true });
+  });
+}

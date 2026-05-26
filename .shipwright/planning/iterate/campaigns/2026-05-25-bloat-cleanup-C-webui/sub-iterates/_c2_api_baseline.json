@@ -1,0 +1,395 @@
+{
+  "_meta": {
+    "captured_at": "2026-05-26",
+    "captured_from": "server/src/external/routes.ts @ ce08c5d (origin/main)",
+    "captured_by": "iterate-2026-05-26-campaign-C-C2-external-routes-split / runner",
+    "purpose": "Pre-split API contract snapshot — empirical anchor for the C2 contract sweep. Every endpoint, method, documented status code + response key set listed in source order. Post-split contract sweep MUST reproduce every row.",
+    "extraction_method": "hand-curated from a thorough read of server/src/external/routes.ts (lines 371-2516); cross-validated against client/src/lib/externalApi.ts wrapper signatures.",
+    "endpoint_count": 22,
+    "documented_status_codes": [200, 400, 404, 405, 409, 413, 415, 500, 501]
+  },
+  "endpoints": [
+    {
+      "id": "tasks.create",
+      "method": "POST",
+      "path": "/api/external/tasks",
+      "source_lines": "routes.ts:371-514",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts createTask",
+      "success": {
+        "status": 200,
+        "keys": ["task"],
+        "extra_keys_when_idempotent_reused": ["task", "reused"]
+      },
+      "error_branches": [
+        {"code": "unknown_project_id", "status": 400},
+        {"code": "phase_requires_project", "status": 400},
+        {"code": "invalid_phase", "status": 400},
+        {"code": "invalid_phase_task_id", "status": 400},
+        {"code": "invalid_run_id", "status": 400},
+        {"code": "invalid_session_uuid", "status": 400},
+        {"code": "invalid_parent_run_master", "status": 400},
+        {"code": "invalid_description", "status": 400}
+      ]
+    },
+    {
+      "id": "tasks.list",
+      "method": "GET",
+      "path": "/api/external/tasks",
+      "query": ["projectId?"],
+      "source_lines": "routes.ts:516-541",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts listTasks",
+      "success": {"status": 200, "keys": ["tasks"]},
+      "error_branches": []
+    },
+    {
+      "id": "tasks.get",
+      "method": "GET",
+      "path": "/api/external/tasks/:id",
+      "source_lines": "routes.ts:543-554",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts getTask",
+      "success": {"status": 200, "keys": ["task"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404}
+      ]
+    },
+    {
+      "id": "tasks.launch",
+      "method": "POST",
+      "path": "/api/external/tasks/:id/launch",
+      "source_lines": "routes.ts:556-1038",
+      "future_sub_router": "launch",
+      "client_consumer": "client/src/lib/externalApi.ts launchTask",
+      "success": {"status": 200, "keys": ["task", "commands"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404},
+        {"code": "launch_invalid_state", "status": 409, "extra_keys": ["state"]},
+        {"code": "task_claimed", "status": 409, "extra_keys": ["claimedBy", "claimedAt"]},
+        {"code": "mixed_launch_intents", "status": 400},
+        {"code": "invalid_phase_task_ref", "status": 400},
+        {"code": "invalid_phase_task_id", "status": 400},
+        {"code": "phase_task_requires_project", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "run_config_unavailable", "status": 409, "extra_keys": ["status"]},
+        {"code": "phase_task_not_found", "status": 409, "extra_keys": ["phaseTaskId"]},
+        {"code": "phase_task_not_actionable", "status": 409, "extra_keys": ["phaseTaskId", "status"]},
+        {"code": "phase_task_prereq_not_met", "status": 409, "extra_keys": ["phaseTaskId", "prerequisites", "completed"]},
+        {"code": "phase_task_corrupt", "status": 409},
+        {"code": "phase_task_session_uuid_mismatch", "status": 409, "extra_keys": ["taskSessionUuid", "phaseTaskSessionUuid"]},
+        {"code": "invalid_parameters_body", "status": 400},
+        {"code": "unknown_action_id", "status": 400, "extra_keys": ["actionId"]},
+        {"code": "command_substitution_failed", "status": 400}
+      ]
+    },
+    {
+      "id": "tasks.patch",
+      "method": "PATCH",
+      "path": "/api/external/tasks/:id",
+      "source_lines": "routes.ts:1051-1244",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts renameTask + assignTaskProject + updateTask",
+      "success": {"status": 200, "keys": ["task"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404},
+        {"code": "at_least_one_field_required", "status": 400},
+        {"code": "field_not_editable", "status": 409, "extra_keys": ["fields", "detail"]},
+        {"code": "title cannot contain newlines", "status": 400},
+        {"code": "title cannot be empty", "status": 400},
+        {"code": "title exceeds <N> characters", "status": 400},
+        {"code": "projectId cannot be empty", "status": 400},
+        {"code": "unknown_project_id", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "invalid_description", "status": 400},
+        {"code": "invalid_phase", "status": 400},
+        {"code": "phase_requires_project", "status": 400},
+        {"code": "invalid_priority", "status": 400},
+        {"code": "invalid_complexity_hint", "status": 400},
+        {"code": "invalid_domain", "status": 400},
+        {"code": "invalid_tags", "status": 400},
+        {"code": "invalid_blocked_by", "status": 400},
+        {"code": "sdk-sessions.json is locked, retry", "status": 409, "note": "ELOCKED branch (CLAUDE.md rule 6)"}
+      ]
+    },
+    {
+      "id": "tasks.fork",
+      "method": "POST",
+      "path": "/api/external/tasks/:id/fork",
+      "source_lines": "routes.ts:1246-1278",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts forkTask",
+      "success": {"status": 200, "keys": ["task", "commands"]},
+      "error_branches": [
+        {"code": "Parent task not found", "status": 404}
+      ]
+    },
+    {
+      "id": "tasks.transcript",
+      "method": "GET",
+      "path": "/api/external/tasks/:id/transcript",
+      "query": ["fromByte?", "expectFingerprint?"],
+      "source_lines": "routes.ts:1280-1414",
+      "future_sub_router": "transcript",
+      "client_consumer": "client/src/lib/externalApi.ts getTranscript",
+      "success": {
+        "status": 200,
+        "shape": "discriminated union on `status`",
+        "variants": [
+          {"status_field": "ok", "keys": ["status", "chunk", "task"]},
+          {"status_field": "missing", "keys": ["status", "task"]},
+          {"status_field": "rotated", "keys": ["status", "task", "currentFingerprint"]}
+        ]
+      },
+      "error_branches": [
+        {"code": "Task not found", "status": 404}
+      ],
+      "invariant_load_bearing": "CLAUDE.md rule 4 — STATELESS byte-offset; multi-tab support comes for free. The server NEVER writes a per-session byte-offset cache."
+    },
+    {
+      "id": "inbox.list",
+      "method": "GET",
+      "path": "/api/external/inbox",
+      "source_lines": "routes.ts:1416-1689",
+      "future_sub_router": "inbox",
+      "client_consumer": "client/src/lib/externalApi.ts listInbox",
+      "success": {"status": 200, "keys": ["items"]},
+      "error_branches": []
+    },
+    {
+      "id": "inbox.dismiss",
+      "method": "POST",
+      "path": "/api/external/inbox/:toolUseId/dismiss",
+      "source_lines": "routes.ts:1691-1714",
+      "future_sub_router": "inbox",
+      "client_consumer": "client/src/lib/externalApi.ts dismissInboxItem",
+      "success": {"status": 200, "keys": ["ok", "taskId"]},
+      "error_branches": [
+        {"code": "toolUseId not found in any pending set", "status": 404}
+      ]
+    },
+    {
+      "id": "tasks.close",
+      "method": "POST",
+      "path": "/api/external/tasks/:id/close",
+      "source_lines": "routes.ts:1716-1722",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts closeTask",
+      "success": {"status": 200, "keys": ["task"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404}
+      ]
+    },
+    {
+      "id": "tasks.backlog",
+      "method": "POST",
+      "path": "/api/external/tasks/:id/backlog",
+      "source_lines": "routes.ts:1731-1754",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts moveTaskToBacklog",
+      "success": {"status": 200, "keys": ["task"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404},
+        {"code": "backlog_invalid_state", "status": 409, "extra_keys": ["state"]},
+        {"code": "sdk-sessions.json is locked, retry", "status": 409}
+      ]
+    },
+    {
+      "id": "tasks.delete",
+      "method": "DELETE",
+      "path": "/api/external/tasks/:id",
+      "source_lines": "routes.ts:1756-1783",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/externalApi.ts deleteTask",
+      "success": {"status": 200, "keys": ["ok"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404}
+      ]
+    },
+    {
+      "id": "projects.actions",
+      "method": "GET",
+      "path": "/api/external/projects/:projectId/actions",
+      "source_lines": "routes.ts:1800-1902",
+      "future_sub_router": "actions",
+      "client_consumer": "client/src/lib/externalApi.ts getProjectActions",
+      "success": {"status": 200, "keys": ["actions", "phases", "defaults", "preview", "diagnostics", "fromUser"]},
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "missing_actions_top_level | ... | (any SchemaError.code)", "status": 400, "extra_keys": ["errors", "projectId"]},
+        {"code": "invalid_placeholder", "status": 400, "extra_keys": ["placeholder", "actionId", "template"]},
+        {"code": "template_validation_failed", "status": 500, "extra_keys": ["actionId"]}
+      ]
+    },
+    {
+      "id": "projects.preview",
+      "method": "POST",
+      "path": "/api/external/projects/:projectId/preview",
+      "source_lines": "routes.ts:1914-1979",
+      "future_sub_router": "preview",
+      "client_consumer": "client/src/lib/externalApi.ts startPreview",
+      "success": {"status": 200, "keys": ["url", "sessionId"]},
+      "error_branches": [
+        {"code": "preview_unavailable", "status": 501},
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "preview_profile_invalid", "status": 400},
+        {"code": "preview_port_in_use", "status": 500, "extra_keys": ["port"]},
+        {"code": "preview_spawn_failed", "status": 500},
+        {"code": "preview_exited_early", "status": 500},
+        {"code": "preview_timeout", "status": 500, "extra_keys": ["seconds"]},
+        {"code": "preview_unknown_error", "status": 500}
+      ],
+      "invariant_load_bearing": "CLAUDE.md rule 9 / ADR-044 — preview spawn uses shell:false (enforced inside core/preview-session-manager.ts). Route must NEVER produce a parallel spawn path."
+    },
+    {
+      "id": "projects.run_config",
+      "method": "GET",
+      "path": "/api/external/projects/:projectId/run-config",
+      "source_lines": "routes.ts:2004-2027",
+      "future_sub_router": "run-config",
+      "client_consumer": "client/src/lib/externalApi.ts getRunConfig",
+      "success": {
+        "status": 200,
+        "shape": "discriminated union on `status`",
+        "variants": [
+          {"status_field": "ok", "keys": ["status", "config", "readyToLaunchTasks", "diagnostics"]},
+          {"status_field": "missing", "keys": ["status"]},
+          {"status_field": "v1_legacy", "keys": ["status"]},
+          {"status_field": "invalid", "keys": ["status", "reason"]}
+        ]
+      },
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]}
+      ],
+      "invariant_load_bearing": "CLAUDE.md rule 12 — webui is read-only observer of run-config. NO POST/PATCH endpoint exists; the framework's orchestrator owns every mutation."
+    },
+    {
+      "id": "projects.tree",
+      "method": "GET",
+      "path": "/api/external/projects/:projectId/tree",
+      "query": ["path?"],
+      "source_lines": "routes.ts:2045-2128",
+      "future_sub_router": "tree",
+      "client_consumer": "client/src/lib/externalApi.ts fetchProjectTree",
+      "success": {"status": 200, "keys": ["entries"]},
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "path_traversal", "status": 400, "extra_keys": ["detail"]},
+        {"code": "absolute_input", "status": 400, "extra_keys": ["detail"]},
+        {"code": "drive_change", "status": 400, "extra_keys": ["detail"]},
+        {"code": "not_found", "status": 404, "extra_keys": ["path"]},
+        {"code": "not_a_directory", "status": 400, "extra_keys": ["path"]},
+        {"code": "tree_read_failed", "status": 500}
+      ],
+      "invariant_load_bearing": "CLAUDE.md rule 10 / ADR-044 — path-guard is realpath + path.relative, NOT startsWith. .gitignore directory-form negation honored (commit 5c7f539)."
+    },
+    {
+      "id": "projects.file",
+      "method": "GET",
+      "path": "/api/external/projects/:projectId/file",
+      "query": ["path"],
+      "source_lines": "routes.ts:2141-2252",
+      "future_sub_router": "file",
+      "client_consumer": "client/src/lib/externalApi.ts fetchFileText + fileUrl",
+      "success": {
+        "status": 200,
+        "body_type": "raw bytes",
+        "headers": ["Content-Type", "X-Content-Type-Options: nosniff", "Content-Disposition: inline; filename=\"...\"", "Content-Length", "Cache-Control", "Content-Security-Policy"]
+      },
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "path_required", "status": 400},
+        {"code": "path_traversal", "status": 400, "extra_keys": ["detail"]},
+        {"code": "absolute_input", "status": 400},
+        {"code": "drive_change", "status": 400},
+        {"code": "not_found", "status": 404, "extra_keys": ["path"]},
+        {"code": "file_stat_failed", "status": 500},
+        {"code": "not_a_file", "status": 400, "extra_keys": ["path"]},
+        {"code": "file_too_large", "status": 413, "extra_keys": ["maxBytes", "size"]},
+        {"code": "binary_not_previewable", "status": 415, "extra_keys": ["mime", "extension"]},
+        {"code": "file_read_failed", "status": 500}
+      ],
+      "invariant_load_bearing": "CLAUDE.md rule 10 — null-byte input hard-rejected. realpath escape via symlink → 400 path_traversal."
+    },
+    {
+      "id": "projects.actions_stub",
+      "method": "POST",
+      "path": "/api/projects/:id/actions-stub",
+      "source_lines": "routes.ts:2261-2300",
+      "future_sub_router": "actions",
+      "client_consumer": "client/src/lib/externalApi.ts saveActionsStub",
+      "success": {"status": 200, "keys": ["path", "created"]},
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "stub_write_failed", "status": 500, "extra_keys": ["detail", "path"]}
+      ],
+      "note_path_prefix": "Note: lives under /api/projects/... NOT /api/external/...  Path prefix kept verbatim post-split."
+    },
+    {
+      "id": "projects.actions_upload",
+      "method": "POST",
+      "path": "/api/projects/:id/actions-upload",
+      "source_lines": "routes.ts:2319-2466",
+      "future_sub_router": "actions",
+      "client_consumer": "client/src/lib/externalApi.ts uploadActionsJson",
+      "success": {"status": 200, "keys": ["path", "written"]},
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "payload_too_large", "status": 413, "extra_keys": ["maxBytes", "size"]},
+        {"code": "invalid_json", "status": 400, "extra_keys": ["detail"]},
+        {"code": "schema_validation_failed", "status": 400, "extra_keys": ["errors"]},
+        {"code": "invalid_placeholder", "status": 400, "extra_keys": ["placeholder", "actionId", "template"]},
+        {"code": "path_unsafe", "status": 400, "extra_keys": ["reason", "path"]},
+        {"code": "upload_write_failed", "status": 500, "extra_keys": ["detail", "path"]}
+      ]
+    },
+    {
+      "id": "projects.actions_upload_delete",
+      "method": "DELETE",
+      "path": "/api/projects/:id/actions-upload",
+      "source_lines": "routes.ts:2473-2513",
+      "future_sub_router": "actions",
+      "client_consumer": "client/src/lib/externalApi.ts resetActionsJson",
+      "success": {"status": 200, "keys": ["path", "removed"]},
+      "error_branches": [
+        {"code": "project_not_found", "status": 404, "extra_keys": ["projectId"]},
+        {"code": "project_path_unavailable", "status": 400, "extra_keys": ["projectId"]},
+        {"code": "path_unsafe", "status": 400, "extra_keys": ["reason", "path"]},
+        {"code": "upload_unlink_failed", "status": 500, "extra_keys": ["detail", "path"]}
+      ]
+    },
+    {
+      "id": "run_config.no_mutation",
+      "method": "POST/PATCH/PUT/DELETE",
+      "path": "/api/external/projects/:projectId/run-config",
+      "future_sub_router": "run-config",
+      "expected_behavior": "Hono returns 404 (no handler defined for these methods). CLAUDE.md rule 12: webui is a read-only observer of run-config; no mutation endpoint exists.",
+      "success": null,
+      "error_branches": [
+        {"code": "(Hono default 404 — handler not defined)", "status": 404}
+      ]
+    },
+    {
+      "id": "transcript.multi_tab_stateless",
+      "method": "GET",
+      "path": "/api/external/tasks/:id/transcript (concurrent)",
+      "future_sub_router": "transcript",
+      "expected_behavior": "Two parallel fetches with same fromByte + expectFingerprint return identical bytes. Server holds NO per-session byte-offset state.",
+      "invariant_load_bearing": "CLAUDE.md rule 4 + plan-d-double-prime hard rule #2 ('Server is stateless on transcript reads'). Multi-tab works by construction."
+    }
+  ],
+  "_invariants_summary": [
+    {"id": "rule-4-stateless-transcript", "ref": "CLAUDE.md rule 4", "endpoint": "transcript.get"},
+    {"id": "rule-6-elocked-409", "ref": "CLAUDE.md rule 6", "endpoint": "tasks.patch + tasks.backlog"},
+    {"id": "rule-9-preview-shell-false", "ref": "CLAUDE.md rule 9 / ADR-044", "endpoint": "projects.preview"},
+    {"id": "rule-10-realpath-pathguard", "ref": "CLAUDE.md rule 10 / ADR-044", "endpoint": "projects.tree + projects.file + projects.actions_upload"},
+    {"id": "rule-12-run-config-readonly", "ref": "CLAUDE.md rule 12", "endpoint": "projects.run_config"},
+    {"id": "rule-13-phase-task-launch", "ref": "CLAUDE.md rule 13", "endpoint": "tasks.launch (phaseTaskRef branch)"},
+    {"id": "rule-15-schema-v3", "ref": "CLAUDE.md rule 15", "endpoint": "tasks.create + tasks.get + tasks.list"},
+    {"id": "rule-16-stale-detection", "ref": "CLAUDE.md rule 16", "endpoint": "phase-task-launch (run-config timestamps only)"},
+    {"id": "gitignore-directory-form", "ref": "commit 5c7f539", "endpoint": "projects.tree"}
+  ]
+}
