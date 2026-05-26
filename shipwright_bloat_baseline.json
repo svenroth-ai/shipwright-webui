@@ -198,13 +198,6 @@
       "adr": null
     },
     {
-      "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
-      "limit": 300,
-      "current": 1856,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
       "limit": 300,
       "current": 302,

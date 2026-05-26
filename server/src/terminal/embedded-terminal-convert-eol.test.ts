@@ -57,6 +57,10 @@ const FIXTURE_PATH = resolve(
   "claude-tui-scrollback.log",
 );
 // server/src/terminal/ → up 3 → repo root → client component.
+// Campaign C / C5 — the Terminal constructor was extracted from
+// `EmbeddedTerminal.tsx` into `xtermAddons.ts`. The `convertEol: false`
+// literal now lives there. Redirecting the regression-guard source-of-
+// truth to the new location keeps the Bug B fence intact.
 const CLIENT_EMBEDDED_TERMINAL = resolve(
   __dirname,
   "..",
@@ -66,7 +70,7 @@ const CLIENT_EMBEDDED_TERMINAL = resolve(
   "src",
   "components",
   "terminal",
-  "EmbeddedTerminal.tsx",
+  "xtermAddons.ts",
 );
 
 /**
