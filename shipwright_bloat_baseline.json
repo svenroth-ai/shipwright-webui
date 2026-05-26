@@ -436,13 +436,6 @@
       "adr": null
     },
     {
-      "path": "server/src/external/routes.ts",
-      "limit": 300,
-      "current": 2879,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "server/src/index.ts",
       "limit": 300,
       "current": 843,
