@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-26T06:28:50.526572+00:00
+Generated: 2026-05-26T07:39:50.451211+00:00
 
 ## Requirements Coverage
 
@@ -195,7 +195,8 @@ Generated: 2026-05-26T06:28:50.526572+00:00
 | Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | iterate | Verify CLAUDE.md is already <= 300 LOC and not in bloat baseline; document Phase-0f organic outcome. |  | 22/22 | b1e66f4 | 2026-05-25 |
 | evt-956e1c71 | iterate | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 |  | 14/14 | 247325b | 2026-05-25 |
 | iterate finalization | iterate | change |  | — | — | 2026-05-25 |
-| Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | iterate | change |  | — | — | 2026-05-26 |
+| Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | iterate | change |  | — | 2cd7aa3 | 2026-05-26 |
+| Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | iterate | change |  | 1124/1124 | — | 2026-05-26 |
 
 ## Coverage Summary
 
@@ -203,7 +204,7 @@ Generated: 2026-05-26T06:28:50.526572+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 83 |
+| Iterate changes | 84 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
