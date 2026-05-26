@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-25-fix-terminal-touch-scroll"
+run_id: "iterate-2026-05-26-campaign-C-C6-task-detail-header-split"
 phase: "iterate"
-reason: "regen post-rebase onto PR #60"
-timestamp: "2026-05-25T19:06:56.133671+00:00"
+reason: "iterate finalization"
+timestamp: "2026-05-26T06:28:50.526572+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-25 19:06:56 UTC
+> Auto-generated 2026-05-26 06:28:50 UTC
 
 ## Session Info
 
-- **Session ID**: 3ccd2831-b188-45a6-bb2c-5ac7a4d869f0
-- **Timestamp**: 2026-05-25 19:06:56 UTC
-- **Reason**: regen post-rebase onto PR #60
+- **Session ID**: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96
+- **Timestamp**: 2026-05-26 06:28:50 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
@@ -28,8 +28,11 @@ timestamp: "2026-05-25T19:06:56.133671+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-terminal-touch-scroll
-- **External Review Marker**: skipped_no_api_key (external_review_state.json @ 2026-05-21T00:00:00)
+- **Branch**: iterate/campaign-C-C6-task-detail-header-split
+- **Run ID**: `iterate-2026-05-26-campaign-C-C6-task-detail-header-split`
+- **Spec**: .shipwright/planning/iterate/2026-05-26-campaign-C-C6-task-detail-header-split.md
+- **Complexity**: medium (5 new modules; bit-perfect behavior preservation across a 1015-loc component)
+- **External Review Marker**: stale (predates spec (2026-05-26T05:30:27))
 
 ### Mandatory replay on Resume
 
@@ -47,8 +50,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-terminal-touch-scroll
-- **Last Commit**: 4a2138f fix(client/terminal): one-finger pan-to-scroll on touchscreens
+- **Branch**: iterate/campaign-C-C6-task-detail-header-split
+- **Last Commit**: ce08c5d Merge pull request #65 from svenroth-ai/iterate/campaign-C-C8-pty-manager-exception
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +67,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-5170f2ba | work_completed | iterate (terminal touchscreen scroll) | 2026-05-25 |
-| evt-b8e3e871 | work_completed | iterate (tree-route directory-form negation) | 2026-05-25 |
+| evt-b1759173 | work_completed | iterate (Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components.) | 2026-05-26 |
+| evt-91e68d98 | work_completed | iterate (iterate finalization) | 2026-05-25 |
+| evt-956e1c71 | work_completed | iterate (Campaign C C8) | 2026-05-25 |
+| evt-425538a1 | work_completed | iterate (Campaign C — sub-iterate C1) | 2026-05-25 |
 | evt-994b3a6e | work_completed | iterate (Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow) | 2026-05-23 |
-| evt-efb0e1e3 | work_completed | iterate (doc-sync meta-test follows Phase 0f file-map move) | 2026-05-23 |
-| evt-5be61962 | work_completed | iterate (chore(launch-prep): publish .shipwright/ SDLC documentation) | 2026-05-23 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 151
-- **Last iterate**: bug — terminal touchscreen scroll (2026-05-25)
+- **Total work events**: 153
+- **Last iterate**: change — Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. (2026-05-26)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

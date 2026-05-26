@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-05-25T19:06:56.133671+00:00
-Total commits: 415
+Generated: 2026-05-26T06:28:50.526572+00:00
+Total commits: 422
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 167
-    "feat" : 118
-    "chore" : 66
+    "feat" : 119
+    "chore" : 72
     "docs" : 35
     "refactor" : 15
     "test" : 9
@@ -191,10 +191,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 118 commits
+### Features (feat) — 119 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-25 | bloat | Campaign A.defense twin — pre-commit + CI + baseline | 0ec7b54a6a16 |
 | 2026-05-23 | terminal | auto-focus xterm on tab activation | 14878fcf98fc |
 | 2026-05-23 | terminal | VS Code-aligned selection + copy-on-select + mouse-mode hint | 9e1559ba2dbb |
 | 2026-05-21 | triage | Fix-now opens NewIssueModal; namespace 4 phase slashes | aa1788c876ac |
@@ -314,10 +315,16 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 66 commits
+### Chores (chore) — 72 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-25 | events | record C8 work_completed event (evt-956e1c71) | 2159acd10e37 |
+| 2026-05-25 | bloat | accept pty-manager.ts as deep module, file ADR-101 | 247325bcd055 |
+| 2026-05-25 | events | record C1 work_completed event (evt-425538a1) | bb37b4fd1b3a |
+| 2026-05-25 | campaign-c | C1 verify CLAUDE.md is already below bloat threshold | b1e66f448f00 |
+| 2026-05-25 | campaign | seed Campaign C — WebUI bloat cleanup scaffolding | dc36affbc2fe |
+| 2026-05-25 | compliance | regen change-history + traceability post-rebase onto #60 | c7d746cd5a0b |
 | 2026-05-23 | compliance | regen change-history + traceability post-rebase onto #58 | b50099a19fa9 |
 | 2026-05-23 | events | record evt-994b3a6e for iterate-2026-05-23-reconcile-b7-missing-events | 0d1702afabf0 |
 | 2026-05-23 | release | v0.16.0 | 34ac661c7b82 |
@@ -478,7 +485,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 415 |
+| Total commits | 422 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 415 |
+| Human-authored commits | 422 |
 
