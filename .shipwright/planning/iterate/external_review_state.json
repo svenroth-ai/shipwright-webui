@@ -1,9 +1,9 @@
 {
   "status": "completed",
-  "timestamp": "2026-05-26T05:30:27.892830+00:00",
-  "provider": "openrouter",
-  "findings_count": 12,
+  "timestamp": "2026-05-26T21:45:17.428236+00:00",
+  "provider": "openrouter (openai + gemini)",
+  "findings_count": 8,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "8 findings incorporated into spec/mini-plan: targeted-status PROBE_TABLE (vs allowed-set), plain JSON import, projects.file 2-probe split, :path placeholder, meta-test for baseline<->probe drift, deterministic multi-tab fixture.",
   "review_mode": "iterate"
 }
