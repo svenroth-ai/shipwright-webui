@@ -622,11 +622,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
 
         return {
           onOpen(_evt, ws) {
-            // `hadPriorWriter` = atomic snapshot inside attach(); feeds
-            // `ready.ptyReused` so the one-shot guard arms only on real
-            // reload/multi-tab, never on prewarm-only ptys (iterate
-            // 2026-05-27-fix-pty-reused-prewarm-race). Distinct from
-            // `ptyExistedBeforeAttach` (still drives ADR-104 terminalReset).
+            // `hadPriorWriter` = atomic snapshot in attach() (iterate
+            // 2026-05-27-fix-pty-reused-prewarm-race); feeds ready.ptyReused
+            // so the guard arms only on real reload/multi-tab, not prewarm.
+            // `ptyExistedBeforeAttach` still drives ADR-104 terminalReset.
             const { role, hadPriorWriter } = ptyManager.attach(taskId, connToken);
 
             // Iterate v0.8.5 AC-4 — new-plain (`/api/external/launch`
