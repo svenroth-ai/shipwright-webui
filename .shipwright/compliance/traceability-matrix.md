@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-25T19:06:56.133671+00:00
+Generated: 2026-05-26T06:28:50.526572+00:00
 
 ## Requirements Coverage
 
@@ -192,8 +192,10 @@ Generated: 2026-05-25T19:06:56.133671+00:00
 | chore(launch-prep): publish .shipwright/ SDLC documentation | iterate | change |  | — | 2265e39 | 2026-05-23 |
 | doc-sync meta-test follows Phase 0f file-map move | iterate | bug |  | 1066/1066 | bde108f | 2026-05-23 |
 | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | iterate | change |  | — | 5e086aa | 2026-05-23 |
-| tree-route directory-form negation | iterate | bug |  | 1175/1175 | 5c7f539 | 2026-05-25 |
-| terminal touchscreen scroll | iterate | bug |  | 1081/1081 | 389b454 | 2026-05-25 |
+| Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | iterate | Verify CLAUDE.md is already <= 300 LOC and not in bloat baseline; document Phase-0f organic outcome. |  | 22/22 | b1e66f4 | 2026-05-25 |
+| evt-956e1c71 | iterate | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 |  | 14/14 | 247325b | 2026-05-25 |
+| iterate finalization | iterate | change |  | — | — | 2026-05-25 |
+| Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | iterate | change |  | — | — | 2026-05-26 |
 
 ## Coverage Summary
 
@@ -201,7 +203,7 @@ Generated: 2026-05-25T19:06:56.133671+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 81 |
+| Iterate changes | 83 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
