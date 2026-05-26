@@ -1,0 +1,1 @@
+E2E regression fence for the EmbeddedTerminal split (Campaign C / C5): client/e2e/flows/C5-embedded-terminal-split-smoke.spec.ts drives the ADR-068-A1 auto-execute path end-to-end against a real browser + live Hono server (Launch CTA → ready{role:writer,ptyReused:false} → 250 ms-quiesced WS data-frame; reload → second ready{ptyReused:true}).
