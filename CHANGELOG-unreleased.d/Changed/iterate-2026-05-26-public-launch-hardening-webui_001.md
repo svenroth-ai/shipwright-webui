@@ -1,0 +1,1 @@
+README — new Acknowledgments block (before License) covers Superpowers / Karpathy / Multica with per-source attribution; Multica explicitly Apache-2.0 modified, patterns only, no code copy. Companion to shipwright PR #105 (KA1 in constitution + SP5 framing). Closes P1.1 of Spec/external-frameworks-integration.md (webui leg).

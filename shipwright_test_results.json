@@ -1,49 +1,30 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-25-fix-terminal-touch-scroll",
-    "date": "2026-05-25",
+    "run_id": "iterate-2026-05-26-public-launch-hardening-webui",
+    "date": "2026-05-26",
     "unit": {
-      "status": "passed",
-      "passed": 1081,
-      "total": 1081,
-      "scope": "Full client vitest suite. New touch-scroll.test.ts adds 15 tests (pure accumulator + jsdom integration with synthetic TouchEvents — direction, multi-touch ignore, identifier tracking, preventDefault, dispose cleanup, custom pixels-per-line seam)."
-    },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "e2e": {
       "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "scope": "Playwright touchscreen emulation synthesizes the same TouchEvent dispatches the jsdom integration tests already cover. Real verification is hands-on on the user's touchscreen device — deferred to post-merge smoke."
+      "reason": "docs-only iterate (PR template + README); no application code touched"
     },
-    "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
-    },
-    "smoke": {
-      "status": "deferred",
-      "scope": "Touchscreen smoke is the actual gate. Production server restart + client rebuild needed: `cd client && npm run build` then run scripts/start-server-production.ps1."
-    },
+    "integration": { "status": "skipped", "reason": "docs-only iterate" },
+    "pgtap": { "status": "skipped", "reason": "no DB layer" },
+    "e2e": { "status": "skipped", "reason": "no UI behavior change" },
+    "design_fidelity": { "status": "skipped", "reason": "no UI changes" },
+    "smoke": { "status": "skipped", "reason": "no app behavior change" },
     "surface_verification": {
       "surface": "none",
-      "runner": "",
+      "justification": "Docs-only iterate (.github/PULL_REQUEST_TEMPLATE.md NEW + README.md Acknowledgments block); no startable user-facing surface to drive. F0.5 is Advisory at small complexity without touches_io_boundary or UI; recorded for compliance.",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": "",
-      "timestamp": "2026-05-25T21:05:00Z",
-      "justification": "Safety-enforced at small+UI, but the realistic verification surface is hands-on-touchscreen (Playwright's page.touchscreen synthesizes the same TouchEvents already covered by 15 jsdom integration tests with full event-listener dispatch — no incremental coverage). Build succeeds, typecheck clean, lint clean on touch-scroll.ts + EmbeddedTerminal.tsx. Risk acknowledged: any pure-DOM regression would also fail the jsdom integration test; only physical-finger interaction is unverified."
+      "timestamp": "2026-05-26T22:55:00.000Z"
     },
-    "degraded": [
-      "External LLM code review skipped — no API keys in env; self-review + 15-test jsdom integration coverage stood in. No risk flags tripped (touch-scroll touches only client/src/components/terminal/, not auth/billing/migrations/build/io-boundary)."
-    ]
+    "anti_ratchet": {
+      "status": "passed",
+      "scope": "scripts/hooks/anti_ratchet_check.py --worktree",
+      "result": "exit 0; no new crossings, no ratchets",
+      "readme_loc": 197,
+      "pr_template_loc": 159
+    },
+    "degraded": []
   }
 }

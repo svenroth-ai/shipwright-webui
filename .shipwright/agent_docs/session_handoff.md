@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-26-campaign-C-C4-new-issue-modal-split"
+run_id: "iterate-2026-05-26-public-launch-hardening-webui"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-05-26T07:39:50.451211+00:00"
+reason: "capture event id"
+timestamp: "2026-05-26T21:57:51.770614+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-26 07:39:50 UTC
+> Auto-generated 2026-05-26 21:57:51 UTC
 
 ## Session Info
 
-- **Session ID**: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96
-- **Timestamp**: 2026-05-26 07:39:50 UTC
-- **Reason**: iterate finalization
+- **Session ID**: 40b1eb76-d68e-4414-be55-0283044ac054
+- **Timestamp**: 2026-05-26 21:57:51 UTC
+- **Reason**: capture event id
 
 ## Last Iterate
 
@@ -28,11 +28,8 @@ timestamp: "2026-05-26T07:39:50.451211+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-C-C4-new-issue-modal-split
-- **Run ID**: `iterate-2026-05-26-campaign-C-C4-new-issue-modal-split`
-- **Spec**: .shipwright/planning/iterate/2026-05-26-campaign-C-C4-new-issue-modal-split.md
-- **Complexity**: small (classify_complexity output) — promoted to medium-grade gates because `touches_public_api` risk flag is set and diff is expected >100 loc. adr-029 cascade applies: step 3.5 plan-review, step 3.6 self-review, step 3.7 code-review-cascade (external `--mode code`).
-- **External Review Marker**: stale (predates spec (2026-05-21T00:00:00))
+- **Branch**: iterate/public-launch-hardening
+- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T05:30:27)
 
 ### Mandatory replay on Resume
 
@@ -50,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-C-C4-new-issue-modal-split
-- **Last Commit**: ce08c5d Merge pull request #65 from svenroth-ai/iterate/campaign-C-C8-pty-manager-exception
+- **Branch**: iterate/public-launch-hardening
+- **Last Commit**: d626596 Merge pull request #71 from svenroth-ai/iterate/campaign-C-C2-external-routes-split
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -67,24 +64,23 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-490d6b9f | work_completed | iterate (NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105)) | 2026-05-26 |
 | evt-348e51b8 | work_completed | iterate (Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed.) | 2026-05-26 |
 | evt-b1759173 | work_completed | iterate (Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components.) | 2026-05-26 |
 | evt-91e68d98 | work_completed | iterate (iterate finalization) | 2026-05-25 |
 | evt-956e1c71 | work_completed | iterate (Campaign C C8) | 2026-05-25 |
-| evt-425538a1 | work_completed | iterate (Campaign C — sub-iterate C1) | 2026-05-25 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 154
-- **Last iterate**: change — Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. (2026-05-26)
+- **Total work events**: 155
+- **Last iterate**: change — NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) (2026-05-26)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-123: Auto-focus xterm on Terminal tab activation
-- **Date:** 2026-05-23
-- **Section:** Iterate — change: terminal tab autofocus
-- **Run-ID:** iterate-2026-05-23-terminal-tab-autofocus
-- **Context:** User reported: clicking the Terminal tab leaves keyboard focus on the tab trigger button — user has to click into the canvas before typing. VS Code's integrated terminal grabs focus automatically on tab switch.
-- **Decision:** Add a useEffect in EmbeddedTerminal.tsx gated on (active, socket.ready) wi
+### ADR-126: Split BubbleTranscript.tsx into stable-props sub-modules (Campaign C, C3)
+- **Date:** 2026-05-26
+- **Section:** Iterate — refactor: BubbleTranscript decomposition (Campaign C bloat cleanup)
+- **Run-ID:** iterate-2026-05-26-campaign-C-C3-bubble-transcript-split
+- **Context:** `client/src/components/external/BubbleTranscript.tsx` had reached 1618 LOC (5.4× the 300-LOC project guideline). Campaign C sub-iterate C3 spec mandates a thin shell (≤200 LOC) plus 5 stable-props sub-modules: `Transcri

@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-05-26T07:39:50.451211+00:00
-Total commits: 422
+Generated: 2026-05-26T21:57:51.770614+00:00
+Total commits: 429
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 167
+    "fix" : 168
     "feat" : 119
     "chore" : 72
     "docs" : 35
-    "refactor" : 15
+    "refactor" : 21
     "test" : 9
     "other" : 4
     "build" : 1
@@ -19,10 +19,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 167 commits
+### Fixes (fix) — 168 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-26 | adr | renumber ADR-124 → ADR-126 + remove stray conflict marker | bb8ff0864d0f |
 | 2026-05-25 | client/terminal | one-finger pan-to-scroll on touchscreens | 4a2138f91481 |
 | 2026-05-25 | server/external | tree route honours .gitignore directory-form negations | 5c7f53955e36 |
 | 2026-05-23 | test | retarget doc-sync to follow Phase 0f file-map move | bde108f83300 |
@@ -432,10 +433,16 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 15 commits
+### Refactoring (refactor) — 21 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-26 | client | split BubbleTranscript into stable-props sub-modules | 78e320cac500 |
+| 2026-05-26 | client | split EmbeddedTerminal into shell + 7 sub-modules (Campaign C / C5) | 5eeaa23d9b19 |
+| 2026-05-26 | client | split NewIssueModal into shell + mode-specific modals | 56b4a83ffa63 |
+| 2026-05-26 | server | split external/routes.ts into 9 sub-routers + registration shell | 8bb3dba87a4b |
+| 2026-05-26 | client | split InboxPage into sections + useInboxData hook | 1d22faf1c8f5 |
+| 2026-05-26 | client | split TaskDetailHeader into stable-props sub-components | 2cd7aa36701e |
 | 2026-05-23 | compliance | backfill 14 work_completed events for v0.14.0..v0.16.0 | 34038fdea623 |
 | 2026-05-22 | compliance | clear F4-F7 doc-hygiene findings (Phase 0f) | f4d52fdeb787 |
 | 2026-05-17 | terminal | remove orphaned Resume-CTA liveness-gate code | 94e9367e183c |
@@ -485,7 +492,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 422 |
+| Total commits | 429 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 422 |
+| Human-authored commits | 429 |
 
