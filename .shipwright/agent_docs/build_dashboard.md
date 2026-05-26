@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-26 07:39 UTC | Session: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96 | Run: iterate-2026-05-26-campaign-C-C4-new-issue-modal-split
+> Updated: 2026-05-26 21:57 UTC | Session: 40b1eb76-d68e-4414-be55-0283044ac054 | Run: iterate-2026-05-26-public-launch-hardening-webui
 
-## Recent Changes (84 iterations)
+## Recent Changes (85 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 |  | tooling | 2026-05-26 |
+| change | NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | 0/0 |  | docs | 2026-05-26 |
+| change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 | f98fbf6 | tooling | 2026-05-26 |
 | change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 | 2cd7aa3 | tooling | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-25 |
 | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 | — | +14 new, 14/14 | 247325b | compliance | 2026-05-25 |
@@ -91,7 +92,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-25 | Unit: 1081/1081 | Smoke: deferred | (iterate)
+Last run: 2026-05-26 | Smoke: skipped | (iterate)
 
 ## Pipeline
 
