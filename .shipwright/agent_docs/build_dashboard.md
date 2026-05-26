@@ -1,11 +1,13 @@
 # Project Activity Dashboard
-> Updated: 2026-05-26 07:39 UTC | Session: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96 | Run: iterate-2026-05-26-campaign-C-C4-new-issue-modal-split
+> Updated: 2026-05-26 22:06 UTC | Session: 9d447124-3723-465c-b600-7223644ef655 | Run: iterate-2026-05-26-campaign-C-C5-e2e-followup
 
-## Recent Changes (84 iterations)
+## Recent Changes (86 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 |  | tooling | 2026-05-26 |
+| change | C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | 20/20 |  | tooling | 2026-05-26 |
+| change | NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | 0/0 | 935cc39 | docs | 2026-05-26 |
+| change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 | f98fbf6 | tooling | 2026-05-26 |
 | change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 | 2cd7aa3 | tooling | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-25 |
 | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 | — | +14 new, 14/14 | 247325b | compliance | 2026-05-25 |
@@ -91,7 +93,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-25 | Unit: 1081/1081 | Smoke: deferred | (iterate)
+Last run: 2026-05-27 | E2E: 20/20 | Smoke: passed | (iterate)
 
 ## Pipeline
 

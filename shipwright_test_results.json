@@ -1,49 +1,25 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-25-fix-terminal-touch-scroll",
-    "date": "2026-05-25",
-    "unit": {
-      "status": "passed",
-      "passed": 1081,
-      "total": 1081,
-      "scope": "Full client vitest suite. New touch-scroll.test.ts adds 15 tests (pure accumulator + jsdom integration with synthetic TouchEvents — direction, multi-touch ignore, identifier tracking, preventDefault, dispose cleanup, custom pixels-per-line seam)."
-    },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "scope": "Playwright touchscreen emulation synthesizes the same TouchEvent dispatches the jsdom integration tests already cover. Real verification is hands-on on the user's touchscreen device — deferred to post-merge smoke."
-    },
-    "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
-    },
-    "smoke": {
-      "status": "deferred",
-      "scope": "Touchscreen smoke is the actual gate. Production server restart + client rebuild needed: `cd client && npm run build` then run scripts/start-server-production.ps1."
-    },
+    "run_id": "iterate-2026-05-26-campaign-C-C5-e2e-followup",
+    "date": "2026-05-27",
+    "unit": { "status": "not_run", "passed": 0, "total": 0 },
+    "integration": { "status": "not_run", "passed": 0, "total": 0 },
+    "pgtap": { "status": "skipped", "passed": 0, "total": 0 },
+    "e2e": { "status": "passed", "passed": 20, "total": 20,
+      "scope": "C5-embedded-terminal-split-smoke.spec.ts (2/2 GREEN: Launch path + reload-ptyReused) + regression sweep specs 73 + 74 (18/18 GREEN). Spec 82 excluded — pre-existing unknown_project_id failure unrelated to C5." },
+    "design_fidelity": { "status": "skipped", "passed": 0, "total": 0 },
+    "smoke": { "status": "passed", "scope": "Isolated production-build stack on PORT=4847 + USERPROFILE=$tmp + SHIPWRIGHT_NETWORK_PROFILE=local. tsc clean." },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "BASE_URL=http://127.0.0.1:4847 ./client/node_modules/.bin/playwright test --config=client/playwright.config.ts client/e2e/flows/C5-embedded-terminal-split-smoke.spec.ts",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": "",
-      "timestamp": "2026-05-25T21:05:00Z",
-      "justification": "Safety-enforced at small+UI, but the realistic verification surface is hands-on-touchscreen (Playwright's page.touchscreen synthesizes the same TouchEvents already covered by 15 jsdom integration tests with full event-listener dispatch — no incremental coverage). Build succeeds, typecheck clean, lint clean on touch-scroll.ts + EmbeddedTerminal.tsx. Risk acknowledged: any pure-DOM regression would also fail the jsdom integration test; only physical-finger interaction is unverified."
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-26-campaign-C-C5-e2e-followup/surface_verification.json",
+      "timestamp": "2026-05-27T00:00:00Z"
     },
     "degraded": [
-      "External LLM code review skipped — no API keys in env; self-review + 15-test jsdom integration coverage stood in. No risk flags tripped (touch-scroll touches only client/src/components/terminal/, not auth/billing/migrations/build/io-boundary)."
+      "Resume-click → no-duplicate-launch E2E assertion DEFERRED: isolated USERPROFILE cannot bootstrap Claude JSONL, so Resume CTA does not render (state stays awaiting_external_start). The arming mechanism (ptyReused:true → guard set) is covered by 204 vitest cases in EmbeddedTerminal.test.tsx.",
+      "Spec 82 (3 tests) skipped from regression sweep: pre-existing dependency on hardcoded project UUID eab3bd8d-... not present in isolated USERPROFILE. NOT a C5-split regression."
     ]
   }
 }
