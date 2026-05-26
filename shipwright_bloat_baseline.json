@@ -523,8 +523,8 @@
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
       "current": 1013,
-      "state": "grandfathered",
-      "adr": null
+      "state": "exception",
+      "adr": "ADR-103"
     },
     {
       "path": "server/src/terminal/scrollback-store.test.ts",
