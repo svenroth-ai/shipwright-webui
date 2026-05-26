@@ -72,13 +72,6 @@
       "adr": null
     },
     {
-      "path": "client/src/components/external/BubbleTranscript.tsx",
-      "limit": 300,
-      "current": 1618,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "client/src/components/external/ContinuePipelineModal.tsx",
       "limit": 300,
       "current": 321,
