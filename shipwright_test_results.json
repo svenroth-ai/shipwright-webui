@@ -1,49 +1,23 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-25-fix-terminal-touch-scroll",
-    "date": "2026-05-25",
-    "unit": {
-      "status": "passed",
-      "passed": 1081,
-      "total": 1081,
-      "scope": "Full client vitest suite. New touch-scroll.test.ts adds 15 tests (pure accumulator + jsdom integration with synthetic TouchEvents — direction, multi-touch ignore, identifier tracking, preventDefault, dispose cleanup, custom pixels-per-line seam)."
-    },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "scope": "Playwright touchscreen emulation synthesizes the same TouchEvent dispatches the jsdom integration tests already cover. Real verification is hands-on on the user's touchscreen device — deferred to post-merge smoke."
-    },
-    "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
-    },
-    "smoke": {
-      "status": "deferred",
-      "scope": "Touchscreen smoke is the actual gate. Production server restart + client rebuild needed: `cd client && npm run build` then run scripts/start-server-production.ps1."
-    },
+    "run_id": "iterate-2026-05-27-fix-pty-reused-prewarm-race",
+    "date": "2026-05-27",
+    "unit": { "status": "passed", "passed": 1255, "total": 1255,
+      "scope": "Full server vitest suite — zero regressions. Includes 6 new RED→GREEN tests for the atomic attach API + hadPriorWriter (first-attach-prewarm, multi-tab, re-attach-same-conn, post-detach-reload, reader-promotion-latch, back-to-back-race-fence)." },
+    "integration": { "status": "not_run", "passed": 0, "total": 0 },
+    "pgtap": { "status": "skipped", "passed": 0, "total": 0 },
+    "e2e": { "status": "passed", "passed": 19, "total": 19,
+      "scope": "fix-pty-reused-prewarm-race-smoke.spec.ts (1/1 GREEN) + regression sweep specs 73 + 74 (18/18 GREEN)." },
+    "design_fidelity": { "status": "skipped", "passed": 0, "total": 0 },
+    "smoke": { "status": "passed", "scope": "Isolated production-build stack on PORT=4848 + USERPROFILE=$tmp + SHIPWRIGHT_NETWORK_PROFILE=local. tsc clean (server + client)." },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "BASE_URL=http://127.0.0.1:4848 ./client/node_modules/.bin/playwright test --config=client/playwright.config.ts client/e2e/flows/fix-pty-reused-prewarm-race-smoke.spec.ts",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": "",
-      "timestamp": "2026-05-25T21:05:00Z",
-      "justification": "Safety-enforced at small+UI, but the realistic verification surface is hands-on-touchscreen (Playwright's page.touchscreen synthesizes the same TouchEvents already covered by 15 jsdom integration tests with full event-listener dispatch — no incremental coverage). Build succeeds, typecheck clean, lint clean on touch-scroll.ts + EmbeddedTerminal.tsx. Risk acknowledged: any pure-DOM regression would also fail the jsdom integration test; only physical-finger interaction is unverified."
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-27-fix-pty-reused-prewarm-race/surface_verification.json",
+      "timestamp": "2026-05-27T00:30:00Z"
     },
-    "degraded": [
-      "External LLM code review skipped — no API keys in env; self-review + 15-test jsdom integration coverage stood in. No risk flags tripped (touch-scroll touches only client/src/components/terminal/, not auth/billing/migrations/build/io-boundary)."
-    ]
+    "degraded": []
   }
 }
