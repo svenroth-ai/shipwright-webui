@@ -1,19 +1,19 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-26-campaign-C-C6-task-detail-header-split"
+run_id: "iterate-2026-05-26-campaign-C-C4-new-issue-modal-split"
 phase: "iterate"
 reason: "iterate finalization"
-timestamp: "2026-05-26T06:28:50.526572+00:00"
+timestamp: "2026-05-26T07:39:50.451211+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-26 06:28:50 UTC
+> Auto-generated 2026-05-26 07:39:50 UTC
 
 ## Session Info
 
 - **Session ID**: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96
-- **Timestamp**: 2026-05-26 06:28:50 UTC
+- **Timestamp**: 2026-05-26 07:39:50 UTC
 - **Reason**: iterate finalization
 
 ## Last Iterate
@@ -28,11 +28,11 @@ timestamp: "2026-05-26T06:28:50.526572+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-C-C6-task-detail-header-split
-- **Run ID**: `iterate-2026-05-26-campaign-C-C6-task-detail-header-split`
-- **Spec**: .shipwright/planning/iterate/2026-05-26-campaign-C-C6-task-detail-header-split.md
-- **Complexity**: medium (5 new modules; bit-perfect behavior preservation across a 1015-loc component)
-- **External Review Marker**: stale (predates spec (2026-05-26T05:30:27))
+- **Branch**: iterate/campaign-C-C4-new-issue-modal-split
+- **Run ID**: `iterate-2026-05-26-campaign-C-C4-new-issue-modal-split`
+- **Spec**: .shipwright/planning/iterate/2026-05-26-campaign-C-C4-new-issue-modal-split.md
+- **Complexity**: small (classify_complexity output) — promoted to medium-grade gates because `touches_public_api` risk flag is set and diff is expected >100 loc. adr-029 cascade applies: step 3.5 plan-review, step 3.6 self-review, step 3.7 code-review-cascade (external `--mode code`).
+- **External Review Marker**: stale (predates spec (2026-05-21T00:00:00))
 
 ### Mandatory replay on Resume
 
@@ -50,7 +50,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-C-C6-task-detail-header-split
+- **Branch**: iterate/campaign-C-C4-new-issue-modal-split
 - **Last Commit**: ce08c5d Merge pull request #65 from svenroth-ai/iterate/campaign-C-C8-pty-manager-exception
 - **Uncommitted Changes**: Yes
 
@@ -67,17 +67,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-348e51b8 | work_completed | iterate (Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed.) | 2026-05-26 |
 | evt-b1759173 | work_completed | iterate (Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components.) | 2026-05-26 |
 | evt-91e68d98 | work_completed | iterate (iterate finalization) | 2026-05-25 |
 | evt-956e1c71 | work_completed | iterate (Campaign C C8) | 2026-05-25 |
 | evt-425538a1 | work_completed | iterate (Campaign C — sub-iterate C1) | 2026-05-25 |
-| evt-994b3a6e | work_completed | iterate (Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow) | 2026-05-23 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 153
-- **Last iterate**: change — Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. (2026-05-26)
+- **Total work events**: 154
+- **Last iterate**: change — Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. (2026-05-26)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

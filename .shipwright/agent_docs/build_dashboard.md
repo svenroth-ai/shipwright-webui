@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-26 06:28 UTC | Session: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96 | Run: iterate-2026-05-26-campaign-C-C6-task-detail-header-split
+> Updated: 2026-05-26 07:39 UTC | Session: 61a3e3ca-f0a9-486a-82d8-6e9f6a96de96 | Run: iterate-2026-05-26-campaign-C-C4-new-issue-modal-split
 
-## Recent Changes (83 iterations)
+## Recent Changes (84 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 |  | tooling | 2026-05-26 |
+| change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 |  | tooling | 2026-05-26 |
+| change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 | 2cd7aa3 | tooling | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-25 |
 | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 | — | +14 new, 14/14 | 247325b | compliance | 2026-05-25 |
 | Verify CLAUDE.md is already <= 300 LOC and not in bloat baseline; document Phase-0f organic outcome. | Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | +2 new, 22/22 | b1e66f4 | docs | 2026-05-25 |
