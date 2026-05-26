@@ -170,13 +170,6 @@
       "adr": null
     },
     {
-      "path": "client/src/components/external/TaskDetailHeader.tsx",
-      "limit": 300,
-      "current": 1015,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "client/src/components/external/TaskList.tsx",
       "limit": 300,
       "current": 534,
