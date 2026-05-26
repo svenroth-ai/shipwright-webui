@@ -289,13 +289,6 @@
       "adr": null
     },
     {
-      "path": "client/src/pages/InboxPage.tsx",
-      "limit": 300,
-      "current": 967,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "client/src/pages/ProjectsPage.tsx",
       "limit": 300,
       "current": 439,
