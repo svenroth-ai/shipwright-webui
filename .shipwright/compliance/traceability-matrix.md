@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-26T07:39:50.451211+00:00
+Generated: 2026-05-26T22:07:11.058630+00:00
 
 ## Requirements Coverage
 
@@ -196,7 +196,10 @@ Generated: 2026-05-26T07:39:50.451211+00:00
 | evt-956e1c71 | iterate | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 |  | 14/14 | 247325b | 2026-05-25 |
 | iterate finalization | iterate | change |  | — | — | 2026-05-25 |
 | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | iterate | change |  | — | 2cd7aa3 | 2026-05-26 |
-| Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | iterate | change |  | 1124/1124 | — | 2026-05-26 |
+| Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | iterate | change |  | 1124/1124 | f98fbf6 | 2026-05-26 |
+| NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | iterate | change |  | — | 935cc39 | 2026-05-26 |
+| C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | iterate | change |  | 20/20 | — | 2026-05-26 |
+| Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI) | iterate | change |  | 1279/1279 | — | 2026-05-26 |
 
 ## Coverage Summary
 
@@ -204,7 +207,7 @@ Generated: 2026-05-26T07:39:50.451211+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 84 |
+| Iterate changes | 87 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |

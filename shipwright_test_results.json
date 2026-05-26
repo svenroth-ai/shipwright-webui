@@ -1,49 +1,49 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-25-fix-terminal-touch-scroll",
-    "date": "2026-05-25",
+    "run_id": "iterate-2026-05-26-commit-c2-contract-sweep",
+    "date": "2026-05-26",
     "unit": {
       "status": "passed",
-      "passed": 1081,
-      "total": 1081,
-      "scope": "Full client vitest suite. New touch-scroll.test.ts adds 15 tests (pure accumulator + jsdom integration with synthetic TouchEvents — direction, multi-touch ignore, identifier tracking, preventDefault, dispose cleanup, custom pixels-per-line seam)."
+      "passed": 1279,
+      "total": 1279,
+      "scope": "Full server vitest suite (100 test files). New api-contract-sweep.test.ts adds 30 tests covering all 22 baseline endpoints + 2 seeded probes (tasks.patch 400, tasks.transcript {status:missing} variant) + multi-tab stateless invariant + run-config no-mutation invariant + 3 baseline-vs-probe drift meta-tests. Client suite not touched by this iterate."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
-      "total": 0
+      "total": 0,
+      "scope": "No CRUD/DB changes in this iterate (test-only)."
     },
     "pgtap": {
       "status": "not_run",
       "passed": 0,
-      "total": 0
+      "total": 0,
+      "scope": "No RLS migrations in this iterate."
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "scope": "Playwright touchscreen emulation synthesizes the same TouchEvent dispatches the jsdom integration tests already cover. Real verification is hands-on on the user's touchscreen device — deferred to post-merge smoke."
+      "status": "passed",
+      "passed": 30,
+      "total": 30,
+      "scope": "F0.5 surface=cli — api-contract-sweep.test.ts run end-to-end through Hono's in-memory app.request() against the live createExternalRoutes shell. tests_run=30, exit_code=0. Evidence at .shipwright/runs/iterate-2026-05-26-commit-c2-contract-sweep/surface_verification.json."
     },
     "design_fidelity": {
       "status": "skipped",
       "passed": 0,
-      "total": 0
+      "total": 0,
+      "scope": "No UI surface affected — iterate is test-infrastructure only."
     },
     "smoke": {
-      "status": "deferred",
-      "scope": "Touchscreen smoke is the actual gate. Production server restart + client rebuild needed: `cd client && npm run build` then run scripts/start-server-production.ps1."
+      "status": "skipped",
+      "scope": "No production-server change; skipped per spec (surface=cli)."
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "cli",
+      "runner": "cmd /c npm.cmd --prefix server run test -- --run src/external/__tests__/api-contract-sweep.test.ts",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": "",
-      "timestamp": "2026-05-25T21:05:00Z",
-      "justification": "Safety-enforced at small+UI, but the realistic verification surface is hands-on-touchscreen (Playwright's page.touchscreen synthesizes the same TouchEvents already covered by 15 jsdom integration tests with full event-listener dispatch — no incremental coverage). Build succeeds, typecheck clean, lint clean on touch-scroll.ts + EmbeddedTerminal.tsx. Risk acknowledged: any pure-DOM regression would also fail the jsdom integration test; only physical-finger interaction is unverified."
+      "tests_run": 30,
+      "evidence_path": ".shipwright/runs/iterate-2026-05-26-commit-c2-contract-sweep/surface_verification.json",
+      "timestamp": "2026-05-26T22:04:00Z"
     },
-    "degraded": [
-      "External LLM code review skipped — no API keys in env; self-review + 15-test jsdom integration coverage stood in. No risk flags tripped (touch-scroll touches only client/src/components/terminal/, not auth/billing/migrations/build/io-boundary)."
-    ]
+    "degraded": []
   }
 }
