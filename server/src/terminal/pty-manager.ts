@@ -79,6 +79,15 @@ export interface PtySpawnOpts {
 
 export interface AttachResult {
   role: "writer" | "reader";
+  /**
+   * iterate-2026-05-27-fix-pty-reused-prewarm-race — `true` iff a
+   * writer had EVER attached BEFORE this call. Atomic snapshot taken
+   * inside `attach()` so back-to-back upgrades resolve sequentially.
+   * Routes layer emits as `ready.ptyReused`. Distinct from
+   * `ptyManager.get() !== undefined` (which still feeds ADR-104
+   * `terminalReset`) — split to prevent re-conflation.
+   */
+  hadPriorWriter: boolean;
 }
 
 export interface ConnectionSubscription {
@@ -189,6 +198,9 @@ interface PtyEntry {
   connSubs: Map<unknown, ConnectionSubscription>;
   /** First connection becomes writer; null when no writer is currently bound. */
   writer: unknown | null;
+  /** iterate-2026-05-27-fix-pty-reused-prewarm-race — latched-true once
+   *  any writer has attached. Surfaced via `AttachResult.hadPriorWriter`. */
+  hadWriterAttach: boolean;
   /**
    * Iterate v0.8.6 AC-2 — last (cols, rows) handed to pty.resize().
    * Used to dedupe no-op resizes that otherwise trigger PowerShell to
@@ -403,6 +415,7 @@ export class PtyManager {
       dataSubs: new Set(),
       connSubs: new Map(),
       writer: null,
+      hadWriterAttach: false,
       lastResizeCols: null,
       lastResizeRows: null,
       idleTimer: null,
@@ -682,12 +695,19 @@ export class PtyManager {
   attach(taskId: string, conn: unknown): AttachResult {
     const entry = this.entries.get(taskId);
     if (!entry) throw new Error(`pty-manager: attach to unknown task ${taskId}`);
+    // Atomic snapshot BEFORE mutation — closes the race a separate
+    // public read would expose against concurrent attach() calls
+    // (external review HIGH, iterate-2026-05-27-fix-pty-reused-prewarm-race).
+    const hadPriorWriter = entry.hadWriterAttach;
     let role: "writer" | "reader";
     if (entry.writer === null) {
       entry.writer = conn;
+      entry.hadWriterAttach = true;
       role = "writer";
     } else if (entry.writer === conn) {
-      // Re-attach by the same conn — keep its writer role.
+      // Re-attach by the same conn — keep its writer role + latch
+      // (this conn IS a prior writer; idempotent).
+      entry.hadWriterAttach = true;
       role = "writer";
     } else {
       role = "reader";
@@ -696,7 +716,7 @@ export class PtyManager {
       // Placeholder — the routes layer calls subscribeForConnection right after.
       entry.connSubs.set(conn, { onData: () => undefined });
     }
-    return { role };
+    return { role, hadPriorWriter };
   }
 
   /**
@@ -910,6 +930,7 @@ export class PtyManager {
       if (!next.done) {
         const promoted = next.value;
         entry.writer = promoted;
+        entry.hadWriterAttach = true; // defensive latch (openai #3 medium)
         const sub = entry.connSubs.get(promoted);
         if (sub?.onPromoteToWriter) {
           try {
