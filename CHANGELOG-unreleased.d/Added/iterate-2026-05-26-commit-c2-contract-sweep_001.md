@@ -1,0 +1,1 @@
+API contract sweep — tracked vitest suite at server/src/external/__tests__/api-contract-sweep.test.ts asserting all 22 external-API endpoints against a committed baseline (Campaign C / C2 post-merge follow-up; regression-guards future external/routes.ts touch-ups in CI).
