@@ -137,7 +137,7 @@
     {
       "path": "client/src/components/external/TaskCard.tsx",
       "limit": 300,
-      "current": 609,
+      "current": 606,
       "state": "grandfathered",
       "adr": null
     },

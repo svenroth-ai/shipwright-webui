@@ -1,12 +1,12 @@
 {
   "iterate_latest": {
-    "run_id": "iterate-2026-05-27-ws-upgrade-handler-split",
+    "run_id": "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback",
     "date": "2026-05-27",
     "unit": {
       "status": "passed",
-      "passed": 1314,
-      "total": 1314,
-      "scope": "Full server vitest suite (101 files, was 100 on origin/main). Includes the new ws-upgrade-handler.test.ts (29 tests covering lifecycle, parse table, atomic detach) and the relocated terminal-reset.test.ts (3 tests, import path moved to ./terminal-reset.js)."
+      "passed": 1284,
+      "total": 1284,
+      "scope": "Full client vitest suite (118 files). Includes 6 new resolveTaskPhase tests in client/src/lib/phaseStyle.test.ts covering new-plain -> null, persisted phase+phaseLabel wins, new-iterate -> Iterate regardless of title (regression), persisted phase wins over actionId default, title fallback for non-iterate actions, and phase-without-phaseLabel falls through (not persisted)."
     },
     "integration": { "status": "not_run", "passed": 0, "total": 0 },
     "pgtap": { "status": "skipped", "passed": 0, "total": 0 },
@@ -14,22 +14,16 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "scope": "Playwright E2E NOT re-run inside this iterate. The change is a pure server-side WS-handler extraction; the F0.5 Node-side empirical probe (below) drives the live HTTP+WS surface end-to-end against an isolated stack, which is the chokepoint for this refactor. Existing Playwright specs (82-v0.8.6-terminal-reattach-smoke, C5-embedded-terminal-split-smoke) cover the browser-level contract via the same WS envelope shape locked in by the key-parity unit assertion."
+      "scope": "Trivial-bug UI logic change in client/src/lib/phaseStyle.ts + 2 component consumers. Behavior is covered by direct unit tests on the helper and existing component-level phase-badge tests (TaskCard.test.tsx, TaskDetailHeader.test.tsx, 65 tests across both) which all stayed green. No new UI surface, no server / API / store contract change -> Playwright re-run not required for trivial."
     },
     "design_fidelity": { "status": "skipped", "passed": 0, "total": 0 },
-    "smoke": {
-      "status": "passed",
-      "scope": "Isolated server boot on PORT=3848 + USERPROFILE=$(mktemp) + SHIPWRIGHT_NETWORK_PROFILE=local. /api/health=200, POST /api/external/tasks=200, WS upgrade succeeded, ws.send/close clean. Server logs show no errors during the probe lifecycle."
-    },
+    "smoke": { "status": "skipped", "scope": "No server / dev-server change; client-only TS render-policy fix." },
     "surface_verification": {
-      "surface": "api",
-      "runner": "node .shipwright/runs/iterate-2026-05-27-ws-upgrade-handler-split/f05_probe.mjs && node .shipwright/runs/iterate-2026-05-27-ws-upgrade-handler-split/f05_probe_validation.mjs",
-      "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-05-27-ws-upgrade-handler-split/surface_verification.json",
-      "timestamp": "2026-05-27T09:36:00Z",
-      "notes": "Probe 1 (happy path): WS upgrade emits ready envelope with EXACT 10-key set (no drift), all field types correct, ws.send accepted, close(1000) clean. Probe 2 (validation timing): evil origin + unknown task BOTH reject synchronously (HTTP 500, no WS open) - empirically confirms external plan review HIGH #1 contract that validations stay in routes.ts and never degrade to silent WS disconnects."
+      "surface": "none",
+      "justification": "Pure client-side TypeScript pure-function + two memoised render-policy call-sites. No backend route, no SSE/WS handler, no store mutation, no message contract, no env/JSON/IO/network boundary touched. Boundary-affects-frontend rule does not apply (the change IS the frontend). Trivial complexity matrix row allows surface=none."
     },
-    "degraded": []
+    "degraded": [
+      { "phase": "F0 lint", "reason": "Host client/node_modules junctioned from main worktree to avoid duplicating ~250 MB install; oxlint binary is not installed in host node_modules (npm omitted the platform-binary at some point). Ran `npx --yes oxlint@1.66.0` on the four touched files instead - only pre-existing warning on phaseStyle.test.ts:56 (a `.toBeUndefined;` without `()` from the v0.4.1 commit) surfaced; nothing introduced by this iterate. Re-installing oxlint in the host is out of scope for a trivial bugfix." }
+    ]
   }
 }

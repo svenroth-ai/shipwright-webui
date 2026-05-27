@@ -92,7 +92,7 @@ import {
 } from "../../hooks/useExternalTasks";
 import { useProjects } from "../../hooks/useProjects";
 import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
-import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
+import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
 import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
@@ -328,31 +328,28 @@ export function TaskCard({ task }: Props) {
           />
           <StatePill state={task.state} />
           {(() => {
-            // Plain Claude (new-plain) has no phase by design — the title
-            // is a free-form chat title, so the keyword-fallback would
-            // emit bogus phases (e.g. "build my prototype" → build).
-            if (task.actionId === "new-plain") return null;
-            const phaseId =
-              task.phase ?? derivePhaseFromTitle(task.title)?.id ?? null;
-            const phaseLabel =
-              task.phaseLabel ??
-              derivePhaseFromTitle(task.title)?.label ??
-              null;
-            if (!phaseId || !phaseLabel) return null;
-            const style = getPhaseStyle(phaseId);
+            // Policy shared with TaskDetailHeader via resolveTaskPhase.
+            const resolved = resolveTaskPhase(task);
+            if (!resolved) return null;
+            const style = getPhaseStyle(resolved.id);
+            const phaseSource = task.phase && task.phaseLabel
+              ? "task"
+              : task.actionId === "new-iterate"
+                ? "action-default"
+                : "title-fallback";
             return (
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${style.cls}`}
                 data-testid={`task-card-phase-${task.taskId}`}
-                data-phase={phaseId}
-                data-phase-source={task.phase ? "task" : "title-fallback"}
-                title={`Phase: ${phaseLabel}`}
+                data-phase={resolved.id}
+                data-phase-source={phaseSource}
+                title={`Phase: ${resolved.label}`}
               >
                 <span
                   className={`inline-block h-1.5 w-1.5 rounded-full ${style.dot}`}
                   aria-hidden="true"
                 />
-                {phaseLabel}
+                {resolved.label}
               </span>
             );
           })()}

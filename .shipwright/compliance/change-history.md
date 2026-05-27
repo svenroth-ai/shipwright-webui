@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-05-27T07:43:00.996660+00:00
-Total commits: 442
+Generated: 2026-05-27T19:57:27.211029+00:00
+Total commits: 443
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 442
 pie title Commit Types
     "fix" : 170
     "feat" : 119
-    "chore" : 76
+    "chore" : 77
     "docs" : 37
     "refactor" : 22
     "test" : 13
@@ -318,10 +318,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 76 commits
+### Chores (chore) — 77 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-27 | triage | add trg-c00254ab follow-up for ADR-103 retirement remainder | 1dfb8b595f09 |
 | 2026-05-27 | — | dismiss trg-880260fc + backfill event log + dashboard regen | 87a9cc198bc7 |
 | 2026-05-26 | events | record evt-490d6b9f for iterate-2026-05-26-public-launch-hardening-webui | f88a4e8c7f00 |
 | 2026-05-26 | events | record evt-348e51b8 for iterate-2026-05-26-campaign-C-C4-new-issue-modal-split | 5ff5c3e4d6b8 |
@@ -505,7 +506,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 442 |
+| Total commits | 443 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 442 |
+| Human-authored commits | 443 |
 
