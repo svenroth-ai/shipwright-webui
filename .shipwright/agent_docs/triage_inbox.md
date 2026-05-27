@@ -5,10 +5,17 @@
 
 ## Status summary
 
-- Total: 33
-- Triage: 3 | Promoted: 0 | Dismissed: 30 | Snoozed: 0
+- Total: 34
+- Triage: 4 | Promoted: 0 | Dismissed: 30 | Snoozed: 0
 
-## Top 3 items (severity-sorted)
+## Top 4 items (severity-sorted)
+
+### Source: adr-103-retirement-plan (1 item)
+
+<a id="trg-c00254ab"></a>
+- **ADR-103 retirement candidate #2 + Re-Review-Date 2026-08-27 (terminal/routes.ts still 620 LOC, exception still active)** `id=trg-c00254ab | severity=low | kind=maintenance → P3/engineering`
+  - Follow-up to PR #77 (commit a662027, merged 2026-05-27 as 560b971). ADR-103 retirement candidate #1 (WS-upgrade-handler…
+  - Promote: `triage_promote.py --id trg-c00254ab --task-ref EXT:<ref>`
 
 ### Source: iterate (3 items)
 
