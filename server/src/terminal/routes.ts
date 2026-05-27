@@ -17,6 +17,16 @@
  * Auth posture: same loopback-only CORS gate as the rest of the HTTP
  * surface. A future remote-access mode would need additional auth (see
  * ADR-067).
+ *
+ * Iterate-2026-05-27 (ADR-103 retirement candidate #1): the WS upgrade
+ * BODY moved to `ws-upgrade-handler.ts`. This file retains:
+ *   - reject-the-upgrade validations (origin, task, trustedCwd) — they
+ *     MUST stay synchronous here, otherwise failure mode degrades from
+ *     "HTTP upgrade rejection" to "silent WS disconnect" (external plan
+ *     review HIGH #1, 2026-05-27);
+ *   - HTTP route handlers (spawn, close, clear-scrollback, paste-image,
+ *     append-gitignore);
+ *   - the spawn-env factory (buildSpawnEnv, createNodePtySpawnFn).
  */
 
 import type { Hono } from "hono";
@@ -43,47 +53,17 @@ import {
   savePastedImage,
 } from "./image-paste.js";
 import type { ScrollbackStore } from "./scrollback-store.js";
-import type { SnapshotStore, SnapshotRecord } from "./snapshot-store.js";
+import type { SnapshotStore } from "./snapshot-store.js";
 import {
-  buildReplaySnapshotEnvelope,
-  tryReadSnapshot as tryReadSnapshotShared,
-} from "./replay-snapshot.js";
+  buildWsHandlers,
+  type ValidatedWsUpgradeContext,
+} from "./ws-upgrade-handler.js";
 
-/**
- * ADR-104 (iterate-20260515-terminal-smear-reset) — derive the
- * `terminalReset` flag carried by the WS `ready` envelope.
- *
- * `true` exactly when this WS attach FRESHLY created the pty
- * (`ptyExistedBefore === false` — `ptyManager.get` returned undefined
- * immediately before `spawn`) AND the task already had a Claude session
- * (`firstJsonlObservedAt` set). That is the "the previous embedded
- * terminal was lost — a server restart / crash killed the pty
- * mid-session" signal that drives the EmbeddedTerminal reset banner.
- *
- * `false` on first-ever launch (no prior JSONL) and on re-attach to a
- * still-live pty (navigate-away-and-back never kills the pty, so
- * `spawn()` returns the existing handle).
- *
- * Known false-negative band (code review, ADR-104): `firstJsonlObservedAt`
- * is read from the in-memory store, which reflects the last value
- * persisted to `sdk-sessions.json`. It is RESTORED from disk at server
- * boot, so after a normal restart it is available for any task whose
- * transcript poll ever persisted it. The narrow miss: a task whose JSONL
- * first appeared, was observed by a poll, but crashed before the
- * follow-up `store.persist()` flushed — the field is `undefined` on
- * reload and the banner does not show. This degrades to the pre-ADR-104
- * behaviour (no banner) — never a false positive, never a regression —
- * so the precise (cheap, no-false-positive) `firstJsonlObservedAt`
- * signal is kept over a live JSONL-path stat. A live stat would also
- * have to encode the `~/.claude/projects/<cwd>` path and could fire on
- * a pty that ran a bare shell with no Claude session.
- */
-export function deriveTerminalReset(
-  ptyExistedBefore: boolean,
-  firstJsonlObservedAt: string | null | undefined,
-): boolean {
-  return !ptyExistedBefore && Boolean(firstJsonlObservedAt);
-}
+// Re-export `deriveTerminalReset` for any historical importer. The
+// canonical home is `./terminal-reset.js` (extracted in iterate-2026-
+// 05-27-ws-upgrade-handler-split to break the routes.ts ↔ ws-upgrade-
+// handler.ts cycle — external plan review MED #3, 2026-05-27).
+export { deriveTerminalReset } from "./terminal-reset.js";
 
 export interface TerminalRoutesDeps {
   store: SdkSessionsStore;
@@ -200,27 +180,6 @@ function defaultResolveShell(): string {
   return process.env.SHIPWRIGHT_TERMINAL_SHELL ?? process.env.SHELL ?? "/bin/bash";
 }
 
-interface WSMessageData {
-  type: "data";
-  payload: string;
-}
-interface WSMessageResize {
-  type: "resize";
-  cols: number;
-  rows: number;
-}
-type WSInbound = WSMessageData | WSMessageResize;
-
-function isWSInbound(v: unknown): v is WSInbound {
-  if (!v || typeof v !== "object") return false;
-  const o = v as Record<string, unknown>;
-  if (o.type === "data" && typeof o.payload === "string") return true;
-  if (o.type === "resize" && typeof o.cols === "number" && typeof o.rows === "number") {
-    return true;
-  }
-  return false;
-}
-
 export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   const { store, ptyManager, upgradeWebSocket } = deps;
   const allowedOrigins = deps.allowedOrigins ?? defaultAllowedOrigins;
@@ -233,55 +192,6 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
   // always preferred but the constructor stays optional.
   const retentionDays = deps.retentionDays ?? 1;
   const scrollbackDirHint = deps.scrollbackDirHint ?? "<scrollback>";
-
-  // ADR-089 Iterate B — try to read + version-gate a snapshot. Returns
-  // the parsed record when usable; null when missing, malformed, or
-  // version-mismatched. Best-effort: a read error logs a warn and
-  // returns null → caller emits no replay envelope (blank terminal with
-  // live shell). The legacy chunked-replay fallback was retired in
-  // Iterate C (ADR-087).
-  const tryReadSnapshot = (taskId: string): Promise<SnapshotRecord | null> =>
-    tryReadSnapshotShared(snapshotStore, taskId, expectedTerminalVersion);
-
-  // ADR-092 Iterate E — replay-snapshot resolution.
-  //
-  // Precedence (per external plan review HIGH — Gemini #1 + OpenAI #2,
-  // both reviewers concurrent): **live mirror wins over disk**. A
-  // stale disk snapshot is possible whenever the LAST WS detached and
-  // wrote-on-detach, but the shell kept producing output afterwards
-  // (e.g. background process logged a line). Re-attach must NOT serve
-  // the older disk image — the live mirror has the newer state.
-  //
-  // Disk is the fallback path for server-restart scenarios (the
-  // mirror is gone because the Node process restarted; only the
-  // last-detach disk write survives). The cleanup-time write
-  // (`pty.kill` → `finalizeMirrorSnapshot`) also takes the disk path
-  // for done/exited tasks.
-  //
-  // Returns null only when BOTH paths return null (no mirror AND no
-  // disk file). Best-effort; never throws.
-  const resolveReplaySnapshot = async (
-    taskId: string,
-  ): Promise<SnapshotRecord | null> => {
-    const live = await ptyManager.serializeMirrorIfLive(taskId);
-    if (live) return live;
-    return tryReadSnapshot(taskId);
-  };
-
-  // ADR-089 — emit the new single-envelope replay path. Returns true if
-  // a snapshot was sent; false otherwise. Backpressure stays trivial
-  // because the entire snapshot is one WS frame.
-  const sendReplaySnapshot = (
-    ws: { send(d: string): void },
-    rec: SnapshotRecord,
-  ): boolean => {
-    try {
-      ws.send(JSON.stringify(buildReplaySnapshotEnvelope(rec)));
-      return true;
-    } catch {
-      return false;
-    }
-  };
 
   return (app: Hono): Hono => {
     // --- POST /api/terminal/:taskId/spawn — idempotent prewarm ------------
@@ -520,6 +430,15 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
     // explicit trade-off.
 
     // --- GET /api/terminal/:taskId/ws — authoritative lifecycle entry ----
+    //
+    // VALIDATION TIMING contract (external plan review HIGH #1,
+    // 2026-05-27): every reject-the-upgrade check below MUST throw
+    // synchronously inside the `upgradeWebSocket((c) => …)` factory
+    // BEFORE `buildWsHandlers` returns its handler object. A throw
+    // here rejects the HTTP Upgrade; a throw inside `onOpen` only
+    // closes an already-upgraded socket — silently from the client's
+    // perspective. Do NOT move any of these checks into the
+    // ws-upgrade-handler.ts body.
     app.get(
       "/api/terminal/:taskId/ws",
       upgradeWebSocket((c) => {
@@ -536,332 +455,20 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         const trustedCwd = resolveTrustedCwd(task.cwd);
         if (!trustedCwd) throw new Error("task_cwd_unresolvable");
 
-        // Iterate v0.8.2 AC-7: replay-only mode for terminal tasks that
-        // have already finished. Skip pty spawn + attach entirely; the
-        // WS only serves the historical scrollback and then closes.
-        const isReplayOnly =
-          task.state === "done" || task.state === "launch_failed";
-
-        if (isReplayOnly) {
-          return {
-            onOpen(_evt, ws) {
-              void (async () => {
-                let scrollbackBytes = 0;
-                if (scrollbackStore && !scrollbackStore.disabled) {
-                  try {
-                    scrollbackBytes = await scrollbackStore.bytes(taskId);
-                  } catch { /* fall through with 0 */ }
-                }
-                try {
-                  ws.send(
-                    JSON.stringify({
-                      type: "ready",
-                      role: "reader",
-                      shellKind: null,
-                      cwd: trustedCwd,
-                      replayOnly: true,
-                      // ADR-104 — replay-only tasks (done / launch_failed)
-                      // never carry a reset banner: no pty is spawned and
-                      // Resume is not applicable in a terminal state.
-                      terminalReset: false,
-                      // fix-resume-guard-survives-reload — replay-only
-                      // tasks spawn no pty; there is nothing to reuse.
-                      ptyReused: false,
-                      scrollbackBytes,
-                      retentionDays,
-                      scrollbackDir: scrollbackDirHint,
-                    }),
-                  );
-                } catch { /* ignore */ }
-                // Iterate C (ADR-087) — snapshot is the sole replay path.
-                // When `tryReadSnapshot` returns null (missing snapshot,
-                // version mismatch, or headlessMirrorEnabled=false), the
-                // client receives no replay history — by design, per the
-                // plan-of-record trade-off. The legacy chunked-replay
-                // emission has been retired.
-                const snap = await tryReadSnapshot(taskId);
-                if (snap) {
-                  sendReplaySnapshot(
-                    ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
-                    snap,
-                  );
-                }
-                // Close cleanly — no live shell to keep open.
-                try {
-                  (ws as unknown as { close?: (code?: number) => void }).close?.(
-                    1000,
-                  );
-                } catch { /* ignore */ }
-              })();
-            },
-            // No onMessage / onClose / onError needed — there is no
-            // pty to detach from. The runtime tolerates omitted handlers.
-          };
-        }
-
-        // ADR-104 — capture pty-existence on the synchronous line
-        // IMMEDIATELY before spawn(). Race-free: there is no `await`
-        // between this probe and spawn(), and Node is single-threaded,
-        // so no concurrent WS attach can create the pty in between.
-        const ptyExistedBeforeAttach = ptyManager.get(taskId) !== undefined;
-        // Ensure-or-create the pty against the realpath-validated cwd.
-        const meta = ptyManager.spawn(taskId, {
-          cwd: trustedCwd,
-          shell: resolveShell(),
-        });
-        // ADR-104 — true when this attach freshly re-created the pty
-        // after a prior Claude session was lost (server restart / crash).
-        const terminalReset = deriveTerminalReset(
-          ptyExistedBeforeAttach,
-          task.firstJsonlObservedAt,
-        );
-
-        // Per-connection identity is the WSContext (re-used in attach/detach).
-        // We build it inline to keep references stable across handlers.
-        const connToken = { taskId, t: Date.now() } as const;
-
-        return {
-          onOpen(_evt, ws) {
-            // `hadPriorWriter` = atomic snapshot in attach() (iterate
-            // 2026-05-27-fix-pty-reused-prewarm-race); feeds ready.ptyReused
-            // so the guard arms only on real reload/multi-tab, not prewarm.
-            // `ptyExistedBeforeAttach` still drives ADR-104 terminalReset.
-            const { role, hadPriorWriter } = ptyManager.attach(taskId, connToken);
-
-            // Iterate v0.8.5 AC-4 — new-plain (`/api/external/launch`
-            // with actionId === "new-plain") tasks never write a JSONL
-            // until the user types their first message inside Claude
-            // (per known_issues.md "Awaiting-launch state — expected
-            // latency band"). The transcript-poll-driven state machine
-            // can therefore never flip these tasks out of
-            // `awaiting_external_start`, even though Claude is plainly
-            // reachable in the embedded terminal — confusing UX.
-            //
-            // Pty-up is the operator's mental model of "active" for
-            // new-plain. When the WS upgrade succeeds and the task is
-            // in `awaiting_external_start` AND was launched as
-            // new-plain, flip it to `active` immediately. The
-            // transcript-poll path remains authoritative for all other
-            // actionIds (slash-command launches; resume; fork) — they
-            // write JSONL at first prompt and the existing
-            // !firstJsonlObservedAt branch handles them.
-            if (
-              task.state === "awaiting_external_start" &&
-              task.actionId === "new-plain"
-            ) {
-              store.patch(taskId, { state: "active" });
-              // Don't set firstJsonlObservedAt — pty-up is not the
-              // same evidence as JSONL-on-disk; the existing
-              // transcript-poll transition will set the timestamp
-              // correctly when the user actually types something.
-              void store.persist();
-            }
-
-            // ADR-068-A1 replay flow (post-ADR-087 / Iterate C):
-            //   1. Subscribe with a liveBuffer so we don't miss live output
-            //      while the snapshot read + send happens.
-            //   2. Pause pty (avoids OOM on slow xterm-render under
-            //      backgrounded-tab conditions — Decision #15).
-            //   3. Send `ready` envelope.
-            //   4. Emit a single `replay_snapshot` envelope when a usable
-            //      snapshot exists; otherwise emit no replay history
-            //      (blank terminal with live shell — the chunked
-            //      replay_start/chunk/separator/end fallback was retired).
-            //   5. Flush liveBuffer + flip replayDone.
-            //   6. Resume pty.
-            const liveBuffer: string[] = [];
-            let replayDone = false;
-
-            const flushLiveBuffer = () => {
-              for (const data of liveBuffer) {
-                try {
-                  ws.send(JSON.stringify({ type: "data", payload: data }));
-                } catch { /* socket may be mid-close */ }
-              }
-              liveBuffer.length = 0;
-            };
-
-            ptyManager.subscribeForConnection(taskId, connToken, {
-              onData: (data) => {
-                if (replayDone) {
-                  try {
-                    ws.send(JSON.stringify({ type: "data", payload: data }));
-                  } catch { /* socket may be mid-close */ }
-                } else {
-                  liveBuffer.push(data);
-                }
-              },
-              onBackpressure: ({ droppedBytes }) => {
-                try {
-                  ws.send(
-                    JSON.stringify({ type: "backpressure", droppedBytes }),
-                  );
-                } catch { /* ignore */ }
-              },
-              // Fired when the previous writer detaches and we get
-              // promoted (closes the StrictMode double-mount race).
-              onPromoteToWriter: () => {
-                try {
-                  ws.send(JSON.stringify({ type: "writer-promoted" }));
-                } catch { /* ignore */ }
-              },
-            });
-
-            // Iterate v0.8.2 AC-8/AC-9: ready envelope stays SYNC to
-            // preserve the auto-launch handshake timing (Spec 76
-            // regressed when ready was moved into the async IIFE).
-            // scrollbackBytes is initialised to 0 here; the precise
-            // value is computed inside the IIFE and emitted via a
-            // follow-up `scrollback-meta` envelope so the disclosure
-            // footer can update once the bytes() probe resolves.
-            try {
-              ws.send(
-                JSON.stringify({
-                  type: "ready",
-                  role,
-                  shellKind: meta.shellKind,
-                  cwd: meta.cwd,
-                  replayOnly: false,
-                  // ADR-104 — drives the EmbeddedTerminal reset banner.
-                  terminalReset,
-                  // `true` iff a writer attached BEFORE this WS upgrade
-                  // (iterate-2026-05-27-fix-pty-reused-prewarm-race —
-                  // refined from `ptyExistedBeforeAttach`; prewarm-only
-                  // ptys now correctly emit `false`).
-                  ptyReused: hadPriorWriter,
-                  scrollbackBytes: 0,
-                  retentionDays,
-                  scrollbackDir: scrollbackDirHint,
-                }),
-              );
-              // External code-review F8: also emit an explicit
-              // `second-attach` envelope so reader-role consumers can
-              // surface a UX banner before the first input attempt.
-              if (role === "reader") {
-                ws.send(JSON.stringify({ type: "second-attach" }));
-              }
-            } catch { /* ignore */ }
-
-            // Iterate C (ADR-087) — snapshot is the sole replay path.
-            // ADR-086's "skip replay for new-plain" branch is gone:
-            // cell-state snapshots have no byte-stream corruption, and
-            // there is no chunked path to skip. ADR-068-A1's per-conn
-            // pause stake (pauseForConn / resumeForConn) is preserved
-            // so multi-tab attach still serializes the replay write
-            // cleanly with live pty output.
-            void (async () => {
-              try {
-                ptyManager.pauseForConn(taskId, connToken);
-                let scrollbackBytes = 0;
-                if (scrollbackStore && !scrollbackStore.disabled) {
-                  try {
-                    scrollbackBytes = await scrollbackStore.bytes(taskId);
-                  } catch { /* fall through with 0 */ }
-                }
-                // Privacy disclosure footer still receives the byte
-                // count — even though no chunked replay is emitted,
-                // the on-disk file may exist and the user has a
-                // "Clear history" button surfaced from this number.
-                try {
-                  ws.send(
-                    JSON.stringify({
-                      type: "scrollback-meta",
-                      scrollbackBytes,
-                    }),
-                  );
-                } catch { /* ignore */ }
-                // ADR-092 (Iterate E) — live mirror FIRST, disk snapshot
-                // FALLBACK. Closes the ADR-091 bug where re-attach to a
-                // live pty (no prior kill → no disk snapshot) yielded a
-                // blank terminal, AND avoids serving a stale disk
-                // snapshot when last-detach flushed but the shell
-                // produced more output after. Disk is the fallback for
-                // done/exited tasks and post-server-restart scenarios.
-                const snap = await resolveReplaySnapshot(taskId);
-                if (snap) {
-                  sendReplaySnapshot(
-                    ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
-                    snap,
-                  );
-                }
-                flushLiveBuffer();
-                replayDone = true;
-              } catch (err) {
-                // eslint-disable-next-line no-console
-                console.warn(
-                  `[terminal] replay failed for ${taskId}: ${(err as Error).message}`,
-                );
-                flushLiveBuffer();
-                replayDone = true;
-              } finally {
-                ptyManager.resumeForConn(taskId, connToken);
-              }
-            })();
-          },
-          onMessage(evt, ws) {
-            const raw = typeof evt.data === "string" ? evt.data : "";
-            let parsed: unknown;
-            try {
-              parsed = JSON.parse(raw);
-            } catch {
-              return;
-            }
-            if (!isWSInbound(parsed)) return;
-            // External code-review F6: use the non-mutating getRole()
-            // here so re-evaluating the writer gate on every inbound
-            // message can NOT silently flip the original writer to
-            // reader. attach() is idempotent for same-conn since the
-            // F6 fix, but getRole() is the cheaper + safer entrypoint.
-            const actualRole = ptyManager.getRole(taskId, connToken);
-            if (actualRole !== "writer") {
-              try {
-                ws.send(JSON.stringify({ type: "read_only" }));
-              } catch { /* ignore */ }
-              return;
-            }
-            if (parsed.type === "data") {
-              ptyManager.write(taskId, parsed.payload);
-            } else {
-              ptyManager.resize(taskId, parsed.cols, parsed.rows);
-            }
-          },
-          onClose() {
-            // ADR-092 (Iterate E) — snapshot-on-detach resilience.
-            // `detachAndCount` performs the detach + post-state read
-            // as a single atomic observation (external code review
-            // OpenAI HIGH #1 — split-step "check count → detach →
-            // check count" was vulnerable to a concurrent attach
-            // landing between the two reads). Only when the
-            // post-detach count is 0 do we flush the mirror to disk
-            // so a future re-attach (or server restart) finds a
-            // usable snapshot via `tryReadSnapshot`. The pty stays
-            // alive; only persistence fires here. Fire-and-forget
-            // — never block the WS close handshake.
-            const { remainingAttachCount } = ptyManager.detachAndCount(
-              taskId,
-              connToken,
-            );
-            if (remainingAttachCount === 0) {
-              // flushMirrorSnapshot wraps its async body in try/catch
-              // internally — no rejection escapes (per Gemini LOW #3
-              // / OpenAI MED #4: ensures no unhandled rejection noise
-              // from this fire-and-forget call). SnapshotStore.write
-              // is per-task PQueue-serialized (snapshot-store.ts —
-              // Iterate B MEDIUM-1) so overlapping calls cannot
-              // corrupt the file.
-              void ptyManager.flushMirrorSnapshot(taskId);
-            }
-          },
-          onError() {
-            const { remainingAttachCount } = ptyManager.detachAndCount(
-              taskId,
-              connToken,
-            );
-            if (remainingAttachCount === 0) {
-              void ptyManager.flushMirrorSnapshot(taskId);
-            }
-          },
+        const ctx: ValidatedWsUpgradeContext = {
+          taskId,
+          task,
+          trustedCwd,
+          ptyManager,
+          store,
+          scrollbackStore,
+          snapshotStore,
+          expectedTerminalVersion,
+          retentionDays,
+          scrollbackDirHint,
+          resolveShell,
         };
+        return buildWsHandlers(ctx);
       }),
     );
 

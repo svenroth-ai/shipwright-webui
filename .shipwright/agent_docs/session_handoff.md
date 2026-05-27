@@ -1,38 +1,39 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-26-campaign-C-C5-e2e-followup"
+run_id: "iterate-2026-05-27-ws-upgrade-handler-split"
 phase: "iterate"
-reason: "iterate: C5 split E2E backfill"
-timestamp: "2026-05-26T22:06:43.858164+00:00"
+reason: "F5b - retry to capture event_id"
+timestamp: "2026-05-27T07:43:00.996660+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-26 22:06:43 UTC
+> Auto-generated 2026-05-27 07:43:00 UTC
 
 ## Session Info
 
-- **Session ID**: 9d447124-3723-465c-b600-7223644ef655
-- **Timestamp**: 2026-05-26 22:06:43 UTC
-- **Reason**: iterate: C5 split E2E backfill
+- **Session ID**: e70f5335-582a-4cb7-90a5-ec521b89929c
+- **Timestamp**: 2026-05-27 07:43:00 UTC
+- **Reason**: F5b - retry to capture event_id
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-25-fix-terminal-touch-scroll
-- **Date**: 2026-05-25T19:07:15.309074Z
+- **Run ID**: iterate-2026-05-27-fix-pty-reused-prewarm-race
+- **Date**: 2026-05-26T22:29:35.775320Z
 - **Type**: bug
-- **Complexity**: small
-- **Branch**: iterate/fix-terminal-touch-scroll
-- **ADR**: iterate-2026-05-25-fix-terminal-touch-scroll
+- **Complexity**: medium
+- **Branch**: iterate/fix-pty-reused-prewarm-race
+- **ADR**: iterate-2026-05-27-fix-pty-reused-prewarm-race
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-05-27-fix-pty-reused-prewarm-race.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-C-C5-e2e-followup
-- **Run ID**: iterate-2026-05-26-campaign-C-C5-e2e-followup
-- **Spec**: .shipwright/planning/iterate/2026-05-26-campaign-C-C5-e2e-followup.md
+- **Branch**: iterate/ws-upgrade-handler-split
+- **Run ID**: `iterate-2026-05-27-ws-upgrade-handler-split`
+- **Spec**: .shipwright/planning/iterate/2026-05-27-ws-upgrade-handler-split.md
 - **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-05-26T05:30:27))
+- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
 
 ### Mandatory replay on Resume
 
@@ -51,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-C-C5-e2e-followup
-- **Last Commit**: d626596 Merge pull request #71 from svenroth-ai/iterate/campaign-C-C2-external-routes-split
+- **Branch**: iterate/ws-upgrade-handler-split
+- **Last Commit**: 90ec4d6 Merge pull request #76 from svenroth-ai/iterate/remove-c5-wait-for-ready-workaround
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-ecf57fd9 | work_completed | iterate (ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green.) | 2026-05-27 |
+| evt-ceed7566 | work_completed | iterate (Fix prewarm race that armed the one-shot auto-launch guard on first WS attach) | 2026-05-26 |
+| evt-dd475015 | work_completed | iterate (iterate finalization) | 2026-05-26 |
+| evt-711a2d15 | work_completed | iterate (Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI)) | 2026-05-26 |
 | evt-503ee853 | work_completed | iterate (C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence)) | 2026-05-26 |
-| evt-490d6b9f | work_completed | iterate (NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105)) | 2026-05-26 |
-| evt-348e51b8 | work_completed | iterate (Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed.) | 2026-05-26 |
-| evt-b1759173 | work_completed | iterate (Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components.) | 2026-05-26 |
-| evt-91e68d98 | work_completed | iterate (iterate finalization) | 2026-05-25 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 156
-- **Last iterate**: change — C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) (2026-05-26)
+- **Total work events**: 160
+- **Last iterate**: change — ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. (2026-05-27)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
