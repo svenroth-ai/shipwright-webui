@@ -4,9 +4,9 @@
     "date": "2026-05-27",
     "unit": {
       "status": "passed",
-      "passed": 1342,
-      "total": 1342,
-      "scope": "Full server vitest suite (101 files, 1313 pre-iterate + 29 new lifecycle/parse tests in ws-upgrade-handler.test.ts). Includes the relocated terminal-reset.test.ts (3 tests, import path moved to ./terminal-reset.js)."
+      "passed": 1314,
+      "total": 1314,
+      "scope": "Full server vitest suite (101 files, was 100 on origin/main). Includes the new ws-upgrade-handler.test.ts (29 tests covering lifecycle, parse table, atomic detach) and the relocated terminal-reset.test.ts (3 tests, import path moved to ./terminal-reset.js)."
     },
     "integration": { "status": "not_run", "passed": 0, "total": 0 },
     "pgtap": { "status": "skipped", "passed": 0, "total": 0 },
