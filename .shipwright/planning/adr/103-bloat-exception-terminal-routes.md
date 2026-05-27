@@ -171,7 +171,8 @@ complexity.
 
 ## Retirement Status — Candidate #1 PARTIALLY LANDED (2026-05-27)
 
-Iterate `iterate-2026-05-27-ws-upgrade-handler-split` executed
+Iterate `iterate-2026-05-27-ws-upgrade-handler-split`
+(commit `a66202796acac8d1009d3612715c4d62f6cbb437`) executed
 retirement candidate #1 ("split the WS upgrade handler from the HTTP
 endpoints"):
 
