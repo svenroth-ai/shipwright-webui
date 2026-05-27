@@ -1,28 +1,30 @@
 # Commit Change Log
 
-Generated: 2026-05-26T22:06:43.858164+00:00
-Total commits: 429
+Generated: 2026-05-27T07:43:00.996660+00:00
+Total commits: 435
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 168
+    "fix" : 170
     "feat" : 119
     "chore" : 72
-    "docs" : 35
+    "docs" : 36
     "refactor" : 21
-    "test" : 9
+    "test" : 12
     "other" : 4
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 168 commits
+### Fixes (fix) — 170 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-27 | terminal | trim routes.ts comment 1 LOC to land at exact baseline | 9bf3426a3d6e |
+| 2026-05-27 | terminal | refine ready.ptyReused to hadPriorWriter (atomic snapshot) | ff6a6d254722 |
 | 2026-05-26 | adr | renumber ADR-124 → ADR-126 + remove stray conflict marker | bb8ff0864d0f |
 | 2026-05-25 | client/terminal | one-finger pan-to-scroll on touchscreens | 4a2138f91481 |
 | 2026-05-25 | server/external | tree route honours .gitignore directory-form negations | 5c7f53955e36 |
@@ -393,10 +395,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 35 commits
+### Documentation (docs) — 36 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-27 | adr | ADR-103 bloat-exception for terminal/routes.ts | 1e20170e3b64 |
 | 2026-05-23 | spec | append FR-01.28 acceptance criteria for terminal-selection-uxd | 46f91387253a |
 | 2026-05-21 | spec | update FR-01.30 ACs for Fix-now NewIssueModal rewire | 4ca5be24c2bf |
 | 2026-05-21 | test-status | record Phase 0d FAIL-row dismissals (webui) (#50) | de956bce683e |
@@ -459,10 +462,13 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 9 commits
+### Tests (test) — 12 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-27 | terminal | remove wait-for-first-ready workaround from C5 smoke spec | 992aec89f1f1 |
+| 2026-05-27 | external | commit C2 API contract sweep as tracked vitest suite | f56b6bb8f7ef |
+| 2026-05-27 | terminal | add Campaign-C/C5 split E2E smoke for ADR-068-A1 auto-execute | 63c46b2e0322 |
 | 2026-05-23 | terminal | empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 36d08c865c35 |
 | 2026-05-12 | client | post-campaign E2E matrix for task types × scenarios (ADR-090) | 0c9e517499e7 |
 | 2026-05-13 | e2e | migrate readXtermRows helper from DOM-locator to buffer-peek | f09b669220b8 |
@@ -492,7 +498,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 429 |
+| Total commits | 435 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 429 |
+| Human-authored commits | 435 |
 

@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { deriveTerminalReset } from "./routes.js";
+import { deriveTerminalReset } from "./terminal-reset.js";
 
 describe("deriveTerminalReset", () => {
   it("fresh pty + prior Claude session → true (the reset case)", () => {
