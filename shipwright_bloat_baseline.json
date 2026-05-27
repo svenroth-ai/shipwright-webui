@@ -522,7 +522,7 @@
     {
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
-      "current": 1013,
+      "current": 620,
       "state": "exception",
       "adr": "ADR-103"
     },
@@ -553,6 +553,13 @@
       "current": 513,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "server/src/terminal/ws-upgrade-handler.ts",
+      "limit": 300,
+      "current": 527,
+      "state": "exception",
+      "adr": "ADR-103"
     }
   ]
 }
