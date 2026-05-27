@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-26T22:29:33.024406+00:00
+Generated: 2026-05-26T22:06:43.858164+00:00
 
 ## Requirements Coverage
 
@@ -198,10 +198,7 @@ Generated: 2026-05-26T22:29:33.024406+00:00
 | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | iterate | change |  | — | 2cd7aa3 | 2026-05-26 |
 | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | iterate | change |  | 1124/1124 | f98fbf6 | 2026-05-26 |
 | NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | iterate | change |  | — | 935cc39 | 2026-05-26 |
-| C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | iterate | change |  | 20/20 | 63c46b2 | 2026-05-26 |
-| Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI) | iterate | change |  | 1279/1279 | f56b6bb | 2026-05-26 |
-| iterate finalization | iterate | change |  | — | — | 2026-05-26 |
-| Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | iterate | bug |  | 1274/1274 | — | 2026-05-26 |
+| C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | iterate | change |  | 20/20 | — | 2026-05-26 |
 
 ## Coverage Summary
 
@@ -209,7 +206,7 @@ Generated: 2026-05-26T22:29:33.024406+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 89 |
+| Iterate changes | 86 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
