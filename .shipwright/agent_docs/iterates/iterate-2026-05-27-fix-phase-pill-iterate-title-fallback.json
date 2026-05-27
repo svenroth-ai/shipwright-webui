@@ -5,5 +5,5 @@
   "complexity": "trivial",
   "branch": "iterate/fix-phase-pill-iterate-title-fallback",
   "tests_passed": true,
-  "adr": "pending-changelog"
+  "adr": "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback"
 }
