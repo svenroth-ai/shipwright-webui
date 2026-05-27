@@ -12,9 +12,12 @@
  * NEVER been driven by a real browser post-split. This spec closes
  * that gap.
  *
- * Test 1 — Launch path (fresh pty). Wait for first ready envelope
- *   (role:"writer", ptyReused:false), then click Launch CTA.
- *   Assert a `claude --session-id` data-frame is SENT ≥ 200 ms
+ * Test 1 — Launch path (fresh pty). Click Launch CTA immediately
+ *   after page-load (mirroring real user with the post-ADR-068-A1
+ *   prewarm-race fix in place — see iterate-2026-05-27-fix-pty-reused-
+ *   prewarm-race / PR #75). Assert first ready envelope shows
+ *   role:"writer" + ptyReused:false (atomic hadPriorWriter snapshot)
+ *   AND a `claude --session-id` data-frame is SENT ≥ 200 ms
  *   (and < 2000 ms) after click — lower bound proves the 250 ms
  *   quiesce gate (useAutoLaunch.ts:34) is wired; upper bound
  *   catches multi-second hangs (external-review gemini #2 medium).
@@ -107,20 +110,23 @@ test.describe("Spec C5 — EmbeddedTerminal post-split auto-execute smoke", () =
       const navAt = Date.now();
       await page.goto(`/tasks/${taskId}`);
 
-      // CRITICAL: EmbeddedTerminal is lazy-loaded (TaskDetailPage.tsx:51).
-      // Wait for the WS attach + FIRST ready BEFORE clicking Launch —
-      // otherwise the click's `prewarmPty` POST races the WS upgrade.
-      // If prewarm wins, the WS attach sees a pre-existing pty,
-      // `ptyReused:true` arms the one-shot guard, and the launch parks
-      // behind manual-send. Real users always pause long enough for the
-      // WS to attach first.
+      // Click Launch immediately after CTA is visible — mirrors a real
+      // user. The prior wait-for-first-ready workaround was removed in
+      // iterate-2026-05-27-remove-c5-wait-for-ready-workaround after
+      // PR #75 fixed the prewarm race (atomic hadPriorWriter snapshot
+      // in pty-manager.attach()): the FIRST WS attach is now the
+      // pty-creating one regardless of prewarm-vs-WS ordering.
+      const launchCta = page.getByTestId("cta-launch-in-terminal");
+      await expect(launchCta).toBeVisible({ timeout: 10_000 });
+      const clickAt = Date.now();
+      await launchCta.click();
+
+      // First ready envelope on the terminal WS (may arrive before or
+      // after click — predicate filters by frame.ts >= navAt).
       const firstReady = await awaitFrame(page, cap, readyForTask(cap, taskId, navAt), {
         timeoutMs: 30_000,
       });
-      expect(
-        firstReady,
-        "first ready envelope on the terminal WS (post lazy-mount)",
-      ).not.toBeNull();
+      expect(firstReady, "first ready envelope on the terminal WS").not.toBeNull();
       if (!firstReady) return;
 
       const readyEnv = firstReady.env!;
@@ -129,7 +135,7 @@ test.describe("Spec C5 — EmbeddedTerminal post-split auto-execute smoke", () =
       expect(
         readyEnv.ptyReused,
         "ready.ptyReused on the pty-creating attach must be false " +
-          "(real-user timing: WS attach precedes Launch click)",
+          "(post PR #75: hadPriorWriter is atomic-snapshotted in attach())",
       ).toBe(false);
       expect(readyEnv.replayOnly, "ready.replayOnly on a live task must be false").toBe(
         false,
@@ -138,11 +144,6 @@ test.describe("Spec C5 — EmbeddedTerminal post-split auto-execute smoke", () =
         typeof readyEnv.shellKind,
         "ready.shellKind must be a string for a live writer attach",
       ).toBe("string");
-
-      const launchCta = page.getByTestId("cta-launch-in-terminal");
-      await expect(launchCta).toBeVisible({ timeout: 10_000 });
-      const clickAt = Date.now();
-      await launchCta.click();
 
       const launch = await awaitFrame(
         page,
@@ -188,18 +189,9 @@ test.describe("Spec C5 — EmbeddedTerminal post-split auto-execute smoke", () =
     try {
       taskId = await createTask(request, cwd, `c5-smoke-resume-${Date.now()}`);
 
-      // Phase 1 — wait-for-ready, then Launch. Mirrors Test 1's timing.
+      // Phase 1 — click Launch immediately (mirrors Test 1's post-PR-#75 timing).
       const cap1 = attachWsCapture(page);
-      const navAt1 = Date.now();
       await page.goto(`/tasks/${taskId}`);
-
-      const firstReady1 = await awaitFrame(
-        page,
-        cap1,
-        readyForTask(cap1, taskId, navAt1),
-        { timeoutMs: 30_000 },
-      );
-      expect(firstReady1, "phase-1: first ready envelope").not.toBeNull();
 
       const launchCta = page.getByTestId("cta-launch-in-terminal");
       await expect(launchCta).toBeVisible({ timeout: 10_000 });
