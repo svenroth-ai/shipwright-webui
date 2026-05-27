@@ -555,13 +555,6 @@
       "adr": null
     },
     {
-      "path": "server/src/terminal/ws-upgrade-handler.test.ts",
-      "limit": 300,
-      "current": 570,
-      "state": "grandfathered",
-      "adr": null
-    },
-    {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
       "current": 527,
