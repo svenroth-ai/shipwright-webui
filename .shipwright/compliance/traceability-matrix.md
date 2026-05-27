@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-27T07:43:00.996660+00:00
+Generated: 2026-05-27T19:57:27.211029+00:00
 
 ## Requirements Coverage
 
@@ -203,6 +203,7 @@ Generated: 2026-05-27T07:43:00.996660+00:00
 | iterate finalization | iterate | change |  | — | — | 2026-05-26 |
 | Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | iterate | bug |  | 1274/1274 | ff6a6d2 | 2026-05-26 |
 | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | iterate | change |  | — | a662027 | 2026-05-27 |
+| TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | iterate | bug |  | — | — | 2026-05-27 |
 
 ## Coverage Summary
 
@@ -210,7 +211,7 @@ Generated: 2026-05-27T07:43:00.996660+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 90 |
+| Iterate changes | 91 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
