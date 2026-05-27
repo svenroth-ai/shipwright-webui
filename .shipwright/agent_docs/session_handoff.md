@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-27-ws-upgrade-handler-split"
+run_id: "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-05-27T07:43:00.996660+00:00"
+reason: "fix: phase pill on iterate tasks no longer shows Build when title starts with Fix"
+timestamp: "2026-05-27T19:57:27.211029+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-27 07:43:00 UTC
+> Auto-generated 2026-05-27 19:57:27 UTC
 
 ## Session Info
 
-- **Session ID**: unknown
-- **Timestamp**: 2026-05-27 07:43:00 UTC
-- **Reason**: iterate finalization
+- **Session ID**: 86832cb1-db18-4cb8-8755-db8dc94b6fbf
+- **Timestamp**: 2026-05-27 19:57:27 UTC
+- **Reason**: fix: phase pill on iterate tasks no longer shows Build when title starts with Fix
 
 ## Last Iterate
 
@@ -27,6 +27,16 @@ timestamp: "2026-05-27T07:43:00.996660+00:00"
 - **Tests passed**: True
 - **Spec**: .shipwright/planning/iterate/2026-05-27-ws-upgrade-handler-split.md
 
+## Current Iterate Progress
+
+- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
+- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T21:45:17)
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
+
 ## Legacy build state
 
 - **Phase**: changelog
@@ -38,8 +48,8 @@ timestamp: "2026-05-27T07:43:00.996660+00:00"
 
 ## Git State
 
-- **Branch**: main
-- **Last Commit**: 87a9cc1 chore: dismiss trg-880260fc + backfill event log + dashboard regen
+- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
+- **Last Commit**: 1dfb8b5 chore(triage): add trg-c00254ab follow-up for ADR-103 retirement remainder
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -55,17 +65,17 @@ timestamp: "2026-05-27T07:43:00.996660+00:00"
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-18779597 | work_completed | iterate (TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted.) | 2026-05-27 |
 | evt-ecf57fd9 | work_completed | iterate (ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green.) | 2026-05-27 |
 | evt-ceed7566 | work_completed | iterate (Fix prewarm race that armed the one-shot auto-launch guard on first WS attach) | 2026-05-26 |
 | evt-dd475015 | work_completed | iterate (iterate finalization) | 2026-05-26 |
 | evt-711a2d15 | work_completed | iterate (Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI)) | 2026-05-26 |
-| evt-503ee853 | work_completed | iterate (C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence)) | 2026-05-26 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 160
-- **Last iterate**: change — ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. (2026-05-27)
+- **Total work events**: 161
+- **Last iterate**: bug — TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. (2026-05-27)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
