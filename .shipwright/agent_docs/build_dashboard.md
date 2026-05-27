@@ -1,12 +1,14 @@
 # Project Activity Dashboard
-> Updated: 2026-05-26 22:07 UTC | Session: adea66d1-a78d-4096-9861-5107be489cde | Run: iterate-2026-05-26-commit-c2-contract-sweep
+> Updated: 2026-05-26 22:29 UTC | Session: 9d447124-3723-465c-b600-7223644ef655 | Run: iterate-2026-05-27-fix-pty-reused-prewarm-race
 
-## Recent Changes (87 iterations)
+## Recent Changes (89 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI) | 1279/1279 |  | tooling | 2026-05-26 |
-| change | C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | 20/20 |  | tooling | 2026-05-26 |
+| bug | Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | 1274/1274 |  | infra | 2026-05-26 |
+| change | iterate finalization | 0/0 |  |  | 2026-05-26 |
+| change | Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI) | 1279/1279 | f56b6bb | tooling | 2026-05-26 |
+| change | C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | 20/20 | 63c46b2 | tooling | 2026-05-26 |
 | change | NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | 0/0 | 935cc39 | docs | 2026-05-26 |
 | change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 | f98fbf6 | tooling | 2026-05-26 |
 | change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 | 2cd7aa3 | tooling | 2026-05-26 |
@@ -94,7 +96,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-26 | Unit: 1279/1279 | E2E: 30/30 | Smoke: skipped | (iterate)
+Last run: 2026-05-27 | Unit: 1255/1255 | E2E: 19/19 | Smoke: passed | (iterate)
 
 ## Pipeline
 
