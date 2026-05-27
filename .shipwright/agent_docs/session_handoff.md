@@ -2,7 +2,7 @@
 canon_generated: true
 run_id: "iterate-2026-05-27-ws-upgrade-handler-split"
 phase: "iterate"
-reason: "F5b - retry to capture event_id"
+reason: "iterate finalization"
 timestamp: "2026-05-27T07:43:00.996660+00:00"
 ---
 
@@ -12,34 +12,20 @@ timestamp: "2026-05-27T07:43:00.996660+00:00"
 
 ## Session Info
 
-- **Session ID**: e70f5335-582a-4cb7-90a5-ec521b89929c
+- **Session ID**: unknown
 - **Timestamp**: 2026-05-27 07:43:00 UTC
-- **Reason**: F5b - retry to capture event_id
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-27-fix-pty-reused-prewarm-race
-- **Date**: 2026-05-26T22:29:35.775320Z
-- **Type**: bug
+- **Run ID**: iterate-2026-05-27-ws-upgrade-handler-split
+- **Date**: 2026-05-27T07:47:08.279204Z
+- **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/fix-pty-reused-prewarm-race
-- **ADR**: iterate-2026-05-27-fix-pty-reused-prewarm-race
-- **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-05-27-fix-pty-reused-prewarm-race.md
-
-## Current Iterate Progress
-
 - **Branch**: iterate/ws-upgrade-handler-split
-- **Run ID**: `iterate-2026-05-27-ws-upgrade-handler-split`
+- **ADR**: ADR-103
+- **Tests passed**: True
 - **Spec**: .shipwright/planning/iterate/2026-05-27-ws-upgrade-handler-split.md
-- **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
-
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
-- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
@@ -52,8 +38,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/ws-upgrade-handler-split
-- **Last Commit**: 90ec4d6 Merge pull request #76 from svenroth-ai/iterate/remove-c5-wait-for-ready-workaround
+- **Branch**: main
+- **Last Commit**: 87a9cc1 chore: dismiss trg-880260fc + backfill event log + dashboard regen
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read

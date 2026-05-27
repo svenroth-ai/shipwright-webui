@@ -1,11 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-27 07:43 UTC | Session: e70f5335-582a-4cb7-90a5-ec521b89929c | Run: iterate-2026-05-27-ws-upgrade-handler-split
+> Updated: 2026-05-27 07:43 UTC | Session: unknown | Run: iterate-2026-05-27-ws-upgrade-handler-split
 
 ## Recent Changes (90 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | 0/0 |  | refactor | 2026-05-27 |
+| change | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | 0/0 | a662027 | refactor | 2026-05-27 |
 | bug | Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | 1274/1274 | ff6a6d2 | infra | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-26 |
 | change | Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI) | 1279/1279 | f56b6bb | tooling | 2026-05-26 |
@@ -97,7 +97,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-27 | Unit: 1342/1342 | Smoke: passed | (iterate)
+Last run: 2026-05-27 | Unit: 1314/1314 | Smoke: passed | (iterate)
 
 ## Pipeline
 
