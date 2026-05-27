@@ -169,6 +169,60 @@ plumbing as the WS handler. Splitting them mechanically is option
 (a) above (duplicate plumbing) and creates churn without reducing
 complexity.
 
+## Retirement Status — Candidate #1 PARTIALLY LANDED (2026-05-27)
+
+Iterate `iterate-2026-05-27-ws-upgrade-handler-split` executed
+retirement candidate #1 ("split the WS upgrade handler from the HTTP
+endpoints"):
+
+- `server/src/terminal/routes.ts`: 1013 → 620 LOC (-39 %). The WS
+  upgrade body moved to `server/src/terminal/ws-upgrade-handler.ts`
+  (527 LOC) as a single cohesive function `buildWsHandlers(ctx:
+  ValidatedWsUpgradeContext)`. The four reject-the-upgrade validations
+  (origin gate, taskId non-empty, task lookup, `resolveTrustedCwd`)
+  STAY synchronous in `routes.ts` and throw before `buildWsHandlers`
+  is called — anything that throws inside `onOpen` degrades to a
+  silent WS disconnect instead of the HTTP upgrade rejection the
+  contract requires (external plan review HIGH #1, 2026-05-27).
+- `deriveTerminalReset` extracted to neutral module
+  `server/src/terminal/terminal-reset.ts` to break the cycle risk
+  (external plan review MED #3).
+- New lifecycle/parse tests in `server/src/terminal/ws-upgrade-
+  handler.test.ts` (28 tests covering replay-only attach, live attach
+  ready envelope key parity, inbound-message parsing table, atomic
+  detach-and-flush on close/error, new-plain state flip, pause-stake
+  balance).
+- Bloat baseline updated: `routes.ts.current` lowered from 1013 → 620
+  (anti-ratchet ceiling moves DOWN with the file shrink — allowed by
+  rule), `ws-upgrade-handler.ts` added with `state=exception`,
+  `adr=ADR-103` (this file IS the deep-module body whose argument
+  ADR-103 protects).
+
+### Exception not yet fully retired — why
+
+`routes.ts` at 620 LOC still exceeds the 300-LOC default limit, so
+the named exception is still needed. The remaining mass is the five
+HTTP route handlers (spawn / close / clear-scrollback / paste-image /
+append-gitignore) + the spawn-env factory (`buildSpawnEnv`,
+`createNodePtySpawnFn`). These all share the same
+`TerminalRoutesDeps` bundle + `realPathGuard` flow; mechanically
+splitting them across files is the very failure mode this ADR
+rejected. Candidate #2 (auth layer extraction) remains the path
+toward full retirement; the Re-Review-Date of 2026-08-27 still
+applies.
+
+### Protected deep module — anti-dumping anchor
+
+`ws-upgrade-handler.ts` is itself a protected cohesive module. It
+exists for ONE purpose: the WS upgrade body with its three shared
+locks (writer-slot, pause-refcount, attach-count), one onData
+broadcast, and one backpressure budget. Do NOT add unrelated
+terminal helpers (HTTP-only logic, spawn-env factory, image-paste
+utilities, etc.) to it — that would convert the exception from a
+named cohesive boundary back into the anonymous-grandfathered mass
+the Stop-hook iron law correctly flags. The module header repeats
+this anchor as a maintenance fence (external plan review LOW #11).
+
 ## Consequences
 
 - Baseline entry records the named decision via `adr="ADR-103"`.
