@@ -501,14 +501,14 @@
     {
       "path": "server/src/terminal/pty-manager.test.ts",
       "limit": 300,
-      "current": 487,
+      "current": 565,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1198,
+      "current": 1219,
       "state": "exception",
       "adr": "ADR-101"
     },
@@ -523,8 +523,8 @@
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
       "current": 1013,
-      "state": "grandfathered",
-      "adr": null
+      "state": "exception",
+      "adr": "ADR-103"
     },
     {
       "path": "server/src/terminal/scrollback-store.test.ts",

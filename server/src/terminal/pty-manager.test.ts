@@ -277,6 +277,84 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.attach("t1", { id: "B" }).role).toBe("reader");
   });
 
+  // hadPriorWriter — iterate-2026-05-27-fix-pty-reused-prewarm-race.
+  // Atomic snapshot inside attach() (race-fence + 5 transitions).
+
+  it("first attach immediately after spawn returns hadPriorWriter: false (prewarm-race fix)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const a = mgr.attach("t1", wsA);
+    expect(a.role).toBe("writer");
+    expect(a.hadPriorWriter).toBe(false);
+  });
+
+  it("second attach (different conn) returns hadPriorWriter: true while the first is still writer", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const wsB = { id: "B" };
+    const a = mgr.attach("t1", wsA);
+    const b = mgr.attach("t1", wsB);
+    expect(a.hadPriorWriter).toBe(false);
+    expect(b.role).toBe("reader");
+    expect(b.hadPriorWriter).toBe(true);
+  });
+
+  it("re-attach by the same conn returns hadPriorWriter: true (this conn IS a prior writer)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const first = mgr.attach("t1", wsA);
+    const second = mgr.attach("t1", wsA);
+    expect(first.hadPriorWriter).toBe(false);
+    expect(second.role).toBe("writer");
+    expect(second.hadPriorWriter).toBe(true);
+  });
+
+  it("after writer detaches, the NEXT new-conn attach returns hadPriorWriter: true (the reload regression fence)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const wsB = { id: "B" };
+    const a = mgr.attach("t1", wsA);
+    expect(a.hadPriorWriter).toBe(false);
+    mgr.detach("t1", wsA);
+    // Even though no writer is currently bound (entry.writer === null),
+    // the flag persists — a prior writer existed.
+    const b = mgr.attach("t1", wsB);
+    expect(b.role).toBe("writer");
+    expect(b.hadPriorWriter).toBe(true);
+  });
+
+  it("reader-promotion to writer does NOT decrease the flag (defensive — flag was already true from the original writer)", () => {
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const wsA = { id: "A" };
+    const wsB = { id: "B" };
+    mgr.attach("t1", wsA);
+    const b = mgr.attach("t1", wsB);
+    expect(b.hadPriorWriter).toBe(true); // wsA was writer first
+    mgr.subscribeForConnection("t1", wsB, { onData: () => undefined });
+    mgr.detach("t1", wsA);
+    // wsB is now writer (auto-promoted). A third conn attaching now MUST
+    // still see hadPriorWriter: true.
+    const c = mgr.attach("t1", { id: "C" });
+    expect(c.hadPriorWriter).toBe(true);
+  });
+
+  it("two back-to-back attaches resolve sequentially: second always sees hadPriorWriter: true (race fence — atomic API)", () => {
+    // External review HIGH: a separate read-then-mutate API would let
+    // two near-simultaneous attaches both observe `false`. The
+    // atomic-inside-attach() contract is what holds the invariant.
+    const mgr = new PtyManager({ spawn: spawn.fn });
+    mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
+    const a = mgr.attach("t1", { id: "A" });
+    const b = mgr.attach("t1", { id: "B" });
+    expect(a.hadPriorWriter).toBe(false);
+    expect(b.hadPriorWriter).toBe(true);
+  });
+
   it("getRole() is non-mutating and returns the right role for known/unknown conns", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });

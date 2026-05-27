@@ -622,7 +622,11 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
 
         return {
           onOpen(_evt, ws) {
-            const { role } = ptyManager.attach(taskId, connToken);
+            // `hadPriorWriter` = atomic snapshot in attach() (iterate
+            // 2026-05-27-fix-pty-reused-prewarm-race); feeds ready.ptyReused
+            // so the guard arms only on real reload/multi-tab, not prewarm.
+            // `ptyExistedBeforeAttach` still drives ADR-104 terminalReset.
+            const { role, hadPriorWriter } = ptyManager.attach(taskId, connToken);
 
             // Iterate v0.8.5 AC-4 — new-plain (`/api/external/launch`
             // with actionId === "new-plain") tasks never write a JSONL
@@ -720,15 +724,11 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
                   replayOnly: false,
                   // ADR-104 — drives the EmbeddedTerminal reset banner.
                   terminalReset,
-                  // fix-resume-guard-survives-reload — true when this WS
-                  // attach REUSED a pty that pre-existed the attach (it
-                  // persisted across a browser reload / navigate-back).
-                  // Arms the EmbeddedTerminal one-shot inject guard so a
-                  // post-reload launch parks behind an explicit confirm
-                  // instead of auto-injecting into a live Claude session.
-                  // Mutually exclusive with `terminalReset`: a fresh pty
-                  // (terminalReset can be true) is never a reused one.
-                  ptyReused: ptyExistedBeforeAttach,
+                  // `true` iff a writer attached BEFORE this WS upgrade
+                  // (iterate-2026-05-27-fix-pty-reused-prewarm-race —
+                  // refined from `ptyExistedBeforeAttach`; prewarm-only
+                  // ptys now correctly emit `false`).
+                  ptyReused: hadPriorWriter,
                   scrollbackBytes: 0,
                   retentionDays,
                   scrollbackDir: scrollbackDirHint,
