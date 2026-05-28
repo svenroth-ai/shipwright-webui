@@ -207,16 +207,23 @@
     {
       "path": "client/src/external/session-parser.test.ts",
       "limit": 300,
-      "current": 731,
+      "current": 885,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-05-27-transcript-renderer-scroll"
     },
     {
       "path": "client/src/external/session-parser.ts",
       "limit": 300,
-      "current": 716,
+      "current": 826,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-05-27-transcript-renderer-scroll"
+    },
+    {
+      "path": "client/src/hooks/useAutoScroll.test.ts",
+      "limit": 300,
+      "current": 363,
+      "state": "grandfathered",
+      "adr": "iterate-2026-05-27-transcript-renderer-scroll"
     },
     {
       "path": "client/src/hooks/useSSE.test.ts",

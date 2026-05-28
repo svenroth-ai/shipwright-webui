@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import type {
   AgentNameEvent,
   CustomTitleEvent,
+  ModeChangeEvent,
   ParsedEvent,
   PermissionModeEvent,
   SystemEvent,
@@ -119,6 +120,31 @@ export function PermissionModePill({ event }: { event: PermissionModeEvent }) {
         }}
       >
         Permission mode:{" "}
+        <strong style={{ color: "#6B21A8", fontWeight: 500 }}>{event.mode}</strong>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC1.
+ * Mirrors `PermissionModePill` (lavender) — both surfaces are session-
+ * metadata pills hidden by default under the system toggle.
+ */
+export function ModeChangePill({ event }: { event: ModeChangeEvent }) {
+  return (
+    <div className="flex justify-start" data-testid="bubble-mode-change">
+      <span
+        className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
+        style={{
+          fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, monospace)",
+          color: "#6B21A8",
+          background: "rgba(168,85,247,0.10)",
+          borderRadius: "10px",
+          opacity: 0.9,
+        }}
+      >
+        Mode:{" "}
         <strong style={{ color: "#6B21A8", fontWeight: 500 }}>{event.mode}</strong>
       </span>
     </div>

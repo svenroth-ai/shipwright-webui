@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-05-27 19:57 UTC | Session: 86832cb1-db18-4cb8-8755-db8dc94b6fbf | Run: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
+> Updated: 2026-05-28 22:31 UTC | Session: 6b60a16a-52e8-4c6f-9dd6-836b173cd41e | Run: iterate-2026-05-27-transcript-renderer-scroll
 
-## Recent Changes (91 iterations)
+## Recent Changes (92 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| bug | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | 0/0 |  | bug | 2026-05-27 |
+| bug | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | 0/0 |  | FR-01.02 | 2026-05-28 |
+| bug | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | 0/0 | ce60cf7 | bug | 2026-05-27 |
 | change | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | 0/0 | a662027 | refactor | 2026-05-27 |
 | bug | Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | 1274/1274 | ff6a6d2 | infra | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-26 |

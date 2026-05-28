@@ -1,29 +1,45 @@
 {
-  "iterate_latest": {
-    "run_id": "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback",
-    "date": "2026-05-27",
-    "unit": {
-      "status": "passed",
-      "passed": 1284,
-      "total": 1284,
-      "scope": "Full client vitest suite (118 files). Includes 6 new resolveTaskPhase tests in client/src/lib/phaseStyle.test.ts covering new-plain -> null, persisted phase+phaseLabel wins, new-iterate -> Iterate regardless of title (regression), persisted phase wins over actionId default, title fallback for non-iterate actions, and phase-without-phaseLabel falls through (not persisted)."
-    },
-    "integration": { "status": "not_run", "passed": 0, "total": 0 },
-    "pgtap": { "status": "skipped", "passed": 0, "total": 0 },
-    "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "scope": "Trivial-bug UI logic change in client/src/lib/phaseStyle.ts + 2 component consumers. Behavior is covered by direct unit tests on the helper and existing component-level phase-badge tests (TaskCard.test.tsx, TaskDetailHeader.test.tsx, 65 tests across both) which all stayed green. No new UI surface, no server / API / store contract change -> Playwright re-run not required for trivial."
-    },
-    "design_fidelity": { "status": "skipped", "passed": 0, "total": 0 },
-    "smoke": { "status": "skipped", "scope": "No server / dev-server change; client-only TS render-policy fix." },
-    "surface_verification": {
-      "surface": "none",
-      "justification": "Pure client-side TypeScript pure-function + two memoised render-policy call-sites. No backend route, no SSE/WS handler, no store mutation, no message contract, no env/JSON/IO/network boundary touched. Boundary-affects-frontend rule does not apply (the change IS the frontend). Trivial complexity matrix row allows surface=none."
-    },
-    "degraded": [
-      { "phase": "F0 lint", "reason": "Host client/node_modules junctioned from main worktree to avoid duplicating ~250 MB install; oxlint binary is not installed in host node_modules (npm omitted the platform-binary at some point). Ran `npx --yes oxlint@1.66.0` on the four touched files instead - only pre-existing warning on phaseStyle.test.ts:56 (a `.toBeUndefined;` without `()` from the v0.4.1 commit) surfaced; nothing introduced by this iterate. Re-installing oxlint in the host is out of scope for a trivial bugfix." }
-    ]
-  }
+ "iterate_latest": {
+  "run_id": "iterate-2026-05-27-transcript-renderer-scroll",
+  "date": "2026-05-29",
+  "unit": {
+   "status": "passed",
+   "passed": 1328,
+   "total": 1328,
+   "scope": "Full client vitest suite (122 files). New: stop-hook.test.ts (8), transcript-fingerprints.roundtrip.test.ts (5 boundary probe), session-parser.test.ts mode-change/pr-link/stop-hook blocks (+22), PrLinkCard.test.tsx (3), StopHookCard.test.tsx (4), TranscriptRow.test.tsx dispatch tests (+3), useAutoScroll.test.ts AC4 intent-detach block (+5; replaced the obsolete 250ms guard-window re-pin test)."
+  },
+  "integration": {
+   "status": "not_run",
+   "passed": 0,
+   "total": 0
+  },
+  "pgtap": {
+   "status": "skipped",
+   "passed": 0,
+   "total": 0
+  },
+  "e2e": {
+   "status": "passed",
+   "passed": 1,
+   "total": 1,
+   "scope": "Playwright spec 90 (90-transcript-renderer-fingerprints.spec.ts) against a live worktree stack (Hono :3947 + Vite :5273, SHIPWRIGHT_NETWORK_PROFILE=local): seeds mode/pr-link/stop-hook/plain-user JSONL, asserts PR card href+text, stop-hook collapsed->expand, plain user survives, mode pill hidden-by-default then visible after system toggle, zero bubble-unknown. Passed 1.5s."
+  },
+  "design_fidelity": {
+   "status": "skipped",
+   "passed": 0,
+   "total": 0,
+   "scope": "New cards reuse the established SkillCard/PermissionModePill CSS-var token set; no new design tokens."
+  },
+  "smoke": {
+   "status": "skipped",
+   "scope": "No server / API / dev-server change; client-only transcript renderer + scroll-hook change. Worktree stack booted only to drive the E2E."
+  },
+  "surface_verification": {
+   "surface": "web",
+   "tests_run": 1,
+   "exit_code": 0,
+   "justification": "Backend-affects-frontend rule: change is client-only transcript rendering, but surface=web was run anyway (medium always-cell). E2E spec 90 drove the real UI entry point against a live stack."
+  },
+  "degraded": []
+ }
 }
