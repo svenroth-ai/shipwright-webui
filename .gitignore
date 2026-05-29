@@ -29,6 +29,7 @@ shipwright_audit_report.json
 /.shipwright/adopt/screenshots/
 /.shipwright/agent_docs/decision-drops/
 /.shipwright/agent_docs/visual/
+/.shipwright/agent_docs/runtime/
 /.shipwright/agent_docs/triage-remaining-iterates-handoff.md
 /.shipwright/compliance/skill-compliance/
 
