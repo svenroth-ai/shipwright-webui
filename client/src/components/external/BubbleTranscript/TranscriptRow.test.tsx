@@ -117,6 +117,109 @@ describe("TranscriptRow", () => {
     expect(bubble!.querySelector("details")).not.toBeNull();
   });
 
+  it("renders a mode-change event as a mode pill (AC1)", () => {
+    const entry = parseFirst([
+      { type: "mode", sessionId: "s", mode: "normal" },
+    ]);
+    const { container } = render(
+      <TranscriptRow
+        entry={entry}
+        isLatest={false}
+        previous={null}
+        resolved={EMPTY_RESOLVED}
+        toolResultsById={EMPTY_MAP}
+        visibleToolUseIds={EMPTY_VIS}
+        allToolUses={EMPTY_TOOLS}
+      />,
+    );
+    const bubble = container.querySelector("[data-testid='bubble-mode-change']");
+    expect(bubble).not.toBeNull();
+    expect(bubble!.textContent).toContain("Mode:");
+    expect(bubble!.textContent).toContain("normal");
+    // Must NOT render as the legacy yellow unknown card.
+    expect(container.querySelector("[data-testid='bubble-unknown']")).toBeNull();
+  });
+
+  it("renders a pr-link event as a clickable anchor card (AC2)", () => {
+    const entry = parseFirst([
+      {
+        type: "pr-link",
+        sessionId: "s",
+        prNumber: 78,
+        prUrl: "https://github.com/svenroth-ai/shipwright-webui/pull/78",
+        prRepository: "svenroth-ai/shipwright-webui",
+      },
+    ]);
+    const { container } = render(
+      <TranscriptRow
+        entry={entry}
+        isLatest={false}
+        previous={null}
+        resolved={EMPTY_RESOLVED}
+        toolResultsById={EMPTY_MAP}
+        visibleToolUseIds={EMPTY_VIS}
+        allToolUses={EMPTY_TOOLS}
+      />,
+    );
+    const anchor = container.querySelector("a[data-testid='pr-link-anchor']");
+    expect(anchor).not.toBeNull();
+    expect(anchor!.getAttribute("href")).toMatch(/pull\/78$/);
+    expect(container.querySelector("[data-testid='bubble-unknown']")).toBeNull();
+  });
+
+  it("falls back to bubble-unknown when pr-link payload has a javascript: scheme (AC2 XSS guard)", () => {
+    const entry = parseFirst([
+      {
+        type: "pr-link",
+        sessionId: "s",
+        prNumber: 78,
+        prUrl: "javascript:alert(1)",
+        prRepository: "svenroth-ai/shipwright-webui",
+      },
+    ]);
+    const { container } = render(
+      <TranscriptRow
+        entry={entry}
+        isLatest={false}
+        previous={null}
+        resolved={EMPTY_RESOLVED}
+        toolResultsById={EMPTY_MAP}
+        visibleToolUseIds={EMPTY_VIS}
+        allToolUses={EMPTY_TOOLS}
+      />,
+    );
+    expect(container.querySelector("[data-testid='pr-link-card']")).toBeNull();
+    expect(container.querySelector("[data-testid='bubble-unknown']")).not.toBeNull();
+  });
+
+  it("renders a stop-hook user event as a collapsed card, not a user bubble (AC3)", () => {
+    const banner = [
+      "Stop hook feedback:",
+      "================================================================",
+      "  SHIPWRIGHT BLOAT GATE — Stop blocked",
+      "================================================================",
+      "",
+      "    NO COMPLETION WHILE FILES ARE GROWING UNCHECKED",
+    ].join("\n");
+    const entry = parseFirst([
+      { type: "user", sessionId: "s", message: { content: banner } },
+    ]);
+    const { container } = render(
+      <TranscriptRow
+        entry={entry}
+        isLatest={false}
+        previous={null}
+        resolved={EMPTY_RESOLVED}
+        toolResultsById={EMPTY_MAP}
+        visibleToolUseIds={EMPTY_VIS}
+        allToolUses={EMPTY_TOOLS}
+      />,
+    );
+    expect(container.querySelector("[data-testid='stop-hook-card']")).not.toBeNull();
+    // Must NOT render as a right-aligned user bubble.
+    expect(container.querySelector("[data-testid='bubble-user']")).toBeNull();
+  });
+
   it("renders a system event as a left muted pill", () => {
     const entry = parseFirst([
       { type: "system", subtype: "session_start", text: "Session opened" },

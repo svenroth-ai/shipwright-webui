@@ -1,39 +1,43 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-26-public-launch-hardening-webui"
+run_id: "iterate-2026-05-27-transcript-renderer-scroll"
 phase: "iterate"
-reason: "capture event id"
-timestamp: "2026-05-26T21:57:51.770614+00:00"
+reason: "Transcript renderer fingerprints + intent-based scroll detach"
+timestamp: "2026-05-28T22:31:30.924917+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-26 21:57:51 UTC
+> Auto-generated 2026-05-28 22:31:30 UTC
 
 ## Session Info
 
-- **Session ID**: 40b1eb76-d68e-4414-be55-0283044ac054
-- **Timestamp**: 2026-05-26 21:57:51 UTC
-- **Reason**: capture event id
+- **Session ID**: 6b60a16a-52e8-4c6f-9dd6-836b173cd41e
+- **Timestamp**: 2026-05-28 22:31:30 UTC
+- **Reason**: Transcript renderer fingerprints + intent-based scroll detach
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-25-fix-terminal-touch-scroll
-- **Date**: 2026-05-25T19:07:15.309074Z
+- **Run ID**: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
+- **Date**: 2026-05-27T19:57:54.654704Z
 - **Type**: bug
-- **Complexity**: small
-- **Branch**: iterate/fix-terminal-touch-scroll
-- **ADR**: iterate-2026-05-25-fix-terminal-touch-scroll
+- **Complexity**: trivial
+- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
+- **ADR**: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
 - **Tests passed**: True
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/public-launch-hardening
-- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T05:30:27)
+- **Branch**: iterate/transcript-renderer-scroll
+- **Run ID**: iterate-2026-05-27-transcript-renderer-scroll
+- **Spec**: .shipwright/planning/iterate/2026-05-27-transcript-renderer-scroll.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -47,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/public-launch-hardening
-- **Last Commit**: d626596 Merge pull request #71 from svenroth-ai/iterate/campaign-C-C2-external-routes-split
+- **Branch**: iterate/transcript-renderer-scroll
+- **Last Commit**: e25f3d8 Merge pull request #78 from svenroth-ai/iterate/fix-phase-pill-iterate-title-fallback
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-490d6b9f | work_completed | iterate (NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105)) | 2026-05-26 |
-| evt-348e51b8 | work_completed | iterate (Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed.) | 2026-05-26 |
-| evt-b1759173 | work_completed | iterate (Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components.) | 2026-05-26 |
-| evt-91e68d98 | work_completed | iterate (iterate finalization) | 2026-05-25 |
-| evt-956e1c71 | work_completed | iterate (Campaign C C8) | 2026-05-25 |
+| evt-126ed67f | work_completed | iterate (Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach) | 2026-05-28 |
+| evt-18779597 | work_completed | iterate (TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted.) | 2026-05-27 |
+| evt-ecf57fd9 | work_completed | iterate (ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green.) | 2026-05-27 |
+| evt-ceed7566 | work_completed | iterate (Fix prewarm race that armed the one-shot auto-launch guard on first WS attach) | 2026-05-26 |
+| evt-dd475015 | work_completed | iterate (iterate finalization) | 2026-05-26 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 155
-- **Last iterate**: change — NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) (2026-05-26)
+- **Total work events**: 162
+- **Last iterate**: bug — Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach (2026-05-28)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

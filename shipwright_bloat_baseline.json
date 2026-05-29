@@ -137,7 +137,7 @@
     {
       "path": "client/src/components/external/TaskCard.tsx",
       "limit": 300,
-      "current": 609,
+      "current": 606,
       "state": "grandfathered",
       "adr": null
     },
@@ -207,16 +207,23 @@
     {
       "path": "client/src/external/session-parser.test.ts",
       "limit": 300,
-      "current": 731,
+      "current": 885,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-05-27-transcript-renderer-scroll"
     },
     {
       "path": "client/src/external/session-parser.ts",
       "limit": 300,
-      "current": 716,
+      "current": 826,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-05-27-transcript-renderer-scroll"
+    },
+    {
+      "path": "client/src/hooks/useAutoScroll.test.ts",
+      "limit": 300,
+      "current": 363,
+      "state": "grandfathered",
+      "adr": "iterate-2026-05-27-transcript-renderer-scroll"
     },
     {
       "path": "client/src/hooks/useSSE.test.ts",
@@ -501,14 +508,14 @@
     {
       "path": "server/src/terminal/pty-manager.test.ts",
       "limit": 300,
-      "current": 487,
+      "current": 565,
       "state": "grandfathered",
       "adr": null
     },
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1198,
+      "current": 1219,
       "state": "exception",
       "adr": "ADR-101"
     },
@@ -522,9 +529,9 @@
     {
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
-      "current": 1013,
-      "state": "grandfathered",
-      "adr": null
+      "current": 620,
+      "state": "exception",
+      "adr": "ADR-103"
     },
     {
       "path": "server/src/terminal/scrollback-store.test.ts",
@@ -553,6 +560,13 @@
       "current": 513,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "server/src/terminal/ws-upgrade-handler.ts",
+      "limit": 300,
+      "current": 527,
+      "state": "exception",
+      "adr": "ADR-103"
     }
   ]
 }

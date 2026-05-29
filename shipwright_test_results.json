@@ -1,30 +1,45 @@
 {
-  "iterate_latest": {
-    "run_id": "iterate-2026-05-26-public-launch-hardening-webui",
-    "date": "2026-05-26",
-    "unit": {
-      "status": "skipped",
-      "reason": "docs-only iterate (PR template + README); no application code touched"
-    },
-    "integration": { "status": "skipped", "reason": "docs-only iterate" },
-    "pgtap": { "status": "skipped", "reason": "no DB layer" },
-    "e2e": { "status": "skipped", "reason": "no UI behavior change" },
-    "design_fidelity": { "status": "skipped", "reason": "no UI changes" },
-    "smoke": { "status": "skipped", "reason": "no app behavior change" },
-    "surface_verification": {
-      "surface": "none",
-      "justification": "Docs-only iterate (.github/PULL_REQUEST_TEMPLATE.md NEW + README.md Acknowledgments block); no startable user-facing surface to drive. F0.5 is Advisory at small complexity without touches_io_boundary or UI; recorded for compliance.",
-      "exit_code": 0,
-      "tests_run": 0,
-      "timestamp": "2026-05-26T22:55:00.000Z"
-    },
-    "anti_ratchet": {
-      "status": "passed",
-      "scope": "scripts/hooks/anti_ratchet_check.py --worktree",
-      "result": "exit 0; no new crossings, no ratchets",
-      "readme_loc": 197,
-      "pr_template_loc": 159
-    },
-    "degraded": []
-  }
+ "iterate_latest": {
+  "run_id": "iterate-2026-05-27-transcript-renderer-scroll",
+  "date": "2026-05-29",
+  "unit": {
+   "status": "passed",
+   "passed": 1328,
+   "total": 1328,
+   "scope": "Full client vitest suite (122 files). New: stop-hook.test.ts (8), transcript-fingerprints.roundtrip.test.ts (5 boundary probe), session-parser.test.ts mode-change/pr-link/stop-hook blocks (+22), PrLinkCard.test.tsx (3), StopHookCard.test.tsx (4), TranscriptRow.test.tsx dispatch tests (+3), useAutoScroll.test.ts AC4 intent-detach block (+5; replaced the obsolete 250ms guard-window re-pin test)."
+  },
+  "integration": {
+   "status": "not_run",
+   "passed": 0,
+   "total": 0
+  },
+  "pgtap": {
+   "status": "skipped",
+   "passed": 0,
+   "total": 0
+  },
+  "e2e": {
+   "status": "passed",
+   "passed": 1,
+   "total": 1,
+   "scope": "Playwright spec 90 (90-transcript-renderer-fingerprints.spec.ts) against a live worktree stack (Hono :3947 + Vite :5273, SHIPWRIGHT_NETWORK_PROFILE=local): seeds mode/pr-link/stop-hook/plain-user JSONL, asserts PR card href+text, stop-hook collapsed->expand, plain user survives, mode pill hidden-by-default then visible after system toggle, zero bubble-unknown. Passed 1.5s."
+  },
+  "design_fidelity": {
+   "status": "skipped",
+   "passed": 0,
+   "total": 0,
+   "scope": "New cards reuse the established SkillCard/PermissionModePill CSS-var token set; no new design tokens."
+  },
+  "smoke": {
+   "status": "skipped",
+   "scope": "No server / API / dev-server change; client-only transcript renderer + scroll-hook change. Worktree stack booted only to drive the E2E."
+  },
+  "surface_verification": {
+   "surface": "web",
+   "tests_run": 1,
+   "exit_code": 0,
+   "justification": "Backend-affects-frontend rule: change is client-only transcript rendering, but surface=web was run anyway (medium always-cell). E2E spec 90 drove the real UI entry point against a live stack."
+  },
+  "degraded": []
+ }
 }

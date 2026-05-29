@@ -1,11 +1,18 @@
 # Project Activity Dashboard
-> Updated: 2026-05-26 21:57 UTC | Session: 40b1eb76-d68e-4414-be55-0283044ac054 | Run: iterate-2026-05-26-public-launch-hardening-webui
+> Updated: 2026-05-28 22:31 UTC | Session: 6b60a16a-52e8-4c6f-9dd6-836b173cd41e | Run: iterate-2026-05-27-transcript-renderer-scroll
 
-## Recent Changes (85 iterations)
+## Recent Changes (92 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | 0/0 |  | docs | 2026-05-26 |
+| bug | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | 0/0 |  | FR-01.02 | 2026-05-28 |
+| bug | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | 0/0 | ce60cf7 | bug | 2026-05-27 |
+| change | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | 0/0 | a662027 | refactor | 2026-05-27 |
+| bug | Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | 1274/1274 | ff6a6d2 | infra | 2026-05-26 |
+| change | iterate finalization | 0/0 |  |  | 2026-05-26 |
+| change | Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI) | 1279/1279 | f56b6bb | tooling | 2026-05-26 |
+| change | C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence) | 20/20 | 63c46b2 | tooling | 2026-05-26 |
+| change | NEW .github/PULL_REQUEST_TEMPLATE.md (Superpowers anti-slop framing) + README Acknowledgments block (companion to shipwright PR #105) | 0/0 | 935cc39 | docs | 2026-05-26 |
 | change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 | f98fbf6 | tooling | 2026-05-26 |
 | change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 | 2cd7aa3 | tooling | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-25 |
@@ -92,7 +99,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-26 | Smoke: skipped | (iterate)
+Last run: 2026-05-27 | Unit: 1284/1284 | Smoke: skipped | (iterate)
 
 ## Pipeline
 

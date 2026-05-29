@@ -21,7 +21,7 @@ import { useTaskTranscript } from "../../hooks/useTaskTranscript";
 import { useProjects } from "../../hooks/useProjects";
 import { useDeleteExternalTask } from "../../hooks/useExternalTasks";
 import { formatRelativeTime } from "../../lib/formatTime";
-import { getPhaseStyle, derivePhaseFromTitle } from "../../lib/phaseStyle";
+import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
 import { hasLaunchedBefore } from "../../lib/taskLifecycle";
 import { type EditableTaskTitleHandle } from "./EditableTaskTitle";
 import { ProjectChipMenu } from "./ProjectChipMenu";
@@ -81,18 +81,15 @@ export function TaskDetailHeader({ task }: Props) {
     return task.projectId;
   }, [projectsQ.data, task.projectId]);
 
-  // Phase source priority: persisted phase preferred, title-regex fallback.
+  // Phase resolution shared with TaskCard via resolveTaskPhase — handles
+  // new-plain (no badge), persisted phase, new-iterate (always "Iterate"),
+  // and the legacy title-keyword fallback in one place.
   const phase = useMemo(() => {
-    if (task.actionId === "new-plain") return null;
-    if (task.phaseLabel && task.phase) {
-      const style = getPhaseStyle(task.phase);
-      return { label: task.phaseLabel, cls: style.cls, dot: style.dot };
-    }
-    const guess = derivePhaseFromTitle(task.title);
-    if (!guess) return null;
-    const style = getPhaseStyle(guess.id);
-    return { label: guess.label, cls: style.cls, dot: style.dot };
-  }, [task.actionId, task.phase, task.phaseLabel, task.title]);
+    const resolved = resolveTaskPhase(task);
+    if (!resolved) return null;
+    const style = getPhaseStyle(resolved.id);
+    return { label: resolved.label, cls: style.cls, dot: style.dot };
+  }, [task]);
 
   const startedAt = task.launchedAt ?? task.firstJsonlObservedAt ?? task.createdAt;
   const lastEventAt = task.lastJsonlSeenMtimeMs

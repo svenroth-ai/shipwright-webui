@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getPhaseStyle, derivePhaseFromTitle } from "./phaseStyle";
+import { getPhaseStyle, derivePhaseFromTitle, resolveTaskPhase } from "./phaseStyle";
 
 describe("getPhaseStyle", () => {
   it("returns the right palette for each canonical phase id", () => {
@@ -84,5 +84,81 @@ describe("derivePhaseFromTitle (v0.3.1 — shared TaskCard / TaskDetailHeader fa
   it("adopt takes precedence over other keywords (highest priority)", () => {
     expect(derivePhaseFromTitle("Adopt and plan auth")?.id).toBe("adopt");
     expect(derivePhaseFromTitle("Build adopt fixture")?.id).toBe("adopt");
+  });
+});
+
+describe("resolveTaskPhase (2026-05-27 — actionId-aware phase resolution)", () => {
+  it("returns null for new-plain regardless of title", () => {
+    expect(
+      resolveTaskPhase({ actionId: "new-plain", title: "Build login flow" }),
+    ).toBeNull();
+  });
+
+  it("prefers persisted phase + phaseLabel pair", () => {
+    expect(
+      resolveTaskPhase({
+        actionId: "new-task",
+        phase: "compliance",
+        phaseLabel: "Compliance",
+        title: "audit drift",
+      }),
+    ).toEqual({ id: "compliance", label: "Compliance" });
+  });
+
+  // Regression: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback.
+  // Pre-fix, a new-iterate task with no persisted phase and title starting
+  // with "Fix …" matched the build regex → showed a Build pill. new-iterate
+  // tasks must always resolve to the iterate phase when no phase is
+  // persisted, since the action and the phase share an axis and iterate
+  // titles are free-form bug/feature descriptions.
+  it("resolves new-iterate without persisted phase to iterate (never title-derived)", () => {
+    expect(
+      resolveTaskPhase({
+        actionId: "new-iterate",
+        title: "Fix for SBOM: 2 undeclared license(s) in plugins/...",
+      }),
+    ).toEqual({ id: "iterate", label: "Iterate" });
+    expect(
+      resolveTaskPhase({
+        actionId: "new-iterate",
+        title: "Implement new dashboard layout",
+      }),
+    ).toEqual({ id: "iterate", label: "Iterate" });
+    expect(
+      resolveTaskPhase({ actionId: "new-iterate", title: "Plan the rewrite" }),
+    ).toEqual({ id: "iterate", label: "Iterate" });
+  });
+
+  it("server-persisted phase still wins for new-iterate tasks", () => {
+    // If the iterate skill ever decides to persist a different phase
+    // (currently it doesn't, but the contract should hold), respect it.
+    expect(
+      resolveTaskPhase({
+        actionId: "new-iterate",
+        phase: "build",
+        phaseLabel: "Build",
+        title: "anything",
+      }),
+    ).toEqual({ id: "build", label: "Build" });
+  });
+
+  it("falls back to title-keyword derivation for non-iterate, non-plain actions", () => {
+    expect(
+      resolveTaskPhase({ actionId: "new-task", title: "Plan the rewrite" }),
+    ).toEqual({ id: "plan", label: "Plan" });
+    expect(
+      resolveTaskPhase({ actionId: "new-task", title: "Random title" }),
+    ).toBeNull();
+  });
+
+  it("requires both phase + phaseLabel for the persisted path (matches TaskDetailHeader semantics)", () => {
+    // Only phase, no label → falls through to actionId/title logic.
+    expect(
+      resolveTaskPhase({
+        actionId: "new-iterate",
+        phase: "build",
+        title: "anything",
+      }),
+    ).toEqual({ id: "iterate", label: "Iterate" });
   });
 });

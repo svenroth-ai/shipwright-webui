@@ -154,3 +154,34 @@ describe("ResumeCTA — click triggers resume flow", () => {
     });
   });
 });
+
+describe("ResumeCTA — unmount teardown-leak regression", () => {
+  // Same defect class as LaunchCTA: the "Resuming…" flash schedules a
+  // 1800 ms reset timer with no unmount cleanup, so a timer firing after
+  // jsdom teardown throws `ReferenceError: window is not defined`.
+  it("clears the pending copy-reset timer on unmount", async () => {
+    const setSpy = vi.spyOn(globalThis, "setTimeout");
+    const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+    const fetchInner = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes("/launch")) {
+        return new Response(
+          JSON.stringify({
+            task: makeTask(),
+            commands: { powershell: "x", cmd: "x", posix: "x" },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+    const { unmount } = renderCTA(makeTask(), () => {}, fetchInner);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cta-copy-resume-command"));
+    });
+    const idx = setSpy.mock.calls.findIndex((c) => c[1] === 1800);
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const timerId = setSpy.mock.results[idx]!.value;
+    unmount();
+    expect(clearSpy.mock.calls.some((c) => c[0] === timerId)).toBe(true);
+  });
+});
