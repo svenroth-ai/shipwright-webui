@@ -294,6 +294,24 @@ focused on the project folder. The launch command auto-runs there —
 you'll see the shell prompt, then `cd "<your project path>" && claude
 ...`, then Claude's first output.
 
+The terminal **auto-focuses** when you switch to the Terminal tab — no
+extra click into the canvas before you start typing. On touchscreens, a
+**one-finger drag** scrolls the buffer (xterm.js 6.x's virtualized
+scrollbar listens to wheel events only, so this is a Command-Center
+add-on); pinch / two-finger gestures are left to the browser.
+
+**Selecting and copying text.** Drag with the mouse to select; the
+selection is auto-copied to the OS clipboard on mouseup. Right-click
+selects the word under the cursor; double-click selects a word,
+triple-click selects a line. `Ctrl+C` (with a selection) and
+`Ctrl+Insert` copy explicitly; `Ctrl+V` and `Shift+Insert` paste. When
+the running program switches the terminal into mouse-tracking mode
+(Claude's TUI does this whenever its picker is open), a small
+`Maus-Modus aktiv — Shift+Drag zum Markieren` badge appears in the
+top-right of the pane — that's your cue to hold **Shift while dragging**
+to bypass mouse-tracking and get a normal selection back. Dismiss the
+badge with the `✕` once you've seen it.
+
 > **Prefer your own terminal?** The same command is available from the
 > task detail page — copy it into Warp, the VS Code integrated terminal,
 > Windows Terminal, or anywhere else and run it manually. The Command
@@ -385,17 +403,34 @@ the red Inbox badge — counting open findings across every registered
 project. Open the tab and they're grouped by which hook produced them,
 severity-sorted within each group.
 
-Click a finding for a detail view with three actions:
+Click a finding for a detail view. Hooks that produce a
+**launchPayload** (the briefing the agent should start from) render it
+as a copy-able code block at the top of the modal. Below the detail
+sit four actions:
 
+- **Fix now** — opens the New-Issue modal with the triage finding
+  pre-populated (title, description, priority, domain), so launching
+  the task is one extra click. `github-source` items route to a
+  **new-task** with `phase=security` (the security skill takes over);
+  every other source routes to **new-iterate** (the standard mini-SDLC
+  for a small change). Use this when you've decided to act on the
+  finding *now*.
 - **Promote** — turns the finding into a real task in the Kanban
   Backlog, tagged with its source and severity and back-linked to the
-  triage item. Use this once you've decided to act on it. Promote is
-  safe to retry — a half-finished promote reuses the same task instead
-  of creating a duplicate.
+  triage item. Use this when you want to schedule the finding for later
+  instead of launching immediately. Promote is safe to retry — a
+  half-finished promote reuses the same task instead of creating a
+  duplicate.
 - **Dismiss** — drops the finding. If the underlying issue is still
   there next time the hook runs, it re-appears as a fresh triage item.
 - **Snooze** — hides the finding for now. Same re-surfacing behaviour as
   Dismiss; there's no timed wake-up, snooze just means "not now".
+
+> A `github-source` item with no `launchPayload` shows the loud
+> placeholder `[no launch payload — producer bug; please report]`
+> instead of a silent fallback. That's a hook bug worth reporting;
+> **Fix now** still works (the modal just opens without a pre-filled
+> brief).
 
 A project with no `.shipwright/triage.jsonl` simply contributes nothing
 to the tab — nothing to set up, and nothing breaks if the file never
@@ -1033,3 +1068,31 @@ No. The Command Center is built to handle multiple tabs. If two tabs
 race on a write (e.g. both rename the same task), one wins and the
 other gets a 409 — refresh the losing tab and try again. Reads are
 always safe.
+
+### I can't select text in the embedded terminal while Claude is running
+
+Claude's TUI puts the terminal into mouse-tracking mode whenever its
+picker or prompt UI is open — every drag gets consumed by the picker
+instead of producing a selection. When that's active you'll see a small
+`Maus-Modus aktiv — Shift+Drag zum Markieren` badge in the top-right of
+the pane. Hold **Shift while dragging** to bypass mouse-tracking and
+get a normal text selection back; the selection still auto-copies to
+the clipboard on mouseup.
+
+### The terminal pane shows a "terminal was reset" banner
+
+The Command Center noticed that the previous Claude session in this
+task's terminal was lost — usually because the backend restarted, the
+machine slept, or something else killed the underlying shell. A fresh
+shell is now ready in the pane; click **Resume** to reconnect to your
+Claude session instead of typing into an empty prompt. Dismiss the
+banner with the `✕` once you're back on track.
+
+### Hard-reload of /triage / /inbox / /tasks/... returns JSON 404
+
+Older releases of the production server only served the SPA shell on
+`/` and treated every other path as an unknown API route. Pull the
+latest code, rerun `make install`, and restart the server — non-`/api`
+GETs now return `client/dist/index.html` so hard-reload and bookmarked
+deep links work everywhere in the UI. The `/api/*` 404 contract is
+unchanged.

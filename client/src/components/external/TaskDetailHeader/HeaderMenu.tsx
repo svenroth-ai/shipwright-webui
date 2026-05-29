@@ -20,7 +20,7 @@
  * of the confirm-clear-history dialog opening are preserved verbatim
  * (Iterate v0.8.2 AC-1 fix). Focus-trap interactions stay identical.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MoreVertical } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useNavigate } from "react-router-dom";
@@ -74,6 +74,14 @@ export function HeaderMenu({
     setMenuNotice({ kind, text });
     if (menuNoticeTimer.current) clearTimeout(menuNoticeTimer.current);
     menuNoticeTimer.current = setTimeout(() => setMenuNotice(null), 2600);
+  }, []);
+
+  // Clear the pending notice-reset timer on unmount so it can't fire a
+  // setState after the component (and, in tests, the jsdom window) is gone.
+  useEffect(() => {
+    return () => {
+      if (menuNoticeTimer.current) clearTimeout(menuNoticeTimer.current);
+    };
   }, []);
 
   const handleClose = useCallback(() => {
