@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-26-public-launch-hardening-webui",
+  "date": "2026-05-26T21:58:08.644382Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/public-launch-hardening",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-05-26-public-launch-hardening-webui"
+}

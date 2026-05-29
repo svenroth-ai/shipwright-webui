@@ -162,6 +162,35 @@ The WebUI writes only:
 Both artefacts carry a `contractVersion` / `schemaVersion` integer.
 Readers warn once on drift and keep going — never fails a read.
 
+## Acknowledgments
+
+The Shipwright Command Center adopts patterns from these open-source
+projects:
+
+- **[obra/superpowers](https://github.com/obra/superpowers)** (MIT,
+  © Jesse Vincent) — Iron-Law verification language and the anti-slop
+  PR-template framing (`.github/PULL_REQUEST_TEMPLATE.md`).
+- **[multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)**
+  (MIT, © 2025 multica-ai) — the four Karpathy principles, cited
+  verbatim in the sibling shipwright repo's `shared/constitution.md`
+  and applied to webui changes via the PR template's Anti-Slop
+  Self-Check section.
+- **[multica-ai/multica](https://github.com/multica-ai/multica)**
+  (Apache-2.0 *modified*, hosting-restricted) — architectural patterns
+  only, inspiring the Command Center roadmap: WebSocket transcript
+  streaming (replaces 1 s JSONL polling), multi-workspace isolation,
+  runtime registry (Claude Code · Codex CLI · Copilot CLI · Gemini CLI
+  as pluggable adapters), and the "parse don't cast" rule for
+  cross-plugin `shipwright_*_config.json` reads. **No code or text is
+  copied** — patterns only, deliberately, so this repo stays cleanly
+  MIT.
+
+The companion shipwright monorepo carries its own Acknowledgments block
+covering the same sources plus
+[addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)
+(MIT, © Addy Osmani; five-axis review framework — used in the sibling
+repo's reviewer prompts, not directly in this webui).
+
 ## License
 
 MIT. See [LICENSE](LICENSE) (copied from shipwright monorepo at split
