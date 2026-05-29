@@ -36,12 +36,15 @@ import { AnsiText } from "./AnsiText";
 import { SkillCard } from "../SkillCard";
 import { SlashCommandChip } from "../SlashCommandChip";
 import { TaskNotificationChip } from "../TaskNotificationChip";
+import { PrLinkCard } from "./PrLinkCard";
+import { StopHookCard } from "./StopHookCard";
 import { ToolOutputBlock } from "./ToolOutputBlock";
 import {
   AgentNamePill,
   BubbleHeader,
   CustomTitlePill,
   FallbackChip,
+  ModeChangePill,
   PermissionModePill,
   SystemPill,
   UnknownDetails,
@@ -230,6 +233,7 @@ function renderBubble(
     );
   }
   if (event.kind === "skill-body") return <SkillCard skillName={event.skillName} body={event.body} />;
+  if (event.kind === "stop-hook") return <StopHookCard gateName={event.gateName} body={event.body} />;
   if (event.kind === "file-history-snapshot") {
     const names = fileSnapshotBasenames(event);
     if (names.length === 0) return null;
@@ -251,6 +255,8 @@ function renderBubble(
   if (event.kind === "custom-title") return <CustomTitlePill event={event} />;
   if (event.kind === "agent-name") return <AgentNamePill event={event} />;
   if (event.kind === "permission-mode") return <PermissionModePill event={event} />;
+  if (event.kind === "mode-change") return <ModeChangePill event={event} />;
+  if (event.kind === "pr-link") return <PrLinkCard event={event} />;
   if (event.kind === "unknown") return <UnknownDetails event={event} />;
   return <FallbackChip event={event} />;
 }

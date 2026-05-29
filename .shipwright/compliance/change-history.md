@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-05-27T19:57:27.211029+00:00
-Total commits: 443
+Generated: 2026-05-28T22:31:30.924917+00:00
+Total commits: 446
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 170
+    "fix" : 171
     "feat" : 119
-    "chore" : 77
+    "chore" : 79
     "docs" : 37
     "refactor" : 22
     "test" : 13
@@ -19,10 +19,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 170 commits
+### Fixes (fix) — 171 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-27 | webui | phase pill no longer derives Build from "Fix"-titled iterates | ce60cf78e94e |
 | 2026-05-27 | terminal | trim routes.ts comment 1 LOC to land at exact baseline | 9bf3426a3d6e |
 | 2026-05-27 | terminal | refine ready.ptyReused to hadPriorWriter (atomic snapshot) | ff6a6d254722 |
 | 2026-05-26 | adr | renumber ADR-124 → ADR-126 + remove stray conflict marker | bb8ff0864d0f |
@@ -318,10 +319,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 77 commits
+### Chores (chore) — 79 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-27 | bloat | ratchet TaskCard.tsx baseline.current down 609 -> 606 | db822c9147a9 |
+| 2026-05-27 | iterate | set adr field to run_id for F11 verifier | 07b5ec17c987 |
 | 2026-05-27 | triage | add trg-c00254ab follow-up for ADR-103 retirement remainder | 1dfb8b595f09 |
 | 2026-05-27 | — | dismiss trg-880260fc + backfill event log + dashboard regen | 87a9cc198bc7 |
 | 2026-05-26 | events | record evt-490d6b9f for iterate-2026-05-26-public-launch-hardening-webui | f88a4e8c7f00 |
@@ -506,7 +509,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 443 |
+| Total commits | 446 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 443 |
+| Human-authored commits | 446 |
 
