@@ -9,7 +9,7 @@
 
 ## Project-specific rules
 
-TypeScript runs in strict mode across both halves; `npm run build` (which runs `tsc`) exits 0 on both halves. The historical "4 baseline errors tracked" carve-out from ADR-035 was retired by ADR-080 — server now ships verbatim mirrors of `Task`, `GlobalSettings`, `Project` under `server/src/types/`; cross-package imports back into `client/src/types/` are rejected by the comment-aware drift-guard at `server/src/test/no-cross-package-imports.test.ts`. Hono routes live in `server/src/routes/` (one file per resource); the external-launch surface lives at `server/src/external/routes.ts`. React components in `client/src/components/` are grouped by UI area (`external/`, `sidebar/`, `wizard/`, `common/`). Files stay under 300 lines — anything larger gets split.
+TypeScript runs in strict mode across both halves; `npm run build` (which runs `tsc`) exits 0 on both halves. The historical "4 baseline errors tracked" carve-out from ADR-035 was retired by ADR-080 — server now ships verbatim mirrors of `Task`, `GlobalSettings`, `Project` under `server/src/types/`; cross-package imports back into `client/src/types/` are rejected by the comment-aware drift-guard at `server/src/test/no-cross-package-imports.test.ts`. Hono routes live in `server/src/routes/` (one file per resource); the external-launch surface is registered from `server/src/external/routes.ts` and split into 9 sub-routers under `server/src/external/{tasks,launch,transcript,inbox,actions,preview,tree,file,run-config}/` (Campaign C / C2, 2026-05-26). React components in `client/src/components/` are grouped by UI area (`external/`, `terminal/`, `triage/`, `settings/`, `sidebar/`, `wizard/`, `common/`); large area-roots have been split into per-area subfolders (`external/BubbleTranscript/`, `external/NewIssueModal/`, `external/TaskDetailHeader/`, `external/SmartViewer/`). Files stay under 300 lines — anything larger gets split, with the bloat-baseline + pre-commit hook (see [Pre-commit hooks](../../CLAUDE.md#pre-commit-hooks)) as the enforcement floor; documented deep-module exceptions (ADR-101 `pty-manager.ts`, ADR-103 `terminal/routes.ts`) ride on explicit ADRs.
 
 Data fetching uses TanStack React Query with sequential 1 s polling for transcript updates (no SSE, no chokidar). Styling is TailwindCSS 4; accessible primitives come from Radix UI. Markdown rendering is bespoke via `react-markdown` + `remark-gfm` + `rehype-highlight` + `strip-ansi` — `@assistant-ui/*` packages are explicitly forbidden (DO-NOT guard #4 in CLAUDE.md). Auto-scroll is CSS-first: `overflow-anchor: auto` + `scroll-padding` on the scroll container, with a small ref-based `useAutoScroll` as the safety net for Chrome+polling.
 
@@ -31,9 +31,9 @@ Three categories of regression guards are spelled out in CLAUDE.md and must be r
 
 > The two sections below are imported verbatim from the preserved `CLAUDE.md` (Architecture rules + DO-NOT regression guards). They are load-bearing — `/shipwright-iterate` MUST preserve them or surface ADR-level justification before deviating.
 
-## Architecture rules (post-Plan-D'' + Iterate 2)
+## Architecture rules (post-Plan-D'' variant a + Iterate 2; embedded-terminal auto-execute via ADR-068-A1)
 
-1. **Webui never spawns Claude.** Launchers produce command strings; the user pastes them. Regression guard: Playwright spec `35-no-chat-panel.spec.ts`.
+1. **Webui never spawns Claude.** `core/launcher.ts` produces command strings; the embedded-terminal pane auto-executes them via a client-side WS data-frame after an explicit Launch / Resume / Relaunch click (ADR-068-A1), or the user copies and runs them in their own terminal. The pty-manager shell-only whitelist (ADR-067) is the architectural enforcement line. Regression guard: Playwright spec `35-no-chat-panel.spec.ts`.
 2. **Task state is derived from `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` + the persistent store.** Session UUID is pre-bound at task creation via `crypto.randomUUID()`.
 3. **Discovery is filename-first.** `<uuid>.jsonl` is the primary match (PoC finding 1); first-line sessionId is a secondary sanity check.
 4. **Transcript endpoint is stateless.** `GET /api/external/tasks/:id/transcript?fromByte=<n>&expectFingerprint=<fp>` — multi-tab support comes for free.
@@ -73,6 +73,18 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 15. (iterate/multi-session-run-orchestrator-v2) **Schema v3 is additive + write-on-touch.** `sdk-sessions.json` gains optional `phaseTaskId` / `runId` / `parentRunMaster` fields. Loader accepts v1 + v2 + v3; persist always writes v3. Same forward-compat window as ADR-038. DO NOT batch-rewrite on boot.
 16. (iterate/multi-session-run-orchestrator-v2) **Stale `in_progress` detection uses run-config timestamps only.** `phase_task.startedAt` / `claimAttemptedAt` against `config.updated_at` — never JSONL mtime. WebUI must not depend on observing JSONL files for tasks it doesn't own a shadow of.
 17. (Iterate 4 — ADR-067) **pty-manager spawn target MUST be a whitelisted shell binary** (`pwsh / powershell.exe / cmd.exe / bash / zsh / sh / fish`); never `claude`. Plan-D'' compliance lives in the whitelist + the WS-upgrade Origin gate (loopback-only, mirrors existing CORS). `paste-image` + `append-gitignore` MUST flow through `realPathGuard` on the resolved target. 8 MiB image cap + 9 MiB Content-Length precheck + magic-byte mime sniff are non-negotiable. Pty.write of image-paste paths goes through `quotePathForShell(absPath, shellKind)`. WS upgrade is the AUTHORITATIVE pty creation path; `POST /spawn` is an idempotent prewarm. ADR-034 wording is amended: "Webui spawns no Claude process directly. Webui MAY host a neutral shell pane; Claude execution within that pane stays user-initiated (Strg+V + Enter)."
+
+18. (ADR-068-A1) **Scrollback path-guard is `realpath` AT EVERY OPERATION** (not just boot-time). UUID `/^[0-9a-fA-F-]{36}$/` validated on every public `ScrollbackStore` method. File-naming: `<taskId>.log` (NOT sessionUuid — multi-launch + resume + fork share one task). Rotate/read/clear/closeStream go through per-task `PQueue`; append uses WriteStream's own serialization. Rotation 4-state FSM (NORMAL → ROTATING → ROTATION_FLUSH → NORMAL); overflow during rotation throws (cap 4 MiB). Replay-on-attach uses `pty.pause/resume` — NEVER drop chunks (ANSI/UTF-8 corruption). POST `/close` keeps scrollback; `/clear-scrollback` is the destructive path.
+
+19. (ADR-068-A1) **Auto-execute is via CLIENT-SIDE WS data-frame, NOT server-side `pty.write`.** `LaunchCoordinatorContext.dispatchAutoLaunch(commands, resume)` queues a `pendingLaunch` token; `EmbeddedTerminal` consumes it via `consumedTokens` dedup and sends `socket.send({type:"data", …})` once `role === "writer"` AND prompt-readiness handshake clears (250 ms quiesce, 3 s cap). Launch command built EXCLUSIVELY by `core/launcher.ts buildCopyCommands()`; `.webui/actions.json` is NOT consumed in the auto-launch path. Pending-launch is cancelled on role-loss, unmount, or 30 s timeout. The explicit Launch/Resume/Relaunch CTA click satisfies the Plan-D″ "user-initiated" clause; pty-manager whitelist remains the architectural enforcement line.
+
+20. (ADR-087, amended by ADR-097) **Cell-state snapshots are the SOLE replay primitive.** Server emits exactly ONE `replay_snapshot` envelope per WS attach (or zero when no snapshot exists). Legacy chunked envelopes (`replay_start/chunk/separator/end`) are RETIRED in `terminal/routes.ts` + `useTerminalSocket.ts`; client silently drops stale-server chunked frames. ADR-069/077/079/086 superseded. Failure mode (no snapshot / version mismatch / `@xterm/headless` import fails): blank terminal with live shell. DO NOT re-introduce any compensation, fallback chunked path, or dual-accept loader without fresh M2 fixed-point re-verify. DELETE `/tasks/:id` cascade-clears scrollback + snapshot (privacy boundary, MEDIUM-B1). Boot-time one-shot wipe of legacy `*.log*` gated by `.iterate-c-wiped.marker`. **Full detail:** [`../planning/adr/087-cell-state-snapshot-iterate-c.md`](../planning/adr/087-cell-state-snapshot-iterate-c.md) + [`../planning/adr/088-headless-mirror-iterate-a.md`](../planning/adr/088-headless-mirror-iterate-a.md).
+
+21. (ADR-092) **WS replay precedence is LIVE-mirror FIRST, disk-snapshot FALLBACK.** `terminal/routes.ts` calls `serializeMirrorIfLive(taskId)` first; only on null falls back to `tryReadSnapshot(taskId)`. Disk-first inversion REJECTED (disk holds stale state if last-detach flushed and shell kept producing). **Snapshot-on-detach uses `detachAndCount(taskId, conn)` atomically** — when `remainingAttachCount === 0`, `void ptyManager.flushMirrorSnapshot(taskId)` fires (fire-and-forget). DO NOT split the count check across detach (race-vulnerable to concurrent attach). DO NOT call `mirror.dispose()` from `flushMirrorSnapshot` — pty must stay alive for subsequent `pty.onData`. Regression-guard: `v0-9-6-live-pty-replay.spec.ts` hard-asserts outcome A.
+
+22. (ADR-097 + ADR-098) **xterm.js + paired addons are exact-pinned to 6.0.0** — `@xterm/xterm` / `@xterm/addon-fit` 0.11.0 / `@xterm/addon-web-links` 0.12.0 / `@xterm/addon-webgl` 0.19.0 (client) and `@xterm/headless` 6.0.0 / `@xterm/addon-serialize` 0.14.0 (server). NO caret ranges (client/server skew breaks the version-gate). **Snapshot envelope is v2**; loader rejects v1 with `SnapshotStoreError("unknown_version", …)` and falls back to "no replay" (blank terminal + live shell, per ADR-087). DO NOT re-introduce v1 acceptance without a fresh M2 fixed-point re-verify. **`CLAUDE_CODE_NO_FLICKER` default is ON** (opt-out only via literal `SHIPWRIGHT_TERMINAL_NO_FLICKER=0`); DO NOT revert to default-OFF without empirical proof that Claude Code emits DECSET 2026 in the main buffer (Issue #37283 still open). DO NOT add `windowsMode` to the `EmbeddedTerminal` Terminal options (removed in 6.x). Iterate H's 60 % preservation heuristic in `finalizeMirrorSnapshot` is RETAINED as defense-in-depth.
+
+23. (ADR-103) **Bloat-baseline exceptions ride on explicit ADRs.** `server/src/terminal/routes.ts` (ADR-103) and `server/src/terminal/pty-manager.ts` (ADR-101) are documented deep-module exceptions to the 300-LOC project guideline. Adding any new exception requires its own ADR with an Ousterhout / Chesterton-fence rationale and a Re-Review-Date. The pre-commit hook (`scripts/hooks/anti_ratchet_check.py`) only blocks RATCHETING an existing baseline entry; new crossings are advisory and caught by the Group H detective audit upstream.
 
 ## Learnings
 
@@ -148,40 +160,55 @@ Iterate 3 introduces a Preview dev-server spawn path (not Claude — see ADR-044
 
 ## Convention Updates
 
-- **ADR-065** (2026-05-01): Filter null-rendering events out of virtualized transcript list
-- **ADR-066** (2026-05-02): Persistent virtualizer measurement cache + first-visit warmup pass
-- **ADR-067** (2026-05-03): Embedded terminal launcher (xterm.js + node-pty + WebSocket) — replaces external-terminal-only launches; image-paste flow eliminates the Claude-CLI clipboard-image gap; ADR-034 wording amended to allow a neutral shell pane while keeping Claude-execution user-initiated.
+_Convention-relevant ADRs since adoption (ADR-053), de-duplicated and in chronological order. See `decision_log.md` for the full ADR catalogue including architecture-only and bug-only entries; see `architecture.md` "Architecture Updates" for the architecture-impact view._
 
-- **ADR-069** (2026-05-05): ADR-069: Post-v0.8 stabilization — terminal scrollback ANSI sanitizer + writer-stuck watchdog with per-conn refcount
-
-- **ADR-077** (2026-05-08): v0.8.7 — scrollback hygiene (shell-stopped marker on intentional kill + replay-time PowerShell-banner-burst collapse + footer disclosure when ≥2 stopped sessions) + new-plain `active → idle` transition when pty is gone (Resume CTA returns).
-
-- **ADR-080** (2026-05-09): Type-system isolation between server/client workspaces. Retired ADR-035's "4 baseline TSC errors" carve-out — server now mirrors `Task` / `GlobalSettings` / `Project` under `server/src/types/` with comment-aware drift-guard regex.
-
-- **ADR-099** (2026-05-14, Iterate K): xterm.js 6.0 WebGL atlas-corruption workaround (`xtermjs/xterm.js#5847`) — buffer-type-aware `safeAtlasMaintenance()` pass with 7 triggers (periodic / onScroll / burst-after-quiet / post-mount-settle / DOM-wheel / post-launch-settle / post-replay-snapshot) + server-side `?1006h` SGR re-emit. Probe-only `?atlasMaintenance=off` kill switch. v1–v9 PR #14, v10 PR #16.
-
-- **Iterate M** (2026-05-15): Resume CTA active-state followup — compound `isPtyForegroundActive` gate replaces the ADR-098-falsified `altScreenActive`-only gate. New server-augmented `ExternalTask.lastPtyDataAt`. PR #16.
-
-- **ADR-081** (2026-05-10): `SHIPWRIGHT_NETWORK_PROFILE` env-flag (local | tailscale | open) for unified dev-server bind security. New resolvers + Vite-proxy-target follower + cross-mirror byte-equivalence parity test (extends ADR-080 mirror pattern). Tailscale via `tailscale ip -4` subprocess + env override.
-
-- **ADR-080** (2026-05-09): Type-system isolation between workspaces (retire 4-baseline-error carve-out)
-
-- **ADR-081** (2026-05-10): SHIPWRIGHT_NETWORK_PROFILE env-flag (local | tailscale | open) for dev-server bind security
-
-- **ADR-082** (2026-05-10): Wire .env.local into both dev-server processes (tsx --env-file-if-exists + vite loadEnv)
-
-- **ADR-084** (2026-05-11): v0.9.2 — EmbeddedTerminal StrictMode mount-race fixes (readonly banner grace + xterm dimensions-stub on dispose)
-
-- **ADR-085** (2026-05-11): v0.9.3 — Resume click on idle new-plain converges to active (scope mtime-decay to non-new-plain)
-
-- **ADR-086** (2026-05-11): v0.9.4 — Skip disk-scrollback replay on attach for new-plain tasks (Claude TUI corruption fix)
-
-- **iterate-2026-05-19-oxlint-and-cors-env** (2026-05-19): oxlint adopted as the project linter — replaces the dead `eslint src/` script (no eslint dep / no config); `npm run lint` wired in client + server + CI. Server CORS integration test env-isolated via `vi.hoisted()`.
-
-- **ADR-116** (2026-05-20): Triage Tab gains launchPayload rendering + Fix-now CTA (WebUI counterpart to shipwright Iterate A)
-
-- **ADR-119** (2026-05-22): Phase 0f: clear F4-F7 ADR-bloat / arch-marker / CLAUDE.md hygiene
-
-- **ADR-122** (2026-05-23): VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode hint
-
-- **ADR-123** (2026-05-23): Auto-focus xterm on Terminal tab activation
+- **ADR-065** (2026-05-01): Filter null-rendering events out of virtualized transcript list.
+- **ADR-066** (2026-05-02): Persistent virtualizer measurement cache + first-visit warmup pass.
+- **ADR-067** (2026-05-03): Embedded terminal launcher (xterm.js + `@lydell/node-pty` + `@hono/node-ws`) — adds a neutral shell pane; image-paste flow eliminates the Claude-CLI clipboard-image gap; ADR-034 wording amended to allow a neutral shell pane while keeping Claude-execution user-initiated.
+- **ADR-068-A1** (2026-05-04): Embedded-terminal auto-launch via WS data-frame + disk-backed scrollback persistence.
+- **ADR-069** (2026-05-05, AC-1 retired by ADR-087): Post-v0.8 stabilization — terminal scrollback ANSI sanitizer (retired) + writer-stuck watchdog with per-conn pause refcount (retained).
+- **ADR-077** (2026-05-08, retired by ADR-087): v0.8.7 scrollback hygiene — shell-stopped marker + PowerShell-banner-burst collapse. Retired together with the chunked-replay path.
+- **ADR-080** (2026-05-09): Type-system isolation between workspaces — retires ADR-035's 4-baseline-error carve-out. Verbatim mirrors of `Task` / `GlobalSettings` / `Project` under `server/src/types/`; cross-package imports rejected by comment-aware drift-guard.
+- **ADR-081** (2026-05-10): `SHIPWRIGHT_NETWORK_PROFILE` env-flag (local | tailscale | open) for unified dev-server bind security. New resolvers + Vite-proxy-target follower + cross-mirror byte-equivalence parity test.
+- **ADR-082** (2026-05-10): Wire `.env.local` into both dev-server processes (`tsx --env-file-if-exists` + Vite `loadEnv`).
+- **ADR-084** (2026-05-11): EmbeddedTerminal StrictMode mount-race fixes (readonly-banner grace + xterm dimensions-stub on dispose).
+- **ADR-085** (2026-05-11): Resume click on idle new-plain converges to active (scope mtime-decay to non-new-plain).
+- **ADR-086** (2026-05-11, retired by ADR-087): Skip disk-scrollback replay on attach for new-plain tasks. Retired together with the chunked-replay path.
+- **ADR-087** (2026-05-12): Cell-state snapshots become the SOLE replay primitive. Retires ADR-069 sanitizer + ADR-077 collapse + ADR-079 pushdown + ADR-086 skip + the chunked-replay envelopes. Failure mode = blank terminal with live shell.
+- **ADR-088** (2026-05-11): `@xterm/headless` server-side Terminal mirror per live pty; per-task `<scrollbackDir>/<taskId>.snapshot`.
+- **ADR-092** (2026-05-12): WS replay precedence — LIVE mirror first, disk-snapshot fallback. New `serializeMirrorIfLive` + `flushMirrorSnapshot` + `detachAndCount` write surfaces on `pty-manager.ts`.
+- **ADR-095** (2026-05-13, partially superseded by ADR-098): `CLAUDE_CODE_NO_FLICKER=1` default injection + new `withLiveSession` HTTP-boundary helper.
+- **ADR-096** (2026-05-13): Snapshot-preservation 60 % heuristic in `finalizeMirrorSnapshot` (retained as defense-in-depth post-ADR-098).
+- **ADR-097** (2026-05-13, partially superseded by ADR-098): xterm.js 5.5.0 → 6.0.0 upgrade (paired-set, exact-pin) + snapshot envelope v2 (v1 hard-reject) + `windowsMode` removal.
+- **ADR-098** (2026-05-13): Restore `CLAUDE_CODE_NO_FLICKER=1` default-on (reverts only ADR-097's default-OFF clause). Empirical anchor in the ADR.
+- **ADR-099** (2026-05-14, client side superseded by ADR-108): xterm.js 6.0 WebGL atlas-corruption workaround. **Server-side SGR re-emit retained** in `replay-snapshot.ts`.
+- **ADR-100** (2026-05-14): `ExternalTask` 13-field extension for leadwright daemon (5 user-creatable, 8 daemon-owned). `POST /tasks/:id/launch` 409 `task_claimed` short-circuit on `claimToken`.
+- **ADR-101** (2026-05-14): WebUI Triage Tab + Promote bridge — 5 new `/api/triage/*` endpoints, TS port of `triage.read_all_items` with Python-fixture parity test, cross-store Promote transaction.
+- **ADR-101 (bloat)** (2026-05-26): `server/src/terminal/pty-manager.ts` accepted as a documented deep-module exception to the 300-LOC bloat baseline.
+- **ADR-102** (2026-05-15): Triage card / dialog visual restyle onto existing design tokens.
+- **ADR-103** (2026-05-15): Close-task handler navigates back to the board on success (`{ onSuccess: () => navigate("/") }`).
+- **ADR-103 (bloat)** (2026-05-27): `server/src/terminal/routes.ts` accepted as a documented deep-module exception; WS-upgrade handler extracted into `ws-upgrade-handler.ts`.
+- **ADR-104** (2026-05-15): Terminal reset banner via `terminalReset` flag on the WS `ready` envelope; Bug-B smear root cause later corrected by ADR-109.
+- **ADR-105** (2026-05-15): TaskCard project-identity pill (`ProjectPill`) leading the card meta row.
+- **ADR-106** (2026-05-15): Triage write 500 fix — disjoint `.weblock` directory + removed self-deadlocking double-lock + 503 on genuine contention.
+- **ADR-108** (2026-05-16): Client-side replay drain gate in `EmbeddedTerminal.tsx`. Replaces ADR-099's atlas-maintenance machinery.
+- **ADR-109** (2026-05-16, supersedes ADR-093): `convertEol: false` in `EmbeddedTerminal.tsx` — fixes Bug B left-column smear. New server-side regression test `embedded-terminal-convert-eol.test.ts`.
+- **ADR-110** (2026-05-16): Remove the Resume-CTA activity gate; add one-shot auto-inject guard + Copy-Resume command + shared `lib/clipboard.ts`.
+- **ADR-111** (2026-05-17): Remove orphaned Resume-CTA liveness-gate code (`lastPtyDataAt` / `altScreenActive` pipeline + flaky integration test).
+- **ADR-112** (2026-05-18): Move-to-Backlog endpoint + In-Progress → `draft` state flip. New SSoT `taskLifecycle.ts` ↔ `BACKLOG_SOURCE_STATES` parity.
+- **ADR-113** (2026-05-18): Inbox surfaces waiting terminal pickers via `extractTerminalPrompt` + live `@xterm/headless` mirror; focuses terminal on Inbox click.
+- **iterate-2026-05-18-edit-task-dialog** (2026-05-18): Edit Task dialog + widened `PATCH /api/external/tasks/:id`; new `taskEditability.ts` parity mirror.
+- **ADR-114** (2026-05-18): Embedded-terminal keyboard copy/paste via `attachCustomKeyEventHandler`. DOM paste listener now uses `term.paste()` (was raw `socket.send`).
+- **ADR-115** (2026-05-19): oxlint adopted as the project linter — replaces the dead `eslint src/` script. CI runs `npm run lint` as a real error-gate. Server CORS test env-isolated via `vi.hoisted()`.
+- **ADR-116** (2026-05-20): Triage Tab gains launchPayload rendering + Fix-now CTA — `stripControlChars` byte-equal port of canonical Python helper; cross-workspace TriageItem drift-guard.
+- **ADR-117** (2026-05-21): Skip WS reconnect on clean close of a replay-only attach (no replay-flicker loop on closed tasks).
+- **ADR-118** (2026-05-21): Triage Fix-now opens NewIssueModal (lifted to TriagePage scope); 4 phase slashes namespaced via `:skill` suffix in `buildSlashCommand`.
+- **ADR-119** (2026-05-22): Phase 0f compliance hygiene — slim 5 bloated ADRs, add architecture marker, replace CLAUDE.md file-tree with summary.
+- **ADR-120** (2026-05-22): Hono SPA fallback to `client/dist/index.html` for non-`/api` GETs; `SHIPWRIGHT_STATIC_DIR` test seam.
+- **ADR-121** (2026-05-22): Thread `projectId` through `FixNowIntent` → `NewIssueModal` (`initialProjectId` prop).
+- **ADR-122** (2026-05-23): VS Code-aligned terminal selection + copy-on-mouseup + mouse-mode banner.
+- **ADR-123** (2026-05-23): Auto-focus xterm on Terminal tab activation (defer via `setTimeout(0)` for Radix CSS settle).
+- **ADR-124** (2026-05-26, Campaign C / C7): `InboxPage.tsx` split (967 → 116 LOC) + new `client/src/pages/inbox/` subfolder.
+- **ADR-125** (2026-05-26, Campaign C / C5, HIGH RISK): `EmbeddedTerminal.tsx` split (1856 → 287 LOC) + 7 extracted modules under `client/src/components/terminal/`.
+- **ADR-126** (2026-05-26, Campaign C / C3): `BubbleTranscript.tsx` split (1618 → 175 LOC) + sub-modules under `client/src/components/external/BubbleTranscript/`.
+- **Campaign C non-ADR splits** (2026-05-26): `NewIssueModal.tsx` (C4), `TaskDetailHeader.tsx` (C6), `server/src/external/routes.ts` (C2) all split per the Campaign-C cleanup-invariant.

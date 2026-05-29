@@ -37,15 +37,25 @@ const NEAR_BOTTOM_THRESHOLD_PX = 64;
  * 2026-05-01 — iterate-2026-05-01-system-chips-and-scroll-polish.
  *
  * Window during which programmatic re-pin is suppressed after the user's
- * last scroll event. Without it, 1 Hz polling ticks can yank a user who
- * is scrolling slowly near the bottom (still within NEAR_BOTTOM_THRESHOLD_PX,
- * so userDetached hasn't flipped) back to the bottom — visible as flicker
- * during scroll-up.
+ * last scroll event. Retained as defense-in-depth for the layout-effect
+ * and ResizeObserver re-pin paths; the AC4 intent-based detach (below) is
+ * the primary mechanism that stops slow scroll-up from being yanked.
  *
  * 250 ms covers a typical wheel/touchpad tick cadence without being long
  * enough to make the live-stream feel laggy.
  */
 const ACTIVE_SCROLL_GUARD_MS = 250;
+/**
+ * 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC4.
+ *
+ * Rubber-band tolerance. macOS/iOS elastic scrolling overshoots past the
+ * absolute bottom and then bounces back UP a few pixels — indistinguishable
+ * from an intent-based upward scroll by `scrollTop` delta alone. Without
+ * this guard the bounce would falsely detach auto-scroll the instant the
+ * user reaches the bottom. An upward delta only counts as detach intent
+ * when the viewport is at least this far from the absolute bottom.
+ */
+const RUBBERBAND_TOLERANCE_PX = 8;
 
 export function useAutoScroll(
   containerRef: React.RefObject<HTMLElement | null>,
@@ -70,25 +80,48 @@ export function useAutoScroll(
   // or auto-pin would suppress its own follow-ups during streaming).
   const lastUserScrollAt = useRef(0);
   const lastProgrammaticScrollAt = useRef(0);
+  // 2026-05-27 AC4 — last observed scrollTop, used to detect upward
+  // movement (detach intent). Seeded from the element's actual scrollTop
+  // at listener-attach time (NOT 0) so the first scroll event after mount
+  // / dep-change can't produce a false upward delta (external-review
+  // HIGH-3).
+  const lastScrollTop = useRef(0);
 
   // Attach scroll listener once per container. Track whether the user has
   // manually scrolled up — if so, pause auto-scroll until they come back.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    lastScrollTop.current = el.scrollTop;
     const onScroll = () => {
       const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
       const atBottom = distance < NEAR_BOTTOM_THRESHOLD_PX;
-      setIsAtBottom(atBottom);
-      userDetached.current = !atBottom;
-      // Stamp the guard ONLY if this scroll event isn't the one we just
-      // fired ourselves. Programmatic scrollTop writes synthesize a scroll
-      // event on the next frame; treating that as user input would defeat
-      // the live-stream pin.
       const now = Date.now();
-      if (now - lastProgrammaticScrollAt.current > 50) {
+      // Programmatic scrollTop writes synthesize a scroll event on the
+      // next frame; treat those as our own, not user input.
+      const isProgrammaticEcho = now - lastProgrammaticScrollAt.current <= 50;
+      const movedUp = el.scrollTop < lastScrollTop.current;
+      const inRubberbandZone = distance < RUBBERBAND_TOLERANCE_PX;
+
+      // Detach is asymmetric to re-attach (the AC4 fix):
+      //   - DETACH on ANY genuine upward movement outside the rubber-band
+      //     zone, even when still within NEAR_BOTTOM_THRESHOLD_PX. A slow
+      //     scroll-up that stays in the 64px band used to get yanked by
+      //     the next polling tick — that was the reported flicker.
+      //   - RE-ATTACH purely by position: landing within the threshold
+      //     (incl. a rubber-band bounce) clears the detach.
+      let detached = !atBottom;
+      if (movedUp && !isProgrammaticEcho && !inRubberbandZone) {
+        detached = true;
+      }
+      userDetached.current = detached;
+      setIsAtBottom(!detached);
+
+      // Stamp the active-scroll guard for the layout-effect / RO paths.
+      if (!isProgrammaticEcho) {
         lastUserScrollAt.current = now;
       }
+      lastScrollTop.current = el.scrollTop;
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
@@ -168,6 +201,10 @@ export function useAutoScroll(
         if (distanceFromPrevBottom > NEAR_BOTTOM_THRESHOLD_PX) return;
         lastProgrammaticScrollAt.current = Date.now();
         node.scrollTop = now;
+        // Sync the upward-delta baseline so the synthesized echo scroll
+        // can't be misread as user intent (AC4 — robust-by-construction,
+        // not just by the 50ms echo guard + always-downward coincidence).
+        lastScrollTop.current = now;
       } finally {
         // Always refresh the baseline — covers growth, shrink, and
         // no-op transitions. A stale baseline would misclassify the
@@ -183,7 +220,11 @@ export function useAutoScroll(
     const el = containerRef.current;
     if (!el) return;
     userDetached.current = false;
+    // Mark this as a programmatic scroll + sync the upward-delta baseline
+    // so the synthesized scroll event doesn't re-detach (AC4).
+    lastProgrammaticScrollAt.current = Date.now();
     el.scrollTop = el.scrollHeight;
+    lastScrollTop.current = el.scrollTop;
     setIsAtBottom(true);
   };
 

@@ -167,6 +167,160 @@ describe("parseSessionJsonl — iterate-3 new variants (FR-03.50)", () => {
   });
 });
 
+// 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC1.
+// Claude Code emits a `type: "mode"` heartbeat (~30× per session) carrying
+// the active mode string. Previously fell through to `kind:"unknown"`.
+describe("parseSessionJsonl — mode-change (AC1)", () => {
+  it("parses mode event with string mode field", () => {
+    const raw = { type: "mode", sessionId: "s", mode: "normal" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("mode-change");
+    if (r.events[0].kind === "mode-change") {
+      expect(r.events[0].mode).toBe("normal");
+    }
+  });
+
+  it("falls through to kind='unknown' when mode is an object (future-schema-drift guard)", () => {
+    // Defensive: if Claude ever ships `{mode: {current: "normal"}}` we must
+    // NOT pass the object into React (would crash with "Objects are not
+    // valid as a React child"). External-review Gemini MEDIUM-10.
+    const raw = { type: "mode", sessionId: "s", mode: { current: "normal" } };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("falls through to kind='unknown' when mode field is missing", () => {
+    const raw = { type: "mode", sessionId: "s" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("falls through to kind='unknown' when mode field is empty string", () => {
+    const raw = { type: "mode", sessionId: "s", mode: "" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+});
+
+// 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC2.
+// Claude Code emits `type: "pr-link"` when a PR URL becomes available
+// during the session. Defensive parsing: scheme-validated href + finite
+// prNumber + non-empty repo. External-review HIGH-1 (XSS — JSONL is an
+// io-boundary from a third-party producer).
+describe("parseSessionJsonl — pr-link (AC2)", () => {
+  const validPayload = {
+    type: "pr-link",
+    sessionId: "s",
+    prNumber: 78,
+    prUrl: "https://github.com/svenroth-ai/shipwright-webui/pull/78",
+    prRepository: "svenroth-ai/shipwright-webui",
+    timestamp: "2026-05-27T19:59:59.578Z",
+  };
+
+  it("parses a well-formed pr-link with https scheme", () => {
+    const r = parseSessionJsonl(JSON.stringify(validPayload) + "\n");
+    expect(r.events[0].kind).toBe("pr-link");
+    if (r.events[0].kind === "pr-link") {
+      expect(r.events[0].prNumber).toBe(78);
+      expect(r.events[0].prUrl).toBe(validPayload.prUrl);
+      expect(r.events[0].prRepository).toBe("svenroth-ai/shipwright-webui");
+    }
+  });
+
+  it("accepts http scheme (some self-hosted GitHub enterprises)", () => {
+    const raw = { ...validPayload, prUrl: "http://ghe.internal/x/y/pull/1" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("pr-link");
+  });
+
+  it("rejects javascript: scheme (XSS guard)", () => {
+    const raw = { ...validPayload, prUrl: "javascript:alert(1)" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("rejects data: scheme (XSS guard)", () => {
+    const raw = { ...validPayload, prUrl: "data:text/html,<script>x</script>" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("rejects bare path (no scheme)", () => {
+    const raw = { ...validPayload, prUrl: "/path/to/pull/1" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("rejects payload with non-finite prNumber", () => {
+    const raw = { ...validPayload, prNumber: NaN };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    // JSON.stringify(NaN) = "null"; recovered as null → not finite → unknown.
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("rejects payload with non-numeric prNumber", () => {
+    const raw = { ...validPayload, prNumber: "78" as unknown as number };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("rejects payload with empty prRepository", () => {
+    const raw = { ...validPayload, prRepository: "" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+
+  it("rejects payload with empty prUrl", () => {
+    const raw = { ...validPayload, prUrl: "" };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("unknown");
+  });
+});
+
+// 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC3.
+// Stop-hook user-content reclassification. Full fingerprint coverage
+// lives in parsers/stop-hook.test.ts; here we assert the parseOne
+// integration (user-role event → kind:"stop-hook").
+describe("parseSessionJsonl — stop-hook reclassification (AC3)", () => {
+  const banner = [
+    "Stop hook feedback:",
+    "================================================================",
+    "  SHIPWRIGHT BLOAT GATE — Stop blocked",
+    "================================================================",
+    "",
+    "The IRON LAW",
+    "",
+    "    NO COMPLETION WHILE FILES ARE GROWING UNCHECKED",
+  ].join("\n");
+
+  it("reclassifies a user event carrying stop-hook content", () => {
+    const raw = { type: "user", sessionId: "s", message: { content: banner } };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("stop-hook");
+    if (r.events[0].kind === "stop-hook") {
+      expect(r.events[0].gateName).toBe("SHIPWRIGHT BLOAT GATE — Stop blocked");
+      expect(r.events[0].body).toContain("NO COMPLETION WHILE FILES ARE GROWING UNCHECKED");
+    }
+  });
+
+  it("leaves a normal user message as kind='user'", () => {
+    const raw = {
+      type: "user",
+      sessionId: "s",
+      message: { content: "Please render the PR link properly." },
+    };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("user");
+  });
+
+  it("does NOT swallow a user message that quotes the banner mid-prose", () => {
+    const mixed = "I got this:\n" + banner + "\nwhat does it mean?";
+    const raw = { type: "user", sessionId: "s", message: { content: mixed } };
+    const r = parseSessionJsonl(JSON.stringify(raw) + "\n");
+    expect(r.events[0].kind).toBe("user");
+  });
+});
+
 describe("toolResults — extraction", () => {
   it("returns empty array for non-array content", () => {
     expect(toolResults({ kind: "user", content: "string" })).toEqual([]);

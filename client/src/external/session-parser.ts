@@ -1,4 +1,5 @@
 import { extractAskUserPayload } from "../lib/askUserPayload";
+import { detectStopHook } from "./parsers/stop-hook";
 
 /*
  * POC vertical slice — client-side session JSONL parser.
@@ -30,6 +31,9 @@ export type ParsedEvent =
   | CustomTitleEvent
   | AgentNameEvent
   | PermissionModeEvent
+  | ModeChangeEvent
+  | PrLinkEvent
+  | StopHookEvent
   | UnknownEvent;
 
 export interface BaseEvent {
@@ -161,6 +165,74 @@ export interface PermissionModeEvent extends BaseEvent {
   mode: string;
 }
 
+/**
+ * 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC1.
+ *
+ * Claude Code emits a `type: "mode"` heartbeat (~30× per session) with
+ * `mode: string` ("normal" by default). Before this iterate it fell
+ * through to `kind:"unknown"` and rendered as a yellow warning card,
+ * repeated 30× — pure noise. Now rendered as a sky/lavender pill,
+ * grouped under `SYSTEM_KINDS` so the toolbar's "show system" toggle
+ * hides it by default (matches `permission-mode` semantics).
+ *
+ * Defensive: emitted only when `raw.mode` is a non-empty string.
+ * Any other shape (object, missing, empty) falls through to
+ * `kind:"unknown"` so a future schema drift can't crash the renderer
+ * with "Objects are not valid as a React child".
+ */
+export interface ModeChangeEvent extends BaseEvent {
+  kind: "mode-change";
+  mode: string;
+}
+
+/**
+ * 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC2.
+ *
+ * Claude Code emits `type: "pr-link"` when a PR URL becomes visible
+ * during the session, carrying `prNumber: number`, `prUrl: string`,
+ * `prRepository: string`. Before this iterate it fell through to
+ * `kind:"unknown"` and rendered as a yellow warning card.
+ *
+ * Defensive: emitted only when ALL of:
+ *   (i)  `prNumber` is `Number.isFinite()`,
+ *   (ii) `prUrl` is a non-empty string matching `^https?://`,
+ *   (iii) `prRepository` is a non-empty string.
+ * The scheme check is an XSS guard — JSONL is an io-boundary from a
+ * third-party producer; an unvalidated `javascript:` or `data:` URL
+ * rendered into an `<a href>` would bypass `noopener noreferrer`.
+ */
+export interface PrLinkEvent extends BaseEvent {
+  kind: "pr-link";
+  prNumber: number;
+  prUrl: string;
+  prRepository: string;
+}
+
+/**
+ * 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC3.
+ *
+ * Claude Code injects Stop-hook output as a user-role event whose
+ * `content` is a plain string starting with `"Stop hook feedback:\n=...
+ * \n  SHIPWRIGHT <GATE> ...\n=...\n<body>"`. Before this iterate it
+ * rendered as a right-aligned user bubble showing the full ASCII-art
+ * banner — visually identical to a real user message. Now reclassified
+ * by content fingerprint (see `parsers/stop-hook.ts`) so the renderer
+ * can show a collapsed Tool-call-style card with the gate name in the
+ * header and the body folded behind a chevron.
+ *
+ * String-only — all 12/12 observed events in the sample session carry
+ * string content. If Claude ever ships array-block content for stop
+ * hooks, the detector returns null and the event falls through to
+ * plain `user` (no swallowing).
+ */
+export interface StopHookEvent extends BaseEvent {
+  kind: "stop-hook";
+  /** Banner title (e.g. "SHIPWRIGHT BLOAT GATE"); "Stop hook" when malformed. */
+  gateName: string;
+  /** Full raw content for the expanded view. */
+  body: string;
+}
+
 export interface UnknownEvent extends BaseEvent {
   kind: "unknown";
   /** Original top-level `type` string, if any. */
@@ -246,6 +318,14 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
       if (notification) {
         return { ...base, kind: "task-notification", ...notification };
       }
+      // 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC3:
+      // Stop-hook fingerprint (string-start `"Stop hook feedback:"`).
+      // Runs LAST among the user-content reclassifiers — most specific
+      // first. Mixed prose falls through to plain `user`.
+      const stopHook = detectStopHook(content);
+      if (stopHook) {
+        return { ...base, kind: "stop-hook", ...stopHook };
+      }
       return { ...base, kind: "user", content };
     }
     case "assistant":
@@ -321,6 +401,36 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
           ? ((raw as { mode: string }).mode)
           : "";
       return { ...base, kind: "permission-mode", mode };
+    }
+    case "mode": {
+      // 2026-05-27 AC1 — defensive: only string mode-values become
+      // mode-change events. Object/missing/empty falls through to
+      // `unknown` so we never pass a non-primitive into React.
+      const modeValue = (raw as { mode?: unknown }).mode;
+      if (typeof modeValue !== "string" || modeValue.length === 0) {
+        return { ...base, kind: "unknown", originalType: type, raw };
+      }
+      return { ...base, kind: "mode-change", mode: modeValue };
+    }
+    case "pr-link": {
+      // 2026-05-27 AC2 — defensive: scheme-validated href + finite
+      // prNumber + non-empty repo. JSONL is a third-party producer;
+      // an unvalidated href would be an XSS vector. Any failed check
+      // falls through to `unknown`.
+      const prNumber = (raw as { prNumber?: unknown }).prNumber;
+      const prUrl = (raw as { prUrl?: unknown }).prUrl;
+      const prRepository = (raw as { prRepository?: unknown }).prRepository;
+      if (
+        typeof prNumber === "number" &&
+        Number.isFinite(prNumber) &&
+        typeof prUrl === "string" &&
+        /^https?:\/\//.test(prUrl) &&
+        typeof prRepository === "string" &&
+        prRepository.length > 0
+      ) {
+        return { ...base, kind: "pr-link", prNumber, prUrl, prRepository };
+      }
+      return { ...base, kind: "unknown", originalType: type, raw };
     }
     default:
       return { ...base, kind: "unknown", originalType: type || "(no-type)", raw };

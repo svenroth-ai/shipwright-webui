@@ -1,0 +1,1 @@
+Phase pill on iterate tasks no longer shows 'Build' when the task title starts with 'Fix …' — TaskCard + TaskDetailHeader now share `resolveTaskPhase` and treat `actionId === "new-iterate"` as authoritative for the iterate phase whenever no phase is persisted.

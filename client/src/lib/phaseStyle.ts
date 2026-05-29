@@ -63,6 +63,41 @@ export function getPhaseStyle(phaseId: string | undefined): PhaseStyle {
  * Extracted from TaskDetailHeader (2026-04-25) so TaskCard can share
  * the exact same heuristic and display a consistent badge.
  */
+/**
+ * Resolve the phase badge for an ExternalTask, applying the full policy
+ * shared between TaskCard and TaskDetailHeader. Single source of truth
+ * for "which phase pill should this task show, if any?".
+ *
+ * Priority (highest to lowest):
+ *   1. `new-plain` action → no phase (free-form chat title).
+ *   2. Server-persisted `phase` + `phaseLabel` pair (both required) →
+ *      use as-is.
+ *   3. `new-iterate` action → always "Iterate", never title-derived.
+ *      The action and the phase share an axis; iterate titles are
+ *      free-form bug/feature descriptions (e.g. "Fix for SBOM …") and
+ *      would otherwise mis-match the title-keyword regex.
+ *   4. Legacy title-keyword derivation — pre-phase-on-create tasks.
+ *
+ * 2026-05-27 — iterate-2026-05-27-fix-phase-pill-iterate-title-fallback:
+ * step 3 added to prevent iterate tasks rendering a Build pill when the
+ * title begins with "Fix …".
+ */
+export function resolveTaskPhase(task: {
+  actionId?: string | null;
+  phase?: string | null;
+  phaseLabel?: string | null;
+  title?: string | null;
+}): { id: string; label: string } | null {
+  if (task.actionId === "new-plain") return null;
+  if (task.phase && task.phaseLabel) {
+    return { id: task.phase, label: task.phaseLabel };
+  }
+  if (task.actionId === "new-iterate") {
+    return { id: "iterate", label: "Iterate" };
+  }
+  return derivePhaseFromTitle(task.title ?? undefined);
+}
+
 export function derivePhaseFromTitle(
   title: string | undefined,
 ): { id: string; label: string } | null {

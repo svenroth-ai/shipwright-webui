@@ -177,3 +177,38 @@ describe("LaunchCTA — edge paths", () => {
     });
   });
 });
+
+describe("LaunchCTA — unmount teardown-leak regression", () => {
+  // The "Launching…" flash schedules a 1800 ms setTimeout that resets the
+  // label. Without an unmount cleanup the timer outlives the component:
+  // when it fires after the test env / jsdom window is torn down, React's
+  // setState reaches into `window` and throws `ReferenceError: window is
+  // not defined`, escaping as an unhandled error that fails the run. The
+  // cleanup must clearTimeout the pending reset timer on unmount.
+  it("clears the pending copy-reset timer on unmount", async () => {
+    const setSpy = vi.spyOn(globalThis, "setTimeout");
+    const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+    const fetchInner = vi.fn(async (url: string | URL | Request) => {
+      if (String(url).includes("/launch")) {
+        return new Response(
+          JSON.stringify({
+            task: makeTask(),
+            commands: { powershell: "x", cmd: "x", posix: "x" },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response("{}", { status: 200 });
+    });
+    const { unmount } = renderCTA(makeTask(), () => {}, fetchInner);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("cta-launch-in-terminal"));
+    });
+    // flashCopied("Launching…") scheduled the 1800 ms reset timer.
+    const idx = setSpy.mock.calls.findIndex((c) => c[1] === 1800);
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const timerId = setSpy.mock.results[idx]!.value;
+    unmount();
+    expect(clearSpy.mock.calls.some((c) => c[0] === timerId)).toBe(true);
+  });
+});

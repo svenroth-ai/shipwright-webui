@@ -24,7 +24,7 @@
  * one mutation hook is alive at a time, behaviorally identical to the
  * pre-split shared instance.
  */
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Terminal as TerminalIcon } from "lucide-react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
@@ -66,6 +66,14 @@ export function ResumeCTA({ task, onError }: ResumeCTAProps) {
     setCopiedLabel(label);
     if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
     copyResetTimer.current = setTimeout(() => setCopiedLabel(null), 1800);
+  }, []);
+
+  // Clear the pending label-reset timer on unmount so it can't fire a
+  // setState after the component (and, in tests, the jsdom window) is gone.
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+    };
   }, []);
 
   const handleResume = useCallback(async () => {

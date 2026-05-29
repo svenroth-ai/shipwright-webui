@@ -213,3 +213,30 @@ describe("HeaderMenu — action callbacks (edge paths)", () => {
     expect(dialog).toBeTruthy();
   });
 });
+
+describe("HeaderMenu — unmount teardown-leak regression", () => {
+  // flashMenuNotice schedules a 2600 ms reset timer with no unmount
+  // cleanup. Same defect class as LaunchCTA/ResumeCTA — a timer firing
+  // after jsdom teardown throws `ReferenceError: window is not defined`.
+  it("clears the pending menu-notice timer on unmount", async () => {
+    const user = userEvent.setup();
+    const setSpy = vi.spyOn(globalThis, "setTimeout");
+    const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: vi.fn(async () => {}) },
+      configurable: true,
+      writable: true,
+    });
+    const { unmount } = renderMenu();
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu-copy-uuid"));
+    await user.click(screen.getByTestId("task-detail-menu-copy-uuid"));
+    // Copy-UUID success → flashMenuNotice scheduled the 2600 ms timer.
+    await screen.findByTestId("task-detail-menu-notice");
+    const idx = setSpy.mock.calls.findIndex((c) => c[1] === 2600);
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const timerId = setSpy.mock.results[idx]!.value;
+    unmount();
+    expect(clearSpy.mock.calls.some((c) => c[0] === timerId)).toBe(true);
+  });
+});

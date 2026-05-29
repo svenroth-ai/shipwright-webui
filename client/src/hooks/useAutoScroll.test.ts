@@ -267,27 +267,97 @@ describe("useAutoScroll — active-scroll suspension guard", () => {
     expect(el.scrollTop).toBe(470);
   });
 
-  it("DOES re-pin after the active-scroll guard window has elapsed", () => {
+  it("STAYS detached after the guard window once the user scrolled up with intent (AC4 contract change)", () => {
+    // 2026-05-27 AC4 — REPLACES the prior "re-pin after the guard window"
+    // contract. The 250ms guard treated the symptom; intent-based detach
+    // treats the cause. Detach is now STICKY: once the user scrolls UP
+    // (480 → 470, a 10px upward delta outside the 8px rubber-band zone),
+    // `isAtBottom` stays false even after the guard window elapses — only
+    // scrolling back within NEAR_BOTTOM_THRESHOLD_PX re-attaches. We assert
+    // on `isAtBottom` (the observable that drives the Jump-to-latest button)
+    // rather than scrollTop, to avoid the mount-scroll / RO-guard timing
+    // artifacts that conflate this contract with re-pin mechanics.
     const el = makeContainer({ scrollHeight: 1000, scrollTop: 480, clientHeight: 500 });
     const ref = createRef<HTMLDivElement>();
     (ref as { current: HTMLDivElement | null }).current = el;
 
-    renderHook(() => useAutoScroll(ref, "dep-0"));
+    const { result } = renderHook(() => useAutoScroll(ref, "dep-0"));
 
-    // Tiny scroll, user stays near bottom.
-    el.scrollTop = 470;
-    el.dispatchEvent(new Event("scroll"));
+    act(() => {
+      el.scrollTop = 470; // upward delta 10px; distance 30 (> 8 rubber-band)
+      el.dispatchEvent(new Event("scroll"));
+    });
+    expect(result.current.isAtBottom).toBe(false);
 
-    // Advance well past the guard window (≥ 250 ms).
     act(() => {
       vi.advanceTimersByTime(400);
     });
+    // Guard window elapsed — detach is sticky, NOT time-based.
+    expect(result.current.isAtBottom).toBe(false);
+  });
+});
 
-    // Now content grows and the user was at-bottom — re-pin should fire.
-    setScrollHeight(el, 1300);
+// 2026-05-27 — iterate-2026-05-27-transcript-renderer-scroll AC4.
+// Intent-based detach: ANY upward movement outside the rubber-band zone
+// detaches immediately, even when still inside the 64px at-bottom band.
+// Re-attach stays threshold-based. Rubber-band overshoot at the absolute
+// bottom must NOT detach. These assert on the `isAtBottom` observable (the
+// detach signal that gates the Jump-to-latest button), which isolates the
+// detach DECISION from the mount-scroll / RO-guard re-pin mechanics covered
+// by the AC-2 block above.
+describe("useAutoScroll — AC4 intent-based detach", () => {
+  function mount(scrollTop: number) {
+    const el = makeContainer({ scrollHeight: 1000, scrollTop, clientHeight: 500 });
+    const ref = createRef<HTMLDivElement>();
+    (ref as { current: HTMLDivElement | null }).current = el;
+    const { result } = renderHook(() => useAutoScroll(ref, "dep-0"));
+    return { el, result };
+  }
+
+  it("detaches (isAtBottom=false) on a small upward delta inside the at-bottom band", () => {
+    // Start at 480 (distance 20, atBottom). Scroll UP to 460 → distance 40
+    // (still atBottom by position, but > 8 rubber-band) → intent detach.
+    const { el, result } = mount(480);
     act(() => {
-      for (const cb of capturedCallbacks) cb([], {} as ResizeObserver);
+      el.scrollTop = 460;
+      el.dispatchEvent(new Event("scroll"));
     });
-    expect(el.scrollTop).toBe(1300);
+    expect(result.current.isAtBottom).toBe(false);
+  });
+
+  it("does NOT detach on a rubber-band bounce at the absolute bottom", () => {
+    // At the absolute bottom (scrollTop 500, distance 0). Elastic overshoot
+    // bounces back UP 3px → scrollTop 497, distance 3 (< 8 tolerance). Not
+    // intent — must stay attached.
+    const { el, result } = mount(500);
+    act(() => {
+      el.scrollTop = 497;
+      el.dispatchEvent(new Event("scroll"));
+    });
+    expect(result.current.isAtBottom).toBe(true);
+  });
+
+  it("does NOT spuriously detach on the first scroll event after mount (lastScrollTop init)", () => {
+    // External-review HIGH-3: lastScrollTop seeds from el.scrollTop at attach,
+    // not 0. A first scroll event with NO movement must not flip detach.
+    const { el, result } = mount(480);
+    act(() => {
+      el.dispatchEvent(new Event("scroll"));
+    });
+    expect(result.current.isAtBottom).toBe(true);
+  });
+
+  it("re-attaches when the user scrolls back within the threshold", () => {
+    const { el, result } = mount(480);
+    act(() => {
+      el.scrollTop = 200; // far up → detach
+      el.dispatchEvent(new Event("scroll"));
+    });
+    expect(result.current.isAtBottom).toBe(false);
+    act(() => {
+      el.scrollTop = 480; // back within threshold (distance 20 < 64) → re-attach
+      el.dispatchEvent(new Event("scroll"));
+    });
+    expect(result.current.isAtBottom).toBe(true);
   });
 });
