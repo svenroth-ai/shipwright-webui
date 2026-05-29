@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-27-transcript-renderer-scroll",
+  "date": "2026-05-28T22:37:15.838984Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/transcript-renderer-scroll",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-05-27-transcript-renderer-scroll.md",
+  "adr": "iterate-2026-05-27-transcript-renderer-scroll"
+}

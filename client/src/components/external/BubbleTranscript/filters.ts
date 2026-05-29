@@ -31,6 +31,10 @@ export const SYSTEM_KINDS: ReadonlySet<ParsedEvent["kind"]> = new Set([
   "custom-title",
   "agent-name",
   "permission-mode",
+  // 2026-05-27 AC1 — mode-change is a heartbeat (~30× per session), same
+  // signal class as permission-mode: pure metadata noise unless the user
+  // opts in via the toolbar's "show system" toggle.
+  "mode-change",
 ]);
 
 /**

@@ -1,40 +1,43 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback"
+run_id: "iterate-2026-05-27-transcript-renderer-scroll"
 phase: "iterate"
-reason: "fix: phase pill on iterate tasks no longer shows Build when title starts with Fix"
-timestamp: "2026-05-27T19:57:27.211029+00:00"
+reason: "Transcript renderer fingerprints + intent-based scroll detach"
+timestamp: "2026-05-28T22:31:30.924917+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-27 19:57:27 UTC
+> Auto-generated 2026-05-28 22:31:30 UTC
 
 ## Session Info
 
-- **Session ID**: 86832cb1-db18-4cb8-8755-db8dc94b6fbf
-- **Timestamp**: 2026-05-27 19:57:27 UTC
-- **Reason**: fix: phase pill on iterate tasks no longer shows Build when title starts with Fix
+- **Session ID**: 6b60a16a-52e8-4c6f-9dd6-836b173cd41e
+- **Timestamp**: 2026-05-28 22:31:30 UTC
+- **Reason**: Transcript renderer fingerprints + intent-based scroll detach
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-27-ws-upgrade-handler-split
-- **Date**: 2026-05-27T07:47:08.279204Z
-- **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/ws-upgrade-handler-split
-- **ADR**: ADR-103
+- **Run ID**: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
+- **Date**: 2026-05-27T19:57:54.654704Z
+- **Type**: bug
+- **Complexity**: trivial
+- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
+- **ADR**: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-05-27-ws-upgrade-handler-split.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
-- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T21:45:17)
+- **Branch**: iterate/transcript-renderer-scroll
+- **Run ID**: iterate-2026-05-27-transcript-renderer-scroll
+- **Spec**: .shipwright/planning/iterate/2026-05-27-transcript-renderer-scroll.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -48,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
-- **Last Commit**: 1dfb8b5 chore(triage): add trg-c00254ab follow-up for ADR-103 retirement remainder
+- **Branch**: iterate/transcript-renderer-scroll
+- **Last Commit**: e25f3d8 Merge pull request #78 from svenroth-ai/iterate/fix-phase-pill-iterate-title-fallback
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-126ed67f | work_completed | iterate (Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach) | 2026-05-28 |
 | evt-18779597 | work_completed | iterate (TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted.) | 2026-05-27 |
 | evt-ecf57fd9 | work_completed | iterate (ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green.) | 2026-05-27 |
 | evt-ceed7566 | work_completed | iterate (Fix prewarm race that armed the one-shot auto-launch guard on first WS attach) | 2026-05-26 |
 | evt-dd475015 | work_completed | iterate (iterate finalization) | 2026-05-26 |
-| evt-711a2d15 | work_completed | iterate (Commit C2 API contract sweep as tracked vitest suite (baseline JSON + PROBE_TABLE in-memory probes + 3 meta-tests; regression-guards external/routes.ts touch-ups in CI)) | 2026-05-26 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 161
-- **Last iterate**: bug — TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. (2026-05-27)
+- **Total work events**: 162
+- **Last iterate**: bug — Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach (2026-05-28)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
