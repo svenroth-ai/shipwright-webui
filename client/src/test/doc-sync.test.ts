@@ -56,6 +56,9 @@ const REQUIRED_TOKENS = [
   // Iterate 5 (ADR-068-A1) — embedded-terminal auto-launch + disk persistence
   'ScrollbackStore',
   'LaunchCoordinatorContext',
+  // iterate-2026-05-30-smartviewer-render-ux — SmartViewer document renderer + pop-out
+  'DocumentMarkdown',
+  'PreviewPage',
 ] as const;
 
 let claudeMd = '';

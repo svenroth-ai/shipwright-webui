@@ -1,43 +1,42 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-27-transcript-renderer-scroll"
+run_id: "iterate-2026-05-30-smartviewer-render-ux"
 phase: "iterate"
-reason: "Transcript renderer fingerprints + intent-based scroll detach"
-timestamp: "2026-05-28T22:31:30.924917+00:00"
+reason: "iterate: smartviewer-render-ux"
+timestamp: "2026-05-30T09:37:06.331457+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-28 22:31:30 UTC
+> Auto-generated 2026-05-30 09:37:06 UTC
 
 ## Session Info
 
-- **Session ID**: 6b60a16a-52e8-4c6f-9dd6-836b173cd41e
-- **Timestamp**: 2026-05-28 22:31:30 UTC
-- **Reason**: Transcript renderer fingerprints + intent-based scroll detach
+- **Session ID**: c325e08b-2c37-4ad1-aee0-cc007653fbbf
+- **Timestamp**: 2026-05-30 09:37:06 UTC
+- **Reason**: iterate: smartviewer-render-ux
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
-- **Date**: 2026-05-27T19:57:54.654704Z
+- **Run ID**: iterate-2026-05-27-transcript-renderer-scroll
+- **Date**: 2026-05-28T22:37:15.838984Z
 - **Type**: bug
-- **Complexity**: trivial
-- **Branch**: iterate/fix-phase-pill-iterate-title-fallback
-- **ADR**: iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
+- **Complexity**: medium
+- **Branch**: iterate/transcript-renderer-scroll
+- **ADR**: iterate-2026-05-27-transcript-renderer-scroll
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-05-27-transcript-renderer-scroll.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/transcript-renderer-scroll
-- **Run ID**: iterate-2026-05-27-transcript-renderer-scroll
-- **Spec**: .shipwright/planning/iterate/2026-05-27-transcript-renderer-scroll.md
-- **Complexity**: medium
+- **Branch**: iterate/smartviewer-render-ux
+- **Run ID**: iterate-2026-05-30-smartviewer-render-ux
+- **Spec**: .shipwright/planning/iterate/2026-05-30-smartviewer-render-ux.md
 - **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -51,8 +50,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/transcript-renderer-scroll
-- **Last Commit**: e25f3d8 Merge pull request #78 from svenroth-ai/iterate/fix-phase-pill-iterate-title-fallback
+- **Branch**: iterate/smartviewer-render-ux
+- **Last Commit**: f6e34a6 chore(gitignore): ignore .shipwright/agent_docs/runtime/ (ADR-089 runtime/snapshot split)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +67,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-bc6ec43f | work_completed | iterate (SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll) | 2026-05-30 |
 | evt-126ed67f | work_completed | iterate (Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach) | 2026-05-28 |
 | evt-18779597 | work_completed | iterate (TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted.) | 2026-05-27 |
 | evt-ecf57fd9 | work_completed | iterate (ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green.) | 2026-05-27 |
 | evt-ceed7566 | work_completed | iterate (Fix prewarm race that armed the one-shot auto-launch guard on first WS attach) | 2026-05-26 |
-| evt-dd475015 | work_completed | iterate (iterate finalization) | 2026-05-26 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 162
-- **Last iterate**: bug — Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach (2026-05-28)
+- **Total work events**: 163
+- **Last iterate**: change — SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll (2026-05-30)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

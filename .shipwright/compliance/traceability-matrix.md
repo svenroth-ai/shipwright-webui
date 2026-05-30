@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-28T22:31:30.924917+00:00
+Generated: 2026-05-30T09:37:06.331457+00:00
 
 ## Requirements Coverage
 
@@ -204,7 +204,8 @@ Generated: 2026-05-28T22:31:30.924917+00:00
 | Fix prewarm race that armed the one-shot auto-launch guard on first WS attach | iterate | bug |  | 1274/1274 | ff6a6d2 | 2026-05-26 |
 | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | iterate | change |  | — | a662027 | 2026-05-27 |
 | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | iterate | bug |  | — | ce60cf7 | 2026-05-27 |
-| Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | iterate | bug | FR-01.02 | — | — | 2026-05-28 |
+| Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | iterate | bug | FR-01.02 | — | 7573e84 | 2026-05-28 |
+| SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll | iterate | change | FR-03.34 | 1345/1345 | — | 2026-05-30 |
 
 ## Coverage Summary
 
@@ -212,7 +213,7 @@ Generated: 2026-05-28T22:31:30.924917+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 92 |
+| Iterate changes | 93 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
@@ -239,6 +240,9 @@ Generated: 2026-05-28T22:31:30.924917+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 29d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-50e36386` (2026-05-14)
 
