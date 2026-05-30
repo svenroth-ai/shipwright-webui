@@ -1,5 +1,5 @@
 /*
- * Body for `mode === "generic"`. Custom action from .webui/actions.json.
+ * Body for `mode === "generic"`. Custom action from .shipwright-webui/actions.json.
  *
  * No phase, no autonomy, no leadwright UI (the action-driven gating reads
  * `modal_fields` so a custom action CAN opt in — but bundled wording for
@@ -105,7 +105,7 @@ export function NewGenericModal({ form }: { form: UseNewIssueFormReturn }) {
           </code>{" "}
           in{" "}
           <code className="rounded-[3px] bg-white px-1 py-0.5 font-mono text-[11px]">
-            .webui/actions.json
+            .shipwright-webui/actions.json
           </code>
           . It will appear on the TaskDetail page after Launch.
         </div>

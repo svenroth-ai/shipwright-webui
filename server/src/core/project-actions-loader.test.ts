@@ -12,7 +12,7 @@ import {
 // Helper — the loader uses node:path.join which on Windows yields `\`
 // separators. Tests need to mirror that so the fake fs map keys match.
 function actionsPath(projectPath: string): string {
-  return join(projectPath, ".webui", "actions.json");
+  return join(projectPath, ".shipwright-webui", "actions.json");
 }
 
 interface FakeFs {
@@ -47,7 +47,7 @@ beforeEach(() => {
 });
 
 describe("project-actions-loader — bundled default fallback", () => {
-  it("loads bundled default when .webui/actions.json is missing", () => {
+  it("loads bundled default when .shipwright-webui/actions.json is missing", () => {
     const fs: FakeFs = { files: new Map() };
     const r = loadActionsForProject("/fake/project", fakeDeps(fs));
     expect(r.fromUser).toBe(false);
@@ -160,7 +160,7 @@ describe("project-actions-loader — malformed file handling", () => {
     expect(r.fromUser).toBe(false);
     expect(r.diagnostics).toHaveLength(1);
     expect(r.diagnostics[0].code).toBe("actions_file_malformed");
-    expect(r.diagnostics[0].path).toContain(".webui");
+    expect(r.diagnostics[0].path).toContain(".shipwright-webui");
     // Still returns usable defaults:
     expect(r.actions.actions.length).toBeGreaterThan(0);
   });
