@@ -16,13 +16,7 @@
  */
 
 import { useEffect, useState } from "react";
-import {
-  AlertCircle,
-  ChevronRight,
-  FileQuestion,
-  FileText,
-  Folder,
-} from "lucide-react";
+import { AlertCircle, FileQuestion, FileText } from "lucide-react";
 
 import {
   CLIENT_FILE_TEXT_MAX_BYTES,
@@ -35,6 +29,8 @@ import { CodeRenderer } from "./SmartViewer/CodeRenderer";
 import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
+import { useDocNavigation } from "./SmartViewer/useDocNavigation";
+import { PathStrip } from "./SmartViewer/PathStrip";
 
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "mermaid" | "unknown";
 
@@ -145,57 +141,7 @@ export function SmartViewer({ projectId, path }: Props) {
     );
   }
 
-  return (
-    <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} />
-  );
-}
-
-/**
- * Path breadcrumb strip shown below the tab bar. Renders folder segments
- * separated by chevrons so the user can see where the file lives inside
- * the project. When `size` is known (a text file has finished loading)
- * it renders the size badge next to the path.
- */
-function PathStrip({ path, size }: { path: string; size: number | null }) {
-  const segments = path.split("/").filter(Boolean);
-  return (
-    <div
-      className="flex min-h-[26px] items-center gap-1.5 border-b border-[var(--color-border,#e0dbd4)] px-4 py-1 font-mono text-[11px] text-[var(--color-muted,#6b7280)]"
-      data-testid="smart-viewer-path-strip"
-    >
-      <Folder
-        size={11}
-        className="shrink-0 text-[var(--color-accent,#857568)]"
-        aria-hidden="true"
-      />
-      {segments.map((seg, i) => (
-        <span key={`${seg}-${i}`} className="inline-flex items-center gap-1.5">
-          <span className="truncate">{seg}</span>
-          {i < segments.length - 1 && (
-            <ChevronRight
-              size={10}
-              aria-hidden="true"
-              className="opacity-50"
-            />
-          )}
-        </span>
-      ))}
-      {size !== null && (
-        <span
-          className="ml-2 inline-flex items-center rounded-[3px] bg-[var(--color-muted-bg,#ede8e1)] px-1.5 py-[1px] text-[10px] font-semibold text-[var(--color-muted,#6b7280)]"
-          data-testid="smart-viewer-size-badge"
-        >
-          {formatBytes(size)}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} />;
 }
 
 interface TextProps {
@@ -206,6 +152,7 @@ interface TextProps {
 }
 
 function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
+  const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "ok"; text: string; size: number }
@@ -216,7 +163,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    fetchFileText(projectId, path)
+    fetchFileText(projectId, nav.effectivePath)
       .then((res) => {
         if (cancelled) return;
         setState({ status: "ok", text: res.text, size: res.size });
@@ -243,7 +190,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, path]);
+  }, [projectId, nav.effectivePath]);
 
   const size = state.status === "ok" ? state.size : null;
 
@@ -284,7 +231,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
                 : `Server cap is ${mb} MB.`}
             </div>
             <code className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11px]">
-              {path}
+              {nav.effectivePath}
             </code>
           </div>
         </div>
@@ -304,7 +251,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} projectId={projectId} path={nav.effectivePath} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;
@@ -312,7 +259,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
 
   return (
     <div className="flex h-full flex-col" data-testid="smart-viewer">
-      <PathStrip path={path} size={size} />
+      <PathStrip path={nav.effectivePath} size={size} />
       <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
     </div>
   );

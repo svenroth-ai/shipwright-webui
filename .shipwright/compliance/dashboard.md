@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-05-30T09:01:42.964691+00:00
+Generated: 2026-05-30T09:37:06.331457+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -10,15 +10,15 @@ Scope: full_app
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
 | Work events (iterate) | 93 changes | INFO |  |
-| All unit tests passing | 1335/1335 | PASS |  |
+| All unit tests passing | 1345/1345 | PASS |  |
 | Architecture decisions | 124 ADRs | INFO |  |
 | Iterate tests passing | 66/93 iterations tested | WARN | 27 iterate(s) without tests — see test-evidence.md |
-| Dependencies | 55 packages | INFO |  |
+| Dependencies | 58 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 0 open | PASS |  |
 | Bloat over-limit | 78 | WARN | 78 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
 | Bloat in allowlist | 81 entries | INFO |  |
-| Bloat ratchet delta | +17 lines | WARN | grandfathered surface ratcheted up by 17 line(s) — Iron Law violation |
+| Bloat ratchet delta | +1 lines | WARN | grandfathered surface ratcheted up by 1 line(s) — Iron Law violation |
 
 ## Project Velocity
 

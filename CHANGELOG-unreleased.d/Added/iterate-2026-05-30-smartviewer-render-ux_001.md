@@ -1,0 +1,1 @@
+SmartViewer: internal anchor links now scroll to their target within the pane; a 'Pop out' button opens the rendered file full-screen (/preview); wide tables and diagrams get a single page-level horizontal scrollbar.

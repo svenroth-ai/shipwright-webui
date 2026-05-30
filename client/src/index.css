@@ -153,6 +153,25 @@
   background-color: rgba(175, 184, 193, 0.08);
 }
 
+/* SmartViewer document pane (iterate-2026-05-30-smartviewer-render-ux, AC5):
+ * let wide tables / ASCII <pre> diagrams scroll the WHOLE pane horizontally
+ * rather than each block individually — the user gets one page-level bottom
+ * scrollbar. Scoped to .smart-viewer-markdown so transcript bubbles keep
+ * their per-block self-scroll. */
+.smart-viewer-markdown .markdown-body table {
+  display: table;
+  overflow-x: visible;
+  max-width: none;
+}
+.smart-viewer-markdown .markdown-body pre {
+  overflow-x: visible;
+  max-width: none;
+}
+/* Anchor-nav (AC8) target not flush under the path strip / pane top. */
+.smart-viewer-markdown .markdown-body [id] {
+  scroll-margin-top: 12px;
+}
+
 /* Horizontal rule — prominent separator. */
 .markdown-body hr {
   height: 0;
