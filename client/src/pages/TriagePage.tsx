@@ -170,39 +170,82 @@ export default function TriagePage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4" data-testid="triage-page">
-      <header className="mb-6">
-        <h1 className="text-xl font-semibold">Triage</h1>
-        <p className="text-sm text-stone-500 mt-1">
-          Pre-backlog intake from Phase-Quality, compliance, and other
-          producer hooks. Promote to create a backlog task; dismiss /
-          snooze to defer.
-        </p>
-      </header>
-
-      {realProjects.length === 0 ? (
-        <p className="text-sm text-stone-500" data-testid="triage-no-projects">
-          No projects registered. Add a project on the Projects page first.
-        </p>
-      ) : (
-        <>
-          {realProjects.map((project) => (
-            <PerProjectSection
-              key={project.id}
-              project={project}
-              onFixNow={onFixNow}
-            />
-          ))}
-          {counts !== undefined && totalTriage === 0 && (
-            <p
-              className="text-center text-sm text-stone-500 py-8"
-              data-testid="triage-empty-state"
+    <div
+      className="flex h-full flex-col"
+      style={{ background: "var(--color-bg)" }}
+      data-testid="triage-page"
+    >
+      {/* Header — full-bleed surface bar, matches Inbox/Projects geometry
+          (iterate-2026-05-30-page-chrome-cleanup): dropped the muted 20px
+          title + "Pre-backlog intake…" subtitle paragraph in favour of the
+          shared 24px / 700 dark h1 + inline count badge. */}
+      <div
+        style={{
+          background: "var(--color-surface)",
+          borderBottom: "1px solid var(--color-border)",
+        }}
+      >
+        <header
+          className="page-container flex items-center justify-between"
+          style={{ paddingTop: "20px", paddingBottom: "20px" }}
+        >
+          <div className="flex items-baseline gap-[10px]">
+            <h1
+              className="font-bold"
+              style={{
+                fontSize: "24px",
+                color: "var(--color-text)",
+                letterSpacing: "-0.01em",
+              }}
             >
-              No triage items pending. ✓
+              Triage
+            </h1>
+            <span
+              className="font-medium"
+              style={{ fontSize: "14px", color: "var(--color-muted)" }}
+              data-testid="triage-header-count"
+            >
+              ({totalTriage})
+            </span>
+          </div>
+        </header>
+      </div>
+
+      {/* Body — wrapped in .page-container so Triage aligns with Inbox. */}
+      <div
+        className="flex-1 overflow-y-auto"
+        style={{ paddingBlock: "12px 40px" }}
+      >
+        <div className="page-container">
+          {realProjects.length === 0 ? (
+            <p
+              className="text-sm text-stone-500"
+              data-testid="triage-no-projects"
+            >
+              No projects registered. Add a project on the Projects page
+              first.
             </p>
+          ) : (
+            <>
+              {realProjects.map((project) => (
+                <PerProjectSection
+                  key={project.id}
+                  project={project}
+                  onFixNow={onFixNow}
+                />
+              ))}
+              {counts !== undefined && totalTriage === 0 && (
+                <p
+                  className="text-center text-sm text-stone-500 py-8"
+                  data-testid="triage-empty-state"
+                >
+                  No triage items pending. ✓
+                </p>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </div>
 
       {/* Page-scoped NewIssueModal — see header docstring. Mounts even
           when no Fix-now is pending so the prop reset effect can do its
