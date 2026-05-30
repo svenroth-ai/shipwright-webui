@@ -1,6 +1,6 @@
 /*
  * DocumentMarkdown — SmartViewer's markdown renderer for PROJECT FILES
- * (iterate-2026-05-30-smartviewer-render-ux, FR-03.34).
+ * (iterate-2026-05-30-smartviewer-render-ux, FR-01.02).
  *
  * The transcript's `MarkdownText` MUST keep the no-raw-HTML XSS contract
  * (DO-NOT guards #4/#5 — it renders Claude output). File preview content is
@@ -16,14 +16,17 @@
  *   - leading YAML frontmatter (`---…---`) is preprocessed into a fenced
  *     ```yaml block so it renders as a recognisable metadata block (AC6).
  *
- * In-pane anchor nav (AC8): clicking a `#fragment` link scrolls the matching
- * id into view WITHIN this pane's scroll container (never the window). The
- * handler resolves both the raw fragment AND its `user-content-`-prefixed form
- * (raw-HTML anchor ids are prefixed by the sanitizer; rehype-slug heading ids
- * are added after sanitize and stay unprefixed).
+ * Anchor nav (AC8) — two cases, both scoped to THIS pane (never the window):
+ *   - same-document `#fragment` → scroll the matching id into view here.
+ *   - relative `*.md(#frag)` cross-file link (e.g. the RTM → spec.md) →
+ *     delegated to `onDocLinkClick`, which the SmartViewer follows in-pane
+ *     and re-lands via `scrollToFragment`.
+ * Fragment resolution checks both the raw id AND its `user-content-`-prefixed
+ * form (raw-HTML anchor ids are prefixed by the sanitizer; rehype-slug heading
+ * ids are added after sanitize and stay unprefixed).
  */
 
-import { useCallback, useMemo, useRef, type ReactNode, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode, type MouseEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -33,11 +36,6 @@ import rehypeHighlight from "rehype-highlight";
 
 import { MermaidRenderer } from "./MermaidRenderer";
 
-// Allow `id` (anchor targets + slugged headings) and `className` (hljs +
-// `language-*` hints) everywhere; inherit the rest of the safe defaults
-// (no <script>/<style>/on*; href protocols already include #fragment; the
-// default `user-content-` clobber prefix on raw-HTML ids is kept — see the
-// anchor-nav handler, which resolves both forms).
 const SANITIZE_SCHEMA = {
   ...defaultSchema,
   attributes: {
@@ -48,8 +46,6 @@ const SANITIZE_SCHEMA = {
 
 const CLOBBER_PREFIX = "user-content-";
 
-// Module-scope stable identities (same rationale as MarkdownText): inline
-// arrays force ReactMarkdown to re-parse the subtree on every parent render.
 const REMARK_PLUGINS = [remarkGfm];
 const REHYPE_PLUGINS = [
   rehypeRaw,
@@ -60,6 +56,10 @@ const REHYPE_PLUGINS = [
 
 interface Props {
   text: string;
+  /** Follow a relative `*.md(#frag)` cross-file link in-pane (AC8). */
+  onDocLinkClick?: (href: string) => void;
+  /** Scroll to this fragment once, after a cross-file navigation lands. */
+  scrollToFragment?: string | null;
 }
 
 /**
@@ -77,11 +77,18 @@ export function frontmatterToCodeFence(text: string): string {
   return "```yaml\n" + m[1] + "\n```\n" + text.slice(m[0].length);
 }
 
+/** A relative link to another previewable doc (`*.md`), not `#frag`/http(s). */
+export function isInternalDocLink(href: string): boolean {
+  if (!href || href.startsWith("#")) return false;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//")) return false;
+  return /\.(md|markdown)(#.*)?$/i.test(href);
+}
+
 /**
  * Resolve a `#fragment` link to its target element within `container`,
  * accounting for the sanitizer's `user-content-` clobber prefix on raw-HTML
  * ids (rehype-slug heading ids stay unprefixed). Exact id comparison — robust
- * to any id characters (no CSS-selector escaping). Exported for unit tests.
+ * to any id characters. Exported for unit tests.
  */
 export function findAnchorTarget(
   container: HTMLElement,
@@ -103,6 +110,18 @@ function nearestScrollParent(el: HTMLElement | null): HTMLElement | null {
     n = n.parentElement;
   }
   return null;
+}
+
+function scrollTargetIntoPane(container: HTMLElement, target: HTMLElement): void {
+  const scroller = nearestScrollParent(container);
+  if (scroller) {
+    const tr = target.getBoundingClientRect();
+    const sr = scroller.getBoundingClientRect();
+    scroller.scrollTop += tr.top - sr.top - 12; // 12px ≈ scroll-margin-top
+    scroller.scrollLeft += tr.left - sr.left;
+  } else {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function childrenToString(children: ReactNode): string {
@@ -134,12 +153,13 @@ const COMPONENTS = {
   },
   a(props: { href?: string; children?: ReactNode; id?: string }) {
     const { href, ...rest } = props;
-    // Bare anchor target (`<a id="trg-…"></a>`) — render the invisible jump
-    // target, no external-link chrome.
+    // Bare anchor target (`<a id="trg-…"></a>`) — invisible jump target.
     if (!href) return <a {...rest} />;
-    // In-pane fragment link — keep a real href (keyboard-focusable); the
-    // container's delegated onClick does the scroll-within-pane.
-    if (href.startsWith("#")) return <a href={href} {...rest} />;
+    // Same-document fragment OR relative cross-file doc link — keep a real
+    // href (keyboard-focusable); the container's delegated onClick navigates.
+    if (href.startsWith("#") || isInternalDocLink(href)) {
+      return <a href={href} {...rest} />;
+    }
     return (
       <a
         href={href}
@@ -152,30 +172,41 @@ const COMPONENTS = {
   },
 };
 
-export function DocumentMarkdown({ text }: Props) {
+export function DocumentMarkdown({ text, onDocLinkClick, scrollToFragment }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const processed = useMemo(() => frontmatterToCodeFence(text), [text]);
 
-  const onClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
-    const anchor = (e.target as HTMLElement).closest?.("a[href^='#']");
-    if (!anchor) return;
-    const href = anchor.getAttribute("href");
-    if (!href || href === "#") return;
+  const onClick = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      const anchor = (e.target as HTMLElement).closest?.("a[href]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href") ?? "";
+      const container = ref.current;
+      if (!container) return;
+      if (href.startsWith("#")) {
+        if (href === "#") return;
+        const target = findAnchorTarget(container, decodeURIComponent(href.slice(1)));
+        if (!target) return; // unknown fragment — let the browser handle it
+        e.preventDefault();
+        scrollTargetIntoPane(container, target);
+        return;
+      }
+      if (onDocLinkClick && isInternalDocLink(href)) {
+        e.preventDefault();
+        onDocLinkClick(href);
+      }
+    },
+    [onDocLinkClick],
+  );
+
+  // After a cross-file navigation lands (new text + fragment), scroll to it.
+  useEffect(() => {
+    if (!scrollToFragment) return;
     const container = ref.current;
     if (!container) return;
-    const target = findAnchorTarget(container, decodeURIComponent(href.slice(1)));
-    if (!target) return; // unknown fragment — let the browser handle it
-    e.preventDefault();
-    const scroller = nearestScrollParent(container);
-    if (scroller) {
-      const tr = target.getBoundingClientRect();
-      const sr = scroller.getBoundingClientRect();
-      scroller.scrollTop += tr.top - sr.top - 12; // 12px ≈ scroll-margin-top
-      scroller.scrollLeft += tr.left - sr.left;
-    } else {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, []);
+    const target = findAnchorTarget(container, scrollToFragment);
+    if (target) scrollTargetIntoPane(container, target);
+  }, [scrollToFragment, processed]);
 
   return (
     <div

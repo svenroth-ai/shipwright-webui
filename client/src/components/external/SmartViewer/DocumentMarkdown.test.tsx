@@ -6,13 +6,14 @@
  * strips <script> + on* even though rehype-raw is enabled).
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 
 import {
   DocumentMarkdown,
   frontmatterToCodeFence,
   findAnchorTarget,
+  isInternalDocLink,
 } from "./DocumentMarkdown";
 
 describe("frontmatterToCodeFence", () => {
@@ -52,6 +53,18 @@ describe("findAnchorTarget", () => {
     expect(findAnchorTarget(c, "trg-1")?.id).toBe("user-content-trg-1");
     expect(findAnchorTarget(c, "heading")?.id).toBe("heading");
     expect(findAnchorTarget(c, "nope")).toBeNull();
+  });
+});
+
+describe("isInternalDocLink", () => {
+  it("matches relative *.md links (with/without fragment), not #frag/http/non-md", () => {
+    expect(isInternalDocLink("../spec.md#fr-0101")).toBe(true);
+    expect(isInternalDocLink("other.markdown")).toBe(true);
+    expect(isInternalDocLink("#frag")).toBe(false);
+    expect(isInternalDocLink("https://github.com/x")).toBe(false);
+    expect(isInternalDocLink("mailto:a@b.com")).toBe(false);
+    expect(isInternalDocLink("logo.png")).toBe(false);
+    expect(isInternalDocLink("../code.ts")).toBe(false);
   });
 });
 
@@ -111,6 +124,17 @@ describe("DocumentMarkdown rendering", () => {
     );
     const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
     getByText("jump").dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+  });
+
+  it("AC8 cross-file — clicking a relative *.md link calls onDocLinkClick (not same-doc scroll)", () => {
+    const onDocLinkClick = vi.fn();
+    const { getByText } = render(
+      <DocumentMarkdown text={"[FR-01.01](../spec.md#fr-0101)"} onDocLinkClick={onDocLinkClick} />,
+    );
+    const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+    getByText("FR-01.01").dispatchEvent(ev);
+    expect(onDocLinkClick).toHaveBeenCalledWith("../spec.md#fr-0101");
     expect(ev.defaultPrevented).toBe(true);
   });
 });
