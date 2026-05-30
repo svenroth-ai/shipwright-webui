@@ -1,6 +1,6 @@
 /*
  * Per-body rendering tests for the v0.4 generic mode (custom actions
- * from .webui/actions.json). Mandatory per Step 3.5 review OpenAI #7.
+ * from .shipwright-webui/actions.json). Mandatory per Step 3.5 review OpenAI #7.
  */
 
 import { describe, it, expect, afterEach, beforeEach } from "vitest";

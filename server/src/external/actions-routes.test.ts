@@ -142,7 +142,7 @@ describe("actions/preview/stub routes", () => {
 
   // ---- GET /actions ----
 
-  it("GET /projects/:id/actions returns bundled default shape when no .webui/actions.json", async () => {
+  it("GET /projects/:id/actions returns bundled default shape when no .shipwright-webui/actions.json", async () => {
     const r = await app.request(
       `/api/external/projects/${PROJECT_ID}/actions`,
     );
@@ -187,8 +187,8 @@ describe("actions/preview/stub routes", () => {
     expect(changelogPhase?.supports_autonomy).toBeUndefined();
   });
 
-  it("GET /projects/:id/actions reports diagnostic when .webui/actions.json is malformed", async () => {
-    const webuiDir = path.join(projectPath, ".webui");
+  it("GET /projects/:id/actions reports diagnostic when .shipwright-webui/actions.json is malformed", async () => {
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     mkdirSync(webuiDir, { recursive: true });
     writeFileSync(path.join(webuiDir, "actions.json"), "{ not json", "utf-8");
 
@@ -211,7 +211,7 @@ describe("actions/preview/stub routes", () => {
   });
 
   it("GET /projects/:id/actions rejects template with unknown placeholder (invalid_placeholder 400)", async () => {
-    const webuiDir = path.join(projectPath, ".webui");
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     mkdirSync(webuiDir, { recursive: true });
     writeFileSync(
       path.join(webuiDir, "actions.json"),
@@ -242,7 +242,7 @@ describe("actions/preview/stub routes", () => {
   });
 
   it("GET /projects/:id/actions resolves preview.enabled per § 2.1 precedence — actions:false forces off", async () => {
-    const webuiDir = path.join(projectPath, ".webui");
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     mkdirSync(webuiDir, { recursive: true });
     writeFileSync(
       path.join(webuiDir, "actions.json"),
@@ -337,13 +337,13 @@ describe("actions/preview/stub routes", () => {
 
   // ---- POST /actions-stub ----
 
-  it("POST /projects/:id/actions-stub creates .webui/actions.json + is idempotent", async () => {
+  it("POST /projects/:id/actions-stub creates .shipwright-webui/actions.json + is idempotent", async () => {
     const r1 = await app.request(
       `/api/projects/${PROJECT_ID}/actions-stub`,
       { method: "POST" },
     );
     expect(r1.status).toBe(200);
-    const file = path.join(projectPath, ".webui", "actions.json");
+    const file = path.join(projectPath, ".shipwright-webui", "actions.json");
     expect(existsSync(file)).toBe(true);
     const content = readFileSync(file, "utf-8");
     expect(content).toContain("schemaVersion");
@@ -642,13 +642,13 @@ describe("actions/preview/stub routes", () => {
 
     // ── 2026-04-25 — iterate-custom-actions-generic-mode ──
     //
-    // Custom action ids defined in `.webui/actions.json` (e.g. wrapping a
+    // Custom action ids defined in `.shipwright-webui/actions.json` (e.g. wrapping a
     // user's own slash skill like `/content-orchestrator`) must flow
     // through the same substitutePlaceholders pipeline. The route layer's
     // shape-check used to gate `actionId` against a 4-id allowlist; the
     // catalog lookup is now the single source of truth.
     it("substitutes a custom action's command_template (generic mode)", async () => {
-      const webuiDir = path.join(projectPath, ".webui");
+      const webuiDir = path.join(projectPath, ".shipwright-webui");
       mkdirSync(webuiDir, { recursive: true });
       writeFileSync(
         path.join(webuiDir, "actions.json"),
@@ -873,12 +873,12 @@ describe("actions/preview/stub routes", () => {
   // POST /tasks/:id/launch parameters resolution + body validation.
   describe("launch parameters resolution (iterate/launch-cli-parameters)", () => {
     /**
-     * Write a custom `.webui/actions.json` to the project tmpdir so the
+     * Write a custom `.shipwright-webui/actions.json` to the project tmpdir so the
      * loader picks it up over the bundled default. clearActionsCache()
      * runs in beforeEach (line 115) so each test gets a fresh load.
      */
     function writeWebuiActions(actions: object): void {
-      const dir = path.join(projectPath, ".webui");
+      const dir = path.join(projectPath, ".shipwright-webui");
       mkdirSync(dir, { recursive: true });
       writeFileSync(
         path.join(dir, "actions.json"),
