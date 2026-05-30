@@ -12,11 +12,15 @@
  *   - Previous-event-sensitive: turn-boundary <hr> between user→assistant.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 
 import { TranscriptRow } from "./TranscriptRow";
 import { parseSessionJsonl, type ParsedEvent } from "../../../external/session-parser";
+
+// Mock usePrStatus (React Query) so `pr-link` rows render without a provider;
+// the open/merged badge is covered by PrLinkCard.test.tsx + the F0.5 E2E.
+vi.mock("../../../hooks/usePrStatus", () => ({ usePrStatus: () => ({ data: undefined }) }));
 
 const EMPTY_RESOLVED = new Set<string>();
 const EMPTY_MAP = new Map<string, { content: string; is_error: boolean }>();

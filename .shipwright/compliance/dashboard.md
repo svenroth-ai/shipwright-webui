@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-05-28T22:31:30.924917+00:00
+Generated: 2026-05-30T09:01:42.964691+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -9,21 +9,21 @@ Scope: full_app
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 92 changes | INFO |  |
-| All unit tests passing | 0/0 | WARN | no test events recorded yet |
+| Work events (iterate) | 93 changes | INFO |  |
+| All unit tests passing | 1335/1335 | PASS |  |
 | Architecture decisions | 124 ADRs | INFO |  |
-| Iterate tests passing | 65/92 iterations tested | WARN | 27 iterate(s) without tests — see test-evidence.md |
+| Iterate tests passing | 66/93 iterations tested | WARN | 27 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 55 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 0 open | PASS |  |
 | Bloat over-limit | 78 | WARN | 78 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
 | Bloat in allowlist | 81 entries | INFO |  |
-| Bloat ratchet delta | +0 lines | PASS |  |
+| Bloat ratchet delta | +17 lines | WARN | grandfathered surface ratcheted up by 17 line(s) — Iron Law violation |
 
 ## Project Velocity
 
-- Iterate: 92 changes (2026-05-01 → 2026-05-28)
-- Last activity: 2026-05-28
+- Iterate: 93 changes (2026-05-01 → 2026-05-30)
+- Last activity: 2026-05-30
 
 ## External LLM Review Evidence
 
