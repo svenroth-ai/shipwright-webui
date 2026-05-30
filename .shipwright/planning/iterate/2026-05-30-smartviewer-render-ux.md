@@ -2,7 +2,7 @@
 
 - **Run ID:** iterate-2026-05-30-smartviewer-render-ux
 - **Intent:** CHANGE · **Complexity:** medium
-- **Spec Impact:** MODIFY (FR-03.34 SmartViewer file preview)
+- **Spec Impact:** MODIFY (FR-01.02 SmartViewer file preview)
 - **Branch:** iterate/smartviewer-render-ux
 
 ## Context
