@@ -11,7 +11,7 @@ import {
 } from "../../core/actions-substitute.js";
 
 /**
- * 256 KB cap on `.webui/actions.json` upload payloads. The bundled default
+ * 256 KB cap on `.shipwright-webui/actions.json` upload payloads. The bundled default
  * is ~5 KB; 256 KB is generous for any legitimate per-project override and
  * tight enough to refuse accidental binary uploads or copy-paste of huge
  * files.

@@ -58,7 +58,7 @@ export function ActionsConfigCard({ projects }: ActionsConfigCardProps) {
           lineHeight: 1.5,
         }}
       >
-        Replace each project&rsquo;s <code style={inlineCodeStyle}>.webui/actions.json</code>{" "}
+        Replace each project&rsquo;s <code style={inlineCodeStyle}>.shipwright-webui/actions.json</code>{" "}
         to customize the <code style={inlineCodeStyle}>+ New ▾</code> dropdown,
         phase allowlist, and preview gate. Files are validated against the
         actions schema before they overwrite anything on disk.
@@ -228,7 +228,7 @@ function ActionsConfigRow({ project }: { project: Project }) {
             disabled={!canReset || reset.isPending}
             title={
               canReset
-                ? "Remove .webui/actions.json"
+                ? "Remove .shipwright-webui/actions.json"
                 : "Already on bundled default"
             }
             style={{
@@ -330,7 +330,7 @@ function ResetActionsDialog({
             Reset actions.json?
           </Dialog.Title>
           <Dialog.Description className="mt-2 text-sm text-neutral-700">
-            Remove <span className="font-mono text-xs">.webui/actions.json</span>{" "}
+            Remove <span className="font-mono text-xs">.shipwright-webui/actions.json</span>{" "}
             from <span className="font-medium">{projectName}</span>? The project
             will fall back to the bundled default. The file on disk will be
             deleted.
