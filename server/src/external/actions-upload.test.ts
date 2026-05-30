@@ -1,6 +1,6 @@
 /*
  * Iterate iterate-20260430-actions-upload-ui — route-layer tests for
- *   - POST   /api/projects/:id/actions-upload  (replace .webui/actions.json)
+ *   - POST   /api/projects/:id/actions-upload  (replace .shipwright-webui/actions.json)
  *   - DELETE /api/projects/:id/actions-upload  (reset to bundled default)
  *
  * Spec: FR-01.27. Server enforces JSON-parse + schema validation
@@ -113,7 +113,7 @@ describe("POST /api/projects/:id/actions-upload", () => {
     rmSync(projectPath, { recursive: true, force: true });
   });
 
-  it("writes .webui/actions.json on valid payload + returns {path, written: true}", async () => {
+  it("writes .shipwright-webui/actions.json on valid payload + returns {path, written: true}", async () => {
     const r = await app.request(
       `/api/projects/${PROJECT_ID}/actions-upload`,
       {
@@ -125,15 +125,15 @@ describe("POST /api/projects/:id/actions-upload", () => {
     expect(r.status).toBe(200);
     const body = (await r.json()) as { path: string; written: boolean };
     expect(body.written).toBe(true);
-    expect(body.path).toBe(path.join(projectPath, ".webui", "actions.json"));
+    expect(body.path).toBe(path.join(projectPath, ".shipwright-webui", "actions.json"));
 
     const onDisk = readFileSync(body.path, "utf-8");
     const parsed = JSON.parse(onDisk) as { schemaVersion: number };
     expect(parsed.schemaVersion).toBe(1);
   });
 
-  it("creates .webui/ directory if it does not exist", async () => {
-    const webuiDir = path.join(projectPath, ".webui");
+  it("creates .shipwright-webui/ directory if it does not exist", async () => {
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     expect(existsSync(webuiDir)).toBe(false);
 
     const r = await app.request(
@@ -148,8 +148,8 @@ describe("POST /api/projects/:id/actions-upload", () => {
     expect(existsSync(webuiDir)).toBe(true);
   });
 
-  it("overwrites existing .webui/actions.json (replace semantics)", async () => {
-    const webuiDir = path.join(projectPath, ".webui");
+  it("overwrites existing .shipwright-webui/actions.json (replace semantics)", async () => {
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     mkdirSync(webuiDir, { recursive: true });
     writeFileSync(
       path.join(webuiDir, "actions.json"),
@@ -314,7 +314,7 @@ describe("POST /api/projects/:id/actions-upload", () => {
     expect(body.actionId).toBe("new-task");
 
     // The bad payload must not have been written to disk.
-    const file = path.join(projectPath, ".webui", "actions.json");
+    const file = path.join(projectPath, ".shipwright-webui", "actions.json");
     expect(existsSync(file)).toBe(false);
   });
 
@@ -384,8 +384,8 @@ describe("DELETE /api/projects/:id/actions-upload", () => {
     rmSync(projectPath, { recursive: true, force: true });
   });
 
-  it("removes existing .webui/actions.json + returns {removed: true}", async () => {
-    const webuiDir = path.join(projectPath, ".webui");
+  it("removes existing .shipwright-webui/actions.json + returns {removed: true}", async () => {
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     mkdirSync(webuiDir, { recursive: true });
     const file = path.join(webuiDir, "actions.json");
     writeFileSync(file, JSON.stringify(validActionsPayload()), "utf-8");
@@ -419,7 +419,7 @@ describe("DELETE /api/projects/:id/actions-upload", () => {
 
   it("invalidates the loader cache — next GET /actions returns bundled default", async () => {
     // Seed a custom file.
-    const webuiDir = path.join(projectPath, ".webui");
+    const webuiDir = path.join(projectPath, ".shipwright-webui");
     mkdirSync(webuiDir, { recursive: true });
     writeFileSync(
       path.join(webuiDir, "actions.json"),

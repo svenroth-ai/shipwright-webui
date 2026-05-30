@@ -154,7 +154,7 @@ export interface ExternalTask {
    * nothing is persisted.
    *
    * 2026-04-25 — iterate-custom-actions-generic-mode. Type widened from a
-   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * 4-id union to `string` so user-defined actions in `.shipwright-webui/actions.json`
    * (e.g. `new-content-orchestrator`) can flow through. Catalog membership
    * is the validity gate at /launch time — see routes.ts `unknown_action_id`.
    */

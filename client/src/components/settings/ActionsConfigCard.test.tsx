@@ -110,7 +110,7 @@ describe("ActionsConfigCard", () => {
     expect(screen.queryByTestId("actions-config-row-syn")).toBeNull();
   });
 
-  it("shows 'Bundled' state badge when project has no .webui/actions.json", async () => {
+  it("shows 'Bundled' state badge when project has no .shipwright-webui/actions.json", async () => {
     setup();
     const row = await screen.findByTestId("actions-config-row-p1");
     expect(within(row).getByTestId("actions-config-state-p1")).toHaveTextContent(
@@ -129,7 +129,7 @@ describe("ActionsConfigCard", () => {
               diagnostics: [
                 {
                   code: "actions_file_malformed",
-                  path: "/repo/alpha/.webui/actions.json",
+                  path: "/repo/alpha/.shipwright-webui/actions.json",
                 },
               ],
             });
@@ -155,7 +155,7 @@ describe("ActionsConfigCard", () => {
         async ({ request }) => {
           received = await request.text();
           return HttpResponse.json({
-            path: "/repo/alpha/.webui/actions.json",
+            path: "/repo/alpha/.shipwright-webui/actions.json",
             written: true,
           });
         },
@@ -233,7 +233,7 @@ describe("ActionsConfigCard", () => {
       http.delete("/api/projects/p1/actions-upload", () => {
         deleteCalled = true;
         return HttpResponse.json({
-          path: "/repo/alpha/.webui/actions.json",
+          path: "/repo/alpha/.shipwright-webui/actions.json",
           removed: true,
         });
       }),
@@ -271,7 +271,7 @@ describe("ActionsConfigCard", () => {
               diagnostics: [
                 {
                   code: "actions_file_malformed",
-                  path: "/repo/alpha/.webui/actions.json",
+                  path: "/repo/alpha/.shipwright-webui/actions.json",
                 },
               ],
             });

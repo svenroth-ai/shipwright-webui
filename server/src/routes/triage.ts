@@ -69,7 +69,7 @@ const DESCRIPTION_MAX_LENGTH = 20_000;
  * landing action (a finding that turns out to need no change just ends
  * the iterate early). `new-iterate` is a bundled action, always present
  * in the resolved catalog; the launch route still validates it
- * (`unknown_action_id`) against the project's `.webui/actions.json`. A
+ * (`unknown_action_id`) against the project's `.shipwright-webui/actions.json`. A
  * custom catalog that removes `new-iterate` therefore yields a loud
  * 400 on launch — by design. Do NOT add a degrade-to-legacy fallback
  * here: the legacy launch path has no description placeholder, so a

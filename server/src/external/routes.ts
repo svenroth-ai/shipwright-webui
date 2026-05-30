@@ -52,6 +52,7 @@ import { createInboxRouter } from "./inbox/routes.js";
 import { createTranscriptRouter } from "./transcript/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 import { createLaunchRouter } from "./launch/routes.js";
+import { createPrStatusRouter } from "./pr-status/routes.js";
 
 // Back-compat re-exports — 14+ sibling test files + downstream consumers
 // import these from `./routes.js` directly. Sources of truth post-C2:
@@ -223,6 +224,11 @@ export function createExternalRoutes(args: {
     "/",
     createActionsRouter({ getProjectById, loadProfile: profileResolver }),
   );
+  // GET /pr-status?url=<prUrl> — open/merged badge for the transcript
+  // PrLinkCard. Validates the github pull URL, then runs `gh pr view`
+  // shell:false (iterate-2026-05-30-pr-card-status). Stateless; uses the
+  // default gh runner + in-memory TTL cache from core/pr-status.ts.
+  app.route("/", createPrStatusRouter());
 
   return app;
 }

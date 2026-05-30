@@ -22,7 +22,7 @@ export const RUN_CONFIG_CONTRACT_VERSION = 1;
 
 /**
  * Highest `schemaVersion` this WebUI build knows how to read for
- * `<project>/.webui/actions.json`.
+ * `<project>/.shipwright-webui/actions.json`.
  */
 export const ACTIONS_SCHEMA_VERSION = 1;
 

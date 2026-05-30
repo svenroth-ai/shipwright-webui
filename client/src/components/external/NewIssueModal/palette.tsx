@@ -7,7 +7,7 @@
  *
  * `resolveMode(action)` is the explicit fallback for unknown action.id
  * (Step 3.5 review OpenAI #5): bundled IDs map to bespoke modes; everything
- * else (including custom .webui/actions.json entries like
+ * else (including custom .shipwright-webui/actions.json entries like
  * `new-content-orchestrator`) lands in `"generic"`. A null action resolves
  * to `"new-task"` for the initial-render frame so palette lookup never
  * crashes — the dispatcher early-returns null before any body renders, so
@@ -54,7 +54,7 @@ export const PALETTE: Record<Mode, ModePalette> = {
     textStrong: "#374151",
     stripe: "var(--color-accent, #857568)",
   },
-  // v0.4 — Generic / custom actions from `.webui/actions.json`. Same slate
+  // v0.4 — Generic / custom actions from `.shipwright-webui/actions.json`. Same slate
   // family as Plain Claude but slightly cooler so a custom action is
   // visually distinct from the bundled "no-skill" mode.
   generic: {
@@ -106,7 +106,7 @@ export function modeSubheading(
   if (mode === "generic")
     return (
       action?.description ??
-      "Custom action from this project's .webui/actions.json. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal."
+      "Custom action from this project's .shipwright-webui/actions.json. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal."
     );
   return "Standalone task scoped to a Shipwright phase. Save it to the Backlog, or Launch to auto-run the command in the embedded terminal.";
 }
