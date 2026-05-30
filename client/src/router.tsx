@@ -7,6 +7,7 @@ import InboxPage from './pages/InboxPage';
 import TriagePage from './pages/TriagePage';
 import SettingsPage from './pages/SettingsPage';
 import DiagnosticsPage from './pages/DiagnosticsPage';
+import PreviewPage from './pages/PreviewPage';
 
 export const router = createBrowserRouter([
   {
@@ -22,4 +23,6 @@ export const router = createBrowserRouter([
       { path: 'diagnostics', element: <DiagnosticsPage /> },
     ],
   },
+  // Full-screen SmartViewer pop-out (AC5) — no MainLayout/sidebar chrome.
+  { path: '/preview', element: <PreviewPage /> },
 ]);

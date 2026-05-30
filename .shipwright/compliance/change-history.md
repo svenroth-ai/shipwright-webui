@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-05-28T22:31:30.924917+00:00
-Total commits: 446
+Generated: 2026-05-30T09:37:06.331457+00:00
+Total commits: 455
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 171
+    "fix" : 173
     "feat" : 119
-    "chore" : 79
-    "docs" : 37
+    "chore" : 83
+    "docs" : 40
     "refactor" : 22
     "test" : 13
     "other" : 4
@@ -19,10 +19,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 171 commits
+### Fixes (fix) — 173 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-29 | transcript | render mode/pr-link/stop-hook events + intent-based scroll detach | 7573e84a00cd |
+| 2026-05-29 | client | clear CTA label-reset timers on unmount (teardown-leak flake) | 525fd1f2a597 |
 | 2026-05-27 | webui | phase pill no longer derives Build from "Fix"-titled iterates | ce60cf78e94e |
 | 2026-05-27 | terminal | trim routes.ts comment 1 LOC to land at exact baseline | 9bf3426a3d6e |
 | 2026-05-27 | terminal | refine ready.ptyReused to hadPriorWriter (atomic snapshot) | ff6a6d254722 |
@@ -319,10 +321,14 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 79 commits
+### Chores (chore) — 83 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-29 | gitignore | ignore .shipwright/agent_docs/runtime/ (ADR-089 runtime/snapshot split) | f6e34a6fbf9c |
+| 2026-05-29 | events | backfill orphaned work_completed event for transcript-renderer-scroll | c11e911d9628 |
+| 2026-05-27 | events | record evt-18779597 for iterate-2026-05-27-fix-phase-pill-iterate-title-fallback | 68a896531ed0 |
+| 2026-05-27 | triage | dismiss trg-c00254ab — routes.ts 620 LOC ist kein Bloat | f0431802394a |
 | 2026-05-27 | bloat | ratchet TaskCard.tsx baseline.current down 609 -> 606 | db822c9147a9 |
 | 2026-05-27 | iterate | set adr field to run_id for F11 verifier | 07b5ec17c987 |
 | 2026-05-27 | triage | add trg-c00254ab follow-up for ADR-103 retirement remainder | 1dfb8b595f09 |
@@ -403,12 +409,15 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 37 commits
+### Documentation (docs) — 40 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-29 | agent-docs | resync architecture/conventions/component-inventory to current state | 2da95b56f1b2 |
+| 2026-05-27 | guide | refresh §6.4 / §6.8 / §10 with v0.14-v0.16 user-facing changes | 611994c1ba63 |
 | 2026-05-27 | adr-103 | backfill commit hash for retirement candidate #1 | 0d66a6354022 |
 | 2026-05-27 | adr | ADR-103 bloat-exception for terminal/routes.ts | 1e20170e3b64 |
+| 2026-05-26 | governance | public-launch hardening — Superpowers anti-slop PR template + Acknowledgments (P1.1, webui leg) | 935cc39f28b5 |
 | 2026-05-23 | spec | append FR-01.28 acceptance criteria for terminal-selection-uxd | 46f91387253a |
 | 2026-05-21 | spec | update FR-01.30 ACs for Fix-now NewIssueModal rewire | 4ca5be24c2bf |
 | 2026-05-21 | test-status | record Phase 0d FAIL-row dismissals (webui) (#50) | de956bce683e |
@@ -509,7 +518,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 446 |
+| Total commits | 455 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 446 |
+| Human-authored commits | 455 |
 

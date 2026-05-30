@@ -304,7 +304,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} projectId={projectId} path={path} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;

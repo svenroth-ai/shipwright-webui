@@ -1,14 +1,14 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-05-28T22:31:30.924917+00:00
+Generated: 2026-05-30T09:37:06.331457+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 33 |
+| Runtime dependencies | 36 |
 | Dev dependencies | 22 |
-| Total packages | 55 |
+| Total packages | 58 |
 | Unique licenses | 3 (Apache-2.0, ISC, MIT) |
 | Copyleft licenses | 0 |
 
@@ -16,7 +16,7 @@ Generated: 2026-05-28T22:31:30.924917+00:00
 
 ```mermaid
 pie title License Distribution
-    "MIT" : 51
+    "MIT" : 54
     "Apache-2.0" : 3
     "ISC" : 1
 ```
@@ -54,6 +54,9 @@ pie title License Distribution
 | react-resizable-panels | ^2.1.9 | MIT |
 | react-router-dom | ^7.0.0 | MIT |
 | rehype-highlight | ^7.0.2 | MIT |
+| rehype-raw | ^7.0.0 | MIT |
+| rehype-sanitize | ^6.0.0 | MIT |
+| rehype-slug | ^6.0.0 | MIT |
 | remark-gfm | ^4.0.1 | MIT |
 | shell-quote | ^1.8.3 | MIT |
 | strip-ansi | ^7.2.0 | MIT |

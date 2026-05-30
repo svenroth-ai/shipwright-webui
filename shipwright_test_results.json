@@ -1,12 +1,12 @@
 {
  "iterate_latest": {
-  "run_id": "iterate-2026-05-27-transcript-renderer-scroll",
-  "date": "2026-05-29",
+  "run_id": "iterate-2026-05-30-smartviewer-render-ux",
+  "date": "2026-05-30",
   "unit": {
    "status": "passed",
-   "passed": 1328,
-   "total": 1328,
-   "scope": "Full client vitest suite (122 files). New: stop-hook.test.ts (8), transcript-fingerprints.roundtrip.test.ts (5 boundary probe), session-parser.test.ts mode-change/pr-link/stop-hook blocks (+22), PrLinkCard.test.tsx (3), StopHookCard.test.tsx (4), TranscriptRow.test.tsx dispatch tests (+3), useAutoScroll.test.ts AC4 intent-detach block (+5; replaced the obsolete 250ms guard-window re-pin test)."
+   "passed": 1345,
+   "total": 1345,
+   "scope": "Client vitest 1345/1345 (123 files). New DocumentMarkdown.test.tsx (12): frontmatterToCodeFence happy/CRLF/no-fm/unterminated/thematic-break-guard, findAnchorTarget dual-resolve, AC4 comment-hidden, AC6 frontmatter-block, AC7 inline-anchor (clobber-prefixed id), AC8 unprefixed heading slug, sanitizer strips <script>/on*, AC8 nav preventDefault. doc-sync gains DocumentMarkdown + PreviewPage tokens. Server unchanged (client-only iterate)."
   },
   "integration": {
    "status": "not_run",
@@ -22,24 +22,29 @@
    "status": "passed",
    "passed": 1,
    "total": 1,
-   "scope": "Playwright spec 90 (90-transcript-renderer-fingerprints.spec.ts) against a live worktree stack (Hono :3947 + Vite :5273, SHIPWRIGHT_NETWORK_PROFILE=local): seeds mode/pr-link/stop-hook/plain-user JSONL, asserts PR card href+text, stop-hook collapsed->expand, plain user survives, mode pill hidden-by-default then visible after system toggle, zero bubble-unknown. Passed 1.5s."
+   "scope": "Playwright smartviewer-document-render.spec.ts against an isolated worktree stack (127.0.0.1, isolated USERPROFILE). Via the new /preview route it route-mocks the file API and asserts in real Chromium: comment hidden, frontmatter as a <pre> block, h1 renders, inline <a id> present (clobber-prefixed), clicking an internal link scrolls the pane (scrollTop increases) without hash-navigating, pop-out button visible."
   },
   "design_fidelity": {
-   "status": "skipped",
-   "passed": 0,
-   "total": 0,
-   "scope": "New cards reuse the established SkillCard/PermissionModePill CSS-var token set; no new design tokens."
+   "status": "passed",
+   "passed": 1,
+   "total": 1,
+   "scope": "Document rendering + in-pane scroll behaviour asserted via computed DOM/scroll state in real Chromium (E2E) plus unit-level rendering assertions."
   },
   "smoke": {
    "status": "skipped",
-   "scope": "No server / API / dev-server change; client-only transcript renderer + scroll-hook change. Worktree stack booted only to drive the E2E."
+   "scope": "Client-only iterate (markdown renderer + a client route). No server / API change. Stack booted only to drive the F0.5 E2E."
   },
   "surface_verification": {
    "surface": "web",
    "tests_run": 1,
    "exit_code": 0,
-   "justification": "Backend-affects-frontend rule: change is client-only transcript rendering, but surface=web was run anyway (medium always-cell). E2E spec 90 drove the real UI entry point against a live stack."
+   "justification": "UI render + new /preview route; surface=web (mandatory at medium) drove the real document rendering + in-pane anchor scroll against a live stack. Evidence: .shipwright/runs/iterate-2026-05-30-smartviewer-render-ux/surface_verification.json."
   },
-  "degraded": []
+  "degraded": [
+   {
+    "condition": "performance_budget_not_run",
+    "detail": "touches_build (client/package.json gains rehype-raw/rehype-sanitize/rehype-slug). Lighthouse + bundle gate were not run in the iterate context (no dev_url / build-artifact wiring; /shipwright-test Step 3.8 skip-rules apply). The three packages are small unified plugins; bundle impact is minor and code-split is unaffected (file preview is already a non-critical pane)."
+   }
+  ]
  }
 }
