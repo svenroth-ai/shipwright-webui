@@ -10,7 +10,7 @@
  * Behavior:
  *   - When `actionsList` contains an action with id "new-plain", the
  *     button is enabled and clicking calls `onSelect(plainAction)`.
- *   - When no such action is registered (custom .webui/actions.json
+ *   - When no such action is registered (custom .shipwright-webui/actions.json
  *     without it), the button hides itself rather than rendering a
  *     dead control.
  */

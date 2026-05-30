@@ -135,29 +135,6 @@ export default function DiagnosticsPage() {
                   <KV key={state} label={state} value={count} />
                 ))}
               </Section>
-
-              <Section title="Launchers">
-                <LauncherRow
-                  name="Copy"
-                  available={data.launchers.copy.available}
-                  reason=""
-                />
-                <LauncherRow
-                  name="Terminal"
-                  available={data.launchers.terminal.available}
-                  reason={data.launchers.terminal.reason}
-                />
-                <LauncherRow
-                  name="VSCode"
-                  available={data.launchers.vscode.available}
-                  reason={data.launchers.vscode.reason}
-                />
-                <LauncherRow
-                  name="Desktop"
-                  available={data.launchers.desktop.available}
-                  reason={data.launchers.desktop.reason}
-                />
-              </Section>
             </div>
           )}
         </div>
@@ -208,50 +185,6 @@ function KV({ label, value }: { label: string; value: ReactNode }) {
       >
         {value}
       </span>
-    </div>
-  );
-}
-
-function LauncherRow({
-  name,
-  available,
-  reason,
-}: {
-  name: string;
-  available: boolean;
-  reason: string;
-}) {
-  return (
-    <div className="flex items-baseline" style={{ gap: "12px" }}>
-      <span
-        className="shrink-0 text-[12px] font-semibold"
-        style={{ width: "100px", color: "var(--color-text)" }}
-      >
-        {name}
-      </span>
-      <span
-        className="inline-flex items-center rounded-[999px] font-semibold"
-        style={{
-          padding: "2px 10px",
-          fontSize: "11px",
-          background: available
-            ? "var(--color-success-bg)"
-            : "var(--color-muted-bg)",
-          color: available
-            ? "var(--color-success-text)"
-            : "var(--color-muted)",
-        }}
-      >
-        {available ? "available" : "unavailable"}
-      </span>
-      {reason && (
-        <span
-          className="text-[12px]"
-          style={{ color: "var(--color-muted)" }}
-        >
-          {reason}
-        </span>
-      )}
     </div>
   );
 }
