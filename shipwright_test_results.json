@@ -1,12 +1,12 @@
 {
  "iterate_latest": {
-  "run_id": "iterate-2026-05-27-transcript-renderer-scroll",
-  "date": "2026-05-29",
+  "run_id": "iterate-2026-05-30-pr-card-status",
+  "date": "2026-05-30",
   "unit": {
    "status": "passed",
-   "passed": 1328,
-   "total": 1328,
-   "scope": "Full client vitest suite (122 files). New: stop-hook.test.ts (8), transcript-fingerprints.roundtrip.test.ts (5 boundary probe), session-parser.test.ts mode-change/pr-link/stop-hook blocks (+22), PrLinkCard.test.tsx (3), StopHookCard.test.tsx (4), TranscriptRow.test.tsx dispatch tests (+3), useAutoScroll.test.ts AC4 intent-detach block (+5; replaced the obsolete 250ms guard-window re-pin test)."
+   "passed": 1335,
+   "total": 1335,
+   "scope": "Client vitest 1335/1335 (incl. PrLinkCard.test.tsx +4 badge/geometry, TranscriptRow.test.tsx usePrStatus mock). Server vitest 1334/1334 (new pr-status.test.ts 16 + pr-status/routes.test.ts 4: validation, gh resolution, OPEN/DRAFT/MERGED/CLOSED mapping, all failure modes -> unknown, TTL cache, -- separator argv, route 200/400 + graceful-degradation)."
   },
   "integration": {
    "status": "not_run",
@@ -20,25 +20,25 @@
   },
   "e2e": {
    "status": "passed",
-   "passed": 1,
-   "total": 1,
-   "scope": "Playwright spec 90 (90-transcript-renderer-fingerprints.spec.ts) against a live worktree stack (Hono :3947 + Vite :5273, SHIPWRIGHT_NETWORK_PROFILE=local): seeds mode/pr-link/stop-hook/plain-user JSONL, asserts PR card href+text, stop-hook collapsed->expand, plain user survives, mode pill hidden-by-default then visible after system toggle, zero bubble-unknown. Passed 1.5s."
+   "passed": 2,
+   "total": 2,
+   "scope": "Playwright (2 specs) against an isolated worktree stack (Hono :3856 + Vite :5184, 127.0.0.1 pinned, isolated USERPROFILE). New pr-card-status.spec.ts: seeds a pr-link JSONL, route-mocks /api/external/pr-status -> merged, asserts the Merged badge + bubble geometry (fontSize 14px, paddingTop 8px, paddingLeft 12px, topLeft radius 4px, topRight 14px, max-w-[90%]) in real Chromium. Regression: spec 90 (transcript renderer fingerprints) still green."
   },
   "design_fidelity": {
-   "status": "skipped",
-   "passed": 0,
-   "total": 0,
-   "scope": "New cards reuse the established SkillCard/PermissionModePill CSS-var token set; no new design tokens."
+   "status": "passed",
+   "passed": 1,
+   "total": 1,
+   "scope": "Bubble-parity geometry + badge colours asserted at the unit level (PrLinkCard.test) and via computed styles in real Chromium (pr-card-status.spec). Matches the assistant message bubble."
   },
   "smoke": {
-   "status": "skipped",
-   "scope": "No server / API / dev-server change; client-only transcript renderer + scroll-hook change. Worktree stack booted only to drive the E2E."
+   "status": "passed",
+   "scope": "New GET /api/external/pr-status route exercised against the live worktree stack (spec 90's PrLinkCard performs a real gh pr view call; F0.5 stack served it without error)."
   },
   "surface_verification": {
    "surface": "web",
-   "tests_run": 1,
+   "tests_run": 2,
    "exit_code": 0,
-   "justification": "Backend-affects-frontend rule: change is client-only transcript rendering, but surface=web was run anyway (medium always-cell). E2E spec 90 drove the real UI entry point against a live stack."
+   "justification": "Backend-affects-frontend: new /api/external/pr-status route + gh subprocess consumed by the transcript PrLinkCard. surface=web (mandatory at medium) drove the real UI + route against a live stack. Evidence: .shipwright/runs/iterate-2026-05-30-pr-card-status/surface_verification.json."
   },
   "degraded": []
  }

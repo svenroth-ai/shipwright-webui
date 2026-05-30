@@ -207,7 +207,7 @@ export interface DiagnosticsSnapshot {
   };
 }
 
-async function httpJson<T>(input: string, init?: RequestInit): Promise<T> {
+export async function httpJson<T>(input: string, init?: RequestInit): Promise<T> {
   const r = await fetch(input, init);
   if (!r.ok) {
     const text = await r.text().catch(() => "");
