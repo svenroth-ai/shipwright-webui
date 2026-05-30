@@ -1,12 +1,12 @@
 {
  "iterate_latest": {
-  "run_id": "iterate-2026-05-30-page-chrome-cleanup",
+  "run_id": "iterate-2026-05-30-pr-card-status",
   "date": "2026-05-30",
   "unit": {
    "status": "passed",
-   "passed": 1331,
-   "total": 1331,
-   "scope": "Client vitest 1331/1331 (122 files). Server vitest 1314/1314 also green at F0 full-suite. Change is client-only (DiagnosticsPage.tsx, TriagePage.tsx) so no new unit tests authored; existing suites guard against regression."
+   "passed": 1335,
+   "total": 1335,
+   "scope": "Client vitest 1335/1335 (incl. PrLinkCard.test.tsx +4 badge/geometry, TranscriptRow.test.tsx usePrStatus mock). Server vitest 1334/1334 (new pr-status.test.ts 16 + pr-status/routes.test.ts 4: validation, gh resolution, OPEN/DRAFT/MERGED/CLOSED mapping, all failure modes -> unknown, TTL cache, -- separator argv, route 200/400 + graceful-degradation)."
   },
   "integration": {
    "status": "not_run",
@@ -20,25 +20,25 @@
   },
   "e2e": {
    "status": "passed",
-   "passed": 8,
-   "total": 8,
-   "scope": "Playwright (4 specs / 8 tests) against an isolated worktree stack (Hono :3856 + Vite :5184, SHIPWRIGHT_NETWORK_PROFILE=local, isolated USERPROFILE). New: diagnostics-launchers-removed (Launchers section absent; Claude CLI + Sessions present) and triage-header-restyle (full-bleed white 24px/700 h1 + count badge + bottom border; no subtitle). Regression: triage-restyle (3) + triage-tab (3) still green. 8 passed."
+   "passed": 2,
+   "total": 2,
+   "scope": "Playwright (2 specs) against an isolated worktree stack (Hono :3856 + Vite :5184, 127.0.0.1 pinned, isolated USERPROFILE). New pr-card-status.spec.ts: seeds a pr-link JSONL, route-mocks /api/external/pr-status -> merged, asserts the Merged badge + bubble geometry (fontSize 14px, paddingTop 8px, paddingLeft 12px, topLeft radius 4px, topRight 14px, max-w-[90%]) in real Chromium. Regression: spec 90 (transcript renderer fingerprints) still green."
   },
   "design_fidelity": {
    "status": "passed",
    "passed": 1,
    "total": 1,
-   "scope": "Triage header computed styles asserted in real Chromium: fontSize 24px, fontWeight >=700, bar background rgb(255,255,255) (--color-surface), non-zero bottom border. Matches the Inbox/Projects header geometry."
+   "scope": "Bubble-parity geometry + badge colours asserted at the unit level (PrLinkCard.test) and via computed styles in real Chromium (pr-card-status.spec). Matches the assistant message bubble."
   },
   "smoke": {
-   "status": "skipped",
-   "scope": "Client-only page-chrome change; no server / API / dev-server change. Stack booted only to drive the F0.5 E2E."
+   "status": "passed",
+   "scope": "New GET /api/external/pr-status route exercised against the live worktree stack (spec 90's PrLinkCard performs a real gh pr view call; F0.5 stack served it without error)."
   },
   "surface_verification": {
    "surface": "web",
-   "tests_run": 8,
+   "tests_run": 2,
    "exit_code": 0,
-   "justification": "UI change to the Diagnostics + Triage pages; surface=web drove the real UI entry point against a live stack (safety-enforced at small + UI). Evidence: .shipwright/runs/iterate-2026-05-30-page-chrome-cleanup/surface_verification.json."
+   "justification": "Backend-affects-frontend: new /api/external/pr-status route + gh subprocess consumed by the transcript PrLinkCard. surface=web (mandatory at medium) drove the real UI + route against a live stack. Evidence: .shipwright/runs/iterate-2026-05-30-pr-card-status/surface_verification.json."
   },
   "degraded": []
  }

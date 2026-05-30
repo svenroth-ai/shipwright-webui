@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-05-30-pr-card-status",
+  "date": "2026-05-30T09:01:43.486798Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/pr-card-status",
+  "spec": ".shipwright/planning/iterate/2026-05-30-pr-card-status.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-05-30-pr-card-status"
+}
