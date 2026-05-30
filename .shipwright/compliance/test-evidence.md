@@ -1,20 +1,20 @@
 # Test Evidence Report
 
-Generated: 2026-05-30T08:05:50.314619+00:00
+Generated: 2026-05-30T09:01:42.964691+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Total test checkpoints | 163 |
-| Total unit tests (latest) | 1331/1331 |
+| Total unit tests (latest) | 1335/1335 |
 | New tests from iterations | +26 |
 
 ## Test Progression
 
 | # | Event | Source | Layer | New Tests | Suite Total | Result | Date |
 |---|-------|--------|-------|-----------|-------------|--------|------|
-| 1 | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | iterate | mixed | +0 | 1331/1331 | PASS | 2026-05-30 |
+| 1 | PR card bubble parity + open/merged status badge via gh pr view | iterate | mixed | +0 | 1335/1335 | PASS | 2026-05-30 |
 | 2 | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | iterate | — | +0 | — | — | 2026-05-28 |
 | 3 | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | iterate | — | +0 | — | — | 2026-05-27 |
 | 4 | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | iterate | — | +0 | — | — | 2026-05-27 |
@@ -211,7 +211,7 @@ Generated: 2026-05-30T08:05:50.314619+00:00
 | 27 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
 | 28 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
 | 29 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
-| 30 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
+| 30 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
 
 ## Code Review Evidence
 

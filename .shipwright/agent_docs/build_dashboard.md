@@ -1,11 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-30 08:05 UTC | Session: c325e08b-2c37-4ad1-aee0-cc007653fbbf | Run: iterate-2026-05-30-page-chrome-cleanup
+> Updated: 2026-05-30 09:01 UTC | Session: c325e08b-2c37-4ad1-aee0-cc007653fbbf | Run: iterate-2026-05-30-pr-card-status
 
 ## Recent Changes (93 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | 1331/1331 |  |  | 2026-05-30 |
+| change | PR card bubble parity + open/merged status badge via gh pr view | 1335/1335 |  | FR-01.02 | 2026-05-30 |
 | bug | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | 0/0 | 7573e84 | FR-01.02 | 2026-05-28 |
 | bug | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | 0/0 | ce60cf7 | bug | 2026-05-27 |
 | change | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | 0/0 | a662027 | refactor | 2026-05-27 |
@@ -100,7 +100,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-30 | Unit: 1331/1331 | E2E: 8/8 | Smoke: skipped | (iterate)
+Last run: 2026-05-30 | Unit: 1335/1335 | E2E: 2/2 | Smoke: passed | (iterate)
 
 ## Pipeline
 
