@@ -13,7 +13,7 @@
  *
  * Security boundary:
  *   The cli_flag allowlist regex is the actual injection guard for
- *   user-overridable .webui/actions.json. Per-shell escaping in
+ *   user-overridable .shipwright-webui/actions.json. Per-shell escaping in
  *   actions-substitute.ts is the second layer for user-supplied VALUES.
  */
 

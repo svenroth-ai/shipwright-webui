@@ -95,7 +95,7 @@ export function NewPipelineModal({ form }: { form: UseNewIssueFormReturn }) {
 
       <FieldLabel
         label="Command preview"
-        hint="generated from .webui/actions.json · auto-updates"
+        hint="generated from .shipwright-webui/actions.json · auto-updates"
       >
         <CommandPreviewPanel
           mode="new-pipeline"

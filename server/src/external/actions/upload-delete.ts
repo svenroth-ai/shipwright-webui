@@ -2,7 +2,7 @@
  * external/actions/upload-delete.ts — DELETE /api/projects/:id/actions-upload.
  *
  * Reset the project to the bundled default by removing
- * `<project.path>/.webui/actions.json`. Idempotent: returns
+ * `<project.path>/.shipwright-webui/actions.json`. Idempotent: returns
  * `{removed: false}` when the file did not exist.
  */
 
@@ -34,7 +34,7 @@ export function registerActionsUploadDelete(
         400,
       );
     }
-    const file = join(project.path, ".webui", "actions.json");
+    const file = join(project.path, ".shipwright-webui", "actions.json");
     if (!existsSync(file)) {
       clearActionsCacheForProject(project.path);
       return c.json({ path: file, removed: false });

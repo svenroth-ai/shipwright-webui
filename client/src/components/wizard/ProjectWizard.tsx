@@ -56,7 +56,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
   // Section 03 — workflow choice lives in the wizard's Confirmation step
   // behind a "Show advanced options" accordion. Default is "shipwright" so
   // the overwhelming majority never sees the toggle. "custom" writes an
-  // empty .webui/actions.json stub + opens the docs page.
+  // empty .shipwright-webui/actions.json stub + opens the docs page.
   const [workflowChoice, setWorkflowChoice] = useState<WorkflowChoice>('shipwright');
   const [showAdvanced, setShowAdvanced] = useState(false);
   // Iterate iterate-20260501-wizard-actions-upload — when workflowChoice
@@ -91,7 +91,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
       },
       {
         onSuccess: async (created) => {
-          // Section 03 — Custom branch writes the .webui/actions.json stub
+          // Section 03 — Custom branch writes the .shipwright-webui/actions.json stub
           // on the just-created project and pops the docs page.
           // iterate-20260501 — when the user picked a file in the advanced
           // step, upload that instead of writing the empty stub. Server
@@ -338,7 +338,7 @@ export function ProjectWizard({ open, onOpenChange }: ProjectWizardProps) {
                             <span className="text-[var(--color-muted)]">
                               Write your own{' '}
                               <code className="rounded bg-[var(--color-muted-bg)] px-1 font-mono">
-                                .webui/actions.json
+                                .shipwright-webui/actions.json
                               </code>
                               . An empty structured stub is created on project creation; docs open in a new tab.
                             </span>
