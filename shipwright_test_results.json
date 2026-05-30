@@ -1,12 +1,12 @@
 {
  "iterate_latest": {
-  "run_id": "iterate-2026-05-27-transcript-renderer-scroll",
-  "date": "2026-05-29",
+  "run_id": "iterate-2026-05-30-page-chrome-cleanup",
+  "date": "2026-05-30",
   "unit": {
    "status": "passed",
-   "passed": 1328,
-   "total": 1328,
-   "scope": "Full client vitest suite (122 files). New: stop-hook.test.ts (8), transcript-fingerprints.roundtrip.test.ts (5 boundary probe), session-parser.test.ts mode-change/pr-link/stop-hook blocks (+22), PrLinkCard.test.tsx (3), StopHookCard.test.tsx (4), TranscriptRow.test.tsx dispatch tests (+3), useAutoScroll.test.ts AC4 intent-detach block (+5; replaced the obsolete 250ms guard-window re-pin test)."
+   "passed": 1331,
+   "total": 1331,
+   "scope": "Client vitest 1331/1331 (122 files). Server vitest 1314/1314 also green at F0 full-suite. Change is client-only (DiagnosticsPage.tsx, TriagePage.tsx) so no new unit tests authored; existing suites guard against regression."
   },
   "integration": {
    "status": "not_run",
@@ -20,25 +20,25 @@
   },
   "e2e": {
    "status": "passed",
-   "passed": 1,
-   "total": 1,
-   "scope": "Playwright spec 90 (90-transcript-renderer-fingerprints.spec.ts) against a live worktree stack (Hono :3947 + Vite :5273, SHIPWRIGHT_NETWORK_PROFILE=local): seeds mode/pr-link/stop-hook/plain-user JSONL, asserts PR card href+text, stop-hook collapsed->expand, plain user survives, mode pill hidden-by-default then visible after system toggle, zero bubble-unknown. Passed 1.5s."
+   "passed": 8,
+   "total": 8,
+   "scope": "Playwright (4 specs / 8 tests) against an isolated worktree stack (Hono :3856 + Vite :5184, SHIPWRIGHT_NETWORK_PROFILE=local, isolated USERPROFILE). New: diagnostics-launchers-removed (Launchers section absent; Claude CLI + Sessions present) and triage-header-restyle (full-bleed white 24px/700 h1 + count badge + bottom border; no subtitle). Regression: triage-restyle (3) + triage-tab (3) still green. 8 passed."
   },
   "design_fidelity": {
-   "status": "skipped",
-   "passed": 0,
-   "total": 0,
-   "scope": "New cards reuse the established SkillCard/PermissionModePill CSS-var token set; no new design tokens."
+   "status": "passed",
+   "passed": 1,
+   "total": 1,
+   "scope": "Triage header computed styles asserted in real Chromium: fontSize 24px, fontWeight >=700, bar background rgb(255,255,255) (--color-surface), non-zero bottom border. Matches the Inbox/Projects header geometry."
   },
   "smoke": {
    "status": "skipped",
-   "scope": "No server / API / dev-server change; client-only transcript renderer + scroll-hook change. Worktree stack booted only to drive the E2E."
+   "scope": "Client-only page-chrome change; no server / API / dev-server change. Stack booted only to drive the F0.5 E2E."
   },
   "surface_verification": {
    "surface": "web",
-   "tests_run": 1,
+   "tests_run": 8,
    "exit_code": 0,
-   "justification": "Backend-affects-frontend rule: change is client-only transcript rendering, but surface=web was run anyway (medium always-cell). E2E spec 90 drove the real UI entry point against a live stack."
+   "justification": "UI change to the Diagnostics + Triage pages; surface=web drove the real UI entry point against a live stack (safety-enforced at small + UI). Evidence: .shipwright/runs/iterate-2026-05-30-page-chrome-cleanup/surface_verification.json."
   },
   "degraded": []
  }
