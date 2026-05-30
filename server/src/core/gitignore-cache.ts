@@ -4,7 +4,7 @@
  *
  * Contract:
  *   - loadIgnore(projectRoot) returns an `ignore` instance pre-loaded with
- *     platform defaults (.git, node_modules, dist, build, .shipwright-webui, .webui)
+ *     platform defaults (.git, node_modules, dist, build, .shipwright-webui)
  *     plus any patterns from <projectRoot>/.gitignore when present.
  *   - Cache key is (projectRoot, .gitignore mtime_ms). When .gitignore is
  *     absent the "mtime" slot is a sentinel 0 so the defaults-only instance
@@ -39,7 +39,6 @@ const DEFAULT_IGNORED = [
   "dist",
   "build",
   ".shipwright-webui",
-  ".webui",
 ];
 
 interface CacheEntry {

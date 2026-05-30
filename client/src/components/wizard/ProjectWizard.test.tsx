@@ -149,7 +149,7 @@ describe('ProjectWizard', () => {
         }
         uploadedBody = await request.text();
         return HttpResponse.json({
-          path: '/tmp/test/.webui/actions.json',
+          path: '/tmp/test/.shipwright-webui/actions.json',
           written: true,
         });
       }),

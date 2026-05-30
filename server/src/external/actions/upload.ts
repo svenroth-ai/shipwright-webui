@@ -1,7 +1,7 @@
 /*
  * external/actions/upload.ts — POST /api/projects/:id/actions-upload.
  *
- * Replaces `<project.path>/.webui/actions.json` with a JSON body validated
+ * Replaces `<project.path>/.shipwright-webui/actions.json` with a JSON body validated
  * against the actions schema. Iterate iterate-20260430-actions-upload-ui
  * (FR-01.27).
  *
@@ -118,7 +118,7 @@ export function registerActionsUpload(
     // Fail-soft: emits a one-shot warn on console for newer-than-known
     // schemaVersion, but does not block the upload.
     checkContractVersion({
-      artefact: ".webui/actions.json (upload)",
+      artefact: ".shipwright-webui/actions.json (upload)",
       path: project.path,
       declared: parsed.schemaVersion,
       knownMax: ACTIONS_SCHEMA_VERSION,
@@ -149,7 +149,7 @@ export function registerActionsUpload(
       }
     }
 
-    const dir = join(project.path, ".webui");
+    const dir = join(project.path, ".shipwright-webui");
     const file = join(dir, "actions.json");
     const tmp = join(dir, `actions.json.tmp-${process.pid}-${Date.now()}`);
     try {

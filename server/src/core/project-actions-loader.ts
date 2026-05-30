@@ -4,7 +4,7 @@
  * Iterate 3 section 03 — plan.md § 2.1 + ADR-036/039.
  *
  * Precedence (verbatim from the spec):
- *   1. `<project.path>/.webui/actions.json` if present and parseable.
+ *   1. `<project.path>/.shipwright-webui/actions.json` if present and parseable.
  *   2. Otherwise the bundled `webui/server/src/config/default-actions.json`.
  *
  * A malformed user-side file does NOT break the server — the loader
@@ -92,7 +92,7 @@ export interface LoaderDiagnostic {
 export interface LoadResult {
   /** The resolved config (bundled default on miss / malformed). */
   actions: ResolvedActions;
-  /** True when `.webui/actions.json` was used; false when bundled default. */
+  /** True when `.shipwright-webui/actions.json` was used; false when bundled default. */
   fromUser: boolean;
   diagnostics: LoaderDiagnostic[];
 }
@@ -151,7 +151,7 @@ export function clearActionsCache(): void {
 
 /**
  * Targeted invalidation for a single project. Used by the upload + reset
- * routes after they mutate `.webui/actions.json`. Keeps the bundled-
+ * routes after they mutate `.shipwright-webui/actions.json`. Keeps the bundled-
  * default singleton intact so other projects do not pay a re-parse cost
  * on their next GET (review feedback: avoid global thundering-herd).
  */
@@ -171,7 +171,7 @@ export function loadActionsForProject(
   const read = deps.readFileSync ?? readFileSync;
   const stat = deps.statSync ?? statSync;
 
-  const userPath = join(projectPath, ".webui", "actions.json");
+  const userPath = join(projectPath, ".shipwright-webui", "actions.json");
 
   // mtime-based cache. mtimeMs = null = cached "no user file" branch.
   let mtimeMs: number | null = null;
@@ -208,7 +208,7 @@ export function loadActionsForProject(
     const raw = read(userPath, "utf-8");
     const parsed = JSON.parse(raw) as ResolvedActions;
     checkContractVersion({
-      artefact: ".webui/actions.json",
+      artefact: ".shipwright-webui/actions.json",
       path: userPath,
       declared: parsed.schemaVersion,
       knownMax: ACTIONS_SCHEMA_VERSION,

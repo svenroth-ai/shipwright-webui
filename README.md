@@ -153,7 +153,7 @@ The WebUI reads but never writes:
 
 The WebUI writes only:
 
-- `<project>/.webui/actions.json` — empty stub on demand; user-editable
+- `<project>/.shipwright-webui/actions.json` — empty stub on demand; user-editable
 - `<project>/.shipwright/triage.jsonl` — appends `status` events from
   Promote / Dismiss / Snooze actions (FR-01.30, ADR-101). Never writes
   `append` events (those come from producer hooks).

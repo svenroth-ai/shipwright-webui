@@ -2,7 +2,7 @@
  * external/actions/get.ts — GET /api/external/projects/:projectId/actions.
  *
  * Resolved actions schema for the project. Falls back to the bundled
- * default when .webui/actions.json is absent; returns diagnostics in-band
+ * default when .shipwright-webui/actions.json is absent; returns diagnostics in-band
  * when the user file exists but is malformed (O24 chip). Validates every
  * command_template via the substitute dry-run; unknown placeholder → 400.
  */
@@ -117,7 +117,7 @@ export function registerActionsGet(
       diagnostics: loaded.diagnostics,
       // FR-01.27 — Settings UI uses this to render the source-state badge
       // (Custom / Bundled / Malformed). True iff the loader read
-      // `<project.path>/.webui/actions.json` successfully.
+      // `<project.path>/.shipwright-webui/actions.json` successfully.
       fromUser: loaded.fromUser,
     });
   });
