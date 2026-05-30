@@ -16,13 +16,7 @@
  */
 
 import { useEffect, useState } from "react";
-import {
-  AlertCircle,
-  ChevronRight,
-  FileQuestion,
-  FileText,
-  Folder,
-} from "lucide-react";
+import { AlertCircle, FileQuestion, FileText } from "lucide-react";
 
 import {
   CLIENT_FILE_TEXT_MAX_BYTES,
@@ -36,6 +30,7 @@ import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { useDocNavigation } from "./SmartViewer/useDocNavigation";
+import { PathStrip } from "./SmartViewer/PathStrip";
 
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "mermaid" | "unknown";
 
@@ -147,54 +142,6 @@ export function SmartViewer({ projectId, path }: Props) {
   }
 
   return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} />;
-}
-
-/**
- * Path breadcrumb strip shown below the tab bar. Renders folder segments
- * separated by chevrons so the user can see where the file lives inside
- * the project. When `size` is known (a text file has finished loading)
- * it renders the size badge next to the path.
- */
-function PathStrip({ path, size }: { path: string; size: number | null }) {
-  const segments = path.split("/").filter(Boolean);
-  return (
-    <div
-      className="flex min-h-[26px] items-center gap-1.5 border-b border-[var(--color-border,#e0dbd4)] px-4 py-1 font-mono text-[11px] text-[var(--color-muted,#6b7280)]"
-      data-testid="smart-viewer-path-strip"
-    >
-      <Folder
-        size={11}
-        className="shrink-0 text-[var(--color-accent,#857568)]"
-        aria-hidden="true"
-      />
-      {segments.map((seg, i) => (
-        <span key={`${seg}-${i}`} className="inline-flex items-center gap-1.5">
-          <span className="truncate">{seg}</span>
-          {i < segments.length - 1 && (
-            <ChevronRight
-              size={10}
-              aria-hidden="true"
-              className="opacity-50"
-            />
-          )}
-        </span>
-      ))}
-      {size !== null && (
-        <span
-          className="ml-2 inline-flex items-center rounded-[3px] bg-[var(--color-muted-bg,#ede8e1)] px-1.5 py-[1px] text-[10px] font-semibold text-[var(--color-muted,#6b7280)]"
-          data-testid="smart-viewer-size-badge"
-        >
-          {formatBytes(size)}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
 interface TextProps {
