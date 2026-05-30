@@ -14,9 +14,19 @@ interface Props {
   /** Present in the in-pane viewer; omitted inside the pop-out window itself. */
   projectId?: string;
   path?: string;
+  /** Follow a relative `*.md(#frag)` cross-file link in-pane (AC8). */
+  onDocLinkClick?: (href: string) => void;
+  /** Scroll to this fragment once, after a cross-file navigation lands. */
+  scrollToFragment?: string | null;
 }
 
-export function MarkdownRenderer({ text, projectId, path }: Props) {
+export function MarkdownRenderer({
+  text,
+  projectId,
+  path,
+  onDocLinkClick,
+  scrollToFragment,
+}: Props) {
   const canPopOut = Boolean(projectId && path);
 
   return (
@@ -49,7 +59,11 @@ export function MarkdownRenderer({ text, projectId, path }: Props) {
         style={{ background: "var(--color-surface, #ffffff)" }}
         data-testid="smart-viewer-markdown"
       >
-        <DocumentMarkdown text={text} />
+        <DocumentMarkdown
+          text={text}
+          onDocLinkClick={onDocLinkClick}
+          scrollToFragment={scrollToFragment}
+        />
       </div>
     </div>
   );

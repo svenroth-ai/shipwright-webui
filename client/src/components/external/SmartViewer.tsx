@@ -35,6 +35,7 @@ import { CodeRenderer } from "./SmartViewer/CodeRenderer";
 import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
+import { useDocNavigation } from "./SmartViewer/useDocNavigation";
 
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "mermaid" | "unknown";
 
@@ -145,9 +146,7 @@ export function SmartViewer({ projectId, path }: Props) {
     );
   }
 
-  return (
-    <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} />
-  );
+  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} />;
 }
 
 /**
@@ -206,6 +205,7 @@ interface TextProps {
 }
 
 function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
+  const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "ok"; text: string; size: number }
@@ -216,7 +216,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    fetchFileText(projectId, path)
+    fetchFileText(projectId, nav.effectivePath)
       .then((res) => {
         if (cancelled) return;
         setState({ status: "ok", text: res.text, size: res.size });
@@ -243,7 +243,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, path]);
+  }, [projectId, nav.effectivePath]);
 
   const size = state.status === "ok" ? state.size : null;
 
@@ -284,7 +284,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
                 : `Server cap is ${mb} MB.`}
             </div>
             <code className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[11px]">
-              {path}
+              {nav.effectivePath}
             </code>
           </div>
         </div>
@@ -304,7 +304,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} projectId={projectId} path={path} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} projectId={projectId} path={nav.effectivePath} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;
@@ -312,7 +312,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
 
   return (
     <div className="flex h-full flex-col" data-testid="smart-viewer">
-      <PathStrip path={path} size={size} />
+      <PathStrip path={nav.effectivePath} size={size} />
       <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
     </div>
   );

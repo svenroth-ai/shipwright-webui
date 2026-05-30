@@ -20,9 +20,9 @@
   },
   "e2e": {
    "status": "passed",
-   "passed": 1,
-   "total": 1,
-   "scope": "Playwright smartviewer-document-render.spec.ts against an isolated worktree stack (127.0.0.1, isolated USERPROFILE). Via the new /preview route it route-mocks the file API and asserts in real Chromium: comment hidden, frontmatter as a <pre> block, h1 renders, inline <a id> present (clobber-prefixed), clicking an internal link scrolls the pane (scrollTop increases) without hash-navigating, pop-out button visible."
+   "passed": 2,
+   "total": 2,
+   "scope": "Playwright (2 specs, 127.0.0.1-pinned worktree stack). (1) smartviewer-document-render.spec.ts via /preview route-mocks the file API and asserts in real Chromium: comment hidden, frontmatter as a <pre> block, h1 renders, inline <a id> present (clobber-prefixed), clicking an internal #-link scrolls the pane (scrollTop increases) without hash-navigating, pop-out button visible. (2) smartviewer-crossfile-nav.spec.ts runs with the REAL USERPROFILE (no mock): discovers the registered shipwright-webui project, opens the REAL .shipwright/compliance/traceability-matrix.md, clicks the real [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) cross-file link, and asserts the pane navigated in-place to spec.md — closing the gap the synthetic same-document fixture had missed."
   },
   "design_fidelity": {
    "status": "passed",
