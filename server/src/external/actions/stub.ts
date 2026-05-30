@@ -1,7 +1,7 @@
 /*
  * external/actions/stub.ts — POST /api/projects/:id/actions-stub.
  *
- * Creates `<project.path>/.webui/actions.json` as an empty structured stub.
+ * Creates `<project.path>/.shipwright-webui/actions.json` as an empty structured stub.
  * Only called from the wizard's "Custom" branch; idempotent (second call
  * is a no-op). This is the ONLY write webui performs inside a user's
  * project path that isn't gated by `realPathGuard`, because the
@@ -35,7 +35,7 @@ export function registerActionsStub(
         400,
       );
     }
-    const dir = join(project.path, ".webui");
+    const dir = join(project.path, ".shipwright-webui");
     const file = join(dir, "actions.json");
     try {
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });

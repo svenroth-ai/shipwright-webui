@@ -165,7 +165,7 @@ export function CreateMenuSplitButton({
               const Icon = v.icon;
               // Subtitle: prefer the mockup-locked copy; fall back to whatever
               // the server-provided action description is (keeps custom
-              // .webui/actions.json configurations usable).
+              // .shipwright-webui/actions.json configurations usable).
               const subtitle = v.subtitle || a.description || "";
               return (
                 <DropdownMenu.Item

@@ -42,14 +42,13 @@ describe("gitignore-cache — (projectRoot, mtime) cache (section 04a)", () => {
     }
   });
 
-  it("defaults: .git, node_modules, dist, build, .shipwright-webui, .webui always ignored", () => {
+  it("defaults: .git, node_modules, dist, build, .shipwright-webui always ignored", () => {
     const ig = loadIgnore(projectDir);
     expect(ig.ignores(".git")).toBe(true);
     expect(ig.ignores("node_modules")).toBe(true);
     expect(ig.ignores("dist")).toBe(true);
     expect(ig.ignores("build")).toBe(true);
     expect(ig.ignores(".shipwright-webui")).toBe(true);
-    expect(ig.ignores(".webui")).toBe(true);
   });
 
   it("non-ignored files return false", () => {

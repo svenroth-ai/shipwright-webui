@@ -45,7 +45,7 @@ export interface ExternalTask {
    */
   /**
    * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
-   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * 4-id union to `string` so user-defined actions in `.shipwright-webui/actions.json`
    * flow through. The server validates against the project's actions
    * catalog (`unknown_action_id` 400 on miss).
    */
@@ -313,7 +313,7 @@ export async function launchTask(
     /** 2026-04-23 — action context so server can run full substitution. */
     /**
    * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
-   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * 4-id union to `string` so user-defined actions in `.shipwright-webui/actions.json`
    * flow through. The server validates against the project's actions
    * catalog (`unknown_action_id` 400 on miss).
    */
@@ -361,7 +361,7 @@ export async function launchExternalTask(
     autonomy?: "guided" | "autonomous";
     /**
    * 2026-04-25 — iterate-custom-actions-generic-mode. Widened from the
-   * 4-id union to `string` so user-defined actions in `.webui/actions.json`
+   * 4-id union to `string` so user-defined actions in `.shipwright-webui/actions.json`
    * flow through. The server validates against the project's actions
    * catalog (`unknown_action_id` 400 on miss).
    */
@@ -552,7 +552,7 @@ export interface ResolvedProjectActions {
   preview: PreviewSpec;
   diagnostics: Array<{ code: string; path?: string; detail?: string }>;
   /**
-   * FR-01.27 — true iff the server loaded `<project.path>/.webui/actions.json`
+   * FR-01.27 — true iff the server loaded `<project.path>/.shipwright-webui/actions.json`
    * successfully (custom). false when bundled default was used. The
    * `diagnostics` array distinguishes "missing" (empty) from "malformed"
    * (contains `actions_file_malformed`). Optional in the type because
@@ -676,7 +676,7 @@ export async function startPreview(
 
 /**
  * Section 03 — invoked by the Project Wizard's "Custom" branch. Creates an
- * empty structured `.webui/actions.json` in the user's project. Idempotent
+ * empty structured `.shipwright-webui/actions.json` in the user's project. Idempotent
  * on the server; a repeat call is a no-op on the disk content.
  *
  * `mode` is future-proofing — today only `"custom"` is honored server-side.
@@ -693,7 +693,7 @@ export async function saveActionsStub(
 }
 
 /**
- * FR-01.27 — replace `<project.path>/.webui/actions.json` with the JSON
+ * FR-01.27 — replace `<project.path>/.shipwright-webui/actions.json` with the JSON
  * content of a user-uploaded file. Server validates JSON-parse + schema
  * + contract version before writing. The body is sent as `application/
  * json`; the server caps the payload at 256 KB and emits structured
@@ -715,7 +715,7 @@ export async function uploadActionsJson(
 }
 
 /**
- * FR-01.27 — remove the project's `.webui/actions.json`, falling back to
+ * FR-01.27 — remove the project's `.shipwright-webui/actions.json`, falling back to
  * the bundled default on subsequent loads. Idempotent on the server —
  * `removed: false` indicates the file was already absent.
  */

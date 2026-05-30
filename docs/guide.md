@@ -731,7 +731,7 @@ which exposes the four standard Shipwright modes (`new-task`,
 
 To add your own buttons — for example a `/content-orchestrator` skill
 you've built globally in `~/.claude/skills/` — install a file at
-`<project.path>/.webui/actions.json`. The Command Center offers three
+`<project.path>/.shipwright-webui/actions.json`. The Command Center offers three
 ways to do that (see [9.3.1](#931-installing-or-replacing-the-file)
 below); regardless of which path you pick, edits show up on the next
 page load (mtime-cached server-side).
@@ -746,9 +746,9 @@ page load (mtime-cached server-side).
 
 #### Where the file lives
 
-`<project.path>/.webui/actions.json` — relative to the **project**, not
+`<project.path>/.shipwright-webui/actions.json` — relative to the **project**, not
 the Command Center install. If the file is personal to you, add
-`.webui/` to your project's `.gitignore`. If your team shares the same
+`.shipwright-webui/` to your project's `.gitignore`. If your team shares the same
 skills, commit it.
 
 #### 9.3.1 Installing or replacing the file
@@ -763,21 +763,21 @@ registered project with a small badge:
 
 | Badge | Meaning |
 |---|---|
-| `BUNDLED` | No `.webui/actions.json` on disk → the Command Center serves the bundled default. |
-| `CUSTOM` | A valid `.webui/actions.json` is in use. |
-| `MALFORMED` | A `.webui/actions.json` exists but failed to parse / validate. The bundled default is served as a fallback so the Kanban stays usable. |
+| `BUNDLED` | No `.shipwright-webui/actions.json` on disk → the Command Center serves the bundled default. |
+| `CUSTOM` | A valid `.shipwright-webui/actions.json` is in use. |
+| `MALFORMED` | A `.shipwright-webui/actions.json` exists but failed to parse / validate. The bundled default is served as a fallback so the Kanban stays usable. |
 
 For each project the row exposes:
 
 - **Upload .json** — opens the OS file picker. The selected file is
   parsed and validated server-side; on success it replaces
-  `<project.path>/.webui/actions.json` atomically (tmp + rename) and the
+  `<project.path>/.shipwright-webui/actions.json` atomically (tmp + rename) and the
   catalog cache for that project is invalidated. Other projects are
   unaffected. On failure (bad JSON, schema error, unknown placeholder,
   >256 KB) the row shows an inline red banner with the structured error
   and the on-disk file is **not** touched.
 - **Reset to default** — opens a confirm dialog; on confirm, the
-  `.webui/actions.json` is deleted and the project falls back to the
+  `.shipwright-webui/actions.json` is deleted and the project falls back to the
   bundled default. The button is enabled when the project is `CUSTOM`
   *or* `MALFORMED` so you can recover from a broken upload without
   opening a terminal.
@@ -799,14 +799,14 @@ stub is written and the docs page opens, exactly as before.
 
 **C — Direct edit on disk.**
 
-Open `<project.path>/.webui/actions.json` in your editor and save. The
+Open `<project.path>/.shipwright-webui/actions.json` in your editor and save. The
 server's catalog is mtime-cached, so your changes show up the next time
 the catalog is read (e.g. opening the project page or the **+ New ▾**
 menu). This path skips the upload validators — you find out about
 schema / placeholder mistakes when the page reads the file.
 
 > Tip: regardless of path, every write goes through a `realpath +
-> path.relative` traversal guard, so symlinks under `.webui/` cannot
+> path.relative` traversal guard, so symlinks under `.shipwright-webui/` cannot
 > redirect the write outside the registered project root.
 
 #### Minimal example — four custom skills
@@ -970,7 +970,7 @@ edits on disk only see the read-side validators — the upload-only rows
 | Malformed JSON on direct edit | Bundled default served + a diagnostic chip on the project page (`actions_file_malformed`). The Kanban stays usable. |
 | Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, boolean param with `default:true` or `required:true`, …) | 400 `schema_validation_failed` with the full `errors[]` array. |
 | Unknown placeholder in `command_template` | 400 `invalid_placeholder` naming the offending token + `actionId`. Same check runs at upload time AND at every catalog read. |
-| `.webui/` resolves outside the project root (symlink escape) | 400 `path_unsafe` with the rejected `reason` (`traversal` / `symlink_escape` / `drive_change`). |
+| `.shipwright-webui/` resolves outside the project root (symlink escape) | 400 `path_unsafe` with the rejected `reason` (`traversal` / `symlink_escape` / `drive_change`). |
 | Unknown `actionId` at launch | 400 `unknown_action_id`. |
 | Unknown phase at launch | 400 `command_substitution_failed`. |
 
@@ -1026,7 +1026,7 @@ npm install -g @anthropic-ai/claude-code
 
 ### Project page shows "actions.json malformed"
 
-Your custom `.webui/actions.json` failed to parse. The Command Center
+Your custom `.shipwright-webui/actions.json` failed to parse. The Command Center
 falls back to the standard buttons; nothing is broken, but your custom
 ones are gone until you fix the file. Hover the warning chip for the
 parser error. Common mistakes:

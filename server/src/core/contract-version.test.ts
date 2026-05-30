@@ -125,8 +125,8 @@ describe("checkContractVersion", () => {
 
   it("honours fieldName override in warning payload", () => {
     checkContractVersion({
-      artefact: ".webui/actions.json",
-      path: "/p/.webui/actions.json",
+      artefact: ".shipwright-webui/actions.json",
+      path: "/p/.shipwright-webui/actions.json",
       declared: 42,
       knownMax: 1,
       fieldName: "schemaVersion",

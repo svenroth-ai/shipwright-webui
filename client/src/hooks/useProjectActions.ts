@@ -57,7 +57,7 @@ export function useSaveActionsStub() {
 
 /**
  * FR-01.27 — upload the contents of a user-picked .json file as the new
- * `<project.path>/.webui/actions.json`. On success the cached resolved
+ * `<project.path>/.shipwright-webui/actions.json`. On success the cached resolved
  * catalog for that project is invalidated so the New-* dropdowns
  * re-fetch immediately.
  */
