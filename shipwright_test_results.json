@@ -1,12 +1,12 @@
 {
  "iterate_latest": {
-  "run_id": "iterate-2026-05-30-pr-card-status",
+  "run_id": "iterate-2026-05-30-smartviewer-render-ux",
   "date": "2026-05-30",
   "unit": {
    "status": "passed",
-   "passed": 1335,
-   "total": 1335,
-   "scope": "Client vitest 1335/1335 (incl. PrLinkCard.test.tsx +4 badge/geometry, TranscriptRow.test.tsx usePrStatus mock). Server vitest 1334/1334 (new pr-status.test.ts 16 + pr-status/routes.test.ts 4: validation, gh resolution, OPEN/DRAFT/MERGED/CLOSED mapping, all failure modes -> unknown, TTL cache, -- separator argv, route 200/400 + graceful-degradation)."
+   "passed": 1345,
+   "total": 1345,
+   "scope": "Client vitest 1345/1345 (123 files). New DocumentMarkdown.test.tsx (12): frontmatterToCodeFence happy/CRLF/no-fm/unterminated/thematic-break-guard, findAnchorTarget dual-resolve, AC4 comment-hidden, AC6 frontmatter-block, AC7 inline-anchor (clobber-prefixed id), AC8 unprefixed heading slug, sanitizer strips <script>/on*, AC8 nav preventDefault. doc-sync gains DocumentMarkdown + PreviewPage tokens. Server unchanged (client-only iterate)."
   },
   "integration": {
    "status": "not_run",
@@ -22,24 +22,29 @@
    "status": "passed",
    "passed": 2,
    "total": 2,
-   "scope": "Playwright (2 specs) against an isolated worktree stack (Hono :3856 + Vite :5184, 127.0.0.1 pinned, isolated USERPROFILE). New pr-card-status.spec.ts: seeds a pr-link JSONL, route-mocks /api/external/pr-status -> merged, asserts the Merged badge + bubble geometry (fontSize 14px, paddingTop 8px, paddingLeft 12px, topLeft radius 4px, topRight 14px, max-w-[90%]) in real Chromium. Regression: spec 90 (transcript renderer fingerprints) still green."
+   "scope": "Playwright (2 specs, 127.0.0.1-pinned worktree stack). (1) smartviewer-document-render.spec.ts via /preview route-mocks the file API and asserts in real Chromium: comment hidden, frontmatter as a <pre> block, h1 renders, inline <a id> present (clobber-prefixed), clicking an internal #-link scrolls the pane (scrollTop increases) without hash-navigating, pop-out button visible. (2) smartviewer-crossfile-nav.spec.ts runs with the REAL USERPROFILE (no mock): discovers the registered shipwright-webui project, opens the REAL .shipwright/compliance/traceability-matrix.md, clicks the real [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) cross-file link, and asserts the pane navigated in-place to spec.md — closing the gap the synthetic same-document fixture had missed."
   },
   "design_fidelity": {
    "status": "passed",
    "passed": 1,
    "total": 1,
-   "scope": "Bubble-parity geometry + badge colours asserted at the unit level (PrLinkCard.test) and via computed styles in real Chromium (pr-card-status.spec). Matches the assistant message bubble."
+   "scope": "Document rendering + in-pane scroll behaviour asserted via computed DOM/scroll state in real Chromium (E2E) plus unit-level rendering assertions."
   },
   "smoke": {
-   "status": "passed",
-   "scope": "New GET /api/external/pr-status route exercised against the live worktree stack (spec 90's PrLinkCard performs a real gh pr view call; F0.5 stack served it without error)."
+   "status": "skipped",
+   "scope": "Client-only iterate (markdown renderer + a client route). No server / API change. Stack booted only to drive the F0.5 E2E."
   },
   "surface_verification": {
    "surface": "web",
-   "tests_run": 2,
+   "tests_run": 1,
    "exit_code": 0,
-   "justification": "Backend-affects-frontend: new /api/external/pr-status route + gh subprocess consumed by the transcript PrLinkCard. surface=web (mandatory at medium) drove the real UI + route against a live stack. Evidence: .shipwright/runs/iterate-2026-05-30-pr-card-status/surface_verification.json."
+   "justification": "UI render + new /preview route; surface=web (mandatory at medium) drove the real document rendering + in-pane anchor scroll against a live stack. Evidence: .shipwright/runs/iterate-2026-05-30-smartviewer-render-ux/surface_verification.json."
   },
-  "degraded": []
+  "degraded": [
+   {
+    "condition": "performance_budget_not_run",
+    "detail": "touches_build (client/package.json gains rehype-raw/rehype-sanitize/rehype-slug). Lighthouse + bundle gate were not run in the iterate context (no dev_url / build-artifact wiring; /shipwright-test Step 3.8 skip-rules apply). The three packages are small unified plugins; bundle impact is minor and code-split is unaffected (file preview is already a non-critical pane)."
+   }
+  ]
  }
 }

@@ -1,13 +1,13 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-30T09:01:42.964691+00:00
+Generated: 2026-05-30T09:37:06.331457+00:00
 
 ## Requirements Coverage
 
 | Requirement | Title | Priority | Verified By | Tests | Last Verified | Status |
 |-------------|-------|----------|-------------|-------|---------------|--------|
 | [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +4 | 624/624 → 0/0 | 2026-05-21 (iter) | FAIL |
-| [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +6 | 640/640 → 1335/1335 | 2026-05-30 (iter) | FAIL |
+| [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +5 | 640/640 → 0/0 | 2026-05-28 (iter) | FAIL |
 | [FR-01.03](../../.shipwright/planning/01-adopted/spec.md#fr-0103) | CRUD for the project registry persisted at `~/.shipwright-we... | Must | evt-0c3127ae, evt-33b2e81f | 786/786 → 0/0 | 2026-05-14 (build) | FAIL |
 | [FR-01.04](../../.shipwright/planning/01-adopted/spec.md#fr-0104) | Best-effort surface for pending Claude tool_use blocks (nota... | Must | evt-7c294eb7 | 2062/2062 | 2026-05-18 (iter) | COVERED |
 | [FR-01.05](../../.shipwright/planning/01-adopted/spec.md#fr-0105) | Read-only view of Claude CLI version, the resolved profiles ... | Must | — | — | — | NOT VERIFIED |
@@ -205,7 +205,7 @@ Generated: 2026-05-30T09:01:42.964691+00:00
 | ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green. | iterate | change |  | — | a662027 | 2026-05-27 |
 | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | iterate | bug |  | — | ce60cf7 | 2026-05-27 |
 | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | iterate | bug | FR-01.02 | — | 7573e84 | 2026-05-28 |
-| PR card bubble parity + open/merged status badge via gh pr view | iterate | change | FR-01.02 | 1335/1335 | — | 2026-05-30 |
+| SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll | iterate | change | FR-03.34 | 1345/1345 | — | 2026-05-30 |
 
 ## Coverage Summary
 
