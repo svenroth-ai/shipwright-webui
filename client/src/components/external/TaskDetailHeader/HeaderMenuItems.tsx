@@ -37,6 +37,7 @@ export interface HeaderMenuItemsProps {
   onCopyResumeCommand: () => void;
   onOpenProjectPicker: () => void;
   onMoveToBacklog: () => void;
+  onReopen: () => void;
   onClose: () => void;
   onStopTerminal: () => void;
   onDeleteClick: () => void;
@@ -53,6 +54,7 @@ export function HeaderMenuItems({
   onCopyResumeCommand,
   onOpenProjectPicker,
   onMoveToBacklog,
+  onReopen,
   onClose,
   onStopTerminal,
   onDeleteClick,
@@ -126,6 +128,19 @@ export function HeaderMenuItems({
           >
             <Undo2 size={14} className="text-[var(--color-muted,#6b7280)]" />
             Move to Backlog
+          </DropdownMenu.Item>
+        )}
+        {/* iterate-2026-05-31-reopen-done-task — counterpart of Move to
+            Backlog for the terminal `done` state: done → draft (session
+            preserved, so the header CTA becomes Resume). */}
+        {isTerminalState(task.state) && (
+          <DropdownMenu.Item
+            onSelect={() => onReopen()}
+            className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[12px] text-[var(--color-text,#1a1a1a)] outline-none transition hover:bg-[var(--color-muted-bg,#ede8e1)]"
+            data-testid="task-detail-menu-reopen"
+          >
+            <Undo2 size={14} className="text-[var(--color-muted,#6b7280)]" />
+            Re-open
           </DropdownMenu.Item>
         )}
         <DropdownMenu.Item
