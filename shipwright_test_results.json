@@ -38,6 +38,7 @@
       "external_review: Branch C — no API keys (OPENAI/GEMINI/GOOGLE/ANTHROPIC) in env; advisory medium step skipped"
     ],
     "test_completeness": {
+      "status": "complete",
       "ledger": "every acceptance criterion mapped to a passing test; 0 untested-testable",
       "behaviors": [
         {"id": "AC1", "desc": "done->draft 200, session preserved", "disposition": "tested", "evidence": "routes.reopen.test.ts"},
