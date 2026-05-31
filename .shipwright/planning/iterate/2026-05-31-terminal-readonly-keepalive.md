@@ -93,6 +93,11 @@ ratchet on those.
   (short test interval) still reaches `ready`, holds `role: writer`, and stays
   connected across several heartbeat intervals — pings do not break the
   terminal or spuriously flip it read-only.
+- **AC-6 (end-to-end reap+promote)** Against a REAL in-process server with REAL
+  `ws` sockets: a non-ponging writer (its TCP paused = faithful half-open) is
+  reaped by the heartbeat, and the reader receives `writer-promoted` (read-only
+  clears without a reload). This also proves `startWsHeartbeat` arms against the
+  real `ws.raw` rather than no-op'ing via its capability guard.
 
 ## Affected Boundaries
 
@@ -133,8 +138,9 @@ ratchet on those.
 | Self-clean when readyState ≠ OPEN (AC-2) | tested | `ws-heartbeat.test.ts` |
 | Capability-guard no-op on missing/partial raw (AC-3) | tested | `ws-heartbeat.test.ts` |
 | Env interval resolve + clamp (AC-4) | tested | `ws-heartbeat.test.ts` |
-| Live terminal not broken by heartbeat (AC-5) | tested | F0.5 web smoke (short interval) |
-| Dead writer reaped → surviving tab auto-promoted, end-to-end over a *real* half-open TCP | untestable | `requires-external-nondeterministic-service` (no deterministic way to half-open a TCP from a browser; reap path proven by AC-2 + existing `detach`/promote tests) |
+| Live terminal not broken by heartbeat (AC-5) | tested | F0.5 web smoke (short interval, real Chromium) |
+| Dead writer reaped → surviving tab auto-promoted (AC-6) — real in-process server + real `ws` sockets; writer made non-ponging by pausing its TCP (faithful half-open equivalent) | tested | `ws-heartbeat-reap-integration.test.ts` — PASSED in ~3 s; **falsified**: with the `startWsHeartbeat` wire removed the reader is never promoted (9 s timeout) |
+| `startWsHeartbeat` actually ARMS against the real @hono/node-ws `ws.raw` (not a silent capability-guard no-op) | tested | same integration test — promotion only occurs if the heartbeat pinged + reaped a real socket |
 
 ## Review dispositions (external + internal, 2026-05-31)
 

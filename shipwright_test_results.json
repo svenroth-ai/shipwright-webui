@@ -4,9 +4,9 @@
   "date": "2026-05-31",
   "unit": {
    "status": "passed",
-   "passed": 1351,
-   "total": 1351,
-   "scope": "Server vitest 1351/1351 (106 files), incl. the NEW ws-heartbeat.test.ts (17): createHeartbeatMonitor (terminate only after consecutive missed pongs; tolerance default 2; never terminate while ponged; late-pong-within-tolerance; idempotent-once-dead; custom maxMissedPongs=1), resolveHeartbeatMs (default, valid, floor-clamp, ceiling-clamp, non-numeric/non-positive fallback), startWsHeartbeat (pings each tick; terminate exactly once incl. when terminate() throws + readyState stays OPEN; survives while peer pongs; self-clean on readyState!=OPEN; stop() clears interval+listener idempotently; no-op on missing/partial raw). Client vitest also green (doc-sync gains the ws-heartbeat token; architecture.md updated). tsc --noEmit clean; oxlint exit 0."
+   "passed": 1352,
+   "total": 1352,
+   "scope": "Server vitest 1352/1352 (107 files). NEW ws-heartbeat.test.ts (17): createHeartbeatMonitor (terminate only after consecutive missed pongs; tolerance default 2; never terminate while ponged; late-pong-within-tolerance; idempotent-once-dead; custom maxMissedPongs=1), resolveHeartbeatMs (default, valid, floor-clamp, ceiling-clamp, non-numeric/non-positive fallback), startWsHeartbeat (pings each tick; terminate exactly once incl. when terminate() throws + readyState stays OPEN; survives while peer pongs; self-clean on readyState!=OPEN; stop() clears interval+listener idempotently; no-op on missing/partial raw). NEW ws-heartbeat-reap-integration.test.ts (1): REAL in-process Hono server (@hono/node-server serve + @hono/node-ws) + REAL ws clients — a non-ponging writer (TCP paused = faithful half-open) is reaped by the heartbeat and the reader receives writer-promoted in ~3s; FALSIFIED by removing the startWsHeartbeat wire (reader never promoted, 9s timeout) — proves the heartbeat arms against the real ws.raw and the terminate->detach->promotion chain fires. Client vitest also green (doc-sync gains the ws-heartbeat token; architecture.md updated). tsc --noEmit clean; oxlint exit 0."
   },
   "integration": {
    "status": "not_run",
@@ -51,10 +51,11 @@
     { "behavior": "Capability-guard no-op on missing/partial raw socket", "disposition": "tested", "evidence": "ws-heartbeat.test.ts no-op case — PASSED" },
     { "behavior": "Env interval resolve + floor/ceiling clamp", "disposition": "tested", "evidence": "ws-heartbeat.test.ts resolveHeartbeatMs cases — PASSED" },
     { "behavior": "A healthy terminal WS is not reaped across multiple heartbeat intervals (AC-5)", "disposition": "tested", "evidence": "terminal-heartbeat-keepalive.spec.ts (real Chromium, 3s heartbeat) — PASSED" },
-    { "behavior": "Dead writer reaped -> surviving tab auto-promoted end-to-end over a REAL half-open TCP from a browser", "disposition": "untestable", "reason_code": "requires-external-nondeterministic-service", "reason": "There is no deterministic way to half-open a TCP from a browser/Playwright; the reap+promote path is proven by the unit-tested terminate-once behavior plus the existing pty-manager detach/reader-promotion tests." }
+    { "behavior": "Dead writer reaped -> reader promoted to writer (AC-6), real server + real ws sockets, non-ponging writer via paused TCP", "disposition": "tested", "evidence": "ws-heartbeat-reap-integration.test.ts — PASSED ~3s; FALSIFIED (heartbeat wire removed) -> 9s timeout, reader never promoted" },
+    { "behavior": "startWsHeartbeat actually arms against the real @hono/node-ws ws.raw (not a silent capability-guard no-op)", "disposition": "tested", "evidence": "ws-heartbeat-reap-integration.test.ts — promotion only occurs if a real socket was pinged + reaped" }
    ],
-   "counts": { "testable": 7, "tested": 7, "untestable": 1, "untested_testable": 0 },
-   "enumeration_basis": { "acs": 5, "covered_acs": 5 }
+   "counts": { "testable": 9, "tested": 9, "untestable": 0, "untested_testable": 0 },
+   "enumeration_basis": { "acs": 6, "covered_acs": 6 }
   },
   "degraded": []
  }
