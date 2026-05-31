@@ -29,6 +29,7 @@ import type { ExternalTask } from "../../../lib/externalApi";
 import {
   useCloseExternalTask,
   useMoveTaskToBacklog,
+  useReopenExternalTask,
 } from "../../../hooks/useExternalTasks";
 import { copyText } from "../../../lib/clipboard";
 import { ConfirmClearHistoryDialog } from "./ConfirmClearHistoryDialog";
@@ -62,6 +63,7 @@ export function HeaderMenu({
 }: HeaderMenuProps) {
   const closeMut = useCloseExternalTask();
   const backlogMut = useMoveTaskToBacklog();
+  const reopenMut = useReopenExternalTask();
   const navigate = useNavigate();
 
   const [menuNotice, setMenuNotice] = useState<
@@ -91,6 +93,14 @@ export function HeaderMenu({
   const handleMoveToBacklog = useCallback(() => {
     backlogMut.mutate(task.taskId);
   }, [backlogMut, task.taskId]);
+
+  // iterate-2026-05-31-reopen-done-task — counterpart of Move-to-Backlog
+  // for the terminal `done` state. done → draft (session preserved); the
+  // detail-header state badge flips to "Draft" in place via the hook's
+  // detail-cache write.
+  const handleReopen = useCallback(() => {
+    reopenMut.mutate(task.taskId);
+  }, [reopenMut, task.taskId]);
 
   const handleStopTerminal = useCallback(async () => {
     try {
@@ -180,6 +190,7 @@ export function HeaderMenu({
           onCopyResumeCommand={() => void handleCopyResumeCommand()}
           onOpenProjectPicker={onOpenProjectPicker}
           onMoveToBacklog={handleMoveToBacklog}
+          onReopen={handleReopen}
           onClose={handleClose}
           onStopTerminal={() => void handleStopTerminal()}
           onDeleteClick={onDeleteClick}
