@@ -52,7 +52,7 @@
         {"id": "AC7", "desc": "contract baseline<->probe parity + route discovery", "disposition": "tested", "evidence": "api-contract-sweep.test.ts"},
         {"id": "ELOCKED", "desc": "persist ELOCKED -> 409", "disposition": "tested", "evidence": "routes.reopen.test.ts"}
       ],
-      "summary": {"total": 10, "tested": 10, "untestable": 0, "untested_testable": 0}
+      "counts": {"total": 10, "tested": 10, "untestable": 0, "untested_testable": 0}
     }
   }
 }
