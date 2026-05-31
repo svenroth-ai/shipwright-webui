@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-05-31T06:53:16.505698+00:00
-Total commits: 463
+Generated: 2026-05-31T12:03:19.696985+00:00
+Total commits: 464
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 173
-    "feat" : 122
+    "feat" : 123
     "chore" : 83
     "docs" : 42
     "refactor" : 25
@@ -197,10 +197,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 122 commits
+### Features (feat) — 123 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-31 | — | open SmartViewer pop-out in a centered in-app modal | 8875546c4489 |
 | 2026-05-30 | smartviewer | in-pane cross-file doc-link navigation (AC8) | 27bacb965e88 |
 | 2026-05-30 | smartviewer | document-grade markdown rendering + pop-out | a0ca9d318642 |
 | 2026-05-30 | transcript | show PR open/merged status badge + bubble-size PR cards | 22924332120a |
@@ -526,7 +527,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 463 |
+| Total commits | 464 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 463 |
+| Human-authored commits | 464 |
 
