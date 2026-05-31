@@ -1,1 +1,0 @@
-Compliance/Bloat: file ADR-101 accepting `server/src/terminal/pty-manager.ts` (1198 LOC) as a deep module per Ousterhout; flip baseline entry from `state=grandfathered` + `adr=null` to `state=exception` + `adr="ADR-101"`. No code change to pty-manager.ts. Re-Review-Date 2026-08-25.

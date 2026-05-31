@@ -1,1 +1,0 @@
-refactor(client): split EmbeddedTerminal into shell + xtermAddons / usePasteImage / useTerminalResize / useReplayDrainGate / useAutoLaunch / TerminalBanners (Campaign C — C5). Behaviour bit-perfect. EmbeddedTerminal.tsx 1856 → 287 LOC. shipwright_bloat_baseline.json entry removed.

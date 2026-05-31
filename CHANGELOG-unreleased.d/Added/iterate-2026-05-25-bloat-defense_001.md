@@ -1,1 +1,0 @@
-- Pre-commit anti-ratchet hook + `.github/workflows/bloat-check.yml` + `shipwright_bloat_baseline.json` (86 entries, baseline-frozen 2026-05-25). Twin to shipwright dev repo Campaign A.defense (svenroth-ai/shipwright PR #88). Install via `bash scripts/install-hooks.sh` (or `.\scripts\install-hooks.ps1` on Windows).
