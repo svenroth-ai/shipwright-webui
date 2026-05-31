@@ -21,18 +21,18 @@
     ],
     "result": "green",
     "summary": {
-      "server_tests": "106 files, 1335 passed",
-      "client_tests": "98 files, 1014 passed",
+      "server_tests": "106 files, 1346 passed (incl. routes.reopen.test.ts 11)",
+      "client_tests": "127 files, 1379 passed (incl. TaskCard.reopen.test 6, TaskCardMenu.test 4, doc-sync 25)",
       "tsc": "clean (server + client)",
-      "lint": "clean (oxlint, changed files 0 warnings)",
-      "e2e": "authored+executed"
+      "lint": "clean (oxlint, changed files)",
+      "e2e": "authored+executed (reopen 1 pass; move-to-backlog regression 1 pass)"
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 1,
+      "tests_run": 2,
       "exit_code": 0,
-      "spec": "client/e2e/flows/reopen-done-task.spec.ts",
-      "evidence": "1 passed (4.1s) against a live isolated stack (Hono :3853 + Vite :5183, temp USERPROFILE); create -> close -> Re-open -> card relocates Done -> Backlog, server state draft"
+      "spec": "client/e2e/flows/reopen-done-task.spec.ts (+ move-to-backlog.spec.ts regression)",
+      "evidence": "reopen-done-task.spec.ts 1 passed (7.2s) + move-to-backlog.spec.ts 1 passed (5.9s) against a live isolated stack (Hono :3859 + Vite :5189 local-profile, temp USERPROFILE); create -> close -> Re-open via the real wired TaskCardMenu -> card relocates Done -> Backlog, server state draft"
     },
     "degraded": [
       "external_review: Branch C — no API keys (OPENAI/GEMINI/GOOGLE/ANTHROPIC) in env; advisory medium step skipped"

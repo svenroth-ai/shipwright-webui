@@ -78,17 +78,16 @@ import {
   CheckCircle2,
   Circle,
   Loader,
-  MoreHorizontal,
   PauseCircle,
   Zap,
 } from "lucide-react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import type { ExternalTask, ExternalTaskState } from "../../lib/externalApi";
 import {
   useCloseExternalTask,
   useDeleteExternalTask,
   useMoveTaskToBacklog,
+  useReopenExternalTask,
 } from "../../hooks/useExternalTasks";
 import { useProjects } from "../../hooks/useProjects";
 import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
@@ -97,6 +96,7 @@ import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { EditTaskModal } from "./EditTaskModal";
+import { TaskCardMenu } from "./TaskCardMenu";
 
 const NONTERMINAL_STATES: ExternalTaskState[] = ["active", "idle", "awaiting_external_start"];
 
@@ -109,6 +109,7 @@ export function TaskCard({ task }: Props) {
   const closeMut = useCloseExternalTask();
   const deleteMut = useDeleteExternalTask();
   const backlogMut = useMoveTaskToBacklog();
+  const reopenMut = useReopenExternalTask();
   const { data: projects = [] } = useProjects();
   const [confirmDelete, setConfirmDelete] = useState(false);
   // iterate-2026-05-18-edit-task-dialog — the Edit Task dialog is opened
@@ -237,71 +238,16 @@ export function TaskCard({ task }: Props) {
           </div>
 
           <div className="flex shrink-0 items-center gap-0.5">
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger asChild>
-                <button
-                  type="button"
-                  onClick={(ev) => ev.stopPropagation()}
-                  className="rounded p-1 text-[var(--color-muted)] transition-colors hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)]"
-                  aria-label="Task actions"
-                  data-testid={`task-card-menu-${task.taskId}`}
-                >
-                  <MoreHorizontal size={14} />
-                </button>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content
-                  align="end"
-                  sideOffset={4}
-                  className="z-50 min-w-[160px] rounded-[var(--radius-button)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm shadow-[var(--shadow-card)]"
-                >
-                  {/* iterate-2026-05-18-edit-task-dialog — re-edit a
-                      task's fields. Available in every state; the dialog
-                      itself greys out the launch-shaping fields once the
-                      task has started. */}
-                  <DropdownMenu.Item
-                    onClick={(ev) => ev.stopPropagation()}
-                    onSelect={() => setEditOpen(true)}
-                    className="cursor-pointer rounded px-2 py-1 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]"
-                    data-testid={`task-card-edit-${task.taskId}`}
-                  >
-                    Edit task
-                  </DropdownMenu.Item>
-                  {/* iterate-2026-05-17-move-to-backlog (FR-01.32):
-                      move an In-Progress task back to the Backlog column.
-                      Shown only for the five In-Progress states — absent
-                      for `draft` (already there) and `done` (terminal).
-                      No confirm dialog: non-destructive + reversible. */}
-                  {canMoveToBacklog && (
-                    <DropdownMenu.Item
-                      onClick={(ev) => ev.stopPropagation()}
-                      onSelect={() => backlogMut.mutate(task.taskId)}
-                      className="cursor-pointer rounded px-2 py-1 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]"
-                      data-testid={`task-card-backlog-${task.taskId}`}
-                    >
-                      Move to Backlog
-                    </DropdownMenu.Item>
-                  )}
-                  <DropdownMenu.Item
-                    onClick={(ev) => ev.stopPropagation()}
-                    onSelect={() => closeMut.mutate(task.taskId)}
-                    disabled={task.state === "done"}
-                    className="cursor-pointer rounded px-2 py-1 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)] data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40"
-                    data-testid={`task-card-close-${task.taskId}`}
-                  >
-                    Close (mark done)
-                  </DropdownMenu.Item>
-                  <DropdownMenu.Item
-                    onClick={(ev) => ev.stopPropagation()}
-                    onSelect={onDeleteClick}
-                    className="cursor-pointer rounded px-2 py-1 text-[var(--color-error)] outline-none data-[highlighted]:bg-[var(--color-error-bg)]"
-                    data-testid={`task-card-delete-${task.taskId}`}
-                  >
-                    Delete (remove from board)
-                  </DropdownMenu.Item>
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
+            <TaskCardMenu
+              taskId={task.taskId}
+              canMoveToBacklog={canMoveToBacklog}
+              isDone={isDone}
+              onEdit={() => setEditOpen(true)}
+              onBacklog={() => backlogMut.mutate(task.taskId)}
+              onReopen={() => reopenMut.mutate(task.taskId)}
+              onClose={() => closeMut.mutate(task.taskId)}
+              onDelete={onDeleteClick}
+            />
           </div>
         </div>
 

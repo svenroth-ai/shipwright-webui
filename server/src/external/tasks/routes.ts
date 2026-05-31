@@ -9,6 +9,7 @@
  *   POST   /api/external/tasks/:id/fork         (lifecycle.ts)
  *   POST   /api/external/tasks/:id/close        (lifecycle.ts)
  *   POST   /api/external/tasks/:id/backlog      (lifecycle.ts)
+ *   POST   /api/external/tasks/:id/reopen       (lifecycle.ts)
  *   DELETE /api/external/tasks/:id              (lifecycle.ts)
  *
  * Per-endpoint handlers split into siblings to keep this shell ≤ 300 LOC.
