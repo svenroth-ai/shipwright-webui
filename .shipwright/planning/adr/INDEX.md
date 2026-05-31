@@ -10,3 +10,8 @@ regeneration overwrites this file on every release pass._
 - [ADR-096 — snapshot preservation taskcard resume](096-snapshot-preservation-taskcard-resume.md)
 - [ADR-098 — restore no flicker default](098-restore-no-flicker-default.md)
 - [ADR-099 — xterm6 webgl atlas workaround](099-xterm6-webgl-atlas-workaround.md)
+- [ADR-100 — campaign c c1 verification](100-campaign-c-c1-verification.md)
+- [ADR-101 — bloat exception pty manager](101-bloat-exception-pty-manager.md)
+- [ADR-102 — campaign c c4 new issue modal split](102-campaign-c-c4-new-issue-modal-split.md)
+- [ADR-102 — campaign c c6 task detail header split](102-campaign-c-c6-task-detail-header-split.md)
+- [ADR-103 — bloat exception terminal routes](103-bloat-exception-terminal-routes.md)
