@@ -14,7 +14,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 
 import {
   SmartViewer,
@@ -142,6 +142,47 @@ describe("SmartViewer — markdown + text + code happy paths", () => {
     await waitFor(() => {
       expect(screen.getByTestId("smart-viewer-text")).toBeTruthy();
     });
+  });
+});
+
+describe("SmartViewer — pop-out modal (popOut prop)", () => {
+  function mockMarkdown(body = "# hello world") {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(body, {
+          status: 200,
+          headers: { "Content-Type": "text/markdown; charset=utf-8" },
+        }),
+    ) as unknown as typeof fetch;
+  }
+
+  it("popOut={false} suppresses the pop-out button (modal-nested instance)", async () => {
+    mockMarkdown();
+    render(<SmartViewer projectId="proj-a" path="README.md" popOut={false} />);
+    await waitFor(() => {
+      expect(screen.getByTestId("smart-viewer-markdown")).toBeTruthy();
+    });
+    expect(screen.queryByTestId("smart-viewer-popout")).toBeNull();
+  });
+
+  it("clicking pop-out opens the centered in-app modal and never calls window.open", async () => {
+    mockMarkdown();
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    render(<SmartViewer projectId="proj-a" path="README.md" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("smart-viewer-popout")).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTestId("smart-viewer-popout"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("smart-viewer-modal")).toBeTruthy();
+    });
+    expect(openSpy).not.toHaveBeenCalled();
+    // The SmartViewer nested inside the modal renders no further pop-out
+    // button → exactly one pop-out control remains in the DOM (the pane's).
+    expect(screen.getAllByTestId("smart-viewer-popout")).toHaveLength(1);
+    openSpy.mockRestore();
   });
 });
 

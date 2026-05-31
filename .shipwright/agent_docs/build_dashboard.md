@@ -1,10 +1,13 @@
 # Project Activity Dashboard
-> Updated: 2026-05-30 09:37 UTC | Session: c325e08b-2c37-4ad1-aee0-cc007653fbbf | Run: iterate-2026-05-30-smartviewer-render-ux
+> Updated: 2026-05-31 06:53 UTC | Session: 09ce26d1-eda5-4caf-a323-8d68315c0017 | Run: iterate-2026-05-31-smartviewer-popout-modal
 
-## Recent Changes (93 iterations)
+## Recent Changes (96 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | 0/0 |  | FR-03.34 | 2026-05-31 |
+| change | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | 1331/1331 |  |  | 2026-05-30 |
+| change | PR card bubble parity + open/merged status badge via gh pr view | 1335/1335 |  | FR-01.02 | 2026-05-30 |
 | change | SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll | 1345/1345 |  | FR-03.34 | 2026-05-30 |
 | bug | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | 0/0 | 7573e84 | FR-01.02 | 2026-05-28 |
 | bug | TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted. | 0/0 | ce60cf7 | bug | 2026-05-27 |
@@ -100,7 +103,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-30 | Unit: 1345/1345 | E2E: 1/1 | Smoke: skipped | (iterate)
+Last run: 2026-05-31 | Unit: 1361/1361 | E2E: 2/2 | Smoke: skipped | (iterate)
 
 ## Pipeline
 

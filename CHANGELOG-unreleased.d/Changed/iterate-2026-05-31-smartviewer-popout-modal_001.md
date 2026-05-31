@@ -1,0 +1,1 @@
+SmartViewer "Pop out" now opens a centered in-app modal (Radix Dialog; ESC/backdrop close) instead of opening the file preview in a new browser tab. The `/preview` route remains available for a standalone window.

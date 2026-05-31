@@ -25,6 +25,7 @@ import {
   ApiError,
 } from "../../lib/externalApi";
 import { MarkdownRenderer } from "./SmartViewer/MarkdownRenderer";
+import { SmartViewerModal } from "./SmartViewer/SmartViewerModal";
 import { CodeRenderer } from "./SmartViewer/CodeRenderer";
 import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
@@ -84,9 +85,12 @@ interface Props {
   projectId: string;
   /** Project-root-relative POSIX path; null = empty state. */
   path: string | null;
+  /** Show the pop-out control (default). Set false for the modal-nested
+   *  instance so the expanded view renders no further pop-out button. */
+  popOut?: boolean;
 }
 
-export function SmartViewer({ projectId, path }: Props) {
+export function SmartViewer({ projectId, path, popOut = true }: Props) {
   if (!path) {
     return (
       <div
@@ -141,7 +145,7 @@ export function SmartViewer({ projectId, path }: Props) {
     );
   }
 
-  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} />;
+  return <TextFileViewer projectId={projectId} path={path} kind={kind} ext={ext} popOut={popOut} />;
 }
 
 interface TextProps {
@@ -149,10 +153,12 @@ interface TextProps {
   path: string;
   kind: Exclude<SmartViewerKind, "image" | "unknown">;
   ext: string;
+  popOut: boolean;
 }
 
-function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
+function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
   const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
+  const [popoutOpen, setPopoutOpen] = useState(false);
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "ok"; text: string; size: number }
@@ -251,7 +257,7 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} projectId={projectId} path={nav.effectivePath} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;
@@ -261,6 +267,14 @@ function TextFileViewer({ projectId, path, kind, ext }: TextProps) {
     <div className="flex h-full flex-col" data-testid="smart-viewer">
       <PathStrip path={nav.effectivePath} size={size} />
       <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
+      {popOut && kind === "markdown" && (
+        <SmartViewerModal
+          open={popoutOpen}
+          onOpenChange={setPopoutOpen}
+          projectId={projectId}
+          path={nav.effectivePath}
+        />
+      )}
     </div>
   );
 }
