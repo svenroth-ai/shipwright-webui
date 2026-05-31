@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-05-30T09:37:06.331457+00:00
-Total commits: 455
+Generated: 2026-05-31T06:53:16.505698+00:00
+Total commits: 463
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 173
-    "feat" : 119
+    "feat" : 122
     "chore" : 83
-    "docs" : 40
-    "refactor" : 22
+    "docs" : 42
+    "refactor" : 25
     "test" : 13
     "other" : 4
     "build" : 1
@@ -197,10 +197,13 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 119 commits
+### Features (feat) — 122 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-30 | smartviewer | in-pane cross-file doc-link navigation (AC8) | 27bacb965e88 |
+| 2026-05-30 | smartviewer | document-grade markdown rendering + pop-out | a0ca9d318642 |
+| 2026-05-30 | transcript | show PR open/merged status badge + bubble-size PR cards | 22924332120a |
 | 2026-05-25 | bloat | Campaign A.defense twin — pre-commit + CI + baseline | 0ec7b54a6a16 |
 | 2026-05-23 | terminal | auto-focus xterm on tab activation | 14878fcf98fc |
 | 2026-05-23 | terminal | VS Code-aligned selection + copy-on-select + mouse-mode hint | 9e1559ba2dbb |
@@ -409,10 +412,12 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 40 commits
+### Documentation (docs) — 42 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-30 | spec | append FR-01.02 acceptance criterion for smartviewer-render-ux | fe58668b8bbb |
+| 2026-05-30 | spec | append FR-01.02 acceptance criterion for pr-card-status | c82ae754ef95 |
 | 2026-05-29 | agent-docs | resync architecture/conventions/component-inventory to current state | 2da95b56f1b2 |
 | 2026-05-27 | guide | refresh §6.4 / §6.8 / §10 with v0.14-v0.16 user-facing changes | 611994c1ba63 |
 | 2026-05-27 | adr-103 | backfill commit hash for retirement candidate #1 | 0d66a6354022 |
@@ -454,10 +459,13 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 22 commits
+### Refactoring (refactor) — 25 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-30 | smartviewer | extract PathStrip to drop SmartViewer under the 300-LOC limit | 5758e9c6b36e |
+| 2026-05-30 | — | rename project config dir .webui -> .shipwright-webui | fdebce8d7047 |
+| 2026-05-30 | ui | remove Diagnostics launchers section and align Triage header | 8e346030a6a7 |
 | 2026-05-27 | terminal | extract WS-upgrade body from routes.ts (ADR-103 retirement #1) | a66202796aca |
 | 2026-05-26 | client | split BubbleTranscript into stable-props sub-modules | 78e320cac500 |
 | 2026-05-26 | client | split EmbeddedTerminal into shell + 7 sub-modules (Campaign C / C5) | 5eeaa23d9b19 |
@@ -518,7 +526,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 455 |
+| Total commits | 463 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 455 |
+| Human-authored commits | 463 |
 

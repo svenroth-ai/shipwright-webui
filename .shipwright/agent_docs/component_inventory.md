@@ -132,6 +132,16 @@ The new tool-use+result `ToolOutputBlock` is intentionally name-collision-aliase
 | `ImageRenderer` | `external/SmartViewer/ImageRenderer.tsx` | 55 | 3 |
 | `TextRenderer` | `external/SmartViewer/TextRenderer.tsx` | 43 | 3 |
 | `MarkdownRenderer` | `external/SmartViewer/MarkdownRenderer.tsx` | 23 | 4 |
+| `SmartViewerModal` | `external/SmartViewer/SmartViewerModal.tsx` | 70 | 1 |
+
+`SmartViewerModal` (iterate-2026-05-31-smartviewer-popout-modal) is the
+centered in-app pop-out of a file preview — a Radix Dialog (portal-to-body,
+viewport-centered, ESC/backdrop close) reusing the ContinuePipelineModal /
+NewIssueModal pattern. The pop-out button in `MarkdownRenderer` opens it via an
+`onPopOut` callback instead of `window.open("/preview", "_blank")`; the modal
+body renders a nested `<SmartViewer popOut={false}>` so the expanded view shows
+no further pop-out button. The `/preview` route is retained for a standalone
+browser tab/window.
 
 ### `terminal/` (ADR-125, Campaign C / C5)
 
