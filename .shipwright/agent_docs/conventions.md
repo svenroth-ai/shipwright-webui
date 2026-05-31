@@ -214,3 +214,5 @@ _Convention-relevant ADRs since adoption (ADR-053), de-duplicated and in chronol
 - **ADR-125** (2026-05-26, Campaign C / C5, HIGH RISK): `EmbeddedTerminal.tsx` split (1856 → 287 LOC) + 7 extracted modules under `client/src/components/terminal/`.
 - **ADR-126** (2026-05-26, Campaign C / C3): `BubbleTranscript.tsx` split (1618 → 175 LOC) + sub-modules under `client/src/components/external/BubbleTranscript/`.
 - **Campaign C non-ADR splits** (2026-05-26): `NewIssueModal.tsx` (C4), `TaskDetailHeader.tsx` (C6), `server/src/external/routes.ts` (C2) all split per the Campaign-C cleanup-invariant.
+
+- **ADR-136** (2026-05-27): actionId-aware phase pill resolution; new-iterate never derives from title

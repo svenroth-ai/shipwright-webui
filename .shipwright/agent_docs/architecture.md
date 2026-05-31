@@ -251,3 +251,23 @@ _Architecture-relevant ADRs since adoption (ADR-053). See `decision_log.md` for 
 - **iterate-2026-05-30-smartviewer-render-ux** (2026-05-30, `iterate/smartviewer-render-ux`, FR-01.02 MODIFY) — SmartViewer markdown file preview gets a dedicated renderer `client/src/components/external/SmartViewer/DocumentMarkdown.tsx`, distinct from the transcript's XSS-locked `MarkdownText` (DO-NOT guards #4/#5 keep the transcript raw-HTML-free). For project files (trusted user content) it enables a CONTROLLED HTML subset: `rehype-raw` → `rehype-sanitize` (custom schema: `id`/`className` everywhere, `href` incl. `#fragment`; no `<script>`/`on*`/`style`) → `rehype-slug` → `rehype-highlight`. This (a) hides `<!-- … -->` comments, (b) renders leading `---…---` YAML frontmatter as a fenced ```yaml block via a dep-free `frontmatterToCodeFence` preprocess, (c) renders inline `<a id="trg-…">` anchors as real jump targets, and (d) makes `[…](#id)` links scroll-into-view WITHIN the pane (delegated onClick). New client deps: `rehype-raw` / `rehype-sanitize` / `rehype-slug`. New full-screen pop-out route `/preview?projectId=&path=` (`client/src/pages/PreviewPage.tsx`, top-level — no MainLayout) opened from a SmartViewer pop-out button; the document pane gets a single page-level horizontal scrollbar (`.smart-viewer-markdown` lets wide tables / ASCII `<pre>` scroll the whole pane instead of self-clipping). Cross-file doc links (relative `*.md#frag`, e.g. the RTM → `spec.md#fr-0101`) navigate the pane IN-PLACE via `SmartViewer/useDocNavigation.ts` (URL-resolved relative path + in-memory path override that resets on parent file-select) — empirically verified against the real `traceability-matrix.md` (E2E `smartviewer-crossfile-nav.spec.ts`, no mock; the synthetic-fixture test had missed that real RTM links are cross-file, not same-document `#frag`).
 
 - **iterate-2026-05-31-terminal-readonly-keepalive** (2026-05-31, `iterate/terminal-readonly-keepalive`, infra) — fixes the false "Read-only — another tab is the active writer" banner that appeared when a terminal writer connection died UNCLEANLY (OS sleep / browser crash / Tailscale half-open TCP): the writer slot was released only on a WS `close`/`error` event, and the `bufferedAmount` watchdog only reaps on backpressure (never liveness — and is inert in prod since the manager's `conn` is a synthetic token). New neutral module `server/src/terminal/ws-heartbeat.ts` adds a per-connection WS ping/pong heartbeat: a pure `createHeartbeatMonitor` (tolerates `DEFAULT_MAX_MISSED_PONGS=2` consecutive misses → reaps in ~2-3 intervals) + `resolveHeartbeatMs` (env `SHIPWRIGHT_TERMINAL_WS_HEARTBEAT_MS`, default 15 s, clamped `[1 s, 5 min]`) + a self-cleaning `startWsHeartbeat(ws)` that `terminate()`s a dead `ws.raw` socket. `ws-upgrade-handler.ts` gains a single `startWsHeartbeat(ws)` call at the top of the live `onOpen` (runs on EVERY connection so a dead reader can't be promoted into the writer slot); the EXISTING `onClose → detachAndCount → reader-promotion → "writer-promoted"` chain then clears read-only on the surviving tab WITHOUT a reload. No client change (browsers auto-pong). `ws-upgrade-handler.ts` baseline `current` bumped 527→529 (ADR-103 deep-module, +2 LOC). External `--mode code` review caught + fixed a one-shot-terminate gap; internal review hardened the miss-tolerance + added the interval ceiling.
+
+- **ADR-129** (2026-05-25): One-finger pan-to-scroll in the embedded xterm
+
+- **ADR-131** (2026-05-26): NewIssueModal split into ModalShell + 3 mode-specific modals
+
+- **ADR-133** (2026-05-26): TaskDetailHeader split into stable-props sub-components
+
+- **ADR-138** (2026-05-29): Render mode / pr-link / stop-hook JSONL events + intent-based scroll detach
+
+- **ADR-139** (2026-05-27): WS-upgrade-handler split (ADR-103 retirement candidate #1 partially landed)
+
+- **ADR-141** (2026-05-30): PR card bubble parity + open/merged badge via gh
+
+- **ADR-142** (2026-05-30): Separate DocumentMarkdown renderer for file preview (controlled HTML)
+
+- **ADR-143** (2026-05-31): Re-open endpoint targets draft, preserving the session
+
+- **ADR-144** (2026-05-31): SmartViewer pop-out opens a centered in-app modal, not a new browser tab
+
+- **ADR-145** (2026-05-31): WS ping/pong liveness keepalive reaps stale terminal writer slots
