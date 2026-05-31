@@ -61,6 +61,9 @@ const REQUIRED_TOKENS = [
   'PreviewPage',
   // iterate-2026-05-31-smartviewer-popout-modal — centered in-app pop-out modal
   'SmartViewerModal',
+  // iterate-2026-05-31-reopen-done-task — done → draft re-open
+  'TaskCardMenu',
+  'taskReopenApi',
 ] as const;
 
 let claudeMd = '';

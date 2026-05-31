@@ -63,9 +63,12 @@ test.describe("Re-open done task", () => {
       await expect(page.getByTestId(`task-card-${taskId}`)).toBeVisible({
         timeout: 6_000,
       });
-      await expect(page.getByTestId("column-done")).toContainText(title);
+      await expect(page.getByTestId("column-done")).toContainText(title, {
+        timeout: 6_000,
+      });
 
-      // Open the card ⋯-menu and select "Re-open".
+      // Open the card ⋯-menu and select "Re-open" (wait for the item to
+      // render before clicking — the Radix dropdown portals to <body>).
       await page.getByTestId(`task-card-menu-${taskId}`).click();
       const reopenItem = page.getByTestId(`task-card-reopen-${taskId}`);
       await expect(reopenItem).toBeVisible();
