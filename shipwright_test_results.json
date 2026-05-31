@@ -1,12 +1,12 @@
 {
  "iterate_latest": {
-  "run_id": "iterate-2026-05-31-smartviewer-popout-modal",
+  "run_id": "iterate-2026-05-31-terminal-readonly-keepalive",
   "date": "2026-05-31",
   "unit": {
    "status": "passed",
-   "passed": 1361,
-   "total": 1361,
-   "scope": "Client vitest 1361/1361 (125 files). New MarkdownRenderer.test.tsx (3): pop-out button renders when onPopOut is provided; clicking invokes onPopOut and never calls window.open; button hidden when onPopOut omitted (modal-nested instance). SmartViewer.test.tsx gains 2: popOut={false} suppresses the pop-out button; clicking pop-out opens the centered modal (smart-viewer-modal), never calls window.open, and leaves exactly one pop-out control in the DOM (nested SmartViewer renders none). doc-sync gains the SmartViewerModal token (component_inventory.md updated). Server unchanged (client-only iterate)."
+   "passed": 1351,
+   "total": 1351,
+   "scope": "Server vitest 1351/1351 (106 files), incl. the NEW ws-heartbeat.test.ts (17): createHeartbeatMonitor (terminate only after consecutive missed pongs; tolerance default 2; never terminate while ponged; late-pong-within-tolerance; idempotent-once-dead; custom maxMissedPongs=1), resolveHeartbeatMs (default, valid, floor-clamp, ceiling-clamp, non-numeric/non-positive fallback), startWsHeartbeat (pings each tick; terminate exactly once incl. when terminate() throws + readyState stays OPEN; survives while peer pongs; self-clean on readyState!=OPEN; stop() clears interval+listener idempotently; no-op on missing/partial raw). Client vitest also green (doc-sync gains the ws-heartbeat token; architecture.md updated). tsc --noEmit clean; oxlint exit 0."
   },
   "integration": {
    "status": "not_run",
@@ -20,25 +20,41 @@
   },
   "e2e": {
    "status": "passed",
-   "passed": 2,
-   "total": 2,
-   "scope": "Playwright (2 specs, localhost-pinned worktree Vite stack on :5191, file API route-mocked). (1) smartviewer-popout-modal.spec.ts (NEW) via /preview: clicking the pop-out button opens a viewport-centered Radix Dialog modal (modal center within 8px of the viewport center on both axes; height > 85vh), the header shows the file path, the modal body renders a nested SmartViewer (document-markdown visible), the nested pop-out button is suppressed (count 0 inside the modal), ESC closes the modal, the close-X closes it, and window.open is never called (no new tab). (2) smartviewer-document-render.spec.ts regression: the pop-out button is still visible on /preview after the change. Real Chromium."
-  },
-  "design_fidelity": {
-   "status": "passed",
    "passed": 1,
    "total": 1,
-   "scope": "Modal geometry (viewport-centered, 90vh, portal-to-body dimmed backdrop) asserted via boundingBox math in real Chromium (E2E) plus a captured screenshot confirming the header (file path + close X), the nested SmartViewer (PathStrip + body), and the dimmed full-app backdrop."
+   "scope": "Playwright (1 spec, real Chromium) terminal-heartbeat-keepalive.spec.ts against an isolated prod stack (node dist/index.js, temp USERPROFILE/HOME, SHIPWRIGHT_NETWORK_PROFILE=local, 127.0.0.1:4847) booted with SHIPWRIGHT_TERMINAL_WS_HEARTBEAT_MS=3000. AC-5: open a task terminal, await ready{role:writer}, hold the healthy tab past the dead-socket reap deadline (~10s = >2 intervals; dead would reap ~6s), then assert the terminal WS received NO close frame, exactly one terminal WS opened (no reap->reconnect churn), data-ws-ready=true, data-role=writer, and the read-only banner count is 0. Proves the heartbeat does not falsely reap a ponging connection."
+  },
+  "design_fidelity": {
+   "status": "skipped",
+   "scope": "No UI/visual change — server-side WS control-frame keepalive; browser auto-pongs, no client/** source change."
   },
   "smoke": {
    "status": "skipped",
-   "scope": "Client-only iterate (a React component + prop threading). No server / API change. Vite stack booted only to drive the F0.5 E2E."
+   "scope": "Covered by the F0.5 web E2E against the live isolated stack (terminal WS reaches ready and survives the heartbeat)."
   },
   "surface_verification": {
    "surface": "web",
-   "tests_run": 2,
+   "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts client/e2e/flows/terminal-heartbeat-keepalive.spec.ts",
+   "tests_run": 1,
    "exit_code": 0,
-   "justification": "UI behavior change (pop-out new-tab -> centered in-app modal); surface=web drove two real-Chromium Playwright specs against a live localhost worktree stack. The new spec asserts centered geometry, nested-pop-out suppression, ESC/X close, and zero window.open calls; the existing document-render spec confirms no regression. Production client build (npm run build) also passed, validating the SmartViewer<->SmartViewerModal render-time circular import under Rollup."
+   "evidence_path": ".shipwright/runs/iterate-2026-05-31-terminal-readonly-keepalive/surface_verification.json",
+   "timestamp": "2026-05-31T13:55:00Z",
+   "justification": "Diff touches a WS handler consumed by the UI (Backend-affects-Frontend rule => surface=web mandatory). The reap path itself is fully unit-tested deterministically; the web surface verifies the complementary AC-5 (a healthy, ponging tab is NOT reaped) against a real-Chromium isolated stack with a 3s heartbeat."
+  },
+  "test_completeness": {
+   "status": "complete",
+   "behaviors": [
+    { "behavior": "Monitor reaps only after consecutive missed pongs (tolerance)", "disposition": "tested", "evidence": "ws-heartbeat.test.ts createHeartbeatMonitor cases — PASSED" },
+    { "behavior": "Monitor never reaps while a pong arrives each interval", "disposition": "tested", "evidence": "ws-heartbeat.test.ts 'never terminates while a pong arrives' — PASSED" },
+    { "behavior": "Wiring pings each tick and terminates a dead socket exactly once (incl. terminate() throws)", "disposition": "tested", "evidence": "ws-heartbeat.test.ts startWsHeartbeat exactly-once + throw cases — PASSED" },
+    { "behavior": "Self-clean when readyState != OPEN; stop() clears interval+listener idempotently", "disposition": "tested", "evidence": "ws-heartbeat.test.ts self-clean + stop() cases — PASSED" },
+    { "behavior": "Capability-guard no-op on missing/partial raw socket", "disposition": "tested", "evidence": "ws-heartbeat.test.ts no-op case — PASSED" },
+    { "behavior": "Env interval resolve + floor/ceiling clamp", "disposition": "tested", "evidence": "ws-heartbeat.test.ts resolveHeartbeatMs cases — PASSED" },
+    { "behavior": "A healthy terminal WS is not reaped across multiple heartbeat intervals (AC-5)", "disposition": "tested", "evidence": "terminal-heartbeat-keepalive.spec.ts (real Chromium, 3s heartbeat) — PASSED" },
+    { "behavior": "Dead writer reaped -> surviving tab auto-promoted end-to-end over a REAL half-open TCP from a browser", "disposition": "untestable", "reason_code": "requires-external-nondeterministic-service", "reason": "There is no deterministic way to half-open a TCP from a browser/Playwright; the reap+promote path is proven by the unit-tested terminate-once behavior plus the existing pty-manager detach/reader-promotion tests." }
+   ],
+   "counts": { "testable": 7, "tested": 7, "untestable": 1, "untested_testable": 0 },
+   "enumeration_basis": { "acs": 5, "covered_acs": 5 }
   },
   "degraded": []
  }
