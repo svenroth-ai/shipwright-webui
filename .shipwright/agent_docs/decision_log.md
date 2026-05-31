@@ -2095,3 +2095,282 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** External plan review (mode=iterate, openrouter openai+gemini) flagged HIGH risks around virtualization perf, scroll-ref identity, and forwardRef. Mitigations: `useMemo` identities preserved bit-perfect from the legacy shell; `stableEventKey` extracted to `filters.ts` so `PlainBubbles` + `VirtualBubbles` use the same helper instance; the scroll `<div>` stays on the shell (no forwardRef needed). The new `useTranscriptScroll` hook delegates to legacy `useAutoScroll` so its dedicated test suite (lines 89-294, six scenarios) remains the authoritative deep-semantic gate. External code review (mode=code) caught three medium findings, all fixed before commit: (1) shell still used `useAutoScroll` directly — now uses `useTranscriptScroll`; (2) one new test had no assertion — anchored to the ref-return contract; (3) `scrollToBottom` test didn't verify `isAtBottom` reset — assertion added. F0 gate: 1110/1110 client vitest cases pass + clean `tsc --noEmit`. F0.5 surface: web vitest + typecheck; Playwright E2E specs deferred due to `localhost:3847` hardcode (same C6 precedent).
 - **Consequences:** Pre-commit hook + CI bloat-check workflow now report `BubbleTranscript.tsx` at 175 LOC, well under its 300-LOC limit (no advisory crossings, no anti-ratchet). The shell composes child renderers exclusively via the new spec-named modules; future polish iterates can touch one concern at a time without re-reading the whole 1618-LOC file. The renamed `MarkdownChunk { content }` API and `useTranscriptScroll`'s ref-return shape are new public surfaces inside the `BubbleTranscript/` subfolder; the legacy primitives stay untouched and still consumed by 4 other call-sites.
 - **Rejected:** Moving/deleting the legacy `MarkdownText.tsx`, `ToolOutputBlock.tsx`, `useAutoScroll.ts` files — blast-radius too high (5+ external consumers across InboxPage, SkillCard, MarkdownRenderer, ToolCard, the hook's own test), would force unrelated import-path churn in a "pure refactor" run. `React.memo` wrapping of `PlainBubbles`/`VirtualBubbles` — would change re-render identity in ways the legacy 1229-LOC test never exercised; bit-perfect preservation requires NO new memo boundaries. `forwardRef` for sub-components — the scroll `<div>` lives on the shell (existing pattern); sub-components consume `containerRef` as a regular prop.
+
+---
+
+### ADR-127: doc-sync follows file-map move out of CLAUDE.md
+- **Date:** 2026-05-23
+- **Section:** Iterate — bug: doc-sync meta-test after Phase 0f SoT move
+- **Run-ID:** iterate-2026-05-23-fix-ci-doc-sync-claude-md
+- **Context:** Phase 0f (f4d52fd) dropped the file-tree dump from CLAUDE.md but did not update client/src/test/doc-sync.test.ts, which still asserted 18 tokens against CLAUDE.md only. CI on main@34ac661 (v0.16.0) failed 11/20.
+- **Decision:** Retarget doc-sync to the bundle of CLAUDE.md + architecture.md + component_inventory.md for file-map tokens. Keep CLAUDE.md as the SoT for the two guard-text assertions (ADR-044, DO-NOT #11). Canonicalise scrollback-store to ScrollbackStore (matches DO-NOT #18 wording in CLAUDE.md and architecture.md).
+- **Commit:** (assigned post-merge)
+- **Rationale:** The contract Phase 0f intentionally established was: file map lives in agent_docs, guards live in CLAUDE.md. The meta-test must follow the contract, not pin CLAUDE.md to its pre-Phase-0f shape.
+- **Consequences:** CI green. Drift detection preserved — adding a new component without mentioning it in any of the three SoT docs still fails. CLAUDE.md DO-NOT #11 wording updated to name the bundle.
+- **Rejected:** Restore the CLAUDE.md file-tree (would re-introduce the rot Phase 0f deleted). Delete the meta-test (loses drift detection on new components).
+
+---
+
+### ADR-128: Retroactively backfill work_completed events for 14 chore/docs commits
+- **Date:** 2026-05-23
+- **Section:** Iterate — change: reconcile B7 missing events
+- **Run-ID:** iterate-2026-05-23-reconcile-b7-missing-events
+- **Context:** B7 audit (2026-05-22, baseline v0.14.0) flagged 14 commits with no matching event. All 14 were docs/chore/launch-prep commits that bypassed the iterate flow, not regressions.
+- **Decision:** Backfill one work_completed event per missing commit via record_event.py, each tagged change_type=docs|compliance with spec_impact=none. Use source=iterate so the FR-gate applies and the format matches existing rows.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Cheaper than changing B7's exclusion config; preserves audit trail for retro baselines; idempotent via --deduplicate-by-commit.
+- **Consequences:** Historical event log self-consistent; B7 trivially passes (v0.16.0 already moved the gate forward). 13 additional commits between v0.15.0 and v0.16.0 still lack events — flagged as triage follow-up, not in-scope for this run.
+- **Rejected:** Alt-A whitelist chore/docs commits in B7 config (framework-level change, scope creep). Alt-B no-op + close audit finding (loses historical event-log integrity).
+
+---
+
+### ADR-129: One-finger pan-to-scroll in the embedded xterm
+- **Date:** 2026-05-25
+- **Section:** Iterate — bug: terminal touch-scroll
+- **Run-ID:** iterate-2026-05-25-fix-terminal-touch-scroll
+- **Context:** xterm.js 6.x replaced its native-overflow viewport with .xterm-scrollable-element (VS-Code-derived); that element listens to wheel only — no touch listeners. Mouse wheel scroll worked, touchscreen finger pan did not.
+- **Decision:** Add a small pure module (touch-scroll.ts) that translates one-finger touchmove deltas into term.scrollLines() calls; wire it into EmbeddedTerminal next to attachCustomKeyEventHandler with a disposer in the cleanup block.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Pure module mirrors terminal-clipboard.ts pattern — DI for pixel-per-line measurement; 15 jsdom tests cover accumulator math, direction, multi-touch ignore, listener dispose, custom seam. Approach uses term.scrollLines() (public API) and stock DOM TouchEvent — no new deps, no xterm internals.
+- **Consequences:** Touch-scroll now works on touchscreens. Multi-touch is ignored (browser keeps pinch); the accumulator carries sub-line remainders so partial drags add up across moves.
+- **Rejected:** Custom CSS touch-action / overflow-scroll on .xterm-viewport: xterm 6 owns the scroll model; user-level CSS would fight the addon-fit measurement. A 3rd-party xterm-addon-touch: none maintained for v6.x; rolling our own keeps dependency surface small.
+
+---
+
+### ADR-130: Drop OR-fallback that defeated .gitignore directory-form negations
+- **Date:** 2026-05-25
+- **Section:** Iterate — bug: tree-route directory-form negation
+- **Run-ID:** iterate-2026-05-25-fix-tree-ignored-directory-negation
+- **Context:** FolderTree showed .shipwright as not-ignored while every re-included subdir (agent_docs, planning, ...) appeared italic+ignored, because the tree route OR'd the bare-name ignore() result into the directory-form result.
+- **Decision:** Query ignore() with a single canonical form per kind: dirs use the trailing-slash form, files use the bare form. Drop the bare-form OR fallback.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The OR with the bare-name form silently matched the broader '/.shipwright/*' rule and overrode the directory-form negation '!/.shipwright/agent_docs/' that only matches with the trailing slash.
+- **Consequences:** .gitignore patterns of the shape '/.shipwright/* + !/.shipwright/agent_docs/' now correctly re-include the whitelisted subdirs. Default-ignored markers (.git, node_modules) still ignore correctly because their patterns match both forms.
+- **Rejected:** Keeping the OR and adding a second negation pass would compound logic. Switching to git's own check-ignore via subprocess would add IO + platform issues.
+
+---
+
+### ADR-131: NewIssueModal split into ModalShell + 3 mode-specific modals
+- **Date:** 2026-05-26
+- **Section:** Campaign C — bloat cleanup C4
+- **Run-ID:** iterate-2026-05-26-campaign-C-C4-new-issue-modal-split
+- **Context:** NewIssueModal.tsx (1516 LOC) + NewIssueModal.test.tsx (1292 LOC) were both on the bloat baseline. Campaign C bloat-cleanup mandates splitting and removing the entries.
+- **Decision:** See ADR-102. Split into client/src/components/external/NewIssueModal/ directory (dispatcher + ModalShell + 5 body components + composer hook in 3 slices + extracted primitives). Both baseline entries removed (cleanup-invariant case b).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mode bodies separate naturally; centralised hook keeps payload-shape testable in one place; key={action.id} gives fresh-on-mode-switch without losing dispatcher ownership.
+- **Consequences:** Every new file ≤300 LOC. 84 vitest probes cover 5 modes × 2 POST bodies + sessionStorage handoff. Full 1124-test client suite passes. Step 3.7 external review caught 2 HIGH regressions (UNASSIGNED_PROJECT_ID constant + functional setState) — fixed inline. Latent duplicate-submit race fixed via inFlightRef.
+- **Rejected:** Swap Radix Dialog (hard constraint); per-body hook (loses state on mode-switch); leave NewIssueModal.tsx shim alongside directory (Windows file/dir collision).
+- **Details:** [102-campaign-c-c4-new-issue-modal-split.md](../planning/adr/102-campaign-c-c4-new-issue-modal-split.md)
+
+---
+
+### ADR-132: C5 EmbeddedTerminal-split E2E backfill (auto-execute + ptyReused regression fence)
+- **Date:** 2026-05-27
+- **Section:** Iterate — change: C5 split E2E backfill
+- **Run-ID:** iterate-2026-05-26-campaign-C-C5-e2e-followup
+- **Context:** Campaign C / C5 (PR #70) split EmbeddedTerminal.tsx but deferred the MANDATORY Playwright spec for ADR-068-A1 auto-execute, leaving the load-bearing path covered by unit tests only.
+- **Decision:** Add client/e2e/flows/C5-embedded-terminal-split-smoke.spec.ts (2 tests) + 2 spec-local helpers (ws-capture, task-fixture); run against an isolated production-build stack on PORT=4847 with USERPROFILE pointed at a tmp dir.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Empirical finding during build: the FIRST test design used a clickAt-gated filter, which falsified because EmbeddedTerminal is lazy-loaded — Launch was firing before the WS attached, prewarmPty was creating the pty first, and the one-shot guard armed (ptyReused:true). Fix: wait for the FIRST ready BEFORE clicking, mirroring real-user timing.
+- **Consequences:** Auto-execute path now has a real-browser fence (role:writer + ptyReused:false + ≥200 ms quiesce + claude --session-id data-frame). Reload path verified for ptyReused:true. No production code change.
+- **Rejected:** (a) Importing the existing spec-76 WS helper directly — preferred a spec-local helper for durability of the regression fence. (b) Driving the Resume click + no-duplicate-launch end-to-end — needs Claude to bootstrap a JSONL the isolated USERPROFILE intentionally cannot supply; covered by 204 vitest cases instead.
+
+---
+
+### ADR-133: TaskDetailHeader split into stable-props sub-components
+- **Date:** 2026-05-26
+- **Section:** Campaign C / C6 — Bloat cleanup, webui
+- **Run-ID:** iterate-2026-05-26-campaign-C-C6-task-detail-header-split
+- **Context:** TaskDetailHeader.tsx was grandfathered at 1015 LOC (3.4x the 300-LOC ceiling). Campaign C cleanup-invariant: new sub-modules MUST be ≤300 LOC pre-commit.
+- **Decision:** Split into a 222-LOC composition-root shell plus 5 named sub-components (StateBadge, LaunchCTA, ResumeCTA, TitleEdit, HeaderMenu) and 2 internal helpers (HeaderMenuItems, ConfirmClearHistoryDialog). Behavior bit-perfect: 35-case integration suite passes UNMODIFIED + 43 new unit cases. Baseline entry for TaskDetailHeader.tsx REMOVED.
+- **Commit:** (assigned post-merge)
+- **Rationale:** External plan + code review (openrouter, openai+gemini) found 17+5 findings; all HIGH-priority ones (stale ctaError, ref ownership, no new wrapper DOM nodes, StateBadge fragment, delete-mutation ownership) accepted-and-fixed pre-commit. See ADR-102 for full table.
+- **Consequences:** Each concern testable in isolation; cleanup-invariant enforced; Resume label invariant regression-guarded; baseline count drops by 1. Trade-off: Playwright F0.5 partially blocked by pre-existing :3847 hardcodes in spec files (vitest integration is the empirical surface evidence).
+- **Rejected:** (a) 4-only sub-components (spec letter): rejected, shell would have stayed ~430 LOC. (b) Memoization: rejected, pre-split had none. (c) useContinuePipeline() re-instate: rejected, out-of-scope for refactor. See ADR-102 for full alternatives table.
+- **Details:** [102-campaign-c-c6-task-detail-header-split.md](../planning/adr/102-campaign-c-c6-task-detail-header-split.md)
+
+---
+
+### ADR-134: API contract sweep as in-memory vitest suite
+- **Date:** 2026-05-27
+- **Section:** Iterate — change: codify C2 API contract sweep as tracked CI test
+- **Run-ID:** iterate-2026-05-26-commit-c2-contract-sweep
+- **Context:** C2 split (PR #71) verified bit-perfect API contract via an ad-hoc pytest+booted-server sweep written in the worktree pre-merge; sweep was never committed, leaving the empirical anchor in worktree-only memory.
+- **Decision:** Commit the 22-endpoint baseline JSON + a vitest in-memory contract sweep at server/src/external/__tests__/. PROBE_TABLE drives per-endpoint targeted-status assertions; meta-tests pin both directions of baseline<->probe drift.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Vitest in-memory via Hono app.request() beats pytest+booted-server on CI hermeticity (no port allocation, no USERPROFILE isolation, no production-server collision on :3847), speed (ms vs s/min), and runner count (single, already wired). Same harness pattern as routes.test.ts.
+- **Consequences:** Future routes.ts touch-ups that drop, rename, or restructure an endpoint fail CI deterministically. Hermetic (no port binding, no subprocess); auto-picked by vitest's **/*.test.ts include glob, no .github/workflows/*.yml change.
+- **Rejected:** Pytest under shared/ (matches ad-hoc sweep exactly; rejected: CI port + USERPROFILE complexity, slower, two runners). New-endpoint drift detection via Hono route enumeration (rejected: Hono has no public route registry, dominant regression class is silent-drop not silent-add).
+
+---
+
+### ADR-135: Superpowers anti-slop PR template + per-source Acknowledgments block
+- **Date:** 2026-05-26
+- **Section:** Iterate — change: public-launch hardening (P1.1 SP5, webui leg)
+- **Run-ID:** iterate-2026-05-26-public-launch-hardening-webui
+- **Context:** Pre-public-launch hardening blocker (Spec/external-frameworks-integration.md §6 P1.1 bundle, webui leg). webui had no PR template; README named only multica/superpowers in passing.
+- **Decision:** Create .github/PULL_REQUEST_TEMPLATE.md mirroring shipwright's Superpowers anti-slop framing (Iron-Law headings, Human Authorization, Duplicate Search, empirical Verification, Anti-Slop Self-Check) with webui-specific Sensitivity list (ADR-034/067/068/068-A1/101 surfaces, npm/Playwright test commands). Add Acknowledgments block to README before License covering Superpowers, Karpathy, Multica with per-source attribution; Multica explicit Apache-2.0 modified, patterns only.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuse the Superpowers anti-slop framing across both repos so contributors face the same gates regardless of which repo they PR into. webui-specific Sensitivity list anchors on the actual load-bearing ADRs (ADR-034 launch model, ADR-067/068 spawning rules, ADR-101 cross-process lock).
+- **Consequences:** PR reviewers can reject AI PRs that ignore the Iron-Law/empirical-verification stance. Companion to PR #105 on the sibling shipwright repo (KA1 in constitution + same SP5 framing). README now satisfies P1.1 webui acceptance.
+- **Rejected:** Symlinking shipwright's template into webui (rejected: GitHub does not follow symlinks; copy with webui-specific Sensitivity list is the working model). Bare 'see shipwright README' note (rejected: webui needs to stand alone for licensing review).
+
+---
+
+### ADR-136: actionId-aware phase pill resolution; new-iterate never derives from title
+- **Date:** 2026-05-27
+- **Section:** Iterate (Path-C bug)
+- **Run-ID:** iterate-2026-05-27-fix-phase-pill-iterate-title-fallback
+- **Context:** TaskCard + TaskDetailHeader rendered a 'Build' phase pill for an iterate task whose title started with 'Fix' (task 45ca49ae: actionId=new-iterate, title='Fix for SBOM…'). Root cause: derivePhaseFromTitle regex /\b(?:build|implement|fix)\b/ matched 'Fix'; the two call-sites only short-circuited 'new-plain', so new-iterate fell through to the title fallback.
+- **Decision:** Introduced resolveTaskPhase in client/src/lib/phaseStyle.ts as the single source of truth for which phase pill an ExternalTask should render. Policy order: new-plain → null; persisted phase+phaseLabel pair wins; new-iterate → {id:'iterate',label:'Iterate'} (never title-derived); else → derivePhaseFromTitle. TaskCard and TaskDetailHeader both call the helper, eliminating the previous duplicated useMemo bodies.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The action and phase share an axis for new-iterate; treating the action as the authoritative phase when no override is persisted is more correct than guessing from free-form bug-report titles. Centralising the policy in one helper (vs duplicated inline checks at both call-sites) avoids future drift between TaskCard and TaskDetailHeader.
+- **Consequences:** Iterate tasks now always show the correct 'Iterate' pill regardless of title wording. TaskCard's data-phase-source attribute gains a new value 'action-default' (existing values 'task' and 'title-fallback' unchanged). new-pipeline + new-task without persisted phase still fall through to derivePhaseFromTitle; if future bug reports show similar mis-classification there, the same policy step can be extended.
+- **Rejected:** (1) Inline fix at both call-sites — would duplicate the same iterate special-case in two places and the call-sites already drifted on persisted-phase semantics (TaskCard accepted phase-only; TaskDetailHeader required both). (2) Adding an actionId parameter to derivePhaseFromTitle — overloads a pure title-keyword function with policy. (3) Tightening derivePhaseFromTitle to exclude 'fix' — would silently break legitimate build-phase tasks titled 'Fix login bug'.
+
+---
+
+### ADR-137: ready.ptyReused semantics refined — hadPriorWriter (atomic snapshot inside attach())
+- **Date:** 2026-05-27
+- **Section:** Iterate — bug: fix-pty-reused-prewarm-race
+- **Run-ID:** iterate-2026-05-27-fix-pty-reused-prewarm-race
+- **Context:** Click-Launch-immediately-after-navigate raced prewarmPty (POST /spawn) against the lazy EmbeddedTerminal WS upgrade; if prewarm won, ptyExistedBeforeAttach was true → ready.ptyReused:true → one-shot guard armed → manual-send park. Surfaced empirically by PR #73's E2E backfill (the C5 spec had to wait-for-first-ready before clicking).
+- **Decision:** PtyEntry gains hadWriterAttach:boolean; pty-manager.attach() returns {role, hadPriorWriter} as an atomic snapshot taken BEFORE the writer-slot mutation; routes.ts emits ready.ptyReused = hadPriorWriter instead of ptyExistedBeforeAttach. terminalReset still uses ptyExistedBeforeAttach (ADR-104 unchanged).
+- **Commit:** (assigned post-merge)
+- **Rationale:** External review (gemini HIGH + openai #2 HIGH) flagged that a separate hasHadWriterAttach() public read would race against concurrent attach() calls. Atomic read-and-mutate inside attach() resolves the race by Node's single-threaded event loop guarantee. Dedicated race-fence test locks the invariant.
+- **Consequences:** Prewarm-only first WS attach now emits ready.ptyReused:false → guard does NOT arm → auto-execute fires as designed. Reload / multi-tab still emit ready.ptyReused:true (prior writer set the latch). Wire shape unchanged; client unchanged.
+- **Rejected:** (a) Separate hasHadWriterAttach() public read — rejected as racy. (b) Fix in useAutoLaunch.ts (client) by adding a heuristic gate — rejected: server is the source of truth for pty lifecycle. (c) Remove prewarmPty entirely — rejected: it's a real latency optimization.
+
+---
+
+### ADR-138: Render mode / pr-link / stop-hook JSONL events + intent-based scroll detach
+- **Date:** 2026-05-29
+- **Section:** FR-01.02 / BubbleTranscript
+- **Run-ID:** iterate-2026-05-27-transcript-renderer-scroll
+- **Context:** Claude Code emits type:mode (30x/session), type:pr-link, and Stop-hook output (user-role string starting 'Stop hook feedback:') the transcript parser did not recognize — rendered as yellow 'Unknown event' cards or raw user bubbles. Separately, scroll-up during live polling flickered: useAutoScroll detach was position-based (64px) so a slow scroller never detached and got re-pinned each poll.
+- **Decision:** Add 3 discriminated-union variants (mode-change, pr-link, stop-hook) with defensive parsing: mode needs a non-empty string; pr-link needs finite prNumber + non-empty repo + https?:// scheme (XSS guard); stop-hook (parsers/stop-hook.ts) uses a startsWith gate, no /m flag. mode-change joins SYSTEM_KINDS; pr-link/stop-hook are real content. useAutoScroll detach becomes intent-based (any upward delta outside an 8px rubber-band zone), re-attach stays threshold-based (64px).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Union expansion is the parser's job (Ousterhout: grows type-surface not control-flow). Extracting detectors to a new module rejected (YAGNI one-occupant namespace; Chesterton-Fence colocated). Intent-detach attacks the root cause the 250ms guard masked.
+- **Consequences:** Zero Unknown cards for observed types (boundary-probe verifies); stop-hook collapses to a Tool-call card; slow scroll-up no longer flickers. session-parser.ts ratchets 716->826 (baseline updated). The 250ms ACTIVE_SCROLL_GUARD stays as defense-in-depth; its time-based re-pin test was replaced by sticky-detach contract tests.
+- **Rejected:** 1) Split renderer+scroll into two iterates (same io-boundary+E2E serves both; user chose bundling). 2) Extend the 250ms guard (symptom not cause). 3) /m-flagged stop-hook regex (external review: swallows mixed prose).
+- **Details:** [2026-05-27-transcript-renderer-scroll.md](../planning/iterate/2026-05-27-transcript-renderer-scroll.md)
+
+---
+
+### ADR-139: WS-upgrade-handler split (ADR-103 retirement candidate #1 partially landed)
+- **Date:** 2026-05-27
+- **Section:** iterate
+- **Run-ID:** iterate-2026-05-27-ws-upgrade-handler-split
+- **Context:** ADR-103 (2026-05-27) granted a bloat exception for server/src/terminal/routes.ts (1013 LOC) and named two retirement candidates. Candidate #1 — split the WS upgrade handler from the HTTP endpoints — was preferred because the WS body is the largest single block AND where the shared-locks deep-module argument is strongest (writer-slot + pause-refcount + attach-count + onData broadcast all interact).
+- **Decision:** Extracted the ~344-LOC WebSocket upgrade body to server/src/terminal/ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. routes.ts kept the four reject-the-upgrade validations (origin gate, taskId, task lookup, resolveTrustedCwd) plus the HTTP route handlers and the spawn-env factory. Also extracted deriveTerminalReset to its own neutral terminal-reset.ts module to break the import cycle between routes.ts and ws-upgrade-handler.ts.
+- **Commit:** (assigned post-merge)
+- **Rationale:** routes.ts drops 1013 -> 620 LOC (-39%); ws-upgrade-handler.ts lands at 527 LOC as a protected deep module (state=exception, adr=ADR-103). External plan review HIGH #1: validation MUST stay synchronous in routes.ts or it degrades to silent WS disconnects. Empirically verified at F0.5 — evil origin + unknown task both throw synchronously, server returns HTTP 500 without WS open.
+- **Consequences:** ADR-103 exception not yet fully retired (routes.ts still > 300 LOC due to HTTP routes + spawn factory); ws-upgrade-handler.ts is the protected cohesive boundary going forward — DO NOT add unrelated terminal helpers. Anti-ratchet baseline tightened: routes.ts.current 1013 -> 620; new baseline entries for ws-upgrade-handler.ts (527) + ws-upgrade-handler.test.ts (570). Re-Review-Date in ADR-103 unchanged at 2026-08-27.
+- **Rejected:** Splitting the WS body INTO multiple files (per-handler files / per-branch files): rejected because it forces the writer-slot + pause-refcount + attach-count locks across module boundaries — the failure mode ADR-101 calls out as 'moving complexity outward'. Inline-then-extract (split the WS body into 3 helpers WITHIN ws-upgrade-handler.ts): rejected because the inner functions close over per-connection state (liveBuffer, replayDone, connToken, ws) and splitting would force closures-of-closures.
+- **Details:** [103-bloat-exception-terminal-routes.md](../planning/adr/103-bloat-exception-terminal-routes.md)
+
+---
+
+### ADR-140: Diagnostics Launchers removed; Triage header aligned to Inbox/Projects
+- **Date:** 2026-05-30
+- **Section:** Iterate - change: page-chrome cleanup
+- **Run-ID:** iterate-2026-05-30-page-chrome-cleanup
+- **Context:** Diagnostics duplicated launcher-availability that the task header already surfaces, and the Triage page used a one-off centred header plus subtitle diverging from every other page.
+- **Decision:** Removed the Launchers UI section (the /api/diagnostics launchers payload is untouched) and restyled the Triage header to the shared full-bleed surface bar: 24px/700 h1 plus inline count badge, no subtitle.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Consistency and noise reduction per UAT; reuse the established page-header pattern rather than a bespoke one.
+- **Consequences:** Diagnostics is leaner and Triage visually matches Inbox/Projects. No API or behaviour change; launcher data is still served and consumed elsewhere.
+- **Rejected:** Extracting a shared PageHeader component (YAGNI for a two-page alignment); removing launcher capability from the backend (out of scope).
+
+---
+
+### ADR-141: PR card bubble parity + open/merged badge via gh
+- **Date:** 2026-05-30
+- **Section:** Iterate - change: PR card open/merged status
+- **Run-ID:** iterate-2026-05-30-pr-card-status
+- **Context:** The transcript PrLinkCard rendered as a small inline chip with no PR state. UAT: make it a message-sized bubble and show open vs merged.
+- **Decision:** Bubble-geometry parity for PrLinkCard plus an Open/Merged/Closed/Draft badge from a new GET /api/external/pr-status route that runs gh pr view shell:false (url after a -- separator); 60s TTL cache; failures degrade to unknown.
+- **Commit:** (assigned post-merge)
+- **Rationale:** User chose gh CLI to reuse existing auth (no PAT). Shell-free plus url-as-argv-after-double-dash blocks injection. Cache plus retry:false bound request volume under the 1s transcript poll.
+- **Consequences:** First external-network read surface in webui (gh -> GitHub). Graceful: gh missing or offline -> no badge, never 500. New client hook usePrStatus (React Query).
+- **Rejected:** GitHub REST API plus PAT (secret management); deriving merged-state from local git (cannot distinguish open vs closed; PRs are GitHub-side).
+
+---
+
+### ADR-142: Separate DocumentMarkdown renderer for file preview (controlled HTML)
+- **Date:** 2026-05-30
+- **Section:** Iterate - change: SmartViewer document rendering + pop-out
+- **Run-ID:** iterate-2026-05-30-smartviewer-render-ux
+- **Context:** SmartViewer previewed project files through the transcript's XSS-locked MarkdownText, so HTML comments / frontmatter / inline anchors showed as literal text and internal links did not navigate; no pop-out or page-level scroll.
+- **Decision:** Add a DocumentMarkdown renderer for file preview only (rehype-raw + rehype-sanitize + rehype-slug; frontmatter preprocessed to a yaml fence) with in-pane anchor nav, a /preview pop-out route, and page-level horizontal scroll. The transcript MarkdownText stays raw-HTML-free.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Trusted project files may carry a controlled HTML subset; the transcript (Claude output) must not. Sanitizer strips script/style/on*/javascript: regardless; clobber protection retained for defense-in-depth.
+- **Consequences:** File preview hides comments, renders frontmatter as a block, anchors as jump targets, and internal links scroll within the pane. New deps rehype-raw/sanitize/slug. Sanitizer keeps the user-content- clobber prefix; nav resolves both id forms.
+- **Rejected:** Enabling rehype-raw in the shared MarkdownText (weakens the transcript XSS contract); disabling clobber protection; js-yaml for frontmatter (dep-free preprocess suffices).
+
+---
+
+### ADR-143: Re-open endpoint targets draft, preserving the session
+- **Date:** 2026-05-31
+- **Section:** external/tasks/lifecycle.ts
+- **Run-ID:** iterate-2026-05-31-reopen-done-task
+- **Context:** done was a terminal board state with no path back; counterpart of move-to-backlog. in_progress is a five-state derived bucket, not a single settable value, so draft (Backlog) is the only meaningful re-open target.
+- **Decision:** POST /api/external/tasks/:id/reopen mirrors /backlog: pure done->draft flip, only legal source done (else 409 reopen_invalid_state, idempotent on draft, ELOCKED->409). Session KEPT so the card shows Resume; done is never re-derived by the poller so the flip is draft-sticky.
+- **Commit:** (assigned post-merge)
+- **Consequences:** 23rd public endpoint + contract baseline/probe. Card menu extracted to TaskCardMenu.tsx (off TaskCard.tsx, under its bloat ceiling); new lib/taskReopenApi.ts keeps externalApi.ts off its ceiling.
+- **Rejected:** Clear the session like a fresh start (loses transcript, contradicts continue-intent); reuse generic PATCH {state:draft} (no source-state validation).
+
+---
+
+### ADR-144: SmartViewer pop-out opens a centered in-app modal, not a new browser tab
+- **Date:** 2026-05-31
+- **Section:** client/src/components/external/SmartViewer
+- **Run-ID:** iterate-2026-05-31-smartviewer-popout-modal
+- **Context:** The SmartViewer 'Pop out' button called window.open('/preview','_blank'), opening the file preview in a new browser tab. That loses in-app context and is awkward for quick file inspection inside the narrow right pane.
+- **Decision:** Reuse the Radix Dialog pattern (ContinuePipelineModal/NewIssueModal): a new SmartViewerModal portaled to body, viewport-centered (min(1200px,92vw) x 90vh), dimmed full-app backdrop, ESC/backdrop close. The pop-out button now delegates to an onPopOut callback; popOut is threaded SmartViewer->MarkdownRenderer and set false for the modal-nested SmartViewer so no further pop-out button renders. The /preview route is retained for a standalone window.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Centered modal keeps app context and reuses an established modal pattern (no new UX surface). Suppressing the nested pop-out avoids recursion and a redundant control.
+- **Consequences:** Quicker in-app file inspection; one fewer new-tab surface. SmartViewer<->SmartViewerModal form a render-time-only circular import (safe under ESM + Rollup; production build verified). Client-only change -> deploys via client rebuild, no server restart.
+- **Rejected:** Anchoring an overlay inside the right pane (not viewport-centered, clipped by the pane); removing the /preview route (keep the standalone-window option).
+
+---
+
+### ADR-145: WS ping/pong liveness keepalive reaps stale terminal writer slots
+- **Date:** 2026-05-31
+- **Section:** terminal/ws-liveness
+- **Run-ID:** iterate-2026-05-31-terminal-readonly-keepalive
+- **Context:** The terminal writer slot was released only on a WS close/error event; a connection dying uncleanly (OS sleep, browser crash, Tailscale half-open TCP) never fired it, pinning the slot and showing a false read-only banner. The bufferedAmount watchdog only reaps on backpressure (and is inert in prod since conn is a synthetic token).
+- **Decision:** Add a per-connection WS ping/pong heartbeat in a new neutral module ws-heartbeat.ts (pure monitor + self-cleaning startWsHeartbeat against ws.raw). On consecutive missed pongs it terminate()s the dead socket; the existing onClose->detach->reader-promotion chain frees the slot and promotes the surviving tab. Runs on every connection so a dead reader can't be promoted. Default interval 15s (env-tunable, clamped 1s-5min), tolerates one transient miss.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Ousterhout: liveness mechanics are cohesive to the WS body but kept in a dedicated neutral module (cf. terminal-reset.ts) so the at-ceiling ADR-101/103 deep modules don't ratchet. readyState/TCP-keepalive are too slow for half-open detection; ping/pong is RFC6455-native and browser-automatic.
+- **Consequences:** Stale read-only self-heals in ~30-45s without a reload; no client change (browser auto-pongs). ws-upgrade-handler.ts +2 LOC (baseline 527->529, ADR-103). A cleanly-closed socket's timer self-cleans within one interval (bounded, unref'd).
+- **Rejected:** Extend the pty-manager watchdog for liveness (ratchets ADR-101 deep module + couples it to WS control frames it never otherwise touches). Wire stop() into onClose/onError (adds LOC to the at-ceiling module for a bounded, harmless self-clean window).
+- **Details:** [2026-05-31-terminal-readonly-keepalive.md](../planning/iterate/2026-05-31-terminal-readonly-keepalive.md)
+
+---
+
+### ADR-146: Campaign C, C1: CLAUDE.md verification (Phase-0f organic outcome)
+- **Date:** 2026-05-25
+- **Section:** Campaign C — sub-iterate C1
+- **Run-ID:** sub_iterate-20260525-213548
+- **Context:** Campaign-C source plan listed C1 as 'Split CLAUDE.md (1600 LOC into kern + references)'. On origin/main CLAUDE.md is 197 LOC and not in shipwright_bloat_baseline.json — the Phase-0f compliance-hygiene cleanup (PR #55, commit f4d52fd) already delivered the target outcome organically.
+- **Decision:** Reframe C1 as a Verification Iterate: empirically confirm both invariants (LOC <= 300, no baseline entry) via a 30-LOC pytest probe + run the existing client doc-sync vitest guard. Document the Phase-0f organic outcome in ADR-100 so future auditors don't re-open the C1 question. No edit to CLAUDE.md itself.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The 1600-LOC premise was already false at planning time. Forcing a split for its own sake would churn the file without benefit; verifying + documenting protects against rediscovery.
+- **Consequences:** Campaign-C topology preserved (C1 remains first node in the stacked chain so C2 can base on C1). Future regression where CLAUDE.md crosses 300 LOC will be caught by this iterate's pytest probe at gate time.
+- **Rejected:** (a) Pure SKIP without verification — leaves no empirical artefact for the future auditor. (b) Drop C1 entirely from the campaign — breaks the stacked chain (C2..C7 base on C1).
+- **Details:** [100-campaign-c-c1-verification.md](../planning/adr/100-campaign-c-c1-verification.md)
+
+---
+
+### ADR-147: Accept pty-manager.ts as deep module; baseline state=exception
+- **Date:** 2026-05-25
+- **Section:** Campaign C C8
+- **Run-ID:** sub_iterate-20260525-213548
+- **Context:** server/src/terminal/pty-manager.ts is 1198 LOC against the 300 limit; state=grandfathered since Campaign A.defense. Campaign C removes anonymous TODO entries.
+- **Decision:** File ADR-101; flip baseline entry to state=exception, adr=ADR-101. No code change to pty-manager.ts. Re-Review-Date 2026-08-25 (when an auth layer might separate concerns).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Splitting would expose internals that close over the same private taskId-handleMeta map; ADRs 067/068-A1/092 explicitly establish the current shape.
+- **Consequences:** Group H audit recognises state=exception+valid-adr as named-decision-satisfied. Pre-commit anti-ratchet hook still blocks any increase of current upward.
+- **Rejected:** Split spawn from scrollback (rejected by ADR-092). Extract role bookkeeping (shared map). Rewrite in Rust (out of scope). Delete feature (load-bearing per ADR-034). Leave grandfathered (the entire point of C8 is naming the decision).
+- **Details:** [101-bloat-exception-pty-manager.md](../planning/adr/101-bloat-exception-pty-manager.md)

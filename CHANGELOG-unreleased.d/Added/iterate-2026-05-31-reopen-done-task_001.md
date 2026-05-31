@@ -1,1 +1,0 @@
-Re-open a done task back to the Backlog: a 'Re-open' item on done TaskCards calls POST /api/external/tasks/:id/reopen (counterpart of Move to Backlog), flipping the task done->draft while preserving its session so the card then offers Resume.

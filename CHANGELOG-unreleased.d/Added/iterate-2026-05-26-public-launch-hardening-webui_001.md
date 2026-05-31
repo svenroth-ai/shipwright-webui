@@ -1,1 +1,0 @@
-.github/PULL_REQUEST_TEMPLATE.md (NEW) — Superpowers anti-slop framing (Iron-Law headings, Human Authorization, Duplicate Search, empirical Verification, Anti-Slop Self-Check), webui-specific Sensitivity list anchoring on ADR-034/067/068/068-A1/101. MIT attribution footer to [obra/superpowers](https://github.com/obra/superpowers).

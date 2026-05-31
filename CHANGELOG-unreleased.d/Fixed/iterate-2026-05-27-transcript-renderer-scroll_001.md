@@ -1,1 +1,0 @@
-Transcript now renders Claude Code `mode` heartbeats, `pr-link` events (as a clickable PR card), and Stop-hook output (as a collapsible card) instead of yellow "Unknown event" cards or raw user bubbles.
