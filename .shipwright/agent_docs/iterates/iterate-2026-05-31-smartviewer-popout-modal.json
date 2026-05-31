@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-05-31-smartviewer-popout-modal",
+  "date": "2026-05-31T06:53:17.555003Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/smartviewer-popout-modal",
+  "tests_passed": true,
+  "adr": "ADR-NNN (SmartViewer pop-out modal; assigned at changelog release)"
+}
