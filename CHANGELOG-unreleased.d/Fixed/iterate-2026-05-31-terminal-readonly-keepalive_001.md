@@ -1,0 +1,1 @@
+Embedded terminal: a writer connection that dies uncleanly (OS sleep, browser crash, Tailscale half-open TCP) no longer pins the "Read-only — another tab is the active writer" banner. A per-connection WS ping/pong heartbeat reaps the dead socket so the surviving tab is promoted to writer automatically.
