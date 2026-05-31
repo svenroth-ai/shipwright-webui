@@ -1,38 +1,36 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-30-smartviewer-render-ux"
+run_id: "iterate-2026-05-31-smartviewer-popout-modal"
 phase: "iterate"
-reason: "iterate: smartviewer-render-ux"
-timestamp: "2026-05-30T09:37:06.331457+00:00"
+reason: "SmartViewer pop-out modal iterate complete"
+timestamp: "2026-05-31T06:53:16.505698+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-05-30 09:37:06 UTC
+> Auto-generated 2026-05-31 06:53:16 UTC
 
 ## Session Info
 
-- **Session ID**: c325e08b-2c37-4ad1-aee0-cc007653fbbf
-- **Timestamp**: 2026-05-30 09:37:06 UTC
-- **Reason**: iterate: smartviewer-render-ux
+- **Session ID**: 09ce26d1-eda5-4caf-a323-8d68315c0017
+- **Timestamp**: 2026-05-31 06:53:16 UTC
+- **Reason**: SmartViewer pop-out modal iterate complete
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-05-27-transcript-renderer-scroll
-- **Date**: 2026-05-28T22:37:15.838984Z
-- **Type**: bug
+- **Run ID**: iterate-2026-05-30-smartviewer-render-ux
+- **Date**: 2026-05-30T09:37:07.212711Z
+- **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/transcript-renderer-scroll
-- **ADR**: iterate-2026-05-27-transcript-renderer-scroll
+- **Branch**: iterate/smartviewer-render-ux
+- **ADR**: iterate-2026-05-30-smartviewer-render-ux
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-05-27-transcript-renderer-scroll.md
+- **Spec**: .shipwright/planning/iterate/2026-05-30-smartviewer-render-ux.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/smartviewer-render-ux
-- **Run ID**: iterate-2026-05-30-smartviewer-render-ux
-- **Spec**: .shipwright/planning/iterate/2026-05-30-smartviewer-render-ux.md
-- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
+- **Branch**: iterate/smartviewer-popout-modal
+- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T21:45:17)
 
 ### Mandatory replay on Resume
 
@@ -50,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/smartviewer-render-ux
-- **Last Commit**: f6e34a6 chore(gitignore): ignore .shipwright/agent_docs/runtime/ (ADR-089 runtime/snapshot split)
+- **Branch**: iterate/smartviewer-popout-modal
+- **Last Commit**: 0160379 Merge pull request #84 from svenroth-ai/iterate/smartviewer-render-ux
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -67,17 +65,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-ecef8b79 | work_completed | iterate (SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained.) | 2026-05-31 |
+| evt-b2bdc9ae | work_completed | iterate (page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects) | 2026-05-30 |
+| evt-2aa8923c | work_completed | iterate (PR card bubble parity + open/merged status badge via gh pr view) | 2026-05-30 |
 | evt-bc6ec43f | work_completed | iterate (SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll) | 2026-05-30 |
 | evt-126ed67f | work_completed | iterate (Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach) | 2026-05-28 |
-| evt-18779597 | work_completed | iterate (TaskCard + TaskDetailHeader rendered a Build pill for iterate tasks whose title started with Fix (regex match in derivePhaseFromTitle). Centralised the resolution policy in resolveTaskPhase so new-iterate always resolves to the iterate phase when no override is persisted.) | 2026-05-27 |
-| evt-ecf57fd9 | work_completed | iterate (ADR-103 retirement candidate #1: extract WebSocket upgrade body from server/src/terminal/routes.ts (1013 -> 620 LOC) into ws-upgrade-handler.ts as a single cohesive buildWsHandlers(ctx: ValidatedWsUpgradeContext) function. deriveTerminalReset moved to terminal-reset.ts to break the import cycle. routes.ts retains synchronous reject-the-upgrade validations + HTTP route handlers + spawn-env factory. 29 new lifecycle/parse-table unit tests; F0.5 Node-side WS probe pass; full server vitest suite (1342 tests) green.) | 2026-05-27 |
-| evt-ceed7566 | work_completed | iterate (Fix prewarm race that armed the one-shot auto-launch guard on first WS attach) | 2026-05-26 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 163
-- **Last iterate**: change — SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll (2026-05-30)
+- **Total work events**: 166
+- **Last iterate**: change — SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. (2026-05-31)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

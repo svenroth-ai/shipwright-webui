@@ -59,6 +59,8 @@ const REQUIRED_TOKENS = [
   // iterate-2026-05-30-smartviewer-render-ux — SmartViewer document renderer + pop-out
   'DocumentMarkdown',
   'PreviewPage',
+  // iterate-2026-05-31-smartviewer-popout-modal — centered in-app pop-out modal
+  'SmartViewerModal',
 ] as const;
 
 let claudeMd = '';
