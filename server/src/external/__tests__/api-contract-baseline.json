@@ -5,7 +5,7 @@
     "captured_by": "iterate-2026-05-26-campaign-C-C2-external-routes-split / runner",
     "purpose": "Pre-split API contract snapshot — empirical anchor for the C2 contract sweep. Every endpoint, method, documented status code + response key set listed in source order. Post-split contract sweep MUST reproduce every row.",
     "extraction_method": "hand-curated from a thorough read of server/src/external/routes.ts (lines 371-2516); cross-validated against client/src/lib/externalApi.ts wrapper signatures.",
-    "endpoint_count": 22,
+    "endpoint_count": 23,
     "documented_status_codes": [200, 400, 404, 405, 409, 413, 415, 500, 501]
   },
   "endpoints": [
@@ -189,6 +189,20 @@
       "error_branches": [
         {"code": "Task not found", "status": 404},
         {"code": "backlog_invalid_state", "status": 409, "extra_keys": ["state"]},
+        {"code": "sdk-sessions.json is locked, retry", "status": 409}
+      ]
+    },
+    {
+      "id": "tasks.reopen",
+      "method": "POST",
+      "path": "/api/external/tasks/:id/reopen",
+      "source_lines": "tasks/lifecycle.ts (reopen handler)",
+      "future_sub_router": "tasks",
+      "client_consumer": "client/src/lib/taskReopenApi.ts reopenTask",
+      "success": {"status": 200, "keys": ["task"]},
+      "error_branches": [
+        {"code": "Task not found", "status": 404},
+        {"code": "reopen_invalid_state", "status": 409, "extra_keys": ["state"]},
         {"code": "sdk-sessions.json is locked, retry", "status": 409}
       ]
     },

@@ -166,6 +166,15 @@ export const PROBE_TABLE: Probe[] = [
     expectErrorCode: "Task not found",
   },
   {
+    baselineId: "tasks.reopen",
+    describe: "POST /tasks/:id/reopen nonexistent → 404 Task not found",
+    method: "POST",
+    path: `/api/external/tasks/${NONEXISTENT_TASK}/reopen`,
+    body: {},
+    expectStatus: 404,
+    expectErrorCode: "Task not found",
+  },
+  {
     baselineId: "tasks.delete",
     describe: "DELETE /tasks/:id nonexistent → 404 Task not found",
     method: "DELETE",

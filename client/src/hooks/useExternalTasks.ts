@@ -11,6 +11,7 @@ import {
   type ExternalTask,
   type TaskUpdatePatch,
 } from "../lib/externalApi";
+import { reopenTask } from "../lib/taskReopenApi";
 
 const LIST_KEY = ["external-tasks"] as const;
 const detailKey = (taskId: string) => ["external-task", taskId] as const;
@@ -73,6 +74,23 @@ export function useMoveTaskToBacklog() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: moveTaskToBacklog,
+    onSuccess: (task) => {
+      qc.setQueryData(detailKey(task.taskId), task);
+      void qc.invalidateQueries({ queryKey: LIST_KEY });
+    },
+  });
+}
+
+/**
+ * iterate-2026-05-31-reopen-done-task — re-open a done task back to the
+ * Backlog (done → draft, session preserved). Mirrors useMoveTaskToBacklog:
+ * the detail-cache write flips the TaskDetailHeader badge in place; the
+ * LIST_KEY invalidation relocates the card to the Backlog column.
+ */
+export function useReopenExternalTask() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reopenTask,
     onSuccess: (task) => {
       qc.setQueryData(detailKey(task.taskId), task);
       void qc.invalidateQueries({ queryKey: LIST_KEY });

@@ -114,6 +114,38 @@ export function registerTasksLifecycle(
     return c.json({ task: withLiveSession(updated, ptyManager) });
   });
 
+  // iterate-2026-05-31-reopen-done-task — counterpart of /backlog for the
+  // terminal `done` state. Re-opens a done task back to the Backlog column
+  // (`state → draft`). `done` is the only legal source: In-Progress states
+  // use /backlog, and the flip preserves every history field — sessionUuid +
+  // firstJsonlObservedAt survive, so the card renders Resume (continue the
+  // completed session), not a fresh Launch. Same pure registry-state flip as
+  // /backlog: JSONL + shipwright_run_config.json are NOT touched.
+  app.post("/api/external/tasks/:id/reopen", async (c) => {
+    const task = store.get(c.req.param("id"));
+    if (!task) return c.json({ error: "Task not found" }, 404);
+    // Already in the Backlog → idempotent no-op.
+    if (task.state === "draft") {
+      return c.json({ task: withLiveSession(task, ptyManager) });
+    }
+    if (task.state !== "done") {
+      return c.json(
+        { error: "reopen_invalid_state", state: task.state },
+        409,
+      );
+    }
+    const updated = store.patch(task.taskId, { state: "draft" });
+    try {
+      await store.persist();
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ELOCKED") {
+        return c.json({ error: "sdk-sessions.json is locked, retry" }, 409);
+      }
+      throw err;
+    }
+    return c.json({ task: withLiveSession(updated, ptyManager) });
+  });
+
   app.delete("/api/external/tasks/:id", async (c) => {
     const taskId = c.req.param("id");
     const deleted = store.delete(taskId);
