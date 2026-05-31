@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-05-31T13:18:30.490140+00:00
+Generated: 2026-05-31T12:03:19.696985+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -18,7 +18,7 @@ Scope: full_app
 | Triage open | 0 open | PASS |  |
 | Bloat over-limit | 77 | WARN | 77 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
 | Bloat in allowlist | 81 entries | INFO |  |
-| Bloat ratchet delta | -93 lines | PASS |  |
+| Bloat ratchet delta | -39 lines | PASS |  |
 
 ## Project Velocity
 

@@ -44,6 +44,7 @@ import {
   tryReadSnapshot as tryReadSnapshotShared,
 } from "./replay-snapshot.js";
 import { deriveTerminalReset } from "./terminal-reset.js";
+import { startWsHeartbeat } from "./ws-heartbeat.js";
 
 // ---------------------------------------------------------------------------
 // Inbound message contract
@@ -284,6 +285,7 @@ function buildLiveHandlers(
 
   return {
     onOpen(_evt, ws) {
+      startWsHeartbeat(ws); // reap a dead socket → free a pinned writer slot (read-only false-blocker, iterate-2026-05-31)
       // `hadPriorWriter` = atomic snapshot in attach() (iterate
       // 2026-05-27-fix-pty-reused-prewarm-race); feeds ready.ptyReused
       // so the guard arms only on real reload/multi-tab, not prewarm.

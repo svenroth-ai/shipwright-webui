@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-05-31-terminal-readonly-keepalive",
+  "date": "2026-05-31T12:03:42.100929Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/terminal-readonly-keepalive",
+  "tests_passed": true,
+  "adr": "ADR-NNN (WS liveness keepalive reaps stale terminal writer slot; assigned at changelog release)"
+}

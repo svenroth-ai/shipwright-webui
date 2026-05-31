@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-05-31T13:18:30.490140+00:00
-Total commits: 466
+Generated: 2026-05-31T12:03:19.696985+00:00
+Total commits: 464
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 174
-    "feat" : 124
+    "fix" : 173
+    "feat" : 123
     "chore" : 83
     "docs" : 42
     "refactor" : 25
@@ -19,11 +19,10 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 174 commits
+### Fixes (fix) — 173 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-05-31 | taskboard | wire Re-open into TaskCard + repair tests & E2E | 1dc588591d42 |
 | 2026-05-29 | transcript | render mode/pr-link/stop-hook events + intent-based scroll detach | 7573e84a00cd |
 | 2026-05-29 | client | clear CTA label-reset timers on unmount (teardown-leak flake) | 525fd1f2a597 |
 | 2026-05-27 | webui | phase pill no longer derives Build from "Fix"-titled iterates | ce60cf78e94e |
@@ -198,11 +197,10 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 124 commits
+### Features (feat) — 123 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-05-31 | taskboard | re-open a done task back to the Backlog | 0e5ff048c145 |
 | 2026-05-31 | — | open SmartViewer pop-out in a centered in-app modal | 8875546c4489 |
 | 2026-05-30 | smartviewer | in-pane cross-file doc-link navigation (AC8) | 27bacb965e88 |
 | 2026-05-30 | smartviewer | document-grade markdown rendering + pop-out | a0ca9d318642 |
@@ -529,7 +527,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 466 |
+| Total commits | 464 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 466 |
+| Human-authored commits | 464 |
 

@@ -64,6 +64,8 @@ const REQUIRED_TOKENS = [
   // iterate-2026-05-31-reopen-done-task — done → draft re-open
   'TaskCardMenu',
   'taskReopenApi',
+  // iterate-2026-05-31-terminal-readonly-keepalive — WS liveness keepalive
+  'ws-heartbeat',
 ] as const;
 
 let claudeMd = '';

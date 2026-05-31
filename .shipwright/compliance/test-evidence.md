@@ -1,6 +1,6 @@
 # Test Evidence Report
 
-Generated: 2026-05-31T13:18:30.490140+00:00
+Generated: 2026-05-31T12:03:19.696985+00:00
 
 ## Summary
 
@@ -14,7 +14,7 @@ Generated: 2026-05-31T13:18:30.490140+00:00
 
 | # | Event | Source | Layer | New Tests | Suite Total | Result | Date |
 |---|-------|--------|-------|-----------|-------------|--------|------|
-| 1 | POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | iterate | — | +0 | — | — | 2026-05-31 |
+| 1 | WS liveness keepalive complete; PR pending | iterate | — | +0 | — | — | 2026-05-31 |
 | 2 | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | iterate | — | +0 | — | — | 2026-05-31 |
 | 3 | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | iterate | mixed | +0 | 1331/1331 | PASS | 2026-05-30 |
 | 4 | PR card bubble parity + open/merged status badge via gh pr view | iterate | mixed | +0 | 1335/1335 | PASS | 2026-05-30 |
