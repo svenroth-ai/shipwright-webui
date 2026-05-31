@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-31 06:53 UTC | Session: 09ce26d1-eda5-4caf-a323-8d68315c0017 | Run: iterate-2026-05-31-smartviewer-popout-modal
+> Updated: 2026-05-31 13:18 UTC | Session: 33c5e5d2-b045-424e-af70-e3059e5ba890 | Run: iterate-2026-05-31-reopen-done-task
 
-## Recent Changes (96 iterations)
+## Recent Changes (97 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | 0/0 |  |  | 2026-05-31 |
 | change | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | 0/0 |  | FR-03.34 | 2026-05-31 |
 | change | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | 1331/1331 |  |  | 2026-05-30 |
 | change | PR card bubble parity + open/merged status badge via gh pr view | 1335/1335 |  | FR-01.02 | 2026-05-30 |
@@ -103,7 +104,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-31 | Unit: 1361/1361 | E2E: 2/2 | Smoke: skipped | (iterate)
+Last run: 2026-05-31 | (iterate)
 
 ## Pipeline
 

@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-31T06:53:16.505698+00:00
+Generated: 2026-05-31T13:18:30.490140+00:00
 
 ## Requirements Coverage
 
@@ -209,6 +209,7 @@ Generated: 2026-05-31T06:53:16.505698+00:00
 | PR card bubble parity + open/merged status badge via gh pr view | iterate | change | FR-01.02 | 1335/1335 | — | 2026-05-30 |
 | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | iterate | change |  | 1331/1331 | — | 2026-05-30 |
 | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | iterate | change | FR-03.34 | — | — | 2026-05-31 |
+| POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | iterate | feature |  | — | — | 2026-05-31 |
 
 ## Coverage Summary
 
@@ -216,7 +217,7 @@ Generated: 2026-05-31T06:53:16.505698+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 96 |
+| Iterate changes | 97 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |
