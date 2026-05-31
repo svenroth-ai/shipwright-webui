@@ -102,6 +102,60 @@ describe("HeaderMenu — present-state matrix (happy path)", () => {
     expect(screen.queryByTestId("task-detail-menu-backlog")).toBeNull();
   });
 
+  // iterate-2026-05-31-reopen-done-task — Re-open is the counterpart of
+  // Move to Backlog for the terminal `done` state. Present only for `done`.
+  it("shows Re-open item for done, hides it for active + draft", async () => {
+    const user = userEvent.setup();
+    renderMenu({ task: makeTask({ state: "done" }) });
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    expect(screen.getByTestId("task-detail-menu-reopen")).toBeTruthy();
+    // ...and Move to Backlog is absent for done (out of its source set).
+    expect(screen.queryByTestId("task-detail-menu-backlog")).toBeNull();
+  });
+
+  it("hides Re-open for non-done states (active, draft)", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderMenu({ task: makeTask({ state: "active" }) });
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    expect(screen.queryByTestId("task-detail-menu-reopen")).toBeNull();
+    unmount();
+
+    renderMenu({ task: makeTask({ state: "draft" }) });
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu"));
+    expect(screen.queryByTestId("task-detail-menu-reopen")).toBeNull();
+  });
+
+  it("Re-open menu item POSTs to the reopen endpoint", async () => {
+    const user = userEvent.setup();
+    const fetchInner = vi.fn(
+      async (url: string | URL | Request, _init?: RequestInit) => {
+        if (String(url).includes("/reopen")) {
+          return new Response(
+            JSON.stringify({ task: makeTask({ state: "draft" }) }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response("{}", { status: 200 });
+      },
+    );
+    renderMenu({ task: makeTask({ state: "done" }), fetchMock: fetchInner });
+    await user.click(screen.getByTestId("task-detail-menu-trigger"));
+    await waitFor(() => screen.getByTestId("task-detail-menu-reopen"));
+    await user.click(screen.getByTestId("task-detail-menu-reopen"));
+    await waitFor(() => {
+      expect(
+        fetchInner.mock.calls.some((c) => String(c[0]).includes("/reopen")),
+      ).toBe(true);
+    });
+    const call = fetchInner.mock.calls.find((c) =>
+      String(c[0]).includes("/reopen"),
+    );
+    expect((call?.[1] as RequestInit | undefined)?.method).toBe("POST");
+  });
+
   it("hides Copy Resume command for draft, shows for non-draft", async () => {
     const user = userEvent.setup();
     const { unmount } = renderMenu({ task: makeTask({ state: "draft" }) });

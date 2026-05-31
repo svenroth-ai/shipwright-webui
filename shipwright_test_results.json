@@ -1,62 +1,58 @@
 {
- "iterate_latest": {
-  "run_id": "iterate-2026-05-31-terminal-readonly-keepalive",
-  "date": "2026-05-31",
-  "unit": {
-   "status": "passed",
-   "passed": 1352,
-   "total": 1352,
-   "scope": "Server vitest 1352/1352 (107 files). NEW ws-heartbeat.test.ts (17): createHeartbeatMonitor (terminate only after consecutive missed pongs; tolerance default 2; never terminate while ponged; late-pong-within-tolerance; idempotent-once-dead; custom maxMissedPongs=1), resolveHeartbeatMs (default, valid, floor-clamp, ceiling-clamp, non-numeric/non-positive fallback), startWsHeartbeat (pings each tick; terminate exactly once incl. when terminate() throws + readyState stays OPEN; survives while peer pongs; self-clean on readyState!=OPEN; stop() clears interval+listener idempotently; no-op on missing/partial raw). NEW ws-heartbeat-reap-integration.test.ts (1): REAL in-process Hono server (@hono/node-server serve + @hono/node-ws) + REAL ws clients — a non-ponging writer (TCP paused = faithful half-open) is reaped by the heartbeat and the reader receives writer-promoted in ~3s; FALSIFIED by removing the startWsHeartbeat wire (reader never promoted, 9s timeout) — proves the heartbeat arms against the real ws.raw and the terminate->detach->promotion chain fires. Client vitest also green (doc-sync gains the ws-heartbeat token; architecture.md updated). tsc --noEmit clean; oxlint exit 0."
-  },
-  "integration": {
-   "status": "not_run",
-   "passed": 0,
-   "total": 0
-  },
-  "pgtap": {
-   "status": "skipped",
-   "passed": 0,
-   "total": 0
-  },
-  "e2e": {
-   "status": "passed",
-   "passed": 1,
-   "total": 1,
-   "scope": "Playwright (1 spec, real Chromium) terminal-heartbeat-keepalive.spec.ts against an isolated prod stack (node dist/index.js, temp USERPROFILE/HOME, SHIPWRIGHT_NETWORK_PROFILE=local, 127.0.0.1:4847) booted with SHIPWRIGHT_TERMINAL_WS_HEARTBEAT_MS=3000. AC-5: open a task terminal, await ready{role:writer}, hold the healthy tab past the dead-socket reap deadline (~10s = >2 intervals; dead would reap ~6s), then assert the terminal WS received NO close frame, exactly one terminal WS opened (no reap->reconnect churn), data-ws-ready=true, data-role=writer, and the read-only banner count is 0. Proves the heartbeat does not falsely reap a ponging connection."
-  },
-  "design_fidelity": {
-   "status": "skipped",
-   "scope": "No UI/visual change — server-side WS control-frame keepalive; browser auto-pongs, no client/** source change."
-  },
-  "smoke": {
-   "status": "skipped",
-   "scope": "Covered by the F0.5 web E2E against the live isolated stack (terminal WS reaches ready and survives the heartbeat)."
-  },
-  "surface_verification": {
-   "surface": "web",
-   "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts client/e2e/flows/terminal-heartbeat-keepalive.spec.ts",
-   "tests_run": 1,
-   "exit_code": 0,
-   "evidence_path": ".shipwright/runs/iterate-2026-05-31-terminal-readonly-keepalive/surface_verification.json",
-   "timestamp": "2026-05-31T13:55:00Z",
-   "justification": "Diff touches a WS handler consumed by the UI (Backend-affects-Frontend rule => surface=web mandatory). The reap path itself is fully unit-tested deterministically; the web surface verifies the complementary AC-5 (a healthy, ponging tab is NOT reaped) against a real-Chromium isolated stack with a 3s heartbeat."
-  },
-  "test_completeness": {
-   "status": "complete",
-   "behaviors": [
-    { "behavior": "Monitor reaps only after consecutive missed pongs (tolerance)", "disposition": "tested", "evidence": "ws-heartbeat.test.ts createHeartbeatMonitor cases — PASSED" },
-    { "behavior": "Monitor never reaps while a pong arrives each interval", "disposition": "tested", "evidence": "ws-heartbeat.test.ts 'never terminates while a pong arrives' — PASSED" },
-    { "behavior": "Wiring pings each tick and terminates a dead socket exactly once (incl. terminate() throws)", "disposition": "tested", "evidence": "ws-heartbeat.test.ts startWsHeartbeat exactly-once + throw cases — PASSED" },
-    { "behavior": "Self-clean when readyState != OPEN; stop() clears interval+listener idempotently", "disposition": "tested", "evidence": "ws-heartbeat.test.ts self-clean + stop() cases — PASSED" },
-    { "behavior": "Capability-guard no-op on missing/partial raw socket", "disposition": "tested", "evidence": "ws-heartbeat.test.ts no-op case — PASSED" },
-    { "behavior": "Env interval resolve + floor/ceiling clamp", "disposition": "tested", "evidence": "ws-heartbeat.test.ts resolveHeartbeatMs cases — PASSED" },
-    { "behavior": "A healthy terminal WS is not reaped across multiple heartbeat intervals (AC-5)", "disposition": "tested", "evidence": "terminal-heartbeat-keepalive.spec.ts (real Chromium, 3s heartbeat) — PASSED" },
-    { "behavior": "Dead writer reaped -> reader promoted to writer (AC-6), real server + real ws sockets, non-ponging writer via paused TCP", "disposition": "tested", "evidence": "ws-heartbeat-reap-integration.test.ts — PASSED ~3s; FALSIFIED (heartbeat wire removed) -> 9s timeout, reader never promoted" },
-    { "behavior": "startWsHeartbeat actually arms against the real @hono/node-ws ws.raw (not a silent capability-guard no-op)", "disposition": "tested", "evidence": "ws-heartbeat-reap-integration.test.ts — promotion only occurs if a real socket was pinged + reaped" }
-   ],
-   "counts": { "testable": 9, "tested": 9, "untestable": 0, "untested_testable": 0 },
-   "enumeration_basis": { "acs": 6, "covered_acs": 6 }
-  },
-  "degraded": []
- }
+  "last_updated": "2026-05-31",
+  "iterate_latest": {
+    "run_id": "iterate-2026-05-31-reopen-done-task",
+    "intent": "feature",
+    "complexity": "medium",
+    "timestamp": "2026-05-31",
+    "paths_touched": [
+      "server/src/external/tasks/lifecycle.ts",
+      "server/src/external/tasks/routes.ts",
+      "server/src/external/__tests__/api-contract-baseline.json",
+      "server/src/external/__tests__/api-contract-probes.ts",
+      "server/src/external/routes.reopen.test.ts",
+      "client/src/lib/taskReopenApi.ts",
+      "client/src/hooks/useExternalTasks.ts",
+      "client/src/components/external/TaskCardMenu.tsx",
+      "client/src/components/external/TaskCard.tsx",
+      "client/src/components/external/TaskCardMenu.test.tsx",
+      "client/src/components/external/TaskCard.test.tsx",
+      "client/e2e/flows/reopen-done-task.spec.ts"
+    ],
+    "result": "green",
+    "summary": {
+      "server_tests": "106 files, 1346 passed (incl. routes.reopen.test.ts 11)",
+      "client_tests": "127 files, 1379 passed (incl. TaskCard.reopen.test 6, TaskCardMenu.test 4, doc-sync 25)",
+      "tsc": "clean (server + client)",
+      "lint": "clean (oxlint, changed files)",
+      "e2e": "authored+executed (reopen 1 pass; move-to-backlog regression 1 pass)"
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "spec": "client/e2e/flows/reopen-done-task.spec.ts (+ move-to-backlog.spec.ts regression)",
+      "evidence": "reopen-done-task.spec.ts 1 passed (7.2s) + move-to-backlog.spec.ts 1 passed (5.9s) against a live isolated stack (Hono :3859 + Vite :5189 local-profile, temp USERPROFILE); create -> close -> Re-open via the real wired TaskCardMenu -> card relocates Done -> Backlog, server state draft"
+    },
+    "degraded": [
+      "external_review: Branch C — no API keys (OPENAI/GEMINI/GOOGLE/ANTHROPIC) in env; advisory medium step skipped"
+    ],
+    "test_completeness": {
+      "status": "complete",
+      "ledger": "every acceptance criterion mapped to a passing test; 0 untested-testable",
+      "behaviors": [
+        {"id": "AC1", "desc": "done->draft 200, session preserved", "disposition": "tested", "evidence": "routes.reopen.test.ts"},
+        {"id": "AC2", "desc": "idempotent on draft", "disposition": "tested", "evidence": "routes.reopen.test.ts"},
+        {"id": "AC3", "desc": "In-Progress -> 409 reopen_invalid_state (x5 states)", "disposition": "tested", "evidence": "routes.reopen.test.ts it.each"},
+        {"id": "AC4", "desc": "missing task -> 404", "disposition": "tested", "evidence": "routes.reopen.test.ts + api-contract-probes.ts"},
+        {"id": "AC5", "desc": "reopened draft sticky across transcript polls", "disposition": "tested", "evidence": "routes.reopen.test.ts"},
+        {"id": "AC6a", "desc": "menu gating + onReopen callback", "disposition": "tested", "evidence": "TaskCardMenu.test.tsx"},
+        {"id": "AC6b", "desc": "TaskCard wiring: done shows Re-open, click POSTs /reopen", "disposition": "tested", "evidence": "TaskCard.test.tsx"},
+        {"id": "AC6c", "desc": "real-browser Done->Backlog relocation + state flip", "disposition": "tested", "evidence": "e2e/flows/reopen-done-task.spec.ts"},
+        {"id": "AC7", "desc": "contract baseline<->probe parity + route discovery", "disposition": "tested", "evidence": "api-contract-sweep.test.ts"},
+        {"id": "ELOCKED", "desc": "persist ELOCKED -> 409", "disposition": "tested", "evidence": "routes.reopen.test.ts"}
+      ],
+      "counts": {"total": 10, "tested": 10, "untestable": 0, "untested_testable": 0}
+    }
+  }
 }
