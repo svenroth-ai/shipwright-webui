@@ -1,58 +1,88 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-05-31-reopen-done-task"
+run_id: "iterate-2026-05-31-terminal-readonly-keepalive"
 phase: "iterate"
-reason: "Re-open done task iterate complete — finalization verified 8 OK / 0 errors"
-timestamp: "2026-05-31T14:00:00.000000+00:00"
+reason: "WS liveness keepalive complete; PR pending"
+timestamp: "2026-05-31T12:03:19.696985+00:00"
 ---
 
 # Session Handoff
 
-run_id: iterate-2026-05-31-reopen-done-task
-status: COMPLETE — PR #88 open (7 commits on iterate/reopen-done-task)
-intent: feature · complexity: medium · spec_impact: ADD
+> Auto-generated 2026-05-31 12:03:19 UTC
 
-## What shipped
-Re-open a done task back to the Backlog — counterpart of move-to-backlog for
-the terminal `done` state.
+## Session Info
 
-- server `POST /api/external/tasks/:id/reopen` in `external/tasks/lifecycle.ts`
-  (mirrors `/backlog`): done→draft flip, only legal source `done`
-  (409 `reopen_invalid_state`), idempotent on draft, ELOCKED→409, session kept.
-- client `lib/taskReopenApi.ts` + `useReopenExternalTask`; the card ⋯-menu was
-  extracted to `components/external/TaskCardMenu.tsx` hosting the
-  `isDone`-gated "Re-open" item.
-- contract baseline/probe → 23 endpoints; spec FR-01.01 AC; architecture.md;
-  doc-sync tokens.
+- **Session ID**: 48b7a151-ae7a-41a0-9f2f-6643ca89b0d2
+- **Timestamp**: 2026-05-31 12:03:19 UTC
+- **Reason**: WS liveness keepalive complete; PR pending
 
-## Verification
-- server 106 files / 1346 tests pass; client 127 files / 1379 tests pass.
-- tsc + oxlint clean (both workspaces).
-- E2E `reopen-done-task.spec.ts` pass + `move-to-backlog.spec.ts` regression
-  pass on a live isolated stack (Hono :3859 + Vite :5189 local-profile).
-- `verify_iterate_finalization.py`: **8 OK, 1 WARN (handoff age), 0 errors.**
+## Last Iterate
 
-## Commits (iterate/reopen-done-task)
-- 0e5ff04 feat: initial (INCOMPLETE — batched tool-call failures dropped edits)
-- 1dc5885 fix: wire Re-open into TaskCard + repair tests & E2E
-- dbf53b9 chore: record work_completed event (F5b)
-- 8470a2d chore: finalization artifacts (F5c + compliance regen)
-- 471f62e chore: test_completeness.summary → counts (verifier)
-- 76e9c50 chore: canonical changelog drop filename (_001.md)
-- 7600526 docs(spec): FR-01.01 re-open AC (spec impact = ADD)
+- **Run ID**: iterate-2026-05-31-smartviewer-popout-modal
+- **Date**: 2026-05-31T06:53:17.555003Z
+- **Type**: change
+- **Complexity**: small
+- **Branch**: iterate/smartviewer-popout-modal
+- **ADR**: ADR-NNN (SmartViewer pop-out modal; assigned at changelog release)
+- **Tests passed**: True
 
-## Process note
-A long stretch of scrambled/duplicated tool-result delivery + parallel-batch
-sibling-cancellation caused many edits to silently not land; commit 0e5ff04
-shipped broken (dead TaskCardMenu, bad reopen-test imports, fabricated E2E
-pass). Caught via single-command ground-truth re-verification; fully repaired.
-See memory feedback_tool_result_delivery_scramble +
-feedback_webui_e2e_isolated_stack_recipe.
+## Current Iterate Progress
 
-## Degraded
-- external_review: Branch C (no API keys in env) — advisory medium step skipped.
+- **Branch**: iterate/terminal-readonly-keepalive
+- **Spec**: .shipwright/planning/iterate/2026-05-31-terminal-readonly-keepalive.md
+- **Complexity**: medium (override of classifier `trivial`/0.6 — keyword-only;
+- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
 
-## Next
-- Merge PR #88 (`gh pr merge 88 --merge`, never squash). After merge:
-  `git worktree remove .worktrees/reopen-done-task` + `git branch -D iterate/reopen-done-task`.
-- Run `/shipwright-changelog` once merged (CHANGELOG drops pending aggregation).
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
+
+## Legacy build state
+
+- **Phase**: changelog
+- **Current Split**: 01-adopted
+- **Current Section**: adopted-baseline
+
+- **Splits**: 0/1 complete
+- **Sections**: 0/1 complete
+
+## Git State
+
+- **Branch**: iterate/terminal-readonly-keepalive
+- **Last Commit**: 2d5fc6f Merge pull request #86 from svenroth-ai/iterate/smartviewer-popout-modal
+- **Uncommitted Changes**: Yes
+
+## Config Files to Read
+
+- `shipwright_run_config.json` — exists
+- `shipwright_project_config.json` — exists
+- `shipwright_plan_config.json` — exists
+- `shipwright_build_config.json` — exists
+- `shipwright_security_config.json` — missing
+- `shipwright_compliance_config.json` — exists
+
+## Last Events
+
+| Event | Type | Source | Date |
+|-------|------|--------|------|
+| evt-3445c91e | work_completed | iterate (WS liveness keepalive complete; PR pending) | 2026-05-31 |
+| evt-ecef8b79 | work_completed | iterate (SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained.) | 2026-05-31 |
+| evt-b2bdc9ae | work_completed | iterate (page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects) | 2026-05-30 |
+| evt-2aa8923c | work_completed | iterate (PR card bubble parity + open/merged status badge via gh pr view) | 2026-05-30 |
+| evt-bc6ec43f | work_completed | iterate (SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll) | 2026-05-30 |
+
+## Recovery
+
+- **Pipeline**: 3 phases completed
+- **Total work events**: 167
+- **Last iterate**: change — WS liveness keepalive complete; PR pending (2026-05-31)
+- **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
+
+## Recent Decisions
+
+### ADR-126: Split BubbleTranscript.tsx into stable-props sub-modules (Campaign C, C3)
+- **Date:** 2026-05-26
+- **Section:** Iterate — refactor: BubbleTranscript decomposition (Campaign C bloat cleanup)
+- **Run-ID:** iterate-2026-05-26-campaign-C-C3-bubble-transcript-split
+- **Context:** `client/src/components/external/BubbleTranscript.tsx` had reached 1618 LOC (5.4× the 300-LOC project guideline). Campaign C sub-iterate C3 spec mandates a thin shell (≤200 LOC) plus 5 stable-props sub-modules: `Transcri
