@@ -25,7 +25,7 @@ on:
 # shared/scripts/lib/security_workflow.py for the convention lock.
 permissions:
   contents: read           # actions/checkout@v4
-  actions: read            # github/codeql-action/upload-sarif@v3 (SARIF attach)
+  actions: read            # github/codeql-action/upload-sarif@v4 (SARIF attach)
   security-events: write   # SARIF upload to Code Scanning
   pull-requests: write     # Post PR comment summary
 
