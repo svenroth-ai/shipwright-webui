@@ -1,21 +1,18 @@
 name: Security Scan
 
-# DORMANT: Auto-triggers are disabled. /shipwright-adopt scaffolds this
-# workflow with workflow_dispatch only, so the user can verify Phase B
-# prerequisites (Code Scanning enabled, secrets configured, fork-PR
-# behavior reviewed) before turning auto-scans on.
+# ACTIVE: runs on every PR to main + a weekly full scan (Mon 06:00 UTC) +
+# manual workflow_dispatch. Mirrors the monorepo security.yml.
 #
-# To activate (Phase B / Go-Live):
-#   1. Verify Code Scanning is enabled (repo Settings → Code security).
-#   2. Uncomment the `pull_request:` and `schedule:` blocks below.
-#   3. Commit on a feature branch and review one PR run before merging.
-#
-# See docs/security-ci-setup.md for full activation guidance.
+# SARIF upload to the Security tab is best-effort (`continue-on-error` on the
+# upload step): while this repo is private without GitHub Advanced Security
+# the upload is rejected, but the scanners + the critical-findings gate run
+# regardless, so PRs are still gated on critical findings. To surface SARIF in
+# the Security tab, enable Code Scanning (repo Settings → Code security).
 on:
-  # pull_request:
-  #   branches: [main]
-  # schedule:
-  #   - cron: '0 6 * * 1'  # Monday 06:00 UTC — weekly full scan
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 06:00 UTC — weekly full scan
   workflow_dispatch:
 
 # IMPORTANT: explicit permissions block — once any key is set, GitHub
