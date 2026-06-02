@@ -67,9 +67,7 @@ import { selectActiveCampaigns } from "../lib/campaignsApi";
 import { TaskCard } from "../components/external/TaskCard";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
-import { CreateMenuSplitButton } from "../components/external/CreateMenuSplitButton";
-import { PlainClaudeButton } from "../components/external/PlainClaudeButton";
-import { PreviewButton } from "../components/external/PreviewButton";
+import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { MasterTaskCard } from "../components/external/MasterTaskCard";
@@ -141,13 +139,16 @@ export default function TaskBoardPage() {
   // Resolve the actions schema for the active project. When "All projects"
   // is selected, fall back to the first real project so the dropdown still
   // shows something — the modal itself re-picks the project at launch time.
+  const realProjects = useMemo(
+    () => projects.filter((p) => !p.synthesized && p.id !== UNASSIGNED_PROJECT_ID),
+    [projects],
+  );
   const resolvedProjectId = useMemo<string | null>(() => {
     if (activeProjectId && activeProjectId !== UNASSIGNED_PROJECT_ID) {
       return activeProjectId;
     }
-    const first = projects.find((p) => !p.synthesized && p.id !== UNASSIGNED_PROJECT_ID);
-    return first?.id ?? null;
-  }, [activeProjectId, projects]);
+    return realProjects[0]?.id ?? null;
+  }, [activeProjectId, realProjects]);
 
   const actionsQuery = useProjectActions(resolvedProjectId);
   const baseActionsList: ActionDefinition[] = actionsQuery.data?.actions ?? [];
@@ -245,18 +246,26 @@ export default function TaskBoardPage() {
   // NewIssueModal state — singleton per page.
   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // Set ONLY by the All-Projects cascade (the chosen project). null = flat /
+  // single-project mode → modal tracks the active project as before.
+  const [modalProjectId, setModalProjectId] = useState<string | null>(null);
   // Continue Pipeline modal — separate singleton; routed from the same
   // dropdown but never overlaps with NewIssueModal.
   const [continuePipelineOpen, setContinuePipelineOpen] = useState(false);
 
-  const openModal = useCallback((a: ActionDefinition) => {
+  const openModal = useCallback((a: ActionDefinition, projectId?: string) => {
     if (a.id === CONTINUE_PIPELINE_ACTION_ID) {
       setContinuePipelineOpen(true);
       return;
     }
+    setModalProjectId(projectId ?? null);
     setModalAction(a);
     setModalOpen(true);
   }, []);
+
+  // The modal's catalog comes from the cascade-chosen project (cache-hit from
+  // the cascade's own fetch) when set; else the resolved/active project.
+  const modalActionsQuery = useProjectActions(modalProjectId ?? resolvedProjectId);
 
   // Global `i` shortcut — open the New Iterate modal (FR-03.14).
   useEffect(() => {
@@ -316,30 +325,18 @@ export default function TaskBoardPage() {
             />
             <ViewToggle value={view} onChange={setView} />
           </div>
-          <div className="flex items-center gap-2">
-            <PreviewButton
-              projectId={resolvedProjectId}
-              enabled={Boolean(actionsQuery.data?.preview.enabled)}
-              readyTimeoutSeconds={
-                actionsQuery.data?.preview.ready_timeout_seconds ?? null
-              }
-            />
-            {/* v0.4.0 — Plain Claude as a sibling icon-button to the
-                "+ New ▾" split-button. The split-button keeps the three
-                Shipwright skill modes (task / pipeline / iterate);
-                Plain Claude is filtered out of its dropdown so the same
-                action isn't reachable from two places. */}
-            <PlainClaudeButton
-              actions={actionsList}
-              onSelect={openModal}
-              isLoading={actionsQuery.isLoading}
-            />
-            <CreateMenuSplitButton
-              actions={actionsList.filter((a) => a.id !== "new-plain")}
-              onSelect={openModal}
-              isLoading={actionsQuery.isLoading}
-            />
-          </div>
+          <CreateControls
+            activeProjectId={activeProjectId}
+            resolvedProjectId={resolvedProjectId}
+            realProjects={realProjects}
+            actionsList={actionsList}
+            actionsLoading={actionsQuery.isLoading}
+            previewEnabled={Boolean(actionsQuery.data?.preview.enabled)}
+            previewReadyTimeoutSeconds={
+              actionsQuery.data?.preview.ready_timeout_seconds ?? null
+            }
+            onSelect={openModal}
+          />
         </header>
         <div className="page-container flex flex-wrap items-center gap-2" style={{ paddingTop: "4px", paddingBottom: "16px" }}>
             <span
@@ -471,7 +468,8 @@ export default function TaskBoardPage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         action={modalAction}
-        projectActions={actionsQuery.data}
+        projectActions={modalActionsQuery.data}
+        initialProjectId={modalProjectId ?? undefined}
         onTaskCreated={() => {
           // Invalidate the external-tasks list so the new Draft row
           // appears immediately instead of waiting up to 2s for the

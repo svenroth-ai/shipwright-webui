@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-02T10:38:40.112238+00:00
+Generated: 2026-06-02T15:24:44.855818+00:00
 
 ## Requirements Coverage
 
@@ -214,6 +214,7 @@ Generated: 2026-06-02T10:38:40.112238+00:00
 | WS liveness keepalive complete; PR pending | iterate | change |  | — | — | 2026-05-31 |
 | Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | iterate | bug |  | — | 47f7450 | 2026-06-02 |
 | Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId | iterate | feature | FR-01.33 | — | — | 2026-06-02 |
+| All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. | iterate | change |  | — | — | 2026-06-02 |
 
 ## Coverage Summary
 
@@ -221,7 +222,7 @@ Generated: 2026-06-02T10:38:40.112238+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 100 |
+| Iterate changes | 101 |
 | Requirements total | 33 |
 | Requirements verified | 18/33 |
 | Must-have verified | 16/31 |

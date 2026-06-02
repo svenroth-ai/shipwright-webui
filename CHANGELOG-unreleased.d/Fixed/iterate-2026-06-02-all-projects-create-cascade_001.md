@@ -1,0 +1,1 @@
+Creating a task from "All Projects" no longer risks launching against a mismatched project: the modal is now always scoped to the chosen project, so the action's schema/phases and the launch projectId always agree.
