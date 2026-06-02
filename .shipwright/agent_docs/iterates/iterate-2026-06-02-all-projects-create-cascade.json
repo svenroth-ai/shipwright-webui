@@ -6,5 +6,5 @@
   "branch": "iterate/all-projects-create-cascade",
   "tests_passed": true,
   "spec": ".shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md",
-  "adr": null
+  "adr": "iterate-2026-06-02-all-projects-create-cascade"
 }
