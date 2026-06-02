@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "timestamp": "2026-06-02T10:22:22.068039+00:00",
+  "provider": "openrouter",
+  "findings_count": 5,
+  "self_review_fallback_ran": false,
+  "reason": "internal fresh-context review=SHIP; external --mode code found 1 MEDIUM (isWithin ..-prefix) + 3 test gaps, all fixed (proper segment guard, synthesized:true route test, 403 traversal route test, icon a11y assertions)",
+  "review_mode": "code"
+}

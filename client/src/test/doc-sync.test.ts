@@ -66,6 +66,13 @@ const REQUIRED_TOKENS = [
   'taskReopenApi',
   // iterate-2026-05-31-terminal-readonly-keepalive — WS liveness keepalive
   'ws-heartbeat',
+  // iterate-2026-06-02-campaigns-board-lane — Campaigns lane (FR-01.31)
+  'campaign-paths',
+  'campaign-store',
+  'campaign-parse',
+  'CampaignLaneCard',
+  'campaignsApi',
+  'useCampaigns',
 ] as const;
 
 let claudeMd = '';

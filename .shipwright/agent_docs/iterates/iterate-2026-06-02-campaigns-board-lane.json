@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-02-campaigns-board-lane",
+  "date": "2026-06-02T10:39:23.348471Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/campaigns-board-lane",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-06-02-campaigns-board-lane.md",
+  "adr": "iterate-2026-06-02-campaigns-board-lane"
+}
