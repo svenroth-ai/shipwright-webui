@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-05-31T12:03:19.696985+00:00
+Generated: 2026-06-02T08:26:06.171789+00:00
 
 ## Requirements Coverage
 
@@ -209,7 +209,9 @@ Generated: 2026-05-31T12:03:19.696985+00:00
 | PR card bubble parity + open/merged status badge via gh pr view | iterate | change | FR-01.02 | 1335/1335 | — | 2026-05-30 |
 | page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | iterate | change |  | 1331/1331 | — | 2026-05-30 |
 | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | iterate | change | FR-03.34 | — | — | 2026-05-31 |
+| POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | iterate | feature |  | — | 7600526 | 2026-05-31 |
 | WS liveness keepalive complete; PR pending | iterate | change |  | — | — | 2026-05-31 |
+| Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | iterate | bug |  | — | 47f7450 | 2026-06-02 |
 
 ## Coverage Summary
 
@@ -217,7 +219,7 @@ Generated: 2026-05-31T12:03:19.696985+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 97 |
+| Iterate changes | 99 |
 | Requirements total | 32 |
 | Requirements verified | 17/32 |
 | Must-have verified | 16/31 |

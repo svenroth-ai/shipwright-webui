@@ -124,7 +124,9 @@ export function getConfig(): ServerConfig {
     ),
     terminalIdleTimeoutMs: clampPositiveInt(
       process.env.SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS,
-      1_800_000,
+      // 12h orphan-GC grace, attachment-gated (iterate-2026-06-02). Was 30min;
+      // raised so a session left waiting at a prompt survives a commute.
+      43_200_000,
     ),
     ptyShellOverride:
       process.env.NODE_ENV === "test"

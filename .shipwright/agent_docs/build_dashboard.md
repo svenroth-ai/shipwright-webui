@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-05-31 13:18 UTC | Session: 33c5e5d2-b045-424e-af70-e3059e5ba890
+> Updated: 2026-06-02 08:26 UTC | Session: 7bb32862-55f8-47f3-8e1f-a644ab44b270 | Run: iterate-2026-06-02-terminal-idle-attachment-gate
 
-## Recent Changes (98 iterations)
+## Recent Changes (99 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | 0/0 | 47f7450 | fix | 2026-06-02 |
 | change | WS liveness keepalive complete; PR pending | 0/0 |  |  | 2026-05-31 |
 | feature | POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | 0/0 | 7600526 |  | 2026-05-31 |
 | change | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | 0/0 |  | FR-03.34 | 2026-05-31 |
@@ -105,7 +106,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-05-31 | (iterate)
+Last run: 2026-06-02 | (iterate)
 
 ## Pipeline
 

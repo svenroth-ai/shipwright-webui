@@ -1,28 +1,32 @@
 # Commit Change Log
 
-Generated: 2026-05-31T12:03:19.696985+00:00
-Total commits: 464
+Generated: 2026-06-02T08:26:06.171789+00:00
+Total commits: 483
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 173
-    "feat" : 123
-    "chore" : 83
-    "docs" : 42
+    "fix" : 176
+    "feat" : 125
+    "chore" : 91
+    "docs" : 44
     "refactor" : 25
-    "test" : 13
+    "test" : 14
     "other" : 4
+    "ci" : 3
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 173 commits
+### Fixes (fix) — 176 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-02 | terminal | gate idle-ceiling on client attachment to stop resume data-loss | 47f74501b5dc |
+| 2026-05-31 | taskboard | wire Re-open into TaskCard + repair tests & E2E | 1dc588591d42 |
+| 2026-05-31 | terminal | reap stale WS writer slot via ping/pong liveness keepalive | dc7f23d33301 |
 | 2026-05-29 | transcript | render mode/pr-link/stop-hook events + intent-based scroll detach | 7573e84a00cd |
 | 2026-05-29 | client | clear CTA label-reset timers on unmount (teardown-leak flake) | 525fd1f2a597 |
 | 2026-05-27 | webui | phase pill no longer derives Build from "Fix"-titled iterates | ce60cf78e94e |
@@ -197,10 +201,12 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 123 commits
+### Features (feat) — 125 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-31 | taskboard | add Re-open to the TaskDetailHeader menu (symmetry with Move to Backlog) | ac5c05353d63 |
+| 2026-05-31 | taskboard | re-open a done task back to the Backlog | 0e5ff048c145 |
 | 2026-05-31 | — | open SmartViewer pop-out in a centered in-app modal | 8875546c4489 |
 | 2026-05-30 | smartviewer | in-pane cross-file doc-link navigation (AC8) | 27bacb965e88 |
 | 2026-05-30 | smartviewer | document-grade markdown rendering + pop-out | a0ca9d318642 |
@@ -325,10 +331,18 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 83 commits
+### Chores (chore) — 91 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-31 | release | v0.17.0 ADR-aggregation sidecars + dashboards | da43aa4e0c10 |
+| 2026-05-31 | release | v0.17.0 | b5435325b946 |
+| 2026-05-31 | iterate | attach spec-commit SHA to work_completed event (F6.5) | 49fbbb32f7da |
+| 2026-05-31 | iterate | refresh session_handoff (finalization complete) | c477ca8309bb |
+| 2026-05-31 | iterate | canonical changelog drop filename (_001.md) | 76e9c5056a59 |
+| 2026-05-31 | iterate | rename test_completeness.summary -> counts for verifier | 471f62ee9c21 |
+| 2026-05-31 | iterate | finalization artifacts for reopen-done-task | 8470a2de5f9a |
+| 2026-05-31 | iterate | record work_completed event for reopen-done-task | dbf53b9daf08 |
 | 2026-05-29 | gitignore | ignore .shipwright/agent_docs/runtime/ (ADR-089 runtime/snapshot split) | f6e34a6fbf9c |
 | 2026-05-29 | events | backfill orphaned work_completed event for transcript-renderer-scroll | c11e911d9628 |
 | 2026-05-27 | events | record evt-18779597 for iterate-2026-05-27-fix-phase-pill-iterate-title-fallback | 68a896531ed0 |
@@ -413,10 +427,12 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 42 commits
+### Documentation (docs) — 44 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-02 | ci | correct stale upload-sarif @v3 comment to @v4 | 48badb61ad40 |
+| 2026-05-31 | spec | add FR-01.01 re-open acceptance criterion (F1 spec impact) | 76005260ddd9 |
 | 2026-05-30 | spec | append FR-01.02 acceptance criterion for smartviewer-render-ux | fe58668b8bbb |
 | 2026-05-30 | spec | append FR-01.02 acceptance criterion for pr-card-status | c82ae754ef95 |
 | 2026-05-29 | agent-docs | resync architecture/conventions/component-inventory to current state | 2da95b56f1b2 |
@@ -490,10 +506,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 13 commits
+### Tests (test) — 14 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-05-31 | terminal | prove WS heartbeat reaps a dead writer + promotes the reader (real sockets) | fd9ad2398f1d |
 | 2026-05-27 | terminal | split ws-upgrade-handler.test.ts to clear bloat gate | 64be961809e3 |
 | 2026-05-27 | terminal | remove wait-for-first-ready workaround from C5 smoke spec | 992aec89f1f1 |
 | 2026-05-27 | external | commit C2 API contract sweep as tracked vitest suite | f56b6bb8f7ef |
@@ -517,6 +534,14 @@ pie title Commit Types
 | 2026-04-22 | — | iterate 3.8 — post-iterate-3 cleanup (E2E + scrollbar gutter) (#8) | d58cb21c8b5f |
 | 2026-04-17 | — | poc: assistant-ui migration probe (branch poc/assistant-ui-migration) | f8ea3f403df8 |
 
+### CI/CD (ci) — 3 commits
+
+| Date | Scope | Description | Commit |
+|------|-------|-------------|--------|
+| 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | d66ab5506380 |
+| 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | 7196205297df |
+| 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | fff2b02dc8a5 |
+
 ### Build (build) — 1 commits
 
 | Date | Scope | Description | Commit |
@@ -527,7 +552,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 464 |
+| Total commits | 483 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 464 |
+| Human-authored commits | 483 |
 

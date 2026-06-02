@@ -41,6 +41,18 @@ describe("getConfig", () => {
     expect(config.heartbeatIntervalMs).toBe(30000);
   });
 
+  // iterate-2026-06-02 — orphan-GC grace raised 30min → 12h (attachment-gated
+  // idle ceiling). Overridable for ops via SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS.
+  it("terminalIdleTimeoutMs defaults to 12h (43_200_000) when unset", () => {
+    delete process.env.SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS;
+    expect(getConfig().terminalIdleTimeoutMs).toBe(43_200_000);
+  });
+
+  it("reads SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS as a positive-int override", () => {
+    process.env.SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS = "60000";
+    expect(getConfig().terminalIdleTimeoutMs).toBe(60000);
+  });
+
   it("returns a registryDir path containing .shipwright-webui", () => {
     const config = getConfig();
     expect(config.registryDir).toContain(".shipwright-webui");
