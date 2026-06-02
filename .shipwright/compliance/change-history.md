@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-02T10:38:40.112238+00:00
-Total commits: 484
+Generated: 2026-06-02T15:24:44.855818+00:00
+Total commits: 486
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 176
-    "feat" : 125
-    "chore" : 92
+    "feat" : 126
+    "chore" : 93
     "docs" : 44
     "refactor" : 25
     "test" : 14
@@ -201,10 +201,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 125 commits
+### Features (feat) — 126 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-02 | board | read-only Campaigns lane on the Task Board (FR-01.33) | 26ea50661360 |
 | 2026-05-31 | taskboard | add Re-open to the TaskDetailHeader menu (symmetry with Move to Backlog) | ac5c05353d63 |
 | 2026-05-31 | taskboard | re-open a done task back to the Backlog | 0e5ff048c145 |
 | 2026-05-31 | — | open SmartViewer pop-out in a centered in-app modal | 8875546c4489 |
@@ -331,10 +332,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 92 commits
+### Chores (chore) — 93 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | 2a0b142bf13f |
 | 2026-06-02 | iterate | finalization artifacts for terminal-idle-attachment-gate | a657465f8bf9 |
 | 2026-05-31 | release | v0.17.0 ADR-aggregation sidecars + dashboards | da43aa4e0c10 |
 | 2026-05-31 | release | v0.17.0 | b5435325b946 |
@@ -553,7 +555,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 484 |
+| Total commits | 486 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 484 |
+| Human-authored commits | 486 |
 

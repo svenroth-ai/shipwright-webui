@@ -1,38 +1,38 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-02-campaigns-board-lane"
+run_id: "iterate-2026-06-02-all-projects-create-cascade"
 phase: "iterate"
-reason: "Campaigns lane on the Task Board (read + copy-launch)"
-timestamp: "2026-06-02T10:38:40.112238+00:00"
+reason: "All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green."
+timestamp: "2026-06-02T15:24:44.855818+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-02 10:38:40 UTC
+> Auto-generated 2026-06-02 15:24:44 UTC
 
 ## Session Info
 
-- **Session ID**: 3b232513-bba9-45c3-a05a-61406a3d78bb
-- **Timestamp**: 2026-06-02 10:38:40 UTC
-- **Reason**: Campaigns lane on the Task Board (read + copy-launch)
+- **Session ID**: 891c8d87-91bc-47d8-8907-c1eefd22f45b
+- **Timestamp**: 2026-06-02 15:24:44 UTC
+- **Reason**: All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-02-terminal-idle-attachment-gate
-- **Date**: 2026-06-02T08:26:06.043620Z
-- **Type**: bug
+- **Run ID**: iterate-2026-06-02-campaigns-board-lane
+- **Date**: 2026-06-02T10:39:23.348471Z
+- **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/terminal-idle-attachment-gate
-- **ADR**: iterate-2026-06-02-terminal-idle-attachment-gate
+- **Branch**: iterate/campaigns-board-lane
+- **ADR**: iterate-2026-06-02-campaigns-board-lane
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-02-terminal-idle-attachment-gate.md
+- **Spec**: .shipwright/planning/iterate/2026-06-02-campaigns-board-lane.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaigns-board-lane
-- **Run ID**: iterate-2026-06-02-campaigns-board-lane
-- **Spec**: .shipwright/planning/iterate/2026-06-02-campaigns-board-lane.md
-- **Complexity**: medium (repo-scout upgrade from the classifier's "small" — 7 new
+- **Branch**: iterate/all-projects-create-cascade
+- **Run ID**: `iterate-2026-06-02-all-projects-create-cascade`
+- **Spec**: .shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md
+- **Complexity**: medium (classifier said `small`/0.75; escalated — 3–4 interacting
 - **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
 
 ### Mandatory replay on Resume
@@ -51,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaigns-board-lane
-- **Last Commit**: 106be7e Merge pull request #92 from svenroth-ai/iterate/terminal-idle-attachment-gate
+- **Branch**: iterate/all-projects-create-cascade
+- **Last Commit**: e3b1021 Merge pull request #93 from svenroth-ai/iterate/campaigns-board-lane
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-fc7459c4 | work_completed | iterate (All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.) | 2026-06-02 |
 | evt-177f8389 | work_completed | iterate (Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId) | 2026-06-02 |
 | evt-f0f196d7 | work_completed | iterate (Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner.) | 2026-06-02 |
 | evt-3445c91e | work_completed | iterate (WS liveness keepalive complete; PR pending) | 2026-05-31 |
 | evt-83b9b73f | work_completed | iterate (POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item) | 2026-05-31 |
-| evt-ecef8b79 | work_completed | iterate (SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained.) | 2026-05-31 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 170
-- **Last iterate**: feature — Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId (2026-06-02)
+- **Total work events**: 171
+- **Last iterate**: change — All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. (2026-06-02)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
