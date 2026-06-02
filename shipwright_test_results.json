@@ -1,94 +1,150 @@
 {
-  "last_updated": "2026-06-02",
+  "last_updated": "2026-06-02T10:38:20.281149+00:00",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-02-terminal-idle-attachment-gate",
-    "intent": "bug",
+    "run_id": "iterate-2026-06-02-campaigns-board-lane",
+    "intent": "feature",
     "complexity": "medium",
-    "timestamp": "2026-06-02",
+    "timestamp": "2026-06-02T10:38:20.281149+00:00",
     "paths_touched": [
-      "server/src/terminal/idle-reaper.ts",
-      "server/src/terminal/idle-reaper.test.ts",
-      "server/src/terminal/pty-manager.idle-attachment.test.ts",
-      "server/src/terminal/idle-heartbeat-composition.test.ts",
-      "server/src/terminal/pty-manager.ts",
-      "server/src/config.ts",
-      "server/src/config.test.ts",
-      "client/src/components/terminal/TerminalBanners.tsx",
-      "client/src/components/terminal/TerminalBanners.test.tsx",
-      "client/src/components/terminal/EmbeddedTerminal.tsx"
+      "server/src/core/campaign-paths.ts",
+      "server/src/core/campaign-parse.ts",
+      "server/src/core/campaign-store.ts",
+      "server/src/routes/campaigns.ts",
+      "server/src/index.ts",
+      "client/src/lib/campaignsApi.ts",
+      "client/src/hooks/useCampaigns.ts",
+      "client/src/components/external/CampaignLaneCard.tsx",
+      "client/src/pages/TaskBoardPage.tsx",
+      "client/src/test/campaigns-no-triage-coupling.test.ts",
+      "client/src/test/doc-sync.test.ts",
+      "client/e2e/flows/campaigns-board-lane.spec.ts",
+      ".shipwright/agent_docs/architecture.md",
+      ".shipwright/agent_docs/component_inventory.md",
+      ".shipwright/planning/01-adopted/spec.md"
     ],
-    "result": "green",
-    "summary": {
-      "server_tests": "111 files, 1379 passed (incl. idle-reaper 9, pty-manager.idle-attachment 4, idle-heartbeat-composition 1, config +2)",
-      "client_tests": "128 files, 1381 passed (incl. TerminalBanners 4, EmbeddedTerminal 69 regression, doc-sync 26)",
-      "tsc": "clean (server + client)",
-      "lint": "clean (oxlint, changed files)",
-      "e2e": "not run — see surface_verification justification"
+    "result": "passed",
+    "summary": "server: tsc clean + 1418/1418 vitest; client: tsc clean + 1404/1404 vitest; F0.5 web surface tests_run=1 exit 0 against an isolated built stack. New: 7 source modules + lane wiring; 51 new unit tests across the campaign.md/status.json producer boundary.",
+    "unit": {
+      "status": "passed",
+      "passed": 2822,
+      "total": 2822
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 1,
+      "total": 1
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "skipped"
     },
     "surface_verification": {
-      "surface": "none",
-      "tests_run": 0,
+      "surface": "web",
+      "tests_run": 1,
       "exit_code": 0,
-      "justification": "Core is server-side idle-timer logic, covered by integration tests against REAL components (real PtyManager attach/detach in pty-manager.idle-attachment.test.ts; real ws-heartbeat monitor + real detach in idle-heartbeat-composition.test.ts) — not mocks. WS->pty wiring covered by ws-upgrade-handler.detach.test.ts + idle-attachment AC1/AC2. The only new UI (reset-banner data-loss note) is a conditional text node covered by TerminalBanners.test.tsx. A browser E2E of a 12h idle ceiling (or a tiny env-override reap) is high-flake for ~zero marginal coverage over the real-component integration tests. Known deviation from the backend-affects-frontend web-mandatory rule, accepted for this timer-infra change."
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaigns-board-lane.spec.ts --reporter=list",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-02-campaigns-board-lane/surface_verification.log",
+      "attempts": 1,
+      "note": "Isolated single-process stack: built worktree client served by worktree Hono via SHIPWRIGHT_STATIC_DIR, temp USERPROFILE, seeded fixture project + 2-step campaign. Live /api/campaigns also smoke-verified via curl (AC-2 status.json-wins proven live)."
     },
     "degraded": [
-      "external_review: ran (openrouter --mode code) — 2 valid findings fixed, 1 HIGH false-positive documented (kill() sets closing=true; marker test green)",
-      "server_lint: oxlint binary absent in server workspace; changed server files linted via the client oxlint binary (EXIT 0)"
+      {
+        "condition": "server `npm run lint` (oxlint) binary absent in the junctioned node_modules (pre-existing worktree-hydration gap, not a code issue). The 4 new server source files + 4 test files were linted clean (exit 0) via the client's version-pinned oxlint binary; client `npm run lint` shows only pre-existing warnings, none in new files."
+      }
     ],
     "test_completeness": {
       "status": "complete",
-      "ledger": "every AC mapped to a passing test; 0 untested-testable",
       "behaviors": [
         {
-          "id": "AC1",
-          "desc": "attached pty not reaped past ceiling",
+          "behavior": "AC-1 endpoint: 404 unknown/synth, 403 traversal, 200 shape, 200 [] for missing dir",
           "disposition": "tested",
-          "evidence": "pty-manager.idle-attachment AC1; idle-reaper AC1"
+          "evidence": "routes/campaigns.test.ts (6 cases incl. synthesized:true + junction-403) PASSED"
         },
         {
-          "id": "AC2",
-          "desc": "detached pty reaped after ceiling",
+          "behavior": "AC-2 status.json authoritative / absent->table / wins for non-complete",
           "disposition": "tested",
-          "evidence": "pty-manager.idle-attachment AC2; idle-reaper AC2"
+          "evidence": "core/campaign-store.test.ts AC-2a/b/c PASSED"
         },
         {
-          "id": "AC3",
-          "desc": "re-attach before expiry disarms",
+          "behavior": "AC-3 lane shown iff done<total; hidden when all-complete/empty",
           "disposition": "tested",
-          "evidence": "pty-manager.idle-attachment AC3; idle-reaper AC3"
+          "evidence": "lib/campaignsApi.test.ts selectActiveCampaigns + CampaignLaneCard.test.tsx + e2e live PASSED"
         },
         {
-          "id": "AC4",
-          "desc": "config 12h default + env override",
+          "behavior": "AC-4 slug/intent/done-total/ordered steps + checkmark/play/circle icon semantics",
           "disposition": "tested",
-          "evidence": "config.test.ts (+2)"
+          "evidence": "CampaignLaneCard.test.tsx (render + next-pending + icon a11y) PASSED"
         },
         {
-          "id": "AC5",
-          "desc": "heartbeat terminate -> detach -> grace arms",
+          "behavior": "AC-5 copies /shipwright-iterate \"<specPath>\"; disabled when no launchable step",
           "disposition": "tested",
-          "evidence": "idle-heartbeat-composition.test.ts"
+          "evidence": "CampaignLaneCard.test.tsx (copy + 2 disabled) + e2e clipboard assert PASSED"
         },
         {
-          "id": "AC6",
-          "desc": "reset banner data-loss note iff terminalReset && scrollbackBytes>0",
+          "behavior": "AC-6 3s poll contract",
           "disposition": "tested",
-          "evidence": "TerminalBanners.test.tsx (4)"
+          "evidence": "useCampaigns.test.tsx (POLL_MS===3000 + fetch + disabled) PASSED"
         },
         {
-          "id": "AC7",
-          "desc": "pty-manager.ts no bloat ratchet",
+          "behavior": "AC-7 triage cross-link iff expandsTriage set",
           "disposition": "tested",
-          "evidence": "wc -l 1217 <= 1219 baseline; anti-ratchet pre-commit hook passed"
+          "evidence": "CampaignLaneCard.test.tsx PASSED"
         },
         {
-          "id": "browser-reset",
-          "desc": "banner in a real cross-restart pty reset",
-          "disposition": "untestable",
-          "reason_code": "requires-interactive-tty",
-          "evidence": "reset needs a real pty kill+re-attach across server restart; conditional render covered by component test"
+          "behavior": "AC-8 no triage->campaign import coupling",
+          "disposition": "tested",
+          "evidence": "test/campaigns-no-triage-coupling.test.ts PASSED"
+        },
+        {
+          "behavior": "Producer-format parse (frontmatter/intent/table, alignment colons)",
+          "disposition": "tested",
+          "evidence": "core/campaign-parse.test.ts (9 cases) PASSED"
+        },
+        {
+          "behavior": "Torn status.json / malformed-campaign per-dir isolation (no 500)",
+          "disposition": "tested",
+          "evidence": "core/campaign-store.test.ts (2 cases) PASSED"
+        },
+        {
+          "behavior": "specPath relative+POSIX / null-when-missing / symlink containment (isWithin + junction)",
+          "disposition": "tested",
+          "evidence": "core/campaign-store.test.ts + core/campaign-paths.test.ts PASSED"
+        },
+        {
+          "behavior": "Sort slug-desc; status.json-only campaign; nextPending null when all complete",
+          "disposition": "tested",
+          "evidence": "core/campaign-store.test.ts (3 cases) PASSED"
+        },
+        {
+          "behavior": "AC-3 + AC-5 end-to-end against a live built stack (lane renders, progress 1/2, clipboard cmd)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/campaigns-board-lane.spec.ts via surface_verification (tests_run=1, exit 0) PASSED"
         }
-      ]
+      ],
+      "counts": {
+        "testable": 13,
+        "tested": 13,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      }
     }
   }
 }

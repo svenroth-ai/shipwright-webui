@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "timestamp": "2026-06-02T09:53:54.449175+00:00",
+  "provider": "openrouter",
+  "findings_count": 16,
+  "self_review_fallback_ran": false,
+  "reason": "openai+gemini via openrouter; 2 HIGH (per-step specPath containment, torn-read isolation) + mediums integrated into mini-plan",
+  "review_mode": "iterate"
+}

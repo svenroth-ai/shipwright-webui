@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-02T08:26:06.171789+00:00
+Generated: 2026-06-02T10:38:40.112238+00:00
 
 ## Requirements Coverage
 
@@ -38,6 +38,7 @@ Generated: 2026-06-02T08:26:06.171789+00:00
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
+| [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389 | — | — | NO TESTS |
 
 ## Verification Timeline
 
@@ -212,6 +213,7 @@ Generated: 2026-06-02T08:26:06.171789+00:00
 | POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | iterate | feature |  | — | 7600526 | 2026-05-31 |
 | WS liveness keepalive complete; PR pending | iterate | change |  | — | — | 2026-05-31 |
 | Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | iterate | bug |  | — | 47f7450 | 2026-06-02 |
+| Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId | iterate | feature | FR-01.33 | — | — | 2026-06-02 |
 
 ## Coverage Summary
 
@@ -219,9 +221,9 @@ Generated: 2026-06-02T08:26:06.171789+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 99 |
-| Requirements total | 32 |
-| Requirements verified | 17/32 |
+| Iterate changes | 100 |
+| Requirements total | 33 |
+| Requirements verified | 18/33 |
 | Must-have verified | 16/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
@@ -246,9 +248,10 @@ Generated: 2026-06-02T08:26:06.171789+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 20d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-33b2e81f` (2026-05-14)
-- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 32d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-50e36386` (2026-05-14)
+- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-c5df348e` (2026-05-17)
 

@@ -1,0 +1,163 @@
+/*
+ * CampaignLaneCard — one card per active campaign in the Task Board's
+ * Campaigns lane (FR-01.31). Read + launch only:
+ *   - slug + one-line intent + branchStrategy badge + optional triage link
+ *   - done/total progress bar
+ *   - ordered steps with status icons (✓ complete / ▶ next-pending / ○ other)
+ *   - "Copy launch (Bx)" → copies `/shipwright-iterate "<specPath>"` for the
+ *     next-pending step. The board has no embedded terminal, so this is a
+ *     copy-command affordance (NOT auto-inject); disabled when there is no
+ *     launchable step (external review: never a dead button).
+ */
+
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Check, Circle, Play, ExternalLink } from "lucide-react";
+
+import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
+import { copyText } from "../../lib/clipboard";
+
+type CopyState = "idle" | "copied" | "error";
+
+function StepIcon({ kind }: { kind: "complete" | "next" | "other" }) {
+  if (kind === "complete") {
+    return <Check size={14} className="text-[var(--color-success-text,#16a34a)]" aria-label="complete" />;
+  }
+  if (kind === "next") {
+    return <Play size={13} className="text-[var(--color-primary)]" aria-label="next pending" />;
+  }
+  return <Circle size={12} className="text-[var(--color-muted)]" aria-label="pending" />;
+}
+
+export function CampaignLaneCard({ campaign }: { campaign: Campaign }) {
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+
+  const pct = campaign.total > 0 ? Math.round((campaign.done / campaign.total) * 100) : 0;
+  const next = campaign.nextPending;
+  const launchable = Boolean(next && next.specPath);
+  const launchCommand = next?.specPath
+    ? `/shipwright-iterate "${next.specPath}"`
+    : null;
+
+  const onCopy = async () => {
+    if (!launchCommand) return;
+    try {
+      await copyText(launchCommand);
+      setCopyState("copied");
+    } catch {
+      setCopyState("error");
+    }
+    setTimeout(() => setCopyState("idle"), 2000);
+  };
+
+  const stepKind = (s: CampaignStep): "complete" | "next" | "other" => {
+    if (s.status === "complete") return "complete";
+    if (next && s.id === next.id) return "next";
+    return "other";
+  };
+
+  return (
+    <div
+      className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-card,none)]"
+      data-testid={`campaign-lane-card-${campaign.slug}`}
+    >
+      {/* Header: slug + branch-strategy badge + optional triage cross-link */}
+      <div className="flex items-center gap-2">
+        <span className="font-mono text-[13px] font-semibold text-[var(--color-text,#111827)]">
+          {campaign.slug}
+        </span>
+        {campaign.branchStrategy && (
+          <span className="rounded-[6px] bg-[var(--color-muted-bg)] px-1.5 py-[1px] text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
+            {campaign.branchStrategy}
+          </span>
+        )}
+        <span className="ml-auto text-[11px] font-semibold text-[var(--color-muted)]" data-testid={`campaign-progress-${campaign.slug}`}>
+          {campaign.done}/{campaign.total}
+        </span>
+        {campaign.expandsTriage && (
+          <Link
+            to="/triage"
+            className="inline-flex items-center gap-1 text-[11px] text-[var(--color-primary)] hover:underline"
+            title={`Promoted from triage ${campaign.expandsTriage}`}
+            data-testid={`campaign-triage-link-${campaign.slug}`}
+          >
+            <ExternalLink size={11} />
+            {campaign.expandsTriage}
+          </Link>
+        )}
+      </div>
+
+      {campaign.intent && (
+        <div className="text-[12px] text-[var(--color-muted)]">{campaign.intent}</div>
+      )}
+
+      {/* Progress bar */}
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-muted-bg)]">
+        <div
+          className="h-full rounded-full bg-[var(--color-primary)] transition-[width]"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Ordered steps */}
+      <ol className="flex flex-col gap-1">
+        {campaign.steps.map((s) => {
+          const kind = stepKind(s);
+          const showStatusText =
+            s.status === "failed" || s.status === "escalated" || s.status === "in_progress";
+          return (
+            <li
+              key={s.id}
+              className="flex items-center gap-2 text-[12px]"
+              data-testid={`campaign-step-${s.id}`}
+              data-step-status={s.status}
+              data-next={kind === "next" || undefined}
+            >
+              <StepIcon kind={kind} />
+              <span className="font-mono text-[11px] text-[var(--color-muted)]">{s.id}</span>
+              <span className={kind === "complete" ? "text-[var(--color-muted)] line-through" : "text-[var(--color-text,#111827)]"}>
+                {s.title}
+              </span>
+              {showStatusText && (
+                <span
+                  className={
+                    s.status === "in_progress"
+                      ? "text-[10px] text-[var(--color-warning-text,#b45309)]"
+                      : "text-[10px] text-[var(--color-error,#dc2626)]"
+                  }
+                >
+                  {s.status}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+
+      {/* Launch affordance — copy command for the next-pending step. */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          type="button"
+          onClick={onCopy}
+          disabled={!launchable}
+          data-testid={`campaign-launch-${campaign.slug}`}
+          className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-text,#111827)] transition-colors enabled:hover:bg-[var(--color-muted-bg)] disabled:cursor-not-allowed disabled:opacity-50"
+          title={
+            launchable
+              ? `Copy: /shipwright-iterate "${next!.specPath}"`
+              : "No launchable next step (all complete or spec file missing)"
+          }
+        >
+          <Play size={12} />
+          {next ? `Copy launch (${next.id})` : "Copy launch"}
+        </button>
+        {copyState === "copied" && (
+          <span className="text-[11px] text-[var(--color-success-text,#16a34a)]">Copied</span>
+        )}
+        {copyState === "error" && (
+          <span className="text-[11px] text-[var(--color-error,#dc2626)]">Copy failed</span>
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-02T08:26:06.171789+00:00
-Total commits: 483
+Generated: 2026-06-02T10:38:40.112238+00:00
+Total commits: 484
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 483
 pie title Commit Types
     "fix" : 176
     "feat" : 125
-    "chore" : 91
+    "chore" : 92
     "docs" : 44
     "refactor" : 25
     "test" : 14
@@ -331,10 +331,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 91 commits
+### Chores (chore) — 92 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-02 | iterate | finalization artifacts for terminal-idle-attachment-gate | a657465f8bf9 |
 | 2026-05-31 | release | v0.17.0 ADR-aggregation sidecars + dashboards | da43aa4e0c10 |
 | 2026-05-31 | release | v0.17.0 | b5435325b946 |
 | 2026-05-31 | iterate | attach spec-commit SHA to work_completed event (F6.5) | 49fbbb32f7da |
@@ -552,7 +553,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 483 |
+| Total commits | 484 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 483 |
+| Human-authored commits | 484 |
 

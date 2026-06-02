@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-02 08:26 UTC | Session: 7bb32862-55f8-47f3-8e1f-a644ab44b270 | Run: iterate-2026-06-02-terminal-idle-attachment-gate
+> Updated: 2026-06-02 10:38 UTC | Session: 3b232513-bba9-45c3-a05a-61406a3d78bb | Run: iterate-2026-06-02-campaigns-board-lane
 
-## Recent Changes (99 iterations)
+## Recent Changes (100 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId | 0/0 |  | FR-01.33 | 2026-06-02 |
 | bug | Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | 0/0 | 47f7450 | fix | 2026-06-02 |
 | change | WS liveness keepalive complete; PR pending | 0/0 |  |  | 2026-05-31 |
 | feature | POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | 0/0 | 7600526 |  | 2026-05-31 |
@@ -106,7 +107,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-02 | (iterate)
+Last run: 2026-06-02 | Unit: 2822/2822 | E2E: 1/1 | Smoke: skipped | (iterate)
 
 ## Pipeline
 

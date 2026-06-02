@@ -50,6 +50,7 @@ import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createTriageRoutes } from "./routes/triage.js";
+import { createCampaignsRoutes } from "./routes/campaigns.js";
 import { createTriageLock } from "./core/triage-lock.js";
 import { PtyManager } from "./terminal/pty-manager.js";
 import {
@@ -577,6 +578,21 @@ if (isMainModule) {
           // takes a separate sdk-sessions lock (RC2 — store.persist()
           // locks itself), so `sessionsLockPath` is gone.
           lock: createTriageLock(),
+        }),
+      );
+
+      // FR-01.31 — Campaigns lane routes. Read-only sibling of the triage
+      // route; mounts after /api/external so it inherits the same CORS/Origin
+      // gate. No lock / no write surface (campaign_init.py / campaign_progress.py
+      // own all campaign-state writes).
+      app.route(
+        "/",
+        createCampaignsRoutes({
+          getProjectById: (id) => {
+            const p = projectManager.getById(id);
+            if (!p || p.synthesized) return undefined;
+            return { id: p.id, path: p.path, synthesized: p.synthesized };
+          },
         }),
       );
 
