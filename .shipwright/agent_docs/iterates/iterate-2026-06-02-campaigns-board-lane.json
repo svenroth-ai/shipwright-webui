@@ -6,5 +6,5 @@
   "branch": "iterate/campaigns-board-lane",
   "tests_passed": true,
   "spec": ".shipwright/planning/iterate/2026-06-02-campaigns-board-lane.md",
-  "adr": "pending-ADR-NNN-at-release"
+  "adr": "iterate-2026-06-02-campaigns-board-lane"
 }
