@@ -62,6 +62,8 @@ import { useProjects } from "../hooks/useProjects";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useRunConfig } from "../hooks/useRunConfig";
+import { useCampaigns } from "../hooks/useCampaigns";
+import { selectActiveCampaigns } from "../lib/campaignsApi";
 import { TaskCard } from "../components/external/TaskCard";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
@@ -71,6 +73,7 @@ import { PreviewButton } from "../components/external/PreviewButton";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { MasterTaskCard } from "../components/external/MasterTaskCard";
+import { CampaignLaneCard } from "../components/external/CampaignLaneCard";
 import { ContinuePipelineModal } from "../components/external/ContinuePipelineModal";
 import { UNASSIGNED_PROJECT_ID } from "../lib/projectIds";
 
@@ -156,6 +159,16 @@ export default function TaskBoardPage() {
   const activeProjectMeta = useMemo(
     () => projects.find((p) => p.id === resolvedProjectId) ?? null,
     [projects, resolvedProjectId],
+  );
+
+  // FR-01.31 — Campaigns lane. Polls campaigns for the active project; renders
+  // a card per campaign with work remaining (done < total). Empty / all-complete
+  // → no lane (no wrapper, no layout shift). Scoped to the active project, like
+  // the Pipelines lane.
+  const campaignsQuery = useCampaigns(resolvedProjectId);
+  const activeCampaigns = useMemo(
+    () => selectActiveCampaigns(campaignsQuery.data ?? []),
+    [campaignsQuery.data],
   );
 
   // Continue Pipeline menu entry availability: only when v2 run-config is
@@ -386,6 +399,22 @@ export default function TaskBoardPage() {
             readyToLaunchTasks={runConfigQuery.data.readyToLaunchTasks}
             diagnostics={runConfigQuery.data.diagnostics}
           />
+        </div>
+      )}
+
+      {/* FR-01.31 — Campaigns lane. One card per active campaign; hidden
+          entirely when none have work remaining (no layout shift). */}
+      {activeCampaigns.length > 0 && (
+        <div
+          className="page-container flex w-full flex-col gap-3 pt-6 pb-2"
+          data-testid="task-board-campaigns-lane"
+        >
+          <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted,#6b7280)]">
+            Campaigns
+          </div>
+          {activeCampaigns.map((c) => (
+            <CampaignLaneCard key={c.slug} campaign={c} />
+          ))}
         </div>
       )}
 
