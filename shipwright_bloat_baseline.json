@@ -270,9 +270,9 @@
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 646,
+      "current": 675,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-02-campaigns-board-lane"
     },
     {
       "path": "client/src/pages/TaskDetailPage.test.tsx",
@@ -445,9 +445,9 @@
     {
       "path": "server/src/index.ts",
       "limit": 300,
-      "current": 843,
+      "current": 859,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-02-campaigns-board-lane"
     },
     {
       "path": "server/src/lib/resolveTrustedOrigins.test.ts",

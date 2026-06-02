@@ -46,6 +46,7 @@ Functionally the app supports project registration via a 4-step wizard (with sta
 | FR-01.30 | Triage Tab + Promote bridge (ADR-101) | Must | New top-level `/triage` route + sidebar entry surfacing `<project>/.shipwright/triage.jsonl` items (`status==triage`) aggregated across all non-synthesized projects from the existing webui registry. **Read path:** `GET /api/triage/:projectId` returns the resolved view (TS port of `triage.read_all_items`; tolerant — skips JSONDecodeError lines; resolves last-status-wins by file order); `GET /api/triage/counts` returns `{ counts: Record<projectId, number>, total }`. Both auto-refresh every 30 s while the tab is active (no FS watcher reuse — `SessionWatcher` is Claude-JSONL-specific). **Promote** (`POST /api/triage/:projectId/promote`, body `{ triageId, priority, domain, complexityHint?, tags }`): server-side cross-store transaction in order — (1) resolve project; (2) idempotency check via `findByPromotedFromTriageId(triageId)` — if a task already exists, skip step 4; (3) acquire `sdk-sessions.json` lock; (4) acquire `<project>/.shipwright/triage.jsonl` lock (proper-lockfile); (5) re-read items + confirm `status==triage` (else 409); (6) `store.create({ ..., promotedFromTriageId: triageId, tags: [...defaultTags, ...userTags] })` where `defaultTags = ["source:" + item.source, "severity:" + item.severity, "triage:" + triageId]`; (7) append `{event:"status",newStatus:"promoted",by:"webui",reason:"webuiPromote",promotedTaskId:"EXT:" + taskId}` to triage.jsonl via `appendFileSync` (line-atomic); (8) release locks → 201. Partial-promote (step 7 fails after step 6) returns 207 with the new `taskId`; retry hits step 2's idempotency gate, skips create, re-attempts the flip — same `taskId`, no orphans. **Dismiss** + **Snooze** (`POST /api/triage/:projectId/{dismiss,snooze}`, body `{ triageId, reason? }`): single-file write — acquire triage.jsonl lock, validate `status==triage`, append status event, release. **Sidebar:** `<TriageBadge count={total} />` (orange, distinct from Inbox red); `null` when 0; "99+" when >99. **Cross-process lock note:** Python producers use `_FileLock` (msvcrt/fcntl byte-locks); webui uses `proper-lockfile` (directory-based). The two primitives don't compose — documented as a Known Limitation in ADR-101. Mitigation: append-mode writes are line-atomic at OS level for sub-PIPE_BUF writes; the only Python tool that writes status events for arbitrary ids is the manual `triage_promote.py` CLI (operator-only collision risk); last-status-wins by file order resolves any race in operator-intent's favor. | `server/src/routes/triage.ts`, `server/src/core/triage-store.ts`, `server/src/core/sdk-sessions-store.ts` (new finder), `client/src/pages/TriagePage.tsx`, `client/src/components/triage/{TriageItemCard,TriageDetailModal,PromoteModal,TriageBadge}.tsx`, `client/src/hooks/{useTriageItems,useTriageCounts,useTriagePromote}.ts`, `client/src/router.tsx`, `client/src/components/sidebar/SidebarNav.tsx`, `README.md` | iterate-2026-05-14 |
 | FR-01.31 | Network access profile (non-loopback dev access) | Should | The dev servers default-bind loopback for safety; non-loopback access (LAN / Tailscale) is opt-in. The Hono backend honors `HONO_HOST`, the Vite client honors `VITE_HOST`, and `SHIPWRIGHT_NETWORK_PROFILE` (`local` \| `tailscale` \| …) selects a coherent bind preset across both halves without setting each HOST var individually. | server + client dev-server config | backfill (iterate-2026-05-16) |
 | FR-01.32 | Move task to backlog (POST) | Must | `POST /api/external/tasks/:id/backlog` flips an In-Progress task's `state` back to `draft` so it returns to the Backlog column of the TaskBoard. Sibling of FR-01.15 (Close) — a pure registry-state metadata flip; the JSONL and `shipwright_run_config.json` stay untouched. Accepts the five In-Progress states (`awaiting_external_start`, `active`, `idle`, `jsonl_missing`, `launch_failed`); `409 backlog_invalid_state` for the terminal `done` state; idempotent `200` when the task is already `draft`; `404` for an unknown id; `ELOCKED` on persist surfaces as `409`. Every history field (`launchedAt`, `firstJsonlObservedAt`, `lastJsonlSeenMtimeMs`, `actionId`, `phase`, inbox) is preserved — "Backlog" is a re-organisation gesture, not a reset. The transcript-poll state machine treats `draft` as sticky (no transition out of it). | `server/src/external/routes.ts` | iterate-2026-05-17 |
+| FR-01.33 | Campaigns lane on the Task Board (read + launch) | Should | A read-only **Campaigns lane** above the kanban on `TaskBoardPage`, sibling of the Pipelines lane, surfacing Shipwright iterate campaigns under `<project>/.shipwright/planning/iterate/campaigns/`. **Read path:** `GET /api/campaigns/:projectId` returns one entry per campaign `{slug, intent, branchStrategy, expandsTriage, steps[], done, total, nextPending}` resolved by merging `status.json` (authoritative per-step `status`/`commit`/`branch`, written by `campaign_init.py`/`campaign_progress.py`) with the `campaign.md` `## Sub-Iterates` table (ordering + titles); `status.json` is optional — status derives from the table when absent. Unknown/synthesized project → `404`; symlink-escape of the campaigns dir → `403`; missing/empty campaigns dir → `200 {campaigns:[]}`. A malformed/half-written campaign dir is skipped (logged), never failing the whole response. **UI:** each card shows slug + one-line intent + a `done/total` progress bar + the ordered steps (✓ complete / ▶ next-pending / ○ pending) + a **Copy launch (Bx)** button copying `/shipwright-iterate "<nextPending.specPath>"` (the board has no embedded terminal, so this is a clipboard affordance, not auto-inject — disabled when no launchable step). `useCampaigns` polls at 3 s; the lane is hidden when every campaign is complete or the dir is empty. **Read-only — no new write surface** (`campaign_init.py`/`campaign_progress.py` own all campaign-state writes); no Triage coupling (import-boundary tested). | `server/src/routes/campaigns.ts`, `server/src/core/campaign-{paths,parse,store}.ts`, `client/src/lib/campaignsApi.ts`, `client/src/hooks/useCampaigns.ts`, `client/src/components/external/CampaignLaneCard.tsx`, `client/src/pages/TaskBoardPage.tsx` | iterate-2026-06-02 |
 
 > _Two FRs from the auto-generated draft were dropped: a duplicate `Shipwright Command Center` entry (page-title bleed-through from the crawl) and a `/test` entry pointing at `error-handler.test.ts` (test files are not features)._
 
@@ -333,6 +334,36 @@ events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
 - (E) Given `SHIPWRIGHT_NETWORK_PROFILE` is set (`local` | `tailscale` | …),
   when the dev servers start, then the profile selects a coherent bind
   preset across both the backend and the client.
+
+### FR-01.33 Campaigns lane on the Task Board (read + launch)
+
+Added by `iterate-2026-06-02-campaigns-board-lane`. Read-only; the WebUI
+never writes campaign state (`campaign_init.py` / `campaign_progress.py` own
+all writes).
+
+- (E) Given a registered project with a campaigns dir, when `GET
+  /api/campaigns/:projectId` is called, then it returns `200 {campaigns:
+  Campaign[]}` with one entry per `campaigns/<slug>/`; given no campaigns dir
+  it returns `200 {campaigns:[]}`; given an unknown/synthesized id it returns
+  `404`; given a symlinked campaigns dir escaping the project root it returns
+  `403`.
+- (E) Given a campaign whose `campaign.md` table says `Status=pending` but
+  whose `status.json` says `status=complete`, when the endpoint resolves it,
+  then the step status is `complete` (status.json authoritative); given NO
+  `status.json`, the step status equals the table column. Both render.
+- (E) Given ≥1 campaign with `done < total`, when `TaskBoardPage` renders for
+  the active project, then `[data-testid="task-board-campaigns-lane"]` is
+  present; given every campaign is complete (or the dir is empty), the element
+  is absent (no layout shift).
+- (E) Given a card's `nextPending` step, when the user clicks **Copy launch
+  (Bx)**, then the clipboard contains exactly `/shipwright-iterate
+  "<nextPending.specPath>"`; the button is disabled when there is no launchable
+  step (all complete or the spec file is missing).
+- (E) Given the lane is mounted, when a campaign's `status.json` flips a step,
+  then the change appears within the 3 s `useCampaigns` poll without a reload.
+- (E) Given a malformed / half-written campaign dir, when the endpoint reads
+  the project, then that campaign is skipped (logged) and the others still
+  render — never a 500.
 
 ## Quality Requirements
 

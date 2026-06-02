@@ -1,0 +1,1 @@
+Campaigns lane on the Task Board: a read-only lane above the kanban surfacing active Shipwright campaigns (`.shipwright/planning/iterate/campaigns/`) with per-step progress (✓/▶/○), a done/total bar, and a "Copy launch" button that copies the `/shipwright-iterate` command for the next pending sub-iterate. New `GET /api/campaigns/:projectId` (read-only; 3 s poll).
