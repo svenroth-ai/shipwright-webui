@@ -23,9 +23,9 @@
  * can stay native-binary-free.
  */
 
-import path from "node:path";
 import type { ScrollbackStore } from "./scrollback-store.js";
 import { HeadlessMirror } from "./headless-mirror.js";
+import { IdleReaper, DEFAULT_IDLE_TIMEOUT_MS } from "./idle-reaper.js";
 import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
 
 // ---------------------------------------------------------------------------
@@ -213,8 +213,6 @@ interface PtyEntry {
    */
   lastResizeCols: number | null;
   lastResizeRows: number | null;
-  /** Idle timer for the safety ceiling. */
-  idleTimer: ReturnType<typeof setTimeout> | null;
   /** Pending outbound bytes per connection (used for drop-oldest decision). */
   pendingByConn: Map<unknown, { bytes: number; queue: string[] }>;
   /** True while a backpressure event is already raised — avoids fire-flood. */
@@ -307,6 +305,7 @@ export class PtyManager {
   private readonly spawnFn: PtySpawnFn;
   private readonly wsBufferBytes: number;
   private readonly idleTimeoutMs: number;
+  private readonly idleReaper: IdleReaper;
   private readonly scrollbackStore: ScrollbackStore | undefined;
   private readonly snapshotStore: SnapshotStore | undefined;
   private readonly headlessMirrorEnabled: boolean;
@@ -335,7 +334,14 @@ export class PtyManager {
   constructor(opts: PtyManagerOpts) {
     this.spawnFn = opts.spawn;
     this.wsBufferBytes = opts.wsBufferBytes ?? 1_048_576;
-    this.idleTimeoutMs = opts.idleTimeoutMs ?? 1_800_000;
+    this.idleTimeoutMs = opts.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+    // Orphan-GC (attachment-gated, iterate-2026-06-02): the idle ceiling
+    // fires ONLY when no client is attached; reap = the existing kill() path
+    // (flags the intentional close → v0.8.7 marker). Policy in idle-reaper.ts.
+    this.idleReaper = new IdleReaper({
+      timeoutMs: this.idleTimeoutMs,
+      onReap: (taskId) => this.kill(taskId),
+    });
     this.scrollbackStore = opts.scrollbackStore;
     this.snapshotStore = opts.snapshotStore;
     // Mirror requires BOTH flag-on AND a configured store. Either alone
@@ -418,7 +424,6 @@ export class PtyManager {
       hadWriterAttach: false,
       lastResizeCols: null,
       lastResizeRows: null,
-      idleTimer: null,
       pendingByConn: new Map(),
       backpressureRaised: new Map(),
       pauseRefCount: 0,
@@ -716,6 +721,8 @@ export class PtyManager {
       // Placeholder — the routes layer calls subscribeForConnection right after.
       entry.connSubs.set(conn, { onData: () => undefined });
     }
+    // Attachment-gating (2026-06-02): a watching client disarms the grace.
+    this.touchIdle(entry);
     return { role, hadPriorWriter };
   }
 
@@ -941,6 +948,8 @@ export class PtyManager {
         }
       }
     }
+    // Attachment-gating (2026-06-02): arm the grace iff that was the last client.
+    this.touchIdle(entry);
   }
 
   // --- internals -----------------------------------------------------------
@@ -948,7 +957,7 @@ export class PtyManager {
   private cleanup(taskId: string): void {
     const entry = this.entries.get(taskId);
     if (!entry) return;
-    if (entry.idleTimer) clearTimeout(entry.idleTimer);
+    this.idleReaper.cancel(taskId);
     this.entries.delete(taskId);
     // ADR-088: finalize the headless mirror snapshot, then dispose.
     // Detached from the cleanup return because serializeStable() is
@@ -1077,20 +1086,9 @@ export class PtyManager {
     }
   }
 
+  // Orphan grace is attachment-gated (idle-reaper.ts): armed only when no client is attached.
   private touchIdle(entry: PtyEntry): void {
-    if (entry.idleTimer) clearTimeout(entry.idleTimer);
-    entry.idleTimer = setTimeout(() => {
-      // Idle ceiling reached — force kill. iterate-2026-05-08 v0.8.7
-      // AC-2: flag intentional kill so the onExit handler appends
-      // the marker before cleanup deletes the entry.
-      entry.closing = true;
-      try {
-        entry.pty.kill();
-      } catch {
-        /* ignore */
-      }
-      this.cleanup(entry.meta.taskId);
-    }, this.idleTimeoutMs);
+    this.idleReaper.touch(entry.meta.taskId, entry.connSubs.size);
   }
 
   /**

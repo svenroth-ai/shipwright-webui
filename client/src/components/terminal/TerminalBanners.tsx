@@ -47,6 +47,14 @@ const CLIPBOARD_NOTICE_CLASS: Record<ClipboardNoticeKind, string> = {
 export interface TerminalBannersProps {
   readOnly: boolean;
   showResetBanner: boolean;
+  /**
+   * Scrollback bytes for the reset task. When > 0 the reset banner adds a
+   * resume data-loss note (iterate-2026-06-02): on-screen content from
+   * before the interruption that Claude had not yet persisted to the JSONL
+   * is not restored by `claude --resume`, but the last screen survives in
+   * scrollback. `null` (bytes not yet known) suppresses the note.
+   */
+  resetScrollbackBytes: number | null;
   onDismissResetBanner: () => void;
   replayOnly: boolean;
   previewCommand: string | null;
@@ -64,6 +72,7 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
   const {
     readOnly,
     showResetBanner,
+    resetScrollbackBytes,
     onDismissResetBanner,
     replayOnly,
     previewCommand,
@@ -91,11 +100,21 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
           className="-mx-2 -mt-2 mb-2 flex items-start justify-between gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
           data-testid="embedded-terminal-reset"
         >
-          <span>
-            Terminal was reset — the previous Claude session was interrupted
-            (the server may have restarted). Click <strong>Resume</strong> to
-            continue.
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span>
+              Terminal was reset — the previous Claude session was interrupted
+              (the server may have restarted). Click <strong>Resume</strong> to
+              continue.
+            </span>
+            {resetScrollbackBytes !== null && resetScrollbackBytes > 0 ? (
+              <span data-testid="embedded-terminal-reset-dataloss">
+                Resume rebuilds from Claude&apos;s saved transcript — content
+                shown before the interruption that wasn&apos;t yet saved may not
+                return. Your last terminal screen is kept in this task&apos;s
+                scrollback.
+              </span>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={onDismissResetBanner}
