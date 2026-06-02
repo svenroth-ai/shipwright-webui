@@ -1,0 +1,3 @@
+- Terminal sessions left waiting at an interactive prompt are no longer killed while a browser tab is connected. The idle "orphan-GC" is now gated on client attachment, so a session you're watching is never reaped no matter how long Claude waits for your answer — fixing a data-loss case where a finished, un-persisted turn vanished on Resume.
+- The terminal idle-reap grace for fully-disconnected sessions is raised from 30 minutes to 12 hours (overridable via `SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS`), so leaving a session waiting over a commute no longer loses it.
+- The "Terminal was reset" banner now warns — when scrollback history exists — that on-screen content from before the interruption may not be restored by Resume, which rebuilds from Claude's saved transcript.

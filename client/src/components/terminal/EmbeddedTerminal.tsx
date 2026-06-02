@@ -264,6 +264,7 @@ export const EmbeddedTerminal = forwardRef<
       <TerminalBanners
         readOnly={readOnly}
         showResetBanner={showResetBanner}
+        resetScrollbackBytes={socket.scrollbackBytes}
         onDismissResetBanner={() => setResetBannerDismissed(true)}
         replayOnly={socket.replayOnly === true}
         previewCommand={previewCommand}
