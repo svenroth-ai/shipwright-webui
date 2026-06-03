@@ -45,6 +45,13 @@ export interface TriageItem {
   statusBy: string | null;
   statusReason: string | null;
   promotedTaskId: string | null;
+  /**
+   * FR-01.33 server-side enrichment (see server/src/types/triage.ts). When a
+   * campaign has `expandsTriage == this item's id`, its slug + lifecycle
+   * status; null/absent otherwise. Drives the Triage "Start Campaign" action.
+   */
+  campaignSlug?: string | null;
+  campaignStatus?: "draft" | "active" | "complete" | null;
 }
 
 export interface TriageCountsResponse {

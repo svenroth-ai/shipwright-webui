@@ -11,7 +11,9 @@ import { listCampaigns, type Campaign } from "../lib/campaignsApi";
 
 export const POLL_MS = 3_000;
 
-const campaignsKey = (projectId: string) => ["campaigns", projectId] as const;
+/** Shared query key so mutations (useStartCampaign) can invalidate the lane. */
+export const campaignsKey = (projectId: string) =>
+  ["campaigns", projectId] as const;
 
 export function useCampaigns(
   projectId: string | null | undefined,

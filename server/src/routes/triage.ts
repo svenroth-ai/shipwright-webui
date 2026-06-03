@@ -19,7 +19,6 @@ import type { Context } from "hono";
 
 import type { ExternalTask } from "../core/sdk-sessions-store.js";
 import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
-import type { Project } from "../types/project.js";
 import type {
   TriageItem,
   TriagePriority,
@@ -103,6 +102,20 @@ export interface TriageRoutesDeps {
   appendStatusEventOverride?: typeof appendStatusEvent;
   /** Pinnable now-provider for tests. */
   now?: () => string;
+  /**
+   * FR-01.33 — injected campaign correlation (server-side enrichment). Returns
+   * each campaign in the project as `{expandsTriage, slug, status}`. Wired in
+   * index.ts from the campaign store so THIS module imports no campaign code
+   * (preserves the campaigns-no-triage-coupling import boundary). Optional:
+   * when absent, items are returned without campaign annotations.
+   */
+  listCampaignRefs?: (
+    projectId: string,
+  ) => Array<{
+    expandsTriage: string | null;
+    slug: string;
+    status: "draft" | "active" | "complete" | null;
+  }>;
 }
 
 export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
@@ -185,6 +198,7 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       );
       items = [];
     }
+    enrichWithCampaignRefs(items, projectId, deps.listCampaignRefs);
     return c.json({ items });
   });
 
@@ -602,6 +616,49 @@ function parseDismissSnoozeBody(body: unknown): Validated<DismissSnoozeBody> {
     reason = trimmed || null;
   }
   return { ok: true, value: { triageId, reason } };
+}
+
+/**
+ * FR-01.33 — annotate triage items with the campaign that expands them
+ * (campaignSlug + campaignStatus). Server-side join via the injected
+ * `listCampaignRefs` dep so THIS module imports no campaign code (preserves the
+ * campaigns-no-triage-coupling boundary). Best-effort — a thrown dep never
+ * fails the triage list. Deterministic when multiple campaigns share an
+ * `expandsTriage`: prefer draft, then active, then first seen.
+ */
+function enrichWithCampaignRefs(
+  items: TriageItem[],
+  projectId: string,
+  listCampaignRefs: TriageRoutesDeps["listCampaignRefs"],
+): void {
+  if (!listCampaignRefs) return;
+  let refs: ReturnType<NonNullable<TriageRoutesDeps["listCampaignRefs"]>>;
+  try {
+    refs = listCampaignRefs(projectId);
+  } catch {
+    return;
+  }
+  if (!refs.length) return;
+  const rank = (s: string | null): number =>
+    s === "draft" ? 0 : s === "active" ? 1 : 2;
+  const byTriage = new Map<
+    string,
+    { slug: string; status: "draft" | "active" | "complete" | null }
+  >();
+  for (const r of refs) {
+    if (!r.expandsTriage) continue;
+    const existing = byTriage.get(r.expandsTriage);
+    if (!existing || rank(r.status) < rank(existing.status)) {
+      byTriage.set(r.expandsTriage, { slug: r.slug, status: r.status });
+    }
+  }
+  for (const it of items) {
+    const ref = byTriage.get(it.id);
+    if (ref) {
+      it.campaignSlug = ref.slug;
+      it.campaignStatus = ref.status;
+    }
+  }
 }
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {

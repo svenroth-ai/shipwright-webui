@@ -5,6 +5,7 @@ import {
   selectActiveCampaigns,
   selectRiskyPendingSteps,
   launchCampaignRun,
+  startCampaign,
   type Campaign,
   type CampaignStep,
 } from "./campaignsApi";
@@ -172,5 +173,77 @@ describe("campaignsApi: launchCampaignRun", () => {
       vi.fn(async () => ({ ok: false, status: 400, text: async () => "invalid_campaign_slug" })),
     );
     await expect(launchCampaignRun("t-1", "bad slug")).rejects.toThrow(/HTTP 400/);
+  });
+});
+
+describe("campaignsApi: startCampaign (FR-01.33)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("POSTs to the slug-scoped start endpoint and returns the active result", async () => {
+    const spy = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ slug: "2026-06-03-x", status: "active" }),
+    }));
+    vi.stubGlobal("fetch", spy);
+    const out = await startCampaign("p1", "2026-06-03-x");
+    expect(spy).toHaveBeenCalledWith("/api/campaigns/p1/2026-06-03-x/start", {
+      method: "POST",
+    });
+    expect(out).toEqual({ ok: true, data: { slug: "2026-06-03-x", status: "active" } });
+  });
+
+  it("encodes both path segments", async () => {
+    const spy = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ slug: "a b", status: "active" }),
+    }));
+    vi.stubGlobal("fetch", spy);
+    await startCampaign("p/1", "a b");
+    expect(spy).toHaveBeenCalledWith("/api/campaigns/p%2F1/a%20b/start", {
+      method: "POST",
+    });
+  });
+
+  it("maps a 409 to a structured failure carrying error + message", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 409,
+        json: async () => ({
+          error: "campaign_already_complete",
+          message: "Campaign is already complete.",
+        }),
+      })),
+    );
+    await expect(startCampaign("p1", "done-one")).resolves.toEqual({
+      ok: false,
+      status: 409,
+      error: "campaign_already_complete",
+      message: "Campaign is already complete.",
+    });
+  });
+
+  it("falls back to unknown_error when the error body is unparseable", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 500,
+        json: async () => {
+          throw new Error("not json");
+        },
+      })),
+    );
+    await expect(startCampaign("p1", "x")).resolves.toEqual({
+      ok: false,
+      status: 500,
+      error: "unknown_error",
+      message: undefined,
+    });
   });
 });
