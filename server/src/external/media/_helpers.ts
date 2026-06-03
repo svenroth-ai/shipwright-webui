@@ -47,6 +47,10 @@ export function parseRangeHeader(
   size: number,
 ): ParsedRange {
   if (!header) return { kind: "none" };
+  // The `\d*` capture groups accept digits only — a sign character ('-' in a
+  // negative number) is never captured, so `Number(startStr)`/`Number(endStr)`
+  // can never be negative. A leading-minus payload like `bytes=-1-5` fails to
+  // match the whole-string anchor → treated as malformed (`none`) → full body.
   const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
   if (!m) return { kind: "none" };
 
