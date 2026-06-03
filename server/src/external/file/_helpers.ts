@@ -7,10 +7,48 @@
  */
 
 import { basename } from "node:path";
+import { createHash } from "node:crypto";
 
 /** 5 MB — server-side cap per spec. Client applies a lower 1 MB cap for
  * text/markdown/code; images may use the full 5 MB budget. */
 export const FILE_MAX_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Max bytes accepted by the markdown write endpoint (PUT /file). Markdown
+ * docs are small; the read-side client preview cap is 1 MB, so 2 MiB gives
+ * comfortable headroom while bounding the (first) write surface.
+ */
+export const MARKDOWN_WRITE_MAX_BYTES = 2 * 1024 * 1024;
+
+/** Extensions the markdown write endpoint accepts (lowercased, no dot). */
+export const MARKDOWN_WRITE_EXTENSIONS: ReadonlySet<string> = new Set([
+  "md",
+  "markdown",
+]);
+
+/**
+ * Content-hash fingerprint for optimistic concurrency on file edits.
+ *
+ * A SHA-256 of the file bytes is robust to coarse filesystem mtime
+ * granularity (esp. Windows NTFS) and same-size sub-millisecond double-writes
+ * that an `mtime:size` pair would miss (external review #2). It is the single
+ * source of truth shared by the GET `ETag` header and the PUT `If-Match`
+ * precondition — both hash the same bytes so a GET→PUT round-trip matches.
+ */
+export function fileFingerprint(buffer: Buffer): string {
+  return `sha256:${createHash("sha256").update(buffer).digest("hex")}`;
+}
+
+/**
+ * Strip surrounding double-quotes from an `ETag` / `If-Match` header value so
+ * the strong-ETag wire form (`"sha256:…"`) compares equal to the bare
+ * fingerprint produced by {@link fileFingerprint}.
+ */
+export function unquoteEtag(raw: string): string {
+  const t = raw.trim();
+  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1);
+  return t;
+}
 
 /**
  * Explicit extension → Content-Type mapping. Any extension NOT in this table

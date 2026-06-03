@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-03T07:08:41.041593+00:00
-Total commits: 488
+Generated: 2026-06-03T15:37:58.047140+00:00
+Total commits: 491
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 176
-    "feat" : 127
-    "chore" : 94
+    "feat" : 129
+    "chore" : 95
     "docs" : 44
     "refactor" : 25
     "test" : 14
@@ -201,10 +201,12 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 127 commits
+### Features (feat) — 129 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-03 | board | filter Campaigns lane on producer-owned lifecycle status (FR-01.33) | 2e85ab8fd75d |
+| 2026-06-03 | board | collapsible campaign cards + height-capped lane (FR-01.33) | 4ff2c34df333 |
 | 2026-06-02 | board | project-first create-menu cascade in All-Projects view | 3fea36809853 |
 | 2026-06-02 | board | read-only Campaigns lane on the Task Board (FR-01.33) | 26ea50661360 |
 | 2026-05-31 | taskboard | add Re-open to the TaskDetailHeader menu (symmetry with Move to Backlog) | ac5c05353d63 |
@@ -333,10 +335,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 94 commits
+### Chores (chore) — 95 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-03 | campaign | mark 2026-05-25-bloat-cleanup-C-webui complete (8/8) | 96824e6660f1 |
 | 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | e5f92193442c |
 | 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | 2a0b142bf13f |
 | 2026-06-02 | iterate | finalization artifacts for terminal-idle-attachment-gate | a657465f8bf9 |
@@ -557,7 +560,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 488 |
+| Total commits | 491 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 488 |
+| Human-authored commits | 491 |
 
