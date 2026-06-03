@@ -75,6 +75,9 @@ const REQUIRED_TOKENS = [
   'useCampaigns',
   // iterate-2026-06-03-campaign-status-filter — producer-owned lifecycle status
   'campaign-status-json',
+  // iterate-2026-06-03-smartviewer-video-view — inline <video> + Range /media route
+  'VideoRenderer',
+  'mediaApi',
   // iterate-2026-06-03-campaign-autonomous-launch — autonomous campaign launch (FR-01.34)
   'CampaignAutonomousLaunchButton',
   'useLaunchCampaign',
