@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-03T07:08:41.041593+00:00
+Generated: 2026-06-03T15:37:58.047140+00:00
 
 ## Requirements Coverage
 
@@ -38,7 +38,8 @@ Generated: 2026-06-03T07:08:41.041593+00:00
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
-| [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7 | — | — | NO TESTS |
+| [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044 | — | — | NO TESTS |
+| [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b | — | — | NO TESTS |
 
 ## Verification Timeline
 
@@ -216,6 +217,8 @@ Generated: 2026-06-03T07:08:41.041593+00:00
 | Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId | iterate | feature | FR-01.33 | — | — | 2026-06-02 |
 | All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. | iterate | change |  | — | — | 2026-06-02 |
 | CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap | iterate | change | FR-01.33 | — | — | 2026-06-03 |
+| campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total | iterate | change | FR-01.33 | — | — | 2026-06-03 |
+| SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. | iterate | feature | FR-01.34 | — | — | 2026-06-03 |
 
 ## Coverage Summary
 
@@ -223,9 +226,9 @@ Generated: 2026-06-03T07:08:41.041593+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 102 |
-| Requirements total | 33 |
-| Requirements verified | 18/33 |
+| Iterate changes | 104 |
+| Requirements total | 34 |
+| Requirements verified | 19/34 |
 | Must-have verified | 16/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
@@ -253,14 +256,15 @@ Generated: 2026-06-03T07:08:41.041593+00:00
 - [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 33d ago by `evt-b81d5d5e` (2026-05-01)
 - [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 23d ago by `evt-44b89157` (2026-05-10)
 - [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-0f78d991` (2026-05-15)
 - [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-0f78d991` (2026-05-15)
 - [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-c5df348e` (2026-05-17)
 - [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-7c294eb7` (2026-05-18)
 - [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-223eadce` (2026-05-18)
 - [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-fb2b90ee` (2026-05-18)
+- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-3d1274f6` (2026-05-19)
 - [FR-01.28](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-a2176c74` (2026-05-18)
 - [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-a2176c74` (2026-05-18)
 

@@ -190,6 +190,34 @@ ${body}
     expect(c.steps[0].specPath).toBeNull();
   });
 
+  it("planFirst:false for a producer spec file with no frontmatter (today's floor)", () => {
+    seed("c1", {
+      md: mdWith([["B0", "alpha", "A", "pending"]]),
+      specFiles: ["B0-alpha.md"], // seed writes "# spec\n" — no frontmatter
+    });
+    const [c] = readCampaigns(campaignsDir, projectRoot);
+    expect(c.steps[0].planFirst).toBe(false);
+  });
+
+  it("planFirst:true when the sub-iterate spec frontmatter sets plan_first (forward-compat)", () => {
+    seed("c1", { md: mdWith([["B0", "alpha", "A", "pending"]]) });
+    const subDir = path.join(campaignsDir, "c1", "sub-iterates");
+    mkdirSync(subDir, { recursive: true });
+    writeFileSync(
+      path.join(subDir, "B0-alpha.md"),
+      "---\nplan_first: true\n---\n\n# Sub-Iterate: B0\n",
+      "utf-8",
+    );
+    const [c] = readCampaigns(campaignsDir, projectRoot);
+    expect(c.steps[0].planFirst).toBe(true);
+  });
+
+  it("planFirst:false when the spec file is missing (no throw)", () => {
+    seed("c1", { md: mdWith([["B0", "alpha", "A", "pending"]]) });
+    const [c] = readCampaigns(campaignsDir, projectRoot);
+    expect(c.steps[0].planFirst).toBe(false);
+  });
+
   it("reads frontmatter branchStrategy + expandsTriage", () => {
     seed("c1", {
       md: mdWith([["B0", "alpha", "A", "pending"]], "expandsTriage: trg-721b1765\n"),

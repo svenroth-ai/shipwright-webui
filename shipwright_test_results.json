@@ -28,8 +28,8 @@
     "summary": "Triage 'Start Campaign' action (ADR-148): POST /api/campaigns/:projectId/:slug/start flips campaign lifecycle draft->active via new core/campaign-write.ts (atomic, lock-protected, status.json/frontmatter symmetric with pickLifecycle); triage items enriched with campaignSlug/campaignStatus via an injected listCampaignRefs dep (triage.ts imports no campaign module); TriageDetailModal renders Start Campaign/Go-to-board/none by status + demotes Fix-now; navigates to the board. Narrow relaxation of the WebUI read-only-on-campaign-state invariant.",
     "unit": {
       "status": "passed",
-      "passed": 2891,
-      "total": 2891
+      "passed": 3003,
+      "total": 3003
     },
     "integration": {
       "status": "not_run",

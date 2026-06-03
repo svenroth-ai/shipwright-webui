@@ -6,6 +6,13 @@
  * crashes the lane. Types mirror `server/src/core/campaign-store.ts`.
  */
 
+import {
+  httpJson,
+  EXTERNAL_API,
+  type CopyCommandForms,
+  type ExternalTask,
+} from "./externalApi";
+
 export const CAMPAIGNS_API = "/api/campaigns";
 
 export type CampaignStepStatus =
@@ -29,6 +36,10 @@ export interface CampaignStep {
   specPath: string | null;
   commit: string | null;
   branch: string | null;
+  /** Forward-compat plan-first/risk marker from the sub-iterate spec frontmatter
+   *  (mirror of the server type). False for every campaign today; surfaces in the
+   *  autonomous-launch risky-step warning the day a producer emits one. */
+  planFirst: boolean;
 }
 
 export interface Campaign {
@@ -111,4 +122,40 @@ export function selectActiveCampaigns(campaigns: Campaign[]): Campaign[] {
     if (c.status === "draft" || c.status === "complete") return false;
     return c.total > 0 && c.done < c.total; // legacy fallback
   });
+}
+
+/**
+ * The not-yet-complete steps that an autonomous campaign run should NOT execute
+ * unattended without an explicit acknowledgment: a step that previously `failed`
+ * or `escalated` (the loop would blindly re-run it), or one flagged `planFirst`
+ * via its sub-iterate spec frontmatter. Drives the autonomous-launch confirm
+ * dialog's risky-step warning (FR-01.34 guardrail #2). Empty = clean to run.
+ */
+export function selectRiskyPendingSteps(campaign: Campaign): CampaignStep[] {
+  return campaign.steps.filter(
+    (s) =>
+      s.status !== "complete" &&
+      (s.status === "failed" || s.status === "escalated" || s.planFirst),
+  );
+}
+
+/**
+ * Launch an autonomous campaign run on a (freshly created) task. The server's
+ * campaign branch validates the slug + builds the
+ * `/shipwright-iterate --campaign <slug> --autonomous` command (the client never
+ * dictates the command — Architecture rule 1). Own wrapper (not `externalApi`'s
+ * `launchTask`) so the bloat-ceilinged `externalApi.ts` stays frozen.
+ */
+export async function launchCampaignRun(
+  taskId: string,
+  campaignSlug: string,
+): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
+  return await httpJson<{ task: ExternalTask; commands: CopyCommandForms }>(
+    `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/launch`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaignSlug }),
+    },
+  );
 }
