@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-03-campaign-autonomous-launch",
+  "date": "2026-06-03T16:33:53.288414Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/campaign-autonomous-launch",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-06-03-campaign-autonomous-launch.md",
+  "adr": "iterate-2026-06-03-campaign-autonomous-launch"
+}
