@@ -25,7 +25,12 @@ import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import path from "node:path";
 
 import { isWithin } from "./campaign-paths.js";
-import { parseFrontmatter, parseIntent, parseSubIteratesTable } from "./campaign-parse.js";
+import {
+  parseFrontmatter,
+  parseIntent,
+  parseSubIteratesTable,
+  parseSpecFrontmatter,
+} from "./campaign-parse.js";
 import { readStatusJson, pickLifecycle } from "./campaign-status-json.js";
 import type {
   CampaignLifecycleStatus,
@@ -55,6 +60,12 @@ export interface CampaignStep {
   specPath: string | null;
   commit: string | null;
   branch: string | null;
+  /** Forward-compat plan-first/risk marker read from the sub-iterate spec's
+   *  optional frontmatter (`plan_first`/`risk`). False for every campaign that
+   *  exists today (the producer writes no frontmatter); the autonomous-launch
+   *  guardrail surfaces it the day a producer emits one. See
+   *  `campaign-parse.ts parseSpecFrontmatter`. */
+  planFirst: boolean;
 }
 
 export interface Campaign {
@@ -97,29 +108,36 @@ function hasUnsafeChar(s: string): boolean {
 }
 
 /**
- * Derive the project-root-relative spec path for a step, or null. Applies the
- * per-step symlink-escape guard (external review HIGH #6) + shell-hostile-char
- * rejection (#7) so the copy-launch command is always safe.
+ * Derive a step's `{ specPath, planFirst }` from its sub-iterate spec file in
+ * ONE existence + symlink-containment guard (external review HIGH #6/#7):
+ *   - specPath: project-root-relative POSIX path, or null when the file is
+ *     missing / escapes the root / holds shell-hostile chars.
+ *   - planFirst: the forward-compat plan-first/risk frontmatter marker (false
+ *     for every campaign today — the producer writes none).
+ * Tolerant: any miss / escape / torn read → `{ specPath:null, planFirst:false }`.
  */
-function deriveSpecPath(
+function deriveSpecMeta(
   projectRoot: string,
   campaignDir: string,
   id: string,
   slug: string,
-): string | null {
-  if (!slug) return null; // can't form the `<id>-<slug>.md` filename
+): { specPath: string | null; planFirst: boolean } {
+  const miss = { specPath: null, planFirst: false };
+  if (!slug) return miss; // can't form the `<id>-<slug>.md` filename
   const specFile = path.join(campaignDir, "sub-iterates", `${id}-${slug}.md`);
-  if (!existsSync(specFile)) return null;
+  if (!existsSync(specFile)) return miss;
+  let planFirst = false;
   try {
-    if (!isWithin(projectRoot, realpathSync(specFile))) return null;
+    if (!isWithin(projectRoot, realpathSync(specFile))) return miss;
+    planFirst = parseSpecFrontmatter(readFileSync(specFile, "utf-8")).planFirst;
   } catch {
-    return null;
+    return miss;
   }
   const rel = path.relative(projectRoot, specFile);
-  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return null;
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) return { specPath: null, planFirst };
   const posix = rel.split(path.sep).join("/");
-  if (hasUnsafeChar(posix)) return null;
-  return posix;
+  if (hasUnsafeChar(posix)) return { specPath: null, planFirst };
+  return { specPath: posix, planFirst };
 }
 
 interface StepBase {
@@ -189,12 +207,14 @@ function buildCampaign(
         : VALID_STATUSES.has(b.tableStatus)
           ? (b.tableStatus as CampaignStepStatus)
           : "pending";
+    const specMeta = deriveSpecMeta(projectRoot, campaignDir, b.id, stepSlug);
     return {
       id: b.id,
       slug: stepSlug,
       title: b.title || stepSlug || b.id,
       status: resolvedStatus,
-      specPath: deriveSpecPath(projectRoot, campaignDir, b.id, stepSlug),
+      specPath: specMeta.specPath,
+      planFirst: specMeta.planFirst,
       commit: sj && typeof sj.commit === "string" ? sj.commit : null,
       branch: sj && typeof sj.branch === "string" ? sj.branch : null,
     };

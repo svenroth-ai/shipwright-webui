@@ -1,23 +1,24 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-03T15:31:58.635643+00:00
+Generated: 2026-06-03T15:37:58.047140+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 36 |
-| Dev dependencies | 22 |
-| Total packages | 58 |
-| Unique licenses | 3 (Apache-2.0, ISC, MIT) |
+| Runtime dependencies | 42 |
+| Dev dependencies | 23 |
+| Total packages | 65 |
+| Unique licenses | 4 (Apache-2.0, BSD-3-Clause, ISC, MIT) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
 pie title License Distribution
-    "MIT" : 54
+    "MIT" : 60
     "Apache-2.0" : 3
+    "BSD-3-Clause" : 1
     "ISC" : 1
 ```
 
@@ -36,12 +37,17 @@ pie title License Distribution
 | @radix-ui/react-tooltip | ^1.1.0 | MIT |
 | @tanstack/react-query | ^5.0.0 | MIT |
 | @tanstack/react-virtual | ^3.13.24 | MIT |
+| @tiptap/extension-link | ^2.27.2 | MIT |
+| @tiptap/pm | ^2.27.2 | MIT |
+| @tiptap/react | ^2.27.2 | MIT |
+| @tiptap/starter-kit | ^2.27.2 | MIT |
 | @xterm/addon-fit | 0.11.0 | MIT |
 | @xterm/addon-serialize | 0.14.0 | MIT |
 | @xterm/addon-web-links | 0.12.0 | MIT |
 | @xterm/addon-webgl | 0.19.0 | MIT |
 | @xterm/headless | 6.0.0 | MIT |
 | @xterm/xterm | 6.0.0 | MIT |
+| diff | ^5.2.2 | BSD-3-Clause |
 | hono | ^4.7.0 | MIT |
 | ignore | ^5.3.2 | MIT |
 | lucide-react | ^0.400.0 | ISC |
@@ -60,6 +66,7 @@ pie title License Distribution
 | remark-gfm | ^4.0.1 | MIT |
 | shell-quote | ^1.8.3 | MIT |
 | strip-ansi | ^7.2.0 | MIT |
+| tiptap-markdown | ^0.8.10 | MIT |
 | zustand | ^4.5.7 | MIT |
 
 ## Dev Dependencies
@@ -71,6 +78,7 @@ pie title License Distribution
 | @testing-library/jest-dom | ^6.0.0 | MIT |
 | @testing-library/react | ^16.0.0 | MIT |
 | @testing-library/user-event | ^14.0.0 | MIT |
+| @types/diff | ^7.0.2 | MIT |
 | @types/node | ^25.6.2 | MIT |
 | @types/node | ^22.0.0 | MIT |
 | @types/proper-lockfile | ^4.1.4 | MIT |

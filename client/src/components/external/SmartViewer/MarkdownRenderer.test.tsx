@@ -36,3 +36,22 @@ describe("MarkdownRenderer — pop-out trigger", () => {
     expect(screen.queryByTestId("smart-viewer-popout")).toBeNull();
   });
 });
+
+describe("MarkdownRenderer — Edit button (FR-01.34 AC1)", () => {
+  it("renders the Edit button when projectId + path + onSaved are all provided", () => {
+    render(
+      <MarkdownRenderer text="# hi" projectId="p1" path="README.md" onSaved={() => {}} />,
+    );
+    expect(screen.getByTestId("smart-viewer-edit")).toBeTruthy();
+  });
+
+  it("hides the Edit button in the nested instance (onSaved omitted)", () => {
+    render(<MarkdownRenderer text="# hi" projectId="p1" path="README.md" />);
+    expect(screen.queryByTestId("smart-viewer-edit")).toBeNull();
+  });
+
+  it("hides the Edit button when projectId/path are missing", () => {
+    render(<MarkdownRenderer text="# hi" onSaved={() => {}} />);
+    expect(screen.queryByTestId("smart-viewer-edit")).toBeNull();
+  });
+});
