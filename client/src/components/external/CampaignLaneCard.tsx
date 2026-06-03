@@ -22,8 +22,10 @@ import { Link } from "react-router-dom";
 import { Check, ChevronDown, ChevronRight, Circle, Play, ExternalLink } from "lucide-react";
 
 import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
+import type { Project } from "../../types";
 import { copyText } from "../../lib/clipboard";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
 
 type CopyState = "idle" | "copied" | "error";
 
@@ -37,7 +39,15 @@ function StepIcon({ kind }: { kind: "complete" | "next" | "other" }) {
   return <Circle size={12} className="text-[var(--color-muted)]" aria-label="pending" />;
 }
 
-export function CampaignLaneCard({ campaign }: { campaign: Campaign }) {
+export function CampaignLaneCard({
+  campaign,
+  project,
+}: {
+  campaign: Campaign;
+  /** Resolved active project — required for the autonomous-launch action
+   *  (create-task cwd + projectId). Null when "All projects" / unresolved. */
+  project?: Project | null;
+}) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
   // Per-slug persisted UI state. Default: collapsed card, closed description.
   const [collapsed, setCollapsed] = useLocalStorage<boolean>(
@@ -218,6 +228,9 @@ export function CampaignLaneCard({ campaign }: { campaign: Campaign }) {
             {copyState === "error" && (
               <span className="text-[11px] text-[var(--color-error,#dc2626)]">Copy failed</span>
             )}
+            {/* Second action (FR-01.34): open a TaskDetail terminal that
+                auto-runs the autonomous campaign — gated by a confirm dialog. */}
+            <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
           </div>
         </>
       )}

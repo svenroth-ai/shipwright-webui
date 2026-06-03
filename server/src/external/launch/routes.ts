@@ -5,8 +5,9 @@
  * order. Each branch lives in its own file to keep this shell ≤ 300 LOC:
  *
  *   1. ./phase-task-branch.ts        — body.phaseTaskRef present
- *   2. ./action-substitution-branch.ts — actionId + fresh-start + project
- *   3. ./legacy-fallback-branch.ts    — terminal default
+ *   2. ./campaign-branch.ts          — body.campaignSlug + fresh-start (FR-01.34)
+ *   3. ./action-substitution-branch.ts — actionId + fresh-start + project
+ *   4. ./legacy-fallback-branch.ts    — terminal default
  *
  * CLAUDE.md rule 13 — `phaseTaskRef` flows through server-side
  * verification (session uuid pre-bound at create-time + run-config
@@ -26,6 +27,7 @@ import { withLiveSession } from "../_shared/helpers.js";
 import {
   parseLaunchBody,
   applyPhaseTaskBranch,
+  applyCampaignBranch,
   applyActionSubstitutionBranch,
   applyLegacyFallbackBranch,
   type LaunchBranchResult,
@@ -96,6 +98,24 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
     }
     const parsed = parseResult;
 
+    // FR-01.34 — campaign autonomous launch is its own intent. Reject an
+    // EXPLICIT-body mix with actionId / phaseTaskRef (mirrors the existing
+    // phaseTaskRef+actionId rule). Checked on the raw body so a task's
+    // once-set-always-used persisted actionId never spuriously trips it.
+    if (
+      typeof body.campaignSlug === "string" &&
+      body.campaignSlug.trim().length > 0 &&
+      (body.actionId !== undefined || body.phaseTaskRef !== undefined)
+    ) {
+      return c.json(
+        {
+          error: "mixed_launch_intents",
+          detail: "campaignSlug is mutually exclusive with actionId / phaseTaskRef",
+        },
+        400,
+      );
+    }
+
     // iterate-2026-05-18-fix-resume-description — a Resume click on a
     // task whose Claude conversation was never established (no
     // <uuid>.jsonl ever observed on disk → there is nothing to resume)
@@ -116,7 +136,18 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
     });
     let branchResult: LaunchBranchResult | null = phaseResult;
 
-    // Branch 2 — action substitution.
+    // Branch 2 — campaign autonomous launch (FR-01.34). Command built
+    // server-side from a validated slug; null when no campaignSlug / a resume.
+    if (!branchResult) {
+      branchResult = applyCampaignBranch({
+        task,
+        parsed,
+        effectivelyFreshStart,
+        getProjectById,
+      });
+    }
+
+    // Branch 3 — action substitution.
     if (!branchResult) {
       branchResult = applyActionSubstitutionBranch({
         task,
@@ -131,7 +162,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       return c.json(branchResult.error, branchResult.status);
     }
 
-    // Branch 3 — legacy fallback. Always populates.
+    // Branch 4 — legacy fallback. Always populates.
     let commands;
     let taskUpdate: Partial<ExternalTask>;
     if (branchResult) {
