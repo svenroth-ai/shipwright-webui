@@ -21,9 +21,11 @@
  */
 
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useProjects } from "../hooks/useProjects";
 import { useProjectActions } from "../hooks/useProjectActions";
+import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useTriageCounts, useTriageItems } from "../hooks/useTriage";
 import { TriageItemCard } from "../components/triage/TriageItemCard";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
@@ -56,9 +58,11 @@ const FIX_NOW_INITIAL: FixNowModalState = {
 function PerProjectSection({
   project,
   onFixNow,
+  onNavigateToBoard,
 }: {
   project: Project;
   onFixNow: (projectId: string, intent: FixNowIntent) => void;
+  onNavigateToBoard: (projectId: string) => void;
 }) {
   const { data: items = [], isLoading } = useTriageItems(project.id);
   const [selected, setSelected] = useState<TriageItem | null>(null);
@@ -141,6 +145,7 @@ function PerProjectSection({
           projectId={project.id}
           item={selected}
           onFixNow={(intent) => onFixNow(project.id, intent)}
+          onNavigateToBoard={() => onNavigateToBoard(project.id)}
         />
       )}
     </section>
@@ -150,7 +155,16 @@ function PerProjectSection({
 export default function TriagePage() {
   const { data: projects = [] } = useProjects();
   const { data: counts } = useTriageCounts();
+  const navigate = useNavigate();
+  const { setActiveProjectId } = useProjectFilter();
   const realProjects = projects.filter((p) => !p.synthesized);
+
+  // FR-01.33 — after Start Campaign / Go to board, focus the board on the
+  // campaign's project (so its lane is visible) and navigate to the board ("/").
+  const onNavigateToBoard = (projectId: string): void => {
+    setActiveProjectId(projectId);
+    navigate("/");
+  };
 
   const totalTriage = counts?.total ?? 0;
 
@@ -232,6 +246,7 @@ export default function TriagePage() {
                   key={project.id}
                   project={project}
                   onFixNow={onFixNow}
+                  onNavigateToBoard={onNavigateToBoard}
                 />
               ))}
               {counts !== undefined && totalTriage === 0 && (

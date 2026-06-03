@@ -52,6 +52,16 @@ export interface TriageItem {
   statusBy: string | null;
   statusReason: string | null;
   promotedTaskId: string | null;
+  /**
+   * FR-01.33 server-side enrichment (NOT a triage.py wire field): when a
+   * campaign in this project has `expandsTriage == this item's id`, the GET
+   * /api/triage route annotates the item with that campaign's slug + lifecycle
+   * status. Drives the Triage "Start Campaign" action. Optional — null/absent
+   * for non-campaign items. Derived per request; never persisted to
+   * triage.jsonl, so `readAllItems()` (the parity-tested resolver) never sets it.
+   */
+  campaignSlug?: string | null;
+  campaignStatus?: "draft" | "active" | "complete" | null;
 }
 
 /** On-disk status event line shape. */

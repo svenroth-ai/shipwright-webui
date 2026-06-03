@@ -193,9 +193,16 @@
     {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
       "limit": 300,
-      "current": 302,
+      "current": 374,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-03-start-campaign-action"
+    },
+    {
+      "path": "client/src/components/triage/TriageDetailModal.test.tsx",
+      "limit": 300,
+      "current": 416,
+      "state": "grandfathered",
+      "adr": "iterate-2026-06-03-start-campaign-action"
     },
     {
       "path": "client/src/components/wizard/ProjectWizard.tsx",
@@ -445,9 +452,9 @@
     {
       "path": "server/src/index.ts",
       "limit": 300,
-      "current": 859,
+      "current": 888,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-02-campaigns-board-lane"
+      "adr": "iterate-2026-06-03-start-campaign-action"
     },
     {
       "path": "server/src/lib/resolveTrustedOrigins.test.ts",
@@ -466,16 +473,16 @@
     {
       "path": "server/src/routes/triage.test.ts",
       "limit": 300,
-      "current": 821,
+      "current": 902,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-03-start-campaign-action"
     },
     {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 706,
+      "current": 763,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-03-start-campaign-action"
     },
     {
       "path": "server/src/terminal/headless-mirror.ts",

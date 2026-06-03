@@ -1,8 +1,15 @@
 /**
- * AC-8 import-boundary guard (FR-01.31): the Campaigns lane must NOT couple
- * into the Triage surface. We assert no triage source file imports anything
- * from a `campaign` module. Triage is the decision queue; a campaign is
- * post-decision execution — they share no code.
+ * AC-8 import-boundary guard (FR-01.31, amended FR-01.33): the Campaigns lane
+ * must NOT couple into the Triage surface. Originally this forbade ANY
+ * campaign import from a triage source file. FR-01.33
+ * (iterate-2026-06-03-start-campaign-action) introduces ONE deliberate,
+ * narrow cross-surface action — the Triage "Start Campaign" button — so the
+ * guard now permits exactly that single sanctioned import
+ * (`useStartCampaign` from `hooks/useStartCampaign`) while STILL forbidding
+ * any coupling to the campaign LANE / rendering / API modules (CampaignLaneCard,
+ * useCampaigns, selectActiveCampaigns, campaignsApi, campaign-store, …). The
+ * hook itself lives outside the triage surface and owns the campaign-API call,
+ * so the lane internals stay invisible to triage code.
  *
  * Uses dynamic node imports (like doc-sync.test.ts) so the client tsc run
  * stays free of @types/node.
@@ -55,18 +62,59 @@ beforeAll(async () => {
   }
 });
 
+// The ONE sanctioned cross-surface import (FR-01.33): the Start Campaign
+// action hook. Strict on the symbol (only `useStartCampaign`) so a stray
+// `CampaignLaneCard` / `useCampaigns` / bundled-symbol import still trips.
+const SANCTIONED_CAMPAIGN_IMPORT =
+  /^import\s*\{\s*useStartCampaign\s*\}\s*from\s*["'][^"']*useStartCampaign(\.js)?["'];?$/;
+
+// A triage file importing a SIBLING triage-surface module (relative "./…")
+// stays inside the triage surface — the campaign LANE lives in
+// components/external (CampaignLaneCard), never in "./". So a campaign-named
+// SIBLING component (e.g. ./CampaignStartCta, the triage-owned Start Campaign
+// CTA view) is intra-surface and allowed. The FORBIDDEN-modules check below
+// still hard-blocks any lane/API import regardless of path.
+const SIBLING_TRIAGE_IMPORT = /from\s+["']\.\/[^"']*["']/;
+
+// Lane / rendering / API modules that triage code must NEVER import, even
+// after the FR-01.33 relaxation. Substring match against the import line.
+const FORBIDDEN_CAMPAIGN_MODULES = [
+  "campaignsApi",
+  "useCampaigns",
+  "CampaignLaneCard",
+  "selectActiveCampaigns",
+  "campaign-store",
+];
+
 describe("AC-8: Campaigns lane does not couple into the Triage surface", () => {
   it("collected a non-trivial set of triage files to scan", () => {
     expect(triageFiles.length).toBeGreaterThanOrEqual(5);
   });
 
-  it("no triage source file imports a campaign module", () => {
+  it("no triage source file imports a campaign module (except the sanctioned Start Campaign action)", () => {
     const offenders: string[] = [];
     for (const f of triageFiles) {
       for (const line of f.text.split("\n")) {
         const t = line.trim();
         if (!t.startsWith("import")) continue;
-        if (/campaign/i.test(t)) offenders.push(`${f.path}: ${t}`);
+        if (!/campaign/i.test(t)) continue;
+        if (SANCTIONED_CAMPAIGN_IMPORT.test(t)) continue;
+        if (SIBLING_TRIAGE_IMPORT.test(t)) continue;
+        offenders.push(`${f.path}: ${t}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("no triage source file imports a campaign LANE / API module (relaxation stays narrow)", () => {
+    const offenders: string[] = [];
+    for (const f of triageFiles) {
+      for (const line of f.text.split("\n")) {
+        const t = line.trim();
+        if (!t.startsWith("import")) continue;
+        for (const mod of FORBIDDEN_CAMPAIGN_MODULES) {
+          if (t.includes(mod)) offenders.push(`${f.path}: ${t}`);
+        }
       }
     }
     expect(offenders).toEqual([]);
