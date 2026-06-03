@@ -3,8 +3,25 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   listCampaigns,
   selectActiveCampaigns,
+  selectRiskyPendingSteps,
+  launchCampaignRun,
   type Campaign,
+  type CampaignStep,
 } from "./campaignsApi";
+
+function makeStep(overrides: Partial<CampaignStep> = {}): CampaignStep {
+  return {
+    id: "B0",
+    slug: "x",
+    title: "X",
+    status: "pending",
+    specPath: ".shipwright/.../B0-x.md",
+    commit: null,
+    branch: null,
+    planFirst: false,
+    ...overrides,
+  };
+}
 
 function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
   return {
@@ -92,5 +109,68 @@ describe("campaignsApi: selectActiveCampaigns", () => {
     const empty = makeCampaign({ slug: "empty", status: null, done: 0, total: 0 });
     const result = selectActiveCampaigns([running, done, empty]);
     expect(result.map((c) => c.slug)).toEqual(["running"]);
+  });
+});
+
+describe("campaignsApi: selectRiskyPendingSteps", () => {
+  it("flags non-complete steps that are failed / escalated / plan-first", () => {
+    const c = makeCampaign({
+      steps: [
+        makeStep({ id: "B0", status: "complete" }), // complete → never risky
+        makeStep({ id: "B1", status: "failed" }),
+        makeStep({ id: "B2", status: "escalated" }),
+        makeStep({ id: "B3", status: "pending", planFirst: true }),
+        makeStep({ id: "B4", status: "pending", planFirst: false }), // clean pending
+        makeStep({ id: "B5", status: "in_progress", planFirst: false }),
+      ],
+    });
+    expect(selectRiskyPendingSteps(c).map((s) => s.id)).toEqual(["B1", "B2", "B3"]);
+  });
+
+  it("a complete step is never risky even if plan-first", () => {
+    const c = makeCampaign({
+      steps: [makeStep({ id: "B0", status: "complete", planFirst: true })],
+    });
+    expect(selectRiskyPendingSteps(c)).toEqual([]);
+  });
+
+  it("returns [] for an all-clean-pending campaign", () => {
+    const c = makeCampaign({
+      steps: [makeStep({ id: "B0" }), makeStep({ id: "B1", status: "in_progress" })],
+    });
+    expect(selectRiskyPendingSteps(c)).toEqual([]);
+  });
+});
+
+describe("campaignsApi: launchCampaignRun", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("POSTs { campaignSlug } to the task launch endpoint and returns { task, commands }", async () => {
+    const spy = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        task: { taskId: "t-1" },
+        commands: { powershell: "p", cmd: "c", posix: "x" },
+      }),
+    }));
+    vi.stubGlobal("fetch", spy);
+
+    const out = await launchCampaignRun("t-1", "2026-06-02-x");
+    expect(out.task.taskId).toBe("t-1");
+    expect(out.commands.posix).toBe("x");
+
+    const [url, init] = spy.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/external/tasks/t-1/launch");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({ campaignSlug: "2026-06-02-x" });
+  });
+
+  it("throws on a non-ok response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 400, text: async () => "invalid_campaign_slug" })),
+    );
+    await expect(launchCampaignRun("t-1", "bad slug")).rejects.toThrow(/HTTP 400/);
   });
 });

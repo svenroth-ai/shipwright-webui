@@ -1,43 +1,43 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-03-smartviewer-video-view"
+run_id: "iterate-2026-06-03-smartviewer-markdown-editor"
 phase: "iterate"
-reason: "Video inline playback in SmartViewer via new Range-streaming /media route"
-timestamp: "2026-06-03T15:31:58.635643+00:00"
+reason: "iterate finalization"
+timestamp: "2026-06-03T15:37:58.047140+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-03 15:31:58 UTC
+> Auto-generated 2026-06-03 15:37:58 UTC
 
 ## Session Info
 
-- **Session ID**: e5fb6ff9-e94c-4532-bb6b-12af4aedc50d
-- **Timestamp**: 2026-06-03 15:31:58 UTC
-- **Reason**: Video inline playback in SmartViewer via new Range-streaming /media route
+- **Session ID**: e9e8fb1b-02c5-4c89-a13a-397824c2c52f
+- **Timestamp**: 2026-06-03 15:37:58 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-03-smartviewer-video-view
-- **Date**: 2026-06-03T15:31:37.509973Z
-- **Type**: feature
-- **Complexity**: medium
-- **Branch**: iterate/smartviewer-video-view
+- **Run ID**: iterate-2026-06-03-campaign-status-filter
+- **Date**: 2026-06-03T09:15:52.399240Z
+- **Type**: change
+- **Complexity**: small
+- **Branch**: iterate/campaign-status-filter
+- **ADR**: iterate-2026-06-03-campaign-status-filter
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-03-smartviewer-video-view.md
+- **Spec**: .shipwright/planning/01-adopted/spec.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/smartviewer-video-view
-- **Run ID**: iterate-2026-06-03-smartviewer-video-view
-- **Spec**: .shipwright/planning/iterate/2026-06-03-smartviewer-video-view.md
-- **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
+- **Branch**: iterate/smartviewer-markdown-editor
+- **Run ID**: iterate-2026-06-03-smartviewer-markdown-editor
+- **Spec**: .shipwright/planning/iterate/2026-06-03-smartviewer-markdown-editor.md
+- **Complexity**: medium (classifier: small; overridden — first file-write surface in a
+- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -51,7 +51,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/smartviewer-video-view
+- **Branch**: iterate/smartviewer-markdown-editor
 - **Last Commit**: 3550e5b Merge pull request #96 from svenroth-ai/iterate/campaign-status-filter
 - **Uncommitted Changes**: Yes
 
@@ -68,7 +68,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-7c37c8cc | work_completed | iterate (SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route.) | 2026-06-03 |
+| evt-6985e15b | work_completed | iterate (SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner.) | 2026-06-03 |
 | evt-1c746044 | work_completed | iterate (campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total) | 2026-06-03 |
 | evt-0e15ddd7 | work_completed | iterate (CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap) | 2026-06-03 |
 | evt-fc7459c4 | work_completed | iterate (All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.) | 2026-06-02 |
@@ -78,7 +78,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 - **Pipeline**: 3 phases completed
 - **Total work events**: 174
-- **Last iterate**: feature — SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route. (2026-06-03)
+- **Last iterate**: feature — SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. (2026-06-03)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

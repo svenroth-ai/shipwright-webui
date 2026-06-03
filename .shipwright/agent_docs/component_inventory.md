@@ -50,7 +50,8 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `FolderTree` | `external/FolderTree.tsx` | 398 | 9 |
 | `ToolCard` | `external/ToolCard.tsx` | 143 | 9 |
 | `MasterTaskCard` | `external/MasterTaskCard.tsx` | 640 | 8 |
-| `CampaignLaneCard` | `external/CampaignLaneCard.tsx` | 165 | 3 |
+| `CampaignLaneCard` | `external/CampaignLaneCard.tsx` | 239 | 3 |
+| `CampaignAutonomousLaunchButton` | `external/CampaignAutonomousLaunchButton.tsx` | 228 | 1 |
 | `SkillCard` | `external/SkillCard.tsx` | 118 | 7 |
 | `AttachmentCard` | `external/AttachmentCard.tsx` | 105 | 6 |
 | `ConfirmDeleteDialog` | `external/ConfirmDeleteDialog.tsx` | 76 | 6 |

@@ -4,6 +4,7 @@ import {
   parseFrontmatter,
   parseIntent,
   parseSubIteratesTable,
+  parseSpecFrontmatter,
 } from "./campaign-parse.js";
 
 /**
@@ -104,5 +105,59 @@ describe("campaign-parse: parseSubIteratesTable", () => {
 
   it("returns [] when there is no Sub-Iterates table", () => {
     expect(parseSubIteratesTable("# Campaign\n\n## Intent\n\nhi\n")).toEqual([]);
+  });
+});
+
+describe("campaign-parse: parseSpecFrontmatter (forward-compat plan-first)", () => {
+  /**
+   * Verbatim `campaign_init.py init_campaign` sub-iterate spec template — the
+   * CURRENT producer writes NO frontmatter, so the floor is planFirst:false.
+   * (cite: shipwright-iterate/scripts/tools/campaign_init.py — the `spec = f"""
+   * # Sub-Iterate: {id} — {title}\n\n## Scope\n…\n## Acceptance Criteria\n…` block.)
+   */
+  const PRODUCER_SPEC = `# Sub-Iterate: B0 — Fail-open phase resolver
+
+## Scope
+
+Collapse the SessionStart fan-out.
+
+## Acceptance Criteria
+
+- [ ] TBD
+`;
+
+  it("returns planFirst:false for the verbatim producer template (no frontmatter)", () => {
+    expect(parseSpecFrontmatter(PRODUCER_SPEC)).toEqual({ planFirst: false });
+  });
+
+  it("reads plan_first:true frontmatter", () => {
+    const md = `---
+plan_first: true
+---
+
+# Sub-Iterate: B1 — Risky one
+`;
+    expect(parseSpecFrontmatter(md).planFirst).toBe(true);
+  });
+
+  it("treats plan_first:false / absent as not plan-first", () => {
+    expect(parseSpecFrontmatter(`---\nplan_first: false\n---\n`).planFirst).toBe(false);
+    expect(parseSpecFrontmatter(`---\ncampaign: x\n---\n`).planFirst).toBe(false);
+  });
+
+  it("reads risk: high (and plan-first) as plan-first; risk: low is not", () => {
+    expect(parseSpecFrontmatter(`---\nrisk: high\n---\n`).planFirst).toBe(true);
+    expect(parseSpecFrontmatter(`---\nrisk: plan-first\n---\n`).planFirst).toBe(true);
+    expect(parseSpecFrontmatter(`---\nrisk: low\n---\n`).planFirst).toBe(false);
+  });
+
+  it("is case/whitespace tolerant for the truthy vocabulary", () => {
+    expect(parseSpecFrontmatter(`---\nplan_first:  YES \n---\n`).planFirst).toBe(true);
+    expect(parseSpecFrontmatter(`---\nplan_first: 1\n---\n`).planFirst).toBe(true);
+  });
+
+  it("never throws on empty / garbage input (torn-read tolerance)", () => {
+    expect(parseSpecFrontmatter("").planFirst).toBe(false);
+    expect(parseSpecFrontmatter("---\nplan_first").planFirst).toBe(false);
   });
 });

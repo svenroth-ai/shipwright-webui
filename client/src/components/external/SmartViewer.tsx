@@ -163,6 +163,8 @@ interface TextProps {
 function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
   const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
   const [popoutOpen, setPopoutOpen] = useState(false);
+  // Bumped after a successful in-app markdown edit so the preview re-fetches.
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "ok"; text: string; size: number }
@@ -200,7 +202,9 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, nav.effectivePath]);
+    // reloadNonce forces a fresh fetch after an in-app save; the `cancelled`
+    // guard above discards any overlapping in-flight response (review #10).
+  }, [projectId, nav.effectivePath, reloadNonce]);
 
   const size = state.status === "ok" ? state.size : null;
 
@@ -261,7 +265,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={popOut ? () => setReloadNonce((n) => n + 1) : undefined} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;

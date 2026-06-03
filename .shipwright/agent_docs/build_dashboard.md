@@ -1,11 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-03 15:31 UTC | Session: e5fb6ff9-e94c-4532-bb6b-12af4aedc50d | Run: iterate-2026-06-03-smartviewer-video-view
+> Updated: 2026-06-03 15:37 UTC | Session: e9e8fb1b-02c5-4c89-a13a-397824c2c52f | Run: iterate-2026-06-03-smartviewer-markdown-editor
 
 ## Recent Changes (104 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| feature | SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route. | 0/0 |  | FR-01.02 | 2026-06-03 |
+| feature | SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. | 0/0 |  | FR-01.34 | 2026-06-03 |
 | change | campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total | 0/0 |  | FR-01.33 | 2026-06-03 |
 | change | CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap | 0/0 |  | FR-01.33 | 2026-06-03 |
 | change | All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. | 0/0 |  |  | 2026-06-02 |
@@ -111,7 +111,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-03 | Unit: 1420/1420 | E2E: 1/1 | Smoke: skipped | (iterate)
+Last run: 2026-06-03 | Unit: 2897/2897 | E2E: 2/2 | Smoke: n/a | (iterate)
 
 ## Pipeline
 

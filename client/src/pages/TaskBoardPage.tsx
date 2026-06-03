@@ -417,7 +417,7 @@ export default function TaskBoardPage() {
             data-testid="task-board-campaigns-scroll"
           >
             {activeCampaigns.map((c) => (
-              <CampaignLaneCard key={c.slug} campaign={c} />
+              <CampaignLaneCard key={c.slug} campaign={c} project={activeProjectMeta} />
             ))}
           </div>
         </div>

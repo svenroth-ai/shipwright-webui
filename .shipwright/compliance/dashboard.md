@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-06-03T15:31:58.635643+00:00
+Generated: 2026-06-03T15:37:58.047140+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -13,7 +13,7 @@ Scope: full_app
 | All unit tests passing | 0/0 | WARN | no test events recorded yet |
 | Architecture decisions | 145 ADRs | INFO |  |
 | Iterate tests passing | 68/104 iterations tested | WARN | 36 iterate(s) without tests — see test-evidence.md |
-| Dependencies | 58 packages | INFO |  |
+| Dependencies | 65 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 0 open | PASS |  |
 | Bloat over-limit | 77 | WARN | 77 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |

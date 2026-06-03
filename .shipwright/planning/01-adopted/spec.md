@@ -47,6 +47,8 @@ Functionally the app supports project registration via a 4-step wizard (with sta
 | FR-01.31 | Network access profile (non-loopback dev access) | Should | The dev servers default-bind loopback for safety; non-loopback access (LAN / Tailscale) is opt-in. The Hono backend honors `HONO_HOST`, the Vite client honors `VITE_HOST`, and `SHIPWRIGHT_NETWORK_PROFILE` (`local` \| `tailscale` \| …) selects a coherent bind preset across both halves without setting each HOST var individually. | server + client dev-server config | backfill (iterate-2026-05-16) |
 | FR-01.32 | Move task to backlog (POST) | Must | `POST /api/external/tasks/:id/backlog` flips an In-Progress task's `state` back to `draft` so it returns to the Backlog column of the TaskBoard. Sibling of FR-01.15 (Close) — a pure registry-state metadata flip; the JSONL and `shipwright_run_config.json` stay untouched. Accepts the five In-Progress states (`awaiting_external_start`, `active`, `idle`, `jsonl_missing`, `launch_failed`); `409 backlog_invalid_state` for the terminal `done` state; idempotent `200` when the task is already `draft`; `404` for an unknown id; `ELOCKED` on persist surfaces as `409`. Every history field (`launchedAt`, `firstJsonlObservedAt`, `lastJsonlSeenMtimeMs`, `actionId`, `phase`, inbox) is preserved — "Backlog" is a re-organisation gesture, not a reset. The transcript-poll state machine treats `draft` as sticky (no transition out of it). | `server/src/external/routes.ts` | iterate-2026-05-17 |
 | FR-01.33 | Campaigns lane on the Task Board (read + launch) | Should | A read-only **Campaigns lane** above the kanban on `TaskBoardPage`, sibling of the Pipelines lane, surfacing Shipwright iterate campaigns under `<project>/.shipwright/planning/iterate/campaigns/`. **Read path:** `GET /api/campaigns/:projectId` returns one entry per campaign `{slug, intent, branchStrategy, expandsTriage, steps[], done, total, nextPending}` resolved by merging `status.json` (authoritative per-step `status`/`commit`/`branch`, written by `campaign_init.py`/`campaign_progress.py`) with the `campaign.md` `## Sub-Iterates` table (ordering + titles); `status.json` is optional — status derives from the table when absent. Unknown/synthesized project → `404`; symlink-escape of the campaigns dir → `403`; missing/empty campaigns dir → `200 {campaigns:[]}`. A malformed/half-written campaign dir is skipped (logged), never failing the whole response. **UI:** each card shows slug + one-line intent + a `done/total` progress bar + the ordered steps (✓ complete / ▶ next-pending / ○ pending) + a **Copy launch (Bx)** button copying `/shipwright-iterate "<nextPending.specPath>"` (the board has no embedded terminal, so this is a clipboard affordance, not auto-inject — disabled when no launchable step). `useCampaigns` polls at 3 s; the lane is hidden when every campaign is complete or the dir is empty. **Read-only — no new write surface** (`campaign_init.py`/`campaign_progress.py` own all campaign-state writes); no Triage coupling (import-boundary tested). | `server/src/routes/campaigns.ts`, `server/src/core/campaign-{paths,parse,store}.ts`, `client/src/lib/campaignsApi.ts`, `client/src/hooks/useCampaigns.ts`, `client/src/components/external/CampaignLaneCard.tsx`, `client/src/pages/TaskBoardPage.tsx` | iterate-2026-06-02 |
+| FR-01.34 | Campaign autonomous launch (Campaigns lane, Phase 2) | Should | A SECOND Campaigns-lane action — **Launch autonomous** — that opens a TaskDetail terminal auto-running `/shipwright-iterate --campaign <slug> --autonomous` (unlike FR-01.33's per-step clipboard copy). Takes the real iterate-launch path: `createTask` → server-built command → `sessionStorage["webui:pending-auto-launch:<taskId>"]` handoff → `navigate('/tasks/:id')` → embedded terminal auto-executes (ADR-068-A1). **Server:** new launch-route campaign branch (`applyCampaignBranch`, precedence phaseTaskRef → campaign → action → legacy). A **body-only** `campaignSlug` (never persisted on the task) is (a) regex-validated `^[A-Za-z0-9._-]{1,128}$` + no `..`, (b) existence-checked against the realpath-guarded campaigns dir, then (c) turned into the fixed command via `core/launcher.ts buildCopyCommands` — the command is built ENTIRELY server-side (the client never dictates it; Architecture rule 1 / regression guard #19). `campaignSlug` + `actionId`/`phaseTaskRef` → `400 mixed_launch_intents`; invalid slug → `400 invalid_campaign_slug`; no such campaign → `400 campaign_not_found`. **Guardrail:** autonomous runs every remaining pending sub-iterate with no per-step gate, so the action is behind a confirm dialog showing the command + a no-gate warning; a risky pending step (status `failed`/`escalated`, or the forward-compat `plan_first`/`risk` sub-iterate frontmatter marker surfaced as `CampaignStep.planFirst`) is listed and the confirm is disabled until an explicit "run unattended anyway" ack. Disabled when nothing is pending / no project. **No new persisted write surface** — `campaignSlug` rides the launch body only; resume after JSONL takes the normal `--resume` shape. | `server/src/external/launch/campaign-branch.ts`, `server/src/external/launch/{parse-body,routes,_helpers}.ts`, `server/src/core/campaign-{parse,store}.ts`, `client/src/lib/campaignsApi.ts`, `client/src/hooks/useLaunchCampaign.ts`, `client/src/components/external/{CampaignAutonomousLaunchButton,CampaignLaneCard}.tsx`, `client/src/pages/TaskBoardPage.tsx` | iterate-2026-06-03 |
+| FR-01.35 | In-app Markdown editing in the SmartViewer (rich editor → Markdown save) | Should | The SmartViewer markdown pane gains an **Edit** button (markdown files only, beside Pop out) opening a TipTap (ProseMirror) rich-text editor in a modal; edits serialize back to Markdown and write via a NEW path-guarded `PUT /api/external/projects/:projectId/file` — the first project-file write surface. Guards: `.md`/`.markdown` extension allowlist (`415`), `pathGuard`+`realPathGuard` (`400`), `MARKDOWN_WRITE_MAX_BYTES` 2 MiB byte-accurate cap (`413`), target-must-exist (`404`). **Optimistic concurrency:** GET `/file` emits a strong content-hash `ETag:"sha256:<hex>"`; PUT requires it as `If-Match` (missing → `400 precondition_required`, stale → `409 fingerprint_mismatch`) so it never clobbers a file a Claude session edited in the embedded terminal. Atomic tmp+rename. **Lossy-round-trip safety nets:** a mandatory pre-save line diff + a non-blocking warn banner when the file has frontmatter / raw HTML / footnotes / tables / task-lists; on `409` the editor KEEPS the user's edits + offers reload. Modal lazy-loaded (TipTap code-split). Authz inherits the loopback + project-scope + path-guard posture (no per-request auth, same as GET `/file`). Phase 1 = SmartViewer only (FolderTree context menu + GFM tables/images deferred). | `server/src/external/file/write.ts`, `server/src/external/file/{routes,_helpers}.ts`, `client/src/components/external/SmartViewer/{MarkdownEditorModal,MarkdownDiffView,MarkdownRenderer}.tsx`, `client/src/components/external/SmartViewer.tsx`, `client/src/lib/{markdownTiptap,markdownFileApi}.ts` | iterate-2026-06-03 |
 
 > _Two FRs from the auto-generated draft were dropped: a duplicate `Shipwright Command Center` entry (page-title bleed-through from the crawl) and a `/test` entry pointing at `error-handler.test.ts` (test files are not features)._
 
@@ -386,6 +388,45 @@ all writes).
   `status` (legacy) falls back to the derived `done < total`, so existing
   campaigns keep rendering until the producer writes a status. WebUI stays
   read-only on campaign state (it never writes the status).
+
+### FR-01.35 In-app Markdown editing in the SmartViewer (rich editor → Markdown save)
+
+Added by `iterate-2026-06-03-smartviewer-markdown-editor`. The first project-file
+write surface; gated, path-guarded, and concurrency-safe.
+
+- (E) Given a `.md`/`.markdown` file selected in the SmartViewer, when the
+  markdown pane renders, then an **Edit** button (`[data-testid="smart-viewer-edit"]`)
+  appears beside Pop out; for `code`/`text`/`image`/`mermaid`/`unknown` kinds it is absent.
+- (E) Given Edit is clicked, when the modal opens, then a TipTap editor is
+  pre-populated from the file's CURRENT on-disk content; StarterKit prose
+  (heading/bold/italic/lists/code/blockquote/link/HR) round-trips
+  (`markdownToEditor`∘`editorToMarkdown` is a stable fixed point).
+- (E) Given the source has YAML frontmatter / raw HTML / footnotes / GFM tables /
+  task-lists, when the editor opens, then a non-blocking warn banner
+  (`[data-testid="md-editor-warn"]`) is shown; given none, no banner.
+- (E) Given edits, when the user clicks **Review changes**, then a unified
+  line-diff (`[data-testid="markdown-diff"]`) of original-vs-serialized markdown
+  is shown (rendered as escaped plain text); Save is reachable only from there
+  and is disabled when the serialized doc is byte-identical to the original.
+- (E) Given a confirmed save with a fresh fingerprint, when `PUT
+  /api/external/projects/:id/file?path=<rel>` is called with the `If-Match`
+  content hash, then the file is written atomically (tmp+rename), `200 {written,
+  fingerprint, size}` is returned, the modal closes, and the SmartViewer preview
+  re-fetches the new content.
+- (E) Given the on-disk content hash changed since the editor loaded (`If-Match`
+  ≠ current), when the user saves, then the server returns `409
+  fingerprint_mismatch` with `currentFingerprint`, NO write occurs, and the modal
+  shows a conflict banner (`[data-testid="md-editor-conflict"]`) + a "Reload &
+  discard my changes" action while KEEPING the user's edits.
+- (E) Given the PUT endpoint, when the path is non-`.md`/`.markdown` → `415`;
+  traversal/absolute/null-byte/symlink-escape → `400`; body over 2 MiB
+  (byte-accurate, Content-Length precheck + post-read) → `413`; missing project
+  → `404`; missing target file → `404`; directory with a `.md` name → `400
+  not_a_file`; absent `If-Match` → `400 precondition_required`. No write on any.
+- GET `/file` emits a strong `ETag:"sha256:<hex>"` content hash (the `If-Match`
+  token); the route ignores conditional `If-None-Match` (concurrency, not cache).
+- Authz inherits the app's loopback + project-scope (`getProjectById`) +
+  path-guard posture; no per-request auth (same as the GET `/file` route).
 
 ## Quality Requirements
 
