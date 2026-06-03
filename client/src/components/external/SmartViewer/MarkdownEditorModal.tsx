@@ -17,12 +17,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useEditor, EditorContent } from "@tiptap/react";
-import { AlertCircle, AlertTriangle, FileText, Loader2, X } from "lucide-react";
+import { AlertCircle, AlertTriangle, FileText, Info, Loader2, X } from "lucide-react";
 
 import {
   buildEditorExtensions,
   serializeEditorMarkdown,
   detectLossyConstructs,
+  splitMarkdownEnvelope,
+  composeMarkdownEnvelope,
+  type MarkdownEnvelope,
 } from "../../../lib/markdownTiptap";
 import {
   loadMarkdownForEdit,
@@ -57,8 +60,12 @@ export function MarkdownEditorModal({
   const [phase, setPhase] = useState<Phase>("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [hasFrontmatter, setHasFrontmatter] = useState(false);
   const original = useRef<string>("");
   const fingerprint = useRef<string>("");
+  // The non-prose envelope the editor must NOT touch (preserved verbatim around
+  // the serialized body). Rationale: see markdownTiptap.ts envelope section.
+  const envelopeRef = useRef<MarkdownEnvelope | null>(null);
   // Monotonic load token — discards a stale/superseded async load result
   // (modal reopened for another path, closed mid-flight, or reload-on-conflict).
   const loadGen = useRef(0);
@@ -85,8 +92,13 @@ export function MarkdownEditorModal({
       if (gen !== loadGen.current) return; // superseded (reopen / close / reload)
       original.current = res.text;
       fingerprint.current = res.fingerprint;
+      const env = splitMarkdownEnvelope(res.text);
+      envelopeRef.current = env;
+      setHasFrontmatter(env.frontmatter.length > 0);
       setWarnings(detectLossyConstructs(res.text));
-      editor?.commands.setContent(res.text);
+      // The editor owns ONLY the prose body; frontmatter / line-endings /
+      // trailing newline live in the envelope and are re-attached on serialize.
+      editor?.commands.setContent(env.core);
       setEdited(res.text); // baseline so a no-op save is detectable
       setPhase("editing");
     } catch (err) {
@@ -109,7 +121,13 @@ export function MarkdownEditorModal({
 
   const toDiff = useCallback(() => {
     if (!editor) return;
-    setEdited(serializeEditorMarkdown(editor));
+    const env = envelopeRef.current;
+    const serializedCore = serializeEditorMarkdown(editor);
+    // Re-attach the preserved envelope so the diff (and the eventual save)
+    // compares full file vs full file — not body vs whole-file.
+    setEdited(
+      env ? composeMarkdownEnvelope(env, serializedCore) : serializedCore,
+    );
     setPhase("diff");
   }, [editor]);
 
@@ -174,6 +192,20 @@ export function MarkdownEditorModal({
                 This file contains constructs that may not round-trip cleanly
                 (<span className="font-medium">{warnings.join(", ")}</span>).
                 Review the diff carefully before saving.
+              </span>
+            </div>
+          )}
+
+          {hasFrontmatter && phase !== "load_error" && (
+            <div
+              className="flex items-start gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)]/40 px-4 py-2 text-[12px]"
+              style={{ color: "var(--color-muted, #6b7280)" }}
+              data-testid="md-editor-frontmatter-note"
+            >
+              <Info size={14} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>
+                YAML frontmatter is preserved unchanged and is not edited here —
+                only the document body below is editable.
               </span>
             </div>
           )}
