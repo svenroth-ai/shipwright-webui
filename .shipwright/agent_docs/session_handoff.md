@@ -1,39 +1,36 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-02-all-projects-create-cascade"
+run_id: "iterate-2026-06-03-campaign-lane-collapse"
 phase: "iterate"
-reason: "All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green."
-timestamp: "2026-06-02T15:24:44.855818+00:00"
+reason: "Campaign lane collapse/expand + description disclosure + persistence + layout cap"
+timestamp: "2026-06-03T07:08:41.041593+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-02 15:24:44 UTC
+> Auto-generated 2026-06-03 07:08:41 UTC
 
 ## Session Info
 
-- **Session ID**: 891c8d87-91bc-47d8-8907-c1eefd22f45b
-- **Timestamp**: 2026-06-02 15:24:44 UTC
-- **Reason**: All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.
+- **Session ID**: 3b232513-bba9-45c3-a05a-61406a3d78bb
+- **Timestamp**: 2026-06-03 07:08:41 UTC
+- **Reason**: Campaign lane collapse/expand + description disclosure + persistence + layout cap
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-02-campaigns-board-lane
-- **Date**: 2026-06-02T10:39:23.348471Z
-- **Type**: feature
+- **Run ID**: iterate-2026-06-02-all-projects-create-cascade
+- **Date**: 2026-06-02T15:25:19.958876Z
+- **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/campaigns-board-lane
-- **ADR**: iterate-2026-06-02-campaigns-board-lane
+- **Branch**: iterate/all-projects-create-cascade
+- **ADR**: iterate-2026-06-02-all-projects-create-cascade
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-02-campaigns-board-lane.md
+- **Spec**: .shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/all-projects-create-cascade
-- **Run ID**: `iterate-2026-06-02-all-projects-create-cascade`
-- **Spec**: .shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md
-- **Complexity**: medium (classifier said `small`/0.75; escalated — 3–4 interacting
-- **External Review Marker**: stale (predates spec (2026-05-26T21:45:17))
+- **Branch**: iterate/campaign-lane-collapse
+- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T21:45:17)
 
 ### Mandatory replay on Resume
 
@@ -51,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/all-projects-create-cascade
-- **Last Commit**: e3b1021 Merge pull request #93 from svenroth-ai/iterate/campaigns-board-lane
+- **Branch**: iterate/campaign-lane-collapse
+- **Last Commit**: 773e11e Merge pull request #94 from svenroth-ai/iterate/all-projects-create-cascade
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +65,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-0e15ddd7 | work_completed | iterate (CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap) | 2026-06-03 |
 | evt-fc7459c4 | work_completed | iterate (All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.) | 2026-06-02 |
 | evt-177f8389 | work_completed | iterate (Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId) | 2026-06-02 |
 | evt-f0f196d7 | work_completed | iterate (Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner.) | 2026-06-02 |
 | evt-3445c91e | work_completed | iterate (WS liveness keepalive complete; PR pending) | 2026-05-31 |
-| evt-83b9b73f | work_completed | iterate (POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item) | 2026-05-31 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 171
-- **Last iterate**: change — All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. (2026-06-02)
+- **Total work events**: 172
+- **Last iterate**: change — CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap (2026-06-03)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
