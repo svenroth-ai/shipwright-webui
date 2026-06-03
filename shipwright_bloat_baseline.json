@@ -270,9 +270,9 @@
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 675,
+      "current": 681,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-02-campaigns-board-lane"
+      "adr": "iterate-2026-06-03-campaign-lane-collapse"
     },
     {
       "path": "client/src/pages/TaskDetailPage.test.tsx",
