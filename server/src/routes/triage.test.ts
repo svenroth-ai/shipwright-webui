@@ -74,7 +74,10 @@ interface Harness {
 }
 
 async function makeHarness(
-  opts: { lock?: TriageRoutesDeps["lock"] } = {},
+  opts: {
+    lock?: TriageRoutesDeps["lock"];
+    listCampaignRefs?: TriageRoutesDeps["listCampaignRefs"];
+  } = {},
 ): Promise<Harness> {
   _clearCache_TEST_ONLY();
   const workDir = mkdtempSync(path.join(tmpdir(), "triage-routes-"));
@@ -105,6 +108,7 @@ async function makeHarness(
     appendStatusEventOverride: (args) =>
       (appendOverride ?? appendStatusEvent)(args),
     now: () => "2026-05-14T20:00:00Z",
+    listCampaignRefs: opts.listCampaignRefs,
   };
   const app = createTriageRoutes(deps);
   const cleanup = () => rmSync(workDir, { recursive: true, force: true });
@@ -817,5 +821,82 @@ describe("triage routes: lock-failure handling (ADR-106)", () => {
     // reached (so the ELOCKED lock above never fires).
     expect(res.status).toBe(404);
     expect((await res.json()).error).toBe("triage_item_not_found");
+  });
+});
+
+// ----------------------------------------------------------------------
+// FR-01.33 — campaign-ref enrichment (Start Campaign action precondition)
+// ----------------------------------------------------------------------
+
+describe("triage routes: campaign-ref enrichment (FR-01.33)", () => {
+  let h: Harness;
+  afterEach(() => h.cleanup());
+
+  it("annotates the item a campaign expands with that campaign's slug + status", async () => {
+    h = await makeHarness({
+      listCampaignRefs: () => [
+        { expandsTriage: "trg-aaaa1111", slug: "2026-06-03-cleanup", status: "draft" },
+      ],
+    });
+    seedTriage(h.triagePathA, ["trg-aaaa1111", "trg-bbbb2222"]);
+    const res = await h.app.request("/api/triage/proj-a");
+    expect(res.status).toBe(200);
+    const items = (await res.json()).items as Array<{
+      id: string;
+      campaignSlug?: string | null;
+      campaignStatus?: string | null;
+    }>;
+    const expanded = items.find((i) => i.id === "trg-aaaa1111")!;
+    expect(expanded.campaignSlug).toBe("2026-06-03-cleanup");
+    expect(expanded.campaignStatus).toBe("draft");
+    // Non-expanded item is left untouched (no campaign annotation).
+    const other = items.find((i) => i.id === "trg-bbbb2222")!;
+    expect(other.campaignSlug ?? null).toBeNull();
+    expect(other.campaignStatus ?? null).toBeNull();
+  });
+
+  it("prefers draft when two campaigns expand the same triage id (deterministic)", async () => {
+    h = await makeHarness({
+      listCampaignRefs: () => [
+        { expandsTriage: "trg-aaaa1111", slug: "active-one", status: "active" },
+        { expandsTriage: "trg-aaaa1111", slug: "draft-one", status: "draft" },
+      ],
+    });
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a");
+    const items = (await res.json()).items as Array<{
+      id: string;
+      campaignSlug?: string | null;
+      campaignStatus?: string | null;
+    }>;
+    expect(items[0].campaignSlug).toBe("draft-one");
+    expect(items[0].campaignStatus).toBe("draft");
+  });
+
+  it("is best-effort: a throwing listCampaignRefs never fails the list", async () => {
+    h = await makeHarness({
+      listCampaignRefs: () => {
+        throw new Error("campaign read blew up");
+      },
+    });
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a");
+    expect(res.status).toBe(200);
+    const items = (await res.json()).items as Array<{
+      id: string;
+      campaignSlug?: string | null;
+    }>;
+    expect(items).toHaveLength(1);
+    expect(items[0].campaignSlug ?? null).toBeNull();
+  });
+
+  it("leaves items unannotated when no listCampaignRefs dep is wired", async () => {
+    h = await makeHarness(); // no dep
+    seedTriage(h.triagePathA, ["trg-aaaa1111"]);
+    const res = await h.app.request("/api/triage/proj-a");
+    const items = (await res.json()).items as Array<{
+      campaignSlug?: string | null;
+    }>;
+    expect(items[0].campaignSlug ?? null).toBeNull();
   });
 });

@@ -41,6 +41,17 @@ vi.mock("../../hooks/useProjectActions", () => ({
   useProjectActions: useProjectActionsSpy,
 }));
 
+const { startCampaignSpy, startCampaignPendingRef } = vi.hoisted(() => ({
+  startCampaignSpy: vi.fn(),
+  startCampaignPendingRef: { current: false },
+}));
+vi.mock("../../hooks/useStartCampaign", () => ({
+  useStartCampaign: () => ({
+    mutateAsync: startCampaignSpy,
+    isPending: startCampaignPendingRef.current,
+  }),
+}));
+
 function makeWrapper() {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -261,5 +272,145 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(screen.getByTestId("triage-fix-now-failure")).toBeTruthy();
     // Don't strand the user with no open modal.
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
+  beforeEach(() => {
+    useProjectActionsSpy.mockReset();
+    useProjectActionsSpy.mockReturnValue(catalogReady);
+    startCampaignSpy.mockReset();
+    startCampaignPendingRef.current = false;
+  });
+
+  function renderCampaign(
+    itemOverrides: Partial<TriageItem>,
+    handlers: {
+      onOpenChange?: ReturnType<typeof vi.fn>;
+      onNavigateToBoard?: ReturnType<typeof vi.fn>;
+    } = {},
+  ) {
+    const onOpenChange = handlers.onOpenChange ?? vi.fn();
+    const onNavigateToBoard = handlers.onNavigateToBoard ?? vi.fn();
+    const Wrapper = makeWrapper();
+    const utils = render(
+      <Wrapper>
+        <TriageDetailModal
+          open={true}
+          onOpenChange={onOpenChange}
+          projectId="proj-a"
+          item={{ ...baseItem, ...itemOverrides }}
+          onNavigateToBoard={onNavigateToBoard}
+        />
+      </Wrapper>,
+    );
+    return { ...utils, onOpenChange, onNavigateToBoard };
+  }
+
+  it("non-campaign item shows no campaign CTA and keeps Fix-now primary", () => {
+    renderCampaign({}); // baseItem has no campaignSlug
+    expect(screen.queryByTestId("triage-campaign-cta")).toBeNull();
+    expect(screen.getByTestId("triage-fix-now").className).toContain(
+      "bg-emerald-600",
+    );
+  });
+
+  it("draft campaign → renders Start Campaign and demotes Fix-now to secondary", () => {
+    renderCampaign({
+      campaignSlug: "2026-06-03-cleanup",
+      campaignStatus: "draft",
+    });
+    expect(screen.getByTestId("triage-start-campaign")).toBeTruthy();
+    expect(screen.queryByTestId("triage-go-to-board")).toBeNull();
+    // Fix-now demoted: no emerald fill, carries the outline border token.
+    const fixNow = screen.getByTestId("triage-fix-now");
+    expect(fixNow.className).not.toContain("bg-emerald-600");
+    expect(fixNow.className).toContain("border-[var(--color-border)]");
+  });
+
+  it("Start Campaign success → calls mutateAsync(slug), navigates, closes", async () => {
+    startCampaignSpy.mockResolvedValue({
+      ok: true,
+      data: { slug: "2026-06-03-cleanup", status: "active" },
+    });
+    const { onOpenChange, onNavigateToBoard } = renderCampaign({
+      campaignSlug: "2026-06-03-cleanup",
+      campaignStatus: "draft",
+    });
+
+    fireEvent.click(screen.getByTestId("triage-start-campaign"));
+
+    await vi.waitFor(() => expect(onNavigateToBoard).toHaveBeenCalledTimes(1));
+    expect(startCampaignSpy).toHaveBeenCalledWith("2026-06-03-cleanup");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(screen.queryByTestId("triage-start-campaign-error")).toBeNull();
+  });
+
+  it("Start Campaign failure (409 already complete) → inline error, no navigate, stays open", async () => {
+    startCampaignSpy.mockResolvedValue({
+      ok: false,
+      status: 409,
+      error: "campaign_already_complete",
+      message: "Campaign is already complete.",
+    });
+    const { onOpenChange, onNavigateToBoard } = renderCampaign({
+      campaignSlug: "2026-06-03-cleanup",
+      campaignStatus: "draft",
+    });
+
+    fireEvent.click(screen.getByTestId("triage-start-campaign"));
+
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("triage-start-campaign-error")).toBeTruthy(),
+    );
+    expect(screen.getByTestId("triage-start-campaign-error").textContent).toContain(
+      "Campaign is already complete.",
+    );
+    expect(onNavigateToBoard).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("Start Campaign transport failure (rejected mutateAsync) → inline error, no navigate, stays open", async () => {
+    startCampaignSpy.mockRejectedValue(new Error("network down"));
+    const { onOpenChange, onNavigateToBoard } = renderCampaign({
+      campaignSlug: "2026-06-03-cleanup",
+      campaignStatus: "draft",
+    });
+
+    fireEvent.click(screen.getByTestId("triage-start-campaign"));
+
+    await vi.waitFor(() =>
+      expect(screen.getByTestId("triage-start-campaign-error")).toBeTruthy(),
+    );
+    expect(onNavigateToBoard).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("active campaign → Go to board navigates + closes WITHOUT a status write", () => {
+    const { onOpenChange, onNavigateToBoard } = renderCampaign({
+      campaignSlug: "2026-06-03-cleanup",
+      campaignStatus: "active",
+    });
+
+    expect(screen.queryByTestId("triage-start-campaign")).toBeNull();
+    fireEvent.click(screen.getByTestId("triage-go-to-board"));
+
+    expect(startCampaignSpy).not.toHaveBeenCalled();
+    expect(onNavigateToBoard).toHaveBeenCalledTimes(1);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it("complete campaign → shows complete note, no Start / Go button, Fix-now stays primary", () => {
+    renderCampaign({
+      campaignSlug: "2026-06-03-cleanup",
+      campaignStatus: "complete",
+    });
+    expect(screen.getByTestId("triage-campaign-complete")).toBeTruthy();
+    expect(screen.queryByTestId("triage-start-campaign")).toBeNull();
+    expect(screen.queryByTestId("triage-go-to-board")).toBeNull();
+    // No competing primary → Fix-now keeps its emerald primary styling.
+    expect(screen.getByTestId("triage-fix-now").className).toContain(
+      "bg-emerald-600",
+    );
   });
 });

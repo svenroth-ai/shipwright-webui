@@ -54,6 +54,46 @@ export async function listCampaigns(projectId: string): Promise<Campaign[]> {
   return body.campaigns;
 }
 
+/** Success shape of POST /:projectId/:slug/start (server always returns active). */
+export interface StartCampaignResult {
+  slug: string;
+  status: "active";
+}
+
+export type StartCampaignOutcome =
+  | { ok: true; data: StartCampaignResult }
+  | { ok: false; status: number; error: string; message?: string };
+
+/**
+ * FR-01.33 — the Triage "Start Campaign" action. POSTs draft → active and
+ * returns a discriminated result (mirrors triageApi's dismiss/snooze shape) so
+ * the caller can surface 404 / 409 (already complete) / 422 (no writable
+ * status target) / 503 (lock busy) inline instead of throwing. This is the ONE
+ * WebUI write to campaign state — see server/src/core/campaign-write.ts + ADR.
+ */
+export async function startCampaign(
+  projectId: string,
+  slug: string,
+): Promise<StartCampaignOutcome> {
+  const res = await fetch(
+    `${CAMPAIGNS_API}/${encodeURIComponent(projectId)}/${encodeURIComponent(slug)}/start`,
+    { method: "POST" },
+  );
+  if (res.ok) {
+    return { ok: true, data: (await res.json()) as StartCampaignResult };
+  }
+  const body = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    message?: string;
+  };
+  return {
+    ok: false,
+    status: res.status,
+    error: body.error ?? "unknown_error",
+    message: body.message,
+  };
+}
+
 /**
  * Campaigns the board should show. Producer-owned lifecycle status is
  * authoritative when present:

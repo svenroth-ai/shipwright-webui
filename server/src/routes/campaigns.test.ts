@@ -53,7 +53,22 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
   function appFor(projects: Record<string, CampaignProjectMeta | undefined>) {
     return createCampaignsRoutes({
       getProjectById: (id) => projects[id],
+      lock: async () => async () => {}, // in-process no-op lock for tests
     });
+  }
+
+  function seedCampaign(
+    slug: string,
+    opts: { statusJson?: unknown; md?: string },
+  ): void {
+    const dir = path.join(projectRoot, ...SEGMENTS, slug);
+    mkdirSync(dir, { recursive: true });
+    if (opts.statusJson !== undefined) {
+      writeFileSync(path.join(dir, "status.json"), JSON.stringify(opts.statusJson, null, 2), "utf-8");
+    }
+    if (opts.md !== undefined) {
+      writeFileSync(path.join(dir, "campaign.md"), opts.md, "utf-8");
+    }
   }
 
   it("404s an unknown project id", async () => {
@@ -139,5 +154,110 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
       ".shipwright/planning/iterate/campaigns/2026-06-02-hook/sub-iterates/B1-beta.md",
     );
     expect(c.steps[0]).toMatchObject({ id: "B0", status: "complete" });
+  });
+
+  // ---- POST /api/campaigns/:projectId/:slug/start (FR-01.33) ----
+
+  it("starts a draft campaign (status.json) → 200 active, reflected by GET", async () => {
+    seedCampaign("2026-06-03-x", {
+      statusJson: { status: "draft", sub_iterates: [{ id: "B0", slug: "a", status: "pending" }] },
+    });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/2026-06-03-x/start", { method: "POST" });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ slug: "2026-06-03-x", status: "active" });
+    const get = (await (await app.request("/api/campaigns/p1")).json()) as {
+      campaigns: Array<{ slug: string; status: string }>;
+    };
+    expect(get.campaigns.find((c) => c.slug === "2026-06-03-x")?.status).toBe("active");
+  });
+
+  it("starts a frontmatter-only draft campaign (no status.json) → 200 active", async () => {
+    seedCampaign("2026-06-03-fm", { md: "---\ncampaign: c\nstatus: draft\n---\n\n# c\n" });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/2026-06-03-fm/start", { method: "POST" });
+    expect(res.status).toBe(200);
+  });
+
+  it("is idempotent when already active (200)", async () => {
+    seedCampaign("2026-06-03-act", { statusJson: { status: "active", sub_iterates: [] } });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/2026-06-03-act/start", { method: "POST" });
+    expect(res.status).toBe(200);
+  });
+
+  it("rejects starting a complete campaign with 409 (no revert)", async () => {
+    seedCampaign("2026-06-03-done", {
+      statusJson: { status: "complete", sub_iterates: [{ id: "B0", slug: "a", status: "complete" }] },
+    });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/2026-06-03-done/start", { method: "POST" });
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ error: "campaign_already_complete" });
+  });
+
+  it("404s starting under an unknown project", async () => {
+    const app = appFor({});
+    const res = await app.request("/api/campaigns/nope/whatever/start", { method: "POST" });
+    expect(res.status).toBe(404);
+  });
+
+  it("404s starting an unknown slug", async () => {
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/does-not-exist/start", { method: "POST" });
+    expect(res.status).toBe(404);
+    expect(await res.json()).toMatchObject({ error: "campaign_not_found" });
+  });
+
+  it("403s starting a slug dir that symlinks outside the campaigns root", async () => {
+    const outside = path.join(workDir, "outside-campaign");
+    mkdirSync(outside, { recursive: true });
+    const campaignsRoot = path.join(projectRoot, ...SEGMENTS);
+    mkdirSync(campaignsRoot, { recursive: true });
+    try {
+      symlinkSync(outside, path.join(campaignsRoot, "evil"), "junction");
+    } catch (err) {
+      // Windows junctions may need admin — skip (Linux CI covers it).
+      if (
+        err instanceof Error &&
+        ["EPERM", "EACCES", "EEXIST", "ENOSYS"].includes(
+          (err as NodeJS.ErrnoException).code ?? "",
+        )
+      ) {
+        return;
+      }
+      throw err;
+    }
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/evil/start", {
+      method: "POST",
+    });
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ error: "path_traversal_rejected" });
+  });
+
+  it("422s when the campaign has no writable status target", async () => {
+    seedCampaign("2026-06-03-bare", { md: "# c\n\nno frontmatter\n" });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1/2026-06-03-bare/start", { method: "POST" });
+    expect(res.status).toBe(422);
+    expect(await res.json()).toMatchObject({ error: "no_writable_status_target" });
+  });
+
+  it("503s when the campaign lock is contended (ELOCKED)", async () => {
+    seedCampaign("2026-06-03-busy", {
+      statusJson: { status: "draft", sub_iterates: [] },
+    });
+    const app = createCampaignsRoutes({
+      getProjectById: () => ({ id: "p1", path: projectRoot }),
+      lock: async () => {
+        throw Object.assign(new Error("locked"), { code: "ELOCKED" });
+      },
+    });
+    const res = await app.request("/api/campaigns/p1/2026-06-03-busy/start", {
+      method: "POST",
+    });
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ error: "lock_unavailable" });
   });
 });

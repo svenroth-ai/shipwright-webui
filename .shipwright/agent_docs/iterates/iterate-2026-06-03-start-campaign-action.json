@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-03-start-campaign-action",
+  "date": "2026-06-03T16:43:48.393Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/start-campaign-action",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/01-adopted/spec.md",
+  "adr": "iterate-2026-06-03-start-campaign-action"
+}
