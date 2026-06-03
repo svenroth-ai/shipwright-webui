@@ -12,6 +12,7 @@ function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
     intent: "do the thing",
     branchStrategy: "stacked",
     expandsTriage: null,
+    status: null,
     steps: [],
     done: 0,
     total: 3,
@@ -67,11 +68,29 @@ describe("campaignsApi: listCampaigns", () => {
 });
 
 describe("campaignsApi: selectActiveCampaigns", () => {
-  it("keeps only campaigns with work remaining (done < total)", () => {
-    const active = makeCampaign({ slug: "active", done: 1, total: 3 });
-    const complete = makeCampaign({ slug: "complete", done: 3, total: 3 });
-    const empty = makeCampaign({ slug: "empty", done: 0, total: 0 });
-    const result = selectActiveCampaigns([active, complete, empty]);
+  it("status is authoritative: only `active` is shown; draft + complete hidden", () => {
+    const active = makeCampaign({ slug: "active", status: "active", done: 0, total: 3 });
+    const draft = makeCampaign({ slug: "draft", status: "draft", done: 0, total: 3 });
+    const complete = makeCampaign({ slug: "complete", status: "complete", done: 3, total: 3 });
+    const result = selectActiveCampaigns([active, draft, complete]);
     expect(result.map((c) => c.slug)).toEqual(["active"]);
+  });
+
+  it("draft is hidden even with work remaining (done < total)", () => {
+    const draft = makeCampaign({ slug: "draft", status: "draft", done: 1, total: 3 });
+    expect(selectActiveCampaigns([draft])).toEqual([]);
+  });
+
+  it("active is shown even when nothing is done yet (done=0)", () => {
+    const active = makeCampaign({ slug: "active", status: "active", done: 0, total: 3 });
+    expect(selectActiveCampaigns([active]).map((c) => c.slug)).toEqual(["active"]);
+  });
+
+  it("legacy (status=null) falls back to done < total", () => {
+    const running = makeCampaign({ slug: "running", status: null, done: 1, total: 3 });
+    const done = makeCampaign({ slug: "done", status: null, done: 3, total: 3 });
+    const empty = makeCampaign({ slug: "empty", status: null, done: 0, total: 0 });
+    const result = selectActiveCampaigns([running, done, empty]);
+    expect(result.map((c) => c.slug)).toEqual(["running"]);
   });
 });

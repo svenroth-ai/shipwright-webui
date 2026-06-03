@@ -15,6 +15,10 @@ export type CampaignStepStatus =
   | "failed"
   | "escalated";
 
+/** Producer-owned campaign lifecycle status (mirror of the server type).
+ *  draft = planned (triage-only), active = running (board), complete = done. */
+export type CampaignLifecycleStatus = "draft" | "active" | "complete";
+
 export interface CampaignStep {
   id: string;
   slug: string;
@@ -32,6 +36,8 @@ export interface Campaign {
   intent: string;
   branchStrategy: string | null;
   expandsTriage: string | null;
+  /** Producer-owned lifecycle status; null = legacy (no status written yet). */
+  status: CampaignLifecycleStatus | null;
   steps: CampaignStep[];
   done: number;
   total: number;
@@ -49,11 +55,20 @@ export async function listCampaigns(projectId: string): Promise<Campaign[]> {
 }
 
 /**
- * Campaigns with work remaining (`done < total`). The lane renders only these
- * (parity with the Pipelines lane's `status === "in_progress"` gate); a
- * `total === 0` campaign is treated as not-active so the progress bar never
- * divides by zero.
+ * Campaigns the board should show. Producer-owned lifecycle status is
+ * authoritative when present:
+ *   - `active`   → shown (running).
+ *   - `draft`    → hidden (planned; lives only in Triage).
+ *   - `complete` → hidden (done).
+ *   - `null`     → legacy (producer hasn't written a status yet) → fall back to
+ *                  the derived `done < total` (so nothing existing breaks and
+ *                  this can ship before the producer change). `total === 0`
+ *                  is never active (guards the progress-bar divide-by-zero).
  */
 export function selectActiveCampaigns(campaigns: Campaign[]): Campaign[] {
-  return campaigns.filter((c) => c.total > 0 && c.done < c.total);
+  return campaigns.filter((c) => {
+    if (c.status === "active") return true;
+    if (c.status === "draft" || c.status === "complete") return false;
+    return c.total > 0 && c.done < c.total; // legacy fallback
+  });
 }
