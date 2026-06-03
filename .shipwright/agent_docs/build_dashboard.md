@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-02 15:24 UTC | Session: 891c8d87-91bc-47d8-8907-c1eefd22f45b | Run: iterate-2026-06-02-all-projects-create-cascade
+> Updated: 2026-06-03 07:08 UTC | Session: 3b232513-bba9-45c3-a05a-61406a3d78bb | Run: iterate-2026-06-03-campaign-lane-collapse
 
-## Recent Changes (101 iterations)
+## Recent Changes (102 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap | 0/0 |  | FR-01.33 | 2026-06-03 |
 | change | All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. | 0/0 |  |  | 2026-06-02 |
 | feature | Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId | 0/0 |  | FR-01.33 | 2026-06-02 |
 | bug | Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | 0/0 | 47f7450 | fix | 2026-06-02 |
@@ -108,7 +109,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-02 | Unit: 1416/1416 | E2E: 1/1 | Smoke: skipped | (iterate)
+Last run: 2026-06-03 | Unit: 1421/1421 | E2E: 1/1 | Smoke: skipped | (iterate)
 
 ## Pipeline
 
