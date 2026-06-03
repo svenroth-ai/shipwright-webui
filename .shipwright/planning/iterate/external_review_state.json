@@ -1,9 +1,9 @@
 {
   "status": "completed",
-  "timestamp": "2026-05-26T21:45:17.428236+00:00",
-  "provider": "openrouter (openai + gemini)",
-  "findings_count": 8,
+  "timestamp": "2026-06-03T14:56:50.072535+00:00",
+  "provider": "openrouter",
+  "findings_count": 14,
   "self_review_fallback_ran": false,
-  "reason": "8 findings incorporated into spec/mini-plan: targeted-status PROBE_TABLE (vs allowed-set), plain JSON import, projects.file 2-probe split, :path placeholder, meta-test for baseline<->probe drift, deterministic multi-tab fixture.",
-  "review_mode": "iterate"
+  "reason": "14 findings integrated; content-hash fingerprint + byte-accurate cap + broadened lossy detection + escaped diff; tiptap-markdown init spike-first",
+  "review_mode": null
 }

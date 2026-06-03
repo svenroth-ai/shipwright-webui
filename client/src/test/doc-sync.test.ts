@@ -78,6 +78,11 @@ const REQUIRED_TOKENS = [
   // iterate-2026-06-02-all-projects-create-cascade — project-first create menu
   'CreateControls',
   'ProjectCreateCascade',
+  // iterate-2026-06-03-smartviewer-markdown-editor — in-app markdown editor (FR-01.34)
+  'MarkdownEditorModal',
+  'MarkdownDiffView',
+  'markdownTiptap',
+  'markdownFileApi',
 ] as const;
 
 let claudeMd = '';

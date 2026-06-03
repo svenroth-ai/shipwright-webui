@@ -1,36 +1,39 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-03-campaign-lane-collapse"
+run_id: "iterate-2026-06-03-smartviewer-markdown-editor"
 phase: "iterate"
-reason: "Campaign lane collapse/expand + description disclosure + persistence + layout cap"
-timestamp: "2026-06-03T07:08:41.041593+00:00"
+reason: "iterate finalization"
+timestamp: "2026-06-03T15:37:58.047140+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-03 07:08:41 UTC
+> Auto-generated 2026-06-03 15:37:58 UTC
 
 ## Session Info
 
-- **Session ID**: 3b232513-bba9-45c3-a05a-61406a3d78bb
-- **Timestamp**: 2026-06-03 07:08:41 UTC
-- **Reason**: Campaign lane collapse/expand + description disclosure + persistence + layout cap
+- **Session ID**: e9e8fb1b-02c5-4c89-a13a-397824c2c52f
+- **Timestamp**: 2026-06-03 15:37:58 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-02-all-projects-create-cascade
-- **Date**: 2026-06-02T15:25:19.958876Z
+- **Run ID**: iterate-2026-06-03-campaign-status-filter
+- **Date**: 2026-06-03T09:15:52.399240Z
 - **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/all-projects-create-cascade
-- **ADR**: iterate-2026-06-02-all-projects-create-cascade
+- **Complexity**: small
+- **Branch**: iterate/campaign-status-filter
+- **ADR**: iterate-2026-06-03-campaign-status-filter
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md
+- **Spec**: .shipwright/planning/01-adopted/spec.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-lane-collapse
-- **External Review Marker**: completed (external_review_state.json @ 2026-05-26T21:45:17)
+- **Branch**: iterate/smartviewer-markdown-editor
+- **Run ID**: iterate-2026-06-03-smartviewer-markdown-editor
+- **Spec**: .shipwright/planning/iterate/2026-06-03-smartviewer-markdown-editor.md
+- **Complexity**: medium (classifier: small; overridden — first file-write surface in a
+- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
@@ -48,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-lane-collapse
-- **Last Commit**: 773e11e Merge pull request #94 from svenroth-ai/iterate/all-projects-create-cascade
+- **Branch**: iterate/smartviewer-markdown-editor
+- **Last Commit**: 3550e5b Merge pull request #96 from svenroth-ai/iterate/campaign-status-filter
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-6985e15b | work_completed | iterate (SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner.) | 2026-06-03 |
+| evt-1c746044 | work_completed | iterate (campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total) | 2026-06-03 |
 | evt-0e15ddd7 | work_completed | iterate (CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap) | 2026-06-03 |
 | evt-fc7459c4 | work_completed | iterate (All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.) | 2026-06-02 |
 | evt-177f8389 | work_completed | iterate (Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId) | 2026-06-02 |
-| evt-f0f196d7 | work_completed | iterate (Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner.) | 2026-06-02 |
-| evt-3445c91e | work_completed | iterate (WS liveness keepalive complete; PR pending) | 2026-05-31 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 172
-- **Last iterate**: change — CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap (2026-06-03)
+- **Total work events**: 174
+- **Last iterate**: feature — SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. (2026-06-03)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

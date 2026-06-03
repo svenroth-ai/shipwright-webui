@@ -1,117 +1,109 @@
 {
-  "last_updated": "2026-06-03T09:15:39.785643+00:00",
+  "last_updated": "2026-06-03T15:40:19.448Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-03-campaign-status-filter",
-    "intent": "change",
-    "complexity": "small",
-    "timestamp": "2026-06-03T09:15:39.785643+00:00",
+    "run_id": "iterate-2026-06-03-smartviewer-markdown-editor",
+    "intent": "feature",
+    "complexity": "medium",
+    "timestamp": "2026-06-03T15:40:19.449Z",
     "paths_touched": [
-      "server/src/core/campaign-status-json.ts",
-      "server/src/core/campaign-store.ts",
-      "client/src/lib/campaignsApi.ts",
-      "client/e2e/flows/campaign-status-filter.spec.ts",
-      "client/src/test/doc-sync.test.ts",
-      ".shipwright/planning/01-adopted/spec.md",
-      ".shipwright/agent_docs/architecture.md"
+      "server/src/external/file/write.ts",
+      "server/src/external/file/routes.ts",
+      "server/src/external/file/_helpers.ts",
+      "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
+      "client/src/components/external/SmartViewer/MarkdownDiffView.tsx",
+      "client/src/components/external/SmartViewer/MarkdownRenderer.tsx",
+      "client/src/components/external/SmartViewer.tsx",
+      "client/src/lib/markdownTiptap.ts",
+      "client/src/lib/markdownFileApi.ts"
     ],
     "result": "passed",
-    "summary": "Consumer side of Option B: campaign-store reads a producer-owned top-level lifecycle status (status.json wins / campaign.md frontmatter fallback) via the new campaign-status-json.ts split; selectActiveCampaigns shows iff active, hides draft/complete, legacy no-status falls back to done<total. server tsc + 1430/1430 vitest; client tsc + lint + 1420/1420 vitest; F0.5 web E2E tests_run=1 (active/draft/complete/legacy fixture).",
+    "summary": "SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface. New PUT /api/external/projects/:id/file (markdown-only allowlist, realPathGuard, 2 MiB byte-accurate cap, content-hash ETag/If-Match optimistic concurrency -> 409, atomic tmp+rename); GET /file gains the strong ETag. Client: lazy MarkdownEditorModal (loading/load-error/editing/diff/saving/conflict) + MarkdownDiffView (escaped) + markdownTiptap (StarterKit+tiptap-markdown, detectLossyConstructs) + markdownFileApi. server tsc + 1441/1441 vitest; client tsc + lint + 1456/1456 vitest; external plan-review (14 findings) + code-review (9 findings) integrated; F0.5 web E2E 2/2 (save+refresh + 409 conflict) against a live Vite stack.",
     "unit": {
       "status": "passed",
-      "passed": 1420,
-      "total": 1420
+      "passed": 2897,
+      "total": 2897,
+      "note": "client 1456/1456 + server 1441/1441 vitest"
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "n/a"
     },
     "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "n/a"
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "n/a"
     },
     "smoke": {
-      "status": "skipped"
+      "status": "n/a"
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 1,
+      "tests_run": 2,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-status-filter.spec.ts --reporter=list",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-status-filter/surface_verification.log",
+      "runner": "BASE_URL=http://localhost:5199 node client/node_modules/@playwright/test/cli.js test client/e2e/flows/markdown-editor.spec.ts --project=chromium --reporter=list",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-03-smartviewer-markdown-editor/",
       "attempts": 1,
-      "note": "Isolated built stack seeded with 4 campaigns: active(status:active,0/2) + legacy(no-status,1/2) SHOWN; draft(status:draft,0/2) + complete(status:complete,2/2) HIDDEN. Live /api/campaigns also curl-verified."
+      "note": "Live Vite worktree stack (loopback :5199); /api file GET+PUT route-mocked in Playwright. Test 1: Edit -> rich editor -> type -> Review (diff) -> Save -> PUT fires -> modal closes -> preview re-fetches updated content. Test 2: PUT 409 -> conflict banner + reload action + edits preserved + modal stays open."
     },
-    "degraded": [
-      {
-        "condition": "server `npm run lint` (oxlint) binary absent in junctioned node_modules (pre-existing worktree-hydration gap). New/changed server files linted clean via the client's pinned oxlint binary; client `npm run lint` passed."
-      }
-    ],
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "Server reads top-level lifecycle status from status.json into Campaign.status",
-          "disposition": "tested",
-          "evidence": "campaign-store.test.ts 'reads the top-level lifecycle status from status.json' PASSED"
-        },
-        {
-          "behavior": "Server reads lifecycle status from campaign.md frontmatter when no status.json status",
-          "disposition": "tested",
-          "evidence": "campaign-store.test.ts frontmatter case PASSED"
-        },
-        {
-          "behavior": "status.json top-level status wins over frontmatter",
-          "disposition": "tested",
-          "evidence": "campaign-store.test.ts precedence case PASSED"
-        },
-        {
-          "behavior": "Invalid / absent status resolves to null (legacy)",
-          "disposition": "tested",
-          "evidence": "campaign-store.test.ts + campaign-status-json.test.ts pickLifecycle PASSED"
-        },
-        {
-          "behavior": "readStatusJson tolerates torn/missing/non-object (3s-poll race)",
-          "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts readStatusJson (4 cases) PASSED"
-        },
-        {
-          "behavior": "pickLifecycle precedence + case-insensitive + invalid->null",
-          "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts pickLifecycle (4 cases) PASSED"
-        },
-        {
-          "behavior": "Client selectActiveCampaigns: active shown, draft+complete hidden, legacy done<total fallback",
-          "disposition": "tested",
-          "evidence": "campaignsApi.test.ts (4 cases) PASSED"
-        },
-        {
-          "behavior": "Live board shows ONLY active + legacy campaigns (draft/complete hidden)",
-          "disposition": "tested",
-          "evidence": "e2e/flows/campaign-status-filter.spec.ts (seeds active/draft/complete/legacy, exactly 2 cards) PASSED"
-        }
-      ],
+      "enumeration_basis": {
+        "acs": 7,
+        "covered_acs": 7
+      },
       "counts": {
-        "testable": 8,
         "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
-      "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
-      }
+      "behaviors": [
+        {
+          "behavior": "AC1 Edit button shows for markdown only + gated on projectId/path/onSaved",
+          "disposition": "tested",
+          "evidence": "MarkdownRenderer.test.tsx 'Edit button (FR-01.34 AC1)' x3 PASSED"
+        },
+        {
+          "behavior": "AC2 StarterKit markdown round-trip stable via init AND the modal's setContent load path",
+          "disposition": "tested",
+          "evidence": "markdownTiptap.test.ts round-trip + idempotent + setContent-path PASSED"
+        },
+        {
+          "behavior": "AC3 detectLossyConstructs flags frontmatter/raw-HTML/footnotes/tables/task-lists + warn banner renders",
+          "disposition": "tested",
+          "evidence": "markdownTiptap.test.ts detect x6 + MarkdownEditorModal.test.tsx warn-banner PASSED"
+        },
+        {
+          "behavior": "AC4 Review opens an escaped pre-save diff; Save reachable only from there",
+          "disposition": "tested",
+          "evidence": "MarkdownEditorModal.test.tsx Review->diff + MarkdownDiffView.test.tsx (incl. <script> escaped) PASSED"
+        },
+        {
+          "behavior": "AC5 save writes atomically (server) + onSaved/close (client) + preview re-fetches (E2E)",
+          "disposition": "tested",
+          "evidence": "file-write-route.test.ts atomic-write + MarkdownEditorModal.test.tsx onSaved+close + E2E markdown-editor.spec.ts preview-refresh PASSED"
+        },
+        {
+          "behavior": "AC6 stale If-Match -> 409, no write; modal keeps edits + offers reload",
+          "disposition": "tested",
+          "evidence": "file-write-route.test.ts 409 + markdownFileApi.test.ts MarkdownConflictError + MarkdownEditorModal.test.tsx conflict + E2E 409 path PASSED"
+        },
+        {
+          "behavior": "AC7 PUT guards: 415 non-md / 400 traversal+missing-If-Match / 413 oversize byte-accurate / 404 missing / 400 not_a_file",
+          "disposition": "tested",
+          "evidence": "file-write-route.test.ts x8 PASSED"
+        },
+        {
+          "behavior": "GET /file emits a quoted sha256 ETag (the If-Match token)",
+          "disposition": "tested",
+          "evidence": "file-write-route.test.ts 'GET emits a quoted sha256 ETag' PASSED"
+        }
+      ]
     }
   }
 }
