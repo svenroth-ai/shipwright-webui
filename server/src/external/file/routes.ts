@@ -28,8 +28,10 @@ import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
   FILE_MAX_BYTES,
   MIME_BY_EXTENSION,
+  fileFingerprint,
   sanitizeContentDispositionFilename,
 } from "./_helpers.js";
+import { registerMarkdownWrite } from "./write.js";
 
 export interface FileRouterDeps {
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
@@ -131,6 +133,10 @@ export function createFileRouter(deps: FileRouterDeps): Hono {
     // Set security headers BEFORE sending body.
     c.header("Content-Type", mime);
     c.header("X-Content-Type-Options", "nosniff");
+    // Strong content-hash ETag — the optimistic-concurrency token for the
+    // SmartViewer markdown editor's PUT (If-Match). NOT used for HTTP cache
+    // validation: this route ignores conditional If-None-Match requests.
+    c.header("ETag", `"${fileFingerprint(body)}"`);
     c.header("Content-Disposition", `inline; filename="${filename}"`);
     c.header("Content-Length", String(body.length));
     c.header("Cache-Control", "private, max-age=0, must-revalidate");
@@ -148,6 +154,10 @@ export function createFileRouter(deps: FileRouterDeps): Hono {
     // as-is; Content-Type is NOT mutated (we set it above).
     return c.body(new Uint8Array(body));
   });
+
+  // PUT /file — the markdown write surface (FR-01.34). Shares the same
+  // path-guard + project-scope posture as the GET handler above.
+  registerMarkdownWrite(app, { getProjectById });
 
   return app;
 }

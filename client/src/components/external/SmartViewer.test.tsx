@@ -38,6 +38,12 @@ describe("resolveKind — extension dispatch matrix", () => {
     ["logo.gif", "image", "gif"],
     ["logo.svg", "image", "svg"],
     ["logo.webp", "image", "webp"],
+    ["clip.mp4", "video", "mp4"],
+    ["clip.m4v", "video", "m4v"],
+    ["clip.webm", "video", "webm"],
+    ["clip.ogv", "video", "ogv"],
+    ["clip.ogg", "video", "ogg"],
+    ["clip.mov", "video", "mov"],
     ["src/index.ts", "code", "ts"],
     ["src/App.tsx", "code", "tsx"],
     ["config.json", "code", "json"],
@@ -63,6 +69,20 @@ describe("SmartViewer — empty + unsupported states", () => {
   it("unknown extension → 'Unsupported file type' chip", () => {
     render(<SmartViewer projectId="proj-a" path="mystery.xyz" />);
     expect(screen.getByTestId("smart-viewer-unknown")).toBeTruthy();
+  });
+
+  it("video extension → <video> renderer (AC6, no fetch)", () => {
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    render(<SmartViewer projectId="proj-a" path="demo/clip.mp4" />);
+    const container = screen.getByTestId("smart-viewer-video");
+    const video = container.querySelector("video");
+    expect(video).toBeTruthy();
+    expect(video?.getAttribute("src")).toContain(
+      "/api/external/projects/proj-a/media?path=demo%2Fclip.mp4",
+    );
+    // <video> streams directly via src — the component issues no fetch.
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 

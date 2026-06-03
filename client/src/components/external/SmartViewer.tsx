@@ -29,15 +29,17 @@ import { SmartViewerModal } from "./SmartViewer/SmartViewerModal";
 import { CodeRenderer } from "./SmartViewer/CodeRenderer";
 import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
+import { VideoRenderer } from "./SmartViewer/VideoRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { useDocNavigation } from "./SmartViewer/useDocNavigation";
 import { PathStrip } from "./SmartViewer/PathStrip";
 
-export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "mermaid" | "unknown";
+export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "unknown";
 
 const MARKDOWN_EXTS = new Set(["md", "markdown"]);
 const MERMAID_EXTS = new Set(["mmd", "mermaid"]);
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp"]);
+const VIDEO_EXTS = new Set(["mp4", "m4v", "webm", "ogv", "ogg", "mov"]);
 const CODE_EXTS = new Set([
   "ts",
   "tsx",
@@ -74,6 +76,7 @@ export function resolveKind(path: string): { kind: SmartViewerKind; ext: string 
   if (MARKDOWN_EXTS.has(ext)) return { kind: "markdown", ext };
   if (MERMAID_EXTS.has(ext)) return { kind: "mermaid", ext };
   if (IMAGE_EXTS.has(ext)) return { kind: "image", ext };
+  if (VIDEO_EXTS.has(ext)) return { kind: "video", ext };
   if (CODE_EXTS.has(ext)) return { kind: "code", ext };
   if (ext === "txt" || ext === "log" || ext === "csv" || ext === "env" || ext === "gitignore") {
     return { kind: "text", ext };
@@ -110,7 +113,8 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
 
   const { kind, ext } = resolveKind(path);
 
-  if (kind === "image") {
+  if (kind === "image" || kind === "video") {
+    const MediaRenderer = kind === "image" ? ImageRenderer : VideoRenderer;
     return (
       <div
         className="flex h-full flex-col"
@@ -118,7 +122,7 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
       >
         <PathStrip path={path} size={null} />
         <div className="min-h-0 flex-1">
-          <ImageRenderer projectId={projectId} path={path} />
+          <MediaRenderer projectId={projectId} path={path} />
         </div>
       </div>
     );
@@ -159,6 +163,8 @@ interface TextProps {
 function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
   const nav = useDocNavigation(path); // AC8 in-pane cross-file navigation
   const [popoutOpen, setPopoutOpen] = useState(false);
+  // Bumped after a successful in-app markdown edit so the preview re-fetches.
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [state, setState] = useState<
     | { status: "loading" }
     | { status: "ok"; text: string; size: number }
@@ -196,7 +202,9 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
     return () => {
       cancelled = true;
     };
-  }, [projectId, nav.effectivePath]);
+    // reloadNonce forces a fresh fetch after an in-app save; the `cancelled`
+    // guard above discards any overlapping in-flight response (review #10).
+  }, [projectId, nav.effectivePath, reloadNonce]);
 
   const size = state.status === "ok" ? state.size : null;
 
@@ -257,7 +265,7 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
         </div>
       );
     }
-    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} />;
+    if (kind === "markdown") return <MarkdownRenderer text={state.text} onDocLinkClick={nav.navigateToDoc} scrollToFragment={nav.fragment} onPopOut={popOut ? () => setPopoutOpen(true) : undefined} projectId={projectId} path={nav.effectivePath} onSaved={popOut ? () => setReloadNonce((n) => n + 1) : undefined} />;
     if (kind === "code") return <CodeRenderer text={state.text} extension={ext} />;
     if (kind === "mermaid") return <MermaidRenderer text={state.text} />;
     return <TextRenderer text={state.text} />;

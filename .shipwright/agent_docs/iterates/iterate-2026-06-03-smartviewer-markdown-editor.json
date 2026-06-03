@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-03-smartviewer-markdown-editor",
+  "date": "2026-06-03T15:40:33.766561Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/smartviewer-markdown-editor",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-06-03-smartviewer-markdown-editor.md",
+  "adr": "iterate-2026-06-03-smartviewer-markdown-editor"
+}
