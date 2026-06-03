@@ -117,9 +117,11 @@ describe("detectLossyConstructs", () => {
     expect(detectLossyConstructs(clean)).toEqual([]);
   });
 
-  it("flags YAML frontmatter", () => {
+  it("does NOT flag YAML frontmatter (preserved verbatim via splitMarkdownEnvelope)", () => {
+    // Frontmatter is no longer lossy: the editor never sees it, so it round-trips
+    // byte-for-byte. See markdownTiptap.envelope.test.ts for the round-trip proof.
     const md = "---\ntitle: hi\ntags: [a]\n---\n\n# Body\n";
-    expect(detectLossyConstructs(md)).toContain("YAML frontmatter");
+    expect(detectLossyConstructs(md)).not.toContain("YAML frontmatter");
   });
 
   it("flags raw HTML and HTML comments", () => {

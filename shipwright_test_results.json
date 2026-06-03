@@ -1,193 +1,112 @@
 {
-  "last_updated": "2026-06-03T16:40:22.569151+00:00",
+  "last_updated": "2026-06-03",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-03-start-campaign-action",
-    "intent": "feature",
+    "run_id": "iterate-2026-06-03-md-editor-frontmatter-roundtrip",
+    "intent": "bug",
     "complexity": "medium",
-    "timestamp": "2026-06-03T16:40:22.569151+00:00",
+    "timestamp": "2026-06-03",
     "paths_touched": [
-      "server/src/core/campaign-write.ts",
-      "server/src/routes/campaigns.ts",
-      "server/src/routes/triage.ts",
-      "server/src/index.ts",
-      "server/src/types/triage.ts",
-      "client/src/lib/campaignsApi.ts",
-      "client/src/hooks/useStartCampaign.ts",
-      "client/src/hooks/useCampaigns.ts",
-      "client/src/components/triage/TriageDetailModal.tsx",
-      "client/src/components/triage/CampaignStartCta.tsx",
-      "client/src/pages/TriagePage.tsx",
-      "client/src/lib/triageApi.ts",
-      "client/src/test/campaigns-no-triage-coupling.test.ts",
-      "client/e2e/flows/start-campaign-action.spec.ts",
-      ".shipwright/planning/01-adopted/spec.md",
-      ".shipwright/agent_docs/architecture.md",
-      ".shipwright/agent_docs/decision_log.md"
+      "client/src/lib/markdownTiptap.ts",
+      "client/src/lib/markdownTiptap.test.ts",
+      "client/src/lib/markdownTiptap.envelope.test.ts",
+      "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
+      "client/src/components/external/SmartViewer/MarkdownEditorModal.test.tsx",
+      "client/e2e/flows/markdown-editor.spec.ts"
     ],
     "result": "passed",
-    "summary": "Triage 'Start Campaign' action (ADR-148): POST /api/campaigns/:projectId/:slug/start flips campaign lifecycle draft->active via new core/campaign-write.ts (atomic, lock-protected, status.json/frontmatter symmetric with pickLifecycle); triage items enriched with campaignSlug/campaignStatus via an injected listCampaignRefs dep (triage.ts imports no campaign module); TriageDetailModal renders Start Campaign/Go-to-board/none by status + demotes Fix-now; navigates to the board. Narrow relaxation of the WebUI read-only-on-campaign-state invariant.",
+    "summary": "Markdown editor round-trip now preserves YAML frontmatter, line endings (CRLF) and the trailing newline via a verbatim envelope; the diff shows only real body changes and Save no longer corrupts frontmatter.",
     "unit": {
       "status": "passed",
-      "passed": 3003,
-      "total": 3003
+      "passed": 1516,
+      "total": 1516
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "n/a"
     },
     "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "n/a"
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 4,
+      "total": 4
     },
     "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "n/a"
     },
     "smoke": {
-      "status": "skipped"
+      "status": "n/a"
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 1,
+      "tests_run": 4,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/start-campaign-action.spec.ts --reporter=list",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-03-start-campaign-action/surface_verification.json"
+      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/markdown-editor.spec.ts --config=client/playwright.config.ts --project=chromium --reporter=list",
+      "evidence": "4/4 passed in Chromium against an isolated Vite (BASE_URL=http://127.0.0.1:5199); API route-mocked"
     },
-    "degraded": [
-      {
-        "condition": "server `npm run lint` (oxlint) binary absent in junctioned node_modules (pre-existing worktree-hydration gap). New/changed server files linted clean via the client's pinned oxlint binary; client `npm run lint` passed."
-      }
-    ],
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "setCampaignStatus writes status.json top-level status",
+          "behavior": "AC1 unedited canonical frontmatter file round-trips byte-identically",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'status.json scoped write' PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts AC1 PASSED + E2E 'No changes' PASSED"
         },
         {
-          "behavior": "setCampaignStatus prefers status.json when both exist",
+          "behavior": "AC2 a single body edit yields exactly a one-line (+1/-1) diff",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'json wins' PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts AC2 PASSED + E2E add=1/del=1 PASSED"
         },
         {
-          "behavior": "setCampaignStatus replaces existing frontmatter status:",
+          "behavior": "AC3 YAML frontmatter preserved byte-for-byte (no setext-heading mangling)",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'frontmatter replace' PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts AC3 PASSED + E2E PUT-body verbatim frontmatter PASSED"
         },
         {
-          "behavior": "setCampaignStatus inserts status: when frontmatter lacks it",
+          "behavior": "AC4 CRLF line endings preserved across round-trip",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'frontmatter insert' PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts AC4 PASSED"
         },
         {
-          "behavior": "setCampaignStatus CRLF-safe",
+          "behavior": "AC5 trailing-newline convention preserved (with and without)",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'CRLF' PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts AC5 PASSED + E2E save endsWith newline PASSED"
         },
         {
-          "behavior": "setCampaignStatus no writable target -> CampaignWriteError",
+          "behavior": "AC6 frontmatter-less file round-trips byte-identically",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'no-target' PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts AC6 PASSED"
         },
         {
-          "behavior": "setCampaignStatus invalid status rejected",
+          "behavior": "AC7 detectLossyConstructs no longer flags YAML frontmatter",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'invalid status' PASSED"
+          "evidence": "markdownTiptap.test.ts + envelope AC7 PASSED"
         },
         {
-          "behavior": "frontmatter regex refuses a prose ---block (no key line) [review #1]",
+          "behavior": "Modal shows neutral 'frontmatter preserved' note, not a lossy warn",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'thematic break around prose' PASSED"
+          "evidence": "MarkdownEditorModal.test.tsx + E2E md-editor-frontmatter-note PASSED"
         },
         {
-          "behavior": "nested status: not de-indented; only top-level written [review #2]",
+          "behavior": "Save is a disabled no-op when the round-trip is byte-identical",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts 'does not de-indent nested status' PASSED"
+          "evidence": "E2E 'No changes' (Save disabled) + modal Save tests require a real edit PASSED"
         },
         {
-          "behavior": "read-after-write parity via pickLifecycle (AC-2)",
+          "behavior": "Leading indentation of first body line stays in core, not prefix (ext-review #1)",
           "disposition": "tested",
-          "evidence": "campaign-write.test.ts + campaigns.test.ts GET-reflects PASSED"
+          "evidence": "markdownTiptap.envelope.test.ts 2 indentation cases PASSED"
         },
         {
-          "behavior": "POST start draft->active 200 (AC-1)",
+          "behavior": "Save writes byte-correct bytes (frontmatter verbatim, edit present, no heading)",
           "disposition": "tested",
-          "evidence": "campaigns.test.ts 'starts a draft campaign' PASSED"
-        },
-        {
-          "behavior": "POST start frontmatter-only -> 200",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts 'frontmatter-only' PASSED"
-        },
-        {
-          "behavior": "POST start idempotent when active -> 200",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts 'idempotent active' PASSED"
-        },
-        {
-          "behavior": "POST start complete -> 409 (no revert, guard inside lock)",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts '409 complete' PASSED"
-        },
-        {
-          "behavior": "POST start unknown project/slug -> 404",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts '404 project' + '404 slug' PASSED"
-        },
-        {
-          "behavior": "POST start slug symlink-escape -> 403",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts '403 symlink slug' PASSED"
-        },
-        {
-          "behavior": "POST start no writable target -> 422",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts '422 no-target' PASSED"
-        },
-        {
-          "behavior": "POST start lock contended (ELOCKED) -> 503 [review test-gap]",
-          "disposition": "tested",
-          "evidence": "campaigns.test.ts '503 ELOCKED' PASSED"
-        },
-        {
-          "behavior": "triage enrichment annotates matching item; deterministic draft-precedence; best-effort; no-op without dep (AC-4)",
-          "disposition": "tested",
-          "evidence": "triage.test.ts campaign-ref enrichment (4 cases) PASSED"
-        },
-        {
-          "behavior": "client startCampaign: POST + result mapping (ok/409/encode/unparseable)",
-          "disposition": "tested",
-          "evidence": "campaignsApi.test.ts startCampaign (4 cases) PASSED"
-        },
-        {
-          "behavior": "useStartCampaign invalidates lane only on success",
-          "disposition": "tested",
-          "evidence": "useStartCampaign.test.tsx (2 cases) PASSED"
-        },
-        {
-          "behavior": "Modal CTA by status + Fix-now demotion + navigate/close + start-failure inline + transport-reject inline (AC-5)",
-          "disposition": "tested",
-          "evidence": "TriageDetailModal.test.tsx 'Start Campaign CTA' (7 cases) PASSED"
-        },
-        {
-          "behavior": "Live: draft umbrella item -> Start Campaign -> board shows it active (AC-7)",
-          "disposition": "tested",
-          "evidence": "e2e/flows/start-campaign-action.spec.ts (self-seeding, idempotent) PASSED"
+          "evidence": "E2E PUT-body assertion PASSED"
         }
       ],
       "counts": {
-        "testable": 23,
-        "tested": 23,
+        "testable": 11,
+        "tested": 11,
         "untestable": 0,
         "untested_testable": 0
       },
