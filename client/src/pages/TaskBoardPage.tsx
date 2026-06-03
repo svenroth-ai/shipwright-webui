@@ -400,18 +400,26 @@ export default function TaskBoardPage() {
       )}
 
       {/* FR-01.31 — Campaigns lane. One card per active campaign; hidden
-          entirely when none have work remaining (no layout shift). */}
+          entirely when none have work remaining (no layout shift). The cards
+          live in a height-capped, internally-scrolling band so several
+          expanded campaigns can never push the kanban board off-screen
+          (iterate-2026-06-03-campaign-lane-collapse). */}
       {activeCampaigns.length > 0 && (
         <div
-          className="page-container flex w-full flex-col gap-3 pt-6 pb-2"
+          className="page-container flex w-full flex-col gap-2 pt-6 pb-2"
           data-testid="task-board-campaigns-lane"
         >
           <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted,#6b7280)]">
             Campaigns
           </div>
-          {activeCampaigns.map((c) => (
-            <CampaignLaneCard key={c.slug} campaign={c} />
-          ))}
+          <div
+            className="flex max-h-[40vh] flex-col gap-3 overflow-y-auto"
+            data-testid="task-board-campaigns-scroll"
+          >
+            {activeCampaigns.map((c) => (
+              <CampaignLaneCard key={c.slug} campaign={c} />
+            ))}
+          </div>
         </div>
       )}
 

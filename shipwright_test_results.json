@@ -1,28 +1,24 @@
 {
-  "last_updated": "2026-06-02T15:24:17.623Z",
+  "last_updated": "2026-06-03T07:08:24.082943+00:00",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-02-all-projects-create-cascade",
+    "run_id": "iterate-2026-06-03-campaign-lane-collapse",
     "intent": "change",
-    "complexity": "medium",
-    "timestamp": "2026-06-02T15:24:17.623Z",
+    "complexity": "small",
+    "timestamp": "2026-06-03T07:08:24.082943+00:00",
     "paths_touched": [
+      "client/src/components/external/CampaignLaneCard.tsx",
+      "client/src/components/external/CampaignLaneCard.test.tsx",
       "client/src/pages/TaskBoardPage.tsx",
-      "client/src/components/external/CreateControls.tsx",
-      "client/src/components/external/CreateControls.test.tsx",
-      "client/src/components/external/ProjectCreateCascade.tsx",
-      "client/src/components/external/ProjectCreateCascade.test.tsx",
-      "client/src/components/external/NewIssueModal/scoped-project-launch.test.tsx",
-      "client/src/test/doc-sync.test.ts",
-      "client/e2e/flows/90-all-projects-create-cascade.spec.ts",
-      ".shipwright/agent_docs/component_inventory.md",
-      ".shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md"
+      "client/e2e/flows/campaign-lane-collapse.spec.ts",
+      ".shipwright/planning/01-adopted/spec.md",
+      ".shipwright/agent_docs/architecture.md"
     ],
     "result": "passed",
-    "summary": "client-only change. client: tsc clean + oxlint clean + 1416/1416 vitest (incl doc-sync with 2 new tokens). F0.5 web surface tests_run=1 exit 0 against an isolated single-process built stack. New: CreateControls + ProjectCreateCascade (project-first All-Projects create cascade); TaskBoardPage cluster extracted (675->673 LOC, under bloat ceiling). Server untouched (not run).",
+    "summary": "Client-only UX polish for the FR-01.33 Campaigns lane: collapsible cards (default collapsed, persisted per-slug), collapsible description disclosure, and a height-capped lane so the kanban stays visible. client tsc clean + 1421/1421 vitest + lint clean; F0.5 web E2E tests_run=1 (live built stack, 3 campaigns).",
     "unit": {
       "status": "passed",
-      "passed": 1416,
-      "total": 1416
+      "passed": 1421,
+      "total": 1421
     },
     "integration": {
       "status": "not_run",
@@ -51,52 +47,54 @@
       "surface": "web",
       "tests_run": 1,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/90-all-projects-create-cascade.spec.ts --config=playwright.config.ts --reporter=line",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-lane-collapse.spec.ts --reporter=list",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-lane-collapse/surface_verification.log",
       "attempts": 1,
-      "note": "Isolated single-process stack: built worktree client served by worktree Hono via SHIPWRIGHT_STATIC_DIR, temp USERPROFILE, :3947, SHIPWRIGHT_NETWORK_PROFILE=local. Seeded two fixture projects via /api/projects. AC1-AC6 asserted in real Chromium (cascade scopes New+Plain to chosen project, list-view shares header, AC3 round-trip flat split-button returns, AC6 filter stays All Projects)."
+      "note": "Isolated single-process stack (built worktree client via SHIPWRIGHT_STATIC_DIR, temp USERPROFILE), seeded fixture project with 3 campaigns x 6 steps to make expanded cards tall. Verifies default-collapsed + kanban-stays-in-viewport-when-all-expanded + persistence across reload."
     },
-    "degraded": [
-      {
-        "condition": "External LLM review (external_review.py --mode iterate/code) not run: no OPENAI_API_KEY / GEMINI_API_KEY / GOOGLE_API_KEY configured on this machine. External LLM review is Advisory per Override Classes; full self + Step-8 code review performed instead."
-      }
-    ],
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 project-level + that project actions render lazily",
+          "behavior": "Card collapsed by default (header chevron+slug+done/total only; body hidden)",
           "disposition": "tested",
-          "evidence": "ProjectCreateCascade.test.tsx (ProjectActionsLoader filter/loading/empty) + e2e/flows/90 (both project rows; submenu actions on open) PASSED"
+          "evidence": "CampaignLaneCard.test.tsx 'is collapsed by default' + E2E PASSED"
         },
         {
-          "behavior": "AC2 modal scoped to chosen project (no action/schema mismatch)",
+          "behavior": "Header-click toggles expand/collapse",
           "disposition": "tested",
-          "evidence": "NewIssueModal/scoped-project-launch.test.tsx (payload projectId=proj-2) + e2e/flows/90 (new-issue-project-select === a.id) PASSED"
+          "evidence": "CampaignLaneCard.test.tsx 'expands... and collapses again' PASSED"
         },
         {
-          "behavior": "AC3 single-project mode unchanged (flat split-button)",
+          "behavior": "Card collapse persists per-slug to localStorage (write + read-on-mount + per-slug isolation)",
           "disposition": "tested",
-          "evidence": "CreateControls.test.tsx (branching) + e2e/flows/90 round-trip (split-button returns, cascade gone) PASSED"
+          "evidence": "CampaignLaneCard.test.tsx (3 persistence cases) + E2E reload PASSED"
         },
         {
-          "behavior": "AC4 per-project actions load lazily (no eager fetch-all)",
+          "behavior": "Description disclosure closed by default, opens on click, persists per-slug",
           "disposition": "tested",
-          "evidence": "e2e/flows/90 (actions resolve only after a project submenu opens; loader mounted in Radix SubContent) PASSED"
+          "evidence": "CampaignLaneCard.test.tsx 'description is behind a disclosure...' PASSED"
         },
         {
-          "behavior": "AC5 Plain picker scopes plain session to chosen project; projects without new-plain hidden",
+          "behavior": "Expanded-body parity (steps, complete/next/pending icons, copy-launch, disabled states, triage link)",
           "disposition": "tested",
-          "evidence": "ProjectPlainPicker trigger unit + e2e/flows/90 (plain->project B->new-plain modal === b.id) PASSED"
+          "evidence": "CampaignLaneCard.test.tsx (6 cases) PASSED"
         },
         {
-          "behavior": "AC6 board filter stays All Projects after cascade select",
+          "behavior": "Layout: lane height-capped (max-h-40vh + scroll) so kanban stays in viewport with multiple expanded campaigns",
           "disposition": "tested",
-          "evidence": "e2e/flows/90 (project-filter-dropdown still reads All projects with modal open; no setActiveProjectId in new path) PASSED"
+          "evidence": "e2e/flows/campaign-lane-collapse.spec.ts (3 campaigns expanded, column-draft.y < viewport, scroll.height <= 0.45vh) PASSED"
+        },
+        {
+          "behavior": "Expanded state persists across a real-browser reload",
+          "disposition": "tested",
+          "evidence": "e2e/flows/campaign-lane-collapse.spec.ts reload assertion PASSED"
         }
       ],
       "counts": {
-        "testable": 6,
-        "tested": 6,
+        "testable": 7,
+        "tested": 7,
         "untestable": 0,
         "untested_testable": 0
       },
