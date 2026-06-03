@@ -1,25 +1,32 @@
 {
-  "last_updated": "2026-06-03T09:15:39.785643+00:00",
+  "last_updated": "2026-06-03T15:33:37.984489+00:00",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-03-campaign-status-filter",
-    "intent": "change",
-    "complexity": "small",
-    "timestamp": "2026-06-03T09:15:39.785643+00:00",
+    "run_id": "iterate-2026-06-03-smartviewer-video-view",
+    "intent": "feature",
+    "complexity": "medium",
+    "timestamp": "2026-06-03T15:33:37.984489+00:00",
     "paths_touched": [
-      "server/src/core/campaign-status-json.ts",
-      "server/src/core/campaign-store.ts",
-      "client/src/lib/campaignsApi.ts",
-      "client/e2e/flows/campaign-status-filter.spec.ts",
+      "server/src/external/media/routes.ts",
+      "server/src/external/media/_helpers.ts",
+      "server/src/external/media-route.test.ts",
+      "server/src/external/routes.ts",
+      "client/src/lib/mediaApi.ts",
+      "client/src/components/external/SmartViewer/VideoRenderer.tsx",
+      "client/src/components/external/SmartViewer/VideoRenderer.test.tsx",
+      "client/src/components/external/SmartViewer.tsx",
+      "client/src/components/external/SmartViewer.test.tsx",
       "client/src/test/doc-sync.test.ts",
-      ".shipwright/planning/01-adopted/spec.md",
-      ".shipwright/agent_docs/architecture.md"
+      "client/e2e/flows/70-j-media-route.spec.ts",
+      ".shipwright/agent_docs/architecture.md",
+      ".shipwright/agent_docs/component_inventory.md"
     ],
     "result": "passed",
-    "summary": "Consumer side of Option B: campaign-store reads a producer-owned top-level lifecycle status (status.json wins / campaign.md frontmatter fallback) via the new campaign-status-json.ts split; selectActiveCampaigns shows iff active, hides draft/complete, legacy no-status falls back to done<total. server tsc + 1430/1430 vitest; client tsc + lint + 1420/1420 vitest; F0.5 web E2E tests_run=1 (active/draft/complete/legacy fixture).",
+    "summary": "SmartViewer inline video via a new Range-capable GET /api/external/projects/:id/media route (206/200/416, video MIME allowlist 415, no size cap, fs.createReadStream — separate from the atomic /file route). Client VideoRenderer mirrors ImageRenderer (<video src=mediaUrl(...)> + onError chip); resolveKind maps mp4/m4v/webm/ogv/ogg/mov. server tsc 0 + 1450/1450 vitest; client tsc 0 + oxlint clean + 1436/1436 vitest; F0.5 web E2E 4/4 against an isolated single-process stack (real node-server adapter 206 byte-exact + real Chromium consumer chain).",
     "unit": {
       "status": "passed",
-      "passed": 1420,
-      "total": 1420
+      "passed": 1436,
+      "total": 1436,
+      "note": "client vitest; server vitest 1450/1450 separately"
     },
     "integration": {
       "status": "not_run",
@@ -33,8 +40,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 4,
+      "total": 4
     },
     "design_fidelity": {
       "status": "skipped",
@@ -46,72 +53,85 @@
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 1,
+      "tests_run": 4,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-status-filter.spec.ts --reporter=list",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-status-filter/surface_verification.log",
+      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/70-j-media-route.spec.ts --config=playwright.config.ts --reporter=line",
+      "evidence_path": "client/e2e/flows/70-j-media-route.spec.ts",
       "attempts": 1,
-      "note": "Isolated built stack seeded with 4 campaigns: active(status:active,0/2) + legacy(no-status,1/2) SHOWN; draft(status:draft,0/2) + complete(status:complete,2/2) HIDDEN. Live /api/campaigns also curl-verified."
+      "note": "Isolated single-process stack (temp USERPROFILE, PORT=3863, SHIPWRIGHT_STATIC_DIR=built SPA, SHIPWRIGHT_NETWORK_PROFILE=local) seeded with a project containing a 100-byte ramp clip.mp4. Verified on the REAL @hono/node-server adapter: Range bytes=10-19 -> 206 byte-exact slice; full GET -> 200 + Accept-Ranges + video/mp4; non-video -> 415; real Chromium /preview consumer chain fetched /media (200/206) and mounted VideoRenderer."
     },
     "degraded": [
       {
-        "condition": "server `npm run lint` (oxlint) binary absent in junctioned node_modules (pre-existing worktree-hydration gap). New/changed server files linted clean via the client's pinned oxlint binary; client `npm run lint` passed."
+        "condition": "External LLM review skipped: no OPENROUTER_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY in the non-interactive shell env. External review is Advisory per the iterate Override Classes; a self-driven adversarial diff pass was performed instead, and the user was offered to run external_review.py --mode code with a key before merge."
       }
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Server reads top-level lifecycle status from status.json into Campaign.status",
+          "behavior": "GET /media no-Range -> 200 full body + Accept-Ranges + video MIME",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts 'reads the top-level lifecycle status from status.json' PASSED"
+          "evidence": "media-route.test AC1 + F0.5 'full GET' PASSED"
         },
         {
-          "behavior": "Server reads lifecycle status from campaign.md frontmatter when no status.json status",
+          "behavior": "GET /media Range -> 206 byte-exact slice (a-b, open-ended, suffix, over-long clamp)",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts frontmatter case PASSED"
+          "evidence": "media-route.test AC2 x4 + F0.5 real-server 206 byte-exact PASSED"
         },
         {
-          "behavior": "status.json top-level status wins over frontmatter",
+          "behavior": "Malformed Range header ignored -> 200 full",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts precedence case PASSED"
+          "evidence": "media-route.test 'malformed Range' PASSED"
         },
         {
-          "behavior": "Invalid / absent status resolves to null (legacy)",
+          "behavior": "Unsatisfiable Range -> 416 + Content-Range bytes */size",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts + campaign-status-json.test.ts pickLifecycle PASSED"
+          "evidence": "media-route.test AC3 PASSED"
         },
         {
-          "behavior": "readStatusJson tolerates torn/missing/non-object (3s-poll race)",
+          "behavior": "Non-video extension -> 415 unsupported_media_type; 6-MIME table",
           "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts readStatusJson (4 cases) PASSED"
+          "evidence": "media-route.test AC4 x7 + F0.5 415 PASSED"
         },
         {
-          "behavior": "pickLifecycle precedence + case-insensitive + invalid->null",
+          "behavior": "Path-guard parity (traversal/absolute/404/directory)",
           "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts pickLifecycle (4 cases) PASSED"
+          "evidence": "media-route.test AC5 x4 PASSED"
         },
         {
-          "behavior": "Client selectActiveCampaigns: active shown, draft+complete hidden, legacy done<total fallback",
+          "behavior": "resolveKind maps mp4/m4v/webm/ogv/ogg/mov -> video kind",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts (4 cases) PASSED"
+          "evidence": "SmartViewer.test resolveKind matrix PASSED"
         },
         {
-          "behavior": "Live board shows ONLY active + legacy campaigns (draft/complete hidden)",
+          "behavior": "SmartViewer dispatches video -> VideoRenderer, issues no JS fetch",
           "disposition": "tested",
-          "evidence": "e2e/flows/campaign-status-filter.spec.ts (seeds active/draft/complete/legacy, exactly 2 cards) PASSED"
+          "evidence": "SmartViewer.test 'video extension' (fetch mock not called) PASSED"
+        },
+        {
+          "behavior": "VideoRenderer renders <video src=mediaUrl> + onError fallback chip",
+          "disposition": "tested",
+          "evidence": "VideoRenderer.test x2 PASSED"
+        },
+        {
+          "behavior": "Real-browser consumer chain fetches /media (200/206) and mounts VideoRenderer",
+          "disposition": "tested",
+          "evidence": "F0.5 'browser: SmartViewer mounts VideoRenderer and fetches /media' PASSED"
+        },
+        {
+          "behavior": "Actual codec decode / pixel playback in <video>",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "evidence": "We serve container bytes as-is; decode is browser/codec-dependent. An undecodable codec is handled via the onError chip (tested). Real playback needs a real clip + visual confirmation."
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
-        "untestable": 0,
+        "testable": 10,
+        "tested": 10,
+        "untestable": 1,
         "untested_testable": 0
       },
-      "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
-      }
+      "enumeration_basis": "Server /media HTTP contract (status matrix 200/206/416/415/404/400 + byte-exact Range arithmetic) + client resolveKind/SmartViewer dispatch + VideoRenderer render/onError + F0.5 real-stack consumer chain. Covers AC1-AC6; AC7 (FolderTree video icon) descoped with no shipped behavior. Codec decode is the sole untestable row (requires-manual-visual-judgment)."
     }
   }
 }

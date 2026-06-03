@@ -48,6 +48,7 @@ import { createPreviewRouter } from "./preview/routes.js";
 import { createActionsRouter } from "./actions/routes.js";
 import { createTreeRouter } from "./tree/routes.js";
 import { createFileRouter } from "./file/routes.js";
+import { createMediaRouter } from "./media/routes.js";
 import { createInboxRouter } from "./inbox/routes.js";
 import { createTranscriptRouter } from "./transcript/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
@@ -219,6 +220,9 @@ export function createExternalRoutes(args: {
   // CLAUDE.md rule 10 — realpath path-guard for tree + file.
   app.route("/", createTreeRouter({ getProjectById }));
   app.route("/", createFileRouter({ getProjectById }));
+  // Range-capable video streaming (SmartViewer <video> pane). Separate
+  // from /file: streams via createReadStream + 206, no 5 MB cap.
+  app.route("/", createMediaRouter({ getProjectById }));
   // GET actions + POST/DELETE per-project actions.json (Settings UI).
   app.route(
     "/",

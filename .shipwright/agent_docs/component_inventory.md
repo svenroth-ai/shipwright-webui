@@ -20,7 +20,7 @@ Subfolder splits — these are the post-Campaign-C cohesive sub-areas where a fo
 - `external/BubbleTranscript/` — 11 modules (ADR-126, Campaign C / C3)
 - `external/NewIssueModal/` — 13 modules (Campaign C / C4)
 - `external/TaskDetailHeader/` — 6 modules (Campaign C / C6)
-- `external/SmartViewer/` — 6 renderer modules (pre-existing)
+- `external/SmartViewer/` — 7 renderer modules (`VideoRenderer` added iterate-2026-06-03-smartviewer-video-view)
 
 Pages live one level up at `client/src/pages/` (8 page modules; `InboxPage` was split per ADR-124 into `client/src/pages/inbox/` with 5 sub-modules + 1 hook + 1 types module).
 
@@ -42,7 +42,7 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `BubbleTranscript` | `external/BubbleTranscript.tsx` | 175 | 24 |
 | `TaskDetailHeader` | `external/TaskDetailHeader.tsx` | 219 | 21 |
 | `TaskCard` | `external/TaskCard.tsx` | 606 | 18 |
-| `SmartViewer` | `external/SmartViewer.tsx` | 321 | 13 |
+| `SmartViewer` | `external/SmartViewer.tsx` | 286 | 13 |
 | `MarkdownText` | `external/MarkdownText.tsx` | 195 | 13 |
 | `CommandPreviewPanel` | `external/CommandPreviewPanel.tsx` | 254 | 12 |
 | `ToolOutputBlock` (strip-ansi, legacy) | `external/ToolOutputBlock.tsx` | 46 | 11 |
@@ -133,6 +133,7 @@ The new tool-use+result `ToolOutputBlock` is intentionally name-collision-aliase
 | `ViewerTabBar` | `external/SmartViewer/ViewerTabBar.tsx` | 115 | 3 |
 | `CodeRenderer` | `external/SmartViewer/CodeRenderer.tsx` | 84 | 3 |
 | `ImageRenderer` | `external/SmartViewer/ImageRenderer.tsx` | 55 | 3 |
+| `VideoRenderer` | `external/SmartViewer/VideoRenderer.tsx` | 60 | 3 | streams via `mediaApi.mediaUrl` → `/media` (Range) |
 | `TextRenderer` | `external/SmartViewer/TextRenderer.tsx` | 43 | 3 |
 | `MarkdownRenderer` | `external/SmartViewer/MarkdownRenderer.tsx` | 23 | 4 |
 | `SmartViewerModal` | `external/SmartViewer/SmartViewerModal.tsx` | 70 | 1 |
