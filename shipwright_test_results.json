@@ -1,25 +1,35 @@
 {
-  "last_updated": "2026-06-03T09:15:39.785643+00:00",
+  "last_updated": "2026-06-03T16:40:22.569151+00:00",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-03-campaign-status-filter",
-    "intent": "change",
-    "complexity": "small",
-    "timestamp": "2026-06-03T09:15:39.785643+00:00",
+    "run_id": "iterate-2026-06-03-start-campaign-action",
+    "intent": "feature",
+    "complexity": "medium",
+    "timestamp": "2026-06-03T16:40:22.569151+00:00",
     "paths_touched": [
-      "server/src/core/campaign-status-json.ts",
-      "server/src/core/campaign-store.ts",
+      "server/src/core/campaign-write.ts",
+      "server/src/routes/campaigns.ts",
+      "server/src/routes/triage.ts",
+      "server/src/index.ts",
+      "server/src/types/triage.ts",
       "client/src/lib/campaignsApi.ts",
-      "client/e2e/flows/campaign-status-filter.spec.ts",
-      "client/src/test/doc-sync.test.ts",
+      "client/src/hooks/useStartCampaign.ts",
+      "client/src/hooks/useCampaigns.ts",
+      "client/src/components/triage/TriageDetailModal.tsx",
+      "client/src/components/triage/CampaignStartCta.tsx",
+      "client/src/pages/TriagePage.tsx",
+      "client/src/lib/triageApi.ts",
+      "client/src/test/campaigns-no-triage-coupling.test.ts",
+      "client/e2e/flows/start-campaign-action.spec.ts",
       ".shipwright/planning/01-adopted/spec.md",
-      ".shipwright/agent_docs/architecture.md"
+      ".shipwright/agent_docs/architecture.md",
+      ".shipwright/agent_docs/decision_log.md"
     ],
     "result": "passed",
-    "summary": "Consumer side of Option B: campaign-store reads a producer-owned top-level lifecycle status (status.json wins / campaign.md frontmatter fallback) via the new campaign-status-json.ts split; selectActiveCampaigns shows iff active, hides draft/complete, legacy no-status falls back to done<total. server tsc + 1430/1430 vitest; client tsc + lint + 1420/1420 vitest; F0.5 web E2E tests_run=1 (active/draft/complete/legacy fixture).",
+    "summary": "Triage 'Start Campaign' action (ADR-148): POST /api/campaigns/:projectId/:slug/start flips campaign lifecycle draft->active via new core/campaign-write.ts (atomic, lock-protected, status.json/frontmatter symmetric with pickLifecycle); triage items enriched with campaignSlug/campaignStatus via an injected listCampaignRefs dep (triage.ts imports no campaign module); TriageDetailModal renders Start Campaign/Go-to-board/none by status + demotes Fix-now; navigates to the board. Narrow relaxation of the WebUI read-only-on-campaign-state invariant.",
     "unit": {
       "status": "passed",
-      "passed": 1420,
-      "total": 1420
+      "passed": 2891,
+      "total": 2891
     },
     "integration": {
       "status": "not_run",
@@ -48,10 +58,8 @@
       "surface": "web",
       "tests_run": 1,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-status-filter.spec.ts --reporter=list",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-status-filter/surface_verification.log",
-      "attempts": 1,
-      "note": "Isolated built stack seeded with 4 campaigns: active(status:active,0/2) + legacy(no-status,1/2) SHOWN; draft(status:draft,0/2) + complete(status:complete,2/2) HIDDEN. Live /api/campaigns also curl-verified."
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/start-campaign-action.spec.ts --reporter=list",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-03-start-campaign-action/surface_verification.json"
     },
     "degraded": [
       {
@@ -62,55 +70,130 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Server reads top-level lifecycle status from status.json into Campaign.status",
+          "behavior": "setCampaignStatus writes status.json top-level status",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts 'reads the top-level lifecycle status from status.json' PASSED"
+          "evidence": "campaign-write.test.ts 'status.json scoped write' PASSED"
         },
         {
-          "behavior": "Server reads lifecycle status from campaign.md frontmatter when no status.json status",
+          "behavior": "setCampaignStatus prefers status.json when both exist",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts frontmatter case PASSED"
+          "evidence": "campaign-write.test.ts 'json wins' PASSED"
         },
         {
-          "behavior": "status.json top-level status wins over frontmatter",
+          "behavior": "setCampaignStatus replaces existing frontmatter status:",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts precedence case PASSED"
+          "evidence": "campaign-write.test.ts 'frontmatter replace' PASSED"
         },
         {
-          "behavior": "Invalid / absent status resolves to null (legacy)",
+          "behavior": "setCampaignStatus inserts status: when frontmatter lacks it",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts + campaign-status-json.test.ts pickLifecycle PASSED"
+          "evidence": "campaign-write.test.ts 'frontmatter insert' PASSED"
         },
         {
-          "behavior": "readStatusJson tolerates torn/missing/non-object (3s-poll race)",
+          "behavior": "setCampaignStatus CRLF-safe",
           "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts readStatusJson (4 cases) PASSED"
+          "evidence": "campaign-write.test.ts 'CRLF' PASSED"
         },
         {
-          "behavior": "pickLifecycle precedence + case-insensitive + invalid->null",
+          "behavior": "setCampaignStatus no writable target -> CampaignWriteError",
           "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts pickLifecycle (4 cases) PASSED"
+          "evidence": "campaign-write.test.ts 'no-target' PASSED"
         },
         {
-          "behavior": "Client selectActiveCampaigns: active shown, draft+complete hidden, legacy done<total fallback",
+          "behavior": "setCampaignStatus invalid status rejected",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts (4 cases) PASSED"
+          "evidence": "campaign-write.test.ts 'invalid status' PASSED"
         },
         {
-          "behavior": "Live board shows ONLY active + legacy campaigns (draft/complete hidden)",
+          "behavior": "frontmatter regex refuses a prose ---block (no key line) [review #1]",
           "disposition": "tested",
-          "evidence": "e2e/flows/campaign-status-filter.spec.ts (seeds active/draft/complete/legacy, exactly 2 cards) PASSED"
+          "evidence": "campaign-write.test.ts 'thematic break around prose' PASSED"
+        },
+        {
+          "behavior": "nested status: not de-indented; only top-level written [review #2]",
+          "disposition": "tested",
+          "evidence": "campaign-write.test.ts 'does not de-indent nested status' PASSED"
+        },
+        {
+          "behavior": "read-after-write parity via pickLifecycle (AC-2)",
+          "disposition": "tested",
+          "evidence": "campaign-write.test.ts + campaigns.test.ts GET-reflects PASSED"
+        },
+        {
+          "behavior": "POST start draft->active 200 (AC-1)",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts 'starts a draft campaign' PASSED"
+        },
+        {
+          "behavior": "POST start frontmatter-only -> 200",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts 'frontmatter-only' PASSED"
+        },
+        {
+          "behavior": "POST start idempotent when active -> 200",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts 'idempotent active' PASSED"
+        },
+        {
+          "behavior": "POST start complete -> 409 (no revert, guard inside lock)",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts '409 complete' PASSED"
+        },
+        {
+          "behavior": "POST start unknown project/slug -> 404",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts '404 project' + '404 slug' PASSED"
+        },
+        {
+          "behavior": "POST start slug symlink-escape -> 403",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts '403 symlink slug' PASSED"
+        },
+        {
+          "behavior": "POST start no writable target -> 422",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts '422 no-target' PASSED"
+        },
+        {
+          "behavior": "POST start lock contended (ELOCKED) -> 503 [review test-gap]",
+          "disposition": "tested",
+          "evidence": "campaigns.test.ts '503 ELOCKED' PASSED"
+        },
+        {
+          "behavior": "triage enrichment annotates matching item; deterministic draft-precedence; best-effort; no-op without dep (AC-4)",
+          "disposition": "tested",
+          "evidence": "triage.test.ts campaign-ref enrichment (4 cases) PASSED"
+        },
+        {
+          "behavior": "client startCampaign: POST + result mapping (ok/409/encode/unparseable)",
+          "disposition": "tested",
+          "evidence": "campaignsApi.test.ts startCampaign (4 cases) PASSED"
+        },
+        {
+          "behavior": "useStartCampaign invalidates lane only on success",
+          "disposition": "tested",
+          "evidence": "useStartCampaign.test.tsx (2 cases) PASSED"
+        },
+        {
+          "behavior": "Modal CTA by status + Fix-now demotion + navigate/close + start-failure inline + transport-reject inline (AC-5)",
+          "disposition": "tested",
+          "evidence": "TriageDetailModal.test.tsx 'Start Campaign CTA' (7 cases) PASSED"
+        },
+        {
+          "behavior": "Live: draft umbrella item -> Start Campaign -> board shows it active (AC-7)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/start-campaign-action.spec.ts (self-seeding, idempotent) PASSED"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 23,
+        "tested": 23,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 7,
+        "covered_acs": 7
       }
     }
   }

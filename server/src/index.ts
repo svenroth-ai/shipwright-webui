@@ -51,6 +51,8 @@ import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createTriageRoutes } from "./routes/triage.js";
 import { createCampaignsRoutes } from "./routes/campaigns.js";
+import { resolveCampaignsDir } from "./core/campaign-paths.js";
+import { readCampaigns } from "./core/campaign-store.js";
 import { createTriageLock } from "./core/triage-lock.js";
 import { PtyManager } from "./terminal/pty-manager.js";
 import {
@@ -578,13 +580,39 @@ if (isMainModule) {
           // takes a separate sdk-sessions lock (RC2 — store.persist()
           // locks itself), so `sessionsLockPath` is gone.
           lock: createTriageLock(),
+          // FR-01.33 — injected campaign-ref reader so the triage route can
+          // annotate items with the campaign that expands them WITHOUT
+          // importing any campaign module (preserves the
+          // campaigns-no-triage-coupling import boundary; the composition
+          // root owns the join). Best-effort: any read failure → [].
+          listCampaignRefs: (projectId) => {
+            const p = projectManager.getById(projectId);
+            if (!p || p.synthesized) return [];
+            const pr = resolveCampaignsDir({
+              path: p.path,
+              synthesized: p.synthesized,
+            });
+            if (!pr.ok) return [];
+            try {
+              return readCampaigns(pr.absolute, pr.projectRoot).map((cmp) => ({
+                expandsTriage: cmp.expandsTriage,
+                slug: cmp.slug,
+                status: cmp.status,
+              }));
+            } catch {
+              return [];
+            }
+          },
         }),
       );
 
-      // FR-01.31 — Campaigns lane routes. Read-only sibling of the triage
-      // route; mounts after /api/external so it inherits the same CORS/Origin
-      // gate. No lock / no write surface (campaign_init.py / campaign_progress.py
-      // own all campaign-state writes).
+      // FR-01.31 — Campaigns lane routes. GET is a read-only sibling of the
+      // triage route; mounts after /api/external so it inherits the same
+      // CORS/Origin gate. FR-01.33 adds POST /:slug/start — the ONE WebUI write
+      // to campaign state (draft → active), lock-protected via the same
+      // collision-safe `.weblock` `createTriageLock()` pattern. All other
+      // campaign-state writes still belong to campaign_init.py /
+      // campaign_progress.py.
       app.route(
         "/",
         createCampaignsRoutes({
@@ -593,6 +621,7 @@ if (isMainModule) {
             if (!p || p.synthesized) return undefined;
             return { id: p.id, path: p.path, synthesized: p.synthesized };
           },
+          lock: createTriageLock(),
         }),
       );
 

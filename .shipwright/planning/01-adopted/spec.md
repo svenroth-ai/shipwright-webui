@@ -337,9 +337,11 @@ events 0881461 (VITE_HOST), 65049116 + 825cdcf (HONO_HOST), and 6827d97
 
 ### FR-01.33 Campaigns lane on the Task Board (read + launch)
 
-Added by `iterate-2026-06-02-campaigns-board-lane`. Read-only; the WebUI
-never writes campaign state (`campaign_init.py` / `campaign_progress.py` own
-all writes).
+Added by `iterate-2026-06-02-campaigns-board-lane` (read path). As of
+`iterate-2026-06-03-start-campaign-action` (ADR-148) the WebUI performs exactly
+ONE campaign-state write — the Triage "Start Campaign" `draft → active` flip;
+`campaign_init.py` / `campaign_progress.py` still own every other campaign
+write (creation, sub-iterate/step status, `active → complete`).
 
 - (E) Given a registered project with a campaigns dir, when `GET
   /api/campaigns/:projectId` is called, then it returns `200 {campaigns:
@@ -385,6 +387,31 @@ all writes).
   `status` (legacy) falls back to the derived `done < total`, so existing
   campaigns keep rendering until the producer writes a status. WebUI stays
   read-only on campaign state (it never writes the status).
+- (T) **(iterate-2026-06-03-start-campaign-action, ADR-148)** Given a campaign,
+  when `POST /api/campaigns/:projectId/:slug/start` is called, then its lifecycle
+  status is set to `active` and the route returns `200 {slug, status:"active"}`;
+  the write targets `status.json` top-level `status` when that file exists, else
+  the `campaign.md` frontmatter `status:` (symmetric with the read precedence),
+  and a follow-up `GET /api/campaigns/:projectId` reports that campaign `active`.
+  Unknown project/synth → `404`; unknown slug / missing dir → `404`; slug that
+  symlinks outside the campaigns root → `403`; an already-`complete` campaign →
+  `409` (never revert); a campaign with neither `status.json` nor frontmatter →
+  `422`; lock contention → `503`; starting an already-`active` campaign → `200`
+  (idempotent). Only the lifecycle status changes — `sub_iterates`/steps/intent
+  are untouched.
+- (T) Given `GET /api/triage/:projectId`, when a campaign in that project has
+  `expandsTriage == item.id`, then the item is annotated with that campaign's
+  `campaignSlug` + `campaignStatus` (`null` otherwise); the join is server-side
+  via an injected dep so `routes/triage.ts` imports no campaign module
+  (`campaigns-no-triage-coupling` stays green). Duplicate `expandsTriage` across
+  campaigns resolves deterministically (prefer `draft`, then `active`).
+- (T) Given a campaign-umbrella triage item in the Triage detail modal, when its
+  `campaignStatus` is `draft` (or legacy `null`) then a primary **"Start
+  Campaign"** button renders (click → `POST start` → navigate to the board with
+  that project active); `active` → a **"Go to board"** button (no write);
+  `complete` → no campaign button. While a campaign CTA is shown **"Fix now" is
+  demoted** to a secondary style; non-campaign items keep "Fix now" primary. A
+  failed start surfaces inline without navigating or closing the modal.
 
 ## Quality Requirements
 

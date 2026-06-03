@@ -26,7 +26,9 @@ import {
   useSnoozeTriageItem,
 } from "../../hooks/useTriage";
 import { useProjectActions } from "../../hooks/useProjectActions";
+import { useStartCampaign } from "../../hooks/useStartCampaign";
 import { SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
+import { CampaignStartCta } from "./CampaignStartCta";
 import { LaunchPayloadBlock } from "./LaunchPayloadBlock";
 import { PromoteModal } from "./PromoteModal";
 import { buildFixNowIntent, type FixNowIntent } from "./fixNowIntent";
@@ -45,6 +47,15 @@ interface TriageDetailModalProps {
    * renders but clicks surface the "no-handler" message inline.
    */
   onFixNow?: (intent: FixNowIntent) => void;
+  /**
+   * FR-01.33 — invoked after a campaign-umbrella item's "Start Campaign"
+   * (draft → active) succeeds, or immediately on "Go to board" (already
+   * active). The parent (TriagePage) owns navigation + project-filter state
+   * (router/useProjectFilter need page-level context — same parent-owns
+   * pattern as `onFixNow`). When omitted the buttons still render but clicks
+   * only flip status without navigating.
+   */
+  onNavigateToBoard?: () => void;
 }
 
 export function TriageDetailModal({
@@ -54,21 +65,67 @@ export function TriageDetailModal({
   item,
   onActionComplete,
   onFixNow,
+  onNavigateToBoard,
 }: TriageDetailModalProps) {
   const dismiss = useDismissTriageItem(projectId);
   const snooze = useSnoozeTriageItem(projectId);
+  const startCampaignMut = useStartCampaign(projectId);
   const projectActions = useProjectActions(projectId);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [fixNowFailure, setFixNowFailure] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
 
-  // Reset the inline failure surface whenever the displayed item or
+  // Reset the inline failure surfaces whenever the displayed item or
   // open-state changes — a stale failure message from a previous click
   // should not bleed onto the next item / re-open.
   useEffect(() => {
     setFixNowFailure(null);
+    setStartError(null);
   }, [item.id, open]);
+
+  // FR-01.33 — campaign-umbrella branch. A triage item the producer linked to
+  // a campaign carries `campaignSlug` (+ lifecycle status). draft/null → offer
+  // "Start Campaign" (flip to active); active → "Go to board"; complete → no
+  // CTA. The campaign CTA being shown demotes Fix-now to a secondary style.
+  const campaignSlug = item.campaignSlug ?? null;
+  const campaignStatus = item.campaignStatus ?? null;
+  const isCampaignItem = Boolean(campaignSlug);
+  // Fix-now is demoted to a secondary style whenever a campaign CTA competes
+  // for primary attention (draft/active/legacy-null) — but NOT when the
+  // campaign is complete (no CTA shown, so Fix-now keeps its primary style).
+  const showCampaignCta = isCampaignItem && campaignStatus !== "complete";
+
+  const onStartCampaign = async () => {
+    if (!campaignSlug) return;
+    setStartError(null);
+    try {
+      const result = await startCampaignMut.mutateAsync(campaignSlug);
+      if (!result.ok) {
+        setStartError(
+          result.message ||
+            `Start campaign failed (${result.status}): ${result.error}`,
+        );
+        return;
+      }
+      onNavigateToBoard?.();
+      onOpenChange(false);
+    } catch (err) {
+      // Transport failure (server restarted mid-click / non-JSON body):
+      // startCampaign's discriminated result only covers HTTP errors, so a
+      // rejected fetch must be surfaced inline rather than becoming an
+      // unhandled rejection (review MEDIUM #4).
+      setStartError(
+        `Start campaign failed — could not reach the server. ${String(err).slice(0, 120)}`,
+      );
+    }
+  };
+
+  const onGoToBoard = () => {
+    onNavigateToBoard?.();
+    onOpenChange(false);
+  };
 
   const onFixNowClick = () => {
     setFixNowFailure(null);
@@ -204,6 +261,17 @@ export function TriageDetailModal({
 
               <LaunchPayloadBlock item={item} />
 
+              {isCampaignItem && campaignSlug && (
+                <CampaignStartCta
+                  slug={campaignSlug}
+                  status={campaignStatus}
+                  isStarting={startCampaignMut.isPending}
+                  error={startError}
+                  onStart={onStartCampaign}
+                  onGoToBoard={onGoToBoard}
+                />
+              )}
+
               {item.status === "triage" && (
                 <div className="border-t border-stone-200 pt-4 mt-4">
                   <label className="block">
@@ -240,7 +308,11 @@ export function TriageDetailModal({
                       type="button"
                       onClick={onFixNowClick}
                       disabled={projectActions.isLoading}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                      className={
+                        showCampaignCta
+                          ? "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                          : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                      }
                       data-testid="triage-fix-now"
                     >
                       {projectActions.isLoading && (

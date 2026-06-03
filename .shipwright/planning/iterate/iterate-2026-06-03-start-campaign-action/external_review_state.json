@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "timestamp": "2026-06-03T15:41:04.806101+00:00",
+  "provider": "openrouter",
+  "findings_count": 12,
+  "self_review_fallback_ran": false,
+  "reason": "openai+gemini; integrated: HIGH frontmatter-write atomic+scoped (no naive regex), HIGH complete->409 lifecycle guard; MED read-after-write parity matrix, dup-expandsTriage deterministic pick, validated-status enrichment, client isSubmitting+error+cache-invalidate, realpath ENOENT->404; noted auth=existing Origin gate, enrichment 30s-poll no-cache",
+  "review_mode": "iterate"
+}
