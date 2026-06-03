@@ -364,6 +364,18 @@ all writes).
 - (E) Given a malformed / half-written campaign dir, when the endpoint reads
   the project, then that campaign is skipped (logged) and the others still
   render — never a 500.
+- (E) **(iterate-2026-06-03-campaign-lane-collapse)** Given the Campaigns lane,
+  each card is **collapsed by default** showing only its header (chevron +
+  slug + done/total); clicking the header toggles expand/collapse, and the
+  state persists per-campaign-slug in `localStorage`
+  (`webui:campaign-card-collapsed:<slug>`) so it survives reload/navigation.
+- (E) Given an expanded card, the campaign **Description (intent)** sits behind
+  a disclosure that is **closed by default**, opens on click, and persists per
+  slug (`webui:campaign-desc-open:<slug>`) — mirroring the TaskDetail
+  description disclosure.
+- (E) Given multiple campaigns expanded, when the lane renders, then it is
+  height-capped (`max-h-[40vh]`) with internal scroll so the kanban board
+  stays within the viewport — it is never pushed off-screen.
 - (E) **(iterate-2026-06-03-campaign-status-filter)** The endpoint surfaces a
   producer-owned campaign-level lifecycle `status` (`draft|active|complete`),
   read from `status.json` top-level `status` (winning) else the `campaign.md`

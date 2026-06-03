@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-03-campaign-status-filter"
+run_id: "iterate-2026-06-03-campaign-lane-collapse"
 phase: "iterate"
-reason: "Campaigns lane filters on producer-owned lifecycle status (Option B consumer side)"
-timestamp: "2026-06-03T09:15:51.602887+00:00"
+reason: "Campaign lane collapse/expand + description disclosure + persistence + layout cap"
+timestamp: "2026-06-03T07:08:41.041593+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-03 09:15:51 UTC
+> Auto-generated 2026-06-03 07:08:41 UTC
 
 ## Session Info
 
 - **Session ID**: 3b232513-bba9-45c3-a05a-61406a3d78bb
-- **Timestamp**: 2026-06-03 09:15:51 UTC
-- **Reason**: Campaigns lane filters on producer-owned lifecycle status (Option B consumer side)
+- **Timestamp**: 2026-06-03 07:08:41 UTC
+- **Reason**: Campaign lane collapse/expand + description disclosure + persistence + layout cap
 
 ## Last Iterate
 
@@ -29,7 +29,7 @@ timestamp: "2026-06-03T09:15:51.602887+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-status-filter
+- **Branch**: iterate/campaign-lane-collapse
 - **External Review Marker**: completed (external_review_state.json @ 2026-05-26T21:45:17)
 
 ### Mandatory replay on Resume
@@ -48,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-status-filter
-- **Last Commit**: 96824e6 chore(campaign): mark 2026-05-25-bloat-cleanup-C-webui complete (8/8)
+- **Branch**: iterate/campaign-lane-collapse
+- **Last Commit**: 773e11e Merge pull request #94 from svenroth-ai/iterate/all-projects-create-cascade
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,7 +65,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-1c746044 | work_completed | iterate (campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total) | 2026-06-03 |
+| evt-0e15ddd7 | work_completed | iterate (CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap) | 2026-06-03 |
 | evt-fc7459c4 | work_completed | iterate (All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.) | 2026-06-02 |
 | evt-177f8389 | work_completed | iterate (Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId) | 2026-06-02 |
 | evt-f0f196d7 | work_completed | iterate (Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner.) | 2026-06-02 |
@@ -75,7 +75,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 - **Pipeline**: 3 phases completed
 - **Total work events**: 172
-- **Last iterate**: change — campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total (2026-06-03)
+- **Last iterate**: change — CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap (2026-06-03)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
