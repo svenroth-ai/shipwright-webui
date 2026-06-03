@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { CampaignLaneCard } from "./CampaignLaneCard";
 import type { Campaign } from "../../lib/campaignsApi";
@@ -11,10 +12,15 @@ vi.mock("../../lib/clipboard", () => ({
 }));
 
 function renderCard(campaign: Campaign) {
+  // QueryClientProvider — the embedded CampaignAutonomousLaunchButton uses
+  // useLaunchCampaign → useQueryClient (FR-01.34).
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter>
-      <CampaignLaneCard campaign={campaign} />
-    </MemoryRouter>,
+    <QueryClientProvider client={qc}>
+      <MemoryRouter>
+        <CampaignLaneCard campaign={campaign} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
@@ -31,9 +37,9 @@ const BASE: Campaign = {
   expandsTriage: null,
   status: null,
   steps: [
-    { id: "B0", slug: "alpha", title: "Alpha", status: "complete", specPath: ".s/B0-alpha.md", commit: null, branch: null },
-    { id: "B1", slug: "beta", title: "Beta", status: "failed", specPath: ".s/B1-beta.md", commit: null, branch: null },
-    { id: "B2", slug: "gamma", title: "Gamma", status: "pending", specPath: ".s/B2-gamma.md", commit: null, branch: null },
+    { id: "B0", slug: "alpha", title: "Alpha", status: "complete", specPath: ".s/B0-alpha.md", commit: null, branch: null, planFirst: false },
+    { id: "B1", slug: "beta", title: "Beta", status: "failed", specPath: ".s/B1-beta.md", commit: null, branch: null, planFirst: false },
+    { id: "B2", slug: "gamma", title: "Gamma", status: "pending", specPath: ".s/B2-gamma.md", commit: null, branch: null, planFirst: false },
   ],
   done: 1,
   total: 3,
@@ -155,10 +161,13 @@ describe("CampaignLaneCard", () => {
     expect(screen.queryByTestId(`campaign-triage-link-${SLUG}`)).toBeNull();
     // re-render with expandsTriage set, pre-expanded
     localStorage.setItem(`webui:campaign-card-collapsed:${SLUG}`, "false");
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <MemoryRouter>
-        <CampaignLaneCard campaign={{ ...BASE, expandsTriage: "trg-721b1765" }} />
-      </MemoryRouter>,
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <CampaignLaneCard campaign={{ ...BASE, expandsTriage: "trg-721b1765" }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     const link = screen.getByTestId(`campaign-triage-link-${SLUG}`);
     expect(link).toHaveAttribute("href", "/triage");

@@ -17,6 +17,10 @@ export interface ParsedLaunchBody {
   autonomy: "autonomous" | "guided" | undefined;
   userParams: Record<string, string | boolean> | undefined;
   phaseTaskRefRaw: unknown;
+  /** FR-01.34 — body-only campaign autonomous launch. The campaign branch
+   *  validates the slug + builds the fixed command; this just surfaces the raw
+   *  string (or undefined). Never persisted on the task (launch-body only). */
+  campaignSlug: string | undefined;
 }
 
 /**
@@ -103,6 +107,15 @@ export function parseLaunchBody(
     }
   }
 
+  // Empty / whitespace-only → absent (no campaign intent), like every other
+  // body field. A whitespace-only slug therefore builds NO command (it never
+  // reaches the campaign branch's validator) — injection-safe by construction.
+  // A non-empty slug is validated in campaign-branch.ts (400 invalid_campaign_slug).
+  const campaignSlug =
+    typeof body.campaignSlug === "string" && body.campaignSlug.trim().length > 0
+      ? body.campaignSlug.trim()
+      : undefined;
+
   return {
     resume,
     dryRun,
@@ -113,5 +126,6 @@ export function parseLaunchBody(
     autonomy,
     userParams,
     phaseTaskRefRaw: body.phaseTaskRef,
+    campaignSlug,
   };
 }
