@@ -114,14 +114,33 @@ export function createMediaRouter(deps: MediaRouterDeps): Hono {
       c.header("Content-Range", `bytes ${start}-${end}/${size}`);
       c.header("Content-Length", String(chunkSize));
       c.status(206);
-      const node = createReadStream(guard.absolute, { start, end });
-      return c.body(Readable.toWeb(node) as unknown as ReadableStream);
+      return c.body(streamFile(guard.absolute, start, end));
     }
 
     c.header("Content-Length", String(size));
-    const node = createReadStream(guard.absolute);
-    return c.body(Readable.toWeb(node) as unknown as ReadableStream);
+    return c.body(streamFile(guard.absolute));
   });
 
   return app;
+}
+
+/**
+ * Open a read stream and hand it to the web-stream adapter. The explicit
+ * `error` listener is the safety net for a torn read — if the file is deleted
+ * or becomes unreadable in the window AFTER `stat` succeeded (TOCTOU), the
+ * Node stream emits `error`; without a listener Node would throw it as an
+ * uncaught exception. We swallow it here (the body simply ends short — the
+ * client/<video> retries the Range), keeping the route from crashing the
+ * process on a race. Headers are already committed, so no status change is
+ * possible at this point.
+ */
+function streamFile(absolute: string, start?: number, end?: number): ReadableStream {
+  const node =
+    start !== undefined && end !== undefined
+      ? createReadStream(absolute, { start, end })
+      : createReadStream(absolute);
+  node.on("error", () => {
+    /* torn read after stat — swallow so it can't become an uncaught error */
+  });
+  return Readable.toWeb(node) as unknown as ReadableStream;
 }

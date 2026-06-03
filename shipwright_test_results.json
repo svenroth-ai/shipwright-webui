@@ -21,12 +21,12 @@
       ".shipwright/agent_docs/component_inventory.md"
     ],
     "result": "passed",
-    "summary": "SmartViewer inline video via a new Range-capable GET /api/external/projects/:id/media route (206/200/416, video MIME allowlist 415, no size cap, fs.createReadStream — separate from the atomic /file route). Client VideoRenderer mirrors ImageRenderer (<video src=mediaUrl(...)> + onError chip); resolveKind maps mp4/m4v/webm/ogv/ogg/mov. server tsc 0 + 1450/1450 vitest; client tsc 0 + oxlint clean + 1436/1436 vitest; F0.5 web E2E 4/4 against an isolated single-process stack (real node-server adapter 206 byte-exact + real Chromium consumer chain).",
+    "summary": "SmartViewer inline video via a new Range-capable GET /api/external/projects/:id/media route (206/200/416, video MIME allowlist 415, no size cap, fs.createReadStream — separate from the atomic /file route). Client VideoRenderer mirrors ImageRenderer (<video src=mediaUrl(...)> + onError chip); resolveKind maps mp4/m4v/webm/ogv/ogg/mov. server tsc 0 + 1451/1451 vitest; client tsc 0 + oxlint clean + 1436/1436 vitest; F0.5 web E2E 4/4 against an isolated single-process stack (real node-server adapter 206 byte-exact + real Chromium consumer chain). External LLM review RAN post-PR (OpenRouter: GPT + Gemini, --mode code): stream-error TOCTOU hardening + a start>end 416 test added; negative-start finding was a false positive (regex \\d* precludes signs).",
     "unit": {
       "status": "passed",
       "passed": 1436,
       "total": 1436,
-      "note": "client vitest; server vitest 1450/1450 separately"
+      "note": "client vitest; server vitest 1451/1451 separately (added start>end 416 test post external-review)"
     },
     "integration": {
       "status": "not_run",
@@ -62,7 +62,7 @@
     },
     "degraded": [
       {
-        "condition": "External LLM review skipped: no OPENROUTER_API_KEY / GEMINI_API_KEY / OPENAI_API_KEY in the non-interactive shell env. External review is Advisory per the iterate Override Classes; a self-driven adversarial diff pass was performed instead, and the user was offered to run external_review.py --mode code with a key before merge."
+        "condition": "External LLM review RAN (OpenRouter GPT + Gemini, --mode code). Findings: (#2) createReadStream TOCTOU error not handled -> FIXED (streamFile error listener); (#3) AC3 start>end untested -> FIXED (bytes=20-10 test); (#1 negative start) -> false positive, regex \\d* precludes a sign; (#4) media symlink-escape integration test deferred — realPathGuard parity is unit-covered in core/path-guard.test.ts (Windows symlink creation needs privilege)."
       }
     ],
     "test_completeness": {
@@ -86,7 +86,7 @@
         {
           "behavior": "Unsatisfiable Range -> 416 + Content-Range bytes */size",
           "disposition": "tested",
-          "evidence": "media-route.test AC3 PASSED"
+          "evidence": "media-route.test AC3 x2 (start>=size 'bytes=200-300' + start>end 'bytes=20-10') PASSED"
         },
         {
           "behavior": "Non-video extension -> 415 unsupported_media_type; 6-MIME table",

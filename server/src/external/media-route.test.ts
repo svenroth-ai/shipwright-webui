@@ -180,6 +180,14 @@ describe("GET /api/external/projects/:projectId/media (video streaming)", () => 
     expect(res.headers.get("content-range")).toBe("bytes */100");
   });
 
+  it("AC3: 416 unsatisfiable Range (start > end, bytes=20-10)", async () => {
+    const res = await app.request(url("clip.mp4"), {
+      headers: { Range: "bytes=20-10" },
+    });
+    expect(res.status).toBe(416);
+    expect(res.headers.get("content-range")).toBe("bytes */100");
+  });
+
   it("AC2: malformed Range header is ignored → 200 full body", async () => {
     const res = await app.request(url("clip.mp4"), {
       headers: { Range: "rows=1-2" },
