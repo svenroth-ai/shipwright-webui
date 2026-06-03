@@ -26,6 +26,11 @@ import path from "node:path";
 
 import { isWithin } from "./campaign-paths.js";
 import { parseFrontmatter, parseIntent, parseSubIteratesTable } from "./campaign-parse.js";
+import { readStatusJson, pickLifecycle } from "./campaign-status-json.js";
+import type {
+  CampaignLifecycleStatus,
+  StatusSubIterate,
+} from "./campaign-status-json.js";
 
 export type CampaignStepStatus =
   | "pending"
@@ -33,6 +38,11 @@ export type CampaignStepStatus =
   | "complete"
   | "failed"
   | "escalated";
+
+// CampaignLifecycleStatus + status.json reading live in campaign-status-json.ts
+// (the JSON-side input-reader, sibling of campaign-parse.ts). Re-exported so
+// consumers importing the Campaign shape from here keep one import site.
+export type { CampaignLifecycleStatus };
 
 export interface CampaignStep {
   id: string;
@@ -52,6 +62,9 @@ export interface Campaign {
   intent: string;
   branchStrategy: string | null;
   expandsTriage: string | null;
+  /** Producer-owned lifecycle status; null when the producer hasn't written
+   *  one yet (legacy → consumers fall back to done/total). */
+  status: CampaignLifecycleStatus | null;
   steps: CampaignStep[];
   done: number;
   total: number;
@@ -68,33 +81,6 @@ const VALID_STATUSES: ReadonlySet<string> = new Set([
   "failed",
   "escalated",
 ]);
-
-interface StatusSubIterate {
-  id?: unknown;
-  slug?: unknown;
-  status?: unknown;
-  commit?: unknown;
-  branch?: unknown;
-}
-interface StatusJson {
-  branch_strategy?: unknown;
-  sub_iterates?: unknown;
-}
-
-function readStatusJson(campaignDir: string): StatusJson | null {
-  const p = path.join(campaignDir, "status.json");
-  if (!existsSync(p)) return null;
-  try {
-    const parsed = JSON.parse(readFileSync(p, "utf-8"));
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return null;
-    }
-    return parsed as StatusJson;
-  } catch {
-    // torn read / malformed → treat as absent, fall back to campaign.md
-    return null;
-  }
-}
 
 /**
  * True when a derived spec path holds a double-quote or any C0 control char.
@@ -230,6 +216,7 @@ function buildCampaign(
     intent: parseIntent(md),
     branchStrategy,
     expandsTriage,
+    status: pickLifecycle(status, fm),
     steps,
     done,
     total: steps.length,

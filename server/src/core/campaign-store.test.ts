@@ -200,6 +200,42 @@ ${body}
     expect(c.intent).toBe("Test intent");
   });
 
+  // ---- campaign-level lifecycle status (Option B) ----
+
+  it("reads the top-level lifecycle status from status.json", () => {
+    seed("c1", {
+      md: mdWith([["B0", "alpha", "A", "pending"]]),
+      status: { status: "active", sub_iterates: [{ id: "B0", slug: "alpha", status: "pending" }] },
+    });
+    const [c] = readCampaigns(campaignsDir, projectRoot);
+    expect(c.status).toBe("active");
+  });
+
+  it("reads the lifecycle status from the campaign.md frontmatter when no status.json", () => {
+    seed("c1", { md: mdWith([["B0", "alpha", "A", "pending"]], "status: draft\n") });
+    const [c] = readCampaigns(campaignsDir, projectRoot);
+    expect(c.status).toBe("draft");
+  });
+
+  it("status.json top-level status wins over the frontmatter status", () => {
+    seed("c1", {
+      md: mdWith([["B0", "alpha", "A", "pending"]], "status: draft\n"),
+      status: { status: "active", sub_iterates: [{ id: "B0", slug: "alpha", status: "pending" }] },
+    });
+    const [c] = readCampaigns(campaignsDir, projectRoot);
+    expect(c.status).toBe("active");
+  });
+
+  it("status is null for a legacy campaign with no status field, and for an invalid value", () => {
+    seed("legacy", { md: mdWith([["B0", "alpha", "A", "pending"]]) });
+    seed("bogus", { md: mdWith([["B0", "alpha", "A", "pending"]], "status: bananas\n") });
+    const byId = Object.fromEntries(
+      readCampaigns(campaignsDir, projectRoot).map((c) => [c.slug, c.status]),
+    );
+    expect(byId["legacy"]).toBeNull();
+    expect(byId["bogus"]).toBeNull();
+  });
+
   it("renders a status.json-only campaign (no campaign.md) using slug as title", () => {
     seed("c1", {
       status: {

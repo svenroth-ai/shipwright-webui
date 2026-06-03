@@ -376,6 +376,15 @@ all writes).
 - (E) Given multiple campaigns expanded, when the lane renders, then it is
   height-capped (`max-h-[40vh]`) with internal scroll so the kanban board
   stays within the viewport — it is never pushed off-screen.
+- (E) **(iterate-2026-06-03-campaign-status-filter)** The endpoint surfaces a
+  producer-owned campaign-level lifecycle `status` (`draft|active|complete`),
+  read from `status.json` top-level `status` (winning) else the `campaign.md`
+  frontmatter `status:`; an unknown/absent value → `null`. The board lane shows
+  a campaign **iff** `status === "active"`; `draft` (planned, triage-only) and
+  `complete` are hidden — regardless of `done/total`. A campaign with **no**
+  `status` (legacy) falls back to the derived `done < total`, so existing
+  campaigns keep rendering until the producer writes a status. WebUI stays
+  read-only on campaign state (it never writes the status).
 
 ## Quality Requirements
 
