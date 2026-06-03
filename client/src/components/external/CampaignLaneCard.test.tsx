@@ -18,8 +18,14 @@ function renderCard(campaign: Campaign) {
   );
 }
 
+/** Click the card header toggle to expand it. */
+function expand(slug: string) {
+  fireEvent.click(screen.getByTestId(`campaign-toggle-${slug}`));
+}
+
+const SLUG = "2026-06-02-hook";
 const BASE: Campaign = {
-  slug: "2026-06-02-hook",
+  slug: SLUG,
   intent: "Collapse hook fan-out",
   branchStrategy: "stacked",
   expandsTriage: null,
@@ -37,44 +43,87 @@ const BASE: Campaign = {
 describe("CampaignLaneCard", () => {
   beforeEach(() => {
     copyTextMock.mockClear();
+    localStorage.clear();
   });
 
-  it("renders slug, intent, and done/total (AC-4)", () => {
+  // ---- collapse / expand (AC-1, AC-2, AC-6) ----
+
+  it("is collapsed by default: header (slug + done/total) shown, body hidden", () => {
     renderCard(BASE);
-    expect(screen.getByText("2026-06-02-hook")).toBeInTheDocument();
+    expect(screen.getByText(SLUG)).toBeInTheDocument();
+    expect(screen.getByTestId(`campaign-progress-${SLUG}`)).toHaveTextContent("1/3");
+    // body hidden
+    expect(screen.queryByTestId("campaign-step-B0")).toBeNull();
+    expect(screen.queryByTestId(`campaign-launch-${SLUG}`)).toBeNull();
+    expect(screen.queryByTestId(`campaign-description-toggle-${SLUG}`)).toBeNull();
+  });
+
+  it("expands on header click and collapses again (toggle)", () => {
+    renderCard(BASE);
+    expand(SLUG);
+    expect(screen.getByTestId("campaign-step-B0")).toBeInTheDocument();
+    expect(screen.getByTestId(`campaign-launch-${SLUG}`)).toBeInTheDocument();
+    // collapse again
+    fireEvent.click(screen.getByTestId(`campaign-toggle-${SLUG}`));
+    expect(screen.queryByTestId("campaign-step-B0")).toBeNull();
+  });
+
+  // ---- persistence (AC-3) ----
+
+  it("persists the expanded state to localStorage (per slug)", () => {
+    renderCard(BASE);
+    expand(SLUG);
+    expect(localStorage.getItem(`webui:campaign-card-collapsed:${SLUG}`)).toBe("false");
+  });
+
+  it("reads the persisted expanded state on mount (starts expanded)", () => {
+    localStorage.setItem(`webui:campaign-card-collapsed:${SLUG}`, "false");
+    renderCard(BASE);
+    expect(screen.getByTestId("campaign-step-B0")).toBeInTheDocument();
+  });
+
+  it("persistence is per-slug (one campaign expanded does not expand another)", () => {
+    localStorage.setItem(`webui:campaign-card-collapsed:${SLUG}`, "false");
+    renderCard({ ...BASE, slug: "other-slug" });
+    // 'other-slug' has no stored pref → stays collapsed
+    expect(screen.queryByTestId("campaign-step-B0")).toBeNull();
+  });
+
+  // ---- description disclosure (AC-4) ----
+
+  it("description is behind a disclosure, closed by default, opens on click + persists", () => {
+    localStorage.setItem(`webui:campaign-card-collapsed:${SLUG}`, "false"); // expanded
+    renderCard(BASE);
+    // closed by default → intent text not shown
+    expect(screen.queryByText("Collapse hook fan-out")).toBeNull();
+    fireEvent.click(screen.getByTestId(`campaign-description-toggle-${SLUG}`));
     expect(screen.getByText("Collapse hook fan-out")).toBeInTheDocument();
-    expect(screen.getByTestId("campaign-progress-2026-06-02-hook")).toHaveTextContent("1/3");
+    expect(localStorage.getItem(`webui:campaign-desc-open:${SLUG}`)).toBe("true");
   });
 
-  it("marks the first non-complete step as next-pending and completes the rest (AC-4)", () => {
+  // ---- existing behaviors, now behind expand (AC parity) ----
+
+  it("renders done/total + the next-pending highlight + failed status when expanded", () => {
     renderCard(BASE);
+    expand(SLUG);
     expect(screen.getByTestId("campaign-step-B0")).toHaveAttribute("data-step-status", "complete");
-    // B1 (failed) is the first non-complete → next-pending highlight
     expect(screen.getByTestId("campaign-step-B1")).toHaveAttribute("data-next", "true");
     expect(screen.getByTestId("campaign-step-B2")).not.toHaveAttribute("data-next");
-    // failed status is surfaced as text
     expect(screen.getByTestId("campaign-step-B1")).toHaveTextContent("failed");
   });
 
-  it("renders the ✓ / ▶ / ○ icon semantics per step (AC-4 visual)", () => {
+  it("renders complete / next / pending icon semantics per step", () => {
     renderCard(BASE);
-    // complete → ✓ (aria-label "complete")
-    expect(
-      within(screen.getByTestId("campaign-step-B0")).getByLabelText("complete"),
-    ).toBeInTheDocument();
-    // first non-complete → ▶ (aria-label "next pending")
-    expect(
-      within(screen.getByTestId("campaign-step-B1")).getByLabelText("next pending"),
-    ).toBeInTheDocument();
-    // other non-complete → ○ (aria-label "pending")
-    expect(
-      within(screen.getByTestId("campaign-step-B2")).getByLabelText("pending"),
-    ).toBeInTheDocument();
+    expand(SLUG);
+    expect(within(screen.getByTestId("campaign-step-B0")).getByLabelText("complete")).toBeInTheDocument();
+    expect(within(screen.getByTestId("campaign-step-B1")).getByLabelText("next pending")).toBeInTheDocument();
+    expect(within(screen.getByTestId("campaign-step-B2")).getByLabelText("pending")).toBeInTheDocument();
   });
 
-  it("copies the launch command for the next-pending step (AC-5)", async () => {
+  it("copies the launch command for the next-pending step", async () => {
     renderCard(BASE);
-    fireEvent.click(screen.getByTestId("campaign-launch-2026-06-02-hook"));
+    expand(SLUG);
+    fireEvent.click(screen.getByTestId(`campaign-launch-${SLUG}`));
     await waitFor(() =>
       expect(copyTextMock).toHaveBeenCalledWith(
         '/shipwright-iterate ".shipwright/planning/iterate/campaigns/2026-06-02-hook/sub-iterates/B1-beta.md"',
@@ -83,30 +132,35 @@ describe("CampaignLaneCard", () => {
     expect(await screen.findByText("Copied")).toBeInTheDocument();
   });
 
-  it("disables the launch button when there is no next-pending step (AC-5)", () => {
+  it("disables the launch button when there is no launchable next step", () => {
     renderCard({
       ...BASE,
       steps: BASE.steps.map((s) => ({ ...s, status: "complete" as const })),
       done: 3,
       nextPending: null,
     });
-    expect(screen.getByTestId("campaign-launch-2026-06-02-hook")).toBeDisabled();
+    expand(SLUG);
+    expect(screen.getByTestId(`campaign-launch-${SLUG}`)).toBeDisabled();
   });
 
-  it("disables the launch button when the next-pending spec file is missing (AC-5)", () => {
+  it("disables the launch button when the next-pending spec file is missing", () => {
     renderCard({ ...BASE, nextPending: { id: "B1", specPath: null } });
-    expect(screen.getByTestId("campaign-launch-2026-06-02-hook")).toBeDisabled();
+    expand(SLUG);
+    expect(screen.getByTestId(`campaign-launch-${SLUG}`)).toBeDisabled();
   });
 
-  it("renders a triage cross-link only when expandsTriage is set (AC-7)", () => {
-    const { rerender } = renderCard(BASE);
-    expect(screen.queryByTestId("campaign-triage-link-2026-06-02-hook")).toBeNull();
-    rerender(
+  it("renders a triage cross-link only when expandsTriage is set (expanded)", () => {
+    renderCard(BASE);
+    expand(SLUG);
+    expect(screen.queryByTestId(`campaign-triage-link-${SLUG}`)).toBeNull();
+    // re-render with expandsTriage set, pre-expanded
+    localStorage.setItem(`webui:campaign-card-collapsed:${SLUG}`, "false");
+    render(
       <MemoryRouter>
         <CampaignLaneCard campaign={{ ...BASE, expandsTriage: "trg-721b1765" }} />
       </MemoryRouter>,
     );
-    const link = screen.getByTestId("campaign-triage-link-2026-06-02-hook");
+    const link = screen.getByTestId(`campaign-triage-link-${SLUG}`);
     expect(link).toHaveAttribute("href", "/triage");
     expect(link).toHaveTextContent("trg-721b1765");
   });
