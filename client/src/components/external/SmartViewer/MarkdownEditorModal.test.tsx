@@ -52,14 +52,20 @@ describe("MarkdownEditorModal", () => {
     expect(screen.queryByTestId("md-editor-warn")).toBeNull();
   });
 
-  it("shows the non-blocking warn banner for frontmatter (review #9)", async () => {
+  it("shows the frontmatter-preserved note (not a lossy warn) for frontmatter files", async () => {
+    // Frontmatter is now preserved verbatim via splitMarkdownEnvelope, so it is
+    // no longer a lossy warning — a neutral "preserved" note is shown instead.
     loadMock.mockResolvedValue({ text: "---\ntitle: x\n---\n\n# Hi\n", fingerprint: "sha256:fp1" });
     renderModal();
-    expect(await screen.findByTestId("md-editor-warn")).toBeTruthy();
+    expect(await screen.findByTestId("md-editor-frontmatter-note")).toBeTruthy();
+    expect(screen.queryByTestId("md-editor-warn")).toBeNull();
   });
 
   it("Review → diff → Save writes with the captured fingerprint, fires onSaved + close", async () => {
-    loadMock.mockResolvedValue({ text: "# Hi\n\nbody\n", fingerprint: "sha256:fp1" });
+    // Non-canonical bullet markers (`*`) so the serializer legitimately rewrites
+    // the body (to `-`) — this enables Save (an unedited canonical file now
+    // round-trips byte-identically, so Save would be a disabled no-op).
+    loadMock.mockResolvedValue({ text: "# Hi\n\n* a\n* b\n", fingerprint: "sha256:fp1" });
     saveMock.mockResolvedValue({ fingerprint: "sha256:new" });
     const user = userEvent.setup();
     const { onSaved, onOpenChange } = renderModal();
@@ -76,14 +82,15 @@ describe("MarkdownEditorModal", () => {
     // The saved body is the SERIALIZED editor document (review #8) — it must
     // reflect the loaded content, not an empty/stale string.
     expect(body).toContain("# Hi");
-    expect(body).toContain("body");
+    expect(body).toContain("- a"); // bullet marker normalized * -> -
     expect(fp).toBe("sha256:fp1");
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
   it("on a 409 conflict shows the conflict banner and KEEPS the editor (review #11)", async () => {
-    loadMock.mockResolvedValue({ text: "# Hi\n\nbody\n", fingerprint: "sha256:fp1" });
+    // Non-canonical bullets enable Save (see the Save test above).
+    loadMock.mockResolvedValue({ text: "# Hi\n\n* a\n* b\n", fingerprint: "sha256:fp1" });
     saveMock.mockRejectedValue(new api.MarkdownConflictError("sha256:disk"));
     const user = userEvent.setup();
     const { onOpenChange } = renderModal();
