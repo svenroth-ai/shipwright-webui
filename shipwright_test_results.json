@@ -1,25 +1,30 @@
 {
-  "last_updated": "2026-06-03T09:15:39.785643+00:00",
+  "last_updated": "2026-06-03T17:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-03-campaign-status-filter",
-    "intent": "change",
-    "complexity": "small",
-    "timestamp": "2026-06-03T09:15:39.785643+00:00",
+    "run_id": "iterate-2026-06-03-campaign-autonomous-launch",
+    "intent": "feature",
+    "complexity": "medium",
+    "timestamp": "2026-06-03T17:00:00Z",
     "paths_touched": [
-      "server/src/core/campaign-status-json.ts",
+      "server/src/external/launch/campaign-branch.ts",
+      "server/src/external/launch/parse-body.ts",
+      "server/src/external/launch/routes.ts",
+      "server/src/external/launch/_helpers.ts",
+      "server/src/core/campaign-parse.ts",
       "server/src/core/campaign-store.ts",
       "client/src/lib/campaignsApi.ts",
-      "client/e2e/flows/campaign-status-filter.spec.ts",
-      "client/src/test/doc-sync.test.ts",
-      ".shipwright/planning/01-adopted/spec.md",
-      ".shipwright/agent_docs/architecture.md"
+      "client/src/hooks/useLaunchCampaign.ts",
+      "client/src/components/external/CampaignAutonomousLaunchButton.tsx",
+      "client/src/components/external/CampaignLaneCard.tsx",
+      "client/src/pages/TaskBoardPage.tsx",
+      "client/e2e/flows/campaign-autonomous-launch.spec.ts"
     ],
     "result": "passed",
-    "summary": "Consumer side of Option B: campaign-store reads a producer-owned top-level lifecycle status (status.json wins / campaign.md frontmatter fallback) via the new campaign-status-json.ts split; selectActiveCampaigns shows iff active, hides draft/complete, legacy no-status falls back to done<total. server tsc + 1430/1430 vitest; client tsc + lint + 1420/1420 vitest; F0.5 web E2E tests_run=1 (active/draft/complete/legacy fixture).",
+    "summary": "FR-01.34 second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous. New server launch campaign-branch (validated body-only campaignSlug -> server-built command), forward-compat planFirst risky-step detection, confirm dialog with risky warn+ack. Full client suite 1446 + server suite 1446 green; typecheck both clean; oxlint clean.",
     "unit": {
       "status": "passed",
-      "passed": 1420,
-      "total": 1420
+      "passed": 1446,
+      "total": 1446
     },
     "integration": {
       "status": "not_run",
@@ -48,69 +53,80 @@
       "surface": "web",
       "tests_run": 1,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-status-filter.spec.ts --reporter=list",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-status-filter/surface_verification.log",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-autonomous-launch.spec.ts --reporter=list",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-autonomous-launch/surface_verification.log",
       "attempts": 1,
-      "note": "Isolated built stack seeded with 4 campaigns: active(status:active,0/2) + legacy(no-status,1/2) SHOWN; draft(status:draft,0/2) + complete(status:complete,2/2) HIDDEN. Live /api/campaigns also curl-verified."
+      "note": "Isolated built stack (temp USERPROFILE, SHIPWRIGHT_NETWORK_PROFILE=local, 127.0.0.1:3948) seeded with one active campaign. E2E: board->expand->Launch autonomous->confirm dialog (exact command + no-gate warning)->Confirm->navigated to /tasks/<uuid>; campaign-runner task created server-side (awaiting_external_start). Live curl also confirmed the built command + 400 invalid_campaign_slug + 400 campaign_not_found."
     },
-    "degraded": [
-      {
-        "condition": "server `npm run lint` (oxlint) binary absent in junctioned node_modules (pre-existing worktree-hydration gap). New/changed server files linted clean via the client's pinned oxlint binary; client `npm run lint` passed."
-      }
-    ],
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Server reads top-level lifecycle status from status.json into Campaign.status",
+          "behavior": "AC-1 command shape (3 shell forms, no resume on fresh start)",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts 'reads the top-level lifecycle status from status.json' PASSED"
+          "evidence": "campaign-branch.test.ts + live dryRun PASSED"
         },
         {
-          "behavior": "Server reads lifecycle status from campaign.md frontmatter when no status.json status",
+          "behavior": "AC-2 slug validation (9-case injection matrix; whitespace=absent)",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts frontmatter case PASSED"
+          "evidence": "campaign-branch.test.ts + live 400 invalid_campaign_slug PASSED"
         },
         {
-          "behavior": "status.json top-level status wins over frontmatter",
+          "behavior": "AC-3 existence + traversal guard -> 400 campaign_not_found",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts precedence case PASSED"
+          "evidence": "campaign-branch.test.ts + live 400 campaign_not_found PASSED"
         },
         {
-          "behavior": "Invalid / absent status resolves to null (legacy)",
+          "behavior": "AC-4 mutual exclusion (actionId / phaseTaskRef)",
           "disposition": "tested",
-          "evidence": "campaign-store.test.ts + campaign-status-json.test.ts pickLifecycle PASSED"
+          "evidence": "campaign-branch.test.ts (2 cases) PASSED"
         },
         {
-          "behavior": "readStatusJson tolerates torn/missing/non-object (3s-poll race)",
+          "behavior": "AC-5 planFirst frontmatter (false floor / true marker / torn)",
           "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts readStatusJson (4 cases) PASSED"
+          "evidence": "campaign-parse.test.ts (6) + campaign-store.test.ts (3) PASSED"
         },
         {
-          "behavior": "pickLifecycle precedence + case-insensitive + invalid->null",
+          "behavior": "AC-6 selectRiskyPendingSteps (failed/escalated/planFirst; complete excluded)",
           "disposition": "tested",
-          "evidence": "campaign-status-json.test.ts pickLifecycle (4 cases) PASSED"
+          "evidence": "campaignsApi.test.ts (3) PASSED"
         },
         {
-          "behavior": "Client selectActiveCampaigns: active shown, draft+complete hidden, legacy done<total fallback",
+          "behavior": "AC-7 confirm dialog (command preview, no-gate warning, Cancel no-launch)",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts (4 cases) PASSED"
+          "evidence": "CampaignAutonomousLaunchButton.test.tsx + E2E PASSED"
         },
         {
-          "behavior": "Live board shows ONLY active + legacy campaigns (draft/complete hidden)",
+          "behavior": "AC-8 risky warn + ack-gated confirm (handler + button guard)",
           "disposition": "tested",
-          "evidence": "e2e/flows/campaign-status-filter.spec.ts (seeds active/draft/complete/legacy, exactly 2 cards) PASSED"
+          "evidence": "CampaignAutonomousLaunchButton.test.tsx (3) PASSED"
+        },
+        {
+          "behavior": "AC-9 create->launch->sessionStorage handoff + in-flight guard",
+          "disposition": "tested",
+          "evidence": "useLaunchCampaign.test.ts (4) + button double-submit PASSED"
+        },
+        {
+          "behavior": "AC-10 disabled when no pending / no project",
+          "disposition": "tested",
+          "evidence": "CampaignAutonomousLaunchButton.test.tsx (2) PASSED"
+        },
+        {
+          "behavior": "End-to-end board->dialog->navigate against a live stack",
+          "disposition": "tested",
+          "evidence": "E2E campaign-autonomous-launch.spec.ts executed at F0.5 PASSED"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 11,
+        "tested": 11,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 10,
+        "covered_acs": 10
       }
     }
   }
