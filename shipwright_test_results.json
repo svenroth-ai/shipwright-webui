@@ -1,28 +1,25 @@
 {
-  "last_updated": "2026-06-02T15:24:17.623Z",
+  "last_updated": "2026-06-03T09:15:39.785643+00:00",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-02-all-projects-create-cascade",
+    "run_id": "iterate-2026-06-03-campaign-status-filter",
     "intent": "change",
-    "complexity": "medium",
-    "timestamp": "2026-06-02T15:24:17.623Z",
+    "complexity": "small",
+    "timestamp": "2026-06-03T09:15:39.785643+00:00",
     "paths_touched": [
-      "client/src/pages/TaskBoardPage.tsx",
-      "client/src/components/external/CreateControls.tsx",
-      "client/src/components/external/CreateControls.test.tsx",
-      "client/src/components/external/ProjectCreateCascade.tsx",
-      "client/src/components/external/ProjectCreateCascade.test.tsx",
-      "client/src/components/external/NewIssueModal/scoped-project-launch.test.tsx",
+      "server/src/core/campaign-status-json.ts",
+      "server/src/core/campaign-store.ts",
+      "client/src/lib/campaignsApi.ts",
+      "client/e2e/flows/campaign-status-filter.spec.ts",
       "client/src/test/doc-sync.test.ts",
-      "client/e2e/flows/90-all-projects-create-cascade.spec.ts",
-      ".shipwright/agent_docs/component_inventory.md",
-      ".shipwright/planning/iterate/2026-06-02-all-projects-create-cascade.md"
+      ".shipwright/planning/01-adopted/spec.md",
+      ".shipwright/agent_docs/architecture.md"
     ],
     "result": "passed",
-    "summary": "client-only change. client: tsc clean + oxlint clean + 1416/1416 vitest (incl doc-sync with 2 new tokens). F0.5 web surface tests_run=1 exit 0 against an isolated single-process built stack. New: CreateControls + ProjectCreateCascade (project-first All-Projects create cascade); TaskBoardPage cluster extracted (675->673 LOC, under bloat ceiling). Server untouched (not run).",
+    "summary": "Consumer side of Option B: campaign-store reads a producer-owned top-level lifecycle status (status.json wins / campaign.md frontmatter fallback) via the new campaign-status-json.ts split; selectActiveCampaigns shows iff active, hides draft/complete, legacy no-status falls back to done<total. server tsc + 1430/1430 vitest; client tsc + lint + 1420/1420 vitest; F0.5 web E2E tests_run=1 (active/draft/complete/legacy fixture).",
     "unit": {
       "status": "passed",
-      "passed": 1416,
-      "total": 1416
+      "passed": 1420,
+      "total": 1420
     },
     "integration": {
       "status": "not_run",
@@ -51,58 +48,69 @@
       "surface": "web",
       "tests_run": 1,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/90-all-projects-create-cascade.spec.ts --config=playwright.config.ts --reporter=line",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config=client/playwright.config.ts client/e2e/flows/campaign-status-filter.spec.ts --reporter=list",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-03-campaign-status-filter/surface_verification.log",
       "attempts": 1,
-      "note": "Isolated single-process stack: built worktree client served by worktree Hono via SHIPWRIGHT_STATIC_DIR, temp USERPROFILE, :3947, SHIPWRIGHT_NETWORK_PROFILE=local. Seeded two fixture projects via /api/projects. AC1-AC6 asserted in real Chromium (cascade scopes New+Plain to chosen project, list-view shares header, AC3 round-trip flat split-button returns, AC6 filter stays All Projects)."
+      "note": "Isolated built stack seeded with 4 campaigns: active(status:active,0/2) + legacy(no-status,1/2) SHOWN; draft(status:draft,0/2) + complete(status:complete,2/2) HIDDEN. Live /api/campaigns also curl-verified."
     },
     "degraded": [
       {
-        "condition": "External LLM review (external_review.py --mode iterate/code) not run: no OPENAI_API_KEY / GEMINI_API_KEY / GOOGLE_API_KEY configured on this machine. External LLM review is Advisory per Override Classes; full self + Step-8 code review performed instead."
+        "condition": "server `npm run lint` (oxlint) binary absent in junctioned node_modules (pre-existing worktree-hydration gap). New/changed server files linted clean via the client's pinned oxlint binary; client `npm run lint` passed."
       }
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 project-level + that project actions render lazily",
+          "behavior": "Server reads top-level lifecycle status from status.json into Campaign.status",
           "disposition": "tested",
-          "evidence": "ProjectCreateCascade.test.tsx (ProjectActionsLoader filter/loading/empty) + e2e/flows/90 (both project rows; submenu actions on open) PASSED"
+          "evidence": "campaign-store.test.ts 'reads the top-level lifecycle status from status.json' PASSED"
         },
         {
-          "behavior": "AC2 modal scoped to chosen project (no action/schema mismatch)",
+          "behavior": "Server reads lifecycle status from campaign.md frontmatter when no status.json status",
           "disposition": "tested",
-          "evidence": "NewIssueModal/scoped-project-launch.test.tsx (payload projectId=proj-2) + e2e/flows/90 (new-issue-project-select === a.id) PASSED"
+          "evidence": "campaign-store.test.ts frontmatter case PASSED"
         },
         {
-          "behavior": "AC3 single-project mode unchanged (flat split-button)",
+          "behavior": "status.json top-level status wins over frontmatter",
           "disposition": "tested",
-          "evidence": "CreateControls.test.tsx (branching) + e2e/flows/90 round-trip (split-button returns, cascade gone) PASSED"
+          "evidence": "campaign-store.test.ts precedence case PASSED"
         },
         {
-          "behavior": "AC4 per-project actions load lazily (no eager fetch-all)",
+          "behavior": "Invalid / absent status resolves to null (legacy)",
           "disposition": "tested",
-          "evidence": "e2e/flows/90 (actions resolve only after a project submenu opens; loader mounted in Radix SubContent) PASSED"
+          "evidence": "campaign-store.test.ts + campaign-status-json.test.ts pickLifecycle PASSED"
         },
         {
-          "behavior": "AC5 Plain picker scopes plain session to chosen project; projects without new-plain hidden",
+          "behavior": "readStatusJson tolerates torn/missing/non-object (3s-poll race)",
           "disposition": "tested",
-          "evidence": "ProjectPlainPicker trigger unit + e2e/flows/90 (plain->project B->new-plain modal === b.id) PASSED"
+          "evidence": "campaign-status-json.test.ts readStatusJson (4 cases) PASSED"
         },
         {
-          "behavior": "AC6 board filter stays All Projects after cascade select",
+          "behavior": "pickLifecycle precedence + case-insensitive + invalid->null",
           "disposition": "tested",
-          "evidence": "e2e/flows/90 (project-filter-dropdown still reads All projects with modal open; no setActiveProjectId in new path) PASSED"
+          "evidence": "campaign-status-json.test.ts pickLifecycle (4 cases) PASSED"
+        },
+        {
+          "behavior": "Client selectActiveCampaigns: active shown, draft+complete hidden, legacy done<total fallback",
+          "disposition": "tested",
+          "evidence": "campaignsApi.test.ts (4 cases) PASSED"
+        },
+        {
+          "behavior": "Live board shows ONLY active + legacy campaigns (draft/complete hidden)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/campaign-status-filter.spec.ts (seeds active/draft/complete/legacy, exactly 2 cards) PASSED"
         }
       ],
       "counts": {
-        "testable": 6,
-        "tested": 6,
+        "testable": 8,
+        "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 5,
+        "covered_acs": 5
       }
     }
   }

@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-03-campaign-status-filter",
+  "date": "2026-06-03T09:15:52.399240Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/campaign-status-filter",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/01-adopted/spec.md",
+  "adr": "iterate-2026-06-03-campaign-status-filter"
+}
