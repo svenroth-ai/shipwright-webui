@@ -73,6 +73,8 @@ const REQUIRED_TOKENS = [
   'CampaignLaneCard',
   'campaignsApi',
   'useCampaigns',
+  // iterate-2026-06-03-campaign-status-filter — producer-owned lifecycle status
+  'campaign-status-json',
   // iterate-2026-06-02-all-projects-create-cascade — project-first create menu
   'CreateControls',
   'ProjectCreateCascade',

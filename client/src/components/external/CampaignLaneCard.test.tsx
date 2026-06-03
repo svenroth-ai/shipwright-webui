@@ -29,6 +29,7 @@ const BASE: Campaign = {
   intent: "Collapse hook fan-out",
   branchStrategy: "stacked",
   expandsTriage: null,
+  status: null,
   steps: [
     { id: "B0", slug: "alpha", title: "Alpha", status: "complete", specPath: ".s/B0-alpha.md", commit: null, branch: null },
     { id: "B1", slug: "beta", title: "Beta", status: "failed", specPath: ".s/B1-beta.md", commit: null, branch: null },
