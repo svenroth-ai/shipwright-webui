@@ -29,15 +29,17 @@ import { SmartViewerModal } from "./SmartViewer/SmartViewerModal";
 import { CodeRenderer } from "./SmartViewer/CodeRenderer";
 import { TextRenderer } from "./SmartViewer/TextRenderer";
 import { ImageRenderer } from "./SmartViewer/ImageRenderer";
+import { VideoRenderer } from "./SmartViewer/VideoRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { useDocNavigation } from "./SmartViewer/useDocNavigation";
 import { PathStrip } from "./SmartViewer/PathStrip";
 
-export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "mermaid" | "unknown";
+export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "unknown";
 
 const MARKDOWN_EXTS = new Set(["md", "markdown"]);
 const MERMAID_EXTS = new Set(["mmd", "mermaid"]);
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp"]);
+const VIDEO_EXTS = new Set(["mp4", "m4v", "webm", "ogv", "ogg", "mov"]);
 const CODE_EXTS = new Set([
   "ts",
   "tsx",
@@ -74,6 +76,7 @@ export function resolveKind(path: string): { kind: SmartViewerKind; ext: string 
   if (MARKDOWN_EXTS.has(ext)) return { kind: "markdown", ext };
   if (MERMAID_EXTS.has(ext)) return { kind: "mermaid", ext };
   if (IMAGE_EXTS.has(ext)) return { kind: "image", ext };
+  if (VIDEO_EXTS.has(ext)) return { kind: "video", ext };
   if (CODE_EXTS.has(ext)) return { kind: "code", ext };
   if (ext === "txt" || ext === "log" || ext === "csv" || ext === "env" || ext === "gitignore") {
     return { kind: "text", ext };
@@ -110,7 +113,8 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
 
   const { kind, ext } = resolveKind(path);
 
-  if (kind === "image") {
+  if (kind === "image" || kind === "video") {
+    const MediaRenderer = kind === "image" ? ImageRenderer : VideoRenderer;
     return (
       <div
         className="flex h-full flex-col"
@@ -118,7 +122,7 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
       >
         <PathStrip path={path} size={null} />
         <div className="min-h-0 flex-1">
-          <ImageRenderer projectId={projectId} path={path} />
+          <MediaRenderer projectId={projectId} path={path} />
         </div>
       </div>
     );
