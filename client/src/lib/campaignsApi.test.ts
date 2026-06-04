@@ -5,6 +5,7 @@ import {
   selectActiveCampaigns,
   selectRiskyPendingSteps,
   launchCampaignRun,
+  launchCampaignStepRun,
   startCampaign,
   type Campaign,
   type CampaignStep,
@@ -173,6 +174,42 @@ describe("campaignsApi: launchCampaignRun", () => {
       vi.fn(async () => ({ ok: false, status: 400, text: async () => "invalid_campaign_slug" })),
     );
     await expect(launchCampaignRun("t-1", "bad slug")).rejects.toThrow(/HTTP 400/);
+  });
+});
+
+describe("campaignsApi: launchCampaignStepRun (FR-01.36)", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("POSTs { campaignStep: { slug, stepId } } to the task launch endpoint", async () => {
+    const spy = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        task: { taskId: "t-1" },
+        commands: { powershell: "p", cmd: "c", posix: "x" },
+      }),
+    }));
+    vi.stubGlobal("fetch", spy);
+
+    const out = await launchCampaignStepRun("t-1", "2026-06-02-x", "C1");
+    expect(out.task.taskId).toBe("t-1");
+    expect(out.commands.posix).toBe("x");
+
+    const [url, init] = spy.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/external/tasks/t-1/launch");
+    expect(init.method).toBe("POST");
+    // The exact body shape the server's campaign-step branch parses (the seam).
+    expect(JSON.parse(init.body as string)).toEqual({
+      campaignStep: { slug: "2026-06-02-x", stepId: "C1" },
+    });
+  });
+
+  it("throws on a non-ok response (e.g. campaign_step_spec_missing)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 400, text: async () => "campaign_step_spec_missing" })),
+    );
+    await expect(launchCampaignStepRun("t-1", "s", "C1")).rejects.toThrow(/HTTP 400/);
   });
 });
 

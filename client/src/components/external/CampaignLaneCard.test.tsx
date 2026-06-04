@@ -1,24 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { describe, it, expect, beforeEach } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { CampaignLaneCard } from "./CampaignLaneCard";
 import type { Campaign } from "../../lib/campaignsApi";
+import type { Project } from "../../types";
 
-const copyTextMock = vi.fn(async (_text: string) => {});
-vi.mock("../../lib/clipboard", () => ({
-  copyText: (t: string) => copyTextMock(t),
-}));
+const PROJECT: Project = {
+  id: "p1", name: "proj", path: "/proj", profile: "node",
+  status: "active", lastActive: "", createdAt: "",
+};
 
-function renderCard(campaign: Campaign) {
-  // QueryClientProvider — the embedded CampaignAutonomousLaunchButton uses
-  // useLaunchCampaign → useQueryClient (FR-01.34).
+function renderCard(campaign: Campaign, project: Project | null = PROJECT) {
+  // QueryClientProvider — the embedded Campaign{Step,Autonomous}LaunchButton use
+  // useLaunchCampaign{,Step} → useQueryClient (FR-01.34 / FR-01.36).
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <CampaignLaneCard campaign={campaign} />
+        <CampaignLaneCard campaign={campaign} project={project} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -48,7 +49,6 @@ const BASE: Campaign = {
 
 describe("CampaignLaneCard", () => {
   beforeEach(() => {
-    copyTextMock.mockClear();
     localStorage.clear();
   });
 
@@ -60,7 +60,7 @@ describe("CampaignLaneCard", () => {
     expect(screen.getByTestId(`campaign-progress-${SLUG}`)).toHaveTextContent("1/3");
     // body hidden
     expect(screen.queryByTestId("campaign-step-B0")).toBeNull();
-    expect(screen.queryByTestId(`campaign-launch-${SLUG}`)).toBeNull();
+    expect(screen.queryByTestId(`campaign-step-launch-${SLUG}`)).toBeNull();
     expect(screen.queryByTestId(`campaign-description-toggle-${SLUG}`)).toBeNull();
   });
 
@@ -68,7 +68,7 @@ describe("CampaignLaneCard", () => {
     renderCard(BASE);
     expand(SLUG);
     expect(screen.getByTestId("campaign-step-B0")).toBeInTheDocument();
-    expect(screen.getByTestId(`campaign-launch-${SLUG}`)).toBeInTheDocument();
+    expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeInTheDocument();
     // collapse again
     fireEvent.click(screen.getByTestId(`campaign-toggle-${SLUG}`));
     expect(screen.queryByTestId("campaign-step-B0")).toBeNull();
@@ -126,19 +126,18 @@ describe("CampaignLaneCard", () => {
     expect(within(screen.getByTestId("campaign-step-B2")).getByLabelText("pending")).toBeInTheDocument();
   });
 
-  it("copies the launch command for the next-pending step", async () => {
+  // ---- launch affordance (FR-01.36 — replaces the old "Copy launch") ----
+
+  it("renders the Launch button labelled for the next-pending step (no Copy button)", () => {
     renderCard(BASE);
     expand(SLUG);
-    fireEvent.click(screen.getByTestId(`campaign-launch-${SLUG}`));
-    await waitFor(() =>
-      expect(copyTextMock).toHaveBeenCalledWith(
-        '/shipwright-iterate ".shipwright/planning/iterate/campaigns/2026-06-02-hook/sub-iterates/B1-beta.md"',
-      ),
-    );
-    expect(await screen.findByText("Copied")).toBeInTheDocument();
+    const btn = screen.getByTestId(`campaign-step-launch-${SLUG}`);
+    expect(btn).toHaveTextContent("Launch (B1)");
+    // the old copy affordance is gone
+    expect(screen.queryByTestId(`campaign-launch-${SLUG}`)).toBeNull();
   });
 
-  it("disables the launch button when there is no launchable next step", () => {
+  it("disables the Launch button when there is no launchable next step", () => {
     renderCard({
       ...BASE,
       steps: BASE.steps.map((s) => ({ ...s, status: "complete" as const })),
@@ -146,13 +145,19 @@ describe("CampaignLaneCard", () => {
       nextPending: null,
     });
     expand(SLUG);
-    expect(screen.getByTestId(`campaign-launch-${SLUG}`)).toBeDisabled();
+    expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeDisabled();
   });
 
-  it("disables the launch button when the next-pending spec file is missing", () => {
+  it("disables the Launch button when the next-pending spec file is missing", () => {
     renderCard({ ...BASE, nextPending: { id: "B1", specPath: null } });
     expand(SLUG);
-    expect(screen.getByTestId(`campaign-launch-${SLUG}`)).toBeDisabled();
+    expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeDisabled();
+  });
+
+  it("disables the Launch button when no project is resolved", () => {
+    renderCard(BASE, null);
+    expand(SLUG);
+    expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeDisabled();
   });
 
   it("renders a triage cross-link only when expandsTriage is set (expanded)", () => {
@@ -165,7 +170,7 @@ describe("CampaignLaneCard", () => {
     render(
       <QueryClientProvider client={qc}>
         <MemoryRouter>
-          <CampaignLaneCard campaign={{ ...BASE, expandsTriage: "trg-721b1765" }} />
+          <CampaignLaneCard campaign={{ ...BASE, expandsTriage: "trg-721b1765" }} project={PROJECT} />
         </MemoryRouter>
       </QueryClientProvider>,
     );

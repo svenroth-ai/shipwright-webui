@@ -21,6 +21,11 @@ export interface ParsedLaunchBody {
    *  validates the slug + builds the fixed command; this just surfaces the raw
    *  string (or undefined). Never persisted on the task (launch-body only). */
   campaignSlug: string | undefined;
+  /** FR-01.36 — body-only single-sub-iterate launch. The campaign-step branch
+   *  validates slug + stepId, resolves the step's specPath server-side, and
+   *  builds `/shipwright-iterate "<specPath>"`. Launch-body only (never
+   *  persisted). Undefined unless both slug + stepId are non-empty strings. */
+  campaignStep: { slug: string; stepId: string } | undefined;
 }
 
 /**
@@ -116,6 +121,20 @@ export function parseLaunchBody(
       ? body.campaignSlug.trim()
       : undefined;
 
+  // Single-sub-iterate launch intent (FR-01.36). Only a well-formed
+  // `{ slug, stepId }` object with both non-empty counts as present; anything
+  // else is absent (no command), like every other body field. The campaign-step
+  // branch validates slug + stepId against their regexes.
+  let campaignStep: { slug: string; stepId: string } | undefined;
+  const rawStep = body.campaignStep;
+  if (rawStep && typeof rawStep === "object" && !Array.isArray(rawStep)) {
+    const s = (rawStep as Record<string, unknown>).slug;
+    const id = (rawStep as Record<string, unknown>).stepId;
+    if (typeof s === "string" && s.trim().length > 0 && typeof id === "string" && id.trim().length > 0) {
+      campaignStep = { slug: s.trim(), stepId: id.trim() };
+    }
+  }
+
   return {
     resume,
     dryRun,
@@ -127,5 +146,6 @@ export function parseLaunchBody(
     userParams,
     phaseTaskRefRaw: body.phaseTaskRef,
     campaignSlug,
+    campaignStep,
   };
 }

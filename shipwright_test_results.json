@@ -1,33 +1,42 @@
 {
   "last_updated": "2026-06-04",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-04-campaign-step-id-emphasis",
-    "intent": "bug",
-    "complexity": "small",
-    "timestamp": "2026-06-04T10:24:31.813634+00:00",
+    "run_id": "iterate-2026-06-04-campaign-step-launch",
+    "intent": "feature",
+    "complexity": "medium",
+    "timestamp": "2026-06-04T12:07:26.861033+00:00",
     "paths_touched": [
-      "server/src/core/campaign-parse.ts",
-      "server/src/core/campaign-parse.test.ts"
+      "server/src/external/launch/campaign-step-branch.ts",
+      "server/src/external/launch/{parse-body,routes,_helpers}.ts",
+      "client/src/lib/campaignsApi.ts",
+      "client/src/hooks/{useLaunchCampaign,useLaunchCampaignStep}.ts",
+      "client/src/components/external/{CampaignStepLaunchButton,CampaignLaneCard}.tsx"
     ],
     "result": "passed",
-    "summary": "Fixed the campaign board's per-step Copy-launch button being permanently disabled for campaigns whose campaign.md bolds the step ID (**C1**) or adds Repo/Depends-on columns. parseSubIteratesTable now maps columns by header name and strips inline Markdown emphasis from cells, so each step's <id>-<slug>.md spec path resolves (non-null) and the launchable gate flips false->true. Verified by a real-producer-data round-trip through readCampaigns() against the live 2026-06-02-compliance-detective-realign campaign.",
+    "summary": "FR-01.36: one-click Launch (Cx) button launches a single campaign sub-iterate via /shipwright-iterate \"<specPath>\" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps; confirm dialog only for failed/escalated/plan-first steps. New server launch branch applyCampaignStepBranch.",
     "unit": {
       "status": "passed",
-      "passed": 1504,
-      "total": 1504,
-      "evidence": "full server vitest suite (120 files / 1504 tests) green; tsc --noEmit clean"
+      "server": {
+        "files": 121,
+        "tests": 1515
+      },
+      "client": {
+        "files": 147,
+        "tests": 1542
+      },
+      "evidence": "full server (121/1515) + client (147/1542) vitest green; tsc --noEmit clean both; oxlint clean on changed files"
     },
     "integration": {
       "status": "skipped",
-      "reason": "server-side pure-parser fix; no integration surface"
+      "reason": "covered by the server branch HTTP tests + the real E2E"
     },
     "pgtap": {
       "status": "n/a",
       "reason": "no database"
     },
     "e2e": {
-      "status": "skipped",
-      "reason": "verified via server-boundary real-data round-trip (see surface_verification); client launchable gate is an unchanged pure derivation of specPath"
+      "status": "passed",
+      "reason": "see surface_verification — real isolated-stack browser run"
     },
     "design_fidelity": {
       "status": "n/a"
@@ -36,71 +45,118 @@
       "status": "n/a"
     },
     "surface_verification": {
-      "surface": "none",
-      "tests_run": 0,
+      "surface": "web",
+      "tests_run": 1,
       "exit_code": 0,
-      "justification": "Server-side Sub-Iterates parser fix (no client/** change). Verified by a real-producer-data round-trip through readCampaigns() against the live on-disk 2026-06-02-compliance-detective-realign campaign: nextPending.id resolves '**C1**'->'C1' and specPath resolves to the real C1-audit-run-id-provenance.md (non-null), so the board launchable gate Boolean(next && next.specPath) flips false->true. The client derivation is unchanged + pure, so the server boundary is the determining surface. Live-API confirmation on :3847 follows the dist rebuild + restart."
+      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/campaign-step-launch.spec.ts --config=client/playwright.config.ts --project=chromium",
+      "evidence": "1/1 passed (4.5s) in Chromium against an isolated single-process worktree stack (built client via SHIPWRIGHT_STATIC_DIR, temp USERPROFILE, SHIPWRIGHT_NETWORK_PROFILE=local, PORT=3863) seeded with an ACTIVE campaign whose B1 sub-iterate has a spec file. Flow: board → expand → 'Launch (B1)' enabled → one-click direct launch (no dialog) → REAL server campaign-step branch creates a task → navigated to /tasks/<id>. API pre-check confirmed nextPending.specPath non-null before the run."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "bold producer ID (**C1**) strips to plain id (C1)",
+          "behavior": "AC1 server builds /shipwright-iterate \"<specPath>\" for the step (one quoted positional, no --resume)",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'strips Markdown emphasis from the ID cell' PASSED"
+          "evidence": "campaign-step-branch.test.ts AC1 (real Hono HTTP, posix/pwsh/cmd) + real E2E launch"
         },
         {
-          "behavior": "status read from Status column not the 4th positional cell (6-col Repo/Depends-on table)",
+          "behavior": "AC2 invalid slug → 400 invalid_campaign_slug",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'reads status from the Status column, not the 4th positional cell (6-col)' PASSED"
+          "evidence": "campaign-step-branch.test.ts 'invalid_campaign_slug'"
         },
         {
-          "behavior": "slug + title inline emphasis/code spans stripped",
+          "behavior": "AC2 invalid stepId → 400 invalid_campaign_step_id",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'strips inline emphasis/code from slug + title cells' PASSED"
+          "evidence": "campaign-step-branch.test.ts (5 hostile stepIds)"
         },
         {
-          "behavior": "status read by header name for the 5-col (Depends on) shape",
+          "behavior": "AC2 unknown step → 400 campaign_step_not_found",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'reads status by header name for the 5-col (Depends on) producer shape' PASSED"
+          "evidence": "campaign-step-branch.test.ts 'campaign_step_not_found'"
         },
         {
-          "behavior": "headerless table falls back to positional [id,slug,title,status]",
+          "behavior": "AC2 step with null specPath → 400 campaign_step_spec_missing",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'falls back to positional ... for a headerless table' PASSED"
+          "evidence": "campaign-step-branch.test.ts B1 (no spec file)"
         },
         {
-          "behavior": "original 4-col table still parses (regression)",
+          "behavior": "AC2 unknown campaign dir → 400 campaign_not_found",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'parses data rows, skipping the header + separator' PASSED"
+          "evidence": "campaign-step-branch.test.ts '2099-01-01-nope'"
         },
         {
-          "behavior": "colon alignment separator row still tolerated (regression)",
+          "behavior": "AC3 campaignStep mixed with actionId/phaseTaskRef/campaignSlug → 400 mixed_launch_intents",
           "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'tolerates alignment colons in the separator row' PASSED"
+          "evidence": "campaign-step-branch.test.ts (3 mix cases)"
         },
         {
-          "behavior": "missing Sub-Iterates table -> [] (regression)",
-          "disposition": "tested",
-          "evidence": "campaign-parse.test.ts 'returns [] when there is no Sub-Iterates table' PASSED"
+          "behavior": "AC3 genuine resume (JSONL on disk) falls through to --resume (no fresh command)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "evidence": "shared routes-level effectivelyFreshStart gate (if !effectivelyFreshStart return null), identical to campaign-branch.ts; verified by review"
         },
         {
-          "behavior": "real on-disk campaign resolves non-null specPath + launchable=true (consumer round-trip)",
+          "behavior": "AC4 Launch button disabled when no next / null specPath / no project",
           "disposition": "tested",
-          "evidence": "tsx readCampaigns() probe vs real 2026-06-02-compliance-detective-realign: nextPending={id:C1, specPath:.../C1-audit-run-id-provenance.md}; LAUNCHABLE=true"
+          "evidence": "CampaignStepLaunchButton.test.tsx + CampaignLaneCard.test.tsx disabled cases"
+        },
+        {
+          "behavior": "AC4 button labelled 'Launch (Cx)' for the next-pending id",
+          "disposition": "tested",
+          "evidence": "CampaignStepLaunchButton.test.tsx + CampaignLaneCard.test.tsx 'Launch (B1)'"
+        },
+        {
+          "behavior": "AC5 ordinary next step → one-click direct launch (no dialog) + navigate",
+          "disposition": "tested",
+          "evidence": "CampaignStepLaunchButton.test.tsx AC5 + real E2E"
+        },
+        {
+          "behavior": "AC5 inline error surfaced on launch failure",
+          "disposition": "tested",
+          "evidence": "CampaignStepLaunchButton.test.tsx 'surfaces an inline error'"
+        },
+        {
+          "behavior": "AC6 risky (failed/escalated/plan-first) next step → confirm dialog gates launch",
+          "disposition": "tested",
+          "evidence": "CampaignStepLaunchButton.test.tsx (failed/escalated/plan-first)"
+        },
+        {
+          "behavior": "AC6 confirming the dialog launches + navigates",
+          "disposition": "tested",
+          "evidence": "CampaignStepLaunchButton.test.tsx 'confirming the risky dialog'"
+        },
+        {
+          "behavior": "Fail-safe (review M1): next-pending id missing from steps → dialog, never direct-launch",
+          "disposition": "tested",
+          "evidence": "CampaignStepLaunchButton.test.tsx 'fail-safe — a next-pending id missing from steps'"
+        },
+        {
+          "behavior": "client API seam: launchCampaignStepRun POSTs exactly {campaignStep:{slug,stepId}}",
+          "disposition": "tested",
+          "evidence": "campaignsApi.test.ts 'POSTs { campaignStep: { slug, stepId } }'"
+        },
+        {
+          "behavior": "useLaunchCampaign refactor preserves the autonomous behavior (title/launch-args/handoff)",
+          "disposition": "tested",
+          "evidence": "existing useLaunchCampaign.test.ts unchanged + green after the launchCampaignTask extraction"
+        },
+        {
+          "behavior": "old per-step Copy-launch button removed from the card",
+          "disposition": "tested",
+          "evidence": "CampaignLaneCard.test.tsx asserts the old campaign-launch testid is null + Launch present"
         }
       ],
       "counts": {
-        "testable": 9,
-        "tested": 9,
-        "untestable": 0,
+        "testable": 17,
+        "tested": 17,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "basis": "diff-introduced parser behaviors + preserved regressions (bug fix; no formal ACs)",
-        "behaviors_enumerated": 9,
-        "covered": 9
+        "acs": 6,
+        "covered_acs": 6,
+        "plus": "M1 fail-safe + API seam + refactor-preservation + copy-removal regressions"
       }
     }
   }
