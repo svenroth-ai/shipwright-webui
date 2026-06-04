@@ -31,7 +31,9 @@ const loadedAddons: unknown[] = [];
 let capturedOptions: Record<string, unknown> | null = null;
 
 vi.mock("@xterm/xterm", () => ({
-  Terminal: vi.fn().mockImplementation((opts?: Record<string, unknown>) => {
+  // vitest 4 constructs the implementation on `new`, so it must be a real
+  // (constructable) function — an arrow throws "is not a constructor".
+  Terminal: vi.fn().mockImplementation(function (opts?: Record<string, unknown>) {
     capturedOptions = opts ?? null;
     return {
       cols: 120,
@@ -74,13 +76,13 @@ class WebglAddonFake {
 }
 
 vi.mock("@xterm/addon-fit", () => ({
-  FitAddon: vi.fn().mockImplementation(() => new FitAddonFake()),
+  FitAddon: vi.fn().mockImplementation(function () { return new FitAddonFake(); }),
 }));
 vi.mock("@xterm/addon-web-links", () => ({
-  WebLinksAddon: vi.fn().mockImplementation(() => new WebLinksAddonFake()),
+  WebLinksAddon: vi.fn().mockImplementation(function () { return new WebLinksAddonFake(); }),
 }));
 vi.mock("@xterm/addon-webgl", () => ({
-  WebglAddon: vi.fn().mockImplementation(() => new WebglAddonFake()),
+  WebglAddon: vi.fn().mockImplementation(function () { return new WebglAddonFake(); }),
 }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 

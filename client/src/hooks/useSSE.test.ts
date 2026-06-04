@@ -45,7 +45,7 @@ beforeEach(() => {
     _listeners: listeners,
   };
 
-  vi.stubGlobal('EventSource', vi.fn().mockImplementation(() => mockEventSource));
+  vi.stubGlobal('EventSource', vi.fn().mockImplementation(function () { return mockEventSource; }));
 });
 
 afterEach(() => {

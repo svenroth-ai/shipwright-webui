@@ -14,7 +14,7 @@
  *    grep guard in the build gate).
  */
 
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach, type Mock } from "vitest";
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -66,7 +66,7 @@ function makeTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
  * Keeps test callers focused on asserting the PATCH without ruling out the
  * unrelated `useProjects` GET.
  */
-function wrapFetchMock(inner: ReturnType<typeof vi.fn>) {
+function wrapFetchMock(inner: Mock) {
   return vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
     const u = String(url);
     if (u.includes("/api/projects") && !u.includes("/api/external/")) {
@@ -79,7 +79,7 @@ function wrapFetchMock(inner: ReturnType<typeof vi.fn>) {
   });
 }
 
-function renderChip(task: ExternalTask, fetchMock: ReturnType<typeof vi.fn>) {
+function renderChip(task: ExternalTask, fetchMock: Mock) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });

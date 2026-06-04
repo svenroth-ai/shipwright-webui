@@ -20,12 +20,12 @@
  *
  * Routing helper drift is covered by `fixNowIntent.test.ts`.
  */
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi, type Mock } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-
 import { TriageDetailModal } from "./TriageDetailModal";
+import type { FixNowIntent } from "./fixNowIntent";
 import type { TriageItem } from "../../lib/triageApi";
 
 vi.mock("../../hooks/useTriage", () => ({
@@ -137,12 +137,12 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
   function renderModal(
     itemOverrides: Partial<TriageItem> = {},
     handlers: {
-      onOpenChange?: ReturnType<typeof vi.fn>;
-      onFixNow?: ReturnType<typeof vi.fn>;
+      onOpenChange?: Mock;
+      onFixNow?: Mock;
     } = {},
   ) {
-    const onOpenChange = handlers.onOpenChange ?? vi.fn();
-    const onFixNow = handlers.onFixNow ?? vi.fn();
+    const onOpenChange = handlers.onOpenChange ?? vi.fn<(open: boolean) => void>();
+    const onFixNow = handlers.onFixNow ?? vi.fn<(intent: FixNowIntent) => void>();
     const Wrapper = makeWrapper();
     const utils = render(
       <Wrapper>
@@ -286,12 +286,12 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
   function renderCampaign(
     itemOverrides: Partial<TriageItem>,
     handlers: {
-      onOpenChange?: ReturnType<typeof vi.fn>;
-      onNavigateToBoard?: ReturnType<typeof vi.fn>;
+      onOpenChange?: Mock;
+      onNavigateToBoard?: Mock;
     } = {},
   ) {
-    const onOpenChange = handlers.onOpenChange ?? vi.fn();
-    const onNavigateToBoard = handlers.onNavigateToBoard ?? vi.fn();
+    const onOpenChange = handlers.onOpenChange ?? vi.fn<(open: boolean) => void>();
+    const onNavigateToBoard = handlers.onNavigateToBoard ?? vi.fn<() => void>();
     const Wrapper = makeWrapper();
     const utils = render(
       <Wrapper>

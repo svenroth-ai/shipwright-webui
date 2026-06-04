@@ -32,8 +32,8 @@ function fakeTerm(selection = ""): FakeTerminal {
   return {
     hasSelection: vi.fn(() => selection.length > 0),
     getSelection: vi.fn(() => selection),
-    clearSelection: vi.fn(),
-    paste: vi.fn(),
+    clearSelection: vi.fn<() => void>(),
+    paste: vi.fn<(data: string) => void>(),
   };
 }
 
