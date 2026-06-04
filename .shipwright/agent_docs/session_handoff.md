@@ -1,35 +1,37 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-04-campaign-step-id-emphasis"
+run_id: "iterate-2026-06-04-campaign-step-launch"
 phase: "iterate"
-reason: "campaign Copy-launch button fix complete"
-timestamp: "2026-06-04T10:22:05.187150+00:00"
+reason: "campaign single-step launch (FR-01.36) complete"
+timestamp: "2026-06-04T12:06:24.553627+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-04 10:22:05 UTC
+> Auto-generated 2026-06-04 12:06:24 UTC
 
 ## Session Info
 
 - **Session ID**: 92ee50e1-0420-40a6-a052-88b69374e8c9
-- **Timestamp**: 2026-06-04 10:22:05 UTC
-- **Reason**: campaign Copy-launch button fix complete
+- **Timestamp**: 2026-06-04 12:06:24 UTC
+- **Reason**: campaign single-step launch (FR-01.36) complete
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-04-campaign-step-id-emphasis
-- **Date**: 2026-06-04T10:21:01.126094Z
-- **Type**: bug
-- **Complexity**: small
-- **Branch**: iterate/campaign-step-id-emphasis
-- **ADR**: iterate-2026-06-04-campaign-step-id-emphasis
+- **Run ID**: iterate-2026-06-04-campaign-step-launch
+- **Date**: 2026-06-04T12:06:15.178068Z
+- **Type**: feature
+- **Complexity**: medium
+- **Branch**: iterate/campaign-step-launch
+- **ADR**: iterate-2026-06-04-campaign-step-launch
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/01-adopted/spec.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-step-id-emphasis
-- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
+- **Branch**: iterate/campaign-step-launch
+- **Spec**: .shipwright/planning/iterate/2026-06-04-campaign-step-launch.md
+- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
@@ -47,8 +49,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-step-id-emphasis
-- **Last Commit**: 7fe33f0 Merge pull request #103 from svenroth-ai/fix/ci-false-green-gate-and-tsc
+- **Branch**: iterate/campaign-step-launch
+- **Last Commit**: 08967b0 Merge pull request #104 from svenroth-ai/iterate/campaign-step-id-emphasis
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +66,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-e873eced | work_completed | iterate (One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones.) | 2026-06-04 |
 | evt-1429122a | work_completed | iterate (Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button.) | 2026-06-04 |
 | evt-6c3e0953 | work_completed | iterate (Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion)) | 2026-06-04 |
 | evt-eaebb2b4 | work_completed | iterate (iterate finalization) | 2026-06-03 |
 | evt-7c37c8cc | work_completed | iterate (SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route.) | 2026-06-03 |
-| evt-7da49dda | work_completed | iterate (Second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous, gated by a confirm dialog + risky-step warning.) | 2026-06-03 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 180
-- **Last iterate**: bug — Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. (2026-06-04)
+- **Total work events**: 181
+- **Last iterate**: feature — One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones. (2026-06-04)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

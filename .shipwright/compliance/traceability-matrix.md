@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-04T10:22:05.187150+00:00
+Generated: 2026-06-04T12:06:24.553627+00:00
 
 ## Requirements Coverage
 
@@ -41,6 +41,7 @@ Generated: 2026-06-04T10:22:05.187150+00:00
 | [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +1 | — | — | NO TESTS |
 | [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | — | — | — | NOT VERIFIED |
 | [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
+| [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced | — | — | NO TESTS |
 
 ## Verification Timeline
 
@@ -226,6 +227,7 @@ Generated: 2026-06-04T10:22:05.187150+00:00
 | iterate finalization | iterate | change |  | — | — | 2026-06-03 |
 | Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | iterate | feature | FR-01.35 | — | — | 2026-06-04 |
 | Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. | iterate | bug |  | — | — | 2026-06-04 |
+| One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones. | iterate | feature | FR-01.36 | — | — | 2026-06-04 |
 
 ## Coverage Summary
 
@@ -233,9 +235,9 @@ Generated: 2026-06-04T10:22:05.187150+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 110 |
-| Requirements total | 35 |
-| Requirements verified | 19/35 |
+| Iterate changes | 111 |
+| Requirements total | 36 |
+| Requirements verified | 20/36 |
 | Must-have verified | 16/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
@@ -261,18 +263,18 @@ Generated: 2026-06-04T10:22:05.187150+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 33d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 34d ago by `evt-b81d5d5e` (2026-05-01)
 - [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 24d ago by `evt-44b89157` (2026-05-10)
 - [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 20d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 20d ago by `evt-0f78d991` (2026-05-15)
 - [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 20d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-0f78d991` (2026-05-15)
 - [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 17d ago by `evt-c5df348e` (2026-05-17)
 - [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-7c294eb7` (2026-05-18)
 - [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-223eadce` (2026-05-18)
 - [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-fb2b90ee` (2026-05-18)
+- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-3d1274f6` (2026-05-19)
 - [FR-01.28](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-a2176c74` (2026-05-18)
 - [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-a2176c74` (2026-05-18)
-- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-3d1274f6` (2026-05-19)
 

@@ -26,5 +26,6 @@ export type LaunchBranchResult =
 export { parseLaunchBody, type ParsedLaunchBody } from "./parse-body.js";
 export { applyPhaseTaskBranch } from "./phase-task-branch.js";
 export { applyCampaignBranch } from "./campaign-branch.js";
+export { applyCampaignStepBranch } from "./campaign-step-branch.js";
 export { applyActionSubstitutionBranch } from "./action-substitution-branch.js";
 export { applyLegacyFallbackBranch } from "./legacy-fallback-branch.js";

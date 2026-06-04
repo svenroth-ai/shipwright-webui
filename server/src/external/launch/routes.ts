@@ -28,6 +28,7 @@ import {
   parseLaunchBody,
   applyPhaseTaskBranch,
   applyCampaignBranch,
+  applyCampaignStepBranch,
   applyActionSubstitutionBranch,
   applyLegacyFallbackBranch,
   type LaunchBranchResult,
@@ -116,6 +117,24 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       );
     }
 
+    // FR-01.36 — a single-sub-iterate launch is its own intent too. Reject a
+    // mix with actionId / phaseTaskRef / campaignSlug. Presence is the parsed
+    // (well-formed) campaignStep so a malformed body never trips it.
+    if (
+      parsed.campaignStep &&
+      (body.actionId !== undefined ||
+        body.phaseTaskRef !== undefined ||
+        (typeof body.campaignSlug === "string" && body.campaignSlug.trim().length > 0))
+    ) {
+      return c.json(
+        {
+          error: "mixed_launch_intents",
+          detail: "campaignStep is mutually exclusive with actionId / phaseTaskRef / campaignSlug",
+        },
+        400,
+      );
+    }
+
     // iterate-2026-05-18-fix-resume-description — a Resume click on a
     // task whose Claude conversation was never established (no
     // <uuid>.jsonl ever observed on disk → there is nothing to resume)
@@ -140,6 +159,18 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
     // server-side from a validated slug; null when no campaignSlug / a resume.
     if (!branchResult) {
       branchResult = applyCampaignBranch({
+        task,
+        parsed,
+        effectivelyFreshStart,
+        getProjectById,
+      });
+    }
+
+    // Branch 2.5 — single-sub-iterate launch (FR-01.36). Command built
+    // server-side from a validated { slug, stepId }; null when no campaignStep
+    // / a resume.
+    if (!branchResult) {
+      branchResult = applyCampaignStepBranch({
         task,
         parsed,
         effectivelyFreshStart,

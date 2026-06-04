@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-04-campaign-step-launch",
+  "date": "2026-06-04T12:06:15.178068Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/campaign-step-launch",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/01-adopted/spec.md",
+  "adr": "iterate-2026-06-04-campaign-step-launch"
+}
