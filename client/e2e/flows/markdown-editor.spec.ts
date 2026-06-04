@@ -122,6 +122,41 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
     await page.screenshot({ path: testInfo.outputPath("md-editor-save.png"), fullPage: true });
   });
 
+  // iterate-2026-06-04-md-editor-toolbar — the headless TipTap editor gains a
+  // visible formatting toolbar. Proves the button → StarterKit command →
+  // serialized-markdown consumer chain in a real browser, not just that the
+  // buttons render.
+  test("formatting toolbar renders and a toolbar Bold applies emphasis to the saved markdown", async ({ page }, testInfo) => {
+    await mockApi(page);
+    await page.goto("/preview?projectId=proj-x&path=README.md");
+
+    await page.getByTestId("smart-viewer-edit").click();
+    await expect(page.getByTestId("markdown-editor-modal")).toBeVisible();
+
+    // Toolbar + its core buttons are present (the user's reported gap).
+    await expect(page.getByTestId("md-editor-toolbar")).toBeVisible();
+    await expect(page.getByTestId("md-tb-bold")).toBeVisible();
+    await expect(page.getByTestId("md-tb-italic")).toBeVisible();
+    await expect(page.getByTestId("md-tb-h1")).toBeVisible();
+
+    const surface = page.getByTestId("md-editor-surface");
+    await expect(surface).toContainText("Original body paragraph");
+
+    // Select all + Bold via the toolbar button → it reflects the active state
+    // and the serialized markdown gains `**` emphasis markers.
+    await surface.click();
+    await page.keyboard.press("ControlOrMeta+a");
+    const bold = page.getByTestId("md-tb-bold");
+    await bold.click();
+    await expect(bold).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByTestId("md-editor-review").click();
+    await expect(page.getByTestId("markdown-diff")).toBeVisible();
+    await expect(page.getByTestId("markdown-diff")).toContainText("**");
+
+    await page.screenshot({ path: testInfo.outputPath("md-editor-toolbar.png"), fullPage: true });
+  });
+
   test("409 conflict shows the banner and keeps the user's edits (AC6)", async ({ page }) => {
     await mockApi(page, { putStatus: 409 });
     await page.goto("/preview?projectId=proj-x&path=README.md");

@@ -1,11 +1,16 @@
 # Project Activity Dashboard
-> Updated: 2026-06-03 15:37 UTC | Session: e9e8fb1b-02c5-4c89-a13a-397824c2c52f | Run: iterate-2026-06-03-smartviewer-markdown-editor
+> Updated: 2026-06-04 06:10 UTC | Session: cc29b102-3406-4027-a565-9571f2797c7e | Run: iterate-2026-06-04-md-editor-toolbar
 
-## Recent Changes (104 iterations)
+## Recent Changes (109 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| feature | SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. | 0/0 |  | FR-01.34 | 2026-06-03 |
+| feature | Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | 0/0 |  | FR-01.34 | 2026-06-04 |
+| change | iterate finalization | 0/0 |  |  | 2026-06-03 |
+| feature | SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route. | 0/0 |  | FR-01.02 | 2026-06-03 |
+| feature | Second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous, gated by a confirm dialog + risky-step warning. | 0/0 |  | FR-01.33 | 2026-06-03 |
+| feature | SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. | 0/0 |  | FR-01.35 | 2026-06-03 |
+| feature | Triage 'Start Campaign' action (ADR-148): POST /api/campaigns/:slug/start flips draft->active via core/campaign-write.ts (atomic, lock-protected); triage items enriched with campaignSlug/campaignStatus via injected dep (triage.ts imports no campaign module); modal renders Start Campaign/Go-to-board/none + demotes Fix-now; navigates to board. Narrow relaxation of WebUI read-only-on-campaign-state. | 0/0 |  | FR-01.33 | 2026-06-03 |
 | change | campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total | 0/0 |  | FR-01.33 | 2026-06-03 |
 | change | CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap | 0/0 |  | FR-01.33 | 2026-06-03 |
 | change | All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. | 0/0 |  |  | 2026-06-02 |
@@ -111,7 +116,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-03 | Unit: 2897/2897 | E2E: 2/2 | Smoke: n/a | (iterate)
+Last run: 2026-06-04 | Unit: 1522/1522 | E2E: 5/5 | Smoke: n/a | (iterate)
 
 ## Pipeline
 
