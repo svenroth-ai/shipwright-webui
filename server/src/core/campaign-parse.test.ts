@@ -106,6 +106,77 @@ describe("campaign-parse: parseSubIteratesTable", () => {
   it("returns [] when there is no Sub-Iterates table", () => {
     expect(parseSubIteratesTable("# Campaign\n\n## Intent\n\nhi\n")).toEqual([]);
   });
+
+  /**
+   * Producer drift probe (iterate-2026-06-04-campaign-step-id-emphasis).
+   * `campaign_init.py` / hand-authored campaigns now emit a SIX-column table
+   * `| ID | Slug | Title | Repo | Depends on | Status |` and bold the ID cell
+   * (`| **C1** | …`). The verbatim `2026-06-02-compliance-detective-realign`
+   * campaign is this shape. Two consumer hazards:
+   *   1. A bold ID (`**C1**`) must strip to `C1`, else the derived spec
+   *      filename `**C1**-<slug>.md` never exists → specPath null → the
+   *      board's Copy-launch button is dead.
+   *   2. `status` must come from the Status COLUMN by header name, not the
+   *      4th positional cell (which is now `Repo`).
+   */
+  const PRODUCER_MD_6COL_BOLD = `## Sub-Iterates
+
+| ID | Slug | Title | Repo | Depends on | Status |
+|---|---|---|---|---|---|
+| **C1** | audit-run-id-provenance | Detective audit honors **Run-ID** provenance (\`adr_id\`) | monorepo | — | pending |
+| **C2** | audit-invocation-resilience | Guarantee PyYAML **and** degrade group_a5 | monorepo | C1 | complete |
+`;
+
+  it("strips Markdown emphasis from the ID cell (bold producer IDs)", () => {
+    const rows = parseSubIteratesTable(PRODUCER_MD_6COL_BOLD);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].id).toBe("C1");
+    expect(rows[1].id).toBe("C2");
+  });
+
+  it("reads status from the Status column, not the 4th positional cell (6-col)", () => {
+    const rows = parseSubIteratesTable(PRODUCER_MD_6COL_BOLD);
+    expect(rows[0].status).toBe("pending");
+    expect(rows[1].status).toBe("complete");
+  });
+
+  it("strips inline emphasis/code from slug + title cells", () => {
+    const rows = parseSubIteratesTable(PRODUCER_MD_6COL_BOLD);
+    expect(rows[0].slug).toBe("audit-run-id-provenance");
+    expect(rows[0].title).toBe("Detective audit honors Run-ID provenance (adr_id)");
+  });
+
+  it("falls back to positional [id, slug, title, status] for a headerless table", () => {
+    const md = `## Sub-Iterates
+
+| Z9 | zeta | Zeta | done |
+`;
+    const rows = parseSubIteratesTable(md);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      id: "Z9",
+      slug: "zeta",
+      title: "Zeta",
+      status: "done",
+    });
+  });
+
+  it("reads status by header name for the 5-col (Depends on) producer shape", () => {
+    const md = `## Sub-Iterates
+
+| ID | Slug | Title | Depends on | Status |
+|---|---|---|---|---|
+| B1 | stop-dispatcher | Stop dispatcher | B0 | complete |
+`;
+    const rows = parseSubIteratesTable(md);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toEqual({
+      id: "B1",
+      slug: "stop-dispatcher",
+      title: "Stop dispatcher",
+      status: "complete",
+    });
+  });
 });
 
 describe("campaign-parse: parseSpecFrontmatter (forward-compat plan-first)", () => {

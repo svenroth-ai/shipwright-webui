@@ -1,36 +1,33 @@
 {
   "last_updated": "2026-06-04",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-04-md-editor-toolbar",
-    "intent": "feature",
+    "run_id": "iterate-2026-06-04-campaign-step-id-emphasis",
+    "intent": "bug",
     "complexity": "small",
-    "timestamp": "2026-06-04",
+    "timestamp": "2026-06-04T10:24:31.813634+00:00",
     "paths_touched": [
-      "client/src/components/external/SmartViewer/MarkdownEditorToolbar.tsx",
-      "client/src/components/external/SmartViewer/MarkdownEditorToolbar.test.tsx",
-      "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
-      "client/src/test/doc-sync.test.ts",
-      "client/e2e/flows/markdown-editor.spec.ts",
-      ".shipwright/agent_docs/architecture.md",
-      ".shipwright/planning/iterate/2026-06-04-md-editor-toolbar.md"
+      "server/src/core/campaign-parse.ts",
+      "server/src/core/campaign-parse.test.ts"
     ],
     "result": "passed",
-    "summary": "Added a formatting toolbar (bold/italic/strike/inline-code, H1-H3, bullet+ordered lists, blockquote, code-block, horizontal-rule, link, undo/redo) to the SmartViewer markdown editor. TipTap is headless, so the buttons were previously absent; the bar wires existing StarterKit commands, mirrors the live selection via aria-pressed, and adds no new serialized construct (boundary unchanged).",
+    "summary": "Fixed the campaign board's per-step Copy-launch button being permanently disabled for campaigns whose campaign.md bolds the step ID (**C1**) or adds Repo/Depends-on columns. parseSubIteratesTable now maps columns by header name and strips inline Markdown emphasis from cells, so each step's <id>-<slug>.md spec path resolves (non-null) and the launchable gate flips false->true. Verified by a real-producer-data round-trip through readCampaigns() against the live 2026-06-02-compliance-detective-realign campaign.",
     "unit": {
       "status": "passed",
-      "passed": 1522,
-      "total": 1522
+      "passed": 1504,
+      "total": 1504,
+      "evidence": "full server vitest suite (120 files / 1504 tests) green; tsc --noEmit clean"
     },
     "integration": {
-      "status": "n/a"
+      "status": "skipped",
+      "reason": "server-side pure-parser fix; no integration surface"
     },
     "pgtap": {
-      "status": "n/a"
+      "status": "n/a",
+      "reason": "no database"
     },
     "e2e": {
-      "status": "passed",
-      "passed": 5,
-      "total": 5
+      "status": "skipped",
+      "reason": "verified via server-boundary real-data round-trip (see surface_verification); client launchable gate is an unchanged pure derivation of specPath"
     },
     "design_fidelity": {
       "status": "n/a"
@@ -39,79 +36,71 @@
       "status": "n/a"
     },
     "surface_verification": {
-      "surface": "web",
-      "tests_run": 5,
+      "surface": "none",
+      "tests_run": 0,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/markdown-editor.spec.ts --config=client/playwright.config.ts",
-      "evidence": "5/5 passed in Chromium against an isolated worktree Vite (BASE_URL=http://localhost:5199, SHIPWRIGHT_NETWORK_PROFILE=local); API route-mocked"
+      "justification": "Server-side Sub-Iterates parser fix (no client/** change). Verified by a real-producer-data round-trip through readCampaigns() against the live on-disk 2026-06-02-compliance-detective-realign campaign: nextPending.id resolves '**C1**'->'C1' and specPath resolves to the real C1-audit-run-id-provenance.md (non-null), so the board launchable gate Boolean(next && next.specPath) flips false->true. The client derivation is unchanged + pure, so the server boundary is the determining surface. Live-API confirmation on :3847 follows the dist rebuild + restart."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 toolbar renders core buttons when an editor is present",
+          "behavior": "bold producer ID (**C1**) strips to plain id (C1)",
           "disposition": "tested",
-          "evidence": "MarkdownEditorToolbar.test.tsx 'renders core formatting buttons' + E2E button visibility PASSED"
+          "evidence": "campaign-parse.test.ts 'strips Markdown emphasis from the ID cell' PASSED"
         },
         {
-          "behavior": "AC1 toolbar hidden during loading/load_error/diff phases",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "evidence": "same `showEditor` boolean gates the editor surface div; modal phase tests exercise loading + diff (no editor)"
-        },
-        {
-          "behavior": "AC2 a toggle button applies its StarterKit command into the serialized markdown",
+          "behavior": "status read from Status column not the 4th positional cell (6-col Repo/Depends-on table)",
           "disposition": "tested",
-          "evidence": "E2E select-all + toolbar Bold -> `**` appears in the pre-save diff PASSED"
+          "evidence": "campaign-parse.test.ts 'reads status from the Status column, not the 4th positional cell (6-col)' PASSED"
         },
         {
-          "behavior": "AC3 toggle buttons mirror the live selection via aria-pressed (bold + heading)",
+          "behavior": "slug + title inline emphasis/code spans stripped",
           "disposition": "tested",
-          "evidence": "MarkdownEditorToolbar.test.tsx bold-toggle + heading-toggle PASSED"
+          "evidence": "campaign-parse.test.ts 'strips inline emphasis/code from slug + title cells' PASSED"
         },
         {
-          "behavior": "per-button command wiring (strike/inline-code/lists/blockquote/code-block/hr)",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "evidence": "identical data-driven `onClick={() => run(editor)}` path (bold tested as representative); the commands themselves are proven by markdownTiptap.test.ts round-trip"
-        },
-        {
-          "behavior": "AC3 undo/redo disabled via editor.can() when history is empty",
+          "behavior": "status read by header name for the 5-col (Depends on) shape",
           "disposition": "tested",
-          "evidence": "MarkdownEditorToolbar.test.tsx 'disables undo when the history is empty' PASSED"
+          "evidence": "campaign-parse.test.ts 'reads status by header name for the 5-col (Depends on) producer shape' PASSED"
         },
         {
-          "behavior": "AC4 link button prompts for a URL; cancel is a safe no-op",
+          "behavior": "headerless table falls back to positional [id,slug,title,status]",
           "disposition": "tested",
-          "evidence": "MarkdownEditorToolbar.test.tsx 'opens a URL prompt ... cancel is a safe no-op' PASSED"
+          "evidence": "campaign-parse.test.ts 'falls back to positional ... for a headerless table' PASSED"
         },
         {
-          "behavior": "AC4 setLink <-> markdown serialization",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "evidence": "markdownTiptap.test.ts round-trips `[a link](https://example.com)`"
-        },
-        {
-          "behavior": "null-editor guard renders nothing (loading flash)",
+          "behavior": "original 4-col table still parses (regression)",
           "disposition": "tested",
-          "evidence": "MarkdownEditorToolbar.test.tsx 'renders nothing when the editor is null' PASSED"
+          "evidence": "campaign-parse.test.ts 'parses data rows, skipping the header + separator' PASSED"
         },
         {
-          "behavior": "AC5 no new serialized construct (lossy-warn surface unchanged)",
+          "behavior": "colon alignment separator row still tolerated (regression)",
           "disposition": "tested",
-          "evidence": "markdownTiptap round-trip + detectLossyConstructs tests remain green (11) — toolbar adds no construct"
+          "evidence": "campaign-parse.test.ts 'tolerates alignment colons in the separator row' PASSED"
+        },
+        {
+          "behavior": "missing Sub-Iterates table -> [] (regression)",
+          "disposition": "tested",
+          "evidence": "campaign-parse.test.ts 'returns [] when there is no Sub-Iterates table' PASSED"
+        },
+        {
+          "behavior": "real on-disk campaign resolves non-null specPath + launchable=true (consumer round-trip)",
+          "disposition": "tested",
+          "evidence": "tsx readCampaigns() probe vs real 2026-06-02-compliance-detective-realign: nextPending={id:C1, specPath:.../C1-audit-run-id-provenance.md}; LAUNCHABLE=true"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
-        "untestable": 3,
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "basis": "diff-introduced parser behaviors + preserved regressions (bug fix; no formal ACs)",
+        "behaviors_enumerated": 9,
+        "covered": 9
       }
     }
   }
