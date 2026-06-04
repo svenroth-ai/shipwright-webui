@@ -60,11 +60,14 @@ jobs:
         run: npm ci
 
       - name: Type check
-        run: npx tsc --noEmit || true
-        # TSC baseline: 4 pre-existing cross-package-import errors are
-        # tracked but tolerated (see CLAUDE.md DO-NOT guard #7). Policy
-        # is "no regression"; new code must compile clean.
-        continue-on-error: true
+        # GATING: the server workspace compiles clean today (0 errors). The
+        # former `|| true` + `continue-on-error` fully ignored tsc, so any
+        # number of new type errors passed CI green — the "no regression"
+        # policy the old comment claimed was never actually enforced. ADR-080
+        # cross-package isolation stays pinned by no-cross-package-imports.test.ts;
+        # this brings the server Type check to parity with the (already gating)
+        # client Type check.
+        run: npx tsc --noEmit
 
       - name: Lint
         run: npm run lint
