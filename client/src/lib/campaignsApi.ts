@@ -159,3 +159,25 @@ export async function launchCampaignRun(
     },
   );
 }
+
+/**
+ * Launch a SINGLE campaign sub-iterate (FR-01.36) on a freshly created task.
+ * The server's campaign-step branch validates `{ slug, stepId }`, resolves the
+ * step's specPath, and builds `/shipwright-iterate "<specPath>"` — the client
+ * never dictates the command or the path (Architecture rule 1). Sibling of
+ * `launchCampaignRun` (keeps the bloat-ceilinged `externalApi.ts` frozen).
+ */
+export async function launchCampaignStepRun(
+  taskId: string,
+  campaignSlug: string,
+  stepId: string,
+): Promise<{ task: ExternalTask; commands: CopyCommandForms }> {
+  return await httpJson<{ task: ExternalTask; commands: CopyCommandForms }>(
+    `${EXTERNAL_API}/tasks/${encodeURIComponent(taskId)}/launch`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaignStep: { slug: campaignSlug, stepId } }),
+    },
+  );
+}
