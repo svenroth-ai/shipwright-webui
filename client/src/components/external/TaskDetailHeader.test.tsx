@@ -12,7 +12,7 @@
  *    item, not rendered unconditionally.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import {
   render,
   screen,
@@ -58,7 +58,7 @@ function makeTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
   };
 }
 
-function renderHeader(task: ExternalTask, fetchMock?: ReturnType<typeof vi.fn>) {
+function renderHeader(task: ExternalTask, fetchMock?: Mock) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
@@ -390,7 +390,7 @@ describe("TaskDetailHeader — Close task redirects to board", () => {
    */
   function renderHeaderWithBoard(
     task: ExternalTask,
-    fetchMock?: ReturnType<typeof vi.fn>,
+    fetchMock?: Mock,
   ) {
     const qc = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
