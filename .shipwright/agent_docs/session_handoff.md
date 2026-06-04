@@ -1,38 +1,38 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-03-smartviewer-markdown-editor"
+run_id: "iterate-2026-06-04-md-editor-toolbar"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-06-03T15:37:58.047140+00:00"
+reason: "md editor formatting toolbar shipped"
+timestamp: "2026-06-04T06:10:12.486788+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-03 15:37:58 UTC
+> Auto-generated 2026-06-04 06:10:12 UTC
 
 ## Session Info
 
-- **Session ID**: e9e8fb1b-02c5-4c89-a13a-397824c2c52f
-- **Timestamp**: 2026-06-03 15:37:58 UTC
-- **Reason**: iterate finalization
+- **Session ID**: cc29b102-3406-4027-a565-9571f2797c7e
+- **Timestamp**: 2026-06-04 06:10:12 UTC
+- **Reason**: md editor formatting toolbar shipped
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-03-campaign-status-filter
-- **Date**: 2026-06-03T09:15:52.399240Z
-- **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/campaign-status-filter
-- **ADR**: iterate-2026-06-03-campaign-status-filter
+- **Run ID**: iterate-2026-06-03-md-editor-frontmatter-roundtrip
+- **Date**: 2026-06-03T21:33:15.876938Z
+- **Type**: bug
+- **Complexity**: medium
+- **Branch**: iterate/md-editor-frontmatter-roundtrip
+- **ADR**: iterate-2026-06-03-md-editor-frontmatter-roundtrip
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/01-adopted/spec.md
+- **Spec**: .shipwright/planning/iterate/2026-06-03-md-editor-frontmatter-roundtrip.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/smartviewer-markdown-editor
-- **Run ID**: iterate-2026-06-03-smartviewer-markdown-editor
-- **Spec**: .shipwright/planning/iterate/2026-06-03-smartviewer-markdown-editor.md
-- **Complexity**: medium (classifier: small; overridden — first file-write surface in a
+- **Branch**: iterate/md-editor-toolbar
+- **Run ID**: iterate-2026-06-04-md-editor-toolbar
+- **Spec**: .shipwright/planning/iterate/2026-06-04-md-editor-toolbar.md
+- **Complexity**: small (classifier: trivial; overridden +1 — new interactive ui
 - **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
@@ -51,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/smartviewer-markdown-editor
-- **Last Commit**: 3550e5b Merge pull request #96 from svenroth-ai/iterate/campaign-status-filter
+- **Branch**: iterate/md-editor-toolbar
+- **Last Commit**: 835ae56 Merge pull request #101 from svenroth-ai/iterate/md-editor-frontmatter-roundtrip
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,24 +68,23 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-6c3e0953 | work_completed | iterate (Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion)) | 2026-06-04 |
+| evt-eaebb2b4 | work_completed | iterate (iterate finalization) | 2026-06-03 |
+| evt-7c37c8cc | work_completed | iterate (SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route.) | 2026-06-03 |
+| evt-7da49dda | work_completed | iterate (Second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous, gated by a confirm dialog + risky-step warning.) | 2026-06-03 |
 | evt-6985e15b | work_completed | iterate (SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner.) | 2026-06-03 |
-| evt-1c746044 | work_completed | iterate (campaign-store reads top-level lifecycle status (status.json/frontmatter); selectActiveCampaigns shows iff active, legacy falls back to done<total) | 2026-06-03 |
-| evt-0e15ddd7 | work_completed | iterate (CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap) | 2026-06-03 |
-| evt-fc7459c4 | work_completed | iterate (All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green.) | 2026-06-02 |
-| evt-177f8389 | work_completed | iterate (Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId) | 2026-06-02 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 174
-- **Last iterate**: feature — SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner. (2026-06-03)
+- **Total work events**: 179
+- **Last iterate**: feature — Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) (2026-06-04)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-147: Accept pty-manager.ts as deep module; baseline state=exception
-- **Date:** 2026-05-25
-- **Section:** Campaign C C8
-- **Run-ID:** sub_iterate-20260525-213548
-- **Context:** server/src/terminal/pty-manager.ts is 1198 LOC against the 300 limit; state=grandfathered since Campaign A.defense. Campaign C removes anonymous TODO entries.
-- **Decision:** File ADR-101; flip baseline entry to state=exception, adr=ADR-101. No code change to pty-manager.ts. Re-Review-Date 2026-08-25 (when an auth layer m
+### ADR-148: WebUI writes campaign lifecycle status (Triage "Start Campaign" action)
+- **Date:** 2026-06-03
+- **Section:** FR-01.33 MODIFY (iterate-2026-06-03-start-campaign-action)
+- **Run-ID:** iterate-2026-06-03-start-campaign-action
+- **Context:** A campaign is created in `draft` and only shows on the board once `active` (ADR of `iterate-2026-06-03-campaign-status-filter` / `selectActiveCampaigns`). Until now the only Triage CTA for a campaign-umbrella item was **Fix now**, which launches a *single*

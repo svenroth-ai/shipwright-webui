@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-06-03T15:37:58.047140+00:00
-Total commits: 491
+Generated: 2026-06-04T06:10:12.486788+00:00
+Total commits: 497
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 176
-    "feat" : 129
+    "fix" : 178
+    "feat" : 133
     "chore" : 95
     "docs" : 44
     "refactor" : 25
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 176 commits
+### Fixes (fix) — 178 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-03 | smartviewer | preserve frontmatter + line endings in markdown editor round-trip | 89f84afe5db3 |
+| 2026-06-03 | media | harden Range stream errors + cover start>end 416 (external review) | 21d1f6842b51 |
 | 2026-06-02 | terminal | gate idle-ceiling on client attachment to stop resume data-loss | 47f74501b5dc |
 | 2026-05-31 | taskboard | wire Re-open into TaskCard + repair tests & E2E | 1dc588591d42 |
 | 2026-05-31 | terminal | reap stale WS writer slot via ping/pong liveness keepalive | dc7f23d33301 |
@@ -201,10 +203,14 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 129 commits
+### Features (feat) — 133 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-03 | triage | Start Campaign action — draft→active + board nav (FR-01.33, ADR-148) | 3def014bdd53 |
+| 2026-06-03 | board | autonomous campaign launch action on the Campaigns lane (FR-01.34) | c5dafde3f826 |
+| 2026-06-03 | smartviewer | in-app Markdown rich editor + first project-file write surface (FR-01.34) | 6768c20ab379 |
+| 2026-06-03 | smartviewer | inline video playback via Range-streaming /media route | df311d4f9ca7 |
 | 2026-06-03 | board | filter Campaigns lane on producer-owned lifecycle status (FR-01.33) | 2e85ab8fd75d |
 | 2026-06-03 | board | collapsible campaign cards + height-capped lane (FR-01.33) | 4ff2c34df333 |
 | 2026-06-02 | board | project-first create-menu cascade in All-Projects view | 3fea36809853 |
@@ -560,7 +566,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 491 |
+| Total commits | 497 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 491 |
+| Human-authored commits | 497 |
 

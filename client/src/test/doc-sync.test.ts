@@ -90,6 +90,8 @@ const REQUIRED_TOKENS = [
   'MarkdownDiffView',
   'markdownTiptap',
   'markdownFileApi',
+  // iterate-2026-06-04-md-editor-toolbar — formatting toolbar for the markdown editor
+  'MarkdownEditorToolbar',
 ] as const;
 
 let claudeMd = '';

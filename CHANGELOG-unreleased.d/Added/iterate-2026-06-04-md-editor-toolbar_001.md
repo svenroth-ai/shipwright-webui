@@ -1,0 +1,1 @@
+SmartViewer markdown editor: a formatting toolbar (bold, italic, strikethrough, inline code, headings H1-H3, bullet/ordered lists, blockquote, code block, horizontal rule, link, undo/redo) now appears above the editor. TipTap/ProseMirror is headless, so previously only keyboard shortcuts and Markdown input rules worked and no buttons were visible.

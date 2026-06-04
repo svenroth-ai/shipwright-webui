@@ -34,6 +34,7 @@ import {
 } from "../../../lib/markdownFileApi";
 import { ApiError } from "../../../lib/externalApi";
 import { MarkdownDiffView } from "./MarkdownDiffView";
+import { MarkdownEditorToolbar } from "./MarkdownEditorToolbar";
 
 interface Props {
   open: boolean;
@@ -150,6 +151,8 @@ export function MarkdownEditorModal({
   }, [projectId, path, edited, onSaved, onOpenChange]);
 
   const busy = phase === "saving";
+  // Editor + formatting toolbar show in every phase except loading/load_error/diff.
+  const showEditor = phase === "editing" || phase === "saving" || phase === "conflict";
 
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
@@ -235,6 +238,7 @@ export function MarkdownEditorModal({
             </div>
           )}
 
+          {showEditor && <MarkdownEditorToolbar editor={editor} />}
           <div className="min-h-0 flex-1 overflow-auto p-4">
             {phase === "loading" && (
               <div className="flex h-full items-center justify-center text-[12px]" style={{ color: "var(--color-muted, #6b7280)" }} data-testid="md-editor-loading">
@@ -250,7 +254,7 @@ export function MarkdownEditorModal({
             {phase === "diff" ? (
               <MarkdownDiffView original={original.current} edited={edited} />
             ) : (
-              <div className={phase === "editing" || phase === "saving" || phase === "conflict" ? "h-full" : "hidden"}>
+              <div className={showEditor ? "h-full" : "hidden"}>
                 <EditorContent editor={editor} className="h-full text-sm leading-relaxed" />
               </div>
             )}
