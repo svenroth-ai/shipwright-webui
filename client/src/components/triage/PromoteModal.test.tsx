@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -46,7 +46,7 @@ const item: TriageItem = {
   promotedTaskId: null,
 };
 
-function renderModal(opts?: { onPromoted?: ReturnType<typeof vi.fn> }) {
+function renderModal(opts?: { onPromoted?: Mock }) {
   const Wrapper = makeWrapper();
   return render(
     <Wrapper>
