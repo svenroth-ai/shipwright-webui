@@ -92,6 +92,10 @@ const REQUIRED_TOKENS = [
   'markdownFileApi',
   // iterate-2026-06-04-md-editor-toolbar — formatting toolbar for the markdown editor
   'MarkdownEditorToolbar',
+  // iterate-2026-06-04-campaign-step-launch — one-click single-sub-iterate launch (FR-01.36)
+  'CampaignStepLaunchButton',
+  'useLaunchCampaignStep',
+  'campaign-step-branch',
 ] as const;
 
 let claudeMd = '';

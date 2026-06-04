@@ -4,10 +4,12 @@
  *   - collapsed by default: header (chevron + slug + done/total) only
  *   - expanded: a collapsible Description (intent) disclosure, done/total
  *     progress bar, ordered steps (✓ complete / ▶ next-pending / ○ other),
- *     and a "Copy launch (Bx)" button that copies `/shipwright-iterate
- *     "<specPath>"` for the next-pending step. The board has no embedded
- *     terminal, so launch is a copy-command affordance (NOT auto-inject);
- *     disabled when there is no launchable step (never a dead button).
+ *     and two launch actions: `<CampaignStepLaunchButton>` ("Launch (Cx)",
+ *     one-click launch of the next-pending sub-iterate, FR-01.36 — replaced
+ *     the old "Copy launch" clipboard button) and `<CampaignAutonomousLaunchButton>`
+ *     ("Launch autonomous", FR-01.34). Both open a TaskDetail terminal that
+ *     auto-runs the command; disabled when there is no launchable step / project
+ *     (never a dead button).
  *
  * Collapse + description-open state persist per-campaign-slug in localStorage
  * (`useLocalStorage`) so the last layout survives reload / navigation — like
@@ -17,17 +19,14 @@
  * many expanded cards never push the kanban off-screen.
  */
 
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, ChevronDown, ChevronRight, Circle, Play, ExternalLink } from "lucide-react";
 
 import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
 import type { Project } from "../../types";
-import { copyText } from "../../lib/clipboard";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
-
-type CopyState = "idle" | "copied" | "error";
 
 function StepIcon({ kind }: { kind: "complete" | "next" | "other" }) {
   if (kind === "complete") {
@@ -48,7 +47,6 @@ export function CampaignLaneCard({
    *  (create-task cwd + projectId). Null when "All projects" / unresolved. */
   project?: Project | null;
 }) {
-  const [copyState, setCopyState] = useState<CopyState>("idle");
   // Per-slug persisted UI state. Default: collapsed card, closed description.
   const [collapsed, setCollapsed] = useLocalStorage<boolean>(
     `webui:campaign-card-collapsed:${campaign.slug}`,
@@ -61,21 +59,6 @@ export function CampaignLaneCard({
 
   const pct = campaign.total > 0 ? Math.round((campaign.done / campaign.total) * 100) : 0;
   const next = campaign.nextPending;
-  const launchable = Boolean(next && next.specPath);
-  const launchCommand = next?.specPath
-    ? `/shipwright-iterate "${next.specPath}"`
-    : null;
-
-  const onCopy = async () => {
-    if (!launchCommand) return;
-    try {
-      await copyText(launchCommand);
-      setCopyState("copied");
-    } catch {
-      setCopyState("error");
-    }
-    setTimeout(() => setCopyState("idle"), 2000);
-  };
 
   const stepKind = (s: CampaignStep): "complete" | "next" | "other" => {
     if (s.status === "complete") return "complete";
@@ -205,31 +188,14 @@ export function CampaignLaneCard({
             })}
           </ol>
 
-          {/* Launch affordance — copy command for the next-pending step. */}
+          {/* Launch affordances. Left: one-click launch of the next-pending
+              sub-iterate (FR-01.36) — opens a terminal running
+              `/shipwright-iterate "<specPath>"`; confirm dialog only when that
+              step is risky. Right: autonomous run of every remaining step
+              (FR-01.34). The old "Copy launch" clipboard button was replaced by
+              the left action. */}
           <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onCopy}
-              disabled={!launchable}
-              data-testid={`campaign-launch-${campaign.slug}`}
-              className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-text,#111827)] transition-colors enabled:hover:bg-[var(--color-muted-bg)] disabled:cursor-not-allowed disabled:opacity-50"
-              title={
-                launchable
-                  ? `Copy: /shipwright-iterate "${next!.specPath}"`
-                  : "No launchable next step (all complete or spec file missing)"
-              }
-            >
-              <Play size={12} />
-              {next ? `Copy launch (${next.id})` : "Copy launch"}
-            </button>
-            {copyState === "copied" && (
-              <span className="text-[11px] text-[var(--color-success-text,#16a34a)]">Copied</span>
-            )}
-            {copyState === "error" && (
-              <span className="text-[11px] text-[var(--color-error,#dc2626)]">Copy failed</span>
-            )}
-            {/* Second action (FR-01.34): open a TaskDetail terminal that
-                auto-runs the autonomous campaign — gated by a confirm dialog. */}
+            <CampaignStepLaunchButton campaign={campaign} project={project} />
             <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
           </div>
         </>

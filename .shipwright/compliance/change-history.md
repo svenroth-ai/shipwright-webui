@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-04T10:22:05.187150+00:00
-Total commits: 501
+Generated: 2026-06-04T12:06:24.553627+00:00
+Total commits: 502
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 180
+    "fix" : 181
     "feat" : 134
     "chore" : 96
     "docs" : 44
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 180 commits
+### Fixes (fix) — 181 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-04 | campaigns | parse Sub-Iterates table by header + strip MD emphasis | 7a0802d03b17 |
 | 2026-06-04 | security | remediate vitest CVE-2026-47429 (CVSS 9.8) + vitest 4 test compat | 7187f28f8948 |
 | 2026-06-04 | ci | gate server type-check and correct the security critical-findings gate | 9d096a167308 |
 | 2026-06-03 | smartviewer | preserve frontmatter + line endings in markdown editor round-trip | 89f84afe5db3 |
@@ -570,7 +571,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 501 |
+| Total commits | 502 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 501 |
+| Human-authored commits | 502 |
 

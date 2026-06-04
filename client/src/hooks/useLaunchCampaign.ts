@@ -60,19 +60,34 @@ function writePendingAutoLaunch(taskId: string, commands: CopyCommandForms): voi
   }
 }
 
-export async function launchCampaign(
-  args: LaunchCampaignArgs,
-  deps: LaunchCampaignDeps,
-): Promise<LaunchCampaignResult> {
-  const { project, slug } = args;
+/**
+ * Shared create→launch→handoff core (FR-01.34 + FR-01.36). The `title` and the
+ * `performLaunch` thunk are the only differences between an autonomous campaign
+ * run and a single-sub-iterate run, so both funnel through here. `performLaunch`
+ * already closes over the slug (+ stepId) — the server is the command authority,
+ * so this layer never touches the command string.
+ */
+export interface CampaignTaskLaunchArgs {
+  project: { id: string; path: string };
+  title: string;
+  performLaunch: (taskId: string) => Promise<{ commands: CopyCommandForms }>;
+}
+export interface CampaignTaskLaunchDeps {
+  create: LaunchCampaignDeps["create"];
+  handoff?: LaunchCampaignDeps["handoff"];
+}
 
+export async function launchCampaignTask(
+  args: CampaignTaskLaunchArgs,
+  deps: CampaignTaskLaunchDeps,
+): Promise<LaunchCampaignResult> {
   let taskId: string;
   try {
     const task = await deps.create({
-      title: `campaign: ${slug}`,
-      cwd: project.path,
+      title: args.title,
+      cwd: args.project.path,
       pluginDirs: [],
-      projectId: project.id,
+      projectId: args.project.id,
     });
     taskId = task.taskId;
   } catch (err) {
@@ -85,7 +100,7 @@ export async function launchCampaign(
 
   let commands: CopyCommandForms;
   try {
-    const result = await deps.launch(taskId, slug);
+    const result = await args.performLaunch(taskId);
     commands = result.commands;
   } catch (err) {
     return {
@@ -97,6 +112,20 @@ export async function launchCampaign(
 
   (deps.handoff ?? writePendingAutoLaunch)(taskId, commands);
   return { ok: true, taskId, commands };
+}
+
+export async function launchCampaign(
+  args: LaunchCampaignArgs,
+  deps: LaunchCampaignDeps,
+): Promise<LaunchCampaignResult> {
+  return launchCampaignTask(
+    {
+      project: args.project,
+      title: `campaign: ${args.slug}`,
+      performLaunch: (taskId) => deps.launch(taskId, args.slug),
+    },
+    { create: deps.create, handoff: deps.handoff },
+  );
 }
 
 /** React hook — preferred form. Injects the real deps + invalidates task lists. */
