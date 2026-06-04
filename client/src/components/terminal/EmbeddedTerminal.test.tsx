@@ -84,8 +84,10 @@ const mockBufferActive = {
   type: "normal" as const,
 };
 
+// vitest 4 constructs a mock impl on `new`, so each mock factory below is a
+// regular function (an arrow throws "is not a constructor").
 vi.mock("@xterm/xterm", () => ({
-  Terminal: vi.fn().mockImplementation((opts?: Record<string, unknown>) => {
+  Terminal: vi.fn().mockImplementation(function (opts?: Record<string, unknown>) {
     capturedTerminalOpts = opts ?? null;
     const el = document.createElement("div");
     for (const c of preMountElementClasses) el.classList.add(c);
@@ -145,19 +147,16 @@ vi.mock("@xterm/xterm", () => ({
   }),
 }));
 vi.mock("@xterm/addon-fit", () => ({
-  FitAddon: vi.fn().mockImplementation(() => ({ fit: fitSpy, activate: vi.fn(), dispose: vi.fn() })),
+  FitAddon: vi.fn().mockImplementation(function () { return { fit: fitSpy, activate: vi.fn(), dispose: vi.fn() }; }),
 }));
 vi.mock("@xterm/addon-web-links", () => ({
-  WebLinksAddon: vi.fn().mockImplementation(() => ({ activate: vi.fn(), dispose: vi.fn() })),
+  WebLinksAddon: vi.fn().mockImplementation(function () { return { activate: vi.fn(), dispose: vi.fn() }; }),
 }));
 // Iterate F (ADR-093) — addon-webgl loaded with try/catch fallback. The mock
 // returns a constructor that doesn't throw, so the try-branch lands; jsdom
 // has no real WebGL context but EmbeddedTerminal never asserts against it.
 vi.mock("@xterm/addon-webgl", () => ({
-  WebglAddon: vi.fn().mockImplementation(() => ({
-    activate: vi.fn(),
-    dispose: vi.fn(),
-  })),
+  WebglAddon: vi.fn().mockImplementation(function () { return { activate: vi.fn(), dispose: vi.fn() }; }),
 }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
