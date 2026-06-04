@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-06-04 06:10 UTC | Session: cc29b102-3406-4027-a565-9571f2797c7e | Run: iterate-2026-06-04-md-editor-toolbar
+> Updated: 2026-06-04 10:22 UTC | Session: 92ee50e1-0420-40a6-a052-88b69374e8c9 | Run: iterate-2026-06-04-campaign-step-id-emphasis
 
-## Recent Changes (109 iterations)
+## Recent Changes (110 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| feature | Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | 0/0 |  | FR-01.34 | 2026-06-04 |
+| bug | Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. | 0/0 |  | bug | 2026-06-04 |
+| feature | Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | 0/0 |  | FR-01.35 | 2026-06-04 |
 | change | iterate finalization | 0/0 |  |  | 2026-06-03 |
 | feature | SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route. | 0/0 |  | FR-01.02 | 2026-06-03 |
 | feature | Second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous, gated by a confirm dialog + risky-step warning. | 0/0 |  | FR-01.33 | 2026-06-03 |

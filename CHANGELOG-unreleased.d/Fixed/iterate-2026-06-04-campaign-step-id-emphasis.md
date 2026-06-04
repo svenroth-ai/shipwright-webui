@@ -1,0 +1,1 @@
+The campaign board's per-step "Copy launch" button works again for campaigns whose `campaign.md` bolds the step ID (`**C1**`) or adds table columns (Repo / Depends on). The Sub-Iterates table is now parsed by column header with Markdown emphasis stripped, so each step's spec path resolves and the launch button is enabled instead of permanently disabled.
