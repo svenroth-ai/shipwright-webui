@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-04T06:10:12.486788+00:00
-Total commits: 497
+Generated: 2026-06-04T10:22:05.187150+00:00
+Total commits: 501
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 178
-    "feat" : 133
-    "chore" : 95
+    "fix" : 180
+    "feat" : 134
+    "chore" : 96
     "docs" : 44
     "refactor" : 25
     "test" : 14
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 178 commits
+### Fixes (fix) — 180 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-04 | security | remediate vitest CVE-2026-47429 (CVSS 9.8) + vitest 4 test compat | 7187f28f8948 |
+| 2026-06-04 | ci | gate server type-check and correct the security critical-findings gate | 9d096a167308 |
 | 2026-06-03 | smartviewer | preserve frontmatter + line endings in markdown editor round-trip | 89f84afe5db3 |
 | 2026-06-03 | media | harden Range stream errors + cover start>end 416 (external review) | 21d1f6842b51 |
 | 2026-06-02 | terminal | gate idle-ceiling on client attachment to stop resume data-loss | 47f74501b5dc |
@@ -203,10 +205,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 133 commits
+### Features (feat) — 134 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-04 | smartviewer | add formatting toolbar to the markdown editor | 891c8c1dad3f |
 | 2026-06-03 | triage | Start Campaign action — draft→active + board nav (FR-01.33, ADR-148) | 3def014bdd53 |
 | 2026-06-03 | board | autonomous campaign launch action on the Campaigns lane (FR-01.34) | c5dafde3f826 |
 | 2026-06-03 | smartviewer | in-app Markdown rich editor + first project-file write surface (FR-01.34) | 6768c20ab379 |
@@ -341,10 +344,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 95 commits
+### Chores (chore) — 96 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-04 | security | allowlist sidekiq-secret false positive (cafebabe:deadbeef) | 214815220320 |
 | 2026-06-03 | campaign | mark 2026-05-25-bloat-cleanup-C-webui complete (8/8) | 96824e6660f1 |
 | 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | e5f92193442c |
 | 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | 2a0b142bf13f |
@@ -566,7 +570,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 497 |
+| Total commits | 501 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 497 |
+| Human-authored commits | 501 |
 

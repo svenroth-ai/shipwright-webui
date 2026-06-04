@@ -1,39 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-04-md-editor-toolbar"
+run_id: "iterate-2026-06-04-campaign-step-id-emphasis"
 phase: "iterate"
-reason: "md editor formatting toolbar shipped"
-timestamp: "2026-06-04T06:10:12.486788+00:00"
+reason: "campaign Copy-launch button fix complete"
+timestamp: "2026-06-04T10:22:05.187150+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-04 06:10:12 UTC
+> Auto-generated 2026-06-04 10:22:05 UTC
 
 ## Session Info
 
-- **Session ID**: cc29b102-3406-4027-a565-9571f2797c7e
-- **Timestamp**: 2026-06-04 06:10:12 UTC
-- **Reason**: md editor formatting toolbar shipped
+- **Session ID**: 92ee50e1-0420-40a6-a052-88b69374e8c9
+- **Timestamp**: 2026-06-04 10:22:05 UTC
+- **Reason**: campaign Copy-launch button fix complete
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-03-md-editor-frontmatter-roundtrip
-- **Date**: 2026-06-03T21:33:15.876938Z
+- **Run ID**: iterate-2026-06-04-campaign-step-id-emphasis
+- **Date**: 2026-06-04T10:21:01.126094Z
 - **Type**: bug
-- **Complexity**: medium
-- **Branch**: iterate/md-editor-frontmatter-roundtrip
-- **ADR**: iterate-2026-06-03-md-editor-frontmatter-roundtrip
+- **Complexity**: small
+- **Branch**: iterate/campaign-step-id-emphasis
+- **ADR**: iterate-2026-06-04-campaign-step-id-emphasis
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-03-md-editor-frontmatter-roundtrip.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/md-editor-toolbar
-- **Run ID**: iterate-2026-06-04-md-editor-toolbar
-- **Spec**: .shipwright/planning/iterate/2026-06-04-md-editor-toolbar.md
-- **Complexity**: small (classifier: trivial; overridden +1 — new interactive ui
-- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
+- **Branch**: iterate/campaign-step-id-emphasis
+- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
 
@@ -51,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/md-editor-toolbar
-- **Last Commit**: 835ae56 Merge pull request #101 from svenroth-ai/iterate/md-editor-frontmatter-roundtrip
+- **Branch**: iterate/campaign-step-id-emphasis
+- **Last Commit**: 7fe33f0 Merge pull request #103 from svenroth-ai/fix/ci-false-green-gate-and-tsc
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-1429122a | work_completed | iterate (Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button.) | 2026-06-04 |
 | evt-6c3e0953 | work_completed | iterate (Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion)) | 2026-06-04 |
 | evt-eaebb2b4 | work_completed | iterate (iterate finalization) | 2026-06-03 |
 | evt-7c37c8cc | work_completed | iterate (SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route.) | 2026-06-03 |
 | evt-7da49dda | work_completed | iterate (Second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous, gated by a confirm dialog + risky-step warning.) | 2026-06-03 |
-| evt-6985e15b | work_completed | iterate (SmartViewer in-app Markdown rich editor (TipTap) + first project-file write surface: PUT /file with content-hash If-Match optimistic concurrency, mandatory pre-save diff + warn banner.) | 2026-06-03 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 179
-- **Last iterate**: feature — Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) (2026-06-04)
+- **Total work events**: 180
+- **Last iterate**: bug — Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. (2026-06-04)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

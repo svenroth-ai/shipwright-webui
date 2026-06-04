@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-04T06:10:12.486788+00:00
+Generated: 2026-06-04T10:22:05.187150+00:00
 
 ## Requirements Coverage
 
@@ -39,8 +39,8 @@ Generated: 2026-06-04T06:10:12.486788+00:00
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 | [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +1 | — | — | NO TESTS |
-| [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | evt-6c3e0953 | — | — | NO TESTS |
-| [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b | — | — | NO TESTS |
+| [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | — | — | — | NOT VERIFIED |
+| [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
 
 ## Verification Timeline
 
@@ -224,7 +224,8 @@ Generated: 2026-06-04T06:10:12.486788+00:00
 | Second Campaigns-lane action: opens a TaskDetail terminal auto-running /shipwright-iterate --campaign <slug> --autonomous, gated by a confirm dialog + risky-step warning. | iterate | feature | FR-01.33 | — | — | 2026-06-03 |
 | SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route. | iterate | feature | FR-01.02 | — | — | 2026-06-03 |
 | iterate finalization | iterate | change |  | — | — | 2026-06-03 |
-| Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | iterate | feature | FR-01.34 | — | — | 2026-06-04 |
+| Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | iterate | feature | FR-01.35 | — | — | 2026-06-04 |
+| Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. | iterate | bug |  | — | — | 2026-06-04 |
 
 ## Coverage Summary
 
@@ -232,9 +233,9 @@ Generated: 2026-06-04T06:10:12.486788+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 109 |
+| Iterate changes | 110 |
 | Requirements total | 35 |
-| Requirements verified | 20/35 |
+| Requirements verified | 19/35 |
 | Must-have verified | 16/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
@@ -256,6 +257,7 @@ Generated: 2026-06-04T06:10:12.486788+00:00
 - [FR-01.25](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the project row. PATCH updates name / profile / color. DELETE remove
 - [FR-01.26](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub 
 - [FR-01.27](../../.shipwright/planning/01-adopted/spec.md) (Must): Settings page lets the user pick a registered project, see its current actions-s
+- [FR-01.34](../../.shipwright/planning/01-adopted/spec.md) (Should): A SECOND Campaigns-lane action — **Launch autonomous** — that opens a TaskDetail
 
 ### FRs with stale verification (> 14 days)
 
