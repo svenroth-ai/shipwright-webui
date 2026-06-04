@@ -1,24 +1,25 @@
 {
-  "last_updated": "2026-06-03",
+  "last_updated": "2026-06-04",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-03-md-editor-frontmatter-roundtrip",
-    "intent": "bug",
-    "complexity": "medium",
-    "timestamp": "2026-06-03",
+    "run_id": "iterate-2026-06-04-md-editor-toolbar",
+    "intent": "feature",
+    "complexity": "small",
+    "timestamp": "2026-06-04",
     "paths_touched": [
-      "client/src/lib/markdownTiptap.ts",
-      "client/src/lib/markdownTiptap.test.ts",
-      "client/src/lib/markdownTiptap.envelope.test.ts",
+      "client/src/components/external/SmartViewer/MarkdownEditorToolbar.tsx",
+      "client/src/components/external/SmartViewer/MarkdownEditorToolbar.test.tsx",
       "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
-      "client/src/components/external/SmartViewer/MarkdownEditorModal.test.tsx",
-      "client/e2e/flows/markdown-editor.spec.ts"
+      "client/src/test/doc-sync.test.ts",
+      "client/e2e/flows/markdown-editor.spec.ts",
+      ".shipwright/agent_docs/architecture.md",
+      ".shipwright/planning/iterate/2026-06-04-md-editor-toolbar.md"
     ],
     "result": "passed",
-    "summary": "Markdown editor round-trip now preserves YAML frontmatter, line endings (CRLF) and the trailing newline via a verbatim envelope; the diff shows only real body changes and Save no longer corrupts frontmatter.",
+    "summary": "Added a formatting toolbar (bold/italic/strike/inline-code, H1-H3, bullet+ordered lists, blockquote, code-block, horizontal-rule, link, undo/redo) to the SmartViewer markdown editor. TipTap is headless, so the buttons were previously absent; the bar wires existing StarterKit commands, mirrors the live selection via aria-pressed, and adds no new serialized construct (boundary unchanged).",
     "unit": {
       "status": "passed",
-      "passed": 1516,
-      "total": 1516
+      "passed": 1522,
+      "total": 1522
     },
     "integration": {
       "status": "n/a"
@@ -28,8 +29,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 4,
-      "total": 4
+      "passed": 5,
+      "total": 5
     },
     "design_fidelity": {
       "status": "n/a"
@@ -39,80 +40,78 @@
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 4,
+      "tests_run": 5,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/markdown-editor.spec.ts --config=client/playwright.config.ts --project=chromium --reporter=list",
-      "evidence": "4/4 passed in Chromium against an isolated Vite (BASE_URL=http://127.0.0.1:5199); API route-mocked"
+      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/markdown-editor.spec.ts --config=client/playwright.config.ts",
+      "evidence": "5/5 passed in Chromium against an isolated worktree Vite (BASE_URL=http://localhost:5199, SHIPWRIGHT_NETWORK_PROFILE=local); API route-mocked"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 unedited canonical frontmatter file round-trips byte-identically",
+          "behavior": "AC1 toolbar renders core buttons when an editor is present",
           "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts AC1 PASSED + E2E 'No changes' PASSED"
+          "evidence": "MarkdownEditorToolbar.test.tsx 'renders core formatting buttons' + E2E button visibility PASSED"
         },
         {
-          "behavior": "AC2 a single body edit yields exactly a one-line (+1/-1) diff",
-          "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts AC2 PASSED + E2E add=1/del=1 PASSED"
+          "behavior": "AC1 toolbar hidden during loading/load_error/diff phases",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "evidence": "same `showEditor` boolean gates the editor surface div; modal phase tests exercise loading + diff (no editor)"
         },
         {
-          "behavior": "AC3 YAML frontmatter preserved byte-for-byte (no setext-heading mangling)",
+          "behavior": "AC2 a toggle button applies its StarterKit command into the serialized markdown",
           "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts AC3 PASSED + E2E PUT-body verbatim frontmatter PASSED"
+          "evidence": "E2E select-all + toolbar Bold -> `**` appears in the pre-save diff PASSED"
         },
         {
-          "behavior": "AC4 CRLF line endings preserved across round-trip",
+          "behavior": "AC3 toggle buttons mirror the live selection via aria-pressed (bold + heading)",
           "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts AC4 PASSED"
+          "evidence": "MarkdownEditorToolbar.test.tsx bold-toggle + heading-toggle PASSED"
         },
         {
-          "behavior": "AC5 trailing-newline convention preserved (with and without)",
-          "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts AC5 PASSED + E2E save endsWith newline PASSED"
+          "behavior": "per-button command wiring (strike/inline-code/lists/blockquote/code-block/hr)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "evidence": "identical data-driven `onClick={() => run(editor)}` path (bold tested as representative); the commands themselves are proven by markdownTiptap.test.ts round-trip"
         },
         {
-          "behavior": "AC6 frontmatter-less file round-trips byte-identically",
+          "behavior": "AC3 undo/redo disabled via editor.can() when history is empty",
           "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts AC6 PASSED"
+          "evidence": "MarkdownEditorToolbar.test.tsx 'disables undo when the history is empty' PASSED"
         },
         {
-          "behavior": "AC7 detectLossyConstructs no longer flags YAML frontmatter",
+          "behavior": "AC4 link button prompts for a URL; cancel is a safe no-op",
           "disposition": "tested",
-          "evidence": "markdownTiptap.test.ts + envelope AC7 PASSED"
+          "evidence": "MarkdownEditorToolbar.test.tsx 'opens a URL prompt ... cancel is a safe no-op' PASSED"
         },
         {
-          "behavior": "Modal shows neutral 'frontmatter preserved' note, not a lossy warn",
-          "disposition": "tested",
-          "evidence": "MarkdownEditorModal.test.tsx + E2E md-editor-frontmatter-note PASSED"
+          "behavior": "AC4 setLink <-> markdown serialization",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "evidence": "markdownTiptap.test.ts round-trips `[a link](https://example.com)`"
         },
         {
-          "behavior": "Save is a disabled no-op when the round-trip is byte-identical",
+          "behavior": "null-editor guard renders nothing (loading flash)",
           "disposition": "tested",
-          "evidence": "E2E 'No changes' (Save disabled) + modal Save tests require a real edit PASSED"
+          "evidence": "MarkdownEditorToolbar.test.tsx 'renders nothing when the editor is null' PASSED"
         },
         {
-          "behavior": "Leading indentation of first body line stays in core, not prefix (ext-review #1)",
+          "behavior": "AC5 no new serialized construct (lossy-warn surface unchanged)",
           "disposition": "tested",
-          "evidence": "markdownTiptap.envelope.test.ts 2 indentation cases PASSED"
-        },
-        {
-          "behavior": "Save writes byte-correct bytes (frontmatter verbatim, edit present, no heading)",
-          "disposition": "tested",
-          "evidence": "E2E PUT-body assertion PASSED"
+          "evidence": "markdownTiptap round-trip + detectLossyConstructs tests remain green (11) — toolbar adds no construct"
         }
       ],
       "counts": {
-        "testable": 11,
-        "tested": 11,
-        "untestable": 0,
+        "testable": 7,
+        "tested": 7,
+        "untestable": 3,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7
+        "acs": 5,
+        "covered_acs": 5
       }
     }
   }
