@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-04T06:10:12.486788+00:00
+Generated: 2026-06-04T10:22:05.187150+00:00
 
 ## Summary
 
@@ -95,7 +95,7 @@ pie title License Distribution
 | typescript | ^5.6.0 | Apache-2.0 |
 | typescript | ^5.7.0 | Apache-2.0 |
 | vite | ^6.0.0 | MIT |
-| vitest | ^3.0.0 | MIT |
+| vitest | ^4.1.8 | MIT |
 
 ## License Compliance
 

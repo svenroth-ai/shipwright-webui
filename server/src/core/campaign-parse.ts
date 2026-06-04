@@ -88,7 +88,40 @@ export function parseSpecFrontmatter(md: string): { planFirst: boolean } {
   return { planFirst };
 }
 
-/** Parse the `## Sub-Iterates` markdown table rows (header + separator skipped). */
+/**
+ * Strip inline Markdown emphasis / code markers from a table cell value.
+ * Producers bold the ID column (`**C1**`) and decorate titles with bold + code
+ * spans. The plain text is what the consumer needs — most critically for the
+ * ID, which is load-bearing: it forms the `<id>-<slug>.md` spec filename, so a
+ * literal `**C1**` resolves to a non-existent file → null specPath → a dead
+ * Copy-launch button on the board. Conservative + paired-only: code spans
+ * first, then bold (`**` / `__`) BEFORE italic (`*` / `_`) so `**x**` collapses
+ * in one pass. Leaves hyphens, arrows, and unpaired markers (e.g. the single
+ * `_` in `group_a5`) untouched.
+ */
+function stripInlineEmphasis(s: string): string {
+  return s
+    .replace(/`([^`]*)`/g, "$1") // `code`
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold**
+    .replace(/__([^_]+)__/g, "$1") // __bold__
+    .replace(/\*([^*]+)\*/g, "$1") // *italic*
+    .replace(/_([^_]+)_/g, "$1") // _italic_
+    .trim();
+}
+
+/**
+ * Parse the `## Sub-Iterates` markdown table.
+ *
+ * Header-driven, not positional: the producer table has evolved from the
+ * original `| ID | Slug | Title | Status |` to optionally include `Repo` /
+ * `Depends on` columns and to bold the ID cell (the verbatim
+ * `2026-06-02-compliance-detective-realign` campaign is `| ID | Slug | Title |
+ * Repo | Depends on | Status |` with `**C1**` IDs). Locating the load-bearing
+ * columns by header name keeps `status` anchored to the Status column instead
+ * of whatever now sits in the 4th cell, and every cell is emphasis-stripped so
+ * a bold ID round-trips to a real `<id>-<slug>.md` filename. Falls back to
+ * positional `[id, slug, title, status]` for a (hypothetical) headerless table.
+ */
 export function parseSubIteratesTable(md: string): CampaignTableRow[] {
   const lines = md.split("\n");
   let i = 0;
@@ -96,20 +129,46 @@ export function parseSubIteratesTable(md: string): CampaignTableRow[] {
     if (/^##\s+Sub-Iterates\s*$/i.test(lines[i].trim())) break;
   }
   if (i >= lines.length) return [];
-  const rows: CampaignTableRow[] = [];
+
+  // Collect every pipe row (emphasis-stripped cells); drop separator rows.
+  const pipeRows: string[][] = [];
   for (i = i + 1; i < lines.length; i++) {
     const t = lines[i].trim();
     if (/^##\s+/.test(t)) break; // next section
     if (!t.startsWith("|")) continue;
     const inner = t.replace(/^\|/, "").replace(/\|$/, "");
-    const cells = inner.split("|").map((c) => c.trim());
+    const cells = inner.split("|").map((c) => stripInlineEmphasis(c.trim()));
     // separator row (cells only of - : space) → skip
     if (cells.every((c) => c === "" || /^:?-+:?$/.test(c))) continue;
-    // header row → skip
-    if (cells[0]?.toLowerCase() === "id") continue;
-    const [id = "", slug = "", title = "", status = ""] = cells;
+    pipeRows.push(cells);
+  }
+  if (pipeRows.length === 0) return [];
+
+  // First non-separator row is the header when it carries an `ID` column.
+  const header = pipeRows[0].map((c) => c.toLowerCase());
+  const hasHeader = header.includes("id");
+  const colOf = (name: string, dflt: number): number => {
+    const idx = header.indexOf(name);
+    return idx === -1 ? dflt : idx;
+  };
+  const idCol = hasHeader ? colOf("id", 0) : 0;
+  const slugCol = hasHeader ? colOf("slug", 1) : 1;
+  const titleCol = hasHeader ? colOf("title", 2) : 2;
+  // status is conventionally the last column; default to the final cell.
+  const statusCol = hasHeader ? colOf("status", header.length - 1) : 3;
+  const dataStart = hasHeader ? 1 : 0;
+
+  const rows: CampaignTableRow[] = [];
+  for (let r = dataStart; r < pipeRows.length; r++) {
+    const cells = pipeRows[r];
+    const id = cells[idCol] ?? "";
     if (!id) continue;
-    rows.push({ id, slug, title, status: status.toLowerCase() });
+    rows.push({
+      id,
+      slug: cells[slugCol] ?? "",
+      title: cells[titleCol] ?? "",
+      status: (cells[statusCol] ?? "").toLowerCase(),
+    });
   }
   return rows;
 }
