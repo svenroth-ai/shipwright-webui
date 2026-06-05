@@ -1,29 +1,30 @@
 # Commit Change Log
 
-Generated: 2026-06-05T10:58:14.658113+00:00
-Total commits: 503
+Generated: 2026-06-05T11:16:55.382811+00:00
+Total commits: 505
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 181
+    "fix" : 182
     "feat" : 135
     "chore" : 96
     "docs" : 44
     "refactor" : 25
     "test" : 14
+    "ci" : 4
     "other" : 4
-    "ci" : 3
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 181 commits
+### Fixes (fix) — 182 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-05 | compliance | webui audit data/config reconcile — G2 scopes + event FR links (C4) | f8b63cbbe8d6 |
 | 2026-06-04 | campaigns | parse Sub-Iterates table by header + strip MD emphasis | 7a0802d03b17 |
 | 2026-06-04 | security | remediate vitest CVE-2026-47429 (CVSS 9.8) + vitest 4 test compat | 7187f28f8948 |
 | 2026-06-04 | ci | gate server type-check and correct the security critical-findings gate | 9d096a167308 |
@@ -545,6 +546,15 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
+### CI/CD (ci) — 4 commits
+
+| Date | Scope | Description | Commit |
+|------|-------|-------------|--------|
+| 2026-06-05 | security | checkout at fetch-depth 1 (no scanner reads git history) | 2fa1e9ab4492 |
+| 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | d66ab5506380 |
+| 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | 7196205297df |
+| 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | fff2b02dc8a5 |
+
 ### Other (other) — 4 commits
 
 | Date | Scope | Description | Commit |
@@ -553,14 +563,6 @@ pie title Commit Types
 | 2026-04-23 | — | iterate 3.9 — E2E spec backlog cleanup + TaskCard menu-bubbling fix (#9) | f8f89f135182 |
 | 2026-04-22 | — | iterate 3.8 — post-iterate-3 cleanup (E2E + scrollbar gutter) (#8) | d58cb21c8b5f |
 | 2026-04-17 | — | poc: assistant-ui migration probe (branch poc/assistant-ui-migration) | f8ea3f403df8 |
-
-### CI/CD (ci) — 3 commits
-
-| Date | Scope | Description | Commit |
-|------|-------|-------------|--------|
-| 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | d66ab5506380 |
-| 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | 7196205297df |
-| 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | fff2b02dc8a5 |
 
 ### Build (build) — 1 commits
 
@@ -572,7 +574,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 503 |
+| Total commits | 505 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 503 |
+| Human-authored commits | 505 |
 

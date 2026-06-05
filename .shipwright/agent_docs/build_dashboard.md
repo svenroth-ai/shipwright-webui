@@ -1,10 +1,21 @@
 # Project Activity Dashboard
-> Updated: 2026-06-05 10:58 UTC | Session: 8c417574-f89c-40fd-a5b3-5d01f6272edb | Run: iterate-2026-06-05-webui-data-config
+> Updated: 2026-06-05 11:16 UTC | Session: 8c417574-f89c-40fd-a5b3-5d01f6272edb | Run: iterate-2026-06-05-webui-event-backfill
 
-## Recent Changes (112 iterations)
+## Recent Changes (123 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6 | 0/0 |  | compliance | 2026-06-05 |
+| change | ci(security): checkout at fetch-depth 1 | 0/0 | 2fa1e9a | infra | 2026-06-05 |
+| feature | feat(triage): Start Campaign action — draft->active + board nav (ADR-148) | 0/0 | 3def014 | FR-01.33 | 2026-06-05 |
+| change | ci: pin create-or-update-comment to SHA + gitleaks integrity | 0/0 | fff2b02 | infra | 2026-06-05 |
+| change | docs(ci): correct stale upload-sarif @v3 comment to @v4 | 0/0 | 48badb6 | docs | 2026-06-05 |
+| change | ci(security): activate Security Scan on PRs + weekly | 0/0 | 7196205 | infra | 2026-06-05 |
+| change | ci(security): add CodeQL workflow | 0/0 | d66ab55 | infra | 2026-06-05 |
+| change | chore(campaign): mark 2026-05-25-bloat-cleanup-C-webui complete | 0/0 | 96824e6 | compliance | 2026-06-05 |
+| change | fix(ci): gate server type-check + correct security gate | 0/0 | 9d096a1 | tooling | 2026-06-05 |
+| change | fix(security): remediate vitest CVE-2026-47429 | 0/0 | 7187f28 | infra | 2026-06-05 |
+| change | chore(security): allowlist sidekiq-secret false positive | 0/0 | 2148152 | infra | 2026-06-05 |
 | change | webui audit data/config reconcile (campaign C4): add legit scopes (board/campaigns/smartviewer/media/campaign) to g2_stoplist + event_amended FR links for reopen(FR-01.32)/create-menu(FR-01.01)/FR-01.34 same-event delivery | 0/0 |  | compliance | 2026-06-05 |
 | feature | One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones. | 0/0 |  | FR-01.36 | 2026-06-04 |
 | bug | Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. | 0/0 |  | bug | 2026-06-04 |
