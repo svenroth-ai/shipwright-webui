@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-05-webui-event-backfill",
+  "date": "2026-06-05T11:16:56.776773Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/compliance-detective-realign-subA",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-06-05-webui-event-backfill"
+}
