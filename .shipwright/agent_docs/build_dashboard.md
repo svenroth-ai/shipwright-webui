@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-05 11:16 UTC | Session: 8c417574-f89c-40fd-a5b3-5d01f6272edb | Run: iterate-2026-06-05-webui-event-backfill
+> Updated: 2026-06-05 12:18 UTC | Session: 53a90229-00dc-4ac0-8b3c-e98e65132dc7 | Run: iterate-2026-06-05-fix-campaign-lane-hide-completed
 
-## Recent Changes (123 iterations)
+## Recent Changes (124 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Campaigns lane: hide done==total campaigns even on a stale active lifecycle | 1550/1550 |  | FR-01.33 | 2026-06-05 |
 | change | Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6 | 0/0 |  | compliance | 2026-06-05 |
 | change | ci(security): checkout at fetch-depth 1 | 0/0 | 2fa1e9a | infra | 2026-06-05 |
 | feature | feat(triage): Start Campaign action — draft->active + board nav (ADR-148) | 0/0 | 3def014 | FR-01.33 | 2026-06-05 |
