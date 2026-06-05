@@ -7,7 +7,7 @@
     "timestamp": "2026-06-05T12:14:46.800283+00:00",
     "paths_touched": [
       "client/src/lib/campaignsApi.ts",
-      "client/src/lib/campaignsApi.test.ts",
+      "client/src/lib/campaignsApi.selectors.test.ts",
       "client/e2e/flows/campaign-status-filter.spec.ts"
     ],
     "result": "passed",
@@ -15,14 +15,14 @@
     "unit": {
       "status": "passed",
       "client": {
-        "files": 147,
+        "files": 148,
         "tests": 1550
       },
       "server": {
         "status": "not_run",
         "reason": "client-only diff (no server/** file touched); selectActiveCampaigns is a client selector"
       },
-      "evidence": "full client vitest 147/1550 green; campaignsApi.test.ts 26/26 (RED 5 failures on old code → GREEN); tsc --noEmit clean; oxlint clean on changed files"
+      "evidence": "full client vitest 148/1550 green; campaignsApi.selectors.test.ts + campaignsApi.test.ts 26/26 (RED 5 failures on old code → GREEN; selectors split into their own file for the 300-LOC ceiling); tsc --noEmit clean; oxlint clean on changed files"
     },
     "integration": {
       "status": "n/a",
@@ -57,37 +57,37 @@
         {
           "behavior": "FIX: an `active` campaign at done==total is excluded from the lane (was shown by the old `active` short-circuit — the 2026-06-05 bug)",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'hides an active campaign whose every step is done' + 'user repro: a 4/4 active campaign + a 0/7 draft → the lane is empty' (both RED on old code, GREEN after)"
+          "evidence": "campaignsApi.selectors.test.ts 'hides an active campaign whose every step is done' + 'user repro: a 4/4 active campaign + a 0/7 draft → the lane is empty' (both RED on old code, GREEN after)"
         },
         {
           "behavior": "isCampaignDone(status='complete') === true even when done<total (producer lifecycle is authoritative)",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'is done when the producer marked it complete'"
+          "evidence": "campaignsApi.selectors.test.ts 'is done when the producer marked it complete'"
         },
         {
           "behavior": "isCampaignDone(done>=total, non-complete active/null) === true",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'is done when every step is finished, regardless of a stale active lifecycle' (active@3/3, null@3/3)"
+          "evidence": "campaignsApi.selectors.test.ts 'is done when every step is finished, regardless of a stale active lifecycle' (active@3/3, null@3/3)"
         },
         {
           "behavior": "isCampaignDone(work-remaining | total=0 | draft) === false",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'is NOT done with work remaining or no steps yet' (active@2/3, active@0/0, draft)"
+          "evidence": "campaignsApi.selectors.test.ts 'is NOT done with work remaining or no steps yet' (active@2/3, active@0/0, draft)"
         },
         {
           "behavior": "REGRESSION: selectActiveCampaigns still SHOWS an active campaign with work remaining (done<total)",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'still shows an active campaign with work remaining' + existing 'active is shown even when nothing is done yet'"
+          "evidence": "campaignsApi.selectors.test.ts 'still shows an active campaign with work remaining' + existing 'active is shown even when nothing is done yet'"
         },
         {
           "behavior": "REGRESSION: selectActiveCampaigns still SHOWS a freshly-started active campaign with no steps yet (total=0)",
           "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'shows a freshly-started active campaign that has no steps yet'"
+          "evidence": "campaignsApi.selectors.test.ts 'shows a freshly-started active campaign that has no steps yet'"
         },
         {
           "behavior": "PRESERVED: draft hidden, complete hidden, legacy(null) done<total shown, legacy(null) done>=total / total=0 hidden",
           "disposition": "tested",
-          "evidence": "existing campaignsApi.test.ts 'status is authoritative…', 'draft is hidden even with work remaining', 'legacy (status=null) falls back to done < total' — all re-verified green in the full suite"
+          "evidence": "existing campaignsApi.selectors.test.ts 'status is authoritative…', 'draft is hidden even with work remaining', 'legacy (status=null) falls back to done < total' — all re-verified green in the full suite"
         },
         {
           "behavior": "END-TO-END: the rendered Campaigns lane omits a hidden campaign's card",
