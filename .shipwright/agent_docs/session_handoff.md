@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-04-campaign-step-launch"
+run_id: "iterate-2026-06-05-webui-data-config"
 phase: "iterate"
-reason: "campaign single-step launch (FR-01.36) complete"
-timestamp: "2026-06-04T12:06:24.553627+00:00"
+reason: "iterate: webui audit data/config reconcile (C4)"
+timestamp: "2026-06-05T10:58:14.658113+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-04 12:06:24 UTC
+> Auto-generated 2026-06-05 10:58:14 UTC
 
 ## Session Info
 
-- **Session ID**: 92ee50e1-0420-40a6-a052-88b69374e8c9
-- **Timestamp**: 2026-06-04 12:06:24 UTC
-- **Reason**: campaign single-step launch (FR-01.36) complete
+- **Session ID**: 8c417574-f89c-40fd-a5b3-5d01f6272edb
+- **Timestamp**: 2026-06-05 10:58:14 UTC
+- **Reason**: iterate: webui audit data/config reconcile (C4)
 
 ## Last Iterate
 
@@ -29,9 +29,8 @@ timestamp: "2026-06-04T12:06:24.553627+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-step-launch
-- **Spec**: .shipwright/planning/iterate/2026-06-04-campaign-step-launch.md
-- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
+- **Branch**: iterate/compliance-detective-realign-c4
+- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
 
@@ -49,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-step-launch
-- **Last Commit**: 08967b0 Merge pull request #104 from svenroth-ai/iterate/campaign-step-id-emphasis
+- **Branch**: iterate/compliance-detective-realign-c4
+- **Last Commit**: b50aac2 Merge pull request #105 from svenroth-ai/iterate/campaign-step-launch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -66,17 +65,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-1f7088ec | work_completed | iterate (webui audit data/config reconcile (campaign C4): add legit scopes (board/campaigns/smartviewer/media/campaign) to g2_stoplist + event_amended FR links for reopen(FR-01.32)/create-menu(FR-01.01)/FR-01.34 same-event delivery) | 2026-06-05 |
+| evt-09870a9c | event_amended | — | 2026-06-05 |
+| evt-6ac10ca1 | event_amended | — | 2026-06-05 |
+| evt-b7414a3e | event_amended | — | 2026-06-05 |
 | evt-e873eced | work_completed | iterate (One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones.) | 2026-06-04 |
-| evt-1429122a | work_completed | iterate (Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button.) | 2026-06-04 |
-| evt-6c3e0953 | work_completed | iterate (Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion)) | 2026-06-04 |
-| evt-eaebb2b4 | work_completed | iterate (iterate finalization) | 2026-06-03 |
-| evt-7c37c8cc | work_completed | iterate (SmartViewer inline video playback (mp4/m4v/webm/ogv/ogg/mov) via a new Range-capable /media streaming route, kept separate from the atomic /file route.) | 2026-06-03 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 181
-- **Last iterate**: feature — One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones. (2026-06-04)
+- **Total work events**: 182
+- **Last iterate**: change — webui audit data/config reconcile (campaign C4): add legit scopes (board/campaigns/smartviewer/media/campaign) to g2_stoplist + event_amended FR links for reopen(FR-01.32)/create-menu(FR-01.01)/FR-01.34 same-event delivery (2026-06-05)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

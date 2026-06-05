@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-04 12:06 UTC | Session: 92ee50e1-0420-40a6-a052-88b69374e8c9 | Run: iterate-2026-06-04-campaign-step-launch
+> Updated: 2026-06-05 10:58 UTC | Session: 8c417574-f89c-40fd-a5b3-5d01f6272edb | Run: iterate-2026-06-05-webui-data-config
 
-## Recent Changes (111 iterations)
+## Recent Changes (112 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | webui audit data/config reconcile (campaign C4): add legit scopes (board/campaigns/smartviewer/media/campaign) to g2_stoplist + event_amended FR links for reopen(FR-01.32)/create-menu(FR-01.01)/FR-01.34 same-event delivery | 0/0 |  | compliance | 2026-06-05 |
 | feature | One-click Launch (Cx) button to launch a single campaign sub-iterate via /shipwright-iterate "<specPath>" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps, confirm dialog for risky ones. | 0/0 |  | FR-01.36 | 2026-06-04 |
 | bug | Parse the campaign Sub-Iterates table by column header and strip Markdown emphasis from cells, so bold step IDs (**C1**) and extra Repo/Depends-on columns no longer null the spec path and disable the board per-step Copy-launch button. | 0/0 |  | bug | 2026-06-04 |
 | feature | Add a formatting toolbar to the SmartViewer markdown editor (FR-01.34 WYSIWYG UX completion) | 0/0 |  | FR-01.35 | 2026-06-04 |
@@ -118,7 +119,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-04 | Unit: 1504/1504 | Smoke: n/a | (iterate)
+Last run: 2026-06-05 | Smoke: n/a | (iterate)
 
 ## Pipeline
 
