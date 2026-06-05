@@ -4,6 +4,7 @@ import {
   listCampaigns,
   selectActiveCampaigns,
   selectRiskyPendingSteps,
+  isCampaignDone,
   launchCampaignRun,
   launchCampaignStepRun,
   startCampaign,
@@ -111,6 +112,64 @@ describe("campaignsApi: selectActiveCampaigns", () => {
     const empty = makeCampaign({ slug: "empty", status: null, done: 0, total: 0 });
     const result = selectActiveCampaigns([running, done, empty]);
     expect(result.map((c) => c.slug)).toEqual(["running"]);
+  });
+
+  // Reported 2026-06-05: a campaign whose every step is complete (done==total)
+  // but whose producer never flipped the lifecycle from `active` to `complete`
+  // (e.g. driven via individual sub-iterate PRs instead of the autonomous
+  // loop's update-status call) kept rendering forever — the old filter
+  // short-circuited `active` → shown without checking done/total.
+  it("hides an active campaign whose every step is done (stale `active` lifecycle)", () => {
+    const activeDone = makeCampaign({
+      slug: "compliance-detective-realign",
+      status: "active",
+      done: 4,
+      total: 4,
+    });
+    expect(selectActiveCampaigns([activeDone])).toEqual([]);
+  });
+
+  it("user repro: a 4/4 active campaign + a 0/7 draft → the lane is empty", () => {
+    const doneActive = makeCampaign({
+      slug: "2026-06-02-compliance-detective-realign",
+      status: "active",
+      done: 4,
+      total: 4,
+    });
+    const draft = makeCampaign({
+      slug: "2026-06-02-hook-consolidation",
+      status: "draft",
+      done: 0,
+      total: 7,
+    });
+    expect(selectActiveCampaigns([doneActive, draft])).toEqual([]);
+  });
+
+  it("still shows an active campaign with work remaining (done < total)", () => {
+    const active = makeCampaign({ slug: "active", status: "active", done: 2, total: 4 });
+    expect(selectActiveCampaigns([active]).map((c) => c.slug)).toEqual(["active"]);
+  });
+
+  it("shows a freshly-started active campaign that has no steps yet (total=0)", () => {
+    const fresh = makeCampaign({ slug: "fresh", status: "active", done: 0, total: 0 });
+    expect(selectActiveCampaigns([fresh]).map((c) => c.slug)).toEqual(["fresh"]);
+  });
+});
+
+describe("campaignsApi: isCampaignDone", () => {
+  it("is done when the producer marked it complete", () => {
+    expect(isCampaignDone(makeCampaign({ status: "complete", done: 0, total: 3 }))).toBe(true);
+  });
+
+  it("is done when every step is finished, regardless of a stale active lifecycle", () => {
+    expect(isCampaignDone(makeCampaign({ status: "active", done: 3, total: 3 }))).toBe(true);
+    expect(isCampaignDone(makeCampaign({ status: null, done: 3, total: 3 }))).toBe(true);
+  });
+
+  it("is NOT done with work remaining or no steps yet", () => {
+    expect(isCampaignDone(makeCampaign({ status: "active", done: 2, total: 3 }))).toBe(false);
+    expect(isCampaignDone(makeCampaign({ status: "active", done: 0, total: 0 }))).toBe(false);
+    expect(isCampaignDone(makeCampaign({ status: "draft", done: 0, total: 3 }))).toBe(false);
   });
 });
 

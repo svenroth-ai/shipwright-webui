@@ -1,0 +1,1 @@
+Campaigns lane now hides a campaign once every step is done (done==total) or its lifecycle is complete, even when the producer left a stale active status — a finished campaign no longer lingers on the board (FR-01.33).

@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-05T11:16:55.382811+00:00
-Total commits: 505
+Generated: 2026-06-05T12:18:20.499984+00:00
+Total commits: 506
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 505
 pie title Commit Types
     "fix" : 182
     "feat" : 135
-    "chore" : 96
+    "chore" : 97
     "docs" : 44
     "refactor" : 25
     "test" : 14
@@ -347,10 +347,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 96 commits
+### Chores (chore) — 97 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-05 | compliance | backfill event-log for 10 event-less commits — close B7 (sub-iterate A) | 8014b0c63e40 |
 | 2026-06-04 | security | allowlist sidekiq-secret false positive (cafebabe:deadbeef) | 214815220320 |
 | 2026-06-03 | campaign | mark 2026-05-25-bloat-cleanup-C-webui complete (8/8) | 96824e6660f1 |
 | 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | e5f92193442c |
@@ -574,7 +575,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 505 |
+| Total commits | 506 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 505 |
+| Human-authored commits | 506 |
 
