@@ -106,21 +106,37 @@ export async function startCampaign(
 }
 
 /**
- * Campaigns the board should show. Producer-owned lifecycle status is
- * authoritative when present:
- *   - `active`   → shown (running).
- *   - `draft`    → hidden (planned; lives only in Triage).
- *   - `complete` → hidden (done).
- *   - `null`     → legacy (producer hasn't written a status yet) → fall back to
- *                  the derived `done < total` (so nothing existing breaks and
- *                  this can ship before the producer change). `total === 0`
- *                  is never active (guards the progress-bar divide-by-zero).
+ * A campaign is effectively done when the producer marked it `complete`, OR
+ * every step is finished (`total > 0 && done >= total`). The second clause is
+ * load-bearing: a campaign driven via individual sub-iterate PRs (rather than
+ * the autonomous loop's `update-status` call, which auto-flips active→complete)
+ * never gets its lifecycle bumped, so it stays `active` even at done==total.
+ * Without this clause such a campaign rendered on the board forever (reported
+ * 2026-06-05). `total === 0` (a freshly-started campaign with no steps yet) is
+ * never "done".
+ */
+export function isCampaignDone(c: Campaign): boolean {
+  return c.status === "complete" || (c.total > 0 && c.done >= c.total);
+}
+
+/**
+ * Campaigns the board's default lane should show — running work only. Hidden:
+ *   - `draft`            → planned; lives only in Triage.
+ *   - done               → `complete` lifecycle OR every step finished
+ *                          (done >= total), even with a stale `active`
+ *                          lifecycle — see `isCampaignDone`.
+ *   - legacy idle        → status `null` AND nothing left (done >= total, or
+ *                          no steps; the latter also guards the progress-bar
+ *                          divide-by-zero).
+ * Shown: `active` with work remaining (incl. a fresh campaign with no steps
+ * yet), or legacy (`null`) with `done < total`.
  */
 export function selectActiveCampaigns(campaigns: Campaign[]): Campaign[] {
   return campaigns.filter((c) => {
+    if (c.status === "draft") return false;
+    if (isCampaignDone(c)) return false;
     if (c.status === "active") return true;
-    if (c.status === "draft" || c.status === "complete") return false;
-    return c.total > 0 && c.done < c.total; // legacy fallback
+    return c.total > 0 && c.done < c.total; // legacy fallback (status null)
   });
 }
 

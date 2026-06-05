@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-05T11:16:55.382811+00:00
+Generated: 2026-06-05T12:18:20.499984+00:00
 
 ## Requirements Coverage
 
@@ -38,7 +38,7 @@ Generated: 2026-06-05T11:16:55.382811+00:00
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +4 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e, evt-83b9b73f | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
-| [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +2 | — | — | NO TESTS |
+| [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +3 | 1550/1550 | 2026-06-05 (iter) | COVERED |
 | [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | evt-7da49dda | — | — | NO TESTS |
 | [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced | — | — | NO TESTS |
@@ -240,6 +240,7 @@ Generated: 2026-06-05T11:16:55.382811+00:00
 | feat(triage): Start Campaign action — draft->active + board nav (ADR-148) | iterate | feature | FR-01.33 | — | 3def014 | 2026-06-05 |
 | ci(security): checkout at fetch-depth 1 | iterate | change |  | — | 2fa1e9a | 2026-06-05 |
 | Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6 | iterate | change |  | — | — | 2026-06-05 |
+| Campaigns lane: hide done==total campaigns even on a stale active lifecycle | iterate | bug | FR-01.33 | 1550/1550 | — | 2026-06-05 |
 
 ## Coverage Summary
 
@@ -247,7 +248,7 @@ Generated: 2026-06-05T11:16:55.382811+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 123 |
+| Iterate changes | 124 |
 | Requirements total | 36 |
 | Requirements verified | 21/36 |
 | Must-have verified | 16/31 |
