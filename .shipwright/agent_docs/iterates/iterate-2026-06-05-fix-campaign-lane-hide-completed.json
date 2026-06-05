@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-05-fix-campaign-lane-hide-completed",
+  "date": "2026-06-05T12:17:28.999322Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/fix-campaign-lane-hide-completed",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-06-05-fix-campaign-lane-hide-completed"
+}

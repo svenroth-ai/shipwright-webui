@@ -1,42 +1,40 @@
 {
-  "last_updated": "2026-06-04",
+  "last_updated": "2026-06-05",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-04-campaign-step-launch",
-    "intent": "feature",
-    "complexity": "medium",
-    "timestamp": "2026-06-04T12:07:26.861033+00:00",
+    "run_id": "iterate-2026-06-05-fix-campaign-lane-hide-completed",
+    "intent": "bug",
+    "complexity": "small",
+    "timestamp": "2026-06-05T12:14:46.800283+00:00",
     "paths_touched": [
-      "server/src/external/launch/campaign-step-branch.ts",
-      "server/src/external/launch/{parse-body,routes,_helpers}.ts",
       "client/src/lib/campaignsApi.ts",
-      "client/src/hooks/{useLaunchCampaign,useLaunchCampaignStep}.ts",
-      "client/src/components/external/{CampaignStepLaunchButton,CampaignLaneCard}.tsx"
+      "client/src/lib/campaignsApi.selectors.test.ts",
+      "client/e2e/flows/campaign-status-filter.spec.ts"
     ],
     "result": "passed",
-    "summary": "FR-01.36: one-click Launch (Cx) button launches a single campaign sub-iterate via /shipwright-iterate \"<specPath>\" built server-side from {slug,stepId}; replaces the per-step Copy-launch clipboard button. Direct launch for ordinary steps; confirm dialog only for failed/escalated/plan-first steps. New server launch branch applyCampaignStepBranch.",
+    "summary": "Bug: the Campaigns lane (FR-01.33) kept rendering a 100%-done campaign card forever when the producer never flipped its lifecycle from `active` to `complete` (e.g. driven via individual sub-iterate PRs instead of the autonomous loop's update-status call). Root cause: selectActiveCampaigns short-circuited status==='active' to shown WITHOUT checking done===total. Fix: new isCampaignDone(c) helper (complete lifecycle OR total>0 && done>=total) checked BEFORE the active short-circuit, so a stale-active done==total campaign is hidden from the default lane. No server change (done/total/status already computed server-side).",
     "unit": {
       "status": "passed",
-      "server": {
-        "files": 121,
-        "tests": 1515
-      },
       "client": {
-        "files": 147,
-        "tests": 1542
+        "files": 148,
+        "tests": 1550
       },
-      "evidence": "full server (121/1515) + client (147/1542) vitest green; tsc --noEmit clean both; oxlint clean on changed files"
+      "server": {
+        "status": "not_run",
+        "reason": "client-only diff (no server/** file touched); selectActiveCampaigns is a client selector"
+      },
+      "evidence": "full client vitest 148/1550 green; campaignsApi.selectors.test.ts + campaignsApi.test.ts 26/26 (RED 5 failures on old code → GREEN; selectors split into their own file for the 300-LOC ceiling); tsc --noEmit clean; oxlint clean on changed files"
     },
     "integration": {
-      "status": "skipped",
-      "reason": "covered by the server branch HTTP tests + the real E2E"
+      "status": "n/a",
+      "reason": "pure client selector; no integration boundary"
     },
     "pgtap": {
       "status": "n/a",
       "reason": "no database"
     },
     "e2e": {
-      "status": "passed",
-      "reason": "see surface_verification — real isolated-stack browser run"
+      "status": "skipped",
+      "reason": "Authored the active-done HIDDEN regression assertion in campaign-status-filter.spec.ts (the FR-01.33 lane-filter E2E). NOT executed this run — see surface_verification.justification: pure client selector, no transport/render-path change, and that spec's isolated-stack campaign seeder is not committed/reusable. The assertion runs in the next seeded full-E2E/CI pass."
     },
     "design_fidelity": {
       "status": "n/a"
@@ -45,118 +43,69 @@
       "status": "n/a"
     },
     "surface_verification": {
-      "surface": "web",
-      "tests_run": 1,
+      "surface": "none",
+      "tests_run": 0,
       "exit_code": 0,
-      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/campaign-step-launch.spec.ts --config=client/playwright.config.ts --project=chromium",
-      "evidence": "1/1 passed (4.5s) in Chromium against an isolated single-process worktree stack (built client via SHIPWRIGHT_STATIC_DIR, temp USERPROFILE, SHIPWRIGHT_NETWORK_PROFILE=local, PORT=3863) seeded with an ACTIVE campaign whose B1 sub-iterate has a spec file. Flow: board → expand → 'Launch (B1)' enabled → one-click direct launch (no dialog) → REAL server campaign-step branch creates a task → navigated to /tasks/<id>. API pre-check confirmed nextPending.specPath non-null before the run."
+      "runner": "uv run shared/scripts/surface_verification.py --surface none --justification ...",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-05-fix-campaign-lane-hide-completed/surface_verification.json",
+      "justification": "Pure client-side selector (selectActiveCampaigns/isCampaignDone) — no API route, store mutation, SSE/WS handler, or message contract changed, so Backend-affects-Frontend does not apply. Root-cause seam covered RED->GREEN by deterministic unit tests; the sole consumer (TaskBoardPage selectActiveCampaigns(data).length>0 && map) is unchanged and its render path was already browser-proven by the existing (unaffected) campaign-status-filter E2E, which this diff extends with the active-done HIDDEN assertion. Reconstructing that spec's non-committed isolated-stack seeder to re-prove an unchanged render path is disproportionate to a ~10-line predicate refinement."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 server builds /shipwright-iterate \"<specPath>\" for the step (one quoted positional, no --resume)",
+          "behavior": "FIX: an `active` campaign at done==total is excluded from the lane (was shown by the old `active` short-circuit — the 2026-06-05 bug)",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts AC1 (real Hono HTTP, posix/pwsh/cmd) + real E2E launch"
+          "evidence": "campaignsApi.selectors.test.ts 'hides an active campaign whose every step is done' + 'user repro: a 4/4 active campaign + a 0/7 draft → the lane is empty' (both RED on old code, GREEN after)"
         },
         {
-          "behavior": "AC2 invalid slug → 400 invalid_campaign_slug",
+          "behavior": "isCampaignDone(status='complete') === true even when done<total (producer lifecycle is authoritative)",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts 'invalid_campaign_slug'"
+          "evidence": "campaignsApi.selectors.test.ts 'is done when the producer marked it complete'"
         },
         {
-          "behavior": "AC2 invalid stepId → 400 invalid_campaign_step_id",
+          "behavior": "isCampaignDone(done>=total, non-complete active/null) === true",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts (5 hostile stepIds)"
+          "evidence": "campaignsApi.selectors.test.ts 'is done when every step is finished, regardless of a stale active lifecycle' (active@3/3, null@3/3)"
         },
         {
-          "behavior": "AC2 unknown step → 400 campaign_step_not_found",
+          "behavior": "isCampaignDone(work-remaining | total=0 | draft) === false",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts 'campaign_step_not_found'"
+          "evidence": "campaignsApi.selectors.test.ts 'is NOT done with work remaining or no steps yet' (active@2/3, active@0/0, draft)"
         },
         {
-          "behavior": "AC2 step with null specPath → 400 campaign_step_spec_missing",
+          "behavior": "REGRESSION: selectActiveCampaigns still SHOWS an active campaign with work remaining (done<total)",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts B1 (no spec file)"
+          "evidence": "campaignsApi.selectors.test.ts 'still shows an active campaign with work remaining' + existing 'active is shown even when nothing is done yet'"
         },
         {
-          "behavior": "AC2 unknown campaign dir → 400 campaign_not_found",
+          "behavior": "REGRESSION: selectActiveCampaigns still SHOWS a freshly-started active campaign with no steps yet (total=0)",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts '2099-01-01-nope'"
+          "evidence": "campaignsApi.selectors.test.ts 'shows a freshly-started active campaign that has no steps yet'"
         },
         {
-          "behavior": "AC3 campaignStep mixed with actionId/phaseTaskRef/campaignSlug → 400 mixed_launch_intents",
+          "behavior": "PRESERVED: draft hidden, complete hidden, legacy(null) done<total shown, legacy(null) done>=total / total=0 hidden",
           "disposition": "tested",
-          "evidence": "campaign-step-branch.test.ts (3 mix cases)"
+          "evidence": "existing campaignsApi.selectors.test.ts 'status is authoritative…', 'draft is hidden even with work remaining', 'legacy (status=null) falls back to done < total' — all re-verified green in the full suite"
         },
         {
-          "behavior": "AC3 genuine resume (JSONL on disk) falls through to --resume (no fresh command)",
+          "behavior": "END-TO-END: the rendered Campaigns lane omits a hidden campaign's card",
           "disposition": "untestable",
           "reason_code": "covered-by-existing-test",
-          "evidence": "shared routes-level effectivelyFreshStart gate (if !effectivelyFreshStart return null), identical to campaign-branch.ts; verified by review"
-        },
-        {
-          "behavior": "AC4 Launch button disabled when no next / null specPath / no project",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx + CampaignLaneCard.test.tsx disabled cases"
-        },
-        {
-          "behavior": "AC4 button labelled 'Launch (Cx)' for the next-pending id",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx + CampaignLaneCard.test.tsx 'Launch (B1)'"
-        },
-        {
-          "behavior": "AC5 ordinary next step → one-click direct launch (no dialog) + navigate",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx AC5 + real E2E"
-        },
-        {
-          "behavior": "AC5 inline error surfaced on launch failure",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx 'surfaces an inline error'"
-        },
-        {
-          "behavior": "AC6 risky (failed/escalated/plan-first) next step → confirm dialog gates launch",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx (failed/escalated/plan-first)"
-        },
-        {
-          "behavior": "AC6 confirming the dialog launches + navigates",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx 'confirming the risky dialog'"
-        },
-        {
-          "behavior": "Fail-safe (review M1): next-pending id missing from steps → dialog, never direct-launch",
-          "disposition": "tested",
-          "evidence": "CampaignStepLaunchButton.test.tsx 'fail-safe — a next-pending id missing from steps'"
-        },
-        {
-          "behavior": "client API seam: launchCampaignStepRun POSTs exactly {campaignStep:{slug,stepId}}",
-          "disposition": "tested",
-          "evidence": "campaignsApi.test.ts 'POSTs { campaignStep: { slug, stepId } }'"
-        },
-        {
-          "behavior": "useLaunchCampaign refactor preserves the autonomous behavior (title/launch-args/handoff)",
-          "disposition": "tested",
-          "evidence": "existing useLaunchCampaign.test.ts unchanged + green after the launchCampaignTask extraction"
-        },
-        {
-          "behavior": "old per-step Copy-launch button removed from the card",
-          "disposition": "tested",
-          "evidence": "CampaignLaneCard.test.tsx asserts the old campaign-launch testid is null + Launch present"
+          "evidence": "render wiring (TaskBoardPage `selectActiveCampaigns(data).length>0 && …map`) is unchanged by this diff and already browser-proven by campaign-status-filter.spec.ts; the active-done HIDDEN assertion was authored into that spec for the next seeded full-E2E pass"
         }
       ],
       "counts": {
-        "testable": 17,
-        "tested": 17,
+        "testable": 7,
+        "tested": 7,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6,
-        "plus": "M1 fail-safe + API seam + refactor-preservation + copy-removal regressions"
+        "acs": 7,
+        "covered_acs": 7,
+        "plus": "BUG fix (Spec Impact NONE, no formal ACs) — basis = the 7 enumerated selector behaviors (the fix + 2 over-filter regressions + preserved states + isCampaignDone contract); E2E render behavior covered-by-existing-test"
       }
     }
   }

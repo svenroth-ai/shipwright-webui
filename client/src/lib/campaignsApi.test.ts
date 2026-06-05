@@ -2,28 +2,16 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 
 import {
   listCampaigns,
-  selectActiveCampaigns,
-  selectRiskyPendingSteps,
   launchCampaignRun,
   launchCampaignStepRun,
   startCampaign,
   type Campaign,
-  type CampaignStep,
 } from "./campaignsApi";
 
-function makeStep(overrides: Partial<CampaignStep> = {}): CampaignStep {
-  return {
-    id: "B0",
-    slug: "x",
-    title: "X",
-    status: "pending",
-    specPath: ".shipwright/.../B0-x.md",
-    commit: null,
-    branch: null,
-    planFirst: false,
-    ...overrides,
-  };
-}
+// Pure-selector coverage (selectActiveCampaigns / isCampaignDone /
+// selectRiskyPendingSteps) lives in campaignsApi.selectors.test.ts — split out
+// to keep each test file under the 300-LOC ceiling. This file covers the
+// HTTP/fetch wrappers only.
 
 function makeCampaign(overrides: Partial<Campaign> = {}): Campaign {
   return {
@@ -83,64 +71,6 @@ describe("campaignsApi: listCampaigns", () => {
     vi.stubGlobal("fetch", spy);
     await listCampaigns("a/b");
     expect(spy).toHaveBeenCalledWith("/api/campaigns/a%2Fb");
-  });
-});
-
-describe("campaignsApi: selectActiveCampaigns", () => {
-  it("status is authoritative: only `active` is shown; draft + complete hidden", () => {
-    const active = makeCampaign({ slug: "active", status: "active", done: 0, total: 3 });
-    const draft = makeCampaign({ slug: "draft", status: "draft", done: 0, total: 3 });
-    const complete = makeCampaign({ slug: "complete", status: "complete", done: 3, total: 3 });
-    const result = selectActiveCampaigns([active, draft, complete]);
-    expect(result.map((c) => c.slug)).toEqual(["active"]);
-  });
-
-  it("draft is hidden even with work remaining (done < total)", () => {
-    const draft = makeCampaign({ slug: "draft", status: "draft", done: 1, total: 3 });
-    expect(selectActiveCampaigns([draft])).toEqual([]);
-  });
-
-  it("active is shown even when nothing is done yet (done=0)", () => {
-    const active = makeCampaign({ slug: "active", status: "active", done: 0, total: 3 });
-    expect(selectActiveCampaigns([active]).map((c) => c.slug)).toEqual(["active"]);
-  });
-
-  it("legacy (status=null) falls back to done < total", () => {
-    const running = makeCampaign({ slug: "running", status: null, done: 1, total: 3 });
-    const done = makeCampaign({ slug: "done", status: null, done: 3, total: 3 });
-    const empty = makeCampaign({ slug: "empty", status: null, done: 0, total: 0 });
-    const result = selectActiveCampaigns([running, done, empty]);
-    expect(result.map((c) => c.slug)).toEqual(["running"]);
-  });
-});
-
-describe("campaignsApi: selectRiskyPendingSteps", () => {
-  it("flags non-complete steps that are failed / escalated / plan-first", () => {
-    const c = makeCampaign({
-      steps: [
-        makeStep({ id: "B0", status: "complete" }), // complete → never risky
-        makeStep({ id: "B1", status: "failed" }),
-        makeStep({ id: "B2", status: "escalated" }),
-        makeStep({ id: "B3", status: "pending", planFirst: true }),
-        makeStep({ id: "B4", status: "pending", planFirst: false }), // clean pending
-        makeStep({ id: "B5", status: "in_progress", planFirst: false }),
-      ],
-    });
-    expect(selectRiskyPendingSteps(c).map((s) => s.id)).toEqual(["B1", "B2", "B3"]);
-  });
-
-  it("a complete step is never risky even if plan-first", () => {
-    const c = makeCampaign({
-      steps: [makeStep({ id: "B0", status: "complete", planFirst: true })],
-    });
-    expect(selectRiskyPendingSteps(c)).toEqual([]);
-  });
-
-  it("returns [] for an all-clean-pending campaign", () => {
-    const c = makeCampaign({
-      steps: [makeStep({ id: "B0" }), makeStep({ id: "B1", status: "in_progress" })],
-    });
-    expect(selectRiskyPendingSteps(c)).toEqual([]);
   });
 });
 
