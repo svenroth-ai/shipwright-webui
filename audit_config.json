@@ -8,6 +8,7 @@
     "terminal", "client", "server", "e2e", "dev", "guide",
     "workflows", "cli-compat", "lead-foundation", "triage",
     "wizard", "readme", "claude-md",
+    "board", "campaigns", "campaign", "smartviewer", "media",
     "client,server", "server,client", "server,test",
     "adr", "spec", "test-status", "events",
     "governance", "launch-prep"

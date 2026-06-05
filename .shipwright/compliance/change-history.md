@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-06-04T12:06:24.553627+00:00
-Total commits: 502
+Generated: 2026-06-05T10:58:14.658113+00:00
+Total commits: 503
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 181
-    "feat" : 134
+    "feat" : 135
     "chore" : 96
     "docs" : 44
     "refactor" : 25
@@ -206,10 +206,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 134 commits
+### Features (feat) — 135 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-04 | campaigns | one-click Launch (Cx) for a single campaign sub-iterate | bb574a38f222 |
 | 2026-06-04 | smartviewer | add formatting toolbar to the markdown editor | 891c8c1dad3f |
 | 2026-06-03 | triage | Start Campaign action — draft→active + board nav (FR-01.33, ADR-148) | 3def014bdd53 |
 | 2026-06-03 | board | autonomous campaign launch action on the Campaigns lane (FR-01.34) | c5dafde3f826 |
@@ -571,7 +572,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 502 |
+| Total commits | 503 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 502 |
+| Human-authored commits | 503 |
 
