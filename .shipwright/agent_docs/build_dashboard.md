@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-07 10:32 UTC | Session: a8ea8c75-74da-4410-9d0f-b394699699cb | Run: iterate-2026-06-07-fix-touch-scroll-alt-buffer
+> Updated: 2026-06-07 14:48 UTC | Session: a8ea8c75-74da-4410-9d0f-b394699699cb | Run: iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
 
-## Recent Changes (125 iterations)
+## Recent Changes (126 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses). | 0/0 |  | tooling | 2026-06-07 |
 | bug | Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched. | 0/0 |  | tooling | 2026-06-07 |
 | bug | Campaigns lane: hide done==total campaigns even on a stale active lifecycle | 1550/1550 |  | FR-01.33 | 2026-06-05 |
 | change | Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6 | 0/0 |  | compliance | 2026-06-05 |

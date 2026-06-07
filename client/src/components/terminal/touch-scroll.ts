@@ -9,12 +9,30 @@
  * scrolling works while a finger drag on a touchscreen does nothing.
  *
  * This module fills that gap by translating a one-finger touchmove delta
- * into `term.scrollLines()` calls. Two-finger gestures (pinch zoom, etc.)
- * are deliberately left alone so the browser keeps its natives.
+ * into one of two destinations, switched by the active xterm buffer:
+ *
+ *   - normal buffer  → `term.scrollLines(lines)` (xterm's viewport API
+ *     advances within the scrollback)
+ *   - alt buffer     → arrow-key escape sequences sent to the pty via the
+ *     `deps.sendData` callback (Cursor-Up `\x1b[A` × |lines| for upward
+ *     pans, Cursor-Down `\x1b[B` × lines for downward pans). The TUI
+ *     consuming the pty (Claude Code, vim, less, htop) scrolls itself.
+ *
+ * The buffer-aware split is iterate-2026-06-07-fix-touch-scroll-pty-
+ * keystrokes (ADR-132). It closes the regression empirically reproduced by
+ * iterate-2026-06-07-fix-touch-scroll-alt-buffer (ADR-131, PR #110):
+ * `term.scrollLines()` is a no-op in the alt-screen buffer (DECSET 1049)
+ * because the alt-buffer has no scrollback, and Claude Code's TUI runs in
+ * alt-screen by default (CLAUDE.md rule 22 / ADR-095, `CLAUDE_CODE_NO_
+ * FLICKER=1` default-ON).
+ *
+ * Two-finger gestures (pinch zoom, etc.) are deliberately left alone so
+ * the browser keeps its natives.
  *
  * The pixel→line accumulator (`consumeTouchDelta`) is pure and unit-tested
- * in isolation; `attachTouchScroll` is integration-tested with synthetic
- * TouchEvent dispatches against a jsdom container.
+ * in isolation; `attachTouchScroll` is integration-tested with both the
+ * mock-Terminal cohort (`touch-scroll.test.ts`) and a real-`@xterm/xterm`
+ * jsdom bench (`touch-scroll.alt-buffer.test.ts`).
  */
 
 import type { Terminal } from "@xterm/xterm";
@@ -63,6 +81,20 @@ export interface TouchScrollDeps {
    * `container.clientHeight / term.rows`.
    */
   getPixelsPerLine?: (term: Terminal, container: HTMLElement) => number;
+  /**
+   * Pty-data callback for the alt-buffer routing path (ADR-132). When the
+   * active xterm buffer is `alternate`, the touchmove handler emits arrow-
+   * key escape sequences here instead of calling `term.scrollLines()`
+   * (which is a no-op in alt-buffer). The EmbeddedTerminal mount-effect
+   * wires this to `socket.send({type:"data", payload})` — the same path
+   * used by `term.onData` for user keystrokes — so the TUI consuming the
+   * pty (Claude Code / vim / less / htop) scrolls itself.
+   *
+   * Optional for unit-test ergonomics; when absent in alt-buffer the
+   * handler short-circuits (no throw, no scrollLines fallback). The
+   * production wiring always provides it.
+   */
+  sendData?: (data: string) => void;
 }
 
 /**
@@ -108,7 +140,7 @@ export function attachTouchScroll(
     const pxPerLine = getPxPerLine(term, container);
     const lines = consumeTouchDelta(state, deltaPx, pxPerLine);
     if (lines !== 0) {
-      term.scrollLines(lines);
+      routeScroll(term, lines, deps.sendData);
     }
     // Suppress browser-native overscroll / pull-to-refresh while panning.
     // touchmove listeners must be {passive: false} for this to take effect
@@ -133,6 +165,33 @@ export function attachTouchScroll(
     container.removeEventListener("touchend", onTouchEnd);
     container.removeEventListener("touchcancel", onTouchEnd);
   };
+}
+
+/**
+ * Buffer-aware routing of an integer line-count to either xterm's
+ * viewport (normal-buffer scrollback) or pty-data arrow-key escapes
+ * (alt-buffer; the TUI scrolls itself). ADR-132.
+ *
+ * Sign convention matches `consumeTouchDelta`: positive `lines` → scroll
+ * DOWN (Cursor-Down `\x1b[B`), negative → scroll UP (Cursor-Up `\x1b[A`).
+ *
+ * Alt-buffer with no `sendData` callback is a clean no-op — `term.scroll
+ * Lines()` would be a no-op anyway, but routing through it would mask
+ * test-bench errors where the caller forgot to wire `sendData`.
+ */
+function routeScroll(
+  term: Terminal,
+  lines: number,
+  sendData: ((data: string) => void) | undefined,
+): void {
+  const inAltBuffer = term.buffer.active.type === "alternate";
+  if (inAltBuffer) {
+    if (!sendData) return;
+    const seq = lines > 0 ? "\x1b[B" : "\x1b[A";
+    sendData(seq.repeat(Math.abs(lines)));
+    return;
+  }
+  term.scrollLines(lines);
 }
 
 function defaultPixelsPerLine(term: Terminal, container: HTMLElement): number {

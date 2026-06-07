@@ -1,32 +1,34 @@
 {
   "last_updated": "2026-06-07",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-07-fix-touch-scroll-alt-buffer",
+    "run_id": "iterate-2026-06-07-fix-touch-scroll-pty-keystrokes",
     "intent": "bug",
     "complexity": "small",
-    "timestamp": "2026-06-07T12:30:00.000000+00:00",
+    "timestamp": "2026-06-07T15:00:00.000000+00:00",
     "paths_touched": [
+      "client/src/components/terminal/touch-scroll.ts",
       "client/src/components/terminal/touch-scroll.test.ts",
       "client/src/components/terminal/touch-scroll.alt-buffer.test.ts",
-      ".shipwright/planning/adr/131-touch-scroll-alt-buffer-no-op.md"
+      "client/src/components/terminal/EmbeddedTerminal.tsx",
+      ".shipwright/planning/adr/132-touch-scroll-buffer-aware-routing.md"
     ],
     "result": "passed",
-    "summary": "Diagnosis-only iterate. PR #61 (ADR-129) shipped touch-scroll.ts using term.scrollLines(); user-report 2026-06-07 says it does not work during an active Claude session. Root cause confirmed empirically: CLAUDE_CODE_NO_FLICKER=1 default-ON (CLAUDE.md rule 22 / ADR-095) puts Claude TUI into the xterm.js alt-screen buffer (DECSET 1049); alt-buffer has no scrollback, so term.scrollLines() resolves with no viewport motion. PR #61's mock-Terminal pattern (scrollLines: vi.fn()) could not model buffer-type semantics. Added 3 vitest cases in touch-scroll.alt-buffer.test.ts that instantiate a REAL @xterm/xterm Terminal in jsdom (no term.open() — parser runs synchronously on write() with buffer state observable). Tests PASS with the broken code on purpose, documenting the failure mode. No production code touched. Follow-up iterate (to be opened next) inverts the assertions and adds buffer-aware routing.",
+    "summary": "Fix iterate following ADR-131 / PR #110 (diagnosis). Adds buffer-aware routing in attachTouchScroll: a new routeScroll(term, lines, sendData) helper reads term.buffer.active.type and branches — alt-buffer emits Cursor-Up/Down keystrokes via the optional sendData callback (the TUI scrolls itself); normal-buffer keeps term.scrollLines(lines). EmbeddedTerminal.tsx:215 wires sendData to (payload) => socket.send({type:'data', payload}), the same WS data path term.onData uses. Three alt-buffer bench assertions from PR #110 invert into regression guards; two new ones cover normal-buffer preservation and absent-sendData defense-in-depth. Production code change ~15 LOC. iPad UAT post-deploy is the final empirical gate.",
     "unit": {
       "status": "passed",
       "client": {
         "files": 149,
-        "tests": 1553
+        "tests": 1556
       },
       "server": {
         "status": "not_run",
         "reason": "client-only diff (no server/** file touched); touch-scroll is a pure client module"
       },
-      "evidence": "full client vitest 149 files / 1553 tests green (was 148 / 1550 before split + alt-buffer cases); touch-scroll mock cohort 15 + alt-buffer cohort 3 = 18/18 green; tsc --noEmit clean; oxlint clean on changed files. Test file split: touch-scroll.test.ts 195 → 200 LOC, alt-buffer file 117 LOC — both under the 300-LOC ceiling."
+      "evidence": "full client vitest 149 files / 1556 tests green (PR #110 baseline 1553 → 1556 = +3 net). touch-scroll cohort 21/21 green (15 mock + 6 alt-buffer). tsc --noEmit clean; oxlint clean on changed files. File sizes after change: touch-scroll.ts 211 LOC, touch-scroll.test.ts 204 LOC, touch-scroll.alt-buffer.test.ts 189 LOC — all under the 300-LOC ceiling. EmbeddedTerminal.tsx wire-up is 3 LOC + 6-line comment block."
     },
     "integration": {
       "status": "n/a",
-      "reason": "test-only diff; no integration boundary touched"
+      "reason": "test-only at the unit boundary; the integration through socket.send re-uses the term.onData path which is exercised by every existing terminal integration test"
     },
     "pgtap": {
       "status": "n/a",
@@ -34,7 +36,7 @@
     },
     "e2e": {
       "status": "n/a",
-      "reason": "test-only diff; no UI or transport surface changed"
+      "reason": "Phase Matrix at small: E2E required if feature+UI OR touches_io_boundary; this is BUG with no risk flag. Bench-cohort (4 alt-buffer assertions with real @xterm/xterm) covers the routing semantics empirically. EmbeddedTerminal wire-up reuses the already test-covered socket.send path. iPad UAT post-deploy is the final user-facing gate."
     },
     "design_fidelity": {
       "status": "n/a"
@@ -47,44 +49,65 @@
       "tests_run": 0,
       "exit_code": 0,
       "runner": "uv run shared/scripts/surface_verification.py --surface none --justification ...",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-07-fix-touch-scroll-alt-buffer/surface_verification.json",
-      "justification": "Diagnosis-only iterate: no production code change. Added two real-xterm vitest cases in touch-scroll.alt-buffer.test.ts that empirically reproduce the alt-buffer scrollLines no-op (3 assertions, 18/18 client suite green). No UI surface touched, no API surface touched. Follow-up fix iterate will invert the assertions and add the buffer-aware routing."
+      "evidence_path": ".shipwright/runs/iterate-2026-06-07-fix-touch-scroll-pty-keystrokes/surface_verification.json",
+      "justification": "Small BUG-fix to touch-scroll routing. Production change is ~15 LOC: a 12-LOC routeScroll helper that reads term.buffer.active.type and branches, plus a 3-LOC EmbeddedTerminal.tsx wire-up that passes socket.send as the sendData callback. The routing semantics are empirically covered by 4 new alt-buffer tests using a real @xterm/xterm Terminal in jsdom. The EmbeddedTerminal wire-up is mechanical reuse of an already test-covered path. Real iPad UAT is the final gate post-deploy, not a CI-runnable surface here."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "EMPIRICAL: real @xterm/xterm Terminal in jsdom, given `\\x1b[?1049h`, flips buffer.active.type from 'normal' to 'alternate' (and back on `\\x1b[?1049l`)",
+          "behavior": "alt-buffer downward pan: scrollLines is NOT called; sendData receives Cursor-Down (\\x1b[B) × line count",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'DECSET 1049 flips buffer.active.type to alternate' (uses async writeAsync(term, data) to wait for parser callback; passes 1/1)"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'alt-buffer: scrollLines is NOT called; sendData receives Cursor-Down escape × line count (downward pan)' — joined sendData calls assert .toBe('\\x1b[B'.repeat(5))"
         },
         {
-          "behavior": "EMPIRICAL: term.scrollLines(-10) moves buffer.active.viewportY in the normal buffer (sanity baseline) but produces no motion in the alt buffer (the bug)",
+          "behavior": "alt-buffer upward pan: scrollLines is NOT called; sendData receives Cursor-Up (\\x1b[A) × |line count|",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'in the alt-buffer, scrollLines does NOT move viewportY' — proves the inverted control: normal-buffer scrollLines DOES move viewportY (toBeLessThan), alt-buffer scrollLines does NOT (toBe baseline)"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'alt-buffer: upward pan emits Cursor-Up escape × |line count|' — symmetric to the down case"
         },
         {
-          "behavior": "STRUCTURAL: attachTouchScroll wired to a real alt-buffer xterm still calls term.scrollLines unconditionally (regardless of buffer type) — this is the defect the follow-up iterate fixes",
+          "behavior": "normal-buffer pan preserves PR #61 behavior: scrollLines IS called with the line count; sendData is NOT invoked",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'attachTouchScroll wired to a real alt-buffer xterm still calls scrollLines' — vi.spyOn pass-through, asserts spy.toHaveBeenCalled; this assertion INVERTS in the follow-up iterate"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'normal-buffer: scrollLines IS called; sendData is NOT invoked (preserves pre-iterate behavior)'"
         },
         {
-          "behavior": "REGRESSION: the existing 15 mock-Terminal touch-scroll tests (consumeTouchDelta math + attachTouchScroll integration) still pass after the split + new file",
+          "behavior": "absent sendData in alt-buffer is a clean no-op (no throw, no scrollLines fallback — defense-in-depth)",
           "disposition": "tested",
-          "evidence": "touch-scroll.test.ts 15/15 green (unchanged surface; mock-Terminal cohort kept intact after the alt-buffer split into touch-scroll.alt-buffer.test.ts)"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'absent sendData callback in alt-buffer is a clean no-op (defensive — no throw, no scrollLines fallback)'"
+        },
+        {
+          "behavior": "REGRESSION: xterm.js DECSET 1049 flips buffer.active.type to 'alternate' (unchanged by this iterate)",
+          "disposition": "tested",
+          "evidence": "touch-scroll.alt-buffer.test.ts 'real xterm: DECSET 1049 flips buffer.active.type to alternate' — preserved from PR #110 unchanged"
+        },
+        {
+          "behavior": "REGRESSION: scrollLines moves viewportY in normal-buffer but not in alt-buffer (unchanged by this iterate)",
+          "disposition": "tested",
+          "evidence": "touch-scroll.alt-buffer.test.ts 'real xterm: in the alt-buffer, scrollLines does NOT move viewportY' — preserved from PR #110 unchanged"
+        },
+        {
+          "behavior": "REGRESSION: the 15 mock-Terminal touch-scroll tests (consumeTouchDelta math + handler integration) still pass after the routing change",
+          "disposition": "tested",
+          "evidence": "touch-scroll.test.ts 15/15 green; mock Terminal extended with buffer.active.type='normal' so the router resolves cleanly; the accumulator + multi-touch + dispose + getPixelsPerLine seam tests are unchanged in shape"
+        },
+        {
+          "behavior": "USER-FACING: a one-finger pan inside Claude's TUI moves the visible Claude transcript view on an iPad",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "evidence": "no CI surface can simulate Claude Code's TUI receiving arrow-key escapes and re-rendering with viewport motion; the bench cohort proves the routing semantics (what arrives at the pty), the iPad UAT proves the user-visible outcome"
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
-        "untestable": 0,
+        "testable": 7,
+        "tested": 7,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3,
-        "plus": "BUG-diagnosis (Spec Impact NONE, no formal ACs) — basis = the 3 alt-buffer behaviors empirically proven plus 1 regression-guarantee that the mock cohort still passes after the file split. All four observable in CI via the vitest suite; no behavior is testable-but-untested."
+        "acs": 4,
+        "covered_acs": 4,
+        "plus": "BUG fix (Spec Impact NONE, no formal ACs) — basis = the 4 routing behaviors (down-pan + up-pan + normal-preserve + absent-callback no-op) + 2 PR #110 regression guards preserved + 1 mock-cohort regression guarantee + 1 user-facing iPad UAT (untestable, requires physical device)."
       }
     }
   }
