@@ -212,7 +212,15 @@ export const EmbeddedTerminal = forwardRef<
       }),
     );
 
-    const disposeTouchScroll = attachTouchScroll(handle.term, container);
+    // ADR-132: buffer-aware touch-scroll routing. In the alt-screen buffer
+    // (Claude TUI's default render target — CLAUDE.md rule 22 / ADR-095)
+    // pan-delta becomes Cursor-Up/Down keystrokes sent to the pty via the
+    // same socket.send({type:"data"}) path that term.onData uses below;
+    // the TUI scrolls itself. In the normal buffer the existing
+    // term.scrollLines() path is preserved.
+    const disposeTouchScroll = attachTouchScroll(handle.term, container, {
+      sendData: (payload) => socket.send({ type: "data", payload }),
+    });
     const disposeSelection = attachTerminalSelection({
       term: handle.term,
       disposedRef,

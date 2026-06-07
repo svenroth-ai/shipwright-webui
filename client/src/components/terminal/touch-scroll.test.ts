@@ -62,10 +62,15 @@ describe("consumeTouchDelta — pure pixel→line accumulator", () => {
 });
 
 describe("attachTouchScroll — jsdom integration with synthetic touches", () => {
+  // Mock-Terminal models `buffer.active.type` so the buffer-aware router
+  // in attachTouchScroll resolves it cleanly. The default is `"normal"`
+  // (this cohort exercises the scrollLines path); alt-buffer behavior is
+  // covered by the real-xterm cohort in touch-scroll.alt-buffer.test.ts.
   function makeTerm(): Terminal {
     return {
       rows: 24,
       scrollLines: vi.fn(),
+      buffer: { active: { type: "normal" } },
     } as unknown as Terminal;
   }
 
