@@ -1,40 +1,40 @@
 {
-  "last_updated": "2026-06-05",
+  "last_updated": "2026-06-07",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-05-fix-campaign-lane-hide-completed",
+    "run_id": "iterate-2026-06-07-fix-touch-scroll-alt-buffer",
     "intent": "bug",
     "complexity": "small",
-    "timestamp": "2026-06-05T12:14:46.800283+00:00",
+    "timestamp": "2026-06-07T12:30:00.000000+00:00",
     "paths_touched": [
-      "client/src/lib/campaignsApi.ts",
-      "client/src/lib/campaignsApi.selectors.test.ts",
-      "client/e2e/flows/campaign-status-filter.spec.ts"
+      "client/src/components/terminal/touch-scroll.test.ts",
+      "client/src/components/terminal/touch-scroll.alt-buffer.test.ts",
+      ".shipwright/planning/adr/131-touch-scroll-alt-buffer-no-op.md"
     ],
     "result": "passed",
-    "summary": "Bug: the Campaigns lane (FR-01.33) kept rendering a 100%-done campaign card forever when the producer never flipped its lifecycle from `active` to `complete` (e.g. driven via individual sub-iterate PRs instead of the autonomous loop's update-status call). Root cause: selectActiveCampaigns short-circuited status==='active' to shown WITHOUT checking done===total. Fix: new isCampaignDone(c) helper (complete lifecycle OR total>0 && done>=total) checked BEFORE the active short-circuit, so a stale-active done==total campaign is hidden from the default lane. No server change (done/total/status already computed server-side).",
+    "summary": "Diagnosis-only iterate. PR #61 (ADR-129) shipped touch-scroll.ts using term.scrollLines(); user-report 2026-06-07 says it does not work during an active Claude session. Root cause confirmed empirically: CLAUDE_CODE_NO_FLICKER=1 default-ON (CLAUDE.md rule 22 / ADR-095) puts Claude TUI into the xterm.js alt-screen buffer (DECSET 1049); alt-buffer has no scrollback, so term.scrollLines() resolves with no viewport motion. PR #61's mock-Terminal pattern (scrollLines: vi.fn()) could not model buffer-type semantics. Added 3 vitest cases in touch-scroll.alt-buffer.test.ts that instantiate a REAL @xterm/xterm Terminal in jsdom (no term.open() — parser runs synchronously on write() with buffer state observable). Tests PASS with the broken code on purpose, documenting the failure mode. No production code touched. Follow-up iterate (to be opened next) inverts the assertions and adds buffer-aware routing.",
     "unit": {
       "status": "passed",
       "client": {
-        "files": 148,
-        "tests": 1550
+        "files": 149,
+        "tests": 1553
       },
       "server": {
         "status": "not_run",
-        "reason": "client-only diff (no server/** file touched); selectActiveCampaigns is a client selector"
+        "reason": "client-only diff (no server/** file touched); touch-scroll is a pure client module"
       },
-      "evidence": "full client vitest 148/1550 green; campaignsApi.selectors.test.ts + campaignsApi.test.ts 26/26 (RED 5 failures on old code → GREEN; selectors split into their own file for the 300-LOC ceiling); tsc --noEmit clean; oxlint clean on changed files"
+      "evidence": "full client vitest 149 files / 1553 tests green (was 148 / 1550 before split + alt-buffer cases); touch-scroll mock cohort 15 + alt-buffer cohort 3 = 18/18 green; tsc --noEmit clean; oxlint clean on changed files. Test file split: touch-scroll.test.ts 195 → 200 LOC, alt-buffer file 117 LOC — both under the 300-LOC ceiling."
     },
     "integration": {
       "status": "n/a",
-      "reason": "pure client selector; no integration boundary"
+      "reason": "test-only diff; no integration boundary touched"
     },
     "pgtap": {
       "status": "n/a",
       "reason": "no database"
     },
     "e2e": {
-      "status": "skipped",
-      "reason": "Authored the active-done HIDDEN regression assertion in campaign-status-filter.spec.ts (the FR-01.33 lane-filter E2E). NOT executed this run — see surface_verification.justification: pure client selector, no transport/render-path change, and that spec's isolated-stack campaign seeder is not committed/reusable. The assertion runs in the next seeded full-E2E/CI pass."
+      "status": "n/a",
+      "reason": "test-only diff; no UI or transport surface changed"
     },
     "design_fidelity": {
       "status": "n/a"
@@ -47,65 +47,44 @@
       "tests_run": 0,
       "exit_code": 0,
       "runner": "uv run shared/scripts/surface_verification.py --surface none --justification ...",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-05-fix-campaign-lane-hide-completed/surface_verification.json",
-      "justification": "Pure client-side selector (selectActiveCampaigns/isCampaignDone) — no API route, store mutation, SSE/WS handler, or message contract changed, so Backend-affects-Frontend does not apply. Root-cause seam covered RED->GREEN by deterministic unit tests; the sole consumer (TaskBoardPage selectActiveCampaigns(data).length>0 && map) is unchanged and its render path was already browser-proven by the existing (unaffected) campaign-status-filter E2E, which this diff extends with the active-done HIDDEN assertion. Reconstructing that spec's non-committed isolated-stack seeder to re-prove an unchanged render path is disproportionate to a ~10-line predicate refinement."
+      "evidence_path": ".shipwright/runs/iterate-2026-06-07-fix-touch-scroll-alt-buffer/surface_verification.json",
+      "justification": "Diagnosis-only iterate: no production code change. Added two real-xterm vitest cases in touch-scroll.alt-buffer.test.ts that empirically reproduce the alt-buffer scrollLines no-op (3 assertions, 18/18 client suite green). No UI surface touched, no API surface touched. Follow-up fix iterate will invert the assertions and add the buffer-aware routing."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "FIX: an `active` campaign at done==total is excluded from the lane (was shown by the old `active` short-circuit — the 2026-06-05 bug)",
+          "behavior": "EMPIRICAL: real @xterm/xterm Terminal in jsdom, given `\\x1b[?1049h`, flips buffer.active.type from 'normal' to 'alternate' (and back on `\\x1b[?1049l`)",
           "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'hides an active campaign whose every step is done' + 'user repro: a 4/4 active campaign + a 0/7 draft → the lane is empty' (both RED on old code, GREEN after)"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'DECSET 1049 flips buffer.active.type to alternate' (uses async writeAsync(term, data) to wait for parser callback; passes 1/1)"
         },
         {
-          "behavior": "isCampaignDone(status='complete') === true even when done<total (producer lifecycle is authoritative)",
+          "behavior": "EMPIRICAL: term.scrollLines(-10) moves buffer.active.viewportY in the normal buffer (sanity baseline) but produces no motion in the alt buffer (the bug)",
           "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'is done when the producer marked it complete'"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'in the alt-buffer, scrollLines does NOT move viewportY' — proves the inverted control: normal-buffer scrollLines DOES move viewportY (toBeLessThan), alt-buffer scrollLines does NOT (toBe baseline)"
         },
         {
-          "behavior": "isCampaignDone(done>=total, non-complete active/null) === true",
+          "behavior": "STRUCTURAL: attachTouchScroll wired to a real alt-buffer xterm still calls term.scrollLines unconditionally (regardless of buffer type) — this is the defect the follow-up iterate fixes",
           "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'is done when every step is finished, regardless of a stale active lifecycle' (active@3/3, null@3/3)"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'attachTouchScroll wired to a real alt-buffer xterm still calls scrollLines' — vi.spyOn pass-through, asserts spy.toHaveBeenCalled; this assertion INVERTS in the follow-up iterate"
         },
         {
-          "behavior": "isCampaignDone(work-remaining | total=0 | draft) === false",
+          "behavior": "REGRESSION: the existing 15 mock-Terminal touch-scroll tests (consumeTouchDelta math + attachTouchScroll integration) still pass after the split + new file",
           "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'is NOT done with work remaining or no steps yet' (active@2/3, active@0/0, draft)"
-        },
-        {
-          "behavior": "REGRESSION: selectActiveCampaigns still SHOWS an active campaign with work remaining (done<total)",
-          "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'still shows an active campaign with work remaining' + existing 'active is shown even when nothing is done yet'"
-        },
-        {
-          "behavior": "REGRESSION: selectActiveCampaigns still SHOWS a freshly-started active campaign with no steps yet (total=0)",
-          "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'shows a freshly-started active campaign that has no steps yet'"
-        },
-        {
-          "behavior": "PRESERVED: draft hidden, complete hidden, legacy(null) done<total shown, legacy(null) done>=total / total=0 hidden",
-          "disposition": "tested",
-          "evidence": "existing campaignsApi.selectors.test.ts 'status is authoritative…', 'draft is hidden even with work remaining', 'legacy (status=null) falls back to done < total' — all re-verified green in the full suite"
-        },
-        {
-          "behavior": "END-TO-END: the rendered Campaigns lane omits a hidden campaign's card",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "evidence": "render wiring (TaskBoardPage `selectActiveCampaigns(data).length>0 && …map`) is unchanged by this diff and already browser-proven by campaign-status-filter.spec.ts; the active-done HIDDEN assertion was authored into that spec for the next seeded full-E2E pass"
+          "evidence": "touch-scroll.test.ts 15/15 green (unchanged surface; mock-Terminal cohort kept intact after the alt-buffer split into touch-scroll.alt-buffer.test.ts)"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
-        "untestable": 1,
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7,
-        "plus": "BUG fix (Spec Impact NONE, no formal ACs) — basis = the 7 enumerated selector behaviors (the fix + 2 over-filter regressions + preserved states + isCampaignDone contract); E2E render behavior covered-by-existing-test"
+        "acs": 3,
+        "covered_acs": 3,
+        "plus": "BUG-diagnosis (Spec Impact NONE, no formal ACs) — basis = the 3 alt-buffer behaviors empirically proven plus 1 regression-guarantee that the mock cohort still passes after the file split. All four observable in CI via the vitest suite; no behavior is testable-but-untested."
       }
     }
   }
