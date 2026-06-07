@@ -186,9 +186,9 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
-      "current": 2172,
+      "current": 2202,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-08-fix-terminal-replay-render-refresh"
     },
     {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
