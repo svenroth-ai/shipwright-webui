@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-07T14:48:22.042354+00:00
+Generated: 2026-06-07T22:17:13.277042+00:00
 
 ## Summary
 
@@ -99,5 +99,5 @@ pie title License Distribution
 
 ## License Compliance
 
-No copyleft licenses detected. All dependencies are permissively licensed or unknown.
+No license concerns: all resolved dependencies are permissively licensed.
 

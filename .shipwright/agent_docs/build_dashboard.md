@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-07 14:48 UTC | Session: a8ea8c75-74da-4410-9d0f-b394699699cb | Run: iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
+> Updated: 2026-06-07 22:17 UTC | Session: e03a2724-054b-4c26-8d6c-f808abb8fb16 | Run: iterate-2026-06-08-fix-terminal-replay-render-refresh
 
-## Recent Changes (126 iterations)
+## Recent Changes (127 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | force full-viewport refresh after terminal replay-drain settle (clean render on open) | 1557/1557 |  | tooling | 2026-06-07 |
 | bug | Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses). | 0/0 |  | tooling | 2026-06-07 |
 | bug | Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched. | 0/0 |  | tooling | 2026-06-07 |
 | bug | Campaigns lane: hide done==total campaigns even on a stale active lifecycle | 1550/1550 |  | FR-01.33 | 2026-06-05 |
@@ -133,7 +134,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-07 | Smoke: n/a | (iterate)
+Last run: 2026-06-08 | Unit: 1557/1557 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

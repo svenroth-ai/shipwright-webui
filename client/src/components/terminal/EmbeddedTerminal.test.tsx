@@ -732,6 +732,37 @@ describe("<EmbeddedTerminal>", () => {
     expect(scrollToBottomSpy).toHaveBeenCalled();
   });
 
+  // iterate-2026-06-08-fix-terminal-replay-render-refresh — the replay
+  // settle MUST force a full-viewport `term.refresh(0, rows-1)` after the
+  // snapshot drains, otherwise the terminal "opens unclean until I scroll"
+  // (root-cause rationale in useReplayDrainGate.ts settleReplayGate).
+  // Rendered active={false} to ISOLATE the settle-path refresh: both
+  // effect-driven refresh kicks are `active`-gated, so the only refresh
+  // that can fire here is the one inside settleReplayGate.
+  it("forces a full term.refresh(0, rows-1) after the replay settle drains (render-paint fix)", async () => {
+    render(<EmbeddedTerminal taskId="t1" active={false} />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    await act(async () => {
+      ws.__message(
+        JSON.stringify({
+          type: "replay_snapshot",
+          data: "SNAPSHOT-PAYLOAD",
+          cols: 80,
+          rows: 24,
+          terminalVersion: "6.0.0",
+        }),
+      );
+    });
+    // Pre-settle: no effect-driven refresh can fire (active=false).
+    expect(refreshSpy).not.toHaveBeenCalled();
+    await act(async () => {
+      flushWriteCompletions();
+    });
+    // Mock term reports rows:30 → a full-viewport refresh is (0, 29).
+    expect(refreshSpy).toHaveBeenCalledWith(0, 29);
+  });
+
   // ADR-108 (iterate-20260516-terminal-smear-interleave) — replay drain
   // gate. Bug B: while a `replay_snapshot` term.write parses ASYNCHRONOUSLY,
   // live `data` envelopes wrote straight to xterm and interleaved with the
