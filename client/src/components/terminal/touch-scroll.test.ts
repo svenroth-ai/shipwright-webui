@@ -1,6 +1,11 @@
 /*
- * touch-scroll.test.ts — unit + jsdom-integration tests for the
- * embedded-terminal touch-scroll handler.
+ * touch-scroll.test.ts — mock-Terminal unit + jsdom-integration tests for
+ * the embedded-terminal touch-scroll handler.
+ *
+ * Real-xterm bench reproduction (alt-buffer DECSET 1049 behavior) lives in
+ * `touch-scroll.alt-buffer.test.ts` — kept separate so this mock-based
+ * cohort stays under the 300-LOC file-size guideline and the real-xterm
+ * cohort is independently discoverable.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
