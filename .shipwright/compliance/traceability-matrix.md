@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-07T10:32:21.475380+00:00
+Generated: 2026-06-07T14:48:22.042354+00:00
 
 ## Requirements Coverage
 
@@ -242,6 +242,7 @@ Generated: 2026-06-07T10:32:21.475380+00:00
 | Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6 | iterate | change |  | — | — | 2026-06-05 |
 | Campaigns lane: hide done==total campaigns even on a stale active lifecycle | iterate | bug | FR-01.33 | 1550/1550 | — | 2026-06-05 |
 | Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched. | iterate | bug |  | — | — | 2026-06-07 |
+| Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses). | iterate | bug |  | — | — | 2026-06-07 |
 
 ## Coverage Summary
 
@@ -249,7 +250,7 @@ Generated: 2026-06-07T10:32:21.475380+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 125 |
+| Iterate changes | 126 |
 | Requirements total | 36 |
 | Requirements verified | 21/36 |
 | Must-have verified | 16/31 |
