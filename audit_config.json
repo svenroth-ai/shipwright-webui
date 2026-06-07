@@ -11,6 +11,6 @@
     "board", "campaigns", "campaign", "smartviewer", "media",
     "client,server", "server,client", "server,test",
     "adr", "spec", "test-status", "events",
-    "governance", "launch-prep"
+    "governance", "launch-prep", "architecture"
   ]
 }
