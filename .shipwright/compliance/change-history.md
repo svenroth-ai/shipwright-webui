@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-06-05T12:18:20.499984+00:00
-Total commits: 506
+Generated: 2026-06-07T10:32:21.475380+00:00
+Total commits: 508
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 182
+    "fix" : 183
     "feat" : 135
     "chore" : 97
     "docs" : 44
     "refactor" : 25
-    "test" : 14
+    "test" : 15
     "ci" : 4
     "other" : 4
     "build" : 1
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 182 commits
+### Fixes (fix) — 183 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-05 | campaigns | hide done==total campaigns from the lane (FR-01.33) | 5bf5d571671d |
 | 2026-06-05 | compliance | webui audit data/config reconcile — G2 scopes + event FR links (C4) | f8b63cbbe8d6 |
 | 2026-06-04 | campaigns | parse Sub-Iterates table by header + strip MD emphasis | 7a0802d03b17 |
 | 2026-06-04 | security | remediate vitest CVE-2026-47429 (CVSS 9.8) + vitest 4 test compat | 7187f28f8948 |
@@ -528,10 +529,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 14 commits
+### Tests (test) — 15 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-05 | campaigns | split selector tests into campaignsApi.selectors.test.ts | 3b686e8da5cc |
 | 2026-05-31 | terminal | prove WS heartbeat reaps a dead writer + promotes the reader (real sockets) | fd9ad2398f1d |
 | 2026-05-27 | terminal | split ws-upgrade-handler.test.ts to clear bloat gate | 64be961809e3 |
 | 2026-05-27 | terminal | remove wait-for-first-ready workaround from C5 smoke spec | 992aec89f1f1 |
@@ -575,7 +577,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 506 |
+| Total commits | 508 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 506 |
+| Human-authored commits | 508 |
 

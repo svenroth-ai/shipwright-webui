@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-05 12:18 UTC | Session: 53a90229-00dc-4ac0-8b3c-e98e65132dc7 | Run: iterate-2026-06-05-fix-campaign-lane-hide-completed
+> Updated: 2026-06-07 10:32 UTC | Session: a8ea8c75-74da-4410-9d0f-b394699699cb | Run: iterate-2026-06-07-fix-touch-scroll-alt-buffer
 
-## Recent Changes (124 iterations)
+## Recent Changes (125 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched. | 0/0 |  | tooling | 2026-06-07 |
 | bug | Campaigns lane: hide done==total campaigns even on a stale active lifecycle | 1550/1550 |  | FR-01.33 | 2026-06-05 |
 | change | Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6 | 0/0 |  | compliance | 2026-06-05 |
 | change | ci(security): checkout at fetch-depth 1 | 0/0 | 2fa1e9a | infra | 2026-06-05 |
@@ -131,7 +132,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-05 | Smoke: n/a | (iterate)
+Last run: 2026-06-07 | Smoke: n/a | (iterate)
 
 ## Pipeline
 
