@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-07T10:32:21.475380+00:00
-Total commits: 508
+Generated: 2026-06-07T14:48:22.042354+00:00
+Total commits: 510
 
 ## Commit Distribution
 
@@ -9,10 +9,10 @@ Total commits: 508
 pie title Commit Types
     "fix" : 183
     "feat" : 135
-    "chore" : 97
+    "chore" : 98
     "docs" : 44
     "refactor" : 25
-    "test" : 15
+    "test" : 16
     "ci" : 4
     "other" : 4
     "build" : 1
@@ -348,10 +348,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 97 commits
+### Chores (chore) — 98 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-07 | triage | track .shipwright/triage.jsonl as git SSoT + GC machine-churn | fc65f31a8830 |
 | 2026-06-05 | compliance | backfill event-log for 10 event-less commits — close B7 (sub-iterate A) | 8014b0c63e40 |
 | 2026-06-04 | security | allowlist sidekiq-secret false positive (cafebabe:deadbeef) | 214815220320 |
 | 2026-06-03 | campaign | mark 2026-05-25-bloat-cleanup-C-webui complete (8/8) | 96824e6660f1 |
@@ -529,10 +530,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 15 commits
+### Tests (test) — 16 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-07 | terminal | empirically reproduce touch-scroll alt-buffer no-op (ADR-131) | 54c2aa52f50b |
 | 2026-06-05 | campaigns | split selector tests into campaignsApi.selectors.test.ts | 3b686e8da5cc |
 | 2026-05-31 | terminal | prove WS heartbeat reaps a dead writer + promotes the reader (real sockets) | fd9ad2398f1d |
 | 2026-05-27 | terminal | split ws-upgrade-handler.test.ts to clear bloat gate | 64be961809e3 |
@@ -577,7 +579,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 508 |
+| Total commits | 510 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 508 |
+| Human-authored commits | 510 |
 

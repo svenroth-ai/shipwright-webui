@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-07-fix-touch-scroll-pty-keystrokes",
+  "date": "2026-06-07T14:48:34.513411Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/fix-touch-scroll-pty-keystrokes",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-07-fix-touch-scroll-pty-keystrokes",
+  "spec": null
+}
