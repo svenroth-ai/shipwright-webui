@@ -65,3 +65,14 @@ shipwright_run_config.json.lock
 
 # Local launch-prep / one-shot scrub tooling
 /.scrub.py
+
+# === BEGIN Shipwright canonical .shipwright artifact-ignore (managed) ===
+# Managed by Shipwright (adopt/project). Do not hand-edit — re-running
+# /shipwright-adopt or /shipwright-project back-fills missing rules.
+# SSoT: shared/templates/shipwright-gitignore.template
+!/.shipwright/triage.jsonl
+# === END Shipwright canonical .shipwright artifact-ignore (managed) ===
+
+# Triage Inbox (shipwright)
+.shipwright/triage.jsonl.lock
+.shipwright/triage.jsonl.bak
