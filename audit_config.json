@@ -12,5 +12,7 @@
     "client,server", "server,client", "server,test",
     "adr", "spec", "test-status", "events",
     "governance", "launch-prep", "architecture"
-  ]
+  ],
+  "_a5_phase_b_comment": "A5.6 dormant-trigger opt-in. security.yml + codeql.yml were deliberately moved to Phase B (active pull_request + weekly schedule) in commit 7196205 (codeql d66ab55). This flag tells the compliance audit the activation is intentional, so A5.6's 'non-dormant trigger active' sub-case PASSES instead of emitting a permanent LOW false-positive. The structural guards (workflow_dispatch presence, bare-'on:' failure) still fire — narrower than disabled_checks:[A5.6]. Producer fix: shipwright PR #164 (a5_phase_b_activated). Accepted-meanwhile decision-drop: iterate-2026-06-07-a5-6-dormant-accepted.",
+  "a5_phase_b_activated": true
 }
