@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-06-07T14:48:22.042354+00:00
-Total commits: 510
+Generated: 2026-06-07T22:17:13.277042+00:00
+Total commits: 515
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 183
+    "fix" : 185
     "feat" : 135
     "chore" : 98
-    "docs" : 44
+    "docs" : 47
     "refactor" : 25
     "test" : 16
     "ci" : 4
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 183 commits
+### Fixes (fix) — 185 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-07 | compliance | opt into A5.6 Phase B (a5_phase_b_activated) to clear false-positive | 9bed675a61ec |
+| 2026-06-07 | terminal | touch-scroll routes by xterm buffer type (ADR-132) | 192fa2eb66e2 |
 | 2026-06-05 | campaigns | hide done==total campaigns from the lane (FR-01.33) | 5bf5d571671d |
 | 2026-06-05 | compliance | webui audit data/config reconcile — G2 scopes + event FR links (C4) | f8b63cbbe8d6 |
 | 2026-06-04 | campaigns | parse Sub-Iterates table by header + strip MD emphasis | 7a0802d03b17 |
@@ -451,10 +453,13 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 44 commits
+### Documentation (docs) — 47 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-07 | changelog | A5.6 Phase B false-positive fix drop | 4d2a91b350d5 |
+| 2026-06-07 | compliance | reconcile A5.6 (accept deliberate Phase B) + F5 arch-drops + G2 scope | 6af887b0d4e4 |
+| 2026-06-07 | architecture | document iterate-2026-06-07-fix-touch-scroll-pty-keystrokes | a8205b733d48 |
 | 2026-06-02 | ci | correct stale upload-sarif @v3 comment to @v4 | 48badb61ad40 |
 | 2026-05-31 | spec | add FR-01.01 re-open acceptance criterion (F1 spec impact) | 76005260ddd9 |
 | 2026-05-30 | spec | append FR-01.02 acceptance criterion for smartviewer-render-ux | fe58668b8bbb |
@@ -579,7 +584,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 510 |
+| Total commits | 515 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 510 |
+| Human-authored commits | 515 |
 
