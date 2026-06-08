@@ -9,7 +9,7 @@ import {
 import path from "node:path";
 import { tmpdir } from "node:os";
 
-import { resolveTriagePath } from "./triage-paths.js";
+import { resolveTriagePath, outboxPathFor } from "./triage-paths.js";
 
 describe("triage-paths: resolveTriagePath", () => {
   let workDir: string;
@@ -110,6 +110,34 @@ describe("triage-paths: resolveTriagePath", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.existed).toBe(false);
+    }
+  });
+});
+
+describe("triage-paths: outboxPathFor", () => {
+  it("returns the sibling triage.outbox.jsonl in the same directory", () => {
+    const tracked = path.join("/srv", "proj", ".shipwright", "triage.jsonl");
+    expect(outboxPathFor(tracked)).toBe(
+      path.join("/srv", "proj", ".shipwright", "triage.outbox.jsonl"),
+    );
+  });
+
+  it("derives the outbox from a realpath-resolved tracked path (same parent dir)", () => {
+    const wt = mkdtempSync(path.join(tmpdir(), "triage-outboxpath-"));
+    try {
+      const sw = path.join(wt, ".shipwright");
+      mkdirSync(sw, { recursive: true });
+      const tracked = path.join(sw, "triage.jsonl");
+      writeFileSync(tracked, `{"v":1,"schema":"triage"}\n`);
+      const resolved = resolveTriagePath({ path: wt });
+      expect(resolved.ok).toBe(true);
+      if (resolved.ok) {
+        expect(outboxPathFor(resolved.absolute)).toBe(
+          path.join(path.dirname(resolved.absolute), "triage.outbox.jsonl"),
+        );
+      }
+    } finally {
+      rmSync(wt, { recursive: true, force: true });
     }
   });
 });

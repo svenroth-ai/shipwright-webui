@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
 
@@ -9,6 +9,8 @@ import {
   findItemById,
   _clearCache_TEST_ONLY,
 } from "./triage-store.js";
+
+// Union (tracked ∪ outbox) coverage lives in triage-store.union.test.ts.
 
 const FIXTURE_JSONL = path.resolve(
   __dirname,
