@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Regenerate `server/src/test/fixtures/triage-resolved.json` from the JSONL fixture.
+"""Regenerate the triage parity fixtures from the JSONL inputs.
 
 Run when `shared/scripts/triage.py` changes the resolved-view shape:
 
     uv run server/scripts/regen-triage-fixtures.py
 
-Inputs : server/src/test/fixtures/triage.jsonl
-Outputs: server/src/test/fixtures/triage-resolved.json (overwritten)
+Single-file gate:
+  Inputs : server/src/test/fixtures/triage.jsonl
+  Outputs: server/src/test/fixtures/triage-resolved.json (overwritten)
+
+Union gate (tracked union outbox — campaign 2026-06-08-triage-outbox-delivery):
+  Inputs : server/src/test/fixtures/triage-union.tracked.jsonl  (has header)
+           server/src/test/fixtures/triage-union.outbox.jsonl   (headerless buffer)
+  Outputs: server/src/test/fixtures/triage-union-resolved.json (overwritten)
+
+Both committed JSON fixtures are the SoT for CI; the TS port
+(`readAllItems`) must match them byte-for-byte (deep-equal).
 
 Discovery order for `shared/scripts/triage.py` (the upstream module):
 1. `$SHIPWRIGHT_PLUGIN_ROOT/../shared/scripts/triage.py` (Claude Code session env)
@@ -27,8 +36,12 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-JSONL = REPO_ROOT / "server" / "src" / "test" / "fixtures" / "triage.jsonl"
-RESOLVED = REPO_ROOT / "server" / "src" / "test" / "fixtures" / "triage-resolved.json"
+FIXTURES = REPO_ROOT / "server" / "src" / "test" / "fixtures"
+JSONL = FIXTURES / "triage.jsonl"
+RESOLVED = FIXTURES / "triage-resolved.json"
+UNION_TRACKED = FIXTURES / "triage-union.tracked.jsonl"
+UNION_OUTBOX = FIXTURES / "triage-union.outbox.jsonl"
+UNION_RESOLVED = FIXTURES / "triage-union-resolved.json"
 
 
 def find_triage_py() -> Path | None:
@@ -72,6 +85,7 @@ def main() -> int:
     sys.path.insert(0, str(triage_py.parent))
     from triage import read_all_items  # noqa: E402
 
+    # --- Single-file gate ------------------------------------------------
     # read_all_items needs a project_root that contains .shipwright/triage.jsonl.
     # Stage the fixture into a tmp project tree so we don't pollute the repo.
     with tempfile.TemporaryDirectory() as tmp:
@@ -82,21 +96,66 @@ def main() -> int:
         )
         items = read_all_items(proj)
 
-    payload = {
-        "_comment": (
-            "Generated from triage.jsonl by Python read_all_items() "
-            "(shared/scripts/triage.py). Regenerate via "
-            "server/scripts/regen-triage-fixtures.py whenever triage.py "
-            "changes the wire shape. The TS port readAllItems() must match "
-            "this byte-for-byte (deep-equal) per the parity test in "
-            "src/core/triage-store.test.ts."
-        ),
-        "items": items,
-    }
     RESOLVED.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        json.dumps(
+            {
+                "_comment": (
+                    "Generated from triage.jsonl by Python read_all_items() "
+                    "(shared/scripts/triage.py). Regenerate via "
+                    "server/scripts/regen-triage-fixtures.py whenever triage.py "
+                    "changes the wire shape. The TS port readAllItems() must match "
+                    "this byte-for-byte (deep-equal) per the parity test in "
+                    "src/core/triage-store.test.ts."
+                ),
+                "items": items,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
     )
     sys.stderr.write(f"wrote {RESOLVED} ({len(items)} items)\n")
+
+    # --- Union gate (tracked union outbox) -------------------------------
+    # Stage BOTH the tracked store and the headerless outbox buffer so the
+    # Python union reader resolves cross-file. The TS port must match this.
+    if not UNION_TRACKED.exists() or not UNION_OUTBOX.exists():
+        sys.stderr.write(
+            f"error: union fixtures missing at {UNION_TRACKED} / {UNION_OUTBOX}\n"
+        )
+        return 1
+    with tempfile.TemporaryDirectory() as tmp:
+        proj = Path(tmp)
+        (proj / ".shipwright").mkdir()
+        (proj / ".shipwright" / "triage.jsonl").write_text(
+            UNION_TRACKED.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        (proj / ".shipwright" / "triage.outbox.jsonl").write_text(
+            UNION_OUTBOX.read_text(encoding="utf-8"), encoding="utf-8"
+        )
+        union_items = read_all_items(proj)
+
+    UNION_RESOLVED.write_text(
+        json.dumps(
+            {
+                "_comment": (
+                    "Generated from triage-union.{tracked,outbox}.jsonl by Python "
+                    "read_all_items() (shared/scripts/triage.py) over the tracked "
+                    "union outbox view (campaign 2026-06-08-triage-outbox-delivery). "
+                    "The TS port readAllItems() must match this byte-for-byte "
+                    "(deep-equal) per the union parity test in "
+                    "src/core/triage-store.test.ts."
+                ),
+                "items": union_items,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sys.stderr.write(f"wrote {UNION_RESOLVED} ({len(union_items)} items)\n")
     return 0
 
 
