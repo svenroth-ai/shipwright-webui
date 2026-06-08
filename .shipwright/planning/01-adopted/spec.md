@@ -416,6 +416,22 @@ write (creation, sub-iterate/step status, `active → complete`).
   `complete` → no campaign button. While a campaign CTA is shown **"Fix now" is
   demoted** to a secondary style; non-campaign items keep "Fix now" primary. A
   failed start surfaces inline without navigating or closing the modal.
+- (G) **(iterate-2026-06-08-campaign-attached-run-guard, MODIFY of FR-01.33/34/36)**
+  Double-launch guard. `GET /api/campaigns` adds an optional
+  `Campaign.attachedRun` = (a live `loop_state.json` `in_progress` `sub_iterate`
+  unit joined to the slug via `spec_path`) **OR** (a `status.json` step
+  `in_progress`); a torn `loop_state.json` never fails the response
+  (`attachedRun:false`). When `attachedRun`, the **Launch (Cx)** and **Launch
+  autonomous** CTAs are disabled and relabeled **"Run attached"** with an
+  explanatory tooltip. The guard is enforced server-side too: the fresh-start
+  campaign + campaign-step launch branches return **`409
+  campaign_run_already_attached`** (closing multi-tab / deploy-skew / direct-API
+  paths a client-only flag cannot); a real **resume** (JSONL on disk) is
+  unaffected. A configurable stale-window (`SHIPWRIGHT_CAMPAIGN_ATTACH_STALE_MS`,
+  default 6 h) keeps a crashed orchestrator's `in_progress` unit from pinning the
+  guard forever. The producer-side `status.json` `in_progress` write (the
+  per-step board feedback) is a separate shipwright-monorepo follow-up. New
+  module `server/src/core/campaign-loop-state.ts`.
 
 ### FR-01.35 In-app Markdown editing in the SmartViewer (rich editor → Markdown save)
 

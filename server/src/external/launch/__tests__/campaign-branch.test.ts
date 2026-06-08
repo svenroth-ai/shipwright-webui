@@ -8,7 +8,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -137,6 +137,38 @@ describe("launch campaign branch — POST /launch { campaignSlug }", () => {
     const { res, json } = await launch({ campaignSlug: "2099-01-01-nope", dryRun: true });
     expect(res.status).toBe(400);
     expect(json.error).toBe("campaign_not_found");
+  });
+
+  function seedLoopUnit(startedAtIso: string): void {
+    writeFileSync(
+      path.join(projectRoot, ".shipwright", "loop_state.json"),
+      JSON.stringify({
+        loop_id: "sub_iterate-x",
+        kind: "sub_iterate",
+        units: [
+          {
+            id: "B0",
+            status: "in_progress",
+            spec_path: `.shipwright/planning/iterate/campaigns/${SLUG}/sub-iterates/B0-x.md`,
+            started_at: startedAtIso,
+          },
+        ],
+      }),
+      "utf-8",
+    );
+  }
+
+  it("double-launch guard: 409 campaign_run_already_attached when a live loop unit runs for the slug", async () => {
+    seedLoopUnit(new Date().toISOString());
+    const { res, json } = await launch({ campaignSlug: SLUG, dryRun: true });
+    expect(res.status).toBe(409);
+    expect(json.error).toBe("campaign_run_already_attached");
+  });
+
+  it("double-launch guard: a STALE loop unit (crashed orchestrator) does NOT block relaunch (200)", async () => {
+    seedLoopUnit(new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString()); // 7h > 6h window
+    const { res } = await launch({ campaignSlug: SLUG, dryRun: true });
+    expect(res.status).toBe(200);
   });
 
   it("AC-4: 400 mixed_launch_intents when campaignSlug + actionId", async () => {

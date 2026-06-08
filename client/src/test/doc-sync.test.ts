@@ -96,6 +96,8 @@ const REQUIRED_TOKENS = [
   'CampaignStepLaunchButton',
   'useLaunchCampaignStep',
   'campaign-step-branch',
+  // iterate-2026-06-08-campaign-attached-run-guard — double-launch guard (FR-01.33/34/36)
+  'campaign-loop-state',
 ] as const;
 
 let claudeMd = '';
