@@ -71,6 +71,7 @@ shipwright_run_config.json.lock
 # /shipwright-adopt or /shipwright-project back-fills missing rules.
 # SSoT: shared/templates/shipwright-gitignore.template
 !/.shipwright/triage.jsonl
+/.shipwright/triage.outbox.jsonl
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)
