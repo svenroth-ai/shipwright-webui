@@ -30,10 +30,30 @@ export type TriagePathResult =
 
 const SUBDIR = ".shipwright";
 const FILENAME = "triage.jsonl";
+/**
+ * Per-tree, GITIGNORED background-triage buffer (campaign
+ * 2026-06-08-triage-outbox-delivery / D1). Idle-main background producers
+ * append HERE instead of the tracked `triage.jsonl`; the webui reads the
+ * union (tracked ∪ outbox) so those findings stay visible in the live
+ * Inbox without waiting for the sweep+merge round-trip. Mirrors
+ * `shared/scripts/triage.py OUTBOX_FILE`.
+ */
+const OUTBOX_FILENAME = "triage.outbox.jsonl";
 
 export interface TriagePathProject {
   path: string;
   synthesized?: boolean;
+}
+
+/**
+ * Derive the per-tree outbox path that sits alongside an already-resolved
+ * tracked `triage.jsonl` path. The outbox lives in the SAME `.shipwright`
+ * directory that `resolveTriagePath` already realpath-guarded, so it
+ * inherits that traversal protection — there is no new path-guard surface.
+ * Pass the `absolute` from a successful `resolveTriagePath` result.
+ */
+export function outboxPathFor(trackedAbsolute: string): string {
+  return path.join(path.dirname(trackedAbsolute), OUTBOX_FILENAME);
 }
 
 export function resolveTriagePath(project: TriagePathProject): TriagePathResult {
