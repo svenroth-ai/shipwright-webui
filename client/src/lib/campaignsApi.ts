@@ -53,6 +53,13 @@ export interface Campaign {
   done: number;
   total: number;
   nextPending: { id: string; specPath: string | null } | null;
+  /** True when an autonomous run is currently attached to this campaign — a
+   *  live `loop_state.json` `in_progress` unit, OR a `status.json` step
+   *  `in_progress`. Populated server-side by `routes/campaigns.ts`; the launch
+   *  CTAs disable/relabel on it to avoid spawning a second orchestrator.
+   *  Optional for deploy-skew safety (older server → absent → treat as false).
+   *  Mirror of `server/src/core/campaign-store.ts`. */
+  attachedRun?: boolean;
 }
 
 export async function listCampaigns(projectId: string): Promise<Campaign[]> {

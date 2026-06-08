@@ -60,6 +60,25 @@ describe("CampaignAutonomousLaunchButton", () => {
     expect(screen.getByTestId(`campaign-autonomous-launch-${SLUG}`)).toBeDisabled();
   });
 
+  it("AC-4: disabled + relabeled 'Run attached' when a run is attached; dialog cannot open", () => {
+    renderBtn(makeCampaign({ attachedRun: true }));
+    const btn = screen.getByTestId(`campaign-autonomous-launch-${SLUG}`);
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveTextContent("Run attached");
+    // AC-4: an explanatory tooltip, not just a disabled button.
+    expect(btn.getAttribute("title")).toMatch(/already attached/i);
+    fireEvent.click(btn);
+    expect(screen.queryByTestId(`campaign-autonomous-dialog-${SLUG}`)).toBeNull();
+    expect(launchMock).not.toHaveBeenCalled();
+  });
+
+  it("AC-4: a non-attached campaign is unaffected (still 'Launch autonomous', enabled)", () => {
+    renderBtn(makeCampaign({ attachedRun: false }));
+    const btn = screen.getByTestId(`campaign-autonomous-launch-${SLUG}`);
+    expect(btn).not.toBeDisabled();
+    expect(btn).toHaveTextContent("Launch autonomous");
+  });
+
   it("AC-7: opens a confirm dialog showing the exact command + no-gate warning; does not launch on open", () => {
     renderBtn(makeCampaign());
     fireEvent.click(screen.getByTestId(`campaign-autonomous-launch-${SLUG}`));

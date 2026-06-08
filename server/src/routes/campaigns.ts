@@ -26,6 +26,7 @@ import type { Context } from "hono";
 
 import { resolveCampaignsDir, isWithin } from "../core/campaign-paths.js";
 import { readCampaigns, type Campaign } from "../core/campaign-store.js";
+import { readLoopAttachments } from "../core/campaign-loop-state.js";
 import {
   readStatusJson,
   pickLifecycle,
@@ -98,6 +99,22 @@ export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
         }),
       );
       campaigns = [];
+    }
+    // Attached-run annotation (double-launch guard, FR-01.33): a campaign is
+    // "attached" when a live autonomous loop unit is running for it
+    // (loop_state.json — works today) OR a status.json step is in_progress
+    // (the future producer-side signal). Tolerant — readLoopAttachments never
+    // throws, but the guard keeps a torn read from ever 500-ing the route.
+    let loopSlugs: Set<string>;
+    try {
+      loopSlugs = readLoopAttachments(pathRes.projectRoot, Date.now());
+    } catch {
+      loopSlugs = new Set<string>();
+    }
+    for (const camp of campaigns) {
+      camp.attachedRun =
+        loopSlugs.has(camp.slug) ||
+        camp.steps.some((s) => s.status === "in_progress");
     }
     return c.json({ campaigns });
   });

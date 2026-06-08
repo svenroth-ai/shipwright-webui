@@ -83,6 +83,15 @@ export interface Campaign {
    *  on, incl. a failed/escalated step that needs a re-run). Null when all
    *  complete. */
   nextPending: { id: string; specPath: string | null } | null;
+  /**
+   * True when an autonomous run is currently attached to this campaign — a live
+   * `loop_state.json` `in_progress` unit, OR a `status.json` step `in_progress`.
+   * Populated by `routes/campaigns.ts` (this reader leaves it undefined). The
+   * launch CTAs disable/relabel on it to prevent spawning a SECOND orchestrator
+   * on the same campaign. Optional for deploy-skew safety (older server → field
+   * absent → client treats as false). See `core/campaign-loop-state.ts`.
+   */
+  attachedRun?: boolean;
 }
 
 const VALID_STATUSES: ReadonlySet<string> = new Set([

@@ -26,6 +26,7 @@ import {
   resolveCampaignsDir,
   isWithin,
 } from "../../core/campaign-paths.js";
+import { readLoopAttachments } from "../../core/campaign-loop-state.js";
 import {
   type ExternalTask,
   type ExternalTaskState,
@@ -88,6 +89,17 @@ export function applyCampaignBranch(args: {
   }
   if (!dirOk) {
     return { error: { error: "campaign_not_found", detail: slug }, status: 400 };
+  }
+
+  // Double-launch guard (server enforcement, not just the client CTA): refuse to
+  // build a second autonomous command while a live orchestrator is already
+  // attached to this campaign (a `loop_state.json` in_progress unit). Two
+  // orchestrators race worktrees/commits + corrupt status.json. This closes the
+  // multi-tab / deploy-skew / direct-API holes the client `attachedRun` flag
+  // cannot. Resume is unaffected — it returned null above. The stale-window in
+  // readLoopAttachments keeps a crashed loop from blocking forever.
+  if (readLoopAttachments(resolved.projectRoot, Date.now()).has(slug)) {
+    return { error: { error: "campaign_run_already_attached", detail: slug }, status: 409 };
   }
 
   const commands = buildCopyCommands({
