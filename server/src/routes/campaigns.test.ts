@@ -71,6 +71,16 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     }
   }
 
+  function seedLoopState(state: unknown): void {
+    const dir = path.join(projectRoot, ".shipwright");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      path.join(dir, "loop_state.json"),
+      typeof state === "string" ? state : JSON.stringify(state, null, 2),
+      "utf-8",
+    );
+  }
+
   it("404s an unknown project id", async () => {
     const app = appFor({});
     const res = await app.request("/api/campaigns/nope");
@@ -154,6 +164,68 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
       ".shipwright/planning/iterate/campaigns/2026-06-02-hook/sub-iterates/B1-beta.md",
     );
     expect(c.steps[0]).toMatchObject({ id: "B0", status: "complete" });
+  });
+
+  // ---- attachedRun annotation (double-launch guard, AC-3) ----
+
+  it("AC-3: attachedRun=true when a live loop_state unit runs for the campaign", async () => {
+    seedCampaign("2026-06-08-foo", {
+      statusJson: { status: "active", sub_iterates: [{ id: "D1", slug: "x", status: "pending" }] },
+    });
+    seedLoopState({
+      loop_id: "sub_iterate-x",
+      kind: "sub_iterate",
+      units: [
+        {
+          id: "D1",
+          status: "in_progress",
+          spec_path:
+            ".shipwright/planning/iterate/campaigns/2026-06-08-foo/sub-iterates/D1-x.md",
+          started_at: new Date().toISOString(),
+        },
+      ],
+    });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const body = (await (await app.request("/api/campaigns/p1")).json()) as {
+      campaigns: Array<{ slug: string; attachedRun?: boolean }>;
+    };
+    expect(body.campaigns.find((c) => c.slug === "2026-06-08-foo")?.attachedRun).toBe(true);
+  });
+
+  it("AC-3: attachedRun=true when a status.json step is in_progress (no loop_state)", async () => {
+    seedCampaign("2026-06-08-bar", {
+      statusJson: { status: "active", sub_iterates: [{ id: "D1", slug: "x", status: "in_progress" }] },
+    });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const body = (await (await app.request("/api/campaigns/p1")).json()) as {
+      campaigns: Array<{ slug: string; attachedRun?: boolean }>;
+    };
+    expect(body.campaigns.find((c) => c.slug === "2026-06-08-bar")?.attachedRun).toBe(true);
+  });
+
+  it("AC-3: attachedRun=false for an idle campaign with no loop + no in_progress step", async () => {
+    seedCampaign("2026-06-08-idle", {
+      statusJson: { status: "active", sub_iterates: [{ id: "D1", slug: "x", status: "pending" }] },
+    });
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const body = (await (await app.request("/api/campaigns/p1")).json()) as {
+      campaigns: Array<{ slug: string; attachedRun?: boolean }>;
+    };
+    expect(body.campaigns.find((c) => c.slug === "2026-06-08-idle")?.attachedRun).toBe(false);
+  });
+
+  it("AC-3: a torn loop_state.json never 500s the route (attachedRun=false)", async () => {
+    seedCampaign("2026-06-08-torn", {
+      statusJson: { status: "active", sub_iterates: [{ id: "D1", slug: "x", status: "pending" }] },
+    });
+    seedLoopState("{ half-written not json");
+    const app = appFor({ p1: { id: "p1", path: projectRoot } });
+    const res = await app.request("/api/campaigns/p1");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      campaigns: Array<{ slug: string; attachedRun?: boolean }>;
+    };
+    expect(body.campaigns.find((c) => c.slug === "2026-06-08-torn")?.attachedRun).toBe(false);
   });
 
   // ---- POST /api/campaigns/:projectId/:slug/start (FR-01.33) ----

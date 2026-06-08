@@ -1,14 +1,15 @@
 {
-  "last_updated": "2026-06-08T00:20:00Z",
+  "last_updated": "2026-06-08T13:50:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-08-fix-terminal-replay-render-refresh",
+    "run_id": "iterate-2026-06-08-campaign-attached-run-guard",
     "date": "2026-06-08",
-    "intent": "bug",
-    "complexity": "small",
+    "intent": "change",
+    "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1557,
-      "total": 1557
+      "passed": 3100,
+      "total": 3100,
+      "note": "server 1534/1534 + client 1566/1566 (full suites, tsc --noEmit + oxlint clean both workspaces)"
     },
     "integration": {
       "status": "not_run",
@@ -21,10 +22,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "note": "Visual GPU repaint race (requires-manual-visual-judgment); headless WebGL falls back to canvas so the artifact cannot reproduce in an automated E2E. Contract is unit-tested; visual confirmation is a manual real-browser smoke post-deploy."
+      "status": "passed",
+      "passed": 1,
+      "total": 1,
+      "note": "client/e2e/flows/campaign-attached-run-guard.spec.ts — seeds a real project + loop_state.json (in_progress unit) against an isolated single-process worktree stack; the REAL route computes attachedRun and both launch buttons render disabled + 'Run attached'."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -34,36 +35,79 @@
     "smoke": {
       "status": "not_run"
     },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/campaign-attached-run-guard.spec.ts --config=playwright.config.ts (BASE_URL=http://127.0.0.1:3850, isolated single-process stack: built client via SHIPWRIGHT_STATIC_DIR + tsx server + temp USERPROFILE + SHIPWRIGHT_NETWORK_PROFILE=local)",
+      "exit_code": 0,
+      "tests_run": 1,
+      "evidence_path": "client/e2e/flows/campaign-attached-run-guard.spec.ts",
+      "timestamp": "2026-06-08T13:42:00Z",
+      "note": "surface_verification.py orchestrator not used: the fixture requires a seeded loop_state.json + isolated temp-USERPROFILE stack the generic dev_server.py runner does not provision; the spec was driven directly against an equivalent isolated stack built from worktree source (production :3847 is a frozen dist without this change, so it cannot be used). 1 spec, 1 passed, exit 0."
+    },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "settleReplayGate forces a full-viewport term.refresh(0, rows-1) after the replay queue drains",
+          "behavior": "AC-1: readLoopAttachments joins a live in_progress sub_iterate unit to its campaign slug from spec_path (Windows backslash AND POSIX)",
           "disposition": "tested",
-          "evidence": "client EmbeddedTerminal.test.tsx 'forces a full term.refresh(0, rows-1) after the replay settle drains (render-paint fix)' PASSED (RED before fix, GREEN after)"
+          "evidence": "server campaign-loop-state.test.ts — campaignSlugFromSpecPath (backslash/POSIX/no-segment) + 'returns the slug of a live in_progress sub_iterate unit (backslash path)' PASSED"
         },
         {
-          "behavior": "existing replay-drain-gate + snapshot-replay behavior is unchanged (no regression)",
+          "behavior": "AC-2: readLoopAttachments returns the empty set for missing file / torn JSON / kind!=sub_iterate / no in_progress unit / stale started_at; conservative-live on missing started_at; env stale-window override",
           "disposition": "tested",
-          "evidence": "215 terminal-dir tests + full client suite 1557/1557 PASSED; tsc --noEmit exit 0; vite build exit 0"
+          "evidence": "server campaign-loop-state.test.ts — 6 ∅ cases + missing-started_at-conservative + SHIPWRIGHT_CAMPAIGN_ATTACH_STALE_MS override, 12/12 PASSED"
         },
         {
-          "behavior": "terminal visually paints cleanly on open with no manual scroll (GPU repaint outcome)",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "GPU/WebGL paint-timing race; @xterm/addon-webgl falls back to canvas/DOM under jsdom + headless so the blank/partial-row artifact cannot be reproduced or asserted in an automated test. Confirmed via real-browser smoke post-deploy."
+          "behavior": "AC-3: GET /api/campaigns sets attachedRun = (live loop unit) OR (status.json step in_progress); false when idle; torn loop_state never 500s (attachedRun false)",
+          "disposition": "tested",
+          "evidence": "server routes/campaigns.test.ts — 4 AC-3 cases (loop unit / status.json in_progress / idle false / torn→false+200) PASSED"
+        },
+        {
+          "behavior": "AC-4: CampaignAutonomousLaunchButton disables + relabels 'Run attached' + explanatory tooltip when attachedRun; the confirm dialog cannot open",
+          "disposition": "tested",
+          "evidence": "client CampaignAutonomousLaunchButton.test.tsx (disabled+label+title+dialog-null) + E2E campaign-attached-run-guard.spec.ts PASSED"
+        },
+        {
+          "behavior": "AC-5: CampaignStepLaunchButton disables + relabels when attachedRun; BOTH the direct-launch and the risky-step dialog paths are blocked",
+          "disposition": "tested",
+          "evidence": "client CampaignStepLaunchButton.test.tsx (plain + risky-step attached cases, title, no dialog) + E2E PASSED"
+        },
+        {
+          "behavior": "AC-6 regression: the triage Start-Campaign CTA stays 'Go to board' for an active campaign (never offers a second start while running)",
+          "disposition": "tested",
+          "evidence": "client CampaignStartCta.test.tsx — active→go-to-board (no start) + draft/null→start + complete→note PASSED"
+        },
+        {
+          "behavior": "AC-7: a producer-fix follow-up (mark sub-iterate in_progress in status.json) is filed in .shipwright/triage.jsonl",
+          "disposition": "tested",
+          "evidence": "triage.jsonl carries trg-9edbab4d (source=iterate, run-id stamped); verified via git diff origin/main"
+        },
+        {
+          "behavior": "Server-side enforcement: a fresh autonomous launch returns 409 campaign_run_already_attached when a live loop unit is attached (closes multi-tab / deploy-skew / direct-API)",
+          "disposition": "tested",
+          "evidence": "server campaign-branch.test.ts — '409 campaign_run_already_attached when a live loop unit runs for the slug' PASSED"
+        },
+        {
+          "behavior": "Server-side enforcement: a fresh single-step launch returns 409 when a live loop unit is attached",
+          "disposition": "tested",
+          "evidence": "server campaign-step-branch.test.ts — '409 campaign_run_already_attached when a live loop unit runs for the campaign' PASSED"
+        },
+        {
+          "behavior": "Crash recovery: a STALE in_progress loop unit (started_at older than the 6h window) does NOT block relaunch (200, not 409)",
+          "disposition": "tested",
+          "evidence": "server campaign-branch.test.ts — 'a STALE loop unit does NOT block relaunch (200)' PASSED"
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
-        "untestable": 1,
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 1,
-        "covered_acs": 1
+        "acs": 7,
+        "covered_acs": 7
       }
     }
   }
