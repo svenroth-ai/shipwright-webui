@@ -97,6 +97,19 @@ export function useReplayDrainGate(
       try {
         if (queued.length > 0) term.write(queued.join(""));
         term.scrollToBottom();
+        // iterate-2026-06-08-fix-terminal-replay-render-refresh — force a
+        // FULL-viewport repaint after the replay settles. Without this the
+        // terminal "opens unclean until I scroll": xterm's RenderDebouncer
+        // only repaints the dirty-row range the bulk snapshot write
+        // tracked, and the reset()→write()→scrollToBottom() sequence
+        // (WebGL renderer) can leave visible rows stale/blank. The other
+        // refresh kicks (useTerminalResize / useTerminalShellEffects) fire
+        // on ready/active — BEFORE the later-arriving snapshot — so they
+        // never cover the post-replay paint. A user scroll triggers
+        // refreshRows() and the viewport finally paints; this does that
+        // proactively. Marking every visible row dirty is the same remedy
+        // already used for the navigation variant of this render bug.
+        term.refresh(0, term.rows - 1);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.warn(
