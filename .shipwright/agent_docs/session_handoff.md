@@ -1,34 +1,34 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-07-fix-touch-scroll-pty-keystrokes"
+run_id: "iterate-2026-06-08-fix-terminal-replay-render-refresh"
 phase: "iterate"
-reason: "fix: buffer-aware touch-scroll routing closes the alt-buffer no-op proven by ADR-131 / PR #110"
-timestamp: "2026-06-07T14:48:22.042354+00:00"
+reason: "iterate: force full-viewport refresh after terminal replay-drain settle"
+timestamp: "2026-06-07T22:17:13.277042+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-07 14:48:22 UTC
+> Auto-generated 2026-06-07 22:17:13 UTC
 
 ## Session Info
 
-- **Session ID**: a8ea8c75-74da-4410-9d0f-b394699699cb
-- **Timestamp**: 2026-06-07 14:48:22 UTC
-- **Reason**: fix: buffer-aware touch-scroll routing closes the alt-buffer no-op proven by ADR-131 / PR #110
+- **Session ID**: e03a2724-054b-4c26-8d6c-f808abb8fb16
+- **Timestamp**: 2026-06-07 22:17:13 UTC
+- **Reason**: iterate: force full-viewport refresh after terminal replay-drain settle
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-07-fix-touch-scroll-alt-buffer
-- **Date**: 2026-06-07T10:31:49.194305Z
+- **Run ID**: iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
+- **Date**: 2026-06-07T14:48:34.513411Z
 - **Type**: bug
 - **Complexity**: small
-- **Branch**: iterate/fix-touch-scroll-alt-buffer
-- **ADR**: iterate-2026-06-07-fix-touch-scroll-alt-buffer
+- **Branch**: iterate/fix-touch-scroll-pty-keystrokes
+- **ADR**: iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
 - **Tests passed**: True
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-touch-scroll-pty-keystrokes
+- **Branch**: iterate/fix-terminal-replay-render-refresh
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-touch-scroll-pty-keystrokes
-- **Last Commit**: c3d260b Merge pull request #111 from svenroth-ai/iterate/track-triage-jsonl
+- **Branch**: iterate/fix-terminal-replay-render-refresh
+- **Last Commit**: ad04d42 Merge pull request #113 from svenroth-ai/iterate/a5-phase-b-activated-optin
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-9e9290da | work_completed | iterate (force full-viewport refresh after terminal replay-drain settle (clean render on open)) | 2026-06-07 |
 | evt-8169fc3f | work_completed | iterate (Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses).) | 2026-06-07 |
 | evt-f6973f9d | work_completed | iterate (Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched.) | 2026-06-07 |
 | evt-eceb87ba | work_completed | iterate (Campaigns lane: hide done==total campaigns even on a stale active lifecycle) | 2026-06-05 |
 | evt-6202ed81 | work_completed | iterate (Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6) | 2026-06-05 |
-| evt-b6f04b98 | work_completed | iterate (ci(security): checkout at fetch-depth 1) | 2026-06-05 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 196
-- **Last iterate**: bug — Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses). (2026-06-07)
+- **Total work events**: 197
+- **Last iterate**: bug — force full-viewport refresh after terminal replay-drain settle (clean render on open) (2026-06-07)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
