@@ -60,8 +60,12 @@ export function CampaignAutonomousLaunchButton({
   const command = `/shipwright-iterate --campaign ${slug} --autonomous`;
   const risky = useMemo(() => selectRiskyPendingSteps(campaign), [campaign]);
   const hasPending = campaign.done < campaign.total;
-  const canLaunch = Boolean(project) && hasPending;
-  const confirmDisabled = submitting || (risky.length > 0 && !ack);
+  // A run is already attached (live loop unit / in_progress step). Launching
+  // again would spawn a SECOND orchestrator on the same campaign → racing
+  // worktrees/commits + corrupted status.json. Block it.
+  const attached = Boolean(campaign.attachedRun);
+  const canLaunch = Boolean(project) && hasPending && !attached;
+  const confirmDisabled = submitting || attached || (risky.length > 0 && !ack);
 
   const onOpenChange = (next: boolean) => {
     setOpen(next);
@@ -74,7 +78,7 @@ export function CampaignAutonomousLaunchButton({
   };
 
   const onConfirm = async () => {
-    if (inFlight.current || !project) return;
+    if (inFlight.current || !project || attached) return;
     // Defense-in-depth: enforce the risky-step acknowledgment in logic, not
     // only via the disabled button (AC-8) — the ack is a real gate, not a
     // presentation-only control.
@@ -105,13 +109,15 @@ export function CampaignAutonomousLaunchButton({
           data-testid={`campaign-autonomous-launch-${slug}`}
           className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-text,#111827)] transition-colors enabled:hover:bg-[var(--color-muted-bg)] disabled:cursor-not-allowed disabled:opacity-50"
           title={
-            canLaunch
-              ? `Open a terminal running: ${command}`
-              : "No pending sub-iterate to run (or no project resolved)"
+            attached
+              ? "A run is already attached to this campaign — launching again would spawn a second orchestrator."
+              : canLaunch
+                ? `Open a terminal running: ${command}`
+                : "No pending sub-iterate to run (or no project resolved)"
           }
         >
           <Bot size={12} />
-          Launch autonomous
+          {attached ? "Run attached" : "Launch autonomous"}
         </button>
       </Dialog.Trigger>
 

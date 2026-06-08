@@ -61,12 +61,16 @@ export function CampaignStepLaunchButton({
   // producer edge), treat it as risky so the confirm dialog gates the launch —
   // never silently direct-launch a step we can't classify.
   const reason = next ? (nextStep ? riskyReason(nextStep) : "needs review") : null;
+  // A run is already attached (live loop unit / in_progress step). A second
+  // single-step launch would race the running orchestrator. Block it.
+  const attached = Boolean(campaign.attachedRun);
   // Launchable only when the next-pending step resolved a spec path AND a
-  // project is available (the server needs both to build + run the command).
-  const launchable = Boolean(next && next.specPath) && Boolean(project);
+  // project is available (the server needs both to build + run the command),
+  // AND no run is already attached.
+  const launchable = Boolean(next && next.specPath) && Boolean(project) && !attached;
 
   const doLaunch = async () => {
-    if (inFlight.current || !project || !next) return;
+    if (inFlight.current || !project || !next || attached) return;
     inFlight.current = true;
     setSubmitting(true);
     setError(null);
@@ -110,13 +114,15 @@ export function CampaignStepLaunchButton({
         data-testid={`campaign-step-launch-${slug}`}
         className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--color-border)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-text,#111827)] transition-colors enabled:hover:bg-[var(--color-muted-bg)] disabled:cursor-not-allowed disabled:opacity-50"
         title={
-          launchable
-            ? `Open a terminal running: /shipwright-iterate "${next!.specPath}"`
-            : "No launchable next step (all complete, spec file missing, or no project)"
+          attached
+            ? "A run is already attached to this campaign — launching again would spawn a second orchestrator."
+            : launchable
+              ? `Open a terminal running: /shipwright-iterate "${next!.specPath}"`
+              : "No launchable next step (all complete, spec file missing, or no project)"
         }
       >
         <Play size={12} />
-        {next ? `Launch (${next.id})` : "Launch"}
+        {attached ? "Run attached" : next ? `Launch (${next.id})` : "Launch"}
       </button>
 
       {/* Inline (non-dialog) error for the direct-launch path. */}
@@ -191,7 +197,7 @@ export function CampaignStepLaunchButton({
             <button
               type="button"
               onClick={() => void doLaunch()}
-              disabled={submitting}
+              disabled={submitting || attached}
               data-testid={`campaign-step-confirm-${slug}`}
               className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:cursor-not-allowed disabled:opacity-60"
             >

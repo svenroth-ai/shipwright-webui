@@ -27,6 +27,7 @@ import path from "node:path";
 import { buildCopyCommands } from "../../core/launcher.js";
 import { resolveCampaignsDir, isWithin } from "../../core/campaign-paths.js";
 import { readCampaigns } from "../../core/campaign-store.js";
+import { readLoopAttachments } from "../../core/campaign-loop-state.js";
 import {
   type ExternalTask,
   type ExternalTaskState,
@@ -91,6 +92,15 @@ export function applyCampaignStepBranch(args: {
   }
   if (!dirOk) {
     return { error: { error: "campaign_not_found", detail: step.slug }, status: 400 };
+  }
+
+  // Double-launch guard (server enforcement, mirrors the autonomous branch):
+  // refuse a single-step launch while a live orchestrator is attached to this
+  // campaign (a `loop_state.json` in_progress unit) — the manual runner would
+  // race the autonomous loop. Closes the multi-tab / deploy-skew / direct-API
+  // holes the client `attachedRun` flag cannot. Resume returned null above.
+  if (readLoopAttachments(resolved.projectRoot, Date.now()).has(step.slug)) {
+    return { error: { error: "campaign_run_already_attached", detail: step.slug }, status: 409 };
   }
 
   // Resolve the step's specPath via the SAME reader the board uses — no second

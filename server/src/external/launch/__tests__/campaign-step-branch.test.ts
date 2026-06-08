@@ -140,6 +140,33 @@ describe("launch campaign-step branch — POST /launch { campaignStep }", () => 
     expect(cmds.cmd).toContain(B0_SPEC);
   });
 
+  it("double-launch guard: 409 campaign_run_already_attached when a live loop unit runs for the campaign", async () => {
+    // A live autonomous loop is attached → a manual single-step launch would
+    // race it. Note B0 status.json is pending; the signal is loop_state only.
+    writeFileSync(
+      path.join(projectRoot, ".shipwright", "loop_state.json"),
+      JSON.stringify({
+        loop_id: "sub_iterate-x",
+        kind: "sub_iterate",
+        units: [
+          {
+            id: "B0",
+            status: "in_progress",
+            spec_path: B0_SPEC,
+            started_at: new Date().toISOString(),
+          },
+        ],
+      }),
+      "utf-8",
+    );
+    const { res, json } = await launch({
+      campaignStep: { slug: SLUG, stepId: "B0" },
+      dryRun: true,
+    });
+    expect(res.status).toBe(409);
+    expect(json.error).toBe("campaign_run_already_attached");
+  });
+
   it("AC2: 400 invalid_campaign_slug for a shell-/path-hostile slug", async () => {
     const { res, json } = await launch({
       campaignStep: { slug: "../escape", stepId: "B0" },

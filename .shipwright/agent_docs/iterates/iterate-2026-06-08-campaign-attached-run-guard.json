@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-08-campaign-attached-run-guard",
+  "date": "2026-06-08T11:53:33.829167Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/campaign-attached-run-guard",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-06-08-campaign-attached-run-guard.md",
+  "adr": "iterate-2026-06-08-campaign-attached-run-guard"
+}

@@ -67,6 +67,36 @@ describe("CampaignStepLaunchButton", () => {
     expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeDisabled();
   });
 
+  it("AC-5: disabled + relabeled 'Run attached' when a run is attached; clicking never launches", () => {
+    renderBtn(makeCampaign({ attachedRun: true }));
+    const btn = screen.getByTestId(`campaign-step-launch-${SLUG}`);
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveTextContent("Run attached");
+    expect(btn.getAttribute("title")).toMatch(/already attached/i);
+    fireEvent.click(btn);
+    expect(screen.queryByTestId(`campaign-step-dialog-${SLUG}`)).toBeNull();
+    expect(launchStepMock).not.toHaveBeenCalled();
+  });
+
+  it("AC-5: attachedRun also blocks the RISKY-step dialog path (no confirm dialog opens)", () => {
+    // A risky next step would normally open the confirm dialog — but an attached
+    // run must take precedence and keep the button disabled, so neither the
+    // direct launch nor the dialog path is reachable.
+    renderBtn(
+      makeCampaign({
+        attachedRun: true,
+        steps: [makeStep({ id: "B0", status: "complete" }), makeStep({ id: "B1", status: "failed" })],
+        nextPending: { id: "B1", specPath: ".s/B1-x.md" },
+      }),
+    );
+    const btn = screen.getByTestId(`campaign-step-launch-${SLUG}`);
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveTextContent("Run attached");
+    fireEvent.click(btn);
+    expect(screen.queryByTestId(`campaign-step-dialog-${SLUG}`)).toBeNull();
+    expect(launchStepMock).not.toHaveBeenCalled();
+  });
+
   it("AC4: labels the button with the next-pending step id", () => {
     renderBtn(makeCampaign());
     expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toHaveTextContent("Launch (B1)");
