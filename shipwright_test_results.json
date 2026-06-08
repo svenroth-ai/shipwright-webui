@@ -1,15 +1,15 @@
 {
-  "last_updated": "2026-06-08T13:50:00Z",
+  "last_updated": "2026-06-08T21:50:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-08-campaign-attached-run-guard",
+    "run_id": "iterate-2026-06-08-triage-outbox-union-reader",
     "date": "2026-06-08",
     "intent": "change",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 3100,
-      "total": 3100,
-      "note": "server 1534/1534 + client 1566/1566 (full suites, tsc --noEmit + oxlint clean both workspaces)"
+      "passed": 1555,
+      "total": 1555,
+      "note": "server full vitest 1555/1555 + tsc --noEmit clean + oxlint clean (touched files warning-free). Server-only change; client untouched (no client suite run)."
     },
     "integration": {
       "status": "not_run",
@@ -23,9 +23,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "client/e2e/flows/campaign-attached-run-guard.spec.ts — seeds a real project + loop_state.json (in_progress unit) against an isolated single-process worktree stack; the REAL route computes attachedRun and both launch buttons render disabled + 'Run attached'."
+      "passed": 5,
+      "total": 5,
+      "note": "surface=api: src/routes/triage.outbox-union.test.ts drives the REAL createTriageRoutes + real SdkSessionsStore + real .weblock lock — outbox-only findings surface via GET (with/without tracked file), are counted, dismiss residence-routes to the outbox (no main drift), + .gitignore outbox-line congruence (AC6)."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,79 +36,70 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/campaign-attached-run-guard.spec.ts --config=playwright.config.ts (BASE_URL=http://127.0.0.1:3850, isolated single-process stack: built client via SHIPWRIGHT_STATIC_DIR + tsx server + temp USERPROFILE + SHIPWRIGHT_NETWORK_PROFILE=local)",
+      "surface": "api",
+      "runner": "SHIPWRIGHT_NETWORK_PROFILE=local npx vitest run src/routes/triage.outbox-union.test.ts (real createTriageRoutes + real SdkSessionsStore + real proper-lockfile .weblock; temp-project tracked+outbox fixtures)",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "client/e2e/flows/campaign-attached-run-guard.spec.ts",
-      "timestamp": "2026-06-08T13:42:00Z",
-      "note": "surface_verification.py orchestrator not used: the fixture requires a seeded loop_state.json + isolated temp-USERPROFILE stack the generic dev_server.py runner does not provision; the spec was driven directly against an equivalent isolated stack built from worktree source (production :3847 is a frozen dist without this change, so it cannot be used). 1 spec, 1 passed, exit 0."
+      "tests_run": 5,
+      "evidence_path": "server/src/routes/triage.outbox-union.test.ts",
+      "timestamp": "2026-06-08T21:40:00Z",
+      "justification": "Server-only read-path change; the API response contract ({items:[...]}) and the client Triage consumer are UNCHANGED (no client/** file touched) and already E2E-covered. The new behavior (union tracked union outbox + residence-derived flips) lives entirely at the API boundary, which is driven here through the production Hono route factory + real store + real cross-process lock. A browser pass would only re-verify the unchanged client rendering of API items."
     },
-    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1: readLoopAttachments joins a live in_progress sub_iterate unit to its campaign slug from spec_path (Windows backslash AND POSIX)",
+          "behavior": "AC1 union read surfaces outbox-only + merged items",
           "disposition": "tested",
-          "evidence": "server campaign-loop-state.test.ts — campaignSlugFromSpecPath (backslash/POSIX/no-segment) + 'returns the slug of a live in_progress sub_iterate unit (backslash path)' PASSED"
+          "evidence": "triage-store.test.ts union block; triage.outbox-union.test.ts GET (with/without tracked file)"
         },
         {
-          "behavior": "AC-2: readLoopAttachments returns the empty set for missing file / torn JSON / kind!=sub_iterate / no in_progress unit / stale started_at; conservative-live on missing started_at; env stale-window override",
+          "behavior": "AC2 two-pass cross-file resolution (both directions, ts-order race, equal-ts file-order tiebreak, dup collapse, corrupt tolerance)",
           "disposition": "tested",
-          "evidence": "server campaign-loop-state.test.ts — 6 ∅ cases + missing-started_at-conservative + SHIPWRIGHT_CAMPAIGN_ATTACH_STALE_MS override, 12/12 PASSED"
+          "evidence": "triage-store.test.ts union block + union parity gate (trg-race005 ts-race, trg-tie007 equal-ts tiebreak, trg-dup003 collapse)"
         },
         {
-          "behavior": "AC-3: GET /api/campaigns sets attachedRun = (live loop unit) OR (status.json step in_progress); false when idle; torn loop_state never 500s (attachedRun false)",
+          "behavior": "AC3 TS union read == Python read_all_items (parity)",
           "disposition": "tested",
-          "evidence": "server routes/campaigns.test.ts — 4 AC-3 cases (loop unit / status.json in_progress / idle false / torn→false+200) PASSED"
+          "evidence": "triage-store.test.ts union parity gate vs triage-union-resolved.json (Python-generated)"
         },
         {
-          "behavior": "AC-4: CampaignAutonomousLaunchButton disables + relabels 'Run attached' + explanatory tooltip when attachedRun; the confirm dialog cannot open",
+          "behavior": "AC4 residence-derived write (outbox-only -> outbox; tracked/both -> tracked; nowhere -> tracked+header)",
           "disposition": "tested",
-          "evidence": "client CampaignAutonomousLaunchButton.test.tsx (disabled+label+title+dialog-null) + E2E campaign-attached-run-guard.spec.ts PASSED"
+          "evidence": "triage-write.test.ts residence block + round-trip Boundary Probe + triage.outbox-union.test.ts dismiss"
         },
         {
-          "behavior": "AC-5: CampaignStepLaunchButton disables + relabels when attachedRun; BOTH the direct-launch and the risky-step dialog paths are blocked",
+          "behavior": "AC5 regression fence: single-file behavior unchanged",
           "disposition": "tested",
-          "evidence": "client CampaignStepLaunchButton.test.tsx (plain + risky-step attached cases, title, no dialog) + E2E PASSED"
+          "evidence": "all pre-existing triage-store/triage-write tests retained + single-file parity gate; full server suite 1555/1555"
         },
         {
-          "behavior": "AC-6 regression: the triage Start-Campaign CTA stays 'Go to board' for an active campaign (never offers a second start while running)",
+          "behavior": "AC6 .gitignore carries canonical outbox-ignore line",
           "disposition": "tested",
-          "evidence": "client CampaignStartCta.test.tsx — active→go-to-board (no start) + draft/null→start + complete→note PASSED"
+          "evidence": "triage.outbox-union.test.ts AC6 gitignore-congruence assertion; self-heal commit c5841bb"
         },
         {
-          "behavior": "AC-7: a producer-fix follow-up (mark sub-iterate in_progress in status.json) is filed in .shipwright/triage.jsonl",
-          "disposition": "tested",
-          "evidence": "triage.jsonl carries trg-9edbab4d (source=iterate, run-id stamped); verified via git diff origin/main"
-        },
-        {
-          "behavior": "Server-side enforcement: a fresh autonomous launch returns 409 campaign_run_already_attached when a live loop unit is attached (closes multi-tab / deploy-skew / direct-API)",
-          "disposition": "tested",
-          "evidence": "server campaign-branch.test.ts — '409 campaign_run_already_attached when a live loop unit runs for the slug' PASSED"
-        },
-        {
-          "behavior": "Server-side enforcement: a fresh single-step launch returns 409 when a live loop unit is attached",
-          "disposition": "tested",
-          "evidence": "server campaign-step-branch.test.ts — '409 campaign_run_already_attached when a live loop unit runs for the campaign' PASSED"
-        },
-        {
-          "behavior": "Crash recovery: a STALE in_progress loop unit (started_at older than the 6h window) does NOT block relaunch (200, not 409)",
-          "disposition": "tested",
-          "evidence": "server campaign-branch.test.ts — 'a STALE loop unit does NOT block relaunch (200)' PASSED"
+          "behavior": "AC6 plugin-cache shared scripts synced to D1-D3 (Codex Q6)",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "the plugin cache is a machine-local runtime artifact, not a behavior of this diff; verified empirically via grep probe of ~/.claude/plugins/cache/shipwright/shared"
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 0,
+        "testable": 6,
+        "tested": 6,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7
+        "acs": 6,
+        "covered_acs": 6
       }
-    }
+    },
+    "degraded": [
+      {
+        "condition": "check_iterate_isolation.py absent from shared/scripts/tools — F0/F11 leak-guard skipped",
+        "mitigation": "worktree is isolated by construction (one branch, one PR); diff is path-scoped to triage + tests + fixtures + docs"
+      }
+    ]
   }
 }
