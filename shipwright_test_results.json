@@ -1,15 +1,15 @@
 {
-  "last_updated": "2026-06-09T05:05:31Z",
+  "last_updated": "2026-06-09",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-09-campaign-board-live-progress",
+    "run_id": "iterate-2026-06-09-fix-terminal-scroll-smear",
     "date": "2026-06-09",
-    "intent": "change",
-    "complexity": "medium",
+    "intent": "bug",
+    "complexity": "small",
     "unit": {
       "status": "passed",
-      "passed": 3131,
-      "total": 3131,
-      "note": "server full vitest 1564/1564 + client full vitest 1567/1567 + tsc --noEmit clean (both workspaces) + oxlint clean (3 touched source files warning-free; only pre-existing unrelated warnings remain)."
+      "passed": 1575,
+      "total": 1575,
+      "note": "client full vitest 1575/1575 (incl. new scroll-repaint.test.ts, 8 cases) + tsc --noEmit clean + oxlint clean (touched files warning-free). Client-only change; server suite not in scope."
     },
     "integration": {
       "status": "not_run",
@@ -22,10 +22,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "surface=web via surface_verification.py: campaign-board-live-progress.spec.ts (status.json pending + loop_state in_progress -> board renders data-step-status=in_progress + spinner + label; B0 stays complete) + campaign-attached-run-guard.spec.ts (PR #116 regression re-run). Real stack: built SPA served by Hono on :3998 + real POST /api/projects seeding."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "GPU WebGL rendering artifact (table scroll smear) is not reproducible headless (no real WebGL context in jsdom/Playwright SwiftShader); scroll->full-refresh wiring covered by unit tests. Manual visual verification post-deploy by user."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,59 +36,68 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/campaign-board-live-progress.spec.ts client/e2e/flows/campaign-attached-run-guard.spec.ts --config=client/playwright.config.ts (BASE_URL=http://127.0.0.1:3998; single-process isolated stack: built client/dist via SHIPWRIGHT_STATIC_DIR + tsx server, temp USERPROFILE, SHIPWRIGHT_NETWORK_PROFILE=local)",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-09-campaign-board-live-progress/surface_verification.json",
-      "timestamp": "2026-06-09T05:05:31Z",
-      "justification": "Backend-affects-frontend read-surface change (Campaign.steps[].status on GET /api/campaigns is consumed by the board); web mandatory at medium. The E2E proves the loop_state -> readLoopRunState overlay -> CampaignLaneCard render chain over the real HTTP wire, and re-runs #116's guard spec as a regression check."
+      "tests_run": 0,
+      "justification": "Pure client-side WebGL rendering fix (terminal scroll repaint). The smear is a GPU-renderer artifact not reproducible in headless/jsdom (no real WebGL context); confirmation requires manual visual judgment in a real browser. The scroll-input -> full term.refresh(0,rows-1) wiring is covered by 8 unit tests (scroll-repaint.test.ts) + the EmbeddedTerminal mount-effect suite; client vitest 1575/1575 green. User verifies visually post-deploy.",
+      "timestamp": "2026-06-09T21:20:00Z"
     },
     "test_completeness": {
+      "counts": {
+        "total_behaviors": 9,
+        "tested": 8,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": "Behaviors introduced by attachScrollRepaint (scroll-repaint.ts) and its EmbeddedTerminal mount-effect wiring.",
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1 readLoopRunState collects live unit {slug,id} into attachedSlugs + runningStepIdsBySlug",
+          "behavior": "term.onScroll triggers a full-viewport refresh(0,rows-1)",
           "disposition": "tested",
-          "evidence": "campaign-loop-state.test.ts (id-map, multi-unit grouping per/across campaigns, slug-without-id attaches slug only)"
+          "evidence": "scroll-repaint.test.ts: 'firing onScroll schedules a FULL-viewport refresh'"
         },
         {
-          "behavior": "AC-2 readLoopAttachments delegates with byte-identical behavior",
+          "behavior": "raw wheel event triggers a full refresh (alt-buffer path)",
           "disposition": "tested",
-          "evidence": "campaign-loop-state.test.ts (12 pre-existing readLoopAttachments cases unchanged + green)"
+          "evidence": "scroll-repaint.test.ts: 'a raw wheel event ... triggers a full refresh'"
         },
         {
-          "behavior": "AC-3 route overlays pending->in_progress for the named step; done/total/nextPending invariant; loop_state read exactly once",
+          "behavior": "multiple triggers within one frame coalesce to a single refresh",
           "disposition": "tested",
-          "evidence": "campaigns.test.ts overlay test + single-read vi.spyOn consistency test"
+          "evidence": "scroll-repaint.test.ts: 'coalesces multiple triggers within one frame'"
         },
         {
-          "behavior": "AC-4 overlay never downgrades an authoritative complete/failed/escalated step",
+          "behavior": "trailing-debounced refresh fires after scroll settles (async alt-buffer redraw)",
           "disposition": "tested",
-          "evidence": "campaigns.test.ts 'never downgrades an authoritative non-pending step'"
+          "evidence": "scroll-repaint.test.ts: 'schedules a trailing full refresh'"
         },
         {
-          "behavior": "AC-5 tolerant empty snapshot (missing/torn/stale); route never 500s",
+          "behavior": "no refresh once the terminal is disposed",
           "disposition": "tested",
-          "evidence": "campaign-loop-state.test.ts (missing/torn/stale) + campaigns.test.ts torn-loop_state-never-500"
+          "evidence": "scroll-repaint.test.ts: 'never refreshes once the terminal is disposed'"
         },
         {
-          "behavior": "AC-6 CampaignLaneCard renders in_progress step distinctly (spinner aria-label + label, beats next-marker)",
+          "behavior": "disposer removes wheel listener, disposes onScroll, cancels pending work",
           "disposition": "tested",
-          "evidence": "CampaignLaneCard.test.tsx AC-6 + E2E campaign-board-live-progress.spec.ts"
+          "evidence": "scroll-repaint.test.ts: 'disposer removes the wheel listener ...'"
+        },
+        {
+          "behavior": "refresh throw from a mid-dispose terminal is swallowed",
+          "disposition": "tested",
+          "evidence": "scroll-repaint.test.ts: 'swallows a refresh throw'"
+        },
+        {
+          "behavior": "wiring attaches in EmbeddedTerminal mount-effect and disposes on unmount without crashing",
+          "disposition": "tested",
+          "evidence": "EmbeddedTerminal.test.tsx full suite green after onScroll mock added"
+        },
+        {
+          "behavior": "actual GPU smear elimination on real WebGL render",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment"
         }
-      ],
-      "counts": {
-        "testable": 6,
-        "tested": 6,
-        "untestable": 0,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
-      }
-    },
-    "degraded": []
+      ]
+    }
   }
 }

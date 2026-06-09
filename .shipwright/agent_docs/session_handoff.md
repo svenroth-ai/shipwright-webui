@@ -1,34 +1,34 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-08-fix-terminal-replay-render-refresh"
+run_id: "iterate-2026-06-09-fix-terminal-scroll-smear"
 phase: "iterate"
-reason: "iterate: force full-viewport refresh after terminal replay-drain settle"
-timestamp: "2026-06-07T22:17:13.277042+00:00"
+reason: "Terminal table scroll-smear fix complete; client-only; merge per user; visual verify post-deploy."
+timestamp: "2026-06-09T21:52:29.462667+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-07 22:17:13 UTC
+> Auto-generated 2026-06-09 21:52:29 UTC
 
 ## Session Info
 
-- **Session ID**: e03a2724-054b-4c26-8d6c-f808abb8fb16
-- **Timestamp**: 2026-06-07 22:17:13 UTC
-- **Reason**: iterate: force full-viewport refresh after terminal replay-drain settle
+- **Session ID**: fadfc8fa-8399-4c4a-9944-87c2a6a15201
+- **Timestamp**: 2026-06-09 21:52:29 UTC
+- **Reason**: Terminal table scroll-smear fix complete; client-only; merge per user; visual verify post-deploy.
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
-- **Date**: 2026-06-07T14:48:34.513411Z
+- **Run ID**: iterate-2026-06-09-fix-terminal-scroll-smear
+- **Date**: 2026-06-09T21:49:45.114467Z
 - **Type**: bug
 - **Complexity**: small
-- **Branch**: iterate/fix-touch-scroll-pty-keystrokes
-- **ADR**: iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
+- **Branch**: iterate/fix-terminal-scroll-smear
+- **ADR**: iterate-2026-06-09-fix-terminal-scroll-smear
 - **Tests passed**: True
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-terminal-replay-render-refresh
+- **Branch**: iterate/fix-terminal-scroll-smear
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-terminal-replay-render-refresh
-- **Last Commit**: ad04d42 Merge pull request #113 from svenroth-ai/iterate/a5-phase-b-activated-optin
+- **Branch**: iterate/fix-terminal-scroll-smear
+- **Last Commit**: 9babe88 chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-620dfb6f | work_completed | iterate (Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips).) | 2026-06-09 |
+| evt-cb165e16 | work_completed | iterate (Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d).) | 2026-06-09 |
+| evt-88bd107e | work_completed | iterate (WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal.) | 2026-06-08 |
+| evt-c59f2257 | work_completed | iterate (Campaign attached-run guard: detect a live autonomous run (loop_state.json in_progress unit OR status.json in_progress step) and prevent a second orchestrator — client launch CTAs disable+relabel Run attached AND the server launch branches return 409 campaign_run_already_attached.) | 2026-06-08 |
 | evt-9e9290da | work_completed | iterate (force full-viewport refresh after terminal replay-drain settle (clean render on open)) | 2026-06-07 |
-| evt-8169fc3f | work_completed | iterate (Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses).) | 2026-06-07 |
-| evt-f6973f9d | work_completed | iterate (Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched.) | 2026-06-07 |
-| evt-eceb87ba | work_completed | iterate (Campaigns lane: hide done==total campaigns even on a stale active lifecycle) | 2026-06-05 |
-| evt-6202ed81 | work_completed | iterate (Event-log backfill (campaign sub-iterate A): record work_completed events for 10 pre-existing event-less direct commits (ci/security/docs/chore + 1 feat FR-01.33) so B7 (every commit accountable) clears; closes the B7 half of trg-2bce4cc6) | 2026-06-05 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 197
-- **Last iterate**: bug — force full-viewport refresh after terminal replay-drain settle (clean render on open) (2026-06-07)
+- **Total work events**: 201
+- **Last iterate**: bug — Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips). (2026-06-09)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

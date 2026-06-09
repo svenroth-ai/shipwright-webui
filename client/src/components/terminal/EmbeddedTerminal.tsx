@@ -42,6 +42,7 @@ import {
   type ClipboardNoticeKind,
 } from "./terminal-clipboard";
 import { attachTouchScroll } from "./touch-scroll";
+import { attachScrollRepaint } from "./scroll-repaint";
 import { copyText } from "../../lib/clipboard";
 
 import { createEmbeddedXterm } from "./xtermAddons";
@@ -221,6 +222,8 @@ export const EmbeddedTerminal = forwardRef<
     const disposeTouchScroll = attachTouchScroll(handle.term, container, {
       sendData: (payload) => socket.send({ type: "data", payload }),
     });
+    // Full-viewport WebGL repaint on scroll — fixes the table-scroll smear.
+    const disposeScrollRepaint = attachScrollRepaint(handle.term, container, () => disposedRef.current);
     const disposeSelection = attachTerminalSelection({
       term: handle.term,
       disposedRef,
@@ -243,6 +246,7 @@ export const EmbeddedTerminal = forwardRef<
         /* best-effort */
       }
       try {
+        disposeScrollRepaint();
         disposeTouchScroll();
       } catch {
         /* best-effort */

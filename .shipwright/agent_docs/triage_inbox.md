@@ -1,39 +1,46 @@
 # Triage Inbox
 
-> Auto-generated 2026-06-07T22:17:13.277042Z. Items waiting for triage decision.
+> Auto-generated 2026-06-09T21:52:29.462667Z. Items waiting for triage decision.
 > Promote via WebUI Triage tab (when v1b lands) or `shared/scripts/tools/triage_promote.py --id <id> --task-ref EXT:<ref>`.
 
 ## Status summary
 
-- Total: 38
-- Triage: 3 | Promoted: 1 | Dismissed: 34 | Snoozed: 0
+- Total: 47
+- Triage: 4 | Promoted: 1 | Dismissed: 42 | Snoozed: 0
 
-## Top 3 items (severity-sorted)
+## Top 4 items (severity-sorted)
 
-### Source: compliance (2 items)
+### Source: compliance (1 item)
 
-<a id="trg-7006ff42"></a>
-- **Compliance: 3 open finding(s)** `id=trg-7006ff42 | severity=medium | kind=compliance → P2/compliance`
-  - 3 open compliance finding(s): A/A5.6, F/F5, G/G2  - A/A5.6: Dormant-trigger contract honored — non-dormant trigger acti…
+<a id="trg-899beca1"></a>
+- **Compliance: 2 open finding(s)** `id=trg-899beca1 | severity=medium | kind=compliance → P2/compliance`
+  - 2 open compliance finding(s): B/B7, G/G2  - B/B7: Every commit since release tag has a matching event — 1 commit(s) sin…
   - Launch payload (copy into a new Claude session):
     ```text
     /shipwright-compliance
     
-    Context: 3 open compliance finding(s): A/A5.6, F/F5, G/G2.
+    Context: 2 open compliance finding(s): B/B7, G/G2.
     Dashboard: .shipwright/compliance/dashboard.md
     Each finding + hint is listed in this item's detail.
     ```
-  - Promote: `triage_promote.py --id trg-7006ff42 --task-ref EXT:<ref>`
+  - Promote: `triage_promote.py --id trg-899beca1 --task-ref EXT:<ref>`
 
-<a id="trg-eb965f28"></a>
-- **[monorepo] A5.6 dormant-trigger: add a5_phase_b_activated opt-in (deliberate Phase B is a false-positive)** `id=trg-eb965f28 | severity=low | kind=improvement → P3/compliance`
-  - PRODUCER-SIDE FIX (shipwright monorepo, NOT webui).  WHERE: plugins/shipwright-compliance/.../scripts/audit/group_a5.py…
-  - Promote: `triage_promote.py --id trg-eb965f28 --task-ref EXT:<ref>`
+### Source: iterate (2 items)
 
-### Source: iterate (1 item)
+<a id="trg-9edbab4d"></a>
+- **Campaign autonomous loop never marks the running sub-iterate in_progress (status.json)** `id=trg-9edbab4d | severity=medium | kind=improvement → P2/engineering`
+  - Producer follow-up to webui iterate-2026-06-08-campaign-attached-run-guard (side b shipped). campaign-mode.md step 3g c…
+  - Promote: `triage_promote.py --id trg-9edbab4d --task-ref EXT:<ref>`
 
 <a id="trg-786eab1f"></a>
 - **Serve the WebUI over HTTPS so terminal Ctrl+V paste works over Tailscale** `id=trg-786eab1f | severity=medium | kind=enhancement → P2/engineering`
   - Follow-up to iterate-2026-05-18-terminal-copy-paste (PR #38), user-approved as a separate iterate during the copy/paste…
   - Promote: `triage_promote.py --id trg-786eab1f --task-ref EXT:<ref>`
+
+### Source: ux (1 item)
+
+<a id="trg-6ead6610"></a>
+- **Campaign/Triage launch CTAs have no running-guard + loop never writes in_progress** `id=trg-6ead6610 | severity=medium | kind=improvement → P2/engineering`
+  - Two related gaps in the campaign launch surface. (1) DOUBLE-LAUNCH FOOTGUN: CampaignLaneCard.tsx renders 'Launch (Cx)'…
+  - Promote: `triage_promote.py --id trg-6ead6610 --task-ref EXT:<ref>`
 
