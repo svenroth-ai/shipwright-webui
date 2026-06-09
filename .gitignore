@@ -73,6 +73,8 @@ shipwright_run_config.json.lock
 !/.shipwright/triage.jsonl
 /.shipwright/triage.outbox.jsonl
 **/.shipwright/locks/
+/.shipwright/compliance/audit-report.md
+/.shipwright/compliance/audit-report.json
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)
