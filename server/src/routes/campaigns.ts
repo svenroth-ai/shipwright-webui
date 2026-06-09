@@ -26,7 +26,7 @@ import type { Context } from "hono";
 
 import { resolveCampaignsDir, isWithin } from "../core/campaign-paths.js";
 import { readCampaigns, type Campaign } from "../core/campaign-store.js";
-import { readLoopAttachments } from "../core/campaign-loop-state.js";
+import { readLoopRunState, type LoopRunState } from "../core/campaign-loop-state.js";
 import {
   readStatusJson,
   pickLifecycle,
@@ -100,20 +100,33 @@ export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
       );
       campaigns = [];
     }
-    // Attached-run annotation (double-launch guard, FR-01.33): a campaign is
-    // "attached" when a live autonomous loop unit is running for it
-    // (loop_state.json — works today) OR a status.json step is in_progress
-    // (the future producer-side signal). Tolerant — readLoopAttachments never
-    // throws, but the guard keeps a torn read from ever 500-ing the route.
-    let loopSlugs: Set<string>;
+    // Live-run annotation from loop_state.json, read ONCE so the per-step
+    // overlay and the attached-run guard share a consistent snapshot. Tolerant —
+    // readLoopRunState never throws, but the guard keeps a torn read from ever
+    // 500-ing the route.
+    let loop: LoopRunState;
     try {
-      loopSlugs = readLoopAttachments(pathRes.projectRoot, Date.now());
+      loop = readLoopRunState(pathRes.projectRoot, Date.now());
     } catch {
-      loopSlugs = new Set<string>();
+      loop = { attachedSlugs: new Set(), runningStepIdsBySlug: new Map() };
     }
     for (const camp of campaigns) {
+      // Per-step overlay (live board feedback): a live loop unit marks its step
+      // in_progress on the board even before the producer writes status.json
+      // in_progress (monorepo follow-up trg-9edbab4d). Only pending →
+      // in_progress; status.json stays authoritative for complete/failed/
+      // escalated, so done/total/nextPending are untouched.
+      const running = loop.runningStepIdsBySlug.get(camp.slug);
+      if (running) {
+        for (const s of camp.steps) {
+          if (s.status === "pending" && running.has(s.id)) s.status = "in_progress";
+        }
+      }
+      // Attached-run guard (double-launch, FR-01.33): a live loop unit for the
+      // slug OR any in_progress step (the overlay above + the future
+      // producer-side status.json signal).
       camp.attachedRun =
-        loopSlugs.has(camp.slug) ||
+        loop.attachedSlugs.has(camp.slug) ||
         camp.steps.some((s) => s.status === "in_progress");
     }
     return c.json({ campaigns });

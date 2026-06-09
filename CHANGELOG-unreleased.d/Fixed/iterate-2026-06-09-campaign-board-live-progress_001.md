@@ -1,0 +1,1 @@
+Campaigns board now shows the running sub-iterate as **in progress** (spinner) live during an autonomous build — derived from `loop_state.json` — instead of sitting at `0/N` (indistinguishable from "not started") until it jumped to 1/N.

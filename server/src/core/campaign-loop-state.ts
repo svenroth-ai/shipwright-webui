@@ -41,6 +41,7 @@ function staleWindowMs(): number {
 }
 
 interface LoopUnit {
+  id?: unknown;
   status?: unknown;
   spec_path?: unknown;
   started_at?: unknown;
@@ -80,33 +81,49 @@ function isLive(startedAt: unknown, nowMs: number, windowMs: number): boolean {
 }
 
 /**
- * Read `<projectRoot>/.shipwright/loop_state.json` and return the set of
- * campaign slugs that currently have a LIVE (`in_progress`, non-stale)
- * sub-iterate unit — i.e. an autonomous orchestrator is attached. ∅ when the
- * file is missing, torn, not a `sub_iterate` loop, or has no live unit.
+ * A single, internally-consistent snapshot of the loop-state file's live units:
+ *   - `attachedSlugs`        — campaign slugs with ANY live (`in_progress`,
+ *     non-stale) unit; the double-launch guard (id-agnostic — a unit needs only
+ *     a `spec_path` slug to pin the guard, per ADR / PR #116).
+ *   - `runningStepIdsBySlug` — slug → set of live unit `id`s (== campaign step
+ *     ids, e.g. `D1`). Drives the per-step board overlay (this iterate). A live
+ *     unit without an `id` contributes to `attachedSlugs` but no step id.
+ * Both come from ONE read so the guard and the overlay can never disagree on a
+ * torn-read boundary. ∅ snapshot when the file is missing, torn, not a
+ * `sub_iterate` loop, or has no live unit.
  */
-export function readLoopAttachments(
+export interface LoopRunState {
+  attachedSlugs: Set<string>;
+  runningStepIdsBySlug: Map<string, Set<string>>;
+}
+
+export function readLoopRunState(
   projectRoot: string,
   nowMs: number,
-): Set<string> {
-  const out = new Set<string>();
+): LoopRunState {
+  const attachedSlugs = new Set<string>();
+  const runningStepIdsBySlug = new Map<string, Set<string>>();
+  // One wrapper over two mutable collections: every early return yields the
+  // still-empty snapshot; the final return yields the populated one.
+  const snapshot: LoopRunState = { attachedSlugs, runningStepIdsBySlug };
+
   const p = path.join(projectRoot, ".shipwright", "loop_state.json");
-  if (!existsSync(p)) return out;
+  if (!existsSync(p)) return snapshot;
 
   let state: LoopState;
   try {
     const parsed = JSON.parse(readFileSync(p, "utf-8"));
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return out;
+      return snapshot;
     }
     state = parsed as LoopState;
   } catch {
-    return out; // torn / malformed read
+    return snapshot; // torn / malformed read
   }
 
   // Only campaign loops (`sub_iterate`) map to the Campaigns lane; a `section`
   // loop is a /shipwright-build run, never a campaign.
-  if (state.kind !== "sub_iterate" || !Array.isArray(state.units)) return out;
+  if (state.kind !== "sub_iterate" || !Array.isArray(state.units)) return snapshot;
 
   const windowMs = staleWindowMs();
   for (const u of state.units as LoopUnit[]) {
@@ -114,7 +131,28 @@ export function readLoopAttachments(
     if (typeof u.spec_path !== "string") continue;
     if (!isLive(u.started_at, nowMs, windowMs)) continue;
     const slug = campaignSlugFromSpecPath(u.spec_path);
-    if (slug) out.add(slug);
+    if (!slug) continue;
+    attachedSlugs.add(slug);
+    if (typeof u.id === "string" && u.id) {
+      let ids = runningStepIdsBySlug.get(slug);
+      if (!ids) {
+        ids = new Set<string>();
+        runningStepIdsBySlug.set(slug, ids);
+      }
+      ids.add(u.id);
+    }
   }
-  return out;
+  return snapshot;
+}
+
+/**
+ * Set of campaign slugs that currently have a LIVE sub-iterate unit — i.e. an
+ * autonomous orchestrator is attached. Thin wrapper over {@link readLoopRunState}
+ * (back-compat: the double-launch guard reads only this projection).
+ */
+export function readLoopAttachments(
+  projectRoot: string,
+  nowMs: number,
+): Set<string> {
+  return readLoopRunState(projectRoot, nowMs).attachedSlugs;
 }
