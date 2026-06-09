@@ -435,6 +435,25 @@ write (creation, sub-iterate/step status, `active → complete`).
   guard forever. The producer-side `status.json` `in_progress` write (the
   per-step board feedback) is a separate shipwright-monorepo follow-up. New
   module `server/src/core/campaign-loop-state.ts`.
+- (E) **(iterate-2026-06-09-campaign-board-live-progress, MODIFY of FR-01.33)**
+  Live per-step in-progress feedback — the webui-side resolution of the
+  follow-up the attached-run guard deferred. `campaign-loop-state.ts` gains
+  `readLoopRunState(projectRoot, nowMs)` → `{attachedSlugs, runningStepIdsBySlug}`
+  from ONE tolerant read: `runningStepIdsBySlug` maps each campaign slug to the
+  set of live (`in_progress`, non-stale) loop-unit ids (the unit `id`, e.g.
+  `D1`, === the campaign step id). `readLoopAttachments` becomes a thin wrapper.
+  Given a campaign whose `status.json` says step `B1` is `pending` but whose
+  `loop_state.json` carries a live `in_progress` unit `B1`, when
+  `GET /api/campaigns` resolves it, then step `B1`'s status is overlaid to
+  `in_progress` (the route reads `readLoopRunState` exactly once — guard +
+  overlay share one snapshot) and `CampaignLaneCard` renders it with a distinct
+  spinner (`aria-label="in progress"`) that beats the next-pending marker. The
+  overlay is **`pending → in_progress` only** — an authoritative
+  `complete`/`failed`/`escalated` step is never downgraded, so `done`/`total`/
+  `nextPending` stay invariant; a missing/torn/stale `loop_state.json` leaves
+  every step at its `status.json` status (no 500). Works today without the
+  monorepo producer write and unions any producer-written `in_progress` if it
+  ever lands.
 
 ### FR-01.35 In-app Markdown editing in the SmartViewer (rich editor → Markdown save)
 
