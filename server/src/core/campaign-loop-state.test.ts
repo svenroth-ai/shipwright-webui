@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 
 import {
   readLoopAttachments,
+  readLoopRunState,
   campaignSlugFromSpecPath,
 } from "./campaign-loop-state.js";
 
@@ -166,5 +167,98 @@ describe("campaign-loop-state: readLoopAttachments", () => {
       ]),
     );
     expect([...readLoopAttachments(projectRoot, NOW)]).toEqual(["2026-06-08-foo"]);
+  });
+});
+
+describe("campaign-loop-state: readLoopRunState (per-step running ids)", () => {
+  let workDir: string;
+  let projectRoot: string;
+
+  beforeEach(() => {
+    workDir = mkdtempSync(path.join(tmpdir(), "campaign-loop-run-"));
+    projectRoot = realpathSync(workDir);
+    mkdirSync(path.join(projectRoot, ".shipwright"), { recursive: true });
+    delete process.env.SHIPWRIGHT_CAMPAIGN_ATTACH_STALE_MS;
+  });
+
+  afterEach(() => {
+    rmSync(workDir, { recursive: true, force: true });
+    delete process.env.SHIPWRIGHT_CAMPAIGN_ATTACH_STALE_MS;
+  });
+
+  function seed(state: unknown): void {
+    writeFileSync(
+      path.join(projectRoot, ".shipwright", "loop_state.json"),
+      typeof state === "string" ? state : JSON.stringify(state, null, 2),
+      "utf-8",
+    );
+  }
+  function subIterateState(units: Array<Record<string, unknown>>) {
+    return { loop_id: "sub_iterate-x", kind: "sub_iterate", units };
+  }
+
+  it("AC-1: maps each live unit's id under its campaign slug", () => {
+    seed(
+      subIterateState([
+        {
+          id: "D2",
+          status: "in_progress",
+          spec_path: ".shipwright\\planning\\iterate\\campaigns\\2026-06-08-foo\\sub-iterates\\D2-x.md",
+          started_at: recent(60_000),
+        },
+      ]),
+    );
+    const { runningStepIdsBySlug, attachedSlugs } = readLoopRunState(projectRoot, NOW);
+    expect([...attachedSlugs]).toEqual(["2026-06-08-foo"]);
+    expect(runningStepIdsBySlug.get("2026-06-08-foo")).toEqual(new Set(["D2"]));
+  });
+
+  it("AC-1: groups multiple live units of one campaign + separates campaigns", () => {
+    seed(
+      subIterateState([
+        { id: "D1", status: "in_progress", spec_path: "campaigns/foo/sub-iterates/D1.md", started_at: recent(1000) },
+        { id: "D2", status: "in_progress", spec_path: "campaigns/foo/sub-iterates/D2.md", started_at: recent(1000) },
+        { id: "E1", status: "in_progress", spec_path: "campaigns/bar/sub-iterates/E1.md", started_at: recent(1000) },
+        { id: "D0", status: "complete", spec_path: "campaigns/foo/sub-iterates/D0.md", started_at: recent(1000) },
+      ]),
+    );
+    const { runningStepIdsBySlug } = readLoopRunState(projectRoot, NOW);
+    expect(runningStepIdsBySlug.get("foo")).toEqual(new Set(["D1", "D2"]));
+    expect(runningStepIdsBySlug.get("bar")).toEqual(new Set(["E1"]));
+  });
+
+  it("AC-1: a live unit with a slug but no id still attaches the slug, contributes no step id", () => {
+    seed(
+      subIterateState([
+        { status: "in_progress", spec_path: "campaigns/foo/sub-iterates/D1.md", started_at: recent(1000) },
+      ]),
+    );
+    const { attachedSlugs, runningStepIdsBySlug } = readLoopRunState(projectRoot, NOW);
+    expect([...attachedSlugs]).toEqual(["foo"]); // attached guard preserved
+    expect(runningStepIdsBySlug.has("foo")).toBe(false); // no id → no step overlay
+  });
+
+  it("AC-5: ∅ snapshot when the file is missing / torn", () => {
+    expect(readLoopRunState(projectRoot, NOW).runningStepIdsBySlug.size).toBe(0);
+    seed("{ not json");
+    const s = readLoopRunState(projectRoot, NOW);
+    expect(s.runningStepIdsBySlug.size).toBe(0);
+    expect(s.attachedSlugs.size).toBe(0);
+  });
+
+  it("AC-5: a stale in_progress unit attaches NEITHER its slug NOR a step id", () => {
+    seed(
+      subIterateState([
+        {
+          id: "D1",
+          status: "in_progress",
+          spec_path: "campaigns/foo/sub-iterates/D1.md",
+          started_at: recent(7 * 60 * 60 * 1000), // 7h > 6h default → stale
+        },
+      ]),
+    );
+    const s = readLoopRunState(projectRoot, NOW);
+    expect(s.attachedSlugs.size).toBe(0);
+    expect(s.runningStepIdsBySlug.size).toBe(0);
   });
 });

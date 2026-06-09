@@ -126,6 +126,27 @@ describe("CampaignLaneCard", () => {
     expect(within(screen.getByTestId("campaign-step-B2")).getByLabelText("pending")).toBeInTheDocument();
   });
 
+  it("AC-6: renders a live in_progress step distinctly (spinner + label), overriding the next-marker", () => {
+    // B1 is BOTH nextPending and in_progress → the in_progress icon must win
+    // over the next-pending icon (live feedback beats 'about to start').
+    renderCard({
+      ...BASE,
+      steps: [
+        { id: "B0", slug: "alpha", title: "Alpha", status: "complete", specPath: ".s/B0-alpha.md", commit: null, branch: null, planFirst: false },
+        { id: "B1", slug: "beta", title: "Beta", status: "in_progress", specPath: ".s/B1-beta.md", commit: null, branch: null, planFirst: false },
+        { id: "B2", slug: "gamma", title: "Gamma", status: "pending", specPath: ".s/B2-gamma.md", commit: null, branch: null, planFirst: false },
+      ],
+    });
+    expand(SLUG);
+    const step = screen.getByTestId("campaign-step-B1");
+    expect(step).toHaveAttribute("data-step-status", "in_progress");
+    expect(within(step).getByLabelText("in progress")).toBeInTheDocument();
+    expect(within(step).queryByLabelText("next pending")).toBeNull();
+    expect(step).toHaveTextContent("in_progress");
+    // a plain pending step keeps the pending icon — visually distinct.
+    expect(within(screen.getByTestId("campaign-step-B2")).getByLabelText("pending")).toBeInTheDocument();
+  });
+
   // ---- launch affordance (FR-01.36 — replaces the old "Copy launch") ----
 
   it("renders the Launch button labelled for the next-pending step (no Copy button)", () => {

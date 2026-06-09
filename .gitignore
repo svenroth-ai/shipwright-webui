@@ -72,6 +72,7 @@ shipwright_run_config.json.lock
 # SSoT: shared/templates/shipwright-gitignore.template
 !/.shipwright/triage.jsonl
 /.shipwright/triage.outbox.jsonl
+**/.shipwright/locks/
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)

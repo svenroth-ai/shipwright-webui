@@ -1,15 +1,15 @@
 {
-  "last_updated": "2026-06-08T21:50:00Z",
+  "last_updated": "2026-06-09T05:05:31Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-08-triage-outbox-union-reader",
-    "date": "2026-06-08",
+    "run_id": "iterate-2026-06-09-campaign-board-live-progress",
+    "date": "2026-06-09",
     "intent": "change",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1555,
-      "total": 1555,
-      "note": "server full vitest 1555/1555 + tsc --noEmit clean + oxlint clean (touched files warning-free). Server-only change; client untouched (no client suite run)."
+      "passed": 3131,
+      "total": 3131,
+      "note": "server full vitest 1564/1564 + client full vitest 1567/1567 + tsc --noEmit clean (both workspaces) + oxlint clean (3 touched source files warning-free; only pre-existing unrelated warnings remain)."
     },
     "integration": {
       "status": "not_run",
@@ -23,9 +23,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 5,
-      "total": 5,
-      "note": "surface=api: src/routes/triage.outbox-union.test.ts drives the REAL createTriageRoutes + real SdkSessionsStore + real .weblock lock — outbox-only findings surface via GET (with/without tracked file), are counted, dismiss residence-routes to the outbox (no main drift), + .gitignore outbox-line congruence (AC6)."
+      "passed": 2,
+      "total": 2,
+      "note": "surface=web via surface_verification.py: campaign-board-live-progress.spec.ts (status.json pending + loop_state in_progress -> board renders data-step-status=in_progress + spinner + label; B0 stays complete) + campaign-attached-run-guard.spec.ts (PR #116 regression re-run). Real stack: built SPA served by Hono on :3998 + real POST /api/projects seeding."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,58 +36,52 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "api",
-      "runner": "SHIPWRIGHT_NETWORK_PROFILE=local npx vitest run src/routes/triage.outbox-union.test.ts (real createTriageRoutes + real SdkSessionsStore + real proper-lockfile .weblock; temp-project tracked+outbox fixtures)",
+      "surface": "web",
+      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/campaign-board-live-progress.spec.ts client/e2e/flows/campaign-attached-run-guard.spec.ts --config=client/playwright.config.ts (BASE_URL=http://127.0.0.1:3998; single-process isolated stack: built client/dist via SHIPWRIGHT_STATIC_DIR + tsx server, temp USERPROFILE, SHIPWRIGHT_NETWORK_PROFILE=local)",
       "exit_code": 0,
-      "tests_run": 5,
-      "evidence_path": "server/src/routes/triage.outbox-union.test.ts",
-      "timestamp": "2026-06-08T21:40:00Z",
-      "justification": "Server-only read-path change; the API response contract ({items:[...]}) and the client Triage consumer are UNCHANGED (no client/** file touched) and already E2E-covered. The new behavior (union tracked union outbox + residence-derived flips) lives entirely at the API boundary, which is driven here through the production Hono route factory + real store + real cross-process lock. A browser pass would only re-verify the unchanged client rendering of API items."
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-09-campaign-board-live-progress/surface_verification.json",
+      "timestamp": "2026-06-09T05:05:31Z",
+      "justification": "Backend-affects-frontend read-surface change (Campaign.steps[].status on GET /api/campaigns is consumed by the board); web mandatory at medium. The E2E proves the loop_state -> readLoopRunState overlay -> CampaignLaneCard render chain over the real HTTP wire, and re-runs #116's guard spec as a regression check."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 union read surfaces outbox-only + merged items",
+          "behavior": "AC-1 readLoopRunState collects live unit {slug,id} into attachedSlugs + runningStepIdsBySlug",
           "disposition": "tested",
-          "evidence": "triage-store.test.ts union block; triage.outbox-union.test.ts GET (with/without tracked file)"
+          "evidence": "campaign-loop-state.test.ts (id-map, multi-unit grouping per/across campaigns, slug-without-id attaches slug only)"
         },
         {
-          "behavior": "AC2 two-pass cross-file resolution (both directions, ts-order race, equal-ts file-order tiebreak, dup collapse, corrupt tolerance)",
+          "behavior": "AC-2 readLoopAttachments delegates with byte-identical behavior",
           "disposition": "tested",
-          "evidence": "triage-store.test.ts union block + union parity gate (trg-race005 ts-race, trg-tie007 equal-ts tiebreak, trg-dup003 collapse)"
+          "evidence": "campaign-loop-state.test.ts (12 pre-existing readLoopAttachments cases unchanged + green)"
         },
         {
-          "behavior": "AC3 TS union read == Python read_all_items (parity)",
+          "behavior": "AC-3 route overlays pending->in_progress for the named step; done/total/nextPending invariant; loop_state read exactly once",
           "disposition": "tested",
-          "evidence": "triage-store.test.ts union parity gate vs triage-union-resolved.json (Python-generated)"
+          "evidence": "campaigns.test.ts overlay test + single-read vi.spyOn consistency test"
         },
         {
-          "behavior": "AC4 residence-derived write (outbox-only -> outbox; tracked/both -> tracked; nowhere -> tracked+header)",
+          "behavior": "AC-4 overlay never downgrades an authoritative complete/failed/escalated step",
           "disposition": "tested",
-          "evidence": "triage-write.test.ts residence block + round-trip Boundary Probe + triage.outbox-union.test.ts dismiss"
+          "evidence": "campaigns.test.ts 'never downgrades an authoritative non-pending step'"
         },
         {
-          "behavior": "AC5 regression fence: single-file behavior unchanged",
+          "behavior": "AC-5 tolerant empty snapshot (missing/torn/stale); route never 500s",
           "disposition": "tested",
-          "evidence": "all pre-existing triage-store/triage-write tests retained + single-file parity gate; full server suite 1555/1555"
+          "evidence": "campaign-loop-state.test.ts (missing/torn/stale) + campaigns.test.ts torn-loop_state-never-500"
         },
         {
-          "behavior": "AC6 .gitignore carries canonical outbox-ignore line",
+          "behavior": "AC-6 CampaignLaneCard renders in_progress step distinctly (spinner aria-label + label, beats next-marker)",
           "disposition": "tested",
-          "evidence": "triage.outbox-union.test.ts AC6 gitignore-congruence assertion; self-heal commit c5841bb"
-        },
-        {
-          "behavior": "AC6 plugin-cache shared scripts synced to D1-D3 (Codex Q6)",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "the plugin cache is a machine-local runtime artifact, not a behavior of this diff; verified empirically via grep probe of ~/.claude/plugins/cache/shipwright/shared"
+          "evidence": "CampaignLaneCard.test.tsx AC-6 + E2E campaign-board-live-progress.spec.ts"
         }
       ],
       "counts": {
         "testable": 6,
         "tested": 6,
-        "untestable": 1,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
@@ -95,11 +89,6 @@
         "covered_acs": 6
       }
     },
-    "degraded": [
-      {
-        "condition": "check_iterate_isolation.py absent from shared/scripts/tools — F0/F11 leak-guard skipped",
-        "mitigation": "worktree is isolated by construction (one branch, one PR); diff is path-scoped to triage + tests + fixtures + docs"
-      }
-    ]
+    "degraded": []
   }
 }

@@ -20,7 +20,7 @@
  */
 
 import { Link } from "react-router-dom";
-import { Check, ChevronDown, ChevronRight, Circle, Play, ExternalLink } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Circle, Play, Loader2, ExternalLink } from "lucide-react";
 
 import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
 import type { Project } from "../../types";
@@ -28,9 +28,18 @@ import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
 
-function StepIcon({ kind }: { kind: "complete" | "next" | "other" }) {
+function StepIcon({ kind }: { kind: "complete" | "in_progress" | "next" | "other" }) {
   if (kind === "complete") {
     return <Check size={14} className="text-[var(--color-success-text,#16a34a)]" aria-label="complete" />;
+  }
+  if (kind === "in_progress") {
+    return (
+      <Loader2
+        size={13}
+        className="animate-spin text-[var(--color-warning-text,#b45309)]"
+        aria-label="in progress"
+      />
+    );
   }
   if (kind === "next") {
     return <Play size={13} className="text-[var(--color-primary)]" aria-label="next pending" />;
@@ -60,8 +69,11 @@ export function CampaignLaneCard({
   const pct = campaign.total > 0 ? Math.round((campaign.done / campaign.total) * 100) : 0;
   const next = campaign.nextPending;
 
-  const stepKind = (s: CampaignStep): "complete" | "next" | "other" => {
+  const stepKind = (s: CampaignStep): "complete" | "in_progress" | "next" | "other" => {
     if (s.status === "complete") return "complete";
+    // A live (loop_state-derived) in_progress step beats the next-marker: it is
+    // actively running, not merely 'about to start'. See routes/campaigns.ts.
+    if (s.status === "in_progress") return "in_progress";
     if (next && s.id === next.id) return "next";
     return "other";
   };
