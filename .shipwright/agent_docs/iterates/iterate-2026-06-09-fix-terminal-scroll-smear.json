@@ -1,0 +1,18 @@
+{
+  "run_id": "iterate-2026-06-09-fix-terminal-scroll-smear",
+  "date": "2026-06-09T21:49:45.114467Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/fix-terminal-scroll-smear",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-09-fix-terminal-scroll-smear",
+  "test_completeness": {
+    "counts": {
+      "total_behaviors": 9,
+      "tested": 8,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": "Behaviors introduced by attachScrollRepaint and its EmbeddedTerminal mount-effect wiring."
+  }
+}

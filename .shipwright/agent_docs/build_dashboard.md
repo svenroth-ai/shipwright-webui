@@ -1,10 +1,14 @@
 # Project Activity Dashboard
-> Updated: 2026-06-07 22:17 UTC | Session: e03a2724-054b-4c26-8d6c-f808abb8fb16 | Run: iterate-2026-06-08-fix-terminal-replay-render-refresh
+> Updated: 2026-06-09 21:52 UTC | Session: fadfc8fa-8399-4c4a-9944-87c2a6a15201 | Run: iterate-2026-06-09-fix-terminal-scroll-smear
 
-## Recent Changes (127 iterations)
+## Recent Changes (131 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips). | 0/0 |  | FR-01.28 | 2026-06-09 |
+| change | Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d). | 0/0 |  | FR-01.33 | 2026-06-09 |
+| change | WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal. | 0/0 |  | FR-01.30 | 2026-06-08 |
+| change | Campaign attached-run guard: detect a live autonomous run (loop_state.json in_progress unit OR status.json in_progress step) and prevent a second orchestrator — client launch CTAs disable+relabel Run attached AND the server launch branches return 409 campaign_run_already_attached. | 0/0 |  | FR-01.33, FR-01.34, FR-01.36 | 2026-06-08 |
 | bug | force full-viewport refresh after terminal replay-drain settle (clean render on open) | 1557/1557 |  | tooling | 2026-06-07 |
 | bug | Fix following ADR-131 / PR #110 (diagnosis). attachTouchScroll gains optional sendData callback; routeScroll helper reads term.buffer.active.type and routes alt-buffer pan to Cursor-Up/Down keystrokes via sendData (the TUI scrolls itself) and normal-buffer pan to term.scrollLines as before. EmbeddedTerminal.tsx:215 wires sendData to socket.send (same WS path term.onData uses). | 0/0 |  | tooling | 2026-06-07 |
 | bug | Diagnosis-only iterate. Added 3 vitest cases (real @xterm/xterm in jsdom) that empirically confirm DECSET 1049 flips buffer to alternate, scrollLines is no-op in alt-buffer, and current attachTouchScroll calls scrollLines unconditionally. PR #61 mock pattern could not model buffer-type semantics. No production code touched. | 0/0 |  | tooling | 2026-06-07 |
@@ -134,7 +138,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-08 | Unit: 1557/1557 | Smoke: not_run | (iterate)
+Last run: 2026-06-09 | Unit: 1575/1575 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

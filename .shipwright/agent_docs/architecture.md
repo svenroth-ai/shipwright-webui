@@ -157,6 +157,8 @@ ADR-101 (iterate-2026-05-14, FR-01.30) adds a Triage Tab + Promote bridge. The w
 
 _Architecture-relevant ADRs since adoption (ADR-053). See `decision_log.md` for the full chronological record including non-architecture entries. Entries marked "superseded" stay in the list — their context still explains why later ADRs exist._
 
+- **iterate-2026-06-09-fix-terminal-scroll-smear** (2026-06-09): New client module `client/src/components/terminal/scroll-repaint.ts` (`attachScrollRepaint`) wires a full-viewport `term.refresh(0, rows-1)` to the terminal scroll input (`term.onScroll` for the normal buffer + a passive `wheel` listener for the alt buffer, rAF-coalesced + 150 ms trailing) to fix WebGL table-scroll smear (FR-01.28). Mirrors the existing post-replay/resize/tab full-refresh remedy; no new write surface, no server change. ADR-NNN assigned at the next `/shipwright-changelog` release.
+
 - **ADR-066** (2026-05-02): Persistent virtualizer measurement cache + first-visit warmup
 - **ADR-067** (2026-05-03): Embedded terminal launcher (xterm.js + @lydell/node-pty + @hono/node-ws). New domain `server/src/terminal/` (pty-manager, routes, image-paste) + `client/src/components/terminal/EmbeddedTerminal.tsx` + `client/src/hooks/useTerminalSocket.ts`. New write surface `<task.cwd>/.claude-pastes/`. ADR-034 wording amended: webui MAY host a neutral shell pane (Claude-execution stays user-initiated).
 
