@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-06-07T22:17:13.277042+00:00
-Total commits: 515
+Generated: 2026-06-09T21:52:29.462667+00:00
+Total commits: 532
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 185
+    "fix" : 189
     "feat" : 135
-    "chore" : 98
-    "docs" : 47
+    "chore" : 106
+    "docs" : 50
     "refactor" : 25
-    "test" : 16
+    "test" : 18
     "ci" : 4
     "other" : 4
     "build" : 1
@@ -20,10 +20,14 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 185 commits
+### Fixes (fix) — 189 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-09 | campaigns | show live per-step in_progress on the board from loop_state.json | 28c7559a47d5 |
+| 2026-06-08 | triage | union tracked ∪ outbox in the webui reader + residence-derived status writes | a7ef0419ca2d |
+| 2026-06-08 | campaigns | guard against double-launching an autonomous run | aa88b4f117b4 |
+| 2026-06-08 | terminal | force full-viewport repaint after replay-drain settle | 4895bcd2b8f8 |
 | 2026-06-07 | compliance | opt into A5.6 Phase B (a5_phase_b_activated) to clear false-positive | 9bed675a61ec |
 | 2026-06-07 | terminal | touch-scroll routes by xterm buffer type (ADR-132) | 192fa2eb66e2 |
 | 2026-06-05 | campaigns | hide done==total campaigns from the lane (FR-01.33) | 5bf5d571671d |
@@ -350,10 +354,18 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 98 commits
+### Chores (chore) — 106 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-09 | triage | sweep 1 outbox append(s) into branch | 9babe88d5ce9 |
+| 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 3a442a463074 |
+| 2026-06-09 | triage | fold 6 main-tree background triage event(s) (post-rebase) | 32be8c52f19a |
+| 2026-06-08 | triage | fold 8 main-tree background append(s) | e2aaa5f62fa3 |
+| 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 2ee99f61676a |
+| 2026-06-08 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | c5841bb25ff7 |
+| 2026-06-08 | — | scaffold append-log union merge driver into .gitattributes (#115) | 998cf893b804 |
+| 2026-06-08 | triage | fold 7 main-tree background append(s) | d617652a05bc |
 | 2026-06-07 | triage | track .shipwright/triage.jsonl as git SSoT + GC machine-churn | fc65f31a8830 |
 | 2026-06-05 | compliance | backfill event-log for 10 event-less commits — close B7 (sub-iterate A) | 8014b0c63e40 |
 | 2026-06-04 | security | allowlist sidekiq-secret false positive (cafebabe:deadbeef) | 214815220320 |
@@ -453,10 +465,13 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 47 commits
+### Documentation (docs) — 50 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-09 | spec | record FR-01.33 live per-step in_progress MODIFY criterion | b246dcfe13cc |
+| 2026-06-08 | spec | record FR-01.30 outbox-union MODIFY acceptance criteria | e8786ad57f98 |
+| 2026-06-08 | arch | document post-replay full-viewport refresh fix | 59cba0afec5b |
 | 2026-06-07 | changelog | A5.6 Phase B false-positive fix drop | 4d2a91b350d5 |
 | 2026-06-07 | compliance | reconcile A5.6 (accept deliberate Phase B) + F5 arch-drops + G2 scope | 6af887b0d4e4 |
 | 2026-06-07 | architecture | document iterate-2026-06-07-fix-touch-scroll-pty-keystrokes | a8205b733d48 |
@@ -535,10 +550,12 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 16 commits
+### Tests (test) — 18 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-09 | campaigns | split loop-state annotation tests to clear the 300-LOC ceiling | 144889892092 |
+| 2026-06-08 | triage | split union read tests into triage-store.union.test.ts | 2b5d7efe9a8a |
 | 2026-06-07 | terminal | empirically reproduce touch-scroll alt-buffer no-op (ADR-131) | 54c2aa52f50b |
 | 2026-06-05 | campaigns | split selector tests into campaignsApi.selectors.test.ts | 3b686e8da5cc |
 | 2026-05-31 | terminal | prove WS heartbeat reaps a dead writer + promotes the reader (real sockets) | fd9ad2398f1d |
@@ -584,7 +601,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 515 |
+| Total commits | 532 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 515 |
+| Human-authored commits | 532 |
 
