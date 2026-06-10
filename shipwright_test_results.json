@@ -1,20 +1,21 @@
 {
-  "last_updated": "2026-06-09",
+  "last_updated": "2026-06-10T08:05:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-09-fix-terminal-scroll-smear",
-    "date": "2026-06-09",
-    "intent": "bug",
-    "complexity": "small",
+    "run_id": "iterate-2026-06-10-triage-pending-delivery-badge",
+    "date": "2026-06-10",
+    "intent": "change",
+    "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1575,
-      "total": 1575,
-      "note": "client full vitest 1575/1575 (incl. new scroll-repaint.test.ts, 8 cases) + tsc --noEmit clean + oxlint clean (touched files warning-free). Client-only change; server suite not in scope."
+      "passed": 3156,
+      "total": 3156,
+      "note": "F0 fresh full suites on final code state: server vitest 1575/1575 (incl. new triage-enrich.test.ts 9 cases + extended triage.outbox-union.test.ts + triage-schema-sync gate) + client vitest 1581/1581 (incl. new PendingDelivery.test.tsx 6 cases); tsc --noEmit clean both workspaces; oxlint clean on touched files; anti_ratchet_check --worktree ok."
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 6,
+      "total": 6,
+      "note": "Real-route HTTP tests (createTriageRoutes + real store + .weblock lock) in triage.outbox-union.test.ts: pendingDelivery residence classes through GET, missing-tracked-file case, residence-routed dismiss regression fence."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,10 +23,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "GPU WebGL rendering artifact (table scroll smear) is not reproducible headless (no real WebGL context in jsdom/Playwright SwiftShader); scroll->full-refresh wiring covered by unit tests. Manual visual verification post-deploy by user."
+      "status": "passed",
+      "passed": 1,
+      "total": 1,
+      "note": "triage-pending-delivery.spec.ts executed against the live worktree stack (Hono :3957 + Vite :5283): badge renders ONLY on the outbox-only item; detail modal badge; Fix-now spawns prefilled NewIssueModal (new-iterate route)."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,66 +37,113 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
+      "surface": "web",
       "exit_code": 0,
-      "tests_run": 0,
-      "justification": "Pure client-side WebGL rendering fix (terminal scroll repaint). The smear is a GPU-renderer artifact not reproducible in headless/jsdom (no real WebGL context); confirmation requires manual visual judgment in a real browser. The scroll-input -> full term.refresh(0,rows-1) wiring is covered by 8 unit tests (scroll-repaint.test.ts) + the EmbeddedTerminal mount-effect suite; client vitest 1575/1575 green. User verifies visually post-deploy.",
-      "timestamp": "2026-06-09T21:20:00Z"
+      "tests_run": 1,
+      "runner": "node .shipwright/runs/iterate-2026-06-10-triage-pending-delivery-badge/f05_runner.mjs",
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-pending-delivery-badge\\.shipwright\\runs\\iterate-2026-06-10-triage-pending-delivery-badge\\surface_verification.log",
+      "timestamp": "2026-06-10T07:43:31.696Z"
     },
     "test_completeness": {
       "counts": {
-        "total_behaviors": 9,
-        "tested": 8,
+        "total_behaviors": 18,
+        "tested": 17,
         "untestable": 1,
         "untested_testable": 0
       },
-      "enumeration_basis": "Behaviors introduced by attachScrollRepaint (scroll-repaint.ts) and its EmbeddedTerminal mount-effect wiring.",
+      "enumeration_basis": "Behaviors introduced/changed by enrichPendingDelivery + enrichWithCampaignRefs extraction (core/triage-enrich.ts), GET-route annotation, PendingDeliveryBadge (card+modal), CLI parity gate, regen gate 3.",
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "term.onScroll triggers a full-viewport refresh(0,rows-1)",
+          "behavior": "GET annotates every item with a concrete pendingDelivery boolean",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'firing onScroll schedules a FULL-viewport refresh'"
+          "evidence": "triage.outbox-union.test.ts 'annotates every item'"
         },
         {
-          "behavior": "raw wheel event triggers a full refresh (alt-buffer path)",
+          "behavior": "TRACKED-PREFERRED: id in BOTH files is not pending",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'a raw wheel event ... triggers a full refresh'"
+          "evidence": "route test + triage-enrich.test.ts + parity trg-dup003"
         },
         {
-          "behavior": "multiple triggers within one frame coalesce to a single refresh",
+          "behavior": "outbox-only true / tracked-only false",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'coalesces multiple triggers within one frame'"
+          "evidence": "unit + route + CLI parity gate + live probe"
         },
         {
-          "behavior": "trailing-debounced refresh fires after scroll settles (async alt-buffer redraw)",
+          "behavior": "missing tracked file: outbox items pending, no 500",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'schedules a trailing full refresh'"
+          "evidence": "unit + route 'NO tracked file'"
         },
         {
-          "behavior": "no refresh once the terminal is disposed",
+          "behavior": "missing outbox file: all false, no throw",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'never refreshes once the terminal is disposed'"
+          "evidence": "unit ENOENT case"
         },
         {
-          "behavior": "disposer removes wheel listener, disposes onScroll, cancels pending work",
+          "behavior": "closed items annotated (status-independent)",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'disposer removes the wheel listener ...'"
+          "evidence": "unit 'annotates CLOSED items'"
         },
         {
-          "behavior": "refresh throw from a mid-dispose terminal is swallowed",
+          "behavior": "CLI parity: open projection deep-equals real triage_cli list --json",
           "disposition": "tested",
-          "evidence": "scroll-repaint.test.ts: 'swallows a refresh throw'"
+          "evidence": "CLI PARITY GATE vs triage-union-cli-list.json + fresh-data probe (unicode, DEEP-EQUAL True)"
         },
         {
-          "behavior": "wiring attaches in EmbeddedTerminal mount-effect and disposes on unmount without crashing",
+          "behavior": "parity pins insertion order (not ts-sort)",
           "disposition": "tested",
-          "evidence": "EmbeddedTerminal.test.tsx full suite green after onScroll mock added"
+          "evidence": "ordering discriminator trg-out199 (ts-earliest, file-last)"
         },
         {
-          "behavior": "actual GPU smear elimination on real WebGL render",
+          "behavior": "residence memo invalidates on tracked mtime change",
+          "disposition": "tested",
+          "evidence": "unit 'invalidates when the TRACKED file changes'"
+        },
+        {
+          "behavior": "residence memo invalidates on outbox mtime change",
+          "disposition": "tested",
+          "evidence": "unit 'invalidates ... OUTBOX changes'"
+        },
+        {
+          "behavior": "GET shallow-clones store-cache items (no cache pollution)",
+          "disposition": "tested",
+          "evidence": "store cache parity tests stay green; clone in GET handler (review LOW-1)"
+        },
+        {
+          "behavior": "enrichWithCampaignRefs moved verbatim (rank draft>active, no-op, throw-swallow)",
+          "disposition": "tested",
+          "evidence": "triage-enrich.test.ts campaign block + existing routes/triage.test.ts green"
+        },
+        {
+          "behavior": "server/client TriageItem field sets stay in sync",
+          "disposition": "tested",
+          "evidence": "triage-schema-sync.test.ts gate (caught the gap mid-build)"
+        },
+        {
+          "behavior": "card badge on pendingDelivery true; none on false/absent",
+          "disposition": "tested",
+          "evidence": "PendingDelivery.test.tsx card block"
+        },
+        {
+          "behavior": "modal badge for pending; none for non-pending",
+          "disposition": "tested",
+          "evidence": "PendingDelivery.test.tsx modal block"
+        },
+        {
+          "behavior": "Fix-now enabled + emits intent on pending item",
+          "disposition": "tested",
+          "evidence": "PendingDelivery.test.tsx CTA test + F0.5 E2E NewIssueModal assertion"
+        },
+        {
+          "behavior": "full-stack badge + CTA through real UI",
+          "disposition": "tested",
+          "evidence": "triage-pending-delivery.spec.ts via surface_verification (exit 0, tests_run 1)"
+        },
+        {
+          "behavior": "regen gate-3 invocation contract (dev-only tooling)",
           "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment"
+          "reason_code": "covered-by-existing-test",
+          "evidence": "CI-side protection is the parity gate consuming the committed fixture; script executed twice, byte-stable; guards hard-fail loud"
         }
       ]
     }
