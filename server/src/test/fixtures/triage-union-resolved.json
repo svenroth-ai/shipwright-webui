@@ -140,6 +140,26 @@
       "statusBy": null,
       "statusReason": null,
       "promotedTaskId": null
+    },
+    {
+      "id": "trg-out199",
+      "ts": "2026-06-01T07:59:00Z",
+      "originalTs": "2026-06-01T07:59:00Z",
+      "source": "drift",
+      "severity": "low",
+      "kind": "maintenance",
+      "title": "Ordering probe: outbox append with ts EARLIER than every tracked append",
+      "detail": "Insertion-order vs ts-sort discriminator (review LOW-2): file order puts this AFTER tracked items; a ts re-sort would move it first.",
+      "evidencePath": null,
+      "runId": null,
+      "commit": null,
+      "dedupKey": "drift:out199",
+      "status": "triage",
+      "suggestedPriority": "P3",
+      "suggestedDomain": "engineering",
+      "statusBy": null,
+      "statusReason": null,
+      "promotedTaskId": null
     }
   ]
 }

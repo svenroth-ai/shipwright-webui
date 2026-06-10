@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-09T21:52:29.462667+00:00
-Total commits: 532
+Generated: 2026-06-10T07:48:04.067902+00:00
+Total commits: 534
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 189
+    "fix" : 190
     "feat" : 135
-    "chore" : 106
+    "chore" : 107
     "docs" : 50
     "refactor" : 25
     "test" : 18
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 189 commits
+### Fixes (fix) — 190 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-09 | terminal | force full-viewport WebGL repaint on scroll to kill table smear | 1bed8a83ba41 |
 | 2026-06-09 | campaigns | show live per-step in_progress on the board from loop_state.json | 28c7559a47d5 |
 | 2026-06-08 | triage | union tracked ∪ outbox in the webui reader + residence-derived status writes | a7ef0419ca2d |
 | 2026-06-08 | campaigns | guard against double-launching an autonomous run | aa88b4f117b4 |
@@ -354,10 +355,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 106 commits
+### Chores (chore) — 107 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-10 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 2aa7f0dc4dc6 |
 | 2026-06-09 | triage | sweep 1 outbox append(s) into branch | 9babe88d5ce9 |
 | 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 3a442a463074 |
 | 2026-06-09 | triage | fold 6 main-tree background triage event(s) (post-rebase) | 32be8c52f19a |
@@ -601,7 +603,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 532 |
+| Total commits | 534 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 532 |
+| Human-authored commits | 534 |
 

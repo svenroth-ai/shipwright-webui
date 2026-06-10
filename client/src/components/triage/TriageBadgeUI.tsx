@@ -61,3 +61,22 @@ export function StatusBadge({ status }: { status: TriageStatus }) {
     </span>
   );
 }
+
+/**
+ * Outbox-residence badge (iterate-2026-06-10-triage-pending-delivery-badge):
+ * the item's append lives only in the gitignored per-tree outbox buffer —
+ * visible live, but not yet durable in the tracked triage.jsonl. The next
+ * iterate's setup sweep delivers it into that iterate's PR. The precise
+ * tooltip is intentional: the Command Center audience is the repo operator.
+ */
+export function PendingDeliveryBadge() {
+  return (
+    <span
+      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800 border border-amber-200"
+      title="Not yet in the tracked triage log — ships with the next iterate PR (setup sweep delivers it automatically)"
+      data-testid="triage-pending-delivery"
+    >
+      pending delivery
+    </span>
+  );
+}
