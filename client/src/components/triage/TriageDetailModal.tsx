@@ -27,7 +27,7 @@ import {
 } from "../../hooks/useTriage";
 import { useProjectActions } from "../../hooks/useProjectActions";
 import { useStartCampaign } from "../../hooks/useStartCampaign";
-import { SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
+import { PendingDeliveryBadge, SeverityBadge, SourceBadge, StatusBadge } from "./TriageBadgeUI";
 import { CampaignStartCta } from "./CampaignStartCta";
 import { LaunchPayloadBlock } from "./LaunchPayloadBlock";
 import { PromoteModal } from "./PromoteModal";
@@ -198,6 +198,7 @@ export function TriageDetailModal({
                     <SourceBadge source={item.source} />
                     <SeverityBadge severity={item.severity} />
                     <StatusBadge status={item.status} />
+                    {item.pendingDelivery && <PendingDeliveryBadge />}
                     <code className="text-[11px] text-stone-500">{item.id}</code>
                   </div>
                 </div>

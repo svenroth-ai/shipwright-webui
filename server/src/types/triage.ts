@@ -62,6 +62,18 @@ export interface TriageItem {
    */
   campaignSlug?: string | null;
   campaignStatus?: "draft" | "active" | "complete" | null;
+  /**
+   * Mirror of the monorepo `triage_cli.py list --json` wire field
+   * (shipwright PR #177, trg-e2a0ebb3), set per request by the GET
+   * /api/triage route via `enrichPendingDelivery` — NOT a `read_all_items`
+   * wire field, so `readAllItems()` (the parity-tested resolver) never
+   * sets it. `true` iff the item's `append` lives ONLY in the gitignored
+   * per-tree `triage.outbox.jsonl` buffer (TRACKED-PREFERRED: present in
+   * both files → false): the item ships with the next iterate's sweep.
+   * Optional in the type for store-level absence; the list route always
+   * emits a concrete boolean.
+   */
+  pendingDelivery?: boolean;
 }
 
 /** On-disk status event line shape. */

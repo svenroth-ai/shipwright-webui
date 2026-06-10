@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-10-triage-pending-delivery-badge",
+  "date": "2026-06-10T07:48:37.589430Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/triage-pending-delivery-badge",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-06-10-triage-pending-delivery-badge.md",
+  "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
+}

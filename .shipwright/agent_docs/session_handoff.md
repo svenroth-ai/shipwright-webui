@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-09-fix-terminal-scroll-smear"
+run_id: "iterate-2026-06-10-triage-pending-delivery-badge"
 phase: "iterate"
-reason: "Terminal table scroll-smear fix complete; client-only; merge per user; visual verify post-deploy."
-timestamp: "2026-06-09T21:52:29.462667+00:00"
+reason: "iterate finalization"
+timestamp: "2026-06-10T07:48:04.067902+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-09 21:52:29 UTC
+> Auto-generated 2026-06-10 07:48:04 UTC
 
 ## Session Info
 
-- **Session ID**: fadfc8fa-8399-4c4a-9944-87c2a6a15201
-- **Timestamp**: 2026-06-09 21:52:29 UTC
-- **Reason**: Terminal table scroll-smear fix complete; client-only; merge per user; visual verify post-deploy.
+- **Session ID**: 55205f02-66aa-43eb-93b1-2cf9cb776ce8
+- **Timestamp**: 2026-06-10 07:48:04 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
@@ -28,8 +28,10 @@ timestamp: "2026-06-09T21:52:29.462667+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-terminal-scroll-smear
-- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
+- **Branch**: iterate/triage-pending-delivery-badge
+- **Spec**: .shipwright/planning/iterate/2026-06-10-triage-pending-delivery-badge.md
+- **Complexity**: medium (stage-2 escalated from classifier `small`; locked)
+- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
@@ -47,8 +49,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-terminal-scroll-smear
-- **Last Commit**: 9babe88 chore(triage): sweep 1 outbox append(s) into branch
+- **Branch**: iterate/triage-pending-delivery-badge
+- **Last Commit**: 2aa7f0d chore: scaffold canonical .shipwright/ artifact-ignore block into .gitignore
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +66,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-0533f6ef | work_completed | iterate (Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725.) | 2026-06-10 |
 | evt-620dfb6f | work_completed | iterate (Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips).) | 2026-06-09 |
 | evt-cb165e16 | work_completed | iterate (Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d).) | 2026-06-09 |
 | evt-88bd107e | work_completed | iterate (WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal.) | 2026-06-08 |
 | evt-c59f2257 | work_completed | iterate (Campaign attached-run guard: detect a live autonomous run (loop_state.json in_progress unit OR status.json in_progress step) and prevent a second orchestrator — client launch CTAs disable+relabel Run attached AND the server launch branches return 409 campaign_run_already_attached.) | 2026-06-08 |
-| evt-9e9290da | work_completed | iterate (force full-viewport refresh after terminal replay-drain settle (clean render on open)) | 2026-06-07 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 201
-- **Last iterate**: bug — Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips). (2026-06-09)
+- **Total work events**: 202
+- **Last iterate**: change — Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725. (2026-06-10)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

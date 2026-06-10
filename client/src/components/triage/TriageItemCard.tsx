@@ -7,7 +7,7 @@
  */
 
 import type { TriageItem } from "../../lib/triageApi";
-import { SeverityBadge, SourceBadge } from "./TriageBadgeUI";
+import { PendingDeliveryBadge, SeverityBadge, SourceBadge } from "./TriageBadgeUI";
 
 interface TriageItemCardProps {
   item: TriageItem;
@@ -39,6 +39,7 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
         <SourceBadge source={item.source} />
         <SeverityBadge severity={item.severity} />
+        {item.pendingDelivery && <PendingDeliveryBadge />}
         <span className="text-[11px] text-stone-500 font-mono">{item.id}</span>
         <span className="text-[11px] text-stone-500">
           → {item.suggestedPriority} / {item.suggestedDomain}
