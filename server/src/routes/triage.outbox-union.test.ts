@@ -35,6 +35,7 @@ import {
 import { createTriageRoutes } from "./triage.js";
 import { createTriageLock } from "../core/triage-lock.js";
 import { _clearCache_TEST_ONLY } from "../core/triage-store.js";
+import { _clearEnrichCache_TEST_ONLY } from "../core/triage-enrich.js";
 import { outboxPathFor } from "../core/triage-paths.js";
 
 function realStoreDeps(): SdkSessionsStoreDeps {
@@ -80,6 +81,7 @@ interface Harness {
 
 async function makeHarness(): Promise<Harness> {
   _clearCache_TEST_ONLY();
+  _clearEnrichCache_TEST_ONLY();
   const workDir = mkdtempSync(path.join(tmpdir(), "triage-outbox-api-"));
   const projectPath = path.join(workDir, "project-a");
   mkdirSync(path.join(projectPath, ".shipwright"), { recursive: true });
@@ -191,6 +193,45 @@ describe("triage routes — outbox union (F0.5 surface=api)", () => {
       (i) => i.id === "trg-0a0b0c0d",
     );
     expect(item?.status).toBe("dismissed");
+  });
+
+  it("GET /:projectId annotates every item with a concrete pendingDelivery boolean (TRACKED-PREFERRED)", async () => {
+    // iterate-2026-06-10-triage-pending-delivery-badge AC1: mirror of the
+    // monorepo `triage_cli.py list --json` contract through the real route.
+    const h = await makeHarness();
+    harnesses.push(h);
+    writeFileSync(
+      h.triagePath,
+      `{"v":1,"schema":"triage","created":"2026-06-01T00:00:00Z"}\n${appendLine("trg-trackonly")}\n${appendLine("trg-bothfile")}\n`,
+    );
+    writeFileSync(
+      h.outboxPath,
+      appendLine("trg-bothfile") + "\n" + appendLine("trg-outpend1") + "\n",
+    );
+
+    const res = await h.app.request("/api/triage/proj-a");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const items = body.items as Array<{ id: string; pendingDelivery?: boolean }>;
+    const byId = new Map(items.map((i) => [i.id, i]));
+    expect(byId.get("trg-trackonly")?.pendingDelivery).toBe(false);
+    // In BOTH files (post-sweep, pre-GC) → NOT pending (tracked wins).
+    expect(byId.get("trg-bothfile")?.pendingDelivery).toBe(false);
+    expect(byId.get("trg-outpend1")?.pendingDelivery).toBe(true);
+    for (const it of items) expect(typeof it.pendingDelivery).toBe("boolean");
+  });
+
+  it("GET /:projectId marks an outbox finding pendingDelivery even with NO tracked file (no 500)", async () => {
+    const h = await makeHarness();
+    harnesses.push(h);
+    writeFileSync(h.outboxPath, appendLine("trg-freshout") + "\n");
+    expect(existsSync(h.triagePath)).toBe(false);
+
+    const res = await h.app.request("/api/triage/proj-a");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    const items = body.items as Array<{ id: string; pendingDelivery?: boolean }>;
+    expect(items[0].pendingDelivery).toBe(true);
   });
 
   it("AC6 — the repo .gitignore carries the canonical outbox-ignore line (D3 propagation)", () => {

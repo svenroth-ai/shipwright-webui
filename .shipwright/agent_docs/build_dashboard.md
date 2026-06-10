@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-09 21:52 UTC | Session: fadfc8fa-8399-4c4a-9944-87c2a6a15201 | Run: iterate-2026-06-09-fix-terminal-scroll-smear
+> Updated: 2026-06-10 07:48 UTC | Session: 55205f02-66aa-43eb-93b1-2cf9cb776ce8 | Run: iterate-2026-06-10-triage-pending-delivery-badge
 
-## Recent Changes (131 iterations)
+## Recent Changes (132 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725. | 0/0 |  | FR-01.30 | 2026-06-10 |
 | bug | Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips). | 0/0 |  | FR-01.28 | 2026-06-09 |
 | change | Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d). | 0/0 |  | FR-01.33 | 2026-06-09 |
 | change | WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal. | 0/0 |  | FR-01.30 | 2026-06-08 |
@@ -138,7 +139,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-09 | Unit: 1575/1575 | Smoke: not_run | (iterate)
+Last run: 2026-06-10 | Unit: 3156/3156 | Integration: 6/6 | E2E: 1/1 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

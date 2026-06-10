@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-09T21:52:29.462667+00:00
+Generated: 2026-06-10T07:48:04.067902+00:00
 
 ## Requirements Coverage
 
@@ -35,7 +35,7 @@ Generated: 2026-06-09T21:52:29.462667+00:00
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +25 | 632/632 → 970/970 | 2026-05-18 (iter) | COVERED |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
-| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +5 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
+| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +6 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e, evt-83b9b73f | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 | [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +5 | 1550/1550 | 2026-06-05 (iter) | COVERED |
@@ -248,6 +248,7 @@ Generated: 2026-06-09T21:52:29.462667+00:00
 | WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal. | iterate | change | FR-01.30 | — | — | 2026-06-08 |
 | Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d). | iterate | change | FR-01.33 | — | — | 2026-06-09 |
 | Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips). | iterate | bug | FR-01.28 | — | — | 2026-06-09 |
+| Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725. | iterate | change | FR-01.30 | — | — | 2026-06-10 |
 
 ## Coverage Summary
 
@@ -255,7 +256,7 @@ Generated: 2026-06-09T21:52:29.462667+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 131 |
+| Iterate changes | 132 |
 | Requirements total | 36 |
 | Requirements verified | 21/36 |
 | Must-have verified | 16/31 |
@@ -282,16 +283,16 @@ Generated: 2026-06-09T21:52:29.462667+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-b81d5d5e` (2026-05-01)
 - [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-44b89157` (2026-05-10)
 - [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-33b2e81f` (2026-05-14)
 - [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-50e36386` (2026-05-14)
 - [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-7c294eb7` (2026-05-18)
 - [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-223eadce` (2026-05-18)
 - [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-fb2b90ee` (2026-05-18)
 - [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-a2176c74` (2026-05-18)
-- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 21d ago by `evt-7c294eb7` (2026-05-18)
-- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 21d ago by `evt-223eadce` (2026-05-18)
 - [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 21d ago by `evt-3d1274f6` (2026-05-19)
 
