@@ -52,6 +52,14 @@ export interface TriageItem {
    */
   campaignSlug?: string | null;
   campaignStatus?: "draft" | "active" | "complete" | null;
+  /**
+   * Server-side enrichment mirroring `triage_cli.py list --json` (see
+   * server/src/types/triage.ts): true iff the item's append lives only in
+   * the gitignored per-tree outbox buffer — not yet swept into the tracked
+   * log; it ships with the next iterate PR. The list route always emits a
+   * concrete boolean; optional here so un-enriched fixtures stay valid.
+   */
+  pendingDelivery?: boolean;
 }
 
 export interface TriageCountsResponse {

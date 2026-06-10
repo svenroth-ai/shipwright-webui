@@ -193,9 +193,9 @@
     {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
       "limit": 300,
-      "current": 374,
+      "current": 375,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-03-start-campaign-action"
+      "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
     },
     {
       "path": "client/src/components/triage/TriageDetailModal.test.tsx",
@@ -480,9 +480,9 @@
     {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 763,
+      "current": 725,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-03-start-campaign-action"
+      "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
     },
     {
       "path": "server/src/terminal/headless-mirror.ts",
