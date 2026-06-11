@@ -27,6 +27,7 @@ export function dryRunTemplate(
   template: string,
   actionId: string,
   phaseIds: string[],
+  slashCommand?: string,
 ): InvalidPlaceholderError | null {
   const ctx: SubstitutionContext = {
     project: { id: "dry-run", path: "/tmp/dry-run" },
@@ -39,6 +40,11 @@ export function dryRunTemplate(
     pluginDirs: [],
     allowedPhaseIds: new Set([...phaseIds, "dry-run-phase"]),
     actionId,
+    // iterate-2026-06-11-custom-action-slash-command — pass the action's
+    // declared slash_command so a custom {task.initial_prompt} template
+    // dry-runs without throwing UnknownActionError (which the GET /actions
+    // route would otherwise surface as a 500). Builtin ids ignore it.
+    slashCommand,
   };
   try {
     buildExternalLaunchCommand({ template, ctx });

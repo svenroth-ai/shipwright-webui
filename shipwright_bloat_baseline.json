@@ -312,9 +312,9 @@
     {
       "path": "server/src/core/actions-schema-validator.ts",
       "limit": 300,
-      "current": 432,
+      "current": 472,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-11-custom-action-slash-command"
     },
     {
       "path": "server/src/core/actions-substitute.test.ts",
@@ -326,9 +326,9 @@
     {
       "path": "server/src/core/actions-substitute.ts",
       "limit": 300,
-      "current": 603,
+      "current": 646,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-11-custom-action-slash-command"
     },
     {
       "path": "server/src/core/cli-compat.ts",

@@ -23,6 +23,10 @@
 import type { ActionDefinition, ResolvedActions } from "./project-actions-loader.js";
 import type { ParamSchema, ParamType } from "../types/action-schema.js";
 import { CLI_FLAG_PATTERN, PARAM_NAME_PATTERN } from "../types/action-schema.js";
+import {
+  BUILTIN_INITIAL_PROMPT_ACTIONS,
+  SLASH_COMMAND_PATTERN,
+} from "./actions-substitute.js";
 
 export type SchemaErrorCode =
   | "duplicate_action_id"
@@ -43,7 +47,9 @@ export type SchemaErrorCode =
   | "orphan_parameters_placeholder"
   | "unknown_phase_parameter_key"
   | "invalid_param_required"
-  | "invalid_phase_supports_autonomy";
+  | "invalid_phase_supports_autonomy"
+  | "missing_slash_command"
+  | "invalid_slash_command";
 
 export interface SchemaError {
   code: SchemaErrorCode;
@@ -60,6 +66,12 @@ const PARAMETERS_PLACEHOLDER = "{task.parameters?}";
  * the quoted initial-prompt string).
  */
 const INITIAL_PROMPT_PLACEHOLDER = "{task.initial_prompt}";
+
+// iterate-2026-06-11-custom-action-slash-command — whitespace-tolerant match
+// for `{task.initial_prompt}`. The substituter trims placeholder keys, so
+// `{ task.initial_prompt }` expands too; section 8 must detect the spaced form
+// or the missing-slash case re-surfaces as a 500 (a literal includes() misses it).
+const INITIAL_PROMPT_PLACEHOLDER_RE = /\{\s*task\.initial_prompt\s*\}/;
 
 /**
  * Modal field allowlist (per AD-03.13). `complexity:radio:small,medium,large`
@@ -171,6 +183,34 @@ export function validateActionsSchema(
         code: "invalid_phase_supports_autonomy",
         phaseId: phase.id,
         value: v,
+      });
+    }
+  }
+
+  // 8. slash_command for custom {task.initial_prompt} actions
+  //    (iterate-2026-06-11-custom-action-slash-command). A NON-builtin action
+  //    that fuses the prompt via {task.initial_prompt} MUST declare a well-formed
+  //    slash_command — else buildSlashCommand returns null → UnknownActionError
+  //    (400 launch / 500 dry-run). Fail loud at load instead. Builtins are exempt
+  //    (hardcoded slash); actions on {task.description?} don't need it.
+  for (const action of actions.actions) {
+    const usesInitialPrompt =
+      INITIAL_PROMPT_PLACEHOLDER_RE.test(action.command_template ?? "");
+    if (!usesInitialPrompt) continue;
+    if (BUILTIN_INITIAL_PROMPT_ACTIONS.has(action.id)) continue;
+    // Trim so a whitespace-only value is "missing" and a padded-but-valid one
+    // (" /x ") is accepted, consistent with buildSlashCommand.
+    const slash =
+      typeof action.slash_command === "string"
+        ? action.slash_command.trim()
+        : "";
+    if (slash === "") {
+      errors.push({ code: "missing_slash_command", actionId: action.id });
+    } else if (!SLASH_COMMAND_PATTERN.test(slash)) {
+      errors.push({
+        code: "invalid_slash_command",
+        actionId: action.id,
+        slash_command: action.slash_command,
       });
     }
   }

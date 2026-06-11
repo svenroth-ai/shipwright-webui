@@ -56,7 +56,12 @@ export function registerActionsGet(
       if (!a.command_template) continue;
       const phaseIds = actions.phases.map((p) => p.id);
       try {
-        const errCandidate = dryRunTemplate(a.command_template, a.id, phaseIds);
+        const errCandidate = dryRunTemplate(
+          a.command_template,
+          a.id,
+          phaseIds,
+          a.slash_command,
+        );
         if (errCandidate) {
           return c.json(
             {
