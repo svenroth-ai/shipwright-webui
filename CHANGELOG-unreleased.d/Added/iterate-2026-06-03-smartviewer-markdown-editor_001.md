@@ -1,1 +1,0 @@
-SmartViewer: an **Edit** button on markdown files opens a TipTap rich-text editor; edits are saved back as Markdown via a new path-guarded write endpoint (PUT /api/external/projects/:id/file) with content-hash (If-Match/ETag) optimistic concurrency — a stale fingerprint returns 409 instead of clobbering a file edited elsewhere.

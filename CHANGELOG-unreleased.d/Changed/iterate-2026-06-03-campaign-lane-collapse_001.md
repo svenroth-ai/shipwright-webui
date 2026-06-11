@@ -1,1 +1,0 @@
-Campaigns lane cards are now collapsible (collapsed by default, showing slug + progress), with the campaign description behind its own disclosure; both states persist per campaign across reloads. The lane is height-capped with internal scroll so multiple expanded campaigns no longer push the Task Board off-screen.

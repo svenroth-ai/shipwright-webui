@@ -1,1 +1,0 @@
-Embedded terminal: force a full-viewport repaint after cell-state snapshot replay so opening a task's terminal (from the task board, sidebar, or inbox) renders cleanly instead of showing blank/partial rows until the user scrolls (iterate-2026-06-08-fix-terminal-replay-render-refresh).
