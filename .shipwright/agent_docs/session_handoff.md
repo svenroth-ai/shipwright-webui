@@ -1,41 +1,44 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-10-triage-pending-delivery-badge"
+run_id: "iterate-2026-06-11-campaign-events-projection"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-06-10T07:48:04.067902+00:00"
+reason: "events-projection consumer migration complete"
+timestamp: "2026-06-11T19:34:02.879462+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-10 07:48:04 UTC
+> Auto-generated 2026-06-11 19:34:02 UTC
 
 ## Session Info
 
-- **Session ID**: 55205f02-66aa-43eb-93b1-2cf9cb776ce8
-- **Timestamp**: 2026-06-10 07:48:04 UTC
-- **Reason**: iterate finalization
+- **Session ID**: 78c9ebbb-7b86-4500-b30b-201681e2cc8a
+- **Timestamp**: 2026-06-11 19:34:02 UTC
+- **Reason**: events-projection consumer migration complete
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-09-fix-terminal-scroll-smear
-- **Date**: 2026-06-09T21:49:45.114467Z
-- **Type**: bug
-- **Complexity**: small
-- **Branch**: iterate/fix-terminal-scroll-smear
-- **ADR**: iterate-2026-06-09-fix-terminal-scroll-smear
+- **Run ID**: iterate-2026-06-11-campaign-events-projection
+- **Date**: 2026-06-11T19:33:01.336177Z
+- **Type**: change
+- **Complexity**: medium
+- **Branch**: iterate/campaign-events-projection
+- **ADR**: iterate-2026-06-11-campaign-events-projection
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-06-11-campaign-events-projection.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/triage-pending-delivery-badge
-- **Spec**: .shipwright/planning/iterate/2026-06-10-triage-pending-delivery-badge.md
-- **Complexity**: medium (stage-2 escalated from classifier `small`; locked)
+- **Branch**: iterate/campaign-events-projection
+- **Run ID**: iterate-2026-06-11-campaign-events-projection
+- **Spec**: .shipwright/planning/iterate/2026-06-11-campaign-events-projection.md
+- **Complexity**: medium
 - **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -49,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/triage-pending-delivery-badge
-- **Last Commit**: 2aa7f0d chore: scaffold canonical .shipwright/ artifact-ignore block into .gitignore
+- **Branch**: iterate/campaign-events-projection
+- **Last Commit**: 28a30e7 chore(triage): sweep 3 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -66,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-f9efd836 | work_completed | iterate (Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board) | 2026-06-11 |
 | evt-0533f6ef | work_completed | iterate (Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725.) | 2026-06-10 |
 | evt-620dfb6f | work_completed | iterate (Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips).) | 2026-06-09 |
 | evt-cb165e16 | work_completed | iterate (Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d).) | 2026-06-09 |
 | evt-88bd107e | work_completed | iterate (WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal.) | 2026-06-08 |
-| evt-c59f2257 | work_completed | iterate (Campaign attached-run guard: detect a live autonomous run (loop_state.json in_progress unit OR status.json in_progress step) and prevent a second orchestrator — client launch CTAs disable+relabel Run attached AND the server launch branches return 409 campaign_run_already_attached.) | 2026-06-08 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 202
-- **Last iterate**: change — Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725. (2026-06-10)
+- **Total work events**: 203
+- **Last iterate**: change — Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board (2026-06-11)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

@@ -26,6 +26,7 @@ import type { Context } from "hono";
 
 import { resolveCampaignsDir, isWithin } from "../core/campaign-paths.js";
 import { readCampaigns, type Campaign } from "../core/campaign-store.js";
+import { readCampaignEvents, applyEventsProjection } from "../core/campaign-events.js";
 import { readLoopRunState, type LoopRunState } from "../core/campaign-loop-state.js";
 import {
   readStatusJson,
@@ -99,6 +100,27 @@ export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
         }),
       );
       campaigns = [];
+    }
+    // Tracked-events projection (FR-01.31): overlay event-confirmed completions
+    // onto the dir-sourced campaigns (corrects a stale status.json) AND
+    // synthesize campaigns whose planning dir is gitignored/absent on this clone
+    // (events.jsonl is the durable record), so the deployed board still surfaces
+    // progress. Tolerant — readCampaignEvents never throws, but the guard keeps
+    // a projection edge from ever 500-ing the route.
+    try {
+      campaigns = applyEventsProjection(
+        campaigns,
+        readCampaignEvents(pathRes.projectRoot),
+      );
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          level: "warn",
+          message: "campaign events projection failed",
+          projectId,
+          error: String(err).slice(0, 200),
+        }),
+      );
     }
     // Live-run annotation from loop_state.json, read ONCE so the per-step
     // overlay and the attached-run guard share a consistent snapshot. Tolerant —
