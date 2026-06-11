@@ -98,6 +98,8 @@ const REQUIRED_TOKENS = [
   'campaign-step-branch',
   // iterate-2026-06-08-campaign-attached-run-guard — double-launch guard (FR-01.33/34/36)
   'campaign-loop-state',
+  // iterate-2026-06-11-campaign-events-projection — project board status from tracked events.jsonl (FR-01.31)
+  'campaign-events',
 ] as const;
 
 let claudeMd = '';

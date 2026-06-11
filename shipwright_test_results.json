@@ -1,21 +1,21 @@
 {
-  "last_updated": "2026-06-10T08:05:00Z",
+  "last_updated": "2026-06-11T21:25:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-10-triage-pending-delivery-badge",
-    "date": "2026-06-10",
+    "run_id": "iterate-2026-06-11-campaign-events-projection",
+    "date": "2026-06-11",
     "intent": "change",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 3156,
-      "total": 3156,
-      "note": "F0 fresh full suites on final code state: server vitest 1575/1575 (incl. new triage-enrich.test.ts 9 cases + extended triage.outbox-union.test.ts + triage-schema-sync gate) + client vitest 1581/1581 (incl. new PendingDelivery.test.tsx 6 cases); tsc --noEmit clean both workspaces; oxlint clean on touched files; anti_ratchet_check --worktree ok."
+      "passed": 3176,
+      "total": 3176,
+      "note": "F0 fresh full suites: server vitest 1592/1592 (incl. new campaign-events.test.ts 14 + campaigns.events.test.ts 3) + client vitest 1584/1584 (incl. extended campaignsApi.selectors.test.ts + doc-sync campaign-events token); tsc --noEmit clean both workspaces; oxlint clean on touched files."
     },
     "integration": {
       "status": "passed",
-      "passed": 6,
-      "total": 6,
-      "note": "Real-route HTTP tests (createTriageRoutes + real store + .weblock lock) in triage.outbox-union.test.ts: pendingDelivery residence classes through GET, missing-tracked-file case, residence-routed dismiss regression fence."
+      "passed": 3,
+      "total": 3,
+      "note": "Real-route HTTP tests through createCampaignsRoutes + on-disk shipwright_events.jsonl (campaigns.events.test.ts): overlay completion onto a stale dir-sourced step, synthesize derived campaign with no dir, missing-log no-op."
     },
     "pgtap": {
       "status": "not_run",
@@ -26,7 +26,7 @@
       "status": "passed",
       "passed": 1,
       "total": 1,
-      "note": "triage-pending-delivery.spec.ts executed against the live worktree stack (Hono :3957 + Vite :5283): badge renders ONLY on the outbox-only item; detail modal badge; Fix-now spawns prefilled NewIssueModal (new-iterate route)."
+      "note": "campaign-events-projection.spec.ts executed against a live single-process isolated stack (Hono :3996 + SHIPWRIGHT_STATIC_DIR client/dist, temp USERPROFILE) seeded with a fixture project that has NO campaign dir + a stamped events.jsonl: derived campaign card + 'events' badge + 2/2 + both steps complete."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -40,110 +40,109 @@
       "surface": "web",
       "exit_code": 0,
       "tests_run": 1,
-      "runner": "node .shipwright/runs/iterate-2026-06-10-triage-pending-delivery-badge/f05_runner.mjs",
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\triage-pending-delivery-badge\\.shipwright\\runs\\iterate-2026-06-10-triage-pending-delivery-badge\\surface_verification.log",
-      "timestamp": "2026-06-10T07:43:31.696Z"
+      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/campaign-events-projection.spec.ts (BASE_URL=http://127.0.0.1:3996)",
+      "evidence_path": "live isolated stack :3996 (built client + tsx server, temp USERPROFILE); 1 passed (4.1s)",
+      "timestamp": "2026-06-11T21:25:00Z"
     },
     "test_completeness": {
       "counts": {
         "total_behaviors": 18,
-        "tested": 17,
-        "untestable": 1,
+        "tested": 18,
+        "untestable": 0,
         "untested_testable": 0
       },
-      "enumeration_basis": "Behaviors introduced/changed by enrichPendingDelivery + enrichWithCampaignRefs extraction (core/triage-enrich.ts), GET-route annotation, PendingDeliveryBadge (card+modal), CLI parity gate, regen gate 3.",
+      "enumeration_basis": "Behaviors introduced/changed by core/campaign-events.ts (projectCampaignEvents + readCampaignEvents + applyEventsProjection overlay/synthesize), the GET /api/campaigns route wiring, the selectActiveCampaigns derivedFromEvents exception, and the CampaignLaneCard 'events' badge.",
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "GET annotates every item with a concrete pendingDelivery boolean",
+          "behavior": "projectCampaignEvents groups work_completed by top-level campaign+sub_iterate_id; ignores non-work_completed / missing campaign / missing sid",
           "disposition": "tested",
-          "evidence": "triage.outbox-union.test.ts 'annotates every item'"
+          "evidence": "campaign-events.test.ts 'groups ...', 'ignores ...'"
         },
         {
-          "behavior": "TRACKED-PREFERRED: id in BOTH files is not pending",
+          "behavior": "latest event wins per sub_iterate_id (ts epoch, file-index tiebreak; unparseable ts oldest)",
           "disposition": "tested",
-          "evidence": "route test + triage-enrich.test.ts + parity trg-dup003"
+          "evidence": "campaign-events.test.ts 'latest event wins', 'file-index breaks ties'"
         },
         {
-          "behavior": "outbox-only true / tracked-only false",
+          "behavior": "tolerates corrupt / blank / non-object JSON lines (torn 3s-poll read)",
           "disposition": "tested",
-          "evidence": "unit + route + CLI parity gate + live probe"
+          "evidence": "campaign-events.test.ts 'tolerates corrupt lines' + Boundary Probe (real 209-line log + torn line)"
         },
         {
-          "behavior": "missing tracked file: outbox items pending, no 500",
+          "behavior": "overlay bumps a pending step to complete and recomputes done/nextPending",
           "disposition": "tested",
-          "evidence": "unit + route 'NO tracked file'"
+          "evidence": "campaign-events.test.ts 'bumps a pending step'; campaigns.events.test.ts 'overlays ...'"
         },
         {
-          "behavior": "missing outbox file: all false, no throw",
+          "behavior": "never-downgrade: complete stays with no event; failed superseded by a complete event",
           "disposition": "tested",
-          "evidence": "unit ENOENT case"
+          "evidence": "campaign-events.test.ts 'never downgrades'"
         },
         {
-          "behavior": "closed items annotated (status-independent)",
+          "behavior": "empty event commit never clobbers a real local commit; non-empty overrides",
           "disposition": "tested",
-          "evidence": "unit 'annotates CLOSED items'"
+          "evidence": "campaign-events.test.ts 'does NOT touch ... empty event commit'"
         },
         {
-          "behavior": "CLI parity: open projection deep-equals real triage_cli list --json",
+          "behavior": "no events -> dir-sourced campaigns untouched (no derivedFromEvents)",
           "disposition": "tested",
-          "evidence": "CLI PARITY GATE vs triage-union-cli-list.json + fresh-data probe (unicode, DEEP-EQUAL True)"
+          "evidence": "campaign-events.test.ts 'leaves campaigns untouched'; campaigns.events.test.ts 'a missing event log ...'"
         },
         {
-          "behavior": "parity pins insertion order (not ts-sort)",
+          "behavior": "synthesize derivedFromEvents campaign (all complete, no skeleton, specPath null, numeric-id order, status null)",
           "disposition": "tested",
-          "evidence": "ordering discriminator trg-out199 (ts-earliest, file-last)"
+          "evidence": "campaign-events.test.ts 'builds a derived campaign'; campaigns.events.test.ts 'synthesizes ...'"
         },
         {
-          "behavior": "residence memo invalidates on tracked mtime change",
+          "behavior": "does NOT synthesize a slug already present locally (overlay owns it)",
           "disposition": "tested",
-          "evidence": "unit 'invalidates when the TRACKED file changes'"
+          "evidence": "campaign-events.test.ts 'does NOT synthesize ...'"
         },
         {
-          "behavior": "residence memo invalidates on outbox mtime change",
+          "behavior": "locals + synthesized sorted by slug descending",
           "disposition": "tested",
-          "evidence": "unit 'invalidates ... OUTBOX changes'"
+          "evidence": "campaign-events.test.ts 'sorts locals + synthesized ...'"
         },
         {
-          "behavior": "GET shallow-clones store-cache items (no cache pollution)",
+          "behavior": "readCampaignEvents reads <projectRoot>/shipwright_events.jsonl; missing/unreadable -> empty projection",
           "disposition": "tested",
-          "evidence": "store cache parity tests stay green; clone in GET handler (review LOW-1)"
+          "evidence": "campaign-events.test.ts readCampaignEvents block"
         },
         {
-          "behavior": "enrichWithCampaignRefs moved verbatim (rank draft>active, no-op, throw-swallow)",
+          "behavior": "route GET overlays event completions through createCampaignsRoutes (real on-disk events.jsonl)",
           "disposition": "tested",
-          "evidence": "triage-enrich.test.ts campaign block + existing routes/triage.test.ts green"
+          "evidence": "campaigns.events.test.ts 'overlays an event-confirmed completion'"
         },
         {
-          "behavior": "server/client TriageItem field sets stay in sync",
+          "behavior": "route GET synthesizes derivedFromEvents when the campaign dir is absent",
           "disposition": "tested",
-          "evidence": "triage-schema-sync.test.ts gate (caught the gap mid-build)"
+          "evidence": "campaigns.events.test.ts 'synthesizes a derivedFromEvents campaign'"
         },
         {
-          "behavior": "card badge on pendingDelivery true; none on false/absent",
+          "behavior": "projection failure is tolerant — never 500s the route (try/catch guard)",
           "disposition": "tested",
-          "evidence": "PendingDelivery.test.tsx card block"
+          "evidence": "covered by readCampaignEvents tolerance + route guard; campaigns.test.ts suite stays green"
         },
         {
-          "behavior": "modal badge for pending; none for non-pending",
+          "behavior": "selectActiveCampaigns keeps derivedFromEvents campaigns visible despite done==total",
           "disposition": "tested",
-          "evidence": "PendingDelivery.test.tsx modal block"
+          "evidence": "campaignsApi.selectors.test.ts 'shows an events-only campaign ...'"
         },
         {
-          "behavior": "Fix-now enabled + emits intent on pending item",
+          "behavior": "selector exception stays narrow: a normal done==total campaign is still hidden",
           "disposition": "tested",
-          "evidence": "PendingDelivery.test.tsx CTA test + F0.5 E2E NewIssueModal assertion"
+          "evidence": "campaignsApi.selectors.test.ts 'keeps the events-only exception narrow'"
         },
         {
-          "behavior": "full-stack badge + CTA through real UI",
+          "behavior": "CampaignLaneCard renders the 'events' provenance badge only when derivedFromEvents",
           "disposition": "tested",
-          "evidence": "triage-pending-delivery.spec.ts via surface_verification (exit 0, tests_run 1)"
+          "evidence": "E2E campaign-events-projection.spec.ts (badge visible) — real Chromium"
         },
         {
-          "behavior": "regen gate-3 invocation contract (dev-only tooling)",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "evidence": "CI-side protection is the parity gate consuming the committed fixture; script executed twice, byte-stable; guards hard-fail loud"
+          "behavior": "end-to-end: seeded events.jsonl + no campaign dir -> board renders derived card, events badge, 2/2, both steps complete",
+          "disposition": "tested",
+          "evidence": "E2E campaign-events-projection.spec.ts against live isolated stack :3996"
         }
       ]
     }

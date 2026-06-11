@@ -363,6 +363,19 @@ write (creation, sub-iterate/step status, `active → complete`).
   whose `status.json` says `status=complete`, when the endpoint resolves it,
   then the step status is `complete` (status.json authoritative); given NO
   `status.json`, the step status equals the table column. Both render.
+- (E) **(iterate-2026-06-11-campaign-events-projection, MODIFY)** Given the
+  campaign planning dir is gitignored/local-only and ABSENT (a fresh clone /
+  redeploy), when `GET /api/campaigns/:projectId` is called, then each
+  campaign's progress is projected from the tracked
+  `<projectRoot>/shipwright_events.jsonl` (`core/campaign-events.ts`, parity with
+  `shared/scripts/lib/campaign_status.py::project_campaign_status`): a campaign
+  known only from the log is SYNTHESIZED from its completed sub-iterates
+  (`derivedFromEvents:true`, `total==done`, every `specPath` null so launch CTAs
+  disable), and a campaign whose dir IS present has event-confirmed completions
+  OVERLAID onto its skeleton (never-downgrade, correcting a stale `status.json`).
+  `selectActiveCampaigns` keeps `derivedFromEvents` campaigns visible and
+  `CampaignLaneCard` shows an `events` provenance badge, so a deployed/cloned
+  board still surfaces campaign progress. WebUI stays read-only on events.jsonl.
 - (E) Given ≥1 campaign with `done < total`, when `TaskBoardPage` renders for
   the active project, then `[data-testid="task-board-campaigns-lane"]` is
   present; given every campaign is complete (or the dir is empty), the element
