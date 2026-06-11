@@ -1,44 +1,41 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-11-campaign-events-projection"
+run_id: "iterate-2026-06-11-custom-action-slash-command"
 phase: "iterate"
-reason: "events-projection consumer migration complete"
-timestamp: "2026-06-11T19:34:02.879462+00:00"
+reason: "Custom-action slash_command fuses description into the launch prompt"
+timestamp: "2026-06-11T21:41:42.601851+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-11 19:34:02 UTC
+> Auto-generated 2026-06-11 21:41:42 UTC
 
 ## Session Info
 
-- **Session ID**: 78c9ebbb-7b86-4500-b30b-201681e2cc8a
-- **Timestamp**: 2026-06-11 19:34:02 UTC
-- **Reason**: events-projection consumer migration complete
+- **Session ID**: e0f25b0e-7059-47f1-b5de-550d9ed7df64
+- **Timestamp**: 2026-06-11 21:41:42 UTC
+- **Reason**: Custom-action slash_command fuses description into the launch prompt
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-11-campaign-events-projection
-- **Date**: 2026-06-11T19:33:01.336177Z
-- **Type**: change
+- **Run ID**: iterate-2026-06-11-custom-action-slash-command
+- **Date**: 2026-06-11T21:41:21.949796Z
+- **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/campaign-events-projection
-- **ADR**: iterate-2026-06-11-campaign-events-projection
+- **Branch**: iterate/custom-action-slash-command
+- **ADR**: iterate-2026-06-11-custom-action-slash-command
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-11-campaign-events-projection.md
+- **Spec**: .shipwright/planning/iterate/2026-06-11-custom-action-slash-command.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/campaign-events-projection
-- **Run ID**: iterate-2026-06-11-campaign-events-projection
-- **Spec**: .shipwright/planning/iterate/2026-06-11-campaign-events-projection.md
-- **Complexity**: medium
+- **Branch**: iterate/custom-action-slash-command
+- **Spec**: .shipwright/planning/iterate/2026-06-11-custom-action-slash-command.md
 - **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -52,8 +49,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/campaign-events-projection
-- **Last Commit**: 28a30e7 chore(triage): sweep 3 outbox append(s) into branch
+- **Branch**: iterate/custom-action-slash-command
+- **Last Commit**: ca625ae chore(release): v0.18.0
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -69,23 +66,23 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-06308665 | work_completed | iterate (Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation.) | 2026-06-11 |
 | evt-f9efd836 | work_completed | iterate (Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board) | 2026-06-11 |
 | evt-0533f6ef | work_completed | iterate (Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725.) | 2026-06-10 |
 | evt-620dfb6f | work_completed | iterate (Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips).) | 2026-06-09 |
 | evt-cb165e16 | work_completed | iterate (Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d).) | 2026-06-09 |
-| evt-88bd107e | work_completed | iterate (WebUI server-side triage reader unions tracked + per-tree gitignored outbox (two-pass, Python-parity); status flips residence-derived to avoid tracked main drift. Codex Q6 deployment verified; .gitignore outbox line propagated via self-heal.) | 2026-06-08 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 203
-- **Last iterate**: change — Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board (2026-06-11)
+- **Total work events**: 204
+- **Last iterate**: feature — Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation. (2026-06-11)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-148: WebUI writes campaign lifecycle status (Triage "Start Campaign" action)
-- **Date:** 2026-06-03
-- **Section:** FR-01.33 MODIFY (iterate-2026-06-03-start-campaign-action)
-- **Run-ID:** iterate-2026-06-03-start-campaign-action
-- **Context:** A campaign is created in `draft` and only shows on the board once `active` (ADR of `iterate-2026-06-03-campaign-status-filter` / `selectActiveCampaigns`). Until now the only Triage CTA for a campaign-umbrella item was **Fix now**, which launches a *single*
+### ADR-170: Project Campaigns-board status from the tracked event log
+- **Date:** 2026-06-11
+- **Section:** shipwright-webui / Campaigns lane (FR-01.31)
+- **Run-ID:** iterate-2026-06-11-campaign-events-projection
+- **Context:** Campaign planning dirs (campaign.md + status.json) are gitignored/local-only (webui PR #121, monorepo PR #189), so a fresh clone/redeploy had no campaign dir and readCampaigns returned empty; the board showed nothing. Local working-tree instances still worked. Monorepo intent: p

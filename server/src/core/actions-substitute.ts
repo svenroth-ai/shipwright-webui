@@ -80,6 +80,13 @@ export interface SubstitutionContext {
    * offending placeholder).
    */
   actionId: string;
+  /**
+   * iterate-2026-06-11-custom-action-slash-command — a CUSTOM action's declared
+   * slash command (action-schema `slash_command`, e.g. `/content-orchestrator`).
+   * Lets `{task.initial_prompt}` fuse slash + description into ONE positional
+   * for non-builtin ids. Ignored for builtins; absent/malformed → UnknownActionError.
+   */
+  slashCommand?: string;
 }
 
 export class InvalidPlaceholderError extends Error {
@@ -119,7 +126,7 @@ export class UnknownActionError extends Error {
   readonly actionId: string;
   constructor(actionId: string) {
     super(
-      `Action id "${actionId}" is not one of the bundled actions ("new-task", "new-iterate", "new-pipeline"). The {task.initial_prompt} placeholder hardcodes the slash-command shape per known actionId; custom actions must use the legacy {task.parameters?} / {task.description?} placeholders instead.`,
+      `Action id "${actionId}" is not one of the bundled actions ("new-task", "new-iterate", "new-pipeline") and has no valid "slash_command". A custom action whose command_template uses {task.initial_prompt} must declare a "slash_command" matching ${SLASH_COMMAND_PATTERN.source} (e.g. "/content-orchestrator"). Alternatively, use the {task.description?} placeholder instead of {task.initial_prompt}.`,
     );
     this.name = "UnknownActionError";
     this.actionId = actionId;
@@ -192,7 +199,27 @@ const ALLOWED_PLACEHOLDERS = new Set([
  */
 const NAMESPACED_PHASES = new Set(["plan", "test", "security"]);
 
-function buildSlashCommand(actionId: string, phase: string): string | null {
+// iterate-2026-06-11-custom-action-slash-command — the three bundled action
+// ids whose slash command is hardcoded in `buildSlashCommand`. Any OTHER id is
+// "custom" and supplies its slash via the action-schema `slash_command` field
+// (SubstitutionContext.slashCommand). Builtins always win. SSoT for the
+// validator's "which actions require slash_command" decision.
+export const BUILTIN_INITIAL_PROMPT_ACTIONS: ReadonlySet<string> = new Set([
+  "new-task",
+  "new-iterate",
+  "new-pipeline",
+]);
+
+// Allowlist for a custom action's `slash_command` (leading-slash skill token,
+// e.g. `/content-orchestrator`). Still q()-escaped at substitution time; this
+// pattern rejects garbage at load and is reused by `validateActionsSchema`.
+export const SLASH_COMMAND_PATTERN = /^\/[A-Za-z][A-Za-z0-9:_-]*$/;
+
+function buildSlashCommand(
+  actionId: string,
+  phase: string,
+  slashCommand?: string,
+): string | null {
   if (actionId === "new-task") {
     return NAMESPACED_PHASES.has(phase)
       ? `/shipwright-${phase}:${phase}`
@@ -200,6 +227,14 @@ function buildSlashCommand(actionId: string, phase: string): string | null {
   }
   if (actionId === "new-iterate") return `/shipwright-iterate`;
   if (actionId === "new-pipeline") return `/shipwright-run:run`;
+  // Custom (non-builtin) action: fall back to the declared slash_command when
+  // present + well-formed; else null → UnknownActionError (fail-loud backstop;
+  // the schema validator catches missing/invalid earlier). Trim so a padded
+  // value (" /content-orchestrator ") matches the validator (which also trims).
+  const sc = slashCommand?.trim();
+  if (sc && SLASH_COMMAND_PATTERN.test(sc)) {
+    return sc;
+  }
   return null;
 }
 
@@ -380,7 +415,11 @@ function substituteOne(
       ) {
         throw new UnknownPhaseError(ctx.task.phase);
       }
-      const slash = buildSlashCommand(ctx.actionId, ctx.task.phase);
+      const slash = buildSlashCommand(
+        ctx.actionId,
+        ctx.task.phase,
+        ctx.slashCommand,
+      );
       if (!slash) {
         throw new UnknownActionError(ctx.actionId);
       }
@@ -572,6 +611,7 @@ export function validateTemplate(
   template: string,
   actionId: string,
   phaseIds: string[],
+  slashCommand?: string,
 ): InvalidPlaceholderError | null {
   const ctx: SubstitutionContext = {
     project: { id: "dry-run-project", path: "/tmp/dry-run" },
@@ -589,6 +629,9 @@ export function validateTemplate(
     pluginDirs: [],
     allowedPhaseIds: new Set([...phaseIds, "dry-run-phase"]),
     actionId,
+    // Pass slash_command so a custom {task.initial_prompt} template dry-runs
+    // without throwing UnknownActionError (a GET /actions 500). Builtins ignore it.
+    slashCommand,
   };
   try {
     substituteAllForms(template, ctx);

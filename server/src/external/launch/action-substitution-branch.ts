@@ -15,6 +15,7 @@ import { type CopyCommandForms } from "../../core/launcher.js";
 import {
   substitutePlaceholders,
   UnknownPhaseError,
+  UnknownActionError,
   InvalidTitleError,
   InvalidParameterError,
   InvalidPlaceholderError,
@@ -86,6 +87,10 @@ export function applyActionSubstitutionBranch(args: {
     pluginDirs: task.pluginDirs,
     allowedPhaseIds,
     actionId: parsed.actionId,
+    // iterate-2026-06-11-custom-action-slash-command — a custom action's
+    // declared slash command, so {task.initial_prompt} fuses slash +
+    // description into ONE positional. Undefined for builtin ids (ignored).
+    slashCommand: action.slash_command,
   };
   let commands: CopyCommandForms;
   try {
@@ -103,7 +108,13 @@ export function applyActionSubstitutionBranch(args: {
       err instanceof UnknownPhaseError ||
       err instanceof InvalidTitleError ||
       err instanceof InvalidParameterError ||
-      err instanceof InvalidPlaceholderError
+      err instanceof InvalidPlaceholderError ||
+      // A custom action using {task.initial_prompt} without a valid
+      // slash_command throws UnknownActionError. The GET /actions schema
+      // validation rejects this at load time, but the launch route does not
+      // re-run that gate — so convert to a typed 400 here rather than letting
+      // it surface as an unhandled 500 (review follow-up).
+      err instanceof UnknownActionError
     ) {
       return {
         error: {
