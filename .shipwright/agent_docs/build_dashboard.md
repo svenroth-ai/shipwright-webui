@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-10 07:48 UTC | Session: 55205f02-66aa-43eb-93b1-2cf9cb776ce8 | Run: iterate-2026-06-10-triage-pending-delivery-badge
+> Updated: 2026-06-11 19:34 UTC | Session: 78c9ebbb-7b86-4500-b30b-201681e2cc8a | Run: iterate-2026-06-11-campaign-events-projection
 
-## Recent Changes (132 iterations)
+## Recent Changes (133 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board | 0/0 |  | FR-01.31 | 2026-06-11 |
 | change | Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725. | 0/0 |  | FR-01.30 | 2026-06-10 |
 | bug | Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips). | 0/0 |  | FR-01.28 | 2026-06-09 |
 | change | Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d). | 0/0 |  | FR-01.33 | 2026-06-09 |
@@ -139,7 +140,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-10 | Unit: 3156/3156 | Integration: 6/6 | E2E: 1/1 | Smoke: not_run | (iterate)
+Last run: 2026-06-11 | Unit: 3176/3176 | Integration: 3/3 | E2E: 1/1 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

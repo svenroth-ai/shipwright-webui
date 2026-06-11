@@ -159,6 +159,9 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(c.steps[0]).toMatchObject({ id: "B0", status: "complete" });
   });
 
+  // GET events.jsonl projection tests (overlay + synthesize, FR-01.31) live in
+  // campaigns.events.test.ts (bloat split).
+
   // ---- POST /api/campaigns/:projectId/:slug/start (FR-01.33) ----
 
   it("starts a draft campaign (status.json) → 200 active, reflected by GET", async () => {

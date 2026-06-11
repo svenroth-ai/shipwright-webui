@@ -92,6 +92,8 @@ export interface Campaign {
    * absent → client treats as false). See `core/campaign-loop-state.ts`.
    */
   attachedRun?: boolean;
+  /** Reconstructed purely from tracked events.jsonl when the campaign dir is absent (a clone): completed subs only, total==done, specPath null. Set by `core/campaign-events.ts`. */
+  derivedFromEvents?: boolean;
 }
 
 const VALID_STATUSES: ReadonlySet<string> = new Set([

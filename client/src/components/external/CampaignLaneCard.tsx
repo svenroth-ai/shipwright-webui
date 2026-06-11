@@ -102,6 +102,15 @@ export function CampaignLaneCard({
             {campaign.slug}
           </span>
         </button>
+        {campaign.derivedFromEvents && (
+          <span
+            className="shrink-0 rounded-[6px] bg-[var(--color-muted-bg)] px-1.5 py-[1px] text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]"
+            data-testid={`campaign-events-badge-${campaign.slug}`}
+            title="Reconstructed from the tracked event log — this campaign's planning dir isn't present on this checkout, so only completed sub-iterates are shown."
+          >
+            events
+          </span>
+        )}
         {!collapsed && campaign.branchStrategy && (
           <span className="rounded-[6px] bg-[var(--color-muted-bg)] px-1.5 py-[1px] text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
             {campaign.branchStrategy}

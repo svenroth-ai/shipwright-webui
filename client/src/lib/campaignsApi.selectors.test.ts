@@ -104,6 +104,26 @@ describe("campaignsApi: selectActiveCampaigns", () => {
     const fresh = makeCampaign({ slug: "fresh", status: "active", done: 0, total: 0 });
     expect(selectActiveCampaigns([fresh]).map((c) => c.slug)).toEqual(["fresh"]);
   });
+
+  // derivedFromEvents (events-only, deployed clone): completed sub-iterates only,
+  // so done==total always — but events can't reveal pending steps, so it must
+  // stay visible to surface progress on the deployed board.
+  it("shows an events-only campaign even though done==total would otherwise hide it", () => {
+    const derived = makeCampaign({
+      slug: "2026-06-11-ghost",
+      status: null,
+      done: 2,
+      total: 2,
+      derivedFromEvents: true,
+    });
+    expect(selectActiveCampaigns([derived]).map((c) => c.slug)).toEqual(["2026-06-11-ghost"]);
+  });
+
+  it("keeps the events-only exception narrow: a normal done==total campaign is still hidden", () => {
+    const normalDone = makeCampaign({ slug: "normal", status: null, done: 2, total: 2 });
+    const derivedDone = makeCampaign({ slug: "derived", done: 2, total: 2, derivedFromEvents: true });
+    expect(selectActiveCampaigns([normalDone, derivedDone]).map((c) => c.slug)).toEqual(["derived"]);
+  });
 });
 
 describe("campaignsApi: isCampaignDone", () => {

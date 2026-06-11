@@ -60,6 +60,14 @@ export interface Campaign {
    *  Optional for deploy-skew safety (older server → absent → treat as false).
    *  Mirror of `server/src/core/campaign-store.ts`. */
   attachedRun?: boolean;
+  /** True when reconstructed purely from the tracked `shipwright_events.jsonl`
+   *  because the campaign's planning dir is gitignored/absent (a fresh clone /
+   *  redeploy). Completed sub-iterates only — no skeleton, `total == done`,
+   *  every `specPath` null (launch CTAs disable). `selectActiveCampaigns` keeps
+   *  it visible so the deployed board still surfaces progress. Server-set
+   *  (`core/campaign-events.ts`); optional for deploy-skew safety. Mirror of
+   *  `server/src/core/campaign-store.ts`. */
+  derivedFromEvents?: boolean;
 }
 
 export async function listCampaigns(projectId: string): Promise<Campaign[]> {
@@ -137,10 +145,18 @@ export function isCampaignDone(c: Campaign): boolean {
  *                          divide-by-zero).
  * Shown: `active` with work remaining (incl. a fresh campaign with no steps
  * yet), or legacy (`null`) with `done < total`.
+ *
+ * Exception — `derivedFromEvents`: an events-only campaign (planning dir absent
+ * on a deployed clone) carries ONLY completed sub-iterates, so it always reads
+ * `done == total` and `isCampaignDone` would hide it. But events can't reveal
+ * pending steps, so "all known steps done" ≠ "campaign finished" — we keep it
+ * visible so the deployed board surfaces its progress (the whole point of the
+ * projection). `draft` is impossible for a synthesized campaign (status null).
  */
 export function selectActiveCampaigns(campaigns: Campaign[]): Campaign[] {
   return campaigns.filter((c) => {
     if (c.status === "draft") return false;
+    if (c.derivedFromEvents) return true;
     if (isCampaignDone(c)) return false;
     if (c.status === "active") return true;
     return c.total > 0 && c.done < c.total; // legacy fallback (status null)
