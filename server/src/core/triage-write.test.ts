@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { spawnSync } from "node:child_process";
 import {
   mkdtempSync,
   rmSync,
@@ -10,7 +11,7 @@ import {
 import path from "node:path";
 import { tmpdir } from "node:os";
 
-import { appendStatusEvent } from "./triage-write.js";
+import { appendStatusEvent, shouldRouteToOutbox } from "./triage-write.js";
 import { _clearCache_TEST_ONLY } from "./triage-store.js";
 import { outboxPathFor } from "./triage-paths.js";
 
@@ -280,5 +281,93 @@ describe("triage-write: appendStatusEvent — residence-derived target (outbox c
     expect(item.id).toBe("trg-rt");
     expect(item.status).toBe("dismissed");
     expect(item.statusReason).toBe("round trip");
+  });
+});
+
+describe("triage-write: appendStatusEvent — idle-main routing (2026-06-12)", () => {
+  let workDir: string;
+  let trackedPath: string;
+  let outboxPath: string;
+
+  function git(args: string[]): void {
+    spawnSync("git", ["-C", workDir, ...args], { encoding: "utf-8", shell: false });
+  }
+
+  beforeEach(() => {
+    _clearCache_TEST_ONLY();
+    workDir = mkdtempSync(path.join(tmpdir(), "triage-write-idlemain-"));
+    // Real git repo, default branch, WITH an origin remote => idle main.
+    git(["init"]);
+    git(["config", "user.email", "t@t.t"]);
+    git(["config", "user.name", "t"]);
+    git(["commit", "--allow-empty", "-m", "init"]);
+    git(["branch", "-M", "main"]);
+    git(["remote", "add", "origin", path.join(workDir, "origin-throwaway")]);
+    trackedPath = path.join(workDir, ".shipwright", "triage.jsonl");
+    outboxPath = outboxPathFor(trackedPath);
+    mkdirSync(path.dirname(trackedPath), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(workDir, { recursive: true, force: true });
+  });
+
+  it("routes a TRACKED-resident item's dismiss to the OUTBOX on idle main (tracked byte-unchanged)", () => {
+    // The dismissed item's append lives in the TRACKED store (committed finding).
+    writeFileSync(
+      trackedPath,
+      `{"v":1,"schema":"triage","created":"2026-06-12T00:00:00Z"}\n${appendLine("trg-idle")}\n`,
+    );
+    const trackedBefore = readFileSync(trackedPath, "utf-8");
+    appendStatusEvent({
+      jsonlPath: trackedPath,
+      triageId: "trg-idle",
+      newStatus: "dismissed",
+      by: "webui",
+      reason: "Implemented",
+      promotedTaskId: null,
+      now: () => "2026-06-12T12:00:00Z",
+    });
+    // Status landed in the OUTBOX; tracked store is byte-unchanged (no drift).
+    expect(readFileSync(trackedPath, "utf-8")).toBe(trackedBefore);
+    const outboxLines = readFileSync(outboxPath, "utf-8").split("\n").filter(Boolean);
+    expect(outboxLines).toHaveLength(1);
+    expect(JSON.parse(outboxLines[0])).toMatchObject({
+      event: "status",
+      id: "trg-idle",
+      newStatus: "dismissed",
+    });
+  });
+
+  it("shouldRouteToOutbox: true on origin-backed default branch, false on a non-default branch", () => {
+    expect(shouldRouteToOutbox(workDir)).toBe(true);
+    git(["checkout", "-b", "iterate/x"]); // worktree/iterate-branch analog
+    expect(shouldRouteToOutbox(workDir)).toBe(false);
+  });
+
+  it("falls back to TRACKED when the repo has NO origin (no delivery path)", () => {
+    const noOrigin = mkdtempSync(path.join(tmpdir(), "triage-write-noorigin-"));
+    spawnSync("git", ["-C", noOrigin, "init"], { encoding: "utf-8", shell: false });
+    spawnSync("git", ["-C", noOrigin, "branch", "-M", "main"], { encoding: "utf-8", shell: false });
+    expect(shouldRouteToOutbox(noOrigin)).toBe(false);
+    const tracked = path.join(noOrigin, ".shipwright", "triage.jsonl");
+    mkdirSync(path.dirname(tracked), { recursive: true });
+    writeFileSync(
+      tracked,
+      `{"v":1,"schema":"triage","created":"2026-06-12T00:00:00Z"}\n${appendLine("trg-no")}\n`,
+    );
+    appendStatusEvent({
+      jsonlPath: tracked,
+      triageId: "trg-no",
+      newStatus: "dismissed",
+      by: "webui",
+      reason: null,
+      promotedTaskId: null,
+      now: () => "2026-06-12T12:00:00Z",
+    });
+    const lines = readFileSync(tracked, "utf-8").split("\n").filter(Boolean);
+    expect(lines).toHaveLength(3); // header + append + status, all tracked
+    expect(existsSync(outboxPathFor(tracked))).toBe(false);
+    rmSync(noOrigin, { recursive: true, force: true });
   });
 });
