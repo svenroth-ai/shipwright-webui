@@ -1,1 +1,0 @@
-The Task Board Campaigns lane now shows a campaign only when its producer-owned lifecycle status is `active`; `draft` campaigns (planned, not yet started) and `complete` ones are hidden. Campaigns without a status field keep the previous done<total behavior. (Status is read from status.json / campaign.md; the WebUI stays read-only on campaign state.)

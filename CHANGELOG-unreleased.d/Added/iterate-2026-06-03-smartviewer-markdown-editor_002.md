@@ -1,1 +1,0 @@
-Markdown editor shows a mandatory pre-save diff (escaped) and a non-blocking warn banner for frontmatter / raw HTML / footnotes / tables / task-lists; on a 409 conflict it keeps your edits and offers reload. Modal is lazy-loaded so TipTap/ProseMirror stays out of the initial bundle.

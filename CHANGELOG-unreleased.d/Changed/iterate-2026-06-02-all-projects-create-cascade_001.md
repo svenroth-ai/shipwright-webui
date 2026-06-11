@@ -1,1 +1,0 @@
-Task Board "All Projects" view: the + New and Plain Claude menus are now project-first cascades (pick a project, then that project's own actions) instead of pinning to whichever project was used last. Each project's actions load lazily; single-project filter mode is unchanged.

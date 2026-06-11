@@ -1,1 +1,0 @@
-Markdown editor (SmartViewer): editing one character in a file with YAML frontmatter no longer shows the whole document as changed, and Save no longer corrupts the frontmatter. Frontmatter, line endings (CRLF), and the trailing newline are now preserved verbatim across the rich-editor round-trip; only the prose body is editable.

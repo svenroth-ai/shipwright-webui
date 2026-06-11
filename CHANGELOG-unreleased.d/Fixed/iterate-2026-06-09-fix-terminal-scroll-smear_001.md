@@ -1,1 +1,0 @@
-Terminal: tables no longer smear (stale ghost glyphs) when scrolling. A full-viewport WebGL repaint is now forced on the scroll input (term.onScroll + a passive wheel listener, rAF-coalesced, plus a trailing refresh), matching the existing post-replay/resize/tab repaint remedy.

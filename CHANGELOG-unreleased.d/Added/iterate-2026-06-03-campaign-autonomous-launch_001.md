@@ -1,1 +1,0 @@
-Campaigns lane: a second **Launch autonomous** action opens a TaskDetail terminal that auto-runs `/shipwright-iterate --campaign <slug> --autonomous`, behind a confirm dialog with a risky-step (failed/escalated/plan-first) warning (FR-01.34).

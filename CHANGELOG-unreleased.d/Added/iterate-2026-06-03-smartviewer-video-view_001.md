@@ -1,1 +1,0 @@
-SmartViewer now plays **video** inline (mp4/m4v/webm/ogv/ogg/mov) — the last file kind after image. A new Range-capable streaming route `GET /api/external/projects/:id/media` (206 Partial Content, no 5 MB cap, kept separate from the atomic `/file` route) lets the `<video>` element stream and seek large clips; an undecodable codec falls back to an actionable chip.

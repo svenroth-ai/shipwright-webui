@@ -1,1 +1,0 @@
-Campaign board no longer lets you start a second autonomous run on a campaign that already has one attached: the **Launch** / **Launch autonomous** buttons disable and relabel "Run attached" while a run is live, and the server rejects a duplicate launch (HTTP 409) — closing a race that could spawn two orchestrators and corrupt a campaign's status.json.

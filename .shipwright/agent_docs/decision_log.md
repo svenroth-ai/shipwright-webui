@@ -2392,3 +2392,301 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
   - *Terminal/shell-out to `campaign_progress.py start`* — requires a `status.json` (fails on frontmatter-only campaigns), needs a pty + Python on PATH, and is the "UX catastrophe" the operator explicitly rejected.
   - *Client-side correlation (triage item ↔ campaign matched in the browser)* — would force the Triage page to import `campaignsApi`/`useCampaigns`, breaking the `campaigns-no-triage-coupling` boundary.
   - *Keep read-only + a manual instruction tooltip* — leaves the original gap (no one-click start); rejected by the operator.
+
+---
+
+### ADR-149: All-Projects create-menu is a project-first cascade
+- **Date:** 2026-06-02
+- **Section:** iterate-2026-06-02-all-projects-create-cascade
+- **Run-ID:** iterate-2026-06-02-all-projects-create-cascade
+- **Context:** In All-Projects mode the + New / Plain Claude menus pinned to the most-recently-active project (non-deterministic), and the modal could launch an actionId against a mismatched project's schema (invalid phase / 404).
+- **Decision:** In All-Projects mode, + New and Plain Claude become project-first cascades (project then that project's actions, lazy via useProjectActions). The chosen (action, projectId) opens NewIssueModal scoped to one project via initialProjectId + a per-project modalActionsQuery. Single-project mode keeps the flat CreateMenuSplitButton unchanged.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A union of all projects' actions does not scale and is semantically wrong; project-first folds the project choice into the click without a blocking pre-step.
+- **Consequences:** Fixes the action/schema mismatch; deterministic; lazy per-project fetch (no union, no eager fetch-all). Adds CreateControls + ProjectCreateCascade; the Task Board header cluster is extracted from TaskBoardPage (also keeps it under the 675-LOC bloat ceiling).
+- **Rejected:** Flat grouped/union menu (does not scale); require a project pick first (blocking pre-step); fix only the modal mismatch (buttons stay single-project).
+- **Details:** [2026-06-02-all-projects-create-cascade.md](../planning/iterate/2026-06-02-all-projects-create-cascade.md)
+
+---
+
+### ADR-150: Campaigns lane is read+copy-launch; copy-command MVP over Continue-Pipeline auto-inject
+- **Date:** 2026-06-02
+- **Section:** FR-01.33
+- **Run-ID:** iterate-2026-06-02-campaigns-board-lane
+- **Context:** A Shipwright campaign (.shipwright/planning/iterate/campaigns/<slug>/) is sequenced multi-iterate work — the same genus as the Pipelines lane — and belongs on the Task Board, not in Triage (Triage is the decision queue; a campaign is post-decision execution).
+- **Decision:** Add a read-only GET /api/campaigns/:projectId (mirroring the triage route/store/path-guard) + a Campaigns lane on TaskBoardPage. The lane's launch affordance COPIES /shipwright-iterate "<specPath>" to the clipboard rather than auto-injecting into a terminal.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The board has no embedded-terminal pane and LaunchCoordinator is TaskDetail-scoped, so auto-inject is structurally unavailable there; copy-command is the honest, non-dead-button affordance the proposal sanctions, reusing lib/clipboard with zero write surface.
+- **Consequences:** No new write surface (campaign_init.py/campaign_progress.py own writes). status.json is authoritative for status/commit/branch; campaign.md table gives order+titles and is the fallback when status.json is absent. Per-step specPath gets a realpath symlink-escape guard; torn/half-written campaigns are isolated per-dir so the 3 s poll never 500s.
+- **Rejected:** Reusing the Continue-Pipeline path (useContinuePipeline → createTask + launchTask + dispatchAutoLaunch): rejected — it is bound to run-config phase_tasks (pre-bound sessionUuid, phaseTaskRef, awaiting_launch gating); campaigns are not phase_tasks, so adapting it would mint synthetic tasks + a new launch branch + sdk-sessions writes, breaking the read-only scope and re-platforming a load-bearing path.
+
+---
+
+### ADR-151: Campaign autonomous launch via a server-built command + body-only campaignSlug
+- **Date:** 2026-06-03
+- **Section:** external/launch + Campaigns lane
+- **Run-ID:** iterate-2026-06-03-campaign-autonomous-launch
+- **Context:** FR-01.33's lane had only a per-step copy-command. The user wants a second action that opens a TaskDetail terminal running /shipwright-iterate --campaign <slug> --autonomous, like a normal iterate launch, reusing the create->launch->sessionStorage-handoff->navigate path (ADR-068-A1).
+- **Decision:** New launch-route campaign branch (precedence phaseTaskRef->campaign->action->legacy). Client sends only a body-only campaignSlug; server validates (regex + no '..'), existence-checks the realpath-guarded campaigns dir, then builds the command via core/launcher.ts. campaignSlug is never persisted (keeps grandfathered sdk-sessions-store.ts frozen). Risky guardrail reads forward-compat plan_first/risk frontmatter + treats failed/escalated pending steps as risky; confirm dialog warns + ack-gates.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Server-built command preserves rule 1 / guard #19. Body-only slug avoids ratcheting a grandfathered file. Forward-compat marker ships the consumer before the producer.
+- **Consequences:** New public launch surface (mandatory review). One small FS read per pending step per 3s poll for planFirst. No new persisted write surface. The frontmatter marker is dormant until a producer emits it.
+- **Rejected:** Persist campaignSlug (ratchets sdk-sessions-store.ts); synthetic campaign action (no placeholder); client builds the command (violates #19); copy-command MVP (user wants a real terminal).
+- **Details:** [2026-06-03-campaign-autonomous-launch.md](../planning/iterate/2026-06-03-campaign-autonomous-launch.md)
+
+---
+
+### ADR-152: Campaign lane cards collapse by default + per-slug persisted; lane height-capped so the board can't be pushed off-screen
+- **Date:** 2026-06-03
+- **Section:** FR-01.33
+- **Run-ID:** iterate-2026-06-03-campaign-lane-collapse
+- **Context:** The FR-01.33 Campaigns lane rendered every card fully expanded; with multiple in-progress campaigns (e.g. the monorepo's two) the lane grew unbounded and pushed the kanban board completely out of the viewport (no tasks visible).
+- **Decision:** Make each CampaignLaneCard collapsible (collapsed by default = chevron + slug + done/total header only); move the intent behind a closed-by-default Description disclosure; persist both states per-campaign-slug in localStorage via the existing useLocalStorage hook; and wrap the lane cards in a max-h-[40vh] internally-scrolling band in TaskBoardPage.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Per-slug (not global) persistence because cards must expand independently — a global toggle would expand all at once, defeating the purpose with 2+ campaigns. The 40vh cap + internal scroll is the minimal robust fix for the overflow; default-collapsed makes the common case short anyway.
+- **Consequences:** The board is always visible regardless of how many campaigns are expanded. Card/description state survives reload + navigation. New client-local localStorage write-surface keyed per slug (bounded: campaigns are few + ephemeral). No server/API change; client-only.
+- **Rejected:** Global single-key collapse pref (like TaskDescriptionDisclosure): rejected — it would toggle all cards together, useless with multiple campaigns. Auto-shrinking the board instead of capping the lane: rejected — the lane is the secondary surface; the kanban must keep its space.
+
+---
+
+### ADR-153: Campaigns lane filters on a producer-owned lifecycle status (Option B consumer side); draft hidden = triage-only
+- **Date:** 2026-06-03
+- **Section:** FR-01.33
+- **Run-ID:** iterate-2026-06-03-campaign-status-filter
+- **Context:** A campaign appeared on the board the instant its dir existed (all-pending => done<total), so a planned/hand-authored campaign was indistinguishable from a started one. A webui-only heuristic cannot fix this: the manual copy-launch flow never marks a step in_progress (pending->complete), so an actively-running first step still looks all-pending.
+- **Decision:** Surface a producer-owned campaign-level status (draft|active|complete) read from status.json top-level 'status' (winning) else the campaign.md frontmatter 'status:'; selectActiveCampaigns shows a campaign iff status==='active', hides draft+complete; a legacy campaign with no status falls back to done<total. Extracted the status.json input-reader into core/campaign-status-json.ts (sibling of campaign-parse.ts) to keep campaign-store under the size limit.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Status must be producer-owned + explicit because the only reliable 'is it running' signal in the manual flow is an explicit field; derived heuristics fail. Reading status.json-wins-over-frontmatter mirrors the existing per-step precedence.
+- **Consequences:** Board shows only active campaigns; draft = triage-only (planned), complete hidden. Legacy fallback means this consumer change ships before the producer writes the field (nothing existing breaks). WebUI stays read-only on campaign state. Producer side (campaign_init/campaign_progress/loop write status) is a separate shipwright-monorepo change tracked as triage trg-f06f04e3.
+- **Rejected:** WebUI-only 'hide all-pending' heuristic — hides an actively-running campaign whose first step hasn't completed. Option A (don't create the campaign dir until start) — the dir must already exist to launch the first sub-iterate, and it forbids the legitimate plan-as-draft workflow.
+
+---
+
+### ADR-154: Envelope preserves frontmatter + line-endings across the markdown round-trip
+- **Date:** 2026-06-03
+- **Section:** FR-01.34 SmartViewer markdown editor
+- **Run-ID:** iterate-2026-06-03-md-editor-frontmatter-roundtrip
+- **Context:** The pre-save diff compared raw file bytes against a full ProseMirror re-serialization. YAML frontmatter parsed as a setext H2 (collapsing every key:value line into one heading), CRLF normalized to LF, and the trailing newline dropped — so a one-comma body edit showed a whole-file diff and Save would corrupt frontmatter on disk.
+- **Decision:** Split the file into a verbatim envelope (frontmatter + leading blank lines + trailing whitespace + line-ending style) and an editor-owned prose core. The editor round-trips only the core; the envelope is re-attached on serialize and save.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Ousterhout deep module: keep non-prose structure entirely out of the lossy round-trip rather than patching the serializer.
+- **Consequences:** Diff shows only real body changes; untouched structure round-trips byte-identically; frontmatter is preserved (shown via a neutral note, not editable in the rich editor). Frontmatter removed from the lossy-construct warning.
+- **Rejected:** A custom TipTap frontmatter node — heavier, still routes frontmatter through ProseMirror, and fixes neither CRLF nor the trailing newline.
+- **Details:** [2026-06-03-md-editor-frontmatter-roundtrip.md](../planning/iterate/2026-06-03-md-editor-frontmatter-roundtrip.md)
+
+---
+
+### ADR-155: SmartViewer in-app Markdown editor + first project-file write surface
+- **Date:** 2026-06-03
+- **Section:** FR-01.34 / iterate-2026-06-03-smartviewer-markdown-editor
+- **Run-ID:** iterate-2026-06-03-smartviewer-markdown-editor
+- **Context:** Users wanted to edit project markdown without leaving the WebUI. The app was strictly read-only on project files, and the Markdown to ProseMirror round-trip is lossy.
+- **Decision:** Add a TipTap rich-editor modal saving via a NEW markdown-only PUT /file endpoint with content-hash (ETag/If-Match) optimistic concurrency + atomic tmp+rename, plus a mandatory pre-save diff and a warn banner as round-trip safety nets.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Content hash beats mtime:size on coarse Windows NTFS; the .md allowlist + path-guard enforce forbidden-path rules for free; diff+banner make the lossy round-trip non-silent.
+- **Consequences:** First project-file write surface; reuses realPathGuard + the actions/upload atomic-write pattern. A 409 stops edits clobbering a file a Claude session changed. TipTap/ProseMirror added but lazy-loaded (code-split).
+- **Rejected:** Hand-written prosemirror-markdown<->TipTap bridge (more code, no fidelity win at StarterKit scope); mtime:size fingerprint (weak on Windows); per-request auth (loopback single-user app; PUT inherits GET's posture).
+- **Details:** [2026-06-03-smartviewer-markdown-editor.md](../planning/iterate/2026-06-03-smartviewer-markdown-editor.md)
+
+---
+
+### ADR-156: Separate Range-streaming /media route for video; /file left atomic
+- **Date:** 2026-06-03
+- **Section:** iterate-2026-06-03-smartviewer-video-view
+- **Run-ID:** iterate-2026-06-03-smartviewer-video-view
+- **Context:** SmartViewer previewed markdown/code/text/image but not video. The /file route is deliberately atomic (readFileSync, 5 MB cap, documented race-avoidance) — video breaks both invariants: real clips exceed 5 MB and <video> requires HTTP Range (Safari won't play without 206; large files must not load into RAM).
+- **Decision:** Add a new GET /api/external/projects/:id/media route that streams via fs.createReadStream with HTTP Range (206/200/416), a video-only MIME allowlist (415 otherwise), and no size cap. It shares core/path-guard.ts (pathGuard + realPathGuard, null-byte/symlink reject). The /file route is left untouched. Client streams via <video src=mediaUrl(...)> (new lib/mediaApi.ts) through a new VideoRenderer mirroring ImageRenderer.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Isolating the streaming/Range surface preserves the /file Chesterton's-Fence race-avoidance design and keeps the text/image preview path low-risk.
+- **Consequences:** Two file-serving routes now exist (/file atomic ≤5MB; /media streamed+ranged). Video bytes never buffer in RAM. An undecodable codec surfaces via the <video> onError fallback chip (no server transcoding).
+- **Rejected:** Bumping /file's cap + adding Range inline — rejected: breaks the atomic-read invariant and risks the text/image path. Server-side transcoding — out of scope (different project).
+- **Details:** [2026-06-03-smartviewer-video-view.md](../planning/iterate/2026-06-03-smartviewer-video-view.md)
+
+---
+
+### ADR-157: Parse campaign Sub-Iterates table by header + strip Markdown emphasis
+- **Date:** 2026-06-04
+- **Section:** campaigns / campaign-parse.ts
+- **Run-ID:** iterate-2026-06-04-campaign-step-id-emphasis
+- **Context:** campaign.md producers bold the step ID (**C1**) and add Repo/Depends-on columns (6-col). The positional, non-emphasis-stripping parser yielded id='**C1**' -> deriveSpecMeta sought sub-iterates/**C1**-<slug>.md (never exists) -> specPath null -> launchable=false (dead per-step Copy-launch button). It also read status from the 4th (Repo) cell.
+- **Decision:** Make parseSubIteratesTable header-driven (map ID/Slug/Title/Status by header name; tolerate extra columns) and strip paired inline Markdown emphasis/code from every cell; retain a positional fallback for headerless tables. Consumer-side only.
+- **Commit:** 7a0802d
+- **Rationale:** Ousterhout: a Markdown-table consumer must tolerate valid Markdown emphasis + column evolution; positional parsing was brittle. Chesterton-fence: the original 4-col positional parse predates the 5/6-col producer. YAGNI: targeted paired-marker regex, no markdown library.
+- **Consequences:** Bold IDs + extra producer columns no longer null specPath or disable the launch button; status binds to the real Status column. webui stays a read-only campaign.md consumer (no producer change). 6 new boundary tests pin the 4/5/6-col + bold-ID formats.
+- **Rejected:** Fix campaign_init.py to stop bolding IDs (cross-repo; webui must tolerate valid Markdown regardless). Strip only the ID cell (status-column drift would remain). disabled_checks band-aid (masks, does not fix).
+
+---
+
+### ADR-158: One-click single campaign sub-iterate launch (server-built command)
+- **Date:** 2026-06-04
+- **Section:** external/launch — campaign-step launch branch (FR-01.36)
+- **Run-ID:** iterate-2026-06-04-campaign-step-launch
+- **Context:** The Campaigns lane per-step affordance only COPIED /shipwright-iterate "<specPath>" to the clipboard (the board has no embedded terminal). Users expected 'start this item' to actually start it, like Launch autonomous does for the whole campaign.
+- **Decision:** Add a Launch (Cx) button + a server branch applyCampaignStepBranch: from a body-only {slug,stepId} it resolves the step specPath via the same readCampaigns the board renders and builds /shipwright-iterate "<specPath>" server-side. Replaces the Copy button. Direct launch for ordinary steps; confirm dialog only for risky (failed/escalated/plan-first) steps.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the reviewed FR-01.34 autonomous branch (Architecture rule 1: client never dictates the command/path; server resolves specPath via the same reader the board shows -> byte-identical, no drift). YAGNI: next-pending only (no per-row launch / dependency-graph engine). Fail-safe: an unresolvable next step routes to the dialog, never a silent direct-launch.
+- **Consequences:** One-click launch of the next-pending sub-iterate (stacked order preserved). New launch precedence slot (phaseTaskRef -> campaign -> campaignStep -> action -> legacy) + mixed_launch_intents guard. Shared create->launch->handoff core launchCampaignTask factored out of useLaunchCampaign; autonomous path unchanged. No new persisted write surface.
+- **Rejected:** Client sends specPath directly (Architecture rule 1 / path-escape). Per-row launch of any step (stacked dependency violations; YAGNI). Merge with the autonomous branch (different command + cohesion).
+- **Details:** [2026-06-04-campaign-step-launch.md](../planning/iterate/2026-06-04-campaign-step-launch.md)
+
+---
+
+### ADR-159: Markdown editor formatting toolbar (headless TipTap -> explicit button bar)
+- **Date:** 2026-06-04
+- **Section:** FR-01.34
+- **Run-ID:** iterate-2026-06-04-md-editor-toolbar
+- **Context:** FR-01.34 shipped a TipTap rich editor, but TipTap/ProseMirror is headless: StarterKit provides the capability (bold/italic/headings/lists/code/blockquote/link/undo-redo via keyboard shortcuts + Markdown input rules) and ships no visible UI. The modal therefore opened with no formatting buttons; the user could type but saw no Bold/Italic controls. Not a regression of the recent frontmatter fix - a toolbar was simply never built.
+- **Decision:** Add a dedicated MarkdownEditorToolbar component: a data-driven lucide-icon button bar wired to the already-loaded StarterKit commands, self-subscribing to editor.on('transaction') so active/enabled state tracks the live selection. The modal renders it above the editor surface only in editor-visible phases (showEditor).
+- **Commit:** (assigned post-merge)
+- **Rationale:** A headless editor needs an explicit UI surface; reusing the loaded StarterKit commands adds zero new dependencies and zero new serialized constructs.
+- **Consequences:** No new serialized construct - every command is already covered by the markdownTiptap round-trip, so the lossy-construct warn surface is unchanged. MarkdownEditorModal.tsx crosses 300 LOC (303, advisory only; the file is not in shipwright_bloat_baseline.json) - the cohesive split IS the new ~150-LOC component. Link uses window.prompt for the URL (Phase-1 simplicity).
+- **Rejected:** Inline toolbar in the modal (cohesion + LOC); a floating/bubble selection menu (heavier, deferred); a third-party toolbar package (no new deps, StarterKit already loaded).
+- **Details:** [2026-06-04-md-editor-toolbar.md](../planning/iterate/2026-06-04-md-editor-toolbar.md)
+
+---
+
+### ADR-160: Hide done==total campaigns from the lane even on a stale active lifecycle
+- **Date:** 2026-06-05
+- **Section:** Iterate — bug: campaign lane hide completed
+- **Run-ID:** iterate-2026-06-05-fix-campaign-lane-hide-completed
+- **Context:** The Campaigns lane (FR-01.33) kept rendering a 100%-done campaign card forever when the producer never flipped its lifecycle from active to complete — e.g. a campaign driven via individual sub-iterate PRs instead of the autonomous loop's update-status call. Reported 2026-06-05 while closing the compliance-detective-realign campaign.
+- **Decision:** Add isCampaignDone(c) (status==='complete' OR total>0 && done>=total) and check it BEFORE the active short-circuit in selectActiveCampaigns, so a stale-active done==total campaign is excluded from the default lane.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The old filter returned true on status==='active' before any done/total check; producer lifecycle is not reliably flipped, so done>=total is the robust completion signal.
+- **Consequences:** Finished campaigns disappear from the board regardless of a stale active lifecycle; active campaigns with work remaining and fresh total=0 ones still show. Client-only; no server change. Campaigns stay reachable via Triage and the start/launch APIs.
+- **Rejected:** (1) A 'Completed (N)' collapsed toggle — explicitly optional in the report; YAGNI / UI bloat. (2) Server-side filtering — the server intentionally returns all campaigns so Triage/start see drafts+done. (3) Fixing the producer to always flip active to complete — out of webui scope (read-only on campaign producer state).
+
+---
+
+### ADR-161: Accept deliberate Phase-B security-scan activation (A5.6 dormant-trigger)
+- **Date:** 2026-06-07
+- **Section:** compliance/A5.6
+- **Run-ID:** iterate-2026-06-07-a5-6-dormant-accepted
+- **Context:** A5.6 (dormant-trigger contract) FAILs at LOW because security.yml has pull_request + schedule triggers active, deliberately enabled 2026-06-02 (commits 7196205 + codeql d66ab55). _check_a5_6_triggers flags any pull_request/schedule key in the parsed on: block -- a binary structural check that cannot distinguish deliberate Phase-B activation from accidental default-on, and exposes no audit_config opt-in to acknowledge it.
+- **Decision:** Keep security.yml and codeql.yml on Phase B (PR + weekly cron + manual workflow_dispatch). Accept the A5.6 LOW finding as a known, intentional advisory. Do not re-dormant the triggers; do not blanket-suppress via audit_config.disabled_checks.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Phase B is a deliberate security-posture improvement. Reverting it to satisfy a cosmetic LOW check would be fixing the checker by breaking the feature. disabled_checks:[A5.6] is rejected as too blunt: it would also drop A5.6's workflow_dispatch-presence and bare-on guards.
+- **Consequences:** A5.6 stays a LOW finding in audit-report.md / dashboard.md until the producer-side opt-in lands; PR security gating + weekly scans keep running. Tracked by a triage item for the monorepo fix (a5_phase_b_activated opt-in).
+- **Rejected:** (1) Re-dormant pull_request/schedule -- disables automatic PR security gating + weekly scans. (2) audit_config.disabled_checks:[A5.6] -- suppresses the whole check incl. the workflow_dispatch-presence guard.
+
+---
+
+### ADR-162: Touch-scroll falls back to a no-op inside DECSET-1049 alt-buffer (Claude Code TUI)
+- **Date:** 2026-06-07
+- **Section:** Iterate — bug-fix diagnosis: embedded-terminal touch-scroll alt-buffer no-op
+- **Run-ID:** iterate-2026-06-07-fix-touch-scroll-alt-buffer
+- **Context:** PR #61 (ADR-129) shipped touch-scroll.ts using term.scrollLines(). User reports it does not work during an active Claude session (CLAUDE.md rule 22 + ADR-095: CLAUDE_CODE_NO_FLICKER=1 default-ON renders into the alt-screen buffer; ADR-096 confirms DECSET 1049 entry/exit). The alt-buffer has no scrollback, so scrollLines() is a no-op there.
+- **Decision:** Diagnosis-only iterate; no production code changes. Add 3 vitest cases in touch-scroll.alt-buffer.test.ts that instantiate a real Terminal in jsdom and assert the alt-buffer no-op empirically. Assertions PASS with the broken code (they document the failure mode). The follow-up fix iterate inverts them and adds buffer-aware routing (alt-buffer → pty-data keystrokes via socket.send; normal-buffer → term.scrollLines).
+- **Commit:** (assigned post-merge)
+- **Rationale:** F-debug Iron Law — no fixes without root cause. PR #61's mock pattern shipped green precisely because it could not model buffer-type semantics. Reproducing the bug in CI BEFORE designing the fix means the next iterate inherits a passing-into-failing test instead of a hand-authored RED test that might miss the same dimension.
+- **Consequences:** touch-scroll.alt-buffer.test.ts added (117 LOC, 3 cases). touch-scroll.test.ts trimmed to 200 LOC. 18/18 terminal touch-scroll tests pass; full client suite 1553/1553 green. No production behavior change; follow-up iterate has a clear inversion target.
+- **Rejected:** Patch+ship in one PR (iPad UAT for the arrow-key hypothesis missing). Playwright (WS roundtrip adds no signal). Manual iPad-only verification (no regression guard in main).
+- **Details:** [131-touch-scroll-alt-buffer-no-op.md](../planning/adr/131-touch-scroll-alt-buffer-no-op.md)
+
+---
+
+### ADR-163: Touch-scroll routes by xterm buffer type: alt-buffer → pty arrow-keystrokes, normal-buffer → scrollLines
+- **Date:** 2026-06-07
+- **Section:** Iterate — bug-fix: touch-scroll inside Claude Code TUI / DECSET-1049 alt-screen
+- **Run-ID:** iterate-2026-06-07-fix-touch-scroll-pty-keystrokes
+- **Context:** ADR-131 (PR #110) empirically proved term.scrollLines() is a no-op in the xterm.js alt-buffer; Claude TUI runs in alt-screen by default. Touch-scroll from PR #61 reached scrollLines unconditionally, so finger-pan silently failed during Claude sessions while mouse-wheel kept working.
+- **Decision:** attachTouchScroll gains optional sendData callback. New routeScroll helper reads term.buffer.active.type and branches: alt-buffer → Cursor-Up/Down keystrokes via sendData; normal-buffer → term.scrollLines as before. EmbeddedTerminal wires sendData to socket.send (same WS path as term.onData). Bench assertions 3-5 invert into regression guards.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Arrow-key path is universal (vim/less/htop pattern). SGR mouse-wheel needs TUI ?1006h opt-in which Claude is inconsistent on. Per-touchmove buffer check handles users quitting Claude mid-pan. Optional sendData fits unit-test ergonomics + degrades to no-op.
+- **Consequences:** Production code ~15 LOC. touch-scroll.ts grows to 211 LOC, all touched files under 300. Full client suite 1556/1556 across 149 files. Pan now scrolls Claude TUI; normal-buffer behavior preserved. iPad UAT post-deploy is the final empirical gate.
+- **Rejected:** SGR mouse-wheel default (TUI-dependent). PgUp/PgDn fast-scroll (YAGNI). Gesture-start buffer check (straddles buffer switch). Required sendData (worse fail mode).
+- **Details:** [132-touch-scroll-buffer-aware-routing.md](../planning/adr/132-touch-scroll-buffer-aware-routing.md)
+
+---
+
+### ADR-164: Campaign attached-run guard via loop_state.json + server-side double-launch enforcement
+- **Date:** 2026-06-08
+- **Section:** Campaigns lane / launch guard (FR-01.33/34/36)
+- **Run-ID:** iterate-2026-06-08-campaign-attached-run-guard
+- **Context:** Observed 2026-06-08: a campaign launched autonomous showed the board at 0/N with BOTH launch buttons live; a second click would spawn a second orchestrator -> racing worktrees/commits + corrupted status.json. The card already renders in_progress steps, but nothing wrote that status (producer gap).
+- **Decision:** Detect an attached run from <project>/.shipwright/loop_state.json (a live in_progress sub_iterate unit, joined to slug via spec_path). GET /api/campaigns sets attachedRun = (live loop unit) OR (status.json step in_progress); client launch CTAs disable+relabel 'Run attached'. Enforce server-side too: both fresh-start launch branches return 409 campaign_run_already_attached. A 6h stale-window keeps a crashed loop from pinning the guard.
+- **Commit:** (assigned post-merge)
+- **Rationale:** loop_state.json is observable TODAY with no producer change, fixing the bug now; the union with status.json in_progress is forward-compatible. A client-only guard is leaky given this project's recurring deploy-skew, so server enforcement is the real line.
+- **Consequences:** Prevents a second orchestrator from the common UI path AND from multi-tab / deploy-skew / direct-API (server 409). Resume is unaffected (branches return null before the guard). A crashed loop self-heals after the stale window; producer status.json in_progress write is a separate monorepo follow-up (triage trg-9edbab4d).
+- **Rejected:** status.json in_progress only (inert until producer ships); client-only guard (bypassed by deploy-skew/multi-tab/direct-API); richer attachedRun than a boolean (YAGNI).
+- **Details:** [2026-06-08-campaign-attached-run-guard.md](../planning/iterate/2026-06-08-campaign-attached-run-guard.md)
+
+---
+
+### ADR-165: Force full-viewport refresh after replay-drain settle
+- **Date:** 2026-06-08
+- **Section:** client/src/components/terminal/useReplayDrainGate.ts
+- **Run-ID:** iterate-2026-06-08-fix-terminal-replay-render-refresh
+- **Context:** Opening a task terminal sometimes rendered unclean (blank/partial rows) until the user scrolled. The cell-state snapshot writes correctly, but xterm's RenderDebouncer only repaints the dirty-row range the bulk write tracked; under WebGL + reset()->write()->scrollToBottom() visible rows can stay stale. The existing refresh kicks fire on ready/active, BEFORE the later-arriving replay_snapshot, so they never cover the post-replay paint.
+- **Decision:** In settleReplayGate, after the queue drain + scrollToBottom(), call term.refresh(0, term.rows-1) inside the existing dispose-guarded try/catch to mark every visible row dirty and force a full repaint.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Same remedy already used for the navigation variant of this render bug; minimal, idiomatic, low-risk.
+- **Consequences:** Replay always ends with a full viewport repaint; the 'scroll to fix' symptom is removed. One extra cheap refresh per attach (no-op when hidden). No-snapshot path unchanged.
+- **Rejected:** rAF-deferred refresh (disposal/timing complexity, harder to unit-test); WebglAddon.clearTextureAtlas (heavier, unnecessary).
+
+---
+
+### ADR-166: WebUI triage reader unions tracked ∪ outbox; status writes residence-derived
+- **Date:** 2026-06-08
+- **Section:** FR-01.30
+- **Run-ID:** iterate-2026-06-08-triage-outbox-union-reader
+- **Context:** MONOREPO campaign 2026-06-08-triage-outbox-delivery (D1-D3) routed idle-main background triage producers to a per-tree gitignored triage.outbox.jsonl buffer. The webui read only the tracked triage.jsonl, so the live Inbox missed background findings until a sweep+merge round-trip (regression).
+- **Decision:** core/triage-store.ts readAllItems now unions tracked ∪ outbox with the same two-pass resolution as triage.py read_all_items; core/triage-write.ts appendStatusEvent is residence-derived (outbox-only id -> outbox, else tracked). Public signatures unchanged, so routes/triage.ts + triage-lock.ts are untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirroring the Python contract end-to-end (incl. residence) preserves the campaign's no-main-drift invariant; stable signatures avoid ratcheting the anti-ratchet-baselined routes/triage.ts (763 LOC).
+- **Consequences:** Background findings appear in the live Inbox immediately; webui flips on outbox-resident items no longer drift the tracked store. Limitation: mutating an item that lives ONLY in the outbox with no tracked file 404s (route guards on the tracked path).
+- **Rejected:** Reader-only union (webui flips would re-introduce tracked main drift). Relaxing the route existence-guard for outbox-only-no-tracked items (would ratchet routes/triage.ts past its bloat ceiling for an extreme edge).
+- **Details:** [2026-06-08-triage-outbox-union-reader.md](../planning/iterate/2026-06-08-triage-outbox-union-reader.md)
+
+---
+
+### ADR-167: Live per-step in_progress overlay derived from loop_state.json
+- **Date:** 2026-06-09
+- **Section:** FR-01.33 (campaigns board)
+- **Run-ID:** iterate-2026-06-09-campaign-board-live-progress
+- **Context:** PR #116's double-launch guard collapsed loop_state.json to a campaign-level attachedRun boolean; the board's per-step display still read status.json, which the autonomous loop never writes as in_progress, so an active build showed done/total=0/N — indistinguishable from 'not started' until it jumped to 1/N.
+- **Decision:** GET /api/campaigns reads loop_state.json ONCE via readLoopRunState and overlays in_progress onto any pending step whose id a live unit names. Only pending -> in_progress, so authoritative status.json statuses and done/total/nextPending stay invariant. CampaignLaneCard renders it as a distinct spinning Loader2.
+- **Commit:** (assigned post-merge)
+- **Rationale:** loop_state.json is the live authority during a run; in_progress is transient, so a producer-side status.json write adds near-zero durable value once the webui reads loop_state directly.
+- **Consequences:** The board shows live progress today, independent of the monorepo producer status.json in_progress write (trg-9edbab4d), and forward-compatible (the overlay unions any producer-written in_progress). readLoopAttachments becomes a thin delegating wrapper.
+- **Rejected:** Two separate readers called twice (readLoopAttachments + a new readLoopRunningStepIds): rejected because a double read admits a torn-snapshot disagreement window between guard and overlay; a single combined snapshot is trivially available.
+
+---
+
+### ADR-168: Scroll-triggered full-viewport WebGL repaint (table smear fix)
+- **Date:** 2026-06-09
+- **Section:** Terminal rendering
+- **Run-ID:** iterate-2026-06-09-fix-terminal-scroll-smear
+- **Context:** xterm WebGL renderer repaints only the partial dirty-row range its per-cell change detection computes. After a viewport scroll, cells whose new content equals the on-screen glyph at that position are skipped, leaving stale glyphs. Tables maximize these collisions (repeated spaces, box-drawing borders, aligned columns) so the smear shows only on tables. No refresh was wired to the scroll input.
+- **Decision:** Add attachScrollRepaint (scroll-repaint.ts): rAF-coalesced full term.refresh(0,rows-1) on term.onScroll (normal buffer) plus a passive wheel listener (alt buffer, where onScroll is silent), plus a 150ms trailing refresh to catch Claudes async alt-screen redraw.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the proven remedy already used post-replay (useReplayDrainGate), post-resize and post-tab (useTerminalResize/useTerminalShellEffects). User empirically confirmed a full refresh (window resize/tab switch) heals the smear.
+- **Consequences:** Scroll repaints the whole viewport (GPU-cheap, at most one per frame, only during scroll). Alt-screen continuous-scroll relies on the trailing-edge refresh; a data-write-path hook is the follow-up if residual smear appears under high WS latency.
+- **Rejected:** onScroll-only (misses the alt-buffer redraw path); disabling WebGL (regresses ADR-099); clearTextureAtlas (not atlas corruption since resize heals it).
+
+---
+
+### ADR-169: pendingDelivery as route enrichment parity-gated against the real triage CLI
+- **Date:** 2026-06-10
+- **Section:** FR-01.30
+- **Run-ID:** iterate-2026-06-10-triage-pending-delivery-badge
+- **Context:** Outbox-only triage items are visible since the union reader but indistinguishable from tracked items; the canonical pendingDelivery contract exists in monorepo triage_cli.py list --json (PR #177).
+- **Decision:** Compute pendingDelivery at the GET route in new core/triage-enrich.ts (TRACKED-PREFERRED residence, mtime-memoized), never in readAllItems; gate parity by generating the fixture from the REAL CLI subprocess; badge card+modal; CTAs untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the Python layering (read_all_items resolver vs CLI list surface) and the campaignSlug enrichment precedent; runtime CLI subprocessing per poll rejected for latency and a hard plugin-cache dependency.
+- **Consequences:** Route file shrinks 763 to 725 via verbatim enrichWithCampaignRefs extraction (baseline ratcheted down); modal baseline 374 to 375 with run_id adr; CLI cp1252 stdout bug found by boundary probe routes to a monorepo follow-up iterate.
+- **Rejected:** Shelling triage_cli list --json per request; setting the field inside readAllItems (breaks byte parity); badge without a parity gate (silent drift of two TRACKED-PREFERRED implementations).
+- **Details:** [2026-06-10-triage-pending-delivery-badge.md](../planning/iterate/2026-06-10-triage-pending-delivery-badge.md)
+
+---
+
+### ADR-170: Project Campaigns-board status from the tracked event log
+- **Date:** 2026-06-11
+- **Section:** shipwright-webui / Campaigns lane (FR-01.31)
+- **Run-ID:** iterate-2026-06-11-campaign-events-projection
+- **Context:** Campaign planning dirs (campaign.md + status.json) are gitignored/local-only (webui PR #121, monorepo PR #189), so a fresh clone/redeploy had no campaign dir and readCampaigns returned empty; the board showed nothing. Local working-tree instances still worked. Monorepo intent: progress is projectable from the tracked shipwright_events.jsonl (campaign + sub_iterate_id extras).
+- **Decision:** Port shared project_campaign_status semantics to TS in core/campaign-events.ts: OVERLAY event-confirmed completions onto dir-sourced campaigns (never-downgrade), and SYNTHESIZE derivedFromEvents campaigns from the event log when the dir is absent. GET /api/campaigns applies it before the loop_state overlay (tolerant); selectActiveCampaigns keeps derived campaigns visible; CampaignLaneCard shows an events badge.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Honors the local-only decision + monorepo intent; self-contained consumer change. Per-step tests deliberately NOT projected (CampaignStep has no tests field; anti-bloat).
+- **Consequences:** Deployed/cloned boards surface completed campaign progress; locally-present campaigns get a stale status.json corrected. A synthesized campaign has no skeleton (total==done, specPath null, launch disabled). Only S1-stamped campaigns project. New optional Campaign.derivedFromEvents mirrored server<->client. WebUI stays read-only on events.jsonl.
+- **Rejected:** (1) Re-track campaign.md reverses webui PR #121 / monorepo PR #189 the same week. (2) Overlay-only leaves a fresh clone showing nothing (fails the AC).
