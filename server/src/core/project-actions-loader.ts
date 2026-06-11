@@ -39,6 +39,16 @@ export interface ActionDefinition {
   kind: "external_launch";
   description?: string;
   command_template: string;
+  /**
+   * iterate-2026-06-11-custom-action-slash-command — declared slash command
+   * for a CUSTOM action (any id outside new-task / new-iterate / new-pipeline)
+   * whose `command_template` uses `{task.initial_prompt}`. Lets the
+   * substituter fuse the slash command + description into ONE shell-quoted
+   * positional (the Claude CLI accepts only one `[prompt]` arg, so a separate
+   * `{task.description?}` token is silently dropped). Must match
+   * `SLASH_COMMAND_PATTERN` (validated at load time). Ignored for builtin ids.
+   */
+  slash_command?: string;
   modal_fields?: string[];
   /**
    * Phase-independent CLI parameters (used by new-pipeline / new-iterate).

@@ -1,21 +1,19 @@
 {
-  "last_updated": "2026-06-11T21:25:00Z",
+  "last_updated": "2026-06-11",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-11-campaign-events-projection",
+    "run_id": "iterate-2026-06-11-custom-action-slash-command",
     "date": "2026-06-11",
-    "intent": "change",
+    "type": "feature",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 3176,
-      "total": 3176,
-      "note": "F0 fresh full suites: server vitest 1592/1592 (incl. new campaign-events.test.ts 14 + campaigns.events.test.ts 3) + client vitest 1584/1584 (incl. extended campaignsApi.selectors.test.ts + doc-sync campaign-events token); tsc --noEmit clean both workspaces; oxlint clean on touched files."
+      "passed": 1612,
+      "total": 1612
     },
     "integration": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "Real-route HTTP tests through createCampaignsRoutes + on-disk shipwright_events.jsonl (campaigns.events.test.ts): overlay completion onto a stale dir-sourced step, synthesize derived campaign with no dir, missing-log no-op."
+      "passed": 8,
+      "total": 8
     },
     "pgtap": {
       "status": "not_run",
@@ -23,10 +21,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "campaign-events-projection.spec.ts executed against a live single-process isolated stack (Hono :3996 + SHIPWRIGHT_STATIC_DIR client/dist, temp USERPROFILE) seeded with a fixture project that has NO campaign dir + a stamped events.jsonl: derived campaign card + 'events' badge + 2/2 + both steps complete."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0,
+      "note": "F0.5 surface=api (real launch route via routes.slash-command.test.ts); no client/** behavior changed, modal/WS path unchanged"
     },
     "design_fidelity": {
       "status": "not_run",
@@ -36,115 +34,101 @@
     "smoke": {
       "status": "not_run"
     },
-    "surface_verification": {
-      "surface": "web",
-      "exit_code": 0,
-      "tests_run": 1,
-      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/campaign-events-projection.spec.ts (BASE_URL=http://127.0.0.1:3996)",
-      "evidence_path": "live isolated stack :3996 (built client + tsx server, temp USERPROFILE); 1 passed (4.1s)",
-      "timestamp": "2026-06-11T21:25:00Z"
-    },
+    "degraded": [],
     "test_completeness": {
-      "counts": {
-        "total_behaviors": 18,
-        "tested": 18,
-        "untestable": 0,
-        "untested_testable": 0
-      },
-      "enumeration_basis": "Behaviors introduced/changed by core/campaign-events.ts (projectCampaignEvents + readCampaignEvents + applyEventsProjection overlay/synthesize), the GET /api/campaigns route wiring, the selectActiveCampaigns derivedFromEvents exception, and the CampaignLaneCard 'events' badge.",
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "projectCampaignEvents groups work_completed by top-level campaign+sub_iterate_id; ignores non-work_completed / missing campaign / missing sid",
+          "behavior": "custom slash_command + {task.initial_prompt} fuses slash+desc into ONE positional (posix/ps/cmd)",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'groups ...', 'ignores ...'"
+          "evidence": "actions-substitute.test.ts custom slash_command + routes.slash-command.test.ts"
         },
         {
-          "behavior": "latest event wins per sub_iterate_id (ts epoch, file-index tiebreak; unparseable ts oldest)",
+          "behavior": "empty description -> slash only, no trailing space",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'latest event wins', 'file-index breaks ties'"
+          "evidence": "actions-substitute.test.ts emits only the slash command"
         },
         {
-          "behavior": "tolerates corrupt / blank / non-object JSON lines (torn 3s-poll read)",
+          "behavior": "multi-line description flattened inside fused token",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'tolerates corrupt lines' + Boundary Probe (real 209-line log + torn line)"
+          "evidence": "actions-substitute.test.ts flattens a multi-line description"
         },
         {
-          "behavior": "overlay bumps a pending step to complete and recomputes done/nextPending",
+          "behavior": "single-quote escaped inside fused token",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'bumps a pending step'; campaigns.events.test.ts 'overlays ...'"
+          "evidence": "actions-substitute.test.ts escapes a single-quote"
         },
         {
-          "behavior": "never-downgrade: complete stays with no event; failed superseded by a complete event",
+          "behavior": "stray-padded slash_command trimmed (parity)",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'never downgrades'"
+          "evidence": "actions-substitute.test.ts trims stray surrounding whitespace"
         },
         {
-          "behavior": "empty event commit never clobbers a real local commit; non-empty overrides",
+          "behavior": "builtin ids ignore slash_command (builtins win)",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'does NOT touch ... empty event commit'"
+          "evidence": "actions-substitute.test.ts BUILTIN ids ignore slash_command"
         },
         {
-          "behavior": "no events -> dir-sourced campaigns untouched (no derivedFromEvents)",
+          "behavior": "custom id without/with malformed slash_command -> UnknownActionError",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'leaves campaigns untouched'; campaigns.events.test.ts 'a missing event log ...'"
+          "evidence": "actions-substitute.test.ts throws UnknownActionError (2 cases)"
         },
         {
-          "behavior": "synthesize derivedFromEvents campaign (all complete, no skeleton, specPath null, numeric-id order, status null)",
+          "behavior": "validateTemplate accepts custom initial_prompt + slash (no 500 dry-run)",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'builds a derived campaign'; campaigns.events.test.ts 'synthesizes ...'"
+          "evidence": "actions-substitute.test.ts AC-6"
         },
         {
-          "behavior": "does NOT synthesize a slug already present locally (overlay owns it)",
+          "behavior": "schema missing_slash_command / invalid_slash_command",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'does NOT synthesize ...'"
+          "evidence": "actions-schema-validation.slash-command.test.ts"
         },
         {
-          "behavior": "locals + synthesized sorted by slug descending",
+          "behavior": "whitespace-padded { task.initial_prompt } detected by validator",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts 'sorts locals + synthesized ...'"
+          "evidence": "actions-schema-validation.slash-command.test.ts detects the WHITESPACE-padded placeholder"
         },
         {
-          "behavior": "readCampaignEvents reads <projectRoot>/shipwright_events.jsonl; missing/unreadable -> empty projection",
+          "behavior": "schema valid custom passes / builtin exempt / non-initial_prompt exempt",
           "disposition": "tested",
-          "evidence": "campaign-events.test.ts readCampaignEvents block"
+          "evidence": "actions-schema-validation.slash-command.test.ts"
         },
         {
-          "behavior": "route GET overlays event completions through createCampaignsRoutes (real on-disk events.jsonl)",
+          "behavior": "launch route end-to-end fusion + no separate trailing token (3 shells)",
           "disposition": "tested",
-          "evidence": "campaigns.events.test.ts 'overlays an event-confirmed completion'"
+          "evidence": "routes.slash-command.test.ts"
         },
         {
-          "behavior": "route GET synthesizes derivedFromEvents when the campaign dir is absent",
+          "behavior": "launch missing slash_command -> 400 command_substitution_failed (not 500)",
           "disposition": "tested",
-          "evidence": "campaigns.events.test.ts 'synthesizes a derivedFromEvents campaign'"
+          "evidence": "routes.slash-command.test.ts 400 (not 500)"
         },
         {
-          "behavior": "projection failure is tolerant — never 500s the route (try/catch guard)",
-          "disposition": "tested",
-          "evidence": "covered by readCampaignEvents tolerance + route guard; campaigns.test.ts suite stays green"
-        },
-        {
-          "behavior": "selectActiveCampaigns keeps derivedFromEvents campaigns visible despite done==total",
-          "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'shows an events-only campaign ...'"
-        },
-        {
-          "behavior": "selector exception stays narrow: a normal done==total campaign is still hidden",
-          "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts 'keeps the events-only exception narrow'"
-        },
-        {
-          "behavior": "CampaignLaneCard renders the 'events' provenance badge only when derivedFromEvents",
-          "disposition": "tested",
-          "evidence": "E2E campaign-events-projection.spec.ts (badge visible) — real Chromium"
-        },
-        {
-          "behavior": "end-to-end: seeded events.jsonl + no campaign dir -> board renders derived card, events badge, 2/2, both steps complete",
-          "disposition": "tested",
-          "evidence": "E2E campaign-events-projection.spec.ts against live isolated stack :3996"
+          "behavior": "upload round-trips slash_command via raw JSON (client does NOT mirror the field)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "JSON.parse/JSON.stringify in the upload path preserves the field regardless of TS types; the client never reads slash_command (server is sole substituter), so no client type change is needed"
         }
-      ]
+      ],
+      "counts": {
+        "testable": 13,
+        "tested": 13,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 8,
+        "covered_acs": 8
+      }
+    },
+    "surface_verification": {
+      "surface": "api",
+      "exit_code": 0,
+      "tests_run": 8,
+      "runner": "npm.cmd --prefix server run test -- run src/external/launch/__tests__/routes.slash-command.test.ts",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-11-custom-action-slash-command/surface_verification.log",
+      "attempts": 1,
+      "note": "surface=api: the changed behavior is the launch route producing the fused command; no client/** behavior changed, the modal/WS auto-execute path is unchanged"
     }
   }
 }
