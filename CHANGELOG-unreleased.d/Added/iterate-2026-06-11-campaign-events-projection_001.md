@@ -1,0 +1,1 @@
+Campaigns board projects campaign progress from the tracked shipwright_events.jsonl (FR-01.33): a redeployed/cloned instance whose campaign planning dirs are gitignored/local-only still surfaces completed sub-iterate progress, and locally-present campaigns get event-confirmed completions overlaid onto their skeleton (corrects a stale status.json).
