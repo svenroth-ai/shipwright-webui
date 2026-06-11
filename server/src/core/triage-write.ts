@@ -1,15 +1,19 @@
 /*
  * triage-write.ts — append-only write surface for `triage.jsonl`.
  *
- * Residence-derived target (campaign 2026-06-08-triage-outbox-delivery / D1;
- * mirrors triage.py mark_status, TRACKED-PREFERRED):
- *   The status line follows its item's `append`. If the append lives ONLY in
- *   the per-tree gitignored outbox (`triage.outbox.jsonl`) the flip is written
- *   THERE; if it lives in the tracked store (or both) it goes to tracked. This
- *   stops a webui status flip on an idle-main background finding from landing
- *   an orphan line in the tracked store — the exact main-tree drift the outbox
- *   campaign eliminated. The outbox is a headerless buffer: a status flip
- *   written to it never bootstraps a schema header.
+ * Write target (campaign 2026-06-08-triage-outbox-delivery; mirrors
+ * triage.py mark_status, updated 2026-06-12):
+ *   1. Idle main (origin remote AND HEAD == default branch — the webui's
+ *      normal runtime context) → the per-tree gitignored outbox
+ *      (`triage.outbox.jsonl`), symmetric with background appends. A flip on a
+ *      TRACKED-resident item would otherwise leave an undelivered status line
+ *      on the tracked store: idle-main drift that blocks a hand `git pull` AND
+ *      never reaches origin (the iterate sweep delivers only the outbox).
+ *   2. Otherwise residence-derived (TRACKED-PREFERRED): the flip follows its
+ *      item's `append` — outbox iff the append lives ONLY in the outbox; else
+ *      tracked (so a no-origin / non-default-branch repo keeps it on tracked).
+ *   The outbox is a headerless buffer: a flip written there never bootstraps a
+ *   schema header.
  *
  * Cross-process lock note (Iterate 2026-05-14, ADR-101):
  *   Python producers use msvcrt/fcntl byte-locks via `_FileLock` (sidecar
@@ -33,6 +37,7 @@
  *   triage lock is slow. Documented in conventions.md.
  */
 
+import { spawnSync } from "node:child_process";
 import {
   appendFileSync,
   existsSync,
@@ -107,11 +112,18 @@ export function appendStatusEvent(args: AppendStatusEventArgs): void {
   const trackedPath = args.jsonlPath;
   const outboxPath = outboxPathFor(trackedPath);
 
-  // Residence-derived target (TRACKED-PREFERRED): outbox iff the append lives
-  // ONLY in the outbox; tracked when it is in tracked (or both) or in neither.
   const inOutbox = appendIdsInFile(outboxPath).has(args.triageId);
   const inTracked = appendIdsInFile(trackedPath).has(args.triageId);
-  const toOutbox = inOutbox && !inTracked;
+  // Idle main (origin + HEAD==default) → outbox, symmetric with background
+  // appends; else residence-derived (TRACKED-PREFERRED): outbox iff the append
+  // lives ONLY in the outbox; tracked when it is in tracked (or both) or in
+  // neither. Mirrors `triage.py mark_status` (2026-06-12) so a dismiss on idle
+  // main never leaves an undelivered status line on the tracked log (drift that
+  // blocks a hand pull and never reaches origin — the sweep delivers only the
+  // outbox). The webui always runs on the target's main checkout, so this is
+  // normally True; it fails safe to tracked for a no-origin / non-default repo.
+  const projectRoot = path.dirname(path.dirname(trackedPath));
+  const toOutbox = shouldRouteToOutbox(projectRoot) || (inOutbox && !inTracked);
   const targetPath = toOutbox ? outboxPath : trackedPath;
 
   // Ensure the parent directory exists (first-write case on an adopted
@@ -155,4 +167,35 @@ export function appendStatusEvent(args: AppendStatusEventArgs): void {
 
 function nowIsoZ(): string {
   return new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/**
+ * Mirror of `shared/scripts/triage.py should_route_to_outbox`: a status flip
+ * routes to the per-tree outbox when the target project has a real delivery
+ * path (an `origin` remote) AND HEAD is on the default branch (idle main — the
+ * webui never runs inside an iterate/* worktree). Any git failure (non-repo,
+ * git missing, detached HEAD) fails SAFE to the tracked store. This keeps an
+ * idle-main dismiss off the tracked log (no undelivered drift / `git pull`
+ * block); the iterate sweep then delivers the outbox to origin.
+ */
+export function shouldRouteToOutbox(projectRoot: string): boolean {
+  const git = (gitArgs: string[]): string | null => {
+    try {
+      const r = spawnSync("git", ["-C", projectRoot, ...gitArgs], {
+        encoding: "utf-8",
+        shell: false,
+        timeout: 5000,
+        windowsHide: true,
+      });
+      return r.status === 0 ? r.stdout.trim() : null;
+    } catch {
+      return null;
+    }
+  };
+  if (git(["remote", "get-url", "origin"]) === null) return false; // no delivery path
+  const current = git(["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (!current) return false;
+  const head = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"]);
+  const defaultBranch = head ? head.replace(/^origin\//, "") : "main";
+  return current === defaultBranch;
 }
