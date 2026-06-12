@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-12T07:03:12.897782+00:00
-Total commits: 543
+Generated: 2026-06-12T09:05:23.192753+00:00
+Total commits: 545
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 191
-    "feat" : 138
-    "chore" : 111
+    "feat" : 139
+    "chore" : 112
     "docs" : 50
     "refactor" : 25
     "test" : 18
@@ -216,10 +216,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 138 commits
+### Features (feat) — 139 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | campaigns | manual dismiss/restore for board cards (FR-01.33) (#126) | ae2711075e9d |
 | 2026-06-11 | actions | custom-action slash_command fuses description into launch prompt | 242c74c8035e |
 | 2026-06-11 | campaigns | project board status from tracked events.jsonl (FR-01.33) | baf6b1593749 |
 | 2026-06-10 | triage | pending-delivery badge for outbox-only items (FR-01.30, parity-gated vs triage_cli --json) | fcdcc45398ac |
@@ -359,10 +360,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 111 commits
+### Chores (chore) — 112 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | triage | sweep 1 outbox append(s) into branch | 60890b927da5 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -612,7 +614,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 543 |
+| Total commits | 545 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 543 |
+| Human-authored commits | 545 |
 

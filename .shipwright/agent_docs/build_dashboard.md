@@ -1,10 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-06-12 07:03 UTC | Session: 1e48715e-93b4-463d-b0ed-af4572d16ab2 | Run: iterate-2026-06-12-campaign-dismiss
+> Updated: 2026-06-12 09:05 UTC | Session: 3627e2d6-1149-4f89-9c4b-e25aebde24d7 | Run: iterate-2026-06-12-compliance-reconcile-b7-g2
 
-## Recent Changes (136 iterations)
+## Recent Changes (138 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Reconcile post-v0.18.0 detective audit: backfill PR #124 (commit 8202109) missing work_completed event (B7) + register the actions/review conventional-commit scopes in audit_config.json g2_stoplist (G2). F5 was a stale-local-main false positive (PASS on origin/main). | 3/3 |  | compliance | 2026-06-12 |
+| change | Backfill (B7 reconciliation): WebUI side of routing idle-main triage status flips to the per-tree outbox (mirror of triage.py mark_status TRACKED-PREFERRED residence). shouldRouteToOutbox(projectRoot) = origin remote AND HEAD==default branch, git-probed via spawnSync, failing safe to tracked on any git error. PR #124 (commit 8202109) merged WITHOUT an F5b work_completed event or F6 Run-ID footer; this event is reconstructed from the commit to close the B7 gap. | 0/0 | 8202109 | FR-01.30 | 2026-06-11 |
 | feature | Manual dismiss/restore (webui-owned board quittance) for Campaigns-board cards; selectVisible/selectDismissed partition + show-dismissed toggle; dismissed-campaigns-store + 2 POST routes + dismissed annotation. | 0/0 |  | FR-01.33 | 2026-06-12 |
 | change | Migrate .github/workflows/claude-review.yml to pr-review.yml: an OpenRouter-backed Tier-3 reviewer (vendored pr_review.py + pr_review_lib.py + prompts under scripts/ci/, logic byte-identical to monorepo B4.5 Phase 2) gated by a decide-job tier filter (external author / sensitive paths .github/workflows,scripts/hooks,scripts/ci / needs-review label). Drops @anthropic-ai/claude-code + ANTHROPIC_API_KEY + the dead develop trigger. Adds an offline selftest job running 72 vendored tests. | 0/0 |  | infra | 2026-06-12 |
 | feature | Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation. | 0/0 |  | FR-01.37 | 2026-06-11 |
@@ -143,7 +145,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-12 | Unit: 37/37 | E2E: 1/1 | Smoke: not_run | (iterate)
+Last run: 2026-06-12 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
