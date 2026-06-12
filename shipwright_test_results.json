@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-06-11",
+  "last_updated": "2026-06-12",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-11-custom-action-slash-command",
-    "date": "2026-06-11",
-    "type": "feature",
+    "run_id": "iterate-2026-06-12-automerge-pr-review-alignment",
+    "date": "2026-06-12",
+    "type": "change",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1612,
-      "total": 1612
+      "passed": 72,
+      "total": 72
     },
     "integration": {
-      "status": "passed",
-      "passed": 8,
-      "total": 8
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -21,10 +21,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "F0.5 surface=api (real launch route via routes.slash-command.test.ts); no client/** behavior changed, modal/WS path unchanged"
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -34,101 +33,126 @@
     "smoke": {
       "status": "not_run"
     },
-    "degraded": [],
+    "degraded": [
+      "check_iterate_isolation.py absent from this plugin cache (shared/scripts/tools) — F0/F11 leak-guard run manually instead: WebUI main tree verified clean, worktree changes contained."
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "custom slash_command + {task.initial_prompt} fuses slash+desc into ONE positional (posix/ps/cmd)",
+          "behavior": "Trigger = PR->main + labeled, no develop",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts custom slash_command + routes.slash-command.test.ts"
+          "evidence": "test_trigger_branch_is_main_only, test_labeled_event_type_present"
         },
         {
-          "behavior": "empty description -> slash only, no trailing space",
+          "behavior": "No @anthropic-ai/claude-code, no ANTHROPIC_API_KEY",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts emits only the slash command"
+          "evidence": "test_no_anthropic_claude_code_package, test_no_anthropic_key, test_uses_openrouter_key_not_anthropic"
         },
         {
-          "behavior": "multi-line description flattened inside fused token",
+          "behavior": "decide tier: sensitive-path classification",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts flattens a multi-line description"
+          "evidence": "Probe D (7 representative paths) + test_sensitive_paths_rule"
         },
         {
-          "behavior": "single-quote escaped inside fused token",
+          "behavior": "decide tier: label-precedence + external-author branches",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts escapes a single-quote"
+          "evidence": "test_skip_label_rule, test_needs_review_label_rule, test_external_author_rule (structural contract pins, same strategy canonical applies); live Actions exec on first PR"
         },
         {
-          "behavior": "stray-padded slash_command trimmed (parity)",
+          "behavior": "review job: name 'PR Review', needs decide, gate on needs_review=='true'",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts trims stray surrounding whitespace"
+          "evidence": "test_job_name_is_pr_review, test_needs_decide_with_gate + Probe B (YAML)"
         },
         {
-          "behavior": "builtin ids ignore slash_command (builtins win)",
+          "behavior": "review job invokes vendored script with OpenRouter secret + model env",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts BUILTIN ids ignore slash_command"
+          "evidence": "test_calls_custom_script_not_third_party_action, test_openrouter_secret_used, test_model_env_override"
         },
         {
-          "behavior": "custom id without/with malformed slash_command -> UnknownActionError",
+          "behavior": "script: decision->exit (approve/comment=0, block=1, error=2)",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts throws UnknownActionError (2 cases)"
+          "evidence": "TestDecisionToExit, TestMainOrchestration"
         },
         {
-          "behavior": "validateTemplate accepts custom initial_prompt + slash (no 500 dry-run)",
+          "behavior": "script: truncated diff never auto-blocks",
           "disposition": "tested",
-          "evidence": "actions-substitute.test.ts AC-6"
+          "evidence": "test_truncation_forces_exit_0_even_on_block, test_over_limit_truncates"
         },
         {
-          "behavior": "schema missing_slash_command / invalid_slash_command",
+          "behavior": "script: markdown-fence / prose JSON tolerance",
           "disposition": "tested",
-          "evidence": "actions-schema-validation.slash-command.test.ts"
+          "evidence": "test_json_object_in_markdown_fence/_bare_fence/_with_surrounding_prose"
         },
         {
-          "behavior": "whitespace-padded { task.initial_prompt } detected by validator",
+          "behavior": "script: API key never logged (redaction)",
           "disposition": "tested",
-          "evidence": "actions-schema-validation.slash-command.test.ts detects the WHITESPACE-padded placeholder"
+          "evidence": "test_api_key_never_logged, TestRedaction"
         },
         {
-          "behavior": "schema valid custom passes / builtin exempt / non-initial_prompt exempt",
+          "behavior": "script: OpenRouter request shape (auth, json_object)",
           "disposition": "tested",
-          "evidence": "actions-schema-validation.slash-command.test.ts"
+          "evidence": "test_builds_authorized_json_request"
         },
         {
-          "behavior": "launch route end-to-end fusion + no separate trailing token (3 shells)",
+          "behavior": "script: gh wrappers error handling",
           "disposition": "tested",
-          "evidence": "routes.slash-command.test.ts"
+          "evidence": "TestGhWrappers"
         },
         {
-          "behavior": "launch missing slash_command -> 400 command_substitution_failed (not 500)",
+          "behavior": "script: standalone CLI entrypoint, missing key -> exit 2",
           "disposition": "tested",
-          "evidence": "routes.slash-command.test.ts 400 (not 500)"
+          "evidence": "Probe C"
         },
         {
-          "behavior": "upload round-trips slash_command via raw JSON (client does NOT mirror the field)",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "reason": "JSON.parse/JSON.stringify in the upload path preserves the field regardless of TS types; the client never reads slash_command (server is sole substituter), so no client type change is needed"
+          "behavior": "vendored lib byte-identical to canonical",
+          "disposition": "tested",
+          "evidence": "Probe A (diff code body == canonical)"
+        },
+        {
+          "behavior": "vendored tool diff = only documented deltas",
+          "disposition": "tested",
+          "evidence": "Probe E (diff vs canonical)"
+        },
+        {
+          "behavior": "prompts: strict-JSON contract + untrusted-diff inoculation",
+          "disposition": "tested",
+          "evidence": "TestPromptContent"
+        },
+        {
+          "behavior": "selftest job runs vendored suite",
+          "disposition": "tested",
+          "evidence": "test_selftest_runs_vendored_suite"
+        },
+        {
+          "behavior": "third-party actions SHA-pinned (none present, future-proof)",
+          "disposition": "tested",
+          "evidence": "test_third_party_actions_sha_pinned"
+        },
+        {
+          "behavior": "no raw github context in run bodies (injection guard)",
+          "disposition": "tested",
+          "evidence": "test_no_direct_github_context_in_run_body"
         }
       ],
       "counts": {
-        "testable": 13,
-        "tested": 13,
-        "untestable": 1,
+        "testable": 19,
+        "tested": 19,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 8,
-        "covered_acs": 8
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "surface_verification": {
-      "surface": "api",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 8,
-      "runner": "npm.cmd --prefix server run test -- run src/external/launch/__tests__/routes.slash-command.test.ts",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-11-custom-action-slash-command/surface_verification.log",
-      "attempts": 1,
-      "note": "surface=api: the changed behavior is the launch route producing the fused command; no client/** behavior changed, the modal/WS auto-execute path is unchanged"
+      "tests_run": 0,
+      "attempts": 0,
+      "justification": "CI-only tooling change (.github/workflows/pr-review.yml + vendored scripts/ci/ Python). The diff touches no API route, store mutation, SSE/WS handler, message contract, or any client/server runtime code the WebUI app consumes — so there is no web/api surface to exercise. The reviewer's own behavior is covered by 72 offline unit tests + 5 empirical probes (see test_completeness).",
+      "note": "surface=none: CI/supply-chain tooling; no app runtime surface affected. Backend-affects-frontend rule N/A (no UI-consumed code changed)."
     }
   }
 }

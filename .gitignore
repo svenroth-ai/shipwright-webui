@@ -3,6 +3,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Python bytecode / caches (scripts/ci reviewer + scripts/hooks)
+__pycache__/
+*.pyc
+.pytest_cache/
+
 # Local env / secrets (never commit)
 .env
 .env.*
