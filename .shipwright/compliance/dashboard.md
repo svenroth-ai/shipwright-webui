@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-06-12T09:05:23.192753+00:00
+Generated: 2026-06-12T19:05:28.012559+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -9,20 +9,20 @@ Scope: full_app
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 138 changes | INFO |  |
-| All unit tests passing | 3/3 | PASS |  |
+| Work events (iterate) | 140 changes | INFO |  |
+| All unit tests passing | 1609/1609 | PASS |  |
 | Architecture decisions | 168 ADRs | INFO |  |
-| Iterate tests passing | 71/138 iterations tested | WARN | 67 iterate(s) without tests — see test-evidence.md |
+| Iterate tests passing | 72/140 iterations tested | WARN | 68 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 65 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 2 open | WARN | 2 actionable item(s) — see ../agent_docs/triage_inbox.md |
-| Bloat over-limit | 78 | WARN | 78 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
-| Bloat in allowlist | 82 entries | INFO |  |
-| Bloat ratchet delta | -85 lines | PASS |  |
+| Bloat over-limit | 80 | WARN | 80 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
+| Bloat in allowlist | 84 entries | INFO |  |
+| Bloat ratchet delta | +0 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 138 changes (2026-05-01 → 2026-06-12)
+- Iterate: 140 changes (2026-05-01 → 2026-06-12)
 - Last activity: 2026-06-12
 
 ## External LLM Review Evidence

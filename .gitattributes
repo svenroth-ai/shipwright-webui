@@ -7,3 +7,6 @@ server/src/terminal/fixtures/*.log binary
 # Shipwright append-log union merge driver (managed block — do not hand-edit).
 shipwright_events.jsonl merge=union
 .shipwright/triage.jsonl merge=union
+
+.shipwright/agent_docs/architecture.md merge=union
+.shipwright/agent_docs/conventions.md merge=union

@@ -123,9 +123,16 @@
     {
       "path": "client/src/components/external/SmartViewer.tsx",
       "limit": 300,
-      "current": 321,
+      "current": 290,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "client/src/components/external/SmartViewer/MarkdownEditorModal.tsx",
+      "limit": 300,
+      "current": 301,
+      "state": "grandfathered",
+      "adr": "iterate-2026-06-12-compliance-bloat-g2-reconcile"
     },
     {
       "path": "client/src/components/external/TaskCard.test.tsx",
@@ -137,7 +144,7 @@
     {
       "path": "client/src/components/external/TaskCard.tsx",
       "limit": 300,
-      "current": 606,
+      "current": 552,
       "state": "grandfathered",
       "adr": null
     },
@@ -408,6 +415,13 @@
       "adr": null
     },
     {
+      "path": "server/src/core/triage-write.test.ts",
+      "limit": 300,
+      "current": 373,
+      "state": "grandfathered",
+      "adr": "iterate-2026-06-12-compliance-bloat-g2-reconcile"
+    },
+    {
       "path": "server/src/external/actions-routes.test.ts",
       "limit": 300,
       "current": 1213,
@@ -522,7 +536,7 @@
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1219,
+      "current": 1217,
       "state": "exception",
       "adr": "ADR-101"
     },

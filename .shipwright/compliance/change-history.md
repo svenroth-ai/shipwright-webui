@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-06-12T09:05:23.192753+00:00
-Total commits: 545
+Generated: 2026-06-12T19:05:28.012559+00:00
+Total commits: 548
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 191
+    "fix" : 192
     "feat" : 139
-    "chore" : 112
-    "docs" : 50
+    "chore" : 113
+    "docs" : 51
     "refactor" : 25
     "test" : 18
     "ci" : 5
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 191 commits
+### Fixes (fix) — 192 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | compliance | reconcile post-v0.18.0 detective audit (B7 backfill + G2 scopes) (#127) | 0ab35626a0d6 |
 | 2026-06-12 | triage | route idle-main status flips to the outbox (mirror mark_status) (#124) | 820210949f5b |
 | 2026-06-09 | terminal | force full-viewport WebGL repaint on scroll to kill table smear | 1bed8a83ba41 |
 | 2026-06-09 | campaigns | show live per-step in_progress on the board from loop_state.json | 28c7559a47d5 |
@@ -360,11 +361,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 112 commits
+### Chores (chore) — 113 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-12 | triage | sweep 1 outbox append(s) into branch | 60890b927da5 |
+| 2026-06-12 | triage | sweep 2 outbox append(s) into branch | 970d1fe5d851 |
+| 2026-06-12 | — | scaffold append-log union merge driver into .gitattributes | 7972bfb7afab |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -477,10 +479,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 50 commits
+### Documentation (docs) — 51 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | agent-docs | condense architecture.md + conventions.md to ADR-anchored pointers (#128) | 18cf09d455af |
 | 2026-06-09 | spec | record FR-01.33 live per-step in_progress MODIFY criterion | b246dcfe13cc |
 | 2026-06-08 | spec | record FR-01.30 outbox-union MODIFY acceptance criteria | e8786ad57f98 |
 | 2026-06-08 | arch | document post-replay full-viewport refresh fix | 59cba0afec5b |
@@ -614,7 +617,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 545 |
+| Total commits | 548 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 545 |
+| Human-authored commits | 548 |
 

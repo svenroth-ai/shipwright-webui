@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-12",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-12-agent-docs-condense",
+    "run_id": "iterate-2026-06-12-compliance-bloat-g2-reconcile",
     "date": "2026-06-12",
     "type": "change",
-    "complexity": "medium",
+    "complexity": "small",
     "unit": {
       "status": "passed",
-      "passed": 84,
-      "total": 84
+      "passed": 1609,
+      "total": 1609
     },
     "integration": {
       "status": "not_run",
@@ -35,53 +35,59 @@
     },
     "surface_verification": {
       "surface": "none",
+      "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Docs-only change to .shipwright/agent_docs markdown (architecture.md, conventions.md). No runtime / UI / API / store / message-contract code touched (git diff = only those two docs + the iterate spec), so there is no web surface to drive. The sole automated contract over these docs is the client doc-sync.test.ts file-map token gate, which is green."
+      "evidence_path": ".shipwright/runs/iterate-2026-06-12-compliance-bloat-g2-reconcile/surface_verification.json",
+      "timestamp": "2026-06-12T19:02:57.857Z",
+      "justification": "Governance/config + dead-code only: audit_config.json (g2_stoplist), shipwright_bloat_baseline.json (counts), and removal of an unused default export. No runtime / UI / API behavior change. Empirical verification is the compliance detector re-run (G2/H1/H2 -> PASS) + full client suite (1609 passed) + tsc, not a startable surface."
     },
     "degraded": [
-      "Full client+server regression suite not re-run: zero source files changed, so no code path is affected. Relevant gate = the 3 tests that read these docs (doc-sync 55, virtualizerSizeCache 17, tree-route 12 = 84/84 green).",
-      "check_iterate_isolation.py absent from this plugin cache (shared/scripts/tools) - F0/F11 leak-guard verified manually: changes contained to the .worktrees/agent-docs-condense worktree branch; main tree clean."
+      "Server workspace test suite not re-run: zero server source files changed (only audit_config.json + shipwright_bloat_baseline.json, which no server code consumes). The bloat-baseline edit is validated by the vendored anti_ratchet_check.py (exit 0, staged + worktree) and the compliance Group-H detector re-run."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Every doc-sync REQUIRED_TOKEN still resolves in the bundle (CLAUDE.md + architecture.md + component_inventory.md)",
+          "behavior": "G2: conventional-commit scope 'agent-docs' (commit 18cf09d) resolves against the stoplist",
           "disposition": "tested",
-          "evidence": "client doc-sync.test.ts 55/55 PASSED after the condense"
+          "evidence": "compliance group_g._check_g2 re-run vs worktree: G2 PASS (every scope in 7 commits resolves)"
         },
         {
-          "behavior": "The ~28 module/component tokens that live ONLY in architecture.md survive the collapse of the Architecture Updates paragraphs",
+          "behavior": "H1: both oversize files (MarkdownEditorModal.tsx, triage-write.test.ts) are listed in the bloat baseline",
           "disposition": "tested",
-          "evidence": "post-edit grep cross-check: every token count >=1 (campaign-paths/campaign-store re-spelled after a brace-collapse swallowed them)"
+          "evidence": "compliance group_h.run vs worktree: H1 PASS (all 83 oversize files listed in baseline)"
         },
         {
-          "behavior": "Every ADR-NNN cited in the condensed architecture.md exists as a heading in decision_log.md",
+          "behavior": "H2: baseline 'current' equals on-disk newlines for SmartViewer.tsx / TaskCard.tsx / pty-manager.ts",
           "disposition": "tested",
-          "evidence": "grep cross-check of all 85 cited ADRs vs decision_log headings: 0 missing"
+          "evidence": "compliance group_h.run vs worktree: H2 PASS (current matches on-disk LOC for all entries)"
         },
         {
-          "behavior": "No-ADR-yet Updates entries point at a git-tracked planning/iterate spec (no stranded detail)",
+          "behavior": "Removing MarkdownEditorModal's dead default export breaks no consumer (all use the named export)",
           "disposition": "tested",
-          "evidence": "git ls-files confirmed planning/iterate/* specs are tracked, not gitignored"
+          "evidence": "full client vitest 1609/1609 passed + client tsc --noEmit exit 0"
         },
         {
-          "behavior": "Markdown still renders (lists / headings / ASCII System-Overview box well-formed)",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "no markdown renderer in CI; mitigated by author read-through + width-validated ASCII-box edits (Python length asserts)"
+          "behavior": "audit_config.json and shipwright_bloat_baseline.json remain valid JSON after the edits",
+          "disposition": "tested",
+          "evidence": "python -m json.tool on both files: VALID"
+        },
+        {
+          "behavior": "The new baseline does not trip the anti-ratchet pre-commit gate",
+          "disposition": "tested",
+          "evidence": "scripts/hooks/anti_ratchet_check.py --staged and --worktree both exit 0"
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
-        "untestable": 1,
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 6,
+        "covered_acs": 6
       }
     }
   }

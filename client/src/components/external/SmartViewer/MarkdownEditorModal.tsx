@@ -299,5 +299,3 @@ export function MarkdownEditorModal({
     </Dialog.Root>
   );
 }
-
-export default MarkdownEditorModal;

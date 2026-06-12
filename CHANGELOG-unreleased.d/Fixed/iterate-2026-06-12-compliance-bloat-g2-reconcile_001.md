@@ -1,0 +1,1 @@
+Compliance: reconciled detective-audit findings G2 (registered 'agent-docs' conventional-commit scope), H1 (recorded MarkdownEditorModal.tsx + triage-write.test.ts in the bloat baseline; removed a dead default export), and H2 (tightened SmartViewer/TaskCard/pty-manager baseline sizes to actual).
