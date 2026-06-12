@@ -277,9 +277,9 @@
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 681,
+      "current": 650,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-03-campaign-lane-collapse"
+      "adr": "iterate-2026-06-12-campaign-dismiss"
     },
     {
       "path": "client/src/pages/TaskDetailPage.test.tsx",

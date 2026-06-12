@@ -35,6 +35,16 @@ import {
 } from "../core/campaign-status-json.js";
 import { parseFrontmatter } from "../core/campaign-parse.js";
 import { setCampaignStatus, CampaignWriteError } from "../core/campaign-write.js";
+import {
+  isElockedError,
+  isValidCampaignSlug,
+  lockUnavailable,
+  releaseQuietly,
+} from "../core/campaign-route-helpers.js";
+import {
+  getDefaultDismissedStore,
+  type DismissedCampaignsApi,
+} from "../core/dismissed-campaigns-store.js";
 
 export interface CampaignProjectMeta {
   id: string;
@@ -51,6 +61,13 @@ export interface CampaignRoutesDeps {
    * tests. Held across the read-modify-write of the lifecycle status.
    */
   lock: (path: string) => Promise<() => Promise<void>>;
+  /**
+   * Webui-owned board-dismiss store. Omitted in production (resolves the
+   * `getDefaultDismissedStore()` singleton from the registry dir, so `index.ts`
+   * — a grandfathered bloat-baseline file — needs no wiring change); injected in
+   * tests with a temp-file-backed store or an ELOCKED-throwing fake.
+   */
+  dismissedStore?: DismissedCampaignsApi;
 }
 
 /** Current lifecycle status, read with the same precedence as pickLifecycle. */
@@ -70,6 +87,9 @@ function readCurrentStatus(campaignDir: string): CampaignLifecycleStatus | null 
 
 export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
   const app = new Hono();
+  // Lazy default keeps index.ts (grandfathered bloat baseline) untouched.
+  const dismissedStore: DismissedCampaignsApi =
+    deps.dismissedStore ?? getDefaultDismissedStore();
 
   app.get("/api/campaigns/:projectId", (c) => {
     const projectId = c.req.param("projectId");
@@ -151,6 +171,15 @@ export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
         loop.attachedSlugs.has(camp.slug) ||
         camp.steps.some((s) => s.status === "in_progress");
     }
+    // Board-dismiss annotation (iterate-2026-06-12): a webui-owned operator
+    // quittance, NOT a producer status. Annotate (don't filter) so the client's
+    // reversible "show dismissed / restore" UX works off one GET. Lock-free
+    // tolerant read; applies uniformly to dir-sourced and derivedFromEvents
+    // campaigns. Optional field → deploy-skew safe (older client ignores it).
+    const dismissedSlugs = dismissedStore.listDismissed(projectId);
+    for (const camp of campaigns) {
+      camp.dismissed = dismissedSlugs.has(camp.slug);
+    }
     return c.json({ campaigns });
   });
 
@@ -223,41 +252,38 @@ export function createCampaignsRoutes(deps: CampaignRoutesDeps): Hono {
     return c.json({ slug, status: "active" });
   });
 
+  // POST .../:slug/dismiss | .../:slug/restore — webui-owned board quittance.
+  // No campaign-dir realpath guard: dismiss/restore key off (projectId, slug) in
+  // the registry-dir state file, never the campaign dir — which is ABSENT for a
+  // derivedFromEvents ghost (the whole point). Idempotent; ELOCKED → 503.
+  const runDismiss = async (
+    c: Context,
+    projectId: string,
+    slug: string,
+    action: "dismiss" | "restore",
+  ) => {
+    const project = deps.getProjectById(projectId);
+    if (!project || project.synthesized) {
+      return c.json({ error: "project_not_found", projectId }, 404);
+    }
+    if (!isValidCampaignSlug(slug)) {
+      return c.json({ error: "invalid_slug", projectId, slug }, 400);
+    }
+    try {
+      if (action === "dismiss") await dismissedStore.dismiss(projectId, slug);
+      else await dismissedStore.restore(projectId, slug);
+    } catch (err) {
+      if (isElockedError(err)) return lockUnavailable(c);
+      throw err;
+    }
+    return c.json({ slug, dismissed: action === "dismiss" });
+  };
+  app.post("/api/campaigns/:projectId/:slug/dismiss", (c) =>
+    runDismiss(c, c.req.param("projectId"), c.req.param("slug"), "dismiss"),
+  );
+  app.post("/api/campaigns/:projectId/:slug/restore", (c) =>
+    runDismiss(c, c.req.param("projectId"), c.req.param("slug"), "restore"),
+  );
+
   return app;
-}
-
-// ----------------------------------------------------------------------
-// Lock-failure classification (mirrors triage.ts / ADR-106).
-// ----------------------------------------------------------------------
-
-function isElockedError(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    (err as { code?: unknown }).code === "ELOCKED"
-  );
-}
-
-function lockUnavailable(c: Context) {
-  return c.json(
-    {
-      error: "lock_unavailable",
-      message: "Campaign storage is busy — please retry in a moment.",
-    },
-    503,
-  );
-}
-
-async function releaseQuietly(release: () => Promise<void>): Promise<void> {
-  try {
-    await release();
-  } catch (err) {
-    console.warn(
-      JSON.stringify({
-        level: "warn",
-        message: "campaign route: lock release failed (ignored)",
-        error: String(err).slice(0, 200),
-      }),
-    );
-  }
 }

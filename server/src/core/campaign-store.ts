@@ -88,12 +88,13 @@ export interface Campaign {
    * `loop_state.json` `in_progress` unit, OR a `status.json` step `in_progress`.
    * Populated by `routes/campaigns.ts` (this reader leaves it undefined). The
    * launch CTAs disable/relabel on it to prevent spawning a SECOND orchestrator
-   * on the same campaign. Optional for deploy-skew safety (older server → field
-   * absent → client treats as false). See `core/campaign-loop-state.ts`.
+   * on the same campaign. Optional for deploy-skew safety. See `core/campaign-loop-state.ts`.
    */
   attachedRun?: boolean;
   /** Reconstructed purely from tracked events.jsonl when the campaign dir is absent (a clone): completed subs only, total==done, specPath null. Set by `core/campaign-events.ts`. */
   derivedFromEvents?: boolean;
+  /** True when an operator manually dismissed this campaign from the board (a webui-owned quittance, NOT a producer status). Set by `routes/campaigns.ts` from `core/dismissed-campaigns-store.ts`; optional for deploy-skew. */
+  dismissed?: boolean;
 }
 
 const VALID_STATUSES: ReadonlySet<string> = new Set([

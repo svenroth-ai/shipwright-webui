@@ -1,6 +1,6 @@
 # Commit Change Log
 
-Generated: 2026-06-12T05:34:33.501385+00:00
+Generated: 2026-06-12T07:03:12.897782+00:00
 Total commits: 543
 
 ## Commit Distribution
@@ -9,11 +9,11 @@ Total commits: 543
 pie title Commit Types
     "fix" : 191
     "feat" : 138
-    "chore" : 112
+    "chore" : 111
     "docs" : 50
     "refactor" : 25
     "test" : 18
-    "ci" : 4
+    "ci" : 5
     "other" : 4
     "build" : 1
 ```
@@ -359,11 +359,10 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 112 commits
+### Chores (chore) — 111 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-12 | triage | sweep 2 outbox append(s) into branch | 9de59f39d968 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -584,10 +583,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### CI/CD (ci) — 4 commits
+### CI/CD (ci) — 5 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | review | migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125) | c2aa7a53b908 |
 | 2026-06-05 | security | checkout at fetch-depth 1 (no scanner reads git history) | 2fa1e9ab4492 |
 | 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | d66ab5506380 |
 | 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | 7196205297df |

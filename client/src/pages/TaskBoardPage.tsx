@@ -62,8 +62,6 @@ import { useProjects } from "../hooks/useProjects";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useRunConfig } from "../hooks/useRunConfig";
-import { useCampaigns } from "../hooks/useCampaigns";
-import { selectActiveCampaigns } from "../lib/campaignsApi";
 import { TaskCard } from "../components/external/TaskCard";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
@@ -71,7 +69,7 @@ import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { MasterTaskCard } from "../components/external/MasterTaskCard";
-import { CampaignLaneCard } from "../components/external/CampaignLaneCard";
+import { CampaignsLane } from "../components/external/CampaignsLane";
 import { ContinuePipelineModal } from "../components/external/ContinuePipelineModal";
 import { UNASSIGNED_PROJECT_ID } from "../lib/projectIds";
 
@@ -160,16 +158,6 @@ export default function TaskBoardPage() {
   const activeProjectMeta = useMemo(
     () => projects.find((p) => p.id === resolvedProjectId) ?? null,
     [projects, resolvedProjectId],
-  );
-
-  // FR-01.31 — Campaigns lane. Polls campaigns for the active project; renders
-  // a card per campaign with work remaining (done < total). Empty / all-complete
-  // → no lane (no wrapper, no layout shift). Scoped to the active project, like
-  // the Pipelines lane.
-  const campaignsQuery = useCampaigns(resolvedProjectId);
-  const activeCampaigns = useMemo(
-    () => selectActiveCampaigns(campaignsQuery.data ?? []),
-    [campaignsQuery.data],
   );
 
   // Continue Pipeline menu entry availability: only when v2 run-config is
@@ -399,29 +387,10 @@ export default function TaskBoardPage() {
         </div>
       )}
 
-      {/* FR-01.31 — Campaigns lane. One card per active campaign; hidden
-          entirely when none have work remaining (no layout shift). The cards
-          live in a height-capped, internally-scrolling band so several
-          expanded campaigns can never push the kanban board off-screen
-          (iterate-2026-06-03-campaign-lane-collapse). */}
-      {activeCampaigns.length > 0 && (
-        <div
-          className="page-container flex w-full flex-col gap-2 pt-6 pb-2"
-          data-testid="task-board-campaigns-lane"
-        >
-          <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted,#6b7280)]">
-            Campaigns
-          </div>
-          <div
-            className="flex max-h-[40vh] flex-col gap-3 overflow-y-auto"
-            data-testid="task-board-campaigns-scroll"
-          >
-            {activeCampaigns.map((c) => (
-              <CampaignLaneCard key={c.slug} campaign={c} project={activeProjectMeta} />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* FR-01.31/33 — Campaigns lane (extracted to CampaignsLane so the
+          dismiss affordance has a home without growing this file). Hidden
+          entirely when nothing is visible AND nothing is dismissed. */}
+      <CampaignsLane projectId={resolvedProjectId} project={activeProjectMeta} />
 
       {isLoading ? (
         <div className="p-6 text-sm text-[var(--color-muted)]">Loading…</div>

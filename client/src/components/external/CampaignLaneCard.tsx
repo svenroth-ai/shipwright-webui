@@ -27,6 +27,7 @@ import type { Project } from "../../types";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
+import { CampaignDismissButton } from "./CampaignDismissButton";
 
 function StepIcon({ kind }: { kind: "complete" | "in_progress" | "next" | "other" }) {
   if (kind === "complete") {
@@ -122,6 +123,9 @@ export function CampaignLaneCard({
         >
           {campaign.done}/{campaign.total}
         </span>
+        {/* Board quittance — always visible (a finished ghost is usually
+            collapsed); Erledigt → hide, Wiederherstellen → back. */}
+        <CampaignDismissButton campaign={campaign} project={project} />
         {!collapsed && campaign.expandsTriage && (
           <Link
             to="/triage"
