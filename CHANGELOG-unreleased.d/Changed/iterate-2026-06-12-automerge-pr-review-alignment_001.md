@@ -1,0 +1,1 @@
+Automated PR review migrated to an OpenRouter-backed Tier-3 reviewer (vendored under `scripts/ci/`, logic byte-identical to the monorepo B4.5 pattern), gated by a tier filter (external contributors, sensitive paths, or the `needs-review` label); maintainer iterate PRs are reviewed locally and skip the CI review.
