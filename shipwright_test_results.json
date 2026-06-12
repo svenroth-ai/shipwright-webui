@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-12",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-12-campaign-dismiss",
+    "run_id": "iterate-2026-06-12-compliance-reconcile-b7-g2",
     "date": "2026-06-12",
-    "type": "feature",
-    "complexity": "medium",
+    "type": "change",
+    "complexity": "small",
     "unit": {
-      "status": "passed",
-      "passed": 37,
-      "total": 37
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "integration": {
       "status": "not_run",
@@ -21,9 +21,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -34,111 +34,46 @@
       "status": "not_run"
     },
     "degraded": [
-      "check_iterate_isolation.py absent from this plugin cache (shared/scripts/tools) \u2014 F0/F11 leak-guard run manually: WebUI main tree verified clean, all changes contained to the .worktrees/campaign-dismiss worktree branch.",
-      "Full regression suites green beyond the 37 dedicated new tests: server 1632/1632, client 1613/1613 vitest; tsc --noEmit + oxlint clean (server + client)."
+      "No webui unit/E2E suite applies: the diff touches only governance artifacts (audit_config.json g2_stoplist + a shipwright_events.jsonl backfill line) — zero TypeScript source delta. Verification is the /shipwright-compliance detective re-run + JSON validation."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Store: dismiss persists a slug per projectId (schemaVersion-1 JSON)",
+          "behavior": "B7 detective covers PR #124 (commit 8202109) after the backfill work_completed event",
           "disposition": "tested",
-          "evidence": "dismissed-campaigns-store.test.ts: dismiss persists\u2026"
+          "evidence": "run_audit group_b._check_b7 against the worktree -> PASS (6 commits since v0.18.0; 3 excluded by retention, 3 matched events). Pre-edit: FAIL (1 commit 82021094 with no matching event)."
         },
         {
-          "behavior": "Store: dismissals keyed by projectId, no cross-project leakage",
+          "behavior": "G2 detective resolves the 'actions' + 'review' scopes after the g2_stoplist add",
           "disposition": "tested",
-          "evidence": "dismissed-campaigns-store.test.ts: keys by projectId"
+          "evidence": "run_audit group_g._check_g2 against the worktree -> PASS (every scope in 5 commits resolves). Pre-edit: FAIL (c2aa7a53 scope='review'; 242c74c8 scope='actions')."
         },
         {
-          "behavior": "Store: dismiss is idempotent; restore removes + no-op when absent",
+          "behavior": "shipwright_events.jsonl + audit_config.json stay valid JSON after the edits",
           "disposition": "tested",
-          "evidence": "dismissed-campaigns-store.test.ts: idempotent + restore"
-        },
-        {
-          "behavior": "Store: round-trips across instances; tolerant of missing/corrupt file",
-          "disposition": "tested",
-          "evidence": "dismissed-campaigns-store.test.ts: round-trip + tolerates corrupt"
-        },
-        {
-          "behavior": "Store: write wrapped in lock (acquire->write->release), released even on write failure",
-          "disposition": "tested",
-          "evidence": "dismissed-campaigns-store.test.ts: lock wrap + release-on-failure"
-        },
-        {
-          "behavior": "Route: POST dismiss -> 200, persisted, GET annotates dismissed:true",
-          "disposition": "tested",
-          "evidence": "campaigns.dismiss.test.ts: POST dismiss"
-        },
-        {
-          "behavior": "Route: POST restore -> 200, GET annotates dismissed:false; default is false",
-          "disposition": "tested",
-          "evidence": "campaigns.dismiss.test.ts: restore + default false"
-        },
-        {
-          "behavior": "Route: dismiss a derivedFromEvents ghost with NO campaign dir",
-          "disposition": "tested",
-          "evidence": "campaigns.dismiss.test.ts: headline ghost case"
-        },
-        {
-          "behavior": "Route: 404 unknown + synthesized project; 400 control-char slug; 503 ELOCKED",
-          "disposition": "tested",
-          "evidence": "campaigns.dismiss.test.ts: 404/400/503 cases"
-        },
-        {
-          "behavior": "Selector: selectVisibleCampaigns = would-be-visible minus dismissed",
-          "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts: visible"
-        },
-        {
-          "behavior": "Selector: selectDismissedCampaigns = dismissed subset; draft/done excluded; absent=not-dismissed",
-          "disposition": "tested",
-          "evidence": "campaignsApi.selectors.test.ts: dismissed list + deploy-skew"
-        },
-        {
-          "behavior": "API: dismiss/restoreCampaign POST correct endpoints, encode segments, throw on non-2xx",
-          "disposition": "tested",
-          "evidence": "campaignsApi.test.ts: dismiss/restore wrappers"
-        },
-        {
-          "behavior": "Hook: useDismissCampaign dismiss/restore branch; invalidates campaignsKey only on success",
-          "disposition": "tested",
-          "evidence": "useDismissCampaign.test.tsx"
-        },
-        {
-          "behavior": "Button: Erledigt/Wiederherstellen label + click->mutate; hidden w/o project; disabled when pending",
-          "disposition": "tested",
-          "evidence": "CampaignDismissButton.test.tsx"
-        },
-        {
-          "behavior": "Lane: visible/dismissed split + show-dismissed toggle reveal; lane hidden when empty",
-          "disposition": "tested",
-          "evidence": "CampaignsLane.test.tsx"
-        },
-        {
-          "behavior": "End-to-end (real browser): dismiss ghost -> leaves lane -> show-dismissed -> restore -> returns",
-          "disposition": "tested",
-          "evidence": "client/e2e/flows/campaign-dismiss.spec.ts (F0.5, web, exit 0)"
+          "evidence": "json.loads over every events.jsonl line -> parse OK; json.load(audit_config.json) -> parse OK."
         }
       ],
       "counts": {
-        "testable": 16,
-        "tested": 16,
+        "testable": 3,
+        "tested": 3,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "surface_verification": {
-      "surface": "web",
+      "surface": "none",
+      "runner": "",
       "exit_code": 0,
-      "tests_run": 1,
-      "attempts": 1,
-      "justification": "touches_public_api: new POST /api/campaigns/:projectId/:slug/{dismiss,restore} endpoints + an additive `dismissed` annotation on GET /api/campaigns, all consumed by the Campaigns board UI -> web surface mandatory. Executed client/e2e/flows/campaign-dismiss.spec.ts against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_STATIC_DIR=client/dist, PORT=4188, loopback) with a real Chromium: dismiss a derivedFromEvents ghost -> leaves the active lane -> show-dismissed toggle -> restore -> returns. 1 passed (3.9s).",
-      "note": "surface=web; backend-affects-frontend satisfied (new routes + annotation drive the board)."
+      "tests_run": 0,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-12-compliance-reconcile-b7-g2/surface_verification.json",
+      "timestamp": "2026-06-12T09:03:11.725Z",
+      "justification": "Pure compliance-artifact reconciliation (audit_config.json g2_stoplist + a shipwright_events.jsonl backfill line); no client/server source, API route, store, SSE/WS handler, or UI-consumed code touched; no startable surface."
     }
   }
 }
