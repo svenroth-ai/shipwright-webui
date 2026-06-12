@@ -100,3 +100,26 @@ describe("TaskList — phase column (v0.4.2)", () => {
     expect(badge.textContent).toContain("Adopt");
   });
 });
+
+describe("TaskList — title-column truncation (no right-cutoff regression)", () => {
+  // Sven UAT 2026-06-12: the table was clipped on the right (Commit/Updated/
+  // Actions columns disappeared) because the Title cell is `whitespace-nowrap`
+  // (truncate) — in an auto-layout table that lets the Title column grow to its
+  // full content width, pushing the table past the container, where the
+  // wrapper's `overflow-hidden` clipped the overflow. The fix caps the Title
+  // cell with `max-w-0` so the column absorbs leftover width and ellipsizes
+  // instead of overflowing. This pins the truncation affordance.
+  it("Title cell carries max-w-0 + a truncating title span", () => {
+    renderList([
+      baseTask({
+        taskId: "t-long",
+        title:
+          "Fix for Consolidate 3 repo-root resolvers into lib/repo_root.py (events_log.resolve_main_repo_root is in the wrong module)",
+      }),
+    ]);
+    const cell = screen.getByTestId("task-list-cell-t-long-title");
+    expect(cell.className).toMatch(/\bmax-w-0\b/);
+    const title = screen.getByTestId("task-list-title-t-long");
+    expect(title.className).toContain("truncate");
+  });
+});

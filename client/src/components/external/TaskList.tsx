@@ -279,7 +279,7 @@ function TaskListRow({ task }: { task: ExternalTask }) {
         data-task-state={task.state}
       >
         <td
-          className="min-w-0 px-4 py-3"
+          className="max-w-0 px-4 py-3"
           data-testid={`task-list-cell-${task.taskId}-title`}
         >
           <div className="flex min-w-0 items-center gap-2">

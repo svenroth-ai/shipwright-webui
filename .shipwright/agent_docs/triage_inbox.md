@@ -1,29 +1,14 @@
 # Triage Inbox
 
-> Auto-generated 2026-06-12T19:05:28.012559Z. Items waiting for triage decision.
+> Auto-generated 2026-06-12T22:09:56.150454Z. Items waiting for triage decision.
 > Promote via WebUI Triage tab (when v1b lands) or `shared/scripts/tools/triage_promote.py --id <id> --task-ref EXT:<ref>`.
 
 ## Status summary
 
 - Total: 52
-- Triage: 2 | Promoted: 1 | Dismissed: 49 | Snoozed: 0
+- Triage: 1 | Promoted: 1 | Dismissed: 50 | Snoozed: 0
 
-## Top 2 items (severity-sorted)
-
-### Source: compliance (1 item)
-
-<a id="trg-3365c456"></a>
-- **Compliance: 3 open finding(s)** `id=trg-3365c456 | severity=high | kind=compliance → P1/compliance`
-  - 3 open compliance finding(s): G/G2, H/H1, H/H2  - G/G2: Conventional-commit scope matches alias-map / split / stoplist…
-  - Launch payload (copy into a new Claude session):
-    ```text
-    /shipwright-compliance
-    
-    Context: 3 open compliance finding(s): G/G2, H/H1, H/H2.
-    Dashboard: .shipwright/compliance/dashboard.md
-    Each finding + hint is listed in this item's detail.
-    ```
-  - Promote: `triage_promote.py --id trg-3365c456 --task-ref EXT:<ref>`
+## Top 1 items (severity-sorted)
 
 ### Source: iterate (1 item)
 
