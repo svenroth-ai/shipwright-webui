@@ -81,7 +81,7 @@ export function CampaignLaneCard({
 
   return (
     <div
-      className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-card,none)]"
+      className="flex flex-col gap-2 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3"
       data-testid={`campaign-lane-card-${campaign.slug}`}
     >
       {/* Header — the collapse toggle (chevron + slug) + done/total. When

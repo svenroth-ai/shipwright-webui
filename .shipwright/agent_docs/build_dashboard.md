@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-12 19:05 UTC | Session: 47fc0a81-b325-472a-8c0f-b03958433a03 | Run: iterate-2026-06-12-compliance-bloat-g2-reconcile
+> Updated: 2026-06-12 22:09 UTC | Session: 901d1920-426c-483f-9142-fc2d96bb4459 | Run: iterate-2026-06-12-board-visual-fixes
 
-## Recent Changes (140 iterations)
+## Recent Changes (141 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Flat Campaigns-lane card (remove heavy shadow) + fix List-view right-column clipping | 1611/1611 |  | FR-01.01, FR-01.33 | 2026-06-12 |
 | change | compliance G2/H1/H2 bloat-baseline reconcile | 1609/1609 |  | compliance | 2026-06-12 |
 | change | Condense agent_docs (architecture.md + conventions.md) to ADR-anchored pointers; fix structural drift + a launchPayload ADR mislabel | 0/0 |  | docs | 2026-06-12 |
 | change | Reconcile post-v0.18.0 detective audit: backfill PR #124 (commit 8202109) missing work_completed event (B7) + register the actions/review conventional-commit scopes in audit_config.json g2_stoplist (G2). F5 was a stale-local-main false positive (PASS on origin/main). | 3/3 |  | compliance | 2026-06-12 |
@@ -147,7 +148,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-12 | Unit: 1609/1609 | Smoke: not_run | (iterate)
+Last run: 2026-06-12 | Unit: 1611/1611 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

@@ -52,6 +52,17 @@ describe("CampaignLaneCard", () => {
     localStorage.clear();
   });
 
+  // ---- visual: flat card, no heavy drop shadow (Sven UAT 2026-06-12) ----
+
+  it("renders a flat card with no drop shadow (heavy --shadow-card removed)", () => {
+    renderCard(BASE);
+    const card = screen.getByTestId(`campaign-lane-card-${SLUG}`);
+    // The lane card used `shadow-[var(--shadow-card,none)]` (0 6px 30px) which
+    // sat much heavier than the subtle kanban TaskCards below it. The card is
+    // now border-only — no `shadow-*` utility at all.
+    expect(card.className).not.toMatch(/\bshadow-/);
+  });
+
   // ---- collapse / expand (AC-1, AC-2, AC-6) ----
 
   it("is collapsed by default: header (slug + done/total) shown, body hidden", () => {

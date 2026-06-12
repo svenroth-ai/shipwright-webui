@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-12T19:05:28.012559+00:00
+Generated: 2026-06-12T22:09:56.150454+00:00
 Total commits: 548
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 192
+    "fix" : 193
     "feat" : 139
-    "chore" : 113
+    "chore" : 112
     "docs" : 51
     "refactor" : 25
     "test" : 18
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 192 commits
+### Fixes (fix) — 193 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | compliance | reconcile detective audit G2 + H1/H2 (bloat baseline + scope stoplist) (#129) | e2a6af2dc74d |
 | 2026-06-12 | compliance | reconcile post-v0.18.0 detective audit (B7 backfill + G2 scopes) (#127) | 0ab35626a0d6 |
 | 2026-06-12 | triage | route idle-main status flips to the outbox (mirror mark_status) (#124) | 820210949f5b |
 | 2026-06-09 | terminal | force full-viewport WebGL repaint on scroll to kill table smear | 1bed8a83ba41 |
@@ -361,12 +362,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 113 commits
+### Chores (chore) — 112 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-12 | triage | sweep 2 outbox append(s) into branch | 970d1fe5d851 |
-| 2026-06-12 | — | scaffold append-log union merge driver into .gitattributes | 7972bfb7afab |
+| 2026-06-12 | triage | sweep 1 outbox append(s) into branch | 1d46757b3782 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
