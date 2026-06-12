@@ -1,36 +1,37 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-12-automerge-pr-review-alignment"
+run_id: "iterate-2026-06-12-campaign-dismiss"
 phase: "iterate"
-reason: "iterate complete; PR pending"
-timestamp: "2026-06-12T05:34:33.501385+00:00"
+reason: "Manual campaign board dismiss/restore shipped"
+timestamp: "2026-06-12T07:03:12.897782+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-12 05:34:33 UTC
+> Auto-generated 2026-06-12 07:03:12 UTC
 
 ## Session Info
 
-- **Session ID**: 3ee8f719-a26f-4ac1-ba69-84f5b905b542
-- **Timestamp**: 2026-06-12 05:34:33 UTC
-- **Reason**: iterate complete; PR pending
+- **Session ID**: 1e48715e-93b4-463d-b0ed-af4572d16ab2
+- **Timestamp**: 2026-06-12 07:03:12 UTC
+- **Reason**: Manual campaign board dismiss/restore shipped
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-11-custom-action-slash-command
-- **Date**: 2026-06-11T21:41:21.949796Z
+- **Run ID**: iterate-2026-06-12-campaign-dismiss
+- **Date**: 2026-06-12T07:02:52.932815Z
 - **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/custom-action-slash-command
-- **ADR**: iterate-2026-06-11-custom-action-slash-command
+- **Branch**: iterate/campaign-dismiss
+- **ADR**: iterate-2026-06-12-campaign-dismiss
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-11-custom-action-slash-command.md
+- **Spec**: .shipwright/planning/iterate/2026-06-12-campaign-dismiss.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/automerge-pr-review-alignment
-- **Spec**: .shipwright/planning/iterate/iterate-2026-06-12-automerge-pr-review-alignment.md
+- **Branch**: iterate/campaign-dismiss
+- **Run ID**: iterate-2026-06-12-campaign-dismiss
+- **Spec**: .shipwright/planning/iterate/2026-06-12-campaign-dismiss.md
 - **Complexity**: medium
 - **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
@@ -51,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/automerge-pr-review-alignment
-- **Last Commit**: 9de59f3 chore(triage): sweep 2 outbox append(s) into branch
+- **Branch**: iterate/campaign-dismiss
+- **Last Commit**: c2aa7a5 ci(review): migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-3436d224 | work_completed | iterate (Manual dismiss/restore (webui-owned board quittance) for Campaigns-board cards; selectVisible/selectDismissed partition + show-dismissed toggle; dismissed-campaigns-store + 2 POST routes + dismissed annotation.) | 2026-06-12 |
 | evt-6e8fbec8 | work_completed | iterate (Migrate .github/workflows/claude-review.yml to pr-review.yml: an OpenRouter-backed Tier-3 reviewer (vendored pr_review.py + pr_review_lib.py + prompts under scripts/ci/, logic byte-identical to monorepo B4.5 Phase 2) gated by a decide-job tier filter (external author / sensitive paths .github/workflows,scripts/hooks,scripts/ci / needs-review label). Drops @anthropic-ai/claude-code + ANTHROPIC_API_KEY + the dead develop trigger. Adds an offline selftest job running 72 vendored tests.) | 2026-06-12 |
 | evt-06308665 | work_completed | iterate (Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation.) | 2026-06-11 |
 | evt-f9efd836 | work_completed | iterate (Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board) | 2026-06-11 |
 | evt-0533f6ef | work_completed | iterate (Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725.) | 2026-06-10 |
-| evt-620dfb6f | work_completed | iterate (Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips).) | 2026-06-09 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 205
-- **Last iterate**: change — Migrate .github/workflows/claude-review.yml to pr-review.yml: an OpenRouter-backed Tier-3 reviewer (vendored pr_review.py + pr_review_lib.py + prompts under scripts/ci/, logic byte-identical to monorepo B4.5 Phase 2) gated by a decide-job tier filter (external author / sensitive paths .github/workflows,scripts/hooks,scripts/ci / needs-review label). Drops @anthropic-ai/claude-code + ANTHROPIC_API_KEY + the dead develop trigger. Adds an offline selftest job running 72 vendored tests. (2026-06-12)
+- **Total work events**: 206
+- **Last iterate**: feature — Manual dismiss/restore (webui-owned board quittance) for Campaigns-board cards; selectVisible/selectDismissed partition + show-dismissed toggle; dismissed-campaigns-store + 2 POST routes + dismissed annotation. (2026-06-12)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

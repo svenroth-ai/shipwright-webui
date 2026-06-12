@@ -472,6 +472,27 @@ write (creation, sub-iterate/step status, `active → complete`).
   monorepo producer write and unions any producer-written `in_progress` if it
   ever lands.
 
+- (E) **(iterate-2026-06-12-campaign-dismiss, MODIFY of FR-01.33)**
+  Manual **dismiss / restore** of any board card. A `derivedFromEvents` ghost
+  (planning dir gone, only `work_completed` events) is always kept visible by
+  `selectActiveCampaigns` and can never auto-hide; no `status.json` remains and
+  the tracked log has no terminal campaign signal, so a finished campaign
+  lingers forever. Add a **webui-owned board quittance** (NOT a producer status
+  write — read-only-on-campaign-state holds): `${registryDir}/dismissed-campaigns.json`
+  (`{schemaVersion,dismissed:{[projectId]:slug[]}}`, lock-protected RMW). Given a
+  visible card, when the operator clicks **Erledigt**
+  (`[data-testid="campaign-dismiss-<slug>"]`), then `POST /api/campaigns/:projectId/:slug/dismiss`
+  records it, `GET /api/campaigns` annotates an additive `dismissed`, and the card
+  leaves the active lane (`selectVisibleCampaigns`); a `N erledigt · anzeigen`
+  toggle reveals the dimmed dismissed list (`selectDismissedCampaigns`) where
+  **Wiederherstellen** → `POST .../restore` returns it. Endpoints key off
+  `(projectId, slug)` only (never the campaign dir — a ghost has none): unknown/
+  synthesized project → `404`, control-char slug → `400`, lock busy → `503`;
+  idempotent. `index.ts` is untouched (lazy `getDefaultDismissedStore()`
+  singleton); the lane is extracted to `CampaignsLane.tsx`. The automatic
+  counterpart (a producer-emitted terminal `campaign_completed` event) is tracked
+  as monorepo triage `trg-7580f4fe` and will feed the same gate.
+
 ### FR-01.35 In-app Markdown editing in the SmartViewer (rich editor → Markdown save)
 
 Added by `iterate-2026-06-03-smartviewer-markdown-editor`. The first project-file

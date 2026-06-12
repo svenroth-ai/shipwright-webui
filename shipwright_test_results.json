@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-12",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-12-automerge-pr-review-alignment",
+    "run_id": "iterate-2026-06-12-campaign-dismiss",
     "date": "2026-06-12",
-    "type": "change",
+    "type": "feature",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 72,
-      "total": 72
+      "passed": 37,
+      "total": 37
     },
     "integration": {
       "status": "not_run",
@@ -21,9 +21,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "not_run",
@@ -34,110 +34,96 @@
       "status": "not_run"
     },
     "degraded": [
-      "check_iterate_isolation.py absent from this plugin cache (shared/scripts/tools) — F0/F11 leak-guard run manually instead: WebUI main tree verified clean, worktree changes contained."
+      "check_iterate_isolation.py absent from this plugin cache (shared/scripts/tools) \u2014 F0/F11 leak-guard run manually: WebUI main tree verified clean, all changes contained to the .worktrees/campaign-dismiss worktree branch.",
+      "Full regression suites green beyond the 37 dedicated new tests: server 1632/1632, client 1613/1613 vitest; tsc --noEmit + oxlint clean (server + client)."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Trigger = PR->main + labeled, no develop",
+          "behavior": "Store: dismiss persists a slug per projectId (schemaVersion-1 JSON)",
           "disposition": "tested",
-          "evidence": "test_trigger_branch_is_main_only, test_labeled_event_type_present"
+          "evidence": "dismissed-campaigns-store.test.ts: dismiss persists\u2026"
         },
         {
-          "behavior": "No @anthropic-ai/claude-code, no ANTHROPIC_API_KEY",
+          "behavior": "Store: dismissals keyed by projectId, no cross-project leakage",
           "disposition": "tested",
-          "evidence": "test_no_anthropic_claude_code_package, test_no_anthropic_key, test_uses_openrouter_key_not_anthropic"
+          "evidence": "dismissed-campaigns-store.test.ts: keys by projectId"
         },
         {
-          "behavior": "decide tier: sensitive-path classification",
+          "behavior": "Store: dismiss is idempotent; restore removes + no-op when absent",
           "disposition": "tested",
-          "evidence": "Probe D (7 representative paths) + test_sensitive_paths_rule"
+          "evidence": "dismissed-campaigns-store.test.ts: idempotent + restore"
         },
         {
-          "behavior": "decide tier: label-precedence + external-author branches",
+          "behavior": "Store: round-trips across instances; tolerant of missing/corrupt file",
           "disposition": "tested",
-          "evidence": "test_skip_label_rule, test_needs_review_label_rule, test_external_author_rule (structural contract pins, same strategy canonical applies); live Actions exec on first PR"
+          "evidence": "dismissed-campaigns-store.test.ts: round-trip + tolerates corrupt"
         },
         {
-          "behavior": "review job: name 'PR Review', needs decide, gate on needs_review=='true'",
+          "behavior": "Store: write wrapped in lock (acquire->write->release), released even on write failure",
           "disposition": "tested",
-          "evidence": "test_job_name_is_pr_review, test_needs_decide_with_gate + Probe B (YAML)"
+          "evidence": "dismissed-campaigns-store.test.ts: lock wrap + release-on-failure"
         },
         {
-          "behavior": "review job invokes vendored script with OpenRouter secret + model env",
+          "behavior": "Route: POST dismiss -> 200, persisted, GET annotates dismissed:true",
           "disposition": "tested",
-          "evidence": "test_calls_custom_script_not_third_party_action, test_openrouter_secret_used, test_model_env_override"
+          "evidence": "campaigns.dismiss.test.ts: POST dismiss"
         },
         {
-          "behavior": "script: decision->exit (approve/comment=0, block=1, error=2)",
+          "behavior": "Route: POST restore -> 200, GET annotates dismissed:false; default is false",
           "disposition": "tested",
-          "evidence": "TestDecisionToExit, TestMainOrchestration"
+          "evidence": "campaigns.dismiss.test.ts: restore + default false"
         },
         {
-          "behavior": "script: truncated diff never auto-blocks",
+          "behavior": "Route: dismiss a derivedFromEvents ghost with NO campaign dir",
           "disposition": "tested",
-          "evidence": "test_truncation_forces_exit_0_even_on_block, test_over_limit_truncates"
+          "evidence": "campaigns.dismiss.test.ts: headline ghost case"
         },
         {
-          "behavior": "script: markdown-fence / prose JSON tolerance",
+          "behavior": "Route: 404 unknown + synthesized project; 400 control-char slug; 503 ELOCKED",
           "disposition": "tested",
-          "evidence": "test_json_object_in_markdown_fence/_bare_fence/_with_surrounding_prose"
+          "evidence": "campaigns.dismiss.test.ts: 404/400/503 cases"
         },
         {
-          "behavior": "script: API key never logged (redaction)",
+          "behavior": "Selector: selectVisibleCampaigns = would-be-visible minus dismissed",
           "disposition": "tested",
-          "evidence": "test_api_key_never_logged, TestRedaction"
+          "evidence": "campaignsApi.selectors.test.ts: visible"
         },
         {
-          "behavior": "script: OpenRouter request shape (auth, json_object)",
+          "behavior": "Selector: selectDismissedCampaigns = dismissed subset; draft/done excluded; absent=not-dismissed",
           "disposition": "tested",
-          "evidence": "test_builds_authorized_json_request"
+          "evidence": "campaignsApi.selectors.test.ts: dismissed list + deploy-skew"
         },
         {
-          "behavior": "script: gh wrappers error handling",
+          "behavior": "API: dismiss/restoreCampaign POST correct endpoints, encode segments, throw on non-2xx",
           "disposition": "tested",
-          "evidence": "TestGhWrappers"
+          "evidence": "campaignsApi.test.ts: dismiss/restore wrappers"
         },
         {
-          "behavior": "script: standalone CLI entrypoint, missing key -> exit 2",
+          "behavior": "Hook: useDismissCampaign dismiss/restore branch; invalidates campaignsKey only on success",
           "disposition": "tested",
-          "evidence": "Probe C"
+          "evidence": "useDismissCampaign.test.tsx"
         },
         {
-          "behavior": "vendored lib byte-identical to canonical",
+          "behavior": "Button: Erledigt/Wiederherstellen label + click->mutate; hidden w/o project; disabled when pending",
           "disposition": "tested",
-          "evidence": "Probe A (diff code body == canonical)"
+          "evidence": "CampaignDismissButton.test.tsx"
         },
         {
-          "behavior": "vendored tool diff = only documented deltas",
+          "behavior": "Lane: visible/dismissed split + show-dismissed toggle reveal; lane hidden when empty",
           "disposition": "tested",
-          "evidence": "Probe E (diff vs canonical)"
+          "evidence": "CampaignsLane.test.tsx"
         },
         {
-          "behavior": "prompts: strict-JSON contract + untrusted-diff inoculation",
+          "behavior": "End-to-end (real browser): dismiss ghost -> leaves lane -> show-dismissed -> restore -> returns",
           "disposition": "tested",
-          "evidence": "TestPromptContent"
-        },
-        {
-          "behavior": "selftest job runs vendored suite",
-          "disposition": "tested",
-          "evidence": "test_selftest_runs_vendored_suite"
-        },
-        {
-          "behavior": "third-party actions SHA-pinned (none present, future-proof)",
-          "disposition": "tested",
-          "evidence": "test_third_party_actions_sha_pinned"
-        },
-        {
-          "behavior": "no raw github context in run bodies (injection guard)",
-          "disposition": "tested",
-          "evidence": "test_no_direct_github_context_in_run_body"
+          "evidence": "client/e2e/flows/campaign-dismiss.spec.ts (F0.5, web, exit 0)"
         }
       ],
       "counts": {
-        "testable": 19,
-        "tested": 19,
+        "testable": 16,
+        "tested": 16,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -147,12 +133,12 @@
       }
     },
     "surface_verification": {
-      "surface": "none",
+      "surface": "web",
       "exit_code": 0,
-      "tests_run": 0,
-      "attempts": 0,
-      "justification": "CI-only tooling change (.github/workflows/pr-review.yml + vendored scripts/ci/ Python). The diff touches no API route, store mutation, SSE/WS handler, message contract, or any client/server runtime code the WebUI app consumes — so there is no web/api surface to exercise. The reviewer's own behavior is covered by 72 offline unit tests + 5 empirical probes (see test_completeness).",
-      "note": "surface=none: CI/supply-chain tooling; no app runtime surface affected. Backend-affects-frontend rule N/A (no UI-consumed code changed)."
+      "tests_run": 1,
+      "attempts": 1,
+      "justification": "touches_public_api: new POST /api/campaigns/:projectId/:slug/{dismiss,restore} endpoints + an additive `dismissed` annotation on GET /api/campaigns, all consumed by the Campaigns board UI -> web surface mandatory. Executed client/e2e/flows/campaign-dismiss.spec.ts against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_STATIC_DIR=client/dist, PORT=4188, loopback) with a real Chromium: dismiss a derivedFromEvents ghost -> leaves the active lane -> show-dismissed toggle -> restore -> returns. 1 passed (3.9s).",
+      "note": "surface=web; backend-affects-frontend satisfied (new routes + annotation drive the board)."
     }
   }
 }

@@ -1,0 +1,1 @@
+Campaigns board: manual **Erledigt** (dismiss) / **Wiederherstellen** (restore) on any card — a webui-owned board quittance (per-project, in the registry dir) with a "show dismissed" toggle, so a finished events-only campaign that can't auto-hide can be cleared from the board without a producer status write (FR-01.33).

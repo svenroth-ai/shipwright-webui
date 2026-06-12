@@ -68,6 +68,13 @@ export interface Campaign {
    *  (`core/campaign-events.ts`); optional for deploy-skew safety. Mirror of
    *  `server/src/core/campaign-store.ts`. */
   derivedFromEvents?: boolean;
+  /** True when an operator manually dismissed this campaign from the board (a
+   *  webui-owned quittance, NOT a producer status). Server-set
+   *  (`core/dismissed-campaigns-store.ts` via `routes/campaigns.ts`);
+   *  `selectVisibleCampaigns` hides it, `selectDismissedCampaigns` surfaces it
+   *  behind the "show dismissed" toggle. Optional for deploy-skew safety. Mirror
+   *  of `server/src/core/campaign-store.ts`. */
+  dismissed?: boolean;
 }
 
 export async function listCampaigns(projectId: string): Promise<Campaign[]> {
@@ -121,6 +128,36 @@ export async function startCampaign(
 }
 
 /**
+ * Toggle a campaign's webui-owned board dismissal (iterate-2026-06-12).
+ * `dismiss` hides it from the active lane; `restore` brings it back. Idempotent
+ * server-side; this is NOT a producer status write (WebUI is read-only on
+ * campaign producer state). Throws on a non-2xx (404 unknown project / 400 bad
+ * slug / 503 lock busy) so the caller's mutation surfaces it; the board
+ * re-fetches `campaignsKey(projectId)` on success.
+ */
+async function setCampaignDismissed(
+  projectId: string,
+  slug: string,
+  action: "dismiss" | "restore",
+): Promise<void> {
+  const res = await fetch(
+    `${CAMPAIGNS_API}/${encodeURIComponent(projectId)}/${encodeURIComponent(slug)}/${action}`,
+    { method: "POST" },
+  );
+  if (!res.ok) {
+    throw new Error(`campaign ${action} failed: ${res.status}`);
+  }
+}
+
+export function dismissCampaign(projectId: string, slug: string): Promise<void> {
+  return setCampaignDismissed(projectId, slug, "dismiss");
+}
+
+export function restoreCampaign(projectId: string, slug: string): Promise<void> {
+  return setCampaignDismissed(projectId, slug, "restore");
+}
+
+/**
  * A campaign is effectively done when the producer marked it `complete`, OR
  * every step is finished (`total > 0 && done >= total`). The second clause is
  * load-bearing: a campaign driven via individual sub-iterate PRs (rather than
@@ -161,6 +198,27 @@ export function selectActiveCampaigns(campaigns: Campaign[]): Campaign[] {
     if (c.status === "active") return true;
     return c.total > 0 && c.done < c.total; // legacy fallback (status null)
   });
+}
+
+/**
+ * The default board lane: campaigns that would show (`selectActiveCampaigns`)
+ * minus those an operator dismissed. `dismissed` is a webui-owned board
+ * quittance (NOT a producer status); layered ON TOP of `selectActiveCampaigns`
+ * so the would-be-visible rules stay unchanged. A missing `dismissed` (older
+ * server / deploy-skew) is treated as not dismissed.
+ */
+export function selectVisibleCampaigns(campaigns: Campaign[]): Campaign[] {
+  return selectActiveCampaigns(campaigns).filter((c) => !c.dismissed);
+}
+
+/**
+ * The dismissed subset of the would-be-visible campaigns — the restore list
+ * behind the "show dismissed" toggle. A campaign hidden for ANY other reason
+ * (draft / done / legacy-idle) is NOT here; only ones the operator actively
+ * dismissed that would otherwise occupy the lane.
+ */
+export function selectDismissedCampaigns(campaigns: Campaign[]): Campaign[] {
+  return selectActiveCampaigns(campaigns).filter((c) => Boolean(c.dismissed));
 }
 
 /**

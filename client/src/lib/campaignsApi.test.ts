@@ -5,6 +5,8 @@ import {
   launchCampaignRun,
   launchCampaignStepRun,
   startCampaign,
+  dismissCampaign,
+  restoreCampaign,
   type Campaign,
 } from "./campaignsApi";
 
@@ -212,5 +214,46 @@ describe("campaignsApi: startCampaign (FR-01.33)", () => {
       error: "unknown_error",
       message: undefined,
     });
+  });
+});
+
+describe("campaignsApi: dismissCampaign / restoreCampaign", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("POSTs to the slug-scoped dismiss endpoint", async () => {
+    const spy = vi.fn(async () => ({ ok: true, status: 200 }));
+    vi.stubGlobal("fetch", spy);
+    await dismissCampaign("p1", "2026-06-07-x");
+    expect(spy).toHaveBeenCalledWith("/api/campaigns/p1/2026-06-07-x/dismiss", {
+      method: "POST",
+    });
+  });
+
+  it("POSTs to the slug-scoped restore endpoint", async () => {
+    const spy = vi.fn(async () => ({ ok: true, status: 200 }));
+    vi.stubGlobal("fetch", spy);
+    await restoreCampaign("p1", "2026-06-07-x");
+    expect(spy).toHaveBeenCalledWith("/api/campaigns/p1/2026-06-07-x/restore", {
+      method: "POST",
+    });
+  });
+
+  it("encodes both path segments", async () => {
+    const spy = vi.fn(async () => ({ ok: true, status: 200 }));
+    vi.stubGlobal("fetch", spy);
+    await dismissCampaign("p/1", "a b");
+    expect(spy).toHaveBeenCalledWith("/api/campaigns/p%2F1/a%20b/dismiss", {
+      method: "POST",
+    });
+  });
+
+  it("throws on a non-2xx (e.g. 503 lock busy) so the mutation surfaces it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: false, status: 503 })),
+    );
+    await expect(dismissCampaign("p1", "x")).rejects.toThrow(/campaign dismiss failed: 503/);
   });
 });

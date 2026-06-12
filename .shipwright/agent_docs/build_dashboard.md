@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-12 05:34 UTC | Session: 3ee8f719-a26f-4ac1-ba69-84f5b905b542 | Run: iterate-2026-06-12-automerge-pr-review-alignment
+> Updated: 2026-06-12 07:03 UTC | Session: 1e48715e-93b4-463d-b0ed-af4572d16ab2 | Run: iterate-2026-06-12-campaign-dismiss
 
-## Recent Changes (135 iterations)
+## Recent Changes (136 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | Manual dismiss/restore (webui-owned board quittance) for Campaigns-board cards; selectVisible/selectDismissed partition + show-dismissed toggle; dismissed-campaigns-store + 2 POST routes + dismissed annotation. | 0/0 |  | FR-01.33 | 2026-06-12 |
 | change | Migrate .github/workflows/claude-review.yml to pr-review.yml: an OpenRouter-backed Tier-3 reviewer (vendored pr_review.py + pr_review_lib.py + prompts under scripts/ci/, logic byte-identical to monorepo B4.5 Phase 2) gated by a decide-job tier filter (external author / sensitive paths .github/workflows,scripts/hooks,scripts/ci / needs-review label). Drops @anthropic-ai/claude-code + ANTHROPIC_API_KEY + the dead develop trigger. Adds an offline selftest job running 72 vendored tests. | 0/0 |  | infra | 2026-06-12 |
 | feature | Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation. | 0/0 |  | FR-01.37 | 2026-06-11 |
 | change | Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board | 0/0 |  | FR-01.33 | 2026-06-11 |
@@ -142,7 +143,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-12 | Unit: 72/72 | Smoke: not_run | (iterate)
+Last run: 2026-06-12 | Unit: 37/37 | E2E: 1/1 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
