@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-12",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-12-compliance-bloat-g2-reconcile",
+    "run_id": "iterate-2026-06-12-board-visual-fixes",
     "date": "2026-06-12",
-    "type": "change",
+    "type": "bug",
     "complexity": "small",
     "unit": {
       "status": "passed",
-      "passed": 1609,
-      "total": 1609
+      "passed": 1611,
+      "total": 1611
     },
     "integration": {
       "status": "not_run",
@@ -34,60 +34,39 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "Playwright (chromium, @playwright/test) against the worktree client served by `npx vite` (HONO_HOST=100.105.29.88 PORT=3847) proxying the live production backend — verified against real data (175 tasks, campaign 2026-06-10-audit-2-manual)",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-12-compliance-bloat-g2-reconcile/surface_verification.json",
-      "timestamp": "2026-06-12T19:02:57.857Z",
-      "justification": "Governance/config + dead-code only: audit_config.json (g2_stoplist), shipwright_bloat_baseline.json (counts), and removal of an unused default export. No runtime / UI / API behavior change. Empirical verification is the compliance detector re-run (G2/H1/H2 -> PASS) + full client suite (1609 passed) + tsc, not a startable surface."
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-12-board-visual-fixes/screenshots/",
+      "timestamp": "2026-06-13T00:00:00.000Z"
     },
     "degraded": [
-      "Server workspace test suite not re-run: zero server source files changed (only audit_config.json + shipwright_bloat_baseline.json, which no server code consumes). The bloat-baseline edit is validated by the vendored anti_ratchet_check.py (exit 0, staged + worktree) and the compliance Group-H detector re-run."
+      "Server workspace test suite not re-run: zero server source files changed (client-only className changes in TaskList.tsx + CampaignLaneCard.tsx). F0 full client suite 1611/1611 + tsc --noEmit + oxlint cover the diff."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "G2: conventional-commit scope 'agent-docs' (commit 18cf09d) resolves against the stoplist",
+          "behavior": "Campaigns-lane card (FR-01.33) renders flat — no drop shadow (computed box-shadow: none)",
           "disposition": "tested",
-          "evidence": "compliance group_g._check_g2 re-run vs worktree: G2 PASS (every scope in 7 commits resolves)"
+          "evidence": "unit CampaignLaneCard.test.tsx 'renders a flat card with no drop shadow' PASSED; browser: getComputedStyle(card).boxShadow === 'none' on the live 2026-06-10-audit-2-manual card"
         },
         {
-          "behavior": "H1: both oversize files (MarkdownEditorModal.tsx, triage-write.test.ts) are listed in the bloat baseline",
+          "behavior": "List view (FR-01.01) does not clip the right columns — Title cell caps at max-w-0 so the table fits the container and the Title ellipsizes",
           "disposition": "tested",
-          "evidence": "compliance group_h.run vs worktree: H1 PASS (all 83 oversize files listed in baseline)"
-        },
-        {
-          "behavior": "H2: baseline 'current' equals on-disk newlines for SmartViewer.tsx / TaskCard.tsx / pty-manager.ts",
-          "disposition": "tested",
-          "evidence": "compliance group_h.run vs worktree: H2 PASS (current matches on-disk LOC for all entries)"
-        },
-        {
-          "behavior": "Removing MarkdownEditorModal's dead default export breaks no consumer (all use the named export)",
-          "disposition": "tested",
-          "evidence": "full client vitest 1609/1609 passed + client tsc --noEmit exit 0"
-        },
-        {
-          "behavior": "audit_config.json and shipwright_bloat_baseline.json remain valid JSON after the edits",
-          "disposition": "tested",
-          "evidence": "python -m json.tool on both files: VALID"
-        },
-        {
-          "behavior": "The new baseline does not trip the anti-ratchet pre-commit gate",
-          "disposition": "tested",
-          "evidence": "scripts/hooks/anti_ratchet_check.py --staged and --worktree both exit 0"
+          "evidence": "unit TaskList.test.tsx 'Title cell carries max-w-0 + a truncating title span' PASSED; browser metrics vs live stack: overflowPx=0, actionsClipped=false, titleTruncated=true (Updated/Commit/Actions columns all within the wrapper)"
         }
       ],
       "counts": {
-        "testable": 6,
-        "tested": 6,
+        "testable": 2,
+        "tested": 2,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 2,
+        "covered_acs": 2
       }
     }
   }
