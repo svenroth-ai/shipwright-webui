@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-12",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-12-compliance-reconcile-b7-g2",
+    "run_id": "iterate-2026-06-12-agent-docs-condense",
     "date": "2026-06-12",
     "type": "change",
-    "complexity": "small",
+    "complexity": "medium",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 84,
+      "total": 84
     },
     "integration": {
       "status": "not_run",
@@ -21,7 +21,7 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -33,47 +33,56 @@
     "smoke": {
       "status": "not_run"
     },
+    "surface_verification": {
+      "surface": "none",
+      "exit_code": 0,
+      "tests_run": 0,
+      "justification": "Docs-only change to .shipwright/agent_docs markdown (architecture.md, conventions.md). No runtime / UI / API / store / message-contract code touched (git diff = only those two docs + the iterate spec), so there is no web surface to drive. The sole automated contract over these docs is the client doc-sync.test.ts file-map token gate, which is green."
+    },
     "degraded": [
-      "No webui unit/E2E suite applies: the diff touches only governance artifacts (audit_config.json g2_stoplist + a shipwright_events.jsonl backfill line) — zero TypeScript source delta. Verification is the /shipwright-compliance detective re-run + JSON validation."
+      "Full client+server regression suite not re-run: zero source files changed, so no code path is affected. Relevant gate = the 3 tests that read these docs (doc-sync 55, virtualizerSizeCache 17, tree-route 12 = 84/84 green).",
+      "check_iterate_isolation.py absent from this plugin cache (shared/scripts/tools) - F0/F11 leak-guard verified manually: changes contained to the .worktrees/agent-docs-condense worktree branch; main tree clean."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "B7 detective covers PR #124 (commit 8202109) after the backfill work_completed event",
+          "behavior": "Every doc-sync REQUIRED_TOKEN still resolves in the bundle (CLAUDE.md + architecture.md + component_inventory.md)",
           "disposition": "tested",
-          "evidence": "run_audit group_b._check_b7 against the worktree -> PASS (6 commits since v0.18.0; 3 excluded by retention, 3 matched events). Pre-edit: FAIL (1 commit 82021094 with no matching event)."
+          "evidence": "client doc-sync.test.ts 55/55 PASSED after the condense"
         },
         {
-          "behavior": "G2 detective resolves the 'actions' + 'review' scopes after the g2_stoplist add",
+          "behavior": "The ~28 module/component tokens that live ONLY in architecture.md survive the collapse of the Architecture Updates paragraphs",
           "disposition": "tested",
-          "evidence": "run_audit group_g._check_g2 against the worktree -> PASS (every scope in 5 commits resolves). Pre-edit: FAIL (c2aa7a53 scope='review'; 242c74c8 scope='actions')."
+          "evidence": "post-edit grep cross-check: every token count >=1 (campaign-paths/campaign-store re-spelled after a brace-collapse swallowed them)"
         },
         {
-          "behavior": "shipwright_events.jsonl + audit_config.json stay valid JSON after the edits",
+          "behavior": "Every ADR-NNN cited in the condensed architecture.md exists as a heading in decision_log.md",
           "disposition": "tested",
-          "evidence": "json.loads over every events.jsonl line -> parse OK; json.load(audit_config.json) -> parse OK."
+          "evidence": "grep cross-check of all 85 cited ADRs vs decision_log headings: 0 missing"
+        },
+        {
+          "behavior": "No-ADR-yet Updates entries point at a git-tracked planning/iterate spec (no stranded detail)",
+          "disposition": "tested",
+          "evidence": "git ls-files confirmed planning/iterate/* specs are tracked, not gitignored"
+        },
+        {
+          "behavior": "Markdown still renders (lists / headings / ASCII System-Overview box well-formed)",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "no markdown renderer in CI; mitigated by author read-through + width-validated ASCII-box edits (Python length asserts)"
         }
       ],
       "counts": {
-        "testable": 3,
-        "tested": 3,
-        "untestable": 0,
+        "testable": 4,
+        "tested": 4,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 5,
+        "covered_acs": 5
       }
-    },
-    "surface_verification": {
-      "surface": "none",
-      "runner": "",
-      "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-12-compliance-reconcile-b7-g2/surface_verification.json",
-      "timestamp": "2026-06-12T09:03:11.725Z",
-      "justification": "Pure compliance-artifact reconciliation (audit_config.json g2_stoplist + a shipwright_events.jsonl backfill line); no client/server source, API route, store, SSE/WS handler, or UI-consumed code touched; no startable surface."
     }
   }
 }
