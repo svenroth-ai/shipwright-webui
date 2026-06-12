@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-11-custom-action-slash-command"
+run_id: "iterate-2026-06-12-automerge-pr-review-alignment"
 phase: "iterate"
-reason: "Custom-action slash_command fuses description into the launch prompt"
-timestamp: "2026-06-11T21:41:42.601851+00:00"
+reason: "iterate complete; PR pending"
+timestamp: "2026-06-12T05:34:33.501385+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-11 21:41:42 UTC
+> Auto-generated 2026-06-12 05:34:33 UTC
 
 ## Session Info
 
-- **Session ID**: e0f25b0e-7059-47f1-b5de-550d9ed7df64
-- **Timestamp**: 2026-06-11 21:41:42 UTC
-- **Reason**: Custom-action slash_command fuses description into the launch prompt
+- **Session ID**: 3ee8f719-a26f-4ac1-ba69-84f5b905b542
+- **Timestamp**: 2026-06-12 05:34:33 UTC
+- **Reason**: iterate complete; PR pending
 
 ## Last Iterate
 
@@ -29,13 +29,15 @@ timestamp: "2026-06-11T21:41:42.601851+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/custom-action-slash-command
-- **Spec**: .shipwright/planning/iterate/2026-06-11-custom-action-slash-command.md
+- **Branch**: iterate/automerge-pr-review-alignment
+- **Spec**: .shipwright/planning/iterate/iterate-2026-06-12-automerge-pr-review-alignment.md
+- **Complexity**: medium
 - **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -49,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/custom-action-slash-command
-- **Last Commit**: ca625ae chore(release): v0.18.0
+- **Branch**: iterate/automerge-pr-review-alignment
+- **Last Commit**: 9de59f3 chore(triage): sweep 2 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -66,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-6e8fbec8 | work_completed | iterate (Migrate .github/workflows/claude-review.yml to pr-review.yml: an OpenRouter-backed Tier-3 reviewer (vendored pr_review.py + pr_review_lib.py + prompts under scripts/ci/, logic byte-identical to monorepo B4.5 Phase 2) gated by a decide-job tier filter (external author / sensitive paths .github/workflows,scripts/hooks,scripts/ci / needs-review label). Drops @anthropic-ai/claude-code + ANTHROPIC_API_KEY + the dead develop trigger. Adds an offline selftest job running 72 vendored tests.) | 2026-06-12 |
 | evt-06308665 | work_completed | iterate (Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation.) | 2026-06-11 |
 | evt-f9efd836 | work_completed | iterate (Project Campaigns-board status from the tracked shipwright_events.jsonl (overlay event-confirmed completions onto dir-sourced campaigns; synthesize derivedFromEvents campaigns when the dir is absent) so gitignored campaigns surface progress on a deployed board) | 2026-06-11 |
 | evt-0533f6ef | work_completed | iterate (Pending-delivery badge for outbox-only triage items: GET /api/triage pendingDelivery enrichment (core/triage-enrich.ts) parity-gated against the real triage_cli.py list --json; amber badge in card+modal; CTAs unchanged; route anti-ratchet extraction 763->725.) | 2026-06-10 |
 | evt-620dfb6f | work_completed | iterate (Force a full-viewport WebGL repaint on the terminal scroll input (term.onScroll + passive wheel listener, rAF-coalesced + 150ms trailing) to fix table smear (stale glyphs the partial dirty-row refresh skips).) | 2026-06-09 |
-| evt-cb165e16 | work_completed | iterate (Campaigns board surfaces the live loop_state.json-derived in_progress sub-iterate as a per-step overlay on GET /api/campaigns (readLoopRunState, read once), so an autonomous build shows real-time progress instead of sitting at done/total=0/N. Only pending->in_progress; done/total/nextPending invariant. Webui-only, independent of the monorepo producer status.json write (trg-9edbab4d).) | 2026-06-09 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 204
-- **Last iterate**: feature — Optional slash_command on custom actions so {task.initial_prompt} fuses slash+description into one positional; fail-loud schema validation. (2026-06-11)
+- **Total work events**: 205
+- **Last iterate**: change — Migrate .github/workflows/claude-review.yml to pr-review.yml: an OpenRouter-backed Tier-3 reviewer (vendored pr_review.py + pr_review_lib.py + prompts under scripts/ci/, logic byte-identical to monorepo B4.5 Phase 2) gated by a decide-job tier filter (external author / sensitive paths .github/workflows,scripts/hooks,scripts/ci / needs-review label). Drops @anthropic-ai/claude-code + ANTHROPIC_API_KEY + the dead develop trigger. Adds an offline selftest job running 72 vendored tests. (2026-06-12)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

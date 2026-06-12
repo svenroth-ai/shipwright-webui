@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-11T21:41:42.601851+00:00
-Total commits: 540
+Generated: 2026-06-12T05:34:33.501385+00:00
+Total commits: 543
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 190
-    "feat" : 137
-    "chore" : 111
+    "fix" : 191
+    "feat" : 138
+    "chore" : 112
     "docs" : 50
     "refactor" : 25
     "test" : 18
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 190 commits
+### Fixes (fix) — 191 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | triage | route idle-main status flips to the outbox (mirror mark_status) (#124) | 820210949f5b |
 | 2026-06-09 | terminal | force full-viewport WebGL repaint on scroll to kill table smear | 1bed8a83ba41 |
 | 2026-06-09 | campaigns | show live per-step in_progress on the board from loop_state.json | 28c7559a47d5 |
 | 2026-06-08 | triage | union tracked ∪ outbox in the webui reader + residence-derived status writes | a7ef0419ca2d |
@@ -215,10 +216,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 137 commits
+### Features (feat) — 138 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-11 | actions | custom-action slash_command fuses description into launch prompt | 242c74c8035e |
 | 2026-06-11 | campaigns | project board status from tracked events.jsonl (FR-01.33) | baf6b1593749 |
 | 2026-06-10 | triage | pending-delivery badge for outbox-only items (FR-01.30, parity-gated vs triage_cli --json) | fcdcc45398ac |
 | 2026-06-04 | campaigns | one-click Launch (Cx) for a single campaign sub-iterate | bb574a38f222 |
@@ -357,10 +359,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 111 commits
+### Chores (chore) — 112 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-12 | triage | sweep 2 outbox append(s) into branch | 9de59f39d968 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -609,7 +612,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 540 |
+| Total commits | 543 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 540 |
+| Human-authored commits | 543 |
 
