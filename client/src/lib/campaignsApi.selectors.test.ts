@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 
 import {
   selectActiveCampaigns,
+  selectVisibleCampaigns,
+  selectDismissedCampaigns,
   selectRiskyPendingSteps,
   isCampaignDone,
   type Campaign,
@@ -170,5 +172,59 @@ describe("campaignsApi: selectRiskyPendingSteps", () => {
       steps: [makeStep({ id: "B0" }), makeStep({ id: "B1", status: "in_progress" })],
     });
     expect(selectRiskyPendingSteps(c)).toEqual([]);
+  });
+});
+
+describe("campaignsApi: selectVisibleCampaigns / selectDismissedCampaigns", () => {
+  it("visible = would-be-shown minus dismissed", () => {
+    const shown = makeCampaign({ slug: "shown", status: "active", done: 1, total: 3 });
+    const dismissed = makeCampaign({
+      slug: "dismissed",
+      status: "active",
+      done: 1,
+      total: 3,
+      dismissed: true,
+    });
+    expect(selectVisibleCampaigns([shown, dismissed]).map((c) => c.slug)).toEqual(["shown"]);
+  });
+
+  it("dismissed list = the dismissed subset of would-be-shown campaigns", () => {
+    const shown = makeCampaign({ slug: "shown", status: "active", done: 1, total: 3 });
+    const dismissed = makeCampaign({
+      slug: "dismissed",
+      status: "active",
+      done: 1,
+      total: 3,
+      dismissed: true,
+    });
+    expect(selectDismissedCampaigns([shown, dismissed]).map((c) => c.slug)).toEqual(["dismissed"]);
+  });
+
+  it("dismissing a derivedFromEvents ghost removes it from the visible lane", () => {
+    const ghost = makeCampaign({
+      slug: "2026-06-07-tracked-campaign-status",
+      status: null,
+      done: 4,
+      total: 4,
+      derivedFromEvents: true,
+      dismissed: true,
+    });
+    expect(selectVisibleCampaigns([ghost])).toEqual([]);
+    expect(selectDismissedCampaigns([ghost]).map((c) => c.slug)).toEqual([
+      "2026-06-07-tracked-campaign-status",
+    ]);
+  });
+
+  it("a campaign hidden for ANOTHER reason (draft/done) is not in the dismissed list", () => {
+    const draft = makeCampaign({ slug: "draft", status: "draft", dismissed: true });
+    const done = makeCampaign({ slug: "done", status: "complete", done: 3, total: 3 });
+    expect(selectDismissedCampaigns([draft, done])).toEqual([]);
+    expect(selectVisibleCampaigns([draft, done])).toEqual([]);
+  });
+
+  it("absent `dismissed` (deploy-skew / older server) is treated as not dismissed", () => {
+    const c = makeCampaign({ slug: "legacy", status: "active", done: 1, total: 3 });
+    expect(selectVisibleCampaigns([c]).map((x) => x.slug)).toEqual(["legacy"]);
+    expect(selectDismissedCampaigns([c])).toEqual([]);
   });
 });

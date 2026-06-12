@@ -100,6 +100,12 @@ const REQUIRED_TOKENS = [
   'campaign-loop-state',
   // iterate-2026-06-11-campaign-events-projection — project board status from tracked events.jsonl (FR-01.31)
   'campaign-events',
+  // iterate-2026-06-12-campaign-dismiss — manual board dismiss/restore (FR-01.33)
+  'dismissed-campaigns-store',
+  'campaign-route-helpers',
+  'CampaignsLane',
+  'CampaignDismissButton',
+  'useDismissCampaign',
 ] as const;
 
 let claudeMd = '';
