@@ -1,10 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-06-12 09:05 UTC | Session: 3627e2d6-1149-4f89-9c4b-e25aebde24d7 | Run: iterate-2026-06-12-compliance-reconcile-b7-g2
+> Updated: 2026-06-12 19:05 UTC | Session: 47fc0a81-b325-472a-8c0f-b03958433a03 | Run: iterate-2026-06-12-compliance-bloat-g2-reconcile
 
-## Recent Changes (138 iterations)
+## Recent Changes (140 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | compliance G2/H1/H2 bloat-baseline reconcile | 1609/1609 |  | compliance | 2026-06-12 |
+| change | Condense agent_docs (architecture.md + conventions.md) to ADR-anchored pointers; fix structural drift + a launchPayload ADR mislabel | 0/0 |  | docs | 2026-06-12 |
 | change | Reconcile post-v0.18.0 detective audit: backfill PR #124 (commit 8202109) missing work_completed event (B7) + register the actions/review conventional-commit scopes in audit_config.json g2_stoplist (G2). F5 was a stale-local-main false positive (PASS on origin/main). | 3/3 |  | compliance | 2026-06-12 |
 | change | Backfill (B7 reconciliation): WebUI side of routing idle-main triage status flips to the per-tree outbox (mirror of triage.py mark_status TRACKED-PREFERRED residence). shouldRouteToOutbox(projectRoot) = origin remote AND HEAD==default branch, git-probed via spawnSync, failing safe to tracked on any git error. PR #124 (commit 8202109) merged WITHOUT an F5b work_completed event or F6 Run-ID footer; this event is reconstructed from the commit to close the B7 gap. | 0/0 | 8202109 | FR-01.30 | 2026-06-11 |
 | feature | Manual dismiss/restore (webui-owned board quittance) for Campaigns-board cards; selectVisible/selectDismissed partition + show-dismissed toggle; dismissed-campaigns-store + 2 POST routes + dismissed annotation. | 0/0 |  | FR-01.33 | 2026-06-12 |
@@ -145,7 +147,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-12 | Smoke: not_run | (iterate)
+Last run: 2026-06-12 | Unit: 1609/1609 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

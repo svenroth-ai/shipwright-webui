@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-12T09:05:23.192753+00:00
+Generated: 2026-06-12T19:05:28.012559+00:00
 
 ## Requirements Coverage
 
@@ -256,6 +256,8 @@ Generated: 2026-06-12T09:05:23.192753+00:00
 | Manual dismiss/restore (webui-owned board quittance) for Campaigns-board cards; selectVisible/selectDismissed partition + show-dismissed toggle; dismissed-campaigns-store + 2 POST routes + dismissed annotation. | iterate | feature | FR-01.33 | — | — | 2026-06-12 |
 | Backfill (B7 reconciliation): WebUI side of routing idle-main triage status flips to the per-tree outbox (mirror of triage.py mark_status TRACKED-PREFERRED residence). shouldRouteToOutbox(projectRoot) = origin remote AND HEAD==default branch, git-probed via spawnSync, failing safe to tracked on any git error. PR #124 (commit 8202109) merged WITHOUT an F5b work_completed event or F6 Run-ID footer; this event is reconstructed from the commit to close the B7 gap. | iterate | change | FR-01.30 | — | 8202109 | 2026-06-11 |
 | Reconcile post-v0.18.0 detective audit: backfill PR #124 (commit 8202109) missing work_completed event (B7) + register the actions/review conventional-commit scopes in audit_config.json g2_stoplist (G2). F5 was a stale-local-main false positive (PASS on origin/main). | iterate | change |  | 3/3 | — | 2026-06-12 |
+| Condense agent_docs (architecture.md + conventions.md) to ADR-anchored pointers; fix structural drift + a launchPayload ADR mislabel | iterate | change |  | — | — | 2026-06-12 |
+| compliance G2/H1/H2 bloat-baseline reconcile | iterate | change |  | 1609/1609 | — | 2026-06-12 |
 
 ## Coverage Summary
 
@@ -263,7 +265,7 @@ Generated: 2026-06-12T09:05:23.192753+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 138 |
+| Iterate changes | 140 |
 | Requirements total | 37 |
 | Requirements verified | 22/37 |
 | Must-have verified | 16/31 |
