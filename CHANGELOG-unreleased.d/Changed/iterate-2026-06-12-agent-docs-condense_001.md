@@ -1,0 +1,1 @@
+Internal agent docs: de-duplicated the architecture.md/conventions.md Updates lists to one ADR-anchored line per change, corrected System-Overview + sub-router drift, fixed a launchPayload ADR mislabel, and reduced the CLAUDE.md-mirrored rule blocks to a terse index
