@@ -1,5 +1,5 @@
 {
-  "_comment": "Project-local override for /shipwright-compliance detective audit. Merges shallowly over the plugin _DEFAULT_CONFIG (audit_detector.py). Only keys present here override; everything else keeps plugin defaults. shipwright-webui is an adopted monorepo-style project with no plan-config splits, so conventional-commit scopes are cross-cutting component names rather than split slugs — the g2_stoplist below enumerates every scope in active use so G2 stops flagging them. Added 2026-05-15 as part of the Iterate K/M compliance-hygiene cleanup.",
+  "_comment": "Project-local override for /shipwright-compliance detective audit. Merges shallowly over the plugin _DEFAULT_CONFIG (audit_detector.py). Only keys present here override; everything else keeps plugin defaults. shipwright-webui is an adopted monorepo-style project with no plan-config splits, so conventional-commit scopes are cross-cutting component names rather than split slugs — the g2_stoplist below enumerates every scope in active use so G2 stops flagging them. Added 2026-05-15 as part of the Iterate K/M compliance-hygiene cleanup. 2026-06-12 (iterate-2026-06-12-compliance-reconcile-b7-g2): added 'actions' (custom-action feature, PR #123 feat(actions)) + 'review' (PR-review CI, PR #125 ci(review)) to reconcile G2 post-v0.18.0. New conventional-commit scopes must be appended here in the same PR that introduces them.",
   "g2_stoplist": [
     "webui", "core", "api", "test", "tests", "ci", "deps",
     "build", "docs", "chore", "deploy", "iterate", "release",
@@ -11,7 +11,8 @@
     "board", "campaigns", "campaign", "smartviewer", "media",
     "client,server", "server,client", "server,test",
     "adr", "spec", "test-status", "events",
-    "governance", "launch-prep", "architecture"
+    "governance", "launch-prep", "architecture",
+    "actions", "review"
   ],
   "_a5_phase_b_comment": "A5.6 dormant-trigger opt-in. security.yml + codeql.yml were deliberately moved to Phase B (active pull_request + weekly schedule) in commit 7196205 (codeql d66ab55). This flag tells the compliance audit the activation is intentional, so A5.6's 'non-dormant trigger active' sub-case PASSES instead of emitting a permanent LOW false-positive. The structural guards (workflow_dispatch presence, bare-'on:' failure) still fire — narrower than disabled_checks:[A5.6]. Producer fix: shipwright PR #164 (a5_phase_b_activated). Accepted-meanwhile decision-drop: iterate-2026-06-07-a5-6-dormant-accepted.",
   "a5_phase_b_activated": true
