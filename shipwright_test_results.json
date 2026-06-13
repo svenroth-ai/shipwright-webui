@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-06-13",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-13-docs-readme-install-audit",
+    "run_id": "iterate-2026-06-13-guide-verify-version-align",
     "date": "2026-06-13",
     "type": "change",
     "complexity": "small",
@@ -34,33 +34,41 @@
       "status": "not_run"
     },
     "degraded": [
-      "Documentation-only iterate (README.md, docs/guide.md prose, Makefile help text + lint target). Zero product source/test files touched, so no unit/integration/e2e/tsc/oxlint product layer applies (worktree node_modules intentionally not hydrated). Factual claims were verified by reading the implementing code (server/src/index.ts:863 serveStatic + :881 SPA fallback; server/package.json start script; server/src/core/cli-compat.ts MIN_SUPPORTED_CLI=2.1.114) and by markdown link/anchor checks."
+      "Documentation + version-metadata iterate (docs/guide.md prose; server/package.json + client/package.json `version` 0.1.0 -> 0.18.0). No product source/test files touched, so no unit/integration/e2e/tsc/oxlint product layer applies (worktree node_modules intentionally not hydrated). guide.md claims were verified by a thorough three-part audit (3 parallel sub-agents) against actual code with file:line citations, the v0.18.0 CHANGELOG + git log, and the traceability matrix.",
+      "touches_build (package.json) performance-test layer SKIPPED per skip-rules: the change is the `version` string only — no dependency added/removed, no bundle/runtime impact, no dev_url for Lighthouse. Verified by grep that no server/client code reads package.json.version (all `*VERSION` reads are schema/contract/CLI constants); the field is unconsumed metadata aligned to the v0.18.0 release tag.",
+      "touches_migrations risk flag from the message classifier is a FALSE POSITIVE: this repo (Hono + React) has no migrations/ or RLS; the F11 verifier recomputes risk flags from the diff and will not enforce down.sql."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Documented Path A claim (production server started via `npm start` serves the built SPA on :3847, so neither Vite nor `make dev-client` is needed) is accurate.",
+          "behavior": "guide.md §9.1 environment-variable table (defaults, precedence, bind addresses, 2s tailscale timeout, .env.local loading, boot-log wording) accurately describes the code.",
           "disposition": "untestable",
           "reason_code": "covered-by-existing-test",
-          "reason": "server/src/test/spa-fallback.test.ts already asserts that GET / returns client/dist/index.html and that serveStatic serves real static assets at config.staticDir — exactly the runtime behavior the new docs describe. No new code path was introduced by the docs edits."
+          "reason": "Each var verified by reading config.ts + the resolver modules (resolveNetworkProfile/resolveHonoHost/resolveViteHost/resolveTrustedOrigins/resolveTailscaleIp) and cli-compat.ts; those resolvers carry their own unit tests and the doc now matches them. Documentation prose has no runtime behavior of its own."
         },
         {
-          "behavior": "Corrected `make lint` help/target claim (oxlint across both server/ and client/) matches reality.",
+          "behavior": "guide.md §9.3 custom-actions corrections (cd.prefix cmd `/d`, the full modal_fields set, schema_validation_failed upload-vs-read split, command_substitution_failed 5-class scope) match the implementation.",
           "disposition": "untestable",
           "reason_code": "covered-by-existing-test",
-          "reason": "both server/package.json and client/package.json already define `\"lint\": \"oxlint .\"`; the Makefile target now chains the two pre-existing, independently-exercised scripts (mirrors the existing `typecheck` target that already runs both halves)."
+          "reason": "Verified against launcher.ts, actions-substitute.ts (13-token allowlist), actions-schema-validator.ts (SUPPORTED_MODAL_FIELDS) and the external upload/get/action-substitution branches; that schema/placeholder surface is already guarded by action-schema-sync.test.ts, actions-substitute.test.ts and api-contract-sweep.test.ts."
+        },
+        {
+          "behavior": "guide.md §6.1 menu-location fix + new §6.9 Campaigns lane / §6.10 file-editor sections describe shipped v0.18.0 features correctly.",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "Cross-checked against components (CreateControls.tsx, MasterTaskCard.tsx, TriageDetailModal.tsx, CampaignLaneCard/CampaignsLane, SmartViewer/MarkdownEditorModal) + the v0.18.0 CHANGELOG (FR-01.33/34/35/36) + traceability-matrix.md. The features themselves are covered by their existing component/spec tests; the diff only documents them."
         }
       ],
       "counts": {
         "testable": 0,
         "tested": 0,
-        "untestable": 2,
+        "untestable": 3,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 3,
+        "covered_acs": 3
       }
     }
   }
