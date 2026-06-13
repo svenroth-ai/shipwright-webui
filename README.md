@@ -1,5 +1,8 @@
 # Shipwright Command Center
 
+> **One Kanban board for every Claude Code project you run in parallel —
+> without giving up the terminal or VS Code workflow you already love.**
+
 Local web app that observes and orchestrates multiple Claude Code
 sessions in parallel. Works alongside the [Shipwright SDLC
 plugins](https://github.com/svenroth-ai/shipwright) but runs as a
@@ -21,61 +24,97 @@ observer of the JSONL transcript.
 Extracted from the Shipwright monorepo on 2026-04-24. Full pre-split
 history is preserved; see the `genesis-from-shipwright-v0.3.2` tag.
 
-**Full docs:** [`docs/guide.md`](docs/guide.md) — installation, updates,
-autostart, custom actions for your own slash skills, troubleshooting.
-This README is the quickstart only.
+**Full docs:** [`docs/guide.md`](docs/guide.md) — the friendly,
+non-expert walkthrough: installation, your first project, daily
+workflow, updates, autostart, network access, custom actions for your
+own slash skills, and troubleshooting. This README gets you running;
+the guide goes deeper.
 
-## Quick start
+## What you get
 
-Prerequisites: Node 20+, npm 10+, Claude Code CLI (any version ≥
-`MIN_SUPPORTED_CLI`, see `server/src/core/cli-compat.ts`).
+- **One Kanban board across every project** — Backlog → In Progress →
+  Done, no tab-juggling between background terminals.
+- **Live transcript per task** — read what Claude is doing right now in
+  chat style, refreshed every second.
+- **Embedded terminal** on each task page — hit **Launch** and the
+  pre-bound `claude` command auto-runs right there.
+- **Inbox** — every "Claude needs permission…" prompt pinned in one
+  place, across all projects.
+- **Triage** — pre-backlog findings from Shipwright's quality, security,
+  and compliance hooks, ready to promote into tasks.
+- **Diagnostics** — CLI version, session count, watcher health at a
+  glance.
+
+It's optional — every Shipwright skill works fine without it — but once
+you have more than one project running in parallel, it stops being a
+luxury. See the [user guide](docs/guide.md) for the full tour.
+
+## Get started
+
+**Prerequisites:** Node.js 20+, Git, and the Claude Code CLI ≥ 2.1.114
+(the pinned `MIN_SUPPORTED_CLI`). No databases, no Docker, no Python, no
+system services. Verify each:
 
 ```bash
+node --version       # v20.x.x or higher
+git --version
+claude --version     # 2.1.114 or higher
+```
+
+Then build once and run a single server — it serves the dashboard
+itself, so there's only **one** address and **one** process to manage:
+
+```bash
+# 1. Get the code
 git clone https://github.com/svenroth-ai/shipwright-webui.git
 cd shipwright-webui
 
-# One-shot install (runs npm install in both server/ and client/)
+# 2. Install dependencies (npm install in both server/ and client/)
 make install
 
-# Start both halves in two terminals
-make dev-server   # Terminal 1 — Hono backend on :3847
-make dev-client   # Terminal 2 — Vite frontend on :5173
+# 3. Build both halves once
+make build
+
+# 4. Start the server (it serves the UI too)
+cd server && npm start
 ```
 
-Then open http://localhost:5173 and register your first project. The
-wizard walks you through stack-profile selection; the Preview button
-appears automatically for frontend projects with a `dev_server.command`
-in their profile.
+Open **http://localhost:3847** and register your first project — the
+wizard walks you through stack-profile selection.
 
-## Standalone vs. monorepo dev-loop
+> **No `make`?** (Common on Windows.) Run the npm scripts directly:
+> `cd server && npm install && npm run build`, then
+> `cd ../client && npm install && npm run build`, then
+> `cd ../server && npm start`.
 
-By default the Command Center reads stack profiles from the bundled
-snapshot at `server/profiles/`. If you're iterating on the
-[shipwright monorepo](https://github.com/svenroth-ai/shipwright) itself
-and want your edits to `shared/profiles/*.json` to take effect without
-re-syncing the snapshot, set:
+On **Windows**, have the server start automatically on every login — see
+[Autostart](#autostart-on-windows) below. The full walkthrough,
+first-project guide, network/Tailscale access, custom actions, and
+troubleshooting all live in [`docs/guide.md`](docs/guide.md).
+
+## Updating
 
 ```bash
-export SHIPWRIGHT_MONOREPO_PATH=/path/to/shipwright-repo
+git pull
+make install        # only when dependencies changed
+make build          # rebuild the compiled server/dist + client/dist
+cd server && npm start   # restart — stop the old one with Ctrl+C first
 ```
 
-The loader cascade (`server/src/core/profile-loader.ts`) prefers
-`SHIPWRIGHT_PROFILES_DIR` first, then `SHIPWRIGHT_MONOREPO_PATH +
-shared/profiles`, then the bundled snapshot.
+The production server runs the **compiled** output, so a `git pull` alone
+won't show new changes until you rebuild. On Windows,
+`scripts\start-server-production.ps1` does rebuild + restart in one step.
+See [guide §7](docs/guide.md#7-updating-the-command-center).
 
-## Parallel worktrees
+## Develop or contribute
 
-Each dev-server binds fixed ports (`PORT=3847`, `VITE_PORT=5173`). For
-two stacks on one machine (e.g. two worktrees of the shipwright
-monorepo you're observing) override both:
-
-```bash
-PORT=3848 VITE_PORT=5174 make dev-server   # worktree B
-PORT=3848 VITE_PORT=5174 make dev-client
-```
-
-Both halves now fail loud on port collisions (Vite via `strictPort`,
-Hono via a bind-error handler, since v0.3.2).
+Editing the Command Center's own code? Run the two halves as hot-reload
+dev servers instead (`make dev-server` on `:3847` + `make dev-client` on
+`:5173`, open `:5173`). That flow — plus the standalone-vs-monorepo
+profile loop (`SHIPWRIGHT_MONOREPO_PATH`) and parallel-worktree port
+overrides (`PORT` / `VITE_PORT`) — is documented in
+[guide §4 Path B](docs/guide.md#4-installation) and [`CLAUDE.md`](CLAUDE.md).
+Contributor norms: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Autostart on Windows
 
@@ -83,9 +122,11 @@ Hono via a bind-error handler, since v0.3.2).
 powershell -ExecutionPolicy Bypass -File scripts\install-windows.ps1
 ```
 
-Creates a `.vbs` launcher in `~\.shipwright-webui\` that starts the
-backend on login. Client can then be opened via browser or via another
-shortcut.
+Installs dependencies, builds both halves, and creates a hidden `.vbs`
+launcher in `~\.shipwright-webui\` that starts the server on login. After
+your next login the **full dashboard** is live at http://localhost:3847 —
+no Vite or `make dev-client` needed. Custom port via `-Port <n>`;
+uninstall with `-Uninstall`.
 
 ## Architecture
 
@@ -114,8 +155,13 @@ documented in
 
 For each registered project, the page lists items with `status==triage`
 grouped by source (alphabetical), severity-rank-sorted within each
-group. Click an item → detail modal with three actions:
+group. Click an item → detail modal with four actions:
 
+- **Fix now** — opens the New-Issue modal pre-filled from the finding
+  (title, description, priority, domain) so launching the task is one
+  more click. `github-source` items route to a `phase=security` task;
+  every other source routes to a new iterate. Use it when you've decided
+  to act on the finding immediately.
 - **Promote** — creates an `ExternalTask` carrying a
   `promotedFromTriageId` back-ref + auto-merged tags
   `["source:<x>", "severity:<sev>", "triage:<id>"]`, then flips the

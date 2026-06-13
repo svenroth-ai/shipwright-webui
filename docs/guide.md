@@ -110,7 +110,7 @@ editor — the Command Center browser tab:
 
 | Window | What it does |
 |---|---|
-| **Command Center** (browser tab on `localhost:5173`) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work — all without leaving the browser. |
+| **Command Center** (browser tab — `localhost:3847` with Path A, `localhost:5173` with Path B) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work — all without leaving the browser. |
 
 Because the Command Center has its own embedded terminal, you do **not**
 need a separate terminal app for the normal Launch → watch → done loop.
@@ -172,9 +172,42 @@ This downloads everything Node needs to run the Command Center. Takes
 
 ### Run it
 
-The Command Center has two halves: a backend (does the work) and a
-frontend (the website you see in the browser). Both need to run at the
-same time, in **two separate terminal windows**.
+There are two ways to run the Command Center. Pick the one that matches
+what you're here to do.
+
+#### Path A — Just use it (recommended)
+
+Best for everyday use. You build the app **once**, then run a single
+server. That server serves the dashboard itself — so there's only **one**
+address to remember and **one** process to keep alive (no second
+terminal).
+
+```bash
+make build
+```
+
+This compiles both halves into `server/dist` + `client/dist` (1–2
+minutes). Then start the server:
+
+```bash
+cd server && npm start
+```
+
+You'll see `Shipwright Command Center listening on
+http://localhost:3847`. Open <http://localhost:3847/> in your browser —
+that's the **whole** dashboard, no Vite / `make dev-client` needed.
+
+> **No `make`?** Run `cd server && npm run build`, then
+> `cd ../client && npm run build`, then `cd ../server && npm start`.
+
+On Windows you can have this start automatically on every login — see
+[§8](#8-autostart-on-windows). That's the smoothest setup for daily use.
+
+#### Path B — Develop or contribute
+
+Best when you're editing the Command Center's **own** code and want
+hot-reload. This runs the two halves as separate dev servers, in **two
+separate terminal windows**.
 
 **Terminal 1** — backend:
 
@@ -182,7 +215,7 @@ same time, in **two separate terminal windows**.
 make dev-server
 ```
 
-You'll see something like `Shipwright Command Center listening on
+You'll see `Shipwright Command Center listening on
 http://localhost:3847`. Leave it running.
 
 **Terminal 2** — frontend:
@@ -193,8 +226,8 @@ make dev-client
 
 You'll see `Local: http://localhost:5173/`. Leave this one running too.
 
-Now open <http://localhost:5173/> in your browser. The Command Center
-is up.
+Now open <http://localhost:5173/> in your browser — in dev mode you use
+the Vite port (`5173`), which proxies `/api` to the backend on `3847`.
 
 > **Want it to start automatically on login (Windows)?** See [§8](#8-autostart-on-windows).
 
@@ -202,8 +235,8 @@ is up.
 
 ## 5. Your first project — step by step
 
-You've got the Command Center running at <http://localhost:5173/>. Time
-to register a Shipwright project.
+You've got the Command Center open in your browser (`:3847` if you took
+Path A, `:5173` for Path B). Time to register a Shipwright project.
 
 ### 5.1 Open the Projects page
 
@@ -440,17 +473,33 @@ appears.
 
 ## 7. Updating the Command Center
 
-When new versions are released, you update with two commands:
+When new versions are released, pull the latest code first:
 
 ```bash
 git pull
-make install
+make install        # only strictly needed when dependencies changed
 ```
 
-Restart both halves:
+Then restart the half you actually run — it depends on which path you
+picked in [§4](#4-installation):
 
-1. Stop them (Ctrl+C in each terminal).
-2. Start them again (`make dev-server` + `make dev-client`).
+- **Path A (production):** rebuild, then restart the server.
+  ```bash
+  make build
+  cd server && npm start      # stop the old one with Ctrl+C first
+  ```
+  On Windows the bundled `scripts\start-server-production.ps1` does the
+  rebuild + stop-old + start-fresh swap in one step, and re-running
+  `scripts\install-windows.ps1` refreshes the autostart build too.
+- **Path B (dev):** just stop both dev servers (Ctrl+C) and start them
+  again (`make dev-server` + `make dev-client`). `tsx watch` and Vite
+  run straight from source, so there's no build step.
+
+> **Why Path A needs the rebuild:** the production server runs the
+> compiled output in `server/dist` + `client/dist`. A `git pull` alone
+> updates the source but not those build artefacts, so a merged change
+> stays invisible until you run `make build`. (The dev servers run from
+> source and don't have this gap.)
 
 If you have [custom actions](#93-custom-actions), the Command Center
 keeps working even if the schema drifts in a new version — it falls
@@ -461,7 +510,7 @@ your leisure.
 
 ## 8. Autostart on Windows
 
-Want the Command Center backend to start automatically every time you
+Want the Command Center server to start automatically every time you
 log in? One PowerShell command:
 
 ```powershell
@@ -473,13 +522,14 @@ This:
 1. Verifies Node.js is installed.
 2. Installs all dependencies.
 3. Builds the production version (faster startup, less memory).
-4. Creates a hidden background launcher so the backend starts silently
+4. Creates a hidden background launcher so the server starts silently
    on login (logs go to `~\.shipwright-webui\server.log`).
 5. Adds a startup shortcut to your Windows **Startup** folder.
 
-After your next login, <http://localhost:3847> is up. Open the frontend
-with `make dev-client` whenever you want to see the dashboard, or wire
-your own browser shortcut.
+After your next login, the **full dashboard** is live at
+<http://localhost:3847> — the production server serves the UI itself, so
+you do **not** need Vite or `make dev-client`. Just open that one address
+(a browser bookmark to it is the most convenient setup).
 
 ### Custom port
 

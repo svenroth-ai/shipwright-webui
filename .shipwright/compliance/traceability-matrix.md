@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-13T04:19:29.201541+00:00
+Generated: 2026-06-13T07:24:48.087348+00:00
 
 ## Requirements Coverage
 
@@ -260,6 +260,7 @@ Generated: 2026-06-13T04:19:29.201541+00:00
 | compliance G2/H1/H2 bloat-baseline reconcile | iterate | change |  | 1609/1609 | — | 2026-06-12 |
 | Flat Campaigns-lane card (remove heavy shadow) + fix List-view right-column clipping | iterate | bug | FR-01.01, FR-01.33 | 1611/1611 | — | 2026-06-12 |
 | Reconcile post-v0.18.0 detective audit F5: document the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment under conventions.md (## Convention Updates). B7 (commit 82021094) and G2 (scopes review/actions, then agent-docs) were already resolved on origin/main by PR #127/#129; F5 had migrated to this drop. | iterate | change |  | 1/1 | — | 2026-06-13 |
+| docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify | iterate | change |  | — | — | 2026-06-13 |
 
 ## Coverage Summary
 
@@ -267,7 +268,7 @@ Generated: 2026-06-13T04:19:29.201541+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 142 |
+| Iterate changes | 143 |
 | Requirements total | 37 |
 | Requirements verified | 22/37 |
 | Must-have verified | 16/31 |
