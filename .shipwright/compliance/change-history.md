@@ -1,6 +1,6 @@
 # Commit Change Log
 
-Generated: 2026-06-13T07:24:48.087348+00:00
+Generated: 2026-06-13T07:54:23.841835+00:00
 Total commits: 550
 
 ## Commit Distribution
@@ -9,8 +9,8 @@ Total commits: 550
 pie title Commit Types
     "fix" : 195
     "feat" : 139
-    "chore" : 112
-    "docs" : 51
+    "chore" : 111
+    "docs" : 52
     "refactor" : 25
     "test" : 18
     "ci" : 5
@@ -364,11 +364,10 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 112 commits
+### Chores (chore) — 111 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-13 | triage | sweep 1 outbox append(s) into branch | c3aed61c17f6 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -481,10 +480,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 51 commits
+### Documentation (docs) — 52 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-13 | readme | production-first install + guide/Makefile correctness fixes (#132) | eeaefb55eb32 |
 | 2026-06-12 | agent-docs | condense architecture.md + conventions.md to ADR-anchored pointers (#128) | 18cf09d455af |
 | 2026-06-09 | spec | record FR-01.33 live per-step in_progress MODIFY criterion | b246dcfe13cc |
 | 2026-06-08 | spec | record FR-01.30 outbox-union MODIFY acceptance criteria | e8786ad57f98 |

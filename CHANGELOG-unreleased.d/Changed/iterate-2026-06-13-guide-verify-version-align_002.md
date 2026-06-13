@@ -1,0 +1,1 @@
+Align the server and client package.json `version` to 0.18.0 (was a stale 0.1.0) so it matches the released CHANGELOG / git tag. The field is unconsumed metadata — nothing in the code reads it — so there is no runtime behavior change.

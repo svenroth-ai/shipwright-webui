@@ -278,20 +278,24 @@ This is the loop you'll repeat for every change you ask Claude to make.
 
 ### 6.1 Start a task
 
-On the Kanban board, click the **+ New ▾** button in the top-right of
-the sidebar. You'll see four options matching the standard Shipwright
-modes:
+On the Kanban board, find the controls in the **top-right of the Task
+Board header**. The **+ New ▾** split-button opens a dropdown with the
+three standard Shipwright modes:
 
 - **New task** — a single Shipwright phase (e.g. just `/shipwright-test`).
 - **New pipeline** — full SDLC, brief → deploy.
 - **New iterate** — daily change on a finished project (the most common
   one after the first build).
-- **Plain Claude** — a chat session without a Shipwright skill.
+
+Next to it sits a separate **Plain Claude** button — a chat session
+without a Shipwright skill.
 
 If you've added [custom actions](#93-custom-actions) for your own slash
-skills, they show up here too. A fifth entry, **Continue Pipeline**,
-shows up when the active project has a multi-session pipeline run that's
-waiting for the next phase — see [6.7](#67-multi-session-pipelines).
+skills, they show up in the dropdown too. A **Continue Pipeline** entry
+appears when the active project has a multi-session pipeline run waiting
+for the next phase — see [6.7](#67-multi-session-pipelines). In the **All
+Projects** view the menus are project-first: you pick a project, then
+that project's own actions.
 
 Pick one. A modal opens.
 
@@ -469,6 +473,52 @@ A project with no `.shipwright/triage.jsonl` simply contributes nothing
 to the tab — nothing to set up, and nothing breaks if the file never
 appears.
 
+### 6.9 The Campaigns lane
+
+Above the Kanban columns, beside the Pipelines lane, the Command Center
+shows a **Campaigns lane** when a project has active Shipwright campaigns
+(multi-iterate efforts planned under
+`.shipwright/planning/iterate/campaigns/`). It's read-only — the
+framework owns campaign state; the Command Center only surfaces it.
+
+Each campaign card shows its slug, a **done/total** progress bar, and one
+row per sub-iterate with a status glyph (`✓` done · `▶` in progress · `○`
+pending). Cards are collapsible (collapsed by default) and the lane is
+height-capped with its own scroll, so several open campaigns don't push
+the board off-screen.
+
+Two launch affordances per campaign:
+
+- **Launch (Cx)** — on the next pending sub-iterate, one click opens a
+  task-detail terminal that auto-runs `/shipwright-iterate "<specPath>"`
+  for that step. A confirm dialog appears only when the step previously
+  failed/escalated or is plan-first.
+- **Launch autonomous** — opens a terminal that auto-runs
+  `/shipwright-iterate --campaign <slug> --autonomous` to drain the whole
+  campaign, behind a confirm dialog that warns about risky steps. Only
+  one autonomous run can attach at a time (a second attempt is blocked).
+
+A finished campaign drops off the lane automatically once every step is
+done. You can also **dismiss** a card by hand (and restore it later) —
+handy for a campaign whose planning dir is gitignored on a redeployed
+instance, where completion can't be auto-detected. Campaign-umbrella
+items in the [Triage tab](#68-the-triage-tab) carry a **Start Campaign**
+button that activates the campaign and jumps you here.
+
+### 6.10 Viewing and editing project files
+
+A task detail page isn't only a transcript. Its **file browser**
+(SmartViewer) opens any file under the project root — Markdown renders,
+images and short video play inline, and diffs are syntax-highlighted.
+
+Markdown files get an **Edit** button that opens a rich-text editor and
+saves your changes back as Markdown. This is one of the few places the
+Command Center writes into your *project* files — it's otherwise a
+read-only observer. Saving shows a mandatory diff first and uses
+optimistic concurrency: if the file changed on disk since you opened it,
+you get a conflict prompt that keeps your edits instead of clobbering the
+other change.
+
 ---
 
 ## 7. Updating the Command Center
@@ -576,6 +626,13 @@ folder, or wire your own slash skills into the menu.
 
 Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`.
+
+> **Advanced tuning knobs.** A handful of rarely-needed terminal/session
+> variables — e.g. `SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS` (idle-reap grace,
+> default 12 h), `SHIPWRIGHT_TERMINAL_NO_FLICKER`, scrollback limits, and
+> `SHIPWRIGHT_MAX_CONCURRENT` — are documented in `.env.example`. Most
+> users never touch them; the table above covers everything you normally
+> need.
 
 #### 9.1.1 `SHIPWRIGHT_NETWORK_PROFILE` — one flag, three modes (recommended)
 
@@ -927,7 +984,9 @@ toggle.
       "kind": "external_launch",         // only kind currently supported
       "description": "string",           // optional; subtitle + generic-mode subheading
       "command_template": "string",      // see Placeholders below
-      "modal_fields": [                  // optional; fields the modal renders
+      "modal_fields": [                  // optional; any of: title, description,
+        //   phase, autonomy, project, domain, priority, complexityHint,
+        //   tags, blockedBy  (the bundled new-task uses the project ones)
         "title", "description", "phase", "autonomy"
       ],
       "parameters": [ /* ParamSchema */ ],            // phase-independent CLI params
@@ -978,7 +1037,7 @@ toggle.
 |---|---|
 | `{project.id}` | Project UUID, raw. |
 | `{project.path}` | Project folder absolute path, shell-escaped. |
-| `{cd.prefix}` | `cd <path> && ` (POSIX/cmd) / `Set-Location <path> -ErrorAction Stop; ` (PowerShell). |
+| `{cd.prefix}` | `cd <path> && ` (POSIX) / `cd /d <path> && ` (cmd — the `/d` also switches drive) / `Set-Location <path> -ErrorAction Stop; ` (PowerShell). |
 | `{task.uuid}` | Pre-bound session UUID, raw. Use after `--session-id`. |
 | `{task.title}` | Task title, shell-escaped. Use bare after `--name` — never `--name "{task.title}"` (the value is already a quoted token; wrapping it double-quotes the name). |
 | `{task.session_name}` | Claude session display name, shell-escaped as one token: `Pipeline: <title>` / `Iterate: <title>` / `<phase>: <title>` for the bundled actions, bare `<title>` for `new-plain` and custom actions. Use bare after `--name`. |
@@ -1018,11 +1077,11 @@ edits on disk only see the read-side validators — the upload-only rows
 | Body > 256 KB on upload | 413 `payload_too_large` (rejected via `Content-Length` pre-check, before buffering). |
 | Malformed JSON on upload | 400 `invalid_json` with parser detail. |
 | Malformed JSON on direct edit | Bundled default served + a diagnostic chip on the project page (`actions_file_malformed`). The Kanban stays usable. |
-| Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, boolean param with `default:true` or `required:true`, …) | 400 `schema_validation_failed` with the full `errors[]` array. |
+| Schema error (duplicate `id`, missing `command_template`, invalid `defaults.autonomy`, empty `phases[]`, unsupported `modal_fields` entry, boolean param with `default:true` or `required:true`, …) | 400 with the full `errors[]` array. On **upload** the top-level `error` is `schema_validation_failed`; on the **catalog-read** endpoint it's the first specific code (e.g. `duplicate_action_id`). |
 | Unknown placeholder in `command_template` | 400 `invalid_placeholder` naming the offending token + `actionId`. Same check runs at upload time AND at every catalog read. |
 | `.shipwright-webui/` resolves outside the project root (symlink escape) | 400 `path_unsafe` with the rejected `reason` (`traversal` / `symlink_escape` / `drive_change`). |
 | Unknown `actionId` at launch | 400 `unknown_action_id`. |
-| Unknown phase at launch | 400 `command_substitution_failed`. |
+| Unknown phase, invalid title/parameter, unknown placeholder, or a custom action missing its `slash_command`, at launch | 400 `command_substitution_failed`. |
 
 #### Constraints
 
