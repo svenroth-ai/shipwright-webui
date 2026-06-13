@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-13 07:54 UTC | Session: 9a409808-d6bf-4c39-85ee-357250bdd850 | Run: iterate-2026-06-13-guide-verify-version-align
+> Updated: 2026-06-13 09:21 UTC | Session: 9a409808-d6bf-4c39-85ee-357250bdd850 | Run: iterate-2026-06-13-spec-webui-path-fix
 
-## Recent Changes (144 iterations)
+## Recent Changes (145 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix. | 0/0 |  | compliance | 2026-06-13 |
 | change | Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0. | 0/0 |  | docs | 2026-06-13 |
 | change | docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify | 0/0 |  | docs | 2026-06-13 |
 | change | Reconcile post-v0.18.0 detective audit F5: document the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment under conventions.md (## Convention Updates). B7 (commit 82021094) and G2 (scopes review/actions, then agent-docs) were already resolved on origin/main by PR #127/#129; F5 had migrated to this drop. | 1/1 |  | compliance | 2026-06-13 |

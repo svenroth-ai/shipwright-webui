@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-13-spec-webui-path-fix",
+  "date": "2026-06-13T09:21:24.627358Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/spec-webui-path-fix",
+  "spec": ".shipwright/planning/01-adopted/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-13-spec-webui-path-fix"
+}
