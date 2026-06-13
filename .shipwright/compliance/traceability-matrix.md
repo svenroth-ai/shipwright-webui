@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-13T07:54:23.841835+00:00
+Generated: 2026-06-13T09:21:38.947412+00:00
 
 ## Requirements Coverage
 
@@ -26,7 +26,7 @@ Generated: 2026-06-13T07:54:23.841835+00:00
 | [FR-01.18](../../.shipwright/planning/01-adopted/spec.md#fr-0118) | Read-only forwarder for `<project.path>/shipwright_run_confi... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.19](../../.shipwright/planning/01-adopted/spec.md#fr-0119) | Lazy-expand listing for the FolderTree component. Honors git... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.20](../../.shipwright/planning/01-adopted/spec.md#fr-0120) | Reads a single file under the project root with the same rea... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.21](../../.shipwright/planning/01-adopted/spec.md#fr-0121) | One-shot: writes an empty (but schema-valid) `.webui/actions... | Must | — | — | — | NOT VERIFIED |
+| [FR-01.21](../../.shipwright/planning/01-adopted/spec.md#fr-0121) | One-shot: writes an empty (but schema-valid) `.shipwright-we... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.22](../../.shipwright/planning/01-adopted/spec.md#fr-0122) | Returns CLI version (refreshed on demand), profiles dir, sam... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.23](../../.shipwright/planning/01-adopted/spec.md#fr-0123) | Lists every stack profile from the resolved profiles dir (ov... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.24](../../.shipwright/planning/01-adopted/spec.md#fr-0124) | GET lists all registered projects. POST creates a new one (v... | Must | evt-b81d5d5e | 537/537 | 2026-05-01 (iter) | COVERED |
@@ -262,6 +262,7 @@ Generated: 2026-06-13T07:54:23.841835+00:00
 | Reconcile post-v0.18.0 detective audit F5: document the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment under conventions.md (## Convention Updates). B7 (commit 82021094) and G2 (scopes review/actions, then agent-docs) were already resolved on origin/main by PR #127/#129; F5 had migrated to this drop. | iterate | change |  | 1/1 | — | 2026-06-13 |
 | docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify | iterate | change |  | — | — | 2026-06-13 |
 | Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0. | iterate | change |  | — | — | 2026-06-13 |
+| Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix. | iterate | change |  | — | — | 2026-06-13 |
 
 ## Coverage Summary
 
@@ -269,7 +270,7 @@ Generated: 2026-06-13T07:54:23.841835+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 144 |
+| Iterate changes | 145 |
 | Requirements total | 37 |
 | Requirements verified | 22/37 |
 | Must-have verified | 16/31 |
@@ -287,7 +288,7 @@ Generated: 2026-06-13T07:54:23.841835+00:00
 - [FR-01.18](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only forwarder for `<project.path>/shipwright_run_config.json`. Per-row fau
 - [FR-01.19](../../.shipwright/planning/01-adopted/spec.md) (Must): Lazy-expand listing for the FolderTree component. Honors gitignore (mtime-cached
 - [FR-01.20](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads a single file under the project root with the same realpath-based path gua
-- [FR-01.21](../../.shipwright/planning/01-adopted/spec.md) (Must): One-shot: writes an empty (but schema-valid) `.webui/actions.json` under the pro
+- [FR-01.21](../../.shipwright/planning/01-adopted/spec.md) (Must): One-shot: writes an empty (but schema-valid) `.shipwright-webui/actions.json` un
 - [FR-01.22](../../.shipwright/planning/01-adopted/spec.md) (Must): Returns CLI version (refreshed on demand), profiles dir, sample copy-commands, o
 - [FR-01.23](../../.shipwright/planning/01-adopted/spec.md) (Must): Lists every stack profile from the resolved profiles dir (override → monorepo → 
 - [FR-01.25](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the project row. PATCH updates name / profile / color. DELETE remove

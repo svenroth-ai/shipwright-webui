@@ -1,0 +1,1 @@
+Docs/traceability: corrected the stale pre-v0.17.0 path `.webui/actions.json` to the current `.shipwright-webui/actions.json` in the live requirements (spec.md FR-01.10/16/21/27 + acceptance criteria); the traceability matrix regenerates clean. Historical ADR/commit records are left as-is (the path was correct when written).
