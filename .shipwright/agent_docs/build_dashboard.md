@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-12 22:09 UTC | Session: 901d1920-426c-483f-9142-fc2d96bb4459 | Run: iterate-2026-06-12-board-visual-fixes
+> Updated: 2026-06-13 04:19 UTC | Session: 377d8f93-c224-414a-a007-714331c9b02d | Run: iterate-2026-06-13-compliance-f5-automerge
 
-## Recent Changes (141 iterations)
+## Recent Changes (142 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Reconcile post-v0.18.0 detective audit F5: document the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment under conventions.md (## Convention Updates). B7 (commit 82021094) and G2 (scopes review/actions, then agent-docs) were already resolved on origin/main by PR #127/#129; F5 had migrated to this drop. | 1/1 |  | compliance | 2026-06-13 |
 | bug | Flat Campaigns-lane card (remove heavy shadow) + fix List-view right-column clipping | 1611/1611 |  | FR-01.01, FR-01.33 | 2026-06-12 |
 | change | compliance G2/H1/H2 bloat-baseline reconcile | 1609/1609 |  | compliance | 2026-06-12 |
 | change | Condense agent_docs (architecture.md + conventions.md) to ADR-anchored pointers; fix structural drift + a launchPayload ADR mislabel | 0/0 |  | docs | 2026-06-12 |
@@ -148,7 +149,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-12 | Unit: 1611/1611 | Smoke: not_run | (iterate)
+Last run: 2026-06-13 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
