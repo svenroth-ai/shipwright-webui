@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-13T07:54:23.841835+00:00
-Total commits: 550
+Generated: 2026-06-13T09:21:38.947412+00:00
+Total commits: 551
 
 ## Commit Distribution
 
@@ -10,7 +10,7 @@ pie title Commit Types
     "fix" : 195
     "feat" : 139
     "chore" : 111
-    "docs" : 52
+    "docs" : 53
     "refactor" : 25
     "test" : 18
     "ci" : 5
@@ -480,10 +480,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 52 commits
+### Documentation (docs) — 53 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-13 | guide | audit guide.md vs code/ADRs/RTM + align package.json version (#133) | 5df0605eae8d |
 | 2026-06-13 | readme | production-first install + guide/Makefile correctness fixes (#132) | eeaefb55eb32 |
 | 2026-06-12 | agent-docs | condense architecture.md + conventions.md to ADR-anchored pointers (#128) | 18cf09d455af |
 | 2026-06-09 | spec | record FR-01.33 live per-step in_progress MODIFY criterion | b246dcfe13cc |
@@ -619,7 +620,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 550 |
+| Total commits | 551 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 550 |
+| Human-authored commits | 551 |
 
