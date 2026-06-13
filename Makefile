@@ -12,7 +12,7 @@ help:
 	@echo "  make test-client   — client (vitest)"
 	@echo ""
 	@echo "  make typecheck     — tsc --noEmit in both halves"
-	@echo "  make lint          — eslint in client/"
+	@echo "  make lint          — oxlint in both server/ and client/"
 	@echo "  make build         — production build (both halves)"
 	@echo ""
 	@echo "  make sync-profiles — refresh server/profiles/ from a sibling"
@@ -45,6 +45,7 @@ typecheck:
 	cd client && npx tsc --noEmit
 
 lint:
+	cd server && npm run lint
 	cd client && npm run lint
 
 build:

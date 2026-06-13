@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-13-docs-readme-install-audit",
+  "date": "2026-06-13T07:24:28.991829Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/docs-readme-install-audit",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-06-13-docs-readme-install-audit"
+}
