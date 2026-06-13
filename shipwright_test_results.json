@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-12",
+  "last_updated": "2026-06-13",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-12-board-visual-fixes",
-    "date": "2026-06-12",
-    "type": "bug",
+    "run_id": "iterate-2026-06-13-compliance-f5-automerge",
+    "date": "2026-06-13",
+    "type": "change",
     "complexity": "small",
     "unit": {
-      "status": "passed",
-      "passed": 1611,
-      "total": 1611
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "integration": {
       "status": "not_run",
@@ -21,7 +21,7 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -33,40 +33,27 @@
     "smoke": {
       "status": "not_run"
     },
-    "surface_verification": {
-      "surface": "web",
-      "runner": "Playwright (chromium, @playwright/test) against the worktree client served by `npx vite` (HONO_HOST=100.105.29.88 PORT=3847) proxying the live production backend — verified against real data (175 tasks, campaign 2026-06-10-audit-2-manual)",
-      "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-12-board-visual-fixes/screenshots/",
-      "timestamp": "2026-06-13T00:00:00.000Z"
-    },
     "degraded": [
-      "Server workspace test suite not re-run: zero server source files changed (client-only className changes in TaskList.tsx + CampaignLaneCard.tsx). F0 full client suite 1611/1611 + tsc --noEmit + oxlint cover the diff."
+      "Documentation-only compliance reconciliation: a single bullet added to .shipwright/agent_docs/conventions.md '## Convention Updates'. Zero source/test files touched, so no unit/integration/e2e/tsc/oxlint layer applies (worktree node_modules intentionally not hydrated). The authoritative gate for this finding class is the F5 detective check + the F11 check_architecture_documented verifier, exercised below."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Campaigns-lane card (FR-01.33) renders flat — no drop shadow (computed box-shadow: none)",
+          "behavior": "F5 detective (Architecture marker vs arch-impact drops) recognizes the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment as documented, because its run_id now appears under conventions.md '## Convention Updates' (the target doc F5 selects for architecture_impact=convention).",
           "disposition": "tested",
-          "evidence": "unit CampaignLaneCard.test.tsx 'renders a flat card with no drop shadow' PASSED; browser: getComputedStyle(card).boxShadow === 'none' on the live 2026-06-10-audit-2-manual card"
-        },
-        {
-          "behavior": "List view (FR-01.01) does not clip the right columns — Title cell caps at max-w-0 so the table fits the container and the Title ellipsizes",
-          "disposition": "tested",
-          "evidence": "unit TaskList.test.tsx 'Title cell carries max-w-0 + a truncating title span' PASSED; browser metrics vs live stack: overflowPx=0, actionsClipped=false, titleTruncated=true (Updated/Commit/Actions columns all within the wrapper)"
+          "evidence": "run_audit.py --only B,F,G against the worktree (origin/main e10438c): PRE-edit F5 FAIL (1 arch-impact drop not documented in their target doc: iterate-2026-06-12-automerge-pr-review-alignment); POST-edit F5 PASS and group any_fail=False. RED->GREEN confirmed. The F11 verifier check_architecture_documented (shared lib.architecture_doc, same oracle) re-verifies at finalization."
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
+        "testable": 1,
+        "tested": 1,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 1,
+        "covered_acs": 1
       }
     }
   }

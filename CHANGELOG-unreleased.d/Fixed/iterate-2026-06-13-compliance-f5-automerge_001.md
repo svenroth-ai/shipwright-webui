@@ -1,0 +1,1 @@
+Compliance: reconcile post-v0.18.0 detective audit — document the `iterate-2026-06-12-automerge-pr-review-alignment` convention drop under conventions.md '## Convention Updates' so the F5 architecture-drift check passes (B7 and G2 were already resolved by PR #127/#129).

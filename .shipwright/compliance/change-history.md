@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-12T22:09:56.150454+00:00
-Total commits: 548
+Generated: 2026-06-13T04:19:29.201541+00:00
+Total commits: 549
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 193
+    "fix" : 194
     "feat" : 139
     "chore" : 112
     "docs" : 51
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 193 commits
+### Fixes (fix) — 194 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-13 | board | flat campaign card + stop list-view right-cutoff (#130) | e10438cf14b9 |
 | 2026-06-12 | compliance | reconcile detective audit G2 + H1/H2 (bloat baseline + scope stoplist) (#129) | e2a6af2dc74d |
 | 2026-06-12 | compliance | reconcile post-v0.18.0 detective audit (B7 backfill + G2 scopes) (#127) | 0ab35626a0d6 |
 | 2026-06-12 | triage | route idle-main status flips to the outbox (mirror mark_status) (#124) | 820210949f5b |
@@ -366,7 +367,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-12 | triage | sweep 1 outbox append(s) into branch | 1d46757b3782 |
+| 2026-06-13 | triage | sweep 2 outbox append(s) into branch | 68c73f3e2812 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -617,7 +618,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 548 |
+| Total commits | 549 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 548 |
+| Human-authored commits | 549 |
 
