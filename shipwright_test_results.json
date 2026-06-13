@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-06-13",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-13-compliance-f5-automerge",
+    "run_id": "iterate-2026-06-13-docs-readme-install-audit",
     "date": "2026-06-13",
     "type": "change",
     "complexity": "small",
@@ -34,26 +34,33 @@
       "status": "not_run"
     },
     "degraded": [
-      "Documentation-only compliance reconciliation: a single bullet added to .shipwright/agent_docs/conventions.md '## Convention Updates'. Zero source/test files touched, so no unit/integration/e2e/tsc/oxlint layer applies (worktree node_modules intentionally not hydrated). The authoritative gate for this finding class is the F5 detective check + the F11 check_architecture_documented verifier, exercised below."
+      "Documentation-only iterate (README.md, docs/guide.md prose, Makefile help text + lint target). Zero product source/test files touched, so no unit/integration/e2e/tsc/oxlint product layer applies (worktree node_modules intentionally not hydrated). Factual claims were verified by reading the implementing code (server/src/index.ts:863 serveStatic + :881 SPA fallback; server/package.json start script; server/src/core/cli-compat.ts MIN_SUPPORTED_CLI=2.1.114) and by markdown link/anchor checks."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "F5 detective (Architecture marker vs arch-impact drops) recognizes the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment as documented, because its run_id now appears under conventions.md '## Convention Updates' (the target doc F5 selects for architecture_impact=convention).",
-          "disposition": "tested",
-          "evidence": "run_audit.py --only B,F,G against the worktree (origin/main e10438c): PRE-edit F5 FAIL (1 arch-impact drop not documented in their target doc: iterate-2026-06-12-automerge-pr-review-alignment); POST-edit F5 PASS and group any_fail=False. RED->GREEN confirmed. The F11 verifier check_architecture_documented (shared lib.architecture_doc, same oracle) re-verifies at finalization."
+          "behavior": "Documented Path A claim (production server started via `npm start` serves the built SPA on :3847, so neither Vite nor `make dev-client` is needed) is accurate.",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "server/src/test/spa-fallback.test.ts already asserts that GET / returns client/dist/index.html and that serveStatic serves real static assets at config.staticDir — exactly the runtime behavior the new docs describe. No new code path was introduced by the docs edits."
+        },
+        {
+          "behavior": "Corrected `make lint` help/target claim (oxlint across both server/ and client/) matches reality.",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "both server/package.json and client/package.json already define `\"lint\": \"oxlint .\"`; the Makefile target now chains the two pre-existing, independently-exercised scripts (mirrors the existing `typecheck` target that already runs both halves)."
         }
       ],
       "counts": {
-        "testable": 1,
-        "tested": 1,
-        "untestable": 0,
+        "testable": 0,
+        "tested": 0,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 1,
-        "covered_acs": 1
+        "acs": 2,
+        "covered_acs": 2
       }
     }
   }

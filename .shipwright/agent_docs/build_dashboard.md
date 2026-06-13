@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-13 04:19 UTC | Session: 377d8f93-c224-414a-a007-714331c9b02d | Run: iterate-2026-06-13-compliance-f5-automerge
+> Updated: 2026-06-13 07:24 UTC | Session: 9a409808-d6bf-4c39-85ee-357250bdd850 | Run: iterate-2026-06-13-docs-readme-install-audit
 
-## Recent Changes (142 iterations)
+## Recent Changes (143 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify | 0/0 |  | docs | 2026-06-13 |
 | change | Reconcile post-v0.18.0 detective audit F5: document the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment under conventions.md (## Convention Updates). B7 (commit 82021094) and G2 (scopes review/actions, then agent-docs) were already resolved on origin/main by PR #127/#129; F5 had migrated to this drop. | 1/1 |  | compliance | 2026-06-13 |
 | bug | Flat Campaigns-lane card (remove heavy shadow) + fix List-view right-column clipping | 1611/1611 |  | FR-01.01, FR-01.33 | 2026-06-12 |
 | change | compliance G2/H1/H2 bloat-baseline reconcile | 1609/1609 |  | compliance | 2026-06-12 |
