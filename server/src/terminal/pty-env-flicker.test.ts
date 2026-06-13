@@ -22,7 +22,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { buildSpawnEnv } from "./routes.js";
+import { buildSpawnEnv } from "./spawn-env.js";
 
 describe("buildSpawnEnv — Iterate J (ADR-098) CLAUDE_CODE_NO_FLICKER injection (default ON, opt-out)", () => {
   it("SETS CLAUDE_CODE_NO_FLICKER='1' by default (env var unset)", () => {
@@ -136,5 +136,74 @@ describe("buildSpawnEnv — Iterate J (ADR-098) CLAUDE_CODE_NO_FLICKER injection
     expect(env.PATH).toBe("/usr/bin:/bin");
     expect(env.HOME).toBe("/home/user");
     expect(env.SOMETHING_ELSE).toBe("value");
+  });
+});
+
+describe("buildSpawnEnv — strip parent/child Claude-session markers (empty-Transcript fix, 2026-06-13)", () => {
+  // Root cause: when the webui SERVER is started from inside a Claude Code
+  // session (e.g. a claude-vscode / CLI terminal), its process.env carries
+  // CLAUDE_CODE_CHILD_SESSION=1 (+ SESSION_ID / ENTRYPOINT / CLAUDECODE).
+  // buildSpawnEnv spreads the whole server env into the pty, so every
+  // embedded `claude` inherits those markers. Claude Code 2.1.x, on seeing
+  // CLAUDE_CODE_CHILD_SESSION=1, runs as a CHILD session and SUPPRESSES the
+  // flat ~/.claude/projects/<cwd>/<uuid>.jsonl transcript the Transcripts
+  // tab reads → every embedded session shows an empty transcript.
+  // Empirically isolated via pty A/B/C tests: CHILD_SESSION=1 ALONE
+  // suppresses the jsonl; SESSION_ID / ENTRYPOINT / CLAUDECODE do not, but
+  // are stripped defensively so the embedded claude shares no identity with
+  // the server's launching session. The embedded terminal must ALWAYS spawn
+  // claude as a fresh TOP-LEVEL session.
+  it("strips CLAUDE_CODE_CHILD_SESSION (the proven jsonl-suppression trigger)", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      CLAUDE_CODE_CHILD_SESSION: "1",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect("CLAUDE_CODE_CHILD_SESSION" in env).toBe(false);
+  });
+
+  it("strips the defensive parent-session markers (SESSION_ID / ENTRYPOINT / CLAUDECODE)", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      CLAUDECODE: "1",
+      CLAUDE_CODE_SESSION_ID: "c2061135-07fc-474c-9b01-eb23b7142cff",
+      CLAUDE_CODE_ENTRYPOINT: "claude-vscode",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect("CLAUDECODE" in env).toBe(false);
+    expect("CLAUDE_CODE_SESSION_ID" in env).toBe(false);
+    expect("CLAUDE_CODE_ENTRYPOINT" in env).toBe(false);
+  });
+
+  it("does NOT strip unrelated CLAUDE_* vars the embedded claude needs (auth/config pass through)", () => {
+    // The strip list is an explicit allowlist of parent-session identity
+    // markers, NOT a blanket CLAUDE_* sweep — auth/config vars the embedded
+    // claude depends on (e.g. CLAUDE_CONFIG_DIR, CLAUDE_CODE_API_BASE_URL)
+    // must flow through untouched.
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      CLAUDE_CONFIG_DIR: "/home/user/.claude",
+      CLAUDE_CODE_API_BASE_URL: "https://api.example.test",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect(env.CLAUDE_CONFIG_DIR).toBe("/home/user/.claude");
+    expect(env.CLAUDE_CODE_API_BASE_URL).toBe("https://api.example.test");
+  });
+
+  it("preserves the webui's own CLAUDE_CODE_NO_FLICKER injection (ADR-098 default-ON)", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      CLAUDE_CODE_CHILD_SESSION: "1",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
+  });
+
+  it("a caller-supplied env cannot re-introduce the child-session marker", () => {
+    const baseEnv: Record<string, string | undefined> = { PATH: "/usr/bin" };
+    const callerEnv = { CLAUDE_CODE_CHILD_SESSION: "1", KEEP_ME: "yes" };
+    const env = buildSpawnEnv(baseEnv, callerEnv);
+    expect("CLAUDE_CODE_CHILD_SESSION" in env).toBe(false);
+    expect(env.KEEP_ME).toBe("yes");
   });
 });
