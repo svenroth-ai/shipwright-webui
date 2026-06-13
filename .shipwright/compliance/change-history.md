@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-13T09:21:38.947412+00:00
-Total commits: 551
+Generated: 2026-06-13T21:54:48.763649+00:00
+Total commits: 553
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 195
+    "fix" : 196
     "feat" : 139
-    "chore" : 111
+    "chore" : 112
     "docs" : 53
     "refactor" : 25
     "test" : 18
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 195 commits
+### Fixes (fix) — 196 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-13 | compliance | correct stale .webui/ path in live spec + regen RTM (#134) | f8b0506d3653 |
 | 2026-06-13 | compliance | reconcile post-v0.18.0 detective audit F5 (automerge convention drop) (#131) | a75a76229376 |
 | 2026-06-13 | board | flat campaign card + stop list-view right-cutoff (#130) | e10438cf14b9 |
 | 2026-06-12 | compliance | reconcile detective audit G2 + H1/H2 (bloat baseline + scope stoplist) (#129) | e2a6af2dc74d |
@@ -364,10 +365,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 111 commits
+### Chores (chore) — 112 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-13 | triage | sweep 5 outbox append(s) into branch | e666dd5ed3fe |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -620,7 +622,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 551 |
+| Total commits | 553 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 551 |
+| Human-authored commits | 553 |
 

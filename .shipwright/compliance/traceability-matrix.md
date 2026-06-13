@@ -1,13 +1,13 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-13T09:21:38.947412+00:00
+Generated: 2026-06-13T21:54:48.763649+00:00
 
 ## Requirements Coverage
 
 | Requirement | Title | Priority | Verified By | Tests | Last Verified | Status |
 |-------------|-------|----------|-------------|-------|---------------|--------|
 | [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +6 | 624/624 → 1611/1611 | 2026-06-12 (iter) | COVERED |
-| [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +7 | 640/640 → 1335/1335 | 2026-05-30 (iter) | COVERED |
+| [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +8 | 640/640 → 1335/1335 | 2026-05-30 (iter) | COVERED |
 | [FR-01.03](../../.shipwright/planning/01-adopted/spec.md#fr-0103) | CRUD for the project registry persisted at `~/.shipwright-we... | Must | evt-0c3127ae, evt-33b2e81f | 786/786 | 2026-05-12 (iter) | COVERED |
 | [FR-01.04](../../.shipwright/planning/01-adopted/spec.md#fr-0104) | Best-effort surface for pending Claude tool_use blocks (nota... | Must | evt-7c294eb7 | 2062/2062 | 2026-05-18 (iter) | COVERED |
 | [FR-01.05](../../.shipwright/planning/01-adopted/spec.md#fr-0105) | Read-only view of Claude CLI version, the resolved profiles ... | Must | — | — | — | NOT VERIFIED |
@@ -17,7 +17,7 @@ Generated: 2026-06-13T09:21:38.947412+00:00
 | [FR-01.09](../../.shipwright/planning/01-adopted/spec.md#fr-0109) | GET returns the full task row with derived state. PATCH allo... | Must | evt-40acd669 | 2042/2042 | 2026-05-18 (iter) | COVERED |
 | [FR-01.10](../../.shipwright/planning/01-adopted/spec.md#fr-0110) | Returns the three-shell copy-command (PowerShell / cmd.exe /... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-40d7b72c +3 | 1269/1269 → 1152/1152 | 2026-05-18 (iter) | COVERED |
 | [FR-01.11](../../.shipwright/planning/01-adopted/spec.md#fr-0111) | Same shape as launch but for `--resume` of an existing sessi... | Must | evt-34871d4b, evt-4e316884, evt-c65151e1, evt-fb2b90ee | 1717/1717 → 1123/1123 | 2026-05-18 (iter) | COVERED |
-| [FR-01.12](../../.shipwright/planning/01-adopted/spec.md#fr-0112) | Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a U... | Must | — | — | — | NOT VERIFIED |
+| [FR-01.12](../../.shipwright/planning/01-adopted/spec.md#fr-0112) | Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a U... | Must | evt-1ddcfe3e | — | — | NO TESTS |
 | [FR-01.13](../../.shipwright/planning/01-adopted/spec.md#fr-0113) | Walks every tracked task's JSONL via `inbox-derive.ts` and r... | Must | evt-7c294eb7, evt-3d1274f6 | 2062/2062 → 979/979 | 2026-05-19 (iter) | COVERED |
 | [FR-01.14](../../.shipwright/planning/01-adopted/spec.md#fr-0114) | Adds the toolUseId to the dismissed set so subsequent inbox ... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.15](../../.shipwright/planning/01-adopted/spec.md#fr-0115) | Marks the task as completed in the registry without spawning... | Must | evt-0f78d991 | 857/857 | 2026-05-15 (iter) | COVERED |
@@ -263,6 +263,7 @@ Generated: 2026-06-13T09:21:38.947412+00:00
 | docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify | iterate | change |  | — | — | 2026-06-13 |
 | Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0. | iterate | change |  | — | — | 2026-06-13 |
 | Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix. | iterate | change |  | — | — | 2026-06-13 |
+| buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session. | iterate | bug | FR-01.02, FR-01.12 | — | — | 2026-06-13 |
 
 ## Coverage Summary
 
@@ -270,10 +271,10 @@ Generated: 2026-06-13T09:21:38.947412+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 145 |
+| Iterate changes | 146 |
 | Requirements total | 37 |
-| Requirements verified | 22/37 |
-| Must-have verified | 16/31 |
+| Requirements verified | 23/37 |
+| Must-have verified | 17/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
 
@@ -282,7 +283,6 @@ Generated: 2026-06-13T09:21:38.947412+00:00
 - [FR-01.05](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only view of Claude CLI version, the resolved profiles directory, the launc
 - [FR-01.06](../../.shipwright/planning/01-adopted/spec.md) (Must): Minimal placeholder page. Most settings now live inside the user's Claude client
 - [FR-01.07](../../.shipwright/planning/01-adopted/spec.md) (Must): Liveness probe used by `dev_server.py`, smoke tests, and the install-windows aut
-- [FR-01.12](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a UTF-8-safe byte range
 - [FR-01.14](../../.shipwright/planning/01-adopted/spec.md) (Must): Adds the toolUseId to the dismissed set so subsequent inbox derivations skip it.
 - [FR-01.17](../../.shipwright/planning/01-adopted/spec.md) (Must): Spawns the project's `dev_server.command` (from its stack profile) with `shell: 
 - [FR-01.18](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only forwarder for `<project.path>/shipwright_run_config.json`. Per-row fau
@@ -297,16 +297,16 @@ Generated: 2026-06-13T09:21:38.947412+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 42d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 33d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 29d ago by `evt-33b2e81f` (2026-05-14)
-- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 29d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 34d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-50e36386` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 29d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-fb2b90ee` (2026-05-18)
+- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-a2176c74` (2026-05-18)
 - [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-7c294eb7` (2026-05-18)
-- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-fb2b90ee` (2026-05-18)
-- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-a2176c74` (2026-05-18)
-- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 24d ago by `evt-223eadce` (2026-05-18)
-- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 24d ago by `evt-3d1274f6` (2026-05-19)
+- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-223eadce` (2026-05-18)
+- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 25d ago by `evt-3d1274f6` (2026-05-19)
 

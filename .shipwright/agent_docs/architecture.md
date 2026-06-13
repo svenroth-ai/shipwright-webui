@@ -215,7 +215,7 @@ _One line per architecture-relevant change since adoption (ADR-053), chronologic
 - **ADR-123** (2026-05-23) — auto-focus xterm on Terminal tab activation (`setTimeout(0)` for Radix settle).
 - **ADR-129** (2026-05-25) — one-finger pan-to-scroll in the embedded xterm.
 - **ADR-124 / ADR-125 / ADR-126 / ADR-131 / ADR-133 + Campaign C non-ADR splits** (2026-05-26, Campaign C) — `InboxPage` (967→116), `EmbeddedTerminal` (1856→287), `BubbleTranscript` (1618→175), `NewIssueModal`, `TaskDetailHeader`, and `external/routes.ts` → sub-routers (C2) all split.
-- **ADR-103-bloat / ADR-139** (2026-05-27) — `terminal/routes.ts` accepted as a deep-module exception; WS-upgrade handler extracted to `ws-upgrade-handler.ts`.
+- **ADR-103-bloat / ADR-139** (2026-05-27) — `terminal/routes.ts` accepted as a deep-module exception; WS-upgrade handler extracted to `ws-upgrade-handler.ts`. (2026-06-13) The pure pty-env factory `buildSpawnEnv` was likewise extracted to `terminal/spawn-env.ts` to keep `routes.ts` under its ceiling; that move also strips inherited parent/child Claude-session markers (`CLAUDE_CODE_CHILD_SESSION` et al.) so embedded `claude` launches top-level and writes its JSONL transcript (fixes the empty Transcripts tab when the webui server was started from inside a Claude session).
 - **ADR-138** (2026-05-29) — mode-change / pr-link / stop-hook JSONL events (`session-parser.ts`) + intent-based scroll detach (`useAutoScroll`).
 - **ADR-141** (2026-05-30) — PR card bubble parity + open/merged badge via `gh` (`pr-status/` sub-router, `core/pr-status.ts`, `shell:false`); first external-network read.
 - **ADR-142** (2026-05-30) — separate `DocumentMarkdown` renderer (controlled HTML) for file preview + new `PreviewPage` pop-out route.
