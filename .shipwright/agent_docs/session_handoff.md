@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-13-fix-pty-env-child-session-leak"
+run_id: "iterate-2026-06-14-repair-claude-json"
 phase: "iterate"
-reason: "Strip parent/child Claude-session env markers in buildSpawnEnv so embedded-terminal claude writes its transcript again (fixes empty Transcripts tab)"
-timestamp: "2026-06-13T21:54:48.763649+00:00"
+reason: "iterate: deploy-time ~/.claude.json self-heal"
+timestamp: "2026-06-14T06:41:07.910859+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-13 21:54:48 UTC
+> Auto-generated 2026-06-14 06:41:07 UTC
 
 ## Session Info
 
-- **Session ID**: 6b4ce0ff-cd9c-45e2-b6a2-2af7284558eb
-- **Timestamp**: 2026-06-13 21:54:48 UTC
-- **Reason**: Strip parent/child Claude-session env markers in buildSpawnEnv so embedded-terminal claude writes its transcript again (fixes empty Transcripts tab)
+- **Session ID**: 29e1b335-3576-42db-8620-68f5e5194c31
+- **Timestamp**: 2026-06-14 06:41:07 UTC
+- **Reason**: iterate: deploy-time ~/.claude.json self-heal
 
 ## Last Iterate
 
@@ -28,8 +28,11 @@ timestamp: "2026-06-13T21:54:48.763649+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/fix-pty-env-child-session-leak
-- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
+- **Branch**: iterate/repair-claude-json
+- **Run ID**: iterate-2026-06-14-repair-claude-json
+- **Spec**: .shipwright/planning/iterate/2026-06-14-repair-claude-json.md
+- **Complexity**: small (classifier: small, prior_source=history); voluntarily applying
+- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
@@ -47,8 +50,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/fix-pty-env-child-session-leak
-- **Last Commit**: e666dd5 chore(triage): sweep 5 outbox append(s) into branch
+- **Branch**: iterate/repair-claude-json
+- **Last Commit**: 7eec0b3 chore(triage): sweep 2 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +67,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-fa461ee7 | work_completed | iterate (Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0) | 2026-06-14 |
 | evt-1ddcfe3e | work_completed | iterate (buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session.) | 2026-06-13 |
 | evt-e1825369 | work_completed | iterate (Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix.) | 2026-06-13 |
 | evt-634409d3 | work_completed | iterate (Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0.) | 2026-06-13 |
 | evt-0ceb5d70 | work_completed | iterate (docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify) | 2026-06-13 |
-| evt-a3235e14 | work_completed | iterate (Reconcile post-v0.18.0 detective audit F5: document the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment under conventions.md (## Convention Updates). B7 (commit 82021094) and G2 (scopes review/actions, then agent-docs) were already resolved on origin/main by PR #127/#129; F5 had migrated to this drop.) | 2026-06-13 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 216
-- **Last iterate**: bug — buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session. (2026-06-13)
+- **Total work events**: 217
+- **Last iterate**: change — Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 (2026-06-14)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

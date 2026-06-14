@@ -25,6 +25,25 @@ Write-Host ''
 Write-Host '=== Shipwright WebUI - (re)start Hono (PRODUCTION, background) ===' -ForegroundColor Cyan
 Write-Host ''
 
+# 0. Self-heal ~/.claude.json BEFORE anything restarts. This deploy force-kills
+#    the server -> every embedded `claude` pty dies -> on reload many `claude`
+#    CLIs start at once and race on the (non-atomic, unlocked) ~/.claude.json,
+#    which can leave a truncation-tail-corrupt file that breaks every running
+#    session. Repair it once, up-front. BEST EFFORT: the deploy NEVER gates on
+#    the result — the exit code is intentionally ignored and a missing `node`
+#    or a script error must not block the deploy (server/build don't depend on
+#    ~/.claude.json). See scripts/repair-claude-json.mjs.
+Write-Host 'Checking ~/.claude.json integrity...' -ForegroundColor Cyan
+try {
+  & node (Join-Path $PSScriptRoot 'repair-claude-json.mjs')
+} catch {
+  Write-Host "  (skipped: $($_.Exception.Message))" -ForegroundColor DarkGray
+}
+# BEST EFFORT, by construction: discard the repair's exit code so NO later step
+# can ever gate the deploy on it. DO NOT add an `if ($LASTEXITCODE ...)` check
+# here — a corrupt-but-unrepairable file (exit 1) must not stop the deploy.
+$global:LASTEXITCODE = 0
+
 # 1. Build FIRST (server + client). If EITHER fails, the running server
 #    is left alone. The Hono server serves client/dist in production, so
 #    the client must be built too — otherwise the UI is stale/missing.

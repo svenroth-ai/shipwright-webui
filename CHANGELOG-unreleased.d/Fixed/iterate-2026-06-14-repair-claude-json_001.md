@@ -1,0 +1,1 @@
+Production deploy (start-server-production.ps1) now repairs a truncation-tail-corrupt ~/.claude.json with a timestamped backup before restarting, so an embedded-session write race no longer leaves every running Claude CLI broken after a deploy (best effort; never blocks the deploy).
