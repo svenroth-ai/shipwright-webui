@@ -1,38 +1,36 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-14-repair-claude-json"
+run_id: "iterate-2026-06-14-tighten-bloat-baseline-routes"
 phase: "iterate"
-reason: "iterate: deploy-time ~/.claude.json self-heal"
-timestamp: "2026-06-14T06:41:07.910859+00:00"
+reason: "iterate: tighten bloat baseline ceiling for terminal/routes.ts (620 to 509)"
+timestamp: "2026-06-14T07:38:59.481341+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-14 06:41:07 UTC
+> Auto-generated 2026-06-14 07:38:59 UTC
 
 ## Session Info
 
-- **Session ID**: 29e1b335-3576-42db-8620-68f5e5194c31
-- **Timestamp**: 2026-06-14 06:41:07 UTC
-- **Reason**: iterate: deploy-time ~/.claude.json self-heal
+- **Session ID**: 0cd6a2cf-4b8a-4771-854e-9effba1df780
+- **Timestamp**: 2026-06-14 07:38:59 UTC
+- **Reason**: iterate: tighten bloat baseline ceiling for terminal/routes.ts (620 to 509)
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-13-fix-pty-env-child-session-leak
-- **Date**: 2026-06-13T21:53:11.510517Z
-- **Type**: bug
+- **Run ID**: iterate-2026-06-14-repair-claude-json
+- **Date**: 2026-06-14T06:41:34.569643Z
+- **Type**: change
 - **Complexity**: small
-- **Branch**: iterate/fix-pty-env-child-session-leak
-- **ADR**: iterate-2026-06-13-fix-pty-env-child-session-leak
+- **Branch**: iterate/repair-claude-json
+- **ADR**: iterate-2026-06-14-repair-claude-json
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-06-14-repair-claude-json.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/repair-claude-json
-- **Run ID**: iterate-2026-06-14-repair-claude-json
-- **Spec**: .shipwright/planning/iterate/2026-06-14-repair-claude-json.md
-- **Complexity**: small (classifier: small, prior_source=history); voluntarily applying
-- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
+- **Branch**: iterate/tighten-bloat-baseline-routes
+- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
 
@@ -50,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/repair-claude-json
-- **Last Commit**: 7eec0b3 chore(triage): sweep 2 outbox append(s) into branch
+- **Branch**: iterate/tighten-bloat-baseline-routes
+- **Last Commit**: 2c4741f chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -67,17 +65,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-a2555bc5 | work_completed | iterate (Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained) | 2026-06-14 |
 | evt-fa461ee7 | work_completed | iterate (Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0) | 2026-06-14 |
 | evt-1ddcfe3e | work_completed | iterate (buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session.) | 2026-06-13 |
 | evt-e1825369 | work_completed | iterate (Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix.) | 2026-06-13 |
 | evt-634409d3 | work_completed | iterate (Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0.) | 2026-06-13 |
-| evt-0ceb5d70 | work_completed | iterate (docs install audit: README production single-process install + guide §4/§7/§8 fixes + Makefile lint help/target + CLAUDE.md structure verify) | 2026-06-13 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 217
-- **Last iterate**: change — Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 (2026-06-14)
+- **Total work events**: 218
+- **Last iterate**: change — Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained (2026-06-14)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

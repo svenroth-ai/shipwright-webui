@@ -224,6 +224,28 @@ named cohesive boundary back into the anonymous-grandfathered mass
 the Stop-hook iron law correctly flags. The module header repeats
 this anchor as a maintenance fence (external plan review LOW #11).
 
+## Baseline re-tighten (2026-06-14)
+
+Iterate `iterate-2026-06-14-tighten-bloat-baseline-routes` lowered the
+baseline ceiling `current` for `server/src/terminal/routes.ts` from
+**620 → 509** to match the measured size at `HEAD` (`c773d3e`).
+
+The intervening reduction landed in `#135`
+(commit `9b1ed5e`, "strip child-session env so embedded claude writes
+its transcript"): that fix extracted the spawn-env factory out of
+`routes.ts`, taking the file 641 → 509 LOC (net −112 / +1). The commit
+deliberately stayed *under* the ADR-103 ceiling of 620 (a non-ratchet),
+but the baseline `current` was never re-lowered to the new actual — so
+the file could have silently re-grown 111 LOC. The Group H2 detective
+audit flagged the stale ceiling (`baseline.current 620 > actual 509`)
+and this iterate tightens it.
+
+The exception is **NOT retired**: 509 LOC still exceeds the 300-LOC
+default limit, so `state=exception` + `adr=ADR-103` stand. Candidate #2
+(auth-layer extraction) remains the retirement path; the 2026-08-27
+Re-Review-Date is unchanged. Anti-ratchet semantics are preserved — the
+ceiling only ever moves DOWN with the file.
+
 ## Consequences
 
 - Baseline entry records the named decision via `adr="ADR-103"`.
