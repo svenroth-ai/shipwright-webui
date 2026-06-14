@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-14T18:17:51.114380+00:00
-Total commits: 559
+Generated: 2026-06-14T18:20:52.846153+00:00
+Total commits: 561
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 198
+    "fix" : 200
     "feat" : 141
     "chore" : 113
     "docs" : 54
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 198 commits
+### Fixes (fix) — 200 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) | 819776e89146 |
+| 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 77ef6847ff9a |
 | 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | eae591e882e5 |
 | 2026-06-14 | terminal | strip child-session env so embedded claude writes its transcript (#135) | 9b1ed5ed8830 |
 | 2026-06-13 | compliance | correct stale .webui/ path in live spec + regen RTM (#134) | f8b0506d3653 |
@@ -373,7 +375,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | triage | sweep 4 outbox append(s) into branch | 1885c58375ed |
+| 2026-06-14 | triage | sweep 4 outbox append(s) into branch | de104231902c |
 | 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
@@ -628,7 +630,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 559 |
+| Total commits | 561 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 559 |
+| Human-authored commits | 561 |
 
