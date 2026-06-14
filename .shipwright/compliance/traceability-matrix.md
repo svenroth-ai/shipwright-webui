@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-13T21:54:48.763649+00:00
+Generated: 2026-06-14T06:41:07.910859+00:00
 
 ## Requirements Coverage
 
@@ -264,6 +264,7 @@ Generated: 2026-06-13T21:54:48.763649+00:00
 | Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0. | iterate | change |  | — | — | 2026-06-13 |
 | Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix. | iterate | change |  | — | — | 2026-06-13 |
 | buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session. | iterate | bug | FR-01.02, FR-01.12 | — | — | 2026-06-13 |
+| Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 | iterate | change |  | 24/24 | — | 2026-06-14 |
 
 ## Coverage Summary
 
@@ -271,7 +272,7 @@ Generated: 2026-06-13T21:54:48.763649+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 146 |
+| Iterate changes | 147 |
 | Requirements total | 37 |
 | Requirements verified | 23/37 |
 | Must-have verified | 17/31 |

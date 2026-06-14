@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-13T21:54:48.763649+00:00
-Total commits: 553
+Generated: 2026-06-14T06:41:07.910859+00:00
+Total commits: 554
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 196
+    "fix" : 197
     "feat" : 139
     "chore" : 112
     "docs" : 53
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 196 commits
+### Fixes (fix) — 197 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | terminal | strip child-session env so embedded claude writes its transcript (#135) | 9b1ed5ed8830 |
 | 2026-06-13 | compliance | correct stale .webui/ path in live spec + regen RTM (#134) | f8b0506d3653 |
 | 2026-06-13 | compliance | reconcile post-v0.18.0 detective audit F5 (automerge convention drop) (#131) | a75a76229376 |
 | 2026-06-13 | board | flat campaign card + stop list-view right-cutoff (#130) | e10438cf14b9 |
@@ -369,7 +370,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-13 | triage | sweep 5 outbox append(s) into branch | e666dd5ed3fe |
+| 2026-06-14 | triage | sweep 2 outbox append(s) into branch | 7eec0b315fb9 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -622,7 +623,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 553 |
+| Total commits | 554 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 553 |
+| Human-authored commits | 554 |
 

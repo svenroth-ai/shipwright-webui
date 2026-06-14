@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-13 21:54 UTC | Session: 6b4ce0ff-cd9c-45e2-b6a2-2af7284558eb | Run: iterate-2026-06-13-fix-pty-env-child-session-leak
+> Updated: 2026-06-14 06:41 UTC | Session: 29e1b335-3576-42db-8620-68f5e5194c31 | Run: iterate-2026-06-14-repair-claude-json
 
-## Recent Changes (146 iterations)
+## Recent Changes (147 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 | 24/24 |  | tooling | 2026-06-14 |
 | bug | buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session. | 0/0 |  | FR-01.02, FR-01.12 | 2026-06-13 |
 | change | Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix. | 0/0 |  | compliance | 2026-06-13 |
 | change | Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0. | 0/0 |  | docs | 2026-06-13 |
@@ -153,7 +154,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-13 | Unit: 1637/1637 | E2E: 1/1 | Smoke: not_run | (iterate)
+Last run: 2026-06-14 | Unit: 24/24 | Smoke: passed | (iterate)
 
 ## Pipeline
 
