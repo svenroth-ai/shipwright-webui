@@ -1,9 +1,0 @@
-{
-  "run_id": "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback",
-  "date": "2026-05-27T19:57:54.654704Z",
-  "type": "bug",
-  "complexity": "trivial",
-  "branch": "iterate/fix-phase-pill-iterate-title-fallback",
-  "tests_passed": true,
-  "adr": "iterate-2026-05-27-fix-phase-pill-iterate-title-fallback"
-}

@@ -1,21 +1,19 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-actions-config-ux",
+    "run_id": "iterate-2026-06-14-tablet-view-polish",
     "date": "2026-06-14",
-    "type": "feature",
+    "type": "change",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 3294,
-      "total": 3294,
-      "note": "server 1639 + client 1655 full suites"
+      "passed": 1652,
+      "total": 1652
     },
     "integration": {
-      "status": "passed",
-      "passed": 16,
-      "total": 16,
-      "note": "actions-upload route (200/400) + component RTL"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -24,92 +22,79 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "F0.5 surface=web: settings removal+card + edit-modal actions section (seeded project)"
+      "passed": 20,
+      "total": 20
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "smoke": {
       "status": "not_run"
     },
-    "degraded": [],
-    "surface_verification": {
-      "surface": "web",
-      "exit_code": 0,
-      "tests_run": 3,
-      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/04-settings.spec.ts client/e2e/flows/81-project-actions-config.spec.ts --config=client/playwright.config.ts --project=chromium",
-      "evidence_path": ".shipwright/runs/iterate-2026-06-14-actions-config-ux/surface_verification.json",
-      "attempts": 1,
-      "note": "isolated single-process stack (temp USERPROFILE, built client, PORT 3948, loopback); seeded a project via POST /api/projects"
-    },
     "test_completeness": {
       "status": "complete",
+      "justification": "Five tablet-view ACs (FR-01.38). Pure client UI; every testable behaviour is unit- or E2E-tested. The two device-only outcomes (the visual safe-area inset and the real one-finger touch-pan) are untestable here because env(safe-area-inset-bottom) resolves to 0 in headless and synthetic touch bypasses touch-action gesture arbitration.",
       "behaviors": [
         {
-          "behavior": "upload accepts custom initial_prompt+slash (200, was 500)",
+          "behavior": "AC-1: in the compact band an expanded sidebar can be collapsed back to the rail (bidirectional); desktop shows no toggle",
           "disposition": "tested",
-          "evidence": "actions-upload.test.ts accepts..."
+          "evidence": "client/src/components/sidebar/SidebarNav.test.tsx 'compact band: expand then collapse back to the rail' + 'desktop: no collapse control'; e2e/flows/80-tablet-responsive.spec.ts 'sidebar collapse is bidirectional' PASSED"
         },
         {
-          "behavior": "upload rejects missing slash -> 400 not 500",
+          "behavior": "AC-2: the board carousel reveals the last (Done) column in full at tablet width (no hard clip)",
           "disposition": "tested",
-          "evidence": "actions-upload.test.ts rejects..."
+          "evidence": "e2e/flows/80-tablet-responsive.spec.ts 'board carousel reveals the last (Done) column FULLY' toBeInViewport({ratio:1}) PASSED"
         },
         {
-          "behavior": "ActionsConfigRow full mode shows name+path",
+          "behavior": "AC-3: the content scroll container reserves env(safe-area-inset-bottom)",
           "disposition": "tested",
-          "evidence": "ActionsConfigRow.test.tsx default"
+          "evidence": "client/src/layouts/MainLayout.test.tsx 'content scroll container reserves the bottom safe-area inset' PASSED"
         },
         {
-          "behavior": "hideProjectHeader omits name/path, keeps badge+controls",
-          "disposition": "tested",
-          "evidence": "ActionsConfigRow.test.tsx hideProjectHeader"
+          "behavior": "AC-3: bottom content visually clears the device safe-area inset on an inset-bearing device",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "env(safe-area-inset-bottom) resolves to 0px in jsdom and headless Chromium; the inset only renders on a notched/home-indicator device. Sven real-device smoke."
         },
         {
-          "behavior": "Custom badge after query resolves",
+          "behavior": "AC-4: the list-view Title is the widest column at small resolutions",
           "disposition": "tested",
-          "evidence": "ActionsConfigRow.test.tsx Custom badge"
+          "evidence": "client/src/components/external/TaskList.test.tsx 'title column is greedy (w-full)'; e2e/flows/80-tablet-responsive.spec.ts 'list view: Title is the widest column' (real bounding-box widths) PASSED"
         },
         {
-          "behavior": "ActionsConfigCard still maps real rows after extraction",
+          "behavior": "AC-5: attachTouchScroll reserves the gesture (touch-action:none) on attach and restores it on dispose",
           "disposition": "tested",
-          "evidence": "ActionsConfigCard.test.tsx + SettingsPage.test.tsx still maps real projects"
+          "evidence": "client/src/components/terminal/touch-scroll.test.ts 'reserves the gesture by setting touch-action:none ... and restores it on dispose' PASSED"
         },
         {
-          "behavior": "edit modal renders Actions section COMPACT for real project",
-          "disposition": "tested",
-          "evidence": "ProjectSettingsDialog.test.tsx COMPACT + e2e 81"
-        },
-        {
-          "behavior": "edit modal hides Actions section for pathless project",
-          "disposition": "tested",
-          "evidence": "ProjectSettingsDialog.test.tsx hides no path"
-        },
-        {
-          "behavior": "SettingsPage no longer renders Launcher preferences",
-          "disposition": "tested",
-          "evidence": "SettingsPage.test.tsx + e2e 04"
-        },
-        {
-          "behavior": "SettingsPage renders actions-config surface",
-          "disposition": "tested",
-          "evidence": "SettingsPage.test.tsx + e2e 04"
+          "behavior": "AC-5: a one-finger pan actually scrolls the terminal on a real touch device",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "synthetic TouchEvents (jsdom unit + Playwright) bypass the browser's touch-action gesture arbitration, which is the exact mechanism under test; only a real touch device exercises it. Sven real-device smoke."
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 0,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 5,
+        "covered_acs": 5
       }
-    }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "playwright",
+      "exit_code": 0,
+      "tests_run": 20,
+      "evidence_path": "client/e2e/flows/80-tablet-responsive.spec.ts",
+      "timestamp": "2026-06-14T22:00:00Z",
+      "justification": "Spec 80 (tablet-responsive, chromium) executed against an isolated worktree stack (Hono :3848 + Vite :5174, SHIPWRIGHT_NETWORK_PROFILE=local): 20/20 passed, exit 0. Includes the three new ACs (AC-1 bidirectional collapse with real width transitions, AC-2 Done-column ratio:1 reveal, AC-4 real column-width measurement) plus the desktop non-regression set."
+    },
+    "degraded": []
   }
 }

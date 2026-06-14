@@ -101,6 +101,30 @@ describe("attachTouchScroll — jsdom integration with synthetic touches", () =>
     document.body.innerHTML = "";
   });
 
+  it("reserves the gesture by setting touch-action:none on the container, and restores it on dispose (AC-5)", () => {
+    // iterate-2026-06-14-tablet-view-polish AC-5 root cause: with the default
+    // `touch-action: auto` the browser arbitrates a one-finger vertical drag as
+    // a native pan and never delivers `touchmove` to our handler — so touch
+    // scroll did nothing on real devices while the synthetic-event tests below
+    // (which bypass gesture arbitration) stayed green. Reserving the gesture is
+    // part of attaching the handler, so attachTouchScroll owns it.
+    const term = makeTerm();
+    const c = makeContainer();
+    // jsdom's cssstyle does not model the `touch-action` property (set is a
+    // silent no-op, get returns ""), so we assert the call the production code
+    // makes rather than the resulting value. The real CSS effect — the browser
+    // handing the one-finger pan to JS instead of native-panning — is verified
+    // by real-device smoke (the value is unobservable here either way).
+    const setSpy = vi.spyOn(c.style, "setProperty");
+    const removeSpy = vi.spyOn(c.style, "removeProperty");
+    const dispose = attachTouchScroll(term, c);
+    expect(setSpy).toHaveBeenCalledWith("touch-action", "none");
+    dispose();
+    // Pre-attach value was empty → restored by removing the inline property
+    // (no residue left on the shared container after a remount/teardown).
+    expect(removeSpy).toHaveBeenCalledWith("touch-action");
+  });
+
   it("multi-touch is ignored (browser owns pinch / etc.)", () => {
     const term = makeTerm();
     const c = makeContainer();
