@@ -110,6 +110,15 @@ export function attachTouchScroll(
   const state = createTouchScrollState();
   const getPxPerLine = deps.getPixelsPerLine ?? defaultPixelsPerLine;
 
+  // Reserve the one-finger vertical gesture for our handler. With the default
+  // `touch-action: auto` the browser arbitrates the drag as a native pan and
+  // never delivers `touchmove`, so touch-scroll did nothing on real devices
+  // (iterate-2026-06-14-tablet-view-polish AC-5). The synthetic-touch tests
+  // below dispatch events straight at the element, bypassing arbitration —
+  // which is exactly why this regression went unnoticed. Restored on dispose.
+  const prevTouchAction = container.style.getPropertyValue("touch-action");
+  container.style.setProperty("touch-action", "none");
+
   const onTouchStart = (e: TouchEvent) => {
     if (e.touches.length !== 1) {
       // Multi-touch — abandon any in-progress pan so we don't fight the
@@ -164,6 +173,11 @@ export function attachTouchScroll(
     container.removeEventListener("touchmove", onTouchMove);
     container.removeEventListener("touchend", onTouchEnd);
     container.removeEventListener("touchcancel", onTouchEnd);
+    if (prevTouchAction) {
+      container.style.setProperty("touch-action", prevTouchAction);
+    } else {
+      container.style.removeProperty("touch-action");
+    }
   };
 }
 

@@ -67,7 +67,14 @@ export function MainLayout() {
           </div>
         ) : null}
         <DiagnosticsBanner />
-        <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]">
+        {/* padding-bottom env(safe-area-inset-bottom): the page was clipped at
+            the bottom on devices with a bottom inset (iPad home-indicator /
+            Safari bottom bar) because only the phone path reserved it. Applied
+            app-wide here; a no-op (0px) on desktop. (tablet-view-polish AC-3) */}
+        <div
+          data-testid="main-scroll-container"
+          className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable] [overscroll-behavior:contain] [padding-bottom:env(safe-area-inset-bottom)]"
+        >
           <Outlet />
         </div>
       </main>

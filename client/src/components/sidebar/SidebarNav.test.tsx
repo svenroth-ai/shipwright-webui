@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -140,6 +140,41 @@ describe('SidebarNav', () => {
     renderWithRouter();
     expect(screen.getByTestId('sidebar-inline')).toBeInTheDocument();
     expect(screen.queryByTestId('sidebar-drawer-body')).toBeNull();
+  });
+
+  it('compact band: expand then collapse back to the rail (bidirectional toggle) — AC-1', () => {
+    // iterate-2026-06-14-tablet-view-polish AC-1: once expanded, the user MUST
+    // be able to collapse back to the rail without crossing the viewport
+    // boundary (the reported "Menu kann man nicht collapsen" bug).
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('max-width'), // compact band
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    renderWithRouter();
+
+    // Starts railed → expand affordance present, brand label hidden.
+    fireEvent.click(screen.getByRole('button', { name: /expand sidebar/i }));
+    // Now expanded → brand visible AND a collapse affordance is present.
+    expect(screen.getByText('Shipwright')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /collapse sidebar/i }));
+    // Back to the rail → expand affordance is shown again.
+    expect(
+      screen.getByRole('button', { name: /expand sidebar/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('desktop: no collapse control (sidebar is permanently expanded) — AC-1 up-band guard', () => {
+    // matchMedia matches=false (from beforeEach) ⇒ not compact ⇒ neither the
+    // expand nor the collapse affordance renders; the 200px sidebar is fixed.
+    renderWithRouter();
+    expect(screen.queryByRole('button', { name: /collapse sidebar/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /expand sidebar/i })).toBeNull();
   });
 
   it('rails across the whole compact band — queries the 1023px (lg) threshold, not 768px', () => {
