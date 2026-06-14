@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-14-compliance-d3-g2-h1-reconcile",
+  "date": "2026-06-14T18:24:15.123371Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/compliance-d3-g2-h1-reconcile",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-06-14-compliance-d3-g2-h1-reconcile"
+}
