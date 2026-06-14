@@ -30,6 +30,8 @@ import {
   COLLAPSED_LEFT_PX,
   STEP_PX,
 } from "../../hooks/useThreePaneLayout";
+import { useIsCompactViewport } from "../../hooks/useIsCompactViewport";
+import { PaneTabBar, type PaneId } from "./PaneTabBar";
 
 interface Props {
   left: ReactNode;
@@ -50,6 +52,8 @@ export function TaskDetailThreePane({
   containerWidth,
 }: Props) {
   const layout = useThreePaneLayout();
+  const compact = useIsCompactViewport();
+  const [activeTab, setActiveTab] = useState<PaneId>("center");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState<number>(
     containerWidth ?? 1280,
@@ -84,7 +88,18 @@ export function TaskDetailThreePane({
   const rightPct = clampPct((rightPx / total) * 100, 0, 50);
   const centerPct = Math.max(10, 100 - leftPct - rightPct);
 
+  // Compact (≤1023px): one pane at a time via the tab bar; the SAME PanelGroup
+  // stays mounted (inactive panes → 0%) so `center`'s terminal never unmounts.
+  const sizes = compact
+    ? {
+        left: activeTab === "left" ? 100 : 0,
+        center: activeTab === "center" ? 100 : 0,
+        right: activeTab === "right" ? 100 : 0,
+      }
+    : { left: leftPct, center: centerPct, right: rightPct };
+
   const leftRef = useRef<ImperativePanelHandle | null>(null);
+  const centerRef = useRef<ImperativePanelHandle | null>(null);
   const rightRef = useRef<ImperativePanelHandle | null>(null);
 
   // Keep the panels in sync when the hook's values change (e.g. keyboard
@@ -94,6 +109,7 @@ export function TaskDetailThreePane({
   // case: resize() throws "Panel size not found" until the group has
   // committed at least once).
   useEffect(() => {
+    if (compact) return; // compact sizing is owned by the tab effect below
     try {
       leftRef.current?.resize(leftPct);
     } catch {
@@ -104,15 +120,38 @@ export function TaskDetailThreePane({
     } catch {
       /* registry not ready yet */
     }
-  }, [leftPct, rightPct]);
+  }, [compact, leftPct, rightPct]);
+
+  // Compact tab sizing: collapse inactive panes to 0% and grow the active one.
+  // Resizing (not unmounting) keeps every pane's children alive; the embedded
+  // terminal refits via its ResizeObserver when its pane grows from 0 → full.
+  useEffect(() => {
+    if (!compact) return;
+    try {
+      leftRef.current?.resize(sizes.left);
+    } catch {
+      /* registry not ready yet */
+    }
+    try {
+      centerRef.current?.resize(sizes.center);
+    } catch {
+      /* registry not ready yet */
+    }
+    try {
+      rightRef.current?.resize(sizes.right);
+    } catch {
+      /* registry not ready yet */
+    }
+  }, [compact, sizes.left, sizes.center, sizes.right]);
 
   const handleLeftDrag = (sizePct: number) => {
-    const px = (sizePct / 100) * total;
-    if (!layout.leftCollapsed) layout.setLeftWidth(px);
+    // compact tab-sizing must NOT persist (would clobber saved desktop widths).
+    if (compact || layout.leftCollapsed) return;
+    layout.setLeftWidth((sizePct / 100) * total);
   };
   const handleRightDrag = (sizePct: number) => {
-    const px = (sizePct / 100) * total;
-    if (!layout.rightCollapsed) layout.setRightWidth(px);
+    if (compact || layout.rightCollapsed) return;
+    layout.setRightWidth((sizePct / 100) * total);
   };
 
   const leftSplitterKeydown = useMemo(
@@ -166,15 +205,24 @@ export function TaskDetailThreePane({
   return (
     <div
       ref={containerRef}
-      className="flex h-full min-h-0 w-full"
+      className={
+        compact
+          ? "flex h-full min-h-0 w-full flex-col"
+          : "flex h-full min-h-0 w-full"
+      }
       data-testid="three-pane-root"
+      data-compact={compact || undefined}
     >
-      <PanelGroup direction="horizontal" className="h-full w-full">
+      {compact && <PaneTabBar active={activeTab} onChange={setActiveTab} />}
+      <PanelGroup
+        direction="horizontal"
+        className={compact ? "min-h-0 w-full flex-1" : "h-full w-full"}
+      >
         <Panel
           ref={leftRef}
-          defaultSize={leftPct}
-          minSize={3}
-          maxSize={50}
+          defaultSize={sizes.left}
+          minSize={compact ? 0 : 3}
+          maxSize={compact ? 100 : 50}
           onResize={handleLeftDrag}
           data-testid="pane-left"
           data-collapsed={layout.leftCollapsed || undefined}
@@ -183,7 +231,10 @@ export function TaskDetailThreePane({
           {left}
         </Panel>
         <PanelResizeHandle
-          className="group relative w-[5px] shrink-0 cursor-col-resize bg-transparent transition hover:bg-[var(--color-primary,#6b5e56)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary,#6b5e56)]"
+          className={
+            (compact ? "hidden " : "") +
+            "group relative w-[5px] shrink-0 cursor-col-resize bg-transparent transition hover:bg-[var(--color-primary,#6b5e56)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary,#6b5e56)]"
+          }
           data-testid="splitter-left"
           role="separator"
           aria-orientation="vertical"
@@ -201,15 +252,19 @@ export function TaskDetailThreePane({
           onKeyDown={leftSplitterKeydown as any}
         />
         <Panel
-          defaultSize={centerPct}
-          minSize={20}
+          ref={centerRef}
+          defaultSize={sizes.center}
+          minSize={compact ? 0 : 20}
           data-testid="pane-center"
           className="h-full min-h-0 overflow-hidden"
         >
           {center}
         </Panel>
         <PanelResizeHandle
-          className="group relative w-[5px] shrink-0 cursor-col-resize bg-transparent transition hover:bg-[var(--color-primary,#6b5e56)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary,#6b5e56)]"
+          className={
+            (compact ? "hidden " : "") +
+            "group relative w-[5px] shrink-0 cursor-col-resize bg-transparent transition hover:bg-[var(--color-primary,#6b5e56)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary,#6b5e56)]"
+          }
           data-testid="splitter-right"
           role="separator"
           aria-orientation="vertical"
@@ -224,9 +279,9 @@ export function TaskDetailThreePane({
         />
         <Panel
           ref={rightRef}
-          defaultSize={rightPct}
+          defaultSize={sizes.right}
           minSize={0}
-          maxSize={50}
+          maxSize={compact ? 100 : 50}
           onResize={handleRightDrag}
           data-testid="pane-right"
           data-collapsed={layout.rightCollapsed || undefined}

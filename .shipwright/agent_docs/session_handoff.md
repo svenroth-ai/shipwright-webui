@@ -1,40 +1,44 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-14-tighten-bloat-baseline-routes"
+run_id: "iterate-2026-06-14-tablet-responsive-view"
 phase: "iterate"
-reason: "iterate: tighten bloat baseline ceiling for terminal/routes.ts (620 to 509)"
-timestamp: "2026-06-14T07:38:59.481341+00:00"
+reason: "iterate finalization"
+timestamp: "2026-06-14T13:34:23.441486+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-14 07:38:59 UTC
+> Auto-generated 2026-06-14 13:34:23 UTC
 
 ## Session Info
 
-- **Session ID**: 0cd6a2cf-4b8a-4771-854e-9effba1df780
-- **Timestamp**: 2026-06-14 07:38:59 UTC
-- **Reason**: iterate: tighten bloat baseline ceiling for terminal/routes.ts (620 to 509)
+- **Session ID**: 9731517b-c223-4dae-b377-a245dc9c2b92
+- **Timestamp**: 2026-06-14 13:34:23 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-14-repair-claude-json
-- **Date**: 2026-06-14T06:41:34.569643Z
-- **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/repair-claude-json
-- **ADR**: iterate-2026-06-14-repair-claude-json
+- **Run ID**: iterate-2026-06-14-tablet-responsive-view
+- **Date**: 2026-06-14T13:31:53.858354Z
+- **Type**: feature
+- **Complexity**: medium
+- **Branch**: iterate/tablet-responsive-view
+- **ADR**: iterate-2026-06-14-tablet-responsive-view
+- **Description**: Tablet responsive view (≤1023px): sidebar rail, board swipe carousel + list/campaign hardening, task-detail compact Files/Session/Viewer tabs; desktop unchanged
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-14-repair-claude-json.md
+- **Spec**: .shipwright/planning/iterate/2026-06-14-tablet-responsive-view.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/tighten-bloat-baseline-routes
-- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
+- **Branch**: iterate/tablet-responsive-view
+- **Spec**: .shipwright/planning/iterate/2026-06-14-tablet-responsive-view.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -48,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/tighten-bloat-baseline-routes
-- **Last Commit**: 2c4741f chore(triage): sweep 1 outbox append(s) into branch
+- **Branch**: iterate/tablet-responsive-view
+- **Last Commit**: 76659f1 chore(triage): sweep 2 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-536db1b3 | work_completed | iterate (Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2.) | 2026-06-14 |
 | evt-a2555bc5 | work_completed | iterate (Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained) | 2026-06-14 |
 | evt-fa461ee7 | work_completed | iterate (Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0) | 2026-06-14 |
 | evt-1ddcfe3e | work_completed | iterate (buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session.) | 2026-06-13 |
 | evt-e1825369 | work_completed | iterate (Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix.) | 2026-06-13 |
-| evt-634409d3 | work_completed | iterate (Thorough guide.md correctness audit vs code/ADRs/RTM (3 sub-agents): fix §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift, add §6.9 Campaigns lane + §6.10 file-editor docs; align server+client package.json version to 0.18.0.) | 2026-06-13 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 218
-- **Last iterate**: change — Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained (2026-06-14)
+- **Total work events**: 219
+- **Last iterate**: feature — Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. (2026-06-14)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

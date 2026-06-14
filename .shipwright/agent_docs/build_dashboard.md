@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-14 07:38 UTC | Session: 0cd6a2cf-4b8a-4771-854e-9effba1df780 | Run: iterate-2026-06-14-tighten-bloat-baseline-routes
+> Updated: 2026-06-14 13:34 UTC | Session: 9731517b-c223-4dae-b377-a245dc9c2b92 | Run: iterate-2026-06-14-tablet-responsive-view
 
-## Recent Changes (148 iterations)
+## Recent Changes (149 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | 0/0 |  |  | 2026-06-14 |
 | change | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | 1637/1637 |  | compliance | 2026-06-14 |
 | change | Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 | 24/24 |  | tooling | 2026-06-14 |
 | bug | buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session. | 0/0 |  | FR-01.02, FR-01.12 | 2026-06-13 |
@@ -155,7 +156,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-14 | Unit: 1637/1637 | Smoke: not_run | (iterate)
+Last run: 2026-06-14T13:30:22Z | Unit: 1624/1624 | E2E: 17/17 | Smoke: passed | (iterate)
 
 ## Pipeline
 

@@ -106,6 +106,9 @@ const REQUIRED_TOKENS = [
   'CampaignsLane',
   'CampaignDismissButton',
   'useDismissCampaign',
+  // iterate-2026-06-14-tablet-responsive-view — tablet (≤1023px) responsive layout (FR-01.38)
+  'useIsCompactViewport',
+  'PaneTabBar',
 ] as const;
 
 let claudeMd = '';

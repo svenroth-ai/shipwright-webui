@@ -94,4 +94,26 @@ describe('SidebarNav', () => {
     const taskBoardLabel = screen.getByText('Task Board');
     expect(taskBoardLabel.className).toMatch(/sr-only/);
   });
+
+  it('rails across the whole compact band — queries the 1023px (lg) threshold, not 768px', () => {
+    // iterate-2026-06-14-tablet-responsive-view AC-2: tablets (768–1023px) must
+    // get the icon rail so the board/3-pane get full content width.
+    const seen: string[] = [];
+    window.matchMedia = vi.fn().mockImplementation((query: string) => {
+      seen.push(query);
+      return {
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      };
+    });
+    renderWithRouter();
+    expect(seen).toContain('(max-width: 1023px)');
+    expect(seen).not.toContain('(max-width: 768px)');
+  });
 });

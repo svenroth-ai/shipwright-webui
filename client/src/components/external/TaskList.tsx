@@ -143,7 +143,7 @@ export function TaskList({ tasks }: Props) {
               </th>
               <th
                 data-testid="task-list-header-commit"
-                className="hidden whitespace-nowrap px-4 py-2 md:table-cell"
+                className="hidden whitespace-nowrap px-4 py-2 lg:table-cell"
               >
                 Commit
               </th>
@@ -314,7 +314,7 @@ function TaskListRow({ task }: { task: ExternalTask }) {
           <PhaseCell task={task} />
         </td>
         <td
-          className="hidden whitespace-nowrap px-4 py-3 font-mono text-[11px] text-[var(--color-muted)] opacity-75 md:table-cell"
+          className="hidden whitespace-nowrap px-4 py-3 font-mono text-[11px] text-[var(--color-muted)] opacity-75 lg:table-cell"
           data-testid={`task-list-cell-${task.taskId}-commit`}
         >
           {isDraft ? "—" : commitMarker}

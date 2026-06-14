@@ -1,33 +1,126 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-tighten-bloat-baseline-routes",
-    "date": "2026-06-14",
-    "type": "change",
-    "complexity": "trivial",
-    "unit": { "status": "passed", "passed": 1637, "total": 1637 },
-    "integration": { "status": "not_run", "passed": 0, "total": 0 },
-    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
-    "e2e": { "status": "skipped", "passed": 0, "total": 0 },
-    "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
-    "smoke": { "status": "not_run" },
+    "run_id": "iterate-2026-06-14-tablet-responsive-view",
+    "date": "2026-06-14T13:30:22Z",
+    "type": "feature",
+    "complexity": "medium",
+    "unit": {
+      "status": "passed",
+      "passed": 1624,
+      "total": 1624
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "passed",
+      "passed": 17,
+      "total": 17
+    },
+    "design_fidelity": {
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "passed"
+    },
     "test_completeness": {
-      "status": "n/a",
-      "justification": "Trivial compliance-metadata edit: a single integer ceiling (current 620 -> 509) in shipwright_bloat_baseline.json. No app behavior is introduced or changed, so the Test Completeness Ledger is auto-n/a at trivial complexity per F5. The sole consumer of the edited file (the vendored anti-ratchet hook) is verified directly (worktree mode, status=ok)."
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "useIsCompactViewport ≤1023 compact, reactive, SSR-safe",
+          "disposition": "tested",
+          "evidence": "useIsCompactViewport.test.ts (6)"
+        },
+        {
+          "behavior": "Sidebar rails at ≤1023 (threshold raised from 768)",
+          "disposition": "tested",
+          "evidence": "SidebarNav.test.tsx 1023-query + e2e 80 rail@820/expanded@1280"
+        },
+        {
+          "behavior": "Board header wraps; no page overflow at tablet",
+          "disposition": "tested",
+          "evidence": "e2e 80 P1 no-overflow at /"
+        },
+        {
+          "behavior": "Board columns justify-start+swipe tablet / justify-between desktop",
+          "disposition": "tested",
+          "evidence": "e2e 80 computed justifyContent @820/1024/1280 + cols scrollable"
+        },
+        {
+          "behavior": "Board column snap-start carousel",
+          "disposition": "tested",
+          "evidence": "e2e 80 scrollWidth>clientWidth + screenshot"
+        },
+        {
+          "behavior": "List view Commit col hidden <lg / shown ≥lg; fits tablet",
+          "disposition": "tested",
+          "evidence": "e2e 80 commit header hidden@820/visible@1280"
+        },
+        {
+          "behavior": "Campaign card long step titles truncate (min-w-0+truncate)",
+          "disposition": "tested",
+          "evidence": "CampaignLaneCard.test.tsx truncate/min-w-0"
+        },
+        {
+          "behavior": "Campaign card action-button row wraps (flex-wrap)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test"
+        },
+        {
+          "behavior": "Detail compact Files/Session/Viewer tabs ≤1023; 3-pane ≥1024",
+          "disposition": "tested",
+          "evidence": "TaskDetailThreePane.test.tsx (4) + e2e 80 tab-bar@820/splitters@1280"
+        },
+        {
+          "behavior": "Compact: all 3 panes stay mounted across tab switch (terminal never unmounts)",
+          "disposition": "tested",
+          "evidence": "ThreePane unit + e2e 80 P1b same-element-across-crossing"
+        },
+        {
+          "behavior": "Compact tab-sizing does NOT persist desktop widths (code-review HIGH)",
+          "disposition": "tested",
+          "evidence": "e2e 80 width-guard (defaults 240/480, not compact-clamped)"
+        },
+        {
+          "behavior": "ConfirmDeleteDialog max-w-[95vw] clamp",
+          "disposition": "tested",
+          "evidence": "ConfirmDeleteDialog.test.tsx className"
+        }
+      ],
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "python scripts/hooks/anti_ratchet_check.py --project-root . --worktree --json",
+      "surface": "web",
+      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/80-tablet-responsive.spec.ts (BASE_URL=isolated built stack :3848)",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": null,
-      "timestamp": "2026-06-14T00:00:00.000Z",
-      "justification": "Compliance-baseline metadata edit consumed ONLY by the vendored Python anti-ratchet git hook + .github/workflows/bloat-check.yml. No webui runtime / web / API / store / WS / CLI surface appears in the diff (one integer in a *_baseline.json file). Verified directly: the anti-ratchet hook in worktree mode returns status=ok with zero ratchets (measured routes.ts = 509 <= new ceiling 509), and the full server unit suite (1637/1637) is green against the byte-identical base."
+      "tests_run": 17,
+      "evidence_path": "client/e2e/flows/80-tablet-responsive.spec.ts",
+      "timestamp": "2026-06-14T13:30:22Z",
+      "justification": null
     },
     "degraded": [
       {
-        "condition": "unit-suite-run-against-identical-base",
-        "detail": "The worktree has no node_modules (a JSON-metadata-only change touches zero TypeScript; no test imports shipwright_bloat_baseline.json). The full server unit suite (vitest run, SHIPWRIGHT_NETWORK_PROFILE=local) was executed in the main tree at HEAD c773d3e -- byte-identical to this worktree except the single tightened integer -- and passed 1637/1637. The verification gate specific to this change (the anti-ratchet hook) was run inside the worktree."
+        "condition": "external_llm_review_unavailable",
+        "detail": "OPENAI/GEMINI/GOOGLE keys absent + no check-external-review-keys.py in this shared snapshot; substituted internal opus-plan-reviewer (plan) + shipwright-build:code-reviewer (code) — Branch-C fallback."
       }
     ]
   }

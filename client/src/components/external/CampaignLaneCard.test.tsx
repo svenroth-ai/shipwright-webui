@@ -75,6 +75,18 @@ describe("CampaignLaneCard", () => {
     expect(screen.queryByTestId(`campaign-description-toggle-${SLUG}`)).toBeNull();
   });
 
+  // ---- tablet overflow hardening (iterate-2026-06-14-tablet-responsive-view AC-3) ----
+
+  it("step rows let long titles truncate (min-w-0 + truncate) so the card can't overflow at tablet width", () => {
+    renderCard(BASE);
+    expand(SLUG);
+    const step = screen.getByTestId("campaign-step-B0");
+    expect(step.className).toContain("min-w-0");
+    const title = within(step).getByText("Alpha");
+    expect(title.className).toContain("truncate");
+    expect(title.className).toContain("min-w-0");
+  });
+
   it("expands on header click and collapses again (toggle)", () => {
     renderCard(BASE);
     expand(SLUG);
