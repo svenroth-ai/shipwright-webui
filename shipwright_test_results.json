@@ -1,12 +1,14 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-repair-claude-json-end-heal",
+    "run_id": "iterate-2026-06-14-compliance-d3-g2-h1-reconcile",
     "date": "2026-06-14",
+    "type": "change",
+    "complexity": "small",
     "unit": {
-      "status": "passed",
-      "passed": 38,
-      "total": 38
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "integration": {
       "status": "not_run",
@@ -19,7 +21,7 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -29,57 +31,32 @@
       "total": 0
     },
     "smoke": {
-      "status": "skipped"
+      "status": "not_run"
     },
-    "degraded": [],
     "test_completeness": {
-      "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "repair-claude-json.mjs is invoked >= 2 times (start + end)",
-          "disposition": "tested",
-          "evidence": "start-server-production.test.mjs::'invoked at least TWICE' PASSED"
-        },
-        {
-          "behavior": "first repair runs before the build (Step 0 — heals a prior deploy)",
-          "disposition": "tested",
-          "evidence": "start-server-production.test.mjs::'FIRST repair before the build' PASSED"
-        },
-        {
-          "behavior": "last repair runs AFTER the server-kill (heals THIS deploy)",
-          "disposition": "tested",
-          "evidence": "start-server-production.test.mjs::'LAST repair AFTER the server-kill' PASSED"
-        },
-        {
-          "behavior": "last repair runs AFTER the server-up confirmation (clean window)",
-          "disposition": "tested",
-          "evidence": "start-server-production.test.mjs::'LAST repair AFTER the server-up confirmation' PASSED"
-        },
-        {
-          "behavior": "deploy structure markers present (guards ordering asserts from a silent pass)",
-          "disposition": "tested",
-          "evidence": "start-server-production.test.mjs::'deploy structure markers are present' PASSED"
-        }
-      ],
+      "status": "n/a",
+      "justification": "Compliance data/config reconcile (audit_config.json g2_stoplist + shipwright_bloat_baseline.json grandfather entry + two event_amended FR-link entries in shipwright_events.jsonl). No product code or runtime behaviour changed; verified that no server/src or client/src code consumes event_amended/affected_frs/new_frs/amends. Verification IS the detective audit: D3/G2/H1 re-run FAIL->PASS against the worktree.",
+      "behaviors": [],
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 0,
+        "tested": 0,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 0,
+        "covered_acs": 0
       }
     },
     "surface_verification": {
       "surface": "none",
-      "runner": "node --test scripts/start-server-production.test.mjs (structural) + PowerShell AST ParseFile",
+      "runner": null,
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-14-repair-claude-json-end-heal/surface_verification.json",
-      "timestamp": "2026-06-14T18:16:10.787Z",
-      "justification": "Deploy-ops PowerShell script (start-server-production.ps1); no startable product surface (no web/api/cli). Verified via node:test structural assertions over the script text (RED->GREEN, 38 tests pass) + PowerShell AST parse (0 syntax errors). No webui runtime/API/UI code changed."
-    }
+      "evidence_path": null,
+      "timestamp": "2026-06-14T00:00:00Z",
+      "justification": "No webui web/runtime surface touched - diff is detective-audit config (audit_config.json), bloat baseline (shipwright_bloat_baseline.json), and event-log FR-link amendments (shipwright_events.jsonl); none imported by client/server runtime. Verified via detective-audit D3/G2/H1 FAIL->PASS re-run."
+    },
+    "degraded": []
   }
 }

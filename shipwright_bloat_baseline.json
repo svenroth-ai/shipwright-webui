@@ -198,6 +198,13 @@
       "adr": "iterate-2026-06-08-fix-terminal-replay-render-refresh"
     },
     {
+      "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
+      "limit": 300,
+      "current": 311,
+      "state": "grandfathered",
+      "adr": "iterate-2026-06-14-compliance-d3-g2-h1-reconcile"
+    },
+    {
       "path": "client/src/components/triage/TriageDetailModal.tsx",
       "limit": 300,
       "current": 375,
