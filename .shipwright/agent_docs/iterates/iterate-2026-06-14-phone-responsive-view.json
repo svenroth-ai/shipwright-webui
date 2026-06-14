@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-06-14-phone-responsive-view",
+  "date": "2026-06-14T17:17:21.185641Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/phone-responsive-view",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-14-phone-responsive-view",
+  "spec_impact": "add",
+  "spec": ".shipwright/planning/iterate/2026-06-14-phone-responsive-view.md",
+  "description": "Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog); on-screen TerminalKeyBar for touch (writes pty via existing socket.send writer frame, mode-aware arrows, writer re-check); list/Projects table reflow; modal 44px touch; iOS safe-area + interactive-widget=resizes-content + dvh. Tablet/desktop byte-identical."
+}

@@ -384,7 +384,7 @@ export function EditTaskModal({ open, onOpenChange, task }: Props) {
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
+              <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
                 <Dialog.Close asChild>
                   <button
                     type="button"
@@ -398,7 +398,7 @@ export function EditTaskModal({ open, onOpenChange, task }: Props) {
                   type="submit"
                   data-testid="edit-task-save"
                   disabled={updateMut.isPending}
-                  className="rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 pointer-coarse:min-h-[44px] text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {updateMut.isPending ? "Saving…" : "Save changes"}
                 </button>

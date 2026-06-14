@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-06-14T13:34:23.441486+00:00
-Total commits: 557
+Generated: 2026-06-14T17:16:08.690099+00:00
+Total commits: 558
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 198
-    "feat" : 139
+    "feat" : 140
     "chore" : 113
     "docs" : 54
     "refactor" : 25
@@ -223,10 +223,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 139 commits
+### Features (feat) — 140 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | responsive | tablet view (≤1023px) — rail sidebar, board swipe carousel, compact task-detail tabs (FR-01.38) (#139) | d30d8a797d50 |
 | 2026-06-12 | campaigns | manual dismiss/restore for board cards (FR-01.33) (#126) | ae2711075e9d |
 | 2026-06-11 | actions | custom-action slash_command fuses description into launch prompt | 242c74c8035e |
 | 2026-06-11 | campaigns | project board status from tracked events.jsonl (FR-01.33) | baf6b1593749 |
@@ -371,7 +372,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | triage | sweep 2 outbox append(s) into branch | 76659f144fd4 |
+| 2026-06-14 | triage | sweep 2 outbox append(s) into branch | 4e77cfd05a80 |
 | 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
@@ -626,7 +627,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 557 |
+| Total commits | 558 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 557 |
+| Human-authored commits | 558 |
 

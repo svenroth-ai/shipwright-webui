@@ -253,6 +253,23 @@ body {
   margin: 0;
 }
 
+/* iterate-2026-06-14-phone-responsive-view — phone (<768px) ergonomics.
+   The <meta viewport> in index.html sets viewport-fit=cover +
+   interactive-widget=resizes-content. Here we (a) stop the mobile
+   pull-to-refresh / overscroll-glow from chaining past the app shell, and
+   (b) guarantee the React root fills the *dynamic* viewport so the fixed
+   nav drawer and the embedded-terminal key bar stay above the browser
+   chrome + soft keyboard. Both are no-ops on desktop (dvh === vh, no
+   pull-to-refresh) so the ≥1024px layout is unaffected. */
+html,
+body,
+#root {
+  overscroll-behavior: none;
+}
+#root {
+  min-height: 100dvh;
+}
+
 /* Iterate 3 remediation v2 Phase 0 (2026-04-21):
    Themed scrollbar — applied globally so that every scroll container
    (TaskBoard columns, Inbox, Projects, Settings, TaskDetail panes,
