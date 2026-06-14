@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-14T13:34:23.441486+00:00
+Generated: 2026-06-14T17:16:08.690099+00:00
 
 ## Requirements Coverage
 
@@ -44,6 +44,7 @@ Generated: 2026-06-14T13:34:23.441486+00:00
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced, evt-c59f2257 | — | — | NO TESTS |
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137) | A custom action in `<project>/.shipwright-webui/actions.json... | Should | evt-06308665 | — | — | NO TESTS |
 | [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | — | — | — | NOT VERIFIED |
+| [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | — | — | — | NOT VERIFIED |
 
 ## Verification Timeline
 
@@ -268,6 +269,7 @@ Generated: 2026-06-14T13:34:23.441486+00:00
 | Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 | iterate | change |  | 24/24 | — | 2026-06-14 |
 | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | iterate | change |  | 1637/1637 | — | 2026-06-14 |
 | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | iterate | feature |  | — | — | 2026-06-14 |
+| Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | iterate | feature |  | — | — | 2026-06-14 |
 
 ## Coverage Summary
 
@@ -275,9 +277,9 @@ Generated: 2026-06-14T13:34:23.441486+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 149 |
-| Requirements total | 38 |
-| Requirements verified | 23/38 |
+| Iterate changes | 150 |
+| Requirements total | 39 |
+| Requirements verified | 23/39 |
 | Must-have verified | 17/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
@@ -299,6 +301,7 @@ Generated: 2026-06-14T13:34:23.441486+00:00
 - [FR-01.26](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub 
 - [FR-01.27](../../.shipwright/planning/01-adopted/spec.md) (Must): Settings page lets the user pick a registered project, see its current actions-s
 - [FR-01.38](../../.shipwright/planning/01-adopted/spec.md) (Should): The WebUI becomes usable on tablets (768–1023px) **without changing the ≥1024px 
+- [FR-01.39](../../.shipwright/planning/01-adopted/spec.md) (Should): The WebUI becomes usable on phones (375–480px) **without changing the tablet (76
 
 ### FRs with stale verification (> 14 days)
 

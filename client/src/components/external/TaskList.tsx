@@ -106,7 +106,7 @@ export function TaskList({ tasks }: Props) {
     >
       <div
         className={
-          "overflow-hidden rounded-[var(--radius-card)] " +
+          "overflow-x-auto rounded-[var(--radius-card)] " +
           "border border-[var(--color-border)] bg-[var(--color-surface)]"
         }
       >
@@ -137,7 +137,7 @@ export function TaskList({ tasks }: Props) {
               </th>
               <th
                 data-testid="task-list-header-phase"
-                className="whitespace-nowrap px-4 py-2"
+                className="hidden whitespace-nowrap px-4 py-2 md:table-cell"
               >
                 Phase
               </th>
@@ -304,7 +304,7 @@ function TaskListRow({ task }: { task: ExternalTask }) {
           <StatePill state={task.state} />
         </td>
         <td
-          className="whitespace-nowrap px-4 py-3 text-[11px] text-[var(--color-muted)]"
+          className="hidden whitespace-nowrap px-4 py-3 text-[11px] text-[var(--color-muted)] md:table-cell"
           data-testid={`task-list-cell-${task.taskId}-phase`}
         >
           {/* v0.4.2 — phase badge using the same source-priority chain

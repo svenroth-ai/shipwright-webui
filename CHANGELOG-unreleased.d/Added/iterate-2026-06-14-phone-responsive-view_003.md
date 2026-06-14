@@ -1,0 +1,1 @@
+Phone polish: list/Projects tables reflow and scroll within their cards, modals fit a 375px viewport with 44px touch targets, and iOS safe-area + soft-keyboard handling (viewport-fit=cover, interactive-widget=resizes-content, dvh) (FR-01.39).

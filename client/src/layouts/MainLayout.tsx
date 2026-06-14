@@ -1,18 +1,73 @@
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import * as Dialog from '@radix-ui/react-dialog';
+import { Menu } from 'lucide-react';
 import { SidebarNav } from '../components/sidebar/SidebarNav';
 import { DiagnosticsBanner } from '../components/common/DiagnosticsBanner';
 import { useExternalInbox } from '../hooks/useExternalInbox';
 import { useTriageCounts } from '../hooks/useTriage';
+import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
 
 export function MainLayout() {
   const { data: inbox = [] } = useExternalInbox();
   const { data: triageCounts } = useTriageCounts();
+  const isPhone = useIsPhoneViewport();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const location = useLocation();
+
+  // Close the drawer on route change (AC-2). Radix handles Escape / scrim /
+  // focus-trap / scroll-lock / focus-restore via Dialog.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
+
+  const inboxCount = inbox.length;
+  const triageCount = triageCounts?.total ?? 0;
+
   return (
-    <div className="flex h-screen overflow-hidden">
-      <SidebarNav inboxCount={inbox.length} triageCount={triageCounts?.total ?? 0} />
+    <div className="flex h-[100dvh] overflow-hidden">
+      {isPhone ? (
+        <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <Dialog.Portal>
+            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50 [overscroll-behavior:contain]" />
+            <Dialog.Content
+              data-testid="mobile-nav-drawer"
+              aria-label="Navigation"
+              className="fixed inset-y-0 left-0 z-50 flex h-[100dvh] w-[260px] max-w-[85vw] flex-col shadow-2xl outline-none"
+            >
+              <Dialog.Title className="sr-only">Navigation</Dialog.Title>
+              <SidebarNav
+                drawer
+                inboxCount={inboxCount}
+                triageCount={triageCount}
+                onNavigate={() => setDrawerOpen(false)}
+              />
+            </Dialog.Content>
+          </Dialog.Portal>
+        </Dialog.Root>
+      ) : (
+        <SidebarNav inboxCount={inboxCount} triageCount={triageCount} />
+      )}
       <main className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--color-background)]">
+        {isPhone ? (
+          <div
+            data-testid="mobile-topbar"
+            className="flex shrink-0 items-center gap-2 bg-[var(--color-sidebar-bg)] px-1 [padding-top:env(safe-area-inset-top)]"
+          >
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open navigation"
+              data-testid="mobile-nav-trigger"
+              className="flex h-11 w-11 items-center justify-center rounded-md text-white hover:bg-white/10"
+            >
+              <Menu size={22} />
+            </button>
+            <span className="text-[15px] font-bold text-white">Shipwright</span>
+          </div>
+        ) : null}
         <DiagnosticsBanner />
-        <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable]">
+        <div className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable] [overscroll-behavior:contain]">
           <Outlet />
         </div>
       </main>

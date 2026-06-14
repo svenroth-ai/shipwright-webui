@@ -26,7 +26,21 @@ export default defineConfig({
     permissions: ['clipboard-read', 'clipboard-write'],
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Desktop project runs every spec EXCEPT the phone spec (which needs a
+    // coarse/touch device — see plan-review C1, iterate phone-responsive-view).
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: /90-phone-responsive\.spec\.ts/,
+    },
+    // Touch phone project runs ONLY the phone spec. Pixel 5 sets
+    // hasTouch + isMobile + a 393px viewport so `(pointer: coarse)` and
+    // `(max-width: 767px)` actually resolve true.
+    {
+      name: 'mobile-chromium',
+      use: { ...devices['Pixel 5'] },
+      testMatch: /90-phone-responsive\.spec\.ts/,
+    },
   ],
   ...(skipManagedWebServer
     ? {}

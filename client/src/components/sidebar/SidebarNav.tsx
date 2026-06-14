@@ -8,6 +8,15 @@ import { COMPACT_MEDIA_QUERY } from '../../hooks/useIsCompactViewport';
 interface SidebarNavProps {
   inboxCount: number;
   triageCount: number;
+  /**
+   * Phone overlay-drawer mode (iterate-2026-06-14-phone-responsive-view AC-2).
+   * MainLayout hosts the drawer in a Radix `Dialog.Content` (free focus-trap +
+   * scroll-lock + Escape + scrim + focus-restore). In drawer mode the sidebar
+   * drops the rail/expand chrome and always shows full labels.
+   */
+  drawer?: boolean;
+  /** Called when a nav item is tapped — closes the phone drawer. */
+  onNavigate?: () => void;
 }
 
 // Auto-collapse to the icon rail across the whole compact band (≤1023px =
@@ -32,18 +41,32 @@ function useMediaCollapse() {
   return [collapsed, setCollapsed] as const;
 }
 
-export function SidebarNav({ inboxCount, triageCount }: SidebarNavProps) {
-  const [collapsed, setCollapsed] = useMediaCollapse();
+const SHIPWRIGHT_LOGO = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white shrink-0">
+    <circle cx="12" cy="12" r="8" />
+    <circle cx="12" cy="12" r="2.5" />
+    <line x1="12" y1="2" x2="12" y2="9.5" />
+    <line x1="12" y1="14.5" x2="12" y2="22" />
+    <line x1="2" y1="12" x2="9.5" y2="12" />
+    <line x1="14.5" y1="12" x2="22" y2="12" />
+    <line x1="4.93" y1="4.93" x2="9.17" y2="9.17" />
+    <line x1="14.83" y1="14.83" x2="19.07" y2="19.07" />
+    <line x1="4.93" y1="19.07" x2="9.17" y2="14.83" />
+    <line x1="14.83" y1="9.17" x2="19.07" y2="4.93" />
+  </svg>
+);
 
-  return (
-    <aside
-      className={`${
-        collapsed ? 'w-[60px] min-w-[60px]' : 'w-[200px] min-w-[200px]'
-      } h-screen bg-[var(--color-sidebar-bg)] flex flex-col transition-[width] duration-200`}
-    >
+export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate }: SidebarNavProps) {
+  const [collapsed, setCollapsed] = useMediaCollapse();
+  // Drawer always shows full labels — the ≤1023 rail (sr-only labels) must not
+  // leak into the ≤767 drawer (plan-review H2).
+  const railed = drawer ? false : collapsed;
+
+  const body = (
+    <>
       {/* Brand */}
       <div className="flex items-center gap-2 px-4 py-5 pb-6">
-        {collapsed ? (
+        {railed ? (
           <button
             onClick={() => setCollapsed(false)}
             className="p-1 rounded hover:bg-white/10"
@@ -53,59 +76,33 @@ export function SidebarNav({ inboxCount, triageCount }: SidebarNavProps) {
           </button>
         ) : (
           <>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white shrink-0">
-              <circle cx="12" cy="12" r="8"/>
-              <circle cx="12" cy="12" r="2.5"/>
-              <line x1="12" y1="2" x2="12" y2="9.5"/>
-              <line x1="12" y1="14.5" x2="12" y2="22"/>
-              <line x1="2" y1="12" x2="9.5" y2="12"/>
-              <line x1="14.5" y1="12" x2="22" y2="12"/>
-              <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/>
-              <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/>
-              <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>
-              <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/>
-            </svg>
-            <span className="text-base font-bold text-white">
-              Shipwright
-            </span>
+            {SHIPWRIGHT_LOGO}
+            <span className="text-base font-bold text-white">Shipwright</span>
           </>
         )}
       </div>
 
       {/* Nav items */}
       <nav className="flex flex-col gap-1 py-2 px-3">
-        <SidebarNavItem
-          icon={LayoutDashboard}
-          label="Task Board"
-          to="/"
-          collapsed={collapsed}
-        />
-        <SidebarNavItem
-          icon={FolderOpen}
-          label="Projects"
-          to="/projects"
-          collapsed={collapsed}
-        />
+        <SidebarNavItem icon={LayoutDashboard} label="Task Board" to="/" collapsed={railed} onSelect={onNavigate} />
+        <SidebarNavItem icon={FolderOpen} label="Projects" to="/projects" collapsed={railed} onSelect={onNavigate} />
         <SidebarNavItem
           icon={Inbox}
           label="Inbox"
           to="/inbox"
           badge={<InboxBadge count={inboxCount} />}
-          collapsed={collapsed}
+          collapsed={railed}
+          onSelect={onNavigate}
         />
         <SidebarNavItem
           icon={Triangle}
           label="Triage"
           to="/triage"
           badge={<TriageBadge count={triageCount} />}
-          collapsed={collapsed}
+          collapsed={railed}
+          onSelect={onNavigate}
         />
-        <SidebarNavItem
-          icon={Activity}
-          label="Diagnostics"
-          to="/diagnostics"
-          collapsed={collapsed}
-        />
+        <SidebarNavItem icon={Activity} label="Diagnostics" to="/diagnostics" collapsed={railed} onSelect={onNavigate} />
       </nav>
 
       {/* Spacer — pushes Settings to the bottom. Phase B1 removed the
@@ -115,13 +112,32 @@ export function SidebarNav({ inboxCount, triageCount }: SidebarNavProps) {
 
       {/* Bottom: Settings */}
       <div className="border-t border-white/10 px-3 py-3">
-        <SidebarNavItem
-          icon={Settings}
-          label="Settings"
-          to="/settings"
-          collapsed={collapsed}
-        />
+        <SidebarNavItem icon={Settings} label="Settings" to="/settings" collapsed={railed} onSelect={onNavigate} />
       </div>
+    </>
+  );
+
+  // Phone drawer: Dialog.Content owns positioning/animation; fill it + pad for
+  // the iOS safe-area (notch top / home-indicator bottom).
+  if (drawer) {
+    return (
+      <div
+        data-testid="sidebar-drawer-body"
+        className="flex h-full w-full flex-col bg-[var(--color-sidebar-bg)] [padding-top:env(safe-area-inset-top)] [padding-bottom:env(safe-area-inset-bottom)]"
+      >
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <aside
+      data-testid="sidebar-inline"
+      className={`${
+        railed ? 'w-[60px] min-w-[60px]' : 'w-[200px] min-w-[200px]'
+      } h-screen bg-[var(--color-sidebar-bg)] flex flex-col transition-[width] duration-200`}
+    >
+      {body}
     </aside>
   );
 }
