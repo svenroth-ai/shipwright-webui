@@ -1,20 +1,20 @@
 # Test Evidence Report
 
-Generated: 2026-06-14T18:20:52.846153+00:00
+Generated: 2026-06-14T18:17:51.114380+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Total test checkpoints | 221 |
-| Total unit tests (latest) | 0/0 |
+| Total unit tests (latest) | 38/38 |
 | New tests from iterations | +26 |
 
 ## Test Progression
 
 | # | Event | Source | Layer | New Tests | Suite Total | Result | Date |
 |---|-------|--------|-------|-----------|-------------|--------|------|
-| 1 | Compliance detective-audit reconcile (D3/G2/H1): G2 add 'responsive' commit scope to audit_config.json g2_stoplist; D3 reaffirm promised FR-01.38/FR-01.39 via event_amended on the tablet/phone responsive iterate events (their own work_completed omitted affected_frs); H1 grandfather client/src/components/terminal/EmbeddedTerminal.tsx (311>300, ADR-097 deep module) in shipwright_bloat_baseline.json. No product code touched; D3/G2/H1 re-run FAIL->PASS. | iterate | — | +0 | — | — | 2026-06-14 |
+| 1 | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | iterate | unit | +0 | 38/38 | PASS | 2026-06-14 |
 | 2 | Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | iterate | — | +0 | — | — | 2026-06-14 |
 | 3 | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | iterate | — | +0 | — | — | 2026-06-14 |
 | 4 | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | iterate | unit | +0 | 1637/1637 | PASS | 2026-06-14 |
@@ -240,36 +240,36 @@ Generated: 2026-06-14T18:20:52.846153+00:00
 
 | Run | Trigger | Unit | Integration | pgTAP | E2E | Smoke | Date |
 |-----|---------|------|-------------|-------|-----|-------|------|
-| 1 | iterate | 2062/2062 | — | — | — | — | 2026-05-18 |
-| 2 | iterate | 1152/1152 | — | — | — | — | 2026-05-18 |
-| 3 | iterate | 1155/1155 | — | — | — | — | 2026-05-19 |
-| 4 | iterate | 1156/1156 | — | — | — | — | 2026-05-19 |
-| 5 | iterate | 979/979 | — | — | — | — | 2026-05-19 |
-| 6 | iterate | 2135/2135 | — | — | — | — | 2026-05-19 |
-| 7 | iterate | 2189/2189 | — | — | — | — | 2026-05-20 |
-| 8 | iterate | 2184/2184 | — | — | — | — | 2026-05-21 |
+| 1 | iterate | 1152/1152 | — | — | — | — | 2026-05-18 |
+| 2 | iterate | 1155/1155 | — | — | — | — | 2026-05-19 |
+| 3 | iterate | 1156/1156 | — | — | — | — | 2026-05-19 |
+| 4 | iterate | 979/979 | — | — | — | — | 2026-05-19 |
+| 5 | iterate | 2135/2135 | — | — | — | — | 2026-05-19 |
+| 6 | iterate | 2189/2189 | — | — | — | — | 2026-05-20 |
+| 7 | iterate | 2184/2184 | — | — | — | — | 2026-05-21 |
+| 8 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
 | 9 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
-| 10 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
-| 11 | iterate | 1174/1174 | — | — | — | — | 2026-05-22 |
-| 12 | iterate | 2198/2198 | — | — | — | — | 2026-05-22 |
-| 13 | iterate | 1066/1066 | — | — | — | — | 2026-05-23 |
-| 14 | iterate | 22/22 | — | — | — | — | 2026-05-25 |
-| 15 | iterate | 14/14 | — | — | — | — | 2026-05-25 |
-| 16 | iterate | 1124/1124 | — | — | — | — | 2026-05-26 |
-| 17 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
-| 18 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
-| 19 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
-| 20 | iterate | 1345/1345 | — | — | — | — | 2026-05-30 |
-| 21 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
-| 22 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
-| 23 | iterate | 1550/1550 | — | — | — | — | 2026-06-05 |
-| 24 | iterate | 1557/1557 | — | — | — | — | 2026-06-07 |
-| 25 | iterate | 3/3 | — | — | — | — | 2026-06-12 |
-| 26 | iterate | 1609/1609 | — | — | — | — | 2026-06-12 |
-| 27 | iterate | 1611/1611 | — | — | — | — | 2026-06-12 |
-| 28 | iterate | 1/1 | — | — | — | — | 2026-06-13 |
-| 29 | iterate | 24/24 | — | — | — | — | 2026-06-14 |
-| 30 | iterate | 1637/1637 | — | — | — | — | 2026-06-14 |
+| 10 | iterate | 1174/1174 | — | — | — | — | 2026-05-22 |
+| 11 | iterate | 2198/2198 | — | — | — | — | 2026-05-22 |
+| 12 | iterate | 1066/1066 | — | — | — | — | 2026-05-23 |
+| 13 | iterate | 22/22 | — | — | — | — | 2026-05-25 |
+| 14 | iterate | 14/14 | — | — | — | — | 2026-05-25 |
+| 15 | iterate | 1124/1124 | — | — | — | — | 2026-05-26 |
+| 16 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
+| 17 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
+| 18 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
+| 19 | iterate | 1345/1345 | — | — | — | — | 2026-05-30 |
+| 20 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
+| 21 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
+| 22 | iterate | 1550/1550 | — | — | — | — | 2026-06-05 |
+| 23 | iterate | 1557/1557 | — | — | — | — | 2026-06-07 |
+| 24 | iterate | 3/3 | — | — | — | — | 2026-06-12 |
+| 25 | iterate | 1609/1609 | — | — | — | — | 2026-06-12 |
+| 26 | iterate | 1611/1611 | — | — | — | — | 2026-06-12 |
+| 27 | iterate | 1/1 | — | — | — | — | 2026-06-13 |
+| 28 | iterate | 24/24 | — | — | — | — | 2026-06-14 |
+| 29 | iterate | 1637/1637 | — | — | — | — | 2026-06-14 |
+| 30 | iterate | 38/38 | — | — | — | — | 2026-06-14 |
 
 ## Code Review Evidence
 
