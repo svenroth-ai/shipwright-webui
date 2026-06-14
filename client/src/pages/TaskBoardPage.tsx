@@ -301,7 +301,7 @@ export default function TaskBoardPage() {
         }}
       >
         <header
-          className="page-container flex items-center justify-between"
+          className="page-container flex flex-wrap items-center justify-between gap-y-2"
           style={{ paddingTop: "20px", paddingBottom: "12px" }}
           data-testid="task-board-header"
         >
@@ -415,8 +415,8 @@ export default function TaskBoardPage() {
           // alignment). `min-w-0` on columns would let them shrink — we
           // keep them fixed (360 px) so cards stay legible. Fallback gap-6
           // (24 px) for viewports narrow enough that justify-between
-          // collapses.
-          className="page-container flex w-full flex-1 items-start justify-between gap-6 overflow-x-auto overflow-y-hidden pt-10 pb-8"
+          // collapses. Tablet <lg: justify-start + scroll-snap carousel; lg: restores desktop.
+          className="page-container flex w-full flex-1 items-start justify-start gap-6 overflow-x-auto overflow-y-hidden pt-10 pb-8 snap-x snap-mandatory scroll-pl-6 lg:justify-between lg:snap-none lg:scroll-pl-0"
           data-testid="task-board-columns"
           data-page-container="true"
         >
@@ -528,7 +528,7 @@ function Column({ title, testId, items, tone }: ColumnProps) {
   const s = COLUMN_STYLES[tone];
   return (
     <div
-      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 flex-col overflow-hidden rounded-[var(--radius-card)]"
+      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)]"
       style={{ background: s.bg }}
       data-testid={testId}
     >

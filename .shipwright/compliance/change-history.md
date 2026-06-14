@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-14T07:38:59.481341+00:00
-Total commits: 556
+Generated: 2026-06-14T13:34:23.441486+00:00
+Total commits: 557
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 556
 pie title Commit Types
     "fix" : 198
     "feat" : 139
-    "chore" : 112
+    "chore" : 113
     "docs" : 54
     "refactor" : 25
     "test" : 18
@@ -367,11 +367,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 112 commits
+### Chores (chore) — 113 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | triage | sweep 1 outbox append(s) into branch | 2c4741fd6041 |
+| 2026-06-14 | triage | sweep 2 outbox append(s) into branch | 76659f144fd4 |
+| 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -625,7 +626,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 556 |
+| Total commits | 557 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 556 |
+| Human-authored commits | 557 |
 

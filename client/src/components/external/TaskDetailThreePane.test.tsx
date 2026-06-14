@@ -9,8 +9,8 @@
  *  - The layout persists to the 4 localStorage keys.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import { TaskDetailThreePane } from "./TaskDetailThreePane";
 import {
@@ -167,5 +167,83 @@ describe("TaskDetailThreePane — collapsed rendering", () => {
       />,
     );
     expect(screen.getByTestId("pane-right").getAttribute("data-collapsed")).toBe("true");
+  });
+});
+
+describe("TaskDetailThreePane — compact (tablet ≤1023px)", () => {
+  // iterate-2026-06-14-tablet-responsive-view AC-4. jsdom has no matchMedia, so
+  // useIsCompactViewport defaults to desktop (false) above. Mock it to compact.
+  const originalMatchMedia = window.matchMedia;
+
+  function setCompact(compact: boolean) {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: compact,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+  }
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  function renderCompact() {
+    setCompact(true);
+    return render(
+      <TaskDetailThreePane
+        containerWidth={820}
+        left={<div data-testid="slot-left">left</div>}
+        center={<div data-testid="slot-center">center</div>}
+        right={<div data-testid="slot-right">right</div>}
+      />,
+    );
+  }
+
+  it("renders the pane tab bar and hides the resize handles", () => {
+    renderCompact();
+    expect(screen.getByTestId("pane-tab-bar")).toBeTruthy();
+    expect(screen.getByTestId("splitter-left").className).toContain("hidden");
+    expect(screen.getByTestId("splitter-right").className).toContain("hidden");
+  });
+
+  it("keeps ALL THREE pane children mounted across tab switches (terminal never unmounts — plan-review C1/C2)", () => {
+    renderCompact();
+    expect(screen.getByTestId("slot-left")).toBeTruthy();
+    expect(screen.getByTestId("slot-center")).toBeTruthy();
+    expect(screen.getByTestId("slot-right")).toBeTruthy();
+    // Switch Files → Viewer: the center (terminal) subtree must stay in the DOM.
+    fireEvent.click(screen.getByTestId("pane-tab-left"));
+    expect(screen.getByTestId("slot-left")).toBeTruthy();
+    expect(screen.getByTestId("slot-center")).toBeTruthy();
+    expect(screen.getByTestId("slot-right")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("pane-tab-right"));
+    expect(screen.getByTestId("slot-center")).toBeTruthy();
+  });
+
+  it("defaults to the Session (center) tab and tracks aria-selected on change", () => {
+    renderCompact();
+    expect(screen.getByTestId("pane-tab-center").getAttribute("aria-selected")).toBe("true");
+    fireEvent.click(screen.getByTestId("pane-tab-left"));
+    expect(screen.getByTestId("pane-tab-left").getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByTestId("pane-tab-center").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("does NOT render the tab bar on desktop (≥1024px) and keeps handles visible", () => {
+    setCompact(false);
+    render(
+      <TaskDetailThreePane
+        containerWidth={1280}
+        left={<div />}
+        center={<div />}
+        right={<div />}
+      />,
+    );
+    expect(screen.queryByTestId("pane-tab-bar")).toBeNull();
+    expect(screen.getByTestId("splitter-left").className).not.toContain("hidden");
   });
 });

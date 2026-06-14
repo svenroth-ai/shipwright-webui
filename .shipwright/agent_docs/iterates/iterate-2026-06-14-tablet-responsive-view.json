@@ -1,0 +1,12 @@
+{
+  "run_id": "iterate-2026-06-14-tablet-responsive-view",
+  "date": "2026-06-14T13:31:53.858354Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/tablet-responsive-view",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-14-tablet-responsive-view",
+  "spec_impact": "add",
+  "spec": ".shipwright/planning/iterate/2026-06-14-tablet-responsive-view.md",
+  "description": "Tablet responsive view (\u22641023px): sidebar rail, board swipe carousel + list/campaign hardening, task-detail compact Files/Session/Viewer tabs; desktop unchanged"
+}
