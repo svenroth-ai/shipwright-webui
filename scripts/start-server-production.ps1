@@ -29,7 +29,10 @@ Write-Host ''
 #    the server -> every embedded `claude` pty dies -> on reload many `claude`
 #    CLIs start at once and race on the (non-atomic, unlocked) ~/.claude.json,
 #    which can leave a truncation-tail-corrupt file that breaks every running
-#    session. Repair it once, up-front. BEST EFFORT: the deploy NEVER gates on
+#    session. This Step-0 run heals corruption left by a PREVIOUS deploy; the
+#    corruption THIS deploy causes happens ~13s later (step 2's server-kill
+#    races the embedded writers), so step 5 below re-runs the guard after the
+#    restart. BEST EFFORT: the deploy NEVER gates on
 #    the result — the exit code is intentionally ignored and a missing `node`
 #    or a script error must not block the deploy (server/build don't depend on
 #    ~/.claude.json). See scripts/repair-claude-json.mjs.
@@ -105,6 +108,26 @@ if ($up) {
   Write-Host '  OK - Hono runs in the background, no window.' -ForegroundColor Green
   Write-Host '  Restart: run this again.  Stop: stop-server.ps1' -ForegroundColor Green
   Write-Host "  Log: $log" -ForegroundColor Green
+  Write-Host ''
+
+  # 5. Self-heal ~/.claude.json a SECOND time, now that the server is up. The
+  #    Step-0 run can only heal a PREVIOUS deploy's leftover corruption; THIS
+  #    deploy's server-kill (step 2) took down every embedded `claude` pty and
+  #    the racing shutdown writes are what corrupt the (non-atomic, unlocked)
+  #    file. This is the clean window: the old sessions are dead and a UI reload
+  #    has not yet spawned new ones, so heal here before the user reconnects.
+  #    SAME best-effort contract — exit code ignored; a missing `node` or a
+  #    script error must never gate the deploy. (Residual: a reload that spawns
+  #    several sessions at once can still re-corrupt; the real fix is upstream —
+  #    the CLI must write ~/.claude.json atomically + lock-guarded.)
+  Write-Host 'Re-checking ~/.claude.json integrity (post-restart)...' -ForegroundColor Cyan
+  try {
+    & node (Join-Path $PSScriptRoot 'repair-claude-json.mjs')
+  } catch {
+    Write-Host "  (skipped: $($_.Exception.Message))" -ForegroundColor DarkGray
+  }
+  $global:LASTEXITCODE = 0
+
   Write-Host ''
   Write-Host '  This window closes itself in 4s...' -ForegroundColor DarkGray
   Start-Sleep -Seconds 4
