@@ -5,10 +5,10 @@
  * / model selector config. All of those vanish in the external-launch
  * architecture (the user's own Claude client owns them).
  *
- * This stub is intentionally near-empty. A real "Launcher preferences" tab
- * (default launcher choice, VSCode executable override, claude executable
- * override, plugin dir list) belongs in a follow-up iterate when the
- * Terminal + VSCode launchers actually ship.
+ * iterate-2026-06-14-actions-config-ux — the stale "Launcher preferences"
+ * stub card was removed (it described a "Copy command launcher" that no
+ * longer exists; Launch/Resume auto-execute via the embedded-terminal header
+ * CTA, ADR-068-A1). The page now hosts only the actions-config surface.
  *
  * Iterate 3 remediation v2 Phase 0 (2026-04-21) — visual rebuild:
  *   - Sidebar-consistent header (matches InboxPage: 24px/700 title +
@@ -79,42 +79,7 @@ export default function SettingsPage() {
         className="page-container flex flex-col gap-4"
         style={{ paddingTop: "24px", paddingBottom: "24px" }}
       >
-        <section
-          className="flex flex-col gap-2"
-          style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "var(--radius-card)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "20px",
-          }}
-        >
-          <h2
-            className="font-semibold"
-            style={{
-              fontSize: "15px",
-              color: "var(--color-text)",
-              margin: 0,
-            }}
-          >
-            Launcher preferences
-          </h2>
-          <p
-            style={{
-              fontSize: "13px",
-              color: "var(--color-muted)",
-              margin: 0,
-              lineHeight: 1.5,
-            }}
-          >
-            Terminal / VSCode / Desktop launcher overrides land in a future
-            iterate. Today the &ldquo;Copy command&rdquo; launcher is the
-            only available path.
-          </p>
-        </section>
-
-        {/* FR-01.27 — per-project actions.json upload + reset. Replaces
-            the read-only descriptive paragraph that lived here previously. */}
+        {/* FR-01.27 — per-project actions.json upload + reset. */}
         <ActionsConfigCard projects={projects} />
       </div>
     </div>

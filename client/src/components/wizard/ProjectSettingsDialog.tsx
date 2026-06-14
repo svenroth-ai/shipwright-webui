@@ -28,6 +28,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { useUpdateProject } from '../../hooks/useUpdateProject';
 import { ProjectColorPicker } from './ProjectColorPicker';
+import { ActionsConfigRow } from '../settings/ActionsConfigRow';
 import type { Project } from '../../types';
 
 interface ProjectSettingsDialogProps {
@@ -173,6 +174,27 @@ export function ProjectSettingsDialog({
               onChange={setColor}
               testidPrefix="project-settings-color"
             />
+
+            {/* Actions configuration (iterate-2026-06-14-actions-config-ux) —
+                same upload/reset surface as the Settings page, scoped to this
+                project. `hideProjectHeader` drops the redundant name/path (the
+                dialog already shows both). Gated to match ActionsConfigCard's
+                filter (real, non-synthesized project). */}
+            {!project.synthesized && project.path && (
+              <div data-testid="project-settings-actions">
+                <label className="block text-[13px] font-semibold text-[var(--color-text)] mb-1.5 tracking-tight">
+                  Actions configuration
+                </label>
+                <p className="text-xs text-[var(--color-muted)] mb-2 leading-relaxed">
+                  Replace this project&rsquo;s{' '}
+                  <span className="font-mono">.shipwright-webui/actions.json</span>{' '}
+                  to customize the <span className="font-mono">+ New ▾</span>{' '}
+                  dropdown. Validated against the schema before it overwrites on
+                  disk.
+                </p>
+                <ActionsConfigRow project={project} hideProjectHeader />
+              </div>
+            )}
           </div>
 
           {/* Footer */}

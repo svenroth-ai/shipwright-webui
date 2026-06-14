@@ -174,6 +174,66 @@ describe("POST /api/projects/:id/actions-upload", () => {
     expect(onDisk.actions[0].id).toBe("new-task");
   });
 
+  // iterate-2026-06-14-actions-config-ux — the upload route's dry-run must pass
+  // the action's slash_command to dryRunTemplate (FR-01.37 fixed get.ts but
+  // missed upload.ts). A custom {task.initial_prompt} action with a valid
+  // slash_command passed validateActionsSchema but then threw UnknownActionError
+  // in the dry-run → 500. Regression guard.
+  it("accepts a custom {task.initial_prompt} action with a valid slash_command (was 500)", async () => {
+    const payload = {
+      schemaVersion: 1,
+      defaults: { autonomy: "guided" },
+      actions: [
+        {
+          id: "orchestrate",
+          label: "Orchestrate",
+          kind: "external_launch",
+          slash_command: "/content-orchestrator",
+          command_template:
+            "{cd.prefix}claude --session-id {task.uuid} {plugin.dirs} {task.initial_prompt}",
+          modal_fields: ["title", "description"],
+        },
+      ],
+      phases: [{ id: "content", label: "Content" }],
+      preview: { enabled: false },
+    };
+    const r = await app.request(`/api/projects/${PROJECT_ID}/actions-upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    expect(r.status).toBe(200);
+    const body = (await r.json()) as { written: boolean };
+    expect(body.written).toBe(true);
+  });
+
+  it("rejects a custom {task.initial_prompt} action WITHOUT slash_command as 400 (not 500)", async () => {
+    const payload = {
+      schemaVersion: 1,
+      defaults: { autonomy: "guided" },
+      actions: [
+        {
+          id: "orchestrate",
+          label: "Orchestrate",
+          kind: "external_launch",
+          command_template:
+            "{cd.prefix}claude --session-id {task.uuid} {plugin.dirs} {task.initial_prompt}",
+          modal_fields: ["title", "description"],
+        },
+      ],
+      phases: [{ id: "content", label: "Content" }],
+      preview: { enabled: false },
+    };
+    const r = await app.request(`/api/projects/${PROJECT_ID}/actions-upload`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    expect(r.status).toBe(400);
+    const body = (await r.json()) as { error: string };
+    expect(body.error).toBe("schema_validation_failed");
+  });
+
   it("returns 404 project_not_found for unknown project id", async () => {
     const r = await app.request("/api/projects/ghost/actions-upload", {
       method: "POST",
