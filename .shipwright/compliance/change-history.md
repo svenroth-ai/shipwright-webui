@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-06-14T06:41:07.910859+00:00
-Total commits: 554
+Generated: 2026-06-14T07:38:59.481341+00:00
+Total commits: 556
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 197
+    "fix" : 198
     "feat" : 139
     "chore" : 112
-    "docs" : 53
+    "docs" : 54
     "refactor" : 25
     "test" : 18
     "ci" : 5
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 197 commits
+### Fixes (fix) — 198 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | eae591e882e5 |
 | 2026-06-14 | terminal | strip child-session env so embedded claude writes its transcript (#135) | 9b1ed5ed8830 |
 | 2026-06-13 | compliance | correct stale .webui/ path in live spec + regen RTM (#134) | f8b0506d3653 |
 | 2026-06-13 | compliance | reconcile post-v0.18.0 detective audit F5 (automerge convention drop) (#131) | a75a76229376 |
@@ -370,7 +371,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | triage | sweep 2 outbox append(s) into branch | 7eec0b315fb9 |
+| 2026-06-14 | triage | sweep 1 outbox append(s) into branch | 2c4741fd6041 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
 | 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
@@ -483,10 +484,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 53 commits
+### Documentation (docs) — 54 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | guide | document ~/.claude.json self-heal in production restart (#137) | c773d3ea3f52 |
 | 2026-06-13 | guide | audit guide.md vs code/ADRs/RTM + align package.json version (#133) | 5df0605eae8d |
 | 2026-06-13 | readme | production-first install + guide/Makefile correctness fixes (#132) | eeaefb55eb32 |
 | 2026-06-12 | agent-docs | condense architecture.md + conventions.md to ADR-anchored pointers (#128) | 18cf09d455af |
@@ -623,7 +625,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 554 |
+| Total commits | 556 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 554 |
+| Human-authored commits | 556 |
 

@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-14 06:41 UTC | Session: 29e1b335-3576-42db-8620-68f5e5194c31 | Run: iterate-2026-06-14-repair-claude-json
+> Updated: 2026-06-14 07:38 UTC | Session: 0cd6a2cf-4b8a-4771-854e-9effba1df780 | Run: iterate-2026-06-14-tighten-bloat-baseline-routes
 
-## Recent Changes (147 iterations)
+## Recent Changes (148 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | 1637/1637 |  | compliance | 2026-06-14 |
 | change | Deploy-time self-heal of a truncation-tail-corrupt ~/.claude.json: new ops helper scripts/repair-claude-json.mjs + start-server-production.ps1 step 0 | 24/24 |  | tooling | 2026-06-14 |
 | bug | buildSpawnEnv strips inherited CLAUDE_CODE_CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE so embedded-terminal claude launches top-level and writes its <uuid>.jsonl; fixes empty Transcripts tab when the server was started from inside a Claude session. | 0/0 |  | FR-01.02, FR-01.12 | 2026-06-13 |
 | change | Correct stale .webui/actions.json -> .shipwright-webui/actions.json in live spec.md FR descriptions + acceptance criteria (post-v0.17.0 rename); regenerate traceability matrix. | 0/0 |  | compliance | 2026-06-13 |
@@ -154,7 +155,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-14 | Unit: 24/24 | Smoke: passed | (iterate)
+Last run: 2026-06-14 | Unit: 1637/1637 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

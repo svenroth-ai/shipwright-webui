@@ -1,59 +1,34 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-repair-claude-json",
+    "run_id": "iterate-2026-06-14-tighten-bloat-baseline-routes",
     "date": "2026-06-14",
     "type": "change",
-    "complexity": "small",
-    "unit": { "status": "passed", "passed": 24, "total": 24 },
+    "complexity": "trivial",
+    "unit": { "status": "passed", "passed": 1637, "total": 1637 },
     "integration": { "status": "not_run", "passed": 0, "total": 0 },
     "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
     "e2e": { "status": "skipped", "passed": 0, "total": 0 },
     "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
-    "smoke": { "status": "passed" },
+    "smoke": { "status": "not_run" },
     "test_completeness": {
-      "status": "complete",
-      "behaviors": [
-        { "behavior": "valid JSON -> no-op (no backup, no write)", "disposition": "tested",
-          "evidence": "repair-claude-json.test.mjs 'repairJsonText: valid' + 'repairFile: valid file -> noop' PASSED" },
-        { "behavior": "truncation-tail -> repaired, only tail discarded, prefix byte-preserved", "disposition": "tested",
-          "evidence": "'repairJsonText: truncation-tail' + 'repairFile: truncation-tail file -> repaired, round-trips' PASSED" },
-        { "behavior": "string/escape-aware brace scan (brace or escaped quote inside string does not close object)", "disposition": "tested",
-          "evidence": "'findFirstBalancedObject: braces inside a string value are ignored' + 'escaped quote ... does not end the string' PASSED" },
-        { "behavior": "implausible structure (parses, <3 keys / no projects) -> no overwrite", "disposition": "tested",
-          "evidence": "'repairJsonText: implausible structure' + 'repairFile: implausible balanced object -> not overwritten' PASSED" },
-        { "behavior": "garbage / no balanced object / unterminated string -> no overwrite", "disposition": "tested",
-          "evidence": "'repairJsonText: garbage', 'unbalanced (never closes)', 'unterminated string at EOF' + 'repairFile: unrepairable garbage -> file unchanged' PASSED" },
-        { "behavior": "empty / whitespace -> no overwrite", "disposition": "tested",
-          "evidence": "'repairJsonText: empty / whitespace-only' + 'repairFile: empty file -> noop' PASSED" },
-        { "behavior": "absent file -> no-op", "disposition": "tested",
-          "evidence": "'repairFile: absent file -> noop, nothing created' PASSED" },
-        { "behavior": "backup created + corrupt original preserved as .corrupt-<ts>.bak; atomic write leaves a re-parseable file; no temp litter", "disposition": "tested",
-          "evidence": "'repairFile: truncation-tail file -> repaired ... backup keeps original' (asserts 1 backup w/ original bytes, file re-parses, no .tmp- left) PASSED" },
-        { "behavior": "prune keeps newest ~10 backups and never deletes the just-made backup", "disposition": "tested",
-          "evidence": "'pruneBackups: keeps the newest 10' + 'never deletes the excepted (just-made) backup' PASSED" },
-        { "behavior": "two complete plausible configs -> refuse (multiple_candidates), file untouched (data-loss guard)", "disposition": "tested",
-          "evidence": "'repairJsonText: TWO complete plausible configs -> unrepairable (multiple_candidates)' PASSED + CLI smoke C2 (exit 1, file untouched, no new backup)" },
-        { "behavior": "CLI exit-code contract: 0 healthy/healed/benign, 1 unrepairable (AC-4)", "disposition": "tested",
-          "evidence": "'main: exit-code contract (0 ..., 1 unrepairable)' PASSED + CLI smoke 4 cases against temp HOME" },
-        { "behavior": "backupTimestamp fixed-width / filename-safe (load-bearing for prune sort)", "disposition": "tested",
-          "evidence": "'backupTimestamp: fixed-width, filename-safe (no : or .)' PASSED" },
-        { "behavior": "PowerShell deploy hook runs repair at step 0 before the build and NEVER gates the deploy on its exit code (best effort)", "disposition": "untestable",
-          "reason_code": "requires-interactive-tty",
-          "reason": "the production deploy script is an interactive, destructive operator script (force-kills the live :3847 server, rebuilds server+client, uses Read-Host); its runtime control flow is not CI-drivable. The non-gating property is guaranteed by construction (no `if ($LASTEXITCODE)` check, explicit `$global:LASTEXITCODE = 0` reset, try/catch around the call) and the file parses clean (PowerShell AST ParseFile check)." }
-      ],
-      "counts": { "testable": 12, "tested": 12, "untestable": 1, "untested_testable": 0 },
-      "enumeration_basis": { "acs": 5, "covered_acs": 5 }
+      "status": "n/a",
+      "justification": "Trivial compliance-metadata edit: a single integer ceiling (current 620 -> 509) in shipwright_bloat_baseline.json. No app behavior is introduced or changed, so the Test Completeness Ledger is auto-n/a at trivial complexity per F5. The sole consumer of the edited file (the vendored anti-ratchet hook) is verified directly (worktree mode, status=ok)."
     },
     "surface_verification": {
-      "surface": "cli",
-      "runner": "node --test scripts/repair-claude-json.test.mjs",
+      "surface": "none",
+      "runner": "python scripts/hooks/anti_ratchet_check.py --project-root . --worktree --json",
       "exit_code": 0,
-      "tests_run": 24,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-14-repair-claude-json/surface_verification.log",
-      "timestamp": "2026-06-14T06:35:59.524Z",
-      "justification": "Ops deploy-time CLI helper (scripts/repair-claude-json.mjs); no webui runtime/web/API/store/WS surface in the diff. Verified end-to-end via the node:test round-trip suite (24 tests, exit 0) plus a 4-case CLI smoke (truncation-tail->repaired, valid->noop, unrepairable->exit1, absent->noop) run against a temp HOME."
+      "tests_run": 0,
+      "evidence_path": null,
+      "timestamp": "2026-06-14T00:00:00.000Z",
+      "justification": "Compliance-baseline metadata edit consumed ONLY by the vendored Python anti-ratchet git hook + .github/workflows/bloat-check.yml. No webui runtime / web / API / store / WS / CLI surface appears in the diff (one integer in a *_baseline.json file). Verified directly: the anti-ratchet hook in worktree mode returns status=ok with zero ratchets (measured routes.ts = 509 <= new ceiling 509), and the full server unit suite (1637/1637) is green against the byte-identical base."
     },
-    "degraded": []
+    "degraded": [
+      {
+        "condition": "unit-suite-run-against-identical-base",
+        "detail": "The worktree has no node_modules (a JSON-metadata-only change touches zero TypeScript; no test imports shipwright_bloat_baseline.json). The full server unit suite (vitest run, SHIPWRIGHT_NETWORK_PROFILE=local) was executed in the main tree at HEAD c773d3e -- byte-identical to this worktree except the single tightened integer -- and passed 1637/1637. The verification gate specific to this change (the anti-ratchet hook) was run inside the worktree."
+      }
+    ]
   }
 }
