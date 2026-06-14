@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-14 17:16 UTC | Session: 876aa536-ca35-49b3-ad0d-7bb56d20d753 | Run: iterate-2026-06-14-phone-responsive-view
+> Updated: 2026-06-14 19:23 UTC | Session: e0f25b0e-7059-47f1-b5de-550d9ed7df64 | Run: iterate-2026-06-14-actions-config-ux
 
-## Recent Changes (150 iterations)
+## Recent Changes (151 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | Reusable ActionsConfigRow (hideProjectHeader) rendered in ProjectSettingsDialog; upload.ts passes slash_command to dryRunTemplate (fixes 500); removed stale Launcher preferences card. | 0/0 |  | FR-01.40, FR-01.37 | 2026-06-14 |
 | feature | Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | 0/0 |  |  | 2026-06-14 |
 | feature | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | 0/0 |  |  | 2026-06-14 |
 | change | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | 1637/1637 |  | compliance | 2026-06-14 |
@@ -157,7 +158,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-14T19:10:00Z | Unit: 1649/1649 | E2E: 13/13 | Smoke: passed | (iterate)
+Last run: 2026-06-14 | Unit: 3294/3294 | Integration: 16/16 | E2E: 3/3 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

@@ -1,19 +1,21 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-phone-responsive-view",
-    "date": "2026-06-14T19:10:00Z",
+    "run_id": "iterate-2026-06-14-actions-config-ux",
+    "date": "2026-06-14",
     "type": "feature",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1647,
-      "total": 1647
+      "passed": 3294,
+      "total": 3294,
+      "note": "server 1639 + client 1655 full suites"
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 16,
+      "total": 16,
+      "note": "actions-upload route (200/400) + component RTL"
     },
     "pgtap": {
       "status": "not_run",
@@ -22,132 +24,92 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 13,
-      "total": 13,
-      "note": "client/e2e/flows/90-phone-responsive.spec.ts under the new mobile-chromium (Pixel 5) project; tablet/desktop spec 80 (17/17) re-run green under chromium as up-band non-regression."
+      "passed": 3,
+      "total": 3,
+      "note": "F0.5 surface=web: settings removal+card + edit-modal actions section (seeded project)"
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
+    },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 3,
+      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/04-settings.spec.ts client/e2e/flows/81-project-actions-config.spec.ts --config=client/playwright.config.ts --project=chromium",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-14-actions-config-ux/surface_verification.json",
+      "attempts": 1,
+      "note": "isolated single-process stack (temp USERPROFILE, built client, PORT 3948, loopback); seeded a project via POST /api/projects"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "useIsPhoneViewport ≤767 reactive, SSR-safe, distinct from compact",
+          "behavior": "upload accepts custom initial_prompt+slash (200, was 500)",
           "disposition": "tested",
-          "evidence": "useIsCompactViewport.test.ts phone block (5)"
+          "evidence": "actions-upload.test.ts accepts..."
         },
         {
-          "behavior": "useCoarsePointer gates on (pointer:coarse)",
+          "behavior": "upload rejects missing slash -> 400 not 500",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx (null on fine / bar on coarse)"
+          "evidence": "actions-upload.test.ts rejects..."
         },
         {
-          "behavior": "Phone sidebar = overlay drawer; inline sidebar absent <768",
+          "behavior": "ActionsConfigRow full mode shows name+path",
           "disposition": "tested",
-          "evidence": "MainLayout.test.tsx phone + e2e 90 P3"
+          "evidence": "ActionsConfigRow.test.tsx default"
         },
         {
-          "behavior": "Drawer opens on hamburger; closes on Escape + nav-tap; nav navigates",
+          "behavior": "hideProjectHeader omits name/path, keeps badge+controls",
           "disposition": "tested",
-          "evidence": "MainLayout.test.tsx + e2e 90 (Escape/nav-tap/URL)"
+          "evidence": "ActionsConfigRow.test.tsx hideProjectHeader"
         },
         {
-          "behavior": "Drawer shows full labels (not the rail) even when compact (H2)",
+          "behavior": "Custom badge after query resolves",
           "disposition": "tested",
-          "evidence": "SidebarNav.test.tsx H2 + e2e 90"
+          "evidence": "ActionsConfigRow.test.tsx Custom badge"
         },
         {
-          "behavior": "Up-band guard: ≥768 inline sidebar, no drawer/top-bar (L3)",
+          "behavior": "ActionsConfigCard still maps real rows after extraction",
           "disposition": "tested",
-          "evidence": "MainLayout.test.tsx desktop + e2e 90 @1024"
+          "evidence": "ActionsConfigCard.test.tsx + SettingsPage.test.tsx still maps real projects"
         },
         {
-          "behavior": "terminalKeySequence Esc/Tab/Ctrl-C/Enter + CSI/SS3 arrows",
+          "behavior": "edit modal renders Actions section COMPACT for real project",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx (8)"
+          "evidence": "ProjectSettingsDialog.test.tsx COMPACT + e2e 81"
         },
         {
-          "behavior": "Key bar renders on coarse / null on fine; all keys present",
+          "behavior": "edit modal hides Actions section for pathless project",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx + e2e 90 P4"
+          "evidence": "ProjectSettingsDialog.test.tsx hides no path"
         },
         {
-          "behavior": "Key-bar buttons preventDefault (no focus steal); ⌨ focuses term",
+          "behavior": "SettingsPage no longer renders Launcher preferences",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx (pointerdown defaultPrevented + ⌨→onFocusTerminal)"
+          "evidence": "SettingsPage.test.tsx + e2e 04"
         },
         {
-          "behavior": "Key bar writes mapped byte to pty (writer); reader disabled, no write (H4)",
+          "behavior": "SettingsPage renders actions-config surface",
           "disposition": "tested",
-          "evidence": "composition: terminalKeySequence unit (id→byte CSI/SS3) + TerminalKeyBar.test (reader→disabled, no onKey) + EmbeddedTerminal.test onData→socket.send (writer-frame path) + e2e 90 (bar enabled on touch). EmbeddedTerminal onKey re-checks role===writer (mirrors useAutoLaunch)."
-        },
-        {
-          "behavior": "Terminal subtree never unmounts (key bar sibling of persistent canvas, rule 21)",
-          "disposition": "tested",
-          "evidence": "EmbeddedTerminal.test.tsx (70) + spec 80 P1b same-node-across-crossing"
-        },
-        {
-          "behavior": "List: Phase column hidden <md, shown ≥md; no page overflow at 393",
-          "disposition": "tested",
-          "evidence": "e2e 90 (task-list-header-phase hidden@393) + spec 80 (≥lg path intact)"
-        },
-        {
-          "behavior": "Projects table scrolls in-card; no page overflow at 393",
-          "disposition": "tested",
-          "evidence": "e2e 90 P2 (/projects no overflow)"
-        },
-        {
-          "behavior": "Modal fits 393px viewport; footer wraps; primary 44px on touch",
-          "disposition": "tested",
-          "evidence": "e2e 90 (wizard width ≤ vw, no overflow) + modal unit suites (41)"
-        },
-        {
-          "behavior": "Touch targets ≥44px on new surfaces (nav/keys/hamburger)",
-          "disposition": "tested",
-          "evidence": "e2e 90 P3 computed min-height ≥ 44; key/hamburger h-11"
-        },
-        {
-          "behavior": "viewport-fit=cover + interactive-widget=resizes-content; dvh shell; safe-area pads (notch/keyboard visual effect)",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device"
-        },
-        {
-          "behavior": "useIsCompactViewport public behavior unchanged after shared-useMediaQuery refactor",
-          "disposition": "tested",
-          "evidence": "useIsCompactViewport.test.ts compact block + SidebarNav rail tests + spec 80"
+          "evidence": "SettingsPage.test.tsx + e2e 04"
         }
       ],
       "counts": {
-        "testable": 16,
-        "tested": 16,
-        "untestable": 1,
+        "testable": 10,
+        "tested": 10,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
         "acs": 6,
         "covered_acs": 6
       }
-    },
-    "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts --project=mobile-chromium (BASE_URL=isolated built stack 127.0.0.1:3947)",
-      "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-14-phone-responsive-view/surface_verification.json",
-      "timestamp": "2026-06-14T19:02:00Z",
-      "justification": null
-    },
-    "degraded": [
-      {
-        "condition": "external_llm_review_unavailable",
-        "detail": "OPENAI/GEMINI/GOOGLE keys absent; substituted internal opus-plan-reviewer (plan, verdict REWORK — all findings adopted) + shipwright-build:code-reviewer (code, verdict REQUEST-CHANGES — MEDIUM-1 spec-amended, INFO 44px E2E assertion added, LOW-3 modal flex-wrap added). Branch-C fallback."
-      }
-    ]
+    }
   }
 }

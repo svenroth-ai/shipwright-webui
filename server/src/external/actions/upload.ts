@@ -135,16 +135,33 @@ export function registerActionsUpload(
     const phaseIds = parsed.phases.map((p) => p.id);
     for (const action of parsed.actions) {
       if (!action.command_template) continue;
-      const errCandidate = dryRunTemplate(action.command_template, action.id, phaseIds);
-      if (errCandidate) {
+      // iterate-2026-06-14-actions-config-ux — pass slash_command so a custom
+      // {task.initial_prompt} action dry-runs without throwing UnknownActionError
+      // → 500 (FR-01.37 fixed get.ts but missed this upload path). try/catch
+      // mirrors get.ts defense-in-depth: a crashing validator returns a typed
+      // 500, never an unhandled throw.
+      try {
+        const errCandidate = dryRunTemplate(
+          action.command_template,
+          action.id,
+          phaseIds,
+          action.slash_command,
+        );
+        if (errCandidate) {
+          return c.json(
+            {
+              error: "invalid_placeholder",
+              placeholder: errCandidate.placeholder,
+              actionId: errCandidate.actionId,
+              template: errCandidate.template,
+            },
+            400,
+          );
+        }
+      } catch {
         return c.json(
-          {
-            error: "invalid_placeholder",
-            placeholder: errCandidate.placeholder,
-            actionId: errCandidate.actionId,
-            template: errCandidate.template,
-          },
-          400,
+          { error: "template_validation_failed", actionId: action.id },
+          500,
         );
       }
     }

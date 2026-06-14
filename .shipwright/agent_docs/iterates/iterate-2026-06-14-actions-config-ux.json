@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-14-actions-config-ux",
+  "date": "2026-06-14T19:23:33.424867Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/actions-config-ux",
+  "spec": ".shipwright/planning/iterate/2026-06-14-actions-config-ux.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-14-actions-config-ux"
+}
