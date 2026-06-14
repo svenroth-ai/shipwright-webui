@@ -2,7 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: draw under the iOS notch/home-indicator so
+         env(safe-area-inset-*) padding can reclaim it.
+         interactive-widget=resizes-content: the soft keyboard RESIZES the
+         layout (terminal key bar + input line stay above it) instead of
+         overlaying (iterate-2026-06-14-phone-responsive-view AC-6). -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

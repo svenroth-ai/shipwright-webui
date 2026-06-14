@@ -53,6 +53,7 @@ import { useAutoLaunch } from "./useAutoLaunch";
 import { attachTerminalSelection } from "./useTerminalSelection";
 import { useTerminalShellEffects } from "./useTerminalShellEffects";
 import { TerminalBanners, CLIPBOARD_NOTICE_MS } from "./TerminalBanners";
+import { TerminalKeyBar, terminalKeySequence } from "./TerminalKeyBar";
 
 // Re-export gate constants so the existing EmbeddedTerminal.test.tsx imports
 // keep working without churn.
@@ -294,6 +295,16 @@ export const EmbeddedTerminal = forwardRef<
         className="min-h-0 flex-1 overflow-hidden"
         tabIndex={-1}
         data-testid="embedded-terminal-canvas"
+      />
+      {/* AC-3 — on-screen keys for touch devices (renders null on desktop). */}
+      <TerminalKeyBar
+        disabled={socket.role !== "writer"}
+        onFocusTerminal={() => termRef.current?.focus()}
+        onKey={(k) => {
+          if (socket.role !== "writer") return;
+          const m = termRef.current?.modes?.applicationCursorKeysMode ?? false;
+          socket.send({ type: "data", payload: terminalKeySequence(k, m) });
+        }}
       />
     </div>
   );

@@ -95,6 +95,53 @@ describe('SidebarNav', () => {
     expect(taskBoardLabel.className).toMatch(/sr-only/);
   });
 
+  it('drawer mode shows FULL labels even on a compact viewport (plan-review H2)', () => {
+    // The ≤1023 rail (sr-only labels via useMediaCollapse) must NOT leak into
+    // the ≤767 phone drawer — the drawer always shows full text labels.
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('max-width'), // compact = true
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+    const Wrapper = makeWrapper();
+    render(
+      <Wrapper>
+        <MemoryRouter>
+          <SidebarNav inboxCount={0} triageCount={0} drawer />
+        </MemoryRouter>
+      </Wrapper>,
+    );
+    expect(screen.getByTestId('sidebar-drawer-body')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-inline')).toBeNull();
+    // Label is full text, NOT sr-only.
+    expect(screen.getByText('Task Board').className).not.toMatch(/sr-only/);
+  });
+
+  it('drawer nav-item tap fires onNavigate (closes the drawer)', () => {
+    const onNavigate = vi.fn();
+    const Wrapper = makeWrapper();
+    render(
+      <Wrapper>
+        <MemoryRouter>
+          <SidebarNav inboxCount={0} triageCount={0} drawer onNavigate={onNavigate} />
+        </MemoryRouter>
+      </Wrapper>,
+    );
+    screen.getByText('Projects').closest('a')!.click();
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the inline aside (not the drawer body) in default mode', () => {
+    renderWithRouter();
+    expect(screen.getByTestId('sidebar-inline')).toBeInTheDocument();
+    expect(screen.queryByTestId('sidebar-drawer-body')).toBeNull();
+  });
+
   it('rails across the whole compact band — queries the 1023px (lg) threshold, not 768px', () => {
     // iterate-2026-06-14-tablet-responsive-view AC-2: tablets (768–1023px) must
     // get the icon rail so the board/3-pane get full content width.

@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-tablet-responsive-view",
-    "date": "2026-06-14T13:30:22Z",
+    "run_id": "iterate-2026-06-14-phone-responsive-view",
+    "date": "2026-06-14T19:10:00Z",
     "type": "feature",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1624,
-      "total": 1624
+      "passed": 1647,
+      "total": 1647
     },
     "integration": {
       "status": "not_run",
@@ -22,8 +22,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 17,
-      "total": 17
+      "passed": 13,
+      "total": 13,
+      "note": "client/e2e/flows/90-phone-responsive.spec.ts under the new mobile-chromium (Pixel 5) project; tablet/desktop spec 80 (17/17) re-run green under chromium as up-band non-regression."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -37,90 +38,115 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "useIsCompactViewport ≤1023 compact, reactive, SSR-safe",
+          "behavior": "useIsPhoneViewport ≤767 reactive, SSR-safe, distinct from compact",
           "disposition": "tested",
-          "evidence": "useIsCompactViewport.test.ts (6)"
+          "evidence": "useIsCompactViewport.test.ts phone block (5)"
         },
         {
-          "behavior": "Sidebar rails at ≤1023 (threshold raised from 768)",
+          "behavior": "useCoarsePointer gates on (pointer:coarse)",
           "disposition": "tested",
-          "evidence": "SidebarNav.test.tsx 1023-query + e2e 80 rail@820/expanded@1280"
+          "evidence": "TerminalKeyBar.test.tsx (null on fine / bar on coarse)"
         },
         {
-          "behavior": "Board header wraps; no page overflow at tablet",
+          "behavior": "Phone sidebar = overlay drawer; inline sidebar absent <768",
           "disposition": "tested",
-          "evidence": "e2e 80 P1 no-overflow at /"
+          "evidence": "MainLayout.test.tsx phone + e2e 90 P3"
         },
         {
-          "behavior": "Board columns justify-start+swipe tablet / justify-between desktop",
+          "behavior": "Drawer opens on hamburger; closes on Escape + nav-tap; nav navigates",
           "disposition": "tested",
-          "evidence": "e2e 80 computed justifyContent @820/1024/1280 + cols scrollable"
+          "evidence": "MainLayout.test.tsx + e2e 90 (Escape/nav-tap/URL)"
         },
         {
-          "behavior": "Board column snap-start carousel",
+          "behavior": "Drawer shows full labels (not the rail) even when compact (H2)",
           "disposition": "tested",
-          "evidence": "e2e 80 scrollWidth>clientWidth + screenshot"
+          "evidence": "SidebarNav.test.tsx H2 + e2e 90"
         },
         {
-          "behavior": "List view Commit col hidden <lg / shown ≥lg; fits tablet",
+          "behavior": "Up-band guard: ≥768 inline sidebar, no drawer/top-bar (L3)",
           "disposition": "tested",
-          "evidence": "e2e 80 commit header hidden@820/visible@1280"
+          "evidence": "MainLayout.test.tsx desktop + e2e 90 @1024"
         },
         {
-          "behavior": "Campaign card long step titles truncate (min-w-0+truncate)",
+          "behavior": "terminalKeySequence Esc/Tab/Ctrl-C/Enter + CSI/SS3 arrows",
           "disposition": "tested",
-          "evidence": "CampaignLaneCard.test.tsx truncate/min-w-0"
+          "evidence": "TerminalKeyBar.test.tsx (8)"
         },
         {
-          "behavior": "Campaign card action-button row wraps (flex-wrap)",
+          "behavior": "Key bar renders on coarse / null on fine; all keys present",
+          "disposition": "tested",
+          "evidence": "TerminalKeyBar.test.tsx + e2e 90 P4"
+        },
+        {
+          "behavior": "Key-bar buttons preventDefault (no focus steal); ⌨ focuses term",
+          "disposition": "tested",
+          "evidence": "TerminalKeyBar.test.tsx (pointerdown defaultPrevented + ⌨→onFocusTerminal)"
+        },
+        {
+          "behavior": "Key bar writes mapped byte to pty (writer); reader disabled, no write (H4)",
+          "disposition": "tested",
+          "evidence": "composition: terminalKeySequence unit (id→byte CSI/SS3) + TerminalKeyBar.test (reader→disabled, no onKey) + EmbeddedTerminal.test onData→socket.send (writer-frame path) + e2e 90 (bar enabled on touch). EmbeddedTerminal onKey re-checks role===writer (mirrors useAutoLaunch)."
+        },
+        {
+          "behavior": "Terminal subtree never unmounts (key bar sibling of persistent canvas, rule 21)",
+          "disposition": "tested",
+          "evidence": "EmbeddedTerminal.test.tsx (70) + spec 80 P1b same-node-across-crossing"
+        },
+        {
+          "behavior": "List: Phase column hidden <md, shown ≥md; no page overflow at 393",
+          "disposition": "tested",
+          "evidence": "e2e 90 (task-list-header-phase hidden@393) + spec 80 (≥lg path intact)"
+        },
+        {
+          "behavior": "Projects table scrolls in-card; no page overflow at 393",
+          "disposition": "tested",
+          "evidence": "e2e 90 P2 (/projects no overflow)"
+        },
+        {
+          "behavior": "Modal fits 393px viewport; footer wraps; primary 44px on touch",
+          "disposition": "tested",
+          "evidence": "e2e 90 (wizard width ≤ vw, no overflow) + modal unit suites (41)"
+        },
+        {
+          "behavior": "Touch targets ≥44px on new surfaces (nav/keys/hamburger)",
+          "disposition": "tested",
+          "evidence": "e2e 90 P3 computed min-height ≥ 44; key/hamburger h-11"
+        },
+        {
+          "behavior": "viewport-fit=cover + interactive-widget=resizes-content; dvh shell; safe-area pads (notch/keyboard visual effect)",
           "disposition": "untestable",
-          "reason_code": "covered-by-existing-test"
+          "reason_code": "requires-physical-device"
         },
         {
-          "behavior": "Detail compact Files/Session/Viewer tabs ≤1023; 3-pane ≥1024",
+          "behavior": "useIsCompactViewport public behavior unchanged after shared-useMediaQuery refactor",
           "disposition": "tested",
-          "evidence": "TaskDetailThreePane.test.tsx (4) + e2e 80 tab-bar@820/splitters@1280"
-        },
-        {
-          "behavior": "Compact: all 3 panes stay mounted across tab switch (terminal never unmounts)",
-          "disposition": "tested",
-          "evidence": "ThreePane unit + e2e 80 P1b same-element-across-crossing"
-        },
-        {
-          "behavior": "Compact tab-sizing does NOT persist desktop widths (code-review HIGH)",
-          "disposition": "tested",
-          "evidence": "e2e 80 width-guard (defaults 240/480, not compact-clamped)"
-        },
-        {
-          "behavior": "ConfirmDeleteDialog max-w-[95vw] clamp",
-          "disposition": "tested",
-          "evidence": "ConfirmDeleteDialog.test.tsx className"
+          "evidence": "useIsCompactViewport.test.ts compact block + SidebarNav rail tests + spec 80"
         }
       ],
       "counts": {
-        "testable": 11,
-        "tested": 11,
+        "testable": 16,
+        "tested": 16,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/80-tablet-responsive.spec.ts (BASE_URL=isolated built stack :3848)",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts --project=mobile-chromium (BASE_URL=isolated built stack 127.0.0.1:3947)",
       "exit_code": 0,
-      "tests_run": 17,
-      "evidence_path": "client/e2e/flows/80-tablet-responsive.spec.ts",
-      "timestamp": "2026-06-14T13:30:22Z",
+      "tests_run": 13,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-14-phone-responsive-view/surface_verification.json",
+      "timestamp": "2026-06-14T19:02:00Z",
       "justification": null
     },
     "degraded": [
       {
         "condition": "external_llm_review_unavailable",
-        "detail": "OPENAI/GEMINI/GOOGLE keys absent + no check-external-review-keys.py in this shared snapshot; substituted internal opus-plan-reviewer (plan) + shipwright-build:code-reviewer (code) — Branch-C fallback."
+        "detail": "OPENAI/GEMINI/GOOGLE keys absent; substituted internal opus-plan-reviewer (plan, verdict REWORK — all findings adopted) + shipwright-build:code-reviewer (code, verdict REQUEST-CHANGES — MEDIUM-1 spec-amended, INFO 44px E2E assertion added, LOW-3 modal flex-wrap added). Branch-C fallback."
       }
     ]
   }

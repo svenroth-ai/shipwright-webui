@@ -109,6 +109,9 @@ const REQUIRED_TOKENS = [
   // iterate-2026-06-14-tablet-responsive-view — tablet (≤1023px) responsive layout (FR-01.38)
   'useIsCompactViewport',
   'PaneTabBar',
+  // iterate-2026-06-14-phone-responsive-view — phone (<768px) responsive layout (FR-01.39)
+  'useIsPhoneViewport',
+  'TerminalKeyBar',
 ] as const;
 
 let claudeMd = '';

@@ -142,7 +142,7 @@ export function ModalShell({
               )}
             </div>
 
-            <div className="flex items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
+            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
               <div
                 className="flex-1 text-[11px] text-[var(--color-muted,#6b7280)]"
                 data-testid="new-issue-footer-hint"
@@ -170,7 +170,7 @@ export function ModalShell({
                 type="submit"
                 data-testid="new-issue-launch-btn"
                 disabled={!canSubmit}
-                className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-primary,#6b5e56)] px-4 py-1.5 pointer-coarse:min-h-[44px] text-[13px] font-semibold text-white hover:bg-[var(--color-primary-hover,#5a4f48)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Launch
               </button>

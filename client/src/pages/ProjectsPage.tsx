@@ -191,7 +191,7 @@ export default function ProjectsPage() {
                 border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-card)',
                 boxShadow: 'var(--shadow-sm)',
-                overflow: 'hidden',
+                overflowX: 'auto',
               }}
             >
               <table

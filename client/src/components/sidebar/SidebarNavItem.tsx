@@ -8,15 +8,18 @@ interface SidebarNavItemProps {
   to: string;
   badge?: ReactNode;
   collapsed?: boolean;
+  /** Called after the link is activated — used to close the phone drawer. */
+  onSelect?: () => void;
 }
 
-export function SidebarNavItem({ icon: Icon, label, to, badge, collapsed }: SidebarNavItemProps) {
+export function SidebarNavItem({ icon: Icon, label, to, badge, collapsed, onSelect }: SidebarNavItemProps) {
   return (
     <NavLink
       to={to}
       end={to === '/'}
+      onClick={onSelect}
       className={({ isActive }) =>
-        `flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors ${
+        `flex items-center gap-[10px] px-3 py-[9px] pointer-coarse:min-h-[44px] rounded-lg text-sm transition-colors ${
           isActive
             ? 'bg-white/[0.12] text-white'
             : 'text-white/70 hover:bg-white/[0.08] hover:text-white'
