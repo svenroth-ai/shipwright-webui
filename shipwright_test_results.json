@@ -1,19 +1,21 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-compliance-d3-g2-h1-reconcile",
+    "run_id": "iterate-2026-06-14-actions-config-ux",
     "date": "2026-06-14",
-    "type": "change",
-    "complexity": "small",
+    "type": "feature",
+    "complexity": "medium",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 3294,
+      "total": 3294,
+      "note": "server 1639 + client 1655 full suites"
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 16,
+      "total": 16,
+      "note": "actions-upload route (200/400) + component RTL"
     },
     "pgtap": {
       "status": "not_run",
@@ -21,42 +23,93 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 3,
+      "total": 3,
+      "note": "F0.5 surface=web: settings removal+card + edit-modal actions section (seeded project)"
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "smoke": {
       "status": "not_run"
     },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 3,
+      "runner": "node client/node_modules/@playwright/test/cli.js test client/e2e/flows/04-settings.spec.ts client/e2e/flows/81-project-actions-config.spec.ts --config=client/playwright.config.ts --project=chromium",
+      "evidence_path": ".shipwright/runs/iterate-2026-06-14-actions-config-ux/surface_verification.json",
+      "attempts": 1,
+      "note": "isolated single-process stack (temp USERPROFILE, built client, PORT 3948, loopback); seeded a project via POST /api/projects"
+    },
     "test_completeness": {
-      "status": "n/a",
-      "justification": "Compliance data/config reconcile (audit_config.json g2_stoplist + shipwright_bloat_baseline.json grandfather entry + two event_amended FR-link entries in shipwright_events.jsonl). No product code or runtime behaviour changed; verified that no server/src or client/src code consumes event_amended/affected_frs/new_frs/amends. Verification IS the detective audit: D3/G2/H1 re-run FAIL->PASS against the worktree.",
-      "behaviors": [],
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "upload accepts custom initial_prompt+slash (200, was 500)",
+          "disposition": "tested",
+          "evidence": "actions-upload.test.ts accepts..."
+        },
+        {
+          "behavior": "upload rejects missing slash -> 400 not 500",
+          "disposition": "tested",
+          "evidence": "actions-upload.test.ts rejects..."
+        },
+        {
+          "behavior": "ActionsConfigRow full mode shows name+path",
+          "disposition": "tested",
+          "evidence": "ActionsConfigRow.test.tsx default"
+        },
+        {
+          "behavior": "hideProjectHeader omits name/path, keeps badge+controls",
+          "disposition": "tested",
+          "evidence": "ActionsConfigRow.test.tsx hideProjectHeader"
+        },
+        {
+          "behavior": "Custom badge after query resolves",
+          "disposition": "tested",
+          "evidence": "ActionsConfigRow.test.tsx Custom badge"
+        },
+        {
+          "behavior": "ActionsConfigCard still maps real rows after extraction",
+          "disposition": "tested",
+          "evidence": "ActionsConfigCard.test.tsx + SettingsPage.test.tsx still maps real projects"
+        },
+        {
+          "behavior": "edit modal renders Actions section COMPACT for real project",
+          "disposition": "tested",
+          "evidence": "ProjectSettingsDialog.test.tsx COMPACT + e2e 81"
+        },
+        {
+          "behavior": "edit modal hides Actions section for pathless project",
+          "disposition": "tested",
+          "evidence": "ProjectSettingsDialog.test.tsx hides no path"
+        },
+        {
+          "behavior": "SettingsPage no longer renders Launcher preferences",
+          "disposition": "tested",
+          "evidence": "SettingsPage.test.tsx + e2e 04"
+        },
+        {
+          "behavior": "SettingsPage renders actions-config surface",
+          "disposition": "tested",
+          "evidence": "SettingsPage.test.tsx + e2e 04"
+        }
+      ],
       "counts": {
-        "testable": 0,
-        "tested": 0,
+        "testable": 10,
+        "tested": 10,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 0,
-        "covered_acs": 0
+        "acs": 6,
+        "covered_acs": 6
       }
-    },
-    "surface_verification": {
-      "surface": "none",
-      "runner": null,
-      "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": null,
-      "timestamp": "2026-06-14T00:00:00Z",
-      "justification": "No webui web/runtime surface touched - diff is detective-audit config (audit_config.json), bloat baseline (shipwright_bloat_baseline.json), and event-log FR-link amendments (shipwright_events.jsonl); none imported by client/server runtime. Verified via detective-audit D3/G2/H1 FAIL->PASS re-run."
-    },
-    "degraded": []
+    }
   }
 }
