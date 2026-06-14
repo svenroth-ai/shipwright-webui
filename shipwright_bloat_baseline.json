@@ -438,9 +438,9 @@
     {
       "path": "server/src/external/actions-upload.test.ts",
       "limit": 300,
-      "current": 454,
+      "current": 514,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-14-actions-config-ux"
     },
     {
       "path": "server/src/external/file-route.test.ts",
