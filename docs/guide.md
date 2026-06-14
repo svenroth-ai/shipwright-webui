@@ -539,8 +539,11 @@ picked in [§4](#4-installation):
   cd server && npm start      # stop the old one with Ctrl+C first
   ```
   On Windows the bundled `scripts\start-server-production.ps1` does the
-  rebuild + stop-old + start-fresh swap in one step, and re-running
-  `scripts\install-windows.ps1` refreshes the autostart build too.
+  rebuild + stop-old + start-fresh swap in one step — and, as a first
+  best-effort step, repairs a corrupted `~/.claude.json` (with a timestamped
+  backup) so the restart can't leave your running Claude sessions broken (see
+  [§10](#10-troubleshooting)). Re-running `scripts\install-windows.ps1`
+  refreshes the autostart build too.
 - **Path B (dev):** just stop both dev servers (Ctrl+C) and start them
   again (`make dev-server` + `make dev-client`). `tsx watch` and Vite
   run straight from source, so there's no build step.
@@ -1205,3 +1208,20 @@ latest code, rerun `make install`, and restart the server — non-`/api`
 GETs now return `client/dist/index.html` so hard-reload and bookmarked
 deep links work everywhere in the UI. The `/api/*` 404 contract is
 unchanged.
+
+### After a deploy, every Claude session fails with "config corrupt"
+
+`~/.claude.json` is written by the Claude CLI itself — the Command
+Center only reads it. When a production restart kills all your
+embedded-terminal sessions at once, the many `claude` processes that
+restart can race on that file and leave it half-written (a valid but
+shorter object followed by the leftover tail of the previous version),
+and every running `claude` then fails to parse it.
+
+The production restart script (`scripts\start-server-production.ps1`)
+now repairs this automatically as its first step: it salvages the valid
+part, saves the broken original as `~/.claude.json.corrupt-<timestamp>.bak`
+(the last ~10 are kept), and rewrites the file before anything restarts.
+It is best-effort and never blocks the deploy; if the file is too
+damaged to salvage safely it is left untouched — restore it from a
+`.bak`, or just let the Claude CLI recreate it.
