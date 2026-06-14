@@ -9,20 +9,20 @@ Scope: full_app
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 153 changes | INFO |  |
+| Work events (iterate) | 154 changes | INFO |  |
 | All unit tests passing | 1652/1652 | PASS |  |
 | Architecture decisions | 168 ADRs | INFO |  |
-| Iterate tests passing | 78/153 iterations tested | WARN | 75 iterate(s) without tests — see test-evidence.md |
+| Iterate tests passing | 78/154 iterations tested | WARN | 76 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 65 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 2 open | WARN | 2 actionable item(s) — see ../agent_docs/triage_inbox.md |
-| Bloat over-limit | 81 | WARN | 81 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
+| Bloat over-limit | 80 | WARN | 80 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
 | Bloat in allowlist | 85 entries | INFO |  |
-| Bloat ratchet delta | +10 lines | WARN | grandfathered surface ratcheted up by 10 line(s) — Iron Law violation |
+| Bloat ratchet delta | -322 lines | PASS |  |
 
 ## Project Velocity
 
-- Iterate: 153 changes (2026-05-01 → 2026-06-14)
+- Iterate: 154 changes (2026-05-01 → 2026-06-14)
 - Last activity: 2026-06-14
 
 ## External LLM Review Evidence

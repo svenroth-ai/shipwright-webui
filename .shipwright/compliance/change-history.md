@@ -1,16 +1,16 @@
 # Commit Change Log
 
 Generated: 2026-06-14T20:06:24.145525+00:00
-Total commits: 560
+Total commits: 563
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 200
-    "feat" : 141
+    "fix" : 201
+    "feat" : 142
     "chore" : 112
-    "docs" : 54
+    "docs" : 55
     "refactor" : 25
     "test" : 18
     "ci" : 5
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 200 commits
+### Fixes (fix) — 201 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) | 7a4d31be023c |
 | 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | 64f97e96f250 |
 | 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 77ef6847ff9a |
 | 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | eae591e882e5 |
@@ -225,10 +226,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 141 commits
+### Features (feat) — 142 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 732a1a8464c7 |
 | 2026-06-14 | responsive | phone view (<768px) — sidebar drawer, on-screen terminal key bar, table/modal reflow, iOS safe-area (FR-01.39) (#140) | 74175ba33722 |
 | 2026-06-14 | responsive | tablet view (≤1023px) — rail sidebar, board swipe carousel, compact task-detail tabs (FR-01.38) (#139) | d30d8a797d50 |
 | 2026-06-12 | campaigns | manual dismiss/restore for board cards (FR-01.33) (#126) | ae2711075e9d |
@@ -488,10 +490,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 54 commits
+### Documentation (docs) — 55 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | agent-docs | compact over-budget entries + de-blank-line Updates sections (#144) | 1ef931844111 |
 | 2026-06-14 | guide | document ~/.claude.json self-heal in production restart (#137) | c773d3ea3f52 |
 | 2026-06-13 | guide | audit guide.md vs code/ADRs/RTM + align package.json version (#133) | 5df0605eae8d |
 | 2026-06-13 | readme | production-first install + guide/Makefile correctness fixes (#132) | eeaefb55eb32 |
@@ -629,7 +632,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 560 |
+| Total commits | 563 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 560 |
+| Human-authored commits | 563 |
 

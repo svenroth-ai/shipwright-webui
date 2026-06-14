@@ -18,13 +18,14 @@ timestamp: "2026-06-14T20:06:24.145525+00:00"
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-14-compliance-d3-g2-h1-reconcile
-- **Date**: 2026-06-14T18:24:15.123371Z
+- **Run ID**: iterate-2026-06-14-tablet-view-polish
+- **Date**: 2026-06-14T20:06:37.799524Z
 - **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/compliance-d3-g2-h1-reconcile
-- **ADR**: iterate-2026-06-14-compliance-d3-g2-h1-reconcile
+- **Complexity**: medium
+- **Branch**: iterate/tablet-view-polish
+- **ADR**: iterate-2026-06-14-tablet-view-polish
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-06-14-tablet-view-polish.md
 
 ## Current Iterate Progress
 
@@ -52,7 +53,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/tablet-view-polish
-- **Last Commit**: 64f97e9 fix(compliance): reconcile detective-audit D3/G2/H1 (responsive iterates) (#142)
+- **Last Commit**: 742c01c Merge remote-tracking branch 'origin/main' into iterate/tablet-view-polish
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -77,7 +78,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 223
+- **Total work events**: 224
 - **Last iterate**: change — Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none (2026-06-14)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
