@@ -1,11 +1,12 @@
 # Project Activity Dashboard
-> Updated: 2026-06-14 19:23 UTC | Session: e0f25b0e-7059-47f1-b5de-550d9ed7df64 | Run: iterate-2026-06-14-actions-config-ux
+> Updated: 2026-06-14 18:20 UTC | Session: 04690eab-8378-46f2-a0b3-9a1a63faf620 | Run: iterate-2026-06-14-compliance-d3-g2-h1-reconcile
 
-## Recent Changes (151 iterations)
+## Recent Changes (152 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| feature | Reusable ActionsConfigRow (hideProjectHeader) rendered in ProjectSettingsDialog; upload.ts passes slash_command to dryRunTemplate (fixes 500); removed stale Launcher preferences card. | 0/0 |  | FR-01.40, FR-01.37 | 2026-06-14 |
+| bug | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | 38/38 |  | tooling | 2026-06-14 |
+| change | Compliance detective-audit reconcile (D3/G2/H1): G2 add 'responsive' commit scope to audit_config.json g2_stoplist; D3 reaffirm promised FR-01.38/FR-01.39 via event_amended on the tablet/phone responsive iterate events (their own work_completed omitted affected_frs); H1 grandfather client/src/components/terminal/EmbeddedTerminal.tsx (311>300, ADR-097 deep module) in shipwright_bloat_baseline.json. No product code touched; D3/G2/H1 re-run FAIL->PASS. | 0/0 |  | compliance | 2026-06-14 |
 | feature | Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | 0/0 |  |  | 2026-06-14 |
 | feature | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | 0/0 |  |  | 2026-06-14 |
 | change | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | 1637/1637 |  | compliance | 2026-06-14 |
@@ -158,7 +159,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-14 | Unit: 3294/3294 | Integration: 16/16 | E2E: 3/3 | Smoke: not_run | (iterate)
+Last run: 2026-06-14 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

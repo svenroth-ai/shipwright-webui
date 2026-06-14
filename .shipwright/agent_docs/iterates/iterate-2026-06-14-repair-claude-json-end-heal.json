@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-14-repair-claude-json-end-heal",
+  "date": "2026-06-14T18:18:05.091279Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/repair-claude-json-end-heal",
+  "spec": ".shipwright/planning/iterate/2026-06-14-repair-claude-json-end-heal.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-14-repair-claude-json-end-heal"
+}
