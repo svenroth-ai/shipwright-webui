@@ -1,6 +1,6 @@
 # Commit Change Log
 
-Generated: 2026-06-14T20:06:24.145525+00:00
+Generated: 2026-06-14T21:46:02.492816+00:00
 Total commits: 563
 
 ## Commit Distribution
@@ -24,7 +24,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) | 7a4d31be023c |
+| 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) (#145) | 085d6057e774 |
 | 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | 64f97e96f250 |
 | 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 77ef6847ff9a |
 | 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | eae591e882e5 |
