@@ -213,4 +213,55 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     // socketSend is latest-ref'd; deps are intentionally narrow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
+
+  // -------- Window visibility / focus / bfcache repaint ----------
+  // The WebGL renderer (ADR-099) only force-repaints on three triggers:
+  // ResizeObserver, tab activation (above), and scroll (scroll-repaint.ts).
+  // When the browser WINDOW or TAB regains visibility/focus — returning to a
+  // backgrounded Edge window, switching monitors, or a bfcache restore —
+  // Chromium may have stopped painting or DROPPED the WebGL canvas while it
+  // was hidden, leaving a STALE frame ("smear"). None of the three triggers
+  // fire on those events, so the smear persists until a manual resize. This
+  // effect wires the same remedy to those events:
+  //   - safeFit() re-fits — heals the width/DPR-changed case (e.g. the window
+  //     moved to a smaller monitor: content wrapped at the old width); a real
+  //     dimension change ALSO dedupe-sends the WS resize so Claude's alt-buffer
+  //     TUI gets a SIGWINCH and redraws at the new width.
+  //   - term.refresh(0, rows-1) marks every visible row dirty and repaints —
+  //     heals the same-width stale-GPU-frame case the resize alone misses.
+  // `document.hidden` short-circuits the visibilitychange→hidden edge.
+  useEffect(() => {
+    const repaint = (): void => {
+      if (disposedRef.current) return;
+      if (typeof document !== "undefined" && document.hidden) return;
+      const fit = fitAddonRef.current;
+      const term = termRef.current;
+      if (!fit || !term) return;
+      safeFit(fit, term, disposedRef.current);
+      try {
+        term.refresh(0, term.rows - 1);
+      } catch {
+        /* term mid-dispose */
+      }
+      const cols = term.cols;
+      const rows = term.rows;
+      if (
+        cols !== lastSentRef.current.cols ||
+        rows !== lastSentRef.current.rows
+      ) {
+        lastSentRef.current = { cols, rows };
+        socketSendRef.current({ type: "resize", cols, rows });
+      }
+    };
+    window.addEventListener("focus", repaint);
+    window.addEventListener("pageshow", repaint);
+    document.addEventListener("visibilitychange", repaint);
+    return () => {
+      window.removeEventListener("focus", repaint);
+      window.removeEventListener("pageshow", repaint);
+      document.removeEventListener("visibilitychange", repaint);
+    };
+    // Refs are stable; one-shot per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 }

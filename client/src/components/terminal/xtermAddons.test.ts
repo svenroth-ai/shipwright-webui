@@ -73,6 +73,12 @@ class WebLinksAddonFake {
 class WebglAddonFake {
   activate = vi.fn();
   dispose = vi.fn();
+  // Mirrors @xterm/addon-webgl 0.19.0: onContextLoss(listener) → IDisposable.
+  contextLossCb: ((e?: unknown) => void) | null = null;
+  onContextLoss = vi.fn((cb: (e?: unknown) => void) => {
+    this.contextLossCb = cb;
+    return { dispose: vi.fn() };
+  });
 }
 
 vi.mock("@xterm/addon-fit", () => ({
@@ -257,6 +263,23 @@ describe("xtermAddons — createEmbeddedXterm factory", () => {
     const handle = createEmbeddedXterm(container);
     handle.dispose();
     expect(callLog).toContain("dispose");
+  });
+
+  it("registers a WebGL onContextLoss handler that disposes the addon (GPU-context-loss recovery)", () => {
+    const container = document.createElement("div");
+    createEmbeddedXterm(container);
+    const webgl = loadedAddons.find(
+      (a) => (a as { constructor?: { name?: string } })?.constructor?.name === "WebglAddonFake",
+    ) as WebglAddonFake | undefined;
+    expect(webgl).toBeDefined();
+    // Handler registered exactly once.
+    expect(webgl?.onContextLoss).toHaveBeenCalledTimes(1);
+    expect(webgl?.contextLossCb).toBeTypeOf("function");
+    // Firing the handler (simulated GPU context loss) disposes the WebGL addon
+    // → xterm falls back to the DOM renderer instead of a frozen smear.
+    expect(webgl?.dispose).not.toHaveBeenCalled();
+    webgl?.contextLossCb?.();
+    expect(webgl?.dispose).toHaveBeenCalledTimes(1);
   });
 
   it("WebGL constructor throwing falls back gracefully (Canvas/DOM fallback path)", async () => {
