@@ -3,20 +3,27 @@ import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity, Triangle 
 import { SidebarNavItem } from './SidebarNavItem';
 import { InboxBadge } from './InboxBadge';
 import { TriageBadge } from './TriageBadge';
+import { COMPACT_MEDIA_QUERY } from '../../hooks/useIsCompactViewport';
 
 interface SidebarNavProps {
   inboxCount: number;
   triageCount: number;
 }
 
+// Auto-collapse to the icon rail across the whole compact band (≤1023px =
+// tablet + phone), not just phones — at 768–1023px the full 200px sidebar eats
+// the width the board/3-pane need (iterate-2026-06-14-tablet-responsive-view).
+// Shares COMPACT_MEDIA_QUERY so the rail threshold can't drift from the rest of
+// the responsive layout. The user can still expand the rail; the media handler
+// only re-asserts the default when the viewport actually crosses the boundary.
 function useMediaCollapse() {
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.matchMedia('(max-width: 768px)').matches;
+    return window.matchMedia(COMPACT_MEDIA_QUERY).matches;
   });
 
   useEffect(() => {
-    const mql = window.matchMedia('(max-width: 768px)');
+    const mql = window.matchMedia(COMPACT_MEDIA_QUERY);
     const handler = (e: MediaQueryListEvent) => setCollapsed(e.matches);
     mql.addEventListener('change', handler);
     return () => mql.removeEventListener('change', handler);

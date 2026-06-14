@@ -187,14 +187,14 @@ export function CampaignLaneCard({
               return (
                 <li
                   key={s.id}
-                  className="flex items-center gap-2 text-[12px]"
+                  className="flex min-w-0 items-center gap-2 text-[12px]"
                   data-testid={`campaign-step-${s.id}`}
                   data-step-status={s.status}
                   data-next={kind === "next" || undefined}
                 >
                   <StepIcon kind={kind} />
                   <span className="font-mono text-[11px] text-[var(--color-muted)]">{s.id}</span>
-                  <span className={kind === "complete" ? "text-[var(--color-muted)] line-through" : "text-[var(--color-text,#111827)]"}>
+                  <span className={"min-w-0 truncate " + (kind === "complete" ? "text-[var(--color-muted)] line-through" : "text-[var(--color-text,#111827)]")}>
                     {s.title}
                   </span>
                   {showStatusText && (
@@ -219,7 +219,7 @@ export function CampaignLaneCard({
               step is risky. Right: autonomous run of every remaining step
               (FR-01.34). The old "Copy launch" clipboard button was replaced by
               the left action. */}
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <CampaignStepLaunchButton campaign={campaign} project={project} />
             <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
           </div>

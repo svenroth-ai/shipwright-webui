@@ -27,7 +27,7 @@ export function ConfirmDeleteDialog({ open, onOpenChange, task, onConfirm }: Pro
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/30" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-50 w-[440px] -translate-x-1/2 -translate-y-1/2 p-4 shadow-xl"
+          className="fixed left-1/2 top-1/2 z-50 w-[440px] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 p-4 shadow-xl"
           style={{
             background: "var(--color-surface)",
             border: "1px solid var(--color-border)",
