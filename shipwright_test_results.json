@@ -1,14 +1,12 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-phone-responsive-view",
-    "date": "2026-06-14T19:10:00Z",
-    "type": "feature",
-    "complexity": "medium",
+    "run_id": "iterate-2026-06-14-repair-claude-json-end-heal",
+    "date": "2026-06-14",
     "unit": {
       "status": "passed",
-      "passed": 1647,
-      "total": 1647
+      "passed": 38,
+      "total": 38
     },
     "integration": {
       "status": "not_run",
@@ -21,10 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 13,
-      "total": 13,
-      "note": "client/e2e/flows/90-phone-responsive.spec.ts under the new mobile-chromium (Pixel 5) project; tablet/desktop spec 80 (17/17) re-run green under chromium as up-band non-regression."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,122 +29,57 @@
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "skipped"
     },
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "useIsPhoneViewport ≤767 reactive, SSR-safe, distinct from compact",
+          "behavior": "repair-claude-json.mjs is invoked >= 2 times (start + end)",
           "disposition": "tested",
-          "evidence": "useIsCompactViewport.test.ts phone block (5)"
+          "evidence": "start-server-production.test.mjs::'invoked at least TWICE' PASSED"
         },
         {
-          "behavior": "useCoarsePointer gates on (pointer:coarse)",
+          "behavior": "first repair runs before the build (Step 0 — heals a prior deploy)",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx (null on fine / bar on coarse)"
+          "evidence": "start-server-production.test.mjs::'FIRST repair before the build' PASSED"
         },
         {
-          "behavior": "Phone sidebar = overlay drawer; inline sidebar absent <768",
+          "behavior": "last repair runs AFTER the server-kill (heals THIS deploy)",
           "disposition": "tested",
-          "evidence": "MainLayout.test.tsx phone + e2e 90 P3"
+          "evidence": "start-server-production.test.mjs::'LAST repair AFTER the server-kill' PASSED"
         },
         {
-          "behavior": "Drawer opens on hamburger; closes on Escape + nav-tap; nav navigates",
+          "behavior": "last repair runs AFTER the server-up confirmation (clean window)",
           "disposition": "tested",
-          "evidence": "MainLayout.test.tsx + e2e 90 (Escape/nav-tap/URL)"
+          "evidence": "start-server-production.test.mjs::'LAST repair AFTER the server-up confirmation' PASSED"
         },
         {
-          "behavior": "Drawer shows full labels (not the rail) even when compact (H2)",
+          "behavior": "deploy structure markers present (guards ordering asserts from a silent pass)",
           "disposition": "tested",
-          "evidence": "SidebarNav.test.tsx H2 + e2e 90"
-        },
-        {
-          "behavior": "Up-band guard: ≥768 inline sidebar, no drawer/top-bar (L3)",
-          "disposition": "tested",
-          "evidence": "MainLayout.test.tsx desktop + e2e 90 @1024"
-        },
-        {
-          "behavior": "terminalKeySequence Esc/Tab/Ctrl-C/Enter + CSI/SS3 arrows",
-          "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx (8)"
-        },
-        {
-          "behavior": "Key bar renders on coarse / null on fine; all keys present",
-          "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx + e2e 90 P4"
-        },
-        {
-          "behavior": "Key-bar buttons preventDefault (no focus steal); ⌨ focuses term",
-          "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx (pointerdown defaultPrevented + ⌨→onFocusTerminal)"
-        },
-        {
-          "behavior": "Key bar writes mapped byte to pty (writer); reader disabled, no write (H4)",
-          "disposition": "tested",
-          "evidence": "composition: terminalKeySequence unit (id→byte CSI/SS3) + TerminalKeyBar.test (reader→disabled, no onKey) + EmbeddedTerminal.test onData→socket.send (writer-frame path) + e2e 90 (bar enabled on touch). EmbeddedTerminal onKey re-checks role===writer (mirrors useAutoLaunch)."
-        },
-        {
-          "behavior": "Terminal subtree never unmounts (key bar sibling of persistent canvas, rule 21)",
-          "disposition": "tested",
-          "evidence": "EmbeddedTerminal.test.tsx (70) + spec 80 P1b same-node-across-crossing"
-        },
-        {
-          "behavior": "List: Phase column hidden <md, shown ≥md; no page overflow at 393",
-          "disposition": "tested",
-          "evidence": "e2e 90 (task-list-header-phase hidden@393) + spec 80 (≥lg path intact)"
-        },
-        {
-          "behavior": "Projects table scrolls in-card; no page overflow at 393",
-          "disposition": "tested",
-          "evidence": "e2e 90 P2 (/projects no overflow)"
-        },
-        {
-          "behavior": "Modal fits 393px viewport; footer wraps; primary 44px on touch",
-          "disposition": "tested",
-          "evidence": "e2e 90 (wizard width ≤ vw, no overflow) + modal unit suites (41)"
-        },
-        {
-          "behavior": "Touch targets ≥44px on new surfaces (nav/keys/hamburger)",
-          "disposition": "tested",
-          "evidence": "e2e 90 P3 computed min-height ≥ 44; key/hamburger h-11"
-        },
-        {
-          "behavior": "viewport-fit=cover + interactive-widget=resizes-content; dvh shell; safe-area pads (notch/keyboard visual effect)",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device"
-        },
-        {
-          "behavior": "useIsCompactViewport public behavior unchanged after shared-useMediaQuery refactor",
-          "disposition": "tested",
-          "evidence": "useIsCompactViewport.test.ts compact block + SidebarNav rail tests + spec 80"
+          "evidence": "start-server-production.test.mjs::'deploy structure markers are present' PASSED"
         }
       ],
       "counts": {
-        "testable": 16,
-        "tested": 16,
-        "untestable": 1,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts --project=mobile-chromium (BASE_URL=isolated built stack 127.0.0.1:3947)",
+      "surface": "none",
+      "runner": "node --test scripts/start-server-production.test.mjs (structural) + PowerShell AST ParseFile",
       "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-14-phone-responsive-view/surface_verification.json",
-      "timestamp": "2026-06-14T19:02:00Z",
-      "justification": null
-    },
-    "degraded": [
-      {
-        "condition": "external_llm_review_unavailable",
-        "detail": "OPENAI/GEMINI/GOOGLE keys absent; substituted internal opus-plan-reviewer (plan, verdict REWORK — all findings adopted) + shipwright-build:code-reviewer (code, verdict REQUEST-CHANGES — MEDIUM-1 spec-amended, INFO 44px E2E assertion added, LOW-3 modal flex-wrap added). Branch-C fallback."
-      }
-    ]
+      "tests_run": 0,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-14-repair-claude-json-end-heal/surface_verification.json",
+      "timestamp": "2026-06-14T18:16:10.787Z",
+      "justification": "Deploy-ops PowerShell script (start-server-production.ps1); no startable product surface (no web/api/cli). Verified via node:test structural assertions over the script text (RED->GREEN, 38 tests pass) + PowerShell AST parse (0 syntax errors). No webui runtime/API/UI code changed."
+    }
   }
 }

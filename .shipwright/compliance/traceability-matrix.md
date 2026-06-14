@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-14T17:16:08.690099+00:00
+Generated: 2026-06-14T18:17:51.114380+00:00
 
 ## Requirements Coverage
 
@@ -270,6 +270,7 @@ Generated: 2026-06-14T17:16:08.690099+00:00
 | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | iterate | change |  | 1637/1637 | — | 2026-06-14 |
 | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | iterate | feature |  | — | — | 2026-06-14 |
 | Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | iterate | feature |  | — | — | 2026-06-14 |
+| Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | iterate | bug |  | 38/38 | — | 2026-06-14 |
 
 ## Coverage Summary
 
@@ -277,7 +278,7 @@ Generated: 2026-06-14T17:16:08.690099+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 150 |
+| Iterate changes | 151 |
 | Requirements total | 39 |
 | Requirements verified | 23/39 |
 | Must-have verified | 17/31 |
