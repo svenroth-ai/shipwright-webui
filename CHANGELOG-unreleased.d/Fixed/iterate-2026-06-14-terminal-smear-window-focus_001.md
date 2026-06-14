@@ -1,0 +1,1 @@
+Embedded terminal no longer shows a stale 'smeared' frame after the browser window/tab regains focus, after switching monitors, on bfcache restore, or after navigating back from Triage/a card/the Inbox — a window focus/visibilitychange/pageshow refit+repaint replaces the manual-resize workaround, plus WebGL GPU-context-loss recovery.

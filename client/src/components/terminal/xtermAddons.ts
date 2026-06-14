@@ -228,7 +228,22 @@ export function createEmbeddedXterm(
   // documented in ADR-099: alt-screen rendering is worse than WebGL but
   // not unusable).
   try {
-    term.loadAddon(new WebglAddon());
+    const webgl = new WebglAddon();
+    // GPU-context-loss recovery (canonical xtermjs/xterm.js demo pattern).
+    // Chromium/Edge drop the WebGL context for backgrounded/minimised windows
+    // and on GPU-process restarts; without a handler the canvas freezes on a
+    // STALE frame — the "terminal smear on window-refocus" bug. Disposing the
+    // addon on loss makes xterm fall back to the DOM renderer (which always
+    // repaints), and the visibility/focus refit in useTerminalResize then
+    // re-fits cleanly. Registered before loadAddon so no loss event is missed.
+    webgl.onContextLoss(() => {
+      try {
+        webgl.dispose();
+      } catch {
+        /* already disposed — best-effort */
+      }
+    });
+    term.loadAddon(webgl);
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn(

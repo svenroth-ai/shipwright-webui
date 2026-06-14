@@ -290,4 +290,105 @@ describe("useTerminalResize hook", () => {
     rerender(true);
     expect(socketSend).toHaveBeenCalledTimes(1);
   });
+
+  // --- visibility / focus / bfcache repaint (smear-on-window-refocus fix) ---
+  // The WebGL renderer only force-repaints on ResizeObserver, tab activation,
+  // and scroll. When the browser WINDOW/TAB regains visibility or focus
+  // (returning to Edge after it was backgrounded, monitor switch, or a
+  // bfcache restore) Chromium may have stopped painting / dropped the WebGL
+  // canvas while hidden — leaving a STALE frame ("smear") that nothing
+  // refits. These tests pin the new refit + full-viewport refresh wiring.
+
+  function setHidden(value: boolean): void {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      get: () => value,
+    });
+  }
+
+  it("window focus triggers refit + term.refresh + a resize frame", () => {
+    const { socketSend, term, fit } = setup(false);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect((fit.fit as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith(
+      0,
+      term.rows - 1,
+    );
+    expect(socketSend).toHaveBeenCalledWith({
+      type: "resize",
+      cols: 80,
+      rows: 24,
+    });
+  });
+
+  it("document visibilitychange (becoming visible) triggers refit + term.refresh", () => {
+    setHidden(false);
+    const { term, fit } = setup(false);
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect((fit.fit as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+  });
+
+  it("pageshow (bfcache restore) triggers refit + term.refresh", () => {
+    const { term, fit } = setup(false);
+    act(() => {
+      window.dispatchEvent(new Event("pageshow"));
+    });
+    expect((fit.fit as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
+  });
+
+  it("visibilitychange while document.hidden=true is a no-op", () => {
+    const { term, fit } = setup(false);
+    setHidden(true);
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect((fit.fit as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    setHidden(false);
+  });
+
+  it("focus after disposed=true is a no-op (no fit/refresh on a dead term)", () => {
+    const { term, fit, disposed, rerender } = setup(false);
+    disposed.current = true;
+    rerender(false);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect((fit.fit as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+  });
+
+  it("removes the focus/visibility/pageshow listeners on unmount", () => {
+    const { term, fit, unmount } = setup(false);
+    unmount();
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("pageshow"));
+    });
+    expect((fit.fit as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+  });
+
+  it("focus with unchanged dims still repaints but dedupes the resize frame", () => {
+    const { socketSend, term, fit } = setup(false);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(socketSend).toHaveBeenCalledTimes(1);
+    expect((fit.fit as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    // Second focus, same dims → no duplicate SIGWINCH, but a fresh repaint.
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    expect(socketSend).toHaveBeenCalledTimes(1);
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(2);
+  });
 });
