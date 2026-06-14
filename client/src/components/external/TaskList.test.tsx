@@ -47,6 +47,25 @@ function renderList(tasks: ExternalTask[]) {
   );
 }
 
+describe("TaskList — title column width (iterate tablet-view-polish AC-4)", () => {
+  it("title column is greedy (w-full) so it stays the widest column at small resolutions", () => {
+    renderList([baseTask({ taskId: "t-w", title: "A long enough task title" })]);
+    // The greedy `width:100%` column absorbs the remaining row width while the
+    // whitespace-nowrap content columns size to their content → title widest.
+    const titleHeader = screen.getByTestId("task-list-header-title");
+    expect(titleHeader.className).toContain("w-full");
+    const titleCell = screen.getByTestId("task-list-cell-t-w-title");
+    expect(titleCell.className).toContain("w-full");
+    // Sibling content columns must NOT be greedy (else they'd fight the title).
+    expect(screen.getByTestId("task-list-header-state").className).not.toContain(
+      "w-full",
+    );
+    expect(screen.getByTestId("task-list-header-updated").className).not.toContain(
+      "w-full",
+    );
+  });
+});
+
 describe("TaskList — phase column (v0.4.2)", () => {
   it("renders the phase badge when task.phase + task.phaseLabel are persisted", () => {
     renderList([

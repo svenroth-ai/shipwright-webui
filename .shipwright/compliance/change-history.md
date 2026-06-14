@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-14T18:20:52.846153+00:00
-Total commits: 561
+Generated: 2026-06-14T20:06:24.145525+00:00
+Total commits: 560
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 561
 pie title Commit Types
     "fix" : 200
     "feat" : 141
-    "chore" : 113
+    "chore" : 112
     "docs" : 54
     "refactor" : 25
     "test" : 18
@@ -24,7 +24,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) | 819776e89146 |
+| 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | 64f97e96f250 |
 | 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 77ef6847ff9a |
 | 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | eae591e882e5 |
 | 2026-06-14 | terminal | strip child-session env so embedded claude writes its transcript (#135) | 9b1ed5ed8830 |
@@ -371,11 +371,10 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 113 commits
+### Chores (chore) — 112 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | triage | sweep 4 outbox append(s) into branch | de104231902c |
 | 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
@@ -630,7 +629,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 561 |
+| Total commits | 560 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 561 |
+| Human-authored commits | 560 |
 

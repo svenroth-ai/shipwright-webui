@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity, Triangle } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Inbox, Settings, Menu, Activity, Triangle, PanelLeftClose } from 'lucide-react';
 import { SidebarNavItem } from './SidebarNavItem';
 import { InboxBadge } from './InboxBadge';
 import { TriageBadge } from './TriageBadge';
-import { COMPACT_MEDIA_QUERY } from '../../hooks/useIsCompactViewport';
+import { COMPACT_MEDIA_QUERY, useIsCompactViewport } from '../../hooks/useIsCompactViewport';
 
 interface SidebarNavProps {
   inboxCount: number;
@@ -58,6 +58,10 @@ const SHIPWRIGHT_LOGO = (
 
 export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate }: SidebarNavProps) {
   const [collapsed, setCollapsed] = useMediaCollapse();
+  // Read-only compact signal (does NOT track the user's expand/collapse like
+  // `collapsed` does) — gates the collapse affordance so it only appears in the
+  // ≤1023 band. Desktop has room for the permanent 200px sidebar, so no toggle.
+  const isCompact = useIsCompactViewport();
   // Drawer always shows full labels — the ≤1023 rail (sr-only labels) must not
   // leak into the ≤767 drawer (plan-review H2).
   const railed = drawer ? false : collapsed;
@@ -78,6 +82,20 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
           <>
             {SHIPWRIGHT_LOGO}
             <span className="text-base font-bold text-white">Shipwright</span>
+            {/* AC-1 (tablet-view-polish): collapse-back affordance. Without it
+                the user could expand the rail but never collapse it again
+                (the reported "Menu kann man nicht collapsen" bug). Compact
+                band only; the phone drawer closes via the Radix overlay. */}
+            {isCompact && !drawer && (
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="ml-auto p-1 rounded hover:bg-white/10"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose size={18} className="text-white" />
+              </button>
+            )}
           </>
         )}
       </div>

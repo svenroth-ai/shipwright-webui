@@ -189,4 +189,32 @@ describe('MainLayout', () => {
     expect(screen.getByTestId('sidebar-inline')).toBeInTheDocument();
     expect(screen.queryByTestId('mobile-topbar')).toBeNull();
   });
+
+  it('content scroll container reserves the bottom safe-area inset (tablet bottom cut-off — AC-3)', () => {
+    // iterate-2026-06-14-tablet-view-polish AC-3: the page was clipped at the
+    // bottom on devices with a bottom inset (iPad home-indicator / Safari bar)
+    // because only the phone path reserved env(safe-area-inset-bottom). The
+    // content scroll container must reserve it for the whole app (no-op on
+    // desktop where env() resolves to 0).
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const router = createMemoryRouter(
+      [
+        {
+          path: '/',
+          element: <MainLayout />,
+          children: [{ index: true, element: <div>Page Content</div> }],
+        },
+      ],
+      { initialEntries: ['/'] },
+    );
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const scroll = screen.getByTestId('main-scroll-container');
+    expect(scroll.className).toContain('env(safe-area-inset-bottom)');
+  });
 });

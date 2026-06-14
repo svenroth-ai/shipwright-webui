@@ -1,14 +1,14 @@
 {
   "last_updated": "2026-06-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-compliance-d3-g2-h1-reconcile",
+    "run_id": "iterate-2026-06-14-tablet-view-polish",
     "date": "2026-06-14",
     "type": "change",
-    "complexity": "small",
+    "complexity": "medium",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1652,
+      "total": 1652
     },
     "integration": {
       "status": "not_run",
@@ -21,9 +21,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 20,
+      "total": 20
     },
     "design_fidelity": {
       "status": "skipped",
@@ -34,28 +34,66 @@
       "status": "not_run"
     },
     "test_completeness": {
-      "status": "n/a",
-      "justification": "Compliance data/config reconcile (audit_config.json g2_stoplist + shipwright_bloat_baseline.json grandfather entry + two event_amended FR-link entries in shipwright_events.jsonl). No product code or runtime behaviour changed; verified that no server/src or client/src code consumes event_amended/affected_frs/new_frs/amends. Verification IS the detective audit: D3/G2/H1 re-run FAIL->PASS against the worktree.",
-      "behaviors": [],
+      "status": "complete",
+      "justification": "Five tablet-view ACs (FR-01.38). Pure client UI; every testable behaviour is unit- or E2E-tested. The two device-only outcomes (the visual safe-area inset and the real one-finger touch-pan) are untestable here because env(safe-area-inset-bottom) resolves to 0 in headless and synthetic touch bypasses touch-action gesture arbitration.",
+      "behaviors": [
+        {
+          "behavior": "AC-1: in the compact band an expanded sidebar can be collapsed back to the rail (bidirectional); desktop shows no toggle",
+          "disposition": "tested",
+          "evidence": "client/src/components/sidebar/SidebarNav.test.tsx 'compact band: expand then collapse back to the rail' + 'desktop: no collapse control'; e2e/flows/80-tablet-responsive.spec.ts 'sidebar collapse is bidirectional' PASSED"
+        },
+        {
+          "behavior": "AC-2: the board carousel reveals the last (Done) column in full at tablet width (no hard clip)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/80-tablet-responsive.spec.ts 'board carousel reveals the last (Done) column FULLY' toBeInViewport({ratio:1}) PASSED"
+        },
+        {
+          "behavior": "AC-3: the content scroll container reserves env(safe-area-inset-bottom)",
+          "disposition": "tested",
+          "evidence": "client/src/layouts/MainLayout.test.tsx 'content scroll container reserves the bottom safe-area inset' PASSED"
+        },
+        {
+          "behavior": "AC-3: bottom content visually clears the device safe-area inset on an inset-bearing device",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "env(safe-area-inset-bottom) resolves to 0px in jsdom and headless Chromium; the inset only renders on a notched/home-indicator device. Sven real-device smoke."
+        },
+        {
+          "behavior": "AC-4: the list-view Title is the widest column at small resolutions",
+          "disposition": "tested",
+          "evidence": "client/src/components/external/TaskList.test.tsx 'title column is greedy (w-full)'; e2e/flows/80-tablet-responsive.spec.ts 'list view: Title is the widest column' (real bounding-box widths) PASSED"
+        },
+        {
+          "behavior": "AC-5: attachTouchScroll reserves the gesture (touch-action:none) on attach and restores it on dispose",
+          "disposition": "tested",
+          "evidence": "client/src/components/terminal/touch-scroll.test.ts 'reserves the gesture by setting touch-action:none ... and restores it on dispose' PASSED"
+        },
+        {
+          "behavior": "AC-5: a one-finger pan actually scrolls the terminal on a real touch device",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "synthetic TouchEvents (jsdom unit + Playwright) bypass the browser's touch-action gesture arbitration, which is the exact mechanism under test; only a real touch device exercises it. Sven real-device smoke."
+        }
+      ],
       "counts": {
-        "testable": 0,
-        "tested": 0,
-        "untestable": 0,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 0,
-        "covered_acs": 0
+        "acs": 5,
+        "covered_acs": 5
       }
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": null,
+      "surface": "web",
+      "runner": "playwright",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": null,
-      "timestamp": "2026-06-14T00:00:00Z",
-      "justification": "No webui web/runtime surface touched - diff is detective-audit config (audit_config.json), bloat baseline (shipwright_bloat_baseline.json), and event-log FR-link amendments (shipwright_events.jsonl); none imported by client/server runtime. Verified via detective-audit D3/G2/H1 FAIL->PASS re-run."
+      "tests_run": 20,
+      "evidence_path": "client/e2e/flows/80-tablet-responsive.spec.ts",
+      "timestamp": "2026-06-14T22:00:00Z",
+      "justification": "Spec 80 (tablet-responsive, chromium) executed against an isolated worktree stack (Hono :3848 + Vite :5174, SHIPWRIGHT_NETWORK_PROFILE=local): 20/20 passed, exit 0. Includes the three new ACs (AC-1 bidirectional collapse with real width transitions, AC-2 Done-column ratio:1 reveal, AC-4 real column-width measurement) plus the desktop non-regression set."
     },
     "degraded": []
   }

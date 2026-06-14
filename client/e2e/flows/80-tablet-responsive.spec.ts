@@ -122,6 +122,51 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
     await expect(page.getByTestId("task-list-header-commit")).toBeHidden();
     expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
   });
+
+  test("sidebar collapse is bidirectional — expand then collapse back to the rail (AC-1)", async ({ page }) => {
+    // iterate-2026-06-14-tablet-view-polish AC-1: the reported "Menu kann man
+    // nicht collapsen" — once expanded there was no way back to the rail.
+    await page.goto("/");
+    const aside = page.getByTestId("sidebar-inline");
+    const railed = (await aside.boundingBox())!.width; // ~60px rail
+    // Expand → a collapse affordance must appear.
+    await page.getByRole("button", { name: /expand sidebar/i }).click();
+    await expect(page.getByRole("button", { name: /collapse sidebar/i })).toBeVisible();
+    await page.waitForTimeout(250); // width transition is 200ms
+    const expanded = (await aside.boundingBox())!.width; // ~200px
+    expect(expanded).toBeGreaterThan(railed);
+    // Collapse back to the rail (the actual bug fix).
+    await page.getByRole("button", { name: /collapse sidebar/i }).click();
+    await expect(page.getByRole("button", { name: /expand sidebar/i })).toBeVisible();
+    await page.waitForTimeout(250);
+    expect((await aside.boundingBox())!.width).toBeLessThan(expanded);
+  });
+
+  test("board carousel reveals the last (Done) column FULLY at tablet width (AC-2)", async ({ page }) => {
+    // AC-2: the board is a swipe carousel at tablet width. External review (HIGH)
+    // correctly noted `toBeInViewport()` alone only proves partial intersection;
+    // `ratio: 1` proves the Done column is revealed in FULL — i.e. not
+    // hard-clipped — after scrolling to the end. If this ever fails the board
+    // needs a trailing scroll-padding fix; today it passes, so no prod change.
+    await page.goto("/");
+    const cols = page.getByTestId("task-board-columns");
+    await cols.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+    await expect(page.getByTestId("column-done")).toBeInViewport({ ratio: 1 });
+  });
+
+  test("list view: Title is the widest column at tablet width (AC-4)", async ({ page }) => {
+    // AC-4: the greedy `w-full` Title column must dominate the nowrap content
+    // columns at small resolutions (previously crushed by `max-w-0` alone).
+    await page.goto("/");
+    await page.getByTestId("view-toggle-list").click();
+    const title = page.getByTestId("task-list-header-title");
+    await expect(title).toBeVisible();
+    const t = (await title.boundingBox())!.width;
+    const state = (await page.getByTestId("task-list-header-state").boundingBox())!.width;
+    const updated = (await page.getByTestId("task-list-header-updated").boundingBox())!.width;
+    expect(t).toBeGreaterThan(state);
+    expect(t).toBeGreaterThan(updated);
+  });
 });
 
 test.describe("Terminal survives a breakpoint crossing (P1b — C1 guard)", () => {

@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-14T18:20:52.846153+00:00
+Generated: 2026-06-14T20:06:24.145525+00:00
 
 ## Requirements Coverage
 
@@ -43,7 +43,7 @@ Generated: 2026-06-14T18:20:52.846153+00:00
 | [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced, evt-c59f2257 | — | — | NO TESTS |
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137) | A custom action in `<project>/.shipwright-webui/actions.json... | Should | evt-06308665 | — | — | NO TESTS |
-| [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3 | — | — | NO TESTS |
+| [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3, evt-7619adfd | 1652/1652 | 2026-06-14 (iter) | COVERED |
 | [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | evt-58483137 | — | — | NO TESTS |
 
 ## Verification Timeline
@@ -272,6 +272,7 @@ Generated: 2026-06-14T18:20:52.846153+00:00
 | Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | iterate | feature | FR-01.39 | — | — | 2026-06-14 |
 | Compliance detective-audit reconcile (D3/G2/H1): G2 add 'responsive' commit scope to audit_config.json g2_stoplist; D3 reaffirm promised FR-01.38/FR-01.39 via event_amended on the tablet/phone responsive iterate events (their own work_completed omitted affected_frs); H1 grandfather client/src/components/terminal/EmbeddedTerminal.tsx (311>300, ADR-097 deep module) in shipwright_bloat_baseline.json. No product code touched; D3/G2/H1 re-run FAIL->PASS. | iterate | change |  | — | — | 2026-06-14 |
 | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | iterate | bug |  | 38/38 | — | 2026-06-14 |
+| Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none | iterate | change | FR-01.38 | 1652/1652 | — | 2026-06-14 |
 
 ## Coverage Summary
 
@@ -279,7 +280,7 @@ Generated: 2026-06-14T18:20:52.846153+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 152 |
+| Iterate changes | 153 |
 | Requirements total | 39 |
 | Requirements verified | 25/39 |
 | Must-have verified | 17/31 |
@@ -306,8 +307,8 @@ Generated: 2026-06-14T18:20:52.846153+00:00
 ### FRs with stale verification (> 14 days)
 
 - [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 44d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 34d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-33b2e81f` (2026-05-14)
 - [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-0f78d991` (2026-05-15)
 - [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 30d ago by `evt-50e36386` (2026-05-14)
 - [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-40acd669` (2026-05-18)
