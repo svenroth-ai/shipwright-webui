@@ -1,20 +1,20 @@
 # Test Evidence Report
 
-Generated: 2026-06-15T08:00:55.045232+00:00
+Generated: 2026-06-15T06:21:10.776566+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Total test checkpoints | 226 |
-| Total unit tests (latest) | 0/0 |
+| Total unit tests (latest) | 1672/1672 |
 | New tests from iterations | +26 |
 
 ## Test Progression
 
 | # | Event | Source | Layer | New Tests | Suite Total | Result | Date |
 |---|-------|--------|-------|-----------|-------------|--------|------|
-| 1 | Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged. | iterate | — | +0 | — | — | 2026-06-15 |
+| 1 | Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146) | iterate | mixed | +0 | 1672/1672 | PASS | 2026-06-15 |
 | 2 | Repaint embedded terminal on window focus / visibility regain — fixes WebGL stale-frame smear that previously only a manual resize healed | iterate | mixed | +0 | 1668/1668 | PASS | 2026-06-14 |
 | 3 | Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none | iterate | mixed | +0 | 1652/1652 | PASS | 2026-06-14 |
 | 4 | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | iterate | unit | +0 | 38/38 | PASS | 2026-06-14 |
@@ -245,36 +245,36 @@ Generated: 2026-06-15T08:00:55.045232+00:00
 
 | Run | Trigger | Unit | Integration | pgTAP | E2E | Smoke | Date |
 |-----|---------|------|-------------|-------|-----|-------|------|
-| 1 | iterate | 1156/1156 | — | — | — | — | 2026-05-19 |
-| 2 | iterate | 979/979 | — | — | — | — | 2026-05-19 |
-| 3 | iterate | 2135/2135 | — | — | — | — | 2026-05-19 |
-| 4 | iterate | 2189/2189 | — | — | — | — | 2026-05-20 |
-| 5 | iterate | 2184/2184 | — | — | — | — | 2026-05-21 |
+| 1 | iterate | 979/979 | — | — | — | — | 2026-05-19 |
+| 2 | iterate | 2135/2135 | — | — | — | — | 2026-05-19 |
+| 3 | iterate | 2189/2189 | — | — | — | — | 2026-05-20 |
+| 4 | iterate | 2184/2184 | — | — | — | — | 2026-05-21 |
+| 5 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
 | 6 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
-| 7 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
-| 8 | iterate | 1174/1174 | — | — | — | — | 2026-05-22 |
-| 9 | iterate | 2198/2198 | — | — | — | — | 2026-05-22 |
-| 10 | iterate | 1066/1066 | — | — | — | — | 2026-05-23 |
-| 11 | iterate | 22/22 | — | — | — | — | 2026-05-25 |
-| 12 | iterate | 14/14 | — | — | — | — | 2026-05-25 |
-| 13 | iterate | 1124/1124 | — | — | — | — | 2026-05-26 |
-| 14 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
-| 15 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
-| 16 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
-| 17 | iterate | 1345/1345 | — | — | — | — | 2026-05-30 |
-| 18 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
-| 19 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
-| 20 | iterate | 1550/1550 | — | — | — | — | 2026-06-05 |
-| 21 | iterate | 1557/1557 | — | — | — | — | 2026-06-07 |
-| 22 | iterate | 3/3 | — | — | — | — | 2026-06-12 |
-| 23 | iterate | 1609/1609 | — | — | — | — | 2026-06-12 |
-| 24 | iterate | 1611/1611 | — | — | — | — | 2026-06-12 |
-| 25 | iterate | 1/1 | — | — | — | — | 2026-06-13 |
-| 26 | iterate | 24/24 | — | — | — | — | 2026-06-14 |
-| 27 | iterate | 1637/1637 | — | — | — | — | 2026-06-14 |
-| 28 | iterate | 38/38 | — | — | — | — | 2026-06-14 |
-| 29 | iterate | 1652/1652 | — | — | — | — | 2026-06-14 |
-| 30 | iterate | 1668/1668 | — | — | — | — | 2026-06-14 |
+| 7 | iterate | 1174/1174 | — | — | — | — | 2026-05-22 |
+| 8 | iterate | 2198/2198 | — | — | — | — | 2026-05-22 |
+| 9 | iterate | 1066/1066 | — | — | — | — | 2026-05-23 |
+| 10 | iterate | 22/22 | — | — | — | — | 2026-05-25 |
+| 11 | iterate | 14/14 | — | — | — | — | 2026-05-25 |
+| 12 | iterate | 1124/1124 | — | — | — | — | 2026-05-26 |
+| 13 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
+| 14 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
+| 15 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
+| 16 | iterate | 1345/1345 | — | — | — | — | 2026-05-30 |
+| 17 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
+| 18 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
+| 19 | iterate | 1550/1550 | — | — | — | — | 2026-06-05 |
+| 20 | iterate | 1557/1557 | — | — | — | — | 2026-06-07 |
+| 21 | iterate | 3/3 | — | — | — | — | 2026-06-12 |
+| 22 | iterate | 1609/1609 | — | — | — | — | 2026-06-12 |
+| 23 | iterate | 1611/1611 | — | — | — | — | 2026-06-12 |
+| 24 | iterate | 1/1 | — | — | — | — | 2026-06-13 |
+| 25 | iterate | 24/24 | — | — | — | — | 2026-06-14 |
+| 26 | iterate | 1637/1637 | — | — | — | — | 2026-06-14 |
+| 27 | iterate | 38/38 | — | — | — | — | 2026-06-14 |
+| 28 | iterate | 1652/1652 | — | — | — | — | 2026-06-14 |
+| 29 | iterate | 1668/1668 | — | — | — | — | 2026-06-14 |
+| 30 | iterate | 1672/1672 | — | — | — | — | 2026-06-15 |
 
 ## Code Review Evidence
 

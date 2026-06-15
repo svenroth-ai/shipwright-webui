@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-15T08:00:55.045232+00:00
+Generated: 2026-06-15T06:21:10.776566+00:00
 
 ## Requirements Coverage
 
@@ -33,7 +33,7 @@ Generated: 2026-06-15T08:00:55.045232+00:00
 | [FR-01.25](../../.shipwright/planning/01-adopted/spec.md#fr-0125) | GET returns the project row. PATCH updates name / profile / ... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.26](../../.shipwright/planning/01-adopted/spec.md#fr-0126) | GET returns the current settings JSON. PUT replaces it (lock... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +26 | 632/632 → 1668/1668 | 2026-06-14 (iter) | COVERED |
+| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +27 | 632/632 → 1672/1672 | 2026-06-15 (iter) | COVERED |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +7 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
@@ -43,10 +43,9 @@ Generated: 2026-06-15T08:00:55.045232+00:00
 | [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced, evt-c59f2257 | — | — | NO TESTS |
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137) | A custom action in `<project>/.shipwright-webui/actions.json... | Should | evt-06308665, evt-72678829 | — | — | NO TESTS |
-| [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3, evt-7619adfd, evt-2caa2427 | 1652/1652 | 2026-06-14 (iter) | COVERED |
-| [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | evt-58483137, evt-2caa2427 | — | — | NO TESTS |
+| [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3, evt-7619adfd | 1652/1652 | 2026-06-14 (iter) | COVERED |
+| [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | evt-58483137 | — | — | NO TESTS |
 | [FR-01.40](../../.shipwright/planning/01-adopted/spec.md#fr-0140) | The per-project actions.json management surface (Upload .jso... | Should | evt-72678829 | — | — | NO TESTS |
-| [FR-01.41](../../.shipwright/planning/01-adopted/spec.md#fr-0141) | Density/clipping polish on the two narrow layouts **without ... | Should | — | — | — | NOT VERIFIED |
 
 ## Verification Timeline
 
@@ -277,7 +276,7 @@ Generated: 2026-06-15T08:00:55.045232+00:00
 | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | iterate | bug |  | 38/38 | — | 2026-06-14 |
 | Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none | iterate | change | FR-01.38 | 1652/1652 | — | 2026-06-14 |
 | Repaint embedded terminal on window focus / visibility regain — fixes WebGL stale-frame smear that previously only a manual resize healed | iterate | bug | FR-01.28 | 1668/1668 | — | 2026-06-14 |
-| Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged. | iterate | change | FR-01.38, FR-01.39 | — | — | 2026-06-15 |
+| Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146) | iterate | bug | FR-01.28 | 1672/1672 | — | 2026-06-15 |
 
 ## Coverage Summary
 
@@ -286,8 +285,8 @@ Generated: 2026-06-15T08:00:55.045232+00:00
 | Total splits built | 0 |
 | Build sections | 0 |
 | Iterate changes | 156 |
-| Requirements total | 41 |
-| Requirements verified | 26/41 |
+| Requirements total | 40 |
+| Requirements verified | 26/40 |
 | Must-have verified | 17/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
@@ -308,11 +307,10 @@ Generated: 2026-06-15T08:00:55.045232+00:00
 - [FR-01.25](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the project row. PATCH updates name / profile / color. DELETE remove
 - [FR-01.26](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub 
 - [FR-01.27](../../.shipwright/planning/01-adopted/spec.md) (Must): Settings page lets the user pick a registered project, see its current actions-s
-- [FR-01.41](../../.shipwright/planning/01-adopted/spec.md) (Should): Density/clipping polish on the two narrow layouts **without changing the ≥1024px
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 45d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 44d ago by `evt-b81d5d5e` (2026-05-01)
 - [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-44b89157` (2026-05-10)
 - [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-33b2e81f` (2026-05-14)
 - [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-50e36386` (2026-05-14)
