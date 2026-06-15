@@ -2690,3 +2690,349 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Honors the local-only decision + monorepo intent; self-contained consumer change. Per-step tests deliberately NOT projected (CampaignStep has no tests field; anti-bloat).
 - **Consequences:** Deployed/cloned boards surface completed campaign progress; locally-present campaigns get a stale status.json corrected. A synthesized campaign has no skeleton (total==done, specPath null, launch disabled). Only S1-stamped campaigns project. New optional Campaign.derivedFromEvents mirrored server<->client. WebUI stays read-only on events.jsonl.
 - **Rejected:** (1) Re-track campaign.md reverses webui PR #121 / monorepo PR #189 the same week. (2) Overlay-only leaves a fresh clone showing nothing (fails the AC).
+
+---
+
+### ADR-171: Custom-action slash_command fuses description into the launch prompt
+- **Date:** 2026-06-11
+- **Section:** FR-01.37
+- **Run-ID:** iterate-2026-06-11-custom-action-slash-command
+- **Context:** Custom actions in .shipwright-webui/actions.json could not inject the task description into a slash-command prompt: {task.description?} emits it as a SEPARATE positional which the Claude CLI (single [prompt] arg) silently drops; {task.initial_prompt} (which fuses) was hardcoded to the 3 bundled action ids and threw UnknownActionError for custom ids.
+- **Decision:** Add an optional slash_command field to ActionDefinition; buildSlashCommand falls back to it for non-builtin ids so {task.initial_prompt} fuses slash+description into ONE q()-wrapped positional. Fail-loud schema validation (missing_slash_command/invalid_slash_command) requires a valid slash_command (SLASH_COMMAND_PATTERN) when a non-builtin action uses {task.initial_prompt}.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuses the battle-tested q()-wrapped initial_prompt fusion path rather than a new escaping path; SSoT set shared between substituter and validator; whitespace-tolerant placeholder detection + trim keep validator and substituter consistent and prevent a 500-on-dry-run edge.
+- **Consequences:** Custom per-skill action buttons now carry the brief into the launched prompt. Builtins unchanged (they win, ignore slash_command). Server stays the sole substituter; client mirror carries the field for upload round-trip only.
+- **Rejected:** (A) generic {task.slash_command?} placeholder — stays two-positional, does not solve it. (B) make {task.description?} fuse into the preceding token — regresses the new-plain path and is shell-fragile (adjacent-quote concat differs per shell).
+- **Details:** [2026-06-11-custom-action-slash-command.md](../planning/iterate/2026-06-11-custom-action-slash-command.md)
+
+---
+
+### ADR-172: Condense agent_docs (architecture.md + conventions.md) to ADR-anchored pointers
+- **Date:** 2026-06-12
+- **Section:** Iterate — change: agent-docs condense
+- **Run-ID:** iterate-2026-06-12-agent-docs-condense
+- **Context:** The 'Architecture Updates' (architecture.md) and 'Convention Updates' (conventions.md) lists had grown into duplicated giant paragraphs that re-state detail already held, fully structured, in decision_log.md. Both docs are always-loaded Layer-1 context, so the bloat costs tokens on every run.
+- **Decision:** Collapse both Updates lists to one de-duplicated ADR-anchored line per change; tighten Data Flow (write surfaces to a scannable list); reduce the CLAUDE.md-mirrored Architecture-rules + DO-NOT blocks in conventions.md to a terse index pointing at CLAUDE.md/ADRs; condense Learnings (every lesson kept, tighter).
+- **Commit:** (assigned post-merge)
+- **Rationale:** decision_log.md is the SSoT (ADR-150..170 verified fully structured) and planning/iterate specs are git-tracked, so pointer-only entries lose no tracked detail; the cited ADR/spec carries the full Context/Decision/Rationale.
+- **Consequences:** architecture.md 358->249 LOC, conventions.md 224->184 LOC; doc-sync.test.ts stays green (every module token retained in the condensed entries). Also corrected a stale ADR-110->ADR-116 launchPayload mislabel, the 9->11 sub-router count, and a stale decision_log entry count.
+- **Rejected:** Aggressive cut that drops empirical Learnings lacking an ADR (rejected: balanced keeps hard-won why). Editing CLAUDE.md itself (out of scope: always-loaded normative copy stays canonical).
+
+---
+
+### ADR-173: Vendor an OpenRouter Tier-3 PR reviewer into the WebUI (align to monorepo B4.5 Phase 2)
+- **Date:** 2026-06-12
+- **Section:** CI / Automated PR Review
+- **Run-ID:** iterate-2026-06-12-automerge-pr-review-alignment
+- **Context:** claude-review.yml called Anthropic directly via @anthropic-ai/claude-code, reviewed EVERY PR (no tier filter), and triggered on a non-existent 'develop' branch. Monorepo B4.5 Phase 2 (#193/#196) is the canonical pattern: an OpenRouter custom script we own, reviewing only Tier-3 PRs.
+- **Decision:** Replace claude-review.yml with pr-review.yml and VENDOR the reviewer (pr_review.py + lib + prompts) under scripts/ci/ (CI runner has no monorepo tree; same convention as scripts/hooks/anti_ratchet_check.py). A fork-guarded decide job applies the tier filter (skip/needs-review labels, sensitive paths .github/workflows+scripts/hooks+scripts/ci, external author != svroch); only Tier-3 reaches OpenRouter. An offline selftest job runs the 72 vendored tests on every PR. Long form: see --spec-ref.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Vendoring near-verbatim reuses battle-tested logic (#196 fence tolerance, #193 truncation no-auto-block, key redaction) and keeps both repos consistent; a Node rewrite would duplicate+diverge the security gate. Python is already a WebUI CI dep and the script is pure stdlib.
+- **Consequences:** Single provider (OpenRouter, model-swappable via SHIPWRIGHT_PR_REVIEW_MODEL); only untrusted/sensitive PRs reviewed in CI (Tier 1/2 reviewed locally at iterate Step 8); reviewer logic byte-identical to the production-validated canonical. User follow-ups: add OPENROUTER_API_KEY secret; add 'PR Review' required check (main is unprotected); optionally drop the unused ANTHROPIC_API_KEY.
+- **Rejected:** TypeScript rewrite (duplicates tested gate logic, loses canonical edge-cases, diverges). Keep reviewing every PR (re-reviews already-Step-8-reviewed maintainer iterate PRs, burns tokens).
+- **Details:** [iterate-2026-06-12-automerge-pr-review-alignment.md](../planning/iterate/iterate-2026-06-12-automerge-pr-review-alignment.md)
+
+---
+
+### ADR-174: Flat campaign card + non-clipping list view
+- **Date:** 2026-06-13
+- **Section:** Iterate — bug: board visual fixes
+- **Run-ID:** iterate-2026-06-12-board-visual-fixes
+- **Context:** The Campaigns-lane card carried the heavy --shadow-card (0 6px 30px), far heavier than the kanban TaskCards, so it looked out of place. The List view clipped its right columns: the nowrap Title cell let the auto-layout table exceed .page-container, where the wrapper overflow-hidden cut off Commit/Updated/Actions.
+- **Decision:** Drop the shadow utility from CampaignLaneCard (border-only flat card). Cap the List-view Title td at max-w-0 so the column absorbs only leftover width and the inner truncate span ellipsizes instead of overflowing.
+- **Commit:** (assigned post-merge)
+- **Rationale:** max-w-0 is the canonical CSS truncation hack for a flexible column in an otherwise content-sized auto-layout table — minimal, avoids a table-layout:fixed rewrite.
+- **Consequences:** Campaign card matches the surrounding surfaces; the list fits any container width with the title truncating. No API/behavior change — className-only diff.
+- **Rejected:** table-layout:fixed with explicit per-column widths (more invasive, shifts proportions); overflow-x-auto on the wrapper (adds a scrollbar instead of removing the overflow).
+
+---
+
+### ADR-175: Manual board dismiss/restore for campaigns (webui-owned quittance, not producer status)
+- **Date:** 2026-06-12
+- **Section:** shipwright-webui / Campaigns lane (FR-01.33)
+- **Run-ID:** iterate-2026-06-12-campaign-dismiss
+- **Context:** A derivedFromEvents ghost (planning dir gone, only work_completed events; e.g. 2026-06-07-tracked-campaign-status) is always kept visible by selectActiveCampaigns and can never auto-hide. No status.json remains to flip and the tracked log has no terminal campaign event, so a finished campaign lingers on the board forever.
+- **Decision:** Add a webui-owned manual dismiss/restore board quittance persisted in ${registryDir}/dismissed-campaigns.json keyed by projectId. GET annotates an additive dismissed flag (annotate-not-filter); selectVisibleCampaigns/selectDismissedCampaigns partition; a header button + show-dismissed toggle drive it. This is NOT a producer status write (CLAUDE.md DO-NOT #12).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Manual handles this legacy card and future ghosts immediately; the automatic counterpart (a producer-emitted terminal campaign_completed event, monorepo triage trg-7580f4fe) will feed the same client gate later.
+- **Consequences:** Any visible card can be hidden and restored. index.ts stays untouched via a lazy getDefaultDismissedStore() singleton; campaigns.ts stays <=300 LOC via campaign-route-helpers.ts; TaskBoardPage shrank 681->650 by extracting CampaignsLane. Stale dismissed slugs for vanished campaigns linger harmlessly.
+- **Rejected:** Server-side filtering of dismissed campaigns (breaks the reversible show-dismissed/restore UX and needs a second list endpoint); writing status:complete into the campaign dir (dir is gone + webui is read-only on producer state).
+
+---
+
+### ADR-176: Reconcile detective audit G2 + H1/H2
+- **Date:** 2026-06-12
+- **Section:** Iterate — change: compliance G2/H1/H2 bloat-baseline reconcile
+- **Run-ID:** iterate-2026-06-12-compliance-bloat-g2-reconcile
+- **Context:** The post-#128 /shipwright-compliance detective audit flagged G2 (commit 18cf09d scope='agent-docs' unmatched against the stoplist), H1 (two oversize files absent from the bloat baseline), and H2 (three baseline entries whose recorded current drifted above on-disk LOC).
+- **Decision:** G2: append 'agent-docs' to audit_config.json g2_stoplist. H1: grandfather MarkdownEditorModal.tsx (301, after deleting its dead default export) + triage-write.test.ts (373). H2: tighten SmartViewer.tsx 321->290, TaskCard.tsx 606->552, pty-manager.ts 1219->1217 to actual newlines.
+- **Commit:** (assigned post-merge)
+- **Rationale:** agent-docs is a legitimate cross-cutting scope post-dating the 2026-05-15 stoplist (same class as PR #127's actions/review). Grandfathering matches every repo precedent (test files to 2202 LOC are grandfathered); the dead default export was genuinely unused (lazy import maps the named export to default).
+- **Consequences:** All three detective checks flip FAIL->PASS when re-run against the worktree; anti-ratchet now locks the tightened sizes; no runtime/UI/API behavior change.
+- **Rejected:** Splitting the two H1 files (artificial fragmentation that moves complexity outward, rejected per the bloat-retirement convention); trimming MarkdownEditorModal under 300 (fragile at-limit dodge the next feature re-crosses).
+
+---
+
+### ADR-177: Reconcile post-v0.18.0 detective-audit findings B7/F5/G2
+- **Date:** 2026-06-12
+- **Section:** Iterate — change: compliance audit reconcile (B7/F5/G2)
+- **Run-ID:** iterate-2026-06-12-compliance-reconcile-b7-g2
+- **Context:** The post-v0.18.0 detective audit flagged B7 (a commit since the release tag with no matching event), F5 (an arch-impact decision-drop undocumented in architecture.md), and G2 (two conventional-commit scopes unmatched against the stoplist). Each was triaged for correctness vs false positive.
+- **Decision:** F5 is a stale-local-main FALSE POSITIVE (PASS on origin/main; fixed by git pull). B7 is REAL: backfilled PR #124's missing work_completed event carrying commit 8202109 so the B7 SHA match covers it. G2 is REAL: added 'actions' (PR #123) and 'review' (PR #125) to audit_config.json g2_stoplist.
+- **Commit:** (assigned post-merge)
+- **Rationale:** B7 and G2 are working-as-designed backstops that caught changes which escaped iterate finalization (PR #124 had no F5b event / F6 Run-ID footer) or post-dated the stoplist. F5 underscores re-running audits against an up-to-date origin/main before triage.
+- **Consequences:** All three detective checks now PASS on the worktree (verified before/after via run_audit group checks). audit_config.json now documents that new commit scopes must be appended in the PR that introduces them. No product (server/client) code touched.
+- **Rejected:** Treating F5 as a genuine arch-doc gap (would duplicate the bullet already merged on origin/main via PR #126). Leaving B7/G2 unreconciled (a permanently red detective audit).
+
+---
+
+### ADR-178: Document the automerge convention-impact drop in conventions.md (F5)
+- **Date:** 2026-06-13
+- **Section:** Iterate — change: compliance F5 reconcile
+- **Run-ID:** iterate-2026-06-13-compliance-f5-automerge
+- **Context:** Post-v0.18.0 detective audit raised B7/F5/G2. Re-triaged against fresh origin/main: B7 (commit 82021094) was already backfilled by PR #127 and G2 (scopes review/actions, then agent-docs) by PR #127/#129 — both PASS. F5 had migrated: the convention-impact drop iterate-2026-06-12-automerge-pr-review-alignment was documented only in architecture.md, not its required target doc conventions.md.
+- **Decision:** Add one bullet naming iterate-2026-06-12-automerge-pr-review-alignment under conventions.md '## Convention Updates' (the F5 target doc for architecture_impact=convention). No code, no architecture.md change.
+- **Commit:** (assigned post-merge)
+- **Rationale:** F5 selects conventions.md '## Convention Updates' for convention-impact drops; the run_id token must appear there. A minimal doc edit closes it without touching the more sensitive architecture.md or any code.
+- **Consequences:** F5 and the F11 check_architecture_documented gate now PASS for that drop; the full B/F/G detective group is green. The pre-existing architecture.md duplicate bullet is left as-is — F5 only checks the correct target doc (matches the agent-docs-condense precedent).
+- **Rejected:** Editing triage.jsonl by hand (producer auto-manages it — already marked complianceResolved); moving the architecture.md bullet (out of scope; F5 tolerates the duplicate); a webui code change (no behavior involved).
+
+---
+
+### ADR-179: README leads with production single-process install
+- **Date:** 2026-06-13
+- **Section:** Iterate — change: docs install audit
+- **Run-ID:** iterate-2026-06-13-docs-readme-install-audit
+- **Context:** README only documented the dev two-terminal flow (:5173); non-experts had no simple path, and guide §8 wrongly told autostart users to run make dev-client even though the production server serves the SPA itself.
+- **Decision:** README now leads with the production path (build once, npm start, open :3847) + deep-links to guide; guide §4 splits into Path A (production, recommended) and Path B (dev); §7/§8 corrected for the production rebuild + single-address model.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The Hono server already serves client/dist (spa-fallback.test.ts); leading with it is simpler and matches the Windows autostart artefact.
+- **Consequences:** Docs match server/src/index.ts serveStatic + SPA fallback; one address/process for everyday users. No code or runtime change.
+- **Rejected:** Keeping dev-only README; folding full install detail into README (rejected per user: compact README + deep-link).
+
+---
+
+### ADR-180: Strip parent/child Claude-session env markers from embedded-terminal pty spawn
+- **Date:** 2026-06-13
+- **Section:** server/src/terminal/routes.ts — buildSpawnEnv
+- **Run-ID:** iterate-2026-06-13-fix-pty-env-child-session-leak
+- **Context:** buildSpawnEnv spreads the whole webui-server process.env into every embedded pty. When the server is started from inside a Claude Code session (e.g. claude-vscode), its env carries CLAUDE_CODE_CHILD_SESSION=1 + CLAUDE_CODE_SESSION_ID/ENTRYPOINT/CLAUDECODE. Claude Code 2.1.x, on seeing CLAUDE_CODE_CHILD_SESSION=1, runs as a child session and suppresses the flat ~/.claude/projects/<cwd>/<uuid>.jsonl transcript the Transcripts tab reads -> empty transcript for every embedded session.
+- **Decision:** buildSpawnEnv deletes an allowlist of parent-session identity markers (CLAUDE_CODE_CHILD_SESSION, CLAUDE_CODE_SESSION_ID, CLAUDE_CODE_ENTRYPOINT, CLAUDECODE) AFTER the callerEnv merge, so embedded claude always launches as a fresh top-level session and writes its transcript.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Empirically isolated via pty A/B/C tests: CLAUDE_CODE_CHILD_SESSION=1 ALONE suppresses the jsonl; SESSION_ID/ENTRYPOINT/CLAUDECODE do not but are stripped defensively. End-to-end verified: the real fixed buildSpawnEnv fed the exact poisoned server env -> claude writes a 68KB jsonl.
+- **Consequences:** Transcripts tab works for new sessions regardless of how the server was started. Auth/config CLAUDE_* vars pass through untouched. Requires a server restart to deploy. Sessions launched before the fix stay empty in the Transcripts tab but remain visible in the Terminal scrollback.
+- **Rejected:** Repoint SessionWatcher to a new on-disk location (no replacement transcript file exists in 2.1.x); render Transcripts from terminal scrollback (larger change, raw ANSI vs parsed bubbles); only restart the server from a clean shell (latent — recurs on next start-from-Claude); blanket-strip all CLAUDE_* (would drop auth/config the embedded claude needs).
+
+---
+
+### ADR-181: Thorough guide.md correctness audit + package.json version align
+- **Date:** 2026-06-13
+- **Section:** Iterate — change: guide.md verification + version align
+- **Run-ID:** iterate-2026-06-13-guide-verify-version-align
+- **Context:** Iterate 1 (PR #132) only verified self-found drift, not the whole guide. User asked for a full cross-check of guide.md against code, latest commits/ADRs, and the RTM, plus aligning package.json version to the CHANGELOG.
+- **Decision:** Audited guide.md via 3 parallel sub-agents; fixed §6.1 menu location + Plain Claude sibling, §9.3 validation/placeholder/modal_fields drift; added §6.9 Campaigns lane + §6.10 file editor docs; bumped server+client package.json version 0.1.0 -> 0.18.0.
+- **Commit:** (assigned post-merge)
+- **Rationale:** User-facing v0.18.0 features (Campaigns lane, SmartViewer editor) were undocumented; the validation/placeholder tables had real drift; version 0.1.0 was stale vs the v0.18.0 release tag.
+- **Consequences:** guide.md now matches code (file:line-verified). §9.1 env table confirmed accurate (no change). package.json version is unread metadata; bump is cosmetic alignment, no runtime effect.
+- **Rejected:** Documenting the pending-delivery badge / slash_command field (SKIP: low value, would add noise); editing the RTM's stale .webui/ path (out of scope — compliance-generated artifact).
+
+---
+
+### ADR-182: Correct stale .webui/ path in live spec (post-v0.17.0 rename)
+- **Date:** 2026-06-13
+- **Section:** Iterate — change: spec stale-path fix
+- **Run-ID:** iterate-2026-06-13-spec-webui-path-fix
+- **Context:** The v0.17.0 rename .webui/actions.json -> .shipwright-webui/actions.json left stale path strings in the live spec.md FR descriptions (surfaced by the iterate-2 audit), which propagated into the generated traceability matrix.
+- **Decision:** Replace the stale path in spec.md (the live source) and regenerate the traceability matrix. Leave decision_log.md + change-history.md untouched (point-in-time/git-derived history where .webui/ was the real name).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fix the source, not the generated artifact (a direct RTM edit reverts on next regen). Historical records must not be rewritten.
+- **Consequences:** spec.md + regenerated RTM now match the shipped filename. No requirement behavior change (same endpoint, renamed file). Verified by grep (0 stale).
+- **Rejected:** Editing the generated traceability-matrix.md directly (reverts on regen); rewriting historical ADR/commit records (falsifies history).
+
+---
+
+### ADR-183: Actions-config upload surface reused in the project edit modal; upload-route slash_command fix
+- **Date:** 2026-06-14
+- **Section:** FR-01.40
+- **Run-ID:** iterate-2026-06-14-actions-config-ux
+- **Context:** Actions.json upload UI lived only on the Settings page; the project edit modal had no way to manage it. Separately, the actions-upload route's dry-run omitted slash_command (FR-01.37 fixed get.ts but missed upload.ts) → 500 on uploading a custom {task.initial_prompt} config. A stale 'Launcher preferences' card on Settings described a non-existent copy-command launcher.
+- **Decision:** Extract ActionsConfigRow (+ ResetActionsDialog) into reusable components with a hideProjectHeader flag; render it compact in ProjectSettingsDialog and full on the Settings card. Pass action.slash_command to dryRunTemplate in upload.ts (mirroring get.ts incl. try/catch). Remove the Launcher preferences card.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuse over duplication (single row, two hosts); server fix mirrors the already-correct get.ts; removal kills misleading UX.
+- **Consequences:** Per-project actions.json is now manageable from the edit modal; the Settings upload no longer 500s on slash_command actions; one row implementation serves both surfaces (ActionsConfigCard 408->86 LOC).
+- **Rejected:** (A) duplicate upload logic in the modal — drift risk. (B) modal button deep-linking to Settings — user wanted the function in the modal, not a redirect.
+- **Details:** [2026-06-14-actions-config-ux.md](../planning/iterate/2026-06-14-actions-config-ux.md)
+
+---
+
+### ADR-184: Reconcile detective-audit D3/G2/H1 (responsive iterates)
+- **Date:** 2026-06-14
+- **Section:** Compliance / detective-audit
+- **Run-ID:** iterate-2026-06-14-compliance-d3-g2-h1-reconcile
+- **Context:** The tablet (FR-01.38, PR #139) and phone (FR-01.39, PR #140) responsive iterates introduced FRs via new_frs, but their own work_completed events omitted affected_frs (D3); the new feat(responsive) commit scope was unregistered (G2); EmbeddedTerminal.tsx crossed 300->311 from the phone TerminalKeyBar wiring without a baseline entry (H1).
+- **Decision:** G2: append 'responsive' to audit_config.json g2_stoplist. D3: amend the two responsive work_completed events via event_amended adding affected_frs (root-cause: their own events were incomplete). H1: grandfather EmbeddedTerminal.tsx in shipwright_bloat_baseline.json.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the established data/config reconcile pattern (iterate-2026-06-05-webui-data-config evt-1f7088ec): event_amended for promised-FR linkage + g2_stoplist append + grandfather.
+- **Consequences:** All three detective checks D3/G2/H1 re-run FAIL->PASS against the worktree. No product code or runtime behaviour changed; no webui runtime consumes the amended event fields.
+- **Rejected:** Splitting EmbeddedTerminal.tsx (moves complexity outward on a critical ADR-097 terminal path); reaffirming FRs via the reconcile's own affected_frs (less faithful than amending the originals).
+
+---
+
+### ADR-185: Phone responsive view: sidebar overlay drawer + on-screen terminal key bar
+- **Date:** 2026-06-14
+- **Section:** shipwright-webui / Responsive (phone <768px, FR-01.39)
+- **Run-ID:** iterate-2026-06-14-phone-responsive-view
+- **Context:** Phones inherited the tablet compact band but the rail ate a 375px screen, the terminal had no soft-keyboard affordances for Claude's interactive prompts, and tables/modals/safe-area were untuned <768px. Iterate 2 of 2 of the device-phased rollout (iterate 1 = tablet, FR-01.38).
+- **Decision:** Add useIsPhoneViewport + useCoarsePointer alongside useIsCompactViewport (shared useMediaQuery, no fork). <768px: sidebar becomes a Radix-Dialog overlay drawer; EmbeddedTerminal renders a coarse-pointer TerminalKeyBar as a SIBLING of the persistent canvas (rule 21 held), keys via the existing socket.send writer frame (mode-aware CSI/SS3, writer re-check). Tables scroll in-card; modals 44px touch; viewport-fit=cover + interactive-widget=resizes-content + 100dvh + safe-area. Detail in spec-ref.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuse the tablet foundation; gate on the new queries to keep up-band byte-identical; sibling key bar keeps the terminal mounted (WS/scrollback); net-zero on bloat-ceiling files.
+- **Consequences:** Phones usable; tablet+desktop byte-identical (gated on phone/coarse queries). New mobile-chromium Playwright project runs the phone E2E. EmbeddedTerminal 300→311 (delegating shell, non-baseline — advisory crossing, accepted). The Updated list column stays visible <768 (shared SortableTh not net-zero column-gateable on the frozen TaskList ceiling).
+- **Rejected:** Keep the 60px rail on phone; hand-rolled fixed-aside drawer (Radix reused for free focus-trap); soft keyboard as sole input (no Esc/Tab/arrows/Ctrl); a visualViewport-resize hook.
+- **Details:** [2026-06-14-phone-responsive-view.md](../planning/iterate/2026-06-14-phone-responsive-view.md)
+
+---
+
+### ADR-186: Self-heal ~/.claude.json at deploy END, not only Step 0
+- **Date:** 2026-06-14
+- **Section:** Iterate — bug: repair-claude-json end-heal
+- **Run-ID:** iterate-2026-06-14-repair-claude-json-end-heal
+- **Context:** The Step-0 self-heal guard runs ~13s BEFORE the server-kill that causes the corruption, so it can only heal a PREVIOUS deploy's leftover, never the corruption THIS deploy creates.
+- **Decision:** Invoke repair-claude-json.mjs a SECOND time inside the if($up) success branch, after the server-up confirmation; keep the Step-0 run.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Empirically confirmed 2026-06-14: file valid pre-deploy, corrupt immediately post-kill; same-version 2.1.177 concurrent writes suffice. The repair helper is unchanged — only a second invocation point is added.
+- **Consequences:** This deploy's truncation-tail corruption is healed in the clean window (old embedded claude dead, new not yet spawned) before the user reconnects. Best-effort contract preserved (exit code ignored).
+- **Rejected:** Heal only at Step 0 (cannot catch post-kill corruption — the bug). Fix the writer in webui (rejected: webui is a read-only observer; the non-atomic unlocked write is an upstream CLI bug).
+
+---
+
+### ADR-187: Deploy-time self-heal of corrupt ~/.claude.json
+- **Date:** 2026-06-14
+- **Section:** Iterate — change: repair-claude-json deploy self-heal
+- **Run-ID:** iterate-2026-06-14-repair-claude-json
+- **Context:** The production deploy force-kills the webui server, killing all embedded claude ptys at once; on reload many CLIs race on the non-atomic, unlocked ~/.claude.json and leave a truncation-tail-corrupt file that breaks every running session. webui is a read-only observer and cannot fix the upstream writer.
+- **Decision:** Add an OPS-only Node ESM helper scripts/repair-claude-json.mjs, run as step 0 of start-server-production.ps1 (before the build): brace-scan the corrupt file for the first balanced top-level object, validate + sanity-check it, back up the original, atomically rewrite. Best effort, never gates the deploy.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fail-safe over clever: overwrite only when exactly one plausible config (>=3 keys + projects) is recoverable, refuse on multiple candidates. The deploy can heal even though the upstream non-atomic CLI writer cannot be fixed here.
+- **Consequences:** Deploys self-heal a truncation-tail corruption before sessions restart; a backup (.corrupt-<ts>.bak, newest ~10 kept) always precedes any overwrite; an unrepairable/ambiguous file is left untouched (exit 1, deploy continues). This is a deploy-ops action, distinct from the runtime read-only contract.
+- **Rejected:** Inline PowerShell repair (no string-aware JSON scanner; untestable via node:test); fixing the upstream writer (Anthropic bug, out of scope); gating the deploy on the repair exit code (a benign config issue must not block deploys).
+
+---
+
+### ADR-188: Tablet responsive view (≤1023px) — compact band, persistent-PanelGroup detail
+- **Date:** 2026-06-14
+- **Section:** iterate/tablet-responsive-view
+- **Run-ID:** iterate-2026-06-14-tablet-responsive-view
+- **Context:** WebUI was width-unaware below 1024px; tablets (768-1023px) overflowed. User-agreed device-phased rollout: tablet now, phone next.
+- **Decision:** useIsCompactViewport() (matchMedia max-width:1023px) is the compact-band SSoT. Sidebar rails ≤1023; board columns become a swipe carousel; list view lg:-gates Commit; campaign cards truncate/wrap. Detail keeps ONE persistent PanelGroup and when compact sizes the active pane 100%/others 0 behind a Files/Session/Viewer tab bar — no component-type swap at center, so the terminal never unmounts across a tab/breakpoint change. Desktop ≥1024px stays byte-identical via lg:.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Persistent-PanelGroup + imperative sizing is the only design preserving the live terminal WS/scrollback across the breakpoint (rule 21); a component-type swap would unmount it (caught in plan + code review).
+- **Consequences:** Bloat-ceiling files stay net-zero via className-only swaps (TaskBoardPage/TaskList/TaskDetailPage untouched). Phone <768px deferred to iterate-2.
+- **Rejected:** CSS-media-query-only (fights react-resizable-panels); pre-splitting the 650/676-LOC files (scope creep); container measuredWidth trigger (false-flips at 1024px + rail).
+
+---
+
+### ADR-189: Tablet-view polish: bidirectional rail collapse, bottom safe-area, greedy list-title, terminal touch-action
+- **Date:** 2026-06-14
+- **Section:** iterate-2026-06-14-tablet-view-polish
+- **Run-ID:** iterate-2026-06-14-tablet-view-polish
+- **Context:** Real-device tablet UAT (FR-01.38, tablet band) surfaced 5 defects: the rail could be expanded but not collapsed; the board and page were clipped at small widths; the list Title column was crushed; and one-finger terminal touch-scroll did nothing.
+- **Decision:** Added a compact-band collapse control to SidebarNav (bidirectional rail toggle); reserved env(safe-area-inset-bottom) on the content scroll container; made the list Title a greedy w-full column; and set touch-action none on the terminal canvas so the ADR-132 handler receives touchmove.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Each fix was root-caused by reading the shipped code rather than guessed; a repo-wide search confirmed touch-action was set nowhere, explaining why unit tests stayed green while the device failed.
+- **Consequences:** Tablet users can reclaim board width; bottom content clears the device inset; the Title stays widest; touch-scroll works on real devices. Final touch-scroll sign-off is a real-device smoke since synthetic touch cannot exercise touch-action arbitration.
+- **Rejected:** AC-2 board cut-off: a trailing scroll-pr-6 was rejected because a ratio:1 Playwright assertion proves the last column is already fully revealed (no hard clip). table-layout:fixed for the Title was rejected as it fights the responsive column-hiding.
+
+---
+
+### ADR-190: Repaint embedded terminal on window focus / visibility regain
+- **Date:** 2026-06-14
+- **Section:** client/terminal rendering
+- **Run-ID:** iterate-2026-06-14-terminal-smear-window-focus
+- **Context:** The WebGL terminal showed a stale 'smear' frame after the Edge window/tab regained focus, after switching monitors, or after route navigation back to a task; only a manual resize healed it. xterm force-repaints solely on ResizeObserver, tab activation, and scroll — there was no handler for window focus / visibilitychange / pageshow / WebGL context loss (grep over client/src returned zero matches).
+- **Decision:** Add a window focus + pageshow + document visibilitychange effect in useTerminalResize that runs safeFit + term.refresh(0,rows-1) + dedupe-sends a WS resize frame; and register WebglAddon.onContextLoss -> webgl.dispose() for a clean DOM-renderer fallback on GPU context loss.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reuses useTerminalResize's existing safeFit / lastSent dedupe / disposedRef plumbing; visibility-regain is a refit trigger exactly like the ResizeObserver + tab-activation triggers already there. onContextLoss->dispose is the canonical xtermjs/xterm.js pattern. fit() is a safe no-op on a display:none pane.
+- **Consequences:** Returning to the window, monitor switches, bfcache restores, and route-nav remounts now repaint cleanly without a manual resize. After a genuine GPU context loss the terminal runs on the DOM renderer for the remainder of that mount (documented tradeoff).
+- **Rejected:** Standalone repaint-on-visibility.ts module (duplicates the safeFit/dedupe/socketSend plumbing); disabling WebGL entirely / forcing the DOM renderer (regresses Claude TUI alt-screen perf — the reason ADR-099 chose WebGL).
+
+---
+
+### ADR-191: Tighten bloat baseline ceiling for terminal/routes.ts (620 to 509)
+- **Date:** 2026-06-14
+- **Section:** compliance / bloat anti-ratchet
+- **Run-ID:** iterate-2026-06-14-tighten-bloat-baseline-routes
+- **Context:** ADR-103 retirement #1 + #135 (commit 9b1ed5e) reduced server/src/terminal/routes.ts to 509 LOC at HEAD, but shipwright_bloat_baseline.json kept current=620. Group H2 detective audit flagged baseline.current (620) > actual (509): the file could silently re-grow 111 LOC without tripping the anti-ratchet gate.
+- **Decision:** Lower the routes.ts baseline entry current from 620 to 509 to match the measured newline-byte LOC. state stays exception (509 > 300 limit) under ADR-103; limit unchanged at 300.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Anti-ratchet only ever ratchets DOWN; a stale-high current value silently defeats the mechanism. Tightening restores the intended floor.
+- **Consequences:** Anti-ratchet ceiling for routes.ts is now 509; future growth past it blocks pre-commit/CI until shrunk, split, or the ADR-103 exception is revised. Metadata-only edit: no app behavior, build, or test surface changes.
+- **Rejected:** Remove the entry (loses the ADR-103 exception linkage and re-exposes routes.ts to the 300-limit failure); raise the limit (300 is the global standard, not the thing that changed).
+- **Details:** [103-bloat-exception-terminal-routes.md](../planning/adr/103-bloat-exception-terminal-routes.md)
+
+---
+
+### ADR-192: Mobile/tablet layout polish: portal-slot top bar + extracted board status filter
+- **Date:** 2026-06-15
+- **Section:** FR-01.41
+- **Run-ID:** iterate-2026-06-15-mobile-tablet-layout-polish
+- **Context:** Phone band (≤767px): the board header packed the 220px project dropdown + view toggle + create buttons plus a separate status pill row. Compact band (≤1023px): the List Resume button crowded the Title, the Projects Path column forced a bottom scrollbar, the 60px icon-rail clipped count badges, and the 3 fixed-360px board lanes overflowed right.
+- **Decision:** Phone: portal ProjectFilterDropdown into a MainLayout top-bar slot (MobileTopBarSlot) and swap the pill row for a funnel-icon Radix multi-select menu (StatusFilterMenu), both extracted into BoardStatusFilter. Compact: icon-only launch label, Path column hidden lg:table-cell, rail count badge overlaid on the icon, and flexible lanes (longhand basis-0 grow min-200) that fit all three; <768px keeps the carousel, ≥1024px keeps fixed 360px.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Portal-slot keeps the dropdown board-scoped without coupling the shell to board hooks; useState publish (not a ref) avoids the first-paint null race; longhand-only lane utilities avoid Tailwind cascade ambiguity; CSS column-hide avoids colSpan drift.
+- **Consequences:** Desktop unchanged; tablet shows 3 lanes with no scrollbar; phone header fits one row. New BoardStatusFilter + MobileTopBarSlot modules. Spec 80's two tablet carousel assertions rewritten (Test-Update-Klausel) for the 3-lane fit.
+- **Rejected:** Route-aware top bar (couples shell to board). Conditional-render Path td/th (colSpan drift) — used hidden lg:table-cell. md:-override of unprefixed min-w/shrink — rebased to longhand tiers per plan review.
+- **Details:** [spec.md](../planning/01-adopted/spec.md)
+
+---
+
+### ADR-193: Phone header polish: content-width top-bar dropdown + flat '+ New' drill-down
+- **Date:** 2026-06-15
+- **Section:** FR-01.41 follow-up
+- **Run-ID:** iterate-2026-06-15-phone-header-polish
+- **Context:** After FR-01.41 shipped, phone testing surfaced: (a) the top-bar project dropdown (fluid=w-full) spanned the whole bar; (b) the All-Projects '+ New' two-level Radix cascade's SubContent opens to the side and overflowed off the left edge on a 393px phone.
+- **Decision:** Phone (useIsPhoneViewport): make the fluid dropdown content-width (max-w-[60vw]+truncate) not w-full; replace the nested cascade with ProjectCreatePhoneMenu — a flat downward drill-down (project list → tapping a project REPLACES the popup with that project's actions, back row returns) extracted into its own file so ProjectCreateCascade stays <300 LOC. Same onSelect(action,projectId)->NewIssueModal contract; tablet/desktop keep the nested cascade.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Drill-down reuses the existing modal-with-action flow (no NewIssueModal rebuild, which would have made this medium); downward in-place content swap avoids any side submenu, which is the root of the phone overflow; extraction keeps the file under the soft 300 ceiling.
+- **Consequences:** No off-screen overflow + narrower dropdown on phones; desktop/tablet byte-identical (verified by 90-all-projects-cascade + 49). New ProjectCreatePhoneMenu component. NewIssueModal unchanged (no action-picker built — drill-down keeps action selection in the menu).
+- **Rejected:** Build an action-picker INTO NewIssueModal (medium; the modal hard-requires a pre-chosen action). Keep the nested submenu + only add avoidCollisions/collisionPadding (stays cramped on 393px).
+- **Details:** [spec.md](../planning/01-adopted/spec.md)
+
+---
+
+### ADR-194: Read-only narrow replay corruption: resize terminal to the snapshot's cols/rows before writing it
+- **Date:** 2026-06-15
+- **Section:** terminal replay fidelity (ADR-087/092)
+- **Run-ID:** iterate-2026-06-15-terminal-readonly-reflow-corruption
+- **Context:** On a narrow read-only re-attach (phone, Card→Terminal), the replayed terminal showed character interleaving ('Dein vom'→'De invom'). Root cause: the cell-state snapshot (@xterm/addon-serialize) is serialized at the WRITER's width (live-mirror cols), and the envelope carries cols/rows, but useReplayDrainGate.onReplaySnapshot wrote info.data into whatever (narrow) width the reader's terminal was fit to → the serialize-addon's absolute cursor moves clamp/wrap at the wrong column → interleaving.
+- **Decision:** In useReplayDrainGate.onReplaySnapshot, resize the terminal to info.cols/info.rows BEFORE term.write(info.data) (guarded: only when positive and different from current dims). The snapshot reconstructs faithfully at its native width; any later reflow is xterm's clean buffer rewrap, not raw-escape-sequence corruption.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The envelope already carries the snapshot dims — the client ignored them. Sizing to the snapshot before write is the minimal root-cause fix, aligned with ADR-087 (reader renders the writer-width cell-state). Distinct from #146 (refocus smear) / #147 (input-box reflow repaint).
+- **Consequences:** Read-only/narrow replay no longer garbled. Reader resize is writer-gated server-side so this never shrinks the writer's pty. Client-only; ADR-087/092 replay precedence + envelope unchanged (no chunked fallback). Reader ends at writer width (faithful TUI), clipped on a narrow viewport rather than garbled.
+- **Rejected:** Server serializes at the READER's width (server doesn't know reader cols at attach; bigger). Resize→write→force-refit (would reflow TUI narrower, breaking box-drawing alignment).
+
+---
+
+### ADR-195: Trailing repaint after terminal reflow (alt-buffer input-box fix)
+- **Date:** 2026-06-15
+- **Section:** client/terminal rendering
+- **Run-ID:** iterate-2026-06-15-terminal-reflow-repaint
+- **Context:** Follow-up to PR #146. Claude's alt-buffer TUI redraws ASYNC after a SIGWINCH (resize). WebGL per-cell dirty detection skips cells whose glyph matches the on-screen one, but a width change shifts the logical->screen mapping, so stale glyphs (old box border, floating --name title cell) survive the redraw. Nothing repainted AFTER the redraw: onDataChunk does a bare term.write, the ResizeObserver path never refreshed, and the focus path (PR #146) refreshed synchronously BEFORE it.
+- **Decision:** Add POST_RESIZE_REPAINT_DELAYS_MS=[130,350] in useTerminalResize: after every dimension change (resize sent, all three paths) schedule staggered trailing term.refresh(0,rows-1) passes that repaint AFTER Claude's async redraw. Reset per resize, cancelled on unmount, disposed-guarded. Same remedy scroll-repaint.ts uses for the wheel-driven async redraw.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The resize hook owns the dedupe state gating when a redraw happens, so the trailing repaint belongs there (ADR-101/103: do not fragment a cohesive deep module for a line count). Staggered passes cover fast+slow redraws.
+- **Consequences:** Claude's input box / TUI no longer renders broken, wrapped, or with a floating title cell after a window/monitor width change. Two extra idempotent viewport-only repaints fire ~130/350ms after each dims change.
+- **Rejected:** Standalone post-resize-repaint.ts module (moves dedupe coupling outward); forcing WebGL to always full-repaint (kills the per-cell dirty optimisation).
+
+---
+
+### ADR-196: Touch-scroll replicates the mouse wheel (synthetic WheelEvent on term.element), superseding the ADR-132 arrow-key path
+- **Date:** 2026-06-15
+- **Section:** Iterate — bug-fix: touch-scroll cycles Claude input history instead of scrolling
+- **Run-ID:** iterate-2026-06-15-touch-scroll-wheel-events
+- **Context:** User report 2026-06-15 (iPad/Safari): one-finger touch in the embedded terminal cycles Claude's last prompts instead of scrolling; mouse + two-finger trackpad scroll fine. Traced @xterm/xterm 6.0: ADR-132 sent raw arrow keys in the alt-buffer, but Claude (alt-screen, mouse-tracking ON) binds Up/Down to input-history nav, while a real wheel is encoded as a mouse-report (button 64/65) that Claude consumes to scroll. Mouse and touch took different code paths; only one is the path Claude listens to.
+- **Decision:** Make a finger-pan replicate the mouse/trackpad: routeScroll dispatches a synthetic pixel-mode WheelEvent (deltaY=raw px delta, finger coords) on term.element when mouse-tracking is active OR the alt-screen buffer is current; xterm then encodes the mouse-report (Claude) or converts to arrow keys itself (no-mouse alt TUIs), with its own trackpad-style accumulation. Normal-buffer scrollback keeps term.scrollLines via consumeTouchDelta. Removed the ADR-132 sendData socket coupling.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Delegating wheel encoding to xterm is guaranteed to match the working mouse path whatever encoding Claude negotiated; replicating the trackpad (raw pixel deltas) matches the feel the user likes. Source-traced root cause, not another blind patch (feedback_stop_stacking_patches).
+- **Consequences:** One-finger pan now scrolls Claude's TUI identically to the mouse/trackpad; normal-buffer scrollback unchanged. Diff: touch-scroll.ts routing tail, EmbeddedTerminal.tsx (drop sendData), inverted alt-buffer test cohort; all files <300 LOC; touch-scroll no longer references the WS socket. iPad UAT is the post-deploy gate (byte-level encoding needs a live renderer jsdom lacks); scroll speed may need a scrollSensitivity tweak. Full client suite 1696/1696 green; typecheck+lint clean.
+- **Rejected:** Hand-rolled SGR mouse-wheel (assumes SGR encoding — could break a 4th time); line-notch wheels (over-scroll risk); dispatch on screenElement for scrollback (VS-Code scroller's synthetic-wheel handling less certain; scrollLines already works); branch on buffer.active.type alone (a TUI can enable mouse tracking in the normal buffer too).
+- **Details:** [133-touch-scroll-wheel-events.md](../planning/adr/133-touch-scroll-wheel-events.md)

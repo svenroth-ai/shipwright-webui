@@ -17,3 +17,4 @@ regeneration overwrites this file on every release pass._
 - [ADR-103 — bloat exception terminal routes](103-bloat-exception-terminal-routes.md)
 - [ADR-131 — touch scroll alt buffer no op](131-touch-scroll-alt-buffer-no-op.md)
 - [ADR-132 — touch scroll buffer aware routing](132-touch-scroll-buffer-aware-routing.md)
+- [ADR-133 — touch scroll wheel events](133-touch-scroll-wheel-events.md)

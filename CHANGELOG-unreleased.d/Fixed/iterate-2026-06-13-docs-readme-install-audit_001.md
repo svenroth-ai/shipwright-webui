@@ -1,1 +1,0 @@
-Docs: the Windows-autostart guide no longer tells users to run `make dev-client` to see the dashboard — the production server serves the UI itself at :3847; the README Triage section now documents the fourth action (Fix now); and `make lint` (help text + target) is corrected to run oxlint across both server/ and client/ instead of eslint in client/ only.

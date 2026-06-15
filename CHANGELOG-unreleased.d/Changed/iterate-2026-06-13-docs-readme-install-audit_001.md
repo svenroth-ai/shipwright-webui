@@ -1,1 +1,0 @@
-Docs: the README now leads with a non-expert, production single-process install (build once, then `npm start` serves the full dashboard at http://localhost:3847 — no second Vite process) plus a What-you-get overview, an Updating section, and deep-links into the user guide; docs/guide.md §4 now splits install into a recommended production Path A and a develop/contribute Path B.

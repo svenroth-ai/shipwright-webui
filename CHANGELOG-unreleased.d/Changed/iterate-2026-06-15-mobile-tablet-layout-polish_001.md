@@ -1,1 +1,0 @@
-Phone Task Board: the project picker now lives in the top bar next to the Shipwright name, and the status/phase filter is a funnel-icon menu (multi-select) instead of a pill row — freeing the header row for the view toggle and the New / Plain Code buttons (FR-01.41).

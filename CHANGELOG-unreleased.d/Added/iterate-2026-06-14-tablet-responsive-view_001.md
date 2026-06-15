@@ -1,1 +1,0 @@
-Tablet responsive view (768–1023px): the sidebar auto-collapses to its icon rail, the task board (both column and list views) becomes a touch-swipe carousel that fits without horizontal overflow, the campaigns lane wraps/truncates, and the task-detail panes collapse to Files/Session/Viewer tabs with the embedded terminal staying fully interactive. Desktop (≥1024px) is unchanged.

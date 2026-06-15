@@ -1,1 +1,0 @@
-Phone: the All-Projects '+ New' menu no longer overflows off the left edge — it's now a flat downward drill-down (tap a project → its actions appear in the same popup) instead of a side-opening submenu that had no room on a phone (FR-01.41 follow-up).
