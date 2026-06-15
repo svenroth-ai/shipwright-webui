@@ -99,6 +99,52 @@ test.describe("Phone responsive (<768px, touch)", () => {
     await expect(page.getByTestId("board-filter-menu-dot")).toBeVisible();
   });
 
+  test("top-bar project dropdown is content-width, NOT the full bar (phone-header-polish #3)", async ({ page }) => {
+    await page.goto("/");
+    const topbar = page.getByTestId("mobile-topbar");
+    const dd = topbar.getByTestId("project-filter-dropdown");
+    await expect(dd).toBeVisible();
+    const barW = (await topbar.boundingBox())!.width;
+    const ddW = (await dd.boundingBox())!.width;
+    // Narrower than the bar (leaves room for ☰ + brand) and within the 60vw cap.
+    expect(ddW).toBeLessThan(barW * 0.72);
+    expect(ddW).toBeLessThanOrEqual(page.viewportSize()!.width * 0.6 + 2);
+  });
+
+  test("phone '+ New' drills project → actions in ONE downward popup, no off-screen overflow (phone-header-polish #1)", async ({ page, request }) => {
+    // Seed a real (non-synthesized) project so the All-Projects create menu shows.
+    const suffix = Date.now();
+    const created = await request.post("/api/projects", {
+      data: { name: `phone-new-${suffix}`, path: process.cwd(), profile: "default", status: "active" },
+    });
+    const { data: p } = (await created.json()) as { data: { id: string } };
+    try {
+      await page.goto("/");
+      await expect(page.getByTestId("task-board-page")).toBeVisible();
+      const trigger = page.getByTestId("create-menu-cascade-trigger");
+      await expect(trigger).toBeVisible();
+      await trigger.click();
+      // Level 1: the project row (no side submenu chevron-fly-out).
+      const projRow = page.getByTestId(`create-menu-cascade-project-${p.id}`);
+      await expect(projRow).toBeVisible();
+      // Drill in — actions REPLACE the project list in the same popup (Enter:
+      // a pointer click on a portalled item is intercepted in headless Chrome).
+      await projRow.press("Enter");
+      const action = page.getByTestId(`create-menu-cascade-action-${p.id}-new-task`);
+      await expect(action).toBeVisible();
+      await expect(page.getByTestId("create-menu-phone-back")).toBeVisible();
+      // The drill-down stays on-screen — no horizontal page overflow (the bug).
+      expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
+      // Selecting an action opens the modal scoped to the chosen project.
+      await action.press("Enter");
+      await expect(page.getByTestId("new-issue-modal-new-task")).toBeVisible();
+      await expect(page.getByTestId("new-issue-project-select")).toHaveValue(p.id);
+      await page.keyboard.press("Escape");
+    } finally {
+      await request.delete(`/api/projects/${p.id}`);
+    }
+  });
+
   test("list view hides the Phase column at phone width; no page overflow (AC-5)", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("view-toggle-list").click();

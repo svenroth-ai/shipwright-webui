@@ -1,12 +1,13 @@
 # Project Activity Dashboard
-> Updated: 2026-06-15 08:00 UTC | Session: 4482d9f6-3ffa-40f8-abe3-0a95c92cfe44 | Run: iterate-2026-06-15-mobile-tablet-layout-polish
+> Updated: 2026-06-15 12:14 UTC | Session: 4482d9f6-3ffa-40f8-abe3-0a95c92cfe44 | Run: iterate-2026-06-15-phone-header-polish
 
-## Recent Changes (157 iterations)
+## Recent Changes (158 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. | 0/0 |  | FR-01.41 | 2026-06-15 |
 | bug | Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146) | 1672/1672 |  | FR-01.28 | 2026-06-15 |
-| change | Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged. | 0/0 |  | FR-01.38, FR-01.39 | 2026-06-15 |
+| change | Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged. | 0/0 | 662eaec | FR-01.38, FR-01.39 | 2026-06-15 |
 | bug | Repaint embedded terminal on window focus / visibility regain — fixes WebGL stale-frame smear that previously only a manual resize healed | 1668/1668 |  | FR-01.28 | 2026-06-14 |
 | change | Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none | 1652/1652 |  | FR-01.38 | 2026-06-14 |
 | bug | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | 38/38 |  | tooling | 2026-06-14 |
@@ -164,7 +165,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-15 | Unit: 1680/1680 | E2E: 37/37 | Smoke: not_run | (iterate)
+Last run: 2026-06-15 | Unit: 1690/1690 | E2E: 18/18 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
