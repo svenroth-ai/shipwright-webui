@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-14T23:40:00Z",
+  "last_updated": "2026-06-15T08:25:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-14-terminal-smear-window-focus",
-    "date": "2026-06-14",
+    "run_id": "iterate-2026-06-15-terminal-reflow-repaint",
+    "date": "2026-06-15",
     "type": "bug",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1668,
-      "total": 1668
+      "passed": 1672,
+      "total": 1672
     },
     "integration": {
       "status": "not_run",
@@ -22,8 +22,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "skipped",
@@ -35,78 +35,58 @@
     },
     "test_completeness": {
       "status": "complete",
-      "justification": "BUG fix in the embedded terminal renderer. Every wiring behavior is unit- and/or E2E-tested; the sole untestable row is the actual GPU visual-smear clearing (requires a real GPU + monitor switch, not reproducible headless).",
+      "justification": "BUG fix in the terminal resize hook (follow-up to PR #146). Every wiring/timing behavior is unit-tested; the sole untestable row is the actual broken-box clearing in Claude's live TUI on a real GPU (requires-physical-device).",
       "behaviors": [
         {
-          "behavior": "window 'focus' -> safeFit + full-viewport term.refresh(0,rows-1) + dedupe-send WS resize",
+          "behavior": "dims-changing ResizeObserver resize -> staggered trailing term.refresh(0,rows-1)",
           "disposition": "tested",
-          "evidence": "unit useTerminalResize.test.ts 'window focus triggers refit + term.refresh + a resize frame' PASSED; E2E 91 scenario 1 PASSED"
+          "evidence": "unit useTerminalResize.test.ts 'a dims-changing resize schedules trailing full-viewport repaints' PASSED; E2E 92 PASSED"
         },
         {
-          "behavior": "document 'visibilitychange' (becoming visible) -> refit + refresh",
+          "behavior": "dedupe no-op resize (unchanged dims) -> NO trailing repaint",
           "disposition": "tested",
-          "evidence": "unit 'document visibilitychange (becoming visible) triggers refit + term.refresh' PASSED; E2E 91 scenario 2 PASSED"
+          "evidence": "unit 'no trailing repaint when the resize is a dedupe no-op' PASSED"
         },
         {
-          "behavior": "'pageshow' (bfcache restore) -> refit + refresh",
+          "behavior": "focus with dims change -> synchronous repaint + trailing repaints",
           "disposition": "tested",
-          "evidence": "unit 'pageshow (bfcache restore) triggers refit + term.refresh' PASSED; E2E 91 scenario 3 PASSED"
+          "evidence": "unit 'focus with a dims change adds trailing repaints on top of the synchronous one' PASSED"
         },
         {
-          "behavior": "'visibilitychange' while document.hidden=true -> no-op",
+          "behavior": "pending trailing repaints cancelled on unmount",
           "disposition": "tested",
-          "evidence": "unit 'visibilitychange while document.hidden=true is a no-op' PASSED"
+          "evidence": "unit 'pending trailing repaints are cancelled on unmount' PASSED"
         },
         {
-          "behavior": "disposed terminal -> focus is a no-op (no fit/refresh on dead term)",
+          "behavior": "trailing timer firing after disposal -> no-op (no refresh on dead term)",
           "disposition": "tested",
-          "evidence": "unit 'focus after disposed=true is a no-op' PASSED"
+          "evidence": "unit 'a trailing repaint that fires after disposal is a no-op' PASSED"
         },
         {
-          "behavior": "focus/visibility/pageshow listeners removed on unmount",
-          "disposition": "tested",
-          "evidence": "unit 'removes the focus/visibility/pageshow listeners on unmount' PASSED"
-        },
-        {
-          "behavior": "unchanged dims -> repaint still fires but WS resize frame is deduped",
-          "disposition": "tested",
-          "evidence": "unit 'focus with unchanged dims still repaints but dedupes the resize frame' PASSED"
-        },
-        {
-          "behavior": "listeners re-attach after a route-navigation remount (Triage/Card/Inbox -> task)",
-          "disposition": "tested",
-          "evidence": "E2E 91 'listeners re-attach after route navigation' PASSED in real Chromium"
-        },
-        {
-          "behavior": "WebGL onContextLoss -> webgl.dispose() (clean DOM-renderer fallback)",
-          "disposition": "tested",
-          "evidence": "unit xtermAddons.test.ts 'registers a WebGL onContextLoss handler that disposes the addon' PASSED"
-        },
-        {
-          "behavior": "the actual visual smear clears on a real GPU after a window/monitor refocus",
+          "behavior": "actual broken-box clearing in Claude's real TUI on a real GPU/monitor reflow",
           "disposition": "untestable",
           "reason_code": "requires-physical-device",
-          "evidence": "WebGL GPU-context-loss + per-monitor DPR switch cannot be reproduced in headless CI; real-device smoke = user"
+          "evidence": "needs Claude's live alt-buffer TUI + GPU + monitor reflow; not reproducible headless; real-device smoke = user"
         }
       ],
       "counts": {
         "untested_testable": 0,
-        "tested": 9,
+        "tested": 5,
         "untestable": 1
       },
       "enumeration_basis": {
-        "acs": 10,
-        "covered_acs": 10,
-        "basis": "one behavior row per code path introduced (3 events x repaint, 4 edge guards, remount re-attach, context-loss) + 1 device-only visual outcome"
+        "acs": 6,
+        "covered_acs": 6,
+        "basis": "one row per code path introduced (3 send paths schedule, dedupe-skip, unmount-cancel, disposed-guard) + 1 device-only visual outcome"
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "BASE_URL=http://localhost:5273 playwright test e2e/flows/91-terminal-repaint-on-refocus.spec.ts --project=chromium (isolated stack: temp USERPROFILE, loopback, no Claude spawn)",
+      "runner": "BASE_URL=http://localhost:5273 playwright test e2e/flows/92-terminal-reflow-repaint.spec.ts --project=chromium (isolated stack: temp USERPROFILE, loopback, no Claude spawn)",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-14-terminal-smear-window-focus/surface_verification.json",
-      "timestamp": "2026-06-14T23:40:00Z",
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-15-terminal-reflow-repaint/surface_verification.json",
+      "timestamp": "2026-06-15T08:25:00Z",
       "justification": ""
     },
     "degraded": []
