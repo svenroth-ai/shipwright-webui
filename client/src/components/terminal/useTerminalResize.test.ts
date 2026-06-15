@@ -16,7 +16,11 @@ import { useRef } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 
-import { safeFit, useTerminalResize } from "./useTerminalResize";
+import {
+  safeFit,
+  useTerminalResize,
+  POST_RESIZE_REPAINT_DELAYS_MS,
+} from "./useTerminalResize";
 
 // --- safeFit ---------------------------------------------------------------
 
@@ -390,5 +394,100 @@ describe("useTerminalResize hook", () => {
     });
     expect(socketSend).toHaveBeenCalledTimes(1);
     expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(2);
+  });
+
+  // --- trailing repaint after a dimension change (alt-buffer reflow fix) ---
+  // Claude's TUI lives in the alt-buffer and redraws ASYNCHRONOUSLY after a
+  // SIGWINCH (the WS `resize` frame). The WebGL renderer's per-cell dirty
+  // detection skips cells whose glyph matches what's already on-screen — but
+  // after a width change the logical→screen mapping shifts, so stale glyphs
+  // (the old input-box border, the floating title cell) survive Claude's
+  // redraw. A trailing full-viewport refresh AFTER the redraw lands clears
+  // them. (Same WebGL partial-dirty class as scroll-repaint.ts.)
+
+  const [TRAIL_1, TRAIL_2] = POST_RESIZE_REPAINT_DELAYS_MS;
+
+  it("a dims-changing resize schedules trailing full-viewport repaints (catches Claude's async redraw)", () => {
+    const { socketSend, term } = setup(false);
+    act(() => {
+      lastROCallback?.();
+    });
+    // RO path sends the resize but does NOT refresh synchronously.
+    expect(socketSend).toHaveBeenCalledTimes(1);
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    // First trailing refresh.
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_1);
+    });
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenLastCalledWith(
+      0,
+      term.rows - 1,
+    );
+    // Second (later) trailing refresh — covers a slower Claude redraw.
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_2 - TRAIL_1);
+    });
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(2);
+  });
+
+  it("no trailing repaint when the resize is a dedupe no-op (unchanged dims)", () => {
+    const { term } = setup(false);
+    act(() => {
+      lastROCallback?.();
+    });
+    // Flush the first send's trailing repaints + clear the throttle window.
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_2 + 50);
+    });
+    (term.refresh as ReturnType<typeof vi.fn>).mockClear();
+    // Second fire, identical dims → dedupe → no send → no trailing schedule.
+    act(() => {
+      lastROCallback?.();
+    });
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_2 + 50);
+    });
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+  });
+
+  it("focus with a dims change adds trailing repaints on top of the synchronous one", () => {
+    const { term } = setup(false);
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    // Synchronous repaint fired immediately.
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_2);
+    });
+    // + two trailing repaints once the async redraw window elapses.
+    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(3);
+  });
+
+  it("pending trailing repaints are cancelled on unmount", () => {
+    const { term, unmount } = setup(false);
+    act(() => {
+      lastROCallback?.();
+    });
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_2 + 100);
+    });
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+  });
+
+  it("a trailing repaint that fires after disposal is a no-op (no refresh on a dead term)", () => {
+    const { term, disposed, rerender } = setup(false);
+    act(() => {
+      lastROCallback?.();
+    });
+    // Flip disposed BEFORE the trailing timers fire.
+    disposed.current = true;
+    rerender(false);
+    act(() => {
+      vi.advanceTimersByTime(TRAIL_2 + 100);
+    });
+    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
   });
 });

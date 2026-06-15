@@ -20,7 +20,7 @@
  *     safe no-op.
  */
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 
@@ -29,6 +29,15 @@ type ResizeSendFn = (msg: { type: "resize"; cols: number; rows: number }) => voi
 
 /** Resize throttle window. ConPTY redraws the line on every SIGWINCH; we don't want to drown it. */
 const RESIZE_THROTTLE_MS = 250;
+
+/**
+ * Trailing full-viewport repaint delays (ms) after a dimension change. Claude's
+ * alt-buffer TUI redraws ASYNC after the SIGWINCH, and the WebGL partial-dirty
+ * detection leaves stale cells (old input-box border, floating title) across
+ * the reflow. Two staggered `term.refresh` passes clear them — fast + slow
+ * redraw. Same partial-dirty class as `scroll-repaint.ts`. (Rationale: ADR.)
+ */
+export const POST_RESIZE_REPAINT_DELAYS_MS = [130, 350] as const;
 
 /**
  * Defence against two xterm hazards (ADR-084):
@@ -129,6 +138,32 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     rows: -1,
   });
 
+  // Trailing repaint timers — see POST_RESIZE_REPAINT_DELAYS_MS.
+  const trailingRepaintTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearTrailingRepaints = useCallback(() => {
+    for (const t of trailingRepaintTimersRef.current) clearTimeout(t);
+    trailingRepaintTimersRef.current = [];
+  }, []);
+  const scheduleTrailingRepaint = useCallback(() => {
+    clearTrailingRepaints();
+    for (const delay of POST_RESIZE_REPAINT_DELAYS_MS) {
+      trailingRepaintTimersRef.current.push(
+        setTimeout(() => {
+          if (disposedRef.current) return;
+          const term = termRef.current;
+          if (!term) return;
+          try {
+            term.refresh(0, term.rows - 1);
+          } catch {
+            /* term mid-dispose */
+          }
+        }, delay),
+      );
+    }
+  }, [clearTrailingRepaints, termRef, disposedRef]);
+  // Cancel any pending trailing repaint on unmount.
+  useEffect(() => clearTrailingRepaints, [clearTrailingRepaints]);
+
   // -------- ResizeObserver effect (one-shot per mount) ----------
   useEffect(() => {
     const container = containerRef.current;
@@ -148,6 +183,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       }
       lastSentRef.current = { cols, rows };
       socketSendRef.current({ type: "resize", cols, rows });
+      scheduleTrailingRepaint();
     };
 
     const ro = new ResizeObserver(() => {
@@ -209,6 +245,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     ) {
       lastActiveResizeRef.current = { cols, rows };
       socketSendRef.current({ type: "resize", cols, rows });
+      scheduleTrailingRepaint();
     }
     // socketSend is latest-ref'd; deps are intentionally narrow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -251,6 +288,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       ) {
         lastSentRef.current = { cols, rows };
         socketSendRef.current({ type: "resize", cols, rows });
+        scheduleTrailingRepaint();
       }
     };
     window.addEventListener("focus", repaint);
