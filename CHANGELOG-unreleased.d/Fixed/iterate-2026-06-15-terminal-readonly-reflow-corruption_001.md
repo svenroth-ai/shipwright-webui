@@ -1,0 +1,1 @@
+Terminal: fixed character-level garbling when a read-only tab replayed a session at a narrower width than the writer (e.g. switching Card→Terminal on a phone). The replayed snapshot now reconstructs at the writer's width before any reflow, so text is no longer interleaved ('Dein vom'→'De invom').
