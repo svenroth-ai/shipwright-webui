@@ -1,0 +1,18 @@
+{
+  "run_id": "iterate-2026-06-15-touch-scroll-wheel-events",
+  "date": "2026-06-15T19:53:09.347895Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/touch-scroll-wheel-events",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-15-touch-scroll-wheel-events",
+  "spec": ".shipwright/planning/adr/133-touch-scroll-wheel-events.md",
+  "summary": "Touch-scroll replicates the mouse wheel (synthetic WheelEvent on term.element) so a finger-pan scrolls Claude TUI instead of cycling input history; supersedes ADR-132 arrow-key routing.",
+  "test_completeness": {
+    "counts": {
+      "untested_testable": 0
+    },
+    "enumeration_basis": "Every routing branch of routeScroll changed by the diff + the on-device outcome.",
+    "status": "complete"
+  }
+}

@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-15-terminal-readonly-reflow-corruption"
+run_id: "iterate-2026-06-15-touch-scroll-wheel-events"
 phase: "iterate"
-reason: "Terminal replay fix; PR pending"
-timestamp: "2026-06-15T12:53:28.933961+00:00"
+reason: "iterate finalization"
+timestamp: "2026-06-15T19:52:28.343348+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-15 12:53:28 UTC
+> Auto-generated 2026-06-15 19:52:28 UTC
 
 ## Session Info
 
-- **Session ID**: 4482d9f6-3ffa-40f8-abe3-0a95c92cfe44
-- **Timestamp**: 2026-06-15 12:53:28 UTC
-- **Reason**: Terminal replay fix; PR pending
+- **Session ID**: 6f3be0ae-3419-4ad9-9efc-e848a86acaae
+- **Timestamp**: 2026-06-15 19:52:28 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
@@ -28,7 +28,7 @@ timestamp: "2026-06-15T12:53:28.933961+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/terminal-readonly-reflow
+- **Branch**: iterate/touch-scroll-wheel-events
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/terminal-readonly-reflow
-- **Last Commit**: 7f5e137 fix(responsive): phone header polish — content-width top-bar dropdown + flat "+ New" drill-down (FR-01.41 follow-up) (#149)
+- **Branch**: iterate/touch-scroll-wheel-events
+- **Last Commit**: 855191e fix(terminal): faithful replay on narrow read-only re-attach — resize to snapshot dims before write (FR-01.28) (#150)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-7884a2bc | work_completed | iterate (Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only.) | 2026-06-15 |
 | evt-6a4edaa8 | work_completed | iterate (Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only.) | 2026-06-15 |
 | evt-442a0736 | work_completed | iterate (Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged.) | 2026-06-15 |
 | evt-f46beb11 | work_completed | iterate (Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146)) | 2026-06-15 |
 | evt-2caa2427 | work_completed | iterate (Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged.) | 2026-06-15 |
-| evt-c97442f3 | work_completed | iterate (Repaint embedded terminal on window focus / visibility regain — fixes WebGL stale-frame smear that previously only a manual resize healed) | 2026-06-14 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 229
-- **Last iterate**: bug — Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. (2026-06-15)
+- **Total work events**: 230
+- **Last iterate**: bug — Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. (2026-06-15)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

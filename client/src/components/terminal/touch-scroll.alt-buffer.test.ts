@@ -1,26 +1,29 @@
 /*
- * touch-scroll.alt-buffer.test.ts — real-xterm.js bench tests guarding the
- * buffer-aware touch-scroll routing.
+ * touch-scroll.alt-buffer.test.ts — buffer-aware touch-scroll routing.
  *
- * History — there are two iterates whose diff this file straddles:
+ * Two cohorts:
  *
- *   iterate-2026-06-07-fix-touch-scroll-alt-buffer (ADR-131, PR #110):
- *     Empirically proved that `term.scrollLines()` is a no-op inside
- *     DECSET-1049 alt-buffer. Three assertions DOCUMENTED the bug and
- *     passed with broken code on purpose.
+ *   1. Real-`@xterm/xterm` bench (no renderer) pinning the buffer-state
+ *      FACTS that justify the routing: DECSET 1049 flips the active buffer
+ *      to "alternate", and `scrollLines` is a no-op there (no scrollback).
+ *      That is *why* the alt-buffer must route somewhere other than
+ *      `scrollLines`.
  *
- *   iterate-2026-06-07-fix-touch-scroll-pty-keystrokes (this iterate):
- *     Implements buffer-aware routing in attachTouchScroll. The third
- *     assertion is INVERTED here (scrollLines MUST NOT be called in alt-
- *     buffer) and a new assertion is added that the buffer-aware send
- *     callback receives the expected arrow-key escape sequences.
- *
- * The first two assertions are unchanged — they describe xterm.js's own
- * buffer-state machine, not our code.
+ *   2. Mock-Terminal-with-element routing tests (ADR-133,
+ *      iterate-2026-06-15-touch-scroll-wheel-events). A finger pan must
+ *      replicate the mouse wheel: dispatch `WheelEvent`s onto `term.element`
+ *      when mouse-tracking is active OR the alt-screen buffer is current;
+ *      fall back to `scrollLines` only in the bare normal buffer. This
+ *      inverts the ADR-131/132 assertions (which expected raw arrow-key
+ *      escapes — the path that made Claude cycle input history instead of
+ *      scrolling). The mock-element pattern mirrors EmbeddedTerminal.test's
+ *      controllable `.enable-mouse-events` element; the byte-level encoding
+ *      is xterm's own job and is verified end-to-end by iPad UAT.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { Terminal as RealTerminal } from "@xterm/xterm";
+import type { Terminal } from "@xterm/xterm";
 import { attachTouchScroll } from "./touch-scroll";
 
 // xterm.js 6.x `term.write(data, cb)` queues the parser; the buffer
@@ -29,7 +32,7 @@ import { attachTouchScroll } from "./touch-scroll";
 const writeAsync = (term: RealTerminal, data: string): Promise<void> =>
   new Promise((resolve) => term.write(data, () => resolve()));
 
-describe("alt-screen buffer — xterm.js buffer state-machine (unchanged across both iterates)", () => {
+describe("alt-screen buffer — xterm.js buffer state-machine (real @xterm/xterm)", () => {
   it("real xterm: DECSET 1049 flips buffer.active.type to 'alternate'", async () => {
     const term = new RealTerminal({ rows: 24, cols: 80, scrollback: 1000 });
     expect(term.buffer.active.type).toBe("normal");
@@ -40,7 +43,7 @@ describe("alt-screen buffer — xterm.js buffer state-machine (unchanged across 
     term.dispose();
   });
 
-  it("real xterm: in the alt-buffer, scrollLines does NOT move viewportY", async () => {
+  it("real xterm: in the alt-buffer, scrollLines does NOT move viewportY (why we route to the wheel instead)", async () => {
     const term = new RealTerminal({ rows: 24, cols: 80, scrollback: 1000 });
     for (let i = 0; i < 50; i++) await writeAsync(term, `line-${i}\r\n`);
     const normalBaseline = term.buffer.active.viewportY;
@@ -59,13 +62,13 @@ describe("alt-screen buffer — xterm.js buffer state-machine (unchanged across 
   });
 });
 
-describe("alt-screen buffer — buffer-aware routing (iterate-2026-06-07-fix-touch-scroll-pty-keystrokes)", () => {
-  // Helper — synthetic touch-event dispatch. Same shape used by the
-  // mock-Terminal cohort in touch-scroll.test.ts.
+describe("buffer-aware routing — wheel replication (ADR-133)", () => {
+  // Synthetic touch-event dispatch. `clientX` is optional so a test can
+  // assert the finger position flows through to the WheelEvent coords.
   function fire(
     target: HTMLElement,
     type: "touchstart" | "touchmove" | "touchend",
-    touches: ReadonlyArray<{ identifier: number; clientY: number }>,
+    touches: ReadonlyArray<{ identifier: number; clientY: number; clientX?: number }>,
   ): void {
     const ev = new Event(type, { bubbles: true, cancelable: true });
     Object.defineProperty(ev, "touches", { value: touches });
@@ -76,114 +79,137 @@ describe("alt-screen buffer — buffer-aware routing (iterate-2026-06-07-fix-tou
 
   function setupContainer(): HTMLElement {
     const c = document.createElement("div");
-    Object.defineProperty(c, "clientHeight", {
-      value: 432,
-      configurable: true,
-    });
+    // 432 / 24 rows = 18 px per line (defaultPixelsPerLine fallback).
+    Object.defineProperty(c, "clientHeight", { value: 432, configurable: true });
     document.body.appendChild(c);
     return c;
   }
 
-  it("alt-buffer: scrollLines is NOT called; sendData receives Cursor-Down escape × line count (downward pan)", async () => {
-    const term = new RealTerminal({ rows: 24, cols: 80 });
-    await writeAsync(term, "\x1b[?1049h");
-    expect(term.buffer.active.type).toBe("alternate");
+  // Mock term exposing a real `element` (so the wheel-dispatch target and the
+  // `.enable-mouse-events` gate are observable), a controllable active buffer
+  // type, and a spied `scrollLines`. Mirrors EmbeddedTerminal.test's pattern.
+  function setupTerm(bufferType: "normal" | "alternate", mouseActive: boolean) {
+    const element = document.createElement("div");
+    if (mouseActive) element.classList.add("enable-mouse-events");
+    document.body.appendChild(element);
+    const wheelEvents: WheelEvent[] = [];
+    element.addEventListener("wheel", (e) => wheelEvents.push(e as WheelEvent));
+    const scrollLines = vi.fn();
+    const term = {
+      rows: 24,
+      element,
+      scrollLines,
+      buffer: { active: { type: bufferType } },
+    } as unknown as Terminal;
+    return { term, element, wheelEvents, scrollLines };
+  }
 
-    const scrollSpy = vi.spyOn(term, "scrollLines");
-    const sendData = vi.fn<(data: string) => void>();
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
 
+  it("alt-buffer: forwards the pixel delta as a wheel event on term.element (NOT scrollLines, NOT arrow keys) — downward pan → deltaY > 0", () => {
+    const { term, wheelEvents, scrollLines } = setupTerm("alternate", false);
     const c = setupContainer();
-    const dispose = attachTouchScroll(term, c, { sendData });
+    const dispose = attachTouchScroll(term, c);
 
-    // Upward finger drag (clientY 200 → 100, delta = 100 px). With 18 px
-    // per line that is 5 lines down (positive sign convention in
-    // consumeTouchDelta). In alt-buffer the routing emits Cursor-Down
-    // (`\x1b[B`) × 5.
+    // Upward finger drag (clientY 200 → 100) ⇒ scroll DOWN. One touchmove ⇒
+    // one pixel-mode wheel carrying the raw +100 px delta (xterm self-tunes).
     fire(c, "touchstart", [{ identifier: 1, clientY: 200 }]);
     fire(c, "touchmove", [{ identifier: 1, clientY: 100 }]);
     fire(c, "touchend", [{ identifier: 1, clientY: 100 }]);
 
-    expect(scrollSpy).not.toHaveBeenCalled();
-    expect(sendData).toHaveBeenCalled();
-    const sent = sendData.mock.calls.map((c) => c[0]).join("");
-    expect(sent).toBe("\x1b[B".repeat(5));
+    expect(scrollLines).not.toHaveBeenCalled();
+    expect(wheelEvents).toHaveLength(1);
+    expect(wheelEvents[0].deltaY).toBe(100);
+    expect(wheelEvents[0].deltaMode).toBe(0); // DOM_DELTA_PIXEL — trackpad parity
 
     dispose();
-    scrollSpy.mockRestore();
-    document.body.removeChild(c);
-    term.dispose();
   });
 
-  it("alt-buffer: upward pan emits Cursor-Up escape × |line count|", async () => {
-    const term = new RealTerminal({ rows: 24, cols: 80 });
-    await writeAsync(term, "\x1b[?1049h");
-
-    const scrollSpy = vi.spyOn(term, "scrollLines");
-    const sendData = vi.fn<(data: string) => void>();
-
+  it("alt-buffer: upward pan forwards a negative-deltaY wheel event", () => {
+    const { term, wheelEvents, scrollLines } = setupTerm("alternate", false);
     const c = setupContainer();
-    const dispose = attachTouchScroll(term, c, { sendData });
+    const dispose = attachTouchScroll(term, c);
 
-    // Downward finger drag (clientY 100 → 200, delta = -100). 5 lines up.
-    // Routing emits Cursor-Up (`\x1b[A`) × 5.
+    // Downward finger drag (clientY 100 → 200) ⇒ scroll UP ⇒ deltaY -100.
     fire(c, "touchstart", [{ identifier: 2, clientY: 100 }]);
     fire(c, "touchmove", [{ identifier: 2, clientY: 200 }]);
     fire(c, "touchend", [{ identifier: 2, clientY: 200 }]);
 
-    expect(scrollSpy).not.toHaveBeenCalled();
-    const sent = sendData.mock.calls.map((c) => c[0]).join("");
-    expect(sent).toBe("\x1b[A".repeat(5));
+    expect(scrollLines).not.toHaveBeenCalled();
+    expect(wheelEvents).toHaveLength(1);
+    expect(wheelEvents[0].deltaY).toBe(-100);
 
     dispose();
-    scrollSpy.mockRestore();
-    document.body.removeChild(c);
-    term.dispose();
   });
 
-  it("normal-buffer: scrollLines IS called; sendData is NOT invoked (preserves pre-iterate behavior)", () => {
-    const term = new RealTerminal({ rows: 24, cols: 80, scrollback: 1000 });
-    expect(term.buffer.active.type).toBe("normal");
-
-    const scrollSpy = vi.spyOn(term, "scrollLines");
-    const sendData = vi.fn<(data: string) => void>();
-
+  it("normal buffer WITH mouse tracking: forwards a wheel (the app, e.g. Claude, consumes the report) — NOT scrollLines", () => {
+    const { term, wheelEvents, scrollLines } = setupTerm("normal", true);
     const c = setupContainer();
-    const dispose = attachTouchScroll(term, c, { sendData });
+    const dispose = attachTouchScroll(term, c);
 
     fire(c, "touchstart", [{ identifier: 3, clientY: 200 }]);
     fire(c, "touchmove", [{ identifier: 3, clientY: 100 }]);
     fire(c, "touchend", [{ identifier: 3, clientY: 100 }]);
 
-    expect(scrollSpy).toHaveBeenCalledWith(5);
-    expect(sendData).not.toHaveBeenCalled();
+    expect(scrollLines).not.toHaveBeenCalled();
+    expect(wheelEvents).toHaveLength(1);
 
     dispose();
-    scrollSpy.mockRestore();
-    document.body.removeChild(c);
-    term.dispose();
   });
 
-  it("absent sendData callback in alt-buffer is a clean no-op (defensive — no throw, no scrollLines fallback)", async () => {
-    const term = new RealTerminal({ rows: 24, cols: 80 });
-    await writeAsync(term, "\x1b[?1049h");
-
-    const scrollSpy = vi.spyOn(term, "scrollLines");
+  it("normal buffer, no mouse tracking: scrollLines IS called, NO wheel dispatched (scrollback path preserved)", () => {
+    const { term, wheelEvents, scrollLines } = setupTerm("normal", false);
     const c = setupContainer();
-    // attachTouchScroll(term, c) — no deps, no sendData. Production code
-    // path covered until EmbeddedTerminal.tsx is wired (defense-in-depth).
     const dispose = attachTouchScroll(term, c);
 
     fire(c, "touchstart", [{ identifier: 4, clientY: 200 }]);
     fire(c, "touchmove", [{ identifier: 4, clientY: 100 }]);
     fire(c, "touchend", [{ identifier: 4, clientY: 100 }]);
 
-    // No throw, no scrollLines fallback (would be a no-op in alt-buffer
-    // anyway; explicit absence is the cleaner contract).
-    expect(scrollSpy).not.toHaveBeenCalled();
+    expect(scrollLines).toHaveBeenCalledWith(5);
+    expect(wheelEvents).toHaveLength(0);
 
     dispose();
-    scrollSpy.mockRestore();
-    document.body.removeChild(c);
-    term.dispose();
+  });
+
+  it("the finger position flows through to the WheelEvent coordinates (xterm reports the cell under the finger)", () => {
+    const { term, wheelEvents } = setupTerm("alternate", true);
+    const c = setupContainer();
+    const dispose = attachTouchScroll(term, c);
+
+    fire(c, "touchstart", [{ identifier: 5, clientX: 321, clientY: 200 }]);
+    fire(c, "touchmove", [{ identifier: 5, clientX: 321, clientY: 182 }]); // 18 px delta
+    fire(c, "touchend", [{ identifier: 5, clientX: 321, clientY: 182 }]);
+
+    expect(wheelEvents).toHaveLength(1);
+    expect(wheelEvents[0].deltaY).toBe(18);
+    expect(wheelEvents[0].clientX).toBe(321);
+    expect(wheelEvents[0].clientY).toBe(182);
+
+    dispose();
+  });
+
+  it("term.element absent (pre-open) is a defensive no-op fallback to scrollLines — never a throw", () => {
+    const scrollLines = vi.fn();
+    const term = {
+      rows: 24,
+      scrollLines,
+      buffer: { active: { type: "alternate" } },
+    } as unknown as Terminal;
+    const c = setupContainer();
+    const dispose = attachTouchScroll(term, c);
+
+    expect(() => {
+      fire(c, "touchstart", [{ identifier: 6, clientY: 200 }]);
+      fire(c, "touchmove", [{ identifier: 6, clientY: 100 }]);
+      fire(c, "touchend", [{ identifier: 6, clientY: 100 }]);
+    }).not.toThrow();
+    // No element to dispatch onto → falls back to scrollLines (a no-op in a
+    // real alt-buffer, but never a crash).
+    expect(scrollLines).toHaveBeenCalledWith(5);
+
+    dispose();
   });
 });
