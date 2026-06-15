@@ -115,6 +115,8 @@ const REQUIRED_TOKENS = [
   // iterate-2026-06-15-mobile-tablet-layout-polish — header/list/projects/sidebar polish (FR-01.41)
   'MobileTopBarSlot',
   'BoardStatusFilter',
+  // iterate-2026-06-15-phone-header-polish — phone "+ New" flat drill-down (FR-01.41 follow-up)
+  'ProjectCreatePhoneMenu',
 ] as const;
 
 let claudeMd = '';

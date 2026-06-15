@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-15T10:05:00Z",
+  "last_updated": "2026-06-15T14:20:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-15-mobile-tablet-layout-polish",
+    "run_id": "iterate-2026-06-15-phone-header-polish",
     "date": "2026-06-15",
     "type": "change",
-    "complexity": "medium",
+    "complexity": "small",
     "unit": {
       "status": "passed",
-      "passed": 1680,
-      "total": 1680
+      "passed": 1690,
+      "total": 1690
     },
     "integration": {
       "status": "not_run",
@@ -22,8 +22,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 37,
-      "total": 37
+      "passed": 18,
+      "total": 18
     },
     "design_fidelity": {
       "status": "skipped",
@@ -35,69 +35,39 @@
     },
     "test_completeness": {
       "status": "complete",
-      "justification": "Frontend layout/CSS change. Every AC has a unit and/or real-browser E2E proof; AC-6 (badge overlay) is unit-covered (E2E would need seeded inbox/triage data). 0 testable-but-untested.",
+      "justification": "Two phone-only UI fixes; each has a unit (state/class) test + a real-browser phone E2E. 0 testable-but-untested.",
       "behaviors": [
         {
-          "behavior": "AC-1 phone: ProjectFilterDropdown portaled into MainLayout top bar via MobileTopBarSlot (useState publish); not rendered in board header",
+          "behavior": "#3 phone top-bar ProjectFilterDropdown fluid = content-width (max-w-[60vw]+min-w-0+truncate), not w-full",
           "disposition": "tested",
-          "evidence": "unit MobileTopBarSlot.test.tsx (portal renders into published slot; null outside provider) PASSED; E2E 90-phone 'dropdown moves into the top bar' PASSED"
+          "evidence": "unit ProjectFilterDropdown.test.tsx (fluid vs default className) PASSED; E2E 90-phone 'top-bar project dropdown is content-width, NOT the full bar' (ddW < bar*0.72 & <= 60vw) PASSED"
         },
         {
-          "behavior": "AC-2 phone: status filter = funnel-icon Radix multi-select menu (StatusFilterMenu); pill row hidden; preventDefault keeps menu open; active dot",
+          "behavior": "#1 phone '+ New' = flat drill-down (project list -> tap project REPLACES popup with its actions; back; action -> NewIssueModal scoped to project); no off-screen overflow",
           "disposition": "tested",
-          "evidence": "unit BoardStatusFilter.test.tsx (open/toggle/stay-open/dot/no-pills) PASSED; E2E 90-phone AC-1/AC-2 PASSED"
-        },
-        {
-          "behavior": "AC-3 phone: header row fits without awkward wrap (no pill row, dropdown moved out)",
-          "disposition": "tested",
-          "evidence": "E2E 90-phone 'no horizontal page overflow at /' @393px PASSED + AC-1/AC-2 menu E2E PASSED"
-        },
-        {
-          "behavior": "AC-4 compact: List launch CTA icon-only (TerminalLaunchButton compact label hidden lg:inline)",
-          "disposition": "tested",
-          "evidence": "unit TaskList.test.tsx 'launch control hides text label below lg' PASSED; E2E 80-tablet 'Title widest column' PASSED"
-        },
-        {
-          "behavior": "AC-5 compact: Projects Path column hidden lg:table-cell -> no bottom horizontal scrollbar",
-          "disposition": "tested",
-          "evidence": "unit ProjectsPage.test.tsx 'Path header+cells carry hidden lg:table-cell' PASSED; E2E 80-tablet 'projects table drops Path -> no in-card scroll' PASSED"
-        },
-        {
-          "behavior": "AC-6 rail: Inbox/Triage count badge overlays the icon when collapsed (not clipped); inline when expanded",
-          "disposition": "tested",
-          "evidence": "unit SidebarNavItem.test.tsx (overlay when collapsed single-instance; inline when expanded) PASSED"
-        },
-        {
-          "behavior": "AC-7 tablet: board lanes flexible (basis-0 grow min-200) fit all three with no right cut-off; <768 carousel; >=1024 fixed 360",
-          "disposition": "tested",
-          "evidence": "E2E 80-tablet 'board fits all three lanes' + 'all three visible WITHOUT scrolling' @820px PASSED; desktop justify-between @1280/1024 non-regression PASSED"
+          "evidence": "unit ProjectCreatePhoneMenu.test.tsx (drill/back/onSelect state machine) PASSED; E2E 90-phone 'drills project -> actions in ONE downward popup, no off-screen overflow' PASSED (modal scoped to project)"
         }
       ],
       "counts": {
         "untested_testable": 0,
-        "tested": 7,
+        "tested": 2,
         "untestable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7,
-        "basis": "one behavior row per acceptance criterion (AC-1..AC-7); jsdom-unverifiable real-layout outcomes (AC-7 lane widths, AC-5 scrollbar) proven by Playwright at 820px/393px"
+        "acs": 2,
+        "covered_acs": 2,
+        "basis": "one behavior row per fix (#3 dropdown width, #1 drill-down); real-CSS overflow/width outcomes proven by Playwright at 393px"
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3947 playwright test e2e/flows/80-tablet-responsive.spec.ts e2e/flows/90-phone-responsive.spec.ts (+49-project-filter,90-all-projects-cascade) — isolated stack: built client served by Hono, temp USERPROFILE, loopback, no Claude spawn",
+      "runner": "BASE_URL=http://127.0.0.1:3948 playwright test e2e/flows/90-phone-responsive.spec.ts e2e/flows/90-all-projects-create-cascade.spec.ts e2e/flows/49-project-filter.spec.ts (isolated stack: built client served by Hono, temp USERPROFILE, loopback, no Claude spawn)",
       "exit_code": 0,
-      "tests_run": 37,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-15-mobile-tablet-layout-polish/surface_verification.json",
-      "timestamp": "2026-06-15T10:05:00Z",
-      "justification": "Tablet (chromium @820px) + phone (mobile-chromium/Pixel5 @393px) projects; 35 responsive + 2 desktop-non-regression specs all green."
+      "tests_run": 18,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-15-phone-header-polish/surface_verification.json",
+      "timestamp": "2026-06-15T14:20:00Z",
+      "justification": "Phone (mobile-chromium/Pixel5 @393px) drill-down + dropdown-width green; desktop cascade + project-filter non-regression green."
     },
-    "degraded": [
-      {
-        "condition": "external_llm_review_unavailable",
-        "detail": "No OPENAI/GEMINI API keys in env; fell back to the internal shipwright-plan:opus-plan-reviewer (degraded-mode). It surfaced 2 HIGH + 4 MED/LOW issues, all addressed before build."
-      }
-    ]
+    "degraded": []
   }
 }

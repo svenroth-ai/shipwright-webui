@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-06-15-phone-header-polish",
+  "date": "2026-06-15T12:14:30.024494Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/phone-header-polish",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/01-adopted/spec.md",
+  "adr": "iterate-2026-06-15-phone-header-polish",
+  "summary": "Phone header polish: content-width top-bar dropdown + flat + New drill-down (FR-01.41 follow-up)",
+  "frs": [
+    "FR-01.41"
+  ]
+}

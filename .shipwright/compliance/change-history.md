@@ -1,6 +1,6 @@
 # Commit Change Log
 
-Generated: 2026-06-15T08:00:55.045232+00:00
+Generated: 2026-06-15T12:14:29.197995+00:00
 Total commits: 566
 
 ## Commit Distribution
@@ -232,7 +232,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) | 662eaec74012 |
+| 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | af0bb62ab392 |
 | 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 732a1a8464c7 |
 | 2026-06-14 | responsive | phone view (<768px) — sidebar drawer, on-screen terminal key bar, table/modal reflow, iOS safe-area (FR-01.39) (#140) | 74175ba33722 |
 | 2026-06-14 | responsive | tablet view (≤1023px) — rail sidebar, board swipe carousel, compact task-detail tabs (FR-01.38) (#139) | d30d8a797d50 |

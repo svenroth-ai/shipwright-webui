@@ -49,9 +49,10 @@ export interface ProjectFilterDropdownProps {
   /** Optional className forwarded to the root button (outer wrapper). */
   className?: string;
   /**
-   * Fluid width — drops the 220px min-width floor for `w-full min-w-0` so the
-   * trigger truncates instead of overflowing when portaled into the narrow
-   * phone top bar (iterate-2026-06-15 AC-1).
+   * Fluid width — drops the 220px min-width floor so the trigger sizes to its
+   * content (capped at 60vw + truncate), narrower than the bar rather than
+   * full-width, when portaled into the phone top bar (iterate-2026-06-15 AC-1,
+   * width refined in phone-header-polish #3).
    */
   fluid?: boolean;
 }
@@ -95,7 +96,9 @@ export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdow
           data-testid="project-filter-dropdown"
           className={
             "inline-flex items-center gap-2 rounded-[var(--radius-button)] " +
-            (fluid ? "w-full min-w-0 " : "min-w-[220px] ") +
+            // fluid (phone top bar): size to content, capped at 60vw + truncate
+            // — narrower than the bar instead of full-width (phone-header-polish #3).
+            (fluid ? "max-w-[60vw] min-w-0 " : "min-w-[220px] ") +
             "border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] " +
             "px-3 py-2 text-[13px] font-medium text-[var(--color-text)] " +
             "transition-colors hover:border-[var(--color-primary)] " +
