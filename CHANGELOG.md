@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.19.0] - 2026-06-15
+
+### Added
+
+- Custom actions in `.shipwright-webui/actions.json` can declare a `slash_command` field so the task description is included in the launched slash-command prompt (`{task.initial_prompt}`). Previously a custom action's description was silently dropped because the Claude CLI accepts only one prompt argument; misconfigured actions now fail loud at load (`missing_slash_command`/`invalid_slash_command`).
+- Campaigns board: manual **Erledigt** (dismiss) / **Wiederherstellen** (restore) on any card — a webui-owned board quittance (per-project, in the registry dir) with a "show dismissed" toggle, so a finished events-only campaign that can't auto-hide can be cleared from the board without a producer status write (FR-01.33).
+- Manage a project's `.shipwright-webui/actions.json` (Upload + Reset) directly from the project edit modal (gear icon), not just the Settings page.
+- Phone responsive view (<768px): the sidebar collapses to an overlay drawer (top-bar hamburger; tap a nav item, the scrim, or Escape to close) so content gets the full width (FR-01.39).
+- Fully-interactive embedded terminal on touch devices: an on-screen key bar (Esc · Tab · Ctrl-C · arrows · Enter · summon-keyboard) drives Claude's interactive prompts on phones/tablets (FR-01.39).
+- Phone polish: list/Projects tables reflow and scroll within their cards, modals fit a 375px viewport with 44px touch targets, and iOS safe-area + soft-keyboard handling (viewport-fit=cover, interactive-widget=resizes-content, dvh) (FR-01.39).
+- Tablet responsive view (768–1023px): the sidebar auto-collapses to its icon rail, the task board (both column and list views) becomes a touch-swipe carousel that fits without horizontal overflow, the campaigns lane wraps/truncates, and the task-detail panes collapse to Files/Session/Viewer tabs with the embedded terminal staying fully interactive. Desktop (≥1024px) is unchanged.
+
+### Changed
+
+- Internal agent docs: de-duplicated the architecture.md/conventions.md Updates lists to one ADR-anchored line per change, corrected System-Overview + sub-router drift, fixed a launchPayload ADR mislabel, and reduced the CLAUDE.md-mirrored rule blocks to a terse index
+- Automated PR review migrated to an OpenRouter-backed Tier-3 reviewer (vendored under `scripts/ci/`, logic byte-identical to the monorepo B4.5 pattern), gated by a tier filter (external contributors, sensitive paths, or the `needs-review` label); maintainer iterate PRs are reviewed locally and skip the CI review.
+- Docs: the README now leads with a non-expert, production single-process install (build once, then `npm start` serves the full dashboard at http://localhost:3847 — no second Vite process) plus a What-you-get overview, an Updating section, and deep-links into the user guide; docs/guide.md §4 now splits install into a recommended production Path A and a develop/contribute Path B.
+- Docs: audited docs/guide.md against the code, the v0.18.0 CHANGELOG/ADRs, and the traceability matrix — corrected the +New menu location (it lives in the Task Board header, not the sidebar) and the Plain Claude sibling-button behavior, fixed §9.3 custom-action drift (cd.prefix cmd uses `cd /d`, the full modal_fields set, the schema_validation_failed upload-vs-read split, and the broader command_substitution_failed scope), and documented two previously-undocumented user-facing features: the Campaigns lane (§6.9) and the SmartViewer file viewer / Markdown editor (§6.10).
+- Align the server and client package.json `version` to 0.18.0 (was a stale 0.1.0) so it matches the released CHANGELOG / git tag. The field is unconsumed metadata — nothing in the code reads it — so there is no runtime behavior change.
+- Tablet (<=1023px): the sidebar can now be collapsed back to the icon rail after expanding (previously, once expanded it could only be re-collapsed by resizing the window), reclaiming width for the task board.
+- Internal: tightened the bloat anti-ratchet baseline for `server/src/terminal/routes.ts` (ceiling 620 → 509 LOC) to match its post-#135 size; the ADR-103 exception remains in place.
+- Phone Task Board: the project picker now lives in the top bar next to the Shipwright name, and the status/phase filter is a funnel-icon menu (multi-select) instead of a pill row — freeing the header row for the view toggle and the New / Plain Code buttons (FR-01.41).
+- Tablet/phone (≤1023px): the task List shows Resume/Launch as an icon (wider Title column) and the Projects table hides the Path column so it no longer shows a bottom horizontal scrollbar (FR-01.41).
+- Phone: the project picker in the top bar is now sized to its content (capped, with truncation) instead of stretching the full bar width (FR-01.41 follow-up).
+
+### Removed
+
+- Removed `claude-review.yml` (reviewed every PR via `@anthropic-ai/claude-code` + `ANTHROPIC_API_KEY`, triggered on a non-existent `develop` branch).
+- The stale 'Launcher preferences' card on the Settings page (it described a copy-command launcher that no longer exists).
+
+### Fixed
+
+- Campaigns-lane card no longer shows a heavy drop shadow — it now renders as a flat, border-only card consistent with the kanban task cards (FR-01.33).
+- Task Board List view no longer clips its right-hand columns (Commit / Updated / Actions); long task titles truncate with an ellipsis instead of overflowing the container (FR-01.01).
+- Compliance: reconciled detective-audit findings G2 (registered 'agent-docs' conventional-commit scope), H1 (recorded MarkdownEditorModal.tsx + triage-write.test.ts in the bloat baseline; removed a dead default export), and H2 (tightened SmartViewer/TaskCard/pty-manager baseline sizes to actual).
+- Compliance: reconcile post-v0.18.0 detective audit — backfill the PR #124 event-log entry (B7) and register the `actions`/`review` commit scopes (G2); F5 was a stale-local-main false positive.
+- Compliance: reconcile post-v0.18.0 detective audit — document the `iterate-2026-06-12-automerge-pr-review-alignment` convention drop under conventions.md '## Convention Updates' so the F5 architecture-drift check passes (B7 and G2 were already resolved by PR #127/#129).
+- Docs: the Windows-autostart guide no longer tells users to run `make dev-client` to see the dashboard — the production server serves the UI itself at :3847; the README Triage section now documents the fourth action (Fix now); and `make lint` (help text + target) is corrected to run oxlint across both server/ and client/ instead of eslint in client/ only.
+- Embedded-terminal Claude sessions write their transcript again, so the Transcripts tab is no longer empty. `buildSpawnEnv` now strips inherited parent/child Claude-session env markers (`CLAUDE_CODE_CHILD_SESSION`, `CLAUDE_CODE_SESSION_ID`, `CLAUDE_CODE_ENTRYPOINT`, `CLAUDECODE`) before spawning the pty, so every launched `claude` runs as a fresh top-level session and writes its `~/.claude/projects/<cwd>/<uuid>.jsonl`. Previously, when the webui server was started from inside a Claude Code session, those markers leaked through unfiltered and Claude Code 2.1.x suppressed the flat transcript for "child" sessions.
+- Docs/traceability: corrected the stale pre-v0.17.0 path `.webui/actions.json` to the current `.shipwright-webui/actions.json` in the live requirements (spec.md FR-01.10/16/21/27 + acceptance criteria); the traceability matrix regenerates clean. Historical ADR/commit records are left as-is (the path was correct when written).
+- Uploading a custom actions.json with a `slash_command` + `{task.initial_prompt}` action via Settings returned a 500 (the upload route's dry-run omitted `slash_command`); it now validates correctly.
+- Compliance: reconciled detective-audit findings D3 (reaffirmed promised FR-01.38/FR-01.39 via event_amended on the tablet/phone responsive iterate events), G2 (registered the 'responsive' conventional-commit scope), and H1 (grandfathered EmbeddedTerminal.tsx 311>300 in the bloat baseline).
+- Production deploy (start-server-production.ps1) now self-heals a corrupt ~/.claude.json a SECOND time after the server restart, not only before it — so the truncation-tail corruption caused by the deploy's own server-kill (racing embedded claude writers on the non-atomic, unlocked file) is repaired in the clean window before the user reconnects. The up-front Step-0 heal is kept for prior-deploy leftovers.
+- Production deploy (start-server-production.ps1) now repairs a truncation-tail-corrupt ~/.claude.json with a timestamped backup before restarting, so an embedded-session write race no longer leaves every running Claude CLI broken after a deploy (best effort; never blocks the deploy).
+- List view: the Title column is now the widest column at narrow widths instead of being squeezed by the State/Updated columns.
+- Tablet/mobile: page content is no longer clipped at the bottom behind the device safe-area (iPad home-indicator / browser bottom bar).
+- Embedded terminal: one-finger touch scrolling now works on touch devices (the drag was previously swallowed by the browser native pan because touch-action was unset).
+- Embedded terminal no longer shows a stale 'smeared' frame after the browser window/tab regains focus, after switching monitors, on bfcache restore, or after navigating back from Triage/a card/the Inbox — a window focus/visibilitychange/pageshow refit+repaint replaces the manual-resize workaround, plus WebGL GPU-context-loss recovery.
+- Tablet landscape (icon-rail): the Inbox/Triage count badges are no longer clipped by the 60px rail (now overlaid on the icon), and the board fits all three lanes side-by-side without a right-edge cut-off (lanes shrink to fit; FR-01.41).
+- Phone: the All-Projects '+ New' menu no longer overflows off the left edge — it's now a flat downward drill-down (tap a project → its actions appear in the same popup) instead of a side-opening submenu that had no room on a phone (FR-01.41 follow-up).
+- Terminal: fixed character-level garbling when a read-only tab replayed a session at a narrower width than the writer (e.g. switching Card→Terminal on a phone). The replayed snapshot now reconstructs at the writer's width before any reflow, so text is no longer interleaved ('Dein vom'→'De invom').
+- Claude's terminal input box no longer renders broken/wrapped (or with a stale floating title cell) after a window or monitor width change — a staggered trailing repaint now fires after the terminal reflows, clearing the WebGL stale cells Claude's async TUI redraw leaves behind (follow-up to the window-refocus smear fix).
+- Embedded terminal: one-finger touch-scroll now scrolls Claude's TUI on touchscreens (iPad) instead of cycling through the last prompts. The finger-pan replicates the mouse/trackpad — a synthetic WheelEvent on the terminal element — so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, superseding the arrow-key routing that Claude interpreted as input-history navigation.
+
 ## [v0.18.0] - 2026-06-11
 
 ### Added

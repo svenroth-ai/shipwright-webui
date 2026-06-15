@@ -1,1 +1,0 @@
-Tablet (<=1023px): the sidebar can now be collapsed back to the icon rail after expanding (previously, once expanded it could only be re-collapsed by resizing the window), reclaiming width for the task board.

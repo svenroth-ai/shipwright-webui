@@ -1,1 +1,0 @@
-Claude's terminal input box no longer renders broken/wrapped (or with a stale floating title cell) after a window or monitor width change — a staggered trailing repaint now fires after the terminal reflows, clearing the WebGL stale cells Claude's async TUI redraw leaves behind (follow-up to the window-refocus smear fix).

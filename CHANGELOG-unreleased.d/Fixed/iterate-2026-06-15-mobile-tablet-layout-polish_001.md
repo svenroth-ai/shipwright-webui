@@ -1,1 +1,0 @@
-Tablet landscape (icon-rail): the Inbox/Triage count badges are no longer clipped by the 60px rail (now overlaid on the icon), and the board fits all three lanes side-by-side without a right-edge cut-off (lanes shrink to fit; FR-01.41).

@@ -1,1 +1,0 @@
-Compliance: reconciled detective-audit findings D3 (reaffirmed promised FR-01.38/FR-01.39 via event_amended on the tablet/phone responsive iterate events), G2 (registered the 'responsive' conventional-commit scope), and H1 (grandfathered EmbeddedTerminal.tsx 311>300 in the bloat baseline).
