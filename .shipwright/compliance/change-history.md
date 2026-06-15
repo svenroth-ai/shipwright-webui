@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-15T12:53:28.933961+00:00
-Total commits: 567
+Generated: 2026-06-15T19:52:28.343348+00:00
+Total commits: 568
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 204
+    "fix" : 205
     "feat" : 143
     "chore" : 112
     "docs" : 55
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 204 commits
+### Fixes (fix) — 205 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-15 | terminal | faithful replay on narrow read-only re-attach — resize to snapshot dims before write (FR-01.28) (#150) | 855191e895ac |
 | 2026-06-15 | responsive | phone header polish — content-width top-bar dropdown + flat "+ New" drill-down (FR-01.41 follow-up) (#149) | 7f5e13758532 |
 | 2026-06-15 | terminal | trailing repaint after reflow so Claude's input box doesn't break (FR-01.28) (#147) | a326305db4fd |
 | 2026-06-14 | terminal | repaint embedded terminal on window focus / visibility regain (FR-01.28) (#146) | 1da0b6ae1207 |
@@ -636,7 +637,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 567 |
+| Total commits | 568 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 567 |
+| Human-authored commits | 568 |
 

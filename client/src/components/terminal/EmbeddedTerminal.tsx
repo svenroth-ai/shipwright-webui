@@ -214,15 +214,14 @@ export const EmbeddedTerminal = forwardRef<
       }),
     );
 
-    // ADR-132: buffer-aware touch-scroll routing. In the alt-screen buffer
-    // (Claude TUI's default render target — CLAUDE.md rule 22 / ADR-095)
-    // pan-delta becomes Cursor-Up/Down keystrokes sent to the pty via the
-    // same socket.send({type:"data"}) path that term.onData uses below;
-    // the TUI scrolls itself. In the normal buffer the existing
-    // term.scrollLines() path is preserved.
-    const disposeTouchScroll = attachTouchScroll(handle.term, container, {
-      sendData: (payload) => socket.send({ type: "data", payload }),
-    });
+    // ADR-133: touch-scroll replicates the mouse wheel. A finger pan
+    // dispatches synthetic WheelEvents onto term.element; xterm encodes the
+    // mouse-report (Claude TUI's alt-screen, mouse-tracking on — CLAUDE.md
+    // rule 22 / ADR-095) or converts to arrow keys (no-mouse alt-screen
+    // TUIs) exactly as a real mouse wheel does, while the normal-buffer
+    // scrollback keeps term.scrollLines(). Supersedes the ADR-131/132
+    // arrow-key path, which Claude bound to input-history navigation.
+    const disposeTouchScroll = attachTouchScroll(handle.term, container);
     // Full-viewport WebGL repaint on scroll — fixes the table-scroll smear.
     const disposeScrollRepaint = attachScrollRepaint(handle.term, container, () => disposedRef.current);
     const disposeSelection = attachTerminalSelection({

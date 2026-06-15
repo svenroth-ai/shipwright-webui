@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-15T12:53:28.933961+00:00
+Generated: 2026-06-15T19:52:28.343348+00:00
 
 ## Requirements Coverage
 
@@ -43,7 +43,7 @@ Generated: 2026-06-15T12:53:28.933961+00:00
 | [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced, evt-c59f2257 | — | — | NO TESTS |
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137) | A custom action in `<project>/.shipwright-webui/actions.json... | Should | evt-06308665, evt-72678829 | — | — | NO TESTS |
-| [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3, evt-7619adfd, evt-2caa2427 | 1652/1652 | 2026-06-14 (iter) | COVERED |
+| [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3, evt-7619adfd, evt-2caa2427, evt-7884a2bc | 1652/1652 | 2026-06-14 (iter) | COVERED |
 | [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | evt-58483137, evt-2caa2427 | — | — | NO TESTS |
 | [FR-01.40](../../.shipwright/planning/01-adopted/spec.md#fr-0140) | The per-project actions.json management surface (Upload .jso... | Should | evt-72678829 | — | — | NO TESTS |
 | [FR-01.41](../../.shipwright/planning/01-adopted/spec.md#fr-0141) | Density/clipping polish on the two narrow layouts **without ... | Should | evt-442a0736 | — | — | NO TESTS |
@@ -281,6 +281,7 @@ Generated: 2026-06-15T12:53:28.933961+00:00
 | Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146) | iterate | bug | FR-01.28 | 1672/1672 | — | 2026-06-15 |
 | Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. | iterate | change | FR-01.41 | — | — | 2026-06-15 |
 | Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. | iterate | bug | FR-01.28 | — | — | 2026-06-15 |
+| Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. | iterate | bug | FR-01.38 | — | — | 2026-06-15 |
 
 ## Coverage Summary
 
@@ -288,7 +289,7 @@ Generated: 2026-06-15T12:53:28.933961+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 159 |
+| Iterate changes | 160 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |
@@ -315,15 +316,16 @@ Generated: 2026-06-15T12:53:28.933961+00:00
 ### FRs with stale verification (> 14 days)
 
 - [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 45d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 36d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 32d ago by `evt-33b2e81f` (2026-05-14)
 - [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-0f78d991` (2026-05-15)
 - [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-50e36386` (2026-05-14)
+- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-7c294eb7` (2026-05-18)
-- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-40acd669` (2026-05-18)
 - [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-223eadce` (2026-05-18)
 - [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-fb2b90ee` (2026-05-18)
 - [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-3d1274f6` (2026-05-19)
 - [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-a2176c74` (2026-05-18)
+- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-83b9b73f` (2026-05-31)
 
