@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-15T12:14:29.197995+00:00
+Generated: 2026-06-15T12:53:28.933961+00:00
 
 ## Requirements Coverage
 
@@ -33,7 +33,7 @@ Generated: 2026-06-15T12:14:29.197995+00:00
 | [FR-01.25](../../.shipwright/planning/01-adopted/spec.md#fr-0125) | GET returns the project row. PATCH updates name / profile / ... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.26](../../.shipwright/planning/01-adopted/spec.md#fr-0126) | GET returns the current settings JSON. PUT replaces it (lock... | Must | — | — | — | NOT VERIFIED |
 | [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +27 | 632/632 → 1672/1672 | 2026-06-15 (iter) | COVERED |
+| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +28 | 632/632 → 1672/1672 | 2026-06-15 (iter) | COVERED |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
 | [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +7 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
@@ -280,6 +280,7 @@ Generated: 2026-06-15T12:14:29.197995+00:00
 | Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged. | iterate | change | FR-01.38, FR-01.39 | — | 662eaec | 2026-06-15 |
 | Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146) | iterate | bug | FR-01.28 | 1672/1672 | — | 2026-06-15 |
 | Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. | iterate | change | FR-01.41 | — | — | 2026-06-15 |
+| Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. | iterate | bug | FR-01.28 | — | — | 2026-06-15 |
 
 ## Coverage Summary
 
@@ -287,7 +288,7 @@ Generated: 2026-06-15T12:14:29.197995+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 158 |
+| Iterate changes | 159 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |

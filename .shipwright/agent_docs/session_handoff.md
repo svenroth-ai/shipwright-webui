@@ -1,35 +1,34 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-15-phone-header-polish"
+run_id: "iterate-2026-06-15-terminal-readonly-reflow-corruption"
 phase: "iterate"
-reason: "Phone header polish complete; PR pending"
-timestamp: "2026-06-15T12:14:29.197995+00:00"
+reason: "Terminal replay fix; PR pending"
+timestamp: "2026-06-15T12:53:28.933961+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-15 12:14:29 UTC
+> Auto-generated 2026-06-15 12:53:28 UTC
 
 ## Session Info
 
 - **Session ID**: 4482d9f6-3ffa-40f8-abe3-0a95c92cfe44
-- **Timestamp**: 2026-06-15 12:14:29 UTC
-- **Reason**: Phone header polish complete; PR pending
+- **Timestamp**: 2026-06-15 12:53:28 UTC
+- **Reason**: Terminal replay fix; PR pending
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-15-mobile-tablet-layout-polish
-- **Date**: 2026-06-15T08:01:25.388775Z
-- **Type**: change
-- **Complexity**: medium
-- **Branch**: iterate/mobile-tablet-layout-polish
-- **ADR**: iterate-2026-06-15-mobile-tablet-layout-polish
+- **Run ID**: iterate-2026-06-15-terminal-readonly-reflow-corruption
+- **Date**: 2026-06-15T12:52:38.775014Z
+- **Type**: bug
+- **Complexity**: small
+- **Branch**: iterate/terminal-readonly-reflow
+- **ADR**: iterate-2026-06-15-terminal-readonly-reflow-corruption
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-06-15-mobile-tablet-layout-polish.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/phone-header-polish
+- **Branch**: iterate/terminal-readonly-reflow
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -48,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/phone-header-polish
-- **Last Commit**: af0bb62 feat(responsive): mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148)
+- **Branch**: iterate/terminal-readonly-reflow
+- **Last Commit**: 7f5e137 fix(responsive): phone header polish — content-width top-bar dropdown + flat "+ New" drill-down (FR-01.41 follow-up) (#149)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-6a4edaa8 | work_completed | iterate (Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only.) | 2026-06-15 |
 | evt-442a0736 | work_completed | iterate (Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged.) | 2026-06-15 |
 | evt-f46beb11 | work_completed | iterate (Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146)) | 2026-06-15 |
 | evt-2caa2427 | work_completed | iterate (Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged.) | 2026-06-15 |
 | evt-c97442f3 | work_completed | iterate (Repaint embedded terminal on window focus / visibility regain — fixes WebGL stale-frame smear that previously only a manual resize healed) | 2026-06-14 |
-| evt-7619adfd | work_completed | iterate (Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none) | 2026-06-14 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 228
-- **Last iterate**: change — Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. (2026-06-15)
+- **Total work events**: 229
+- **Last iterate**: bug — Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. (2026-06-15)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

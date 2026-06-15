@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-15T14:20:00Z",
+  "last_updated": "2026-06-15T15:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-15-phone-header-polish",
+    "run_id": "iterate-2026-06-15-terminal-readonly-reflow-corruption",
     "date": "2026-06-15",
-    "type": "change",
+    "type": "bug",
     "complexity": "small",
     "unit": {
       "status": "passed",
-      "passed": 1690,
-      "total": 1690
+      "passed": 1694,
+      "total": 1694
     },
     "integration": {
       "status": "not_run",
@@ -22,8 +22,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 18,
-      "total": 18
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -35,17 +35,17 @@
     },
     "test_completeness": {
       "status": "complete",
-      "justification": "Two phone-only UI fixes; each has a unit (state/class) test + a real-browser phone E2E. 0 testable-but-untested.",
+      "justification": "One client-side bug fix in the replay gate; unit-tested at the exact call site + a real-browser width-mismatch repro proves the user-facing outcome.",
       "behaviors": [
         {
-          "behavior": "#3 phone top-bar ProjectFilterDropdown fluid = content-width (max-w-[60vw]+min-w-0+truncate), not w-full",
+          "behavior": "onReplaySnapshot resizes the terminal to the snapshot's cols/rows BEFORE term.write when they differ (and only then), so the wide snapshot reconstructs faithfully in a narrow reader",
           "disposition": "tested",
-          "evidence": "unit ProjectFilterDropdown.test.tsx (fluid vs default className) PASSED; E2E 90-phone 'top-bar project dropdown is content-width, NOT the full bar' (ddW < bar*0.72 & <= 60vw) PASSED"
+          "evidence": "unit useReplayDrainGate.test.tsx: resize(120,30) called BEFORE write; no resize when dims already match; ignores 0-dims (3 tests PASSED). RED-without-fix by construction (asserts resize was called)."
         },
         {
-          "behavior": "#1 phone '+ New' = flat drill-down (project list -> tap project REPLACES popup with its actions; back; action -> NewIssueModal scoped to project); no off-screen overflow",
+          "behavior": "end-to-end: a wide snapshot replayed into a narrow terminal keeps characters in order (no interleaving)",
           "disposition": "tested",
-          "evidence": "unit ProjectCreatePhoneMenu.test.tsx (drill/back/onSelect state machine) PASSED; E2E 90-phone 'drills project -> actions in ONE downward popup, no off-screen overflow' PASSED (modal scoped to project)"
+          "evidence": "E2E 93-replay-width-mismatch (real Chromium: wide echo SEQ token → navigate away → narrow viewport → navigate back → token contiguous after whitespace-strip) PASSED; 92-terminal-reflow-repaint no-regression PASSED"
         }
       ],
       "counts": {
@@ -56,18 +56,23 @@
       "enumeration_basis": {
         "acs": 2,
         "covered_acs": 2,
-        "basis": "one behavior row per fix (#3 dropdown width, #1 drill-down); real-CSS overflow/width outcomes proven by Playwright at 393px"
+        "basis": "one row per behavior: the gate's resize-before-write (unit) + the end-to-end no-interleave outcome (real-browser repro)"
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3948 playwright test e2e/flows/90-phone-responsive.spec.ts e2e/flows/90-all-projects-create-cascade.spec.ts e2e/flows/49-project-filter.spec.ts (isolated stack: built client served by Hono, temp USERPROFILE, loopback, no Claude spawn)",
+      "runner": "BASE_URL=http://127.0.0.1:3949 playwright test e2e/flows/93-replay-width-mismatch.spec.ts (+92 reflow regression) — isolated stack; v0-9-6/77 not run here (hardcoded dev-project id absent in temp home; they run in CI)",
       "exit_code": 0,
-      "tests_run": 18,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-15-phone-header-polish/surface_verification.json",
-      "timestamp": "2026-06-15T14:20:00Z",
-      "justification": "Phone (mobile-chromium/Pixel5 @393px) drill-down + dropdown-width green; desktop cascade + project-filter non-regression green."
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-15-terminal-readonly-reflow-corruption/surface_verification.json",
+      "timestamp": "2026-06-15T15:00:00Z",
+      "justification": "Real-browser width-mismatch repro (wide→narrow re-attach) shows the token's chars stay in order; reflow-repaint regression green."
     },
-    "degraded": []
+    "degraded": [
+      {
+        "condition": "e2e_hardcoded_project_specs_skipped",
+        "detail": "v0-9-6-live-pty-replay + 77-scrollback-replay-tui-fidelity hardcode SHIPWRIGHT_WEBUI_PROJECT_ID (eab3bd8d…) which is absent in the isolated temp-home → they fail at task/board CREATE (before any replay code). Substituted self-contained spec 93 + 92; the hardcoded guards run in CI where the project exists."
+      }
+    ]
   }
 }

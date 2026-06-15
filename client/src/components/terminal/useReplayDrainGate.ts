@@ -183,6 +183,26 @@ export function useReplayDrainGate(
         } catch {
           /* xterm mid-dispose; ignore */
         }
+        // Root cause (iterate-2026-06-15-terminal-readonly-reflow): the
+        // cell-state snapshot is serialized at the WRITER's width (the live
+        // mirror's cols — ADR-087/088). A read-only reader whose terminal was
+        // fit to a NARROWER viewport (e.g. a phone) was writing that wider
+        // snapshot into the narrow terminal, so @xterm/addon-serialize's
+        // absolute cursor moves (CHA/CUP) clamped/wrapped at the wrong column
+        // → character-level interleaving ("Dein vom" → "De invom"). Size the
+        // terminal to the snapshot's own dims BEFORE the write so it
+        // reconstructs faithfully; the reader's own resize is writer-gated
+        // server-side, so this never shrinks the writer's pty.
+        if (
+          (info.cols > 0 && info.cols !== term.cols) ||
+          (info.rows > 0 && info.rows !== term.rows)
+        ) {
+          try {
+            term.resize(info.cols, info.rows);
+          } catch {
+            /* invalid dims / mid-dispose — proceed with the write anyway */
+          }
+        }
         term.write(info.data, () => {
           settleReplayGate(generation, term);
         });
