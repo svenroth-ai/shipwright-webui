@@ -46,14 +46,18 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
     await expect(page.getByRole("button", { name: /expand sidebar/i })).toBeVisible();
   });
 
-  test("board columns are a flush, internally-scrollable swipe carousel", async ({ page }) => {
+  test("board fits all three lanes at tablet width — no right cut-off (AC-7)", async ({ page }) => {
+    // iterate-2026-06-15 AC-7: the 768–1023px band switched from a 360px-fixed
+    // swipe carousel to flexible lanes (basis-0 grow, min-200) so all three
+    // lanes are visible at once. justify stays flex-start (lanes grow to fill;
+    // justify-between is desktop-only).
     await page.goto("/");
     const cols = page.getByTestId("task-board-columns");
     await expect(cols).toBeVisible();
     expect(await cols.evaluate((el) => getComputedStyle(el).justifyContent)).toBe("flex-start");
-    // 3 × 360px columns overflow the bounded container → internal swipe scroll…
-    expect(await cols.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeGreaterThan(0);
-    // …without pushing the page wide.
+    // Lanes now fit — the container does NOT overflow horizontally (≤1px round).
+    expect(await cols.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    // …and the page stays un-widened.
     expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
   });
 
@@ -142,16 +146,34 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
     expect((await aside.boundingBox())!.width).toBeLessThan(expanded);
   });
 
-  test("board carousel reveals the last (Done) column FULLY at tablet width (AC-2)", async ({ page }) => {
-    // AC-2: the board is a swipe carousel at tablet width. External review (HIGH)
-    // correctly noted `toBeInViewport()` alone only proves partial intersection;
-    // `ratio: 1` proves the Done column is revealed in FULL — i.e. not
-    // hard-clipped — after scrolling to the end. If this ever fails the board
-    // needs a trailing scroll-padding fix; today it passes, so no prod change.
+  test("all three lanes are visible WITHOUT scrolling at tablet width (AC-7)", async ({ page }) => {
+    // iterate-2026-06-15 AC-7 (supersedes the carousel-reveal test): with the
+    // flexible-lane layout the Done column is fully in view with no scroll —
+    // `ratio: 1` proves each lane is revealed in full, not hard-clipped.
     await page.goto("/");
-    const cols = page.getByTestId("task-board-columns");
-    await cols.evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
+    await expect(page.getByTestId("column-draft")).toBeInViewport({ ratio: 1 });
+    await expect(page.getByTestId("column-in-progress")).toBeInViewport({ ratio: 1 });
     await expect(page.getByTestId("column-done")).toBeInViewport({ ratio: 1 });
+  });
+
+  test("projects table drops the Path column at tablet → no in-card horizontal scroll (AC-5)", async ({ page, request }) => {
+    // Seed a task so a (synthesized) project row exists for the table to render.
+    const cwd = await makeTaskCwd();
+    const taskId = await createTask(request, cwd, "tablet-projects-ac5");
+    try {
+      await page.goto("/projects");
+      await expect(page.getByTestId("projects-table")).toBeVisible();
+      // The Path header is display:none below lg (hidden lg:table-cell).
+      await expect(page.getByRole("columnheader", { name: "Path" })).toBeHidden();
+      // The scroll wrapper around the table no longer overflows horizontally.
+      const wrapper = page
+        .getByTestId("projects-table")
+        .locator("xpath=ancestor::*[contains(@style,'overflow')][1]");
+      expect(await wrapper.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+    } finally {
+      await cleanupTask(request, taskId);
+      await cleanupCwd(cwd);
+    }
   });
 
   test("list view: Title is the widest column at tablet width (AC-4)", async ({ page }) => {

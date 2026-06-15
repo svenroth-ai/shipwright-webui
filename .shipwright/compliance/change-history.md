@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-06-15T06:21:10.776566+00:00
-Total commits: 564
+Generated: 2026-06-15T08:00:55.045232+00:00
+Total commits: 566
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 202
-    "feat" : 142
+    "fix" : 203
+    "feat" : 143
     "chore" : 112
     "docs" : 55
     "refactor" : 25
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 202 commits
+### Fixes (fix) — 203 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-15 | terminal | trailing repaint after reflow so Claude's input box doesn't break (FR-01.28) (#147) | a326305db4fd |
 | 2026-06-14 | terminal | repaint embedded terminal on window focus / visibility regain (FR-01.28) (#146) | 1da0b6ae1207 |
 | 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) (#145) | 085d6057e774 |
 | 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | 64f97e96f250 |
@@ -227,10 +228,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 142 commits
+### Features (feat) — 143 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) | 662eaec74012 |
 | 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 732a1a8464c7 |
 | 2026-06-14 | responsive | phone view (<768px) — sidebar drawer, on-screen terminal key bar, table/modal reflow, iOS safe-area (FR-01.39) (#140) | 74175ba33722 |
 | 2026-06-14 | responsive | tablet view (≤1023px) — rail sidebar, board swipe carousel, compact task-detail tabs (FR-01.38) (#139) | d30d8a797d50 |
@@ -633,7 +635,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 564 |
+| Total commits | 566 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 564 |
+| Human-authored commits | 566 |
 

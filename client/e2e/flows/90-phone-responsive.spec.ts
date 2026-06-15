@@ -80,6 +80,25 @@ test.describe("Phone responsive (<768px, touch)", () => {
     await expect(page.getByTestId("mobile-nav-drawer")).toHaveCount(0);
   });
 
+  test("project dropdown moves into the top bar; status filter is an icon menu, no pills (AC-1/AC-2)", async ({ page }) => {
+    await page.goto("/");
+    // AC-1: the single project dropdown lives in the top bar, NOT the board header.
+    const topbar = page.getByTestId("mobile-topbar");
+    await expect(topbar.getByTestId("project-filter-dropdown")).toBeVisible();
+    await expect(page.getByTestId("task-board-header").getByTestId("project-filter-dropdown")).toHaveCount(0);
+    // AC-2: the pill row is gone; the filter is a funnel icon in the header.
+    await expect(page.getByTestId("board-filter-status")).toHaveCount(0);
+    const trigger = page.getByTestId("board-filter-menu-trigger");
+    await expect(trigger).toBeVisible();
+    // Opening it shows the menu; picking a status keeps it open (multi-select).
+    await trigger.click();
+    await expect(page.getByTestId("board-filter-menu")).toBeVisible();
+    await page.getByTestId("board-filter-menu-item-active").click();
+    await expect(page.getByTestId("board-filter-menu")).toBeVisible();
+    // The active-filter dot now marks the (closed or open) trigger.
+    await expect(page.getByTestId("board-filter-menu-dot")).toBeVisible();
+  });
+
   test("list view hides the Phase column at phone width; no page overflow (AC-5)", async ({ page }) => {
     await page.goto("/");
     await page.getByTestId("view-toggle-list").click();

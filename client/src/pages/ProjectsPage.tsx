@@ -212,7 +212,7 @@ export default function ProjectsPage() {
                   >
                     <th style={thStyle('48px')} aria-label="Color" />
                     <th style={thStyle('auto', 'left')}>Name</th>
-                    <th style={thStyle('auto', 'left')}>Path</th>
+                    <th className="hidden lg:table-cell" style={thStyle('auto', 'left')}>Path</th>
                     <th style={thStyle('80px', 'right')}>Tasks</th>
                     <th style={thStyle('120px', 'right')}>Actions</th>
                   </tr>
@@ -287,8 +287,8 @@ export default function ProjectsPage() {
                           )}
                         </td>
 
-                        {/* Path */}
-                        <td
+                        {/* Path — hidden ≤1023px, no scrollbar (AC-5) */}
+                        <td className="hidden lg:table-cell"
                           data-testid={`projects-cell-${project.id}-path`}
                           style={{
                             ...tdStyle(),

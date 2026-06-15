@@ -55,8 +55,8 @@ interface Props {
   resume?: boolean;
   /**
    * Compact-variant affordance (iterate 3.7c-1): show a short text label next
-   * to the icon so the control is self-describing on a kanban card. Ignored
-   * for `primary` (always labeled) and `inline` (link style).
+   * to the icon (hidden below lg → icon-only on the ≤1023px compact band, AC-4
+   * iterate-2026-06-15). Ignored for `primary` (always labeled) / `inline`.
    */
   showLabel?: boolean;
   /**
@@ -187,7 +187,7 @@ export function TerminalLaunchButton({
       >
         <TerminalIcon size={12} />
         {showLabel && (
-          <span className="leading-none">{copied ? "Copied" : label}</span>
+          <span className="leading-none hidden lg:inline">{copied ? "Copied" : label}</span>
         )}
       </button>
     );

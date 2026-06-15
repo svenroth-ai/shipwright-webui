@@ -48,9 +48,15 @@ import type { Project } from "../../types";
 export interface ProjectFilterDropdownProps {
   /** Optional className forwarded to the root button (outer wrapper). */
   className?: string;
+  /**
+   * Fluid width — drops the 220px min-width floor for `w-full min-w-0` so the
+   * trigger truncates instead of overflowing when portaled into the narrow
+   * phone top bar (iterate-2026-06-15 AC-1).
+   */
+  fluid?: boolean;
 }
 
-export function ProjectFilterDropdown({ className }: ProjectFilterDropdownProps) {
+export function ProjectFilterDropdown({ className, fluid }: ProjectFilterDropdownProps) {
   const navigate = useNavigate();
   const { data: projects = [] } = useProjects();
   const { data: tasks = [] } = useExternalTasks();
@@ -88,7 +94,8 @@ export function ProjectFilterDropdown({ className }: ProjectFilterDropdownProps)
           type="button"
           data-testid="project-filter-dropdown"
           className={
-            "inline-flex min-w-[220px] items-center gap-2 rounded-[var(--radius-button)] " +
+            "inline-flex items-center gap-2 rounded-[var(--radius-button)] " +
+            (fluid ? "w-full min-w-0 " : "min-w-[220px] ") +
             "border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] " +
             "px-3 py-2 text-[13px] font-medium text-[var(--color-text)] " +
             "transition-colors hover:border-[var(--color-primary)] " +
