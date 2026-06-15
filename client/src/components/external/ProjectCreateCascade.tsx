@@ -27,14 +27,16 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, ChevronRight, Loader2, Plus, Terminal } from "lucide-react";
 
 import { useProjectActions } from "../../hooks/useProjectActions";
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import { getProjectColor } from "../../lib/projectColor";
+import { ProjectCreatePhoneMenu } from "./ProjectCreatePhoneMenu";
 import type { ActionDefinition } from "../../lib/externalApi";
 import type { Project } from "../../types";
 
-const SURFACE_CLS =
+export const SURFACE_CLS =
   "z-50 rounded-[var(--radius-button)] border border-[var(--color-border)] " +
   "bg-[var(--color-surface)] p-1 shadow-[var(--shadow-card)]";
-const ROW_CLS =
+export const ROW_CLS =
   "flex cursor-pointer items-center gap-2 rounded-[6px] px-2.5 py-2 text-[13px] " +
   "text-[var(--color-text)] outline-none focus:bg-[var(--color-muted-bg)] " +
   "hover:bg-[var(--color-muted-bg)]";
@@ -94,7 +96,7 @@ export function ProjectActionsLoader({
   return <>{children(actions)}</>;
 }
 
-function ProjectDot({ project }: { project: Project }) {
+export function ProjectDot({ project }: { project: Project }) {
   if (project.synthesized) {
     return (
       <span
@@ -119,12 +121,25 @@ export interface ProjectCascadeProps {
   isLoading?: boolean;
 }
 
-/** `+ New ▾` two-level cascade for All-Projects mode. */
+/** `+ New ▾` two-level cascade for All-Projects mode. On phones (≤767px) the
+ *  side-opening submenu has no room and overflowed off-screen, so a flat
+ *  downward drill-down replaces it (iterate-2026-06-15 phone-header-polish #1).
+ *  Tablet/desktop keep the nested cascade below. */
 export function ProjectCreateMenu({
   projects,
   onSelect,
   isLoading = false,
 }: ProjectCascadeProps) {
+  const isPhone = useIsPhoneViewport();
+  if (isPhone) {
+    return (
+      <ProjectCreatePhoneMenu
+        projects={projects}
+        onSelect={onSelect}
+        isLoading={isLoading}
+      />
+    );
+  }
   const disabled = isLoading || projects.length === 0;
   return (
     <div
