@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-15 12:53 UTC | Session: 4482d9f6-3ffa-40f8-abe3-0a95c92cfe44 | Run: iterate-2026-06-15-terminal-readonly-reflow-corruption
+> Updated: 2026-06-15 19:52 UTC | Session: 6f3be0ae-3419-4ad9-9efc-e848a86acaae | Run: iterate-2026-06-15-touch-scroll-wheel-events
 
-## Recent Changes (159 iterations)
+## Recent Changes (160 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. | 0/0 |  | FR-01.38 | 2026-06-15 |
 | bug | Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. | 0/0 |  | FR-01.28 | 2026-06-15 |
 | change | Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. | 0/0 |  | FR-01.41 | 2026-06-15 |
 | bug | Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146) | 1672/1672 |  | FR-01.28 | 2026-06-15 |
@@ -166,7 +167,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-15 | Unit: 1694/1694 | E2E: 2/2 | Smoke: not_run | (iterate)
+Last run: 2026-06-15 | Unit: 1696/1696 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

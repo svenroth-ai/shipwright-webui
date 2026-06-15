@@ -9,33 +9,48 @@
  * scrolling works while a finger drag on a touchscreen does nothing.
  *
  * This module fills that gap by translating a one-finger touchmove delta
- * into one of two destinations, switched by the active xterm buffer:
+ * into the SAME wheel events the mouse / trackpad already emits — so the
+ * finger behaves exactly like the mouse wheel that already works. The
+ * routing (ADR-133, iterate-2026-06-15-touch-scroll-wheel-events) is:
  *
- *   - normal buffer  → `term.scrollLines(lines)` (xterm's viewport API
- *     advances within the scrollback)
- *   - alt buffer     → arrow-key escape sequences sent to the pty via the
- *     `deps.sendData` callback (Cursor-Up `\x1b[A` × |lines| for upward
- *     pans, Cursor-Down `\x1b[B` × lines for downward pans). The TUI
- *     consuming the pty (Claude Code, vim, less, htop) scrolls itself.
+ *   - mouse-tracking active (`.enable-mouse-events` on `term.element`) OR
+ *     alt-screen buffer  → dispatch a synthetic `WheelEvent` onto
+ *     `term.element`. xterm's own wheel handlers (CoreBrowserTerminal
+ *     `bindMouse`) then do exactly what they do for a real mouse wheel:
+ *       · mouse-tracking on  → encode a mouse-report (button 64/65) in the
+ *         protocol/encoding the app negotiated, byte-identical to the
+ *         working mouse wheel. Claude Code's TUI consumes this to scroll.
+ *       · mouse-tracking off (vim / less / htop in alt-screen) → xterm
+ *         converts the wheel into Cursor-Up/Down keystrokes itself
+ *         (honouring application-cursor-keys mode: `\x1bOA` vs `\x1b[A`).
+ *   - normal buffer, no mouse tracking  → `term.scrollLines(lines)`
+ *     (xterm's viewport API advances within the scrollback). The scrollback
+ *     scroller lives on a *descendant* of `term.element`, so a wheel
+ *     dispatched at the root would not reach it — `scrollLines` is the
+ *     correct, proven primitive here and is left untouched.
  *
- * The buffer-aware split is iterate-2026-06-07-fix-touch-scroll-pty-
- * keystrokes (ADR-132). It closes the regression empirically reproduced by
- * iterate-2026-06-07-fix-touch-scroll-alt-buffer (ADR-131, PR #110):
- * `term.scrollLines()` is a no-op in the alt-screen buffer (DECSET 1049)
- * because the alt-buffer has no scrollback, and Claude Code's TUI runs in
- * alt-screen by default (CLAUDE.md rule 22 / ADR-095, `CLAUDE_CODE_NO_
- * FLICKER=1` default-ON).
+ * Why this supersedes ADR-131/132: those routed alt-buffer pans to raw
+ * arrow-key escapes on the theory that alt-screen TUIs scroll on arrows
+ * (true for vim/less). But Claude Code runs in alt-screen WITH mouse
+ * tracking enabled and binds Up/Down to input-history navigation, so the
+ * arrows cycled through the last prompts instead of scrolling (user report
+ * 2026-06-15). Replicating the mouse wheel — the thing that already works —
+ * fixes it by construction and deletes the brittle arrow/SGR guessing.
  *
  * Two-finger gestures (pinch zoom, etc.) are deliberately left alone so
  * the browser keeps its natives.
  *
  * The pixel→line accumulator (`consumeTouchDelta`) is pure and unit-tested
- * in isolation; `attachTouchScroll` is integration-tested with both the
- * mock-Terminal cohort (`touch-scroll.test.ts`) and a real-`@xterm/xterm`
- * jsdom bench (`touch-scroll.alt-buffer.test.ts`).
+ * in isolation; `attachTouchScroll`'s routing is integration-tested with
+ * the mock-Terminal cohort (`touch-scroll.test.ts`). The xterm buffer-state
+ * facts that justify routing away from `scrollLines` in the alt-buffer are
+ * pinned by the real-`@xterm/xterm` bench (`touch-scroll.alt-buffer.test.ts`).
  */
 
 import type { Terminal } from "@xterm/xterm";
+
+/** `WheelEvent.deltaMode` for pixel-granularity deltas (spec value 0x00). */
+const DOM_DELTA_PIXEL = 0;
 
 export interface TouchScrollState {
   active: boolean;
@@ -81,20 +96,6 @@ export interface TouchScrollDeps {
    * `container.clientHeight / term.rows`.
    */
   getPixelsPerLine?: (term: Terminal, container: HTMLElement) => number;
-  /**
-   * Pty-data callback for the alt-buffer routing path (ADR-132). When the
-   * active xterm buffer is `alternate`, the touchmove handler emits arrow-
-   * key escape sequences here instead of calling `term.scrollLines()`
-   * (which is a no-op in alt-buffer). The EmbeddedTerminal mount-effect
-   * wires this to `socket.send({type:"data", payload})` — the same path
-   * used by `term.onData` for user keystrokes — so the TUI consuming the
-   * pty (Claude Code / vim / less / htop) scrolls itself.
-   *
-   * Optional for unit-test ergonomics; when absent in alt-buffer the
-   * handler short-circuits (no throw, no scrollLines fallback). The
-   * production wiring always provides it.
-   */
-  sendData?: (data: string) => void;
 }
 
 /**
@@ -147,10 +148,7 @@ export function attachTouchScroll(
     const deltaPx = state.lastY - tracked.clientY;
     state.lastY = tracked.clientY;
     const pxPerLine = getPxPerLine(term, container);
-    const lines = consumeTouchDelta(state, deltaPx, pxPerLine);
-    if (lines !== 0) {
-      routeScroll(term, lines, deps.sendData);
-    }
+    routeScroll(term, state, deltaPx, pxPerLine, tracked.clientX, tracked.clientY);
     // Suppress browser-native overscroll / pull-to-refresh while panning.
     // touchmove listeners must be {passive: false} for this to take effect
     // (Chrome's default is passive: true).
@@ -182,30 +180,73 @@ export function attachTouchScroll(
 }
 
 /**
- * Buffer-aware routing of an integer line-count to either xterm's
- * viewport (normal-buffer scrollback) or pty-data arrow-key escapes
- * (alt-buffer; the TUI scrolls itself). ADR-132.
+ * Route one touchmove's pixel delta to the scroll mechanism that matches
+ * the mouse / trackpad for the terminal's current state (ADR-133):
  *
- * Sign convention matches `consumeTouchDelta`: positive `lines` → scroll
- * DOWN (Cursor-Down `\x1b[B`), negative → scroll UP (Cursor-Up `\x1b[A`).
+ *   - mouse-tracking active OR alt-screen buffer → forward the raw pixel
+ *     delta as a `WheelEvent` on `term.element`. xterm's own handlers then
+ *     do exactly what they do for a two-finger trackpad scroll: encode a
+ *     mouse-report (Claude's alt-screen, mouse-tracking on) or convert to
+ *     arrow keys (no-mouse alt-screen TUI), with its own trackpad-style
+ *     sub-line accumulation (`CoreMouseService.consumeWheelEvent`).
+ *   - otherwise (normal buffer, no mouse tracking) → accumulate whole lines
+ *     and `term.scrollLines` the scrollback (the scroller lives on a
+ *     descendant of `term.element`, unreachable by a root-dispatched wheel).
  *
- * Alt-buffer with no `sendData` callback is a clean no-op — `term.scroll
- * Lines()` would be a no-op anyway, but routing through it would mask
- * test-bench errors where the caller forgot to wire `sendData`.
+ * Defensive: if `term.element` is not yet populated we fall back to the
+ * scrollback path (a no-op in the alt-buffer, but never a throw).
+ *
+ * Sign convention: `deltaPx > 0` (finger moved UP) ⇒ scroll DOWN ⇒ wheel
+ * `deltaY > 0` and positive `scrollLines`.
  */
 function routeScroll(
   term: Terminal,
-  lines: number,
-  sendData: ((data: string) => void) | undefined,
+  state: TouchScrollState,
+  deltaPx: number,
+  pxPerLine: number,
+  clientX: number,
+  clientY: number,
 ): void {
+  const el = term.element ?? null;
+  const mouseActive = !!el?.classList?.contains("enable-mouse-events");
   const inAltBuffer = term.buffer.active.type === "alternate";
-  if (inAltBuffer) {
-    if (!sendData) return;
-    const seq = lines > 0 ? "\x1b[B" : "\x1b[A";
-    sendData(seq.repeat(Math.abs(lines)));
+
+  if (el && (mouseActive || inAltBuffer)) {
+    if (deltaPx !== 0) dispatchWheel(el, deltaPx, clientX, clientY);
     return;
   }
-  term.scrollLines(lines);
+  const lines = consumeTouchDelta(state, deltaPx, pxPerLine);
+  if (lines !== 0) term.scrollLines(lines);
+}
+
+/**
+ * Dispatch a single pixel-granularity `WheelEvent` onto xterm's root
+ * element, carrying the finger's pixel delta — the touch analogue of a
+ * two-finger trackpad scroll. xterm turns it into the mouse-report /
+ * arrow-key sequence appropriate to the active mode, with its own
+ * sub-pixel accumulation, so the bytes reaching the pty (and the feel) are
+ * identical to the trackpad scroll that already works.
+ *
+ * `clientX/clientY` carry the finger position so xterm reports the cell
+ * under the finger (`getMouseReportCoords`), matching pointer semantics.
+ */
+function dispatchWheel(
+  el: HTMLElement,
+  deltaPx: number,
+  clientX: number,
+  clientY: number,
+): void {
+  el.dispatchEvent(
+    new WheelEvent("wheel", {
+      // deltaY > 0 ⇒ scroll DOWN (xterm: CoreMouseAction.DOWN / Cursor-Down).
+      deltaY: deltaPx,
+      deltaMode: DOM_DELTA_PIXEL,
+      clientX,
+      clientY,
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
 }
 
 function defaultPixelsPerLine(term: Terminal, container: HTMLElement): number {
