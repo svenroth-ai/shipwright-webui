@@ -19,21 +19,32 @@ export function SidebarNavItem({ icon: Icon, label, to, badge, collapsed, onSele
       end={to === '/'}
       onClick={onSelect}
       className={({ isActive }) =>
-        `flex items-center gap-[10px] px-3 py-[9px] pointer-coarse:min-h-[44px] rounded-lg text-sm transition-colors ${
+        `relative flex items-center gap-[10px] px-3 py-[9px] pointer-coarse:min-h-[44px] rounded-lg text-sm transition-colors ${
           isActive
             ? 'bg-white/[0.12] text-white'
             : 'text-white/70 hover:bg-white/[0.08] hover:text-white'
         }`
       }
     >
-      <Icon
-        size={18}
-        className="shrink-0"
-      />
+      {/* In the 60px rail (collapsed) the inline badge after the sr-only label
+          overflowed past the rail edge and was clipped ("open items" count cut
+          off). Overlay it on the icon's top-right instead so it stays inside
+          the rail (iterate-2026-06-15 AC-6). Expanded / drawer keep it inline. */}
+      <span className="relative shrink-0">
+        <Icon size={18} />
+        {collapsed && badge && (
+          <span
+            data-testid="sidebar-nav-badge-overlay"
+            className="absolute -right-2 -top-2 origin-top-right scale-[0.8]"
+          >
+            {badge}
+          </span>
+        )}
+      </span>
       <span className={collapsed ? 'sr-only' : 'font-medium flex-1'}>
         {label}
       </span>
-      {badge}
+      {!collapsed && badge}
     </NavLink>
   );
 }

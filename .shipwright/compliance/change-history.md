@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-14T21:46:02.492816+00:00
-Total commits: 563
+Generated: 2026-06-15T08:00:55.045232+00:00
+Total commits: 564
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 201
+    "fix" : 202
     "feat" : 142
     "chore" : 112
     "docs" : 55
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 201 commits
+### Fixes (fix) — 202 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-14 | terminal | repaint embedded terminal on window focus / visibility regain (FR-01.28) (#146) | 1da0b6ae1207 |
 | 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) (#145) | 085d6057e774 |
 | 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | 64f97e96f250 |
 | 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 77ef6847ff9a |
@@ -632,7 +633,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 563 |
+| Total commits | 564 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 563 |
+| Human-authored commits | 564 |
 

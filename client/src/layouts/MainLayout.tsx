@@ -7,6 +7,10 @@ import { DiagnosticsBanner } from '../components/common/DiagnosticsBanner';
 import { useExternalInbox } from '../hooks/useExternalInbox';
 import { useTriageCounts } from '../hooks/useTriage';
 import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
+import {
+  MobileTopBarSlotProvider,
+  MobileTopBarSlotTarget,
+} from '../components/external/MobileTopBarSlot';
 
 export function MainLayout() {
   const { data: inbox = [] } = useExternalInbox();
@@ -25,6 +29,7 @@ export function MainLayout() {
   const triageCount = triageCounts?.total ?? 0;
 
   return (
+    <MobileTopBarSlotProvider>
     <div className="flex h-[100dvh] overflow-hidden">
       {isPhone ? (
         <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -64,6 +69,11 @@ export function MainLayout() {
               <Menu size={22} />
             </button>
             <span className="text-[15px] font-bold text-white">Shipwright</span>
+            {/* Page-injected content (Task Board portals its project dropdown
+                here on phones — iterate-2026-06-15 AC-1). Empty on other
+                routes. min-w-0 lets the dropdown truncate instead of pushing
+                the bar wider than the viewport on narrow phones. */}
+            <MobileTopBarSlotTarget className="flex min-w-0 flex-1 items-center justify-end pr-1" />
           </div>
         ) : null}
         <DiagnosticsBanner />
@@ -79,5 +89,6 @@ export function MainLayout() {
         </div>
       </main>
     </div>
+    </MobileTopBarSlotProvider>
   );
 }
