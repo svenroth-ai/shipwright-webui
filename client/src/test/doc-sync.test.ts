@@ -112,6 +112,9 @@ const REQUIRED_TOKENS = [
   // iterate-2026-06-14-phone-responsive-view — phone (<768px) responsive layout (FR-01.39)
   'useIsPhoneViewport',
   'TerminalKeyBar',
+  // iterate-2026-06-15-mobile-tablet-layout-polish — header/list/projects/sidebar polish (FR-01.41)
+  'MobileTopBarSlot',
+  'BoardStatusFilter',
 ] as const;
 
 let claudeMd = '';

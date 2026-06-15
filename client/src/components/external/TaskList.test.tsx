@@ -66,6 +66,19 @@ describe("TaskList — title column width (iterate tablet-view-polish AC-4)", ()
   });
 });
 
+describe("TaskList — Resume/Launch icon on compact (AC-4)", () => {
+  it("the list launch control hides its text label below lg (icon-only on ≤1023px)", () => {
+    // A draft task renders the launch CTA. The compact variant's label span is
+    // `hidden lg:inline`, so the Title column reclaims the width on tablet/phone.
+    renderList([baseTask({ taskId: "t-launch", state: "draft" })]);
+    const btn = screen.getByTestId("terminal-launch-compact");
+    const label = btn.querySelector("span");
+    expect(label).not.toBeNull();
+    expect(label!.className).toContain("hidden");
+    expect(label!.className).toContain("lg:inline");
+  });
+});
+
 describe("TaskList — phase column (v0.4.2)", () => {
   it("renders the phase badge when task.phase + task.phaseLabel are persisted", () => {
     renderList([

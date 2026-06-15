@@ -49,6 +49,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -67,6 +68,12 @@ import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
+import {
+  StatusPillRow,
+  StatusFilterMenu,
+} from "../components/external/BoardStatusFilter";
+import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
+import { useIsPhoneViewport } from "../hooks/useIsCompactViewport";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { MasterTaskCard } from "../components/external/MasterTaskCard";
 import { CampaignsLane } from "../components/external/CampaignsLane";
@@ -93,6 +100,10 @@ function readStoredView(): TaskBoardView {
 export default function TaskBoardPage() {
   const queryClient = useQueryClient();
   const { activeProjectId } = useProjectFilter();
+  // Phone (≤767px): the project dropdown moves up into the global top bar and
+  // the status filter collapses to an icon menu (iterate-2026-06-15 AC-1/AC-2).
+  const isPhone = useIsPhoneViewport();
+  const topBarSlot = useMobileTopBarSlot();
   // iterate 3.7h (2026-04-22): use the GLOBAL (projectId-less) cache entry —
   // ProjectFilterDropdown also uses this so both consumers share it. Filter
   // happens client-side below via `projectFiltered`. The per-filter query-key
@@ -306,13 +317,31 @@ export default function TaskBoardPage() {
           data-testid="task-board-header"
         >
           <div className="flex items-center gap-3">
-            <ProjectFilterDropdown />
-            <div
-              className="h-6 w-px bg-[var(--color-border)]"
-              aria-hidden="true"
-            />
+            {/* AC-1: on phones the project dropdown is portaled into the global
+                top bar (below), so the header keeps only the view toggle and
+                the AC-2 status-filter icon. */}
+            {!isPhone && (
+              <>
+                <ProjectFilterDropdown />
+                <div
+                  className="h-6 w-px bg-[var(--color-border)]"
+                  aria-hidden="true"
+                />
+              </>
+            )}
             <ViewToggle value={view} onChange={setView} />
+            {isPhone && (
+              <StatusFilterMenu
+                counts={statusCounts}
+                active={statusFilter}
+                onToggle={toggleStatus}
+                onReset={clearStatusFilter}
+              />
+            )}
           </div>
+          {isPhone &&
+            topBarSlot?.slot &&
+            createPortal(<ProjectFilterDropdown fluid />, topBarSlot.slot)}
           <CreateControls
             activeProjectId={activeProjectId}
             resolvedProjectId={resolvedProjectId}
@@ -326,36 +355,16 @@ export default function TaskBoardPage() {
             onSelect={openModal}
           />
         </header>
-        <div className="page-container flex flex-wrap items-center gap-2" style={{ paddingTop: "4px", paddingBottom: "16px" }}>
-            <span
-              className="min-w-[46px] text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--color-muted)]"
-              data-testid="board-filter-status"
-            >
-              Status
-            </span>
-            {STATUS_FILTER_OPTIONS.map((opt) => (
-              <StatusChip
-                key={opt.value}
-                label={opt.label}
-                value={opt.value}
-                count={statusCounts[opt.value]}
-                active={statusFilter.has(opt.value)}
-                onClick={toggleStatus}
-                tone={opt.tone}
-              />
-            ))}
-            {statusFilter.size > 0 && (
-              <button
-                type="button"
-                onClick={clearStatusFilter}
-                className="ml-1 rounded-[6px] px-2 py-[3px] text-[11px] text-[var(--color-muted)] transition-colors hover:bg-[rgba(220,38,38,0.06)] hover:text-[var(--color-error)]"
-                title="Reset status filter"
-                data-testid="board-filter-status-reset"
-              >
-                Reset
-              </button>
-            )}
-          </div>
+        {/* Status pill row — ≥768px only. On phones the same filter is the
+            AC-2 icon menu in the header above. */}
+        {!isPhone && (
+          <StatusPillRow
+            counts={statusCounts}
+            active={statusFilter}
+            onToggle={toggleStatus}
+            onReset={clearStatusFilter}
+          />
+        )}
         </div>
 
       {/* Body — board (kanban) or list.
@@ -415,8 +424,10 @@ export default function TaskBoardPage() {
           // alignment). `min-w-0` on columns would let them shrink — we
           // keep them fixed (360 px) so cards stay legible. Fallback gap-6
           // (24 px) for viewports narrow enough that justify-between
-          // collapses. Tablet <lg: justify-start + scroll-snap carousel; lg: restores desktop.
-          className="page-container flex w-full flex-1 items-start justify-start gap-6 overflow-x-auto overflow-y-hidden pt-10 pb-8 snap-x snap-mandatory scroll-pl-6 lg:justify-between lg:snap-none lg:scroll-pl-0"
+          // collapses. <768px phone: justify-start + scroll-snap carousel.
+          // 768–1023px tablet (AC-7): snap off, flexible lanes fit all three.
+          // ≥1024px desktop: justify-between, fixed lanes.
+          className="page-container flex w-full flex-1 items-start justify-start gap-6 overflow-x-auto overflow-y-hidden pt-10 pb-8 snap-x snap-mandatory scroll-pl-6 md:snap-none md:scroll-pl-0 lg:justify-between lg:snap-none lg:scroll-pl-0"
           data-testid="task-board-columns"
           data-page-container="true"
         >
@@ -528,7 +539,11 @@ function Column({ title, testId, items, tone }: ColumnProps) {
   const s = COLUMN_STYLES[tone];
   return (
     <div
-      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)]"
+      // AC-7: three width tiers (longhand-only so base→md→lg cascade reliably,
+      // no shorthand/longhand conflict). <768px phone: fixed 360px snap
+      // carousel. 768–1023px tablet rail: flexible (basis-0 grow), min-200, all
+      // three lanes fit with no right cut-off. ≥1024px desktop: fixed 360px.
+      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)] md:w-auto md:min-w-[200px] md:shrink md:grow md:basis-0 lg:w-[360px] lg:min-w-[360px] lg:shrink-0 lg:grow-0 lg:basis-auto"
       style={{ background: s.bg }}
       data-testid={testId}
     >
@@ -563,88 +578,5 @@ function Column({ title, testId, items, tone }: ColumnProps) {
         ))}
       </div>
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Status filter chips — iterate 3.7e-b1 (plan S1.4).
-// ---------------------------------------------------------------------------
-
-/** Muted / warning / error-tone accents on the Failed chips match the
- *  mockup filter row (lines 958–966 of kanban-with-projects.html). */
-type ChipTone = "neutral" | "warning" | "success" | "error";
-
-interface StatusFilterOption {
-  value: ExternalTaskState;
-  label: string;
-  tone: ChipTone;
-}
-
-/** Order locked to the 7 valid ExternalTaskState values; labels lowercased
- *  to match our existing StatePill vocabulary. */
-const STATUS_FILTER_OPTIONS: StatusFilterOption[] = [
-  { value: "draft", label: "draft", tone: "neutral" },
-  { value: "awaiting_external_start", label: "awaiting", tone: "warning" },
-  { value: "active", label: "active", tone: "warning" },
-  { value: "idle", label: "idle", tone: "neutral" },
-  { value: "done", label: "done", tone: "success" },
-  { value: "launch_failed", label: "launch-failed", tone: "error" },
-  { value: "jsonl_missing", label: "jsonl-missing", tone: "error" },
-];
-
-interface StatusChipProps {
-  label: string;
-  value: ExternalTaskState;
-  count: number;
-  active: boolean;
-  tone: ChipTone;
-  onClick: (value: ExternalTaskState) => void;
-}
-
-/** Thin chip following `.chip` from the mockup (lines 401–427). Active +
- *  hover share the `--color-primary` accent; inactive uses a neutral
- *  token-only tint. `tone` colors the border + count slot for error /
- *  warning-flavored rows so Failed stands out. */
-function StatusChip({
-  label,
-  value,
-  count,
-  active,
-  tone,
-  onClick,
-}: StatusChipProps) {
-  const toneStyle =
-    tone === "error"
-      ? { color: "var(--color-error)", borderColor: "rgba(220,38,38,0.25)" }
-      : tone === "warning"
-        ? { color: "var(--color-warning-text)", borderColor: "var(--color-border)" }
-        : tone === "success"
-          ? { color: "var(--color-success-text)", borderColor: "var(--color-border)" }
-          : { color: "var(--color-muted)", borderColor: "var(--color-border)" };
-  const activeStyle = active
-    ? {
-        background: "var(--color-primary)",
-        color: "#fff",
-        borderColor: "var(--color-primary)",
-      }
-    : {};
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(value)}
-      data-testid={`board-filter-status-${value}`}
-      data-active={active || undefined}
-      aria-pressed={active}
-      className="inline-flex items-center gap-[5px] rounded-[12px] border bg-transparent px-[10px] py-[3px] text-[11.5px] font-medium transition-colors hover:bg-[var(--color-muted-bg)]"
-      style={{ ...toneStyle, ...activeStyle }}
-    >
-      <span>{label}</span>
-      <span
-        className="font-mono text-[10px]"
-        style={{ opacity: active ? 1 : 0.8 }}
-      >
-        {count}
-      </span>
-    </button>
   );
 }

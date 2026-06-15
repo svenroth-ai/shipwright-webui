@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-15T08:25:00Z",
+  "last_updated": "2026-06-15T10:05:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-15-terminal-reflow-repaint",
+    "run_id": "iterate-2026-06-15-mobile-tablet-layout-polish",
     "date": "2026-06-15",
-    "type": "bug",
+    "type": "change",
     "complexity": "medium",
     "unit": {
       "status": "passed",
-      "passed": 1672,
-      "total": 1672
+      "passed": 1680,
+      "total": 1680
     },
     "integration": {
       "status": "not_run",
@@ -22,8 +22,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 37,
+      "total": 37
     },
     "design_fidelity": {
       "status": "skipped",
@@ -35,60 +35,69 @@
     },
     "test_completeness": {
       "status": "complete",
-      "justification": "BUG fix in the terminal resize hook (follow-up to PR #146). Every wiring/timing behavior is unit-tested; the sole untestable row is the actual broken-box clearing in Claude's live TUI on a real GPU (requires-physical-device).",
+      "justification": "Frontend layout/CSS change. Every AC has a unit and/or real-browser E2E proof; AC-6 (badge overlay) is unit-covered (E2E would need seeded inbox/triage data). 0 testable-but-untested.",
       "behaviors": [
         {
-          "behavior": "dims-changing ResizeObserver resize -> staggered trailing term.refresh(0,rows-1)",
+          "behavior": "AC-1 phone: ProjectFilterDropdown portaled into MainLayout top bar via MobileTopBarSlot (useState publish); not rendered in board header",
           "disposition": "tested",
-          "evidence": "unit useTerminalResize.test.ts 'a dims-changing resize schedules trailing full-viewport repaints' PASSED; E2E 92 PASSED"
+          "evidence": "unit MobileTopBarSlot.test.tsx (portal renders into published slot; null outside provider) PASSED; E2E 90-phone 'dropdown moves into the top bar' PASSED"
         },
         {
-          "behavior": "dedupe no-op resize (unchanged dims) -> NO trailing repaint",
+          "behavior": "AC-2 phone: status filter = funnel-icon Radix multi-select menu (StatusFilterMenu); pill row hidden; preventDefault keeps menu open; active dot",
           "disposition": "tested",
-          "evidence": "unit 'no trailing repaint when the resize is a dedupe no-op' PASSED"
+          "evidence": "unit BoardStatusFilter.test.tsx (open/toggle/stay-open/dot/no-pills) PASSED; E2E 90-phone AC-1/AC-2 PASSED"
         },
         {
-          "behavior": "focus with dims change -> synchronous repaint + trailing repaints",
+          "behavior": "AC-3 phone: header row fits without awkward wrap (no pill row, dropdown moved out)",
           "disposition": "tested",
-          "evidence": "unit 'focus with a dims change adds trailing repaints on top of the synchronous one' PASSED"
+          "evidence": "E2E 90-phone 'no horizontal page overflow at /' @393px PASSED + AC-1/AC-2 menu E2E PASSED"
         },
         {
-          "behavior": "pending trailing repaints cancelled on unmount",
+          "behavior": "AC-4 compact: List launch CTA icon-only (TerminalLaunchButton compact label hidden lg:inline)",
           "disposition": "tested",
-          "evidence": "unit 'pending trailing repaints are cancelled on unmount' PASSED"
+          "evidence": "unit TaskList.test.tsx 'launch control hides text label below lg' PASSED; E2E 80-tablet 'Title widest column' PASSED"
         },
         {
-          "behavior": "trailing timer firing after disposal -> no-op (no refresh on dead term)",
+          "behavior": "AC-5 compact: Projects Path column hidden lg:table-cell -> no bottom horizontal scrollbar",
           "disposition": "tested",
-          "evidence": "unit 'a trailing repaint that fires after disposal is a no-op' PASSED"
+          "evidence": "unit ProjectsPage.test.tsx 'Path header+cells carry hidden lg:table-cell' PASSED; E2E 80-tablet 'projects table drops Path -> no in-card scroll' PASSED"
         },
         {
-          "behavior": "actual broken-box clearing in Claude's real TUI on a real GPU/monitor reflow",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "needs Claude's live alt-buffer TUI + GPU + monitor reflow; not reproducible headless; real-device smoke = user"
+          "behavior": "AC-6 rail: Inbox/Triage count badge overlays the icon when collapsed (not clipped); inline when expanded",
+          "disposition": "tested",
+          "evidence": "unit SidebarNavItem.test.tsx (overlay when collapsed single-instance; inline when expanded) PASSED"
+        },
+        {
+          "behavior": "AC-7 tablet: board lanes flexible (basis-0 grow min-200) fit all three with no right cut-off; <768 carousel; >=1024 fixed 360",
+          "disposition": "tested",
+          "evidence": "E2E 80-tablet 'board fits all three lanes' + 'all three visible WITHOUT scrolling' @820px PASSED; desktop justify-between @1280/1024 non-regression PASSED"
         }
       ],
       "counts": {
         "untested_testable": 0,
-        "tested": 5,
-        "untestable": 1
+        "tested": 7,
+        "untestable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6,
-        "basis": "one row per code path introduced (3 send paths schedule, dedupe-skip, unmount-cancel, disposed-guard) + 1 device-only visual outcome"
+        "acs": 7,
+        "covered_acs": 7,
+        "basis": "one behavior row per acceptance criterion (AC-1..AC-7); jsdom-unverifiable real-layout outcomes (AC-7 lane widths, AC-5 scrollbar) proven by Playwright at 820px/393px"
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "BASE_URL=http://localhost:5273 playwright test e2e/flows/92-terminal-reflow-repaint.spec.ts --project=chromium (isolated stack: temp USERPROFILE, loopback, no Claude spawn)",
+      "runner": "BASE_URL=http://127.0.0.1:3947 playwright test e2e/flows/80-tablet-responsive.spec.ts e2e/flows/90-phone-responsive.spec.ts (+49-project-filter,90-all-projects-cascade) — isolated stack: built client served by Hono, temp USERPROFILE, loopback, no Claude spawn",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-15-terminal-reflow-repaint/surface_verification.json",
-      "timestamp": "2026-06-15T08:25:00Z",
-      "justification": ""
+      "tests_run": 37,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-15-mobile-tablet-layout-polish/surface_verification.json",
+      "timestamp": "2026-06-15T10:05:00Z",
+      "justification": "Tablet (chromium @820px) + phone (mobile-chromium/Pixel5 @393px) projects; 35 responsive + 2 desktop-non-regression specs all green."
     },
-    "degraded": []
+    "degraded": [
+      {
+        "condition": "external_llm_review_unavailable",
+        "detail": "No OPENAI/GEMINI API keys in env; fell back to the internal shipwright-plan:opus-plan-reviewer (degraded-mode). It surfaced 2 HIGH + 4 MED/LOW issues, all addressed before build."
+      }
+    ]
   }
 }

@@ -61,6 +61,22 @@ describe('ProjectsPage', () => {
     expect(screen.getByText(/Actions/i)).toBeInTheDocument();
   });
 
+  // AC-5 (iterate-2026-06-15) — the Path column is hidden on the compact band
+  // (≤1023px) via `hidden lg:table-cell` so the table fits without a bottom
+  // horizontal scrollbar; it returns on desktop.
+  it("Path column header + cells carry hidden lg:table-cell (compact-band hide)", async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId("projects-cell-proj-1-path")).toBeInTheDocument();
+    });
+    const pathHeader = screen.getByText("Path");
+    expect(pathHeader.className).toContain("hidden");
+    expect(pathHeader.className).toContain("lg:table-cell");
+    const pathCell = screen.getByTestId("projects-cell-proj-1-path");
+    expect(pathCell.className).toContain("hidden");
+    expect(pathCell.className).toContain("lg:table-cell");
+  });
+
   // Iterate 3.7e-b3 — the project row has color + path + delete affordances.
   it('renders color swatch + path + delete button for each project', async () => {
     renderPage();
