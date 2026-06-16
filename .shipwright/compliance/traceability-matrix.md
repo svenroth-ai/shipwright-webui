@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-15T19:52:28.343348+00:00
+Generated: 2026-06-16T21:08:53.388898+00:00
 
 ## Requirements Coverage
 
@@ -39,7 +39,7 @@ Generated: 2026-06-15T19:52:28.343348+00:00
 | [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e, evt-83b9b73f | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 | [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +8 | 1550/1550 → 1611/1611 | 2026-06-12 (iter) | COVERED |
-| [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | evt-7da49dda, evt-c59f2257 | — | — | NO TESTS |
+| [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | evt-7da49dda, evt-c59f2257, evt-85988543 | 1700/1700 | 2026-06-16 (iter) | COVERED |
 | [FR-01.35](../../.shipwright/planning/01-adopted/spec.md#fr-0135) | The SmartViewer markdown pane gains an **Edit** button (mark... | Should | evt-6985e15b, evt-6c3e0953 | — | — | NO TESTS |
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced, evt-c59f2257 | — | — | NO TESTS |
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137) | A custom action in `<project>/.shipwright-webui/actions.json... | Should | evt-06308665, evt-72678829 | — | — | NO TESTS |
@@ -282,6 +282,7 @@ Generated: 2026-06-15T19:52:28.343348+00:00
 | Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. | iterate | change | FR-01.41 | — | — | 2026-06-15 |
 | Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. | iterate | bug | FR-01.28 | — | — | 2026-06-15 |
 | Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. | iterate | bug | FR-01.38 | — | — | 2026-06-15 |
+| editor HTML link corruption on save (FR-01.34) | iterate | bug | FR-01.34 | 1700/1700 | — | 2026-06-16 |
 
 ## Coverage Summary
 
@@ -289,7 +290,7 @@ Generated: 2026-06-15T19:52:28.343348+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 160 |
+| Iterate changes | 161 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |
@@ -315,17 +316,17 @@ Generated: 2026-06-15T19:52:28.343348+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 45d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 36d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 32d ago by `evt-33b2e81f` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-0f78d991` (2026-05-15)
-- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 31d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-7c294eb7` (2026-05-18)
-- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-223eadce` (2026-05-18)
-- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-fb2b90ee` (2026-05-18)
-- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-3d1274f6` (2026-05-19)
-- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-a2176c74` (2026-05-18)
-- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-83b9b73f` (2026-05-31)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 46d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 37d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 33d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 32d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 32d ago by `evt-50e36386` (2026-05-14)
+- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 29d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 29d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-7c294eb7` (2026-05-18)
+- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-223eadce` (2026-05-18)
+- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-fb2b90ee` (2026-05-18)
+- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-3d1274f6` (2026-05-19)
+- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-a2176c74` (2026-05-18)
+- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-83b9b73f` (2026-05-31)
 

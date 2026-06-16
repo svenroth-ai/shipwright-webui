@@ -1,34 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-15-touch-scroll-wheel-events"
+run_id: "iterate-2026-06-16-fix-editor-html-link-corruption"
 phase: "iterate"
-reason: "iterate finalization"
-timestamp: "2026-06-15T19:52:28.343348+00:00"
+reason: "iterate: fix editor HTML link corruption on save"
+timestamp: "2026-06-16T21:08:53.388898+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-15 19:52:28 UTC
+> Auto-generated 2026-06-16 21:08:53 UTC
 
 ## Session Info
 
-- **Session ID**: 6f3be0ae-3419-4ad9-9efc-e848a86acaae
-- **Timestamp**: 2026-06-15 19:52:28 UTC
-- **Reason**: iterate finalization
+- **Session ID**: 7ef0417b-a411-467a-af01-60dfabb778c8
+- **Timestamp**: 2026-06-16 21:08:53 UTC
+- **Reason**: iterate: fix editor HTML link corruption on save
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-15-terminal-readonly-reflow-corruption
-- **Date**: 2026-06-15T12:52:38.775014Z
+- **Run ID**: iterate-2026-06-15-touch-scroll-wheel-events
+- **Date**: 2026-06-15T19:53:09.347895Z
 - **Type**: bug
 - **Complexity**: small
-- **Branch**: iterate/terminal-readonly-reflow
-- **ADR**: iterate-2026-06-15-terminal-readonly-reflow-corruption
+- **Branch**: iterate/touch-scroll-wheel-events
+- **ADR**: iterate-2026-06-15-touch-scroll-wheel-events
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/adr/133-touch-scroll-wheel-events.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/touch-scroll-wheel-events
+- **Branch**: iterate/fix-editor-html-link-corruption
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/touch-scroll-wheel-events
-- **Last Commit**: 855191e fix(terminal): faithful replay on narrow read-only re-attach — resize to snapshot dims before write (FR-01.28) (#150)
+- **Branch**: iterate/fix-editor-html-link-corruption
+- **Last Commit**: b771e85 chore(release): v0.19.0
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,23 +65,23 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-85988543 | work_completed | iterate (editor HTML link corruption on save (FR-01.34)) | 2026-06-16 |
 | evt-7884a2bc | work_completed | iterate (Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only.) | 2026-06-15 |
 | evt-6a4edaa8 | work_completed | iterate (Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only.) | 2026-06-15 |
 | evt-442a0736 | work_completed | iterate (Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged.) | 2026-06-15 |
 | evt-f46beb11 | work_completed | iterate (Trailing repaint after terminal reflow — fixes Claude input box rendering broken/wrapped/with a floating title cell after a window/monitor width change (follow-up to PR #146)) | 2026-06-15 |
-| evt-2caa2427 | work_completed | iterate (Mobile/tablet layout polish (FR-01.41): phone header — project dropdown moved into the top bar via MobileTopBarSlot portal, status filter collapsed to a funnel-icon multi-select menu (BoardStatusFilter); compact band — List launch icon-only, Projects Path column hidden, icon-rail count badge overlaid, board lanes flexible to fit all three. Desktop unchanged.) | 2026-06-15 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 230
-- **Last iterate**: bug — Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. (2026-06-15)
+- **Total work events**: 231
+- **Last iterate**: bug — editor HTML link corruption on save (FR-01.34) (2026-06-16)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-170: Project Campaigns-board status from the tracked event log
-- **Date:** 2026-06-11
-- **Section:** shipwright-webui / Campaigns lane (FR-01.31)
-- **Run-ID:** iterate-2026-06-11-campaign-events-projection
-- **Context:** Campaign planning dirs (campaign.md + status.json) are gitignored/local-only (webui PR #121, monorepo PR #189), so a fresh clone/redeploy had no campaign dir and readCampaigns returned empty; the board showed nothing. Local working-tree instances still worked. Monorepo intent: p
+### ADR-196: Touch-scroll replicates the mouse wheel (synthetic WheelEvent on term.element), superseding the ADR-132 arrow-key path
+- **Date:** 2026-06-15
+- **Section:** Iterate — bug-fix: touch-scroll cycles Claude input history instead of scrolling
+- **Run-ID:** iterate-2026-06-15-touch-scroll-wheel-events
+- **Context:** User report 2026-06-15 (iPad/Safari): one-finger touch in the embedded terminal cycles Claude's last prompts instead of scrolling; mouse + two-finger trackpad scroll fine. Traced @xte

@@ -11,81 +11,14 @@
  *   AC6 409 → conflict banner + edits preserved.
  */
 
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 
-const DOC_V1 = "# Title\n\nOriginal body paragraph.\n";
-const DOC_V2 = "# Title\n\nSaved new body paragraph.\n";
-
-// A YAML-frontmatter blog file (the user's bug scenario). Line endings built
-// from char codes — literal "\n" escapes in editor-written source have been
-// written as real control bytes and corrupted files in this repo (project memory).
-const NL = String.fromCharCode(10);
-const FM_DOC = [
-  "---",
-  'title: "My Post"',
-  'slug: "my-post"',
-  'keywords: ["a", "b"]',
-  "---",
-  "",
-  "First paragraph stays put.",
-  "",
-  "Second paragraph also untouched.",
-  "",
-].join(NL);
-
-async function mockApi(page: Page, opts: { putStatus?: number } = {}) {
-  const putStatus = opts.putStatus ?? 200;
-  let saved = false;
-  await page.route("**/api/external/projects/**/file**", async (route) => {
-    if (route.request().method() === "PUT") {
-      saved = true;
-      if (putStatus === 409) {
-        return route.fulfill({
-          status: 409,
-          contentType: "application/json",
-          body: JSON.stringify({
-            error: "fingerprint_mismatch",
-            currentFingerprint: "sha256:disk",
-          }),
-        });
-      }
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ written: true, fingerprint: "sha256:v2", size: DOC_V2.length }),
-      });
-    }
-    // GET — after a successful save, serve the updated content (AC5b).
-    const body = saved && putStatus === 200 ? DOC_V2 : DOC_V1;
-    return route.fulfill({
-      status: 200,
-      contentType: "text/markdown; charset=utf-8",
-      headers: { ETag: '"sha256:v1"' },
-      body,
-    });
-  });
-}
-
-async function mockFrontmatterFile(page: Page): Promise<{ putBody: string | null }> {
-  const captured: { putBody: string | null } = { putBody: null };
-  await page.route("**/api/external/projects/**/file**", async (route) => {
-    if (route.request().method() === "PUT") {
-      captured.putBody = route.request().postData();
-      return route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ written: true, fingerprint: "sha256:fm2", size: FM_DOC.length }),
-      });
-    }
-    return route.fulfill({
-      status: 200,
-      contentType: "text/markdown; charset=utf-8",
-      headers: { ETag: '"sha256:fm1"' },
-      body: FM_DOC,
-    });
-  });
-  return captured;
-}
+import {
+  NL,
+  mockApi,
+  mockFrontmatterFile,
+  mockBlogFile,
+} from "./markdown-editor.fixtures";
 
 test.describe("SmartViewer markdown editor (FR-01.34)", () => {
   test("Edit → rich editor → Review → Save → preview refreshes", async ({ page }, testInfo) => {
@@ -241,5 +174,44 @@ test.describe("SmartViewer markdown editor (FR-01.34)", () => {
     expect(saved).toContain("EDITED");
     expect(saved).not.toContain("## title");
     expect(saved.endsWith(NL)).toBe(true); // trailing newline preserved
+  });
+
+  // Regression: iterate-2026-06-16-fix-editor-html-link-corruption.
+  // Editing a content-marketing blog article that contains an inline `<a href>`
+  // Shipwright link used to CORRUPT it on save — html:false entity-escaped the
+  // anchor to literal `&lt;a href=…&gt;…&lt;/a&gt;` text, silently breaking the
+  // link. The editor now recovers it as an equivalent markdown link.
+  test("blog file: an inline <a href> Shipwright link saves as a markdown link, not corrupt &lt;a&gt; text", async ({ page }, testInfo) => {
+    const captured = await mockBlogFile(page);
+    await page.goto("/preview?projectId=proj-x&path=20260616/post.md");
+
+    await expect(page.getByTestId("document-markdown")).toContainText("Shipwright");
+    await page.getByTestId("smart-viewer-edit").click();
+    await expect(page.getByTestId("markdown-editor-modal")).toBeVisible();
+    const surface = page.getByTestId("md-editor-surface");
+    await expect(surface).toContainText("Built with Shipwright");
+
+    // Raw HTML present → the lossy-construct banner nudges the user to the diff
+    // (the link is normalised to markdown, not dropped).
+    await expect(page.getByTestId("md-editor-warn")).toBeVisible();
+
+    // Merely opening + saving recovers the link (the round-trip differs from the
+    // on-disk HTML, so Save is enabled with no keystroke needed).
+    await page.getByTestId("md-editor-review").click();
+    await expect(page.getByTestId("markdown-diff")).toBeVisible();
+    await page.getByTestId("md-editor-save").click();
+    await expect(page.getByTestId("markdown-editor-modal")).toBeHidden();
+
+    // The authoritative artifact: the PUT body must carry a FUNCTIONAL markdown
+    // link and none of the entity-escape corruption the bug produced.
+    expect(captured.putBody).not.toBeNull();
+    const saved = captured.putBody as string;
+    expect(saved).toContain("[Shipwright](https://github.com/svenroth-ai/shipwright)");
+    expect(saved).not.toContain("&lt;");
+    expect(saved).not.toContain("&gt;");
+    expect(saved).not.toContain("<a "); // no leftover raw anchor tag either
+    expect(saved).toContain('slug: "sdlc-automation"'); // frontmatter verbatim
+
+    await page.screenshot({ path: testInfo.outputPath("md-editor-htmllink-recovered.png"), fullPage: true });
   });
 });

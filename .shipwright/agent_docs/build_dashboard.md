@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-15 19:52 UTC | Session: 6f3be0ae-3419-4ad9-9efc-e848a86acaae | Run: iterate-2026-06-15-touch-scroll-wheel-events
+> Updated: 2026-06-16 21:08 UTC | Session: 7ef0417b-a411-467a-af01-60dfabb778c8 | Run: iterate-2026-06-16-fix-editor-html-link-corruption
 
-## Recent Changes (160 iterations)
+## Recent Changes (161 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | editor HTML link corruption on save (FR-01.34) | 1700/1700 |  | FR-01.34 | 2026-06-16 |
 | bug | Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. | 0/0 |  | FR-01.38 | 2026-06-15 |
 | bug | Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. | 0/0 |  | FR-01.28 | 2026-06-15 |
 | change | Phone-header polish (FR-01.41 follow-up): top-bar project dropdown content-width (not full-width); All-Projects + New cascade replaced on phone by a flat downward drill-down (ProjectCreatePhoneMenu) so the side submenu no longer overflows off-screen. Desktop/tablet unchanged. | 0/0 |  | FR-01.41 | 2026-06-15 |
@@ -167,7 +168,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-15 | Unit: 1696/1696 | Smoke: not_run | (iterate)
+Last run: 2026-06-16 | Unit: 1700/1700 | E2E: 6/6 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
