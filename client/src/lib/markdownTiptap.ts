@@ -6,9 +6,15 @@
  * serialized BACK OUT via `tiptap-markdown`. The round-trip is NOT the identity
  * function — emphasis markers, list bullets, and whitespace can normalise — so
  * the editor modal ALWAYS shows a pre-save diff and a non-blocking warn banner
- * (see `detectLossyConstructs`) before any write. Phase 1 scope = StarterKit
- * prose nodes only (headings, bold/italic, lists, code, blockquote, link, HR);
- * tables / task-lists / raw HTML are detected and flagged, not represented.
+ * (see `detectLossyConstructs`) before any write. Scope = StarterKit prose nodes
+ * (headings, bold/italic, lists, code, blockquote, link, HR). Raw HTML is PARSED
+ * (`html: true`) so inline tags that map to the schema survive — an `<a href>`
+ * round-trips to its equivalent `[text](url)` markdown link instead of being
+ * entity-escaped to corrupt `&lt;a&gt;` text (the editor used to break "Built
+ * with Shipwright" attribution links on save). HTML with no schema node
+ * (`<div>`, attributes such as `target`/`class`) is still normalised away and
+ * stays flagged by {@link detectLossyConstructs}; tables / task-lists / footnotes
+ * are likewise detected and flagged, not represented.
  */
 
 import StarterKit from "@tiptap/starter-kit";
@@ -23,8 +29,11 @@ export const SAFE_LINK_PROTOCOLS = ["http", "https", "mailto"];
 
 /**
  * The extension set shared by the live editor (`useEditor`) and the round-trip
- * tests. `html: false` keeps raw HTML out of the serialized output — such files
- * are flagged by {@link detectLossyConstructs} instead of silently round-tripped.
+ * tests. `html: true` lets raw inline HTML that maps to the schema (notably
+ * `<a href>`) round-trip as its markdown equivalent rather than being entity-
+ * escaped into corrupt text; the `SAFE_LINK_PROTOCOLS` allowlist still drops a
+ * `javascript:`-scheme anchor on the way in. HTML with no schema node is
+ * normalised away and remains flagged by {@link detectLossyConstructs}.
  */
 export function buildEditorExtensions(): Extensions {
   return [
@@ -36,7 +45,7 @@ export function buildEditorExtensions(): Extensions {
       HTMLAttributes: { rel: "noopener noreferrer", target: "_blank" },
     }),
     Markdown.configure({
-      html: false,
+      html: true,
       tightLists: true,
       bulletListMarker: "-",
       linkify: false,

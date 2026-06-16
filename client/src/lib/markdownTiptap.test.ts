@@ -111,6 +111,50 @@ describe("markdownTiptap round-trip (spike)", () => {
   });
 });
 
+describe("raw inline HTML links survive the round-trip", () => {
+  // Regression: a blog article containing an inline `<a href>` link (e.g. a
+  // "Built with Shipwright" attribution) was CORRUPTED on save — html:false
+  // HTML-entity-escaped the tag to literal `&lt;a href=…&gt;…&lt;/a&gt;` text,
+  // so the link silently stopped being a link. html:true now parses the anchor
+  // into the Link mark and re-serializes it as an equivalent markdown link.
+
+  it("preserves an inline <a href> link instead of escaping it to &lt;a&gt; text", () => {
+    const out = roundTrip(
+      'Built with <a href="https://github.com/svenroth-ai/shipwright">Shipwright</a>.',
+    );
+    // The bug signature: angle brackets escaped to HTML entities.
+    expect(out).not.toContain("&lt;");
+    expect(out).not.toContain("&gt;");
+    // The link must survive as a functional markdown link (URL + text intact).
+    expect(out).toContain(
+      "[Shipwright](https://github.com/svenroth-ai/shipwright)",
+    );
+  });
+
+  it("keeps the href intact when the anchor carries target/rel attributes", () => {
+    const out = roundTrip(
+      'Powered by <a href="https://shipwright.dev" target="_blank" rel="noopener">Shipwright</a> today.',
+    );
+    expect(out).not.toContain("&lt;");
+    expect(out).toContain("[Shipwright](https://shipwright.dev)");
+  });
+
+  it("round-trips the recovered link idempotently", () => {
+    const once = roundTrip(
+      'See <a href="https://shipwright.dev">Shipwright</a> here.',
+    );
+    expect(roundTrip(once)).toBe(once);
+  });
+
+  it("does NOT smuggle a javascript: scheme link back to disk (SAFE_LINK_PROTOCOLS)", () => {
+    const out = roundTrip('Danger <a href="javascript:alert(1)">x</a> end.');
+    expect(out.toLowerCase()).not.toContain("javascript:");
+    // The dangerous anchor is dropped to plain text — surrounding prose survives.
+    expect(out).toContain("Danger");
+    expect(out).toContain("end.");
+  });
+});
+
 describe("detectLossyConstructs", () => {
   it("returns [] for a clean StarterKit-only document", () => {
     const clean = "# Title\n\nParagraph with **bold**.\n\n- a\n- b\n";

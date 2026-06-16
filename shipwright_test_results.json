@@ -1,14 +1,14 @@
 {
-  "last_updated": "2026-06-15",
+  "last_updated": "2026-06-16",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-15-touch-scroll-wheel-events",
-    "date": "2026-06-15",
+    "run_id": "iterate-2026-06-16-fix-editor-html-link-corruption",
+    "date": "2026-06-16",
     "type": "bug",
     "complexity": "small",
     "unit": {
       "status": "passed",
-      "passed": 1696,
-      "total": 1696
+      "passed": 1700,
+      "total": 1700
     },
     "integration": {
       "status": "not_run",
@@ -21,9 +21,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 6,
+      "total": 6
     },
     "design_fidelity": {
       "status": "skipped",
@@ -33,50 +33,56 @@
     "smoke": {
       "status": "not_run"
     },
+    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts client/e2e/flows/markdown-editor.spec.ts --project=chromium --reporter=line",
+      "exit_code": 0,
+      "tests_run": 6,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\fix-editor-html-link-corruption\\.shipwright\\runs\\iterate-2026-06-16-fix-editor-html-link-corruption\\surface_verification.log",
+      "timestamp": "2026-06-16T21:05:39.339Z",
+      "attempts": 1
+    },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every routing branch of attachTouchScroll/routeScroll changed by this diff, plus the user-facing device outcome.",
-      "justification": "Client-only routing fix; each branch is unit-tested at the call site. The byte-level mouse-report encoding is xterm's own code and needs a live renderer (getMouseReportCoords requires valid char size) jsdom lacks, so the on-device outcome is iPad UAT.",
+      "enumeration_basis": "Every behavior changed by the html:false->html:true flip in buildEditorExtensions: inline <a href> recovery, target/rel attribute handling, idempotency of the recovered link, javascript:-scheme drop (security), and the full browser save chain; plus no-regression of existing prose/frontmatter round-trip.",
+      "justification": "Bug fix in the tiptap-markdown round-trip config. Each new behavior is unit-tested through the production code path (editor.commands.setContent + storage.markdown.getMarkdown) and the full open->review->save chain is exercised by a real-Chromium Playwright E2E (F0.5 web, 6 passed). Existing round-trip + editor coverage stays green.",
       "counts": {
         "untested_testable": 0
       },
       "behaviors": [
         {
-          "behavior": "alt-screen buffer: a touch-pan dispatches a pixel-mode WheelEvent (deltaY = raw px delta, deltaMode 0, finger coords) on term.element and does NOT call scrollLines",
+          "behavior": "an inline <a href> link round-trips to a functional markdown link [text](url) instead of entity-escaped &lt;a&gt; text",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts: down-pan deltaY=+100, up-pan deltaY=-100, deltaMode===0, scrollLines not called, coords flow through (5 routing tests PASSED). Inverts the ADR-131/132 arrow-key assertions."
+          "evidence": "markdownTiptap.test.ts 'preserves an inline <a href> link instead of escaping it to &lt;a&gt; text' PASSED; E2E markdown-editor.spec.ts blog-file test asserts the PUT body contains [Shipwright](https://github.com/svenroth-ai/shipwright) and no &lt;."
         },
         {
-          "behavior": "normal buffer WITH mouse tracking (.enable-mouse-events): the wheel path is taken (app consumes the report), NOT scrollLines",
+          "behavior": "an anchor carrying target/rel attributes keeps its href on save",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'normal buffer WITH mouse tracking' PASSED (wheel dispatched len 1, scrollLines not called)."
+          "evidence": "markdownTiptap.test.ts 'keeps the href intact when the anchor carries target/rel attributes' PASSED (output contains [Shipwright](https://shipwright.dev), no &lt;)."
         },
         {
-          "behavior": "normal buffer, no mouse tracking: scrollback preserved via consumeTouchDelta -> term.scrollLines(lines), no wheel dispatched",
+          "behavior": "the recovered link round-trips idempotently (serialize-after-parse is a fixed point)",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'normal buffer, no mouse tracking' (scrollLines(5), 0 wheel) + touch-scroll.test.ts mock cohort 13 tests PASSED."
+          "evidence": "markdownTiptap.test.ts 'round-trips the recovered link idempotently' PASSED."
         },
         {
-          "behavior": "defensive: term.element absent (pre-open) falls back to scrollLines without throwing",
+          "behavior": "a javascript: scheme anchor is dropped to plain text and never written to disk (SAFE_LINK_PROTOCOLS)",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'term.element absent' PASSED (scrollLines(5), no throw)."
+          "evidence": "markdownTiptap.test.ts 'does NOT smuggle a javascript: scheme link back to disk' PASSED; this is also a security improvement over html:false, which left the escaped href in the file."
         },
         {
-          "behavior": "end-to-end on a real iPad: one-finger pan scrolls Claude's TUI (not input-history cycling) and matches the trackpad feel",
+          "behavior": "the full browser save chain (open blog file -> Review diff -> Save) writes a functional markdown link in the PUT body",
+          "disposition": "tested",
+          "evidence": "F0.5 web: markdown-editor.spec.ts 'blog file: an inline <a href> Shipwright link saves as a markdown link, not corrupt &lt;a&gt; text' PASSED (Chromium, 6/6, exit 0)."
+        },
+        {
+          "behavior": "existing StarterKit prose + YAML frontmatter round-trip is unaffected by the html:true flip",
           "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "Needs a real touchscreen + live xterm renderer + Claude's negotiated mouse protocol; getMouseReportCoords returns undefined without a renderer in jsdom. iPad UAT is the post-deploy gate (per ADR-131/132 precedent)."
+          "reason_code": "covered-by-existing-test",
+          "evidence": "Pre-existing markdownTiptap round-trip + envelope suites (28 unit) and the 5 existing markdown-editor E2E tests all still PASS after the flip."
         }
       ]
-    },
-    "surface_verification": {
-      "surface": "none",
-      "runner": "n/a",
-      "exit_code": 0,
-      "tests_run": 0,
-      "timestamp": "2026-06-15T20:00:00Z",
-      "justification": "Real-device-only behavior. The fix changes only client touch->wheel routing (no Vite-config/CORS/WS-Origin/proxy touched, so the browser-smoke trigger does not apply). A desktop Playwright run cannot reproduce the bug: synthetic touch bypasses the gesture arbitration + there is no real Claude mouse-mode in an E2E, so it would be GREEN-but-meaningless (the exact 'tests green, device broken' trap ADR-131 warns about). The 4 routing branches are unit-tested; the on-device outcome is iPad UAT by the user."
-    },
-    "degraded": []
+    }
   }
 }

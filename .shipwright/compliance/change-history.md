@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-15T19:52:28.343348+00:00
-Total commits: 568
+Generated: 2026-06-16T21:08:53.388898+00:00
+Total commits: 570
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 205
+    "fix" : 206
     "feat" : 143
-    "chore" : 112
+    "chore" : 113
     "docs" : 55
     "refactor" : 25
     "test" : 18
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 205 commits
+### Fixes (fix) — 206 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-15 | terminal | touch-scroll replicates the mouse wheel so finger-pan scrolls Claude's TUI instead of cycling input history (ADR-133) (#151) | aff5119354c8 |
 | 2026-06-15 | terminal | faithful replay on narrow read-only re-attach — resize to snapshot dims before write (FR-01.28) (#150) | 855191e895ac |
 | 2026-06-15 | responsive | phone header polish — content-width top-bar dropdown + flat "+ New" drill-down (FR-01.41 follow-up) (#149) | 7f5e13758532 |
 | 2026-06-15 | terminal | trailing repaint after reflow so Claude's input box doesn't break (FR-01.28) (#147) | a326305db4fd |
@@ -378,10 +379,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 112 commits
+### Chores (chore) — 113 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-15 | release | v0.19.0 | b771e8524ada |
 | 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
 | 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
@@ -637,7 +639,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 568 |
+| Total commits | 570 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 568 |
+| Human-authored commits | 570 |
 
