@@ -15,7 +15,7 @@ Scope: full_app
 | Iterate tests passing | 81/161 iterations tested | WARN | 80 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 65 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 2 open | WARN | 2 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Triage open | 3 open | WARN | 3 actionable item(s) — see ../agent_docs/triage_inbox.md |
 | Bloat over-limit | 80 | WARN | 80 file(s) past limit AND not ADR-justified — see shipwright_bloat_baseline.json |
 | Bloat in allowlist | 85 entries | INFO |  |
 | Bloat ratchet delta | -391 lines | PASS |  |
@@ -43,5 +43,7 @@ Scope: full_app
 | Commit Change Log | [change-history.md](./change-history.md) | Conventional Commits by type |
 | Decision Log | [decision_log.md](../agent_docs/decision_log.md) | Architecture decisions (ADRs) |
 | SBOM | [sbom.md](./sbom.md) | Open-source dependencies + licenses |
+| Audit Report | [audit-report.md](./audit-report.md) | Detective cross-artifact consistency audit |
+| Activity Dashboard | [build_dashboard.md](../agent_docs/build_dashboard.md) | Per-event change history + pipeline status |
 | Changelog | [CHANGELOG.md](../../CHANGELOG.md) | Release notes |
 

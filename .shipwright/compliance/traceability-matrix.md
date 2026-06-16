@@ -82,25 +82,25 @@ Generated: 2026-06-16T21:08:53.388898+00:00
 | v0.9.4 skip disk-scrollback replay on attach for new-plain tasks (Claude TUI byte-stacking corruption fix; ADR-086) | iterate | bug | FR-01.28 | 1636/1636 | fbfb449 | 2026-05-11 |
 | Iterate F headless-terminal-refactor: xterm.js convertEol+allowProposedApi+scrollback alignment + WebglAddon try/catch fallback; follow-on to ADR-092 for in-session status-pane redraw stacking (ADR-093) | iterate | change | FR-01.28 | 777/777 | 6f715fc | 2026-05-12 |
 | dynamic-stack-profiles: wizard step 2 renders from /api/profiles + bundled snapshot refresh (ADR-094) | iterate | change | FR-01.03 | 786/786 | 134a2e2 | 2026-05-12 |
-| Iterate G — Claude TUI flicker env + Resume button gating (ADR-095) | iterate-G | fix |  | 1707/1707 | 5807eb0 | 2026-05-13 |
+| Iterate G — Claude TUI flicker env + Resume button gating (ADR-095) | iterate-G | bug |  | 1707/1707 | 5807eb0 | 2026-05-13 |
 | Iterate H — Snapshot preservation on pty death + TaskCard Resume gating (ADR-096) | iterate | bug | FR-01.28, FR-01.11 | 1717/1717 | 17d75c9 | 2026-05-13 |
-| Restore CLAUDE_CODE_NO_FLICKER=1 default (ADR-098 - Iterate J) | iterate-runner | fix |  | 1720/1720 | 8be8937 | 2026-05-13 |
+| Restore CLAUDE_CODE_NO_FLICKER=1 default (ADR-098 - Iterate J) | iterate-runner | bug |  | 1720/1720 | 8be8937 | 2026-05-13 |
 | leadwright Phase 1 ExternalTask extension (13 optional fields) | iterate | feature | FR-01.01, FR-01.08, FR-01.10 +1 | 1780/1780 | c70f848 | 2026-05-14 |
-| server-side ?1006h re-emit in replay-snapshot envelope (Iterate K) | iterate-K-retro | fix |  | — | 814620c | 2026-05-14 |
-| Iterate K v1: 30s periodic clearTextureAtlas + onScroll | iterate-K-retro | fix |  | — | bd9e3ea | 2026-05-14 |
-| Iterate K v2: 10s periodic + term.refresh() after clear | iterate-K-retro | fix |  | — | 4e8f938 | 2026-05-14 |
-| Iterate K v3: conditional via onWriteParsed counter (skip when idle) | iterate-K-retro | fix |  | — | f0ce31a | 2026-05-14 |
-| Iterate K v4: skip atlas-clear in alt-screen buffer | iterate-K-retro | fix |  | — | bf7b05f | 2026-05-14 |
-| Iterate K v5: split main = clear+refresh, alt = refresh-only | iterate-K-retro | fix |  | — | e9aa804 | 2026-05-14 |
-| Iterate K v6: burst-after-2s-quiet trigger via onWriteParsed | iterate-K-retro | fix |  | — | 104435b | 2026-05-14 |
-| Iterate K Vite WS proxy: swallow ECONNRESET/ECONNABORTED/EPIPE | iterate-K-retro | fix |  | — | 05724ca | 2026-05-14 |
+| server-side ?1006h re-emit in replay-snapshot envelope (Iterate K) | iterate-K-retro | bug |  | — | 814620c | 2026-05-14 |
+| Iterate K v1: 30s periodic clearTextureAtlas + onScroll | iterate-K-retro | bug |  | — | bd9e3ea | 2026-05-14 |
+| Iterate K v2: 10s periodic + term.refresh() after clear | iterate-K-retro | bug |  | — | 4e8f938 | 2026-05-14 |
+| Iterate K v3: conditional via onWriteParsed counter (skip when idle) | iterate-K-retro | bug |  | — | f0ce31a | 2026-05-14 |
+| Iterate K v4: skip atlas-clear in alt-screen buffer | iterate-K-retro | bug |  | — | bf7b05f | 2026-05-14 |
+| Iterate K v5: split main = clear+refresh, alt = refresh-only | iterate-K-retro | bug |  | — | e9aa804 | 2026-05-14 |
+| Iterate K v6: burst-after-2s-quiet trigger via onWriteParsed | iterate-K-retro | bug |  | — | 104435b | 2026-05-14 |
+| Iterate K Vite WS proxy: swallow ECONNRESET/ECONNABORTED/EPIPE | iterate-K-retro | bug |  | — | 05724ca | 2026-05-14 |
 | Iterate K cherry-pick: D-e2e task-type matrix | iterate-K-retro | test |  | — | 84c014c | 2026-05-14 |
-| Iterate K v7: pre-init lastWriteTime + post-mount-settle backstop | iterate-K-retro | fix |  | — | e01bae9 | 2026-05-14 |
-| Iterate K v8: DOM wheel listener (Tabby pattern) + 10-scenario systematic Playwright probe | iterate-K-retro | fix |  | — | f07a66d | 2026-05-14 |
+| Iterate K v7: pre-init lastWriteTime + post-mount-settle backstop | iterate-K-retro | bug |  | — | e01bae9 | 2026-05-14 |
+| Iterate K v8: DOM wheel listener (Tabby pattern) + 10-scenario systematic Playwright probe | iterate-K-retro | bug |  | — | f07a66d | 2026-05-14 |
 | Iterate K: ?atlasMaintenance=off kill switch + A/B regression probes (stills + video) | iterate-K-retro | chore |  | — | d67ada6 | 2026-05-14 |
-| Iterate K v9: post-launch-settle backstop (4s after consumeLaunch) for Resume-click-in-long-mounted-tab | iterate-K-retro | fix |  | — | 44102aa | 2026-05-14 |
+| Iterate K v9: post-launch-settle backstop (4s after consumeLaunch) for Resume-click-in-long-mounted-tab | iterate-K-retro | bug |  | — | 44102aa | 2026-05-14 |
 | Merge PR #14: Iterate K v1-v9 (xterm.js 6.0 atlas-corruption workaround) | iterate-K-merge-retro | merge |  | — | 3b8bc0d | 2026-05-14 |
-| Iterate M (Resume CTA active-state followup) + ADR-099 v10 (post-replay maintenance) | iterate-M-retro | fix |  | — | 28daae1 | 2026-05-15 |
+| Iterate M (Resume CTA active-state followup) + ADR-099 v10 (post-replay maintenance) | iterate-M-retro | bug |  | — | 28daae1 | 2026-05-15 |
 | Merge pull request #17 from svenroth-ai/iterate/triage-tab | backfill-merge-retro | merge |  | — | bfc15d8 | 2026-05-15 |
 | Merge pull request #16 from svenroth-ai/iterate/post-merge-resume-gate-and-replay-smear | backfill-merge-retro | merge |  | — | adcbec5 | 2026-05-15 |
 | docs(readme): add Triage tab section (FR-01.30, ADR-101) | backfill-retro | docs |  | — | 07812ad | 2026-05-15 |
@@ -113,11 +113,11 @@ Generated: 2026-06-16T21:08:53.388898+00:00
 | docs(client): drop stale "nothing copies" from Save-to-Backlog tooltip | backfill-retro | docs |  | — | ca10944 | 2026-05-14 |
 | docs(guide): align launch flow to embedded-terminal auto-execute | backfill-retro | docs |  | — | 6c9937f | 2026-05-14 |
 | Merge pull request #12 from svenroth-ai/iterate/codex-rescue-altscreen-rendering | backfill-merge-retro | merge |  | — | 0626706 | 2026-05-14 |
-| fix(terminal): WebGL load-order + rescaleOverlappingGlyphs (ADR-099) | backfill-retro | fix |  | — | cd6b9f7 | 2026-05-14 |
+| fix(terminal): WebGL load-order + rescaleOverlappingGlyphs (ADR-099) | backfill-retro | bug |  | — | cd6b9f7 | 2026-05-14 |
 | Merge pull request #11 from svenroth-ai/iterate/resume-cta-active-state | backfill-merge-retro | merge |  | — | 460f341 | 2026-05-14 |
 | feat(server,client): introduce altScreenActive — hide Resume while TUI is foregrounded | backfill-retro | feature | FR-01.28 | — | 56b3b8a | 2026-05-14 |
-| fix(server): refine new-plain Resume gate — emit --resume when JSONL exists | backfill-retro | fix |  | — | 9d1167e | 2026-05-14 |
-| fix(client): drop liveSession gating — Resume CTA always shows on idle/active | backfill-retro | fix |  | — | 0173d43 | 2026-05-14 |
+| fix(server): refine new-plain Resume gate — emit --resume when JSONL exists | backfill-retro | bug |  | — | 9d1167e | 2026-05-14 |
+| fix(client): drop liveSession gating — Resume CTA always shows on idle/active | backfill-retro | bug |  | — | 0173d43 | 2026-05-14 |
 | feat(client): surface Resume CTA on state=active when pty is gone | backfill-retro | feature | FR-01.28 | — | 1525efd | 2026-05-14 |
 | Merge iterate/headless-J-restore-no-flicker-default (ADR-098 — restore NO_FLICKER default after empirical Claude #37283 finding) | backfill-merge-retro | merge |  | — | 79dd375 | 2026-05-13 |
 | Merge iterate/refresh-newissue-tooltips — NewIssueModal copy aligned to auto-execute embedded-terminal flow (ADR-068-A1) | backfill-merge-retro | merge |  | — | 658fcb9 | 2026-05-13 |
@@ -130,8 +130,8 @@ Generated: 2026-06-16T21:08:53.388898+00:00
 | Merge iterate/headless-F-xterm-config-vorbild-align (ADR-093 — xterm.js Vorbild-Alignment for in-session status-pane stacking fix) | backfill-merge-retro | merge |  | — | d2e4603 | 2026-05-13 |
 | Merge iterate/headless-E-live-pty-snapshot-fix (ADR-092 — closes ADR-091 live-pty replay regression) | backfill-merge-retro | merge |  | — | d1c3898 | 2026-05-12 |
 | docs(server,test): sweep stale disk-first comment + tighten cursor axis assertion (E code-review follow-up) | backfill-retro | docs |  | — | 54ee271 | 2026-05-12 |
-| fix(server): live-pty replay via serialize-on-attach + snapshot-on-detach (ADR-092) | backfill-retro | fix |  | — | c2d99f1 | 2026-05-12 |
-| fix(server): mark @xterm/headless fixture as binary; pin LF-normalized size | backfill-retro | fix |  | — | b369819 | 2026-05-12 |
+| fix(server): live-pty replay via serialize-on-attach + snapshot-on-detach (ADR-092) | backfill-retro | bug |  | — | c2d99f1 | 2026-05-12 |
+| fix(server): mark @xterm/headless fixture as binary; pin LF-normalized size | backfill-retro | bug |  | — | b369819 | 2026-05-12 |
 | Merge iterate/headless-C-retire-compensations (ADR-087 — campaign headless-terminal-refactor C; supersedes ADR-069/077/079/086) | backfill-merge-retro | merge |  | — | 8a56e3e | 2026-05-12 |
 | Merge iterate/headless-B-snapshot-protocol (ADR-089 — campaign headless-terminal-refactor B) | backfill-merge-retro | merge |  | — | 023e1c2 | 2026-05-12 |
 | Merge iterate/headless-A-mirror-flag (ADR-088 — campaign headless-terminal-refactor A) | backfill-merge-retro | merge |  | — | e3ec347 | 2026-05-12 |
@@ -148,11 +148,11 @@ Generated: 2026-06-16T21:08:53.388898+00:00
 | Merge pull request #9 from svenroth-ai/chore/scaffold-security-and-claude-review-workflows | backfill-merge-retro | merge |  | — | 039b4cf | 2026-05-11 |
 | chore(workflows): drop dormant security + claude-review workflows from monorepo templates | backfill-retro | chore |  | — | 73a34e4 | 2026-05-11 |
 | Merge iterate/v0.9.1-tailscale-ws-real-browser-fix | backfill-merge-retro | merge |  | — | 89011df | 2026-05-11 |
-| fix(server,test): wire boot-time Trusted-Origin policy into WS upgrade gate (ADR-083) | backfill-retro | fix |  | — | 660fd0d | 2026-05-11 |
+| fix(server,test): wire boot-time Trusted-Origin policy into WS upgrade gate (ADR-083) | backfill-retro | bug |  | — | 660fd0d | 2026-05-11 |
 | Merge pull request #8 from svenroth-ai/fix/cli-compat-cross-platform-path | backfill-merge-retro | merge |  | — | daa9c4f | 2026-05-11 |
-| fix(cli-compat): use platform-aware path module in selfHealClaudePath | backfill-retro | fix |  | — | bdbc12d | 2026-05-11 |
-| fix(server): wire SHIPWRIGHT_NETWORK_PROFILE into Trusted-Origin policy | backfill-retro | fix |  | — | f852a36 | 2026-05-10 |
-| fix(client): accept MagicDNS hostnames in Vite allowedHosts for tailscale profile | backfill-retro | fix |  | — | 5528ae2 | 2026-05-10 |
+| fix(cli-compat): use platform-aware path module in selfHealClaudePath | backfill-retro | bug |  | — | bdbc12d | 2026-05-11 |
+| fix(server): wire SHIPWRIGHT_NETWORK_PROFILE into Trusted-Origin policy | backfill-retro | bug |  | — | f852a36 | 2026-05-10 |
+| fix(client): accept MagicDNS hostnames in Vite allowedHosts for tailscale profile | backfill-retro | bug |  | — | 5528ae2 | 2026-05-10 |
 | docs(guide): document SHIPWRIGHT_NETWORK_PROFILE + .env.local workflow | backfill-retro | docs |  | — | 78b7fbe | 2026-05-10 |
 | triage-card-styling — white-surface cards + wizard-matched dialogs | iterate | change | FR-01.30 | 855/855 | 5e94742 | 2026-05-15 |
 | close-task-redirect — Close task in TaskDetail header now redirects to the task board | iterate | bug | FR-01.15 | 857/857 | bf6db41 | 2026-05-15 |
@@ -201,8 +201,8 @@ Generated: 2026-06-16T21:08:53.388898+00:00
 | chore(launch-prep): publish .shipwright/ SDLC documentation | iterate | change |  | — | 2265e39 | 2026-05-23 |
 | doc-sync meta-test follows Phase 0f file-map move | iterate | bug |  | 1066/1066 | bde108f | 2026-05-23 |
 | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | iterate | change |  | — | 5e086aa | 2026-05-23 |
-| Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | iterate | Verify CLAUDE.md is already <= 300 LOC and not in bloat baseline; document Phase-0f organic outcome. |  | 22/22 | b1e66f4 | 2026-05-25 |
-| evt-956e1c71 | iterate | Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 |  | 14/14 | 247325b | 2026-05-25 |
+| Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | iterate | change |  | 22/22 | b1e66f4 | 2026-05-25 |
+| evt-956e1c71 | iterate | change |  | 14/14 | 247325b | 2026-05-25 |
 | iterate finalization | iterate | change |  | — | — | 2026-05-25 |
 | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | iterate | change |  | — | 2cd7aa3 | 2026-05-26 |
 | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | iterate | change |  | 1124/1124 | f98fbf6 | 2026-05-26 |
