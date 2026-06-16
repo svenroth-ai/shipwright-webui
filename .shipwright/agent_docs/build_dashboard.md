@@ -1,5 +1,5 @@
 # Project Activity Dashboard
-> Updated: 2026-06-16 21:08 UTC | Session: 7ef0417b-a411-467a-af01-60dfabb778c8 | Run: iterate-2026-06-16-fix-editor-html-link-corruption
+> Updated: 2026-06-16 21:08 UTC | Session: 3ffdae52-8dd2-42c0-9f28-a96ee998ff66
 
 ## Recent Changes (161 iterations)
 
@@ -85,8 +85,8 @@
 | change | Split NewIssueModal.tsx (1516 LOC) into NewIssueModal/ directory with dispatcher + ModalShell + 5 mode-specific body components + shared useNewIssueForm hook (3 slices). Both bloat baseline entries removed. | 1124/1124 | f98fbf6 | tooling | 2026-05-26 |
 | change | Campaign C / C6 — Split TaskDetailHeader.tsx (1015 LOC) into 222-LOC shell + 7 sub-components. | 0/0 | 2cd7aa3 | tooling | 2026-05-26 |
 | change | iterate finalization | 0/0 |  |  | 2026-05-25 |
-| Accept pty-manager.ts as deep module; flip baseline entry from grandfathered to exception with ADR-101 | — | +14 new, 14/14 | 247325b | compliance | 2026-05-25 |
-| Verify CLAUDE.md is already <= 300 LOC and not in bloat baseline; document Phase-0f organic outcome. | Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | +2 new, 22/22 | b1e66f4 | docs | 2026-05-25 |
+| change | — | +14 new, 14/14 | 247325b | compliance | 2026-05-25 |
+| change | Sub-iterate C1 (verification) of Campaign 2026-05-25-bloat-cleanup-C-webui. CLAUDE.md is 197 LOC on origin/main and not in shipwright_bloat_baseline.json — Phase 0f compliance-hygiene cleanup (PR #55, commit f4d52fd) organically delivered the target. Reframed C1 as Verification Iterate: pytest probe (2 assertions) + ADR-100 + existing client doc-sync vitest guard (20 cases). No edit to CLAUDE.md. | +2 new, 22/22 | b1e66f4 | docs | 2026-05-25 |
 | change | Backfill 14 work_completed events for chore/docs commits between v0.14.0 and v0.16.0 that bypassed the iterate flow | 0/0 | 5e086aa | compliance | 2026-05-23 |
 | bug | doc-sync meta-test follows Phase 0f file-map move | 1066/1066 | bde108f | tooling | 2026-05-23 |
 | change | chore(launch-prep): publish .shipwright/ SDLC documentation | 0/0 | 2265e39 | docs | 2026-05-23 |
