@@ -4,11 +4,11 @@ Vendored VERBATIM from the canonical shipwright monorepo. The WebUI has no
 Python ``shared/``/``plugins/`` tree on the CI runner, so the reviewer lives
 in-repo (same convention as ``scripts/hooks/anti_ratchet_check.py``).
 
-# canonical-source-hash: 27a7a724cc93fadbe3a7d2ff9d4085364f370abdd93bdfffeab98c7ab612f6a6
+# canonical-source-hash: 5d18dcc569ae76bbd78c0b981fb67c1f09b73d203f727694428a1e7a27bab82f
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-paths:
 #   plugins/shipwright-security/scripts/lib/pr_review_lib.py
-# canonical-source-version: iterate-2026-06-12-automerge-pr-review-alignment
+# canonical-source-version: iterate-2026-06-17-pr-review-truncation-failclosed
 # adaptation: none — body is byte-identical to canonical (the hash above
 #   covers the canonical file's bytes, not this docstring header).
 
@@ -25,8 +25,10 @@ import json
 from pathlib import Path
 
 # A diff larger than this is reviewed on a truncated copy. A truncated (partial)
-# review must NOT auto-BLOCK (we never saw the whole change) — it downgrades to
-# comment-state + a warning + exit 0 so a human notices. See B4.5 error-behavior.
+# review FAILS CLOSED (we never saw the whole change): for a required gate on an
+# untrusted PR the reviewer forces a request-changes state + non-zero exit (needs
+# human) so a large diff cannot bypass review by size. See B4.5 error-behavior +
+# iterate-2026-06-17-pr-review-truncation-failclosed (was: comment-state + exit 0).
 MAX_DIFF_CHARS = 200_000
 
 EXIT_OK = 0
@@ -155,8 +157,9 @@ def render_comment(review: dict, *, model: str, truncated: bool) -> str:
     if truncated:
         lines += [
             f"> ⚠️ **Diff truncated** at {MAX_DIFF_CHARS:,} characters — this review is "
-            "**partial**. The check is not auto-blocking; a human review is recommended "
-            "before merge.",
+            "**partial**, so the check **fails closed**: a human must review this PR "
+            "before merge (a maintainer can apply the `skip-pr-review` label after a "
+            "manual look).",
             "",
         ]
     blocking = [b for b in (review.get("blocking") or []) if str(b).strip()]

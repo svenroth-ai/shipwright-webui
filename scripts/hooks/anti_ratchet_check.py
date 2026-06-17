@@ -6,17 +6,19 @@ Vendored from the canonical shipwright implementation at
 ``shared/scripts/lib/anti_ratchet.py``. The webui has no Python
 ``shared/`` tree, so this single file packs the reader + the rule.
 
-# canonical-source-hash: 99020b73f7f5f8ca8b5540ead53ddf78b9cd86f9184ede0ddfbd00a21b2318b1
+# canonical-source-hash: 18cf79f018e44ea9917cc40aff497c3093161c3241002329db7d5a76057a3dbe
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-paths:
 #   shared/scripts/lib/anti_ratchet.py
 #   shared/scripts/hooks/anti_ratchet_check.py
-# canonical-source-version: iterate-2026-05-25-bloat-defense
+# canonical-source-version: iterate-2026-06-17-anti-ratchet-corrupt-failclosed
+# canonical-source-hash = sha256(anti_ratchet.py || anti_ratchet_check.py)
 
 Block rule (state-agnostic): for every entry in
 ``shipwright_bloat_baseline.json``, if measured-LOC > entry.current
-→ exit 1. New crossings outside the baseline are advisory. Missing
-or malformed baseline → fail-open exit 0.
+→ exit 1. New crossings outside the baseline are advisory. An ABSENT
+baseline → fail-open exit 0; a PRESENT-but-malformed baseline →
+fail-closed exit 1 (a corrupt baseline must not silently disable the gate).
 
 Iron-Law block body adapted from ``obra/superpowers``
 verification-before-completion (MIT, © Jesse Vincent).
@@ -193,6 +195,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     doc = _load_baseline(baseline_path)
     if doc is None:
+        # A PRESENT-but-unreadable/malformed/wrong-shape baseline must NOT
+        # silently disable the gate: fail-open here would let a real ratchet
+        # sail through under a broken baseline. Fail CLOSED. A genuinely ABSENT
+        # baseline (fresh repo) still fails open.
+        if baseline_path.is_file():
+            print(
+                f"anti_ratchet_check: baseline at {baseline_path} exists but is "
+                "unreadable or malformed — failing closed (a corrupt baseline must "
+                "not disable the gate). Fix or regenerate it.",
+                file=sys.stderr,
+            )
+            if args.json:
+                print(json.dumps(
+                    {"status": "error", "reason": "malformed-baseline", "ratchets": []}
+                ))
+            return 1
         print(
             f"anti_ratchet_check: baseline not found at {baseline_path} "
             "— skipping check (fail-open)",

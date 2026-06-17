@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-17T06:55:51.831073+00:00
+Generated: 2026-06-17T14:03:41.544750+00:00
 
 ## Requirements Coverage
 
@@ -285,6 +285,7 @@ Generated: 2026-06-17T06:55:51.831073+00:00
 | editor HTML link corruption on save (FR-01.34) | iterate | bug | FR-01.34 | 1700/1700 | — | 2026-06-16 |
 | launch-prep PII scrub & repo hygiene | iterate | change |  | — | — | 2026-06-17 |
 | launch-prep README Beta badge, issue templates & tooling | iterate | change |  | — | — | 2026-06-17 |
+| sync vendored gate copies to monorepo fail-closed fixes | iterate | change |  | 75/75 | — | 2026-06-17 |
 
 ## Coverage Summary
 
@@ -292,7 +293,7 @@ Generated: 2026-06-17T06:55:51.831073+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 163 |
+| Iterate changes | 164 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |

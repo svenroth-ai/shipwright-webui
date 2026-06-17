@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-17T06:55:51.831073+00:00
-Total commits: 573
+Generated: 2026-06-17T14:03:41.544750+00:00
+Total commits: 575
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 573
 pie title Commit Types
     "fix" : 208
     "feat" : 143
-    "chore" : 114
+    "chore" : 116
     "docs" : 55
     "refactor" : 25
     "test" : 18
@@ -24,55 +24,55 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-17 | compliance | refresh artifacts for upstream rendering fixes (#153) | f42abf568697 |
-| 2026-06-16 | editor | preserve inline HTML links on save (FR-01.34) (#152) | 7d0312b528ac |
-| 2026-06-15 | terminal | touch-scroll replicates the mouse wheel so finger-pan scrolls Claude's TUI instead of cycling input history (ADR-133) (#151) | aff5119354c8 |
-| 2026-06-15 | terminal | faithful replay on narrow read-only re-attach — resize to snapshot dims before write (FR-01.28) (#150) | 855191e895ac |
-| 2026-06-15 | responsive | phone header polish — content-width top-bar dropdown + flat "+ New" drill-down (FR-01.41 follow-up) (#149) | 7f5e13758532 |
-| 2026-06-15 | terminal | trailing repaint after reflow so Claude's input box doesn't break (FR-01.28) (#147) | a326305db4fd |
-| 2026-06-14 | terminal | repaint embedded terminal on window focus / visibility regain (FR-01.28) (#146) | 1da0b6ae1207 |
-| 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) (#145) | 085d6057e774 |
-| 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | 64f97e96f250 |
-| 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 77ef6847ff9a |
-| 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | eae591e882e5 |
-| 2026-06-14 | terminal | strip child-session env so embedded claude writes its transcript (#135) | 9b1ed5ed8830 |
-| 2026-06-13 | compliance | correct stale .webui/ path in live spec + regen RTM (#134) | f8b0506d3653 |
-| 2026-06-13 | compliance | reconcile post-v0.18.0 detective audit F5 (automerge convention drop) (#131) | a75a76229376 |
-| 2026-06-13 | board | flat campaign card + stop list-view right-cutoff (#130) | e10438cf14b9 |
-| 2026-06-12 | compliance | reconcile detective audit G2 + H1/H2 (bloat baseline + scope stoplist) (#129) | e2a6af2dc74d |
-| 2026-06-12 | compliance | reconcile post-v0.18.0 detective audit (B7 backfill + G2 scopes) (#127) | 0ab35626a0d6 |
-| 2026-06-12 | triage | route idle-main status flips to the outbox (mirror mark_status) (#124) | 820210949f5b |
-| 2026-06-09 | terminal | force full-viewport WebGL repaint on scroll to kill table smear | 1bed8a83ba41 |
-| 2026-06-09 | campaigns | show live per-step in_progress on the board from loop_state.json | 28c7559a47d5 |
-| 2026-06-08 | triage | union tracked ∪ outbox in the webui reader + residence-derived status writes | a7ef0419ca2d |
-| 2026-06-08 | campaigns | guard against double-launching an autonomous run | aa88b4f117b4 |
-| 2026-06-08 | terminal | force full-viewport repaint after replay-drain settle | 4895bcd2b8f8 |
-| 2026-06-07 | compliance | opt into A5.6 Phase B (a5_phase_b_activated) to clear false-positive | 9bed675a61ec |
-| 2026-06-07 | terminal | touch-scroll routes by xterm buffer type (ADR-132) | 192fa2eb66e2 |
-| 2026-06-05 | campaigns | hide done==total campaigns from the lane (FR-01.33) | 5bf5d571671d |
-| 2026-06-05 | compliance | webui audit data/config reconcile — G2 scopes + event FR links (C4) | f8b63cbbe8d6 |
-| 2026-06-04 | campaigns | parse Sub-Iterates table by header + strip MD emphasis | 7a0802d03b17 |
-| 2026-06-04 | security | remediate vitest CVE-2026-47429 (CVSS 9.8) + vitest 4 test compat | 7187f28f8948 |
-| 2026-06-04 | ci | gate server type-check and correct the security critical-findings gate | 9d096a167308 |
-| 2026-06-03 | smartviewer | preserve frontmatter + line endings in markdown editor round-trip | 89f84afe5db3 |
-| 2026-06-03 | media | harden Range stream errors + cover start>end 416 (external review) | 21d1f6842b51 |
-| 2026-06-02 | terminal | gate idle-ceiling on client attachment to stop resume data-loss | 47f74501b5dc |
-| 2026-05-31 | taskboard | wire Re-open into TaskCard + repair tests & E2E | 1dc588591d42 |
-| 2026-05-31 | terminal | reap stale WS writer slot via ping/pong liveness keepalive | dc7f23d33301 |
-| 2026-05-29 | transcript | render mode/pr-link/stop-hook events + intent-based scroll detach | 7573e84a00cd |
-| 2026-05-29 | client | clear CTA label-reset timers on unmount (teardown-leak flake) | 525fd1f2a597 |
-| 2026-05-27 | webui | phase pill no longer derives Build from "Fix"-titled iterates | ce60cf78e94e |
-| 2026-05-27 | terminal | trim routes.ts comment 1 LOC to land at exact baseline | 9bf3426a3d6e |
-| 2026-05-27 | terminal | refine ready.ptyReused to hadPriorWriter (atomic snapshot) | ff6a6d254722 |
-| 2026-05-26 | adr | renumber ADR-124 → ADR-126 + remove stray conflict marker | bb8ff0864d0f |
-| 2026-05-25 | client/terminal | one-finger pan-to-scroll on touchscreens | 4a2138f91481 |
-| 2026-05-25 | server/external | tree route honours .gitignore directory-form negations | 5c7f53955e36 |
-| 2026-05-23 | test | retarget doc-sync to follow Phase 0f file-map move | bde108f83300 |
-| 2026-05-23 | terminal | refit + refresh on tab activation (render-broken repair) | 207f5c362f5e |
-| 2026-05-22 | compliance | G2 stoplist + regen artifacts (bloat from C.2 detector rollout) | 5c89262cf08f |
-| 2026-05-22 | server | SPA fallback to client/dist/index.html for non-/api GETs | 55d0288bdde4 |
-| 2026-05-21 | terminal | stop replay-only WS reconnect loop on closed tasks | 501d3ac008fc |
-| 2026-05-22 | triage | Fix-now pre-selects the triage item's project in NewIssueModal | 32b7320f6208 |
+| 2026-06-17 | compliance | refresh artifacts for upstream rendering fixes (#153) | 237b5009891c |
+| 2026-06-16 | editor | preserve inline HTML links on save (FR-01.34) (#152) | 9b40a50fbbc0 |
+| 2026-06-15 | terminal | touch-scroll replicates the mouse wheel so finger-pan scrolls Claude's TUI instead of cycling input history (ADR-133) (#151) | aafba3ea3f98 |
+| 2026-06-15 | terminal | faithful replay on narrow read-only re-attach — resize to snapshot dims before write (FR-01.28) (#150) | 9352d5744585 |
+| 2026-06-15 | responsive | phone header polish — content-width top-bar dropdown + flat "+ New" drill-down (FR-01.41 follow-up) (#149) | d36dac7df5f1 |
+| 2026-06-15 | terminal | trailing repaint after reflow so Claude's input box doesn't break (FR-01.28) (#147) | a46b28e7c674 |
+| 2026-06-14 | terminal | repaint embedded terminal on window focus / visibility regain (FR-01.28) (#146) | 0e4953531d86 |
+| 2026-06-14 | responsive | tablet-view polish — collapsible rail, bottom safe-area, greedy list title, terminal touch-scroll (FR-01.38) (#145) | c43b16d999dc |
+| 2026-06-14 | compliance | reconcile detective-audit D3/G2/H1 (responsive iterates) (#142) | c129493663b4 |
+| 2026-06-14 | deploy | self-heal ~/.claude.json at deploy END, not only at Step 0 (#141) | 46722a9ebc4a |
+| 2026-06-14 | deploy | self-heal corrupt ~/.claude.json before production restart (#136) | b94445f25231 |
+| 2026-06-14 | terminal | strip child-session env so embedded claude writes its transcript (#135) | d2dc75812f3f |
+| 2026-06-13 | compliance | correct stale .webui/ path in live spec + regen RTM (#134) | f6c8635baa05 |
+| 2026-06-13 | compliance | reconcile post-v0.18.0 detective audit F5 (automerge convention drop) (#131) | 2a3ca37e4008 |
+| 2026-06-13 | board | flat campaign card + stop list-view right-cutoff (#130) | 6856ced58765 |
+| 2026-06-12 | compliance | reconcile detective audit G2 + H1/H2 (bloat baseline + scope stoplist) (#129) | 7a74ecfbf847 |
+| 2026-06-12 | compliance | reconcile post-v0.18.0 detective audit (B7 backfill + G2 scopes) (#127) | f8c13555bf1f |
+| 2026-06-12 | triage | route idle-main status flips to the outbox (mirror mark_status) (#124) | 105c92f78b21 |
+| 2026-06-09 | terminal | force full-viewport WebGL repaint on scroll to kill table smear | 80226621ea50 |
+| 2026-06-09 | campaigns | show live per-step in_progress on the board from loop_state.json | 24284c0d3486 |
+| 2026-06-08 | triage | union tracked ∪ outbox in the webui reader + residence-derived status writes | 9b49fe02af68 |
+| 2026-06-08 | campaigns | guard against double-launching an autonomous run | f838b2cbb6ce |
+| 2026-06-08 | terminal | force full-viewport repaint after replay-drain settle | 5d09bda8afe8 |
+| 2026-06-07 | compliance | opt into A5.6 Phase B (a5_phase_b_activated) to clear false-positive | 9e47efa7d6c9 |
+| 2026-06-07 | terminal | touch-scroll routes by xterm buffer type (ADR-132) | 22701a8f9a6d |
+| 2026-06-05 | campaigns | hide done==total campaigns from the lane (FR-01.33) | bbb353dfb632 |
+| 2026-06-05 | compliance | webui audit data/config reconcile — G2 scopes + event FR links (C4) | 835aa4a35f7d |
+| 2026-06-04 | campaigns | parse Sub-Iterates table by header + strip MD emphasis | 8ed2bd61e705 |
+| 2026-06-04 | security | remediate vitest CVE-2026-47429 (CVSS 9.8) + vitest 4 test compat | fbce02a39b02 |
+| 2026-06-04 | ci | gate server type-check and correct the security critical-findings gate | 55f9fbb5a724 |
+| 2026-06-03 | smartviewer | preserve frontmatter + line endings in markdown editor round-trip | e7e0b5fd1b24 |
+| 2026-06-03 | media | harden Range stream errors + cover start>end 416 (external review) | c9715d40d317 |
+| 2026-06-02 | terminal | gate idle-ceiling on client attachment to stop resume data-loss | db3cfa1a9269 |
+| 2026-05-31 | taskboard | wire Re-open into TaskCard + repair tests & E2E | b2a3a9c789eb |
+| 2026-05-31 | terminal | reap stale WS writer slot via ping/pong liveness keepalive | 17b5a93325d6 |
+| 2026-05-29 | transcript | render mode/pr-link/stop-hook events + intent-based scroll detach | 0699fa9e4941 |
+| 2026-05-29 | client | clear CTA label-reset timers on unmount (teardown-leak flake) | 1f8fa44c7b3d |
+| 2026-05-27 | webui | phase pill no longer derives Build from "Fix"-titled iterates | 719a245af172 |
+| 2026-05-27 | terminal | trim routes.ts comment 1 LOC to land at exact baseline | 73452faadce9 |
+| 2026-05-27 | terminal | refine ready.ptyReused to hadPriorWriter (atomic snapshot) | 6e0ae5fa71c2 |
+| 2026-05-26 | adr | renumber ADR-124 → ADR-126 + remove stray conflict marker | e592b0cd0302 |
+| 2026-05-25 | client/terminal | one-finger pan-to-scroll on touchscreens | 6e3d32e5f2fb |
+| 2026-05-25 | server/external | tree route honours .gitignore directory-form negations | ffbdcdea0c9a |
+| 2026-05-23 | test | retarget doc-sync to follow Phase 0f file-map move | 261f6384e2e8 |
+| 2026-05-23 | terminal | refit + refresh on tab activation (render-broken repair) | 75f09ce514cc |
+| 2026-05-22 | compliance | G2 stoplist + regen artifacts (bloat from C.2 detector rollout) | abeed8833b4c |
+| 2026-05-22 | server | SPA fallback to client/dist/index.html for non-/api GETs | ae4858b26a09 |
+| 2026-05-21 | terminal | stop replay-only WS reconnect loop on closed tasks | fea19583a954 |
+| 2026-05-22 | triage | Fix-now pre-selects the triage item's project in NewIssueModal | 4fbfe359b2fc |
 | 2026-05-19 | inbox | tighten card-internal top padding | e87f55812886 |
 | 2026-05-19 | triage | assign new-iterate actionId on promote so launch injects the brief | 6e6d24a58cf3 |
 | 2026-05-19 | launch | flatten newlines in task descriptions instead of rejecting them | da9e63b403a1 |
@@ -237,34 +237,34 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | af0bb62ab392 |
-| 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 732a1a8464c7 |
-| 2026-06-14 | responsive | phone view (<768px) — sidebar drawer, on-screen terminal key bar, table/modal reflow, iOS safe-area (FR-01.39) (#140) | 74175ba33722 |
-| 2026-06-14 | responsive | tablet view (≤1023px) — rail sidebar, board swipe carousel, compact task-detail tabs (FR-01.38) (#139) | d30d8a797d50 |
-| 2026-06-12 | campaigns | manual dismiss/restore for board cards (FR-01.33) (#126) | ae2711075e9d |
-| 2026-06-11 | actions | custom-action slash_command fuses description into launch prompt | 242c74c8035e |
-| 2026-06-11 | campaigns | project board status from tracked events.jsonl (FR-01.33) | baf6b1593749 |
-| 2026-06-10 | triage | pending-delivery badge for outbox-only items (FR-01.30, parity-gated vs triage_cli --json) | fcdcc45398ac |
-| 2026-06-04 | campaigns | one-click Launch (Cx) for a single campaign sub-iterate | bb574a38f222 |
-| 2026-06-04 | smartviewer | add formatting toolbar to the markdown editor | 891c8c1dad3f |
-| 2026-06-03 | triage | Start Campaign action — draft→active + board nav (FR-01.33, ADR-148) | 3def014bdd53 |
-| 2026-06-03 | board | autonomous campaign launch action on the Campaigns lane (FR-01.34) | c5dafde3f826 |
-| 2026-06-03 | smartviewer | in-app Markdown rich editor + first project-file write surface (FR-01.34) | 6768c20ab379 |
-| 2026-06-03 | smartviewer | inline video playback via Range-streaming /media route | df311d4f9ca7 |
-| 2026-06-03 | board | filter Campaigns lane on producer-owned lifecycle status (FR-01.33) | 2e85ab8fd75d |
-| 2026-06-03 | board | collapsible campaign cards + height-capped lane (FR-01.33) | 4ff2c34df333 |
-| 2026-06-02 | board | project-first create-menu cascade in All-Projects view | 3fea36809853 |
-| 2026-06-02 | board | read-only Campaigns lane on the Task Board (FR-01.33) | 26ea50661360 |
-| 2026-05-31 | taskboard | add Re-open to the TaskDetailHeader menu (symmetry with Move to Backlog) | ac5c05353d63 |
-| 2026-05-31 | taskboard | re-open a done task back to the Backlog | 0e5ff048c145 |
-| 2026-05-31 | — | open SmartViewer pop-out in a centered in-app modal | 8875546c4489 |
-| 2026-05-30 | smartviewer | in-pane cross-file doc-link navigation (AC8) | 27bacb965e88 |
-| 2026-05-30 | smartviewer | document-grade markdown rendering + pop-out | a0ca9d318642 |
-| 2026-05-30 | transcript | show PR open/merged status badge + bubble-size PR cards | 22924332120a |
-| 2026-05-25 | bloat | Campaign A.defense twin — pre-commit + CI + baseline | 0ec7b54a6a16 |
-| 2026-05-23 | terminal | auto-focus xterm on tab activation | 14878fcf98fc |
-| 2026-05-23 | terminal | VS Code-aligned selection + copy-on-select + mouse-mode hint | 9e1559ba2dbb |
-| 2026-05-21 | triage | Fix-now opens NewIssueModal; namespace 4 phase slashes | aa1788c876ac |
+| 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | adc72bb082df |
+| 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 5d7f914e634d |
+| 2026-06-14 | responsive | phone view (<768px) — sidebar drawer, on-screen terminal key bar, table/modal reflow, iOS safe-area (FR-01.39) (#140) | bee6e174c0b1 |
+| 2026-06-14 | responsive | tablet view (≤1023px) — rail sidebar, board swipe carousel, compact task-detail tabs (FR-01.38) (#139) | e9dee2975c5a |
+| 2026-06-12 | campaigns | manual dismiss/restore for board cards (FR-01.33) (#126) | b64329dec8c4 |
+| 2026-06-11 | actions | custom-action slash_command fuses description into launch prompt | 6779d940f90b |
+| 2026-06-11 | campaigns | project board status from tracked events.jsonl (FR-01.33) | d456a80371b9 |
+| 2026-06-10 | triage | pending-delivery badge for outbox-only items (FR-01.30, parity-gated vs triage_cli --json) | 0d9cfbeb9ad3 |
+| 2026-06-04 | campaigns | one-click Launch (Cx) for a single campaign sub-iterate | ca5797bd7b5d |
+| 2026-06-04 | smartviewer | add formatting toolbar to the markdown editor | 750f0fb0c23f |
+| 2026-06-03 | triage | Start Campaign action — draft→active + board nav (FR-01.33, ADR-148) | 2a2dd784179a |
+| 2026-06-03 | board | autonomous campaign launch action on the Campaigns lane (FR-01.34) | 3c75911eed26 |
+| 2026-06-03 | smartviewer | in-app Markdown rich editor + first project-file write surface (FR-01.34) | c3ef2380dce4 |
+| 2026-06-03 | smartviewer | inline video playback via Range-streaming /media route | a7f658063394 |
+| 2026-06-03 | board | filter Campaigns lane on producer-owned lifecycle status (FR-01.33) | 26332ef12bcf |
+| 2026-06-03 | board | collapsible campaign cards + height-capped lane (FR-01.33) | 3fba27e1e239 |
+| 2026-06-02 | board | project-first create-menu cascade in All-Projects view | a927774846e0 |
+| 2026-06-02 | board | read-only Campaigns lane on the Task Board (FR-01.33) | f8e516683342 |
+| 2026-05-31 | taskboard | add Re-open to the TaskDetailHeader menu (symmetry with Move to Backlog) | 2e0161f4b4a9 |
+| 2026-05-31 | taskboard | re-open a done task back to the Backlog | 63d61c738a90 |
+| 2026-05-31 | — | open SmartViewer pop-out in a centered in-app modal | 33d83550332f |
+| 2026-05-30 | smartviewer | in-pane cross-file doc-link navigation (AC8) | b1bbb34cd079 |
+| 2026-05-30 | smartviewer | document-grade markdown rendering + pop-out | 1d091bec9c87 |
+| 2026-05-30 | transcript | show PR open/merged status badge + bubble-size PR cards | 21efb45f65b4 |
+| 2026-05-25 | bloat | Campaign A.defense twin — pre-commit + CI + baseline | 5f7d6b965457 |
+| 2026-05-23 | terminal | auto-focus xterm on tab activation | 3805e025b117 |
+| 2026-05-23 | terminal | VS Code-aligned selection + copy-on-select + mouse-mode hint | aefa9e39b069 |
+| 2026-05-21 | triage | Fix-now opens NewIssueModal; namespace 4 phase slashes | b9f975f66b37 |
 | 2026-05-20 | triage | render launchPayload + Fix-now copy CTA (iterate B) | 290263e9e694 |
 | 2026-05-19 | inbox | render markdown in text_question cards + fade-clip long bodies | ada164667377 |
 | 2026-05-19 | inbox | surface waiting terminal pickers + focus terminal on Inbox click | 44c191400745 |
@@ -381,69 +381,71 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 114 commits
+### Chores (chore) — 116 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4f00383ecdce |
-| 2026-06-15 | release | v0.19.0 | b771e8524ada |
-| 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
-| 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
-| 2026-06-11 | triage | sweep 3 outbox append(s) into branch | 28a30e730540 |
-| 2026-06-11 | gitignore | keep campaign planning dirs local-only | 2920fbed266e |
-| 2026-06-10 | triage | fold 2 main-tree background append(s) | 4a2bf49dbf92 |
-| 2026-06-10 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 2aa7f0dc4dc6 |
-| 2026-06-09 | triage | sweep 1 outbox append(s) into branch | 9babe88d5ce9 |
-| 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 3a442a463074 |
-| 2026-06-09 | triage | fold 6 main-tree background triage event(s) (post-rebase) | 32be8c52f19a |
-| 2026-06-08 | triage | fold 8 main-tree background append(s) | e2aaa5f62fa3 |
-| 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 2ee99f61676a |
-| 2026-06-08 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | c5841bb25ff7 |
-| 2026-06-08 | — | scaffold append-log union merge driver into .gitattributes (#115) | 998cf893b804 |
-| 2026-06-08 | triage | fold 7 main-tree background append(s) | d617652a05bc |
-| 2026-06-07 | triage | track .shipwright/triage.jsonl as git SSoT + GC machine-churn | fc65f31a8830 |
-| 2026-06-05 | compliance | backfill event-log for 10 event-less commits — close B7 (sub-iterate A) | 8014b0c63e40 |
-| 2026-06-04 | security | allowlist sidekiq-secret false positive (cafebabe:deadbeef) | 214815220320 |
-| 2026-06-03 | campaign | mark 2026-05-25-bloat-cleanup-C-webui complete (8/8) | 96824e6660f1 |
-| 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | e5f92193442c |
-| 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | 2a0b142bf13f |
-| 2026-06-02 | iterate | finalization artifacts for terminal-idle-attachment-gate | a657465f8bf9 |
-| 2026-05-31 | release | v0.17.0 ADR-aggregation sidecars + dashboards | da43aa4e0c10 |
-| 2026-05-31 | release | v0.17.0 | b5435325b946 |
-| 2026-05-31 | iterate | attach spec-commit SHA to work_completed event (F6.5) | 49fbbb32f7da |
-| 2026-05-31 | iterate | refresh session_handoff (finalization complete) | c477ca8309bb |
-| 2026-05-31 | iterate | canonical changelog drop filename (_001.md) | 76e9c5056a59 |
-| 2026-05-31 | iterate | rename test_completeness.summary -> counts for verifier | 471f62ee9c21 |
-| 2026-05-31 | iterate | finalization artifacts for reopen-done-task | 8470a2de5f9a |
-| 2026-05-31 | iterate | record work_completed event for reopen-done-task | dbf53b9daf08 |
-| 2026-05-29 | gitignore | ignore .shipwright/agent_docs/runtime/ (ADR-089 runtime/snapshot split) | f6e34a6fbf9c |
-| 2026-05-29 | events | backfill orphaned work_completed event for transcript-renderer-scroll | c11e911d9628 |
-| 2026-05-27 | events | record evt-18779597 for iterate-2026-05-27-fix-phase-pill-iterate-title-fallback | 68a896531ed0 |
-| 2026-05-27 | triage | dismiss trg-c00254ab — routes.ts 620 LOC ist kein Bloat | f0431802394a |
-| 2026-05-27 | bloat | ratchet TaskCard.tsx baseline.current down 609 -> 606 | db822c9147a9 |
-| 2026-05-27 | iterate | set adr field to run_id for F11 verifier | 07b5ec17c987 |
-| 2026-05-27 | triage | add trg-c00254ab follow-up for ADR-103 retirement remainder | 1dfb8b595f09 |
-| 2026-05-27 | — | dismiss trg-880260fc + backfill event log + dashboard regen | 87a9cc198bc7 |
-| 2026-05-26 | events | record evt-490d6b9f for iterate-2026-05-26-public-launch-hardening-webui | f88a4e8c7f00 |
-| 2026-05-26 | events | record evt-348e51b8 for iterate-2026-05-26-campaign-C-C4-new-issue-modal-split | 5ff5c3e4d6b8 |
-| 2026-05-27 | test-results | correct unit test count after final regression re-run | 5355e71105dc |
-| 2026-05-25 | events | record C8 work_completed event (evt-956e1c71) | 2159acd10e37 |
-| 2026-05-25 | bloat | accept pty-manager.ts as deep module, file ADR-101 | 247325bcd055 |
-| 2026-05-25 | events | record C1 work_completed event (evt-425538a1) | bb37b4fd1b3a |
-| 2026-05-25 | campaign-c | C1 verify CLAUDE.md is already below bloat threshold | b1e66f448f00 |
-| 2026-05-25 | campaign | seed Campaign C — WebUI bloat cleanup scaffolding | dc36affbc2fe |
-| 2026-05-25 | compliance | regen change-history + traceability post-rebase onto #60 | c7d746cd5a0b |
-| 2026-05-23 | compliance | regen change-history + traceability post-rebase onto #58 | b50099a19fa9 |
-| 2026-05-23 | events | record evt-994b3a6e for iterate-2026-05-23-reconcile-b7-missing-events | 0d1702afabf0 |
-| 2026-05-23 | release | v0.16.0 | 34ac661c7b82 |
-| 2026-05-22 | release | v0.15.0 | 40280876e2f4 |
-| 2026-05-22 | compliance | regen bookkeeping after rebase onto #51+#54 | dc791000d709 |
-| 2026-05-22 | compliance | regen change-history after PR #54 landed on main | 373a4ac36080 |
-| 2026-05-22 | compliance | regen post-rebase to include PR #52 in change-history | a8dfe27c8060 |
-| 2026-05-20 | events | fix two malformed dashboard rows | eaeeb452e983 |
-| 2026-05-20 | compliance | auto-regenerated artefacts include Phase 0a backfill | d07573d9c0bc |
-| 2026-05-20 | events | backfill change_type for 4 non-FR iterates (Phase 0a) | e1c6a98df980 |
-| 2026-05-20 | events | backfill affected_frs for 18 prior iterates (Phase 0a) | 34886a81ad33 |
+| 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
+| 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
+| 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4959bac67740 |
+| 2026-06-15 | release | v0.19.0 | 6249e85ac34d |
+| 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | cf58ce85dd6e |
+| 2026-06-11 | release | v0.18.0 | 1d13757f801f |
+| 2026-06-11 | triage | sweep 3 outbox append(s) into branch | e60d9af06f3f |
+| 2026-06-11 | gitignore | keep campaign planning dirs local-only | 98ca01b5b682 |
+| 2026-06-10 | triage | fold 2 main-tree background append(s) | d36dfa8ae26a |
+| 2026-06-10 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 6274a9f27282 |
+| 2026-06-09 | triage | sweep 1 outbox append(s) into branch | 4521ac382316 |
+| 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 9fb48425cade |
+| 2026-06-09 | triage | fold 6 main-tree background triage event(s) (post-rebase) | 1083ee418840 |
+| 2026-06-08 | triage | fold 8 main-tree background append(s) | 0408080071a8 |
+| 2026-06-09 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 9722556cdfd7 |
+| 2026-06-08 | — | scaffold canonical .shipwright/ artifact-ignore block into .gitignore | 221a72122e3f |
+| 2026-06-08 | — | scaffold append-log union merge driver into .gitattributes (#115) | bbb4127822b7 |
+| 2026-06-08 | triage | fold 7 main-tree background append(s) | be7af387a8e9 |
+| 2026-06-07 | triage | track .shipwright/triage.jsonl as git SSoT + GC machine-churn | 5aaaff1d0570 |
+| 2026-06-05 | compliance | backfill event-log for 10 event-less commits — close B7 (sub-iterate A) | 9132981b477c |
+| 2026-06-04 | security | allowlist sidekiq-secret false positive (cafebabe:deadbeef) | 723000c855d7 |
+| 2026-06-03 | campaign | mark 2026-05-25-bloat-cleanup-C-webui complete (8/8) | a252117061cd |
+| 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | f7ced2fec284 |
+| 2026-06-02 | iterate | point iterate-entry adr at the run-id decision-drop | 7b721202db78 |
+| 2026-06-02 | iterate | finalization artifacts for terminal-idle-attachment-gate | 7832ab3feb40 |
+| 2026-05-31 | release | v0.17.0 ADR-aggregation sidecars + dashboards | bbca6275a5e9 |
+| 2026-05-31 | release | v0.17.0 | dfdb05631bdc |
+| 2026-05-31 | iterate | attach spec-commit SHA to work_completed event (F6.5) | de1e7be0a2e5 |
+| 2026-05-31 | iterate | refresh session_handoff (finalization complete) | 6a6c1fe34d41 |
+| 2026-05-31 | iterate | canonical changelog drop filename (_001.md) | e1486a067947 |
+| 2026-05-31 | iterate | rename test_completeness.summary -> counts for verifier | b7c82de131e2 |
+| 2026-05-31 | iterate | finalization artifacts for reopen-done-task | 7d7f122d6fa8 |
+| 2026-05-31 | iterate | record work_completed event for reopen-done-task | 0a820608a01a |
+| 2026-05-29 | gitignore | ignore .shipwright/agent_docs/runtime/ (ADR-089 runtime/snapshot split) | 8effb7799437 |
+| 2026-05-29 | events | backfill orphaned work_completed event for transcript-renderer-scroll | 5615d631d0c9 |
+| 2026-05-27 | events | record evt-18779597 for iterate-2026-05-27-fix-phase-pill-iterate-title-fallback | 14bcfc792c79 |
+| 2026-05-27 | triage | dismiss trg-c00254ab — routes.ts 620 LOC ist kein Bloat | 7ee5c6364451 |
+| 2026-05-27 | bloat | ratchet TaskCard.tsx baseline.current down 609 -> 606 | faf3e529abd6 |
+| 2026-05-27 | iterate | set adr field to run_id for F11 verifier | 4bf80e13fa72 |
+| 2026-05-27 | triage | add trg-c00254ab follow-up for ADR-103 retirement remainder | 45ba92cf1255 |
+| 2026-05-27 | — | dismiss trg-880260fc + backfill event log + dashboard regen | 7597d07bca9e |
+| 2026-05-26 | events | record evt-490d6b9f for iterate-2026-05-26-public-launch-hardening-webui | c8278ca498b7 |
+| 2026-05-26 | events | record evt-348e51b8 for iterate-2026-05-26-campaign-C-C4-new-issue-modal-split | 68fefba24fe2 |
+| 2026-05-27 | test-results | correct unit test count after final regression re-run | bc7a1bae9523 |
+| 2026-05-25 | events | record C8 work_completed event (evt-956e1c71) | c0e0b005dada |
+| 2026-05-25 | bloat | accept pty-manager.ts as deep module, file ADR-101 | 294778c56b39 |
+| 2026-05-25 | events | record C1 work_completed event (evt-425538a1) | cbd6f7c46363 |
+| 2026-05-25 | campaign-c | C1 verify CLAUDE.md is already below bloat threshold | 8259fa2031d0 |
+| 2026-05-25 | campaign | seed Campaign C — WebUI bloat cleanup scaffolding | 19c1eec185ff |
+| 2026-05-25 | compliance | regen change-history + traceability post-rebase onto #60 | 73b2c8ef598e |
+| 2026-05-23 | compliance | regen change-history + traceability post-rebase onto #58 | ed8524e6e92e |
+| 2026-05-23 | events | record evt-994b3a6e for iterate-2026-05-23-reconcile-b7-missing-events | 1c284e2a9482 |
+| 2026-05-23 | release | v0.16.0 | 3055778ccac1 |
+| 2026-05-22 | release | v0.15.0 | 734142e0ff65 |
+| 2026-05-22 | compliance | regen bookkeeping after rebase onto #51+#54 | f08b66a6ae36 |
+| 2026-05-22 | compliance | regen change-history after PR #54 landed on main | a4ee4d779db0 |
+| 2026-05-22 | compliance | regen post-rebase to include PR #52 in change-history | f31dc9b465b8 |
+| 2026-05-20 | events | fix two malformed dashboard rows | d33547d565af |
+| 2026-05-20 | compliance | auto-regenerated artefacts include Phase 0a backfill | ead2eb5cf495 |
+| 2026-05-20 | events | backfill change_type for 4 non-FR iterates (Phase 0a) | 24547e774bda |
+| 2026-05-20 | events | backfill affected_frs for 18 prior iterates (Phase 0a) | fa1934fed828 |
 | 2026-05-20 | compliance | auto-regenerated artefacts include launch-prep commits | 0644173a48e7 |
 | 2026-05-20 | compliance | refresh commit SHAs after history rewrite | 265f92300ef9 |
 | 2026-05-20 | launch-prep | drop stale skill-compliance docs, fix doc path refs | cad4ac958640 |
@@ -504,32 +506,32 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-14 | agent-docs | compact over-budget entries + de-blank-line Updates sections (#144) | 1ef931844111 |
-| 2026-06-14 | guide | document ~/.claude.json self-heal in production restart (#137) | c773d3ea3f52 |
-| 2026-06-13 | guide | audit guide.md vs code/ADRs/RTM + align package.json version (#133) | 5df0605eae8d |
-| 2026-06-13 | readme | production-first install + guide/Makefile correctness fixes (#132) | eeaefb55eb32 |
-| 2026-06-12 | agent-docs | condense architecture.md + conventions.md to ADR-anchored pointers (#128) | 18cf09d455af |
-| 2026-06-09 | spec | record FR-01.33 live per-step in_progress MODIFY criterion | b246dcfe13cc |
-| 2026-06-08 | spec | record FR-01.30 outbox-union MODIFY acceptance criteria | e8786ad57f98 |
-| 2026-06-08 | arch | document post-replay full-viewport refresh fix | 59cba0afec5b |
-| 2026-06-07 | changelog | A5.6 Phase B false-positive fix drop | 4d2a91b350d5 |
-| 2026-06-07 | compliance | reconcile A5.6 (accept deliberate Phase B) + F5 arch-drops + G2 scope | 6af887b0d4e4 |
-| 2026-06-07 | architecture | document iterate-2026-06-07-fix-touch-scroll-pty-keystrokes | a8205b733d48 |
-| 2026-06-02 | ci | correct stale upload-sarif @v3 comment to @v4 | 48badb61ad40 |
-| 2026-05-31 | spec | add FR-01.01 re-open acceptance criterion (F1 spec impact) | 76005260ddd9 |
-| 2026-05-30 | spec | append FR-01.02 acceptance criterion for smartviewer-render-ux | fe58668b8bbb |
-| 2026-05-30 | spec | append FR-01.02 acceptance criterion for pr-card-status | c82ae754ef95 |
-| 2026-05-29 | agent-docs | resync architecture/conventions/component-inventory to current state | 2da95b56f1b2 |
-| 2026-05-27 | guide | refresh §6.4 / §6.8 / §10 with v0.14-v0.16 user-facing changes | 611994c1ba63 |
-| 2026-05-27 | adr-103 | backfill commit hash for retirement candidate #1 | 0d66a6354022 |
-| 2026-05-27 | adr | ADR-103 bloat-exception for terminal/routes.ts | 1e20170e3b64 |
-| 2026-05-26 | governance | public-launch hardening — Superpowers anti-slop PR template + Acknowledgments (P1.1, webui leg) | 935cc39f28b5 |
-| 2026-05-23 | spec | append FR-01.28 acceptance criteria for terminal-selection-uxd | 46f91387253a |
-| 2026-05-21 | spec | update FR-01.30 ACs for Fix-now NewIssueModal rewire | 4ca5be24c2bf |
-| 2026-05-21 | test-status | record Phase 0d FAIL-row dismissals (webui) (#50) | de956bce683e |
-| 2026-05-21 | claude-md | strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49) | c8a28d1b48e1 |
-| 2026-05-21 | adr | slim down ADR-087/088 + extract details to planning/adr spec files (Phase 0c) (#47) | c9b662b832c1 |
-| 2026-05-20 | adr | add Part I + Part II banners to decision_log | 63859305cb73 |
+| 2026-06-14 | agent-docs | compact over-budget entries + de-blank-line Updates sections (#144) | 09baf5c95782 |
+| 2026-06-14 | guide | document ~/.claude.json self-heal in production restart (#137) | e93f7ca5634a |
+| 2026-06-13 | guide | audit guide.md vs code/ADRs/RTM + align package.json version (#133) | da82487797e7 |
+| 2026-06-13 | readme | production-first install + guide/Makefile correctness fixes (#132) | 266abf43717e |
+| 2026-06-12 | agent-docs | condense architecture.md + conventions.md to ADR-anchored pointers (#128) | 870ff5a79963 |
+| 2026-06-09 | spec | record FR-01.33 live per-step in_progress MODIFY criterion | 6ed8d6ff2f4f |
+| 2026-06-08 | spec | record FR-01.30 outbox-union MODIFY acceptance criteria | 5544c0bfb5d9 |
+| 2026-06-08 | arch | document post-replay full-viewport refresh fix | a7a0257e4413 |
+| 2026-06-07 | changelog | A5.6 Phase B false-positive fix drop | a9c91033b89f |
+| 2026-06-07 | compliance | reconcile A5.6 (accept deliberate Phase B) + F5 arch-drops + G2 scope | 97cf06551448 |
+| 2026-06-07 | architecture | document iterate-2026-06-07-fix-touch-scroll-pty-keystrokes | 632d8de7e855 |
+| 2026-06-02 | ci | correct stale upload-sarif @v3 comment to @v4 | e3dd81cda08f |
+| 2026-05-31 | spec | add FR-01.01 re-open acceptance criterion (F1 spec impact) | 525937258bc7 |
+| 2026-05-30 | spec | append FR-01.02 acceptance criterion for smartviewer-render-ux | a3606bb81986 |
+| 2026-05-30 | spec | append FR-01.02 acceptance criterion for pr-card-status | 5df6b741223d |
+| 2026-05-29 | agent-docs | resync architecture/conventions/component-inventory to current state | 8e0447887a0e |
+| 2026-05-27 | guide | refresh §6.4 / §6.8 / §10 with v0.14-v0.16 user-facing changes | 15b328f40c94 |
+| 2026-05-27 | adr-103 | backfill commit hash for retirement candidate #1 | 66d5024d0bbe |
+| 2026-05-27 | adr | ADR-103 bloat-exception for terminal/routes.ts | 670761d52673 |
+| 2026-05-26 | governance | public-launch hardening — Superpowers anti-slop PR template + Acknowledgments (P1.1, webui leg) | 1c31e581bb32 |
+| 2026-05-23 | spec | append FR-01.28 acceptance criteria for terminal-selection-uxd | dd4ef97e4285 |
+| 2026-05-21 | spec | update FR-01.30 ACs for Fix-now NewIssueModal rewire | 16af884f042d |
+| 2026-05-21 | test-status | record Phase 0d FAIL-row dismissals (webui) (#50) | e37be72893e6 |
+| 2026-05-21 | claude-md | strip Iterate annotations + slim DO-NOT guards (Phase 0e) (#49) | afa2287f9e6d |
+| 2026-05-21 | adr | slim down ADR-087/088 + extract details to planning/adr spec files (Phase 0c) (#47) | f8122d4ae238 |
+| 2026-05-20 | adr | add Part I + Part II banners to decision_log | 62b7fc9e957b |
 | 2026-05-20 | governance | add CODE_OF_CONDUCT, CONTRIBUTING, SECURITY policy | ab6e0998f1be |
 | 2026-05-19 | changelog | record the triage-promote launch-chain fix | 9855e3e21183 |
 | 2026-05-16 | — | note triage/ component dir in CLAUDE.md structure tree | 218cd4c7f7e9 |
@@ -564,18 +566,18 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-05-30 | smartviewer | extract PathStrip to drop SmartViewer under the 300-LOC limit | 5758e9c6b36e |
-| 2026-05-30 | — | rename project config dir .webui -> .shipwright-webui | fdebce8d7047 |
-| 2026-05-30 | ui | remove Diagnostics launchers section and align Triage header | 8e346030a6a7 |
-| 2026-05-27 | terminal | extract WS-upgrade body from routes.ts (ADR-103 retirement #1) | a66202796aca |
-| 2026-05-26 | client | split BubbleTranscript into stable-props sub-modules | 78e320cac500 |
-| 2026-05-26 | client | split EmbeddedTerminal into shell + 7 sub-modules (Campaign C / C5) | 5eeaa23d9b19 |
-| 2026-05-26 | client | split NewIssueModal into shell + mode-specific modals | 56b4a83ffa63 |
-| 2026-05-26 | server | split external/routes.ts into 9 sub-routers + registration shell | 8bb3dba87a4b |
-| 2026-05-26 | client | split InboxPage into sections + useInboxData hook | 1d22faf1c8f5 |
-| 2026-05-26 | client | split TaskDetailHeader into stable-props sub-components | 2cd7aa36701e |
-| 2026-05-23 | compliance | backfill 14 work_completed events for v0.14.0..v0.16.0 | 34038fdea623 |
-| 2026-05-22 | compliance | clear F4-F7 doc-hygiene findings (Phase 0f) | f4d52fdeb787 |
+| 2026-05-30 | smartviewer | extract PathStrip to drop SmartViewer under the 300-LOC limit | 73736dcaeebe |
+| 2026-05-30 | — | rename project config dir .webui -> .shipwright-webui | 3e7ff907027a |
+| 2026-05-30 | ui | remove Diagnostics launchers section and align Triage header | 82d485d01816 |
+| 2026-05-27 | terminal | extract WS-upgrade body from routes.ts (ADR-103 retirement #1) | e5cc1f069dd3 |
+| 2026-05-26 | client | split BubbleTranscript into stable-props sub-modules | 1295ba1607d3 |
+| 2026-05-26 | client | split EmbeddedTerminal into shell + 7 sub-modules (Campaign C / C5) | 99a5dd16c0a1 |
+| 2026-05-26 | client | split NewIssueModal into shell + mode-specific modals | a4afcac730e5 |
+| 2026-05-26 | server | split external/routes.ts into 9 sub-routers + registration shell | 9ec5e67deaaf |
+| 2026-05-26 | client | split InboxPage into sections + useInboxData hook | 03b265c103b0 |
+| 2026-05-26 | client | split TaskDetailHeader into stable-props sub-components | 0ec979e7bbed |
+| 2026-05-23 | compliance | backfill 14 work_completed events for v0.14.0..v0.16.0 | 2a9f2a869d55 |
+| 2026-05-22 | compliance | clear F4-F7 doc-hygiene findings (Phase 0f) | 121de1eab413 |
 | 2026-05-17 | terminal | remove orphaned Resume-CTA liveness-gate code | 94e9367e183c |
 | 2026-05-15 | triage | renumber ADR-104 → ADR-106 (number collision) | a1668172b2b8 |
 | 2026-05-15 | triage | white-surface cards + wizard-matched dialogs | 3653d6dacba9 |
@@ -594,16 +596,16 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-09 | campaigns | split loop-state annotation tests to clear the 300-LOC ceiling | 144889892092 |
-| 2026-06-08 | triage | split union read tests into triage-store.union.test.ts | 2b5d7efe9a8a |
-| 2026-06-07 | terminal | empirically reproduce touch-scroll alt-buffer no-op (ADR-131) | 54c2aa52f50b |
-| 2026-06-05 | campaigns | split selector tests into campaignsApi.selectors.test.ts | 3b686e8da5cc |
-| 2026-05-31 | terminal | prove WS heartbeat reaps a dead writer + promotes the reader (real sockets) | fd9ad2398f1d |
-| 2026-05-27 | terminal | split ws-upgrade-handler.test.ts to clear bloat gate | 64be961809e3 |
-| 2026-05-27 | terminal | remove wait-for-first-ready workaround from C5 smoke spec | 992aec89f1f1 |
-| 2026-05-27 | external | commit C2 API contract sweep as tracked vitest suite | f56b6bb8f7ef |
-| 2026-05-27 | terminal | add Campaign-C/C5 split E2E smoke for ADR-068-A1 auto-execute | 63c46b2e0322 |
-| 2026-05-23 | terminal | empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 36d08c865c35 |
+| 2026-06-09 | campaigns | split loop-state annotation tests to clear the 300-LOC ceiling | c2b328d42c9f |
+| 2026-06-08 | triage | split union read tests into triage-store.union.test.ts | 431e40b6b62b |
+| 2026-06-07 | terminal | empirically reproduce touch-scroll alt-buffer no-op (ADR-131) | 626b9989891b |
+| 2026-06-05 | campaigns | split selector tests into campaignsApi.selectors.test.ts | 3281bc527a14 |
+| 2026-05-31 | terminal | prove WS heartbeat reaps a dead writer + promotes the reader (real sockets) | 09027b20ee11 |
+| 2026-05-27 | terminal | split ws-upgrade-handler.test.ts to clear bloat gate | 4f73c063778b |
+| 2026-05-27 | terminal | remove wait-for-first-ready workaround from C5 smoke spec | 31e1f23ce501 |
+| 2026-05-27 | external | commit C2 API contract sweep as tracked vitest suite | 6d86a69c7ea1 |
+| 2026-05-27 | terminal | add Campaign-C/C5 split E2E smoke for ADR-068-A1 auto-execute | 85e75eb18777 |
+| 2026-05-23 | terminal | empirical F0.5 evidence for mouse-mode banner + Shift+Drag bypass | 633eacf200f9 |
 | 2026-05-12 | client | post-campaign E2E matrix for task types × scenarios (ADR-090) | 0c9e517499e7 |
 | 2026-05-13 | e2e | migrate readXtermRows helper from DOM-locator to buffer-peek | f09b669220b8 |
 | 2026-05-08 | e2e | v0.8.7 Spec 83 — empirical regression for AC-1/2/3/4 | 465f638fcb3e |
@@ -617,11 +619,11 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-12 | review | migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125) | c2aa7a53b908 |
-| 2026-06-05 | security | checkout at fetch-depth 1 (no scanner reads git history) | 2fa1e9ab4492 |
-| 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | d66ab5506380 |
-| 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | 7196205297df |
-| 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | fff2b02dc8a5 |
+| 2026-06-12 | review | migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125) | 8bace6de63e3 |
+| 2026-06-05 | security | checkout at fetch-depth 1 (no scanner reads git history) | 8d73f3d5d5f8 |
+| 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | 0a42fb366386 |
+| 2026-06-02 | security | activate Security Scan on PRs + weekly schedule | b11a7e5bb7c6 |
+| 2026-06-02 | — | pin create-or-update-comment to SHA and verify gitleaks download | 0d152274b995 |
 
 ### Other (other) — 4 commits
 
@@ -642,7 +644,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 573 |
+| Total commits | 575 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 573 |
+| Human-authored commits | 575 |
 
