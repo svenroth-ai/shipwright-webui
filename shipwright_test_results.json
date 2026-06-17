@@ -1,63 +1,80 @@
 {
   "last_updated": "2026-06-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-17-launch-prep-docs",
+    "run_id": "iterate-2026-06-17-vendor-sync-gate-failclosed",
     "date": "2026-06-17",
-    "type": "change",
-    "complexity": "small",
-    "unit": { "status": "not_run", "passed": 0, "total": 0 },
-    "integration": { "status": "not_run", "passed": 0, "total": 0 },
-    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
-    "e2e": { "status": "not_run", "passed": 0, "total": 0 },
-    "design_fidelity": { "status": "skipped", "passed": 0, "total": 0 },
-    "smoke": { "status": "not_run" },
-    "degraded": [
-      {
-        "condition": "unit/e2e not_run; performance layer N/A despite touches_build",
-        "reason": "Docs + tooling iterate (README/CONTRIBUTING/SECURITY text, .github issue templates, +1 server npm script). No source logic changed. The one tooling claim (server typecheck script) was verified directly: npm run typecheck -> tsc --noEmit exit 0. touches_build fired on server/package.json but the change adds a backend script only — no bundle or dev_url impact — so the Lighthouse/bundle performance layer is not applicable."
-      }
-    ],
+    "unit": {
+      "status": "passed",
+      "passed": 75,
+      "total": 75
+    },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "e2e": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
+    "smoke": {
+      "status": "not_run"
+    },
     "surface_verification": {
       "surface": "none",
-      "runner": "surface_verification.py --surface none",
+      "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": "C:/01_Development/shipwright-webui/.worktrees/launch-prep-docs/.shipwright/runs/iterate-2026-06-17-launch-prep-docs/surface_verification.json",
-      "timestamp": "2026-06-17",
-      "justification": "Docs + tooling launch-prep iterate; no startable runtime surface changed."
+      "evidence_path": ".shipwright/runs/iterate-2026-06-17-vendor-sync-gate-failclosed/surface_verification.json",
+      "timestamp": "2026-06-17T14:02:26.683Z",
+      "justification": "Pure Python CLI gate-logic mirrors (pr_review + anti_ratchet exit behavior); no web/API/UI surface. Covered by scripts/ci/tests (75 passed)."
     },
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Five acceptance behaviors: (1) README Beta badge + maturity callout + report-issue link, (2) CONTRIBUTING/SECURITY maturity wording aligned to Beta, (3) README documents the two-workspace npm-per-package install, (4) valid GitHub issue forms + config, (5) a working server typecheck script.",
-      "justification": "Docs + tooling change; each behavior verified by a deterministic probe (grep / YAML-schema validation / running the new npm script). 5 acceptance behaviors, 5 covered.",
-      "counts": { "untested_testable": 0 },
       "behaviors": [
         {
-          "behavior": "README shows a Beta status badge, a maturity callout, and a link to file an issue",
+          "behavior": "truncated Tier-3 diff -> non-green EXIT_BLOCK (no size bypass)",
           "disposition": "tested",
-          "evidence": "grep confirms the shields.io status-beta-blue badge on README line 3 and the Beta callout with the issues/new/choose link."
+          "evidence": "scripts/ci/tests/test_pr_review_script.py::test_truncation_fails_closed_needs_human PASSED"
         },
         {
-          "behavior": "CONTRIBUTING.md and SECURITY.md maturity wording reads Beta, not Early Access",
+          "behavior": "truncated diff -> request-changes review state",
           "disposition": "tested",
-          "evidence": "git grep 'Early Access' returns only a historical compliance change-history row and one incidental code comment; neither CONTRIBUTING.md nor SECURITY.md carries the Early Access maturity label any more (both now say beta)."
+          "evidence": "test_truncation_fails_closed_needs_human asserts posted state == 'block' PASSED"
         },
         {
-          "behavior": "README documents the two-workspace, no-root-package.json npm-per-package install with npm ci",
+          "behavior": "present-but-malformed bloat baseline -> exit 1 (fail-closed)",
           "disposition": "tested",
-          "evidence": "grep confirms the new note at README line 100 (cd server && npm ci, then cd client && npm ci)."
+          "evidence": "scripts/ci/tests/test_anti_ratchet_check.py::test_malformed_baseline_fails_closed PASSED"
         },
         {
-          "behavior": "GitHub issue intake offers valid bug + feature forms and a config (blank issues off, docs + private-security contact links)",
+          "behavior": "absent baseline -> exit 0 (fail-open) PRESERVED",
           "disposition": "tested",
-          "evidence": "PyYAML schema validation passed: bug_report.yml (7 fields, 3 required, valid field types), feature_request.yml (4 fields), config.yml (blank_issues_enabled present, 2 contact links)."
-        },
-        {
-          "behavior": "the server workspace has a working typecheck script",
-          "disposition": "tested",
-          "evidence": "Ran npm run typecheck in server/ (node_modules junctioned from the main tree): tsc --noEmit exited 0. Mirrors CI's already-gated npx tsc --noEmit."
+          "evidence": "scripts/ci/tests/test_anti_ratchet_check.py::test_absent_baseline_fails_open PASSED"
         }
-      ]
+      ],
+      "counts": {
+        "testable": 4,
+        "tested": 4,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
     }
   }
 }

@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-17 06:55 UTC | Session: a2e1acc3-c12a-4a93-b9bf-c6f67bbe6044 | Run: iterate-2026-06-17-launch-prep-docs
+> Updated: 2026-06-17 14:03 UTC | Session: 5fbca8de-0f0f-47fd-8d08-1cd103da350a | Run: iterate-2026-06-17-vendor-sync-gate-failclosed
 
-## Recent Changes (163 iterations)
+## Recent Changes (164 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | sync vendored gate copies to monorepo fail-closed fixes | 75/75 |  | tooling | 2026-06-17 |
 | change | launch-prep README Beta badge, issue templates & tooling | 0/0 |  | docs | 2026-06-17 |
 | change | launch-prep PII scrub & repo hygiene | 0/0 |  | infra | 2026-06-17 |
 | bug | editor HTML link corruption on save (FR-01.34) | 1700/1700 |  | FR-01.34 | 2026-06-16 |
@@ -170,7 +171,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-17 | Smoke: not_run | (iterate)
+Last run: 2026-06-17 | Unit: 75/75 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
