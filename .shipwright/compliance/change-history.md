@@ -1,15 +1,15 @@
 # Commit Change Log
 
-Generated: 2026-06-17T14:03:41.544750+00:00
-Total commits: 575
+Generated: 2026-06-17T22:54:26.183379+00:00
+Total commits: 577
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 208
+    "fix" : 209
     "feat" : 143
-    "chore" : 116
+    "chore" : 117
     "docs" : 55
     "refactor" : 25
     "test" : 18
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 208 commits
+### Fixes (fix) — 209 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-17 | ci | vendored gates fail closed (truncation + corrupt baseline) (#157) | fe55df9c1202 |
 | 2026-06-17 | compliance | refresh artifacts for upstream rendering fixes (#153) | 237b5009891c |
 | 2026-06-16 | editor | preserve inline HTML links on save (FR-01.34) (#152) | 9b40a50fbbc0 |
 | 2026-06-15 | terminal | touch-scroll replicates the mouse wheel so finger-pan scrolls Claude's TUI instead of cycling input history (ADR-133) (#151) | aafba3ea3f98 |
@@ -381,10 +382,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 116 commits
+### Chores (chore) — 117 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-17 | triage | sweep 19 outbox append(s) into branch | e7585eaf7840 |
 | 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
 | 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
 | 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4959bac67740 |
@@ -644,7 +646,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 575 |
+| Total commits | 577 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 575 |
+| Human-authored commits | 577 |
 

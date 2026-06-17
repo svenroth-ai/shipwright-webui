@@ -63,7 +63,7 @@ import { useProjects } from "../hooks/useProjects";
 import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useRunConfig } from "../hooks/useRunConfig";
-import { TaskCard } from "../components/external/TaskCard";
+import { TaskBoardColumns } from "../components/external/TaskBoardColumns";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateControls } from "../components/external/CreateControls";
@@ -240,8 +240,6 @@ export default function TaskBoardPage() {
     return seed;
   }, [projectFiltered]);
 
-  const columns = useMemo(() => groupByState(filteredTasks), [filteredTasks]);
-
   // NewIssueModal state — singleton per page.
   const [modalAction, setModalAction] = useState<ActionDefinition | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -414,42 +412,9 @@ export default function TaskBoardPage() {
           <TaskList tasks={filteredTasks} />
         </div>
       ) : (
-        <div
-          // iterate 3.7g (Sven UAT): `justify-between` distributes the 3
-          // fixed-width columns across the container — first column sits at
-          // the container's left edge, last at the right edge, middle
-          // centered between them. At narrower viewports the implicit gap
-          // shrinks; at wider viewports it grows so the columns stay
-          // pinned to the content-container edges (matches header+filter
-          // alignment). `min-w-0` on columns would let them shrink — we
-          // keep them fixed (360 px) so cards stay legible. Fallback gap-6
-          // (24 px) for viewports narrow enough that justify-between
-          // collapses. <768px phone: justify-start + scroll-snap carousel.
-          // 768–1023px tablet (AC-7): snap off, flexible lanes fit all three.
-          // ≥1024px desktop: justify-between, fixed lanes.
-          className="page-container flex w-full flex-1 items-start justify-start gap-6 overflow-x-auto overflow-y-hidden pt-10 pb-8 snap-x snap-mandatory scroll-pl-6 md:snap-none md:scroll-pl-0 lg:justify-between lg:snap-none lg:scroll-pl-0"
-          data-testid="task-board-columns"
-          data-page-container="true"
-        >
-          <Column
-            title="Backlog"
-            testId="column-draft"
-            items={columns.draft}
-            tone="draft"
-          />
-          <Column
-            title="In Progress"
-            testId="column-in-progress"
-            items={columns.inProgress}
-            tone="inprogress"
-          />
-          <Column
-            title="Done"
-            testId="column-done"
-            items={columns.done}
-            tone="done"
-          />
-        </div>
+        // iterate-2026-06-17 — grid + grouping + drag-and-drop extracted to
+        // TaskBoardColumns; grouping is by boardColumn (decoupled from state).
+        <TaskBoardColumns tasks={filteredTasks} />
       )}
 
       <NewIssueModal
@@ -471,112 +436,6 @@ export default function TaskBoardPage() {
         project={activeProjectMeta}
         runConfig={runConfigQuery.data}
       />
-    </div>
-  );
-}
-
-function groupByState(tasks: ExternalTask[]) {
-  const draft: ExternalTask[] = [];
-  const inProgress: ExternalTask[] = [];
-  const done: ExternalTask[] = [];
-  for (const t of tasks) {
-    if (t.state === "draft") draft.push(t);
-    else if (t.state === "done") done.push(t);
-    else inProgress.push(t);
-  }
-  return { draft, inProgress, done };
-}
-
-type ColumnTone = "draft" | "inprogress" | "done";
-
-interface ColumnStyle {
-  bg: string;
-  border: string;
-  header: string;
-  count: { bg: string; fg: string };
-}
-
-/**
- * Per-column palette per mockup lines 532–543. We keep the tones in JS so
- * the styles are colocated with the semantic names and Tailwind arbitrary
- * values stay compact.
- *
- * 3.7c-1: draft stripe bumped from the mockup's `#9ca3af` (which washes
- * out against our warm-beige bg) to `#6b7280` — still inside the mockup's
- * neutral palette, but perceptible side-by-side with In-Progress / Done.
- */
-const COLUMN_STYLES: Record<ColumnTone, ColumnStyle> = {
-  draft: {
-    bg: "var(--color-muted-bg)",
-    border: "var(--color-muted)",
-    header: "var(--color-muted)",
-    count: { bg: "rgba(107,114,128,0.18)", fg: "var(--color-muted)" },
-  },
-  inprogress: {
-    // Amber 8% tint + warning border + warning-text header.
-    bg: "rgba(217,119,6,0.08)",
-    border: "var(--color-warning)",
-    header: "var(--color-warning-text)",
-    count: { bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" },
-  },
-  done: {
-    // Blue 8% tint + info border + info-text header.
-    bg: "rgba(59,130,246,0.08)",
-    border: "var(--color-info)",
-    header: "#2563eb",
-    count: { bg: "var(--color-info-bg)", fg: "#2563eb" },
-  },
-};
-
-interface ColumnProps {
-  title: string;
-  testId: string;
-  items: ExternalTask[];
-  tone: ColumnTone;
-}
-
-function Column({ title, testId, items, tone }: ColumnProps) {
-  const s = COLUMN_STYLES[tone];
-  return (
-    <div
-      // AC-7: three width tiers (longhand-only so base→md→lg cascade reliably,
-      // no shorthand/longhand conflict). <768px phone: fixed 360px snap
-      // carousel. 768–1023px tablet rail: flexible (basis-0 grow), min-200, all
-      // three lanes fit with no right cut-off. ≥1024px desktop: fixed 360px.
-      className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)] md:w-auto md:min-w-[200px] md:shrink md:grow md:basis-0 lg:w-[360px] lg:min-w-[360px] lg:shrink-0 lg:grow-0 lg:basis-auto"
-      style={{ background: s.bg }}
-      data-testid={testId}
-    >
-      {/* Colored 3px top border — rendered as a separate element so the
-          column bg tint shows through without clipping the rounded corners.
-          The per-tone `s.border` values are always 3px-perceptible; draft
-          was tightened to --color-muted in 3.7c-1 to match the mockup's
-          intent against our warm-beige page bg. */}
-      <div
-        aria-hidden="true"
-        className="h-[3px] w-full"
-        style={{ background: s.border }}
-      />
-      <div
-        className="flex items-center gap-2 px-[14px] pb-[10px] pt-[14px] text-[13px] font-semibold uppercase tracking-[0.04em]"
-        style={{ color: s.header }}
-      >
-        <span>{title}</span>
-        <span
-          className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-[10px] px-1.5 text-[11px] font-bold"
-          style={{ background: s.count.bg, color: s.count.fg }}
-        >
-          {items.length}
-        </span>
-      </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-[10px] pb-[14px]">
-        {items.length === 0 && (
-          <div className="py-1 text-[11px] text-[var(--color-muted)]">none</div>
-        )}
-        {items.map((t) => (
-          <TaskCard key={t.taskId} task={t} />
-        ))}
-      </div>
     </div>
   );
 }

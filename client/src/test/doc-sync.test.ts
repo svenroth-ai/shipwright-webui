@@ -117,6 +117,11 @@ const REQUIRED_TOKENS = [
   'BoardStatusFilter',
   // iterate-2026-06-15-phone-header-polish — phone "+ New" flat drill-down (FR-01.41 follow-up)
   'ProjectCreatePhoneMenu',
+  // iterate-2026-06-17-board-dnd-status-decouple — board column decoupled from
+  // session state + drag-and-drop (boardColumn override, schema v4)
+  'TaskBoardColumns',
+  'boardColumnApi',
+  'board-column',
 ] as const;
 
 let claudeMd = '';

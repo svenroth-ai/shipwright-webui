@@ -30,33 +30,13 @@
  *     wrapper + inner controls (menu, launch pill, start pill) suppress
  *     their click propagation so they don't double-fire the navigate.
  *
- * Iterate 3.7d-b1 (2026-04-22):
- *   - Hover-gated launch chip replaced with always-visible brown solid
- *     `solid` variant buttons (Launch + Resume). Sven UAT: hover-to-reveal
- *     hides the primary action; make it always visible.
- *   - Footer reflow: timestamp LEFT, action buttons RIGHT. Action buttons
- *     wrap below the timestamp when the card is too narrow (flex-wrap).
- *   - `…` menu now always visible (was hover-gated) — matches the new
- *     "everything the user needs is visible" intent.
- *   - Commit marker moved inline with the timestamp on the left.
- *
- * Iterate 3.7e-b1 (2026-04-22):
- *   - Action buttons now use the Foundation `size="xs"` variant (12 px
- *     text, 500 weight, 4×10 px padding, icon 14 px) — finer TaskCard
- *     buttons per plan R3.
- *   - Backlog cards (draft / awaiting_external_start) render a GREEN
- *     `<TerminalLaunchButton color="green">` Launch button — the only
- *     primary action on that column. No Resume on backlog cards (nothing
- *     to resume yet).
- *   - In Progress cards (active / idle) now render ONLY Resume (brown).
- *     The Launch-twin that was visible in 3.7d-b1 is removed: once a task
- *     has been launched, the intent is to continue, not fresh-restart.
- *   - Done cards keep no primary action.
- *   - 3 px project-color left-edge strip sourced from
- *     `getProjectColor(task.projectId, project?.settings?.color)` — gives
- *     multi-project boards a visual anchor per plan S1.6. Synthesized
- *     "Unassigned" projects still render a strip (hash-derived muted
- *     color) so the layout stays consistent.
+ * Iterate 3.7d-b1 / 3.7e-b1 (2026-04-22) — always-visible `size="xs"` solid
+ * action buttons (no hover-gate); footer = timestamp LEFT, actions RIGHT
+ * (flex-wrap); `…` menu always visible; commit marker inline-left. CTA matrix
+ * (also documented at the render site): Backlog/never-launched → GREEN Launch
+ * only; In Progress (active/idle) + backlogged-already-run → Resume only;
+ * Done → none. 3 px project-color left strip from `getProjectColor`
+ * (synthesized projects get a hash-derived color).
  *
  * Preserved testids:
  *   task-card-<id>, task-card-open-<id>, task-card-state-<id>,
@@ -88,7 +68,9 @@ import {
   useDeleteExternalTask,
   useMoveTaskToBacklog,
   useReopenExternalTask,
+  useSetBoardColumn,
 } from "../../hooks/useExternalTasks";
+import { resolveBoardColumn } from "../../lib/boardColumnApi";
 import { useProjects } from "../../hooks/useProjects";
 import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
@@ -110,6 +92,7 @@ export function TaskCard({ task }: Props) {
   const deleteMut = useDeleteExternalTask();
   const backlogMut = useMoveTaskToBacklog();
   const reopenMut = useReopenExternalTask();
+  const setColumnMut = useSetBoardColumn();
   const { data: projects = [] } = useProjects();
   const [confirmDelete, setConfirmDelete] = useState(false);
   // iterate-2026-05-18-edit-task-dialog — the Edit Task dialog is opened
@@ -177,6 +160,10 @@ export function TaskCard({ task }: Props) {
         tabIndex={0}
         onClick={navigateToDetail}
         onKeyDown={(ev) => {
+          // Only navigate when the CARD itself is focused — not when Enter/Space
+          // bubbles up (via React portals) from a ⋯-menu item (e.g. "Move to…"),
+          // which would otherwise yank the user to the detail page. (2026-06-17)
+          if (ev.target !== ev.currentTarget) return;
           if (ev.key === "Enter" || ev.key === " ") {
             ev.preventDefault();
             navigateToDetail();
@@ -247,6 +234,10 @@ export function TaskCard({ task }: Props) {
               onReopen={() => reopenMut.mutate(task.taskId)}
               onClose={() => closeMut.mutate(task.taskId)}
               onDelete={onDeleteClick}
+              currentColumn={resolveBoardColumn(task)}
+              onMoveColumn={(column) =>
+                setColumnMut.mutate({ taskId: task.taskId, column })
+              }
             />
           </div>
         </div>

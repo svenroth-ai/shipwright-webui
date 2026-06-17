@@ -78,6 +78,7 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `TaskDetailHeader` | `external/TaskDetailHeader.tsx` | 219 | 21 |
 | `PaneTabBar` (compact detail tabs, iterate-2026-06-14) | `external/PaneTabBar.tsx` | 60 | 1 |
 | `TaskCard` | `external/TaskCard.tsx` | 606 | 18 |
+| `TaskBoardColumns` (board grid + DnD, decoupled `boardColumn`; iterate-2026-06-17; uses `lib/boardColumnApi`) | `external/TaskBoardColumns.tsx` | — | 1 |
 | `SmartViewer` | `external/SmartViewer.tsx` | 286 | 13 |
 | `MarkdownText` | `external/MarkdownText.tsx` | 195 | 13 |
 | `CommandPreviewPanel` | `external/CommandPreviewPanel.tsx` | 254 | 12 |

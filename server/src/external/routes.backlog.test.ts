@@ -164,8 +164,14 @@ describe("POST /api/external/tasks/:id/backlog — FR-01.32", () => {
 
     const after = store.get(taskId)!;
     expect(after.state).toBe("draft");
-    // Deep-equal on everything except `state`.
-    expect({ ...after, state: undefined }).toEqual({ ...before, state: undefined });
+    // iterate-2026-06-17 — backlog now also syncs boardColumn to Backlog (AC-6).
+    expect(after.boardColumn).toBe("backlog");
+    // Deep-equal on everything except `state` + `boardColumn`.
+    expect({ ...after, state: undefined, boardColumn: undefined }).toEqual({
+      ...before,
+      state: undefined,
+      boardColumn: undefined,
+    });
   });
 
   it("surfaces a persist ELOCKED as 409", async () => {

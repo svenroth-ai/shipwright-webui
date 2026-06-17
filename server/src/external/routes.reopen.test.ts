@@ -147,10 +147,17 @@ describe("POST /api/external/tasks/:id/reopen", () => {
 
     const after = store.get(taskId)!;
     expect(after.state).toBe("draft");
+    // iterate-2026-06-17 — reopen now also syncs boardColumn to Backlog (AC-6).
+    expect(after.boardColumn).toBe("backlog");
     // sessionUuid + launch history retained → TaskCard renders Resume.
     expect(after.sessionUuid).toBe(before.sessionUuid);
     expect(after.firstJsonlObservedAt).toBe(before.firstJsonlObservedAt);
-    expect({ ...after, state: undefined }).toEqual({ ...before, state: undefined });
+    // only state + boardColumn change; every other history field identical.
+    expect({ ...after, state: undefined, boardColumn: undefined }).toEqual({
+      ...before,
+      state: undefined,
+      boardColumn: undefined,
+    });
   });
 
   it("surfaces a persist ELOCKED as 409", async () => {

@@ -105,10 +105,10 @@ describe("schema v1 → v2 migration (ADR-038)", () => {
       schemaVersion: number;
       sessions: Record<string, { projectId: string }>;
     };
-    // CURRENT_SCHEMA_VERSION is 3 since iterate/multi-session-run-orchestrator-v2.
-    // Older binaries reading this file fall back via the v1+v2+v3 compat
+    // CURRENT_SCHEMA_VERSION is 4 since iterate-2026-06-17 (boardColumn).
+    // Older binaries reading this file fall back via the v1–v4 compat
     // window in validateExternalTask().
-    expect(onDisk.schemaVersion).toBe(3);
+    expect(onDisk.schemaVersion).toBe(4);
     // BOTH touched + untouched rows get the canonical projectId on disk —
     // persist writes the whole shape atomically.
     expect(onDisk.sessions.t1.projectId).toBe("unassigned");
@@ -329,7 +329,7 @@ describe("schema v3 phase-task linkage (iterate/multi-session-run-orchestrator-v
         { phaseTaskId?: string; runId?: string; parentRunMaster?: boolean }
       >;
     };
-    expect(onDisk.schemaVersion).toBe(3);
+    expect(onDisk.schemaVersion).toBe(4);
     const row = Object.values(onDisk.sessions)[0];
     expect(row.phaseTaskId).toBe("ptk-cccc");
     expect(row.runId).toBe("run-12345678");

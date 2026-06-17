@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-17T14:03:41.544750+00:00
+Generated: 2026-06-17T22:54:26.183379+00:00
 
 ## Requirements Coverage
 
@@ -286,6 +286,7 @@ Generated: 2026-06-17T14:03:41.544750+00:00
 | launch-prep PII scrub & repo hygiene | iterate | change |  | — | — | 2026-06-17 |
 | launch-prep README Beta badge, issue templates & tooling | iterate | change |  | — | — | 2026-06-17 |
 | sync vendored gate copies to monorepo fail-closed fixes | iterate | change |  | 75/75 | — | 2026-06-17 |
+| Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | iterate | feature |  | — | — | 2026-06-17 |
 
 ## Coverage Summary
 
@@ -293,7 +294,7 @@ Generated: 2026-06-17T14:03:41.544750+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 164 |
+| Iterate changes | 165 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |
