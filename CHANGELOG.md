@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.20.0] - 2026-06-17
+
+### Added
+
+- GitHub issue templates — bug-report and feature-request forms plus a config that links to the docs and the private security-advisory channel (.github/ISSUE_TEMPLATE/).
+- typecheck script (tsc --noEmit) in server/package.json, matching the client and CI's gated type-check.
+
+### Changed
+
+- README now carries a Beta status badge, a maturity callout, and a two-workspace npm-per-package install note; CONTRIBUTING and SECURITY maturity wording aligned from Early Access to Beta.
+- .gitignore now ignores all *.md.lock sidecar lockfiles, including under the .shipwright/agent_docs/ whitelist; the stray decision_log.md.lock is no longer tracked.
+
+### Removed
+
+- Deleted 7 unreferenced PoC/debug screenshots (~454 KB) from client/e2e/.poc-screenshots/.
+
+### Fixed
+
+- Markdown editor no longer corrupts inline HTML links (e.g. a `<a href>` Shipwright attribution) on save — they round-trip as functional markdown links instead of escaped `&lt;a&gt;` text (FR-01.34).
+
+### Security
+
+- Scrubbed residual local paths, the developer username, a company name, and an internal Tailscale IP from tracked .shipwright logs and a planning doc (working-tree scrub; deep-history rewrite handled by a separate operator step).
+
 ## [v0.19.0] - 2026-06-15
 
 ### Added
