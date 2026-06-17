@@ -2,7 +2,7 @@
 
 Thanks for your interest. This document explains how to set up your environment, the rules for code contributions, and what to expect from the review process.
 
-> **Early Access:** The Command Center is currently in Early Access. Breaking changes are possible. Please open an issue before investing significant time in a large contribution.
+> **Beta:** The Command Center is currently in beta. Breaking changes are possible. Please open an issue before investing significant time in a large contribution.
 
 ## Table of Contents
 
