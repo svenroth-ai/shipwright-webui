@@ -3036,3 +3036,42 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Consequences:** One-finger pan now scrolls Claude's TUI identically to the mouse/trackpad; normal-buffer scrollback unchanged. Diff: touch-scroll.ts routing tail, EmbeddedTerminal.tsx (drop sendData), inverted alt-buffer test cohort; all files <300 LOC; touch-scroll no longer references the WS socket. iPad UAT is the post-deploy gate (byte-level encoding needs a live renderer jsdom lacks); scroll speed may need a scrollSensitivity tweak. Full client suite 1696/1696 green; typecheck+lint clean.
 - **Rejected:** Hand-rolled SGR mouse-wheel (assumes SGR encoding — could break a 4th time); line-notch wheels (over-scroll risk); dispatch on screenElement for scrollback (VS-Code scroller's synthetic-wheel handling less certain; scrollLines already works); branch on buffer.active.type alone (a TUI can enable mouse tracking in the normal buffer too).
 - **Details:** [133-touch-scroll-wheel-events.md](../planning/adr/133-touch-scroll-wheel-events.md)
+
+---
+
+### ADR-197: Markdown editor parses raw HTML (html:true)
+- **Date:** 2026-06-16
+- **Section:** Iterate — bug: editor HTML link corruption
+- **Run-ID:** iterate-2026-06-16-fix-editor-html-link-corruption
+- **Context:** The SmartViewer TipTap editor ran tiptap-markdown with html:false, so an inline <a href> link in a blog article was HTML-entity-escaped to literal &lt;a&gt; text on save — silently breaking the link.
+- **Decision:** Set Markdown.configure({ html: true }) so raw inline HTML that maps to the schema (notably <a href>) round-trips as its markdown equivalent [text](url) instead of corrupt escaped text.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Converting to a markdown link is the idiomatic, functional outcome for a markdown editor; the editor's existing diff + warn banner remain the safety nets.
+- **Consequences:** HTML attribution links survive editing; SAFE_LINK_PROTOCOLS still drops javascript: anchors. HTML with no schema node (<div>, attributes) is normalised away and stays flagged by detectLossyConstructs; the pre-save diff shows every change.
+- **Rejected:** A custom raw-HTML node preserving the <a> verbatim (larger scope, mixes raw HTML into a markdown file); keeping html:false (leaves the corruption).
+
+---
+
+### ADR-198: Beta branding + issue templates + server typecheck script
+- **Date:** 2026-06-17
+- **Section:** Iterate — change: launch-prep README Beta badge, issue templates & tooling
+- **Run-ID:** iterate-2026-06-17-launch-prep-docs
+- **Context:** Public-launch prep: README had no maturity label; CONTRIBUTING/SECURITY said 'Early Access' while the locked decision is 'Beta'; no .github/ISSUE_TEMPLATE existed; server/package.json lacked a typecheck script even though CI already gates npx tsc --noEmit and the planning docs reference npm run typecheck.
+- **Decision:** Add a Beta shields.io badge + maturity callout + npm-per-package (npm ci) note to README; align CONTRIBUTING/SECURITY wording to Beta; add bug/feature GitHub issue FORMS + config (blank issues off, docs + private-security contact links); add a server typecheck script (tsc --noEmit).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Launch readiness C6/C8/C10 + the locked Beta maturity decision; the server typecheck script mirrors CI's already-gated npx tsc --noEmit (verified exit 0).
+- **Consequences:** Coherent Beta public face; structured issue intake; npm run typecheck parity between server and client. No runtime behavior change.
+- **Rejected:** Markdown issue templates (chose YAML forms for structured triage); rewording the incidental 'Early Access' code comment in TerminalLaunchButton.tsx (internal-only, out of the docs scope).
+
+---
+
+### ADR-199: Scrub residual PII + close the *.md.lock gitignore gap
+- **Date:** 2026-06-17
+- **Section:** Iterate — change: launch-prep PII scrub & repo hygiene
+- **Run-ID:** iterate-2026-06-17-launch-prep-scrub
+- **Context:** Pre-public-launch audit found residual PII in tracked files: dev username + company name + an internal Tailscale IP inside two .shipwright/triage.jsonl records and a hardcoded home path in one planning doc, plus a tracked decision_log.md.lock sidecar and 7 unreferenced E2E screenshots (~454 KB).
+- **Decision:** Scrub the strings in place at HEAD (internal IP to 100.64.0.1; username/company home paths normalized to a generic local dev-root), add *.md.lock to .gitignore AFTER the agent_docs whitelist so locks there are ignored too, git rm --cached the lockfile, and delete the screenshots.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Public launch needs a clean working tree independent of any history rewrite; the .shipwright/agent_docs/ whitelist negation had been silently re-tracking *.md.lock sidecars.
+- **Consequences:** Tracked tree carries no PII and no stray lockfiles; dead binaries gone. Deep git history still holds the old strings — removed separately by the operator-run git filter-repo rewrite (launch-readiness C2).
+- **Rejected:** Relying on the history rewrite alone to remove PII — rejected: HEAD must be clean on its own, and the rewrite scope is intentionally narrow (jsonl + one planning .md).

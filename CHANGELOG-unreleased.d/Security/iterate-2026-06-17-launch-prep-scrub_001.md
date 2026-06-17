@@ -1,1 +1,0 @@
-Scrubbed residual local paths, the developer username, a company name, and an internal Tailscale IP from tracked .shipwright logs and a planning doc (working-tree scrub; deep-history rewrite handled by a separate operator step).
