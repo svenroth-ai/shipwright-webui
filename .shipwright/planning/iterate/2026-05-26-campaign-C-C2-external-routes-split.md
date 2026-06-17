@@ -127,7 +127,7 @@ this iterate. Mandatory empirical contract sweep below.
 
   # 5. surface_verification.py wrapper
   uv run --with openai \
-    "C:/Users/SvenRoth/.claude/plugins/cache/shipwright/shared/scripts/surface_verification.py" \
+    "~/.claude/plugins/cache/shipwright/shared/scripts/surface_verification.py" \
     --project-root . \
     --run-id "iterate-2026-05-26-campaign-C-C2-external-routes-split" \
     --surface api

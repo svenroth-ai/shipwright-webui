@@ -55,6 +55,9 @@ shipwright_events.jsonl.lock
 !/shipwright_events.jsonl
 
 # Root-Locks (multi-writer State)
+# All sidecar markdown lockfiles (CHANGELOG.md.lock, agent_docs/*.md.lock, …).
+# Placed after the .shipwright/agent_docs/ whitelist so it still ignores locks there.
+*.md.lock
 CHANGELOG.md.lock
 shipwright_run_config.json.lock
 .shipwright_toolcall_count
@@ -64,6 +67,9 @@ shipwright_run_config.json.lock
 
 # Isolated USERPROFILE used by iterate F0.5 E2E (not part of any source set)
 /.e2e-userprofile/
+
+# Throwaway PoC/debug screenshots from client E2E exploration (not a source set)
+client/e2e/.poc-screenshots/
 
 # Lokaler VS-Code-Multi-Root-Workspace
 /.shipwright-webui/

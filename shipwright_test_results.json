@@ -1,86 +1,56 @@
 {
-  "last_updated": "2026-06-16",
+  "last_updated": "2026-06-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-16-fix-editor-html-link-corruption",
-    "date": "2026-06-16",
-    "type": "bug",
+    "run_id": "iterate-2026-06-17-launch-prep-scrub",
+    "date": "2026-06-17",
+    "type": "change",
     "complexity": "small",
-    "unit": {
-      "status": "passed",
-      "passed": 1700,
-      "total": 1700
-    },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "e2e": {
-      "status": "passed",
-      "passed": 6,
-      "total": 6
-    },
-    "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
-    },
-    "smoke": {
-      "status": "not_run"
-    },
-    "degraded": [],
+    "unit": { "status": "not_run", "passed": 0, "total": 0 },
+    "integration": { "status": "not_run", "passed": 0, "total": 0 },
+    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
+    "e2e": { "status": "not_run", "passed": 0, "total": 0 },
+    "design_fidelity": { "status": "skipped", "passed": 0, "total": 0 },
+    "smoke": { "status": "not_run" },
+    "degraded": [
+      {
+        "condition": "unit/e2e not_run",
+        "reason": "Repo-hygiene/privacy iterate changed zero source, test, or build-affecting files (only .gitignore, .shipwright data/docs, and unreferenced PoC screenshots). No related test exists and worktree node_modules were not hydrated; a full-suite run carries no information value. Verification was done with deterministic git/grep probes recorded under test_completeness."
+      }
+    ],
     "surface_verification": {
-      "surface": "web",
-      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts client/e2e/flows/markdown-editor.spec.ts --project=chromium --reporter=line",
+      "surface": "none",
+      "runner": "surface_verification.py --surface none",
       "exit_code": 0,
-      "tests_run": 6,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\fix-editor-html-link-corruption\\.shipwright\\runs\\iterate-2026-06-16-fix-editor-html-link-corruption\\surface_verification.log",
-      "timestamp": "2026-06-16T21:05:39.339Z",
-      "attempts": 1
+      "tests_run": 0,
+      "evidence_path": "C:/01_Development/shipwright-webui/.worktrees/launch-prep-scrub/.shipwright/runs/iterate-2026-06-17-launch-prep-scrub/surface_verification.json",
+      "timestamp": "2026-06-17",
+      "justification": "Repo-hygiene/privacy iterate; no startable runtime surface changed."
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behavior changed by the html:false->html:true flip in buildEditorExtensions: inline <a href> recovery, target/rel attribute handling, idempotency of the recovered link, javascript:-scheme drop (security), and the full browser save chain; plus no-regression of existing prose/frontmatter round-trip.",
-      "justification": "Bug fix in the tiptap-markdown round-trip config. Each new behavior is unit-tested through the production code path (editor.commands.setContent + storage.markdown.getMarkdown) and the full open->review->save chain is exercised by a real-Chromium Playwright E2E (F0.5 web, 6 passed). Existing round-trip + editor coverage stays green.",
-      "counts": {
-        "untested_testable": 0
-      },
+      "enumeration_basis": "Four acceptance behaviors of this hygiene iterate: (1) residual PII removed from all tracked files, (2) *.md.lock ignored everywhere including under the agent_docs whitelist, (3) decision_log.md.lock untracked yet preserved on disk, (4) the 7 unreferenced PoC screenshots removed and future-ignored.",
+      "justification": "No-source repo-hygiene change; each behavior is verified by a deterministic git/grep probe rather than a unit test (none applies). 4 acceptance behaviors, 4 covered.",
+      "counts": { "untested_testable": 0 },
       "behaviors": [
         {
-          "behavior": "an inline <a href> link round-trips to a functional markdown link [text](url) instead of entity-escaped &lt;a&gt; text",
+          "behavior": "residual PII (dev username, company name, internal IP, hardcoded home paths) is gone from every tracked file",
           "disposition": "tested",
-          "evidence": "markdownTiptap.test.ts 'preserves an inline <a href> link instead of escaping it to &lt;a&gt; text' PASSED; E2E markdown-editor.spec.ts blog-file test asserts the PUT body contains [Shipwright](https://github.com/svenroth-ai/shipwright) and no &lt;."
+          "evidence": "Case-sensitive recursive grep in the worktree for the dev username, the company name, the internal IP, and the Windows home-path form all return zero matches; the only remaining svenroth-ai hits are the intentional public GitHub org handle. triage.jsonl still parses as 137/137 valid JSON records."
         },
         {
-          "behavior": "an anchor carrying target/rel attributes keeps its href on save",
+          "behavior": "*.md.lock sidecar lockfiles are git-ignored, including under the .shipwright/agent_docs/ whitelist negation",
           "disposition": "tested",
-          "evidence": "markdownTiptap.test.ts 'keeps the href intact when the anchor carries target/rel attributes' PASSED (output contains [Shipwright](https://shipwright.dev), no &lt;)."
+          "evidence": "git check-ignore .shipwright/agent_docs/decision_log.md.lock returns the path (ignored); the rule is placed after the agent_docs whitelist so it wins precedence."
         },
         {
-          "behavior": "the recovered link round-trips idempotently (serialize-after-parse is a fixed point)",
+          "behavior": "decision_log.md.lock is untracked but preserved on disk",
           "disposition": "tested",
-          "evidence": "markdownTiptap.test.ts 'round-trips the recovered link idempotently' PASSED."
+          "evidence": "git ls-files reports no *.lock entries; the file still exists on disk."
         },
         {
-          "behavior": "a javascript: scheme anchor is dropped to plain text and never written to disk (SAFE_LINK_PROTOCOLS)",
+          "behavior": "the 7 unreferenced PoC screenshots are removed from tracking and future-ignored",
           "disposition": "tested",
-          "evidence": "markdownTiptap.test.ts 'does NOT smuggle a javascript: scheme link back to disk' PASSED; this is also a security improvement over html:false, which left the escaped href in the file."
-        },
-        {
-          "behavior": "the full browser save chain (open blog file -> Review diff -> Save) writes a functional markdown link in the PUT body",
-          "disposition": "tested",
-          "evidence": "F0.5 web: markdown-editor.spec.ts 'blog file: an inline <a href> Shipwright link saves as a markdown link, not corrupt &lt;a&gt; text' PASSED (Chromium, 6/6, exit 0)."
-        },
-        {
-          "behavior": "existing StarterKit prose + YAML frontmatter round-trip is unaffected by the html:true flip",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "evidence": "Pre-existing markdownTiptap round-trip + envelope suites (28 unit) and the 5 existing markdown-editor E2E tests all still PASS after the flip."
+          "evidence": "git ls-files filtered for poc-screenshot is empty; git check-ignore on a screenshot path returns it; no source or test file references .poc-screenshots."
         }
       ]
     }

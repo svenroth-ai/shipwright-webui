@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-16 21:08 UTC | Session: 3ffdae52-8dd2-42c0-9f28-a96ee998ff66
+> Updated: 2026-06-17 06:38 UTC | Session: a2e1acc3-c12a-4a93-b9bf-c6f67bbe6044 | Run: iterate-2026-06-17-launch-prep-scrub
 
-## Recent Changes (161 iterations)
+## Recent Changes (162 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | launch-prep PII scrub & repo hygiene | 0/0 |  | infra | 2026-06-17 |
 | bug | editor HTML link corruption on save (FR-01.34) | 1700/1700 |  | FR-01.34 | 2026-06-16 |
 | bug | Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. | 0/0 |  | FR-01.38 | 2026-06-15 |
 | bug | Fix read-only narrow replay corruption: useReplayDrainGate resizes the terminal to the snapshot cols/rows before term.write so a wide snapshot reconstructs faithfully in a narrow reader (no character interleaving). Client-only. | 0/0 |  | FR-01.28 | 2026-06-15 |
@@ -168,7 +169,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-16 | Unit: 1700/1700 | E2E: 6/6 | Smoke: not_run | (iterate)
+Last run: 2026-06-17 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
