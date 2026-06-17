@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📖 Documentation & user guide
+    url: https://github.com/svenroth-ai/shipwright-webui/blob/main/docs/guide.md
+    about: Installation, first project, daily workflow, and troubleshooting live here.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/svenroth-ai/shipwright-webui/security/advisories/new
+    about: Please report security issues privately — never as a public issue.

@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-06-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-17-launch-prep-scrub",
+    "run_id": "iterate-2026-06-17-launch-prep-docs",
     "date": "2026-06-17",
     "type": "change",
     "complexity": "small",
@@ -13,8 +13,8 @@
     "smoke": { "status": "not_run" },
     "degraded": [
       {
-        "condition": "unit/e2e not_run",
-        "reason": "Repo-hygiene/privacy iterate changed zero source, test, or build-affecting files (only .gitignore, .shipwright data/docs, and unreferenced PoC screenshots). No related test exists and worktree node_modules were not hydrated; a full-suite run carries no information value. Verification was done with deterministic git/grep probes recorded under test_completeness."
+        "condition": "unit/e2e not_run; performance layer N/A despite touches_build",
+        "reason": "Docs + tooling iterate (README/CONTRIBUTING/SECURITY text, .github issue templates, +1 server npm script). No source logic changed. The one tooling claim (server typecheck script) was verified directly: npm run typecheck -> tsc --noEmit exit 0. touches_build fired on server/package.json but the change adds a backend script only — no bundle or dev_url impact — so the Lighthouse/bundle performance layer is not applicable."
       }
     ],
     "surface_verification": {
@@ -22,35 +22,40 @@
       "runner": "surface_verification.py --surface none",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": "C:/01_Development/shipwright-webui/.worktrees/launch-prep-scrub/.shipwright/runs/iterate-2026-06-17-launch-prep-scrub/surface_verification.json",
+      "evidence_path": "C:/01_Development/shipwright-webui/.worktrees/launch-prep-docs/.shipwright/runs/iterate-2026-06-17-launch-prep-docs/surface_verification.json",
       "timestamp": "2026-06-17",
-      "justification": "Repo-hygiene/privacy iterate; no startable runtime surface changed."
+      "justification": "Docs + tooling launch-prep iterate; no startable runtime surface changed."
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Four acceptance behaviors of this hygiene iterate: (1) residual PII removed from all tracked files, (2) *.md.lock ignored everywhere including under the agent_docs whitelist, (3) decision_log.md.lock untracked yet preserved on disk, (4) the 7 unreferenced PoC screenshots removed and future-ignored.",
-      "justification": "No-source repo-hygiene change; each behavior is verified by a deterministic git/grep probe rather than a unit test (none applies). 4 acceptance behaviors, 4 covered.",
+      "enumeration_basis": "Five acceptance behaviors: (1) README Beta badge + maturity callout + report-issue link, (2) CONTRIBUTING/SECURITY maturity wording aligned to Beta, (3) README documents the two-workspace npm-per-package install, (4) valid GitHub issue forms + config, (5) a working server typecheck script.",
+      "justification": "Docs + tooling change; each behavior verified by a deterministic probe (grep / YAML-schema validation / running the new npm script). 5 acceptance behaviors, 5 covered.",
       "counts": { "untested_testable": 0 },
       "behaviors": [
         {
-          "behavior": "residual PII (dev username, company name, internal IP, hardcoded home paths) is gone from every tracked file",
+          "behavior": "README shows a Beta status badge, a maturity callout, and a link to file an issue",
           "disposition": "tested",
-          "evidence": "Case-sensitive recursive grep in the worktree for the dev username, the company name, the internal IP, and the Windows home-path form all return zero matches; the only remaining svenroth-ai hits are the intentional public GitHub org handle. triage.jsonl still parses as 137/137 valid JSON records."
+          "evidence": "grep confirms the shields.io status-beta-blue badge on README line 3 and the Beta callout with the issues/new/choose link."
         },
         {
-          "behavior": "*.md.lock sidecar lockfiles are git-ignored, including under the .shipwright/agent_docs/ whitelist negation",
+          "behavior": "CONTRIBUTING.md and SECURITY.md maturity wording reads Beta, not Early Access",
           "disposition": "tested",
-          "evidence": "git check-ignore .shipwright/agent_docs/decision_log.md.lock returns the path (ignored); the rule is placed after the agent_docs whitelist so it wins precedence."
+          "evidence": "git grep 'Early Access' returns only a historical compliance change-history row and one incidental code comment; neither CONTRIBUTING.md nor SECURITY.md carries the Early Access maturity label any more (both now say beta)."
         },
         {
-          "behavior": "decision_log.md.lock is untracked but preserved on disk",
+          "behavior": "README documents the two-workspace, no-root-package.json npm-per-package install with npm ci",
           "disposition": "tested",
-          "evidence": "git ls-files reports no *.lock entries; the file still exists on disk."
+          "evidence": "grep confirms the new note at README line 100 (cd server && npm ci, then cd client && npm ci)."
         },
         {
-          "behavior": "the 7 unreferenced PoC screenshots are removed from tracking and future-ignored",
+          "behavior": "GitHub issue intake offers valid bug + feature forms and a config (blank issues off, docs + private-security contact links)",
           "disposition": "tested",
-          "evidence": "git ls-files filtered for poc-screenshot is empty; git check-ignore on a screenshot path returns it; no source or test file references .poc-screenshots."
+          "evidence": "PyYAML schema validation passed: bug_report.yml (7 fields, 3 required, valid field types), feature_request.yml (4 fields), config.yml (blank_issues_enabled present, 2 contact links)."
+        },
+        {
+          "behavior": "the server workspace has a working typecheck script",
+          "disposition": "tested",
+          "evidence": "Ran npm run typecheck in server/ (node_modules junctioned from the main tree): tsc --noEmit exited 0. Mirrors CI's already-gated npx tsc --noEmit."
         }
       ]
     }

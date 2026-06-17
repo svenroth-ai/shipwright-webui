@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The Shipwright Command Center is currently in Early Access. Security updates are provided for the latest `main` branch only. Older releases do not receive backports.
+The Shipwright Command Center is currently in beta. Security updates are provided for the latest `main` branch only. Older releases do not receive backports.
 
 ## Reporting a Vulnerability
 

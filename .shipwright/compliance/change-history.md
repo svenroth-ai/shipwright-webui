@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-17T06:38:08.331631+00:00
-Total commits: 572
+Generated: 2026-06-17T06:55:51.831073+00:00
+Total commits: 573
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 572
 pie title Commit Types
     "fix" : 208
     "feat" : 143
-    "chore" : 113
+    "chore" : 114
     "docs" : 55
     "refactor" : 25
     "test" : 18
@@ -381,10 +381,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 113 commits
+### Chores (chore) — 114 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4f00383ecdce |
 | 2026-06-15 | release | v0.19.0 | b771e8524ada |
 | 2026-06-14 | compliance | tighten bloat baseline ceiling for terminal/routes.ts (620->509) (#138) | e52c2fd92c28 |
 | 2026-06-11 | release | v0.18.0 | ca625aec8dfe |
@@ -641,7 +642,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 572 |
+| Total commits | 573 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 572 |
+| Human-authored commits | 573 |
 

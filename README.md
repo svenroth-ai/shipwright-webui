@@ -1,7 +1,15 @@
 # Shipwright Command Center
 
+![Status: Beta](https://img.shields.io/badge/status-beta-blue)
+
 > **One Kanban board for every Claude Code project you run in parallel —
 > without giving up the terminal or VS Code workflow you already love.**
+
+> **Beta:** the Command Center is in active beta — it's built and used
+> daily to run Shipwright itself, but you're an early user, so expect the
+> occasional rough edge.
+> [Report an issue](https://github.com/svenroth-ai/shipwright-webui/issues/new/choose)
+> — feedback is very welcome.
 
 Local web app that observes and orchestrates multiple Claude Code
 sessions in parallel. Works alongside the [Shipwright SDLC
@@ -86,6 +94,12 @@ wizard walks you through stack-profile selection.
 > `cd server && npm install && npm run build`, then
 > `cd ../client && npm install && npm run build`, then
 > `cd ../server && npm start`.
+
+> **Two independent workspaces — no root `package.json`.** `server/` and
+> `client/` each carry their own `package.json` + lockfile, so dependencies
+> install per package: `cd server && npm ci`, then `cd client && npm ci`
+> (`npm ci` gives a clean, lockfile-reproducible install; `make install`
+> just runs both for you).
 
 On **Windows**, have the server start automatically on every login — see
 [Autostart](#autostart-on-windows) below. The full walkthrough,

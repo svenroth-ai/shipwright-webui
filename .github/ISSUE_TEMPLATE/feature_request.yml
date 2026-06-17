@@ -1,0 +1,31 @@
+name: 💡 Feature request
+description: Suggest an improvement or a new capability.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The Command Center deliberately stays a thin layer over Claude Code
+        sessions — please skim the DO-NOT guards in `CLAUDE.md` before
+        proposing a large new surface.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: The user-facing pain or gap, not a pre-chosen solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like to see happen.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches or existing workarounds you've tried.
+    validations:
+      required: false

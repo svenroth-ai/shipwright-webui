@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-17 06:38 UTC | Session: a2e1acc3-c12a-4a93-b9bf-c6f67bbe6044 | Run: iterate-2026-06-17-launch-prep-scrub
+> Updated: 2026-06-17 06:55 UTC | Session: a2e1acc3-c12a-4a93-b9bf-c6f67bbe6044 | Run: iterate-2026-06-17-launch-prep-docs
 
-## Recent Changes (162 iterations)
+## Recent Changes (163 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | launch-prep README Beta badge, issue templates & tooling | 0/0 |  | docs | 2026-06-17 |
 | change | launch-prep PII scrub & repo hygiene | 0/0 |  | infra | 2026-06-17 |
 | bug | editor HTML link corruption on save (FR-01.34) | 1700/1700 |  | FR-01.34 | 2026-06-16 |
 | bug | Touch-scroll replicates the mouse/trackpad: a finger-pan dispatches a synthetic pixel-mode WheelEvent on term.element so xterm encodes the same mouse-report Claude already consumes for the mouse wheel, instead of arrow keys that Claude interpreted as input-history navigation. Supersedes ADR-132. Client-only. | 0/0 |  | FR-01.38 | 2026-06-15 |

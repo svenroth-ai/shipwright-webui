@@ -1,0 +1,61 @@
+name: 🐞 Bug report
+description: Something in the Command Center isn't working as expected.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. The Command Center is in
+        beta, so rough edges are expected — a clear report helps a lot.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: I clicked Launch on a task and ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps so the bug can be reproduced.
+      placeholder: |
+        1. Register project ...
+        2. Open the task page ...
+        3. See error ...
+    validations:
+      required: true
+  - type: input
+    id: webui-version
+    attributes:
+      label: Command Center version
+      description: From the page footer, the git tag, or `git describe --tags`.
+      placeholder: v0.19.0
+    validations:
+      required: false
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude Code CLI version
+      description: Output of `claude --version`.
+      placeholder: 2.1.177
+    validations:
+      required: false
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Server console output, browser console errors, or screenshots. Scrub any secrets or personal paths first.
+    validations:
+      required: false
