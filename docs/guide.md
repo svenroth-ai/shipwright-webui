@@ -72,7 +72,7 @@ claude --session-id <uuid> --name "Build: login redirect" /shipwright-build plan
 ```
 
 The task detail page that opens contains an **embedded terminal pane**.
-The command auto-runs there — no copy-paste step in the default flow —
+The command auto-runs there — no copy-paste step —
 and the Command Center **watches** the resulting transcript file on
 disk, updating the Kanban board live as Claude works.
 
@@ -86,13 +86,8 @@ disk, updating the Kanban board live as Claude works.
   exactly the same as if you ran the command yourself.
 - **No CLI / SDK lock-in.** The Command Center doesn't depend on any
   specific Claude SDK version, IDE plugin, or RPC protocol. Anthropic
-  ships a new CLI feature → you get it in the embedded terminal (and in
-  your own terminal) immediately, no Command Center update needed.
-- **You can still use your own terminal.** The launch command is also
-  available from the task detail page; copy it into Warp, Windows
-  Terminal, or any other terminal if you prefer that workflow. The
-  Command Center watches the transcript file the same way regardless of
-  where Claude is actually running.
+  ships a new CLI feature → you get it in the embedded terminal
+  immediately, no Command Center update needed.
 - **Multiple windows, multiple tabs.** Two browser tabs open? Both work.
   Refresh? Picks up where you left off. The Command Center is stateless
   on every read.
@@ -113,16 +108,7 @@ editor — the Command Center browser tab:
 | **Command Center** (browser tab — `localhost:3847` with Path A, `localhost:5173` with Path B) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work — all without leaving the browser. |
 
 Because the Command Center has its own embedded terminal, you do **not**
-need a separate terminal app for the normal Launch → watch → done loop.
-
-**Prefer your own terminal?** Every task detail page also exposes the
-launch command for copy-paste, so you can run Claude in
-[Warp](https://www.warp.dev/), Windows Terminal, iTerm2, or the VS Code
-integrated terminal instead. Warp in particular gives you a session
-tree, a folder tree, and a side preview pane that some people like for
-juggling several projects. The Command Center watches the JSONL
-transcript exactly the same way no matter where Claude actually runs —
-so this is purely a matter of taste.
+need a separate terminal app.
 
 ---
 
@@ -348,11 +334,6 @@ the running program switches the terminal into mouse-tracking mode
 top-right of the pane — that's your cue to hold **Shift while dragging**
 to bypass mouse-tracking and get a normal selection back. Dismiss the
 badge with the `✕` once you've seen it.
-
-> **Prefer your own terminal?** The same command is available from the
-> task detail page — copy it into Warp, the VS Code integrated terminal,
-> Windows Terminal, or anywhere else and run it manually. The Command
-> Center watches the transcript file the same way either way.
 
 ### 6.5 Watch the transcript
 
@@ -1164,8 +1145,7 @@ If the embedded terminal pane is blank, check that:
 - The launch command itself appeared in the pane (you should see the
   full `claude --session-id ... /shipwright-...` line).
 
-If you're running Claude in your own terminal instead (Warp, Windows
-Terminal, …) and the dashboard doesn't pick up the transcript, check:
+If the dashboard doesn't pick up the transcript, check:
 
 - The project's **path** in the Command Center matches the folder you
   ran the command in.

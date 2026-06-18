@@ -34,8 +34,7 @@ terminal pane** (xterm.js + a real shell, right on the task page). The
 Command Center watches the resulting JSONL transcript at
 `~/.claude/projects/<cwd>/<uuid>.jsonl` to render a live kanban board,
 chat transcript, inbox, triage, and diagnostics for every registered
-project. Prefer your own terminal (or VS Code)? Copy the same command
-and run it there — the observer behaves identically either way.
+project.
 
 **Architectural rule of record**: the web server
 spawns **no** Claude process. The embedded terminal hosts only a
