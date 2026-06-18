@@ -1,16 +1,16 @@
 # Commit Change Log
 
 Generated: 2026-06-18T22:18:23.826043+00:00
-Total commits: 581
+Total commits: 583
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 210
+    "fix" : 211
     "feat" : 144
     "chore" : 117
-    "docs" : 56
+    "docs" : 57
     "refactor" : 25
     "test" : 19
     "ci" : 5
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 210 commits
+### Fixes (fix) — 211 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-19 | deploy | npm install before build in start + autostart scripts | e70e124cdd31 |
 | 2026-06-18 | terminal | reconnect embedded terminal WS on tab refocus + client liveness heartbeat (FR-01.28) (#159) | a6ee149a0261 |
 | 2026-06-17 | ci | vendored gates fail closed (truncation + corrupt baseline) (#157) | fe55df9c1202 |
 | 2026-06-17 | compliance | refresh artifacts for upstream rendering fixes (#153) | 237b5009891c |
@@ -506,10 +507,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 56 commits
+### Documentation (docs) — 57 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-19 | — | drop "run it in your own terminal" as a second path (#162) | 6c8a35875e79 |
 | 2026-06-18 | readme | mirror monorepo branding, add screenshots, drop internal refs (#161) | 3f8f8cadc805 |
 | 2026-06-14 | agent-docs | compact over-budget entries + de-blank-line Updates sections (#144) | 09baf5c95782 |
 | 2026-06-14 | guide | document ~/.claude.json self-heal in production restart (#137) | e93f7ca5634a |
@@ -650,7 +652,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 581 |
+| Total commits | 583 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 581 |
+| Human-authored commits | 583 |
 

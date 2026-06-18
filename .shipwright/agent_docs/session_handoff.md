@@ -2,7 +2,7 @@
 canon_generated: true
 run_id: "iterate-2026-06-19-deploy-npm-install"
 phase: "iterate"
-reason: "BUG (small): deploy + autostart scripts now npm install before build"
+reason: "F11 refresh-if-behind before PR"
 timestamp: "2026-06-18T22:18:23.826043+00:00"
 ---
 
@@ -14,7 +14,7 @@ timestamp: "2026-06-18T22:18:23.826043+00:00"
 
 - **Session ID**: 9feac2c5-f3ae-4230-9ae6-f08ea0d357b9
 - **Timestamp**: 2026-06-18 22:18:23 UTC
-- **Reason**: BUG (small): deploy + autostart scripts now npm install before build
+- **Reason**: F11 refresh-if-behind before PR
 
 ## Last Iterate
 
@@ -31,11 +31,6 @@ timestamp: "2026-06-18T22:18:23.826043+00:00"
 - **Branch**: iterate/deploy-npm-install
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Finalization (F0–F11) after all mandatory phases pass
-
 ## Legacy build state
 
 - **Phase**: changelog
@@ -48,8 +43,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/deploy-npm-install
-- **Last Commit**: 5ae9e07 chore(triage): sweep 3 outbox append(s) into branch
-- **Uncommitted Changes**: Yes
+- **Last Commit**: 3af005c Merge remote-tracking branch 'origin/main' into iterate/deploy-npm-install
+- **Uncommitted Changes**: None
 
 ## Config Files to Read
 
