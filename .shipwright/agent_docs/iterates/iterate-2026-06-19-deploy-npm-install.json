@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-19-deploy-npm-install",
+  "date": "2026-06-18T22:17:24.005299Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/deploy-npm-install",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-19-deploy-npm-install",
+  "summary": "Deploy + autostart scripts run npm install before build (fixes @dnd-kit cannot-find-module)"
+}

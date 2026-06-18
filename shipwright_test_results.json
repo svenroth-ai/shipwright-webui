@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-06-18",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-18-terminal-ws-reconnect-refocus",
-    "date": "2026-06-18",
+    "run_id": "iterate-2026-06-19-deploy-npm-install",
+    "date": "2026-06-19",
     "unit": {
       "status": "passed",
-      "passed": 3404,
-      "total": 3404
+      "passed": 44,
+      "total": 44
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,83 +32,72 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "playwright",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "client/e2e/flows/91-terminal-ws-refocus-liveness.spec.ts",
-      "timestamp": "2026-06-18T07:14:25.140Z",
-      "justification": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx server on 127.0.0.1:3947, temp USERPROFILE). 1 spec PASSED in real Chromium: a tab refocus on a live terminal WS emits a {type:ping} probe frame (tx) and the server replies {type:pong} (rx); the healthy socket is NOT closed (data-ws-ready stays true). The full sleep/Tailscale partition-recovery is not deterministically E2E-reproducible (no real network partition in Playwright) — it is covered by unit tests on both ends + a manual post-deploy smoke (sleep/return)."
+      "tests_run": 0,
+      "justification": "Diff touches only operational PowerShell scripts (start-server-production.ps1, install-windows.ps1) plus their cross-platform node:test structural specs. Zero files under server/src or client/src, so the app vitest/E2E suites exercise no changed code. Authoritative coverage = scripts/*.test.* (44/44 green) PLUS an empirical production-build proof: in the real deploy target (main-tree client) npm install resolved @dnd-kit/{core,utilities,accessibility} and `npm run build` then succeeded ('built in 14.03s'), reproducing-then-fixing the reported 'cannot find module' failure."
     },
-    "degraded": [],
+    "degraded": [
+      {
+        "condition": "scoped_full_suite",
+        "detail": "F0 full app suite (server+client vitest) skipped: scripts-only change with no app-code surface; ran the related structural suite scripts/*.test.* (44/44) + real build verify instead."
+      }
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1: an open socket emits a {type:ping} heartbeat every interval",
+          "behavior": "start-server-production.ps1 runs `npm install` for BOTH server and client before building",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-1 + wsHeartbeat.test startClientHeartbeat"
+          "evidence": "scripts/start-server-production.test.mjs: 'npm install runs for BOTH server and client'"
         },
         {
-          "behavior": "AC-2: any inbound message resets the missed-pong run (no reap while alive)",
+          "behavior": "start-server-production.ps1: the first npm install precedes the first npm run build",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-2 + wsHeartbeat.test createWsHeartbeatMonitor notePong"
+          "evidence": "scripts/start-server-production.test.mjs: 'the FIRST npm install precedes the FIRST build'"
         },
         {
-          "behavior": "AC-3: a silently-dead OPEN socket is reaped after MAX_MISSED intervals and reconnects",
+          "behavior": "start-server-production.ps1: every npm install runs before the server-kill (failed install leaves the running server untouched)",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-3 + wsHeartbeat.test onDead+self-stop"
+          "evidence": "scripts/start-server-production.test.mjs: 'every npm install runs BEFORE the server-kill'"
         },
         {
-          "behavior": "AC-4: focus / pageshow / visibilitychange each re-arm an exhausted budget + reconnect",
+          "behavior": "The patched install->build sequence resolves the newly-added dependency and the client compiles",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-4 (parameterized over all 3 triggers)"
+          "evidence": "Empirical: main-tree client `npm install` (added @dnd-kit/*) then `npm run build` -> 'built in 14.03s', no 'cannot find module'"
         },
         {
-          "behavior": "AC-4d: a refocus while a reconnect is CONNECTING does NOT double-connect (orphan guard)",
+          "behavior": "install-windows.ps1 installs deps + builds both server and client (4 npm steps)",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-4d (hang-mode fake socket)"
+          "evidence": "scripts/install-windows.test.mjs: 'installs deps for BOTH server and client + builds BOTH'"
         },
         {
-          "behavior": "AC-5: an eager refocus probe closes an OPEN-but-dead socket; AC-5b a socket that answers is kept",
+          "behavior": "install-windows.ps1 does not suppress npm stderr to $null",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-5 + AC-5b"
+          "evidence": "scripts/install-windows.test.mjs: 'npm steps do NOT suppress stderr to $null'"
         },
         {
-          "behavior": "AC-5c: a stale probe timer does not close a healthy reconnected socket (instance-bound)",
+          "behavior": "install-windows.ps1 gates each npm step on its exit code (abort before creating the startup shortcut)",
           "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-5c (review MED regression guard)"
+          "evidence": "scripts/install-windows.test.mjs: 'each npm step is gated on its exit code'"
         },
         {
-          "behavior": "AC-6: a refocus NEVER reconnects a replay-only (done) attach",
-          "disposition": "tested",
-          "evidence": "client useTerminalSocket.heartbeat.test AC-6 + existing replay-only one-shot test"
-        },
-        {
-          "behavior": "AC-7: server replies {type:pong} to {type:ping} BEFORE the role gate (writer / reader / roleless), no pty side-effect",
-          "disposition": "tested",
-          "evidence": "server ws-upgrade-handler.parse.test (writer + reader + roleless ping->pong)"
-        },
-        {
-          "behavior": "End-to-end wire: a real-browser tab refocus on a live terminal WS yields ping(tx)->pong(rx), socket stays open",
-          "disposition": "tested",
-          "evidence": "E2E client/e2e/flows/91-terminal-ws-refocus-liveness.spec.ts (real Chromium, isolated stack)"
-        },
-        {
-          "behavior": "Full recovery after a real OS-sleep / Tailscale partition (socket silently dead, browser fires no close event)",
+          "behavior": "Actual PowerShell runtime abort-on-failure flow (Read-Host prompt + exit 1 + hidden Start-Process)",
           "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service"
+          "reason_code": "requires-interactive-tty"
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
+        "testable": 7,
+        "tested": 7,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7
+        "acs": 0,
+        "covered_acs": 0,
+        "behaviors": 8,
+        "covered_behaviors": 7
       }
     }
   }

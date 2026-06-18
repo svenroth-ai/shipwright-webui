@@ -11,9 +11,9 @@
 # Stop it: run stop-server.ps1 the same way.
 # Server log: %USERPROFILE%\.shipwright-webui\server-manual.log
 #
-# ORDER MATTERS — build FIRST, then swap. A failed build (or a window closed
-# mid-build) leaves the currently running server UNTOUCHED. You can never end
-# up with no server.
+# ORDER MATTERS — install + build FIRST, then swap. A failed install/build (or
+# a window closed mid-build) leaves the currently running server UNTOUCHED. You
+# can never end up with no server.
 # ---------------------------------------------------------------------------
 $repo   = Split-Path -Parent $PSScriptRoot
 $server = Join-Path $repo 'server'
@@ -47,10 +47,26 @@ try {
 # here — a corrupt-but-unrepairable file (exit 1) must not stop the deploy.
 $global:LASTEXITCODE = 0
 
-# 1. Build FIRST (server + client). If EITHER fails, the running server
-#    is left alone. The Hono server serves client/dist in production, so
-#    the client must be built too — otherwise the UI is stale/missing.
+# 1. Install deps + build FIRST (server + client). If ANY step fails, the
+#    running server is left alone (it is not killed until step 2). The Hono
+#    server serves client/dist in production, so the client must be installed +
+#    built too — otherwise the UI is stale/missing.
+#
+#    npm install is REQUIRED, not optional: a dependency added by a merged PR
+#    lands in package-lock.json on `git pull` but is absent from node_modules
+#    until `npm install` syncs it, so the build would otherwise fail with
+#    "cannot find module" (e.g. @dnd-kit/core after the drag-and-drop board PR).
+#    `npm install` is a near-noop when node_modules already matches the lockfile.
 Set-Location $server
+Write-Host 'Installing server deps (npm install)...' -ForegroundColor Cyan
+& npm install
+if ($LASTEXITCODE -ne 0) {
+  Write-Host ''
+  Write-Host 'SERVER npm install FAILED - the running server was NOT touched.' -ForegroundColor Red
+  Write-Host 'Fix the errors above, then run this script again.' -ForegroundColor Red
+  Read-Host 'Press Enter to close'
+  exit 1
+}
 Write-Host 'Building server (npm run build)...' -ForegroundColor Cyan
 & npm run build
 if ($LASTEXITCODE -ne 0) {
@@ -62,6 +78,15 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Set-Location $client
+Write-Host 'Installing client deps (npm install)...' -ForegroundColor Cyan
+& npm install
+if ($LASTEXITCODE -ne 0) {
+  Write-Host ''
+  Write-Host 'CLIENT npm install FAILED - the running server was NOT touched.' -ForegroundColor Red
+  Write-Host 'Fix the errors above, then run this script again.' -ForegroundColor Red
+  Read-Host 'Press Enter to close'
+  exit 1
+}
 Write-Host 'Building client (npm run build)...' -ForegroundColor Cyan
 & npm run build
 if ($LASTEXITCODE -ne 0) {

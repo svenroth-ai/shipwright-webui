@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-18 07:16 UTC | Session: 33742ef6-b45e-4dc7-9cc1-abb5a99973b9 | Run: iterate-2026-06-18-terminal-ws-reconnect-refocus
+> Updated: 2026-06-18 22:18 UTC | Session: 9feac2c5-f3ae-4230-9ae6-f08ea0d357b9 | Run: iterate-2026-06-19-deploy-npm-install
 
-## Recent Changes (166 iterations)
+## Recent Changes (167 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | start-server-production.ps1 and install-windows.ps1 run npm install before npm run build so a newly-merged dependency (@dnd-kit/core) no longer breaks the production build; autostart no longer swallows npm errors. | 0/0 |  | infra | 2026-06-18 |
 | bug | Embedded terminal WS now reconnects on tab refocus + has a client liveness heartbeat (app-level ping/pong) so a silently-dead socket after sleep/Tailscale partition is detected and recovered instead of a stale frozen frame. | 0/0 |  | FR-01.28 | 2026-06-18 |
 | feature | Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | 0/0 |  |  | 2026-06-17 |
 | change | sync vendored gate copies to monorepo fail-closed fixes | 75/75 |  | tooling | 2026-06-17 |
@@ -173,7 +174,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-18 | Unit: 3404/3404 | E2E: 1/1 | Smoke: not_run | (iterate)
+Last run: 2026-06-19 | Unit: 44/44 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
