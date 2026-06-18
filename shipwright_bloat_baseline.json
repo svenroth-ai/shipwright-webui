@@ -263,9 +263,9 @@
     {
       "path": "client/src/hooks/useTerminalSocket.ts",
       "limit": 300,
-      "current": 483,
+      "current": 529,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus"
     },
     {
       "path": "client/src/lib/externalApi.ts",
@@ -592,7 +592,7 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 529,
+      "current": 547,
       "state": "exception",
       "adr": "ADR-103"
     }

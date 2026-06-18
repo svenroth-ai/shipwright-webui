@@ -119,11 +119,50 @@ describe("buildWsHandlers — onMessage routing", () => {
 
   it("invalid discriminator → silently dropped", () => {
     handlers.onMessage?.(
-      { data: JSON.stringify({ type: "ping" }) } as never,
+      { data: JSON.stringify({ type: "bogus" }) } as never,
       ws as never,
     );
     expect(pm.__mocks.write).not.toHaveBeenCalled();
     expect(pm.__mocks.resize).not.toHaveBeenCalled();
     expect(ws.send).not.toHaveBeenCalled();
+  });
+
+  // iterate-2026-06-18 — app-level liveness ping. Answered with a pong
+  // BEFORE the role gate so the client can detect a silently dead socket.
+  it("writer + ping → pong (no pty side-effect)", () => {
+    pm.__mocks.getRole.mockReturnValueOnce("writer");
+    handlers.onMessage?.(
+      { data: JSON.stringify({ type: "ping" }) } as never,
+      ws as never,
+    );
+    expect(pm.__mocks.write).not.toHaveBeenCalled();
+    expect(pm.__mocks.resize).not.toHaveBeenCalled();
+    const types = readSent(ws).map((s) => (s as { type?: string }).type);
+    expect(types).toEqual(["pong"]);
+  });
+
+  it("reader + ping → pong, NOT read_only (readers stay alive too)", () => {
+    pm.__mocks.getRole.mockReturnValueOnce("reader");
+    handlers.onMessage?.(
+      { data: JSON.stringify({ type: "ping" }) } as never,
+      ws as never,
+    );
+    const types = readSent(ws).map((s) => (s as { type?: string }).type);
+    expect(types).toEqual(["pong"]);
+    expect(types).not.toContain("read_only");
+  });
+
+  it("roleless (pre-ready) ping → pong, proving the reply is BEFORE the role gate", () => {
+    // getRole returns null while the writer slot is still being resolved. The
+    // pong MUST still fire (AC-7: answered before the role gate) and getRole
+    // must not even be consulted for a ping.
+    pm.__mocks.getRole.mockReturnValue(null as never);
+    handlers.onMessage?.(
+      { data: JSON.stringify({ type: "ping" }) } as never,
+      ws as never,
+    );
+    const types = readSent(ws).map((s) => (s as { type?: string }).type);
+    expect(types).toEqual(["pong"]);
+    expect(pm.__mocks.getRole).not.toHaveBeenCalled();
   });
 });

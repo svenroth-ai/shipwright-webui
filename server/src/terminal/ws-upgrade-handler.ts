@@ -470,6 +470,24 @@ function buildLiveHandlers(
       } catch {
         return;
       }
+      // App-level liveness ping (iterate-2026-06-18). Answered BEFORE the
+      // role gate so READERS stay alive too. The client uses the pong to
+      // detect a silently half/full-open socket (OS sleep / Tailscale
+      // partition) that never fires a `close` event, then reconnects.
+      // Distinct from the server's own protocol-level ping/pong heartbeat
+      // (ws-heartbeat.ts) — that frees the server slot; this wakes the client.
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        (parsed as { type?: unknown }).type === "ping"
+      ) {
+        try {
+          ws.send(JSON.stringify({ type: "pong" }));
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
       if (!isWSInbound(parsed)) return;
       // External code-review F6: use the non-mutating getRole()
       // here so re-evaluating the writer gate on every inbound
