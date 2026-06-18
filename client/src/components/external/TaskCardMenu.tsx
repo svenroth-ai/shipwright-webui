@@ -17,7 +17,9 @@
  * (task-card-menu/-edit/-backlog/-close/-delete) for existing specs.
  */
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { ChevronRight, MoreHorizontal } from "lucide-react";
+
+import type { BoardColumn } from "../../lib/boardColumnApi";
 
 interface TaskCardMenuProps {
   taskId: string;
@@ -28,10 +30,20 @@ interface TaskCardMenuProps {
   onReopen: () => void;
   onClose: () => void;
   onDelete: () => void;
+  /** iterate-2026-06-17 — keyboard/touch/SR-accessible column move (the
+   *  non-drag a11y path for DnD). Omitted ⇒ the "Move to…" submenu is hidden. */
+  currentColumn?: BoardColumn;
+  onMoveColumn?: (column: BoardColumn) => void;
 }
 
 const ITEM_CLASS =
   "cursor-pointer rounded px-2 py-1 text-[var(--color-text)] outline-none data-[highlighted]:bg-[var(--color-muted-bg)]";
+
+const MOVE_COLUMNS: readonly { col: BoardColumn; label: string }[] = [
+  { col: "backlog", label: "Backlog" },
+  { col: "in_progress", label: "In Progress" },
+  { col: "done", label: "Done" },
+];
 
 export function TaskCardMenu({
   taskId,
@@ -42,6 +54,8 @@ export function TaskCardMenu({
   onReopen,
   onClose,
   onDelete,
+  currentColumn,
+  onMoveColumn,
 }: TaskCardMenuProps) {
   return (
     <DropdownMenu.Root>
@@ -72,6 +86,41 @@ export function TaskCardMenu({
           >
             Edit task
           </DropdownMenu.Item>
+          {/* iterate-2026-06-17 — accessible "Move to column" submenu: the
+              keyboard / touch / screen-reader path for the board DnD. Pure
+              boardColumn move (decoupled from session state). Hidden when no
+              handler is wired (back-compat with TaskCardMenu's old callers). */}
+          {onMoveColumn && (
+            <DropdownMenu.Sub>
+              <DropdownMenu.SubTrigger
+                onClick={(ev) => ev.stopPropagation()}
+                className={`${ITEM_CLASS} flex items-center justify-between data-[state=open]:bg-[var(--color-muted-bg)]`}
+                data-testid={`task-card-movecol-trigger-${taskId}`}
+              >
+                <span>Move to…</span>
+                <ChevronRight size={14} aria-hidden="true" />
+              </DropdownMenu.SubTrigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.SubContent
+                  sideOffset={2}
+                  className="z-50 min-w-[140px] rounded-[var(--radius-button)] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-sm shadow-[var(--shadow-card)]"
+                >
+                  {MOVE_COLUMNS.map(({ col, label }) => (
+                    <DropdownMenu.Item
+                      key={col}
+                      onClick={(ev) => ev.stopPropagation()}
+                      onSelect={() => onMoveColumn(col)}
+                      disabled={col === currentColumn}
+                      className={`${ITEM_CLASS} data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40`}
+                      data-testid={`task-card-movecol-${col}-${taskId}`}
+                    >
+                      {label}
+                    </DropdownMenu.Item>
+                  ))}
+                </DropdownMenu.SubContent>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Sub>
+          )}
           {/* iterate-2026-05-17-move-to-backlog (FR-01.32): In-Progress → draft. */}
           {canMoveToBacklog && (
             <DropdownMenu.Item

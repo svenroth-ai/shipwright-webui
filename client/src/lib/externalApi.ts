@@ -55,6 +55,8 @@ export interface ExternalTask {
   description?: string;
   autonomy?: "guided" | "autonomous";
   state: ExternalTaskState;
+  /** v4 sticky board-column override; canonical type/derive in lib/boardColumnApi.ts. */
+  boardColumn?: "backlog" | "in_progress" | "done";
   createdAt: string;
   launchedAt?: string;
   firstJsonlObservedAt?: string;
@@ -84,12 +86,9 @@ export interface ExternalTask {
    * and the server side is caught by the cross-package import guard.
    *
    * User-creatable: domain, priority, complexityHint, tags, blockedBy.
-   * Daemon-owned (set only by the leadwright claim helper / promote
-   * producer — NOT writable via webui POST routes):
-   *   leadParentTaskId, poFeedback, claimToken, claimedBy, claimedAt,
-   *   claimPid, leadHandoff, promotedFromTriageId.
-   *
-   * v3 schemaVersion is unchanged; all fields optional + additive.
+   * Daemon-owned (NOT writable via webui POST routes): leadParentTaskId,
+   * poFeedback, claimToken, claimedBy, claimedAt, claimPid, leadHandoff,
+   * promotedFromTriageId. All optional + additive.
    */
   domain?: string;
   priority?: "P0" | "P1" | "P2" | "P3";

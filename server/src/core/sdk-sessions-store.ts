@@ -3,7 +3,7 @@
  *
  * Shape (on disk, `<registryDir>/sdk-sessions.json`):
  *   {
- *     schemaVersion: 3,
+ *     schemaVersion: 4,
  *     sessions: {
  *       [taskId]: {
  *         taskId,
@@ -27,11 +27,11 @@
  *     }
  *   }
  *
- * Schema migration (ADR-038 + iterate/multi-session-run-orchestrator-v2):
- * CURRENT_SCHEMA_VERSION = 3. The loader accepts v1, v2, AND v3 on disk.
- * v1 rows are backfilled with `projectId: "unassigned"` in memory; v2
- * rows load with the new v3 fields undefined. Write-on-touch — the first
- * persist() after any mutation flushes the whole shape as v3. This keeps
+ * Schema migration (ADR-038 + -v2 + iterate-2026-06-17 boardColumn):
+ * CURRENT_SCHEMA_VERSION = 4. The loader accepts v1–v4 on disk.
+ * v1 rows are backfilled with `projectId: "unassigned"` in memory; older
+ * rows load with newer fields undefined. Write-on-touch — the first
+ * persist() after any mutation flushes the whole shape as v4. This keeps
  * the migration incremental — large stores migrate over days of normal
  * use rather than on boot, and rollback is a one-line constant revert.
  *
@@ -56,6 +56,8 @@
  */
 
 import { randomUUID } from "node:crypto";
+
+import { type BoardColumn, isBoardColumn } from "./board-column.js";
 
 export type ExternalTaskState =
   | "draft"
@@ -180,20 +182,13 @@ export interface ExternalTask {
   parentRunMaster?: boolean;
   /**
    * iterate-2026-05-14 lead-foundation-task-schema — leadwright Phase 1.
-   * All 13 fields additive + optional. schemaVersion stays at 3; the
-   * persisted shape only writes keys that are actually set (no
-   * `"leadHandoff": null` noise). Loader soft-drops malformed values
-   * per-field rather than failing the whole row — mirrors the existing
-   * forward-compat tolerance for `phaseTaskId` / `runId` / `parentRunMaster`.
-   *
-   * User-creatable (POST /api/external/tasks accepts these 5 directly):
-   *   domain, priority, complexityHint, tags, blockedBy
-   *
-   * Daemon-owned (set by the leadwright claim helper or promote producer
-   * — NOT writable from the webui create route; see external review
-   * MED-4 enforcement in routes.ts):
-   *   leadParentTaskId, poFeedback, claimToken, claimedBy, claimedAt,
-   *   claimPid, leadHandoff, promotedFromTriageId
+   * All additive + optional; the persisted shape writes only keys that are
+   * set, and the loader soft-drops malformed values per-field (mirrors the
+   * phaseTaskId / runId / parentRunMaster forward-compat tolerance).
+   * User-creatable via POST /api/external/tasks: domain, priority,
+   * complexityHint, tags, blockedBy. Daemon-owned (NOT webui-writable; see
+   * MED-4 in routes.ts): leadParentTaskId, poFeedback, claimToken, claimedBy,
+   * claimedAt, claimPid, leadHandoff, promotedFromTriageId.
    */
   domain?: string;
   priority?: LeadPriority;
@@ -208,6 +203,8 @@ export interface ExternalTask {
   claimPid?: number;
   leadHandoff?: LeadHandoff;
   promotedFromTriageId?: string;
+  /** v4 — sticky user-owned board-column override (write-on-touch). */
+  boardColumn?: BoardColumn;
   createdAt: string;
   launchedAt?: string;
   firstJsonlObservedAt?: string;
@@ -216,7 +213,7 @@ export interface ExternalTask {
 }
 
 export interface SdkSessionsFile {
-  schemaVersion: 1 | 2 | 3;
+  schemaVersion: 1 | 2 | 3 | 4;
   sessions: Record<string, ExternalTask>;
 }
 
@@ -238,7 +235,7 @@ export interface SdkSessionsStoreDeps {
   getKnownProjectIds?: () => Set<string>;
 }
 
-const CURRENT_SCHEMA_VERSION = 3 as const;
+const CURRENT_SCHEMA_VERSION = 4 as const;
 
 export class SdkSessionsStore {
   private readonly path: string;
@@ -294,7 +291,7 @@ export class SdkSessionsStore {
       parsed && typeof parsed === "object" && "schemaVersion" in parsed
         ? (parsed as { schemaVersion: unknown }).schemaVersion
         : undefined;
-    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4) {
       this.sessions.clear();
       this.loaded = true;
       return;
@@ -315,7 +312,7 @@ export class SdkSessionsStore {
       const task = validateExternalTask(
         taskId,
         value,
-        schemaVersion as 1 | 2 | 3,
+        schemaVersion as 1 | 2 | 3 | 4,
       );
       if (task) this.sessions.set(taskId, task);
     }
@@ -551,7 +548,7 @@ export class SdkSessionsStore {
 function validateExternalTask(
   taskId: string,
   raw: unknown,
-  schemaVersion: 1 | 2 | 3,
+  schemaVersion: 1 | 2 | 3 | 4,
 ): ExternalTask | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
@@ -625,6 +622,8 @@ function validateExternalTask(
     typeof r.runId === "string" && r.runId.length > 0 ? r.runId : undefined;
   const parentRunMaster =
     typeof r.parentRunMaster === "boolean" ? r.parentRunMaster : undefined;
+  // v4 — sticky board-column override; soft-drop anything not a valid column.
+  const boardColumn = isBoardColumn(r.boardColumn) ? r.boardColumn : undefined;
 
   // 2026-05-05 — preserve action-context fields persisted via store.patch()
   // (set at /launch time) and via store.create() actionId (Save-to-Backlog).
@@ -772,6 +771,7 @@ function validateExternalTask(
     ...(phaseTaskId ? { phaseTaskId } : {}),
     ...(runId ? { runId } : {}),
     ...(parentRunMaster !== undefined ? { parentRunMaster } : {}),
+    ...(boardColumn !== undefined ? { boardColumn } : {}),
     // iterate-2026-05-14 lead-foundation — spread only when defined so
     // the on-disk JSON stays quiet for legacy / non-lead tasks.
     ...(domain !== undefined ? { domain } : {}),

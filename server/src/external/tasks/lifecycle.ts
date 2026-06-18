@@ -23,6 +23,7 @@ import {
   isBacklogSourceState,
 } from "../../core/sdk-sessions-store.js";
 import { withLiveSession } from "../_shared/helpers.js";
+import { isBoardColumn } from "../../core/board-column.js";
 
 export function registerTasksLifecycle(
   app: Hono,
@@ -79,7 +80,9 @@ export function registerTasksLifecycle(
   app.post("/api/external/tasks/:id/close", async (c) => {
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
-    const updated = store.patch(task.taskId, { state: "done" });
+    // iterate-2026-06-17 — sync boardColumn so a prior manual drag can't
+    // strand the closed card outside Done (AC-6).
+    const updated = store.patch(task.taskId, { state: "done", boardColumn: "done" });
     await store.persist();
     return c.json({ task: withLiveSession(updated, ptyManager) });
   });
@@ -102,7 +105,7 @@ export function registerTasksLifecycle(
         409,
       );
     }
-    const updated = store.patch(task.taskId, { state: "draft" });
+    const updated = store.patch(task.taskId, { state: "draft", boardColumn: "backlog" });
     try {
       await store.persist();
     } catch (err) {
@@ -134,7 +137,32 @@ export function registerTasksLifecycle(
         409,
       );
     }
-    const updated = store.patch(task.taskId, { state: "draft" });
+    const updated = store.patch(task.taskId, { state: "draft", boardColumn: "backlog" });
+    try {
+      await store.persist();
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException)?.code === "ELOCKED") {
+        return c.json({ error: "sdk-sessions.json is locked, retry" }, 409);
+      }
+      throw err;
+    }
+    return c.json({ task: withLiveSession(updated, ptyManager) });
+  });
+
+  // iterate-2026-06-17-board-dnd-status-decouple — set the sticky,
+  // user-owned board-column override ONLY. `state`, JSONL, and run-config
+  // are NEVER touched: the board column is decoupled from session liveness,
+  // so a live task can be parked in any column and still offer Resume. This
+  // is the canonical command path for drag-and-drop; the menu lifecycle
+  // routes above sync boardColumn inline so a prior drag can't strand a card.
+  app.post("/api/external/tasks/:id/column", async (c) => {
+    const task = store.get(c.req.param("id"));
+    if (!task) return c.json({ error: "Task not found" }, 404);
+    const body = (await c.req.json().catch(() => ({}))) as { column?: unknown };
+    if (!isBoardColumn(body.column)) {
+      return c.json({ error: "invalid_column", column: body.column ?? null }, 400);
+    }
+    const updated = store.patch(task.taskId, { boardColumn: body.column });
     try {
       await store.persist();
     } catch (err) {

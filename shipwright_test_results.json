@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-06-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-17-vendor-sync-gate-failclosed",
+    "run_id": "iterate-2026-06-17-board-dnd-status-decouple",
     "date": "2026-06-17",
     "unit": {
       "status": "passed",
-      "passed": 75,
-      "total": 75
+      "passed": 3383,
+      "total": 3383
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,48 +32,73 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "playwright",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-17-vendor-sync-gate-failclosed/surface_verification.json",
-      "timestamp": "2026-06-17T14:02:26.683Z",
-      "justification": "Pure Python CLI gate-logic mirrors (pr_review + anti_ratchet exit behavior); no web/API/UI surface. Covered by scripts/ci/tests (75 passed)."
+      "tests_run": 2,
+      "evidence_path": "client/e2e/flows/board-dnd-status-decouple.spec.ts",
+      "timestamp": "2026-06-17T22:53:19.416Z",
+      "justification": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE, alt port). 2 specs PASSED: pointer-drag Backlog->In Progress persists across reload + state stays draft (AC-4/AC-5); keyboard-driven accessible 'Move to...' menu move (AC-7)."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "truncated Tier-3 diff -> non-green EXIT_BLOCK (no size bypass)",
+          "behavior": "schema v4 boardColumn validation + v1-v4 back-compat (write-on-touch)",
           "disposition": "tested",
-          "evidence": "scripts/ci/tests/test_pr_review_script.py::test_truncation_fails_closed_needs_human PASSED"
+          "evidence": "server sdk-sessions-store.boardcolumn.test.ts (7) + schema-migration.test.ts"
         },
         {
-          "behavior": "truncated diff -> request-changes review state",
+          "behavior": "POST /column sets boardColumn only (state/JSONL untouched); 400/404/409/idempotent",
           "disposition": "tested",
-          "evidence": "test_truncation_fails_closed_needs_human asserts posted state == 'block' PASSED"
+          "evidence": "server routes.column.test.ts (11, deep-equal before/after)"
         },
         {
-          "behavior": "present-but-malformed bloat baseline -> exit 1 (fail-closed)",
+          "behavior": "board grouping = boardColumn ?? deriveBoardColumn(state) (parity + override)",
           "disposition": "tested",
-          "evidence": "scripts/ci/tests/test_anti_ratchet_check.py::test_malformed_baseline_fails_closed PASSED"
+          "evidence": "client boardColumnApi.test.ts + TaskBoardColumns.test.tsx"
         },
         {
-          "behavior": "absent baseline -> exit 0 (fail-open) PRESERVED",
+          "behavior": "drag persists across reload + 2s poll, no snap-back (race-safe optimistic)",
           "disposition": "tested",
-          "evidence": "scripts/ci/tests/test_anti_ratchet_check.py::test_absent_baseline_fails_open PASSED"
+          "evidence": "E2E drag scenario + useExternalTasks.boardcolumn.test.ts (cancelQueries spy)"
+        },
+        {
+          "behavior": "Status<->Resume decoupled: active-in-Done keeps Resume; draft-in-IP keeps Launch",
+          "disposition": "tested",
+          "evidence": "client TaskBoardColumns.test.tsx + E2E"
+        },
+        {
+          "behavior": "menu actions sync boardColumn (close->done, backlog/reopen->backlog)",
+          "disposition": "tested",
+          "evidence": "server routes.column.test.ts AC-6 + routes.backlog/reopen.test.ts"
+        },
+        {
+          "behavior": "accessible keyboard/touch/SR column move via 'Move to...' menu",
+          "disposition": "tested",
+          "evidence": "client TaskCardMenu.test.tsx + keyboard-driven E2E + a11y-attr assertion"
+        },
+        {
+          "behavior": "card keydown nav guard: menu-item Enter does not navigate to detail",
+          "disposition": "tested",
+          "evidence": "client TaskCard.keydown.test.tsx"
+        },
+        {
+          "behavior": "touch press-and-hold drag activation",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device"
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
-        "untestable": 0,
+        "testable": 8,
+        "tested": 8,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 4,
-        "covered_acs": 4
+        "acs": 7,
+        "covered_acs": 7
       }
     }
   }

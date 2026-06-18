@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import {
   closeTask,
   createTask,
@@ -12,6 +17,7 @@ import {
   type TaskUpdatePatch,
 } from "../lib/externalApi";
 import { reopenTask } from "../lib/taskReopenApi";
+import { setBoardColumn, type BoardColumn } from "../lib/boardColumnApi";
 
 const LIST_KEY = ["external-tasks"] as const;
 const detailKey = (taskId: string) => ["external-task", taskId] as const;
@@ -126,6 +132,48 @@ export function useUpdateTask() {
     mutationFn: ({ taskId, patch }) => updateTask(taskId, patch),
     onSuccess: (task) => {
       qc.setQueryData(detailKey(task.taskId), task);
+      void qc.invalidateQueries({ queryKey: LIST_KEY });
+    },
+  });
+}
+
+/**
+ * iterate-2026-06-17-board-dnd-status-decouple — set the sticky board-column
+ * override (drag-and-drop on the board). Race-safe optimistic update: the
+ * ~2 s list poll can land mid-mutation, so onMutate cancels in-flight list
+ * fetches, snapshots every `["external-tasks", *]` cache, and flips the
+ * card's boardColumn in place; onError rolls back; onSettled invalidates.
+ * This prevents the visible snap-back the external plan review flagged
+ * (HIGH). `state` is never touched — Status ↔ Resume stay decoupled.
+ */
+export function useSetBoardColumn() {
+  const qc = useQueryClient();
+  return useMutation<
+    ExternalTask,
+    Error,
+    { taskId: string; column: BoardColumn },
+    { snapshot: Array<[QueryKey, ExternalTask[] | undefined]> }
+  >({
+    mutationFn: ({ taskId, column }) => setBoardColumn(taskId, column),
+    onMutate: async ({ taskId, column }) => {
+      await qc.cancelQueries({ queryKey: LIST_KEY });
+      const snapshot = qc.getQueriesData<ExternalTask[]>({ queryKey: LIST_KEY });
+      for (const [key, list] of snapshot) {
+        if (!list) continue;
+        qc.setQueryData<ExternalTask[]>(
+          key,
+          list.map((t) => (t.taskId === taskId ? { ...t, boardColumn: column } : t)),
+        );
+      }
+      return { snapshot };
+    },
+    onError: (_err, _vars, ctx) => {
+      ctx?.snapshot.forEach(([key, list]) => qc.setQueryData(key, list));
+    },
+    onSuccess: (task) => {
+      qc.setQueryData(detailKey(task.taskId), task);
+    },
+    onSettled: () => {
       void qc.invalidateQueries({ queryKey: LIST_KEY });
     },
   });

@@ -65,4 +65,38 @@ describe("TaskCardMenu", () => {
     expect(props.onReopen).toHaveBeenCalledTimes(1);
     expect(props.onBacklog).not.toHaveBeenCalled();
   });
+
+  // iterate-2026-06-17 — the accessible "Move to…" column submenu is the
+  // keyboard / touch / screen-reader path for the board DnD.
+  it("hides the Move to… submenu when onMoveColumn is not wired", async () => {
+    const user = userEvent.setup();
+    renderMenu(); // no onMoveColumn
+    await user.click(screen.getByTestId("task-card-menu-t1"));
+    await screen.findByTestId("task-card-delete-t1");
+    expect(screen.queryByTestId("task-card-movecol-trigger-t1")).toBeNull();
+  });
+
+  it("offers a column move and fires onMoveColumn with the chosen column", async () => {
+    const user = userEvent.setup();
+    const onMoveColumn = vi.fn();
+    renderMenu({ currentColumn: "backlog", onMoveColumn });
+    await user.click(screen.getByTestId("task-card-menu-t1"));
+    // Radix submenu: open via the SubTrigger, then select the item via
+    // keyboard — mouse-clicking a SubContent item detaches it (the known
+    // Radix-submenu test gotcha), so this also exercises the keyboard path.
+    await user.click(await screen.findByTestId("task-card-movecol-trigger-t1"));
+    const item = await screen.findByTestId("task-card-movecol-in_progress-t1");
+    item.focus();
+    await user.keyboard("{Enter}");
+    expect(onMoveColumn).toHaveBeenCalledWith("in_progress");
+  });
+
+  it("disables the current column in the Move to… submenu", async () => {
+    const user = userEvent.setup();
+    renderMenu({ currentColumn: "done", onMoveColumn: vi.fn() });
+    await user.click(screen.getByTestId("task-card-menu-t1"));
+    await user.click(await screen.findByTestId("task-card-movecol-trigger-t1"));
+    const doneItem = await screen.findByTestId("task-card-movecol-done-t1");
+    expect(doneItem).toHaveAttribute("data-disabled");
+  });
 });

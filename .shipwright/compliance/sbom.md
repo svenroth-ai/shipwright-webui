@@ -1,14 +1,14 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-17T14:03:41.544750+00:00
+Generated: 2026-06-17T22:54:26.183379+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 42 |
+| Runtime dependencies | 43 |
 | Dev dependencies | 23 |
-| Total packages | 65 |
+| Total packages | 66 |
 | Unique licenses | 4 (Apache-2.0, BSD-3-Clause, ISC, MIT) |
 | Copyleft licenses | 0 |
 
@@ -16,7 +16,7 @@ Generated: 2026-06-17T14:03:41.544750+00:00
 
 ```mermaid
 pie title License Distribution
-    "MIT" : 60
+    "MIT" : 61
     "Apache-2.0" : 3
     "BSD-3-Clause" : 1
     "ISC" : 1
@@ -26,6 +26,7 @@ pie title License Distribution
 
 | Package | Version | License |
 |---------|---------|---------|
+| @dnd-kit/core | ^6.3.1 | MIT |
 | @hono/node-server | ^1.14.0 | MIT |
 | @hono/node-ws | ^1.3.1 | MIT |
 | @lydell/node-pty | ^1.1.0 | MIT |

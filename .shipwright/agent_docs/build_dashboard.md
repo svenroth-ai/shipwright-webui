@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-17 14:03 UTC | Session: 5fbca8de-0f0f-47fd-8d08-1cd103da350a | Run: iterate-2026-06-17-vendor-sync-gate-failclosed
+> Updated: 2026-06-17 22:54 UTC | Session: 3eedf82c-47a3-414f-9401-b9a50a8aad53 | Run: iterate-2026-06-17-board-dnd-status-decouple
 
-## Recent Changes (164 iterations)
+## Recent Changes (165 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | 0/0 |  |  | 2026-06-17 |
 | change | sync vendored gate copies to monorepo fail-closed fixes | 75/75 |  | tooling | 2026-06-17 |
 | change | launch-prep README Beta badge, issue templates & tooling | 0/0 |  | docs | 2026-06-17 |
 | change | launch-prep PII scrub & repo hygiene | 0/0 |  | infra | 2026-06-17 |
@@ -171,7 +172,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-17 | Unit: 75/75 | Smoke: not_run | (iterate)
+Last run: 2026-06-17 | Unit: 3383/3383 | E2E: 2/2 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
