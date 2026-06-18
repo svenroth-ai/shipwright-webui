@@ -28,6 +28,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { attachWsLiveness } from "./wsLiveness";
 
 export type TerminalRole = "writer" | "reader";
 
@@ -209,6 +210,14 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   // because each replay does `term.reset()` + `term.write(snapshot)`.
   const replayOnlyRef = useRef<boolean | null>(null);
 
+  // iterate-2026-06-18 — sticky mirror of `replayOnly` for the liveness
+  // controller. Set true when a replay-only `ready` arrives; survives the
+  // subsequent close (NOT nulled on close like `replayOnlyRef`) so a refocus
+  // never resurrects a finished/done attach. Reset only at the start of a new
+  // session lifecycle (taskId / enabled / urlOverride change re-runs the
+  // effect). Heartbeat + refocus mechanics live in `attachWsLiveness`.
+  const sessionReplayOnlyRef = useRef(false);
+
   const send = useCallback(
     (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => {
       const ws = socketRef.current;
@@ -235,9 +244,11 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       setPtyReused(null);
       setOpen(false);
       replayOnlyRef.current = null;
+      sessionReplayOnlyRef.current = false;
       return;
     }
     replayOnlyRef.current = null;
+    sessionReplayOnlyRef.current = false;
     // Per-effect-instance cancelled flag (NOT a shared useRef). Each
     // mount of the effect captures its own `cancelled` in its closures
     // — so a stale close-handler from a previously-unmounted effect
@@ -274,6 +285,8 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         attemptsRef.current = 0;
         setReconnectAttempts(0);
         setLastError(null);
+        // (Re)start the per-connection liveness heartbeat (./wsLiveness).
+        liveness.onConnected();
       });
       ws.addEventListener("message", (evt) => {
         if (cancelled) return;
@@ -285,6 +298,9 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         }
         if (!parsed || typeof parsed !== "object") return;
         const env = parsed as Record<string, unknown>;
+        // Any inbound envelope proves the peer is alive — reset liveness
+        // (heartbeat miss-run + a pending refocus probe).
+        liveness.noteInbound();
         if (env.type === "ready") {
           if (env.role === "writer" || env.role === "reader") setRole(env.role);
           if (env.shellKind === "pwsh" || env.shellKind === "cmd" || env.shellKind === "posix") {
@@ -298,6 +314,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
             typeof env.replayOnly === "boolean" ? env.replayOnly : false;
           setReplayOnly(nextReplayOnly);
           replayOnlyRef.current = nextReplayOnly;
+          if (nextReplayOnly) {
+            // Done/terminal attach: one-shot replay, then the server closes.
+            // Never keepalive or resurrect it on refocus.
+            sessionReplayOnlyRef.current = true;
+            liveness.onDisconnected();
+          }
           setScrollbackBytes(
             typeof env.scrollbackBytes === "number" && env.scrollbackBytes >= 0
               ? env.scrollbackBytes
@@ -391,6 +413,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         setOpen(false);
         setReady(false);
         socketRef.current = null;
+        liveness.onDisconnected();
         // Replay-only attaches are one-shot by server contract: after
         // delivering `ready` + `replay_snapshot` the server closes the
         // WS with code 1000 (server/src/terminal/routes.ts replay-only
@@ -434,10 +457,33 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       }, delay);
     };
 
+    // ── WS liveness controller (heartbeat + reconnect-on-refocus) ──
+    // iterate-2026-06-18. Owns the window/document listeners + the per-
+    // connection heartbeat; driven by onConnected / onDisconnected /
+    // noteInbound from the socket event handlers above.
+    const liveness = attachWsLiveness({
+      getSocket: () => socketRef.current,
+      openState: WebSocket.OPEN,
+      isReplayOnly: () => sessionReplayOnlyRef.current,
+      isCancelled: () => cancelled,
+      rearmBudget: () => {
+        attemptsRef.current = 0;
+        setReconnectAttempts(0);
+      },
+      reconnect: () => {
+        if (reconnectTimerRef.current) {
+          clearTimeout(reconnectTimerRef.current);
+          reconnectTimerRef.current = null;
+        }
+        connect();
+      },
+    });
+
     connect();
 
     return () => {
       cancelled = true;
+      liveness.dispose();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;

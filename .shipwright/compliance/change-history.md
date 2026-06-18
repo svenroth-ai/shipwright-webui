@@ -1,6 +1,6 @@
 # Commit Change Log
 
-Generated: 2026-06-17T22:54:26.183379+00:00
+Generated: 2026-06-18T07:16:53.061024+00:00
 Total commits: 577
 
 ## Commit Distribution
@@ -8,8 +8,8 @@ Total commits: 577
 ```mermaid
 pie title Commit Types
     "fix" : 209
-    "feat" : 143
-    "chore" : 117
+    "feat" : 144
+    "chore" : 116
     "docs" : 55
     "refactor" : 25
     "test" : 18
@@ -234,10 +234,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 143 commits
+### Features (feat) — 144 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-18 | board | drag-and-drop task columns, decoupled from session state (#158) | 896e4d57ca2b |
 | 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | adc72bb082df |
 | 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 5d7f914e634d |
 | 2026-06-14 | responsive | phone view (<768px) — sidebar drawer, on-screen terminal key bar, table/modal reflow, iOS safe-area (FR-01.39) (#140) | bee6e174c0b1 |
@@ -382,11 +383,10 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 117 commits
+### Chores (chore) — 116 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-17 | triage | sweep 19 outbox append(s) into branch | e7585eaf7840 |
 | 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
 | 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
 | 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4959bac67740 |

@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-17",
+  "last_updated": "2026-06-18",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-17-board-dnd-status-decouple",
-    "date": "2026-06-17",
+    "run_id": "iterate-2026-06-18-terminal-ws-reconnect-refocus",
+    "date": "2026-06-18",
     "unit": {
       "status": "passed",
-      "passed": 3383,
-      "total": 3383
+      "passed": 3404,
+      "total": 3404
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "not_run",
@@ -35,64 +35,74 @@
       "surface": "web",
       "runner": "playwright",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": "client/e2e/flows/board-dnd-status-decouple.spec.ts",
-      "timestamp": "2026-06-17T22:53:19.416Z",
-      "justification": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE, alt port). 2 specs PASSED: pointer-drag Backlog->In Progress persists across reload + state stays draft (AC-4/AC-5); keyboard-driven accessible 'Move to...' menu move (AC-7)."
+      "tests_run": 1,
+      "evidence_path": "client/e2e/flows/91-terminal-ws-refocus-liveness.spec.ts",
+      "timestamp": "2026-06-18T07:14:25.140Z",
+      "justification": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx server on 127.0.0.1:3947, temp USERPROFILE). 1 spec PASSED in real Chromium: a tab refocus on a live terminal WS emits a {type:ping} probe frame (tx) and the server replies {type:pong} (rx); the healthy socket is NOT closed (data-ws-ready stays true). The full sleep/Tailscale partition-recovery is not deterministically E2E-reproducible (no real network partition in Playwright) — it is covered by unit tests on both ends + a manual post-deploy smoke (sleep/return)."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "schema v4 boardColumn validation + v1-v4 back-compat (write-on-touch)",
+          "behavior": "AC-1: an open socket emits a {type:ping} heartbeat every interval",
           "disposition": "tested",
-          "evidence": "server sdk-sessions-store.boardcolumn.test.ts (7) + schema-migration.test.ts"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-1 + wsHeartbeat.test startClientHeartbeat"
         },
         {
-          "behavior": "POST /column sets boardColumn only (state/JSONL untouched); 400/404/409/idempotent",
+          "behavior": "AC-2: any inbound message resets the missed-pong run (no reap while alive)",
           "disposition": "tested",
-          "evidence": "server routes.column.test.ts (11, deep-equal before/after)"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-2 + wsHeartbeat.test createWsHeartbeatMonitor notePong"
         },
         {
-          "behavior": "board grouping = boardColumn ?? deriveBoardColumn(state) (parity + override)",
+          "behavior": "AC-3: a silently-dead OPEN socket is reaped after MAX_MISSED intervals and reconnects",
           "disposition": "tested",
-          "evidence": "client boardColumnApi.test.ts + TaskBoardColumns.test.tsx"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-3 + wsHeartbeat.test onDead+self-stop"
         },
         {
-          "behavior": "drag persists across reload + 2s poll, no snap-back (race-safe optimistic)",
+          "behavior": "AC-4: focus / pageshow / visibilitychange each re-arm an exhausted budget + reconnect",
           "disposition": "tested",
-          "evidence": "E2E drag scenario + useExternalTasks.boardcolumn.test.ts (cancelQueries spy)"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-4 (parameterized over all 3 triggers)"
         },
         {
-          "behavior": "Status<->Resume decoupled: active-in-Done keeps Resume; draft-in-IP keeps Launch",
+          "behavior": "AC-4d: a refocus while a reconnect is CONNECTING does NOT double-connect (orphan guard)",
           "disposition": "tested",
-          "evidence": "client TaskBoardColumns.test.tsx + E2E"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-4d (hang-mode fake socket)"
         },
         {
-          "behavior": "menu actions sync boardColumn (close->done, backlog/reopen->backlog)",
+          "behavior": "AC-5: an eager refocus probe closes an OPEN-but-dead socket; AC-5b a socket that answers is kept",
           "disposition": "tested",
-          "evidence": "server routes.column.test.ts AC-6 + routes.backlog/reopen.test.ts"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-5 + AC-5b"
         },
         {
-          "behavior": "accessible keyboard/touch/SR column move via 'Move to...' menu",
+          "behavior": "AC-5c: a stale probe timer does not close a healthy reconnected socket (instance-bound)",
           "disposition": "tested",
-          "evidence": "client TaskCardMenu.test.tsx + keyboard-driven E2E + a11y-attr assertion"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-5c (review MED regression guard)"
         },
         {
-          "behavior": "card keydown nav guard: menu-item Enter does not navigate to detail",
+          "behavior": "AC-6: a refocus NEVER reconnects a replay-only (done) attach",
           "disposition": "tested",
-          "evidence": "client TaskCard.keydown.test.tsx"
+          "evidence": "client useTerminalSocket.heartbeat.test AC-6 + existing replay-only one-shot test"
         },
         {
-          "behavior": "touch press-and-hold drag activation",
+          "behavior": "AC-7: server replies {type:pong} to {type:ping} BEFORE the role gate (writer / reader / roleless), no pty side-effect",
+          "disposition": "tested",
+          "evidence": "server ws-upgrade-handler.parse.test (writer + reader + roleless ping->pong)"
+        },
+        {
+          "behavior": "End-to-end wire: a real-browser tab refocus on a live terminal WS yields ping(tx)->pong(rx), socket stays open",
+          "disposition": "tested",
+          "evidence": "E2E client/e2e/flows/91-terminal-ws-refocus-liveness.spec.ts (real Chromium, isolated stack)"
+        },
+        {
+          "behavior": "Full recovery after a real OS-sleep / Tailscale partition (socket silently dead, browser fires no close event)",
           "disposition": "untestable",
-          "reason_code": "requires-physical-device"
+          "reason_code": "requires-external-nondeterministic-service"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 10,
+        "tested": 10,
         "untestable": 1,
         "untested_testable": 0
       },
