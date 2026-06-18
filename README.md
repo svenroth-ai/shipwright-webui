@@ -1,9 +1,23 @@
 # Shipwright Command Center
 
+> ### Ship right, not just fast.
+
 ![Status: Beta](https://img.shields.io/badge/status-beta-blue)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 > **One Kanban board for every Claude Code project you run in parallel —
 > without giving up the terminal or VS Code workflow you already love.**
+
+<table>
+<tr>
+<td width="50%"><img src="docs/images/command-center-board.png" alt="Shipwright Command Center — Kanban view" /></td>
+<td width="50%"><img src="docs/images/command-center-task-detail.png" alt="Shipwright Command Center — Task detail" /></td>
+</tr>
+<tr>
+<td><em>Kanban board across every Shipwright project — Backlog, In Progress, In Review, Done. One place to see where everything stands.</em></td>
+<td><em>Task detail — embedded terminal, Project File Viewer, Markdown Editor.</em></td>
+</tr>
+</table>
 
 > **Beta:** the Command Center is in active beta — it's built and used
 > daily to run Shipwright itself, but you're an early user, so expect the
@@ -23,14 +37,11 @@ chat transcript, inbox, triage, and diagnostics for every registered
 project. Prefer your own terminal (or VS Code)? Copy the same command
 and run it there — the observer behaves identically either way.
 
-**Architectural rule of record** (ADR-034 + ADR-068-A1): the web server
+**Architectural rule of record**: the web server
 spawns **no** Claude process. The embedded terminal hosts only a
 whitelisted shell; your click on Launch authorizes that shell, and the
 Claude command runs inside it. The Command Center stays a read-only
 observer of the JSONL transcript.
-
-Extracted from the Shipwright monorepo on 2026-04-24. Full pre-split
-history is preserved; see the `genesis-from-shipwright-v0.3.2` tag.
 
 **Full docs:** [`docs/guide.md`](docs/guide.md) — the friendly,
 non-expert walkthrough: installation, your first project, daily
@@ -148,7 +159,7 @@ uninstall with `-Uninstall`.
 - Embedded terminal pane per task — xterm.js in the browser, node-pty
   on the server, restricted to a shell-binary whitelist (never `claude`
   directly). Launch auto-runs the command via a client-side WebSocket
-  data-frame; the server never spawns Claude (ADR-067 + ADR-068-A1).
+  data-frame; the server never spawns Claude.
 - No chat composer, no SSE transcript, no chokidar. 1 s client polling
   with byte-range reads; the server is stateless on transcript requests.
 - Multi-project task metadata persisted at
@@ -192,14 +203,6 @@ Sidebar shows `Triage (N)` (orange badge, distinct from Inbox red)
 aggregated across all registered projects, polling every 30 s with
 exponential backoff on 5xx.
 
-**Cross-process lock note** (ADR-101): WebUI's status writes use
-`proper-lockfile` (directory-based); Python producers (`triage.py`,
-`triage_promote.py`) use `_FileLock` (msvcrt/fcntl byte-locks). The two
-primitives don't compose. Mitigation: append-mode small-write
-line-atomicity at OS level + last-status-wins resolution by file order.
-Real-world risk is bounded to manual `triage_promote.py` invocation
-concurrent with a webui Promote click on the same triage id.
-
 See
 [shipwright/docs/triage-inbox.md](https://github.com/svenroth-ai/shipwright/blob/main/docs/triage-inbox.md)
 for the cross-store contract + producer-side details.
@@ -215,7 +218,7 @@ The WebUI writes only:
 
 - `<project>/.shipwright-webui/actions.json` — empty stub on demand; user-editable
 - `<project>/.shipwright/triage.jsonl` — appends `status` events from
-  Promote / Dismiss / Snooze actions (FR-01.30, ADR-101). Never writes
+  Promote / Dismiss / Snooze actions. Never writes
   `append` events (those come from producer hooks).
 - `~/.shipwright-webui/*.json` — own registry
 
@@ -253,5 +256,6 @@ repo's reviewer prompts, not directly in this webui).
 
 ## License
 
-MIT. See [LICENSE](LICENSE) (copied from shipwright monorepo at split
-time).
+[MIT](LICENSE)
+
+Built by [svenroth.ai](https://github.com/svenroth-ai). Powered by Claude Code.
