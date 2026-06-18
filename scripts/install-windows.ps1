@@ -43,24 +43,50 @@ if (-not $nodeVersion) {
 }
 Write-Host "         Node.js $nodeVersion"
 
-# 2. Install dependencies
+# 2. Install dependencies.
+#    Native `npm` exit codes are NOT trapped by $ErrorActionPreference="Stop"
+#    (that only traps PowerShell cmdlet errors), so each step is gated on
+#    $LASTEXITCODE explicitly. Errors are NOT redirected to $null: a new client
+#    dependency lands in package-lock.json on `git pull` but is absent from
+#    node_modules until this runs — a swallowed install/build failure would
+#    silently create a startup shortcut pointing at a server that won't run.
 Write-Host "  [2/4] Installing dependencies..."
 Push-Location $ServerDir
-& npm install --silent 2>$null
+& npm install
+$code = $LASTEXITCODE
 Pop-Location
+if ($code -ne 0) {
+    Write-Host "  ERROR: server npm install failed (exit $code). Aborting." -ForegroundColor Red
+    exit 1
+}
 Push-Location $ClientDir
-& npm install --silent 2>$null
+& npm install
+$code = $LASTEXITCODE
 Pop-Location
+if ($code -ne 0) {
+    Write-Host "  ERROR: client npm install failed (exit $code). Aborting." -ForegroundColor Red
+    exit 1
+}
 Write-Host "         Done."
 
-# 3. Build server + client for production
+# 3. Build server + client for production (same exit-code gating as step 2).
 Write-Host "  [3/4] Building server + client..."
 Push-Location $ServerDir
-& npm run build 2>$null
+& npm run build
+$code = $LASTEXITCODE
 Pop-Location
+if ($code -ne 0) {
+    Write-Host "  ERROR: server build failed (exit $code). Aborting." -ForegroundColor Red
+    exit 1
+}
 Push-Location $ClientDir
-& npm run build 2>$null
+& npm run build
+$code = $LASTEXITCODE
 Pop-Location
+if ($code -ne 0) {
+    Write-Host "  ERROR: client build failed (exit $code). Aborting." -ForegroundColor Red
+    exit 1
+}
 Write-Host "         Done."
 
 # 4. Create startup script (VBS wrapper runs node hidden, no console window)

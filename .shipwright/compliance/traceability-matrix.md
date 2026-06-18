@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-18T07:16:53.061024+00:00
+Generated: 2026-06-18T22:18:23.826043+00:00
 
 ## Requirements Coverage
 
@@ -288,6 +288,7 @@ Generated: 2026-06-18T07:16:53.061024+00:00
 | sync vendored gate copies to monorepo fail-closed fixes | iterate | change |  | 75/75 | — | 2026-06-17 |
 | Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | iterate | feature |  | — | — | 2026-06-17 |
 | Embedded terminal WS now reconnects on tab refocus + has a client liveness heartbeat (app-level ping/pong) so a silently-dead socket after sleep/Tailscale partition is detected and recovered instead of a stale frozen frame. | iterate | bug | FR-01.28 | — | — | 2026-06-18 |
+| start-server-production.ps1 and install-windows.ps1 run npm install before npm run build so a newly-merged dependency (@dnd-kit/core) no longer breaks the production build; autostart no longer swallows npm errors. | iterate | bug |  | — | — | 2026-06-18 |
 
 ## Coverage Summary
 
@@ -295,7 +296,7 @@ Generated: 2026-06-18T07:16:53.061024+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 166 |
+| Iterate changes | 167 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |

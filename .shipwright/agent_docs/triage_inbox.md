@@ -1,29 +1,29 @@
 # Triage Inbox
 
-> Auto-generated 2026-06-18T07:16:53.061024Z. Items waiting for triage decision.
+> Auto-generated 2026-06-18T22:18:23.826043Z. Items waiting for triage decision.
 > Promote via WebUI Triage tab (when v1b lands) or `shared/scripts/tools/triage_promote.py --id <id> --task-ref EXT:<ref>`.
 
 ## Status summary
 
-- Total: 68
-- Triage: 2 | Promoted: 1 | Dismissed: 65 | Snoozed: 0
+- Total: 69
+- Triage: 2 | Promoted: 1 | Dismissed: 66 | Snoozed: 0
 
 ## Top 2 items (severity-sorted)
 
 ### Source: compliance (1 item)
 
-<a id="trg-e6dc4f33"></a>
-- **Compliance: 2 open finding(s)** `id=trg-e6dc4f33 | severity=high | kind=compliance → P1/compliance`
-  - 2 open compliance finding(s): H/H1, H/H2  - H/H1: Bloat drift (oversize file not in baseline) — client/src/components/t…
+<a id="trg-3d604875"></a>
+- **Compliance: 4 open finding(s)** `id=trg-3d604875 | severity=high | kind=compliance → P1/compliance`
+  - 4 open compliance finding(s): B/B7, D/D3, H/H1, H/H2  - B/B7: Every commit since release tag has a matching event — 1 c…
   - Launch payload (copy into a new Claude session):
     ```text
     /shipwright-compliance
     
-    Context: 2 open compliance finding(s): H/H1, H/H2.
+    Context: 4 open compliance finding(s): B/B7, D/D3, H/H1, H/H2.
     Dashboard: .shipwright/compliance/dashboard.md
     Each finding + hint is listed in this item's detail.
     ```
-  - Promote: `triage_promote.py --id trg-e6dc4f33 --task-ref EXT:<ref>`
+  - Promote: `triage_promote.py --id trg-3d604875 --task-ref EXT:<ref>`
 
 ### Source: iterate (1 item)
 

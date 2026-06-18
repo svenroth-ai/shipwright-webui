@@ -43,6 +43,20 @@ const buildLine = firstLineMatching(/npm run build/); // first build (server)
 const killLine = firstLineMatching(/Stopping the old server/); // the server-kill
 const upConfirmLine = firstLineMatching(/Hono runs in the background/); // server-up OK
 
+// Lines that run `npm install` / `npm run build` (non-comment). The deploy MUST
+// sync node_modules with package-lock.json BEFORE building: a dependency added
+// by a merged PR lands in the lockfile on `git pull` but is absent from
+// node_modules until `npm install` runs, so the build otherwise fails with
+// "cannot find module" (e.g. @dnd-kit/core). See iterate-2026-06-19-deploy-npm-install.
+const installLineNumbers = lines
+  .map((l, i) => [l, i])
+  .filter(([l]) => !isComment(l) && /npm install/.test(l))
+  .map(([, i]) => i);
+const buildLineNumbers = lines
+  .map((l, i) => [l, i])
+  .filter(([l]) => !isComment(l) && /npm run build/.test(l))
+  .map(([, i]) => i);
+
 test('deploy structure markers are present (guards the other assertions)', () => {
   // If any of these markers are renamed in a refactor, the ordering assertions
   // below would silently pass on a `-1` index — fail loudly instead.
@@ -82,5 +96,31 @@ test('the LAST repair runs AFTER the server-up confirmation (clean window)', () 
     last > upConfirmLine,
     'final repair must run after the server is confirmed up — old embedded ' +
       '`claude` are dead, new ones not yet spawned: the clean heal window',
+  );
+});
+
+test('npm install runs for BOTH server and client (deps synced from the lockfile before build)', () => {
+  assert.ok(
+    installLineNumbers.length >= 2,
+    `expected >= 2 \`npm install\` invocations (server + client), found ${installLineNumbers.length}. ` +
+      'Without npm install a dependency added by a merged PR (present only in ' +
+      'package-lock.json after a pull) is missing from node_modules and the ' +
+      'build fails with "cannot find module" (e.g. @dnd-kit/core).',
+  );
+});
+
+test('the FIRST npm install precedes the FIRST build (sync before compile)', () => {
+  assert.ok(
+    installLineNumbers[0] >= 0 && installLineNumbers[0] < buildLineNumbers[0],
+    'first npm install must run before the first npm run build',
+  );
+});
+
+test('every npm install runs BEFORE the server-kill (a failed install leaves the running server untouched)', () => {
+  const lastInstall = installLineNumbers[installLineNumbers.length - 1];
+  assert.ok(
+    lastInstall >= 0 && lastInstall < killLine,
+    'all npm install steps must run before the server-kill so a failed install ' +
+      'aborts while the currently running server is still untouched (ORDER MATTERS contract).',
   );
 });

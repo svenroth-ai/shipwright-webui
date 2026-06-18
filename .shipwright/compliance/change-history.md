@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-06-18T07:16:53.061024+00:00
-Total commits: 577
+Generated: 2026-06-18T22:18:23.826043+00:00
+Total commits: 581
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 209
+    "fix" : 210
     "feat" : 144
-    "chore" : 116
-    "docs" : 55
+    "chore" : 117
+    "docs" : 56
     "refactor" : 25
-    "test" : 18
+    "test" : 19
     "ci" : 5
     "other" : 4
     "build" : 1
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 209 commits
+### Fixes (fix) — 210 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-18 | terminal | reconnect embedded terminal WS on tab refocus + client liveness heartbeat (FR-01.28) (#159) | a6ee149a0261 |
 | 2026-06-17 | ci | vendored gates fail closed (truncation + corrupt baseline) (#157) | fe55df9c1202 |
 | 2026-06-17 | compliance | refresh artifacts for upstream rendering fixes (#153) | 237b5009891c |
 | 2026-06-16 | editor | preserve inline HTML links on save (FR-01.34) (#152) | 9b40a50fbbc0 |
@@ -383,10 +384,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 116 commits
+### Chores (chore) — 117 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-19 | triage | sweep 3 outbox append(s) into branch | 5ae9e0794b9b |
 | 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
 | 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
 | 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4959bac67740 |
@@ -504,10 +506,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 55 commits
+### Documentation (docs) — 56 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-18 | readme | mirror monorepo branding, add screenshots, drop internal refs (#161) | 3f8f8cadc805 |
 | 2026-06-14 | agent-docs | compact over-budget entries + de-blank-line Updates sections (#144) | 09baf5c95782 |
 | 2026-06-14 | guide | document ~/.claude.json self-heal in production restart (#137) | e93f7ca5634a |
 | 2026-06-13 | guide | audit guide.md vs code/ADRs/RTM + align package.json version (#133) | da82487797e7 |
@@ -594,10 +597,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 18 commits
+### Tests (test) — 19 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-18 | terminal | split WS-liveness specs under the 300-LOC guideline (#160) | b682e6a7f7de |
 | 2026-06-09 | campaigns | split loop-state annotation tests to clear the 300-LOC ceiling | c2b328d42c9f |
 | 2026-06-08 | triage | split union read tests into triage-store.union.test.ts | 431e40b6b62b |
 | 2026-06-07 | terminal | empirically reproduce touch-scroll alt-buffer no-op (ADR-131) | 626b9989891b |
@@ -646,7 +650,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 577 |
+| Total commits | 581 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 577 |
+| Human-authored commits | 581 |
 
