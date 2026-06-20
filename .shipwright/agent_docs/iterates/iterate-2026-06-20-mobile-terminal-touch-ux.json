@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-20-mobile-terminal-touch-ux",
+  "date": "2026-06-20T10:22:03.332835Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/mobile-terminal-touch-ux",
+  "spec": ".shipwright/planning/iterate/2026-06-20-mobile-terminal-touch-ux.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-20-mobile-terminal-touch-ux"
+}

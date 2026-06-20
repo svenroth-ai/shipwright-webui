@@ -4,21 +4,13 @@
  * Plan-D''-conform (ADR-034) + ADR-067 (shell-only whitelist) + ADR-068-A1
  * (client-side WS data-frame auto-execute). Webui spawns NO Claude process.
  *
- * Campaign C / C5 (2026-05-26) — the 1856-LOC monolith was split into a
- * thin shell + 8 modules under `client/src/components/terminal/`:
- *   - xtermAddons.ts             — Terminal+addons factory + version-pin
- *   - usePasteImage.ts           — DOM paste image-wins + multipart upload
- *   - useTerminalResize.ts       — ResizeObserver + tab-activation + safeFit
- *   - useReplayDrainGate.ts      — ADR-108 gate + onData/onReplaySnapshot
- *   - useAutoLaunch.ts           — ADR-068-A1 auto-launch + manual-send guard
- *   - useTerminalSelection.ts    — copy-on-selection + mouse-mode banner
- *   - useTerminalShellEffects.ts — banner grace + tab-auto-focus + parent IO
- *   - TerminalBanners.tsx        — presentational banner stack
- *
- * Hard invariants enforced here OR in the extracted modules (CLAUDE.md
- * rules 17-22): convertEol:false; no windowsMode; CLAUDE_CODE_NO_FLICKER
- * default ON; auto-execute via client-side WS data-frame; no legacy
- * chunked-replay envelopes.
+ * Campaign C / C5 (2026-05-26) — the 1856-LOC monolith was split into a thin
+ * shell + extracted modules under `client/src/components/terminal/`:
+ * xtermAddons, usePasteImage, useTerminalResize, useReplayDrainGate,
+ * useAutoLaunch, useTerminalSelection, useTerminalShellEffects, touch-scroll,
+ * scroll-repaint, repaint-on-settle (data-driven smear repaint), TerminalBanners.
+ * Hard invariants (CLAUDE.md rules 17-22): convertEol:false; no windowsMode;
+ * CLAUDE_CODE_NO_FLICKER default ON; client-side WS auto-execute; no chunked replay.
  */
 
 import {
@@ -43,6 +35,7 @@ import {
 } from "./terminal-clipboard";
 import { attachTouchScroll } from "./touch-scroll";
 import { attachScrollRepaint } from "./scroll-repaint";
+import { attachSettleRepaint } from "./repaint-on-settle";
 import { copyText } from "../../lib/clipboard";
 
 import { createEmbeddedXterm } from "./xtermAddons";
@@ -106,6 +99,8 @@ export const EmbeddedTerminal = forwardRef<
   const termRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
   const disposedRef = useRef(false);
+  // Arm-fn for the data-driven settle-repaint (AC-4); set in the mount-effect.
+  const settleArmRef = useRef<(() => void) | null>(null);
 
   // Shell-owned banner state.
   const [readOnlyArmed, setReadOnlyArmed] = useState(false);
@@ -152,6 +147,7 @@ export const EmbeddedTerminal = forwardRef<
     disposedRef,
     socketSend: socket.send,
     active,
+    settleArmRef,
   });
   useTerminalShellEffects({
     socket,
@@ -224,6 +220,10 @@ export const EmbeddedTerminal = forwardRef<
     const disposeTouchScroll = attachTouchScroll(handle.term, container);
     // Full-viewport WebGL repaint on scroll — fixes the table-scroll smear.
     const disposeScrollRepaint = attachScrollRepaint(handle.term, container, () => disposedRef.current);
+    // Data-driven settle-repaint (AC-4) — heals input-area smear on a
+    // Transcript→Terminal switch / return-from-home (see repaint-on-settle.ts).
+    const settle = attachSettleRepaint(handle.term, () => disposedRef.current);
+    settleArmRef.current = settle.arm;
     const disposeSelection = attachTerminalSelection({
       term: handle.term,
       disposedRef,
@@ -248,6 +248,7 @@ export const EmbeddedTerminal = forwardRef<
       try {
         disposeScrollRepaint();
         disposeTouchScroll();
+        settle.dispose(); settleArmRef.current = null;
       } catch {
         /* best-effort */
       }

@@ -10,15 +10,15 @@
  *      `scrollLines`.
  *
  *   2. Mock-Terminal-with-element routing tests (ADR-133,
- *      iterate-2026-06-15-touch-scroll-wheel-events). A finger pan must
- *      replicate the mouse wheel: dispatch `WheelEvent`s onto `term.element`
- *      when mouse-tracking is active OR the alt-screen buffer is current;
- *      fall back to `scrollLines` only in the bare normal buffer. This
- *      inverts the ADR-131/132 assertions (which expected raw arrow-key
- *      escapes — the path that made Claude cycle input history instead of
- *      scrolling). The mock-element pattern mirrors EmbeddedTerminal.test's
- *      controllable `.enable-mouse-events` element; the byte-level encoding
- *      is xterm's own job and is verified end-to-end by iPad UAT.
+ *      iterate-2026-06-15-touch-scroll-wheel-events; amended
+ *      iterate-2026-06-20 AC-3). Routing is buffer-first: the alt-screen
+ *      buffer dispatches `WheelEvent`s onto `term.element` (no scrollback to
+ *      pan); the normal buffer pans the scrollback via `scrollLines` EVEN
+ *      when mouse-tracking is on (the resume-picker fix — the wheel
+ *      mouse-report the app ignored). The mock-element pattern mirrors
+ *      EmbeddedTerminal.test's controllable `.enable-mouse-events` element;
+ *      the byte-level encoding is xterm's own job and is verified end-to-end
+ *      by iPad UAT.
  */
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -144,7 +144,13 @@ describe("buffer-aware routing — wheel replication (ADR-133)", () => {
     dispose();
   });
 
-  it("normal buffer WITH mouse tracking: forwards a wheel (the app, e.g. Claude, consumes the report) — NOT scrollLines", () => {
+  it("normal buffer WITH mouse tracking: pans the scrollback via scrollLines, NOT a wheel (resume-picker fix — iterate-2026-06-20 AC-3)", () => {
+    // ADR-133 originally forwarded normal-buffer + mouse-tracking to a wheel
+    // on the theory the app consumes the mouse-report as scroll. Claude's
+    // `--resume` "load full session / summary" picker is exactly this surface
+    // (normal buffer + mouse-tracking) and IGNORES the wheel report, so a
+    // finger-pan did nothing (user report 2026-06-20). The scrollback is the
+    // natural touch target there, so we now pan it with scrollLines.
     const { term, wheelEvents, scrollLines } = setupTerm("normal", true);
     const c = setupContainer();
     const dispose = attachTouchScroll(term, c);
@@ -153,8 +159,9 @@ describe("buffer-aware routing — wheel replication (ADR-133)", () => {
     fire(c, "touchmove", [{ identifier: 3, clientY: 100 }]);
     fire(c, "touchend", [{ identifier: 3, clientY: 100 }]);
 
-    expect(scrollLines).not.toHaveBeenCalled();
-    expect(wheelEvents).toHaveLength(1);
+    expect(wheelEvents).toHaveLength(0);
+    // 100 px upward drag / 18 px-per-line (432/24) → 5 lines down.
+    expect(scrollLines).toHaveBeenCalledWith(5);
 
     dispose();
   });

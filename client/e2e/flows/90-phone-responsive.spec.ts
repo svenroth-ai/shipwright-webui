@@ -174,6 +174,49 @@ test.describe("Phone responsive (<768px, touch)", () => {
       }
       // The ⌨ summon-keyboard affordance is present too.
       await expect(page.getByTestId("terminal-key-keyboard")).toBeVisible();
+      // AC-2 (iterate-2026-06-20) — keys now carry a visible border + a white
+      // glyph for legibility on the dark bar (previously borderless +
+      // grey-on-dark). Compare the glyph colour against the browser's OWN
+      // computed `white` so the assertion is agnostic to the colour-space
+      // serialisation (Tailwind 4 emits oklab(), not rgb()).
+      const probeWhite = await page.evaluate(() => {
+        const el = document.createElement("span");
+        el.style.color = "white";
+        document.body.appendChild(el);
+        const c = getComputedStyle(el).color;
+        el.remove();
+        return c;
+      });
+      const keyStyle = await page
+        .getByTestId("terminal-key-esc")
+        .evaluate((el) => {
+          const s = getComputedStyle(el);
+          return { borderTopWidth: s.borderTopWidth, color: s.color };
+        });
+      expect(parseFloat(keyStyle.borderTopWidth)).toBeGreaterThan(0); // border now present
+      expect(keyStyle.color).toBe(probeWhite); // white glyph
+    } finally {
+      await cleanupTask(request, taskId);
+      await cleanupCwd(cwd);
+    }
+  });
+
+  test("task-detail header is condensed on a phone — breadcrumb + meta sub-line hidden (iterate-2026-06-20 AC-1)", async ({ page, request }) => {
+    const cwd = await makeTaskCwd();
+    const taskId = await createTask(request, cwd, "phone-header-condense");
+    try {
+      await page.goto(`/tasks/${taskId}`);
+      await expect(page.getByTestId("task-detail-header")).toBeVisible();
+      // Condensed: the breadcrumb + the Started…/last-event/model meta sub-line
+      // are dropped on a phone to give the terminal pane more vertical room.
+      await expect(page.getByTestId("task-detail-breadcrumb")).toHaveCount(0);
+      await expect(page.getByTestId("task-detail-subline")).toHaveCount(0);
+      // The title row stays (the orientation anchor) — and everything still
+      // reachable: the ⋮ menu (debug → session metadata) is present.
+      await expect(page.getByTestId("task-detail-title-row")).toBeVisible();
+      await expect(page.getByTestId("task-detail-menu-trigger")).toBeVisible();
+      // The header must not introduce horizontal page overflow at phone width.
+      expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
     } finally {
       await cleanupTask(request, taskId);
       await cleanupCwd(cwd);

@@ -16,11 +16,7 @@ import { useRef } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 
-import {
-  safeFit,
-  useTerminalResize,
-  POST_RESIZE_REPAINT_DELAYS_MS,
-} from "./useTerminalResize";
+import { safeFit, useTerminalResize } from "./useTerminalResize";
 
 // --- safeFit ---------------------------------------------------------------
 
@@ -156,6 +152,7 @@ describe("useTerminalResize hook", () => {
     initialActive: boolean,
   ): {
     socketSend: ReturnType<typeof vi.fn>;
+    settleArm: ReturnType<typeof vi.fn>;
     term: Terminal;
     fit: FitAddon;
     disposed: { current: boolean };
@@ -163,6 +160,7 @@ describe("useTerminalResize hook", () => {
     unmount: () => void;
   } {
     const socketSend = vi.fn();
+    const settleArm = vi.fn();
     const term = makeTerm();
     const fit = makeFit();
     const disposed = { current: false };
@@ -174,6 +172,7 @@ describe("useTerminalResize hook", () => {
         const termRef = useRef<Terminal | null>(term);
         const fitAddonRef = useRef<FitAddon | null>(fit);
         const disposedRef = useRef<boolean>(disposed.current);
+        const settleArmRef = useRef<(() => void) | null>(settleArm);
         // Sync the disposed flag into the ref the hook sees.
         disposedRef.current = disposed.current;
         useTerminalResize({
@@ -183,6 +182,7 @@ describe("useTerminalResize hook", () => {
           disposedRef,
           socketSend,
           active: props.active,
+          settleArmRef,
         });
       },
       { initialProps: { active: initialActive } },
@@ -190,6 +190,7 @@ describe("useTerminalResize hook", () => {
 
     return {
       socketSend,
+      settleArm,
       term,
       fit,
       disposed,
@@ -396,98 +397,82 @@ describe("useTerminalResize hook", () => {
     expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(2);
   });
 
-  // --- trailing repaint after a dimension change (alt-buffer reflow fix) ---
-  // Claude's TUI lives in the alt-buffer and redraws ASYNCHRONOUSLY after a
-  // SIGWINCH (the WS `resize` frame). The WebGL renderer's per-cell dirty
-  // detection skips cells whose glyph matches what's already on-screen — but
-  // after a width change the logical→screen mapping shifts, so stale glyphs
-  // (the old input-box border, the floating title cell) survive Claude's
-  // redraw. A trailing full-viewport refresh AFTER the redraw lands clears
-  // them. (Same WebGL partial-dirty class as scroll-repaint.ts.)
+  // --- data-driven settle-repaint arming (iterate-2026-06-20 AC-4) ---
+  // The fixed 130/350 ms trailing repaints are RETIRED; the post-layout-change
+  // repaint is now reactive (repaint-on-settle.ts) so a slow mobile async
+  // redraw still gets repainted. This hook ARMS that window on tab-activation
+  // + visibility/focus; resize-driven arming is the settle module's own
+  // `term.onResize`, so the RO path here arms nothing. The synchronous
+  // immediate `term.refresh` (display:none / stale-frame repair) is retained
+  // and is covered by the activation / focus / visibility tests above.
 
-  const [TRAIL_1, TRAIL_2] = POST_RESIZE_REPAINT_DELAYS_MS;
-
-  it("a dims-changing resize schedules trailing full-viewport repaints (catches Claude's async redraw)", () => {
-    const { socketSend, term } = setup(false);
-    act(() => {
-      lastROCallback?.();
-    });
-    // RO path sends the resize but does NOT refresh synchronously.
-    expect(socketSend).toHaveBeenCalledTimes(1);
-    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
-    // First trailing refresh.
-    act(() => {
-      vi.advanceTimersByTime(TRAIL_1);
-    });
-    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
-    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenLastCalledWith(
-      0,
-      term.rows - 1,
-    );
-    // Second (later) trailing refresh — covers a slower Claude redraw.
-    act(() => {
-      vi.advanceTimersByTime(TRAIL_2 - TRAIL_1);
-    });
-    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(2);
+  it("tab activation arms the settle-repaint window", () => {
+    const { settleArm, rerender } = setup(false);
+    expect(settleArm).not.toHaveBeenCalled();
+    rerender(true);
+    expect(settleArm).toHaveBeenCalledTimes(1);
   });
 
-  it("no trailing repaint when the resize is a dedupe no-op (unchanged dims)", () => {
-    const { term } = setup(false);
-    act(() => {
-      lastROCallback?.();
-    });
-    // Flush the first send's trailing repaints + clear the throttle window.
-    act(() => {
-      vi.advanceTimersByTime(TRAIL_2 + 50);
-    });
-    (term.refresh as ReturnType<typeof vi.fn>).mockClear();
-    // Second fire, identical dims → dedupe → no send → no trailing schedule.
-    act(() => {
-      lastROCallback?.();
-    });
-    act(() => {
-      vi.advanceTimersByTime(TRAIL_2 + 50);
-    });
-    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+  it("activation arms even when dims are unchanged (same-pane Transcript→Terminal toggle)", () => {
+    // The pane keeps its size across the inner tab toggle → no SIGWINCH, but a
+    // late async redraw can still smear, so the window MUST arm anyway.
+    const { settleArm, rerender } = setup(true); // active from mount → 1 arm
+    expect(settleArm).toHaveBeenCalledTimes(1);
+    rerender(false);
+    rerender(true); // re-activate, dims identical
+    expect(settleArm).toHaveBeenCalledTimes(2);
   });
 
-  it("focus with a dims change adds trailing repaints on top of the synchronous one", () => {
-    const { term } = setup(false);
+  it("window focus arms the settle-repaint window", () => {
+    const { settleArm } = setup(false);
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
-    // Synchronous repaint fired immediately.
-    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1);
-    act(() => {
-      vi.advanceTimersByTime(TRAIL_2);
-    });
-    // + two trailing repaints once the async redraw window elapses.
-    expect((term.refresh as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(3);
+    expect(settleArm).toHaveBeenCalledTimes(1);
   });
 
-  it("pending trailing repaints are cancelled on unmount", () => {
-    const { term, unmount } = setup(false);
+  it("visibilitychange (becoming visible) arms the settle-repaint window", () => {
+    setHidden(false);
+    const { settleArm } = setup(false);
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(settleArm).toHaveBeenCalledTimes(1);
+  });
+
+  it("pageshow (bfcache restore) arms the settle-repaint window", () => {
+    const { settleArm } = setup(false);
+    act(() => {
+      window.dispatchEvent(new Event("pageshow"));
+    });
+    expect(settleArm).toHaveBeenCalledTimes(1);
+  });
+
+  it("a hidden visibilitychange does NOT arm (no work while hidden)", () => {
+    const { settleArm } = setup(false);
+    setHidden(true);
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    expect(settleArm).not.toHaveBeenCalled();
+    setHidden(false);
+  });
+
+  it("the RO (resize) path does NOT arm here — the settle module's own onResize does", () => {
+    const { settleArm } = setup(false);
     act(() => {
       lastROCallback?.();
     });
-    unmount();
-    act(() => {
-      vi.advanceTimersByTime(TRAIL_2 + 100);
-    });
-    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(settleArm).not.toHaveBeenCalled();
   });
 
-  it("a trailing repaint that fires after disposal is a no-op (no refresh on a dead term)", () => {
-    const { term, disposed, rerender } = setup(false);
-    act(() => {
-      lastROCallback?.();
-    });
-    // Flip disposed BEFORE the trailing timers fire.
+  it("focus after disposal does not arm (guarded by disposedRef)", () => {
+    const { settleArm, disposed, rerender } = setup(false);
     disposed.current = true;
     rerender(false);
     act(() => {
-      vi.advanceTimersByTime(TRAIL_2 + 100);
+      window.dispatchEvent(new Event("focus"));
     });
-    expect((term.refresh as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+    expect(settleArm).not.toHaveBeenCalled();
   });
 });

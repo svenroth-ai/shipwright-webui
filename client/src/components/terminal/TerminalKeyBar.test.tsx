@@ -95,4 +95,28 @@ describe("<TerminalKeyBar>", () => {
     // fireEvent returns false when a handler called preventDefault().
     expect(ev).toBe(false);
   });
+
+  it("keys carry a white border + white text for legibility (AC-2)", () => {
+    mockPointer(true);
+    render(<TerminalKeyBar onKey={vi.fn()} onFocusTerminal={vi.fn()} />);
+    for (const id of ["keyboard", "esc", "up", "enter"]) {
+      const cls = screen.getByTestId(`terminal-key-${id}`).className;
+      expect(cls).toContain("border");
+      expect(cls).toContain("border-white/80");
+      expect(cls).toContain("text-white");
+      // The old low-contrast grey token must be gone.
+      expect(cls).not.toContain("text-[var(--color-text,#e5e5e5)]");
+    }
+  });
+
+  it("the read-only reader keys stay visibly muted (AC-2 — disabled dims the white border+glyph)", () => {
+    mockPointer(true);
+    render(<TerminalKeyBar onKey={vi.fn()} onFocusTerminal={vi.fn()} disabled />);
+    const esc = screen.getByTestId("terminal-key-esc");
+    expect(esc).toBeDisabled();
+    // `disabled:opacity-40` dims the brighter white border + glyph for the
+    // reader role, so the new high-contrast styling doesn't make a read-only
+    // bar look interactive.
+    expect(esc.className).toContain("disabled:opacity-40");
+  });
 });

@@ -20,7 +20,7 @@
  *     safe no-op.
  */
 
-import { useCallback, useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 
@@ -30,14 +30,15 @@ type ResizeSendFn = (msg: { type: "resize"; cols: number; rows: number }) => voi
 /** Resize throttle window. ConPTY redraws the line on every SIGWINCH; we don't want to drown it. */
 const RESIZE_THROTTLE_MS = 250;
 
-/**
- * Trailing full-viewport repaint delays (ms) after a dimension change. Claude's
- * alt-buffer TUI redraws ASYNC after the SIGWINCH, and the WebGL partial-dirty
- * detection leaves stale cells (old input-box border, floating title) across
- * the reflow. Two staggered `term.refresh` passes clear them — fast + slow
- * redraw. Same partial-dirty class as `scroll-repaint.ts`. (Rationale: ADR.)
- */
-export const POST_RESIZE_REPAINT_DELAYS_MS = [130, 350] as const;
+// The post-layout-change repaint is now DATA-DRIVEN (iterate-2026-06-20 AC-4,
+// `repaint-on-settle.ts`): instead of fixed 130/350 ms trailing `term.refresh`
+// timers — which closed before Claude's async alt-buffer redraw landed on a
+// slow mobile path, leaving the smear — the settle window repaints on each
+// parsed write until the stream quiesces. This hook ARMS that window (via
+// `settleArmRef`) on tab-activation + visibility/focus; resize-driven changes
+// arm it internally through `term.onResize`. The synchronous immediate
+// `term.refresh(0, rows-1)` on activation/focus (display:none + stale-frame
+// repair) is RETAINED below.
 
 /**
  * Defence against two xterm hazards (ADR-084):
@@ -105,6 +106,13 @@ export interface UseTerminalResizeOptions {
   socketSend: ResizeSendFn;
   /** Parent's tab-active flag — true while the Terminal tab is visible. */
   active: boolean;
+  /**
+   * Arm the data-driven settle-repaint window (`repaint-on-settle.ts`) — held
+   * behind a ref because the settle handle is created in EmbeddedTerminal's
+   * mount-effect, which commits AFTER this hook's effects. Optional so the
+   * hook stays usable in isolation (unit tests pass a spy).
+   */
+  settleArmRef?: RefObject<(() => void) | null>;
 }
 
 /**
@@ -120,6 +128,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     disposedRef,
     socketSend,
     active,
+    settleArmRef,
   } = opts;
 
   // Plan-review gemini #1: pin `socketSend` behind a latest-ref so the
@@ -137,32 +146,6 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     cols: -1,
     rows: -1,
   });
-
-  // Trailing repaint timers — see POST_RESIZE_REPAINT_DELAYS_MS.
-  const trailingRepaintTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const clearTrailingRepaints = useCallback(() => {
-    for (const t of trailingRepaintTimersRef.current) clearTimeout(t);
-    trailingRepaintTimersRef.current = [];
-  }, []);
-  const scheduleTrailingRepaint = useCallback(() => {
-    clearTrailingRepaints();
-    for (const delay of POST_RESIZE_REPAINT_DELAYS_MS) {
-      trailingRepaintTimersRef.current.push(
-        setTimeout(() => {
-          if (disposedRef.current) return;
-          const term = termRef.current;
-          if (!term) return;
-          try {
-            term.refresh(0, term.rows - 1);
-          } catch {
-            /* term mid-dispose */
-          }
-        }, delay),
-      );
-    }
-  }, [clearTrailingRepaints, termRef, disposedRef]);
-  // Cancel any pending trailing repaint on unmount.
-  useEffect(() => clearTrailingRepaints, [clearTrailingRepaints]);
 
   // -------- ResizeObserver effect (one-shot per mount) ----------
   useEffect(() => {
@@ -183,7 +166,9 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       }
       lastSentRef.current = { cols, rows };
       socketSendRef.current({ type: "resize", cols, rows });
-      scheduleTrailingRepaint();
+      // The settle-repaint window is armed internally by `term.onResize`
+      // (repaint-on-settle.ts) when this fit changes cols/rows, so the RO
+      // path schedules no repaint of its own.
     };
 
     const ro = new ResizeObserver(() => {
@@ -231,12 +216,16 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     const term = termRef.current;
     if (!fit || !term) return;
     safeFit(fit, term, disposedRef.current);
-    // term.refresh(0, rows-1) inside a try/catch — best-effort refresh.
+    // Immediate best-effort refresh — repairs the display:none stale frame.
     try {
       term.refresh(0, term.rows - 1);
     } catch {
       /* term mid-dispose */
     }
+    // Arm the data-driven settle window. A Transcript→Terminal switch may NOT
+    // change cols/rows (same pane size), so `term.onResize` won't fire — arm
+    // explicitly so Claude's late async redraw still gets repainted clean.
+    settleArmRef?.current?.();
     const cols = term.cols;
     const rows = term.rows;
     if (
@@ -245,7 +234,6 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     ) {
       lastActiveResizeRef.current = { cols, rows };
       socketSendRef.current({ type: "resize", cols, rows });
-      scheduleTrailingRepaint();
     }
     // socketSend is latest-ref'd; deps are intentionally narrow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,6 +268,10 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       } catch {
         /* term mid-dispose */
       }
+      // Arm the settle window: returning from the iOS home screen / a bfcache
+      // restore may not change dims, so `term.onResize` won't fire — arm
+      // explicitly so a late redraw over a reconnected WS repaints clean.
+      settleArmRef?.current?.();
       const cols = term.cols;
       const rows = term.rows;
       if (
@@ -288,7 +280,6 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       ) {
         lastSentRef.current = { cols, rows };
         socketSendRef.current({ type: "resize", cols, rows });
-        scheduleTrailingRepaint();
       }
     };
     window.addEventListener("focus", repaint);
