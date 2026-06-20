@@ -83,9 +83,13 @@ const KEYS: { id: TerminalKey; label: string; aria: string }[] = [
   { id: "enter", label: "⏎", aria: "Enter" },
 ];
 
+// White border + white label/icon for legibility on the dark bar
+// (iterate-2026-06-20 AC-2 — low-contrast grey-on-dark keys were hard to read
+// on a phone). `disabled:opacity-40` dims the border + glyph together for the
+// read-only reader role.
 const BTN =
   "flex h-11 min-w-[44px] shrink-0 items-center justify-center rounded-[6px] " +
-  "px-3 text-[13px] font-medium text-[var(--color-text,#e5e5e5)] " +
+  "border border-white/80 px-3 text-[13px] font-medium text-white " +
   "bg-white/10 active:bg-white/25 disabled:opacity-40 disabled:active:bg-white/10";
 
 /**

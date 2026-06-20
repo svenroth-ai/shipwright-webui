@@ -23,6 +23,7 @@ import { useDeleteExternalTask } from "../../hooks/useExternalTasks";
 import { formatRelativeTime } from "../../lib/formatTime";
 import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
 import { hasLaunchedBefore } from "../../lib/taskLifecycle";
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import { type EditableTaskTitleHandle } from "./EditableTaskTitle";
 import { ProjectChipMenu } from "./ProjectChipMenu";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
@@ -57,6 +58,12 @@ export function TaskDetailHeader({ task }: Props) {
   const transcript = useTaskTranscript(task.taskId);
   const deleteMut = useDeleteExternalTask();
   const navigate = useNavigate();
+  // iterate-2026-06-20 AC-1 — on a phone the breadcrumb + meta sub-line are
+  // dropped (and padding tightened) so the terminal gets materially more
+  // vertical room. Everything stays reachable: project via the chip / the
+  // desktop breadcrumb, session metadata via ⋮ → debug. Desktop (≥768px)
+  // renders byte-identically.
+  const isPhone = useIsPhoneViewport();
 
   const [ctaError, setCtaError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
@@ -128,7 +135,7 @@ export function TaskDetailHeader({ task }: Props) {
 
   return (
     <header
-      className="relative flex w-full items-center gap-4 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-6 py-3"
+      className="relative flex w-full items-center gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 md:gap-4 md:px-6 md:py-3"
       data-testid="task-detail-header"
     >
       <style>{STATE_BADGE_KEYFRAMES}</style>
@@ -137,11 +144,13 @@ export function TaskDetailHeader({ task }: Props) {
       </Link>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <nav className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-muted,#6b7280)]" aria-label="Breadcrumb" data-testid="task-detail-breadcrumb">
-          <Link to="/projects" className="transition hover:text-[var(--color-text,#1a1a1a)]">Projects</Link>
-          <ChevronRight size={10} aria-hidden="true" className="opacity-50" />
-          <span className="truncate">{projectName}</span>
-        </nav>
+        {!isPhone && (
+          <nav className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-muted,#6b7280)]" aria-label="Breadcrumb" data-testid="task-detail-breadcrumb">
+            <Link to="/projects" className="transition hover:text-[var(--color-text,#1a1a1a)]">Projects</Link>
+            <ChevronRight size={10} aria-hidden="true" className="opacity-50" />
+            <span className="truncate">{projectName}</span>
+          </nav>
+        )}
 
         <div className="relative flex flex-wrap items-center gap-2.5" data-testid="task-detail-title-row">
           <TitleEdit ref={titleRef} task={task} />
@@ -149,30 +158,32 @@ export function TaskDetailHeader({ task }: Props) {
           <ProjectChipMenu task={task} open={projectPickerOpen} onOpenChange={setProjectPickerOpen} />
         </div>
 
-        <div
-          className="flex flex-wrap items-center gap-2.5 font-mono text-[11px] text-[var(--color-muted,#6b7280)]"
-          data-testid="task-detail-subline"
-        >
-          {phase && (
-            <>
-              <span className={`inline-flex items-center gap-1.5 rounded-[10px] px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.04em] ${phase.cls}`}>
-                <span className={`inline-block h-[5px] w-[5px] rounded-full ${phase.dot}`} />
-                {phase.label}
-              </span>
-              <span aria-hidden="true" className="inline-block h-[10px] w-px bg-[var(--color-border,#e0dbd4)]" />
-            </>
-          )}
-          <span>
-            Started {formatRelativeTime(startedAt)}
-            {lastEventAt ? ` · last event ${formatRelativeTime(lastEventAt)}` : ""}
-          </span>
-          {modelName && (
-            <>
-              <span aria-hidden="true" className="inline-block h-[10px] w-px bg-[var(--color-border,#e0dbd4)]" />
-              <span className="font-mono text-[11px]">{modelName}</span>
-            </>
-          )}
-        </div>
+        {!isPhone && (
+          <div
+            className="flex flex-wrap items-center gap-2.5 font-mono text-[11px] text-[var(--color-muted,#6b7280)]"
+            data-testid="task-detail-subline"
+          >
+            {phase && (
+              <>
+                <span className={`inline-flex items-center gap-1.5 rounded-[10px] px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-[0.04em] ${phase.cls}`}>
+                  <span className={`inline-block h-[5px] w-[5px] rounded-full ${phase.dot}`} />
+                  {phase.label}
+                </span>
+                <span aria-hidden="true" className="inline-block h-[10px] w-px bg-[var(--color-border,#e0dbd4)]" />
+              </>
+            )}
+            <span>
+              Started {formatRelativeTime(startedAt)}
+              {lastEventAt ? ` · last event ${formatRelativeTime(lastEventAt)}` : ""}
+            </span>
+            {modelName && (
+              <>
+                <span aria-hidden="true" className="inline-block h-[10px] w-px bg-[var(--color-border,#e0dbd4)]" />
+                <span className="font-mono text-[11px]">{modelName}</span>
+              </>
+            )}
+          </div>
+        )}
 
         <TaskDescriptionDisclosure task={task} />
       </div>

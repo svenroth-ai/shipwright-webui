@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-18T22:18:23.826043+00:00
-Total commits: 583
+Generated: 2026-06-20T10:21:45.559753+00:00
+Total commits: 582
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 583
 pie title Commit Types
     "fix" : 211
     "feat" : 144
-    "chore" : 117
+    "chore" : 116
     "docs" : 57
     "refactor" : 25
     "test" : 19
@@ -24,7 +24,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-19 | deploy | npm install before build in start + autostart scripts | e70e124cdd31 |
+| 2026-06-19 | deploy | npm install before build in start + autostart scripts (#163) | 9769bbf20b01 |
 | 2026-06-18 | terminal | reconnect embedded terminal WS on tab refocus + client liveness heartbeat (FR-01.28) (#159) | a6ee149a0261 |
 | 2026-06-17 | ci | vendored gates fail closed (truncation + corrupt baseline) (#157) | fe55df9c1202 |
 | 2026-06-17 | compliance | refresh artifacts for upstream rendering fixes (#153) | 237b5009891c |
@@ -385,11 +385,10 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 117 commits
+### Chores (chore) — 116 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-19 | triage | sweep 3 outbox append(s) into branch | 5ae9e0794b9b |
 | 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
 | 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
 | 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4959bac67740 |
@@ -652,7 +651,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 583 |
+| Total commits | 582 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 583 |
+| Human-authored commits | 582 |
 

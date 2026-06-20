@@ -11,10 +11,10 @@
  * This module fills that gap by translating a one-finger touchmove delta
  * into the SAME wheel events the mouse / trackpad already emits — so the
  * finger behaves exactly like the mouse wheel that already works. The
- * routing (ADR-133, iterate-2026-06-15-touch-scroll-wheel-events) is:
+ * routing (ADR-133, iterate-2026-06-15-touch-scroll-wheel-events; amended
+ * iterate-2026-06-20 AC-3) is buffer-first:
  *
- *   - mouse-tracking active (`.enable-mouse-events` on `term.element`) OR
- *     alt-screen buffer  → dispatch a synthetic `WheelEvent` onto
+ *   - alt-screen buffer  → dispatch a synthetic `WheelEvent` onto
  *     `term.element`. xterm's own wheel handlers (CoreBrowserTerminal
  *     `bindMouse`) then do exactly what they do for a real mouse wheel:
  *       · mouse-tracking on  → encode a mouse-report (button 64/65) in the
@@ -23,11 +23,14 @@
  *       · mouse-tracking off (vim / less / htop in alt-screen) → xterm
  *         converts the wheel into Cursor-Up/Down keystrokes itself
  *         (honouring application-cursor-keys mode: `\x1bOA` vs `\x1b[A`).
- *   - normal buffer, no mouse tracking  → `term.scrollLines(lines)`
- *     (xterm's viewport API advances within the scrollback). The scrollback
- *     scroller lives on a *descendant* of `term.element`, so a wheel
- *     dispatched at the root would not reach it — `scrollLines` is the
- *     correct, proven primitive here and is left untouched.
+ *   - normal buffer (INCL. mouse-tracking on)  → `term.scrollLines(lines)`
+ *     (xterm's viewport API advances within the scrollback). The original
+ *     routed normal-buffer + mouse-tracking to the wheel, but Claude's
+ *     `--resume` picker is a normal-buffer + mouse-tracking surface that
+ *     ignores the wheel mouse-report, so a finger-pan did nothing (user
+ *     report 2026-06-20). The scrollback is the natural touch target; its
+ *     scroller lives on a *descendant* of `term.element`, unreachable by a
+ *     root-dispatched wheel, so `scrollLines` is the correct primitive.
  *
  * Why this supersedes ADR-131/132: those routed alt-buffer pans to raw
  * arrow-key escapes on the theory that alt-screen TUIs scroll on arrows
@@ -180,18 +183,11 @@ export function attachTouchScroll(
 }
 
 /**
- * Route one touchmove's pixel delta to the scroll mechanism that matches
- * the mouse / trackpad for the terminal's current state (ADR-133):
- *
- *   - mouse-tracking active OR alt-screen buffer → forward the raw pixel
- *     delta as a `WheelEvent` on `term.element`. xterm's own handlers then
- *     do exactly what they do for a two-finger trackpad scroll: encode a
- *     mouse-report (Claude's alt-screen, mouse-tracking on) or convert to
- *     arrow keys (no-mouse alt-screen TUI), with its own trackpad-style
- *     sub-line accumulation (`CoreMouseService.consumeWheelEvent`).
- *   - otherwise (normal buffer, no mouse tracking) → accumulate whole lines
- *     and `term.scrollLines` the scrollback (the scroller lives on a
- *     descendant of `term.element`, unreachable by a root-dispatched wheel).
+ * Route one touchmove's pixel delta by the ACTIVE BUFFER first — alt-screen →
+ * synthetic `WheelEvent` on `term.element`; normal buffer → `term.scrollLines`
+ * the real scrollback (EVEN WHEN mouse-tracking is on). Full rationale,
+ * including the resume-picker history, is in the module header above (ADR-133,
+ * amended iterate-2026-06-20 AC-3).
  *
  * Defensive: if `term.element` is not yet populated we fall back to the
  * scrollback path (a no-op in the alt-buffer, but never a throw).
@@ -208,13 +204,16 @@ function routeScroll(
   clientY: number,
 ): void {
   const el = term.element ?? null;
-  const mouseActive = !!el?.classList?.contains("enable-mouse-events");
   const inAltBuffer = term.buffer.active.type === "alternate";
 
-  if (el && (mouseActive || inAltBuffer)) {
+  // Alt-screen (Claude's TUI, vim, less, …) has no scrollback → replicate the
+  // mouse wheel so xterm reports it / converts to arrows.
+  if (el && inAltBuffer) {
     if (deltaPx !== 0) dispatchWheel(el, deltaPx, clientX, clientY);
     return;
   }
+  // Normal buffer (incl. the resume picker, even with mouse-tracking on): pan
+  // the real scrollback — the wheel mouse-report path the app ignored.
   const lines = consumeTouchDelta(state, deltaPx, pxPerLine);
   if (lines !== 0) term.scrollLines(lines);
 }

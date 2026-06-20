@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-18",
+  "last_updated": "2026-06-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-19-deploy-npm-install",
-    "date": "2026-06-19",
+    "run_id": "iterate-2026-06-20-mobile-terminal-touch-ux",
+    "date": "2026-06-20",
     "unit": {
       "status": "passed",
-      "passed": 44,
-      "total": 44
+      "passed": 1762,
+      "total": 1762
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 22,
+      "total": 22
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,72 +32,86 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
+      "surface": "web",
       "exit_code": 0,
-      "tests_run": 0,
-      "justification": "Diff touches only operational PowerShell scripts (start-server-production.ps1, install-windows.ps1) plus their cross-platform node:test structural specs. Zero files under server/src or client/src, so the app vitest/E2E suites exercise no changed code. Authoritative coverage = scripts/*.test.* (44/44 green) PLUS an empirical production-build proof: in the real deploy target (main-tree client) npm install resolved @dnd-kit/{core,utilities,accessibility} and `npm run build` then succeeded ('built in 14.03s'), reproducing-then-fixing the reported 'cannot find module' failure."
-    },
-    "degraded": [
-      {
-        "condition": "scoped_full_suite",
-        "detail": "F0 full app suite (server+client vitest) skipped: scripts-only change with no app-code surface; ran the related structural suite scripts/*.test.* (44/44) + real build verify instead."
+      "tests_run": 22,
+      "justification": "Client-only mobile/touch terminal UX change (no server/API change). F0.5 web surface verified against an isolated single-process stack (built SPA + API, temp USERPROFILE, :3947): mobile-chromium (Pixel 5, hasTouch) 17/17 including the AC-1 header-condense (breadcrumb + meta sub-line hidden) and AC-2 white-border/white-glyph real-browser computed-style assertions; PLUS desktop chromium terminal regression specs 88 (tab-autofocus) / 91 (repaint-on-refocus) / 92 (reflow repaint) = 5/5, which exercise the AC-4 settle-repaint path on a LIVE pty and confirm a width change still produces a full-viewport repaint after the redraw settles. AC-3 (touch-scroll behavior at Claude's --resume picker) and AC-4 (absence of visible smear) final on-device behavior are device-UAT (requires-physical-device) per the spec ledger.",
+      "tests": {
+        "mobile_chromium_phone_responsive": "17/17",
+        "desktop_chromium_terminal_repaint": "5/5"
       }
-    ],
+    },
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "start-server-production.ps1 runs `npm install` for BOTH server and client before building",
+          "behavior": "AC-1: task-detail breadcrumb + meta sub-line are dropped at phone width and rendered at desktop width",
           "disposition": "tested",
-          "evidence": "scripts/start-server-production.test.mjs: 'npm install runs for BOTH server and client'"
+          "evidence": "TaskDetailHeader.test.tsx 'phone header condense (AC-1)' (matchMedia mock both bands) + e2e 90-phone-responsive 'header is condensed on a phone'"
         },
         {
-          "behavior": "start-server-production.ps1: the first npm install precedes the first npm run build",
+          "behavior": "AC-1: condensed header introduces no horizontal page overflow at phone width",
           "disposition": "tested",
-          "evidence": "scripts/start-server-production.test.mjs: 'the FIRST npm install precedes the FIRST build'"
+          "evidence": "e2e 90-phone-responsive 'header is condensed on a phone' (pageOverflowPx <= 1)"
         },
         {
-          "behavior": "start-server-production.ps1: every npm install runs before the server-kill (failed install leaves the running server untouched)",
+          "behavior": "AC-2: touch keys carry a visible (white) border + white glyph, old grey token removed",
           "disposition": "tested",
-          "evidence": "scripts/start-server-production.test.mjs: 'every npm install runs BEFORE the server-kill'"
+          "evidence": "TerminalKeyBar.test.tsx 'keys carry a white border + white text' + e2e 90 computed-style (borderTopWidth>0, color == browser white)"
         },
         {
-          "behavior": "The patched install->build sequence resolves the newly-added dependency and the client compiles",
+          "behavior": "AC-2: read-only reader keys stay visibly muted (disabled:opacity-40 retained)",
           "disposition": "tested",
-          "evidence": "Empirical: main-tree client `npm install` (added @dnd-kit/*) then `npm run build` -> 'built in 14.03s', no 'cannot find module'"
+          "evidence": "TerminalKeyBar.test.tsx 'read-only reader keys stay visibly muted'"
         },
         {
-          "behavior": "install-windows.ps1 installs deps + builds both server and client (4 npm steps)",
+          "behavior": "AC-3: routeScroll pans the scrollback (scrollLines) in the normal buffer EVEN WHEN mouse-tracking is on",
           "disposition": "tested",
-          "evidence": "scripts/install-windows.test.mjs: 'installs deps for BOTH server and client + builds BOTH'"
+          "evidence": "touch-scroll.alt-buffer.test.ts 'normal buffer WITH mouse tracking: pans the scrollback via scrollLines, NOT a wheel'"
         },
         {
-          "behavior": "install-windows.ps1 does not suppress npm stderr to $null",
+          "behavior": "AC-3: routeScroll still forwards a wheel in the alt-screen buffer (Claude TUI / vim / less)",
           "disposition": "tested",
-          "evidence": "scripts/install-windows.test.mjs: 'npm steps do NOT suppress stderr to $null'"
+          "evidence": "touch-scroll.alt-buffer.test.ts alt-buffer wheel cases (down/up + finger-position coords)"
         },
         {
-          "behavior": "install-windows.ps1 gates each npm step on its exit code (abort before creating the startup shortcut)",
-          "disposition": "tested",
-          "evidence": "scripts/install-windows.test.mjs: 'each npm step is gated on its exit code'"
-        },
-        {
-          "behavior": "Actual PowerShell runtime abort-on-failure flow (Read-Host prompt + exit 1 + hidden Start-Process)",
+          "behavior": "AC-3: a finger-pan actually scrolls at the live Claude --resume 'load full/summary' picker",
           "disposition": "untestable",
-          "reason_code": "requires-interactive-tty"
+          "reason_code": "requires-physical-device",
+          "reason": "the live buffer/mouse-tracking state at the picker + real touch can only be confirmed on the iPhone (device UAT)"
+        },
+        {
+          "behavior": "AC-4: settle-repaint arms on resize/explicit-arm, repaints on each parsed write (coalesced), disarms on quiet-gap or hard cap, cancels the queued frame on disarm, leak-safe disposal",
+          "disposition": "tested",
+          "evidence": "repaint-on-settle.test.ts (11 cases incl. late-first-write, quiet-reset, hard-cap, disarm-cancels-frame, onResize self-arm, dispose)"
+        },
+        {
+          "behavior": "AC-4: useTerminalResize arms the settle window on tab-activation + focus/visibility/pageshow (incl. same-dims), NOT on the RO resize path, guarded by disposedRef",
+          "disposition": "tested",
+          "evidence": "useTerminalResize.test.ts 'data-driven settle-repaint arming' suite"
+        },
+        {
+          "behavior": "AC-4: a width change produces a full-viewport repaint after the reflow settles on a live terminal (no regression from removing the fixed-delay repaints)",
+          "disposition": "tested",
+          "evidence": "e2e 92-terminal-reflow-repaint (live pty, desktop chromium) + 91-terminal-repaint-on-refocus"
+        },
+        {
+          "behavior": "AC-4: no visible input-area smear after a Transcript->Terminal switch / return-from-home on the device",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "WebGL partial-dirty smear over a real mobile WS + iOS backgrounding reproduces only on the iPhone (device UAT)"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
-        "untestable": 1,
+        "testable": 9,
+        "tested": 9,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 0,
-        "covered_acs": 0,
-        "behaviors": 8,
-        "covered_behaviors": 7
+        "acs": 4,
+        "covered_acs": 4
       }
     }
   }

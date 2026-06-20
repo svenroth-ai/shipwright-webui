@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-18 22:18 UTC | Session: 9feac2c5-f3ae-4230-9ae6-f08ea0d357b9 | Run: iterate-2026-06-19-deploy-npm-install
+> Updated: 2026-06-20 10:21 UTC | Session: bfd244ca-6f1f-4319-a9b2-a05a416e402e | Run: iterate-2026-06-20-mobile-terminal-touch-ux
 
-## Recent Changes (167 iterations)
+## Recent Changes (168 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear | 1762/1762 |  | FR-01.28, FR-01.39 | 2026-06-20 |
 | bug | start-server-production.ps1 and install-windows.ps1 run npm install before npm run build so a newly-merged dependency (@dnd-kit/core) no longer breaks the production build; autostart no longer swallows npm errors. | 0/0 |  | infra | 2026-06-18 |
 | bug | Embedded terminal WS now reconnects on tab refocus + has a client liveness heartbeat (app-level ping/pong) so a silently-dead socket after sleep/Tailscale partition is detected and recovered instead of a stale frozen frame. | 0/0 |  | FR-01.28 | 2026-06-18 |
 | feature | Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | 0/0 |  |  | 2026-06-17 |
@@ -174,7 +175,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-19 | Unit: 44/44 | Smoke: not_run | (iterate)
+Last run: 2026-06-20 | Unit: 1762/1762 | E2E: 22/22 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

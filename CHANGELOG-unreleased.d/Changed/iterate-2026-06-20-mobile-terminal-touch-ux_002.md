@@ -1,0 +1,1 @@
+Embedded-terminal on-screen touch keys now have a white border and white glyphs for legibility on the dark key bar (previously low-contrast grey-on-dark); the read-only reader state stays visibly muted.
