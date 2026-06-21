@@ -27,7 +27,7 @@ Code workflow they already love.
 
 ## 1. What is the Command Center?
 
-Shipwright is the harness your AI follows — it keeps your project's
+Shipwright is the harness your AI follows. It keeps your project's
 context **true** as it changes, re-checking every change against your
 requirements, architecture, and decisions and blocking anything that
 drops a requirement or reverses a past call. The **Command Center** is
@@ -46,6 +46,9 @@ you one place to see every Shipwright project at a glance:
   Progress → Done). One scroll, no tab-juggling.
 - **Live transcript per task** — what Claude is doing right now, in
   chat-style format you can read like a conversation.
+- **Embedded terminal per task** — hit **Launch** and the pre-bound
+  `claude` command auto-runs right there on the task page. No
+  copy-paste, no separate window to babysit.
 - **Inbox** — every "Claude is asking permission for..." pinned in one
   list, regardless of which project. No more missed prompts in
   background terminals.
