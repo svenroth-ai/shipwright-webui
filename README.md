@@ -5,25 +5,25 @@
 ![Status: Beta](https://img.shields.io/badge/status-beta-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-> **One Kanban board for every Claude Code project you run in parallel —
+> **One Kanban board for every Claude Code project you run in parallel,
 > without giving up the terminal or VS Code workflow you already love.**
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/command-center-board.png" alt="Shipwright Command Center — Kanban view" /></td>
-<td width="50%"><img src="docs/images/command-center-task-detail.png" alt="Shipwright Command Center — Task detail" /></td>
+<td width="50%"><img src="docs/images/command-center-board.png" alt="Shipwright Command Center: Kanban view" /></td>
+<td width="50%"><img src="docs/images/command-center-task-detail.png" alt="Shipwright Command Center: Task detail" /></td>
 </tr>
 <tr>
-<td><em>Kanban board across every Shipwright project — Backlog, In Progress, In Review, Done. One place to see where everything stands.</em></td>
-<td><em>Task detail — embedded terminal, Project File Viewer, Markdown Editor.</em></td>
+<td><em>Kanban board across every Shipwright project: Backlog, In Progress, In Review, Done. One place to see where everything stands.</em></td>
+<td><em>Task detail: embedded terminal, Project File Viewer, Markdown Editor.</em></td>
 </tr>
 </table>
 
-> **Beta:** the Command Center is in active beta — it's built and used
+> **Beta:** the Command Center is in active beta: it's built and used
 > daily to run Shipwright itself, but you're an early user, so expect the
 > occasional rough edge.
-> [Report an issue](https://github.com/svenroth-ai/shipwright-webui/issues/new/choose)
-> — feedback is very welcome.
+> [Report an issue](https://github.com/svenroth-ai/shipwright-webui/issues/new/choose).
+> Feedback is very welcome.
 
 **Shipwright** is the harness your AI follows, the discipline layer
 that keeps your project's context **true** as it changes. On every
@@ -50,7 +50,7 @@ whitelisted shell; your click on Launch authorizes that shell, and the
 Claude command runs inside it. The Command Center stays a read-only
 observer of the JSONL transcript.
 
-**Full docs:** [`docs/guide.md`](docs/guide.md) — the friendly,
+**Full docs:** [`docs/guide.md`](docs/guide.md). The friendly,
 non-expert walkthrough: installation, your first project, daily
 workflow, updates, autostart, network access, custom actions for your
 own slash skills, and troubleshooting. This README gets you running;
@@ -58,20 +58,20 @@ the guide goes deeper.
 
 ## What you get
 
-- **One Kanban board across every project** — Backlog → In Progress →
+- **One Kanban board across every project:** Backlog → In Progress →
   Done, no tab-juggling between background terminals.
-- **Live transcript per task** — read what Claude is doing right now in
+- **Live transcript per task:** read what Claude is doing right now in
   chat style, refreshed every second.
-- **Embedded terminal** on each task page — hit **Launch** and the
+- **Embedded terminal** on each task page: hit **Launch** and the
   pre-bound `claude` command auto-runs right there.
-- **Inbox** — every "Claude needs permission…" prompt pinned in one
+- **Inbox:** every "Claude needs permission…" prompt pinned in one
   place, across all projects.
-- **Triage** — pre-backlog findings from Shipwright's quality, security,
+- **Triage:** pre-backlog findings from Shipwright's quality, security,
   and compliance hooks, ready to promote into tasks.
-- **Diagnostics** — CLI version, session count, watcher health at a
+- **Diagnostics:** CLI version, session count, watcher health at a
   glance.
 
-It's optional — every Shipwright skill works fine without it — but once
+It's optional (every Shipwright skill works fine without it), but once
 you have more than one project running in parallel, it stops being a
 luxury. See the [user guide](docs/guide.md) for the full tour.
 
@@ -87,7 +87,7 @@ git --version
 claude --version     # 2.1.114 or higher
 ```
 
-Then build once and run a single server — it serves the dashboard
+Then build once and run a single server: it serves the dashboard
 itself, so there's only **one** address and **one** process to manage:
 
 ```bash
@@ -105,7 +105,7 @@ make build
 cd server && npm start
 ```
 
-Open **http://localhost:3847** and register your first project — the
+Open **http://localhost:3847** and register your first project. The
 wizard walks you through stack-profile selection.
 
 > **No `make`?** (Common on Windows.) Run the npm scripts directly:
@@ -113,13 +113,13 @@ wizard walks you through stack-profile selection.
 > `cd ../client && npm install && npm run build`, then
 > `cd ../server && npm start`.
 
-> **Two independent workspaces — no root `package.json`.** `server/` and
+> **Two independent workspaces, no root `package.json`.** `server/` and
 > `client/` each carry their own `package.json` + lockfile, so dependencies
 > install per package: `cd server && npm ci`, then `cd client && npm ci`
 > (`npm ci` gives a clean, lockfile-reproducible install; `make install`
 > just runs both for you).
 
-On **Windows**, have the server start automatically on every login — see
+On **Windows**, have the server start automatically on every login. See
 [Autostart](#autostart-on-windows) below. The full walkthrough,
 first-project guide, network/Tailscale access, custom actions, and
 troubleshooting all live in [`docs/guide.md`](docs/guide.md).
@@ -130,7 +130,7 @@ troubleshooting all live in [`docs/guide.md`](docs/guide.md).
 git pull
 make install        # only when dependencies changed
 make build          # rebuild the compiled server/dist + client/dist
-cd server && npm start   # restart — stop the old one with Ctrl+C first
+cd server && npm start   # restart (stop the old one with Ctrl+C first)
 ```
 
 The production server runs the **compiled** output, so a `git pull` alone
@@ -142,9 +142,9 @@ See [guide §7](docs/guide.md#7-updating-the-command-center).
 
 Editing the Command Center's own code? Run the two halves as hot-reload
 dev servers instead (`make dev-server` on `:3847` + `make dev-client` on
-`:5173`, open `:5173`). That flow — plus the standalone-vs-monorepo
+`:5173`, open `:5173`). That flow, plus the standalone-vs-monorepo
 profile loop (`SHIPWRIGHT_MONOREPO_PATH`) and parallel-worktree port
-overrides (`PORT` / `VITE_PORT`) — is documented in
+overrides (`PORT` / `VITE_PORT`), is documented in
 [guide §4 Path B](docs/guide.md#4-installation) and [`CLAUDE.md`](CLAUDE.md).
 Contributor norms: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
@@ -156,14 +156,14 @@ powershell -ExecutionPolicy Bypass -File scripts\install-windows.ps1
 
 Installs dependencies, builds both halves, and creates a hidden `.vbs`
 launcher in `~\.shipwright-webui\` that starts the server on login. After
-your next login the **full dashboard** is live at http://localhost:3847 —
-no Vite or `make dev-client` needed. Custom port via `-Port <n>`;
+your next login the **full dashboard** is live at http://localhost:3847.
+No Vite or `make dev-client` needed. Custom port via `-Port <n>`;
 uninstall with `-Uninstall`.
 
 ## Architecture
 
 - Hono (Node 20+) + React 19 (Vite 6) + TailwindCSS 4 + Radix UI.
-- Embedded terminal pane per task — xterm.js in the browser, node-pty
+- Embedded terminal pane per task: xterm.js in the browser, node-pty
   on the server, restricted to a shell-binary whitelist (never `claude`
   directly). Launch auto-runs the command via a client-side WebSocket
   data-frame; the server never spawns Claude.
@@ -180,7 +180,7 @@ uninstall with `-Uninstall`.
 ## Triage tab
 
 The `/triage` route surfaces pre-backlog findings from
-`<project>/.shipwright/triage.jsonl` — items written by Phase-Quality,
+`<project>/.shipwright/triage.jsonl`: items written by Phase-Quality,
 compliance, security/performance/F0.5/drift hooks (the producer pattern
 documented in
 [shipwright/docs/triage-inbox.md](https://github.com/svenroth-ai/shipwright/blob/main/docs/triage-inbox.md)).
@@ -189,20 +189,20 @@ For each registered project, the page lists items with `status==triage`
 grouped by source (alphabetical), severity-rank-sorted within each
 group. Click an item → detail modal with four actions:
 
-- **Fix now** — opens the New-Issue modal pre-filled from the finding
+- **Fix now:** opens the New-Issue modal pre-filled from the finding
   (title, description, priority, domain) so launching the task is one
   more click. `github-source` items route to a `phase=security` task;
   every other source routes to a new iterate. Use it when you've decided
   to act on the finding immediately.
-- **Promote** — creates an `ExternalTask` carrying a
+- **Promote:** creates an `ExternalTask` carrying a
   `promotedFromTriageId` back-ref + auto-merged tags
   `["source:<x>", "severity:<sev>", "triage:<id>"]`, then flips the
   triage item to `status==promoted`. Idempotent on retry: a 207
   partial-promote (status flip failed) returns the new `taskId` so retry
-  reuses it — no orphan tasks.
-- **Dismiss** — appends `status==dismissed` with optional reason. The
+  reuses it. No orphan tasks.
+- **Dismiss:** appends `status==dismissed` with optional reason. The
   finding will re-emerge under a NEW triage id if it re-fires.
-- **Snooze** — appends `status==snoozed` with optional reason. Hides the
+- **Snooze:** appends `status==snoozed` with optional reason. Hides the
   item until the underlying issue re-fires (which produces a new triage
   id). There is no timed wake-up in this iterate.
 
@@ -218,19 +218,19 @@ for the cross-store contract + producer-side details.
 
 The WebUI reads but never writes:
 
-- `<project>/shipwright_run_config.json` — only `.profile` (Preview gate)
-- `<project>/shipwright_*_config.json` — existence check for adoption state
+- `<project>/shipwright_run_config.json`: only `.profile` (Preview gate)
+- `<project>/shipwright_*_config.json`: existence check for adoption state
 
 The WebUI writes only:
 
-- `<project>/.shipwright-webui/actions.json` — empty stub on demand; user-editable
-- `<project>/.shipwright/triage.jsonl` — appends `status` events from
+- `<project>/.shipwright-webui/actions.json`: empty stub on demand; user-editable
+- `<project>/.shipwright/triage.jsonl`: appends `status` events from
   Promote / Dismiss / Snooze actions. Never writes
   `append` events (those come from producer hooks).
-- `~/.shipwright-webui/*.json` — own registry
+- `~/.shipwright-webui/*.json`: own registry
 
 Both artefacts carry a `contractVersion` / `schemaVersion` integer.
-Readers warn once on drift and keep going — never fails a read.
+Readers warn once on drift and keep going. Never fails a read.
 
 ## Acknowledgments
 
@@ -238,27 +238,27 @@ The Shipwright Command Center adopts patterns from these open-source
 projects:
 
 - **[obra/superpowers](https://github.com/obra/superpowers)** (MIT,
-  © Jesse Vincent) — Iron-Law verification language and the anti-slop
+  © Jesse Vincent): Iron-Law verification language and the anti-slop
   PR-template framing (`.github/PULL_REQUEST_TEMPLATE.md`).
 - **[multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills)**
-  (MIT, © 2025 multica-ai) — the four Karpathy principles, cited
+  (MIT, © 2025 multica-ai): the four Karpathy principles, cited
   verbatim in the sibling shipwright repo's `shared/constitution.md`
   and applied to webui changes via the PR template's Anti-Slop
   Self-Check section.
 - **[multica-ai/multica](https://github.com/multica-ai/multica)**
-  (Apache-2.0 *modified*, hosting-restricted) — architectural patterns
+  (Apache-2.0 *modified*, hosting-restricted). Architectural patterns
   only, inspiring the Command Center roadmap: WebSocket transcript
   streaming (replaces 1 s JSONL polling), multi-workspace isolation,
   runtime registry (Claude Code · Codex CLI · Copilot CLI · Gemini CLI
   as pluggable adapters), and the "parse don't cast" rule for
   cross-plugin `shipwright_*_config.json` reads. **No code or text is
-  copied** — patterns only, deliberately, so this repo stays cleanly
+  copied:** patterns only, deliberately, so this repo stays cleanly
   MIT.
 
 The companion shipwright monorepo carries its own Acknowledgments block
 covering the same sources plus
 [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills)
-(MIT, © Addy Osmani; five-axis review framework — used in the sibling
+(MIT, © Addy Osmani; five-axis review framework, used in the sibling
 repo's reviewer prompts, not directly in this webui).
 
 ## License
