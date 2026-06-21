@@ -35,32 +35,32 @@ where you watch that happen across every project at once.
 
 You already use Shipwright from VS Code or the terminal. One project, one
 Claude session, one chat. That works great until you have **two or
-three projects running in parallel** — and now you're hunting between
+three projects running in parallel**, and now you're hunting between
 windows: which project was the build phase done? Did Claude ask me a
 question two hours ago in that other tab? Where was that test result?
 
 The **Shipwright Command Center** is a small local web app that gives
 you one place to see every Shipwright project at a glance:
 
-- **Kanban board** — every task, every project, in columns (Backlog → In
+- **Kanban board:** every task, every project, in columns (Backlog → In
   Progress → Done). One scroll, no tab-juggling.
-- **Live transcript per task** — what Claude is doing right now, in
+- **Live transcript per task:** what Claude is doing right now, in
   chat-style format you can read like a conversation.
-- **Embedded terminal per task** — hit **Launch** and the pre-bound
+- **Embedded terminal per task:** hit **Launch** and the pre-bound
   `claude` command auto-runs right there on the task page. No
   copy-paste, no separate window to babysit.
-- **Inbox** — every "Claude is asking permission for..." pinned in one
+- **Inbox:** every "Claude is asking permission for..." pinned in one
   list, regardless of which project. No more missed prompts in
   background terminals.
-- **Triage** — pre-backlog findings from Shipwright's quality, security,
+- **Triage:** pre-backlog findings from Shipwright's quality, security,
   and compliance hooks, collected per project. Promote the ones worth
   acting on into tasks; dismiss or snooze the rest (see [§6.8](#68-the-triage-tab)).
-- **Diagnostics** — Claude CLI version, session count, watcher health,
+- **Diagnostics:** Claude CLI version, session count, watcher health,
   all on one page.
-- **Custom actions** — you can wire your own slash skills (e.g. a
+- **Custom actions:** you can wire your own slash skills (e.g. a
   personal `/content-orchestrator`) into the "+ New" menu (see [§9.3](#93-custom-actions)).
 
-It's **optional** — every Shipwright skill works perfectly fine without
+It's **optional**: every Shipwright skill works perfectly fine without
 it. But once you have more than one Shipwright project running, the
 Command Center stops being a luxury.
 
@@ -81,7 +81,7 @@ claude --session-id <uuid> --name "Build: login redirect" /shipwright-build plan
 ```
 
 The task detail page that opens contains an **embedded terminal pane**.
-The command auto-runs there — no copy-paste step —
+The command auto-runs there (no copy-paste step)
 and the Command Center **watches** the resulting transcript file on
 disk, updating the Kanban board live as Claude works.
 
@@ -90,7 +90,7 @@ disk, updating the Kanban board live as Claude works.
 - **No spawned Claude under the hood.** The embedded terminal hosts a
   shell (your `pwsh` / `bash` / `zsh`); your click on Launch is what
   authorizes the shell to start, and the Claude command runs inside that
-  shell. The web server itself never spawns a Claude process —
+  shell. The web server itself never spawns a Claude process, so
   architecture, plugin compatibility, and your CLI updates all stay
   exactly the same as if you ran the command yourself.
 - **No CLI / SDK lock-in.** The Command Center doesn't depend on any
@@ -101,7 +101,7 @@ disk, updating the Kanban board live as Claude works.
   Refresh? Picks up where you left off. The Command Center is stateless
   on every read.
 
-You'll see the same model in every action — **Save to Backlog** parks a
+You'll see the same model in every action: **Save to Backlog** parks a
 task without launching anything, **Launch** auto-runs the command in
 the task's embedded terminal and opens the page.
 
@@ -110,11 +110,11 @@ the task's embedded terminal and opens the page.
 ## 3. Recommended setup
 
 For the everyday flow you need **one** extra window next to your usual
-editor — the Command Center browser tab:
+editor: the Command Center browser tab:
 
 | Window | What it does |
 |---|---|
-| **Command Center** (browser tab — `localhost:3847` with Path A, `localhost:5173` with Path B) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work — all without leaving the browser. |
+| **Command Center** (browser tab: `localhost:3847` with Path A, `localhost:5173` with Path B) | Your status board *and* your terminal. Every task detail page has an embedded terminal pane where the Claude command auto-runs, so you watch the kanban board, read the live transcript, answer inbox prompts, and see Claude work, all without leaving the browser. |
 
 Because the Command Center has its own embedded terminal, you do **not**
 need a separate terminal app.
@@ -123,16 +123,16 @@ need a separate terminal app.
 
 ## 4. Installation
 
-> If the words below feel too "command-line-y", don't worry — these are
+> If the words below feel too "command-line-y", don't worry: these are
 > three commands, and you copy-paste them. There's no scripting.
 
 ### What you need
 
-- **Node.js 20 or newer** — the runtime the Command Center is built on.
+- **Node.js 20 or newer:** the runtime the Command Center is built on.
   Download from <https://nodejs.org/>. After install, open a terminal
-  and run `node --version` — should print `v20.x.x` or higher.
-- **Git** — to download the code. <https://git-scm.com/>
-- **Claude Code CLI 2.1.114 or newer** — the same one you use today.
+  and run `node --version`. It should print `v20.x.x` or higher.
+- **Git:** to download the code. <https://git-scm.com/>
+- **Claude Code CLI 2.1.114 or newer:** the same one you use today.
   Check with `claude --version`.
 
 That's it. No databases, no Docker, no Python, no system services.
@@ -140,7 +140,7 @@ That's it. No databases, no Docker, no Python, no system services.
 ### Get the code
 
 Open a terminal (Warp, iTerm2, Windows Terminal, your VS Code terminal
-— whatever) in any folder you want the Command Center installed:
+, whatever) in any folder you want the Command Center installed:
 
 ```bash
 git clone https://github.com/svenroth-ai/shipwright-webui.git
@@ -173,7 +173,7 @@ what you're here to do.
 #### Path A — Just use it (recommended)
 
 Best for everyday use. You build the app **once**, then run a single
-server. That server serves the dashboard itself — so there's only **one**
+server. That server serves the dashboard itself, so there's only **one**
 address to remember and **one** process to keep alive (no second
 terminal).
 
@@ -189,13 +189,13 @@ cd server && npm start
 ```
 
 You'll see `Shipwright Command Center listening on
-http://localhost:3847`. Open <http://localhost:3847/> in your browser —
-that's the **whole** dashboard, no Vite / `make dev-client` needed.
+http://localhost:3847`. Open <http://localhost:3847/> in your browser.
+That's the **whole** dashboard, no Vite / `make dev-client` needed.
 
 > **No `make`?** Run `cd server && npm run build`, then
 > `cd ../client && npm run build`, then `cd ../server && npm start`.
 
-On Windows you can have this start automatically on every login — see
+On Windows you can have this start automatically on every login, see
 [§8](#8-autostart-on-windows). That's the smoothest setup for daily use.
 
 #### Path B — Develop or contribute
@@ -204,7 +204,7 @@ Best when you're editing the Command Center's **own** code and want
 hot-reload. This runs the two halves as separate dev servers, in **two
 separate terminal windows**.
 
-**Terminal 1** — backend:
+**Terminal 1** (backend):
 
 ```bash
 make dev-server
@@ -213,7 +213,7 @@ make dev-server
 You'll see `Shipwright Command Center listening on
 http://localhost:3847`. Leave it running.
 
-**Terminal 2** — frontend:
+**Terminal 2** (frontend):
 
 ```bash
 make dev-client
@@ -221,7 +221,7 @@ make dev-client
 
 You'll see `Local: http://localhost:5173/`. Leave this one running too.
 
-Now open <http://localhost:5173/> in your browser — in dev mode you use
+Now open <http://localhost:5173/> in your browser; in dev mode you use
 the Vite port (`5173`), which proxies `/api` to the backend on `3847`.
 
 > **Want it to start automatically on login (Windows)?** See [§8](#8-autostart-on-windows).
@@ -242,21 +242,21 @@ Click **Projects** in the left sidebar. You'll see an empty list and a
 
 Click **+ New project**. The wizard asks:
 
-1. **Name** — anything human (e.g. "Time tracker SaaS"). Used as the
+1. **Name:** anything human (e.g. "Time tracker SaaS"). Used as the
    label on the Kanban board.
-2. **Path** — the absolute path to your project folder
+2. **Path:** the absolute path to your project folder
    (e.g. `C:\dev\time-tracker` or `/Users/me/dev/time-tracker`). This
    is where Claude runs and writes files.
-3. **Stack profile** — the Command Center auto-detects the stack from
+3. **Stack profile:** the Command Center auto-detects the stack from
    `package.json`, `pyproject.toml`, etc. You can override.
-4. **Claude plugin directories** — usually leave default.
+4. **Claude plugin directories:** usually leave default.
 
 Click **Create**. The project appears in the sidebar.
 
 ### 5.3 You're ready
 
 The project is now on the Kanban board (currently empty). You can
-register more projects right away — the Command Center watches all of
+register more projects right away; the Command Center watches all of
 them in parallel.
 
 > Back on the **Projects** page later, clicking a project row jumps you
@@ -277,18 +277,18 @@ On the Kanban board, find the controls in the **top-right of the Task
 Board header**. The **+ New ▾** split-button opens a dropdown with the
 three standard Shipwright modes:
 
-- **New task** — a single Shipwright phase (e.g. just `/shipwright-test`).
-- **New pipeline** — full SDLC, brief → deploy.
-- **New iterate** — daily change on a finished project (the most common
+- **New task:** a single Shipwright phase (e.g. just `/shipwright-test`).
+- **New pipeline:** full SDLC, brief → deploy.
+- **New iterate:** daily change on a finished project (the most common
   one after the first build).
 
-Next to it sits a separate **Plain Claude** button — a chat session
+Next to it sits a separate **Plain Claude** button, a chat session
 without a Shipwright skill.
 
 If you've added [custom actions](#93-custom-actions) for your own slash
 skills, they show up in the dropdown too. A **Continue Pipeline** entry
 appears when the active project has a multi-session pipeline run waiting
-for the next phase — see [6.7](#67-multi-session-pipelines). In the **All
+for the next phase; see [6.7](#67-multi-session-pipelines). In the **All
 Projects** view the menus are project-first: you pick a project, then
 that project's own actions.
 
@@ -296,25 +296,25 @@ Pick one. A modal opens.
 
 ### 6.2 Fill in the task
 
-- **Title** — what you're doing in human words. The Command Center
+- **Title:** what you're doing in human words. The Command Center
   auto-detects which Shipwright phase fits ("fix login bug" → Build,
-  "test the new endpoint" → Test, etc.) — you can override.
-- **Description** — optional. If filled, this becomes the **first
+  "test the new endpoint" → Test, etc.). You can override.
+- **Description:** optional. If filled, this becomes the **first
   prompt** Claude sees. Use it to drop the URL of the issue, the file
   paths, the exact error. The more context, the better Claude works.
-- **Phase** (Task mode only) — auto-picked from the title. Override if
+- **Phase** (Task mode only): auto-picked from the title. Override if
   the auto-pick is wrong.
-- **Autonomy** (Pipeline / Iterate) — *Guided* (Claude asks before each
+- **Autonomy** (Pipeline / Iterate): *Guided* (Claude asks before each
   major step) or *Autonomous* (Claude pushes through).
 
-You'll see a **live command preview** — exactly what will run when you
+You'll see a **live command preview**: exactly what will run when you
 click Launch.
 
 ### 6.3 Two buttons: Save to Backlog vs. Launch
 
-- **Save to Backlog** — writes the task to the Kanban Backlog column.
+- **Save to Backlog:** writes the task to the Kanban Backlog column.
   Nothing spawns, nothing runs. Pick this when you're planning ahead.
-- **Launch** — marks the task as **In Progress**, opens the task detail
+- **Launch:** marks the task as **In Progress**, opens the task detail
   page, and auto-runs the command in the embedded terminal pane there.
 
 For now, click **Launch**.
@@ -322,11 +322,11 @@ For now, click **Launch**.
 ### 6.4 Watch it run in the embedded terminal
 
 The task detail page opens with an embedded terminal pane already
-focused on the project folder. The launch command auto-runs there —
+focused on the project folder. The launch command auto-runs there:
 you'll see the shell prompt, then `cd "<your project path>" && claude
 ...`, then Claude's first output.
 
-The terminal **auto-focuses** when you switch to the Terminal tab — no
+The terminal **auto-focuses** when you switch to the Terminal tab, with no
 extra click into the canvas before you start typing. On touchscreens, a
 **one-finger drag** scrolls the buffer (xterm.js 6.x's virtualized
 scrollbar listens to wheel events only, so this is a Command-Center
@@ -340,14 +340,14 @@ triple-click selects a line. `Ctrl+C` (with a selection) and
 the running program switches the terminal into mouse-tracking mode
 (Claude's TUI does this whenever its picker is open), a small
 `Maus-Modus aktiv — Shift+Drag zum Markieren` badge appears in the
-top-right of the pane — that's your cue to hold **Shift while dragging**
+top-right of the pane: that's your cue to hold **Shift while dragging**
 to bypass mouse-tracking and get a normal selection back. Dismiss the
 badge with the `✕` once you've seen it.
 
 ### 6.5 Watch the transcript
 
-Back in the browser, the task detail page shows the **live transcript**
-— Claude's messages, tool calls, file edits, all in chat-style. Updates
+Back in the browser, the task detail page shows the **live transcript**:
+Claude's messages, tool calls, file edits, all in chat-style. Updates
 every second. You don't need to switch back to the terminal to see what
 Claude is doing.
 
@@ -358,7 +358,7 @@ glance. You answer in the terminal as usual; the inbox updates.
 ### 6.6 Done
 
 When Claude finishes, the task moves to **Done**. The transcript stays
-available — go back any time to read it again.
+available; go back any time to read it again.
 
 > **Multi-project parallel:** repeat the loop for as many projects as
 > you want. Each task gets its own browser tab, its own transcript, its
@@ -367,7 +367,7 @@ available — go back any time to read it again.
 ### 6.7 Multi-session pipelines
 
 When you run `/shipwright-run`, each SDLC phase runs in its own
-terminal Claude session — the master writes a
+terminal Claude session: the master writes a
 `shipwright_run_config.json` at the project root, prints a launch card
 for the first phase, and ends. For the lifecycle, state machine, and
 recovery commands, see the [framework guide §4 *The Pipeline: Phase by
@@ -382,7 +382,7 @@ above the Kanban columns:
 - Inside the card, one row per `phase_task` with phase, optional split
   id, status pill, and the last 8 chars of the session UUID.
 - Rows whose phase task has a webui shadow (i.e. you continued through
-  the Command Center at least once) are **clickable** — they jump to
+  the Command Center at least once) are **clickable**: they jump to
   the matching task detail page. Rows without a shadow stay plain text.
 
 To advance the pipeline, you have two equivalent paths:
@@ -400,7 +400,7 @@ the matching webui shadow task, build the launch command for the
 phase's pre-bound `--session-id`, and navigate to the new task detail
 page. The command auto-runs in the embedded terminal there.
 
-> Repeated clicks for the same phase task reuse the existing shadow —
+> Repeated clicks for the same phase task reuse the existing shadow:
 > no duplicates appear in the Kanban.
 
 If a phase fails, the Master TaskCard shows a red banner with a
@@ -412,21 +412,21 @@ banner appears with the same recovery affordance.
 
 If a project has no `shipwright_run_config.json`, or the file predates
 schema v2 (i.e. an older Shipwright run), the Pipelines lane stays
-hidden and the Kanban behaves exactly like before — no functional
+hidden and the Kanban behaves exactly like before, with no functional
 change for non-pipeline workflows.
 
 ### 6.8 The Triage tab
 
 Not everything worth your attention is a task you filed. Several
-Shipwright hooks — Phase-Quality, compliance, security, performance,
-drift detection — surface *findings*: things worth a look before they
+Shipwright hooks (Phase-Quality, compliance, security, performance,
+drift detection) surface *findings*: things worth a look before they
 turn into real work. Instead of cluttering the Kanban backlog, they
 land in a per-project file (`<project>/.shipwright/triage.jsonl`) and
 the Command Center collects them on the **Triage** tab in the left
 sidebar.
 
-The sidebar carries a `Triage (N)` badge — orange, to set it apart from
-the red Inbox badge — counting open findings across every registered
+The sidebar carries a `Triage (N)` badge (orange, to set it apart from
+the red Inbox badge) counting open findings across every registered
 project. Open the tab and they're grouped by which hook produced them,
 severity-sorted within each group.
 
@@ -435,22 +435,22 @@ Click a finding for a detail view. Hooks that produce a
 as a copy-able code block at the top of the modal. Below the detail
 sit four actions:
 
-- **Fix now** — opens the New-Issue modal with the triage finding
+- **Fix now:** opens the New-Issue modal with the triage finding
   pre-populated (title, description, priority, domain), so launching
   the task is one extra click. `github-source` items route to a
   **new-task** with `phase=security` (the security skill takes over);
   every other source routes to **new-iterate** (the standard mini-SDLC
   for a small change). Use this when you've decided to act on the
   finding *now*.
-- **Promote** — turns the finding into a real task in the Kanban
+- **Promote:** turns the finding into a real task in the Kanban
   Backlog, tagged with its source and severity and back-linked to the
   triage item. Use this when you want to schedule the finding for later
-  instead of launching immediately. Promote is safe to retry — a
+  instead of launching immediately. Promote is safe to retry: a
   half-finished promote reuses the same task instead of creating a
   duplicate.
-- **Dismiss** — drops the finding. If the underlying issue is still
+- **Dismiss:** drops the finding. If the underlying issue is still
   there next time the hook runs, it re-appears as a fresh triage item.
-- **Snooze** — hides the finding for now. Same re-surfacing behaviour as
+- **Snooze:** hides the finding for now. Same re-surfacing behaviour as
   Dismiss; there's no timed wake-up, snooze just means "not now".
 
 > A `github-source` item with no `launchPayload` shows the loud
@@ -460,7 +460,7 @@ sit four actions:
 > brief).
 
 A project with no `.shipwright/triage.jsonl` simply contributes nothing
-to the tab — nothing to set up, and nothing breaks if the file never
+to the tab: nothing to set up, and nothing breaks if the file never
 appears.
 
 ### 6.9 The Campaigns lane
@@ -468,7 +468,7 @@ appears.
 Above the Kanban columns, beside the Pipelines lane, the Command Center
 shows a **Campaigns lane** when a project has active Shipwright campaigns
 (multi-iterate efforts planned under
-`.shipwright/planning/iterate/campaigns/`). It's read-only — the
+`.shipwright/planning/iterate/campaigns/`). It's read-only: the
 framework owns campaign state; the Command Center only surfaces it.
 
 Each campaign card shows its slug, a **done/total** progress bar, and one
@@ -479,17 +479,17 @@ the board off-screen.
 
 Two launch affordances per campaign:
 
-- **Launch (Cx)** — on the next pending sub-iterate, one click opens a
+- **Launch (Cx):** on the next pending sub-iterate, one click opens a
   task-detail terminal that auto-runs `/shipwright-iterate "<specPath>"`
   for that step. A confirm dialog appears only when the step previously
   failed/escalated or is plan-first.
-- **Launch autonomous** — opens a terminal that auto-runs
+- **Launch autonomous:** opens a terminal that auto-runs
   `/shipwright-iterate --campaign <slug> --autonomous` to drain the whole
   campaign, behind a confirm dialog that warns about risky steps. Only
   one autonomous run can attach at a time (a second attempt is blocked).
 
 A finished campaign drops off the lane automatically once every step is
-done. You can also **dismiss** a card by hand (and restore it later) —
+done. You can also **dismiss** a card by hand (and restore it later):
 handy for a campaign whose planning dir is gitignored on a redeployed
 instance, where completion can't be auto-detected. Campaign-umbrella
 items in the [Triage tab](#68-the-triage-tab) carry a **Start Campaign**
@@ -498,12 +498,12 @@ button that activates the campaign and jumps you here.
 ### 6.10 Viewing and editing project files
 
 A task detail page isn't only a transcript. Its **file browser**
-(SmartViewer) opens any file under the project root — Markdown renders,
+(SmartViewer) opens any file under the project root: Markdown renders,
 images and short video play inline, and diffs are syntax-highlighted.
 
 Markdown files get an **Edit** button that opens a rich-text editor and
 saves your changes back as Markdown. This is one of the few places the
-Command Center writes into your *project* files — it's otherwise a
+Command Center writes into your *project* files; it's otherwise a
 read-only observer. Saving shows a mandatory diff first and uses
 optimistic concurrency: if the file changed on disk since you opened it,
 you get a conflict prompt that keeps your edits instead of clobbering the
@@ -520,7 +520,7 @@ git pull
 make install        # only strictly needed when dependencies changed
 ```
 
-Then restart the half you actually run — it depends on which path you
+Then restart the half you actually run; it depends on which path you
 picked in [§4](#4-installation):
 
 - **Path A (production):** rebuild, then restart the server.
@@ -529,7 +529,7 @@ picked in [§4](#4-installation):
   cd server && npm start      # stop the old one with Ctrl+C first
   ```
   On Windows the bundled `scripts\start-server-production.ps1` does the
-  rebuild + stop-old + start-fresh swap in one step — and, as a first
+  rebuild + stop-old + start-fresh swap in one step, and, as a first
   best-effort step, repairs a corrupted `~/.claude.json` (with a timestamped
   backup) so the restart can't leave your running Claude sessions broken (see
   [§10](#10-troubleshooting)). Re-running `scripts\install-windows.ps1`
@@ -545,7 +545,7 @@ picked in [§4](#4-installation):
 > source and don't have this gap.)
 
 If you have [custom actions](#93-custom-actions), the Command Center
-keeps working even if the schema drifts in a new version — it falls
+keeps working even if the schema drifts in a new version: it falls
 back to defaults and shows you a small warning. You can fix the file at
 your leisure.
 
@@ -570,7 +570,7 @@ This:
 5. Adds a startup shortcut to your Windows **Startup** folder.
 
 After your next login, the **full dashboard** is live at
-<http://localhost:3847> — the production server serves the UI itself, so
+<http://localhost:3847>: the production server serves the UI itself, so
 you do **not** need Vite or `make dev-client`. Just open that one address
 (a browser bookmark to it is the most convenient setup).
 
@@ -592,7 +592,7 @@ untouched.
 ### macOS / Linux
 
 No first-party autostart helper. Wire `make dev-server` into launchd
-(macOS) or systemd-user (Linux) — the actual command is the same.
+(macOS) or systemd-user (Linux); the actual command is the same.
 
 ---
 
@@ -608,22 +608,22 @@ folder, or wire your own slash skills into the menu.
 |---|---|---|
 | `PORT` | `3847` | Backend port. The frontend reads this so `/api` calls hit the right backend. |
 | `VITE_PORT` | `5173` | Frontend port. Fails loud on collision (no silent half-start). |
-| `SHIPWRIGHT_NETWORK_PROFILE` | _(unset → loopback)_ | **Recommended** for dev-server bind security. One flag steers BOTH Vite + Hono: `local` (only `127.0.0.1`, safe everywhere), `tailscale` (only the Tailscale IPv4, café-safe), `open` (all interfaces — startup warning emits; trusted networks only). Lowercase only. Read from `.env.local` since v0.9.x — see § 9.1.1 below. |
+| `SHIPWRIGHT_NETWORK_PROFILE` | _(unset → loopback)_ | **Recommended** for dev-server bind security. One flag steers BOTH Vite + Hono: `local` (only `127.0.0.1`, safe everywhere), `tailscale` (only the Tailscale IPv4, café-safe), `open` (all interfaces, startup warning emits; trusted networks only). Lowercase only. Read from `.env.local` since v0.9.x; see § 9.1.1 below. |
 | `SHIPWRIGHT_TAILSCALE_IP` | _(unset → auto-detect)_ | Override the Tailscale-IPv4 auto-detection that `SHIPWRIGHT_NETWORK_PROFILE=tailscale` runs via `tailscale ip -4` (2-second timeout). Set this when `tailscale` CLI isn't on PATH or the host has multiple Tailscale interfaces. |
 | `VITE_HOST` | _(unset)_ | **Legacy fine-grained override.** Bind the Vite dev server to a non-loopback interface. `true` = `0.0.0.0`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE` when set. Prefer the profile flag above for new setups. |
-| `HONO_HOST` | _(unset → loopback)_ | **Legacy fine-grained override.** Bind the Hono backend to a non-loopback interface. `true` = `::`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE`. For typical Tailscale-from-phone you do **not** need this — Vite proxies `/api` to `localhost:3847`. Only set `HONO_HOST` if clients call the backend directly. |
+| `HONO_HOST` | _(unset → loopback)_ | **Legacy fine-grained override.** Bind the Hono backend to a non-loopback interface. `true` = `::`; `<hostname-or-ip>` = a specific interface. Wins over `SHIPWRIGHT_NETWORK_PROFILE`. For typical Tailscale-from-phone you do **not** need this: Vite proxies `/api` to `localhost:3847`. Only set `HONO_HOST` if clients call the backend directly. |
 | `WEBUI_TRUSTED_ORIGINS` | _(unset)_ | Comma-separated allowlist of `Origin` values the WS upgrade + HTTP CORS middleware accept. When unset, the policy follows `HONO_HOST`: loopback-only by default, "any non-empty Origin" when `HONO_HOST` is set. Use this to opt into multi-device access (e.g. `http://webui-host.tailnet.ts.net:5173`) while keeping the gate narrow. Boot log prints the resolved policy. |
 | `SHIPWRIGHT_PROFILES_DIR` | _(unset)_ | Override path to your stack-profile folder. Highest precedence. |
 | `SHIPWRIGHT_MONOREPO_PATH` | _(unset)_ | If you're hacking on the shipwright repo and want live profile edits, point this at your shipwright checkout. The loader reads `<path>/shared/profiles`. |
-| `SHIPWRIGHT_CLAUDE_BIN` | _(unset → auto-detect)_ | Absolute path to your `claude` executable. The Command Center normally finds it via `PATH` plus a list of known install locations; set this only when auto-detection fails — i.e. `/api/diagnostics` reports "Claude Code CLI not found" even though `claude --version` works in your shell. A path that doesn't exist is rejected loudly rather than silently ignored. |
+| `SHIPWRIGHT_CLAUDE_BIN` | _(unset → auto-detect)_ | Absolute path to your `claude` executable. The Command Center normally finds it via `PATH` plus a list of known install locations; set this only when auto-detection fails: i.e. `/api/diagnostics` reports "Claude Code CLI not found" even though `claude --version` works in your shell. A path that doesn't exist is rejected loudly rather than silently ignored. |
 
 Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 `SHIPWRIGHT_MONOREPO_PATH/shared/profiles` → bundled `server/profiles/`.
 
 > **Advanced tuning knobs.** A handful of rarely-needed terminal/session
-> variables — e.g. `SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS` (idle-reap grace,
+> variables (e.g. `SHIPWRIGHT_TERMINAL_IDLE_TIMEOUT_MS` (idle-reap grace,
 > default 12 h), `SHIPWRIGHT_TERMINAL_NO_FLICKER`, scrollback limits, and
-> `SHIPWRIGHT_MAX_CONCURRENT` — are documented in `.env.example`. Most
+> `SHIPWRIGHT_MAX_CONCURRENT`) are documented in `.env.example`. Most
 > users never touch them; the table above covers everything you normally
 > need.
 
@@ -631,7 +631,7 @@ Profile resolution: `SHIPWRIGHT_PROFILES_DIR` →
 
 The simplest way to switch dev-server bind security per context. Edit
 `.env.local` at the repo root (copy from `.env.example` if you don't
-have one yet), pick a profile, restart both dev servers — done. Both
+have one yet), pick a profile, restart both dev servers. Done. Both
 halves read the same `.env.local` automatically (server via Node's
 `--env-file-if-exists`; client via Vite's `loadEnv` with
 `envDir: <repo-root>`).
@@ -648,11 +648,11 @@ Default behavior when the flag is unset. Only reachable from this host.
 
 **`tailscale`** runs `tailscale ip -4` (2-second timeout) and binds both
 halves to the resulting IPv4 (e.g. `100.64.0.1`). The Tailscale
-mesh is authenticated + encrypted — only your paired devices reach
+mesh is authenticated + encrypted; only your paired devices reach
 the address. The café / hotel WLAN interface is **not** exposed. If
 auto-detection fails (CLI missing, daemon offline, multiple
 interfaces), set `SHIPWRIGHT_TAILSCALE_IP=<your-ip>` explicitly. On
-the local machine, access via `http://<tailscale-ip>:5173/` —
+the local machine, access via `http://<tailscale-ip>:5173/`;
 `localhost` won't work in this profile (intentional; you use the same
 URL everywhere).
 
@@ -682,7 +682,7 @@ LAN IP). For most users `SHIPWRIGHT_NETWORK_PROFILE` is enough.
 
 #### Reaching the dev server from another device (Tailscale / LAN)
 
-By default Vite binds to loopback only — the Command Center is
+By default Vite binds to loopback only: the Command Center is
 unreachable from your phone, tablet, or another desktop. To open it up
 on a trusted network (for example over Tailscale MagicDNS like
 `http://webui-host.tailnet.ts.net:5173`), opt in with `VITE_HOST`.
@@ -707,7 +707,7 @@ unset it before you travel:
 `VITE_HOST=true` binds `0.0.0.0` (or `::` on dual-stack hosts) and
 unblocks Vite 6's host-header check so MagicDNS hostnames stop
 returning `Blocked request. This host is not allowed.`. To bind a
-single interface instead, pass an address — e.g.
+single interface instead, pass an address, e.g.
 `VITE_HOST=100.64.0.1 npm run dev` (bash) or
 `$env:VITE_HOST="webui-host.tailnet.ts.net"; npm run dev`
 (PowerShell).
@@ -715,13 +715,13 @@ single interface instead, pass an address — e.g.
 When the variable is honoured, `npm run dev`'s output gains a
 `Network: http://<your-ip>:5173/` line (instead of the default
 `Network: use --host to expose`). If you don't see that line, the env
-var didn't reach the Vite process — check you're in a fresh shell that
+var didn't reach the Vite process; check you're in a fresh shell that
 inherits it.
 
 The Hono backend on `3847` does **not** need to change for this flow:
 Vite proxies `/api` to `localhost:3847` locally, so the backend stays on
 loopback (its default since v0.8.4) and only the frontend port is
-exposed. Keep `VITE_HOST` unset on untrusted networks (café, hotel) —
+exposed. Keep `VITE_HOST` unset on untrusted networks (café, hotel);
 the loopback default is the safe choice there.
 
 ##### Embedded terminal over Tailscale — Trusted-Origin gate (v0.8.4)
@@ -729,7 +729,7 @@ the loopback default is the safe choice there.
 The WS upgrade for `/api/terminal/:taskId/ws` and the HTTP CORS
 middleware both check the browser's `Origin` header against a
 trusted-origin policy. By default, only `localhost / 127.0.0.1 / ::1`
-origins are accepted — so a tab opened at
+origins are accepted, so a tab opened at
 `http://webui-host.tailnet.ts.net:5173` would load the page (Vite
 proxies `/api` same-origin) but the **embedded terminal stays mute**:
 Vite forwards the browser's original Tailscale-MagicDNS Origin to the
@@ -741,7 +741,7 @@ Two ways to widen:
    is set to anything non-empty, the gate accepts any non-empty
    Origin. Most users on Tailscale already set `VITE_HOST=true` for
    the page itself; setting `HONO_HOST=true` alongside is sufficient
-   even if you don't actually call the backend directly — the WS gate
+   even if you don't actually call the backend directly: the WS gate
    keys off the env var, not the bind itself. Anonymous (`null` /
    missing) Origin is still rejected (curl / scripted callers fall
    outside the browser CORS contract regardless).
@@ -766,7 +766,7 @@ Two ways to widen:
 
    The allowlist takes precedence over `HONO_HOST` (narrowest match
    wins). Each entry is compared as an exact string against the
-   incoming Origin — no wildcards, no scheme rewriting; list every
+   incoming Origin: no wildcards, no scheme rewriting; list every
    `host:port` you actually use.
 
 The boot log confirms the resolved policy on every server start, e.g.
@@ -774,7 +774,7 @@ The boot log confirms the resolved policy on every server start, e.g.
 accepted (set WEBUI_TRUSTED_ORIGINS to narrow)` or `Trusted-Origin
 policy: WEBUI_TRUSTED_ORIGINS allowlist (2 entries):
 http://localhost:5173, http://webui-host.tailnet.ts.net:5173`.
-If you see `loopback-only` and your terminal is mute over Tailscale —
+If you see `loopback-only` and your terminal is mute over Tailscale,
 that's the gate; widen via one of the env vars above.
 
 #### Reaching the backend directly (rare; bypass Vite proxy)
@@ -793,7 +793,7 @@ Same shell-syntax matrix as `VITE_HOST` (bash `HONO_HOST=true npm run
 dev`, cmd.exe `set HONO_HOST=true && npm run dev`,
 PowerShell-persistent `[Environment]::SetEnvironmentVariable("HONO_HOST","true","User")`).
 The startup line confirms the bind: `listening on http://...:3847
-(bind=...)` — `bind=127.0.0.1` is loopback, `bind=::` is all
+(bind=...)`: `bind=127.0.0.1` is loopback, `bind=::` is all
 interfaces.
 
 > **Breaking change vs. v0.8.3 and earlier.** Before v0.8.4 the backend
@@ -818,7 +818,7 @@ PORT=3848 VITE_PORT=5174 make dev-server
 PORT=3848 VITE_PORT=5174 make dev-client
 ```
 
-Port collisions fail loud — neither half will silently bind to a wrong
+Port collisions fail loud: neither half will silently bind to a wrong
 port and confuse you later.
 
 ### 9.3 Custom actions
@@ -829,8 +829,8 @@ default that catalog is the bundled
 which exposes the four standard Shipwright modes (`new-task`,
 `new-pipeline`, `new-iterate`, `new-plain`).
 
-To add your own buttons — for example a `/content-orchestrator` skill
-you've built globally in `~/.claude/skills/` — install a file at
+To add your own buttons (for example a `/content-orchestrator` skill
+you've built globally in `~/.claude/skills/`), install a file at
 `<project.path>/.shipwright-webui/actions.json`. The Command Center offers three
 ways to do that (see [9.3.1](#931-installing-or-replacing-the-file)
 below); regardless of which path you pick, edits show up on the next
@@ -840,13 +840,13 @@ page load (mtime-cached server-side).
 
 - You have a personal slash skill (`/content-orchestrator`,
   `/audit-foo`) and want it on the New menu.
-- You want different menus for different project types — content
+- You want different menus for different project types: content
   projects show your content skills, code projects show the standard
   Shipwright pipeline.
 
 #### Where the file lives
 
-`<project.path>/.shipwright-webui/actions.json` — relative to the **project**, not
+`<project.path>/.shipwright-webui/actions.json`, relative to the **project**, not
 the Command Center install. If the file is personal to you, add
 `.shipwright-webui/` to your project's `.gitignore`. If your team shares the same
 skills, commit it.
@@ -856,7 +856,7 @@ skills, commit it.
 You have three ways to put `actions.json` on disk for a registered
 project. Pick whichever fits your moment:
 
-**A — Settings page (most common, post-creation).**
+**A: Settings page (most common, post-creation).**
 
 `Settings` → **Configure actions** card. You'll see one row per
 registered project with a small badge:
@@ -869,20 +869,20 @@ registered project with a small badge:
 
 For each project the row exposes:
 
-- **Upload .json** — opens the OS file picker. The selected file is
+- **Upload .json:** opens the OS file picker. The selected file is
   parsed and validated server-side; on success it replaces
   `<project.path>/.shipwright-webui/actions.json` atomically (tmp + rename) and the
   catalog cache for that project is invalidated. Other projects are
   unaffected. On failure (bad JSON, schema error, unknown placeholder,
   >256 KB) the row shows an inline red banner with the structured error
   and the on-disk file is **not** touched.
-- **Reset to default** — opens a confirm dialog; on confirm, the
+- **Reset to default:** opens a confirm dialog; on confirm, the
   `.shipwright-webui/actions.json` is deleted and the project falls back to the
   bundled default. The button is enabled when the project is `CUSTOM`
   *or* `MALFORMED` so you can recover from a broken upload without
   opening a terminal.
 
-**B — Project Wizard Advanced (at creation time).**
+**B: Project Wizard Advanced (at creation time).**
 
 When creating a new project: open **Show advanced options** on the
 Confirmation step → pick **Custom** → optional **Choose file…** to
@@ -891,18 +891,18 @@ client-side as a pre-flight check; if it doesn't parse, the **Create
 Project** button is disabled with an inline error so you don't waste a
 round trip. After the project is created, the file is uploaded through
 the same validation pipeline as path A. If the upload fails, the
-project is still created — the wizard stays open with the error so you
+project is still created; the wizard stays open with the error so you
 can pick a different file or close and retry from Settings later.
 
 If you skip **Choose file…** under **Custom**, an empty schema-valid
 stub is written and the docs page opens, exactly as before.
 
-**C — Direct edit on disk.**
+**C: Direct edit on disk.**
 
 Open `<project.path>/.shipwright-webui/actions.json` in your editor and save. The
 server's catalog is mtime-cached, so your changes show up the next time
 the catalog is read (e.g. opening the project page or the **+ New ▾**
-menu). This path skips the upload validators — you find out about
+menu). This path skips the upload validators: you find out about
 schema / placeholder mistakes when the page reads the file.
 
 > Tip: regardless of path, every write goes through a `realpath +
@@ -956,7 +956,7 @@ schema / placeholder mistakes when the page reads the file.
 
 After saving the file, refresh the project page in the Command Center.
 The split-button now shows your four buttons. Each opens the **generic
-mode** of the New-Issue modal — heading from `action.label`, subheading
+mode** of the New-Issue modal: heading from `action.label`, subheading
 from `action.description`, no Shipwright phase picker, no autonomy
 toggle.
 
@@ -1030,16 +1030,16 @@ toggle.
 |---|---|
 | `{project.id}` | Project UUID, raw. |
 | `{project.path}` | Project folder absolute path, shell-escaped. |
-| `{cd.prefix}` | `cd <path> && ` (POSIX) / `cd /d <path> && ` (cmd — the `/d` also switches drive) / `Set-Location <path> -ErrorAction Stop; ` (PowerShell). |
+| `{cd.prefix}` | `cd <path> && ` (POSIX) / `cd /d <path> && ` (cmd, the `/d` also switches drive) / `Set-Location <path> -ErrorAction Stop; ` (PowerShell). |
 | `{task.uuid}` | Pre-bound session UUID, raw. Use after `--session-id`. |
-| `{task.title}` | Task title, shell-escaped. Use bare after `--name` — never `--name "{task.title}"` (the value is already a quoted token; wrapping it double-quotes the name). |
+| `{task.title}` | Task title, shell-escaped. Use bare after `--name`, never `--name "{task.title}"` (the value is already a quoted token; wrapping it double-quotes the name). |
 | `{task.session_name}` | Claude session display name, shell-escaped as one token: `Pipeline: <title>` / `Iterate: <title>` / `<phase>: <title>` for the bundled actions, bare `<title>` for `new-plain` and custom actions. Use bare after `--name`. |
 | `{task.description?}` | Trailing space + escaped description, or empty. Newlines rejected. |
 | `{task.phase}` | Phase id from `phases[].id`. Validated against the catalog. |
 | `{task.phase_label}` | Phase label, shell-escaped. |
 | `{task.autonomy_flag?}` | ` --autonomous` when `autonomy === "autonomous"`, else empty. |
 | `{task.parameters?}` | Resolved CLI flags from the modal, per-shell escaped. |
-| `{task.initial_prompt}` | Bundled-mode only. Custom actions must not use this — emit the slash literally and use `{task.description?}` / `{task.parameters?}`. |
+| `{task.initial_prompt}` | Bundled-mode only. Custom actions must not use this: emit the slash literally and use `{task.description?}` / `{task.parameters?}`. |
 | `{plugin.dirs}` | `--plugin-dir <a> --plugin-dir <b>`, or empty. |
 
 #### Generic mode UX
@@ -1062,7 +1062,7 @@ sees.
 
 The same validators run for the upload UI (Settings + Wizard) and the
 catalog-read endpoint (`GET /api/external/projects/:id/actions`). Direct
-edits on disk only see the read-side validators — the upload-only rows
+edits on disk only see the read-side validators: the upload-only rows
 (`payload_too_large`, `path_unsafe`) are by definition not reachable.
 
 | Failure | Result |
@@ -1080,7 +1080,7 @@ edits on disk only see the read-side validators — the upload-only rows
 
 - `command_template` is tokenised; user input is escaped per shell, not
   evaluated.
-- Placeholders are emitted **pre-quoted as a single shell token** — never
+- Placeholders are emitted **pre-quoted as a single shell token**: never
   wrap one in literal `"…"` or `'…'`. `--name "{task.title}"` double-quotes
   the value; write `--name {task.title}` (or `--name {task.session_name}`).
 - `{task.initial_prompt}` is bundled-mode only. Custom actions using it
@@ -1143,14 +1143,14 @@ Validate against [§9.3 Schema reference](#93-custom-actions).
 ### I clicked Launch but nothing happens / no transcript appears
 
 In the default flow the launch command auto-runs in the task detail
-page's embedded terminal. The web server itself never spawns Claude —
+page's embedded terminal. The web server itself never spawns Claude:
 the embedded terminal hosts a shell and the Claude command runs inside
 it. The task sits at "Awaiting external start" until Claude actually
 runs and writes the session file.
 
 If the embedded terminal pane is blank, check that:
 
-- The shell process started — there's a prompt visible in the pane.
+- The shell process started: there's a prompt visible in the pane.
 - The launch command itself appeared in the pane (you should see the
   full `claude --session-id ... /shipwright-...` line).
 
@@ -1167,13 +1167,13 @@ If the dashboard doesn't pick up the transcript, check:
 
 No. The Command Center is built to handle multiple tabs. If two tabs
 race on a write (e.g. both rename the same task), one wins and the
-other gets a 409 — refresh the losing tab and try again. Reads are
+other gets a 409: refresh the losing tab and try again. Reads are
 always safe.
 
 ### I can't select text in the embedded terminal while Claude is running
 
 Claude's TUI puts the terminal into mouse-tracking mode whenever its
-picker or prompt UI is open — every drag gets consumed by the picker
+picker or prompt UI is open: every drag gets consumed by the picker
 instead of producing a selection. When that's active you'll see a small
 `Maus-Modus aktiv — Shift+Drag zum Markieren` badge in the top-right of
 the pane. Hold **Shift while dragging** to bypass mouse-tracking and
@@ -1183,7 +1183,7 @@ the clipboard on mouseup.
 ### The terminal pane shows a "terminal was reset" banner
 
 The Command Center noticed that the previous Claude session in this
-task's terminal was lost — usually because the backend restarted, the
+task's terminal was lost, usually because the backend restarted, the
 machine slept, or something else killed the underlying shell. A fresh
 shell is now ready in the pane; click **Resume** to reconnect to your
 Claude session instead of typing into an empty prompt. Dismiss the
@@ -1193,14 +1193,14 @@ banner with the `✕` once you're back on track.
 
 Older releases of the production server only served the SPA shell on
 `/` and treated every other path as an unknown API route. Pull the
-latest code, rerun `make install`, and restart the server — non-`/api`
+latest code, rerun `make install`, and restart the server: non-`/api`
 GETs now return `client/dist/index.html` so hard-reload and bookmarked
 deep links work everywhere in the UI. The `/api/*` 404 contract is
 unchanged.
 
 ### After a deploy, every Claude session fails with "config corrupt"
 
-`~/.claude.json` is written by the Claude CLI itself — the Command
+`~/.claude.json` is written by the Claude CLI itself; the Command
 Center only reads it. When a production restart kills all your
 embedded-terminal sessions at once, the many `claude` processes that
 restart can race on that file and leave it half-written (a valid but
@@ -1212,5 +1212,5 @@ now repairs this automatically as its first step: it salvages the valid
 part, saves the broken original as `~/.claude.json.corrupt-<timestamp>.bak`
 (the last ~10 are kept), and rewrites the file before anything restarts.
 It is best-effort and never blocks the deploy; if the file is too
-damaged to salvage safely it is left untouched — restore it from a
+damaged to salvage safely it is left untouched: restore it from a
 `.bak`, or just let the Claude CLI recreate it.
