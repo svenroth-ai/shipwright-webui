@@ -25,6 +25,14 @@
 > [Report an issue](https://github.com/svenroth-ai/shipwright-webui/issues/new/choose)
 > — feedback is very welcome.
 
+**Shipwright** is the harness your AI follows — the discipline
+layer that keeps your project's context **true** as it changes: on
+every change it re-checks the work against your requirements,
+architecture, and decisions, and blocks anything that silently
+drops a requirement or reverses a past call. The **Command Center**
+is the board that surfaces all of it — every project, every task,
+every agent question — in one place.
+
 Local web app that observes and orchestrates multiple Claude Code
 sessions in parallel. Works alongside the [Shipwright SDLC
 plugins](https://github.com/svenroth-ai/shipwright) but runs as a

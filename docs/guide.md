@@ -27,6 +27,12 @@ Code workflow they already love.
 
 ## 1. What is the Command Center?
 
+Shipwright is the harness your AI follows — it keeps your project's
+context **true** as it changes, re-checking every change against your
+requirements, architecture, and decisions and blocking anything that
+drops a requirement or reverses a past call. The **Command Center** is
+where you watch that happen across every project at once.
+
 You already use Shipwright from VS Code or the terminal. One project, one
 Claude session, one chat. That works great until you have **two or
 three projects running in parallel** — and now you're hunting between
