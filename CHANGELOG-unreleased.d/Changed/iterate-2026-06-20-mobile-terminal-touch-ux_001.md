@@ -1,1 +1,0 @@
-Mobile (phone ≤767px) task-detail header is condensed — breadcrumb + the Started/last-event/model meta sub-line are hidden and padding tightened — giving the embedded terminal materially more vertical room. Tablet/desktop layout (≥768px) is unchanged.

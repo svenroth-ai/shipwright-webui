@@ -1,1 +1,0 @@
-Input-area smear after switching Transcript→Terminal or returning from the phone home screen — the post-layout-change repaint is now data-driven (repaints on each parsed write until the async redraw settles) instead of a fixed 130/350ms timer that closed before the slower mobile redraw landed.

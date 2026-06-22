@@ -1,1 +1,0 @@
-Task board cards can be moved between the Backlog, In Progress, and Done columns by drag-and-drop (mouse or touch press-and-hold) or, accessibly, via the card's ⋯ → "Move to…" menu (keyboard / screen-reader friendly)
