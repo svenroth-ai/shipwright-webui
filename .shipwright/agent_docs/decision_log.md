@@ -3075,3 +3075,43 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Public launch needs a clean working tree independent of any history rewrite; the .shipwright/agent_docs/ whitelist negation had been silently re-tracking *.md.lock sidecars.
 - **Consequences:** Tracked tree carries no PII and no stray lockfiles; dead binaries gone. Deep git history still holds the old strings — removed separately by the operator-run git filter-repo rewrite (launch-readiness C2).
 - **Rejected:** Relying on the history rewrite alone to remove PII — rejected: HEAD must be clean on its own, and the rewrite scope is intentionally narrow (jsonl + one planning .md).
+
+---
+
+### ADR-200: Sync vendored gates to monorepo fail-closed fixes
+- **Date:** 2026-06-17
+- **Section:** Iterate — change: vendor-sync gate fail-closed
+- **Run-ID:** iterate-2026-06-17-vendor-sync-gate-failclosed
+- **Context:** WebUI vendored copies of pr_review.py (truncated diff -> EXIT_OK) and the self-contained anti_ratchet_check.py (corrupt baseline -> exit 0) carried the pre-fix fail-open behavior, so both required gates could be silently bypassed.
+- **Decision:** Mirror the two monorepo fixes (PR #263 + #264): truncated Tier-3 diff fails closed (request-changes + EXIT_BLOCK); a present-but-corrupt bloat baseline fails closed (exit 1). Refresh canonical-source-hash/version markers; add the missing anti_ratchet webui test under scripts/ci/tests.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Vendored copies must track the canonical source; a faithful mirror keeps the drift guard honest and the gates trustworthy.
+- **Consequences:** WebUI's two vendored gates now match the monorepo; a size-bypass / corrupt-baseline bypass is closed. anti_ratchet now has webui CI coverage (was untested in webui).
+- **Rejected:** Byte-copy the monorepo files (anti_ratchet is self-contained/adapted, not byte-identical); leave webui unsynced (drift + bypass persists).
+
+---
+
+### ADR-201: Deploy + autostart scripts run npm install before build
+- **Date:** 2026-06-19
+- **Section:** scripts/deploy
+- **Run-ID:** iterate-2026-06-19-deploy-npm-install
+- **Context:** After the drag-and-drop board PR added @dnd-kit/core to client/package.json (only the lockfile arrives on git pull), start-server-production.ps1 went straight to npm run build with no npm install, so the production deploy failed with 'cannot find module @dnd-kit/core'. install-windows.ps1 did install deps but suppressed all npm stderr (--silent 2>$null) with no exit-code gate, so a failed install silently created a broken autostart shortcut.
+- **Decision:** Add a gated 'npm install' before each build in start-server-production.ps1 (server then client), placed before the server-kill so a failed install leaves the running server untouched (ORDER MATTERS). In install-windows.ps1 remove the 2>$null suppression and gate every npm step on $LASTEXITCODE (captured before Pop-Location), aborting on failure. Pinned by structural node:test specs for both scripts.
+- **Commit:** (assigned post-merge)
+- **Rationale:** npm install (not npm ci) keeps the local redeploy fast and forgiving; npm ci would wipe + reinstall the large dep tree every run. The structural .mjs tests are the only cross-platform way to pin PowerShell behavior.
+- **Consequences:** Production redeploys self-heal new dependencies; the deploy never lands in a half-built state. Cost: npm install runs every deploy (near-noop when node_modules already matches the lockfile).
+- **Rejected:** npm ci (too slow, hard-fails on any lockfile drift); documenting 'run npm install first' instead of scripting it (the recurring failure mode the user hit).
+
+---
+
+### ADR-202: Mobile/touch terminal UX: condense phone header, buffer-first touch-scroll, data-driven settle-repaint
+- **Date:** 2026-06-20
+- **Section:** iterate-2026-06-20-mobile-terminal-touch-ux
+- **Run-ID:** iterate-2026-06-20-mobile-terminal-touch-ux
+- **Context:** Mobile use over Tailscale surfaced four issues: oversized phone task-detail header, dead touch-scroll at Claude's --resume picker, low-contrast touch keys, and input-area smear on Transcript->Terminal switch / return-from-home.
+- **Decision:** Phone (<=767px) header drops the breadcrumb + meta sub-line via useIsPhoneViewport (padding tightened at the md: breakpoint). Touch keys gain a white border + white glyph. touch-scroll is buffer-first: alt-screen -> synthetic wheel, normal buffer -> scrollLines (pan scrollback) even with mouse-tracking on. The fixed 130/350ms post-layout repaint is replaced by a data-driven settle window (repaint-on-settle.ts) repainting on each onWriteParsed until the stream quiesces or a 3s cap.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root-cause fixes, not patch-stacking: AC-4 supersedes the open-loop fixed timer; AC-3 reorders the routing predicate (the prior normal-buffer+mouse->wheel assumption was falsified by the picker report).
+- **Consequences:** Terminal gets more room on phones; the resume-picker finger-pan scrolls the loaded scrollback; legible keys; smear healed regardless of mobile redraw latency. AC-3/AC-4 final on-device behavior is device-UAT.
+- **Rejected:** Extending the fixed repaint timers (fragile vs mobile latency); collapsible-drawer + tighten-only header variants (user chose condense); trimming the MainLayout top bar (already a 44px touch target).
+- **Details:** [2026-06-20-mobile-terminal-touch-ux.md](../planning/iterate/2026-06-20-mobile-terminal-touch-ux.md)

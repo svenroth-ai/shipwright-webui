@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v0.21.0] - 2026-06-22
+
+### Added
+
+- Task board cards can be moved between the Backlog, In Progress, and Done columns by drag-and-drop (mouse or touch press-and-hold) or, accessibly, via the card's ⋯ → "Move to…" menu (keyboard / screen-reader friendly)
+
+### Changed
+
+- Task board columns are now a sticky, user-owned status that is decoupled from session liveness: a running task can be parked in any column and still offers Resume, and an unstarted task can sit in In Progress. With no manual move, the board looks exactly as before
+- Mobile (phone ≤767px) task-detail header is condensed — breadcrumb + the Started/last-event/model meta sub-line are hidden and padding tightened — giving the embedded terminal materially more vertical room. Tablet/desktop layout (≥768px) is unchanged.
+- Embedded-terminal on-screen touch keys now have a white border and white glyphs for legibility on the dark key bar (previously low-contrast grey-on-dark); the read-only reader state stays visibly muted.
+
+### Fixed
+
+- Selecting a task card ⋯-menu item with the keyboard (Enter) no longer accidentally navigates to the task detail page
+- Production deploy (`start-server-production.ps1`) and the Windows autostart installer (`install-windows.ps1`) now run `npm install` before building, so a dependency added by a merged PR (e.g. `@dnd-kit/core` from the drag-and-drop board) no longer breaks the build with "cannot find module". The autostart installer also stops swallowing npm errors and aborts on a failed install/build instead of creating a startup shortcut that points at a server that won't run.
+- Touch-scroll now pans the scrollback at Claude's `--resume` session picker — a normal-buffer + mouse-tracking finger-pan is no longer swallowed as an unconsumed wheel mouse-report (routing is now buffer-first: alt-screen → wheel, normal buffer → scrollback).
+- Input-area smear after switching Transcript→Terminal or returning from the phone home screen — the post-layout-change repaint is now data-driven (repaints on each parsed write until the async redraw settles) instead of a fixed 130/350ms timer that closed before the slower mobile redraw landed.
+- The embedded terminal now recovers instead of showing a frozen, stale screen when you return to the browser tab after the WebSocket connection silently dropped (laptop sleep, screen lock, long tab switch, or a Tailscale half-open). A client-side liveness heartbeat (app-level ping/pong) detects a dead connection, and returning to the tab re-arms the reconnect budget and re-establishes the socket — including the case where the socket still *looked* connected but was silently dead. The previous fix only repainted the existing (stale) buffer; this restores the live data flow.
+
+### Security
+
+- Tier-3 PR review (vendored) now fails closed on a truncated diff, so an oversized diff can no longer bypass the required review gate
+- Anti-ratchet gate (vendored) now fails closed on a present-but-corrupt bloat baseline; an absent baseline still fails open
+
 ## [v0.20.0] - 2026-06-17
 
 ### Added

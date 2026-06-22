@@ -1,1 +1,0 @@
-Touch-scroll now pans the scrollback at Claude's `--resume` session picker — a normal-buffer + mouse-tracking finger-pan is no longer swallowed as an unconsumed wheel mouse-report (routing is now buffer-first: alt-screen → wheel, normal buffer → scrollback).

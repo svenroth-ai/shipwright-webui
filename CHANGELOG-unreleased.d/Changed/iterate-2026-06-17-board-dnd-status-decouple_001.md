@@ -1,1 +1,0 @@
-Task board columns are now a sticky, user-owned status that is decoupled from session liveness: a running task can be parked in any column and still offers Resume, and an unstarted task can sit in In Progress. With no manual move, the board looks exactly as before
