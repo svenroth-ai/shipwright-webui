@@ -24,21 +24,28 @@ import { useEffect, useRef, type RefObject } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 
+import {
+  createActivationRepaint,
+  type ActivationRepaintHandle,
+} from "./activation-repaint";
+
 /** WS-send shape consumed by this hook — duck-typed to avoid hook-internal coupling. */
 type ResizeSendFn = (msg: { type: "resize"; cols: number; rows: number }) => void;
 
 /** Resize throttle window. ConPTY redraws the line on every SIGWINCH; we don't want to drown it. */
 const RESIZE_THROTTLE_MS = 250;
 
-// The post-layout-change repaint is now DATA-DRIVEN (iterate-2026-06-20 AC-4,
-// `repaint-on-settle.ts`): instead of fixed 130/350 ms trailing `term.refresh`
-// timers — which closed before Claude's async alt-buffer redraw landed on a
-// slow mobile path, leaving the smear — the settle window repaints on each
-// parsed write until the stream quiesces. This hook ARMS that window (via
-// `settleArmRef`) on tab-activation + visibility/focus; resize-driven changes
-// arm it internally through `term.onResize`. The synchronous immediate
-// `term.refresh(0, rows-1)` on activation/focus (display:none + stale-frame
-// repair) is RETAINED below.
+// Post-layout-change repaint is TWO complementary mechanisms — do NOT collapse
+// them (iterate-2026-06-22, Chesterton's fence):
+//   1. DATA-DRIVEN settle window (`repaint-on-settle.ts`) — armed here via
+//      `settleArmRef`; repaints on each parsed write. Heals Claude's late
+//      async redraw, but ONLY while data flows.
+//   2. DATA-INDEPENDENT trailing repaints (`activation-repaint.ts`) — scheduled
+//      here on tab-activation + visibility/focus; fires regardless of data, so
+//      an IDLE session (no writes) still clears the stale display:none→block
+//      WebGL frame the single synchronous `term.refresh` below misses.
+// The synchronous immediate `term.refresh(0, rows-1)` is also RETAINED (fast
+// path when composite is already settled).
 
 /**
  * Defence against two xterm hazards (ADR-084):
@@ -147,6 +154,19 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     rows: -1,
   });
 
+  // Data-independent trailing repaints (`activation-repaint.ts`) — lazily
+  // created once; reads term/disposed through the stable refs the hook owns.
+  const activationRepaintRef = useRef<ActivationRepaintHandle | null>(null);
+  if (activationRepaintRef.current === null) {
+    activationRepaintRef.current = createActivationRepaint(
+      () => termRef.current,
+      () => disposedRef.current,
+    );
+  }
+  // Cancel any pending passes on unmount (timers self-guard on disposedRef,
+  // but clearing is cheaper than waiting them out).
+  useEffect(() => () => activationRepaintRef.current?.clear(), []);
+
   // -------- ResizeObserver effect (one-shot per mount) ----------
   useEffect(() => {
     const container = containerRef.current;
@@ -226,6 +246,10 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     // change cols/rows (same pane size), so `term.onResize` won't fire — arm
     // explicitly so Claude's late async redraw still gets repainted clean.
     settleArmRef?.current?.();
+    // Data-independent trailing repaints: an IDLE session emits no writes, so
+    // the settle window above does nothing — these clear the stale frame the
+    // single synchronous refresh above misses (display:none→block composite).
+    activationRepaintRef.current?.schedule();
     const cols = term.cols;
     const rows = term.rows;
     if (
@@ -272,6 +296,9 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       // restore may not change dims, so `term.onResize` won't fire — arm
       // explicitly so a late redraw over a reconnected WS repaints clean.
       settleArmRef?.current?.();
+      // Data-independent trailing repaints — same idle-session gap as the
+      // tab-activation path (a focus/visibility restore with no new output).
+      activationRepaintRef.current?.schedule();
       const cols = term.cols;
       const rows = term.rows;
       if (

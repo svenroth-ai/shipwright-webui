@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-20 10:21 UTC | Session: bfd244ca-6f1f-4319-a9b2-a05a416e402e | Run: iterate-2026-06-20-mobile-terminal-touch-ux
+> Updated: 2026-06-22 21:47 UTC | Session: 2b51b74c-5752-4d27-b837-a7c8aab1c8d6 | Run: iterate-2026-06-22-terminal-idle-tab-switch-smear
 
-## Recent Changes (168 iterations)
+## Recent Changes (169 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Embedded terminal: data-independent trailing repaint (activation-repaint.ts) clears the stale display:none->block WebGL frame on an IDLE Transcript->Terminal switch / focus restore, closing the no-data gap ADR-202 data-driven settle window left | 0/0 |  | FR-01.28 | 2026-06-22 |
 | change | Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear | 1762/1762 |  | FR-01.28, FR-01.39 | 2026-06-20 |
 | bug | start-server-production.ps1 and install-windows.ps1 run npm install before npm run build so a newly-merged dependency (@dnd-kit/core) no longer breaks the production build; autostart no longer swallows npm errors. | 0/0 |  | infra | 2026-06-18 |
 | bug | Embedded terminal WS now reconnects on tab refocus + has a client liveness heartbeat (app-level ping/pong) so a silently-dead socket after sleep/Tailscale partition is detected and recovered instead of a stale frozen frame. | 0/0 |  | FR-01.28 | 2026-06-18 |
@@ -175,7 +176,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-20 | Unit: 1762/1762 | E2E: 22/22 | Smoke: not_run | (iterate)
+Last run: 2026-06-22 | Unit: 1773/1773 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

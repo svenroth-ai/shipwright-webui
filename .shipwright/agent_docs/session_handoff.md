@@ -1,37 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-20-mobile-terminal-touch-ux"
+run_id: "iterate-2026-06-22-terminal-idle-tab-switch-smear"
 phase: "iterate"
-reason: "iterate: mobile/touch terminal UX adjustments"
-timestamp: "2026-06-20T10:21:45.559753+00:00"
+reason: "iterate finalization"
+timestamp: "2026-06-22T21:47:59.358949+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-20 10:21:45 UTC
+> Auto-generated 2026-06-22 21:47:59 UTC
 
 ## Session Info
 
-- **Session ID**: bfd244ca-6f1f-4319-a9b2-a05a416e402e
-- **Timestamp**: 2026-06-20 10:21:45 UTC
-- **Reason**: iterate: mobile/touch terminal UX adjustments
+- **Session ID**: 2b51b74c-5752-4d27-b837-a7c8aab1c8d6
+- **Timestamp**: 2026-06-22 21:47:59 UTC
+- **Reason**: iterate finalization
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-19-deploy-npm-install
-- **Date**: 2026-06-18T22:17:24.005299Z
+- **Run ID**: iterate-2026-06-22-terminal-idle-tab-switch-smear
+- **Date**: 2026-06-22T21:47:24.318701Z
 - **Type**: bug
 - **Complexity**: small
-- **Branch**: iterate/deploy-npm-install
-- **ADR**: iterate-2026-06-19-deploy-npm-install
+- **Branch**: iterate/terminal-idle-tab-switch-smear
+- **ADR**: iterate-2026-06-22-terminal-idle-tab-switch-smear
 - **Tests passed**: True
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/mobile-terminal-touch-ux
-- **Spec**: .shipwright/planning/iterate/2026-06-20-mobile-terminal-touch-ux.md
-- **Complexity**: medium (classifier said `small`; bumped — two bugs in
-- **External Review Marker**: stale (predates spec (2026-06-03T14:56:50))
+- **Branch**: iterate/terminal-idle-tab-switch-smear
+- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
 
@@ -49,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/mobile-terminal-touch-ux
-- **Last Commit**: 9769bbf fix(deploy): npm install before build in start + autostart scripts (#163)
+- **Branch**: iterate/terminal-idle-tab-switch-smear
+- **Last Commit**: 0a23bdb chore(release): v0.21.0 (#166)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -66,23 +64,24 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-939af5c3 | work_completed | iterate (Embedded terminal: data-independent trailing repaint (activation-repaint.ts) clears the stale display:none->block WebGL frame on an IDLE Transcript->Terminal switch / focus restore, closing the no-data gap ADR-202 data-driven settle window left) | 2026-06-22 |
 | evt-4c6d051c | work_completed | iterate (Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear) | 2026-06-20 |
 | evt-a73ab76b | work_completed | iterate (start-server-production.ps1 and install-windows.ps1 run npm install before npm run build so a newly-merged dependency (@dnd-kit/core) no longer breaks the production build; autostart no longer swallows npm errors.) | 2026-06-18 |
 | evt-01f600fb | work_completed | iterate (Embedded terminal WS now reconnects on tab refocus + has a client liveness heartbeat (app-level ping/pong) so a silently-dead socket after sleep/Tailscale partition is detected and recovered instead of a stale frozen frame.) | 2026-06-18 |
 | evt-2646f4da | work_completed | iterate (Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix).) | 2026-06-17 |
-| evt-c38be8a4 | work_completed | iterate (sync vendored gate copies to monorepo fail-closed fixes) | 2026-06-17 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 238
-- **Last iterate**: change — Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear (2026-06-20)
+- **Total work events**: 239
+- **Last iterate**: bug — Embedded terminal: data-independent trailing repaint (activation-repaint.ts) clears the stale display:none->block WebGL frame on an IDLE Transcript->Terminal switch / focus restore, closing the no-data gap ADR-202 data-driven settle window left (2026-06-22)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-199: Scrub residual PII + close the *.md.lock gitignore gap
-- **Date:** 2026-06-17
-- **Section:** Iterate — change: launch-prep PII scrub & repo hygiene
-- **Run-ID:** iterate-2026-06-17-launch-prep-scrub
-- **Context:** Pre-public-launch audit found residual PII in tracked files: dev username + company name + an internal Tailscale IP inside two .shipwright/triage.jsonl records and a hardcoded home path in one planning doc, plus a tracked decision_log.md.lock sidecar and 7 unreferenced E2E screens
+### ADR-202: Mobile/touch terminal UX: condense phone header, buffer-first touch-scroll, data-driven settle-repaint
+- **Date:** 2026-06-20
+- **Section:** iterate-2026-06-20-mobile-terminal-touch-ux
+- **Run-ID:** iterate-2026-06-20-mobile-terminal-touch-ux
+- **Context:** Mobile use over Tailscale surfaced four issues: oversized phone task-detail header, dead touch-scroll at Claude's --resume picker, low-contrast touch keys, and input-area smear on Transcript->Terminal switch / return-from-home.
+- **Decis
