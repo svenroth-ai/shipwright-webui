@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-06-20T10:21:45.559753+00:00
-Total commits: 582
+Generated: 2026-06-22T21:47:59.358949+00:00
+Total commits: 589
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 211
+    "fix" : 212
     "feat" : 144
-    "chore" : 116
-    "docs" : 57
+    "chore" : 117
+    "docs" : 61
     "refactor" : 25
-    "test" : 19
+    "test" : 20
     "ci" : 5
     "other" : 4
     "build" : 1
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 211 commits
+### Fixes (fix) — 212 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-20 | terminal | mobile/touch UX — phone header, key contrast, resume-picker scroll, transition smear (#164) | d5fe3b2ff03e |
 | 2026-06-19 | deploy | npm install before build in start + autostart scripts (#163) | 9769bbf20b01 |
 | 2026-06-18 | terminal | reconnect embedded terminal WS on tab refocus + client liveness heartbeat (FR-01.28) (#159) | a6ee149a0261 |
 | 2026-06-17 | ci | vendored gates fail closed (truncation + corrupt baseline) (#157) | fe55df9c1202 |
@@ -385,10 +386,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 116 commits
+### Chores (chore) — 117 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-22 | release | v0.21.0 (#166) | 0a23bdbdef84 |
 | 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
 | 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
 | 2026-06-17 | launch-prep | scrub residual PII and tighten repo hygiene (#154) | 4959bac67740 |
@@ -506,10 +508,14 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 57 commits
+### Documentation (docs) — 61 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-21 | guide | replace prose em-dashes with colons, periods, and commas | 14751220a2ce |
+| 2026-06-21 | readme | replace em-dashes with colons, periods, and commas | 0142d6bcb235 |
+| 2026-06-21 | — | surface the embedded terminal in the guide feature list; trim em-dashes | 27a3943ba062 |
+| 2026-06-21 | — | lead README and guide with the shared "keep context true" USP | e66e191a6945 |
 | 2026-06-19 | — | drop "run it in your own terminal" as a second path (#162) | 6c8a35875e79 |
 | 2026-06-18 | readme | mirror monorepo branding, add screenshots, drop internal refs (#161) | 3f8f8cadc805 |
 | 2026-06-14 | agent-docs | compact over-budget entries + de-blank-line Updates sections (#144) | 09baf5c95782 |
@@ -598,10 +604,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 19 commits
+### Tests (test) — 20 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-20 | terminal | split useTerminalResize.test.ts under the 300-LOC guideline (#165) | 9499eba74590 |
 | 2026-06-18 | terminal | split WS-liveness specs under the 300-LOC guideline (#160) | b682e6a7f7de |
 | 2026-06-09 | campaigns | split loop-state annotation tests to clear the 300-LOC ceiling | c2b328d42c9f |
 | 2026-06-08 | triage | split union read tests into triage-store.union.test.ts | 431e40b6b62b |
@@ -651,7 +658,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 582 |
+| Total commits | 589 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 582 |
+| Human-authored commits | 589 |
 

@@ -1,0 +1,1 @@
+Embedded terminal: switching back to the Terminal tab (or restoring window focus) while the Claude session is idle no longer leaves a stale/smeared frame. A new data-independent trailing repaint clears the just-un-hidden WebGL canvas even when no new output is flowing.

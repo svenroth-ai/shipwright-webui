@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-20",
+  "last_updated": "2026-06-22",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-20-mobile-terminal-touch-ux",
-    "date": "2026-06-20",
+    "run_id": "iterate-2026-06-22-terminal-idle-tab-switch-smear",
+    "date": "2026-06-22",
     "unit": {
       "status": "passed",
-      "passed": 1762,
-      "total": 1762
+      "passed": 1773,
+      "total": 1773
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 22,
-      "total": 22
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,81 +32,61 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 22,
-      "justification": "Client-only mobile/touch terminal UX change (no server/API change). F0.5 web surface verified against an isolated single-process stack (built SPA + API, temp USERPROFILE, :3947): mobile-chromium (Pixel 5, hasTouch) 17/17 including the AC-1 header-condense (breadcrumb + meta sub-line hidden) and AC-2 white-border/white-glyph real-browser computed-style assertions; PLUS desktop chromium terminal regression specs 88 (tab-autofocus) / 91 (repaint-on-refocus) / 92 (reflow repaint) = 5/5, which exercise the AC-4 settle-repaint path on a LIVE pty and confirm a width change still produces a full-viewport repaint after the redraw settles. AC-3 (touch-scroll behavior at Claude's --resume picker) and AC-4 (absence of visible smear) final on-device behavior are device-UAT (requires-physical-device) per the spec ledger.",
-      "tests": {
-        "mobile_chromium_phone_responsive": "17/17",
-        "desktop_chromium_terminal_repaint": "5/5"
-      }
+      "tests_run": 0,
+      "justification": "Pure client render-TIMING change: a new data-independent trailing-repaint module (activation-repaint.ts) wired by useTerminalResize.ts on tab-activation + visibility/focus. NO server/API/store/WS/contract/Vite-config/CORS/proxy surface touched, so the Backend-affects-Frontend rule does not force surface=web and the feedback_browser_fixes_need_real_browser_smoke trigger (infra diff) does not apply. The broken React-effect wiring is exercised end-to-end at the integration level via renderHook in useTerminalResize.repaint.test.ts (real hook, fake timers, asserts term.refresh fires on an IDLE activation/focus) + the pure module in activation-repaint.test.ts. The only behavior left is the actual VISUAL smear-clearing on a real GPU/compositor, which is requires-physical-device (headless Chromium WebGL != user GPU) and is user-confirmed UAT on rebuild."
     },
-    "degraded": [],
+    "degraded": [
+      {
+        "condition": "F0.5 visual smear-clearing",
+        "reason": "requires-physical-device (real-GPU/compositor); user agreed to visual UAT after rebuild+restart"
+      }
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1: task-detail breadcrumb + meta sub-line are dropped at phone width and rendered at desktop width",
+          "behavior": "AC-1: an IDLE Transcript->Terminal switch (no writes, same pane size) schedules data-independent trailing repaints",
           "disposition": "tested",
-          "evidence": "TaskDetailHeader.test.tsx 'phone header condense (AC-1)' (matchMedia mock both bands) + e2e 90-phone-responsive 'header is condensed on a phone'"
+          "evidence": "useTerminalResize.repaint.test.ts 'tab activation schedules data-independent trailing repaints (idle, no writes)' (RED-verified: fails when schedule() removed)"
         },
         {
-          "behavior": "AC-1: condensed header introduces no horizontal page overflow at phone width",
+          "behavior": "AC-2: window focus / visibilitychange / pageshow restore schedules the same data-independent trailing repaints",
           "disposition": "tested",
-          "evidence": "e2e 90-phone-responsive 'header is condensed on a phone' (pageOverflowPx <= 1)"
+          "evidence": "useTerminalResize.repaint.test.ts 'window focus schedules data-independent trailing repaints' (RED-verified)"
         },
         {
-          "behavior": "AC-2: touch keys carry a visible (white) border + white glyph, old grey token removed",
+          "behavior": "AC-3a: each scheduled pass is a full-viewport refresh (0, rows-1), one per configured delay (130/350 ms)",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx 'keys carry a white border + white text' + e2e 90 computed-style (borderTopWidth>0, color == browser white)"
+          "evidence": "activation-repaint.test.ts 'repaints the full viewport once per delay when the timers fire'"
         },
         {
-          "behavior": "AC-2: read-only reader keys stay visibly muted (disabled:opacity-40 retained)",
+          "behavior": "AC-3b: re-scheduling cancels the prior in-flight set (no stacking on rapid re-activation)",
           "disposition": "tested",
-          "evidence": "TerminalKeyBar.test.tsx 'read-only reader keys stay visibly muted'"
+          "evidence": "activation-repaint.test.ts 're-scheduling cancels the prior in-flight set (no stacking)'"
         },
         {
-          "behavior": "AC-3: routeScroll pans the scrollback (scrollLines) in the normal buffer EVEN WHEN mouse-tracking is on",
+          "behavior": "AC-3c: pending passes are cancelled on clear()/unmount",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts 'normal buffer WITH mouse tracking: pans the scrollback via scrollLines, NOT a wheel'"
+          "evidence": "activation-repaint.test.ts 'clear() cancels all pending passes' + useTerminalResize.repaint.test.ts 'trailing repaints are cancelled on unmount'"
         },
         {
-          "behavior": "AC-3: routeScroll still forwards a wheel in the alt-screen buffer (Claude TUI / vim / less)",
+          "behavior": "AC-3d: disposal guards \u2014 schedule() no-ops when disposed; a pass firing after disposal or after the term ref is nulled does not repaint or throw",
           "disposition": "tested",
-          "evidence": "touch-scroll.alt-buffer.test.ts alt-buffer wheel cases (down/up + finger-position coords)"
+          "evidence": "activation-repaint.test.ts 'schedule() queues nothing when already disposed' + 'a pass that fires AFTER disposal...' + 'a pass that fires after the term is gone...'"
         },
         {
-          "behavior": "AC-3: a finger-pan actually scrolls at the live Claude --resume 'load full/summary' picker",
+          "behavior": "AC-4: no visible input-area/glyph smear after an IDLE tab switch on the user's real GPU",
           "disposition": "untestable",
           "reason_code": "requires-physical-device",
-          "reason": "the live buffer/mouse-tracking state at the picker + real touch can only be confirmed on the iPhone (device UAT)"
-        },
-        {
-          "behavior": "AC-4: settle-repaint arms on resize/explicit-arm, repaints on each parsed write (coalesced), disarms on quiet-gap or hard cap, cancels the queued frame on disarm, leak-safe disposal",
-          "disposition": "tested",
-          "evidence": "repaint-on-settle.test.ts (11 cases incl. late-first-write, quiet-reset, hard-cap, disarm-cancels-frame, onResize self-arm, dispose)"
-        },
-        {
-          "behavior": "AC-4: useTerminalResize arms the settle window on tab-activation + focus/visibility/pageshow (incl. same-dims), NOT on the RO resize path, guarded by disposedRef",
-          "disposition": "tested",
-          "evidence": "useTerminalResize.test.ts 'data-driven settle-repaint arming' suite"
-        },
-        {
-          "behavior": "AC-4: a width change produces a full-viewport repaint after the reflow settles on a live terminal (no regression from removing the fixed-delay repaints)",
-          "disposition": "tested",
-          "evidence": "e2e 92-terminal-reflow-repaint (live pty, desktop chromium) + 91-terminal-repaint-on-refocus"
-        },
-        {
-          "behavior": "AC-4: no visible input-area smear after a Transcript->Terminal switch / return-from-home on the device",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "reason": "WebGL partial-dirty smear over a real mobile WS + iOS backgrounding reproduces only on the iPhone (device UAT)"
+          "reason": "WebGL partial-dirty smear over a real GPU/compositor after a display:none->block un-hide reproduces only on real hardware; headless Chromium WebGL is not representative. User-confirmed visual UAT on rebuild."
         }
       ],
       "counts": {
-        "testable": 9,
-        "tested": 9,
-        "untestable": 2,
+        "testable": 6,
+        "tested": 6,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {

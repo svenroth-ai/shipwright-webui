@@ -16,6 +16,10 @@ import {
   setHidden,
   type ResizeHarness,
 } from "./useTerminalResize.test-harness";
+import { ACTIVATION_REPAINT_DELAYS_MS } from "./activation-repaint";
+
+const PAST_LAST_DELAY_MS =
+  ACTIVATION_REPAINT_DELAYS_MS[ACTIVATION_REPAINT_DELAYS_MS.length - 1] + 10;
 
 // --- visibility / focus / bfcache repaint (smear-on-window-refocus fix) ---
 // The WebGL renderer only force-repaints on ResizeObserver, tab activation, and
@@ -199,5 +203,54 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
       window.dispatchEvent(new Event("focus"));
     });
     expect(settleArm).not.toHaveBeenCalled();
+  });
+
+  // --- data-INDEPENDENT activation repaints (iterate-2026-06-22 idle smear) ---
+  // The settle window only repaints on writes; an IDLE Transcript→Terminal
+  // switch (Claude parked at a prompt) emits none, so the single synchronous
+  // refresh is all that fires — and it lands before the un-hidden WebGL canvas
+  // is composited. These deferred passes (activation-repaint.ts) MUST fire
+  // regardless of data flow. Pre-fix: nothing schedules them → the count never
+  // grows past the synchronous refresh.
+
+  it("tab activation schedules data-independent trailing repaints (idle, no writes)", () => {
+    const { term, rerender } = h.setup(false);
+    const refresh = term.refresh as ReturnType<typeof vi.fn>;
+    rerender(true); // activate
+    const afterSync = refresh.mock.calls.length; // synchronous activation refresh
+    act(() => {
+      vi.advanceTimersByTime(PAST_LAST_DELAY_MS);
+    });
+    expect(refresh.mock.calls.length).toBe(
+      afterSync + ACTIVATION_REPAINT_DELAYS_MS.length,
+    );
+    expect(refresh).toHaveBeenCalledWith(0, term.rows - 1);
+  });
+
+  it("window focus schedules data-independent trailing repaints", () => {
+    const { term } = h.setup(false);
+    const refresh = term.refresh as ReturnType<typeof vi.fn>;
+    act(() => {
+      window.dispatchEvent(new Event("focus"));
+    });
+    const afterSync = refresh.mock.calls.length;
+    act(() => {
+      vi.advanceTimersByTime(PAST_LAST_DELAY_MS);
+    });
+    expect(refresh.mock.calls.length).toBe(
+      afterSync + ACTIVATION_REPAINT_DELAYS_MS.length,
+    );
+  });
+
+  it("trailing repaints are cancelled on unmount (no fire after teardown)", () => {
+    const { term, rerender, unmount } = h.setup(false);
+    rerender(true);
+    const refresh = term.refresh as ReturnType<typeof vi.fn>;
+    const before = refresh.mock.calls.length;
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(PAST_LAST_DELAY_MS);
+    });
+    expect(refresh.mock.calls.length).toBe(before);
   });
 });

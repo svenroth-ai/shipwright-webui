@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-22-terminal-idle-tab-switch-smear",
+  "date": "2026-06-22T21:47:24.318701Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/terminal-idle-tab-switch-smear",
+  "tests_passed": true,
+  "spec": null,
+  "adr": "iterate-2026-06-22-terminal-idle-tab-switch-smear"
+}
