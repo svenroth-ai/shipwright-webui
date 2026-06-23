@@ -224,7 +224,14 @@ export function TaskBoardColumns({ tasks }: { tasks: ExternalTask[] }) {
           <DroppableColumn key={meta.col} meta={meta} items={columns[meta.col]} />
         ))}
       </div>
-      <DragOverlay>
+      {/* dropAnimation={null} — dnd-kit's default drop animation flies the
+          dragged clone back to the SOURCE draggable's position on release.
+          A board move relocates the card to the target column (optimistic
+          useSetBoardColumn) at the same instant, so the default reads as the
+          clone "flipping back to the origin" while the real card is already
+          at the destination. Disabling it lets the overlay just vanish on
+          drop (board-drop-animation). Guard: TaskBoardColumns.dropanim.test.tsx. */}
+      <DragOverlay dropAnimation={null}>
         {activeTask ? <TaskCard task={activeTask} /> : null}
       </DragOverlay>
     </DndContext>

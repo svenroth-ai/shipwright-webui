@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-06-23-board-drop-animation",
+  "date": "2026-06-23T06:41:51.586795Z",
+  "type": "bug",
+  "complexity": "trivial",
+  "branch": "iterate/board-drop-animation",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-23-board-drop-animation"
+}

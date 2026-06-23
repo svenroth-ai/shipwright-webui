@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-23 06:18 UTC | Session: 64f2fa24-5102-477e-8e9e-1fb9dd200efb | Run: iterate-2026-06-23-board-drag-done-reopen
+> Updated: 2026-06-23 06:41 UTC | Session: 64f2fa24-5102-477e-8e9e-1fb9dd200efb | Run: iterate-2026-06-23-board-drop-animation
 
-## Recent Changes (170 iterations)
+## Recent Changes (171 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | 1780/1780 |  | FR-01.01 | 2026-06-23 |
 | bug | Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked | 3444/3444 |  | FR-01.01 | 2026-06-23 |
 | bug | Embedded terminal: data-independent trailing repaint (activation-repaint.ts) clears the stale display:none->block WebGL frame on an IDLE Transcript->Terminal switch / focus restore, closing the no-data gap ADR-202 data-driven settle window left | 0/0 |  | FR-01.28 | 2026-06-22 |
 | change | Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear | 1762/1762 |  | FR-01.28, FR-01.39 | 2026-06-20 |
@@ -177,7 +178,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-23 | Unit: 3444/3444 | E2E: 3/3 | Smoke: not_run | (iterate)
+Last run: 2026-06-23 | Unit: 1780/1780 | E2E: 3/3 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
