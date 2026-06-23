@@ -1,11 +1,3 @@
----
-canon_generated: true
-run_id: "iterate-2026-06-23-board-drag-done-reopen"
-phase: "iterate"
-reason: "iterate: board drag Done->In Progress reopen"
-timestamp: "2026-06-23T06:18:21.927226+00:00"
----
-
 # Session Handoff
 
 > Auto-generated 2026-06-23 06:18:21 UTC
@@ -14,27 +6,23 @@ timestamp: "2026-06-23T06:18:21.927226+00:00"
 
 - **Session ID**: 64f2fa24-5102-477e-8e9e-1fb9dd200efb
 - **Timestamp**: 2026-06-23 06:18:21 UTC
-- **Reason**: iterate: board drag Done->In Progress reopen
+- **Reason**: iterate completion: iterate-2026-06-23-board-drag-done-reopen
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-22-terminal-idle-tab-switch-smear
-- **Date**: 2026-06-22T21:47:24.318701Z
+- **Run ID**: iterate-2026-06-23-board-drag-done-reopen
+- **Date**: 2026-06-23T06:18:34.541954Z
 - **Type**: bug
 - **Complexity**: small
-- **Branch**: iterate/terminal-idle-tab-switch-smear
-- **ADR**: iterate-2026-06-22-terminal-idle-tab-switch-smear
+- **Branch**: iterate/board-drag-done-reopen
+- **ADR**: iterate-2026-06-23-board-drag-done-reopen
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/01-adopted/spec.md
 
 ## Current Iterate Progress
 
 - **Branch**: iterate/board-drag-done-reopen
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
-
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
@@ -48,8 +36,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/board-drag-done-reopen
-- **Last Commit**: dd7f746 refactor(terminal): extract safeFit into safe-fit.ts to keep useTerminalResize under 300 LOC (#168)
-- **Uncommitted Changes**: Yes
+- **Last Commit**: 72e4765 fix(board): reopen a Done card dragged out of the Done column
+- **Uncommitted Changes**: None
 
 ## Config Files to Read
 
