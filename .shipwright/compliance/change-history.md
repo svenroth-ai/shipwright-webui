@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-23T06:18:21.927226+00:00
-Total commits: 591
+Generated: 2026-06-23T06:47:56.497207+00:00
+Total commits: 592
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 213
+    "fix" : 214
     "feat" : 144
     "chore" : 117
     "docs" : 61
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 213 commits
+### Fixes (fix) — 214 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-23 | board | reopen a Done card dragged out of the Done column (#169) | 1b3e0b1ab6d6 |
 | 2026-06-22 | terminal | clear idle tab-switch smear with a data-independent repaint (#167) | 17e12a88088c |
 | 2026-06-20 | terminal | mobile/touch UX — phone header, key contrast, resume-picker scroll, transition smear (#164) | d5fe3b2ff03e |
 | 2026-06-19 | deploy | npm install before build in start + autostart scripts (#163) | 9769bbf20b01 |
@@ -660,7 +661,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 591 |
+| Total commits | 592 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 591 |
+| Human-authored commits | 592 |
 

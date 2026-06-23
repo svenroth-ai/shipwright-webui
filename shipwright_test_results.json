@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-06-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-23-board-drag-done-reopen",
+    "run_id": "iterate-2026-06-23-terminal-renderer-toggle",
     "date": "2026-06-23",
     "unit": {
       "status": "passed",
-      "passed": 3444,
-      "total": 3444
+      "passed": 1788,
+      "total": 1788
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 3,
-      "total": 3
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,80 +32,56 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 3,
-      "justification": "Backend-affects-Frontend: /reopen gained an optional column + client DnD/menu wiring. Ran client/e2e/flows/board-dnd-status-decouple.spec.ts (3 tests, incl. the new drag-Done->In-Progress-reopens) against an isolated single-process stack (built SPA via SHIPWRIGHT_STATIC_DIR + tsx, temp HOME, :3947). 3/3 passed in a real Chromium."
+      "tests_run": 0,
+      "justification": "DIAGNOSTIC, not a fix: a runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts; default behavior unchanged (WebGL). The override-resolution logic is fully unit-tested (terminal-renderer.test.ts). The ONLY purpose of this iterate is to let the user A/B the WebGL vs DOM renderer on their REAL GPU to confirm/refute that WebGL is the root cause of the persistent smear -- a determination that is requires-physical-device by definition (headless Chromium WebGL is not representative, and the smear is a visual judgment). No server/API/WS/contract surface touched. The console.info('renderer=...') line gives the user direct confirmation which arm is live."
     },
-    "degraded": [],
+    "degraded": [
+      {
+        "condition": "F0.5 renderer A/B outcome",
+        "reason": "requires-physical-device + requires-manual-visual-judgment (real-GPU smear comparison); the user runs the A/B after rebuild"
+      }
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "moveReopensTask(done,non-done)=true; (done,done)=false; (live,*)=false",
+          "behavior": "AC-1a: renderer resolves to webgl by default (no query, no storage, null/empty inputs)",
           "disposition": "tested",
-          "evidence": "client boardColumnApi.test.ts 'moveReopensTask' (3 cases) PASSED"
+          "evidence": "terminal-renderer.test.ts 'defaults to webgl ...'"
         },
         {
-          "behavior": "POST /reopen {column} reopens a done task into the dropped column (done->draft, boardColumn=target)",
+          "behavior": "AC-1b: renderer resolves to dom when the localStorage value or the ?terminalRenderer= query is dom",
           "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'reopens a done task INTO the dropped column' PASSED"
+          "evidence": "terminal-renderer.test.ts 'returns dom when storage value is dom' + 'returns dom when the query opts in'"
         },
         {
-          "behavior": "POST /reopen {column:invalid} -> 400 invalid_column, state untouched",
+          "behavior": "AC-1c: the query overrides persisted storage in BOTH directions (query=webgl forces default back; query=dom wins)",
           "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'rejects an invalid target column' PASSED"
+          "evidence": "terminal-renderer.test.ts 'lets the query override persisted storage in BOTH directions'"
         },
         {
-          "behavior": "POST /reopen with no column still defaults to Backlog (menu Re-open unchanged)",
+          "behavior": "AC-1d: robustness -- case/whitespace-insensitive, any unknown value -> webgl, malformed search never throws",
           "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'omitted column still defaults to Backlog' + existing 'preserves every history field' PASSED"
+          "evidence": "terminal-renderer.test.ts 'is case- and whitespace-insensitive' + 'treats any unknown value as the webgl default' + 'never throws on a malformed search string'"
         },
         {
-          "behavior": "POST /reopen on already-draft + divergent column applies boardColumn only (multi-tab race), state stays draft",
+          "behavior": "AC-1e: getTerminalRendererOverride reads localStorage and is SSR/test-safe (webgl default when window absent / storage throws)",
           "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'already-draft + a DIVERGENT explicit column' PASSED"
+          "evidence": "terminal-renderer.test.ts 'defaults to webgl with nothing set' + 'reads the dom override from localStorage'"
         },
         {
-          "behavior": "POST /reopen on already-draft + same column is an idempotent no-op",
-          "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'already-draft + the SAME explicit column' PASSED"
-        },
-        {
-          "behavior": "useSetBoardColumn({reopen:true}) routes to reopenTask(taskId,column), not setBoardColumn",
-          "disposition": "tested",
-          "evidence": "client useExternalTasks.boardcolumn.test.ts 'reopen:true routes to reopenTask' PASSED"
-        },
-        {
-          "behavior": "useSetBoardColumn reopen optimistically flips state->draft AND boardColumn (no locked-done flash)",
-          "disposition": "tested",
-          "evidence": "client useExternalTasks.boardcolumn.test.ts 'reopen optimistically flips state->draft AND boardColumn' PASSED"
-        },
-        {
-          "behavior": "useSetBoardColumn with reopen falsy keeps the pure setBoardColumn path (rule-23 decoupling for live tasks)",
-          "disposition": "tested",
-          "evidence": "client useExternalTasks.boardcolumn.test.ts 'reopen falsy keeps the pure setBoardColumn path' PASSED"
-        },
-        {
-          "behavior": "End-to-end: dragging a Done card to In Progress reopens it (done->draft) + the card lands unlocked with an action CTA",
-          "disposition": "tested",
-          "evidence": "E2E board-dnd-status-decouple.spec.ts 'drag Done -> In Progress REOPENS + unlocks the card' PASSED (real Chromium, :3947)"
-        },
-        {
-          "behavior": "useReopenExternalTask (menu Re-open) forwards only taskId so RQ context is never sent as column (defaults Backlog)",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: client tsc --noEmit (the arity collision broke the build) + existing reopen route 'defaults to Backlog' assertions"
-        },
-        {
-          "behavior": "Menu 'Move to...' of a Done card to a non-Done column reopens via the same path",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: identical moveReopensTask + useSetBoardColumn path (unit-covered above); the live-card menu-move wiring is exercised by E2E 'accessible menu Move to...'"
+          "behavior": "AC-2: switching the embedded terminal to the DOM renderer eliminates the smear across active/idle/replay on a real GPU (the A/B verdict that confirms/refutes WebGL as root cause)",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "reason": "the smear is a GPU/compositor-specific visual artifact; headless WebGL is not representative and the comparison is a manual visual judgment. This A/B IS the deliverable -- the user runs it after rebuild."
         }
       ],
       "counts": {
-        "testable": 12,
-        "tested": 12,
-        "untestable": 0,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {

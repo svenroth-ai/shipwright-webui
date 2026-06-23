@@ -41,6 +41,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
+import { getTerminalRendererOverride } from "./terminal-renderer";
 
 /**
  * Exact-pinned xterm.js + addon versions (CLAUDE.md rule 22 / ADR-097 / ADR-098).
@@ -222,35 +223,48 @@ export function createEmbeddedXterm(
   term.loadAddon(fit);
   term.loadAddon(links);
 
-  // ADR-099 — WebGL loaded BEFORE term.open(container) so the DOM renderer
-  // never initialises. Wrapped in try/catch: jsdom + WebGL-disabled +
-  // GPU-blacklisted hosts fall back to Canvas/DOM (the production tradeoff
-  // documented in ADR-099: alt-screen rendering is worse than WebGL but
-  // not unusable).
-  try {
-    const webgl = new WebglAddon();
-    // GPU-context-loss recovery (canonical xtermjs/xterm.js demo pattern).
-    // Chromium/Edge drop the WebGL context for backgrounded/minimised windows
-    // and on GPU-process restarts; without a handler the canvas freezes on a
-    // STALE frame — the "terminal smear on window-refocus" bug. Disposing the
-    // addon on loss makes xterm fall back to the DOM renderer (which always
-    // repaints), and the visibility/focus refit in useTerminalResize then
-    // re-fits cleanly. Registered before loadAddon so no loss event is missed.
-    webgl.onContextLoss(() => {
-      try {
-        webgl.dispose();
-      } catch {
-        /* already disposed — best-effort */
-      }
-    });
-    term.loadAddon(webgl);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.warn(
-      "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
-      err instanceof Error ? err.message : String(err),
-    );
+  // Diagnostic renderer override (iterate-2026-06-23, see terminal-renderer.ts):
+  // skip the WebGL addon entirely when the user opts into the DOM renderer, to
+  // A/B whether WebGL is the root cause of the "smear" class. Default is unchanged
+  // ("webgl"). Logged so the active renderer is visible in the browser console.
+  const renderer = getTerminalRendererOverride();
+  // eslint-disable-next-line no-console
+  console.info(`[EmbeddedTerminal] renderer=${renderer}`);
+
+  if (renderer === "webgl") {
+    // ADR-099 — WebGL loaded BEFORE term.open(container) so the DOM renderer
+    // never initialises. Wrapped in try/catch: jsdom + WebGL-disabled +
+    // GPU-blacklisted hosts fall back to Canvas/DOM (the production tradeoff
+    // documented in ADR-099: alt-screen rendering is worse than WebGL but
+    // not unusable).
+    try {
+      const webgl = new WebglAddon();
+      // GPU-context-loss recovery (canonical xtermjs/xterm.js demo pattern).
+      // Chromium/Edge drop the WebGL context for backgrounded/minimised windows
+      // and on GPU-process restarts; without a handler the canvas freezes on a
+      // STALE frame — the "terminal smear on window-refocus" bug. Disposing the
+      // addon on loss makes xterm fall back to the DOM renderer (which always
+      // repaints), and the visibility/focus refit in useTerminalResize then
+      // re-fits cleanly. Registered before loadAddon so no loss event is missed.
+      webgl.onContextLoss(() => {
+        try {
+          webgl.dispose();
+        } catch {
+          /* already disposed — best-effort */
+        }
+      });
+      term.loadAddon(webgl);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
+        err instanceof Error ? err.message : String(err),
+      );
+    }
   }
+  // renderer === "dom": load no GPU addon — xterm uses its built-in DOM
+  // renderer, which fully reflows every frame (no partial-dirty GL buffer to
+  // go stale). This is the experiment arm.
 
   term.open(container);
 
