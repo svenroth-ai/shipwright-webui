@@ -96,7 +96,13 @@ export function useMoveTaskToBacklog() {
 export function useReopenExternalTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: reopenTask,
+    // Explicit arity — `reopenTask` gained an optional `column` (board-drag-
+    // done-reopen). React Query's `MutationFunction` type (v5) declares a 2nd
+    // `context` param, so `mutationFn: reopenTask` fails `tsc` (context ≠
+    // BoardColumn) and could forward a runtime context as `column`. Wrap so
+    // only `taskId` is passed; the ⋯-menu "Reopen" omits the column, so the
+    // server defaults to Backlog.
+    mutationFn: (taskId: string) => reopenTask(taskId),
     onSuccess: (task) => {
       qc.setQueryData(detailKey(task.taskId), task);
       void qc.invalidateQueries({ queryKey: LIST_KEY });
@@ -144,25 +150,36 @@ export function useUpdateTask() {
  * fetches, snapshots every `["external-tasks", *]` cache, and flips the
  * card's boardColumn in place; onError rolls back; onSettled invalidates.
  * This prevents the visible snap-back the external plan review flagged
- * (HIGH). `state` is never touched — Status ↔ Resume stay decoupled.
+ * (HIGH). For a pure column move `state` is never touched — Status ↔ Resume
+ * stay decoupled (rule 23). The one exception is `reopen` (a Done card moved
+ * OUT of Done — see `moveReopensTask`): that routes to /reopen, which flips
+ * state → draft so the card lands UNLOCKED in the dropped column instead of
+ * stranded "done" + locked (board-drag-done-reopen).
  */
 export function useSetBoardColumn() {
   const qc = useQueryClient();
   return useMutation<
     ExternalTask,
     Error,
-    { taskId: string; column: BoardColumn },
+    { taskId: string; column: BoardColumn; reopen?: boolean },
     { snapshot: Array<[QueryKey, ExternalTask[] | undefined]> }
   >({
-    mutationFn: ({ taskId, column }) => setBoardColumn(taskId, column),
-    onMutate: async ({ taskId, column }) => {
+    mutationFn: ({ taskId, column, reopen }) =>
+      reopen ? reopenTask(taskId, column) : setBoardColumn(taskId, column),
+    onMutate: async ({ taskId, column, reopen }) => {
       await qc.cancelQueries({ queryKey: LIST_KEY });
       const snapshot = qc.getQueriesData<ExternalTask[]>({ queryKey: LIST_KEY });
       for (const [key, list] of snapshot) {
         if (!list) continue;
+        // On reopen, optimistically flip state→draft too so the card un-locks
+        // immediately (no "done"-in-In-Progress flash before the round-trip).
         qc.setQueryData<ExternalTask[]>(
           key,
-          list.map((t) => (t.taskId === taskId ? { ...t, boardColumn: column } : t)),
+          list.map((t) =>
+            t.taskId === taskId
+              ? { ...t, boardColumn: column, ...(reopen ? { state: "draft" as const } : {}) }
+              : t,
+          ),
         );
       }
       return { snapshot };

@@ -23,7 +23,7 @@ import {
   isBacklogSourceState,
 } from "../../core/sdk-sessions-store.js";
 import { withLiveSession } from "../_shared/helpers.js";
-import { isBoardColumn } from "../../core/board-column.js";
+import { isBoardColumn, type BoardColumn } from "../../core/board-column.js";
 
 export function registerTasksLifecycle(
   app: Hono,
@@ -118,18 +118,46 @@ export function registerTasksLifecycle(
   });
 
   // iterate-2026-05-31-reopen-done-task — counterpart of /backlog for the
-  // terminal `done` state. Re-opens a done task back to the Backlog column
-  // (`state → draft`). `done` is the only legal source: In-Progress states
-  // use /backlog, and the flip preserves every history field — sessionUuid +
-  // firstJsonlObservedAt survive, so the card renders Resume (continue the
-  // completed session), not a fresh Launch. Same pure registry-state flip as
-  // /backlog: JSONL + shipwright_run_config.json are NOT touched.
+  // terminal `done` state. Re-opens a done task (`state → draft`). `done` is
+  // the only legal source: In-Progress states use /backlog, and the flip
+  // preserves every history field — sessionUuid + firstJsonlObservedAt
+  // survive, so the card renders Resume (continue the completed session), not
+  // a fresh Launch. Same pure registry-state flip as /backlog: JSONL +
+  // shipwright_run_config.json are NOT touched.
+  //
+  // board-drag-done-reopen — an optional `column` lands the reopened card in
+  // the dropped column (a Done card dragged / menu-moved OUT of Done) instead
+  // of always Backlog, so the move doesn't strand it "done" + locked. Omitted
+  // → Backlog (the ⋯-menu "Reopen" action's historical home). This route IS
+  // allowed to set state (it's a lifecycle command); rule 23 only forbids
+  // /column from doing so.
   app.post("/api/external/tasks/:id/reopen", async (c) => {
     const task = store.get(c.req.param("id"));
     if (!task) return c.json({ error: "Task not found" }, 404);
-    // Already in the Backlog → idempotent no-op.
+    const body = (await c.req.json().catch(() => ({}))) as { column?: unknown };
+    let column: BoardColumn = "backlog";
+    if (body.column !== undefined) {
+      if (!isBoardColumn(body.column)) {
+        return c.json({ error: "invalid_column", column: body.column ?? null }, 400);
+      }
+      column = body.column;
+    }
+    // Already in the Backlog (draft) → idempotent. Still honor an explicit
+    // target column (a multi-tab reopen race) rather than dropping the move.
     if (task.state === "draft") {
-      return c.json({ task: withLiveSession(task, ptyManager) });
+      if (body.column === undefined || task.boardColumn === column) {
+        return c.json({ task: withLiveSession(task, ptyManager) });
+      }
+      const moved = store.patch(task.taskId, { boardColumn: column });
+      try {
+        await store.persist();
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException)?.code === "ELOCKED") {
+          return c.json({ error: "sdk-sessions.json is locked, retry" }, 409);
+        }
+        throw err;
+      }
+      return c.json({ task: withLiveSession(moved, ptyManager) });
     }
     if (task.state !== "done") {
       return c.json(
@@ -137,7 +165,7 @@ export function registerTasksLifecycle(
         409,
       );
     }
-    const updated = store.patch(task.taskId, { state: "draft", boardColumn: "backlog" });
+    const updated = store.patch(task.taskId, { state: "draft", boardColumn: column });
     try {
       await store.persist();
     } catch (err) {

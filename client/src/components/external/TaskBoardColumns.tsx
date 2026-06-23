@@ -35,6 +35,7 @@ import {
 
 import type { ExternalTask } from "../../lib/externalApi";
 import {
+  moveReopensTask,
   resolveBoardColumn,
   type BoardColumn,
 } from "../../lib/boardColumnApi";
@@ -194,9 +195,17 @@ export function TaskBoardColumns({ tasks }: { tasks: ExternalTask[] }) {
       const source = active.data.current?.column as BoardColumn | undefined;
       // Same-column drop → zero API calls (plan-review fold, Gemini #5).
       if (source === target) return;
-      setColumn.mutate({ taskId: String(active.id), column: target });
+      // A terminal `done` card dragged OUT of Done must reopen (done → draft)
+      // so it lands UNLOCKED with a CTA, not stranded "done" + locked in the
+      // new column (board-drag-done-reopen). Live cards stay a pure column move.
+      const task = tasks.find((t) => t.taskId === String(active.id));
+      setColumn.mutate({
+        taskId: String(active.id),
+        column: target,
+        reopen: task ? moveReopensTask(task.state, target) : false,
+      });
     },
-    [setColumn],
+    [setColumn, tasks],
   );
 
   return (

@@ -90,6 +90,14 @@ describe("POST /api/external/tasks/:id/reopen", () => {
     return app.request(`/api/external/tasks/${taskId}/reopen`, { method: "POST" });
   }
 
+  function postReopenColumn(taskId: string, body: unknown) {
+    return app.request(`/api/external/tasks/${taskId}/reopen`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
   it("re-opens a `done` task to draft → 200", async () => {
     const taskId = await createTask();
     store.patch(taskId, { state: "done" });
@@ -168,6 +176,58 @@ describe("POST /api/external/tasks/:id/reopen", () => {
     };
     const res = await postReopen(taskId);
     expect(res.status).toBe(409);
+  });
+
+  describe("target column — drag / ⋯-menu move OUT of Done (board-drag-done-reopen)", () => {
+    it("reopens a done task INTO the dropped column (done → draft, boardColumn=in_progress)", async () => {
+      const taskId = await createTask();
+      store.patch(taskId, { state: "done", boardColumn: "done" });
+      const res = await postReopenColumn(taskId, { column: "in_progress" });
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as {
+        task: { state: string; boardColumn: string };
+      };
+      expect(json.task.state).toBe("draft");
+      expect(json.task.boardColumn).toBe("in_progress");
+      expect(store.get(taskId)!.state).toBe("draft");
+      expect(store.get(taskId)!.boardColumn).toBe("in_progress");
+    });
+
+    it("rejects an invalid target column with 400 invalid_column — state untouched", async () => {
+      const taskId = await createTask();
+      store.patch(taskId, { state: "done", boardColumn: "done" });
+      const res = await postReopenColumn(taskId, { column: "garbage" });
+      expect(res.status).toBe(400);
+      expect(((await res.json()) as { error: string }).error).toBe("invalid_column");
+      expect(store.get(taskId)!.state).toBe("done");
+      expect(store.get(taskId)!.boardColumn).toBe("done");
+    });
+
+    it("omitted column still defaults to Backlog (⋯-menu Reopen unchanged)", async () => {
+      const taskId = await createTask();
+      store.patch(taskId, { state: "done", boardColumn: "done" });
+      const res = await postReopen(taskId);
+      expect(res.status).toBe(200);
+      expect(store.get(taskId)!.boardColumn).toBe("backlog");
+    });
+
+    it("already-draft + a DIVERGENT explicit column → applies boardColumn, state stays draft (multi-tab reopen race)", async () => {
+      const taskId = await createTask();
+      store.patch(taskId, { state: "draft", boardColumn: "backlog" });
+      const res = await postReopenColumn(taskId, { column: "in_progress" });
+      expect(res.status).toBe(200);
+      expect(store.get(taskId)!.state).toBe("draft");
+      expect(store.get(taskId)!.boardColumn).toBe("in_progress");
+    });
+
+    it("already-draft + the SAME explicit column → idempotent no-op", async () => {
+      const taskId = await createTask();
+      store.patch(taskId, { state: "draft", boardColumn: "in_progress" });
+      const res = await postReopenColumn(taskId, { column: "in_progress" });
+      expect(res.status).toBe(200);
+      expect(store.get(taskId)!.state).toBe("draft");
+      expect(store.get(taskId)!.boardColumn).toBe("in_progress");
+    });
   });
 
   it("transcript poll keeps a reopened (draft) task sticky — not pulled back out", async () => {

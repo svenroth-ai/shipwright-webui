@@ -192,4 +192,77 @@ test.describe("Board DnD — status decoupled from session state", () => {
         .catch(() => {});
     }
   });
+
+  test("drag Done → In Progress REOPENS + unlocks the card (board-drag-done-reopen)", async ({
+    page,
+    request,
+  }) => {
+    const projResp = await request.get(`${API}/api/projects`);
+    const projBody = (await projResp.json()) as {
+      data?: Array<{ id: string; path?: string }>;
+    };
+    const project = projBody.data?.[0];
+    const projectId = project?.id ?? "unassigned";
+    const cwd = project?.path ?? "/tmp/board-dnd-e2e";
+
+    const title = `board-reopen-e2e-${Date.now()}`;
+    const createResp = await request.post(`${API}/api/external/tasks`, {
+      data: { title, cwd, projectId },
+    });
+    const { task } = (await createResp.json()) as { task: { taskId: string } };
+    const taskId = task.taskId;
+    // Close it → terminal `done` (locked: TaskCard hides the action row).
+    const closeResp = await request.post(
+      `${API}/api/external/tasks/${taskId}/close`,
+    );
+    expect(closeResp.ok()).toBeTruthy();
+
+    try {
+      await page.addInitScript((id) => {
+        try {
+          localStorage.setItem("webui.activeProjectId", id);
+        } catch {
+          /* noop */
+        }
+      }, projectId);
+      await page.goto("/");
+      await expect(page.getByTestId("task-board-page")).toBeVisible();
+
+      // Starts in Done, locked — no action row (the `!isDone` gate).
+      await expect(page.getByTestId(`task-card-${taskId}`)).toBeVisible({
+        timeout: 6_000,
+      });
+      await expect(page.getByTestId("column-done")).toContainText(title);
+      await expect(page.getByTestId(`task-card-actions-${taskId}`)).toHaveCount(0);
+
+      // Drag Done → In Progress: the move-out reopens via POST /reopen.
+      const reopenResp = page.waitForResponse(
+        (r) =>
+          r.url().includes(`/api/external/tasks/${taskId}/reopen`) &&
+          r.request().method() === "POST",
+      );
+      await dragCardToColumn(page, taskId, "column-in-progress");
+      expect((await reopenResp).ok()).toBeTruthy();
+
+      // Lands in In Progress, UNLOCKED — the action row + a CTA now render
+      // (never-launched → green Launch). The reported bug: it stayed "locked".
+      await expect(page.getByTestId("column-in-progress")).toContainText(title, {
+        timeout: 6_000,
+      });
+      await expect(page.getByTestId(`task-card-actions-${taskId}`)).toBeVisible();
+      await expect(page.getByTestId(`task-card-launch-${taskId}`)).toBeVisible();
+
+      // Server: status WAS adjusted (done → draft) + boardColumn=in_progress.
+      const afterResp = await request.get(`${API}/api/external/tasks/${taskId}`);
+      const after = (await afterResp.json()) as {
+        task: { state: string; boardColumn?: string };
+      };
+      expect(after.task.state).toBe("draft");
+      expect(after.task.boardColumn).toBe("in_progress");
+    } finally {
+      await request
+        .delete(`${API}/api/external/tasks/${taskId}`)
+        .catch(() => {});
+    }
+  });
 });
