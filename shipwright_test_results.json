@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-06-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-23-board-drop-animation",
+    "run_id": "iterate-2026-06-23-terminal-renderer-toggle",
     "date": "2026-06-23",
     "unit": {
       "status": "passed",
-      "passed": 1780,
-      "total": 1780
+      "passed": 1788,
+      "total": 1788
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 3,
-      "total": 3
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,41 +32,61 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 3,
-      "justification": "Client-only DragOverlay prop change (dropAnimation={null}). Ran client/e2e/flows/board-dnd-status-decouple.spec.ts (3 tests) against an isolated single-process stack (built SPA via SHIPWRIGHT_STATIC_DIR + tsx, temp HOME, :3948) to confirm the drag still functionally relocates + reopens with no regression \u2014 3/3 passed in real Chromium. The animation smoothness itself is requires-manual-visual-judgment (user UAT on rebuild)."
+      "tests_run": 0,
+      "justification": "DIAGNOSTIC, not a fix: a runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts; default behavior unchanged (WebGL). The override-resolution logic is fully unit-tested (terminal-renderer.test.ts). The ONLY purpose of this iterate is to let the user A/B the WebGL vs DOM renderer on their REAL GPU to confirm/refute that WebGL is the root cause of the persistent smear -- a determination that is requires-physical-device by definition (headless Chromium WebGL is not representative, and the smear is a visual judgment). No server/API/WS/contract surface touched. The console.info('renderer=...') line gives the user direct confirmation which arm is live."
     },
-    "degraded": [],
+    "degraded": [
+      {
+        "condition": "F0.5 renderer A/B outcome",
+        "reason": "requires-physical-device + requires-manual-visual-judgment (real-GPU smear comparison); the user runs the A/B after rebuild"
+      }
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "The board's <DragOverlay> is configured with dropAnimation=null (no return-to-origin drop animation)",
+          "behavior": "AC-1a: renderer resolves to webgl by default (no query, no storage, null/empty inputs)",
           "disposition": "tested",
-          "evidence": "client TaskBoardColumns.dropanim.test.tsx 'disables the return-to-origin drop animation' PASSED (captures the prop dnd-kit's DragOverlay receives)"
+          "evidence": "terminal-renderer.test.ts 'defaults to webgl ...'"
         },
         {
-          "behavior": "Dragging a card across columns still functionally relocates + reopens (no regression from the prop change)",
+          "behavior": "AC-1b: renderer resolves to dom when the localStorage value or the ?terminalRenderer= query is dom",
           "disposition": "tested",
-          "evidence": "E2E board-dnd-status-decouple.spec.ts 3/3 PASSED in real Chromium (:3948)"
+          "evidence": "terminal-renderer.test.ts 'returns dom when storage value is dom' + 'returns dom when the query opts in'"
         },
         {
-          "behavior": "The on-drop animation looks smooth (no visible flip-back to origin)",
+          "behavior": "AC-1c: the query overrides persisted storage in BOTH directions (query=webgl forces default back; query=dom wins)",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts 'lets the query override persisted storage in BOTH directions'"
+        },
+        {
+          "behavior": "AC-1d: robustness -- case/whitespace-insensitive, any unknown value -> webgl, malformed search never throws",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts 'is case- and whitespace-insensitive' + 'treats any unknown value as the webgl default' + 'never throws on a malformed search string'"
+        },
+        {
+          "behavior": "AC-1e: getTerminalRendererOverride reads localStorage and is SSR/test-safe (webgl default when window absent / storage throws)",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts 'defaults to webgl with nothing set' + 'reads the dom override from localStorage'"
+        },
+        {
+          "behavior": "AC-2: switching the embedded terminal to the DOM renderer eliminates the smear across active/idle/replay on a real GPU (the A/B verdict that confirms/refutes WebGL as root cause)",
           "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "the perceived smoothness of the drop transition on a real GPU/compositor is a visual judgment headless Chromium cannot make; confirmed by user UAT after rebuild"
+          "reason_code": "requires-physical-device",
+          "reason": "the smear is a GPU/compositor-specific visual artifact; headless WebGL is not representative and the comparison is a manual visual judgment. This A/B IS the deliverable -- the user runs it after rebuild."
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
+        "testable": 5,
+        "tested": 5,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 1,
-        "covered_acs": 1
+        "acs": 2,
+        "covered_acs": 2
       }
     }
   }

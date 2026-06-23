@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-06-23T06:41:40.519660+00:00
-Total commits: 592
+Generated: 2026-06-23T06:47:56.497207+00:00
+Total commits: 594
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 214
-    "feat" : 144
+    "fix" : 215
+    "feat" : 145
     "chore" : 117
     "docs" : 61
     "refactor" : 26
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 214 commits
+### Fixes (fix) — 215 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-23 | board | drop a dragged card without flipping it back to origin (#170) | 4f8daded5cd1 |
 | 2026-06-23 | board | reopen a Done card dragged out of the Done column (#169) | 1b3e0b1ab6d6 |
 | 2026-06-22 | terminal | clear idle tab-switch smear with a data-independent repaint (#167) | 17e12a88088c |
 | 2026-06-20 | terminal | mobile/touch UX — phone header, key contrast, resume-picker scroll, transition smear (#164) | d5fe3b2ff03e |
@@ -239,10 +240,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 144 commits
+### Features (feat) — 145 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-23 | terminal | add a runtime renderer override to A/B-isolate the WebGL smear root cause | f2c3b77df9f7 |
 | 2026-06-18 | board | drag-and-drop task columns, decoupled from session state (#158) | 896e4d57ca2b |
 | 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | adc72bb082df |
 | 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 5d7f914e634d |
@@ -661,7 +663,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 592 |
+| Total commits | 594 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 592 |
+| Human-authored commits | 594 |
 
