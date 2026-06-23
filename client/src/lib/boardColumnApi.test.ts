@@ -2,10 +2,20 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 
 import {
   deriveBoardColumn,
+  moveReopensTask,
   resolveBoardColumn,
   setBoardColumn,
 } from "./boardColumnApi";
 import type { ExternalTask, ExternalTaskState } from "./externalApi";
+
+const LIVE_STATES = [
+  "draft",
+  "active",
+  "idle",
+  "awaiting_external_start",
+  "jsonl_missing",
+  "launch_failed",
+] as const satisfies readonly ExternalTaskState[];
 
 describe("deriveBoardColumn — parity with the historical groupByState", () => {
   it.each([
@@ -32,6 +42,25 @@ describe("resolveBoardColumn — override wins, else fallback", () => {
     expect(resolveBoardColumn({ state: "active" })).toBe("in_progress");
     expect(resolveBoardColumn({ state: "draft" })).toBe("backlog");
     expect(resolveBoardColumn({ state: "done" })).toBe("done");
+  });
+});
+
+describe("moveReopensTask — a Done card dragged out of Done must reopen", () => {
+  it("true: done → in_progress / backlog (else it strands locked, no Resume)", () => {
+    expect(moveReopensTask("done", "in_progress")).toBe(true);
+    expect(moveReopensTask("done", "backlog")).toBe(true);
+  });
+
+  it("false: done → done is a same-column no-op", () => {
+    expect(moveReopensTask("done", "done")).toBe(false);
+  });
+
+  it("false: a live (non-done) task moved anywhere stays a pure column move (rule 23)", () => {
+    for (const state of LIVE_STATES) {
+      expect(moveReopensTask(state, "done")).toBe(false);
+      expect(moveReopensTask(state, "in_progress")).toBe(false);
+      expect(moveReopensTask(state, "backlog")).toBe(false);
+    }
   });
 });
 

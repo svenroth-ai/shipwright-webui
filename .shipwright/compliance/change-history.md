@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-06-22T21:47:59.358949+00:00
-Total commits: 589
+Generated: 2026-06-23T06:18:21.927226+00:00
+Total commits: 591
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 212
+    "fix" : 213
     "feat" : 144
     "chore" : 117
     "docs" : 61
-    "refactor" : 25
+    "refactor" : 26
     "test" : 20
     "ci" : 5
     "other" : 4
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 212 commits
+### Fixes (fix) — 213 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-22 | terminal | clear idle tab-switch smear with a data-independent repaint (#167) | 17e12a88088c |
 | 2026-06-20 | terminal | mobile/touch UX — phone header, key contrast, resume-picker scroll, transition smear (#164) | d5fe3b2ff03e |
 | 2026-06-19 | deploy | npm install before build in start + autostart scripts (#163) | 9769bbf20b01 |
 | 2026-06-18 | terminal | reconnect embedded terminal WS on tab refocus + client liveness heartbeat (FR-01.28) (#159) | a6ee149a0261 |
@@ -574,10 +575,11 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 25 commits
+### Refactoring (refactor) — 26 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-23 | terminal | extract safeFit into safe-fit.ts to keep useTerminalResize under 300 LOC (#168) | dd7f74681f0b |
 | 2026-05-30 | smartviewer | extract PathStrip to drop SmartViewer under the 300-LOC limit | 73736dcaeebe |
 | 2026-05-30 | — | rename project config dir .webui -> .shipwright-webui | 3e7ff907027a |
 | 2026-05-30 | ui | remove Diagnostics launchers section and align Triage header | 82d485d01816 |
@@ -658,7 +660,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 589 |
+| Total commits | 591 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 589 |
+| Human-authored commits | 591 |
 

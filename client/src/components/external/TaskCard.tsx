@@ -70,7 +70,7 @@ import {
   useReopenExternalTask,
   useSetBoardColumn,
 } from "../../hooks/useExternalTasks";
-import { resolveBoardColumn } from "../../lib/boardColumnApi";
+import { moveReopensTask, resolveBoardColumn } from "../../lib/boardColumnApi";
 import { useProjects } from "../../hooks/useProjects";
 import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
@@ -236,7 +236,7 @@ export function TaskCard({ task }: Props) {
               onDelete={onDeleteClick}
               currentColumn={resolveBoardColumn(task)}
               onMoveColumn={(column) =>
-                setColumnMut.mutate({ taskId: task.taskId, column })
+                setColumnMut.mutate({ taskId: task.taskId, column, reopen: moveReopensTask(task.state, column) })
               }
             />
           </div>

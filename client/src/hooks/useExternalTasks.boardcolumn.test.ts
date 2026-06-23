@@ -13,12 +13,20 @@ import { createElement, type ReactNode } from "react";
 import { useSetBoardColumn } from "./useExternalTasks";
 import type { ExternalTask } from "../lib/externalApi";
 import * as boardColumnApi from "../lib/boardColumnApi";
+import { reopenTask } from "../lib/taskReopenApi";
 
 vi.mock("../lib/boardColumnApi", async (orig) => {
   const actual = await orig<typeof import("../lib/boardColumnApi")>();
   return { ...actual, setBoardColumn: vi.fn() };
 });
+vi.mock("../lib/taskReopenApi", () => ({ reopenTask: vi.fn() }));
 const mockedSet = vi.mocked(boardColumnApi.setBoardColumn);
+const mockedReopen = vi.mocked(reopenTask);
+
+/** A terminal `done` card seeded into a list cache. */
+function done(id: string): ExternalTask {
+  return { taskId: id, state: "done", title: id, boardColumn: "done" } as unknown as ExternalTask;
+}
 
 let qc: QueryClient;
 beforeEach(() => {
@@ -79,6 +87,50 @@ describe("useSetBoardColumn", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
     const list = qc.getQueryData<ExternalTask[]>(LIST_NULL)!;
     expect(list[0].boardColumn).toBe("backlog"); // restored to snapshot
+  });
+
+  it("reopen:true routes to reopenTask(taskId, column) — not setBoardColumn (drag/menu out of Done)", async () => {
+    qc.setQueryData(LIST_NULL, [done("d")]);
+    mockedReopen.mockResolvedValue({ ...done("d"), state: "draft", boardColumn: "in_progress" });
+
+    const { result } = renderHook(() => useSetBoardColumn(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ taskId: "d", column: "in_progress", reopen: true });
+    });
+
+    expect(mockedReopen).toHaveBeenCalledWith("d", "in_progress");
+    expect(mockedSet).not.toHaveBeenCalled();
+  });
+
+  it("reopen optimistically flips state→draft AND boardColumn (no locked-done flash)", async () => {
+    qc.setQueryData(LIST_NULL, [done("d")]);
+    let resolveFn!: (task: ExternalTask) => void;
+    mockedReopen.mockReturnValue(new Promise<ExternalTask>((r) => { resolveFn = r; }));
+
+    const { result } = renderHook(() => useSetBoardColumn(), { wrapper });
+    act(() => result.current.mutate({ taskId: "d", column: "in_progress", reopen: true }));
+
+    await waitFor(() => {
+      const card = qc.getQueryData<ExternalTask[]>(LIST_NULL)!.find((x) => x.taskId === "d")!;
+      expect(card.boardColumn).toBe("in_progress");
+      expect(card.state).toBe("draft"); // unlocked: isDone=false → Resume/Launch CTA renders
+    });
+
+    act(() => resolveFn({ ...done("d"), state: "draft", boardColumn: "in_progress" }));
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+
+  it("reopen falsy keeps the pure setBoardColumn path (rule 23 — live task pure column move)", async () => {
+    qc.setQueryData(LIST_NULL, [t("a")]);
+    mockedSet.mockResolvedValue(t("a", "done"));
+
+    const { result } = renderHook(() => useSetBoardColumn(), { wrapper });
+    await act(async () => {
+      await result.current.mutateAsync({ taskId: "a", column: "done" });
+    });
+
+    expect(mockedSet).toHaveBeenCalledWith("a", "done");
+    expect(mockedReopen).not.toHaveBeenCalled();
   });
 
   it("flips the card across every project-filtered list cache", async () => {

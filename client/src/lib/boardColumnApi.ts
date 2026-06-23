@@ -50,6 +50,23 @@ export function resolveBoardColumn(
 }
 
 /**
+ * Whether a board move (drag OR ⋯-menu "Move to…") OUT of the terminal `done`
+ * state must also REOPEN the task (done → draft). The decoupling (rule 23) is
+ * preserved for live tasks — a live card can still be parked in any column —
+ * but a `done` card is locked in EVERY column (no Resume/Launch CTA: TaskCard
+ * gates the action row on `!isDone`). Moving it to In-Progress/Backlog without
+ * reopening would strand it "done" + locked there, which is the bug this fixes.
+ * Both the DnD handler and the menu path route through this so they never
+ * diverge. `done → done` is a same-column no-op and never reaches here.
+ */
+export function moveReopensTask(
+  state: ExternalTaskState,
+  target: BoardColumn,
+): boolean {
+  return state === "done" && target !== "done";
+}
+
+/**
  * POST /tasks/:id/column — set the sticky board-column override ONLY.
  * The server never touches `state` / JSONL / run-config, so this is a pure
  * organizational move. Returns the updated task.
