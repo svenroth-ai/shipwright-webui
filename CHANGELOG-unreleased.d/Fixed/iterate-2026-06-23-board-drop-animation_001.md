@@ -1,0 +1,1 @@
+Task Board: dragging a card to another column no longer plays a brief 'flip back to the original position' animation on drop — the card now settles instantly in its new column (the move itself was always correct).

@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-06-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-23-board-drag-done-reopen",
+    "run_id": "iterate-2026-06-23-board-drop-animation",
     "date": "2026-06-23",
     "unit": {
       "status": "passed",
-      "passed": 3444,
-      "total": 3444
+      "passed": 1780,
+      "total": 1780
     },
     "integration": {
       "status": "not_run",
@@ -35,82 +35,38 @@
       "surface": "web",
       "exit_code": 0,
       "tests_run": 3,
-      "justification": "Backend-affects-Frontend: /reopen gained an optional column + client DnD/menu wiring. Ran client/e2e/flows/board-dnd-status-decouple.spec.ts (3 tests, incl. the new drag-Done->In-Progress-reopens) against an isolated single-process stack (built SPA via SHIPWRIGHT_STATIC_DIR + tsx, temp HOME, :3947). 3/3 passed in a real Chromium."
+      "justification": "Client-only DragOverlay prop change (dropAnimation={null}). Ran client/e2e/flows/board-dnd-status-decouple.spec.ts (3 tests) against an isolated single-process stack (built SPA via SHIPWRIGHT_STATIC_DIR + tsx, temp HOME, :3948) to confirm the drag still functionally relocates + reopens with no regression \u2014 3/3 passed in real Chromium. The animation smoothness itself is requires-manual-visual-judgment (user UAT on rebuild)."
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "moveReopensTask(done,non-done)=true; (done,done)=false; (live,*)=false",
+          "behavior": "The board's <DragOverlay> is configured with dropAnimation=null (no return-to-origin drop animation)",
           "disposition": "tested",
-          "evidence": "client boardColumnApi.test.ts 'moveReopensTask' (3 cases) PASSED"
+          "evidence": "client TaskBoardColumns.dropanim.test.tsx 'disables the return-to-origin drop animation' PASSED (captures the prop dnd-kit's DragOverlay receives)"
         },
         {
-          "behavior": "POST /reopen {column} reopens a done task into the dropped column (done->draft, boardColumn=target)",
+          "behavior": "Dragging a card across columns still functionally relocates + reopens (no regression from the prop change)",
           "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'reopens a done task INTO the dropped column' PASSED"
+          "evidence": "E2E board-dnd-status-decouple.spec.ts 3/3 PASSED in real Chromium (:3948)"
         },
         {
-          "behavior": "POST /reopen {column:invalid} -> 400 invalid_column, state untouched",
-          "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'rejects an invalid target column' PASSED"
-        },
-        {
-          "behavior": "POST /reopen with no column still defaults to Backlog (menu Re-open unchanged)",
-          "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'omitted column still defaults to Backlog' + existing 'preserves every history field' PASSED"
-        },
-        {
-          "behavior": "POST /reopen on already-draft + divergent column applies boardColumn only (multi-tab race), state stays draft",
-          "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'already-draft + a DIVERGENT explicit column' PASSED"
-        },
-        {
-          "behavior": "POST /reopen on already-draft + same column is an idempotent no-op",
-          "disposition": "tested",
-          "evidence": "server routes.reopen.test.ts 'already-draft + the SAME explicit column' PASSED"
-        },
-        {
-          "behavior": "useSetBoardColumn({reopen:true}) routes to reopenTask(taskId,column), not setBoardColumn",
-          "disposition": "tested",
-          "evidence": "client useExternalTasks.boardcolumn.test.ts 'reopen:true routes to reopenTask' PASSED"
-        },
-        {
-          "behavior": "useSetBoardColumn reopen optimistically flips state->draft AND boardColumn (no locked-done flash)",
-          "disposition": "tested",
-          "evidence": "client useExternalTasks.boardcolumn.test.ts 'reopen optimistically flips state->draft AND boardColumn' PASSED"
-        },
-        {
-          "behavior": "useSetBoardColumn with reopen falsy keeps the pure setBoardColumn path (rule-23 decoupling for live tasks)",
-          "disposition": "tested",
-          "evidence": "client useExternalTasks.boardcolumn.test.ts 'reopen falsy keeps the pure setBoardColumn path' PASSED"
-        },
-        {
-          "behavior": "End-to-end: dragging a Done card to In Progress reopens it (done->draft) + the card lands unlocked with an action CTA",
-          "disposition": "tested",
-          "evidence": "E2E board-dnd-status-decouple.spec.ts 'drag Done -> In Progress REOPENS + unlocks the card' PASSED (real Chromium, :3947)"
-        },
-        {
-          "behavior": "useReopenExternalTask (menu Re-open) forwards only taskId so RQ context is never sent as column (defaults Backlog)",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: client tsc --noEmit (the arity collision broke the build) + existing reopen route 'defaults to Backlog' assertions"
-        },
-        {
-          "behavior": "Menu 'Move to...' of a Done card to a non-Done column reopens via the same path",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: identical moveReopensTask + useSetBoardColumn path (unit-covered above); the live-card menu-move wiring is exercised by E2E 'accessible menu Move to...'"
+          "behavior": "The on-drop animation looks smooth (no visible flip-back to origin)",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "the perceived smoothness of the drop transition on a real GPU/compositor is a visual judgment headless Chromium cannot make; confirmed by user UAT after rebuild"
         }
       ],
       "counts": {
-        "testable": 12,
-        "tested": 12,
-        "untestable": 0,
+        "testable": 2,
+        "tested": 2,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 1,
+        "covered_acs": 1
       }
     }
   }

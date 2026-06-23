@@ -1,12 +1,12 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-23T06:18:21.927226+00:00
+Generated: 2026-06-23T06:41:40.519660+00:00
 
 ## Requirements Coverage
 
 | Requirement | Title | Priority | Verified By | Tests | Last Verified | Status |
 |-------------|-------|----------|-------------|-------|---------------|--------|
-| [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +7 | 624/624 → 3444/3444 | 2026-06-23 (iter) | COVERED |
+| [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +8 | 624/624 → 1780/1780 | 2026-06-23 (iter) | COVERED |
 | [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +8 | 640/640 → 1335/1335 | 2026-05-30 (iter) | COVERED |
 | [FR-01.03](../../.shipwright/planning/01-adopted/spec.md#fr-0103) | CRUD for the project registry persisted at `~/.shipwright-we... | Must | evt-0c3127ae, evt-33b2e81f | 786/786 | 2026-05-12 (iter) | COVERED |
 | [FR-01.04](../../.shipwright/planning/01-adopted/spec.md#fr-0104) | Best-effort surface for pending Claude tool_use blocks (nota... | Must | evt-7c294eb7 | 2062/2062 | 2026-05-18 (iter) | COVERED |
@@ -292,6 +292,7 @@ Generated: 2026-06-23T06:18:21.927226+00:00
 | Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear | iterate | change | FR-01.28, FR-01.39 | 1762/1762 | — | 2026-06-20 |
 | Embedded terminal: data-independent trailing repaint (activation-repaint.ts) clears the stale display:none->block WebGL frame on an IDLE Transcript->Terminal switch / focus restore, closing the no-data gap ADR-202 data-driven settle window left | iterate | bug | FR-01.28 | — | — | 2026-06-22 |
 | Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked | iterate | bug | FR-01.01 | 3444/3444 | — | 2026-06-23 |
+| Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | iterate | bug | FR-01.01 | 1780/1780 | — | 2026-06-23 |
 
 ## Coverage Summary
 
@@ -299,7 +300,7 @@ Generated: 2026-06-23T06:18:21.927226+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 170 |
+| Iterate changes | 171 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |
