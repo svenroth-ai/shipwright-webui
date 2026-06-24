@@ -6,7 +6,7 @@
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 > **One Kanban board for every Claude Code project you run in parallel,
-> without giving up the terminal or VS Code workflow you already love.**
+> without giving up the terminal workflow you already love.**
 
 <table>
 <tr>

@@ -1,8 +1,8 @@
 # Shipwright Command Center — User Guide
 
 A friendly walkthrough for Shipwright users who want **one Kanban board
-across every Claude project**, without giving up the terminal or VS
-Code workflow they already love.
+across every Claude project**, without giving up the terminal
+workflow they already love.
 
 ---
 
