@@ -186,3 +186,4 @@ _**One line per change, ≤600 chars** — convention-relevant ADRs since adopti
 - **ADR-180** (2026-06-13): Strip parent/child Claude-session env markers from embedded-terminal pty spawn
 - **ADR-187** (2026-06-14): Deploy-time self-heal of corrupt ~/.claude.json
 - (2026-06-27) iterate — Mobile form controls need `pointer-coarse:text-[16px]` (≥16px) or iOS Safari auto-zooms + right-clips the dialog on focus; give BOTH modal footer buttons `pointer-coarse:min-h-[44px]`, not just the primary. [→ iterate-2026-06-27-mobile-modal-terminal-scroll]
+- (2026-06-27) iterate — CodeQL scans PRODUCTION code only: `codeql.yml` uses the `security-extended` suite (no maintainability queries) and `.github/codeql/codeql-config.yml` `paths-ignore`s tests / `client/e2e/**` / `**/scripts/**`. A finding in a test or dev-script is out of scope by config, not a per-alert dismissal. [→ iterate-2026-06-27-codeql-hardening]

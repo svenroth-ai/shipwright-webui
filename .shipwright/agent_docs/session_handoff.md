@@ -1,11 +1,3 @@
----
-canon_generated: true
-run_id: "iterate-2026-06-27-codeql-hardening"
-phase: "iterate"
-reason: "iterate: CodeQL noise reduction + qCmd cmd.exe quoting fix"
-timestamp: "2026-06-27T10:17:41.216697+00:00"
----
-
 # Session Handoff
 
 > Auto-generated 2026-06-27 10:17:41 UTC
@@ -14,28 +6,22 @@ timestamp: "2026-06-27T10:17:41.216697+00:00"
 
 - **Session ID**: f25c4c06-6068-4b24-b09b-a3c8ddce4d07
 - **Timestamp**: 2026-06-27 10:17:41 UTC
-- **Reason**: iterate: CodeQL noise reduction + qCmd cmd.exe quoting fix
+- **Reason**: iterate completion: iterate-2026-06-27-codeql-hardening
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-27-webgl-atlas-glyph-corruption
-- **Date**: 2026-06-27T07:31:46.756423Z
-- **Type**: bug
-- **Complexity**: medium
-- **Branch**: iterate/webgl-atlas-glyph-corruption
-- **ADR**: iterate-2026-06-27-webgl-atlas-glyph-corruption
+- **Run ID**: iterate-2026-06-27-codeql-hardening
+- **Date**: 2026-06-27T10:17:54.343312Z
+- **Type**: change
+- **Complexity**: small
+- **Branch**: iterate/codeql-hardening
+- **ADR**: iterate-2026-06-27-codeql-hardening
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/01-adopted/spec.md
 
 ## Current Iterate Progress
 
 - **Branch**: iterate/codeql-hardening
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
-
-### Mandatory replay on Resume
-
-Before dispatching to the handoff's Remaining phase, run these if missing:
-- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
@@ -49,8 +35,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/codeql-hardening
-- **Last Commit**: c1cdc56 chore(terminal): split version-pin assertions into xtermAddons.pins.test.ts (#176)
-- **Uncommitted Changes**: Yes
+- **Last Commit**: 73ad123 fix(security): harden cmd.exe arg quoting + scope CodeQL to production code
+- **Uncommitted Changes**: None
 
 ## Config Files to Read
 
