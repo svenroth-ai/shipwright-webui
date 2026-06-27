@@ -14,6 +14,8 @@
  * 2 can plug implementations in without rewiring callers.
  */
 
+import { qPs, qCmd, qPosix, toPosixPath } from "./shell-quote.js";
+
 export interface CopyCommandForms {
   powershell: string;
   cmd: string;
@@ -252,50 +254,10 @@ function appendSlashCommand(
 
 // --- shell-specific escaping ---
 //
-// Iterate 3 section 03 — exported (previously module-private) so
-// `core/actions-substitute.ts` can call them per target shell before
-// substituting user-derived placeholders into command templates. The
-// shell-escape discipline is the security boundary for command-template
-// substitution (plan.md § 2.2); do not move this logic behind a different
-// abstraction without updating `actions-substitute.ts`.
-
-export function qPs(v: string): string {
-  // PS single-quoted: embedded `'` → `''`.
-  return `'${v.replace(/'/g, "''")}'`;
-}
-
-export function qCmd(v: string): string {
-  // cmd.exe double-quoted argument, escaped per CommandLineToArgvW (the prior
-  // `"${v.replace(/"/g,'\\"')}"` left backslashes unescaped — CodeQL
-  // js/incomplete-sanitization #4): N `\` before an embedded `"` → 2N+1 `\`+`"`;
-  // N `\` before the CLOSING quote → 2N `\` (a trailing `\` can't escape it);
-  // `\` not before a quote stays literal (`C:\foo` must not become `C:\\foo`).
-  // Argv layer only; cmd.exe metachar handling is out of scope on this
-  // loopback tool (inputs aren't cross-user-trust; `qPs` is the default shell).
-  let out = '"';
-  let pendingBackslashes = 0;
-  for (const ch of v) {
-    if (ch === "\\") {
-      pendingBackslashes += 1;
-      continue;
-    }
-    if (ch === '"') {
-      out += "\\".repeat(pendingBackslashes * 2 + 1) + '"';
-    } else {
-      out += "\\".repeat(pendingBackslashes) + ch;
-    }
-    pendingBackslashes = 0;
-  }
-  out += "\\".repeat(pendingBackslashes * 2) + '"';
-  return out;
-}
-
-export function qPosix(v: string): string {
-  // POSIX single-quoted: `'` → `'\''`.
-  return `'${v.replace(/'/g, "'\\''")}'`;
-}
-
-export function toPosixPath(p: string): string {
-  return p.replace(/\\/g, "/");
-}
+// The per-shell quoters (qPs / qCmd / qPosix / toPosixPath) live in
+// `shell-quote.ts` (extracted to keep this file under the LOC limit). They are
+// re-exported here so `actions-substitute.ts` and other callers keep importing
+// them from `./launcher.js`. The shell-escape discipline is the security
+// boundary for command-template substitution (plan.md § 2.2).
+export { qPs, qCmd, qPosix, toPosixPath } from "./shell-quote.js";
 
