@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-27T07:28:35.777466+00:00
-Total commits: 597
+Generated: 2026-06-27T07:34:15.471587+00:00
+Total commits: 599
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 215
+    "fix" : 217
     "feat" : 145
     "chore" : 117
     "docs" : 63
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 215 commits
+### Fixes (fix) — 217 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-27 | terminal | repaint on WebGL texture-atlas mutation to heal wrong-glyph corruption | ce5fc1290a0d |
+| 2026-06-27 | mobile | stop iOS focus-zoom + equalize modal footer buttons on touch (#174) | f2fe10eb2349 |
 | 2026-06-23 | board | drop a dragged card without flipping it back to origin (#170) | 4f8daded5cd1 |
 | 2026-06-23 | board | reopen a Done card dragged out of the Done column (#169) | 1b3e0b1ab6d6 |
 | 2026-06-22 | terminal | clear idle tab-switch smear with a data-independent repaint (#167) | 17e12a88088c |
@@ -666,7 +668,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 597 |
+| Total commits | 599 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 597 |
+| Human-authored commits | 599 |
 

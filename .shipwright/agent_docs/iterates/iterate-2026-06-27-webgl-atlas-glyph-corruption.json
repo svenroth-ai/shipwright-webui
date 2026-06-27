@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-27-webgl-atlas-glyph-corruption",
+  "date": "2026-06-27T07:31:46.756423Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/webgl-atlas-glyph-corruption",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/01-adopted/spec.md",
+  "adr": "iterate-2026-06-27-webgl-atlas-glyph-corruption"
+}

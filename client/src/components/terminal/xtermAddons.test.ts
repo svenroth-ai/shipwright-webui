@@ -79,6 +79,13 @@ class WebglAddonFake {
     this.contextLossCb = cb;
     return { dispose: vi.fn() };
   });
+  // addon-webgl 0.19.0 atlas API the factory now subscribes (glyph-atlas-
+  // corruption fix, iterate-2026-06-27) — required on the fake or the happy
+  // path throws.
+  onChangeTextureAtlas = vi.fn(() => ({ dispose: vi.fn() }));
+  onAddTextureAtlasCanvas = vi.fn(() => ({ dispose: vi.fn() }));
+  onRemoveTextureAtlasCanvas = vi.fn(() => ({ dispose: vi.fn() }));
+  clearTextureAtlas = vi.fn();
 }
 
 vi.mock("@xterm/addon-fit", () => ({

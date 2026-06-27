@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-27",
+  "last_updated": "2026-06-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-27-mobile-modal-terminal-scroll",
+    "run_id": "iterate-2026-06-27-webgl-atlas-glyph-corruption",
     "date": "2026-06-27",
     "unit": {
       "status": "passed",
-      "passed": 1789,
-      "total": 1789
+      "passed": 1792,
+      "total": 1792
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 19,
-      "total": 19
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "not_run",
@@ -29,32 +29,69 @@
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
     },
-    "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "exit_code": 0,
+      "tests_run": 2,
+      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts --project=chromium client/e2e/flows/94-webgl-atlas-repaint.spec.ts client/e2e/flows/93-terminal-renderer-toggle.spec.ts",
+      "note": "spec 94 (atlas-repaint; atlasRepaints=32 on the live WebGL addon — overflow page-add + repack paths) + spec 93 (renderer toggle) green against an isolated single-process real-browser stack"
+    },
+    "degraded": [
+      {
+        "condition": "External LLM code review (Step 8 external / F8)",
+        "reason": "requires-prod-credential: no OPENAI_API_KEY / GEMINI_API_KEY in env; the internal shipwright-build:code-reviewer ran instead (no HIGH; its MED on single-event coverage was fixed by subscribing all three atlas-mutation events)"
+      },
+      {
+        "condition": "Visual elimination of the wrong-letter corruption on the user's specific GPU",
+        "reason": "requires-physical-device + requires-manual-visual-judgment: the handler firing on real atlas mutations is proven (spec 94, atlasRepaints=32); the final 'no more wrong letters' check is the user's one real-device confirmation"
+      }
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Modal text controls (title, description, project select) compute >=16px on a coarse pointer so iOS Safari does not focus-zoom and right-clip the dialog",
+          "behavior": "createEmbeddedXterm subscribes to all three WebGL atlas-mutation events (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) exactly once each",
           "disposition": "tested",
-          "evidence": "e2e/flows/90-phone-responsive.spec.ts:148 (mobile-chromium, Pixel 5) PASSED"
+          "evidence": "xtermAddons.atlas.test.ts 'subscribes to all three atlas-mutation events exactly once each'"
         },
         {
-          "behavior": "Both modal footer buttons (Save to Backlog + Launch) are equal-height >=44px touch targets on a coarse pointer (Launch no longer towers over Save)",
+          "behavior": "Any atlas mutation (change/add/remove) triggers a full-viewport term.refresh(0, rows-1)",
           "disposition": "tested",
-          "evidence": "e2e/flows/90-phone-responsive.spec.ts:148 (mobile-chromium, Pixel 5) PASSED"
+          "evidence": "xtermAddons.atlas.test.ts 'any atlas mutation (change / add / remove) forces a full-viewport term.refresh(0, rows-1)'"
+        },
+        {
+          "behavior": "The atlas repaint swallows a mid-dispose term throw without crashing",
+          "disposition": "tested",
+          "evidence": "xtermAddons.atlas.test.ts 'the atlas repaint swallows a mid-dispose term throw (no crash)'"
+        },
+        {
+          "behavior": "On the live WebGL addon, real atlas mutations (overflow page-add + repack) fire the handler",
+          "disposition": "tested",
+          "evidence": "e2e flow spec 94 — atlasRepaints=32 on a real-browser WebGL stack (color-overflow page-adds + fontSize repacks)"
+        },
+        {
+          "behavior": "WebGL-unavailable / DOM-renderer path skips the atlas subscription without crashing (fallback intact)",
+          "disposition": "tested",
+          "evidence": "xtermAddons.test.ts 'WebGL constructor throwing falls back gracefully' + spec 93 DOM-override arm"
+        },
+        {
+          "behavior": "The repaint visually eliminates the wrong-letter corruption on the user's specific GPU",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment"
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
-        "untestable": 0,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 5,
+        "covered_acs": 5,
+        "basis": "bug-fix: behaviors enumerated from the diff (no formal ACs). 5 testable behaviors all tested; 1 untestable (real-GPU visual judgment)."
       }
     }
   }
