@@ -42,6 +42,7 @@ import "@xterm/xterm/css/xterm.css";
 
 import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
 import { getTerminalRendererOverride } from "./terminal-renderer";
+import { attachWebglAtlasRepaint } from "./webgl-atlas-repaint";
 
 /**
  * Exact-pinned xterm.js + addon versions (CLAUDE.md rule 22 / ADR-097 / ADR-098).
@@ -253,6 +254,10 @@ export function createEmbeddedXterm(
           /* already disposed — best-effort */
         }
       });
+      // Glyph-atlas-change full repaint (root-cause fix for the "wrong letter"
+      // corruption) — see webgl-atlas-repaint.ts. Registered before loadAddon so
+      // no early atlas-change event is missed, mirroring onContextLoss above.
+      attachWebglAtlasRepaint(webgl, term);
       term.loadAddon(webgl);
     } catch (err) {
       // eslint-disable-next-line no-console

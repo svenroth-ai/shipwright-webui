@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-23T06:47:56.497207+00:00
-Total commits: 594
+Generated: 2026-06-27T07:34:15.471587+00:00
+Total commits: 597
 
 ## Commit Distribution
 
@@ -10,9 +10,9 @@ pie title Commit Types
     "fix" : 215
     "feat" : 145
     "chore" : 117
-    "docs" : 61
+    "docs" : 63
     "refactor" : 26
-    "test" : 20
+    "test" : 21
     "ci" : 5
     "other" : 4
     "build" : 1
@@ -244,7 +244,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-23 | terminal | add a runtime renderer override to A/B-isolate the WebGL smear root cause | f2c3b77df9f7 |
+| 2026-06-23 | terminal | runtime renderer override to A/B-isolate the WebGL smear root cause (diagnostic) (#171) | 5d042e5e5f74 |
 | 2026-06-18 | board | drag-and-drop task columns, decoupled from session state (#158) | 896e4d57ca2b |
 | 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | adc72bb082df |
 | 2026-06-14 | settings | actions.json upload in project edit modal + upload-route fix + Launcher card removal (FR-01.40) (#143) | 5d7f914e634d |
@@ -512,10 +512,12 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 61 commits
+### Documentation (docs) — 63 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-24 | images | update command-center board screenshot (#173) | d9be7e7f8eb1 |
+| 2026-06-24 | — | drop "or VS Code" from the parallel-projects tagline | 3f266f7469dc |
 | 2026-06-21 | guide | replace prose em-dashes with colons, periods, and commas | 14751220a2ce |
 | 2026-06-21 | readme | replace em-dashes with colons, periods, and commas | 0142d6bcb235 |
 | 2026-06-21 | — | surface the embedded terminal in the guide feature list; trim em-dashes | 27a3943ba062 |
@@ -609,10 +611,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 20 commits
+### Tests (test) — 21 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-23 | terminal | real-browser E2E proving the renderer override switches WebGL<->DOM (#172) | 37a39ae8ef3c |
 | 2026-06-20 | terminal | split useTerminalResize.test.ts under the 300-LOC guideline (#165) | 9499eba74590 |
 | 2026-06-18 | terminal | split WS-liveness specs under the 300-LOC guideline (#160) | b682e6a7f7de |
 | 2026-06-09 | campaigns | split loop-state annotation tests to clear the 300-LOC ceiling | c2b328d42c9f |
@@ -663,7 +666,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 594 |
+| Total commits | 597 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 594 |
+| Human-authored commits | 597 |
 

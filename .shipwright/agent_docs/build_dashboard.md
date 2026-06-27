@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-23 06:47 UTC | Session: 2b51b74c-5752-4d27-b837-a7c8aab1c8d6 | Run: iterate-2026-06-23-terminal-renderer-toggle
+> Updated: 2026-06-27 07:34 UTC | Session: 5769cc63-24b6-42a1-a37d-69f032b9ab7b | Run: iterate-2026-06-27-webgl-atlas-glyph-corruption
 
-## Recent Changes (172 iterations)
+## Recent Changes (173 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize. | 0/0 |  | FR-01.28 | 2026-06-27 |
 | bug | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | 1780/1780 |  | FR-01.01 | 2026-06-23 |
 | bug | Diagnostic: runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts -- ?terminalRenderer=dom / localStorage skips the WebGL addon (DOM renderer) to A/B whether WebGL is the smear root cause on a real GPU. Default unchanged (webgl). | 0/0 |  | FR-01.28 | 2026-06-23 |
 | bug | Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked | 3444/3444 |  | FR-01.01 | 2026-06-23 |
@@ -179,7 +180,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-23 | Unit: 1788/1788 | Smoke: not_run | (iterate)
+Last run: 2026-06-27 | Unit: 1792/1792 | E2E: 2/2 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
