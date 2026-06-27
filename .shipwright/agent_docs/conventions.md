@@ -185,3 +185,4 @@ _**One line per change, ≤600 chars** — convention-relevant ADRs since adopti
 - **ADR-173** (2026-06-12): Vendor an OpenRouter Tier-3 PR reviewer into the WebUI (align to monorepo B4.5 Phase 2)
 - **ADR-180** (2026-06-13): Strip parent/child Claude-session env markers from embedded-terminal pty spawn
 - **ADR-187** (2026-06-14): Deploy-time self-heal of corrupt ~/.claude.json
+- (2026-06-27) iterate — Mobile form controls need `pointer-coarse:text-[16px]` (≥16px) or iOS Safari auto-zooms + right-clips the dialog on focus; give BOTH modal footer buttons `pointer-coarse:min-h-[44px]`, not just the primary. [→ iterate-2026-06-27-mobile-modal-terminal-scroll]

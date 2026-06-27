@@ -1,20 +1,20 @@
 # Test Evidence Report
 
-Generated: 2026-06-27T07:34:15.471587+00:00
+Generated: 2026-06-27T07:28:35.777466+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Total test checkpoints | 243 |
-| Total unit tests (latest) | 0/0 |
+| Total unit tests (latest) | 1789/1789 |
 | New tests from iterations | +26 |
 
 ## Test Progression
 
 | # | Event | Source | Layer | New Tests | Suite Total | Result | Date |
 |---|-------|--------|-------|-----------|-------------|--------|------|
-| 1 | Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize. | iterate | — | +0 | — | — | 2026-06-27 |
+| 1 | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | iterate | mixed | +0 | 1789/1789 | PASS | 2026-06-27 |
 | 2 | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | iterate | mixed | +0 | 1780/1780 | PASS | 2026-06-23 |
 | 3 | Diagnostic: runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts -- ?terminalRenderer=dom / localStorage skips the WebGL addon (DOM renderer) to A/B whether WebGL is the smear root cause on a real GPU. Default unchanged (webgl). | iterate | — | +0 | — | — | 2026-06-23 |
 | 4 | Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked | iterate | mixed | +0 | 3444/3444 | PASS | 2026-06-23 |
@@ -262,36 +262,36 @@ Generated: 2026-06-27T07:34:15.471587+00:00
 
 | Run | Trigger | Unit | Integration | pgTAP | E2E | Smoke | Date |
 |-----|---------|------|-------------|-------|-----|-------|------|
-| 1 | iterate | 2193/2193 | — | — | — | — | 2026-05-21 |
-| 2 | iterate | 1174/1174 | — | — | — | — | 2026-05-22 |
-| 3 | iterate | 2198/2198 | — | — | — | — | 2026-05-22 |
-| 4 | iterate | 1066/1066 | — | — | — | — | 2026-05-23 |
-| 5 | iterate | 22/22 | — | — | — | — | 2026-05-25 |
-| 6 | iterate | 14/14 | — | — | — | — | 2026-05-25 |
-| 7 | iterate | 1124/1124 | — | — | — | — | 2026-05-26 |
-| 8 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
-| 9 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
-| 10 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
-| 11 | iterate | 1345/1345 | — | — | — | — | 2026-05-30 |
-| 12 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
-| 13 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
-| 14 | iterate | 1550/1550 | — | — | — | — | 2026-06-05 |
-| 15 | iterate | 1557/1557 | — | — | — | — | 2026-06-07 |
-| 16 | iterate | 3/3 | — | — | — | — | 2026-06-12 |
-| 17 | iterate | 1609/1609 | — | — | — | — | 2026-06-12 |
-| 18 | iterate | 1611/1611 | — | — | — | — | 2026-06-12 |
-| 19 | iterate | 1/1 | — | — | — | — | 2026-06-13 |
-| 20 | iterate | 24/24 | — | — | — | — | 2026-06-14 |
-| 21 | iterate | 1637/1637 | — | — | — | — | 2026-06-14 |
-| 22 | iterate | 38/38 | — | — | — | — | 2026-06-14 |
-| 23 | iterate | 1652/1652 | — | — | — | — | 2026-06-14 |
-| 24 | iterate | 1668/1668 | — | — | — | — | 2026-06-14 |
-| 25 | iterate | 1672/1672 | — | — | — | — | 2026-06-15 |
-| 26 | iterate | 1700/1700 | — | — | — | — | 2026-06-16 |
-| 27 | iterate | 75/75 | — | — | — | — | 2026-06-17 |
-| 28 | iterate | 1762/1762 | — | — | — | — | 2026-06-20 |
-| 29 | iterate | 3444/3444 | — | — | — | — | 2026-06-23 |
-| 30 | iterate | 1780/1780 | — | — | — | — | 2026-06-23 |
+| 1 | iterate | 1174/1174 | — | — | — | — | 2026-05-22 |
+| 2 | iterate | 2198/2198 | — | — | — | — | 2026-05-22 |
+| 3 | iterate | 1066/1066 | — | — | — | — | 2026-05-23 |
+| 4 | iterate | 22/22 | — | — | — | — | 2026-05-25 |
+| 5 | iterate | 14/14 | — | — | — | — | 2026-05-25 |
+| 6 | iterate | 1124/1124 | — | — | — | — | 2026-05-26 |
+| 7 | iterate | 20/20 | — | — | — | — | 2026-05-26 |
+| 8 | iterate | 1279/1279 | — | — | — | — | 2026-05-26 |
+| 9 | iterate | 1274/1274 | — | — | — | — | 2026-05-26 |
+| 10 | iterate | 1345/1345 | — | — | — | — | 2026-05-30 |
+| 11 | iterate | 1335/1335 | — | — | — | — | 2026-05-30 |
+| 12 | iterate | 1331/1331 | — | — | — | — | 2026-05-30 |
+| 13 | iterate | 1550/1550 | — | — | — | — | 2026-06-05 |
+| 14 | iterate | 1557/1557 | — | — | — | — | 2026-06-07 |
+| 15 | iterate | 3/3 | — | — | — | — | 2026-06-12 |
+| 16 | iterate | 1609/1609 | — | — | — | — | 2026-06-12 |
+| 17 | iterate | 1611/1611 | — | — | — | — | 2026-06-12 |
+| 18 | iterate | 1/1 | — | — | — | — | 2026-06-13 |
+| 19 | iterate | 24/24 | — | — | — | — | 2026-06-14 |
+| 20 | iterate | 1637/1637 | — | — | — | — | 2026-06-14 |
+| 21 | iterate | 38/38 | — | — | — | — | 2026-06-14 |
+| 22 | iterate | 1652/1652 | — | — | — | — | 2026-06-14 |
+| 23 | iterate | 1668/1668 | — | — | — | — | 2026-06-14 |
+| 24 | iterate | 1672/1672 | — | — | — | — | 2026-06-15 |
+| 25 | iterate | 1700/1700 | — | — | — | — | 2026-06-16 |
+| 26 | iterate | 75/75 | — | — | — | — | 2026-06-17 |
+| 27 | iterate | 1762/1762 | — | — | — | — | 2026-06-20 |
+| 28 | iterate | 3444/3444 | — | — | — | — | 2026-06-23 |
+| 29 | iterate | 1780/1780 | — | — | — | — | 2026-06-23 |
+| 30 | iterate | 1789/1789 | — | — | — | — | 2026-06-27 |
 
 ## Code Review Evidence
 
