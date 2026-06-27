@@ -1,34 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-27-mobile-modal-terminal-scroll"
+run_id: "iterate-2026-06-27-webgl-atlas-glyph-corruption"
 phase: "iterate"
-reason: "iterate: mobile modal touch-safety + done/reopen verification"
-timestamp: "2026-06-27T07:28:35.777466+00:00"
+reason: "ensure-current pre-merge refresh"
+timestamp: "2026-06-27T07:34:15.471587+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-27 07:28:35 UTC
+> Auto-generated 2026-06-27 07:34:15 UTC
 
 ## Session Info
 
-- **Session ID**: 3c9e3e11-4b53-424e-8062-f9f5a24f6b68
-- **Timestamp**: 2026-06-27 07:28:35 UTC
-- **Reason**: iterate: mobile modal touch-safety + done/reopen verification
+- **Session ID**: 5769cc63-24b6-42a1-a37d-69f032b9ab7b
+- **Timestamp**: 2026-06-27 07:34:15 UTC
+- **Reason**: ensure-current pre-merge refresh
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-23-terminal-renderer-toggle
-- **Date**: 2026-06-23T06:47:00.654887Z
+- **Run ID**: iterate-2026-06-27-webgl-atlas-glyph-corruption
+- **Date**: 2026-06-27T07:31:46.756423Z
 - **Type**: bug
-- **Complexity**: small
-- **Branch**: iterate/terminal-renderer-toggle
-- **ADR**: iterate-2026-06-23-terminal-renderer-toggle
+- **Complexity**: medium
+- **Branch**: iterate/webgl-atlas-glyph-corruption
+- **ADR**: iterate-2026-06-27-webgl-atlas-glyph-corruption
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/01-adopted/spec.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/mobile-modal-terminal-scroll
+- **Branch**: iterate/webgl-atlas-glyph-corruption
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/mobile-modal-terminal-scroll
-- **Last Commit**: d9be7e7 docs(images): update command-center board screenshot (#173)
+- **Branch**: iterate/webgl-atlas-glyph-corruption
+- **Last Commit**: fe590c7 Merge remote-tracking branch 'origin/main' into iterate/webgl-atlas-glyph-corruption
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,15 +66,15 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 | Event | Type | Source | Date |
 |-------|------|--------|------|
 | evt-31471e05 | work_completed | iterate (mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry) | 2026-06-27 |
+| evt-42ea8ea6 | work_completed | iterate (Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize.) | 2026-06-27 |
 | evt-be31e6ba | work_completed | iterate (Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop) | 2026-06-23 |
 | evt-8b9af61b | work_completed | iterate (Diagnostic: runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts -- ?terminalRenderer=dom / localStorage skips the WebGL addon (DOM renderer) to A/B whether WebGL is the smear root cause on a real GPU. Default unchanged (webgl).) | 2026-06-23 |
 | evt-6642b747 | work_completed | iterate (Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked) | 2026-06-23 |
-| evt-939af5c3 | work_completed | iterate (Embedded terminal: data-independent trailing repaint (activation-repaint.ts) clears the stale display:none->block WebGL frame on an IDLE Transcript->Terminal switch / focus restore, closing the no-data gap ADR-202 data-driven settle window left) | 2026-06-22 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 243
+- **Total work events**: 244
 - **Last iterate**: bug — mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry (2026-06-27)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
