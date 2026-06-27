@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-27 07:34 UTC | Session: 5769cc63-24b6-42a1-a37d-69f032b9ab7b | Run: iterate-2026-06-27-webgl-atlas-glyph-corruption
+> Updated: 2026-06-27 10:17 UTC | Session: f25c4c06-6068-4b24-b09b-a3c8ddce4d07 | Run: iterate-2026-06-27-codeql-hardening
 
-## Recent Changes (174 iterations)
+## Recent Changes (175 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | CodeQL noise reduction + qCmd cmd.exe quoting fix | 3463/3463 |  | infra | 2026-06-27 |
 | bug | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | 1789/1789 |  | FR-01.39 | 2026-06-27 |
 | bug | Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize. | 0/0 |  | FR-01.28 | 2026-06-27 |
 | bug | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | 1780/1780 |  | FR-01.01 | 2026-06-23 |
@@ -181,7 +182,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-27 | Unit: 1792/1792 | E2E: 2/2 | Smoke: not_run | (iterate)
+Last run: 2026-06-27 | Unit: 3463/3463 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

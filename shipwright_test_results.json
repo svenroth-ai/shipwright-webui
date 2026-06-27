@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-23",
+  "last_updated": "2026-06-27T10:17:24.397Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-27-webgl-atlas-glyph-corruption",
+    "run_id": "iterate-2026-06-27-codeql-hardening",
     "date": "2026-06-27",
     "unit": {
       "status": "passed",
-      "passed": 1792,
-      "total": 1792
+      "passed": 3463,
+      "total": 3463
     },
     "integration": {
       "status": "not_run",
@@ -19,12 +19,12 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -32,67 +32,63 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 2,
-      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts --project=chromium client/e2e/flows/94-webgl-atlas-repaint.spec.ts client/e2e/flows/93-terminal-renderer-toggle.spec.ts",
-      "note": "spec 94 (atlas-repaint; atlasRepaints=32 on the live WebGL addon — overflow page-add + repack paths) + spec 93 (renderer toggle) green against an isolated single-process real-browser stack"
+      "tests_run": 0,
+      "justification": "No mounted-UI behavior change to smoke. The only client edit is a display-only backslash escape in CommandPreviewPanel, which is unmounted dead code (referenced only by its own test) — there is no route to render it. The server qCmd change is edge-case-only: outputs are byte-identical for normal titles/paths (existing tests unchanged) and the new backslash/quote behavior is covered by unit tests. CodeQL config effect is verified by the GitHub re-scan on the PR."
     },
-    "degraded": [
-      {
-        "condition": "External LLM code review (Step 8 external / F8)",
-        "reason": "requires-prod-credential: no OPENAI_API_KEY / GEMINI_API_KEY in env; the internal shipwright-build:code-reviewer ran instead (no HIGH; its MED on single-event coverage was fixed by subscribing all three atlas-mutation events)"
-      },
-      {
-        "condition": "Visual elimination of the wrong-letter corruption on the user's specific GPU",
-        "reason": "requires-physical-device + requires-manual-visual-judgment: the handler firing on real atlas mutations is proven (spec 94, atlasRepaints=32); the final 'no more wrong letters' check is the user's one real-device confirmation"
-      }
-    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "createEmbeddedXterm subscribes to all three WebGL atlas-mutation events (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) exactly once each",
+          "behavior": "qCmd doubles a trailing backslash before the closing quote",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'subscribes to all three atlas-mutation events exactly once each'"
+          "evidence": "server launcher.test.ts 'doubles a trailing backslash so it cannot escape the closing quote' PASSED"
         },
         {
-          "behavior": "Any atlas mutation (change/add/remove) triggers a full-viewport term.refresh(0, rows-1)",
+          "behavior": "qCmd applies the 2N+1 rule to backslashes before an embedded quote",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'any atlas mutation (change / add / remove) forces a full-viewport term.refresh(0, rows-1)'"
+          "evidence": "server launcher.test.ts 'applies the 2N+1 rule to backslashes that precede an embedded quote' PASSED"
         },
         {
-          "behavior": "The atlas repaint swallows a mid-dispose term throw without crashing",
+          "behavior": "qCmd preserves an interior backslash run without doubling (paths stay byte-identical)",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'the atlas repaint swallows a mid-dispose term throw (no crash)'"
+          "evidence": "server launcher.test.ts 'preserves an interior backslash run (path) WITHOUT doubling it' PASSED"
         },
         {
-          "behavior": "On the live WebGL addon, real atlas mutations (overflow page-add + repack) fire the handler",
+          "behavior": "qCmd escapes an embedded double quote",
           "disposition": "tested",
-          "evidence": "e2e flow spec 94 — atlasRepaints=32 on a real-browser WebGL stack (color-overflow page-adds + fontSize repacks)"
+          "evidence": "server launcher.test.ts 'escapes an embedded double quote' + existing cmd.exe escape test PASSED"
         },
         {
-          "behavior": "WebGL-unavailable / DOM-renderer path skips the atlas subscription without crashing (fallback intact)",
+          "behavior": "qCmd doubles a pure trailing backslash run",
           "disposition": "tested",
-          "evidence": "xtermAddons.test.ts 'WebGL constructor throwing falls back gracefully' + spec 93 DOM-override arm"
+          "evidence": "server launcher.test.ts 'doubles a pure trailing backslash run (2 -> 4)' PASSED"
         },
         {
-          "behavior": "The repaint visually eliminates the wrong-letter corruption on the user's specific GPU",
+          "behavior": "CommandPreviewPanel escapes backslash-before-quote in the --name title preview",
+          "disposition": "tested",
+          "evidence": "client CommandPreviewPanel.test.tsx 'escapes a backslash before a quote in the --name title' PASSED"
+        },
+        {
+          "behavior": "codeql.yml and codeql-config.yml are valid YAML",
+          "disposition": "tested",
+          "evidence": "pyyaml safe_load of both files succeeded"
+        },
+        {
+          "behavior": "security-extended + paths-ignore drop the non-production CodeQL alerts",
           "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment"
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "effect is only observable when GitHub's hosted CodeQL workflow re-scans the PR; verified post-merge on the Security tab"
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 7,
+        "tested": 7,
         "untestable": 1,
         "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5,
-        "basis": "bug-fix: behaviors enumerated from the diff (no formal ACs). 5 testable behaviors all tested; 1 untestable (real-GPU visual judgment)."
       }
-    }
+    },
+    "degraded": []
   }
 }

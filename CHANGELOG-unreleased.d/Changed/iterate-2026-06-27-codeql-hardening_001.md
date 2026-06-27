@@ -1,0 +1,1 @@
+Scope CodeQL scanning to production code — security-extended query suite plus a paths-ignore config for tests, e2e specs and dev scripts — removing non-actionable maintainability and test-only alerts from the Security tab.

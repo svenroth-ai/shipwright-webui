@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-27-codeql-hardening",
+  "date": "2026-06-27T10:17:54.343312Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/codeql-hardening",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-06-27-codeql-hardening"
+}

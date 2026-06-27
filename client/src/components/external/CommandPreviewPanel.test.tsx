@@ -176,3 +176,13 @@ describe("CommandPreviewPanel — sensitive masking", () => {
     expect(longText.match(/\*+/)?.[0]).toBe("********");
   });
 });
+
+describe("CommandPreviewPanel — title escaping (CodeQL js/incomplete-sanitization)", () => {
+  it("escapes a backslash before a quote in the --name title so it can't slip the closing quote", () => {
+    // title `a"b\c` → `"` becomes \" and `\` becomes \\, so the preview shows
+    // a\"b\\c. The old code escaped only the quote, leaving the backslash.
+    render(<CommandPreviewPanel {...BASE_PROPS} title={'a"b\\c'} />);
+    const text = screen.getByTestId("command-preview-panel").textContent ?? "";
+    expect(text).toContain('a\\"b\\\\c');
+  });
+});
