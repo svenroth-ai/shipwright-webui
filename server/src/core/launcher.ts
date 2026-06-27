@@ -265,10 +265,29 @@ export function qPs(v: string): string {
 }
 
 export function qCmd(v: string): string {
-  // cmd.exe double-quoted: embedded `"` → `\"`. We do NOT worry about
-  // trailing-backslash-before-quote since real inputs (paths, UUIDs, dirs)
-  // never end on `\`.
-  return `"${v.replace(/"/g, '\\"')}"`;
+  // cmd.exe double-quoted argument, escaped per CommandLineToArgvW (the prior
+  // `"${v.replace(/"/g,'\\"')}"` left backslashes unescaped — CodeQL
+  // js/incomplete-sanitization #4): N `\` before an embedded `"` → 2N+1 `\`+`"`;
+  // N `\` before the CLOSING quote → 2N `\` (a trailing `\` can't escape it);
+  // `\` not before a quote stays literal (`C:\foo` must not become `C:\\foo`).
+  // Argv layer only; cmd.exe metachar handling is out of scope on this
+  // loopback tool (inputs aren't cross-user-trust; `qPs` is the default shell).
+  let out = '"';
+  let pendingBackslashes = 0;
+  for (const ch of v) {
+    if (ch === "\\") {
+      pendingBackslashes += 1;
+      continue;
+    }
+    if (ch === '"') {
+      out += "\\".repeat(pendingBackslashes * 2 + 1) + '"';
+    } else {
+      out += "\\".repeat(pendingBackslashes) + ch;
+    }
+    pendingBackslashes = 0;
+  }
+  out += "\\".repeat(pendingBackslashes * 2) + '"';
+  return out;
 }
 
 export function qPosix(v: string): string {

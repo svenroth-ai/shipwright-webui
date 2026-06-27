@@ -1,0 +1,17 @@
+name: "Shipwright WebUI CodeQL config"
+
+# Scope CodeQL to shipped application code. Tests, Playwright e2e specs, and
+# one-off dev/PoC scripts are NOT a production attack surface; scanning them
+# produced ~19 high "findings" (insecure-temporary-file, file-system-race,
+# missing-regexp-anchor, clear-text-logging, http-to-file-access) that are
+# noise on a localhost single-user tool. The query-suite choice
+# (security-extended, set in codeql.yml) drops the pure-maintainability queries
+# (unused-local-variable, trivial-conditional, useless-assignment); this file
+# drops the non-production paths. Together they leave only real app-code alerts.
+paths-ignore:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "client/e2e/**"
+  - "**/scripts/**"

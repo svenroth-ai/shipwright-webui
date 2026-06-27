@@ -112,7 +112,10 @@ function buildCommandText(opts: {
 }): string {
   const t = opts.title.trim() || "Untitled";
   const namePre = namePrefix(opts.mode, opts.phaseLabel);
-  const quotedName = `"${namePre}: ${t.replace(/"/g, '\\"')}"`;
+  // Escape `\` before `"` so a backslash can't slip the closing quote in this
+  // preview string (CodeQL js/incomplete-sanitization). Display-only — the
+  // server does the real per-shell quoting (qPs/qCmd/qPosix).
+  const quotedName = `"${namePre}: ${t.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
   const projectPath = opts.projectPath || "<project-path>";
   const sessionUuid = opts.sessionUuid || "<session-uuid>";
   const pluginDirsFlag =
@@ -149,7 +152,11 @@ function buildCommandText(opts: {
   // embedded `"` is fine), but the preview always shows double-quotes
   // as a teaching aid. Without this escape, a description like
   // `say "hi"` would render as a broken preview line (review fix).
-  const escapedPrompt = initialPrompt.replace(/"/g, '\\"');
+  // `\` is escaped first so it can't slip the closing quote (CodeQL
+  // js/incomplete-sanitization).
+  const escapedPrompt = initialPrompt
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"');
 
   return (
     `$ ${cdPrefix}claude \\n` +

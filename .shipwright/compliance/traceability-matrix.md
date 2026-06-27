@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-27T07:34:15.471587+00:00
+Generated: 2026-06-27T10:17:41.216697+00:00
 
 ## Requirements Coverage
 
@@ -296,6 +296,7 @@ Generated: 2026-06-27T07:34:15.471587+00:00
 | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | iterate | bug | FR-01.01 | 1780/1780 | — | 2026-06-23 |
 | Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize. | iterate | bug | FR-01.28 | — | — | 2026-06-27 |
 | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | iterate | bug | FR-01.39 | 1789/1789 | — | 2026-06-27 |
+| CodeQL noise reduction + qCmd cmd.exe quoting fix | iterate | change |  | 3463/3463 | — | 2026-06-27 |
 
 ## Coverage Summary
 
@@ -303,7 +304,7 @@ Generated: 2026-06-27T07:34:15.471587+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 174 |
+| Iterate changes | 175 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |

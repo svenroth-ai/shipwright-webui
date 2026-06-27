@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-27T07:34:15.471587+00:00
-Total commits: 599
+Generated: 2026-06-27T10:17:41.216697+00:00
+Total commits: 600
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 599
 pie title Commit Types
     "fix" : 217
     "feat" : 145
-    "chore" : 117
+    "chore" : 118
     "docs" : 63
     "refactor" : 26
     "test" : 21
@@ -24,7 +24,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-06-27 | terminal | repaint on WebGL texture-atlas mutation to heal wrong-glyph corruption | ce5fc1290a0d |
+| 2026-06-27 | terminal | repaint on WebGL texture-atlas mutation to heal wrong-glyph corruption (#175) | dc14701a3fd0 |
 | 2026-06-27 | mobile | stop iOS focus-zoom + equalize modal footer buttons on touch (#174) | f2fe10eb2349 |
 | 2026-06-23 | board | drop a dragged card without flipping it back to origin (#170) | 4f8daded5cd1 |
 | 2026-06-23 | board | reopen a Done card dragged out of the Done column (#169) | 1b3e0b1ab6d6 |
@@ -392,10 +392,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 117 commits
+### Chores (chore) — 118 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-27 | terminal | split version-pin assertions into xtermAddons.pins.test.ts (#176) | c1cdc56a6c26 |
 | 2026-06-22 | release | v0.21.0 (#166) | 0a23bdbdef84 |
 | 2026-06-17 | release | v0.20.0 (#156) | 4a5ed5eaf6e6 |
 | 2026-06-17 | launch-prep | Beta branding, issue templates, and server typecheck script (#155) | 5fb7c70b226a |
@@ -668,7 +669,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 599 |
+| Total commits | 600 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 599 |
+| Human-authored commits | 600 |
 

@@ -38,7 +38,13 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: none
-          queries: security-and-quality
+          # security-extended (not security-and-quality): keep every CWE-tagged
+          # security query, drop the maintainability-only ones (unused-local,
+          # trivial-conditional, useless-assignment) that were note/warning
+          # noise rather than vulnerabilities.
+          queries: security-extended
+          # paths-ignore for tests / e2e / dev-scripts — non-production code.
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform analysis
         # continue-on-error: a private repo without GitHub code scanning
