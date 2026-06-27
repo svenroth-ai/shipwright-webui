@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-23 06:47 UTC | Session: 2b51b74c-5752-4d27-b837-a7c8aab1c8d6 | Run: iterate-2026-06-23-terminal-renderer-toggle
+> Updated: 2026-06-27 07:28 UTC | Session: 3c9e3e11-4b53-424e-8062-f9f5a24f6b68 | Run: iterate-2026-06-27-mobile-modal-terminal-scroll
 
-## Recent Changes (172 iterations)
+## Recent Changes (173 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| bug | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | 1789/1789 |  | FR-01.39 | 2026-06-27 |
 | bug | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | 1780/1780 |  | FR-01.01 | 2026-06-23 |
 | bug | Diagnostic: runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts -- ?terminalRenderer=dom / localStorage skips the WebGL addon (DOM renderer) to A/B whether WebGL is the smear root cause on a real GPU. Default unchanged (webgl). | 0/0 |  | FR-01.28 | 2026-06-23 |
 | bug | Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked | 3444/3444 |  | FR-01.01 | 2026-06-23 |

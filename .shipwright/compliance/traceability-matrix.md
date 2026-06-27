@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-23T06:47:56.497207+00:00
+Generated: 2026-06-27T07:28:35.777466+00:00
 
 ## Requirements Coverage
 
@@ -44,7 +44,7 @@ Generated: 2026-06-23T06:47:56.497207+00:00
 | [FR-01.36](../../.shipwright/planning/01-adopted/spec.md#fr-0136) | Replaces FR-01.33's per-step **Copy launch (Cx)** clipboard ... | Should | evt-e873eced, evt-c59f2257 | — | — | NO TESTS |
 | [FR-01.37](../../.shipwright/planning/01-adopted/spec.md#fr-0137) | A custom action in `<project>/.shipwright-webui/actions.json... | Should | evt-06308665, evt-72678829 | — | — | NO TESTS |
 | [FR-01.38](../../.shipwright/planning/01-adopted/spec.md#fr-0138) | The WebUI becomes usable on tablets (768–1023px) **without c... | Should | evt-536db1b3, evt-7619adfd, evt-2caa2427, evt-7884a2bc | 1652/1652 | 2026-06-14 (iter) | COVERED |
-| [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | evt-58483137, evt-2caa2427, evt-4c6d051c | 1762/1762 | 2026-06-20 (iter) | COVERED |
+| [FR-01.39](../../.shipwright/planning/01-adopted/spec.md#fr-0139) | The WebUI becomes usable on phones (375–480px) **without cha... | Should | evt-58483137, evt-2caa2427, evt-4c6d051c, evt-31471e05 | 1762/1762 → 1789/1789 | 2026-06-27 (iter) | COVERED |
 | [FR-01.40](../../.shipwright/planning/01-adopted/spec.md#fr-0140) | The per-project actions.json management surface (Upload .jso... | Should | evt-72678829 | — | — | NO TESTS |
 | [FR-01.41](../../.shipwright/planning/01-adopted/spec.md#fr-0141) | Density/clipping polish on the two narrow layouts **without ... | Should | evt-442a0736 | — | — | NO TESTS |
 
@@ -294,6 +294,7 @@ Generated: 2026-06-23T06:47:56.497207+00:00
 | Reopen a Done card dragged/menu-moved out of the Done column so it lands unlocked instead of stranded done+locked | iterate | bug | FR-01.01 | 3444/3444 | — | 2026-06-23 |
 | Diagnostic: runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts -- ?terminalRenderer=dom / localStorage skips the WebGL addon (DOM renderer) to A/B whether WebGL is the smear root cause on a real GPU. Default unchanged (webgl). | iterate | bug | FR-01.28 | — | — | 2026-06-23 |
 | Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop | iterate | bug | FR-01.01 | 1780/1780 | — | 2026-06-23 |
+| mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | iterate | bug | FR-01.39 | 1789/1789 | — | 2026-06-27 |
 
 ## Coverage Summary
 
@@ -301,7 +302,7 @@ Generated: 2026-06-23T06:47:56.497207+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 172 |
+| Iterate changes | 173 |
 | Requirements total | 41 |
 | Requirements verified | 27/41 |
 | Must-have verified | 17/31 |
@@ -327,18 +328,20 @@ Generated: 2026-06-23T06:47:56.497207+00:00
 
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 52d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-33b2e81f` (2026-05-14)
-- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 38d ago by `evt-0f78d991` (2026-05-15)
-- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-7c294eb7` (2026-05-18)
-- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-223eadce` (2026-05-18)
-- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-fb2b90ee` (2026-05-18)
-- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 35d ago by `evt-a2176c74` (2026-05-18)
-- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 34d ago by `evt-3d1274f6` (2026-05-19)
-- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 22d ago by `evt-83b9b73f` (2026-05-31)
-- [FR-01.35](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-6c3e0953` (2026-06-04)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 57d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 47d ago by `evt-44b89157` (2026-05-10)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-50e36386` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 42d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-7c294eb7` (2026-05-18)
+- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-223eadce` (2026-05-18)
+- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-fb2b90ee` (2026-05-18)
+- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-a2176c74` (2026-05-18)
+- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 38d ago by `evt-3d1274f6` (2026-05-19)
+- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-83b9b73f` (2026-05-31)
+- [FR-01.35](../../.shipwright/planning/01-adopted/spec.md) — last verified 23d ago by `evt-6c3e0953` (2026-06-04)
+- [FR-01.36](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-c59f2257` (2026-06-08)
+- [FR-01.30](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-b29aafce` (2026-06-11)
 

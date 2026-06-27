@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-23",
+  "last_updated": "2026-06-27",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-23-terminal-renderer-toggle",
-    "date": "2026-06-23",
+    "run_id": "iterate-2026-06-27-mobile-modal-terminal-scroll",
+    "date": "2026-06-27",
     "unit": {
       "status": "passed",
-      "passed": 1788,
-      "total": 1788
+      "passed": 1789,
+      "total": 1789
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 19,
+      "total": 19
     },
     "design_fidelity": {
       "status": "not_run",
@@ -29,59 +29,27 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
-    "surface_verification": {
-      "surface": "none",
-      "exit_code": 0,
-      "tests_run": 0,
-      "justification": "DIAGNOSTIC, not a fix: a runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts; default behavior unchanged (WebGL). The override-resolution logic is fully unit-tested (terminal-renderer.test.ts). The ONLY purpose of this iterate is to let the user A/B the WebGL vs DOM renderer on their REAL GPU to confirm/refute that WebGL is the root cause of the persistent smear -- a determination that is requires-physical-device by definition (headless Chromium WebGL is not representative, and the smear is a visual judgment). No server/API/WS/contract surface touched. The console.info('renderer=...') line gives the user direct confirmation which arm is live."
-    },
-    "degraded": [
-      {
-        "condition": "F0.5 renderer A/B outcome",
-        "reason": "requires-physical-device + requires-manual-visual-judgment (real-GPU smear comparison); the user runs the A/B after rebuild"
-      }
-    ],
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1a: renderer resolves to webgl by default (no query, no storage, null/empty inputs)",
+          "behavior": "Modal text controls (title, description, project select) compute >=16px on a coarse pointer so iOS Safari does not focus-zoom and right-clip the dialog",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts 'defaults to webgl ...'"
+          "evidence": "e2e/flows/90-phone-responsive.spec.ts:148 (mobile-chromium, Pixel 5) PASSED"
         },
         {
-          "behavior": "AC-1b: renderer resolves to dom when the localStorage value or the ?terminalRenderer= query is dom",
+          "behavior": "Both modal footer buttons (Save to Backlog + Launch) are equal-height >=44px touch targets on a coarse pointer (Launch no longer towers over Save)",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts 'returns dom when storage value is dom' + 'returns dom when the query opts in'"
-        },
-        {
-          "behavior": "AC-1c: the query overrides persisted storage in BOTH directions (query=webgl forces default back; query=dom wins)",
-          "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts 'lets the query override persisted storage in BOTH directions'"
-        },
-        {
-          "behavior": "AC-1d: robustness -- case/whitespace-insensitive, any unknown value -> webgl, malformed search never throws",
-          "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts 'is case- and whitespace-insensitive' + 'treats any unknown value as the webgl default' + 'never throws on a malformed search string'"
-        },
-        {
-          "behavior": "AC-1e: getTerminalRendererOverride reads localStorage and is SSR/test-safe (webgl default when window absent / storage throws)",
-          "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts 'defaults to webgl with nothing set' + 'reads the dom override from localStorage'"
-        },
-        {
-          "behavior": "AC-2: switching the embedded terminal to the DOM renderer eliminates the smear across active/idle/replay on a real GPU (the A/B verdict that confirms/refutes WebGL as root cause)",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "reason": "the smear is a GPU/compositor-specific visual artifact; headless WebGL is not representative and the comparison is a manual visual judgment. This A/B IS the deliverable -- the user runs it after rebuild."
+          "evidence": "e2e/flows/90-phone-responsive.spec.ts:148 (mobile-chromium, Pixel 5) PASSED"
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
-        "untestable": 1,
+        "testable": 2,
+        "tested": 2,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {

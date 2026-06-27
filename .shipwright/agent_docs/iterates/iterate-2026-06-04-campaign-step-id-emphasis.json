@@ -1,9 +1,0 @@
-{
-  "run_id": "iterate-2026-06-04-campaign-step-id-emphasis",
-  "date": "2026-06-04T10:21:01.126094Z",
-  "type": "bug",
-  "complexity": "small",
-  "branch": "iterate/campaign-step-id-emphasis",
-  "tests_passed": true,
-  "adr": "iterate-2026-06-04-campaign-step-id-emphasis"
-}
