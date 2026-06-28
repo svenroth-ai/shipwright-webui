@@ -20,11 +20,11 @@
     "@lydell/node-pty": "^1.1.0",
     "@xterm/addon-serialize": "0.14.0",
     "@xterm/headless": "6.0.0",
-    "hono": "^4.7.0",
+    "hono": "^4.12.25",
     "ignore": "^5.3.2",
     "p-queue": "^9.2.0",
     "proper-lockfile": "^4.1.0",
-    "shell-quote": "^1.8.3"
+    "shell-quote": "^1.8.4"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
@@ -34,5 +34,8 @@
     "tsx": "^4.19.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.8"
+  },
+  "overrides": {
+    "ws": "^8.21.0"
   }
 }
