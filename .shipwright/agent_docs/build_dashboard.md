@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-28 07:25 UTC | Session: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b | Run: iterate-2026-06-28-bp1-webui-fr-backfill
+> Updated: 2026-06-28 19:58 UTC | Session: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b | Run: iterate-2026-06-28-webui-compliance-reformat
 
-## Recent Changes (176 iterations)
+## Recent Changes (177 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Regenerate WebUI compliance with the now-current plugin (cc1 BP-1 traced-credit, cc2 BP-2 reconciliation, cc3 AR-05 RTM Reconciled column) + reconcile: re-ran the full suite (server 1671 + client 1793 = 3464/3464 green), re-verifying the 12 behavior-touched-but-unreconciled FRs and linking that fresh verification here per BP-2 (spec_impact=none, no behavior change). Lifts the honest WebUI Control Grade from a stale-plugin B89 to A. AR-10 CI-security wiring deferred to a follow-up. | 3464/3464 |  | FR-01.02, FR-01.06, FR-01.25 | 2026-06-28 |
 | change | BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here. | 3464/3464 |  | FR-01.07, FR-01.14, FR-01.17 | 2026-06-28 |
 | change | CodeQL noise reduction + qCmd cmd.exe quoting fix | 3463/3463 |  | infra | 2026-06-27 |
 | bug | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | 1789/1789 |  | FR-01.39 | 2026-06-27 |
@@ -183,7 +184,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-27 | Unit: 3463/3463 | Smoke: not_run | (iterate)
+Last run: 2026-06-28 | Unit: 3464/3464 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

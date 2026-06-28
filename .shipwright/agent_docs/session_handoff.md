@@ -1,34 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-28-bp1-webui-fr-backfill"
+run_id: "iterate-2026-06-28-webui-compliance-reformat"
 phase: "iterate"
-reason: "BP-1 webui FR-tag traceability backfill"
-timestamp: "2026-06-28T07:25:36.473436+00:00"
+reason: "WebUI compliance reformat + reconciliation → A"
+timestamp: "2026-06-28T19:58:45.050449+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-28 07:25:36 UTC
+> Auto-generated 2026-06-28 19:58:45 UTC
 
 ## Session Info
 
 - **Session ID**: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b
-- **Timestamp**: 2026-06-28 07:25:36 UTC
-- **Reason**: BP-1 webui FR-tag traceability backfill
+- **Timestamp**: 2026-06-28 19:58:45 UTC
+- **Reason**: WebUI compliance reformat + reconciliation → A
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-27-codeql-hardening
-- **Date**: 2026-06-27T10:17:54.343312Z
+- **Run ID**: iterate-2026-06-28-bp1-webui-fr-backfill
+- **Date**: 2026-06-28T07:33:18.618759Z
 - **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/codeql-hardening
-- **ADR**: iterate-2026-06-27-codeql-hardening
+- **Complexity**: medium
+- **Branch**: iterate/bp1-webui-fr-backfill
+- **ADR**: iterate-2026-06-28-bp1-webui-fr-backfill
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/iterate/2026-06-28-bp1-webui-fr-backfill.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/bp1-webui-fr-backfill
+- **Branch**: iterate/webui-compliance-reformat
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/bp1-webui-fr-backfill
-- **Last Commit**: 9a32dde fix(security): harden cmd.exe arg quoting + scope CodeQL to production code (#177)
+- **Branch**: iterate/webui-compliance-reformat
+- **Last Commit**: 38b1897 chore(compliance): backfill requirement traceability — classify all events + close NOT-VERIFIED FRs (BP-1 WebUI) (#178)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,17 +65,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-a8bec2dd | work_completed | iterate (Regenerate WebUI compliance with the now-current plugin (cc1 BP-1 traced-credit, cc2 BP-2 reconciliation, cc3 AR-05 RTM Reconciled column) + reconcile: re-ran the full suite (server 1671 + client 1793 = 3464/3464 green), re-verifying the 12 behavior-touched-but-unreconciled FRs and linking that fresh verification here per BP-2 (spec_impact=none, no behavior change). Lifts the honest WebUI Control Grade from a stale-plugin B89 to A. AR-10 CI-security wiring deferred to a follow-up.) | 2026-06-28 |
 | evt-944c534d | work_completed | iterate (BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here.) | 2026-06-28 |
 | evt-13c8a1f0 | event_amended | — | 2026-06-28 |
 | evt-881aa135 | event_amended | — | 2026-06-28 |
 | evt-807445c5 | event_amended | — | 2026-06-28 |
-| evt-3b4caad4 | event_amended | — | 2026-06-28 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 246
-- **Last iterate**: change — BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here. (2026-06-28)
+- **Total work events**: 247
+- **Last iterate**: change — Regenerate WebUI compliance with the now-current plugin (cc1 BP-1 traced-credit, cc2 BP-2 reconciliation, cc3 AR-05 RTM Reconciled column) + reconcile: re-ran the full suite (server 1671 + client 1793 = 3464/3464 green), re-verifying the 12 behavior-touched-but-unreconciled FRs and linking that fresh verification here per BP-2 (spec_impact=none, no behavior change). Lifts the honest WebUI Control Grade from a stale-plugin B89 to A. AR-10 CI-security wiring deferred to a follow-up. (2026-06-28)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

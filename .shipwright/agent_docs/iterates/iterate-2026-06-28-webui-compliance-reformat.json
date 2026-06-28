@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-28-webui-compliance-reformat",
+  "date": "2026-06-28T20:01:32.774775Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/webui-compliance-reformat",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-28-webui-compliance-reformat",
+  "spec": ".shipwright/planning/iterate/2026-06-28-webui-compliance-reformat.md"
+}
