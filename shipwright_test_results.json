@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-27T10:17:24.397Z",
+  "last_updated": "2026-06-28T07:30:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-27-codeql-hardening",
-    "date": "2026-06-27",
+    "run_id": "iterate-2026-06-28-bp1-webui-fr-backfill",
+    "date": "2026-06-28",
     "unit": {
       "status": "passed",
-      "passed": 3463,
-      "total": 3463
+      "passed": 3464,
+      "total": 3464
     },
     "integration": {
       "status": "not_run",
@@ -35,58 +35,46 @@
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "No mounted-UI behavior change to smoke. The only client edit is a display-only backslash escape in CommandPreviewPanel, which is unmounted dead code (referenced only by its own test) — there is no route to render it. The server qCmd change is edge-case-only: outputs are byte-identical for normal titles/paths (existing tests unchanged) and the new backslash/quote behavior is covered by unit tests. CodeQL config effect is verified by the GitHub re-scan on the PR."
+      "justification": "Data-only traceability backfill: the diff touches only .shipwright governance artifacts (event-log amendments + regenerated RTM/dashboard) and zero client/server/API/store/WS code, so there is no user-erlebbare surface to drive. Executable verification (re-running the existing server+client suites, 3464/3464 green, to verify the 9 Group-B endpoints) is recorded under iterate_latest.unit."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "qCmd doubles a trailing backslash before the closing quote",
+          "behavior": "After the backfill, all 245 pre-existing work_completed events are classified (FR-tagged or explicit none_reason) with zero untagged",
           "disposition": "tested",
-          "evidence": "server launcher.test.ts 'doubles a trailing backslash so it cannot escape the closing quote' PASSED"
+          "evidence": "apply_amendments fold over the backfilled shipwright_events.jsonl -> work_completed untagged=0 (tagged=156, none_reason=89)"
         },
         {
-          "behavior": "qCmd applies the 2N+1 rule to backslashes before an embedded quote",
+          "behavior": "events.jsonl round-trips: appended event_amended overlays fold via apply_amendments so compliance reads the corrected affected_frs (touches_io_boundary boundary probe)",
           "disposition": "tested",
-          "evidence": "server launcher.test.ts 'applies the 2N+1 rule to backslashes that precede an embedded quote' PASSED"
+          "evidence": "fold-verification script: Group-A FRs FR-01.05/.06/.23/.25/.27 present on their target events; iterate event carries the 9 Group-B FRs; distinct spec FRs covered = 41/41"
         },
         {
-          "behavior": "qCmd preserves an interior backslash run without doubling (paths stay byte-identical)",
+          "behavior": "RTM regenerates with zero NOT-VERIFIED requirements and 41/41 FRs covered",
           "disposition": "tested",
-          "evidence": "server launcher.test.ts 'preserves an interior backslash run (path) WITHOUT doubling it' PASSED"
+          "evidence": "update_compliance --phase iterate -> grep -c 'NOT VERIFIED' traceability-matrix.md = 0; 32 COVERED + 9 NO-TESTS = 41/41"
         },
         {
-          "behavior": "qCmd escapes an embedded double quote",
+          "behavior": "Control Grade recomputes A (95/100) from the backfilled inputs (B 85 -> A 95)",
           "disposition": "tested",
-          "evidence": "server launcher.test.ts 'escapes an embedded double quote' + existing cmd.exe escape test PASSED"
+          "evidence": "regenerated dashboard.md Control Verdict -> 'Control Grade: A (95/100)'; requirement-traceability dimension 41/41 covered, 157/246 FR-tagged"
         },
         {
-          "behavior": "qCmd doubles a pure trailing backslash run",
+          "behavior": "The 9 Group-B foundational endpoints (health/dismiss/preview/run-config/tree/file/actions-stub/diagnostics/settings) pass their existing route tests",
           "disposition": "tested",
-          "evidence": "server launcher.test.ts 'doubles a pure trailing backslash run (2 -> 4)' PASSED"
-        },
-        {
-          "behavior": "CommandPreviewPanel escapes backslash-before-quote in the --name title preview",
-          "disposition": "tested",
-          "evidence": "client CommandPreviewPanel.test.tsx 'escapes a backslash before a quote in the --name title' PASSED"
-        },
-        {
-          "behavior": "codeql.yml and codeql-config.yml are valid YAML",
-          "disposition": "tested",
-          "evidence": "pyyaml safe_load of both files succeeded"
-        },
-        {
-          "behavior": "security-extended + paths-ignore drop the non-production CodeQL alerts",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "effect is only observable when GitHub's hosted CodeQL workflow re-scans the PR; verified post-merge on the Security tab"
+          "evidence": "vitest run: server 1671/1671 + client 1793/1793 = 3464/3464 green, incl. index.test.ts, inbox/preview/run-config/tree/file/actions __tests__ routes, diagnostics.cli-context.test.ts, settings.test.ts"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
-        "untestable": 1,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 0,
         "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
       }
     },
     "degraded": []

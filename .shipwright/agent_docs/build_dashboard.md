@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-27 10:17 UTC | Session: f25c4c06-6068-4b24-b09b-a3c8ddce4d07 | Run: iterate-2026-06-27-codeql-hardening
+> Updated: 2026-06-28 07:25 UTC | Session: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b | Run: iterate-2026-06-28-bp1-webui-fr-backfill
 
-## Recent Changes (175 iterations)
+## Recent Changes (176 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here. | 3464/3464 |  | FR-01.07, FR-01.14, FR-01.17 | 2026-06-28 |
 | change | CodeQL noise reduction + qCmd cmd.exe quoting fix | 3463/3463 |  | infra | 2026-06-27 |
 | bug | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | 1789/1789 |  | FR-01.39 | 2026-06-27 |
 | bug | Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize. | 0/0 |  | FR-01.28 | 2026-06-27 |
