@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-28T23:40:00.000Z",
+  "last_updated": "2026-06-28T23:55:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-28-webui-dep-cve-fixes",
+    "run_id": "iterate-2026-06-28-webui-light-security",
     "date": "2026-06-28",
     "unit": {
-      "status": "passed",
-      "passed": 3464,
-      "total": 3464
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "integration": {
       "status": "not_run",
@@ -35,42 +35,31 @@
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Dependency security version bumps (7 packages to CVE-fixed versions); no source/logic change. Verified by the full server+client suites (3464/3464 green) + clean client (tsc+vite) and server (tsc) builds; the authoritative security verification is the PR's Trivy scan. No user-erlebbare behavior change to drive."
+      "justification": "Compliance data refresh (ingest the CI security scan into ci-security.json + regenerate the dashboard); no source/logic change, no startable surface. Verified by the regenerated dashboard (Security OK, Control Grade A 99) + ci-security.json (0 high/critical). No code changed since #180, so no test run is performed."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "The full server+client suites pass with the bumped dependencies (no regression)",
+          "behavior": "refresh_ci_security ingests the fresh main scan via the AR-10 SARIF fallback: 0 high/critical, critical_gate pass",
           "disposition": "tested",
-          "evidence": "vitest run: server 1671/1671 + client 1793/1793 = 3464/3464 green"
+          "evidence": "ci-security.json: open_high_critical=0, critical_gate=pass, by_severity {critical:0,high:0,medium:0,low:130}, source security.yml#28336942429"
         },
         {
-          "behavior": "Client + server compile and bundle with the bumped dependencies (no API break)",
+          "behavior": "The dashboard Security dimension lights OK (0 open high/critical) and the grade is A",
           "disposition": "tested",
-          "evidence": "client `tsc -b && vite build` built in 12.5s; server `tsc` exit 0"
-        },
-        {
-          "behavior": "The 7 flagged packages resolve to their CVE-fixed versions in the lock files",
-          "disposition": "tested",
-          "evidence": "npm ls: react-router@7.18.0, mermaid@11.16.0, dompurify@3.4.11, uuid@11.1.1 (client); hono@4.12.27, shell-quote@1.9.0, ws@8.21.0 (server)"
-        },
-        {
-          "behavior": "The security.yml Trivy scan reports 0 high/critical on the new lock files",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "Trivy is not installed locally; the authoritative scan runs in the PR's security.yml CI job and is checked there before merge."
+          "evidence": "regenerated dashboard.md: Security row OK '0 open high/critical'; Control Grade A (99/100), all 7 measurable dimensions green"
         }
       ],
       "counts": {
-        "testable": 3,
-        "tested": 3,
-        "untestable": 1,
+        "testable": 2,
+        "tested": 2,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 4,
-        "covered_acs": 4
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "degraded": []

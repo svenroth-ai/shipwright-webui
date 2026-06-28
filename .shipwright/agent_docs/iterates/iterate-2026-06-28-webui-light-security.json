@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-06-28-webui-light-security",
+  "date": "2026-06-28T21:55:46.984456Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/webui-light-security",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-28-webui-light-security"
+}

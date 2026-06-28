@@ -1,0 +1,1 @@
+Compliance: the Command Center dashboard now reports its CI Security posture (via AR-10 SARIF ingestion) - 0 high/critical after the dependency CVE fixes - lighting the Control-Grade Security dimension (A99, all measurable dimensions green).
