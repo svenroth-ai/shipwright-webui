@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-06-28T07:30:00.000Z",
+  "last_updated": "2026-06-28T22:05:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-28-bp1-webui-fr-backfill",
+    "run_id": "iterate-2026-06-28-webui-compliance-reformat",
     "date": "2026-06-28",
     "unit": {
       "status": "passed",
@@ -35,46 +35,41 @@
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Data-only traceability backfill: the diff touches only .shipwright governance artifacts (event-log amendments + regenerated RTM/dashboard) and zero client/server/API/store/WS code, so there is no user-erlebbare surface to drive. Executable verification (re-running the existing server+client suites, 3464/3464 green, to verify the 9 Group-B endpoints) is recorded under iterate_latest.unit."
+      "justification": "Data-only compliance regeneration + reconciliation: the diff touches only .shipwright governance artifacts (one event-log reconciliation event + regenerated RTM/dashboard/SBOM) and zero client/server/API/store/WS code, so there is no user-erlebbare surface. Executable verification (re-running the existing server+client suites, 3464/3464 green, to re-verify the behavior-touched FRs) is recorded under iterate_latest.unit."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "After the backfill, all 245 pre-existing work_completed events are classified (FR-tagged or explicit none_reason) with zero untagged",
+          "behavior": "Re-running the full suite re-verifies the behavior-touched FRs (server 1671 + client 1793)",
           "disposition": "tested",
-          "evidence": "apply_amendments fold over the backfilled shipwright_events.jsonl -> work_completed untagged=0 (tagged=156, none_reason=89)"
+          "evidence": "vitest run server 1671/1671 + client 1793/1793 = 3464/3464 green"
         },
         {
-          "behavior": "events.jsonl round-trips: appended event_amended overlays fold via apply_amendments so compliance reads the corrected affected_frs (touches_io_boundary boundary probe)",
+          "behavior": "After the reconciliation event, all 22 declared behavior-touched FRs are reconciled (0 unreconciled)",
           "disposition": "tested",
-          "evidence": "fold-verification script: Group-A FRs FR-01.05/.06/.23/.25/.27 present on their target events; iterate event carries the 9 Group-B FRs; distinct spec FRs covered = 41/41"
+          "evidence": "compute_reconciliation over the post-event log -> unreconciled=0/22 (was 12/22); dashboard 'Change reconciliation: 0/22 behavior-touched FRs not re-verified'"
         },
         {
-          "behavior": "RTM regenerates with zero NOT-VERIFIED requirements and 41/41 FRs covered",
+          "behavior": "Compliance docs regenerate with the current plugin: new Control-Grade block + RTM 'Reconciled?' column",
           "disposition": "tested",
-          "evidence": "update_compliance --phase iterate -> grep -c 'NOT VERIFIED' traceability-matrix.md = 0; 32 COVERED + 9 NO-TESTS = 41/41"
+          "evidence": "regenerated dashboard.md carries the cc1/cc2/cc3 rendering; traceability-matrix.md header includes the 'Reconciled?' column"
         },
         {
-          "behavior": "Control Grade recomputes A (95/100) from the backfilled inputs (B 85 -> A 95)",
+          "behavior": "Control Grade recomputes A (>=90) from the regenerated inputs (stale-plugin B89 -> A98)",
           "disposition": "tested",
-          "evidence": "regenerated dashboard.md Control Verdict -> 'Control Grade: A (95/100)'; requirement-traceability dimension 41/41 covered, 157/246 FR-tagged"
-        },
-        {
-          "behavior": "The 9 Group-B foundational endpoints (health/dismiss/preview/run-config/tree/file/actions-stub/diagnostics/settings) pass their existing route tests",
-          "disposition": "tested",
-          "evidence": "vitest run: server 1671/1671 + client 1793/1793 = 3464/3464 green, incl. index.test.ts, inbox/preview/run-config/tree/file/actions __tests__ routes, diagnostics.cli-context.test.ts, settings.test.ts"
+          "evidence": "regenerated dashboard.md 'Control Grade: A (98/100)'; all measurable dims green except Security (n/a, deferred AR-10)"
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 4,
+        "covered_acs": 4
       }
     },
     "degraded": []

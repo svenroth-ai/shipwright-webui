@@ -1,21 +1,22 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-28T07:25:36.473436+00:00
+Generated: 2026-06-28T19:58:45.050449+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
-| Runtime dependencies | 43 |
+| Runtime dependencies | 43 (deduplicated) |
 | Dev dependencies | 23 |
 | Total packages | 66 |
+| Licenses resolved | 66 / 66 |
 | Unique licenses | 4 (Apache-2.0, BSD-3-Clause, ISC, MIT) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution
+pie title License Distribution (all 66 packages)
     "MIT" : 61
     "Apache-2.0" : 3
     "BSD-3-Clause" : 1
@@ -100,5 +101,5 @@ pie title License Distribution
 
 ## License Compliance
 
-No license concerns: all resolved dependencies are permissively licensed.
+No license concerns: all 66 packages resolved (0 unknown, 0 copyleft).
 
