@@ -1,6 +1,6 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-06-28T19:58:45.050449+00:00
+Generated: 2026-06-28T21:36:01.258356+00:00
 
 ## Summary
 
@@ -50,23 +50,23 @@ pie title License Distribution (all 66 packages)
 | @xterm/headless | 6.0.0 | MIT |
 | @xterm/xterm | 6.0.0 | MIT |
 | diff | ^5.2.2 | BSD-3-Clause |
-| hono | ^4.7.0 | MIT |
+| hono | ^4.12.25 | MIT |
 | ignore | ^5.3.2 | MIT |
 | lucide-react | ^0.400.0 | ISC |
-| mermaid | ^11.14.0 | MIT |
+| mermaid | ^11.15.0 | MIT |
 | p-queue | ^9.2.0 | MIT |
 | proper-lockfile | ^4.1.0 | MIT |
 | react | ^19.0.0 | MIT |
 | react-dom | ^19.0.0 | MIT |
 | react-markdown | ^10.1.0 | MIT |
 | react-resizable-panels | ^2.1.9 | MIT |
-| react-router-dom | ^7.0.0 | MIT |
+| react-router-dom | ^7.15.0 | MIT |
 | rehype-highlight | ^7.0.2 | MIT |
 | rehype-raw | ^7.0.0 | MIT |
 | rehype-sanitize | ^6.0.0 | MIT |
 | rehype-slug | ^6.0.0 | MIT |
 | remark-gfm | ^4.0.1 | MIT |
-| shell-quote | ^1.8.3 | MIT |
+| shell-quote | ^1.8.4 | MIT |
 | strip-ansi | ^7.2.0 | MIT |
 | tiptap-markdown | ^0.8.10 | MIT |
 | zustand | ^4.5.7 | MIT |

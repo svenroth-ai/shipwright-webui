@@ -1,7 +1,7 @@
 {
-  "last_updated": "2026-06-28T22:05:00.000Z",
+  "last_updated": "2026-06-28T23:40:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-28-webui-compliance-reformat",
+    "run_id": "iterate-2026-06-28-webui-dep-cve-fixes",
     "date": "2026-06-28",
     "unit": {
       "status": "passed",
@@ -35,36 +35,37 @@
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Data-only compliance regeneration + reconciliation: the diff touches only .shipwright governance artifacts (one event-log reconciliation event + regenerated RTM/dashboard/SBOM) and zero client/server/API/store/WS code, so there is no user-erlebbare surface. Executable verification (re-running the existing server+client suites, 3464/3464 green, to re-verify the behavior-touched FRs) is recorded under iterate_latest.unit."
+      "justification": "Dependency security version bumps (7 packages to CVE-fixed versions); no source/logic change. Verified by the full server+client suites (3464/3464 green) + clean client (tsc+vite) and server (tsc) builds; the authoritative security verification is the PR's Trivy scan. No user-erlebbare behavior change to drive."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Re-running the full suite re-verifies the behavior-touched FRs (server 1671 + client 1793)",
+          "behavior": "The full server+client suites pass with the bumped dependencies (no regression)",
           "disposition": "tested",
-          "evidence": "vitest run server 1671/1671 + client 1793/1793 = 3464/3464 green"
+          "evidence": "vitest run: server 1671/1671 + client 1793/1793 = 3464/3464 green"
         },
         {
-          "behavior": "After the reconciliation event, all 22 declared behavior-touched FRs are reconciled (0 unreconciled)",
+          "behavior": "Client + server compile and bundle with the bumped dependencies (no API break)",
           "disposition": "tested",
-          "evidence": "compute_reconciliation over the post-event log -> unreconciled=0/22 (was 12/22); dashboard 'Change reconciliation: 0/22 behavior-touched FRs not re-verified'"
+          "evidence": "client `tsc -b && vite build` built in 12.5s; server `tsc` exit 0"
         },
         {
-          "behavior": "Compliance docs regenerate with the current plugin: new Control-Grade block + RTM 'Reconciled?' column",
+          "behavior": "The 7 flagged packages resolve to their CVE-fixed versions in the lock files",
           "disposition": "tested",
-          "evidence": "regenerated dashboard.md carries the cc1/cc2/cc3 rendering; traceability-matrix.md header includes the 'Reconciled?' column"
+          "evidence": "npm ls: react-router@7.18.0, mermaid@11.16.0, dompurify@3.4.11, uuid@11.1.1 (client); hono@4.12.27, shell-quote@1.9.0, ws@8.21.0 (server)"
         },
         {
-          "behavior": "Control Grade recomputes A (>=90) from the regenerated inputs (stale-plugin B89 -> A98)",
-          "disposition": "tested",
-          "evidence": "regenerated dashboard.md 'Control Grade: A (98/100)'; all measurable dims green except Security (n/a, deferred AR-10)"
+          "behavior": "The security.yml Trivy scan reports 0 high/critical on the new lock files",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "Trivy is not installed locally; the authoritative scan runs in the PR's security.yml CI job and is checked there before merge."
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
-        "untestable": 0,
+        "testable": 3,
+        "tested": 3,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
