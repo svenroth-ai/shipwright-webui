@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-27T10:17:41.216697+00:00
-Total commits: 600
+Generated: 2026-06-28T07:25:36.473436+00:00
+Total commits: 601
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 217
+    "fix" : 218
     "feat" : 145
     "chore" : 118
     "docs" : 63
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 217 commits
+### Fixes (fix) — 218 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-27 | security | harden cmd.exe arg quoting + scope CodeQL to production code (#177) | 9a32dde59ae7 |
 | 2026-06-27 | terminal | repaint on WebGL texture-atlas mutation to heal wrong-glyph corruption (#175) | dc14701a3fd0 |
 | 2026-06-27 | mobile | stop iOS focus-zoom + equalize modal footer buttons on touch (#174) | f2fe10eb2349 |
 | 2026-06-23 | board | drop a dragged card without flipping it back to origin (#170) | 4f8daded5cd1 |
@@ -669,7 +670,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 600 |
+| Total commits | 601 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 600 |
+| Human-authored commits | 601 |
 

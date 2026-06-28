@@ -1,42 +1,42 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-27T10:17:41.216697+00:00
+Generated: 2026-06-28T07:25:36.473436+00:00
 
 ## Requirements Coverage
 
 | Requirement | Title | Priority | Verified By | Tests | Last Verified | Status |
 |-------------|-------|----------|-------------|-------|---------------|--------|
-| [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +8 | 624/624 → 1780/1780 | 2026-06-23 (iter) | COVERED |
-| [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +8 | 640/640 → 1335/1335 | 2026-05-30 (iter) | COVERED |
+| [FR-01.01](../../.shipwright/planning/01-adopted/spec.md#fr-0101) | Landing page. Lists every registered task across all project... | Must | evt-2ab2142e, evt-8063cac5, evt-e8374408, evt-50e36386 +9 | 624/624 → 1780/1780 | 2026-06-23 (iter) | COVERED |
+| [FR-01.02](../../.shipwright/planning/01-adopted/spec.md#fr-0102) | Three-pane layout: left FolderTree of the project root (giti... | Must | evt-67fc7571, evt-3d7bab8e, evt-63a24776, evt-672b7ac9 +17 | 640/640 → 1335/1335 | 2026-05-30 (iter) | COVERED |
 | [FR-01.03](../../.shipwright/planning/01-adopted/spec.md#fr-0103) | CRUD for the project registry persisted at `~/.shipwright-we... | Must | evt-0c3127ae, evt-33b2e81f | 786/786 | 2026-05-12 (iter) | COVERED |
 | [FR-01.04](../../.shipwright/planning/01-adopted/spec.md#fr-0104) | Best-effort surface for pending Claude tool_use blocks (nota... | Must | evt-7c294eb7 | 2062/2062 | 2026-05-18 (iter) | COVERED |
-| [FR-01.05](../../.shipwright/planning/01-adopted/spec.md#fr-0105) | Read-only view of Claude CLI version, the resolved profiles ... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.06](../../.shipwright/planning/01-adopted/spec.md#fr-0106) | Minimal placeholder page. Most settings now live inside the ... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.07](../../.shipwright/planning/01-adopted/spec.md#fr-0107) | Liveness probe used by `dev_server.py`, smoke tests, and the... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.08](../../.shipwright/planning/01-adopted/spec.md#fr-0108) | GET returns every persisted task from `sdk-sessions.json` wi... | Must | evt-50e36386, evt-b1f24f66, evt-40acd669 | 1780/1780 → 2042/2042 | 2026-05-18 (iter) | COVERED |
+| [FR-01.05](../../.shipwright/planning/01-adopted/spec.md#fr-0105) | Read-only view of Claude CLI version, the resolved profiles ... | Must | evt-b2bdc9ae | 1331/1331 | 2026-05-30 (iter) | COVERED |
+| [FR-01.06](../../.shipwright/planning/01-adopted/spec.md#fr-0106) | Minimal placeholder page. Most settings now live inside the ... | Must | evt-72678829 | — | — | NO TESTS |
+| [FR-01.07](../../.shipwright/planning/01-adopted/spec.md#fr-0107) | Liveness probe used by `dev_server.py`, smoke tests, and the... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.08](../../.shipwright/planning/01-adopted/spec.md#fr-0108) | GET returns every persisted task from `sdk-sessions.json` wi... | Must | evt-50e36386, evt-947618e7, evt-b1f24f66, evt-40acd669 | 1780/1780 → 2042/2042 | 2026-05-18 (iter) | COVERED |
 | [FR-01.09](../../.shipwright/planning/01-adopted/spec.md#fr-0109) | GET returns the full task row with derived state. PATCH allo... | Must | evt-40acd669 | 2042/2042 | 2026-05-18 (iter) | COVERED |
 | [FR-01.10](../../.shipwright/planning/01-adopted/spec.md#fr-0110) | Returns the three-shell copy-command (PowerShell / cmd.exe /... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-40d7b72c +3 | 1269/1269 → 1152/1152 | 2026-05-18 (iter) | COVERED |
 | [FR-01.11](../../.shipwright/planning/01-adopted/spec.md#fr-0111) | Same shape as launch but for `--resume` of an existing sessi... | Must | evt-34871d4b, evt-4e316884, evt-c65151e1, evt-fb2b90ee | 1717/1717 → 1123/1123 | 2026-05-18 (iter) | COVERED |
 | [FR-01.12](../../.shipwright/planning/01-adopted/spec.md#fr-0112) | Reads `~/.claude/projects/<encoded-cwd>/<uuid>.jsonl` as a U... | Must | evt-1ddcfe3e | — | — | NO TESTS |
 | [FR-01.13](../../.shipwright/planning/01-adopted/spec.md#fr-0113) | Walks every tracked task's JSONL via `inbox-derive.ts` and r... | Must | evt-7c294eb7, evt-3d1274f6 | 2062/2062 → 979/979 | 2026-05-19 (iter) | COVERED |
-| [FR-01.14](../../.shipwright/planning/01-adopted/spec.md#fr-0114) | Adds the toolUseId to the dismissed set so subsequent inbox ... | Must | — | — | — | NOT VERIFIED |
+| [FR-01.14](../../.shipwright/planning/01-adopted/spec.md#fr-0114) | Adds the toolUseId to the dismissed set so subsequent inbox ... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
 | [FR-01.15](../../.shipwright/planning/01-adopted/spec.md#fr-0115) | Marks the task as completed in the registry without spawning... | Must | evt-0f78d991 | 857/857 | 2026-05-15 (iter) | COVERED |
 | [FR-01.16](../../.shipwright/planning/01-adopted/spec.md#fr-0116) | Resolves the merged action catalog for a project: `<project>... | Must | evt-50e36386 | 1780/1780 | 2026-05-14 (iter) | COVERED |
-| [FR-01.17](../../.shipwright/planning/01-adopted/spec.md#fr-0117) | Spawns the project's `dev_server.command` (from its stack pr... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.18](../../.shipwright/planning/01-adopted/spec.md#fr-0118) | Read-only forwarder for `<project.path>/shipwright_run_confi... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.19](../../.shipwright/planning/01-adopted/spec.md#fr-0119) | Lazy-expand listing for the FolderTree component. Honors git... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.20](../../.shipwright/planning/01-adopted/spec.md#fr-0120) | Reads a single file under the project root with the same rea... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.21](../../.shipwright/planning/01-adopted/spec.md#fr-0121) | One-shot: writes an empty (but schema-valid) `.shipwright-we... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.22](../../.shipwright/planning/01-adopted/spec.md#fr-0122) | Returns CLI version (refreshed on demand), profiles dir, sam... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.23](../../.shipwright/planning/01-adopted/spec.md#fr-0123) | Lists every stack profile from the resolved profiles dir (ov... | Must | — | — | — | NOT VERIFIED |
+| [FR-01.17](../../.shipwright/planning/01-adopted/spec.md#fr-0117) | Spawns the project's `dev_server.command` (from its stack pr... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.18](../../.shipwright/planning/01-adopted/spec.md#fr-0118) | Read-only forwarder for `<project.path>/shipwright_run_confi... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.19](../../.shipwright/planning/01-adopted/spec.md#fr-0119) | Lazy-expand listing for the FolderTree component. Honors git... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.20](../../.shipwright/planning/01-adopted/spec.md#fr-0120) | Reads a single file under the project root with the same rea... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.21](../../.shipwright/planning/01-adopted/spec.md#fr-0121) | One-shot: writes an empty (but schema-valid) `.shipwright-we... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.22](../../.shipwright/planning/01-adopted/spec.md#fr-0122) | Returns CLI version (refreshed on demand), profiles dir, sam... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.23](../../.shipwright/planning/01-adopted/spec.md#fr-0123) | Lists every stack profile from the resolved profiles dir (ov... | Must | evt-0c3127ae, evt-33b2e81f | 786/786 | 2026-05-12 (iter) | COVERED |
 | [FR-01.24](../../.shipwright/planning/01-adopted/spec.md#fr-0124) | GET lists all registered projects. POST creates a new one (v... | Must | evt-b81d5d5e | 537/537 | 2026-05-01 (iter) | COVERED |
-| [FR-01.25](../../.shipwright/planning/01-adopted/spec.md#fr-0125) | GET returns the project row. PATCH updates name / profile / ... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.26](../../.shipwright/planning/01-adopted/spec.md#fr-0126) | GET returns the current settings JSON. PUT replaces it (lock... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | — | — | — | NOT VERIFIED |
-| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +33 | 632/632 → 1762/1762 | 2026-06-20 (iter) | COVERED |
+| [FR-01.25](../../.shipwright/planning/01-adopted/spec.md#fr-0125) | GET returns the project row. PATCH updates name / profile / ... | Must | evt-72678829 | — | — | NO TESTS |
+| [FR-01.26](../../.shipwright/planning/01-adopted/spec.md#fr-0126) | GET returns the current settings JSON. PUT replaces it (lock... | Must | evt-944c534d | 3464/3464 | 2026-06-28 (iter) | COVERED |
+| [FR-01.27](../../.shipwright/planning/01-adopted/spec.md#fr-0127) | Settings page lets the user pick a registered project, see i... | Must | evt-72678829 | — | — | NO TESTS |
+| [FR-01.28](../../.shipwright/planning/01-adopted/spec.md#fr-0128) | TaskDetail center pane renders a Toggle-Tab `Transcript / Te... | Must | evt-2b5c611e, evt-1d82d470, evt-f6239468, evt-c36275c2 +62 | 632/632 → 1762/1762 | 2026-06-20 (iter) | COVERED |
 | [FR-01.29](../../.shipwright/planning/01-adopted/spec.md#fr-0129) | DOM `paste` listener (capture phase) on the xterm container ... | Must | evt-672b7ac9, evt-634b8c4a, evt-c9e4d4b4, evt-fcfee60e +2 | 1269/1269 → 970/970 | 2026-05-18 (iter) | COVERED |
-| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-2d58b346, evt-eba3538b, evt-d508eaff, evt-058d9da0 +7 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
-| [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +1 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
+| [FR-01.30](../../.shipwright/planning/01-adopted/spec.md#fr-0130) | New top-level `/triage` route + sidebar entry surfacing `<pr... | Must | evt-b4369c7f, evt-2d58b346, evt-eba3538b, evt-d508eaff +8 | 855/855 → 2198/2198 | 2026-05-22 (iter) | COVERED |
+| [FR-01.31](../../.shipwright/planning/01-adopted/spec.md#fr-0131) | The dev servers default-bind loopback for safety; non-loopba... | Should | evt-b021ddde, evt-a160f564, evt-909d149c, evt-5c8a15ea +5 | 7/7 → 1606/1606 | 2026-05-10 (iter) | COVERED |
 | [FR-01.32](../../.shipwright/planning/01-adopted/spec.md#fr-0132) | `POST /api/external/tasks/:id/backlog` flips an In-Progress ... | Must | evt-218c0d5d, evt-c5df348e, evt-83b9b73f | 1994/1994 → 1985/1985 | 2026-05-17 (iter) | COVERED |
 | [FR-01.33](../../.shipwright/planning/01-adopted/spec.md#fr-0133) | A read-only **Campaigns lane** above the kanban on `TaskBoar... | Should | evt-177f8389, evt-0e15ddd7, evt-1c746044, evt-156ca7b5 +8 | 1550/1550 → 1611/1611 | 2026-06-12 (iter) | COVERED |
 | [FR-01.34](../../.shipwright/planning/01-adopted/spec.md#fr-0134) | A SECOND Campaigns-lane action — **Launch autonomous** — tha... | Should | evt-7da49dda, evt-c59f2257, evt-85988543 | 1700/1700 | 2026-06-16 (iter) | COVERED |
@@ -81,78 +81,78 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 | v0.9.3 resume state-machine: scope active→idle JSONL-mtime decay to non-new-plain (ADR-085) | iterate | bug | FR-01.28 | 1636/1636 | 4bb3799 | 2026-05-11 |
 | v0.9.4 skip disk-scrollback replay on attach for new-plain tasks (Claude TUI byte-stacking corruption fix; ADR-086) | iterate | bug | FR-01.28 | 1636/1636 | fbfb449 | 2026-05-11 |
 | Iterate F headless-terminal-refactor: xterm.js convertEol+allowProposedApi+scrollback alignment + WebglAddon try/catch fallback; follow-on to ADR-092 for in-session status-pane redraw stacking (ADR-093) | iterate | change | FR-01.28 | 777/777 | 6f715fc | 2026-05-12 |
-| dynamic-stack-profiles: wizard step 2 renders from /api/profiles + bundled snapshot refresh (ADR-094) | iterate | change | FR-01.03 | 786/786 | 134a2e2 | 2026-05-12 |
-| Iterate G — Claude TUI flicker env + Resume button gating (ADR-095) | iterate-G | bug |  | 1707/1707 | 5807eb0 | 2026-05-13 |
+| dynamic-stack-profiles: wizard step 2 renders from /api/profiles + bundled snapshot refresh (ADR-094) | iterate | change | FR-01.03, FR-01.23 | 786/786 | 134a2e2 | 2026-05-12 |
+| Iterate G — Claude TUI flicker env + Resume button gating (ADR-095) | iterate-G | bug | FR-01.02 | 1707/1707 | 5807eb0 | 2026-05-13 |
 | Iterate H — Snapshot preservation on pty death + TaskCard Resume gating (ADR-096) | iterate | bug | FR-01.28, FR-01.11 | 1717/1717 | 17d75c9 | 2026-05-13 |
-| Restore CLAUDE_CODE_NO_FLICKER=1 default (ADR-098 - Iterate J) | iterate-runner | bug |  | 1720/1720 | 8be8937 | 2026-05-13 |
+| Restore CLAUDE_CODE_NO_FLICKER=1 default (ADR-098 - Iterate J) | iterate-runner | bug | FR-01.28 | 1720/1720 | 8be8937 | 2026-05-13 |
 | leadwright Phase 1 ExternalTask extension (13 optional fields) | iterate | feature | FR-01.01, FR-01.08, FR-01.10 +1 | 1780/1780 | c70f848 | 2026-05-14 |
-| server-side ?1006h re-emit in replay-snapshot envelope (Iterate K) | iterate-K-retro | bug |  | — | 814620c | 2026-05-14 |
-| Iterate K v1: 30s periodic clearTextureAtlas + onScroll | iterate-K-retro | bug |  | — | bd9e3ea | 2026-05-14 |
-| Iterate K v2: 10s periodic + term.refresh() after clear | iterate-K-retro | bug |  | — | 4e8f938 | 2026-05-14 |
-| Iterate K v3: conditional via onWriteParsed counter (skip when idle) | iterate-K-retro | bug |  | — | f0ce31a | 2026-05-14 |
-| Iterate K v4: skip atlas-clear in alt-screen buffer | iterate-K-retro | bug |  | — | bf7b05f | 2026-05-14 |
-| Iterate K v5: split main = clear+refresh, alt = refresh-only | iterate-K-retro | bug |  | — | e9aa804 | 2026-05-14 |
-| Iterate K v6: burst-after-2s-quiet trigger via onWriteParsed | iterate-K-retro | bug |  | — | 104435b | 2026-05-14 |
-| Iterate K Vite WS proxy: swallow ECONNRESET/ECONNABORTED/EPIPE | iterate-K-retro | bug |  | — | 05724ca | 2026-05-14 |
+| server-side ?1006h re-emit in replay-snapshot envelope (Iterate K) | iterate-K-retro | bug | FR-01.28 | — | 814620c | 2026-05-14 |
+| Iterate K v1: 30s periodic clearTextureAtlas + onScroll | iterate-K-retro | bug | FR-01.28 | — | bd9e3ea | 2026-05-14 |
+| Iterate K v2: 10s periodic + term.refresh() after clear | iterate-K-retro | bug | FR-01.28 | — | 4e8f938 | 2026-05-14 |
+| Iterate K v3: conditional via onWriteParsed counter (skip when idle) | iterate-K-retro | bug | FR-01.28 | — | f0ce31a | 2026-05-14 |
+| Iterate K v4: skip atlas-clear in alt-screen buffer | iterate-K-retro | bug | FR-01.28 | — | bf7b05f | 2026-05-14 |
+| Iterate K v5: split main = clear+refresh, alt = refresh-only | iterate-K-retro | bug | FR-01.28 | — | e9aa804 | 2026-05-14 |
+| Iterate K v6: burst-after-2s-quiet trigger via onWriteParsed | iterate-K-retro | bug | FR-01.28 | — | 104435b | 2026-05-14 |
+| Iterate K Vite WS proxy: swallow ECONNRESET/ECONNABORTED/EPIPE | iterate-K-retro | bug | FR-01.28 | — | 05724ca | 2026-05-14 |
 | Iterate K cherry-pick: D-e2e task-type matrix | iterate-K-retro | test |  | — | 84c014c | 2026-05-14 |
-| Iterate K v7: pre-init lastWriteTime + post-mount-settle backstop | iterate-K-retro | bug |  | — | e01bae9 | 2026-05-14 |
-| Iterate K v8: DOM wheel listener (Tabby pattern) + 10-scenario systematic Playwright probe | iterate-K-retro | bug |  | — | f07a66d | 2026-05-14 |
-| Iterate K: ?atlasMaintenance=off kill switch + A/B regression probes (stills + video) | iterate-K-retro | chore |  | — | d67ada6 | 2026-05-14 |
-| Iterate K v9: post-launch-settle backstop (4s after consumeLaunch) for Resume-click-in-long-mounted-tab | iterate-K-retro | bug |  | — | 44102aa | 2026-05-14 |
-| Merge PR #14: Iterate K v1-v9 (xterm.js 6.0 atlas-corruption workaround) | iterate-K-merge-retro | merge |  | — | 3b8bc0d | 2026-05-14 |
-| Iterate M (Resume CTA active-state followup) + ADR-099 v10 (post-replay maintenance) | iterate-M-retro | bug |  | — | 28daae1 | 2026-05-15 |
-| Merge pull request #17 from svenroth-ai/iterate/triage-tab | backfill-merge-retro | merge |  | — | bfc15d8 | 2026-05-15 |
-| Merge pull request #16 from svenroth-ai/iterate/post-merge-resume-gate-and-replay-smear | backfill-merge-retro | merge |  | — | adcbec5 | 2026-05-15 |
+| Iterate K v7: pre-init lastWriteTime + post-mount-settle backstop | iterate-K-retro | bug | FR-01.28 | — | e01bae9 | 2026-05-14 |
+| Iterate K v8: DOM wheel listener (Tabby pattern) + 10-scenario systematic Playwright probe | iterate-K-retro | bug | FR-01.28 | — | f07a66d | 2026-05-14 |
+| Iterate K: ?atlasMaintenance=off kill switch + A/B regression probes (stills + video) | iterate-K-retro | chore | FR-01.28 | — | d67ada6 | 2026-05-14 |
+| Iterate K v9: post-launch-settle backstop (4s after consumeLaunch) for Resume-click-in-long-mounted-tab | iterate-K-retro | bug | FR-01.28 | — | 44102aa | 2026-05-14 |
+| Merge PR #14: Iterate K v1-v9 (xterm.js 6.0 atlas-corruption workaround) | iterate-K-merge-retro | merge | FR-01.28 | — | 3b8bc0d | 2026-05-14 |
+| Iterate M (Resume CTA active-state followup) + ADR-099 v10 (post-replay maintenance) | iterate-M-retro | bug | FR-01.02 | — | 28daae1 | 2026-05-15 |
+| Merge pull request #17 from svenroth-ai/iterate/triage-tab | backfill-merge-retro | merge | FR-01.30 | — | bfc15d8 | 2026-05-15 |
+| Merge pull request #16 from svenroth-ai/iterate/post-merge-resume-gate-and-replay-smear | backfill-merge-retro | merge | FR-01.02 | — | adcbec5 | 2026-05-15 |
 | docs(readme): add Triage tab section (FR-01.30, ADR-101) | backfill-retro | docs |  | — | 07812ad | 2026-05-15 |
 | feat(triage): WebUI Triage Tab + Promote bridge (FR-01.30, ADR-101) | backfill-retro | feature | FR-01.30 | — | 536f530 | 2026-05-15 |
-| Merge pull request #15 from svenroth-ai/iterate/lead-foundation-task-schema | backfill-merge-retro | merge |  | — | bf14300 | 2026-05-14 |
-| feat(wizard): render stack-profile step dynamically from /api/profiles | backfill-retro | feature | FR-01.03 | — | b0e2aa4 | 2026-05-14 |
+| Merge pull request #15 from svenroth-ai/iterate/lead-foundation-task-schema | backfill-merge-retro | merge | FR-01.08 | — | bf14300 | 2026-05-14 |
+| feat(wizard): render stack-profile step dynamically from /api/profiles | backfill-retro | feature | FR-01.03, FR-01.23 | — | b0e2aa4 | 2026-05-14 |
 | Merge pull request #13 from svenroth-ai/docs/launch-flow-and-tooltip-alignment | backfill-merge-retro | merge |  | — | 05403f0 | 2026-05-14 |
 | docs(changelog): add two unreleased drops for CLAUDE.md alignment + Structure drift fix | backfill-retro | docs |  | — | e06a5eb | 2026-05-14 |
 | docs(claude-md): align WHAT/Architecture rules to embedded-terminal auto-execute + close Structure drift | backfill-retro | docs |  | — | 25f7f6d | 2026-05-14 |
 | docs(client): drop stale "nothing copies" from Save-to-Backlog tooltip | backfill-retro | docs |  | — | ca10944 | 2026-05-14 |
 | docs(guide): align launch flow to embedded-terminal auto-execute | backfill-retro | docs |  | — | 6c9937f | 2026-05-14 |
 | Merge pull request #12 from svenroth-ai/iterate/codex-rescue-altscreen-rendering | backfill-merge-retro | merge |  | — | 0626706 | 2026-05-14 |
-| fix(terminal): WebGL load-order + rescaleOverlappingGlyphs (ADR-099) | backfill-retro | bug |  | — | cd6b9f7 | 2026-05-14 |
-| Merge pull request #11 from svenroth-ai/iterate/resume-cta-active-state | backfill-merge-retro | merge |  | — | 460f341 | 2026-05-14 |
+| fix(terminal): WebGL load-order + rescaleOverlappingGlyphs (ADR-099) | backfill-retro | bug | FR-01.28 | — | cd6b9f7 | 2026-05-14 |
+| Merge pull request #11 from svenroth-ai/iterate/resume-cta-active-state | backfill-merge-retro | merge | FR-01.02 | — | 460f341 | 2026-05-14 |
 | feat(server,client): introduce altScreenActive — hide Resume while TUI is foregrounded | backfill-retro | feature | FR-01.28 | — | 56b3b8a | 2026-05-14 |
-| fix(server): refine new-plain Resume gate — emit --resume when JSONL exists | backfill-retro | bug |  | — | 9d1167e | 2026-05-14 |
-| fix(client): drop liveSession gating — Resume CTA always shows on idle/active | backfill-retro | bug |  | — | 0173d43 | 2026-05-14 |
+| fix(server): refine new-plain Resume gate — emit --resume when JSONL exists | backfill-retro | bug | FR-01.02 | — | 9d1167e | 2026-05-14 |
+| fix(client): drop liveSession gating — Resume CTA always shows on idle/active | backfill-retro | bug | FR-01.02 | — | 0173d43 | 2026-05-14 |
 | feat(client): surface Resume CTA on state=active when pty is gone | backfill-retro | feature | FR-01.28 | — | 1525efd | 2026-05-14 |
-| Merge iterate/headless-J-restore-no-flicker-default (ADR-098 — restore NO_FLICKER default after empirical Claude #37283 finding) | backfill-merge-retro | merge |  | — | 79dd375 | 2026-05-13 |
+| Merge iterate/headless-J-restore-no-flicker-default (ADR-098 — restore NO_FLICKER default after empirical Claude #37283 finding) | backfill-merge-retro | merge | FR-01.28 | — | 79dd375 | 2026-05-13 |
 | Merge iterate/refresh-newissue-tooltips — NewIssueModal copy aligned to auto-execute embedded-terminal flow (ADR-068-A1) | backfill-merge-retro | merge |  | — | 658fcb9 | 2026-05-13 |
 | refactor(client): refresh NewIssueModal copy to match auto-execute flow | backfill-retro | change | FR-01.08 | — | 9aae13a | 2026-05-13 |
-| Merge iterate/xterm-6-upgrade (ADR-097 — xterm.js 5.5.0 → 6.0.0; amends ADR-088 pin + ADR-095 NO_FLICKER default) | backfill-merge-retro | merge |  | — | 095cf67 | 2026-05-13 |
+| Merge iterate/xterm-6-upgrade (ADR-097 — xterm.js 5.5.0 → 6.0.0; amends ADR-088 pin + ADR-095 NO_FLICKER default) | backfill-merge-retro | merge | FR-01.28 | — | 095cf67 | 2026-05-13 |
 | test(e2e): migrate readXtermRows helper from DOM-locator to buffer-peek | backfill-retro | test |  | — | b3bdf70 | 2026-05-13 |
 | refactor(client,server): upgrade xterm.js 5.5.0 -> 6.0.0 (ADR-097) | backfill-retro | change | FR-01.28 | — | d96fa9b | 2026-05-13 |
-| Merge iterate/headless-H-snapshot-preservation-taskcard-gating (ADR-096 — finalizeMirrorSnapshot preservation heuristic + TaskCard Resume gating) | backfill-merge-retro | merge |  | — | 10b61a4 | 2026-05-13 |
-| Merge iterate/headless-G-flicker-env-and-resume-gating (ADR-095 — Claude TUI flicker env + Resume button gating) | backfill-merge-retro | merge |  | — | 58edfce | 2026-05-13 |
-| Merge iterate/headless-F-xterm-config-vorbild-align (ADR-093 — xterm.js Vorbild-Alignment for in-session status-pane stacking fix) | backfill-merge-retro | merge |  | — | d2e4603 | 2026-05-13 |
-| Merge iterate/headless-E-live-pty-snapshot-fix (ADR-092 — closes ADR-091 live-pty replay regression) | backfill-merge-retro | merge |  | — | d1c3898 | 2026-05-12 |
+| Merge iterate/headless-H-snapshot-preservation-taskcard-gating (ADR-096 — finalizeMirrorSnapshot preservation heuristic + TaskCard Resume gating) | backfill-merge-retro | merge | FR-01.02 | — | 10b61a4 | 2026-05-13 |
+| Merge iterate/headless-G-flicker-env-and-resume-gating (ADR-095 — Claude TUI flicker env + Resume button gating) | backfill-merge-retro | merge | FR-01.02 | — | 58edfce | 2026-05-13 |
+| Merge iterate/headless-F-xterm-config-vorbild-align (ADR-093 — xterm.js Vorbild-Alignment for in-session status-pane stacking fix) | backfill-merge-retro | merge | FR-01.28 | — | d2e4603 | 2026-05-13 |
+| Merge iterate/headless-E-live-pty-snapshot-fix (ADR-092 — closes ADR-091 live-pty replay regression) | backfill-merge-retro | merge | FR-01.28 | — | d1c3898 | 2026-05-12 |
 | docs(server,test): sweep stale disk-first comment + tighten cursor axis assertion (E code-review follow-up) | backfill-retro | docs |  | — | 54ee271 | 2026-05-12 |
-| fix(server): live-pty replay via serialize-on-attach + snapshot-on-detach (ADR-092) | backfill-retro | bug |  | — | c2d99f1 | 2026-05-12 |
-| fix(server): mark @xterm/headless fixture as binary; pin LF-normalized size | backfill-retro | bug |  | — | b369819 | 2026-05-12 |
-| Merge iterate/headless-C-retire-compensations (ADR-087 — campaign headless-terminal-refactor C; supersedes ADR-069/077/079/086) | backfill-merge-retro | merge |  | — | 8a56e3e | 2026-05-12 |
-| Merge iterate/headless-B-snapshot-protocol (ADR-089 — campaign headless-terminal-refactor B) | backfill-merge-retro | merge |  | — | 023e1c2 | 2026-05-12 |
-| Merge iterate/headless-A-mirror-flag (ADR-088 — campaign headless-terminal-refactor A) | backfill-merge-retro | merge |  | — | e3ec347 | 2026-05-12 |
+| fix(server): live-pty replay via serialize-on-attach + snapshot-on-detach (ADR-092) | backfill-retro | bug | FR-01.28 | — | c2d99f1 | 2026-05-12 |
+| fix(server): mark @xterm/headless fixture as binary; pin LF-normalized size | backfill-retro | bug | FR-01.28 | — | b369819 | 2026-05-12 |
+| Merge iterate/headless-C-retire-compensations (ADR-087 — campaign headless-terminal-refactor C; supersedes ADR-069/077/079/086) | backfill-merge-retro | merge | FR-01.28 | — | 8a56e3e | 2026-05-12 |
+| Merge iterate/headless-B-snapshot-protocol (ADR-089 — campaign headless-terminal-refactor B) | backfill-merge-retro | merge | FR-01.28 | — | 023e1c2 | 2026-05-12 |
+| Merge iterate/headless-A-mirror-flag (ADR-088 — campaign headless-terminal-refactor A) | backfill-merge-retro | merge | FR-01.28 | — | e3ec347 | 2026-05-12 |
 | docs(terminal): sweep stale chunked-replay references post-ADR-087 (campaign code-review follow-up) | backfill-retro | docs |  | — | 7c17b0e | 2026-05-12 |
 | refactor(terminal): retire ADR-069/077/079/086 compensations; snapshot-only replay (ADR-087) | backfill-retro | change | FR-01.28 | — | 2b8adc6 | 2026-05-12 |
 | feat(server,client): replay_snapshot envelope + flag flip + snapshot-store hardening (ADR-089) | backfill-retro | feature | FR-01.28 | — | 1612161 | 2026-05-11 |
 | feat(server): wire @xterm/headless mirror behind feature flag (ADR-088 Iterate A) | backfill-retro | feature | FR-01.28 | — | ce5a1bb | 2026-05-11 |
-| Merge iterate/v0.9.4-skip-replay-newplain (ADR-086) | backfill-merge-retro | merge |  | — | 175ce74 | 2026-05-11 |
-| Merge iterate/v0.9.3-resume-state-machine (ADR-085) | backfill-merge-retro | merge |  | — | a8b6d91 | 2026-05-11 |
+| Merge iterate/v0.9.4-skip-replay-newplain (ADR-086) | backfill-merge-retro | merge | FR-01.28 | — | 175ce74 | 2026-05-11 |
+| Merge iterate/v0.9.3-resume-state-machine (ADR-085) | backfill-merge-retro | merge | FR-01.02 | — | a8b6d91 | 2026-05-11 |
 | Merge branch 'main' of https://github.com/svenroth-ai/shipwright-webui | backfill-merge-retro | merge |  | — | e5e9aa9 | 2026-05-11 |
-| Merge iterate/v0.9.2-embedded-terminal-mount-races (ADR-084) | backfill-merge-retro | merge |  | — | eb12a73 | 2026-05-11 |
+| Merge iterate/v0.9.2-embedded-terminal-mount-races (ADR-084) | backfill-merge-retro | merge | FR-01.28 | — | eb12a73 | 2026-05-11 |
 | Merge pull request #10 from svenroth-ai/chore/security-workflow-v4-and-private-repo-support | backfill-merge-retro | merge |  | — | 1fd719b | 2026-05-11 |
 | chore(security): sync security.yml from monorepo (codeql v4 + continue-on-error) | backfill-retro | chore |  | — | 1c25089 | 2026-05-11 |
 | Merge pull request #9 from svenroth-ai/chore/scaffold-security-and-claude-review-workflows | backfill-merge-retro | merge |  | — | 039b4cf | 2026-05-11 |
 | chore(workflows): drop dormant security + claude-review workflows from monorepo templates | backfill-retro | chore |  | — | 73a34e4 | 2026-05-11 |
-| Merge iterate/v0.9.1-tailscale-ws-real-browser-fix | backfill-merge-retro | merge |  | — | 89011df | 2026-05-11 |
-| fix(server,test): wire boot-time Trusted-Origin policy into WS upgrade gate (ADR-083) | backfill-retro | bug |  | — | 660fd0d | 2026-05-11 |
+| Merge iterate/v0.9.1-tailscale-ws-real-browser-fix | backfill-merge-retro | merge | FR-01.31 | — | 89011df | 2026-05-11 |
+| fix(server,test): wire boot-time Trusted-Origin policy into WS upgrade gate (ADR-083) | backfill-retro | bug | FR-01.31 | — | 660fd0d | 2026-05-11 |
 | Merge pull request #8 from svenroth-ai/fix/cli-compat-cross-platform-path | backfill-merge-retro | merge |  | — | daa9c4f | 2026-05-11 |
 | fix(cli-compat): use platform-aware path module in selfHealClaudePath | backfill-retro | bug |  | — | bdbc12d | 2026-05-11 |
-| fix(server): wire SHIPWRIGHT_NETWORK_PROFILE into Trusted-Origin policy | backfill-retro | bug |  | — | f852a36 | 2026-05-10 |
-| fix(client): accept MagicDNS hostnames in Vite allowedHosts for tailscale profile | backfill-retro | bug |  | — | 5528ae2 | 2026-05-10 |
+| fix(server): wire SHIPWRIGHT_NETWORK_PROFILE into Trusted-Origin policy | backfill-retro | bug | FR-01.31 | — | f852a36 | 2026-05-10 |
+| fix(client): accept MagicDNS hostnames in Vite allowedHosts for tailscale profile | backfill-retro | bug | FR-01.31 | — | 5528ae2 | 2026-05-10 |
 | docs(guide): document SHIPWRIGHT_NETWORK_PROFILE + .env.local workflow | backfill-retro | docs |  | — | 78b7fbe | 2026-05-10 |
 | triage-card-styling — white-surface cards + wizard-matched dialogs | iterate | change | FR-01.30 | 855/855 | 5e94742 | 2026-05-15 |
 | close-task-redirect — Close task in TaskDetail header now redirects to the task board | iterate | bug | FR-01.15 | 857/857 | bf6db41 | 2026-05-15 |
@@ -176,7 +176,7 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 | Inbox card markdown rendering + fade-clip + spacing | iterate | change | FR-01.13 | 979/979 | 9b91499 | 2026-05-19 |
 | adopt oxlint as the project linter + env-isolate the server CORS test | iterate | change |  | 2135/2135 | e6683d6 | 2026-05-19 |
 | triage-launch-surface-webui (launchPayload + Fix-now) | iterate | feature | FR-01.30 | 2189/2189 | 290263e | 2026-05-20 |
-| fix-terminal-flicker-on-closed-task | iterate | bug |  | 2184/2184 | dac635f | 2026-05-21 |
+| fix-terminal-flicker-on-closed-task | iterate | bug | FR-01.28 | 2184/2184 | dac635f | 2026-05-21 |
 | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes | iterate | change | FR-01.30 | 2193/2193 | aa1788c | 2026-05-21 |
 | triage Fix-now opens NewIssueModal pre-populated + namespace 4 phase slashes (+ FR-01.30 spec follow-up) | iterate | change | FR-01.30 | 2193/2193 | 4ca5be2 | 2026-05-21 |
 | VERIFICATION: with affected-frs — should pass | iterate | feature | FR-01.01 | — | c502254 | 2026-05-21 |
@@ -216,11 +216,11 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 | Render mode/pr-link/stop-hook JSONL events + intent-based useAutoScroll detach | iterate | bug | FR-01.02 | — | 7573e84 | 2026-05-28 |
 | SmartViewer document rendering (comments/frontmatter/anchors/in-pane nav) + pop-out + page scroll | iterate | change | FR-03.34 | 1345/1345 | — | 2026-05-30 |
 | PR card bubble parity + open/merged status badge via gh pr view | iterate | change | FR-01.02 | 1335/1335 | — | 2026-05-30 |
-| page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | iterate | change |  | 1331/1331 | — | 2026-05-30 |
+| page-chrome cleanup: remove Diagnostics Launchers section and align Triage header to Inbox/Projects | iterate | change | FR-01.05 | 1331/1331 | — | 2026-05-30 |
 | SmartViewer pop-out opens a centered in-app modal (Radix Dialog) instead of window.open to a new browser tab; popOut threaded SmartViewer->MarkdownRenderer to suppress the nested control; /preview route retained. | iterate | change | FR-03.34 | — | — | 2026-05-31 |
 | POST /api/external/tasks/:id/reopen flips done->draft (counterpart of /backlog), session preserved; TaskCardMenu hosts the isDone-gated Re-open item | iterate | feature | FR-01.32 | — | 7600526 | 2026-05-31 |
-| WS liveness keepalive complete; PR pending | iterate | change |  | — | — | 2026-05-31 |
-| Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | iterate | bug |  | — | 47f7450 | 2026-06-02 |
+| WS liveness keepalive complete; PR pending | iterate | change | FR-01.28 | — | — | 2026-05-31 |
+| Gate terminal idle-ceiling on client attachment so a watched session is never reaped; raise detached-grace 30min->12h; resume data-loss note on the ADR-104 reset banner. | iterate | bug | FR-01.28 | — | 47f7450 | 2026-06-02 |
 | Read-only Campaigns lane on TaskBoardPage + GET /api/campaigns/:projectId | iterate | feature | FR-01.33 | — | — | 2026-06-02 |
 | All-Projects create-menu cascade complete: project-first + New / Plain Claude; modal scoped to chosen project (fixes action/schema mismatch). 1416 client vitest + AC1-AC6 real-browser E2E green. | iterate | change | FR-01.01 | — | — | 2026-06-02 |
 | CampaignLaneCard collapsible (default collapsed, persisted per-slug) + description disclosure + TaskBoardPage lane height-cap | iterate | change | FR-01.33 | — | — | 2026-06-03 |
@@ -272,7 +272,7 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 | Tighten shipwright_bloat_baseline.json ceiling for server/src/terminal/routes.ts (current 620 -> 509) to match post-#135 size; ADR-103 exception retained | iterate | change |  | 1637/1637 | — | 2026-06-14 |
 | Tablet responsive view (≤1023px): useIsCompactViewport SSoT; sidebar rail; board swipe carousel + list lg:-gating + campaign card hardening; task-detail persistent-PanelGroup compact Files/Session/Viewer tabs (terminal never unmounts across breakpoint); desktop ≥1024px byte-identical. Phone deferred to iterate-2. | iterate | feature | FR-01.38 | — | — | 2026-06-14 |
 | Phone responsive view (<768px), iterate 2 of 2: sidebar overlay drawer (Radix Dialog) below 768px; on-screen TerminalKeyBar for touch devices (Esc/Tab/Ctrl-C/arrows/Enter, writes to the pty via the existing socket.send writer frame, mode-aware CSI/SS3 arrows, writer re-check, soft-keyboard-safe); list+Projects table reflow; modal 44px touch targets; iOS safe-area + interactive-widget=resizes-content + dvh. Reuses the FR-01.38 foundation; tablet+desktop byte-identical. | iterate | feature | FR-01.39 | — | — | 2026-06-14 |
-| Reusable ActionsConfigRow (hideProjectHeader) rendered in ProjectSettingsDialog; upload.ts passes slash_command to dryRunTemplate (fixes 500); removed stale Launcher preferences card. | iterate | feature | FR-01.40, FR-01.37 | — | — | 2026-06-14 |
+| Reusable ActionsConfigRow (hideProjectHeader) rendered in ProjectSettingsDialog; upload.ts passes slash_command to dryRunTemplate (fixes 500); removed stale Launcher preferences card. | iterate | feature | FR-01.40, FR-01.37, FR-01.06 +2 | — | — | 2026-06-14 |
 | Compliance detective-audit reconcile (D3/G2/H1): G2 add 'responsive' commit scope to audit_config.json g2_stoplist; D3 reaffirm promised FR-01.38/FR-01.39 via event_amended on the tablet/phone responsive iterate events (their own work_completed omitted affected_frs); H1 grandfather client/src/components/terminal/EmbeddedTerminal.tsx (311>300, ADR-097 deep module) in shipwright_bloat_baseline.json. No product code touched; D3/G2/H1 re-run FAIL->PASS. | iterate | change |  | — | — | 2026-06-14 |
 | Self-heal ~/.claude.json a second time at deploy END (post server-up), not only at Step 0 | iterate | bug |  | 38/38 | — | 2026-06-14 |
 | Tablet-view polish: bidirectional sidebar rail collapse, bottom safe-area inset, greedy list Title column, terminal touch-action:none | iterate | change | FR-01.38 | 1652/1652 | — | 2026-06-14 |
@@ -286,7 +286,7 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 | launch-prep PII scrub & repo hygiene | iterate | change |  | — | — | 2026-06-17 |
 | launch-prep README Beta badge, issue templates & tooling | iterate | change |  | — | — | 2026-06-17 |
 | sync vendored gate copies to monorepo fail-closed fixes | iterate | change |  | 75/75 | — | 2026-06-17 |
-| Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | iterate | feature |  | — | — | 2026-06-17 |
+| Task-board drag-and-drop with the board column decoupled from session state (sticky boardColumn override, schema v4, POST /tasks/:id/column, accessible Move-to menu + keydown-guard fix). | iterate | feature | FR-01.01 | — | — | 2026-06-17 |
 | Embedded terminal WS now reconnects on tab refocus + has a client liveness heartbeat (app-level ping/pong) so a silently-dead socket after sleep/Tailscale partition is detected and recovered instead of a stale frozen frame. | iterate | bug | FR-01.28 | — | — | 2026-06-18 |
 | start-server-production.ps1 and install-windows.ps1 run npm install before npm run build so a newly-merged dependency (@dnd-kit/core) no longer breaks the production build; autostart no longer swallows npm errors. | iterate | bug |  | — | — | 2026-06-18 |
 | Mobile/touch terminal UX: condense phone header, white-bordered touch keys, buffer-first touch-scroll at resume picker, data-driven settle-repaint for input-area smear | iterate | change | FR-01.28, FR-01.39 | 1762/1762 | — | 2026-06-20 |
@@ -297,6 +297,7 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 | Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize. | iterate | bug | FR-01.28 | — | — | 2026-06-27 |
 | mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry | iterate | bug | FR-01.39 | 1789/1789 | — | 2026-06-27 |
 | CodeQL noise reduction + qCmd cmd.exe quoting fix | iterate | change |  | 3463/3463 | — | 2026-06-27 |
+| BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here. | iterate | change | FR-01.07, FR-01.14, FR-01.17 +6 | 3464/3464 | — | 2026-06-28 |
 
 ## Coverage Summary
 
@@ -304,46 +305,32 @@ Generated: 2026-06-27T10:17:41.216697+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 175 |
+| Iterate changes | 176 |
 | Requirements total | 41 |
-| Requirements verified | 27/41 |
-| Must-have verified | 17/31 |
+| Requirements verified | 41/41 |
+| Must-have verified | 31/31 |
 | Total review findings | 0 |
 | Unresolved findings | 0 |
 
-### FRs without tests
-
-- [FR-01.05](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only view of Claude CLI version, the resolved profiles directory, the launc
-- [FR-01.06](../../.shipwright/planning/01-adopted/spec.md) (Must): Minimal placeholder page. Most settings now live inside the user's Claude client
-- [FR-01.07](../../.shipwright/planning/01-adopted/spec.md) (Must): Liveness probe used by `dev_server.py`, smoke tests, and the install-windows aut
-- [FR-01.14](../../.shipwright/planning/01-adopted/spec.md) (Must): Adds the toolUseId to the dismissed set so subsequent inbox derivations skip it.
-- [FR-01.17](../../.shipwright/planning/01-adopted/spec.md) (Must): Spawns the project's `dev_server.command` (from its stack profile) with `shell: 
-- [FR-01.18](../../.shipwright/planning/01-adopted/spec.md) (Must): Read-only forwarder for `<project.path>/shipwright_run_config.json`. Per-row fau
-- [FR-01.19](../../.shipwright/planning/01-adopted/spec.md) (Must): Lazy-expand listing for the FolderTree component. Honors gitignore (mtime-cached
-- [FR-01.20](../../.shipwright/planning/01-adopted/spec.md) (Must): Reads a single file under the project root with the same realpath-based path gua
-- [FR-01.21](../../.shipwright/planning/01-adopted/spec.md) (Must): One-shot: writes an empty (but schema-valid) `.shipwright-webui/actions.json` un
-- [FR-01.22](../../.shipwright/planning/01-adopted/spec.md) (Must): Returns CLI version (refreshed on demand), profiles dir, sample copy-commands, o
-- [FR-01.23](../../.shipwright/planning/01-adopted/spec.md) (Must): Lists every stack profile from the resolved profiles dir (override → monorepo → 
-- [FR-01.25](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the project row. PATCH updates name / profile / color. DELETE remove
-- [FR-01.26](../../.shipwright/planning/01-adopted/spec.md) (Must): GET returns the current settings JSON. PUT replaces it (lockfile-guarded). Stub 
-- [FR-01.27](../../.shipwright/planning/01-adopted/spec.md) (Must): Settings page lets the user pick a registered project, see its current actions-s
-
 ### FRs with stale verification (> 14 days)
 
-- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 57d ago by `evt-b81d5d5e` (2026-05-01)
-- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 47d ago by `evt-44b89157` (2026-05-10)
-- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-33b2e81f` (2026-05-14)
-- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-50e36386` (2026-05-14)
-- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 42d ago by `evt-0f78d991` (2026-05-15)
-- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-7c294eb7` (2026-05-18)
-- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-40acd669` (2026-05-18)
-- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-223eadce` (2026-05-18)
-- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-fb2b90ee` (2026-05-18)
-- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-a2176c74` (2026-05-18)
-- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 38d ago by `evt-3d1274f6` (2026-05-19)
-- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 26d ago by `evt-83b9b73f` (2026-05-31)
-- [FR-01.35](../../.shipwright/planning/01-adopted/spec.md) — last verified 23d ago by `evt-6c3e0953` (2026-06-04)
-- [FR-01.36](../../.shipwright/planning/01-adopted/spec.md) — last verified 18d ago by `evt-c59f2257` (2026-06-08)
-- [FR-01.30](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-b29aafce` (2026-06-11)
+- [FR-01.24](../../.shipwright/planning/01-adopted/spec.md) — last verified 58d ago by `evt-b81d5d5e` (2026-05-01)
+- [FR-01.31](../../.shipwright/planning/01-adopted/spec.md) — last verified 48d ago by `evt-6ba49c4c` (2026-05-11)
+- [FR-01.03](../../.shipwright/planning/01-adopted/spec.md) — last verified 44d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.16](../../.shipwright/planning/01-adopted/spec.md) — last verified 44d ago by `evt-50e36386` (2026-05-14)
+- [FR-01.23](../../.shipwright/planning/01-adopted/spec.md) — last verified 44d ago by `evt-33b2e81f` (2026-05-14)
+- [FR-01.15](../../.shipwright/planning/01-adopted/spec.md) — last verified 43d ago by `evt-0f78d991` (2026-05-15)
+- [FR-01.04](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-7c294eb7` (2026-05-18)
+- [FR-01.08](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.09](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-40acd669` (2026-05-18)
+- [FR-01.10](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-223eadce` (2026-05-18)
+- [FR-01.11](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-fb2b90ee` (2026-05-18)
+- [FR-01.29](../../.shipwright/planning/01-adopted/spec.md) — last verified 40d ago by `evt-a2176c74` (2026-05-18)
+- [FR-01.13](../../.shipwright/planning/01-adopted/spec.md) — last verified 39d ago by `evt-3d1274f6` (2026-05-19)
+- [FR-01.05](../../.shipwright/planning/01-adopted/spec.md) — last verified 28d ago by `evt-b2bdc9ae` (2026-05-30)
+- [FR-01.32](../../.shipwright/planning/01-adopted/spec.md) — last verified 27d ago by `evt-83b9b73f` (2026-05-31)
+- [FR-01.35](../../.shipwright/planning/01-adopted/spec.md) — last verified 24d ago by `evt-6c3e0953` (2026-06-04)
+- [FR-01.36](../../.shipwright/planning/01-adopted/spec.md) — last verified 19d ago by `evt-c59f2257` (2026-06-08)
+- [FR-01.30](../../.shipwright/planning/01-adopted/spec.md) — last verified 16d ago by `evt-b29aafce` (2026-06-11)
+- [FR-01.33](../../.shipwright/planning/01-adopted/spec.md) — last verified 15d ago by `evt-b52512c5` (2026-06-12)
 

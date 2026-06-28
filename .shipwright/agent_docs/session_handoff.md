@@ -1,12 +1,20 @@
+---
+canon_generated: true
+run_id: "iterate-2026-06-28-bp1-webui-fr-backfill"
+phase: "iterate"
+reason: "BP-1 webui FR-tag traceability backfill"
+timestamp: "2026-06-28T07:25:36.473436+00:00"
+---
+
 # Session Handoff
 
-> Auto-generated 2026-06-27 10:17:41 UTC
+> Auto-generated 2026-06-28 07:25:36 UTC
 
 ## Session Info
 
-- **Session ID**: f25c4c06-6068-4b24-b09b-a3c8ddce4d07
-- **Timestamp**: 2026-06-27 10:17:41 UTC
-- **Reason**: iterate completion: iterate-2026-06-27-codeql-hardening
+- **Session ID**: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b
+- **Timestamp**: 2026-06-28 07:25:36 UTC
+- **Reason**: BP-1 webui FR-tag traceability backfill
 
 ## Last Iterate
 
@@ -20,8 +28,13 @@
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/codeql-hardening
+- **Branch**: iterate/bp1-webui-fr-backfill
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
+
+### Mandatory replay on Resume
+
+Before dispatching to the handoff's Remaining phase, run these if missing:
+- Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
 
@@ -34,9 +47,9 @@
 
 ## Git State
 
-- **Branch**: iterate/codeql-hardening
-- **Last Commit**: 73ad123 fix(security): harden cmd.exe arg quoting + scope CodeQL to production code
-- **Uncommitted Changes**: None
+- **Branch**: iterate/bp1-webui-fr-backfill
+- **Last Commit**: 9a32dde fix(security): harden cmd.exe arg quoting + scope CodeQL to production code (#177)
+- **Uncommitted Changes**: Yes
 
 ## Config Files to Read
 
@@ -51,17 +64,17 @@
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-667baa47 | work_completed | iterate (CodeQL noise reduction + qCmd cmd.exe quoting fix) | 2026-06-27 |
-| evt-31471e05 | work_completed | iterate (mobile modal touch-safety: iOS focus-zoom + footer 44px button symmetry) | 2026-06-27 |
-| evt-42ea8ea6 | work_completed | iterate (Repaint the embedded terminal on every WebGL texture-atlas mutation (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) so cells no longer keep stale atlas coordinates after a mid-stream atlas regeneration; fixes the wrong-letter glyph corruption that previously needed a manual resize.) | 2026-06-27 |
-| evt-be31e6ba | work_completed | iterate (Disable DragOverlay drop animation so a dragged board card no longer flips back to its origin on drop) | 2026-06-23 |
-| evt-8b9af61b | work_completed | iterate (Diagnostic: runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts -- ?terminalRenderer=dom / localStorage skips the WebGL addon (DOM renderer) to A/B whether WebGL is the smear root cause on a real GPU. Default unchanged (webgl).) | 2026-06-23 |
+| evt-944c534d | work_completed | iterate (BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here.) | 2026-06-28 |
+| evt-13c8a1f0 | event_amended | — | 2026-06-28 |
+| evt-881aa135 | event_amended | — | 2026-06-28 |
+| evt-807445c5 | event_amended | — | 2026-06-28 |
+| evt-3b4caad4 | event_amended | — | 2026-06-28 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 245
-- **Last iterate**: change — CodeQL noise reduction + qCmd cmd.exe quoting fix (2026-06-27)
+- **Total work events**: 246
+- **Last iterate**: change — BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here. (2026-06-28)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
