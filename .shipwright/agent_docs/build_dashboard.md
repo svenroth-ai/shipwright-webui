@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-28 21:36 UTC | Session: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b | Run: iterate-2026-06-28-webui-dep-cve-fixes
+> Updated: 2026-06-28 21:55 UTC | Session: d0a3ca22-cdbd-40bd-a869-8350a27c3c1b | Run: iterate-2026-06-28-webui-light-security
 
-## Recent Changes (178 iterations)
+## Recent Changes (179 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Light the WebUI Control-Grade Security dimension: with the dep-CVE fixes (#180) merged, the fresh main security.yml scan (#28336942429) reports 0 high/critical; refresh_ci_security (AR-10 SARIF-ingestion fallback, monorepo #291) ingests it into the tracked ci-security.json and the dashboard regenerates with Security marked OK -> Control Grade A (99/100), all 7 measurable dimensions green. | 0/0 |  | compliance | 2026-06-28 |
 | change | Bump 7 dependencies to their Trivy-fixed versions to clear the security.yml high+medium dependency CVEs (incl. shell-quote command-injection CVE-2026-9277, react-router, hono, ws): client react-router-dom->7.18 / mermaid->11.16 / dompurify->3.4.11 / uuid->11.1.1; server hono->4.12.27 / shell-quote->1.9.0 / ws->8.21.0 (npm overrides for the transitive ones). Full suite 3464/3464 green; client+server builds clean. Lets the WebUI Control-Grade Security dimension light at 0 high/critical once re-scanned + re-ingested. | 3464/3464 |  | infra | 2026-06-28 |
 | change | Regenerate WebUI compliance with the now-current plugin (cc1 BP-1 traced-credit, cc2 BP-2 reconciliation, cc3 AR-05 RTM Reconciled column) + reconcile: re-ran the full suite (server 1671 + client 1793 = 3464/3464 green), re-verifying the 12 behavior-touched-but-unreconciled FRs and linking that fresh verification here per BP-2 (spec_impact=none, no behavior change). Lifts the honest WebUI Control Grade from a stale-plugin B89 to A. AR-10 CI-security wiring deferred to a follow-up. | 3464/3464 |  | FR-01.02, FR-01.06, FR-01.25 | 2026-06-28 |
 | change | BP-1 webui traceability backfill: classified all 245 work events (tagged 69 previously-untagged events to FRs or an explicit none_reason; closed 5 NOT-VERIFIED FRs (Group A: FR-01.05/.06/.23/.25/.27) by linking the existing work event whose changes exercised them) and freshly verified the 9 remaining NOT-VERIFIED foundational endpoints (Group B: FR-01.07/.14/.17/.18/.19/.20/.21/.22/.26) by re-running their existing route tests (server 1671 + client 1793 = 3464/3464 green) and linking that verification here. | 3464/3464 |  | FR-01.07, FR-01.14, FR-01.17 | 2026-06-28 |

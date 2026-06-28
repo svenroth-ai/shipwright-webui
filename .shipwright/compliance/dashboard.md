@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-06-28T21:36:01.258356+00:00
+Generated: 2026-06-28T21:55:11.404445+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -8,36 +8,47 @@ Scope: full_app
 
 > **Under full control. Primarily capped by requirement traceability.**
 
-### Control Grade: **A** (98/100) — Under full control.
+### Control Grade: **A** (99/100) — Under full control.
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 41/41 FRs covered; 224/248 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (DO-178C, IEC 62304) |
+| ✅ | Requirement traceability | 41/41 FRs covered; 225/249 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (DO-178C, IEC 62304) |
 | ✅ | Test health | latest full suite 3464/3464 (2026-06-28) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 248/248 changes linked to a commit, ADR or test run | change provenance (SLSA, OpenSSF Scorecard) |
+| ✅ | Change traceability | 249/249 changes linked to a commit, ADR or test run | change provenance (SLSA, OpenSSF Scorecard) |
 | ✅ | Change reconciliation | 0/22 behavior-touched FRs not re-verified | re-verify changed requirements (DO-178C, ISO 26262) |
-| n/a | Security | no trustworthy local scan (see CI security gate) | no open high/critical vulns (NIST SSDF, OWASP) |
+| ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF, OWASP) |
 | ✅ | Size / maintainability discipline | ratchet delta -541 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
 | ✅ | Dependency hygiene | 0 unresolved / 66 licenses; 0 copyleft | dependency license & risk (OWASP, OpenSSF Scorecard) |
 
-Verified from: `shipwright_events.jsonl (248 events, 2026-05-01 → 2026-06-28)`
+Verified from: `shipwright_events.jsonl (249 events, 2026-05-01 → 2026-06-28)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
 ## 🛡️ CI Security (fail-closed gate)
 
-_CI security results not yet ingested. Run `refresh_ci_security.py` (auto-run by `update_compliance.py`) to pull the latest `security.yml` scan._
+Latest scan: **2026-06-28** · source `security.yml#28336942429` · critical-gate **✅ PASS**
+
+| Severity | Count |
+|----------|-------|
+| Critical | 0 |
+| High | 0 |
+| Medium | 0 |
+| Low | 130 |
+
+Prompt-injection findings: **0**
+
+_Ingested from CI `findings.json` (public-safe: severity counts + gate verdict only — no finding detail). The local `.shipwright/securityreports/` is intentionally **not** used (stale/FP-laden). Open high/critical feed the Control Grade's Security dimension._
 
 ## Quality Indicators
 
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 178 changes | INFO |  |
-| Recent changes traced to an FR | 22/30 (73%) | PASS |  |
-| All unit tests passing | 3464/3464 | PASS |  |
+| Work events (iterate) | 179 changes | INFO |  |
+| Recent changes traced to an FR | 21/30 (70%) | PASS |  |
+| All unit tests passing | 3464/3464 | PASS | +1 change(s) since last full suite |
 | Architecture decisions | 200 ADRs | INFO |  |
-| Iterate tests passing | 90/178 iterations tested | WARN | 88 iterate(s) without tests — see test-evidence.md |
+| Iterate tests passing | 90/179 iterations tested | WARN | 89 iterate(s) without tests — see test-evidence.md |
 | Dependencies | 66 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 2 open | WARN | 2 actionable item(s) — see ../agent_docs/triage_inbox.md |
@@ -47,7 +58,7 @@ _CI security results not yet ingested. Run `refresh_ci_security.py` (auto-run by
 
 ## Project Velocity
 
-- Iterate: 178 changes (2026-05-01 → 2026-06-28)
+- Iterate: 179 changes (2026-05-01 → 2026-06-28)
 - Last activity: 2026-06-28
 
 ## External LLM Review Evidence

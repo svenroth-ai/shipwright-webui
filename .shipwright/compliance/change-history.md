@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-28T21:36:01.258356+00:00
-Total commits: 603
+Generated: 2026-06-28T21:55:11.404445+00:00
+Total commits: 604
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 218
+    "fix" : 219
     "feat" : 145
     "chore" : 120
     "docs" : 63
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 218 commits
+### Fixes (fix) — 219 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-28 | security | bump 7 dependencies to clear Trivy high+medium CVEs (#180) | fb1d27c3a76f |
 | 2026-06-27 | security | harden cmd.exe arg quoting + scope CodeQL to production code (#177) | 9a32dde59ae7 |
 | 2026-06-27 | terminal | repaint on WebGL texture-atlas mutation to heal wrong-glyph corruption (#175) | dc14701a3fd0 |
 | 2026-06-27 | mobile | stop iOS focus-zoom + equalize modal footer buttons on touch (#174) | f2fe10eb2349 |
@@ -672,7 +673,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 603 |
+| Total commits | 604 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 603 |
+| Human-authored commits | 604 |
 
