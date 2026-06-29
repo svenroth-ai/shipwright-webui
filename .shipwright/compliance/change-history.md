@@ -1,13 +1,13 @@
 # Commit Change Log
 
-Generated: 2026-06-29T21:52:49.023138+00:00
-Total commits: 605
+Generated: 2026-06-29T22:34:15.839564+00:00
+Total commits: 606
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 219
+    "fix" : 220
     "feat" : 145
     "chore" : 121
     "docs" : 63
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 219 commits
+### Fixes (fix) — 220 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | compliance | reconcile detective-audit B7/D3/G2/H2 post-v0.21.0 (#182) | e3873f2eca81 |
 | 2026-06-28 | security | bump 7 dependencies to clear Trivy high+medium CVEs (#180) | fb1d27c3a76f |
 | 2026-06-27 | security | harden cmd.exe arg quoting + scope CodeQL to production code (#177) | 9a32dde59ae7 |
 | 2026-06-27 | terminal | repaint on WebGL texture-atlas mutation to heal wrong-glyph corruption (#175) | dc14701a3fd0 |
@@ -674,7 +675,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 605 |
+| Total commits | 606 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 605 |
+| Human-authored commits | 606 |
 

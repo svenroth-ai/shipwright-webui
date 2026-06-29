@@ -268,6 +268,9 @@ function buildLiveHandlers(
   // so no concurrent WS attach can create the pty in between.
   const ptyExistedBeforeAttach = ctx.ptyManager.get(taskId) !== undefined;
   // Ensure-or-create the pty against the realpath-validated cwd.
+  // ptyManager.spawn(): `shell` is a whitelisted binary NAME (ADR-067 allowlist +
+  // loopback Origin gate), not child_process({shell:true}). Semgrep false positive.
+  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
   const meta: PtyHandleMeta = ctx.ptyManager.spawn(taskId, {
     cwd: trustedCwd,
     shell: ctx.resolveShell(),

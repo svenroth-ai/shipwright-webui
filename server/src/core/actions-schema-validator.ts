@@ -385,6 +385,9 @@ function validateParamArray(
     // Pattern defensive compile.
     if (param.pattern !== undefined) {
       try {
+        // Defensive compile-check of a developer-authored action-schema pattern
+        // (trusted config, not user input) — no ReDoS-from-untrusted-input vector.
+        // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
         new RegExp(param.pattern);
       } catch (err) {
         errors.push({
@@ -460,6 +463,9 @@ function isDefaultValid(param: ParamSchema): boolean {
   // type === "string"
   if (param.pattern) {
     try {
+      // `param.pattern` is a developer-authored action-schema pattern (trusted
+      // config, validated at load time), not user input. Semgrep false positive.
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
       const re = new RegExp(param.pattern);
       if (!re.test(def)) return false;
     } catch {

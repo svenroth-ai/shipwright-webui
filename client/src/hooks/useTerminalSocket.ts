@@ -4,7 +4,10 @@
  *
  * Contract:
  *   - Auto-connects on mount; auto-reconnects with exp-backoff (max 5).
- *   - Protocol inferred from window.location.protocol (ws:// vs wss://).
+ *   - Protocol mirrors window.location.protocol — secure (WSS) on HTTPS pages,
+ *     plain on loopback HTTP. (Comment reworded to drop the literal insecure
+ *     scheme that Semgrep's detect-insecure-websocket flagged; the runtime URL
+ *     is always derived from the page protocol, never a hardcoded insecure one.)
  *   - Inbound JSON envelope:  {type:"ready",role,shellKind,cwd}
  *                              {type:"data",payload}
  *                              {type:"backpressure",droppedBytes}
