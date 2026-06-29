@@ -205,6 +205,10 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
       if (!trustedCwd) return c.json({ error: "task_cwd_unresolvable" }, 404);
 
       try {
+        // ptyManager.spawn() is the in-house pty API; `shell` is a whitelisted
+        // shell binary NAME (ADR-067 basename-allowlist + loopback Origin gate),
+        // NOT child_process({shell:true}). Semgrep false positive.
+        // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
         const meta = ptyManager.spawn(taskId, {
           cwd: trustedCwd,
           shell: resolveShell(),
@@ -333,6 +337,9 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
         let meta = ptyManager.get(taskId);
         if (!meta) {
           try {
+            // ptyManager.spawn(): `shell` is a whitelisted binary NAME (ADR-067),
+            // not child_process({shell:true}). Semgrep false positive.
+            // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
             meta = ptyManager.spawn(taskId, {
               cwd: trustedCwd,
               shell: resolveShell(),

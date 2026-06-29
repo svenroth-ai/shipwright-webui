@@ -67,6 +67,10 @@ export const MAX_STRING_PARAM_BYTES = 16 * 1024;
  *   U+2066..U+2069 → LRI/RLI/FSI/PDI (bidi isolates)
  */
 const CONTROL_CHAR_REGEX =
+  // The bidi/control codepoints in the class below are the REJECTION set — this
+  // regex IS the bidi-override injection DEFENSE (see range doc above), not a
+  // trojan-source carrier. Semgrep false positive.
+  // nosemgrep: generic.unicode.security.bidi.contains-bidirectional-characters
   /[\x00-\x08\x0B-\x1F\x7F‪-‮⁦-⁩]/;
 
 /**
@@ -305,6 +309,9 @@ function resolveOne(
   if (schema.pattern) {
     let re: RegExp;
     try {
+      // `schema.pattern` is a developer-authored action-schema pattern (trusted
+      // config, rejected at load time if malformed), not user input. Semgrep FP.
+      // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
       re = new RegExp(schema.pattern);
     } catch {
       // Should be unreachable — validateActionsSchema rejects malformed

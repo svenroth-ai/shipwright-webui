@@ -316,6 +316,10 @@ export async function probeClaudeVersionAsync(
   const isWin = platform() === "win32";
   return new Promise((resolve) => {
     const p = isWin
+      // Windows .cmd-shim version probe: `bin` is the resolved, quoted Claude
+      // binary path (no user/dynamic input); shell:true is required for PATHEXT
+      // .cmd resolution. Not injectable. Semgrep false positive.
+      // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
       ? spawn(`"${bin}"`, ["--version"], { shell: true })
       : spawn(bin, ["--version"], { shell: false });
     let stdout = "";

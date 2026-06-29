@@ -1,0 +1,28 @@
+# Semgrep path exclusions — keep `semgrep scan --config auto` (see
+# .github/workflows/security.yml) focused on the PRODUCTION attack surface.
+#
+# Test/E2E specs, one-off POC scripts, and the Shipwright SDLC doc tree are
+# not shipped at runtime; scanning them only produced audit-rule noise that
+# GitHub code-scanning then inflated to "high" (111 high / 19 medium), while
+# the dashboard ingest graded the same findings "low" — the divergence that
+# triage item trg-4c0ab9b0 surfaced. Production-code false positives are
+# suppressed inline with `// nosemgrep: <rule>` + a justification comment.
+# See iterate-2026-06-30-semgrep-fp-suppression.
+
+# --- Test + E2E suites (Vitest unit/integration + Playwright) ---
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+client/e2e/
+
+# --- One-off / POC scripts (not part of the runtime server or client) ---
+server/scripts/
+
+# --- Shipwright SDLC docs, planning, compliance artifacts (not code) ---
+.shipwright/
+
+# --- Build output / vendored deps (node_modules is default-ignored; explicit) ---
+dist/
+build/
+node_modules/

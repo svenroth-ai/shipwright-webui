@@ -263,7 +263,7 @@
     {
       "path": "client/src/hooks/useTerminalSocket.ts",
       "limit": 300,
-      "current": 529,
+      "current": 532,
       "state": "grandfathered",
       "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus"
     },
@@ -326,7 +326,7 @@
     {
       "path": "server/src/core/actions-schema-validator.ts",
       "limit": 300,
-      "current": 472,
+      "current": 478,
       "state": "grandfathered",
       "adr": "iterate-2026-06-11-custom-action-slash-command"
     },
@@ -347,7 +347,7 @@
     {
       "path": "server/src/core/cli-compat.ts",
       "limit": 300,
-      "current": 330,
+      "current": 334,
       "state": "grandfathered",
       "adr": null
     },
@@ -361,7 +361,7 @@
     {
       "path": "server/src/core/parameter-resolver.ts",
       "limit": 300,
-      "current": 346,
+      "current": 353,
       "state": "grandfathered",
       "adr": null
     },
@@ -557,7 +557,7 @@
     {
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
-      "current": 509,
+      "current": 516,
       "state": "exception",
       "adr": "ADR-103"
     },
@@ -592,7 +592,7 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 547,
+      "current": 550,
       "state": "exception",
       "adr": "ADR-103"
     }

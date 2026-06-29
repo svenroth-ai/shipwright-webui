@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-30-semgrep-fp-suppression",
+  "date": "2026-06-29T22:34:50.895607Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/semgrep-fp-suppression",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-06-30-semgrep-fp-suppression"
+}
