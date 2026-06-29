@@ -144,7 +144,7 @@
     {
       "path": "client/src/components/external/TaskCard.tsx",
       "limit": 300,
-      "current": 552,
+      "current": 543,
       "state": "grandfathered",
       "adr": null
     },
@@ -186,7 +186,7 @@
     {
       "path": "client/src/components/settings/ActionsConfigCard.tsx",
       "limit": 300,
-      "current": 408,
+      "current": 86,
       "state": "grandfathered",
       "adr": null
     },
@@ -270,7 +270,7 @@
     {
       "path": "client/src/lib/externalApi.ts",
       "limit": 300,
-      "current": 863,
+      "current": 862,
       "state": "grandfathered",
       "adr": null
     },
@@ -291,7 +291,7 @@
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 650,
+      "current": 441,
       "state": "grandfathered",
       "adr": "iterate-2026-06-12-campaign-dismiss"
     },

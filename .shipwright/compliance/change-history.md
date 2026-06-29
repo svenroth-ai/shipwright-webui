@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-28T21:55:11.404445+00:00
-Total commits: 604
+Generated: 2026-06-29T21:52:49.023138+00:00
+Total commits: 605
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 604
 pie title Commit Types
     "fix" : 219
     "feat" : 145
-    "chore" : 120
+    "chore" : 121
     "docs" : 63
     "refactor" : 26
     "test" : 21
@@ -394,10 +394,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 120 commits
+### Chores (chore) — 121 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-28 | compliance | light the Security dimension (0 high/critical) -> A99 (#181) | 056251a475fe |
 | 2026-06-28 | compliance | regenerate dashboard + reconcile → honest A (B89→A98) (#179) | 0da7a87ede74 |
 | 2026-06-28 | compliance | backfill requirement traceability — classify all events + close NOT-VERIFIED FRs (BP-1 WebUI) (#178) | 38b18977e1f6 |
 | 2026-06-27 | terminal | split version-pin assertions into xtermAddons.pins.test.ts (#176) | c1cdc56a6c26 |
@@ -673,7 +674,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 604 |
+| Total commits | 605 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 604 |
+| Human-authored commits | 605 |
 

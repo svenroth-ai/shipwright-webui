@@ -1,8 +1,8 @@
 {
-  "last_updated": "2026-06-28T23:55:00.000Z",
+  "last_updated": "2026-06-29T21:51:24.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-28-webui-light-security",
-    "date": "2026-06-28",
+    "run_id": "iterate-2026-06-29-compliance-b7-d3-g2-h2-reconcile",
+    "date": "2026-06-29",
     "unit": {
       "status": "not_run",
       "passed": 0,
@@ -33,33 +33,46 @@
     },
     "surface_verification": {
       "surface": "none",
+      "runner": "uv run shared/scripts/surface_verification.py --surface none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Compliance data refresh (ingest the CI security scan into ci-security.json + regenerate the dashboard); no source/logic change, no startable surface. Verified by the regenerated dashboard (Security OK, Control Grade A 99) + ci-security.json (0 high/critical). No code changed since #180, so no test run is performed."
+      "evidence_path": ".shipwright/runs/iterate-2026-06-29-compliance-b7-d3-g2-h2-reconcile/surface_verification.json",
+      "timestamp": "2026-06-29T21:51:24.000Z",
+      "justification": "Data-only compliance reconciliation (audit_config.json g2_stoplist, shipwright_bloat_baseline.json current LOC, shipwright_events.jsonl B7 backfill + D3 amendment). No source/test/UI/API/store/WS/message-contract code changed; the two appended events carry no campaign metadata, so the webui campaign-board projection is unaffected. Verification is the detective-audit FAIL->PASS (B7/D3/G2/H2) + bloat anti-ratchet clean + JSON round-trip."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "refresh_ci_security ingests the fresh main scan via the AR-10 SARIF fallback: 0 high/critical, critical_gate pass",
+          "behavior": "B7 detective check passes: every commit since v0.21.0 has a matching event (dd7f7468 / PR #168 safeFit refactor was the lone gap)",
           "disposition": "tested",
-          "evidence": "ci-security.json: open_high_critical=0, critical_gate=pass, by_severity {critical:0,high:0,medium:0,low:130}, source security.yml#28336942429"
+          "evidence": "run_audit.py --only B B7 PASS: '16 commit(s) since v0.21.0 (7 excluded by Rules A/B/C, 9 matched events)'; dd7f7468 now SHA-matched by backfill event evt-82ac5b20 (affected_frs FR-01.28)"
         },
         {
-          "behavior": "The dashboard Security dimension lights OK (0 open high/critical) and the grade is A",
+          "behavior": "D3 detective check passes: promised FR-01.42 (introduced via new_frs on evt-2646f4da) is reaffirmed in a same-or-later affected_frs",
           "disposition": "tested",
-          "evidence": "regenerated dashboard.md: Security row OK '0 open high/critical'; Control Grade A (99/100), all 7 measurable dimensions green"
+          "evidence": "run_audit.py --only D D3 PASS: 'every promised FR has a follow-up affected_frs event'; delivered via event_amended evt-8732b08e (affected_frs [FR-01.01, FR-01.42], preserving the BP-1 FR-01.01 backfill)"
+        },
+        {
+          "behavior": "G2 detective check passes: conventional-commit scopes 'mobile' (PR #174) and 'images' (PR #173) resolve against the g2_stoplist",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only G G2 PASS: 'every conventional scope in 15 commit(s) resolves against alias-map / split / stoplist' after appending 'mobile','images' to audit_config.json"
+        },
+        {
+          "behavior": "H2 detective check passes and the bloat anti-ratchet stays clean: baseline current == on-disk LOC for the 4 over-recorded entries",
+          "disposition": "tested",
+          "evidence": "run_audit.py --only H H2 PASS: 'baseline current matches on-disk LOC for all entries' (TaskCard 552->543, ActionsConfigCard 408->86, externalApi 863->862, TaskBoardPage 650->441); scripts/hooks/anti_ratchet_check.py --worktree exit 0"
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 4,
+        "covered_acs": 4
       }
     },
     "degraded": []
