@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-30T11:10:00.000Z",
+  "last_updated": "2026-06-30T11:50:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-30-compliance-grade-webui",
+    "run_id": "iterate-2026-06-30-compliance-grade-e2e-hardening",
     "date": "2026-06-30",
     "unit": {
       "status": "passed",
-      "passed": 3497,
-      "total": 3497
+      "passed": 1809,
+      "total": 1809
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -33,81 +33,35 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "Playwright against an isolated single-process stack (temp-USERPROFILE Hono :3850 serving the built SPA): e2e/flows/95-compliance-grade.spec.ts + regression 03-projects / 35-no-chat-panel / 49-project-filter",
+      "runner": "Playwright against an isolated single-process stack (temp-USERPROFILE Hono :3851 serving the built SPA): e2e/flows/95-compliance-grade.spec.ts (2 tests)",
       "exit_code": 0,
-      "tests_run": 4,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-30-compliance-grade-webui/ (4 specs passed; client/e2e-results.json)",
-      "timestamp": "2026-06-30T11:06:00.000Z"
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-06-30-compliance-grade-e2e-hardening/ (2 specs passed; client/e2e-results.json)",
+      "timestamp": "2026-06-30T11:48:00.000Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "parseDashboard extracts grade/score/verdict/generatedAt from the real dashboard fixture",
+          "behavior": "Task-Board header renders the Grade pill for the single selected project (?projectId=) and clicking it opens the detail modal — the second render site, previously only component-tested",
           "disposition": "tested",
-          "evidence": "server/src/core/compliance-reader.test.ts (parseDashboard structured fields) PASSED"
+          "evidence": "client/e2e/flows/95-compliance-grade.spec.ts 'Task Board header' PASSED (real browser, isolated stack)"
         },
         {
-          "behavior": "parseDashboard slices Control-Verdict + CI-Security sections, excludes the trailing Compliance Artifacts table, is fence-aware and leading-whitespace tolerant",
+          "behavior": "Graceful absence: a project with no .shipwright/compliance/dashboard.md renders NO Grade badge on the Projects table, alongside a graded project that does",
           "disposition": "tested",
-          "evidence": "compliance-reader.test.ts (section slices, fenced-code boundary, whitespace tolerance) PASSED"
-        },
-        {
-          "behavior": "Missing dashboard.md -> {status:'missing'}",
-          "disposition": "tested",
-          "evidence": "compliance-reader.test.ts (readCompliance file IO) PASSED"
-        },
-        {
-          "behavior": "Unparseable / grade-absent / no-section input -> {status:'invalid'} (no throw)",
-          "disposition": "tested",
-          "evidence": "compliance-reader.test.ts (invalid input) PASSED"
-        },
-        {
-          "behavior": "GET /compliance returns the ok payload AND passes the resolved project.path into the reader",
-          "disposition": "tested",
-          "evidence": "server/src/external/compliance-route.test.ts (ok payload + routing-contract) PASSED"
-        },
-        {
-          "behavior": "GET /compliance 404 for unknown project, 400 for a resolvable path-less project, status passthrough for missing/invalid",
-          "disposition": "tested",
-          "evidence": "compliance-route.test.ts (project resolution + status mapping) PASSED"
-        },
-        {
-          "behavior": "ComplianceGradeBadge maps grade A->emerald / B->amber / <=C->red and exposes verdict + generated date in the tooltip",
-          "disposition": "tested",
-          "evidence": "client/src/components/compliance/ComplianceGradeBadge.test.tsx (color map + tooltip) PASSED"
-        },
-        {
-          "behavior": "Badge renders nothing on missing/invalid/loading and stops click propagation to a clickable parent row",
-          "disposition": "tested",
-          "evidence": "ComplianceGradeBadge.test.tsx (graceful absence + stopPropagation) PASSED"
-        },
-        {
-          "behavior": "Clicking the badge opens the Radix dialog (role=dialog) rendering the dimension + CI tables via DocumentMarkdown; empty CI slice degrades gracefully",
-          "disposition": "tested",
-          "evidence": "ComplianceGradeBadge.test.tsx (dialog open) + ComplianceDetailModal.test.tsx (GFM table render) PASSED"
-        },
-        {
-          "behavior": "End-to-end: seeded project's dashboard -> route -> reader -> Projects Grade column badge renders, opens modal with dimension table, Compliance Artifacts excluded (full chain through real DOM)",
-          "disposition": "tested",
-          "evidence": "client/e2e/flows/95-compliance-grade.spec.ts PASSED against isolated stack"
-        },
-        {
-          "behavior": "Exact pixel fidelity of the rendered markdown tables vs the dashboard",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "GFM-table visual fidelity is a human-eye judgment; presence of the table content is asserted instead (modal + E2E)"
+          "evidence": "client/e2e/flows/95-compliance-grade.spec.ts 'Projects table ... no-dashboard project shows none' PASSED"
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 1,
+        "testable": 2,
+        "tested": 2,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 8,
-        "covered_acs": 8
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "degraded": []
