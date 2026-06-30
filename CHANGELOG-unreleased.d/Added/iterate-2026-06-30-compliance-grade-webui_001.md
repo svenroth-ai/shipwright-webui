@@ -1,0 +1,1 @@
+Per-project compliance Grade badge in the Command Center — a colored Control-Grade pill (with verdict tooltip) on the Projects table and the Task-Board header, opening a detail modal that renders the dashboard's Control-Verdict + CI-Security tables. Read-only observer of .shipwright/compliance/dashboard.md (FR-01.43).

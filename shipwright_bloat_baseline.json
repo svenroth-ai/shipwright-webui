@@ -284,16 +284,16 @@
     {
       "path": "client/src/pages/ProjectsPage.tsx",
       "limit": 300,
-      "current": 439,
+      "current": 452,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-06-30-compliance-grade-webui"
     },
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 441,
+      "current": 449,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-12-campaign-dismiss"
+      "adr": "iterate-2026-06-30-compliance-grade-webui"
     },
     {
       "path": "client/src/pages/TaskDetailPage.test.tsx",

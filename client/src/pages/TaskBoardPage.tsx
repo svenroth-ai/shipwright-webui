@@ -68,6 +68,7 @@ import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
+import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
 import {
   StatusPillRow,
   StatusFilterMenu,
@@ -321,6 +322,13 @@ export default function TaskBoardPage() {
             {!isPhone && (
               <>
                 <ProjectFilterDropdown />
+                {/* Compliance Control-Grade pill for the single selected
+                    project (FR-01.43). Hidden when "All projects" is active
+                    (a grade is per-project, can't aggregate) or when the
+                    project has no dashboard. */}
+                {activeProjectId && (
+                  <ComplianceGradeBadge projectId={activeProjectId} />
+                )}
                 <div
                   className="h-6 w-px bg-[var(--color-border)]"
                   aria-hidden="true"

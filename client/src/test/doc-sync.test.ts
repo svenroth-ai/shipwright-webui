@@ -122,6 +122,13 @@ const REQUIRED_TOKENS = [
   'TaskBoardColumns',
   'boardColumnApi',
   'board-column',
+  // iterate-2026-06-30-compliance-grade-webui — per-project compliance Grade
+  // badge + detail modal (FR-01.43), read-only observer of dashboard.md
+  'compliance-reader',
+  'complianceApi',
+  'useProjectCompliance',
+  'ComplianceGradeBadge',
+  'ComplianceDetailModal',
 ] as const;
 
 let claudeMd = '';

@@ -40,10 +40,12 @@ import {
   readRunConfig as defaultReadRunConfig,
   type RunConfigReadResult,
 } from "../core/run-config-reader.js";
+import type { ComplianceReadResult } from "../core/compliance-reader.js";
 import { SessionWatcher } from "../core/session-watcher.js";
 import { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 
 import { createRunConfigRouter } from "./run-config/routes.js";
+import { createComplianceRouter } from "./compliance/routes.js";
 import { createPreviewRouter } from "./preview/routes.js";
 import { createActionsRouter } from "./actions/routes.js";
 import { createTreeRouter } from "./tree/routes.js";
@@ -108,6 +110,12 @@ export function createExternalRoutes(args: {
    * touch the filesystem; production wires the real reader.
    */
   readRunConfig?: (projectPath: string) => Promise<RunConfigReadResult>;
+  /**
+   * iterate-2026-06-30-compliance-grade-webui (FR-01.43) — reads a project's
+   * `.shipwright/compliance/dashboard.md`. Tests inject a stub; production
+   * wires the real reader. Read-only observer (CLAUDE.md rule 12 spirit).
+   */
+  readCompliance?: (projectPath: string) => Promise<ComplianceReadResult>;
   /**
    * Iterate-2026-05-04 (ADR-068-A1) — best-effort scrollback cleanup
    * cascade on DELETE /api/external/tasks/:id. Optional for tests;
@@ -207,6 +215,11 @@ export function createExternalRoutes(args: {
   app.route(
     "/",
     createRunConfigRouter({ getProjectById, readRunConfig: runConfigReader }),
+  );
+  // FR-01.43 — compliance dashboard is a READ-ONLY observer of dashboard.md.
+  app.route(
+    "/",
+    createComplianceRouter({ getProjectById, readCompliance: args.readCompliance }),
   );
   // ADR-044 / CLAUDE.md rule 9 (shell:false invariant for preview spawn).
   app.route(
