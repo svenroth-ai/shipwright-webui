@@ -1,7 +1,7 @@
 # Commit Change Log
 
-Generated: 2026-06-30T19:23:34.378558+00:00
-Total commits: 613
+Generated: 2026-06-30T20:34:09.855457+00:00
+Total commits: 614
 
 ## Commit Distribution
 
@@ -9,7 +9,7 @@ Total commits: 613
 pie title Commit Types
     "fix" : 222
     "feat" : 147
-    "chore" : 123
+    "chore" : 124
     "docs" : 63
     "refactor" : 26
     "test" : 22
@@ -399,10 +399,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 123 commits
+### Chores (chore) — 124 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | ci | remove native OpenSSF Scorecard workflow (wrong anchor for AI-first) (#190) | ae24cf9ca887 |
 | 2026-06-30 | compliance | regenerate traceability-matrix with the UTC-date renderer (#188) | e4590f6d908a |
 | 2026-06-30 | compliance | regenerate test-evidence + traceability with the navigable renderer (#187) | 83f42db12434 |
 | 2026-06-28 | compliance | light the Security dimension (0 high/critical) -> A99 (#181) | 056251a475fe |
@@ -682,7 +683,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 613 |
+| Total commits | 614 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 613 |
+| Human-authored commits | 614 |
 
