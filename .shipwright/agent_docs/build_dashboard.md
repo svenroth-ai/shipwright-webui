@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-30 19:23 UTC | Session: 998fb4e1-d677-4d0a-89cf-cec4a7c4a6ee | Run: iterate-2026-06-30-remove-native-scorecard
+> Updated: 2026-06-30 20:34 UTC | Session: 58ae49b5-61ed-46af-9a17-86023cf3a58c | Run: iterate-2026-06-30-osv-dep-advisories
 
-## Recent Changes (186 iterations)
+## Recent Changes (187 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Clear all open advisories reported by the OSV/Scorecard Vulnerabilities check across both npm workspaces via lockfile-only dependency bumps (no package.json range edits, no --force, no major bumps). Every flagged package is dev-server / build-time / test-only tooling; the production runtime dependency tree is unaffected. CVE/package specifics are recorded in the gitignored security report. Verified: full unit suite 3500/3500 green, typecheck + lint + both builds clean, npm audit 0/0 in server and client. | 3500/3500 |  | infra | 2026-06-30 |
 | change | Remove webui .github/workflows/scorecard.yml + the Added changelog drop. Keep the A+C grade work + the methodology citation. Token-permissions + open vulns + pinned-deps tracked as triage. | 0/0 |  | infra | 2026-06-30 |
 | change | Regenerate compliance with the updated plugin (honesty gate + 29148/12207/SSDF anchors); add native scorecard.yml. Grade stays A99 — webui has no traceability decline. | 0/0 |  | compliance | 2026-06-30 |
 | change | E2E hardening: Task-Board header pill + graceful-absence coverage for FR-01.43 | 1809/1809 |  | tooling | 2026-06-30 |
@@ -193,7 +194,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-30 | Unit: 1809/1809 | E2E: 2/2 | Smoke: not_run | (iterate)
+Last run: 2026-06-30 | Unit: 3500/3500 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

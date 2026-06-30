@@ -1,35 +1,34 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-06-30-remove-native-scorecard"
+run_id: "iterate-2026-06-30-osv-dep-advisories"
 phase: "iterate"
-reason: "Remove native Scorecard workflow (wrong anchor for AI-first); capture supply-chain checks as triage"
-timestamp: "2026-06-30T19:23:34.378558+00:00"
+reason: "iterate: clear OSV/Scorecard dependency advisories (lockfile-only)"
+timestamp: "2026-06-30T20:34:09.855457+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-06-30 19:23:34 UTC
+> Auto-generated 2026-06-30 20:34:09 UTC
 
 ## Session Info
 
-- **Session ID**: 998fb4e1-d677-4d0a-89cf-cec4a7c4a6ee
-- **Timestamp**: 2026-06-30 19:23:34 UTC
-- **Reason**: Remove native Scorecard workflow (wrong anchor for AI-first); capture supply-chain checks as triage
+- **Session ID**: 58ae49b5-61ed-46af-9a17-86023cf3a58c
+- **Timestamp**: 2026-06-30 20:34:09 UTC
+- **Reason**: iterate: clear OSV/Scorecard dependency advisories (lockfile-only)
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-06-30-compliance-grade-e2e-hardening
-- **Date**: 2026-06-30T09:50:52.158664Z
+- **Run ID**: iterate-2026-06-30-remove-native-scorecard
+- **Date**: 2026-06-30T19:23:52.606862Z
 - **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/compliance-grade-e2e-hardening
-- **ADR**: iterate-2026-06-30-compliance-grade-e2e-hardening
+- **Complexity**: trivial
+- **Branch**: iterate/remove-native-scorecard
+- **ADR**: iterate-2026-06-30-remove-native-scorecard
 - **Tests passed**: True
-- **Spec**: n/a (test-only E2E hardening; spec_impact none)
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/remove-native-scorecard
+- **Branch**: iterate/osv-dep-advisories
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -48,8 +47,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/remove-native-scorecard
-- **Last Commit**: 9487fa8 feat(compliance): propagate Control-Grade honesty gate + anchors + native Scorecard (#189)
+- **Branch**: iterate/osv-dep-advisories
+- **Last Commit**: ae24cf9 chore(ci): remove native OpenSSF Scorecard workflow (wrong anchor for AI-first) (#190)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,17 +64,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-11f1d162 | work_completed | iterate (Clear all open advisories reported by the OSV/Scorecard Vulnerabilities check across both npm workspaces via lockfile-only dependency bumps (no package.json range edits, no --force, no major bumps). Every flagged package is dev-server / build-time / test-only tooling; the production runtime dependency tree is unaffected. CVE/package specifics are recorded in the gitignored security report. Verified: full unit suite 3500/3500 green, typecheck + lint + both builds clean, npm audit 0/0 in server and client.) | 2026-06-30 |
 | evt-53efed82 | work_completed | iterate (Remove webui .github/workflows/scorecard.yml + the Added changelog drop. Keep the A+C grade work + the methodology citation. Token-permissions + open vulns + pinned-deps tracked as triage.) | 2026-06-30 |
 | evt-3af4f8e4 | work_completed | iterate (Regenerate compliance with the updated plugin (honesty gate + 29148/12207/SSDF anchors); add native scorecard.yml. Grade stays A99 — webui has no traceability decline.) | 2026-06-30 |
 | evt-a01aca38 | work_completed | iterate (E2E hardening: Task-Board header pill + graceful-absence coverage for FR-01.43) | 2026-06-30 |
 | evt-d3c61a35 | work_completed | iterate (compliance Grade badge + detail modal in WebUI) | 2026-06-30 |
-| evt-041ea085 | work_completed | iterate (Suppress 130 Semgrep audit-rule false positives via a root .semgrepignore (test/e2e/POC/docs) + inline nosemgrep on 8 production FP lines (pty-manager spawn ADR-067, bidi-injection-defense regex, trusted-config RegExp compiles, loopback ws); converge the compliance dashboard, GitHub code-scanning, and triage on the real near-zero finding count.) | 2026-06-29 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 256
-- **Last iterate**: change — Remove webui .github/workflows/scorecard.yml + the Added changelog drop. Keep the A+C grade work + the methodology citation. Token-permissions + open vulns + pinned-deps tracked as triage. (2026-06-30)
+- **Total work events**: 257
+- **Last iterate**: change — Clear all open advisories reported by the OSV/Scorecard Vulnerabilities check across both npm workspaces via lockfile-only dependency bumps (no package.json range edits, no --force, no major bumps). Every flagged package is dev-server / build-time / test-only tooling; the production runtime dependency tree is unaffected. CVE/package specifics are recorded in the gitignored security report. Verified: full unit suite 3500/3500 green, typecheck + lint + both builds clean, npm audit 0/0 in server and client. (2026-06-30)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
