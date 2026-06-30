@@ -1,14 +1,14 @@
 # Commit Change Log
 
-Generated: 2026-06-30T14:46:07.517675+00:00
-Total commits: 612
+Generated: 2026-06-30T19:23:34.378558+00:00
+Total commits: 613
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
     "fix" : 222
-    "feat" : 146
+    "feat" : 147
     "chore" : 123
     "docs" : 63
     "refactor" : 26
@@ -247,10 +247,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 146 commits
+### Features (feat) — 147 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | compliance | propagate Control-Grade honesty gate + anchors + native Scorecard (#189) | 9487fa864208 |
 | 2026-06-30 | compliance | per-project Grade badge + detail modal in the Command Center (FR-01.43) (#184) | ba5d3be7699d |
 | 2026-06-23 | terminal | runtime renderer override to A/B-isolate the WebGL smear root cause (diagnostic) (#171) | 5d042e5e5f74 |
 | 2026-06-18 | board | drag-and-drop task columns, decoupled from session state (#158) | 896e4d57ca2b |
@@ -681,7 +682,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 612 |
+| Total commits | 613 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 612 |
+| Human-authored commits | 613 |
 

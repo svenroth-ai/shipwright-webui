@@ -1,10 +1,11 @@
 # Project Activity Dashboard
-> Updated: 2026-06-30 14:46 UTC | Session: 998fb4e1-d677-4d0a-89cf-cec4a7c4a6ee | Run: iterate-2026-06-30-control-grade-honesty-webui
+> Updated: 2026-06-30 19:23 UTC | Session: 998fb4e1-d677-4d0a-89cf-cec4a7c4a6ee | Run: iterate-2026-06-30-remove-native-scorecard
 
-## Recent Changes (185 iterations)
+## Recent Changes (186 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Remove webui .github/workflows/scorecard.yml + the Added changelog drop. Keep the A+C grade work + the methodology citation. Token-permissions + open vulns + pinned-deps tracked as triage. | 0/0 |  | infra | 2026-06-30 |
 | change | Regenerate compliance with the updated plugin (honesty gate + 29148/12207/SSDF anchors); add native scorecard.yml. Grade stays A99 — webui has no traceability decline. | 0/0 |  | compliance | 2026-06-30 |
 | change | E2E hardening: Task-Board header pill + graceful-absence coverage for FR-01.43 | 1809/1809 |  | tooling | 2026-06-30 |
 | feature | compliance Grade badge + detail modal in WebUI | 3497/3497 |  | FR-01.43 | 2026-06-30 |
