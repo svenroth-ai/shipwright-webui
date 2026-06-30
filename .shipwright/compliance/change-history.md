@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-06-29T22:34:15.839564+00:00
-Total commits: 606
+Generated: 2026-06-30T14:46:07.517675+00:00
+Total commits: 612
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 220
-    "feat" : 145
-    "chore" : 121
+    "fix" : 222
+    "feat" : 146
+    "chore" : 123
     "docs" : 63
     "refactor" : 26
-    "test" : 21
+    "test" : 22
     "ci" : 5
     "other" : 4
     "build" : 1
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 220 commits
+### Fixes (fix) — 222 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | terminal | make copy-on-selection opt-in (default off) + single-send paste guards (#186) | c1b0cfa5e4e3 |
+| 2026-06-30 | security | suppress 130 Semgrep audit-rule false positives (#183) | f46e91e1ffe1 |
 | 2026-06-30 | compliance | reconcile detective-audit B7/D3/G2/H2 post-v0.21.0 (#182) | e3873f2eca81 |
 | 2026-06-28 | security | bump 7 dependencies to clear Trivy high+medium CVEs (#180) | fb1d27c3a76f |
 | 2026-06-27 | security | harden cmd.exe arg quoting + scope CodeQL to production code (#177) | 9a32dde59ae7 |
@@ -245,10 +247,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 145 commits
+### Features (feat) — 146 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | compliance | per-project Grade badge + detail modal in the Command Center (FR-01.43) (#184) | ba5d3be7699d |
 | 2026-06-23 | terminal | runtime renderer override to A/B-isolate the WebGL smear root cause (diagnostic) (#171) | 5d042e5e5f74 |
 | 2026-06-18 | board | drag-and-drop task columns, decoupled from session state (#158) | 896e4d57ca2b |
 | 2026-06-15 | responsive | mobile/tablet layout polish — header, list, projects, sidebar, board (FR-01.41) (#148) | adc72bb082df |
@@ -395,10 +398,12 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 121 commits
+### Chores (chore) — 123 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | compliance | regenerate traceability-matrix with the UTC-date renderer (#188) | e4590f6d908a |
+| 2026-06-30 | compliance | regenerate test-evidence + traceability with the navigable renderer (#187) | 83f42db12434 |
 | 2026-06-28 | compliance | light the Security dimension (0 high/critical) -> A99 (#181) | 056251a475fe |
 | 2026-06-28 | compliance | regenerate dashboard + reconcile → honest A (B89→A98) (#179) | 0da7a87ede74 |
 | 2026-06-28 | compliance | backfill requirement traceability — classify all events + close NOT-VERIFIED FRs (BP-1 WebUI) (#178) | 38b18977e1f6 |
@@ -620,10 +625,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 21 commits
+### Tests (test) — 22 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | compliance | empirical E2E coverage for both Grade render sites + graceful absence (FR-01.43) (#185) | 738dddc58e34 |
 | 2026-06-23 | terminal | real-browser E2E proving the renderer override switches WebGL<->DOM (#172) | 37a39ae8ef3c |
 | 2026-06-20 | terminal | split useTerminalResize.test.ts under the 300-LOC guideline (#165) | 9499eba74590 |
 | 2026-06-18 | terminal | split WS-liveness specs under the 300-LOC guideline (#160) | b682e6a7f7de |
@@ -675,7 +681,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 606 |
+| Total commits | 612 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 606 |
+| Human-authored commits | 612 |
 

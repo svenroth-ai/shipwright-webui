@@ -1,10 +1,13 @@
 # Project Activity Dashboard
-> Updated: 2026-06-29 22:34 UTC | Session: 9ea886aa-27a2-44e6-8711-6a410910dbb0 | Run: iterate-2026-06-30-semgrep-fp-suppression
+> Updated: 2026-06-30 14:46 UTC | Session: 998fb4e1-d677-4d0a-89cf-cec4a7c4a6ee | Run: iterate-2026-06-30-control-grade-honesty-webui
 
-## Recent Changes (182 iterations)
+## Recent Changes (185 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| change | Regenerate compliance with the updated plugin (honesty gate + 29148/12207/SSDF anchors); add native scorecard.yml. Grade stays A99 — webui has no traceability decline. | 0/0 |  | compliance | 2026-06-30 |
+| change | E2E hardening: Task-Board header pill + graceful-absence coverage for FR-01.43 | 1809/1809 |  | tooling | 2026-06-30 |
+| feature | compliance Grade badge + detail modal in WebUI | 3497/3497 |  | FR-01.43 | 2026-06-30 |
 | change | Suppress 130 Semgrep audit-rule false positives via a root .semgrepignore (test/e2e/POC/docs) + inline nosemgrep on 8 production FP lines (pty-manager spawn ADR-067, bidi-injection-defense regex, trusted-config RegExp compiles, loopback ws); converge the compliance dashboard, GitHub code-scanning, and triage on the real near-zero finding count. | 0/0 |  | tooling | 2026-06-29 |
 | change | Reconcile detective-audit B7/D3/G2/H2 post-v0.21.0: backfill event for dd7f7468 (PR #168 safeFit refactor), amend evt-2646f4da to reaffirm FR-01.42, register mobile/images conventional-commit scopes, tighten 4 bloat-baseline current LOC values. | 0/0 |  | compliance | 2026-06-29 |
 | change | refactor(terminal): extract safeFit into safe-fit.ts to keep useTerminalResize under 300 LOC (PR #168, B7 backfill — LOC-discipline follow-up to #167 ADR-084, behavior-preserving) | 0/0 | dd7f746 | FR-01.28 | 2026-06-29 |
@@ -189,7 +192,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-30 | Unit: 62/62 | Smoke: not_run | (iterate)
+Last run: 2026-06-30 | Unit: 1809/1809 | E2E: 2/2 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

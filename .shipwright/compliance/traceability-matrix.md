@@ -1,6 +1,6 @@
 # Requirements Traceability Matrix
 
-Generated: 2026-06-30T09:50:24.509428+00:00
+Generated: 2026-06-30T14:46:07.517675+00:00
 
 ## Requirements Coverage
 
@@ -55,6 +55,7 @@ Generated: 2026-06-30T09:50:24.509428+00:00
 
 | Event | Source | Type | FRs | Tests | Commit | Date |
 |-------|--------|------|-----|-------|--------|------|
+| <a id="evt-3af4f8e4"></a>Regenerate compliance with the updated plugin (honesty gate + 29148/12207/SSDF anchors); add native scorecard.yml. Grade stays A99 — webui has no traceability decline. | iterate | change |  | — | — | 2026-06-30 |
 | <a id="evt-a01aca38"></a>E2E hardening: Task-Board header pill + graceful-absence coverage for FR-01.43 | iterate | change |  | 1809/1809 | — | 2026-06-30 |
 | <a id="evt-d3c61a35"></a>compliance Grade badge + detail modal in WebUI | iterate | feature | [FR-01.43](#rtm-fr-0143) | 3497/3497 | — | 2026-06-30 |
 | <a id="evt-041ea085"></a>Suppress 130 Semgrep audit-rule false positives via a root .semgrepignore (test/e2e/POC/docs) + inline nosemgrep on 8 production FP lines (pty-manager spawn ADR-067, bidi-injection-defense regex, trusted-config RegExp compiles, loopback ws); converge the compliance dashboard, GitHub code-scanning, and triage on the real near-zero finding count. | iterate | change |  | — | — | 2026-06-29 |
@@ -316,7 +317,7 @@ Generated: 2026-06-30T09:50:24.509428+00:00
 |--------|-------|
 | Total splits built | 0 |
 | Build sections | 0 |
-| Iterate changes | 184 |
+| Iterate changes | 185 |
 | Requirements total | 42 |
 | Requirements verified | 42/42 |
 | Must-have verified | 31/31 |

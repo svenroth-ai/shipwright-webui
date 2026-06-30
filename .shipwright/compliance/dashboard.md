@@ -1,6 +1,6 @@
 # Compliance Dashboard
 
-Generated: 2026-06-29T22:34:15.839564+00:00
+Generated: 2026-06-30T14:46:07.517675+00:00
 Profile: vite-hono
 Scope: full_app
 
@@ -12,28 +12,28 @@ Scope: full_app
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 41/41 FRs covered; 228/252 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (DO-178C, IEC 62304) |
-| ✅ | Test health | latest full suite 3464/3464 (2026-06-28) | automated tests pass (OpenSSF Scorecard) |
-| ✅ | Change traceability | 252/252 changes linked to a commit, ADR or test run | change provenance (SLSA, OpenSSF Scorecard) |
-| ✅ | Change reconciliation | 0/22 behavior-touched FRs not re-verified | re-verify changed requirements (DO-178C, ISO 26262) |
-| ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF, OWASP) |
+| ✅ | Requirement traceability | 42/42 FRs covered; 231/255 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Test health | latest full suite 1809/1809 (2026-06-30) | automated tests pass (OpenSSF Scorecard) |
+| ✅ | Change traceability | 255/255 changes linked to a commit, ADR or test run | change provenance (SLSA) |
+| ✅ | Change reconciliation | 0/23 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
+| ✅ | Security | 0 open high/critical | no open high/critical vulns (NIST SSDF) |
 | ✅ | Size / maintainability discipline | ratchet delta +0 lines (net growth) | no unchecked code-size growth (ISO/IEC 25010) |
-| ✅ | Dependency hygiene | 0 unresolved / 66 licenses; 0 copyleft | dependency license & risk (OWASP, OpenSSF Scorecard) |
+| ✅ | Dependency hygiene | 0 unresolved / 66 licenses; 0 copyleft | dependency license & risk (OWASP) |
 
-Verified from: `shipwright_events.jsonl (252 events, 2026-05-01 → 2026-06-29)`
+Verified from: `shipwright_events.jsonl (255 events, 2026-05-01 → 2026-06-30)`
 
 _Grade = importance-weighted average over the measurable dimensions (n/a excluded from the denominator), modeled on OpenSSF Scorecard. Age is neutral; only unreconciled change and net growth are control failures. Each Anchor names the open standard the dimension follows — see the guide's Control-Grade dimensions table._
 
 ## 🛡️ CI Security (fail-closed gate)
 
-Latest scan: **2026-06-28** · source `security.yml#28336942429` · critical-gate **✅ PASS**
+Latest scan: **2026-06-29** · source `security.yml#28407935303` · critical-gate **✅ PASS**
 
 | Severity | Count |
 |----------|-------|
 | Critical | 0 |
 | High | 0 |
 | Medium | 0 |
-| Low | 130 |
+| Low | 12 |
 
 Prompt-injection findings: **0**
 
@@ -44,11 +44,11 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 | Metric | Value | Status | Why warn? |
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
-| Work events (iterate) | 182 changes | INFO |  |
-| Recent changes traced to an FR | 20/30 (67%) | PASS |  |
-| All unit tests passing | 3464/3464 | PASS | +4 change(s) since last full suite |
+| Work events (iterate) | 185 changes | INFO |  |
+| Recent changes traced to an FR | 19/30 (63%) | PASS |  |
+| All unit tests passing | 1809/1809 | PASS | +1 change(s) since last full suite |
 | Architecture decisions | 200 ADRs | INFO |  |
-| Iterate tests passing | 70/113 testable changes tested | WARN | 43 testable change(s) without tests — see test-evidence.md |
+| Iterate tests passing | 71/114 testable changes tested | WARN | 43 testable change(s) without tests — see test-evidence.md |
 | Dependencies | 66 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
 | Triage open | 1 open | WARN | 1 actionable item(s) — see ../agent_docs/triage_inbox.md |
@@ -58,8 +58,8 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 
 ## Project Velocity
 
-- Iterate: 182 changes (2026-05-01 → 2026-06-29)
-- Last activity: 2026-06-29
+- Iterate: 185 changes (2026-05-01 → 2026-06-30)
+- Last activity: 2026-06-30
 
 ## External LLM Review Evidence
 
@@ -71,7 +71,9 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 
 ## 🔎 Consistency Audit
 
-_Detective cross-artifact audit not run this session — run `/shipwright-compliance` to refresh._
+Detective audit (2026-05-22): **FAIL — drift found** · 16 checks — 10 pass, 2 fail, 4 skip.
+
+_Inlined from `audit-report.json` (a gitignored transient — no external link, so this stays visible on the public repo)._
 
 ## Compliance Artifacts
 

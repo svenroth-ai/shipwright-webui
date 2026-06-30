@@ -3,6 +3,10 @@
 Generated: 2026-05-22 08:29:41 UTC
 Project: `C:/01_Development/shipwright-webui`
 
+<!-- shipwright:audit-staleness:start -->
+> ⚠️ **Possibly stale — re-run `/shipwright-compliance`.** This detective audit was generated 2026-05-22 08:29:41 UTC; routine compliance regens refresh the dashboard but do **not** re-run the audit, so the findings below may already be resolved. Compare the `Generated:` line above with the dashboard's.
+<!-- shipwright:audit-staleness:end -->
+
 > Cross-artifact consistency scan (plan v7). Surfaces drift classes that
 > live between the preventive Canon gate and the reactive Phase-Quality
 > Stop hook. See `docs/guide.md` § 4.10 for the 3-layer positioning.
