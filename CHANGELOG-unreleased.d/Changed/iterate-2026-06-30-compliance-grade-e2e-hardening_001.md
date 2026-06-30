@@ -1,0 +1,1 @@
+Hardened the compliance-Grade E2E suite (FR-01.43): it now drives both render sites — Projects-table column and Task-Board header pill — plus the no-dashboard graceful-absence path through a real browser.
