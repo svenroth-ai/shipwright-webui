@@ -44,6 +44,7 @@ import { useExternalTasks } from '../hooks/useExternalTasks';
 import { useProjectFilter } from '../hooks/useProjectFilter';
 import { ProjectWizard } from '../components/wizard/ProjectWizard';
 import { ProjectSettingsDialog } from '../components/wizard/ProjectSettingsDialog';
+import { ComplianceGradeBadge } from '../components/compliance/ComplianceGradeBadge';
 import { getProjectColor } from '../lib/projectColor';
 import type { Project } from '../types';
 
@@ -214,6 +215,7 @@ export default function ProjectsPage() {
                     <th style={thStyle('auto', 'left')}>Name</th>
                     <th className="hidden lg:table-cell" style={thStyle('auto', 'left')}>Path</th>
                     <th style={thStyle('80px', 'right')}>Tasks</th>
+                    <th style={thStyle('90px', 'right')}>Grade</th>
                     <th style={thStyle('120px', 'right')}>Actions</th>
                   </tr>
                 </thead>
@@ -320,6 +322,17 @@ export default function ProjectsPage() {
                           }}
                         >
                           {taskCount}
+                        </td>
+
+                        {/* Grade — compliance Control-Grade badge (FR-01.43);
+                            renders nothing when the project has no dashboard. */}
+                        <td
+                          data-testid={`projects-cell-${project.id}-grade`}
+                          style={{ ...tdStyle(), textAlign: 'right' }}
+                        >
+                          {!project.synthesized && (
+                            <ComplianceGradeBadge projectId={project.id} />
+                          )}
                         </td>
 
                         {/* Actions */}

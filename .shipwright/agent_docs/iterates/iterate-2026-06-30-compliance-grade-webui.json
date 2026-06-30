@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-06-30-compliance-grade-webui",
+  "date": "2026-06-30T09:21:08.799371Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/compliance-grade-webui",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-06-30-compliance-grade-webui.md",
+  "adr": "iterate-2026-06-30-compliance-grade-webui"
+}

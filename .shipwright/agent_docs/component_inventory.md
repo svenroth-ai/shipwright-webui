@@ -204,6 +204,18 @@ The `client/src/components/terminal/` folder also houses 7 colocated hooks / hel
 | `TriageBadgeUI` | `triage/TriageBadgeUI.tsx` | 63 | 4 |
 | `PromoteModal` | `triage/PromoteModal.tsx` | 262 | 3 |
 
+### `compliance/` (FR-01.43, iterate-2026-06-30-compliance-grade-webui)
+
+Per-project compliance Control-Grade surface. Reads the markdown dashboard via
+server `core/compliance-reader.ts` → `external/compliance/routes.ts` → client
+`lib/complianceApi.ts` + hook `useProjectCompliance`. Rendered on the Projects
+table (Grade column) + Task-Board header.
+
+| Name | Path | LOC | Usages |
+|------|------|-----|--------|
+| `ComplianceGradeBadge` | `compliance/ComplianceGradeBadge.tsx` | ~70 | 2 |
+| `ComplianceDetailModal` | `compliance/ComplianceDetailModal.tsx` | ~85 | 1 |
+
 ### `wizard/`
 
 | Name | Path | LOC | Usages |
