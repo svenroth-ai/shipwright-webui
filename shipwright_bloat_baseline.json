@@ -193,9 +193,9 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
-      "current": 2202,
+      "current": 2205,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-08-fix-terminal-replay-render-refresh"
+      "adr": "iterate-2026-06-30-terminal-paste-single-sink"
     },
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",

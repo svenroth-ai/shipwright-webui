@@ -30,6 +30,7 @@ import type { Terminal } from "@xterm/xterm";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 
 import { copyText } from "../../lib/clipboard";
+import { getCopyOnSelection } from "../../lib/terminalPrefs";
 
 export interface AttachTerminalSelectionOptions {
   /** Mounted xterm (open()-ed; `term.element` populated). */
@@ -87,6 +88,16 @@ export function attachTerminalSelection(
 
   const flushSelectionCopy = (event: Event): void => {
     if (disposedRef.current) return;
+    // Copy-on-selection is OPT-IN (default off,
+    // iterate-2026-06-30-terminal-paste-single-sink). Read live so the
+    // Settings toggle takes effect without a remount. When disabled, a
+    // selection must NOT auto-copy / clobber the OS clipboard the user is
+    // about to paste — but still reset the drag-origin tracker so stale
+    // state doesn't carry across gestures.
+    if (!getCopyOnSelection()) {
+      if (event.type === "mouseup") state.dragStartedInTerminal = false;
+      return;
+    }
     if (event.type === "mouseup") {
       if (!state.dragStartedInTerminal) {
         const target = event.target as Node | null;
