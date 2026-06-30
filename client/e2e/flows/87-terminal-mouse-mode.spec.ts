@@ -131,6 +131,10 @@ test.describe("Iterate terminal-selection-uxd — mouse-mode banner + Shift+Drag
           "webui:embedded-terminal-default-tab",
           '"terminal"',
         );
+        // iterate-2026-06-30-terminal-paste-single-sink — copy-on-selection
+        // is now OPT-IN (default off). This spec verifies Shift+Drag copy,
+        // so enable it explicitly.
+        localStorage.setItem("shipwright.terminal.copyOnSelection", "true");
       } catch {
         /* noop */
       }

@@ -25,6 +25,7 @@
  */
 import { useProjects } from "../hooks/useProjects";
 import { ActionsConfigCard } from "../components/settings/ActionsConfigCard";
+import { TerminalSettingsCard } from "../components/settings/TerminalSettingsCard";
 
 export default function SettingsPage() {
   const { data: projects = [] } = useProjects();
@@ -79,6 +80,8 @@ export default function SettingsPage() {
         className="page-container flex flex-col gap-4"
         style={{ paddingTop: "24px", paddingBottom: "24px" }}
       >
+        {/* Terminal preferences (client-local). */}
+        <TerminalSettingsCard />
         {/* FR-01.27 — per-project actions.json upload + reset. */}
         <ActionsConfigCard projects={projects} />
       </div>

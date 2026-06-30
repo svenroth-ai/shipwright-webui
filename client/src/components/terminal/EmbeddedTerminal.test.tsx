@@ -1611,9 +1611,12 @@ describe("<EmbeddedTerminal>", () => {
         value: { writeText },
         configurable: true,
       });
+      // copy-on-selection is opt-in (default off) — enable for this block.
+      localStorage.setItem("shipwright.terminal.copyOnSelection", "true");
     });
     afterEach(() => {
       delete (navigator as { clipboard?: unknown }).clipboard;
+      localStorage.removeItem("shipwright.terminal.copyOnSelection");
     });
     /** Flush queued microtasks + setTimeout(0) so the copyText promise
      * settles + React-state setters flush. */

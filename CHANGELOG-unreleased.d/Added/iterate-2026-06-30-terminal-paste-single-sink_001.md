@@ -1,0 +1,1 @@
+Settings → Terminal: a "Copy on selection" toggle (off by default, stored per-browser). When enabled, selecting terminal text with the mouse auto-copies it to the clipboard; explicit Ctrl+C / Ctrl+Insert always copies regardless of the toggle. The running terminal picks up the change live — no reload needed.
