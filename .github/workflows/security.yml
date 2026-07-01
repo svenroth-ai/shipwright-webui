@@ -20,6 +20,13 @@ on:
 # four below are the floor; do not delete any without re-checking the
 # downstream actions that depend on them. See
 # shared/scripts/lib/security_workflow.py for the convention lock.
+#
+# Intentionally TOP-LEVEL — unlike the sibling workflows (ci/codeql/bloat-check/
+# pr-review), which keep a read-only top-level and widen per-job. This single-job
+# SARIF workflow is convention-locked by the compliance A5.3 audit, which reads
+# the *top-level* `permissions:`. With one job, top-level == job-level effective
+# scope, so there is no least-privilege loss; do NOT move these to the `scan` job
+# without first teaching A5.3 to read the job's effective permissions.
 permissions:
   contents: read           # actions/checkout@v4
   actions: read            # github/codeql-action/upload-sarif@v4 (SARIF attach)
