@@ -1,29 +1,30 @@
 # Commit Change Log
 
 Generated: 2026-06-30T20:34:09.855457+00:00
-Total commits: 614
+Total commits: 617
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 222
+    "fix" : 223
     "feat" : 147
-    "chore" : 124
+    "chore" : 125
     "docs" : 63
     "refactor" : 26
     "test" : 22
-    "ci" : 5
+    "ci" : 6
     "other" : 4
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 222 commits
+### Fixes (fix) — 223 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-06-30 | security | clear OSV/Scorecard dependency advisories via lockfile-only bumps (#192) | 5c54a121005f |
 | 2026-06-30 | terminal | make copy-on-selection opt-in (default off) + single-send paste guards (#186) | c1b0cfa5e4e3 |
 | 2026-06-30 | security | suppress 130 Semgrep audit-rule false positives (#183) | f46e91e1ffe1 |
 | 2026-06-30 | compliance | reconcile detective-audit B7/D3/G2/H2 post-v0.21.0 (#182) | e3873f2eca81 |
@@ -399,10 +400,11 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 124 commits
+### Chores (chore) — 125 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-01 | triage | fold 2 main-tree background append(s) | 3b8d1ac0ed21 |
 | 2026-06-30 | ci | remove native OpenSSF Scorecard workflow (wrong anchor for AI-first) (#190) | ae24cf9ca887 |
 | 2026-06-30 | compliance | regenerate traceability-matrix with the UTC-date renderer (#188) | e4590f6d908a |
 | 2026-06-30 | compliance | regenerate test-evidence + traceability with the navigable renderer (#187) | 83f42db12434 |
@@ -654,10 +656,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### CI/CD (ci) — 5 commits
+### CI/CD (ci) — 6 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-01 | security | least-privilege GITHUB_TOKEN permissions per workflow (#191) | c864d63f9838 |
 | 2026-06-12 | review | migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125) | 8bace6de63e3 |
 | 2026-06-05 | security | checkout at fetch-depth 1 (no scanner reads git history) | 8d73f3d5d5f8 |
 | 2026-06-02 | security | add CodeQL workflow (javascript-typescript) | 0a42fb366386 |
@@ -683,7 +686,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 614 |
+| Total commits | 617 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 614 |
+| Human-authored commits | 617 |
 
