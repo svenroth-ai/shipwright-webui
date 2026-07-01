@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-06-30-osv-dep-advisories",
+  "date": "2026-06-30T20:38:24.612453Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/osv-dep-advisories",
+  "tests_passed": true,
+  "adr": "iterate-2026-06-30-osv-dep-advisories"
+}

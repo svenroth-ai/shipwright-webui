@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-30T11:50:00.000Z",
+  "last_updated": "2026-06-30T20:33:41.611Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-30-compliance-grade-e2e-hardening",
+    "run_id": "iterate-2026-06-30-osv-dep-advisories",
     "date": "2026-06-30",
     "unit": {
       "status": "passed",
-      "passed": 1809,
-      "total": 1809
+      "passed": 3500,
+      "total": 3500
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,36 +32,40 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "Playwright against an isolated single-process stack (temp-USERPROFILE Hono :3851 serving the built SPA): e2e/flows/95-compliance-grade.spec.ts (2 tests)",
+      "surface": "none",
+      "justification": "Lockfile-only dependency bump (no package.json/source/API/contract/UI change); all flagged packages are dev/build/test-only tooling. Verified by the full unit suite (3500 green), typecheck, lint, and clean builds (incl. the vite 6.4.3 client bundle) plus npm audit 0/0 in both workspaces.",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-06-30-compliance-grade-e2e-hardening/ (2 specs passed; client/e2e-results.json)",
-      "timestamp": "2026-06-30T11:48:00.000Z"
+      "tests_run": 0,
+      "timestamp": "2026-06-30T20:33:41.611Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Task-Board header renders the Grade pill for the single selected project (?projectId=) and clicking it opens the detail modal — the second render site, previously only component-tested",
+          "behavior": "Both npm workspaces report zero open advisories (npm audit) at all severities after the bumps (baseline: server 1 low, client 6).",
           "disposition": "tested",
-          "evidence": "client/e2e/flows/95-compliance-grade.spec.ts 'Task Board header' PASSED (real browser, isolated stack)"
+          "evidence": "npm audit --json -> metadata.vulnerabilities total=0 for server and client (post-fix)"
         },
         {
-          "behavior": "Graceful absence: a project with no .shipwright/compliance/dashboard.md renders NO Grade badge on the Projects table, alongside a graded project that does",
+          "behavior": "No regression in server build/test/type behavior after the tsx minor bump pulling the fixed transitive esbuild.",
           "disposition": "tested",
-          "evidence": "client/e2e/flows/95-compliance-grade.spec.ts 'Projects table ... no-dashboard project shows none' PASSED"
+          "evidence": "server vitest 1688/1688 passed (138 files); tsc --noEmit, oxlint, npm run build all PASS"
+        },
+        {
+          "behavior": "No regression in client build/test/type behavior after the vite patch (6.4.2->6.4.3) + tsx bump.",
+          "disposition": "tested",
+          "evidence": "client vitest 1812/1812 passed (184 files); tsc, oxlint, vite build (built in 15.3s) all PASS"
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
+        "testable": 3,
+        "tested": 3,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 0,
+        "covered_acs": 0
       }
     },
     "degraded": []
