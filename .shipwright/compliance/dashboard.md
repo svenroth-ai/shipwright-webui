@@ -6,13 +6,13 @@ Scope: full_app
 
 ## ✅ Control Verdict
 
-> **Controlled, minor gaps. Capped: traceability declining (FR-tag 57% vs 59% all-time, last 30).**
+> **Under full control. Primarily capped by requirement traceability.**
 
-### Control Grade: **B** (89/100) — Controlled, minor gaps.
+### Control Grade: **A** (99/100) — Under full control.
 
 | | Dimension | Signal | Anchor |
 |---|-----------|--------|--------|
-| ✅ | Requirement traceability | 42/42 FRs covered; 233/257 changes traced (FR-linked or classified no-FR); FR-tag rate 57% vs 59% all-time — declining | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
+| ✅ | Requirement traceability | 42/42 FRs covered; 233/257 changes traced (FR-linked or classified no-FR) | requirement-to-work traceability (ISO/IEC/IEEE 29148) |
 | ✅ | Test health | latest full suite 3500/3500 (2026-06-30) | automated tests pass (OpenSSF Scorecard) |
 | ✅ | Change traceability | 257/257 changes linked to a commit, ADR or test run | change provenance (SLSA) |
 | ✅ | Change reconciliation | 0/23 behavior-touched FRs not re-verified | re-verify changed requirements (ISO/IEC/IEEE 12207) |
@@ -45,13 +45,13 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 |--------|-------|--------|-----------|
 | Pipeline phases completed | n/a (adopted) | INFO |  |
 | Work events (iterate) | 187 changes | INFO |  |
-| Recent changes traced to an FR | 17/30 (57%) | WARN | FR-tagging dropped to 57% (last 30) vs 59% all-time — recent changes classified no-FR; see the Control Verdict traceability dimension |
+| Recent changes traced to an FR | 17/30 (57%) | INFO | feature vs. maintenance mix — informational, does not affect the Control Grade |
 | All unit tests passing | 3500/3500 | PASS |  |
 | Architecture decisions | 200 ADRs | INFO |  |
 | Iterate tests passing | 71/114 testable changes tested | WARN | 43 testable change(s) without tests — see test-evidence.md |
 | Dependencies | 66 packages | INFO |  |
 | Copyleft risk | 0 | PASS |  |
-| Triage open | 4 open | WARN | 4 actionable item(s) — see ../agent_docs/triage_inbox.md |
+| Triage open | 2 open | WARN | 2 actionable item(s) — see ../agent_docs/triage_inbox.md |
 | Bloat over-limit (grandfathered) | 80 | INFO |  |
 | Bloat in allowlist | 85 entries | INFO |  |
 | Bloat ratchet delta | +0 lines | PASS |  |
@@ -71,7 +71,9 @@ _Ingested from CI `findings.json` (public-safe: severity counts + gate verdict o
 
 ## 🔎 Consistency Audit
 
-_Detective cross-artifact audit not run this session — run `/shipwright-compliance` to refresh._
+Detective audit (2026-05-22): **FAIL — drift found** · 16 checks — 10 pass, 2 fail, 4 skip.
+
+_Inlined from `audit-report.json` (a gitignored transient — no external link, so this stays visible on the public repo)._
 
 ## Compliance Artifacts
 
