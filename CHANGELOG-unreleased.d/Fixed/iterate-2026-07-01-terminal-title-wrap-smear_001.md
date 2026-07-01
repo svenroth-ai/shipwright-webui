@@ -1,0 +1,1 @@
+Embedded terminal: long task titles no longer smear the input line (title-pill wrap collided the first character onto the prompt row); the pty is now width-synced to the client before launch and re-converged for a writer after replay (FR-01.28).

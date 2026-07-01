@@ -52,7 +52,19 @@ export interface ReplayDrainGateHandle {
 export function useReplayDrainGate(
   termRef: RefObject<Terminal | null>,
   disposedRef: RefObject<boolean>,
+  /**
+   * Fired once a `replay_snapshot` write has settled (drain complete). Used to
+   * re-converge a WRITER's xterm — which `onReplaySnapshot` temporarily
+   * resized to the snapshot's own (serialized) width for faithful cursor
+   * reconstruction — back to the real container width and push the matching
+   * resize to the pty, so a re-attach can't strand xterm at a width that
+   * differs from Claude's render width (iterate-2026-07-01-terminal-title-
+   * wrap-smear). Held behind a latest-ref by the caller; safe to omit.
+   */
+  onReplaySettled?: () => void,
 ): ReplayDrainGateHandle {
+  const onReplaySettledRef = useRef(onReplaySettled);
+  onReplaySettledRef.current = onReplaySettled;
   // Gate refs.
   const replaySnapshotInFlightRef = useRef(false);
   const replayDrainQueueRef = useRef<string[]>([]);
@@ -116,6 +128,11 @@ export function useReplayDrainGate(
           `[terminal] replay drain failed: ${(err as Error).message}`,
         );
       }
+      // Re-converge to the real container width (writer-gated by the caller)
+      // now that the snapshot has been reconstructed at its own serialized
+      // width — closes the "xterm stranded at snapshot cols ≠ Claude's render
+      // width" divergence on re-attach.
+      onReplaySettledRef.current?.();
     },
     [clearReplayWatchdog, disposedRef, termRef],
   );
