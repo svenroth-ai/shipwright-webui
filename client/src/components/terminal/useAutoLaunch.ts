@@ -56,6 +56,20 @@ export interface UseAutoLaunchOptions {
   coord: CoordLike;
   /** Replay-drain gate — supplies prompt-readiness refs + reset. */
   gate: ReplayDrainGateHandle;
+  /**
+   * Fired synchronously IMMEDIATELY before the launch command data-frame is
+   * written to the pty (both auto-inject + manual-send paths). Used to
+   * fit + emit a `resize` so the pty is at the client's REAL cols/rows
+   * before Claude Code renders its width-sensitive title-pill banner.
+   *
+   * Root cause it closes (iterate-2026-07-01-terminal-title-wrap-smear): the
+   * pty spawns at a hardcoded 120 cols; a half-screen (narrower) xterm whose
+   * resize hasn't reached the pty yet lets Claude render the wrapping title
+   * banner at 120, which auto-wraps one extra row in the narrower grid and
+   * collides the title's first char onto the `>` prompt row ("Der" → "D er").
+   * Same ordered WS ⇒ the resize is applied before the command runs.
+   */
+  onBeforeDispatch?: () => void;
 }
 
 export interface UseAutoLaunchResult {
@@ -66,7 +80,13 @@ export interface UseAutoLaunchResult {
 }
 
 export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
-  const { taskId, socket, coord, gate } = opts;
+  const { taskId, socket, coord, gate, onBeforeDispatch } = opts;
+
+  // Latest-ref so the async auto-inject closure never captures a stale
+  // callback across parent re-renders (same pattern as socketSend in
+  // useTerminalResize).
+  const onBeforeDispatchRef = useRef(onBeforeDispatch);
+  onBeforeDispatchRef.current = onBeforeDispatch;
 
   const consumedTokensRef = useRef<Set<number>>(new Set());
   const injectionInFlightRef = useRef(false);
@@ -171,6 +191,10 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
 
       const cmd = pickShellCommand(pending.commands, socket.shellKind);
       consumedTokensRef.current.add(pending.launchToken);
+      // Sync the pty to the client's real width BEFORE the command runs, on
+      // the same ordered WS, so Claude renders the title banner at the correct
+      // cols (see onBeforeDispatch doc — the "D er" title-wrap smear).
+      onBeforeDispatchRef.current?.();
       socket.send({ type: "data", payload: cmd + "\r" });
       launchInjectedThisPtyLifetimeRef.current = true;
       coord.consumeLaunch(pending.launchToken);
@@ -188,6 +212,8 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
     if (!pending) return;
     if (!socket.ready || socket.role !== "writer" || !socket.shellKind) return;
     const cmd = pickShellCommand(pending.commands, socket.shellKind);
+    // Same pre-dispatch width sync as the auto path (see onBeforeDispatch).
+    onBeforeDispatchRef.current?.();
     socket.send({ type: "data", payload: cmd + "\r" });
     setManualSendPending(null);
   }, [

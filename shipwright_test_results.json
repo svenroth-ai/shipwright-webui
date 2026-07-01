@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-06-30T20:33:41.611Z",
+  "last_updated": "2026-07-01",
   "iterate_latest": {
-    "run_id": "iterate-2026-06-30-osv-dep-advisories",
-    "date": "2026-06-30",
+    "run_id": "iterate-2026-07-01-terminal-title-wrap-smear",
+    "date": "2026-07-01",
     "unit": {
       "status": "passed",
-      "passed": 3500,
-      "total": 3500
+      "passed": 1820,
+      "total": 1820
     },
     "integration": {
       "status": "not_run",
@@ -19,12 +19,12 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -32,40 +32,62 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "justification": "Lockfile-only dependency bump (no package.json/source/API/contract/UI change); all flagged packages are dev/build/test-only tooling. Verified by the full unit suite (3500 green), typecheck, lint, and clean builds (incl. the vite 6.4.3 client bundle) plus npm audit 0/0 in both workspaces.",
+      "surface": "web",
+      "runner": "playwright test e2e/flows/terminal-title-wrap-size-sync.spec.ts --project=chromium (isolated stack, BASE_URL=http://127.0.0.1:4848)",
       "exit_code": 0,
-      "tests_run": 0,
-      "timestamp": "2026-06-30T20:33:41.611Z"
+      "tests_run": 1,
+      "evidence_path": "client/e2e/flows/terminal-title-wrap-size-sync.spec.ts",
+      "timestamp": "2026-07-01T00:00:00Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Both npm workspaces report zero open advisories (npm audit) at all severities after the bumps (baseline: server 1 low, client 6).",
+          "behavior": "auto-inject launch: size sync (resize) is dispatched before the launch data-frame",
           "disposition": "tested",
-          "evidence": "npm audit --json -> metadata.vulnerabilities total=0 for server and client (post-fix)"
+          "evidence": "useAutoLaunch.sizesync.test.ts::auto-inject calls onBeforeDispatch BEFORE writing the command PASSED"
         },
         {
-          "behavior": "No regression in server build/test/type behavior after the tsx minor bump pulling the fixed transitive esbuild.",
+          "behavior": "manual-send launch: size sync is dispatched before the launch data-frame",
           "disposition": "tested",
-          "evidence": "server vitest 1688/1688 passed (138 files); tsc --noEmit, oxlint, npm run build all PASS"
+          "evidence": "useAutoLaunch.sizesync.test.ts::manual-send calls onBeforeDispatch BEFORE writing the command PASSED"
         },
         {
-          "behavior": "No regression in client build/test/type behavior after the vite patch (6.4.2->6.4.3) + tsx bump.",
+          "behavior": "onReplaySettled fires after the snapshot write settles",
           "disposition": "tested",
-          "evidence": "client vitest 1812/1812 passed (184 files); tsc, oxlint, vite build (built in 15.3s) all PASS"
+          "evidence": "useReplayDrainGate.test.tsx::invokes onReplaySettled AFTER the snapshot write settles PASSED"
+        },
+        {
+          "behavior": "WRITER re-converges to real width after a replay settle (sends resize)",
+          "disposition": "tested",
+          "evidence": "useTerminalSizeSync.test.ts::onReplaySettled re-converges a WRITER (emits a resize) PASSED"
+        },
+        {
+          "behavior": "READER does NOT converge after a replay settle (#150 reader-reflow guard)",
+          "disposition": "tested",
+          "evidence": "useTerminalSizeSync.test.ts::onReplaySettled does NOT converge a READER PASSED"
+        },
+        {
+          "behavior": "real browser: a resize frame is emitted on the terminal WS immediately (<150ms) before the launch command",
+          "disposition": "tested",
+          "evidence": "terminal-title-wrap-size-sync.spec.ts PASSED (chromium, isolated stack)"
+        },
+        {
+          "behavior": "live glyph outcome: no 'D er' title-char collision on the prompt row with a real long-title Claude session",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "the live visual outcome needs an authenticated Claude TUI + long title + narrow pane; the isolated E2E stack has no Claude auth, so a human confirms in the live webui"
         }
       ],
       "counts": {
-        "testable": 3,
-        "tested": 3,
-        "untestable": 0,
+        "testable": 6,
+        "tested": 6,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 0,
-        "covered_acs": 0
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []

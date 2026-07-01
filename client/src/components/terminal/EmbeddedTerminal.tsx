@@ -7,7 +7,7 @@
  * Campaign C / C5 (2026-05-26) — the 1856-LOC monolith was split into a thin
  * shell + extracted modules under `client/src/components/terminal/`:
  * xtermAddons, usePasteImage, useTerminalResize, useReplayDrainGate,
- * useAutoLaunch, useTerminalSelection, useTerminalShellEffects, touch-scroll,
+ * useTerminalSizeSync, useAutoLaunch, useTerminalSelection, useTerminalShellEffects, touch-scroll,
  * scroll-repaint, repaint-on-settle (data-driven smear repaint), TerminalBanners.
  * Hard invariants (CLAUDE.md rules 17-22): convertEol:false; no windowsMode;
  * CLAUDE_CODE_NO_FLICKER default ON; client-side WS auto-execute; no chunked replay.
@@ -15,6 +15,7 @@
 
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
@@ -42,6 +43,7 @@ import { createEmbeddedXterm } from "./xtermAddons";
 import { usePasteImage } from "./usePasteImage";
 import { useTerminalResize } from "./useTerminalResize";
 import { useReplayDrainGate } from "./useReplayDrainGate";
+import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
 import { attachTerminalSelection } from "./useTerminalSelection";
 import { useTerminalShellEffects } from "./useTerminalShellEffects";
@@ -116,7 +118,12 @@ export const EmbeddedTerminal = forwardRef<
 
   // ── Hook chain (lifecycle-ordered) ──
   const coord = useLaunchCoordinator();
-  const gate = useReplayDrainGate(termRef, disposedRef);
+  // Size-sync seam (iterate-2026-07-01-terminal-title-wrap-smear): the gate is
+  // created before the socket, so it calls through syncSizeRef, which
+  // useTerminalSizeSync (post-socket) populates. See that hook for the why.
+  const syncSizeRef = useRef<(() => void) | null>(null);
+  const gateOnReplaySettled = useCallback(() => syncSizeRef.current?.(), []);
+  const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled);
   const socket = useTerminalSocket({
     taskId,
     urlOverride: socketUrlOverride,
@@ -125,12 +132,10 @@ export const EmbeddedTerminal = forwardRef<
     onReplaySnapshot: gate.onReplaySnapshot,
     onBackpressure: (info) => onBackpressure?.(info),
   });
-  const {
-    manualSendCommand,
-    previewCommand,
-    handleManualSend,
-    dismissManualSend,
-  } = useAutoLaunch({ taskId, socket, coord, gate });
+  const { syncSizeNow, onReplaySettled } = useTerminalSizeSync({ termRef, fitAddonRef, disposedRef, socketSend: socket.send, role: socket.role });
+  syncSizeRef.current = onReplaySettled;
+  const { manualSendCommand, previewCommand, handleManualSend, dismissManualSend } =
+    useAutoLaunch({ taskId, socket, coord, gate, onBeforeDispatch: syncSizeNow });
 
   usePasteImage({
     taskId,

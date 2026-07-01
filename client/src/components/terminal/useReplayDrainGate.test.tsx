@@ -93,3 +93,22 @@ describe("useReplayDrainGate — snapshot width-sync (read-only narrow replay)",
     expect(term.write).toHaveBeenCalled();
   });
 });
+
+describe("useReplayDrainGate — post-replay convergence (title-wrap smear)", () => {
+  it("invokes onReplaySettled AFTER the snapshot write settles", () => {
+    const order: string[] = [];
+    const term = makeTerm(120, 30, order);
+    const onReplaySettled = vi.fn(() => order.push("settled"));
+    const { result } = renderHook(() => {
+      const termRef = useRef<Terminal | null>(term);
+      const disposedRef = useRef(false);
+      return useReplayDrainGate(termRef, disposedRef, onReplaySettled);
+    });
+
+    result.current.onReplaySnapshot(SNAP({ cols: 120, rows: 30 }));
+
+    expect(onReplaySettled).toHaveBeenCalledTimes(1);
+    // Convergence must run only AFTER the snapshot has been reconstructed.
+    expect(order.indexOf("settled")).toBeGreaterThan(order.indexOf("write"));
+  });
+});
