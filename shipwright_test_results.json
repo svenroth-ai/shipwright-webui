@@ -1,13 +1,13 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-terminal-theme-modes",
+    "run_id": "iterate-2026-07-06-project-delete-cascade-e2e",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 3573,
-      "total": 3573,
-      "note": "client 1859 + server 1714"
+      "passed": 1868,
+      "total": 1868,
+      "note": "client suite; server unchanged (test-only e2e addition)"
     },
     "integration": {
       "status": "not_run",
@@ -21,8 +21,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
       "status": "skipped",
@@ -34,81 +34,32 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "playwright (chromium, isolated worktree stack)",
+      "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3951)",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-terminal-theme-modes/surface_verification.json",
-      "timestamp": "2026-07-06T11:24:23.000Z"
+      "tests_run": 1,
+      "evidence_path": "client/e2e/flows/project-delete-cascade.spec.ts",
+      "timestamp": "2026-07-06T16:15:00.000Z",
+      "justification": "Real-browser regression guard for #200: the spec seeds a project + a task assigned to it, drives the ProjectsPage delete affordance + confirm dialog, and asserts the project row AND the synthesized 'Unassigned' row are both absent afterwards (pre-#200 the orphaned task synthesized a phantom row, so this assertion would fail), plus confirms via GET /api/external/tasks that the task is deleted (not re-homed). Ran green (1/1)."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "LIGHT_PALETTE + DARK_PALETTE clear WCAG-AA/AA-large per slot",
+          "behavior": "Deleting a project that has a task leaves no phantom synthesized 'Unassigned' row and the task is gone (browser, end-to-end)",
           "disposition": "tested",
-          "evidence": "terminal-theme.test.ts 46 cases PASSED (fg/bg >= AA; each swept ANSI slot >= AA-large on the palette bg; light excludes brightWhite, dark excludes black)"
-        },
-        {
-          "behavior": "paletteFor selects the correct palette; EMBEDDED_TERMINAL_PALETTE alias still = DARK",
-          "disposition": "tested",
-          "evidence": "terminal-theme.test.ts paletteFor block PASSED"
-        },
-        {
-          "behavior": "resolveAppearance precedence (manual/system/auto=mirror-Claude) + Claude-theme->family mapping (light*/dark*/auto/custom)",
-          "disposition": "tested",
-          "evidence": "terminalAppearance.test.ts PASSED (incl. auto->OS for Claude 'auto', custom/unknown->dark)"
-        },
-        {
-          "behavior": "spawn-env default truecolor (TERM=xterm-256color, COLORTERM=truecolor, no FORCE_COLOR); inherited FORCE_COLOR stripped; LEGACY opt-out restores clamp; NO_FLICKER + session-marker strip unchanged",
-          "disposition": "tested",
-          "evidence": "pty-env-flicker.test.ts (extended matrix) PASSED"
-        },
-        {
-          "behavior": "claude-theme-reader parses/trims theme, returns null on missing/malformed/non-string/empty",
-          "disposition": "tested",
-          "evidence": "claude-theme-reader.test.ts PASSED"
-        },
-        {
-          "behavior": "GET /api/terminal/claude-theme returns {theme} / {theme:null}",
-          "disposition": "tested",
-          "evidence": "terminal-appearance.test.ts (Hono app.request) PASSED"
-        },
-        {
-          "behavior": "applyAppearance sets a fresh ITheme (light #ffffff / dark #1a1a1a) + refresh; swallows refresh throw; resolveAppearanceNow reads prefs+cache",
-          "disposition": "tested",
-          "evidence": "useTerminalAppearance.test.ts PASSED"
-        },
-        {
-          "behavior": "Settings Appearance selector defaults auto, reflects persisted value, persists + emits same-tab change event, offers 4 options",
-          "disposition": "tested",
-          "evidence": "TerminalSettingsCard.test.tsx PASSED"
-        },
-        {
-          "behavior": "Open terminal re-themes LIVE to light with no remount; fresh mount picks up persisted Light",
-          "disposition": "tested",
-          "evidence": "e2e 95-terminal-appearance.spec.ts 2/2 PASSED (real browser vs live pty)"
-        },
-        {
-          "behavior": "Bug-B convertEol:false guard follows the moved constant to xterm-theme-options.ts",
-          "disposition": "tested",
-          "evidence": "embedded-terminal-convert-eol.test.ts 4/4 PASSED (regex still uniquely matches one convertEol line)"
-        },
-        {
-          "behavior": "Actual light-mode readability with real Claude themes + PowerShell PSReadLine prompt flicker under TERM=xterm-256color",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "evidence": "Visual/flicker verification is user-UAT per ADR-098 precedent for this terminal-rendering class; node-pty (native) unavailable in the junctioned worktree for a byte-capture. Instant revert via SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1."
+          "category": "integration",
+          "evidence": "client/e2e/flows/project-delete-cascade.spec.ts ran green (chromium, 1/1) against a real Hono stack — asserts project row + Unassigned row absent post-delete, confirm warns '1 task belonging...', task absent from GET /api/external/tasks"
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 1,
+        "testable": 1,
+        "tested": 1,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 1,
+        "covered_acs": 1
       }
     },
     "degraded": []
