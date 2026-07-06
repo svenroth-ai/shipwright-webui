@@ -20,7 +20,6 @@ import type { Context } from "hono";
 import type { ExternalTask } from "../core/sdk-sessions-store.js";
 import type { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 import type {
-  TriageItem,
   TriagePriority,
   TriagePromoteResponse,
 } from "../types/triage.js";
@@ -32,6 +31,7 @@ import {
   type CampaignRef,
 } from "../core/triage-enrich.js";
 import { readAllItems, findItemById, filterTriage } from "../core/triage-store.js";
+import { readBoardItems } from "../core/triage-board-read.js";
 import {
   appendStatusEvent,
   TriageWriteError,
@@ -183,25 +183,15 @@ export function createTriageRoutes(deps: TriageRoutesDeps): Hono {
       }
       return c.json({ error: "project_path_invalid", projectId }, 404);
     }
-    let items: TriageItem[];
-    try {
-      // Shallow-clone so the request-scoped annotations below never pollute
-      // the store cache's shared item objects (review LOW-1).
-      items = readAllItems(pathRes.absolute).map((it) => ({ ...it }));
-    } catch (err) {
-      console.warn(
-        JSON.stringify({
-          level: "warn",
-          message: "triage read failed",
-          projectId,
-          error: String(err).slice(0, 200),
-        }),
-      );
-      items = [];
-    }
+    // Delivered-origin union read (root-cause fix for the "ghost" bug) +
+    // `origin` drift metadata for the staleness banner (additive; older clients
+    // ignore it). Read errors + git failures degrade inside readBoardItems. See
+    // core/triage-board-read.ts.
+    const board = readBoardItems(pathRes.absolute, projectId);
+    const items = board.items;
     enrichWithCampaignRefs(items, projectId, deps.listCampaignRefs);
     enrichPendingDelivery(items, pathRes.absolute);
-    return c.json({ items });
+    return c.json({ items, origin: board.origin });
   });
 
   // ----------------------------------------------------------------------

@@ -28,10 +28,12 @@ vi.mock("../hooks/useProjects", () => ({
 
 const mockUseTriageItems = vi.fn();
 const mockUseTriageCounts = vi.fn();
+const mockUseTriageDrift = vi.fn();
 
 vi.mock("../hooks/useTriage", () => ({
   useTriageItems: (...args: unknown[]) => mockUseTriageItems(...args),
   useTriageCounts: (...args: unknown[]) => mockUseTriageCounts(...args),
+  useTriageDrift: (...args: unknown[]) => mockUseTriageDrift(...args),
   usePromoteTriageItem: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
@@ -91,6 +93,9 @@ describe("TriagePage", () => {
   beforeEach(() => {
     mockUseTriageItems.mockReset();
     mockUseTriageCounts.mockReset();
+    mockUseTriageDrift.mockReset();
+    // Default: local checkout in sync with origin → no staleness banner.
+    mockUseTriageDrift.mockReturnValue({ data: { available: true, behind: 0 } });
   });
 
   it("renders empty state when total triage count is 0", async () => {
@@ -152,5 +157,42 @@ describe("TriagePage", () => {
     await user.click(await screen.findByTestId("triage-item-trg-aaaa1111"));
     expect(await screen.findByTestId("triage-detail-modal")).toBeInTheDocument();
     expect(screen.getByTestId("triage-detail-body")).toHaveTextContent("Detail for trg-aaaa1111");
+  });
+
+  it("shows the staleness banner when the local checkout is behind origin", async () => {
+    mockUseTriageItems.mockReturnValue({ data: [mockItem("trg-aaaa1111")], isLoading: false });
+    mockUseTriageCounts.mockReturnValue({ data: { counts: { "proj-a": 1 }, total: 1 } });
+    mockUseTriageDrift.mockReturnValue({ data: { available: true, behind: 3 } });
+    renderPage();
+    const banner = await screen.findByTestId("triage-stale-banner-proj-a");
+    expect(banner).toHaveTextContent("3 commits behind origin");
+  });
+
+  it("hides the staleness banner when the checkout is in sync (behind 0)", async () => {
+    mockUseTriageItems.mockReturnValue({ data: [mockItem("trg-aaaa1111")], isLoading: false });
+    mockUseTriageCounts.mockReturnValue({ data: { counts: { "proj-a": 1 }, total: 1 } });
+    mockUseTriageDrift.mockReturnValue({ data: { available: true, behind: 0 } });
+    renderPage();
+    await screen.findByTestId("triage-item-trg-aaaa1111");
+    expect(screen.queryByTestId("triage-stale-banner-proj-a")).not.toBeInTheDocument();
+  });
+
+  it("adds a ghost-risk note only when origin is unavailable (degraded)", async () => {
+    mockUseTriageItems.mockReturnValue({ data: [mockItem("trg-aaaa1111")], isLoading: false });
+    mockUseTriageCounts.mockReturnValue({ data: { counts: { "proj-a": 1 }, total: 1 } });
+    mockUseTriageDrift.mockReturnValue({ data: { available: false, behind: 2 } });
+    renderPage();
+    const banner = await screen.findByTestId("triage-stale-banner-proj-a");
+    expect(banner).toHaveTextContent("2 commits behind origin");
+    expect(banner).toHaveTextContent("already-dismissed items may still appear");
+  });
+
+  it("hides the banner when drift data is absent (older server → behind null)", async () => {
+    mockUseTriageItems.mockReturnValue({ data: [mockItem("trg-aaaa1111")], isLoading: false });
+    mockUseTriageCounts.mockReturnValue({ data: { counts: { "proj-a": 1 }, total: 1 } });
+    mockUseTriageDrift.mockReturnValue({ data: { available: false, behind: null } });
+    renderPage();
+    await screen.findByTestId("triage-item-trg-aaaa1111");
+    expect(screen.queryByTestId("triage-stale-banner-proj-a")).not.toBeInTheDocument();
   });
 });

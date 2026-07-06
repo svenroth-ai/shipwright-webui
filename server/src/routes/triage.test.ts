@@ -168,7 +168,7 @@ describe("triage routes: GET /api/triage/:projectId", () => {
     const res = await h.app.request("/api/triage/proj-a");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body).toEqual({ items: [] });
+    expect(body).toEqual({ items: [], origin: { available: false, behind: null } });
   });
 
   it("returns items when triage.jsonl exists", async () => {
