@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-01",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-01-terminal-title-wrap-smear",
-    "date": "2026-07-01",
+    "run_id": "iterate-2026-07-06-fix-launch-path-quote-strip",
+    "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1820,
-      "total": 1820
+      "passed": 1698,
+      "total": 1698
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,62 +32,65 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "playwright test e2e/flows/terminal-title-wrap-size-sync.spec.ts --project=chromium (isolated stack, BASE_URL=http://127.0.0.1:4848)",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "client/e2e/flows/terminal-title-wrap-size-sync.spec.ts",
-      "timestamp": "2026-07-01T00:00:00Z"
+      "tests_run": 0,
+      "justification": "Server-only defect fix (input-boundary path normalisation). No client/UI/contract change. Verified end-to-end via the server HTTP integration test (routes.test.ts drives the real POST /tasks -> POST /launch flow and asserts the emitted posix cd is single-quoted, reproducing the reported macOS bug byte-for-byte) plus normalize-fs-path unit tests and projects-route tests; full server suite 1698/1698 green.",
+      "timestamp": "2026-07-06T00:00:00Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "auto-inject launch: size sync (resize) is dispatched before the launch data-frame",
+          "behavior": "task cwd wrapped in a surrounding single-quote pair is normalised so /launch emits `cd '<path>' &&`, not the double-escaped `cd ''''<path>'''' &&`",
           "disposition": "tested",
-          "evidence": "useAutoLaunch.sizesync.test.ts::auto-inject calls onBeforeDispatch BEFORE writing the command PASSED"
+          "evidence": "routes.launch-cwd-quote.test.ts::emits a single-quoted cd, not the double-escaped form PASSED (reproduces the exact macOS command byte-for-byte)"
         },
         {
-          "behavior": "manual-send launch: size sync is dispatched before the launch data-frame",
+          "behavior": "normalizeFsPath strips a surrounding single-quote pair",
           "disposition": "tested",
-          "evidence": "useAutoLaunch.sizesync.test.ts::manual-send calls onBeforeDispatch BEFORE writing the command PASSED"
+          "evidence": "normalize-fs-path.test.ts::strips a surrounding single-quote pair PASSED"
         },
         {
-          "behavior": "onReplaySettled fires after the snapshot write settles",
+          "behavior": "normalizeFsPath strips a surrounding double-quote pair (Windows paste)",
           "disposition": "tested",
-          "evidence": "useReplayDrainGate.test.tsx::invokes onReplaySettled AFTER the snapshot write settles PASSED"
+          "evidence": "normalize-fs-path.test.ts::strips a surrounding double-quote pair PASSED"
         },
         {
-          "behavior": "WRITER re-converges to real width after a replay settle (sends resize)",
+          "behavior": "normalizeFsPath leaves unquoted / lone-quote / mismatched-quote paths untouched (no corruption)",
           "disposition": "tested",
-          "evidence": "useTerminalSizeSync.test.ts::onReplaySettled re-converges a WRITER (emits a resize) PASSED"
+          "evidence": "normalize-fs-path.test.ts::leaves an unquoted path untouched / does NOT strip a lone leading or trailing quote / does not strip mismatched quote types PASSED"
         },
         {
-          "behavior": "READER does NOT converge after a replay settle (#150 reader-reflow guard)",
+          "behavior": "normalizeFsPath preserves an inner apostrophe (o'brien)",
           "disposition": "tested",
-          "evidence": "useTerminalSizeSync.test.ts::onReplaySettled does NOT converge a READER PASSED"
+          "evidence": "normalize-fs-path.test.ts::preserves an inner apostrophe PASSED"
         },
         {
-          "behavior": "real browser: a resize frame is emitted on the terminal WS immediately (<150ms) before the launch command",
+          "behavior": "empty / quotes-only value collapses to '' and task-create then falls back to process.cwd()",
           "disposition": "tested",
-          "evidence": "terminal-title-wrap-size-sync.spec.ts PASSED (chromium, isolated stack)"
+          "evidence": "normalize-fs-path.test.ts::collapses an empty / quotes-only value to the empty string PASSED (create.ts `rawCwd || process.cwd()` fallback)"
         },
         {
-          "behavior": "live glyph outcome: no 'D er' title-char collision on the prompt row with a real long-title Claude session",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "the live visual outcome needs an authenticated Claude TUI + long title + narrow pane; the isolated E2E stack has no Claude auth, so a human confirms in the live webui"
+          "behavior": "POST /api/projects normalises path before the existsSync/mkdir probes and create()",
+          "disposition": "tested",
+          "evidence": "projects.test.ts::POST /api/projects strips a surrounding quote pair before fs probes + create PASSED"
+        },
+        {
+          "behavior": "PATCH /api/projects/:id normalises path before update()",
+          "disposition": "tested",
+          "evidence": "projects.test.ts::PATCH /api/projects/:id strips a surrounding quote pair from path PASSED"
         }
       ],
       "counts": {
-        "testable": 6,
-        "tested": 6,
-        "untestable": 1,
+        "testable": 8,
+        "tested": 8,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 8,
+        "covered_acs": 8
       }
     },
     "degraded": []

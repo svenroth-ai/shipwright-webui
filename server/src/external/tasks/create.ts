@@ -10,6 +10,7 @@ import type { Hono } from "hono";
 
 import { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 import { loadActionsForProject } from "../../core/project-actions-loader.js";
+import { normalizeFsPath } from "../../core/normalize-fs-path.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
   normalizeDescription,
@@ -36,10 +37,13 @@ export function registerTasksCreate(
       typeof body.title === "string" && body.title.trim()
         ? body.title.trim()
         : "Untitled task";
-    const cwd =
-      typeof body.cwd === "string" && body.cwd.trim()
-        ? body.cwd.trim()
-        : process.cwd();
+    // normalizeFsPath strips a paste-artifact surrounding quote pair (a
+    // space-containing path copied from a shell context) before it reaches
+    // core/launcher.ts, which would otherwise shell-escape the literal quotes
+    // into a broken `cd ''\''…'\'''` prefix. Empty / quotes-only → process.cwd().
+    const rawCwd =
+      typeof body.cwd === "string" ? normalizeFsPath(body.cwd) : "";
+    const cwd = rawCwd || process.cwd();
     const pluginDirs = Array.isArray(body.pluginDirs)
       ? body.pluginDirs.filter((p: unknown): p is string => typeof p === "string")
       : [];
