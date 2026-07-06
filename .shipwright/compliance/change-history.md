@@ -1,16 +1,16 @@
 # Commit Change Log
 
-Generated: 2026-07-06T10:48:53.773652+00:00
-Total commits: 622
+Generated: 2026-07-06T11:13:39.104420+00:00
+Total commits: 624
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 225
+    "fix" : 226
     "feat" : 149
     "chore" : 125
-    "docs" : 63
+    "docs" : 64
     "refactor" : 27
     "test" : 22
     "ci" : 6
@@ -20,10 +20,11 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 225 commits
+### Fixes (fix) — 226 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | projects | cascade-delete a project's tasks on delete (no phantom Unassigned row) | 163d467445cc |
 | 2026-07-06 | launch | strip paste-artifact quotes from filesystem paths (FR-01.10) (#195) | 3499eac186ab |
 | 2026-07-01 | terminal | sync pty width before launch to stop long-title input smear (#194) | 5108524a14f3 |
 | 2026-06-30 | security | clear OSV/Scorecard dependency advisories via lockfile-only bumps (#192) | 5c54a121005f |
@@ -254,7 +255,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-07-06 | external | collapse create-dialog area below Description into a gray "More options" section | 79f6b9ad6fd8 |
+| 2026-07-06 | external | collapse create-dialog area below Description into a gray "More options" section (#198) | 80ab31fb48b4 |
 | 2026-07-06 | scripts | add macOS/Linux production rebuild+restart scripts (#197) | f3d2e3dbf59f |
 | 2026-06-30 | compliance | propagate Control-Grade honesty gate + anchors + native Scorecard (#189) | 9487fa864208 |
 | 2026-06-30 | compliance | per-project Grade badge + detail modal in the Command Center (FR-01.43) (#184) | ba5d3be7699d |
@@ -534,10 +535,11 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 63 commits
+### Documentation (docs) — 64 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | conventions | record create-dialog "More options" collapse convention (#199) | 79b475a5b7ef |
 | 2026-06-24 | images | update command-center board screenshot (#173) | d9be7e7f8eb1 |
 | 2026-06-24 | — | drop "or VS Code" from the parallel-projects tagline | 3f266f7469dc |
 | 2026-06-21 | guide | replace prose em-dashes with colons, periods, and commas | 14751220a2ce |
@@ -691,7 +693,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 622 |
+| Total commits | 624 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 622 |
+| Human-authored commits | 624 |
 
