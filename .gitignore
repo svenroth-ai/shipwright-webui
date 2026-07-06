@@ -95,3 +95,7 @@ client/e2e/.poc-screenshots/
 # Triage Inbox (shipwright)
 .shipwright/triage.jsonl.lock
 .shipwright/triage.jsonl.bak
+
+# Test coverage output (produced transiently in CI, uploaded as an artifact —
+# never committed). Feeds the diff-coverage gate (client + server cobertura).
+**/coverage/
