@@ -66,6 +66,15 @@ export interface TerminalBannersProps {
   onDismissMouseHint: () => void;
   clipboardNotice: ClipboardNoticeKind | null;
   onDismissClipboardNotice: () => void;
+  /**
+   * Captured terminal selection offered by the mouse-only Copy pill
+   * (redraw-proof copy, iterate-2026-07-06-terminal-copy-selection-cache).
+   * `null`/absent hides the pill. Optional so existing callers/tests need no
+   * change.
+   */
+  copyableSelection?: string | null;
+  /** Copy the captured selection (Copy-pill click). */
+  onCopySelection?: () => void;
 }
 
 export function TerminalBanners(props: TerminalBannersProps): ReactElement {
@@ -84,6 +93,8 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
     onDismissMouseHint,
     clipboardNotice,
     onDismissClipboardNotice,
+    copyableSelection,
+    onCopySelection,
   } = props;
   return (
     <>
@@ -195,6 +206,24 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
             aria-label="Hinweis schließen"
           >
             ✕
+          </button>
+        </div>
+      ) : null}
+      {copyableSelection && onCopySelection ? (
+        <div
+          className="absolute bottom-3 left-3 z-10 flex items-center rounded border border-emerald-700 bg-[#0f2417] text-emerald-300 shadow-md"
+          data-testid="embedded-terminal-copy-pill"
+        >
+          <button
+            type="button"
+            // Keep the terminal's focus/selection — don't let the mousedown
+            // steal focus before onClick copies from the cache.
+            onMouseDown={(ev) => ev.preventDefault()}
+            onClick={onCopySelection}
+            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium hover:opacity-90"
+            data-testid="embedded-terminal-copy-pill-button"
+          >
+            <span aria-hidden>⧉</span> Auswahl kopieren
           </button>
         </div>
       ) : null}

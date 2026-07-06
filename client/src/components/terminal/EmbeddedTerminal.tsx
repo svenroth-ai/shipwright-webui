@@ -32,7 +32,6 @@ import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import {
   createClipboardKeyHandler,
   readClipboardForPaste,
-  type ClipboardNoticeKind,
 } from "./terminal-clipboard";
 import { attachTouchScroll } from "./touch-scroll";
 import { attachScrollRepaint } from "./scroll-repaint";
@@ -47,8 +46,9 @@ import { useReplayDrainGate } from "./useReplayDrainGate";
 import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
 import { attachTerminalSelection } from "./useTerminalSelection";
+import { useTerminalClipboard } from "./useTerminalClipboard";
 import { useTerminalShellEffects } from "./useTerminalShellEffects";
-import { TerminalBanners, CLIPBOARD_NOTICE_MS } from "./TerminalBanners";
+import { TerminalBanners } from "./TerminalBanners";
 import { TerminalKeyBar, terminalKeySequence } from "./TerminalKeyBar";
 
 // Re-export gate constants so the existing EmbeddedTerminal.test.tsx imports
@@ -108,10 +108,11 @@ export const EmbeddedTerminal = forwardRef<
   // Shell-owned banner state.
   const [readOnlyArmed, setReadOnlyArmed] = useState(false);
   const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
-  const [clipboardNotice, setClipboardNotice] =
-    useState<ClipboardNoticeKind | null>(null);
   const [mouseEventsActive, setMouseEventsActive] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  // Clipboard notice + redraw-proof selection cache / Copy-pill state
+  // (iterate-2026-07-06-terminal-copy-selection-cache).
+  const clip = useTerminalClipboard({ disposedRef });
 
   useEffect(() => {
     setResetBannerDismissed(false);
@@ -167,16 +168,6 @@ export const EmbeddedTerminal = forwardRef<
 
   const readOnly = readOnlyArmed && socket.role === "reader";
 
-  // Clipboard-notice auto-dismiss.
-  useEffect(() => {
-    if (!clipboardNotice) return;
-    const t = setTimeout(
-      () => setClipboardNotice(null),
-      CLIPBOARD_NOTICE_MS[clipboardNotice],
-    );
-    return () => clearTimeout(t);
-  }, [clipboardNotice]);
-
   // ── Imperative ref ──
   useImperativeHandle(
     ref,
@@ -209,9 +200,13 @@ export const EmbeddedTerminal = forwardRef<
       createClipboardKeyHandler({
         term: handle.term,
         isDisposed: () => disposedRef.current,
-        notify: setClipboardNotice,
+        notify: clip.notify,
         copy: copyText,
         readClipboard: readClipboardForPaste,
+        // Redraw-proof copy: fall back to the last captured selection when the
+        // live one was wiped by an app redraw; clear the pill after a copy.
+        getCachedSelection: clip.getCachedSelection,
+        onCopySuccess: clip.invalidateSelection,
       }),
     );
 
@@ -234,6 +229,8 @@ export const EmbeddedTerminal = forwardRef<
       disposedRef,
       setMouseEventsActive,
       setBannerDismissed,
+      captureSelection: clip.captureSelection,
+      invalidateSelection: clip.invalidateSelection,
     });
 
     const onDataDispose = handle.term.onData((data) => {
@@ -292,8 +289,10 @@ export const EmbeddedTerminal = forwardRef<
         mouseEventsActive={mouseEventsActive}
         bannerDismissed={bannerDismissed}
         onDismissMouseHint={() => setBannerDismissed(true)}
-        clipboardNotice={clipboardNotice}
-        onDismissClipboardNotice={() => setClipboardNotice(null)}
+        clipboardNotice={clip.clipboardNotice}
+        onDismissClipboardNotice={clip.dismissClipboardNotice}
+        copyableSelection={clip.copyableSelection}
+        onCopySelection={clip.onCopySelection}
       />
       <div
         ref={containerRef}
