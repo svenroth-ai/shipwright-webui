@@ -17,6 +17,7 @@ import {
   PIPELINE_ACTION,
   SAMPLE_ACTIONS,
   TASK_ACTION,
+  openMoreOptions,
   renderModal,
 } from "./__testFixtures";
 import type {
@@ -102,11 +103,37 @@ describe("NewTaskModal — rendering", () => {
       action: TASK_WITH_LEAD,
       projectActions: { ...SAMPLE_ACTIONS, actions: [TASK_WITH_LEAD] },
     });
+    // Leadwright inputs live inside the collapsed More options section.
+    expect(screen.queryByTestId("new-issue-domain-input")).toBeNull();
+    openMoreOptions();
     expect(screen.getByTestId("new-issue-domain-input")).toBeTruthy();
     expect(screen.getByTestId("new-issue-priority-select")).toBeTruthy();
     expect(screen.getByTestId("new-issue-complexity-hint-select")).toBeTruthy();
     expect(screen.getByTestId("new-issue-tags-input")).toBeTruthy();
     expect(screen.getByTestId("new-issue-blocked-by-input")).toBeTruthy();
+  });
+
+  it("More options auto-expands when opened pre-seeded with priority/domain (triage Fix now)", () => {
+    const TASK_WITH_LEAD: ActionDefinition = {
+      ...TASK_ACTION,
+      modal_fields: ["title", "phase", "description", "domain", "priority"],
+    };
+    renderModal({
+      action: TASK_WITH_LEAD,
+      projectActions: { ...SAMPLE_ACTIONS, actions: [TASK_WITH_LEAD] },
+      initialPriority: "P1",
+      initialDomain: "billing",
+    });
+    // Section is expanded WITHOUT a click — carried-over values stay visible.
+    expect(screen.getByTestId("new-issue-more-options-content")).toBeTruthy();
+    const priority = screen.getByTestId(
+      "new-issue-priority-select",
+    ) as HTMLSelectElement;
+    expect(priority.value).toBe("P1");
+    const domain = screen.getByTestId(
+      "new-issue-domain-input",
+    ) as HTMLInputElement;
+    expect(domain.value).toBe("billing");
   });
 });
 
@@ -184,14 +211,17 @@ describe("NewTaskModal — Advanced + Required parameters (P2)", () => {
     phases: [{ id: "build", label: "Build" }],
   };
 
-  it("required field visible without opening Advanced (P2)", () => {
+  it("required field visible without opening Advanced or More options (P2)", () => {
     renderModal({
       action: PARAM_TASK_ACTION,
       projectActions: PARAM_ACTIONS,
     });
+    // Required section renders OUTSIDE the collapsed More options section.
     expect(screen.getByTestId("new-issue-required-section")).toBeTruthy();
     expect(screen.getByTestId("paramfield-section")).toBeTruthy();
     expect(screen.queryByTestId("new-issue-advanced-content")).toBeNull();
+    // The Advanced toggle itself lives inside the still-collapsed section.
+    expect(screen.queryByTestId("new-issue-advanced-toggle")).toBeNull();
   });
 
   it("Advanced count shows OPTIONAL params only (P2 — excludes required)", () => {
@@ -199,6 +229,7 @@ describe("NewTaskModal — Advanced + Required parameters (P2)", () => {
       action: PARAM_TASK_ACTION,
       projectActions: PARAM_ACTIONS,
     });
+    openMoreOptions();
     const toggle = screen.getByTestId("new-issue-advanced-toggle");
     expect(toggle.textContent).toContain("Advanced parameters (1)");
   });

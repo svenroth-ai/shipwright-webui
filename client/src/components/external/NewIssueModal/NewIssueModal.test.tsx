@@ -23,6 +23,7 @@ import {
   PLAIN_ACTION,
   SAMPLE_ACTIONS,
   TASK_ACTION,
+  openMoreOptions,
   renderModal,
 } from "./__testFixtures";
 
@@ -133,6 +134,10 @@ describe("lifecycle reset (Step 3.5 OpenAI #2)", () => {
         target: { value: "Stale" },
       });
     });
+    // Domain lives inside the collapsed More options section — expand it.
+    await act(async () => {
+      openMoreOptions();
+    });
     await act(async () => {
       fireEvent.change(screen.getByTestId("new-issue-domain-input"), {
         target: { value: "billing" },
@@ -166,6 +171,10 @@ describe("lifecycle reset (Step 3.5 OpenAI #2)", () => {
       "new-issue-title-input",
     ) as HTMLInputElement;
     expect(titleInput.value).toBe("");
+    // Reopen resets the section to collapsed — expand to inspect the wipe.
+    await act(async () => {
+      openMoreOptions();
+    });
     const domainInput = screen.getByTestId(
       "new-issue-domain-input",
     ) as HTMLInputElement;

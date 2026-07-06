@@ -1,0 +1,1 @@
+Create dialogs (New Task / Iterate / Pipeline / custom project) now collapse the optional fields, parameters and command preview below the Description into a gray "More options" section, collapsed by default (auto-expands when opened with a pre-filled priority/domain, e.g. triage Fix now).

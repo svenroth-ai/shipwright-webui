@@ -1,13 +1,12 @@
 {
-  "last_updated": "2026-07-06T12:30:00.000Z",
+  "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-mac-rebuild-restart-scripts",
+    "run_id": "iterate-2026-07-06-collapse-dialog-more-options",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 45,
-      "total": 45,
-      "note": "scripts/*.test.mjs structural suite via `node --test` (10 new for the .sh + 35 existing .ps1/helpers); server/client vitest not re-run — this diff has zero TypeScript delta (shell scripts + docs + .gitattributes only)."
+      "passed": 1819,
+      "total": 1819
     },
     "integration": {
       "status": "not_run",
@@ -20,77 +19,75 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "surface_verification": {
       "surface": "none",
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-mac-rebuild-restart-scripts/surface_verification.json",
-      "timestamp": "2026-07-06T12:30:00.000Z",
-      "justification": "Operational deploy tooling: bash twins (scripts/start-server-production.sh + stop-server.sh) of the Windows production rebuild+restart .ps1, plus doc (guide.md, README.md) and .gitattributes edits. No web/UI surface and ZERO TypeScript delta — no API route, store mutation, SSE/WS handler, or message contract touched — so the Backend-affects-Frontend rule does not trigger. The scripts' end-to-end deploy behaviour cannot be safely exercised here: no macOS/Linux host is available, and running the script on this Windows dev box would rebuild+kill the live production server (disallowed). This matches the established structural-test-only bar for the parallel start-server-production.ps1. Verification = start-server-production.sh.test.mjs (10 assertions pinning the build-before-kill + double ~/.claude.json-heal contracts), `bash -n` syntax check on both scripts, and confirmation that repair-claude-json.mjs is cross-platform (os.homedir()/path.join). scripts/*.test.mjs 45/45 green."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-06-collapse-dialog-more-options/surface_verification.json",
+      "timestamp": "2026-07-06T10:48:18.637Z",
+      "justification": "Static client-only render change to the create dialogs (FR-01.16 New-* modal / FR-01.08 leadwright fields): the below-Description metadata fields, schema params and command preview are wrapped in a collapsed-by-default gray MoreOptionsDisclosure; required params stay outside it. No API route, store mutation, WS/SSE handler or message contract changed (server untouched). Verified by 1819 passing client unit tests (collapsed-by-default + expand across New Task/Iterate/Pipeline/custom bodies, required-stays-visible, reset-to-collapsed on reopen, auto-expand-on-prefill, unchanged submit payloads) PLUS a manual real-browser Playwright smoke (Vite 5174 -> Hono 3848 against real ~/.claude projects): New Task modal opened collapsed (command-preview absent, aria-expanded=false), clicking 'More options' revealed the fields + command preview (aria-expanded=true); collapsed + expanded screenshots captured."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "start-server-production.sh installs+builds BOTH halves before killing the old server (a failed install/build leaves the running server untouched — ORDER MATTERS contract)",
+          "behavior": "Below-Description area (leadwright, schema params, command preview) is collapsed by default in New Task/Iterate/Pipeline/custom-project dialogs",
           "disposition": "tested",
-          "evidence": "start-server-production.sh.test.mjs: \"every npm install runs BEFORE the server-kill\" + \"every npm run build runs BEFORE the server-kill\" + \"the FIRST npm install precedes the FIRST build\" — all PASSED (blocks precede the \"Stopping the old server\" marker)."
+          "evidence": "MoreOptionsDisclosure.test.tsx + NewIterateModal/NewPipelineModal/NewGenericModal/NewTaskModal.test.tsx assert command-preview/content absent by default PASSED"
         },
         {
-          "behavior": "start-server-production.sh heals ~/.claude.json TWICE — Step 0 (before the build) and Step 5 (after the server-kill + server-up confirmation)",
+          "behavior": "Section expands on toggle click, mounting the fields + command preview",
           "disposition": "tested",
-          "evidence": "start-server-production.sh.test.mjs: \">= 2 repair invocations\", \"FIRST repair before the build\", \"LAST repair after the server-kill\", \"LAST repair after the server-up confirmation\" — all PASSED."
+          "evidence": "MoreOptionsDisclosure.test.tsx 'reveals children when open' + integration open-then-assert tests PASSED"
         },
         {
-          "behavior": "Both new scripts are syntactically valid bash",
+          "behavior": "Required params render OUTSIDE the collapsed section (Launch never blocked by a hidden field)",
           "disposition": "tested",
-          "evidence": "`bash -n scripts/start-server-production.sh` and `bash -n scripts/stop-server.sh` both exit 0."
+          "evidence": "NewTaskModal.test.tsx 'required field visible without opening Advanced or More options (P2)' PASSED"
         },
         {
-          "behavior": "*.sh files are pinned to LF (eol=lf) so a Windows-authored script cannot ship CRLF (which fails on macOS with \"bad interpreter: env bash^M\")",
+          "behavior": "Section resets to collapsed on modal reopen",
           "disposition": "tested",
-          "evidence": "`git ls-files --eol` shows i/lf + attr/text eol=lf for all three .sh; `git cat-file blob` reports CR=0 for each staged blob."
+          "evidence": "NewIssueModal.test.tsx 'close + reopen wipes ... leadwright state' (reopens collapsed) PASSED"
         },
         {
-          "behavior": "The ~/.claude.json self-heal helper invoked by the .sh is cross-platform (resolves the home dir portably, no Windows-only paths)",
+          "behavior": "Section auto-expands when opened pre-seeded with priority/domain (triage Fix now)",
           "disposition": "tested",
-          "evidence": "Audit of scripts/repair-claude-json.mjs: targets `path.join(os.homedir(), \".claude.json\")` and uses path.join throughout — no %USERPROFILE% / drive-letter / win32-only branch on the target path."
+          "evidence": "NewTaskModal.test.tsx 'More options auto-expands when opened pre-seeded with priority/domain' PASSED"
         },
         {
-          "behavior": "start-server-production.sh actually stops the old server (lsof/kill of the :PORT listener + tsx pids), backgrounds the fresh build via nohup, and confirms the port is bound",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "Requires a real macOS/Linux host with a live server process to start/stop; not available here and destructive on the Windows dev box (would kill the running production server). Same structural-test-only bar as the parallel start-server-production.ps1, which likewise has no end-to-end test."
+          "behavior": "Submit payloads (leadwright + params) unchanged after the wrap",
+          "disposition": "tested",
+          "evidence": "payload-create.test.tsx 'Save with leadwright fields ...' (open section then submit) + payload-launch.test.tsx PASSED"
         },
         {
-          "behavior": "stop-server.sh kills the :PORT listener + tsx process, or reports \"nothing was running\"",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "Requires real listener/tsx processes to kill on a macOS/Linux host; destructive to exercise here. Parity with stop-server.ps1, which also ships without a test. Syntax verified via `bash -n`."
+          "behavior": "Plain Claude dialog is unaffected (no below-Description area, no disclosure rendered)",
+          "disposition": "tested",
+          "evidence": "NewPlainModal.test.tsx rendering tests PASSED unchanged"
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
-        "untestable": 2,
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3
+        "acs": 7,
+        "covered_acs": 7
       }
     },
     "degraded": []
