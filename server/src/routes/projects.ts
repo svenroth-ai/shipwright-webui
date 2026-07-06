@@ -46,6 +46,14 @@ function slugifyProjectName(name: string): string {
 export function createProjectRoutes(
   projectManager: ProjectManager,
   fsDeps?: ProjectRouteDeps,
+  /**
+   * iterate-2026-07-06-project-delete-cascades-tasks — invoked AFTER a
+   * successful project delete to cascade-remove that project's tasks (so no
+   * orphaned "Unassigned" bucket lingers). Returns the count removed. Wired
+   * in index.ts to `cascadeDeleteProjectTasks`; omitted in unit tests that
+   * don't exercise the cascade.
+   */
+  onProjectDeleted?: (projectId: string) => number | Promise<number>,
 ): Hono {
   const app = new Hono();
 
@@ -100,9 +108,17 @@ export function createProjectRoutes(
     return c.json({ data: updated });
   });
 
-  app.delete("/api/projects/:id", (c) => {
-    projectManager.delete(c.req.param("id"));
-    return c.json({ ok: true });
+  app.delete("/api/projects/:id", async (c) => {
+    const id = c.req.param("id");
+    // Throws AppError(404) when the id is unknown — the cascade below is
+    // skipped in that case (the throw short-circuits to the error handler).
+    projectManager.delete(id);
+    // iterate-2026-07-06-project-delete-cascades-tasks — cascade-remove the
+    // project's tasks so no orphaned "Unassigned" bucket survives. Without
+    // this the tasks keep a dangling projectId and the projects list keeps
+    // synthesizing a phantom, un-clearable Unassigned row.
+    const deletedTaskCount = onProjectDeleted ? await onProjectDeleted(id) : 0;
+    return c.json({ ok: true, deletedTaskCount });
   });
 
   return app;

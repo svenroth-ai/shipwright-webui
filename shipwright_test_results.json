@@ -1,17 +1,17 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-remove-project-paste-button",
+    "run_id": "iterate-2026-07-06-project-delete-cascades-tasks",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1812,
-      "total": 1812
+      "passed": 3524,
+      "total": 3524
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 4,
+      "total": 4
     },
     "pgtap": {
       "status": "not_run",
@@ -33,40 +33,66 @@
     },
     "surface_verification": {
       "surface": "none",
-      "runner": "",
+      "runner": "vitest (in-process Hono app.request + real ProjectManager/SdkSessionsStore)",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-remove-project-paste-button/surface_verification.json",
-      "timestamp": "2026-07-06T09:52:35.543Z",
-      "justification": "Static client-only render change in the Add-Project wizard (FR-01.03): removed the clipboard Paste button and reworded the directory hint. No API route, store mutation, SSE/WS handler, or message contract touched, so the Backend-affects-Frontend rule does not trigger. The full observable outcome (Paste button + testid absent, new hint text present, path input still editable and driving onPathChange) is deterministically asserted by ProjectWizard.test.tsx which mounts the real ProjectWizard -> ProjectInfoStep tree; full client suite 1812/1812 green. small-complexity CHANGE+UI: phase matrix does not require E2E."
+      "tests_run": 6,
+      "evidence_path": "server/src/core/project-delete-unassigned.integration.test.ts",
+      "timestamp": "2026-07-06T13:10:00.000Z",
+      "justification": "small-complexity BUG. The DELETE /api/projects/:id route is touched (Backend-affects-Frontend), but the full observable outcome is proven end-to-end WITHOUT a browser: an in-process HTTP-surface integration test drives the real Hono route -> real cascadeDeleteProjectTasks -> real SdkSessionsStore and then GET /api/projects against the real ProjectManager.getAll() synthesis, asserting the project row AND its tasks are gone and NO synthesized 'Unassigned' row remains; a companion in-process integration test pins the same against the real domain objects incl. the 'other-project + genuinely-unassigned tasks untouched' case; and ProjectsPage.test.tsx mounts the real page to assert the delete-confirm task-count warning. No browser-only behavior — delete -> useDeleteProject invalidates the projects + tasks queries -> standard TanStack re-render. Phase matrix does not mandate a live browser E2E at small."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Paste button no longer renders in the Add-Project wizard directory step",
+          "behavior": "Deleting a project cascade-removes every task whose projectId matches (store rows)",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'has no paste button and instructs the user to paste the path in' PASSED — queryByTestId('project-path-paste') and queryByText('Paste') both absent"
+          "evidence": "cascade-delete-project-tasks.test.ts 'removes exactly the matching tasks...' PASSED; route + HTTP integration confirm the wiring"
         },
         {
-          "behavior": "Directory-step hint instructs the user to copy the path and paste it in",
+          "behavior": "Cascade clears each removed task's scrollback + snapshot side-files (best-effort)",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx same test asserts getByText('Copy the full path from Explorer/Finder and paste it in here.')"
+          "evidence": "cascade-delete-project-tasks.test.ts asserts scrollback + snapshot callbacks fire once per removed task"
         },
         {
-          "behavior": "Directory input stays editable and drives onPathChange",
+          "behavior": "Cascade is a no-op (returns 0, no cleanup) when the project has no tasks",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'navigates to step 2 on Next' types into the path input and advances the wizard PASSED"
+          "evidence": "cascade-delete-project-tasks.test.ts 'returns 0 and performs no cleanup when nothing matches' PASSED"
         },
         {
-          "behavior": "Removing filePicker.ts leaves no dangling references (dead-code deletion is clean)",
+          "behavior": "Cascade persists the removal so it survives a store reload",
           "disposition": "tested",
-          "evidence": "tsc --noEmit exit 0 + repo-wide grep: no filePicker/pasteFromClipboard/looksLikePath references remain in client source"
+          "evidence": "cascade-delete-project-tasks.test.ts 'persists the removal so it survives a reload' PASSED"
+        },
+        {
+          "behavior": "Cascade is best-effort: a throwing cleanup callback neither rejects nor aborts the delete",
+          "disposition": "tested",
+          "evidence": "cascade-delete-project-tasks.test.ts 'is best-effort: a throwing cleanup callback...' PASSED"
+        },
+        {
+          "behavior": "Cascade leaves other projects' tasks and genuinely-unassigned tasks untouched",
+          "disposition": "tested",
+          "evidence": "project-delete-unassigned.integration.test.ts 'the cascade leaves genuinely-unassigned tasks (and other projects' tasks) untouched' PASSED"
+        },
+        {
+          "behavior": "DELETE /api/projects/:id returns {ok,deletedTaskCount} and only cascades on success (unknown id -> 404, no cascade)",
+          "disposition": "tested",
+          "evidence": "projects.test.ts two new DELETE cascade tests PASSED; HTTP integration asserts {ok:true,deletedTaskCount:2}"
+        },
+        {
+          "behavior": "After project delete, GET /api/projects synthesizes NO Unassigned row for the removed tasks (end-to-end, real domain objects)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "project-delete-unassigned.integration.test.ts (real ProjectManager.getAll synthesis + real store) HTTP case asserts data has no 'unassigned' row and length 0 PASSED"
+        },
+        {
+          "behavior": "The delete confirm dialog warns how many tasks will be removed (>0) and omits the warning at 0 tasks",
+          "disposition": "tested",
+          "evidence": "ProjectsPage.test.tsx two new delete-confirm tests PASSED (2 tasks -> '2 tasks belonging...'; 0 tasks -> no 'belonging to this project')"
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
+        "testable": 9,
+        "tested": 9,
         "untestable": 0,
         "untested_testable": 0
       },
