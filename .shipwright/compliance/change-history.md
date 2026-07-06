@@ -1,17 +1,17 @@
 # Commit Change Log
 
-Generated: 2026-06-30T20:34:09.855457+00:00
-Total commits: 617
+Generated: 2026-07-06T10:48:53.773652+00:00
+Total commits: 622
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 223
-    "feat" : 147
+    "fix" : 225
+    "feat" : 149
     "chore" : 125
     "docs" : 63
-    "refactor" : 26
+    "refactor" : 27
     "test" : 22
     "ci" : 6
     "other" : 4
@@ -20,10 +20,12 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 223 commits
+### Fixes (fix) — 225 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | launch | strip paste-artifact quotes from filesystem paths (FR-01.10) (#195) | 3499eac186ab |
+| 2026-07-01 | terminal | sync pty width before launch to stop long-title input smear (#194) | 5108524a14f3 |
 | 2026-06-30 | security | clear OSV/Scorecard dependency advisories via lockfile-only bumps (#192) | 5c54a121005f |
 | 2026-06-30 | terminal | make copy-on-selection opt-in (default off) + single-send paste guards (#186) | c1b0cfa5e4e3 |
 | 2026-06-30 | security | suppress 130 Semgrep audit-rule false positives (#183) | f46e91e1ffe1 |
@@ -248,10 +250,12 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 147 commits
+### Features (feat) — 149 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | external | collapse create-dialog area below Description into a gray "More options" section | 79f6b9ad6fd8 |
+| 2026-07-06 | scripts | add macOS/Linux production rebuild+restart scripts (#197) | f3d2e3dbf59f |
 | 2026-06-30 | compliance | propagate Control-Grade honesty gate + anchors + native Scorecard (#189) | 9487fa864208 |
 | 2026-06-30 | compliance | per-project Grade badge + detail modal in the Command Center (FR-01.43) (#184) | ba5d3be7699d |
 | 2026-06-23 | terminal | runtime renderer override to A/B-isolate the WebGL smear root cause (diagnostic) (#171) | 5d042e5e5f74 |
@@ -404,7 +408,7 @@ pie title Commit Types
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-07-01 | triage | fold 2 main-tree background append(s) | 3b8d1ac0ed21 |
+| 2026-07-01 | compliance | re-grade with the composition-neutral Control Grade (B to A) (#193) | 738c35ea029a |
 | 2026-06-30 | ci | remove native OpenSSF Scorecard workflow (wrong anchor for AI-first) (#190) | ae24cf9ca887 |
 | 2026-06-30 | compliance | regenerate traceability-matrix with the UTC-date renderer (#188) | e4590f6d908a |
 | 2026-06-30 | compliance | regenerate test-evidence + traceability with the navigable renderer (#187) | 83f42db12434 |
@@ -598,10 +602,11 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 26 commits
+### Refactoring (refactor) — 27 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | wizard | remove Add-Project Paste button; guide manual path paste (#196) | 00bc3ab81f37 |
 | 2026-06-23 | terminal | extract safeFit into safe-fit.ts to keep useTerminalResize under 300 LOC (#168) | dd7f74681f0b |
 | 2026-05-30 | smartviewer | extract PathStrip to drop SmartViewer under the 300-LOC limit | 73736dcaeebe |
 | 2026-05-30 | — | rename project config dir .webui -> .shipwright-webui | 3e7ff907027a |
@@ -686,7 +691,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 617 |
+| Total commits | 622 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 617 |
+| Human-authored commits | 622 |
 

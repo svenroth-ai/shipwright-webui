@@ -15,6 +15,7 @@
 import { CommandPreviewPanel } from "../CommandPreviewPanel";
 import { FieldLabel } from "./FieldLabel";
 import { LeadwrightFieldsFragment } from "./LeadwrightFields";
+import { MoreOptionsDisclosure } from "./MoreOptionsDisclosure";
 import { paramsToPreview } from "./paramHelpers";
 import {
   AdvancedParamsFragment,
@@ -51,24 +52,8 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
         setDescription={form.setDescription}
       />
 
-      <LeadwrightFieldsFragment
-        showLeadDomain={form.showLeadDomain}
-        showLeadPriority={form.showLeadPriority}
-        showLeadComplexityHint={form.showLeadComplexityHint}
-        showLeadTags={form.showLeadTags}
-        showLeadBlockedBy={form.showLeadBlockedBy}
-        leadDomain={form.leadDomain}
-        setLeadDomain={form.setLeadDomain}
-        leadPriority={form.leadPriority}
-        setLeadPriority={form.setLeadPriority}
-        leadComplexityHint={form.leadComplexityHint}
-        setLeadComplexityHint={form.setLeadComplexityHint}
-        leadTagsRaw={form.leadTagsRaw}
-        setLeadTagsRaw={form.setLeadTagsRaw}
-        leadBlockedByRaw={form.leadBlockedByRaw}
-        setLeadBlockedByRaw={form.setLeadBlockedByRaw}
-      />
-
+      {/* Required params stay visible — a hidden required field would
+          disable Launch with no visible cause. */}
       <RequiredParamsFragment
         requiredFields={form.requiredFields}
         advancedFields={form.advancedFields}
@@ -81,37 +66,60 @@ export function NewIterateModal({ form }: { form: UseNewIssueFormReturn }) {
         advancedOpen={form.advancedOpen}
         setAdvancedOpen={form.setAdvancedOpen}
       />
-      <AdvancedParamsFragment
-        requiredFields={form.requiredFields}
-        advancedFields={form.advancedFields}
-        paramValues={form.paramValues}
-        setParamValues={form.setParamValues}
-        revealedSecrets={form.revealedSecrets}
-        setRevealedSecrets={form.setRevealedSecrets}
-        paramEnabled={form.paramEnabled}
-        onParamEnableToggle={form.onParamEnableToggle}
-        advancedOpen={form.advancedOpen}
-        setAdvancedOpen={form.setAdvancedOpen}
-      />
 
-      <FieldLabel
-        label="Command preview"
-        hint="generated from .shipwright-webui/actions.json · auto-updates"
+      <MoreOptionsDisclosure
+        open={form.moreOptionsOpen}
+        onToggle={() => form.setMoreOptionsOpen((v) => !v)}
       >
-        <CommandPreviewPanel
-          mode="new-iterate"
-          title={form.title}
-          description={form.description}
-          projectPath={form.selectedProject?.path ?? ""}
-          sessionUuid="<session-uuid>"
-          autonomy={form.showAutonomyToggle ? form.autonomy : undefined}
-          parameters={paramsToPreview(
-            form.currentSchema,
-            form.paramValues,
-            form.paramEnabled,
-          )}
+        <LeadwrightFieldsFragment
+          showLeadDomain={form.showLeadDomain}
+          showLeadPriority={form.showLeadPriority}
+          showLeadComplexityHint={form.showLeadComplexityHint}
+          showLeadTags={form.showLeadTags}
+          showLeadBlockedBy={form.showLeadBlockedBy}
+          leadDomain={form.leadDomain}
+          setLeadDomain={form.setLeadDomain}
+          leadPriority={form.leadPriority}
+          setLeadPriority={form.setLeadPriority}
+          leadComplexityHint={form.leadComplexityHint}
+          setLeadComplexityHint={form.setLeadComplexityHint}
+          leadTagsRaw={form.leadTagsRaw}
+          setLeadTagsRaw={form.setLeadTagsRaw}
+          leadBlockedByRaw={form.leadBlockedByRaw}
+          setLeadBlockedByRaw={form.setLeadBlockedByRaw}
         />
-      </FieldLabel>
+        <AdvancedParamsFragment
+          requiredFields={form.requiredFields}
+          advancedFields={form.advancedFields}
+          paramValues={form.paramValues}
+          setParamValues={form.setParamValues}
+          revealedSecrets={form.revealedSecrets}
+          setRevealedSecrets={form.setRevealedSecrets}
+          paramEnabled={form.paramEnabled}
+          onParamEnableToggle={form.onParamEnableToggle}
+          advancedOpen={form.advancedOpen}
+          setAdvancedOpen={form.setAdvancedOpen}
+        />
+
+        <FieldLabel
+          label="Command preview"
+          hint="generated from .shipwright-webui/actions.json · auto-updates"
+        >
+          <CommandPreviewPanel
+            mode="new-iterate"
+            title={form.title}
+            description={form.description}
+            projectPath={form.selectedProject?.path ?? ""}
+            sessionUuid="<session-uuid>"
+            autonomy={form.showAutonomyToggle ? form.autonomy : undefined}
+            parameters={paramsToPreview(
+              form.currentSchema,
+              form.paramValues,
+              form.paramEnabled,
+            )}
+          />
+        </FieldLabel>
+      </MoreOptionsDisclosure>
     </>
   );
 }

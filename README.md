@@ -134,8 +134,9 @@ cd server && npm start   # restart (stop the old one with Ctrl+C first)
 ```
 
 The production server runs the **compiled** output, so a `git pull` alone
-won't show new changes until you rebuild. On Windows,
-`scripts\start-server-production.ps1` does rebuild + restart in one step.
+won't show new changes until you rebuild. A one-step rebuild + restart
+helper ships for both platforms — `scripts\start-server-production.ps1`
+(Windows) and `scripts/start-server-production.sh` (macOS / Linux).
 See [guide §7](docs/guide.md#7-updating-the-command-center).
 
 ## Develop or contribute
