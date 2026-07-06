@@ -66,6 +66,45 @@ describe("Project Routes (Plan D'' simplified)", () => {
     expect(res.status).toBe(201);
   });
 
+  // iterate-2026-07-06-fix-launch-path-quote-strip — a path pasted from a
+  // shell context arrives wrapped in surrounding quotes. Normalise at the
+  // route boundary so the fs probes AND the stored project.path are clean;
+  // otherwise the quoted path feeds a broken `cd ''\''…'\'''` launch prefix.
+  it("POST /api/projects strips a surrounding quote pair before fs probes + create", async () => {
+    const { app, projectManager, fsDeps } = setup();
+    const res = await app.request("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Quoted",
+        path: "'/Users/marcelburkart/Projects/Claude Command Center'",
+      }),
+    });
+    expect(res.status).toBe(201);
+    expect(projectManager.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: "/Users/marcelburkart/Projects/Claude Command Center",
+      }),
+    );
+    // The existsSync probe must see the CLEAN path, never the quoted literal.
+    expect(fsDeps.existsSync).toHaveBeenCalledWith(
+      "/Users/marcelburkart/Projects/Claude Command Center",
+    );
+  });
+
+  it("PATCH /api/projects/:id strips a surrounding quote pair from path", async () => {
+    const { app, projectManager } = setup();
+    const res = await app.request("/api/projects/p1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: '"C:\\Users\\me\\My Project"' }),
+    });
+    expect(res.status).toBe(200);
+    expect(projectManager.update).toHaveBeenCalledWith("p1", {
+      path: "C:\\Users\\me\\My Project",
+    });
+  });
+
   it("POST /api/projects missing name returns 400", async () => {
     const { app } = setup();
     const res = await app.request("/api/projects", {

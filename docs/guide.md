@@ -528,12 +528,18 @@ picked in [§4](#4-installation):
   make build
   cd server && npm start      # stop the old one with Ctrl+C first
   ```
-  On Windows the bundled `scripts\start-server-production.ps1` does the
+  On **Windows** the bundled `scripts\start-server-production.ps1` does the
   rebuild + stop-old + start-fresh swap in one step, and, as a first
   best-effort step, repairs a corrupted `~/.claude.json` (with a timestamped
   backup) so the restart can't leave your running Claude sessions broken (see
   [§10](#10-troubleshooting)). Re-running `scripts\install-windows.ps1`
   refreshes the autostart build too.
+
+  On **macOS / Linux** the same one-step swap lives in its bash twin
+  `scripts/start-server-production.sh` (identical rebuild + stop-old +
+  start-fresh, and the same best-effort `~/.claude.json` heal). Run it with
+  `bash scripts/start-server-production.sh`; stop the server with
+  `bash scripts/stop-server.sh`.
 - **Path B (dev):** just stop both dev servers (Ctrl+C) and start them
   again (`make dev-server` + `make dev-client`). `tsx watch` and Vite
   run straight from source, so there's no build step.
@@ -1207,8 +1213,9 @@ restart can race on that file and leave it half-written (a valid but
 shorter object followed by the leftover tail of the previous version),
 and every running `claude` then fails to parse it.
 
-The production restart script (`scripts\start-server-production.ps1`)
-now repairs this automatically as its first step: it salvages the valid
+The production restart script (`scripts\start-server-production.ps1` on
+Windows, `scripts/start-server-production.sh` on macOS / Linux) now
+repairs this automatically as its first step: it salvages the valid
 part, saves the broken original as `~/.claude.json.corrupt-<timestamp>.bak`
 (the last ~10 are kept), and rewrites the file before anything restarts.
 It is best-effort and never blocks the deploy; if the file is too
