@@ -77,11 +77,11 @@ export default function ProjectsPage() {
 
   function handleDelete(e: React.MouseEvent, projectId: string, projectName: string) {
     e.stopPropagation();
-    if (
-      confirm(
-        `Remove "${projectName}" from the WebUI?\n\nProject files on disk will NOT be deleted.`,
-      )
-    ) {
+    // iterate-2026-07-06-project-delete-cascades-tasks — warn how many tasks the
+    // (server-side) cascade delete will remove alongside the project.
+    const n = taskCountByProject.get(projectId) ?? 0;
+    const note = n > 0 ? `\n\n${n} task${n === 1 ? '' : 's'} belonging to this project will also be removed from the board.` : '';
+    if (confirm(`Remove "${projectName}" from the WebUI?${note}\n\nProject files on disk (and Claude transcripts) are NOT deleted.`)) {
       deleteProject.mutate(projectId);
     }
   }

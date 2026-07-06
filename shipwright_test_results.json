@@ -1,17 +1,17 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-collapse-dialog-more-options",
+    "run_id": "iterate-2026-07-06-project-delete-cascades-tasks",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1819,
-      "total": 1819
+      "passed": 3524,
+      "total": 3524
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 4,
+      "total": 4
     },
     "pgtap": {
       "status": "not_run",
@@ -19,75 +19,86 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
     },
     "surface_verification": {
       "surface": "none",
-      "runner": "",
+      "runner": "vitest (in-process Hono app.request + real ProjectManager/SdkSessionsStore)",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-collapse-dialog-more-options/surface_verification.json",
-      "timestamp": "2026-07-06T10:48:18.637Z",
-      "justification": "Static client-only render change to the create dialogs (FR-01.16 New-* modal / FR-01.08 leadwright fields): the below-Description metadata fields, schema params and command preview are wrapped in a collapsed-by-default gray MoreOptionsDisclosure; required params stay outside it. No API route, store mutation, WS/SSE handler or message contract changed (server untouched). Verified by 1819 passing client unit tests (collapsed-by-default + expand across New Task/Iterate/Pipeline/custom bodies, required-stays-visible, reset-to-collapsed on reopen, auto-expand-on-prefill, unchanged submit payloads) PLUS a manual real-browser Playwright smoke (Vite 5174 -> Hono 3848 against real ~/.claude projects): New Task modal opened collapsed (command-preview absent, aria-expanded=false), clicking 'More options' revealed the fields + command preview (aria-expanded=true); collapsed + expanded screenshots captured."
+      "tests_run": 6,
+      "evidence_path": "server/src/core/project-delete-unassigned.integration.test.ts",
+      "timestamp": "2026-07-06T13:10:00.000Z",
+      "justification": "small-complexity BUG. The DELETE /api/projects/:id route is touched (Backend-affects-Frontend), but the full observable outcome is proven end-to-end WITHOUT a browser: an in-process HTTP-surface integration test drives the real Hono route -> real cascadeDeleteProjectTasks -> real SdkSessionsStore and then GET /api/projects against the real ProjectManager.getAll() synthesis, asserting the project row AND its tasks are gone and NO synthesized 'Unassigned' row remains; a companion in-process integration test pins the same against the real domain objects incl. the 'other-project + genuinely-unassigned tasks untouched' case; and ProjectsPage.test.tsx mounts the real page to assert the delete-confirm task-count warning. No browser-only behavior — delete -> useDeleteProject invalidates the projects + tasks queries -> standard TanStack re-render. Phase matrix does not mandate a live browser E2E at small."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Below-Description area (leadwright, schema params, command preview) is collapsed by default in New Task/Iterate/Pipeline/custom-project dialogs",
+          "behavior": "Deleting a project cascade-removes every task whose projectId matches (store rows)",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx + NewIterateModal/NewPipelineModal/NewGenericModal/NewTaskModal.test.tsx assert command-preview/content absent by default PASSED"
+          "evidence": "cascade-delete-project-tasks.test.ts 'removes exactly the matching tasks...' PASSED; route + HTTP integration confirm the wiring"
         },
         {
-          "behavior": "Section expands on toggle click, mounting the fields + command preview",
+          "behavior": "Cascade clears each removed task's scrollback + snapshot side-files (best-effort)",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx 'reveals children when open' + integration open-then-assert tests PASSED"
+          "evidence": "cascade-delete-project-tasks.test.ts asserts scrollback + snapshot callbacks fire once per removed task"
         },
         {
-          "behavior": "Required params render OUTSIDE the collapsed section (Launch never blocked by a hidden field)",
+          "behavior": "Cascade is a no-op (returns 0, no cleanup) when the project has no tasks",
           "disposition": "tested",
-          "evidence": "NewTaskModal.test.tsx 'required field visible without opening Advanced or More options (P2)' PASSED"
+          "evidence": "cascade-delete-project-tasks.test.ts 'returns 0 and performs no cleanup when nothing matches' PASSED"
         },
         {
-          "behavior": "Section resets to collapsed on modal reopen",
+          "behavior": "Cascade persists the removal so it survives a store reload",
           "disposition": "tested",
-          "evidence": "NewIssueModal.test.tsx 'close + reopen wipes ... leadwright state' (reopens collapsed) PASSED"
+          "evidence": "cascade-delete-project-tasks.test.ts 'persists the removal so it survives a reload' PASSED"
         },
         {
-          "behavior": "Section auto-expands when opened pre-seeded with priority/domain (triage Fix now)",
+          "behavior": "Cascade is best-effort: a throwing cleanup callback neither rejects nor aborts the delete",
           "disposition": "tested",
-          "evidence": "NewTaskModal.test.tsx 'More options auto-expands when opened pre-seeded with priority/domain' PASSED"
+          "evidence": "cascade-delete-project-tasks.test.ts 'is best-effort: a throwing cleanup callback...' PASSED"
         },
         {
-          "behavior": "Submit payloads (leadwright + params) unchanged after the wrap",
+          "behavior": "Cascade leaves other projects' tasks and genuinely-unassigned tasks untouched",
           "disposition": "tested",
-          "evidence": "payload-create.test.tsx 'Save with leadwright fields ...' (open section then submit) + payload-launch.test.tsx PASSED"
+          "evidence": "project-delete-unassigned.integration.test.ts 'the cascade leaves genuinely-unassigned tasks (and other projects' tasks) untouched' PASSED"
         },
         {
-          "behavior": "Plain Claude dialog is unaffected (no below-Description area, no disclosure rendered)",
+          "behavior": "DELETE /api/projects/:id returns {ok,deletedTaskCount} and only cascades on success (unknown id -> 404, no cascade)",
           "disposition": "tested",
-          "evidence": "NewPlainModal.test.tsx rendering tests PASSED unchanged"
+          "evidence": "projects.test.ts two new DELETE cascade tests PASSED; HTTP integration asserts {ok:true,deletedTaskCount:2}"
+        },
+        {
+          "behavior": "After project delete, GET /api/projects synthesizes NO Unassigned row for the removed tasks (end-to-end, real domain objects)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "project-delete-unassigned.integration.test.ts (real ProjectManager.getAll synthesis + real store) HTTP case asserts data has no 'unassigned' row and length 0 PASSED"
+        },
+        {
+          "behavior": "The delete confirm dialog warns how many tasks will be removed (>0) and omits the warning at 0 tasks",
+          "disposition": "tested",
+          "evidence": "ProjectsPage.test.tsx two new delete-confirm tests PASSED (2 tasks -> '2 tasks belonging...'; 0 tasks -> no 'belonging to this project')"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
+        "testable": 9,
+        "tested": 9,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "degraded": []
