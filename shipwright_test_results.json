@@ -1,12 +1,13 @@
 {
-  "last_updated": "2026-07-06T00:00:00Z",
+  "last_updated": "2026-07-06T12:30:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-remove-project-paste-button",
+    "run_id": "iterate-2026-07-06-mac-rebuild-restart-scripts",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1812,
-      "total": 1812
+      "passed": 45,
+      "total": 45,
+      "note": "scripts/*.test.mjs structural suite via `node --test` (10 new for the .sh + 35 existing .ps1/helpers); server/client vitest not re-run — this diff has zero TypeScript delta (shell scripts + docs + .gitattributes only)."
     },
     "integration": {
       "status": "not_run",
@@ -36,43 +37,60 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-remove-project-paste-button/surface_verification.json",
-      "timestamp": "2026-07-06T09:52:35.543Z",
-      "justification": "Static client-only render change in the Add-Project wizard (FR-01.03): removed the clipboard Paste button and reworded the directory hint. No API route, store mutation, SSE/WS handler, or message contract touched, so the Backend-affects-Frontend rule does not trigger. The full observable outcome (Paste button + testid absent, new hint text present, path input still editable and driving onPathChange) is deterministically asserted by ProjectWizard.test.tsx which mounts the real ProjectWizard -> ProjectInfoStep tree; full client suite 1812/1812 green. small-complexity CHANGE+UI: phase matrix does not require E2E."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-06-mac-rebuild-restart-scripts/surface_verification.json",
+      "timestamp": "2026-07-06T12:30:00.000Z",
+      "justification": "Operational deploy tooling: bash twins (scripts/start-server-production.sh + stop-server.sh) of the Windows production rebuild+restart .ps1, plus doc (guide.md, README.md) and .gitattributes edits. No web/UI surface and ZERO TypeScript delta — no API route, store mutation, SSE/WS handler, or message contract touched — so the Backend-affects-Frontend rule does not trigger. The scripts' end-to-end deploy behaviour cannot be safely exercised here: no macOS/Linux host is available, and running the script on this Windows dev box would rebuild+kill the live production server (disallowed). This matches the established structural-test-only bar for the parallel start-server-production.ps1. Verification = start-server-production.sh.test.mjs (10 assertions pinning the build-before-kill + double ~/.claude.json-heal contracts), `bash -n` syntax check on both scripts, and confirmation that repair-claude-json.mjs is cross-platform (os.homedir()/path.join). scripts/*.test.mjs 45/45 green."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Paste button no longer renders in the Add-Project wizard directory step",
+          "behavior": "start-server-production.sh installs+builds BOTH halves before killing the old server (a failed install/build leaves the running server untouched — ORDER MATTERS contract)",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'has no paste button and instructs the user to paste the path in' PASSED — queryByTestId('project-path-paste') and queryByText('Paste') both absent"
+          "evidence": "start-server-production.sh.test.mjs: \"every npm install runs BEFORE the server-kill\" + \"every npm run build runs BEFORE the server-kill\" + \"the FIRST npm install precedes the FIRST build\" — all PASSED (blocks precede the \"Stopping the old server\" marker)."
         },
         {
-          "behavior": "Directory-step hint instructs the user to copy the path and paste it in",
+          "behavior": "start-server-production.sh heals ~/.claude.json TWICE — Step 0 (before the build) and Step 5 (after the server-kill + server-up confirmation)",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx same test asserts getByText('Copy the full path from Explorer/Finder and paste it in here.')"
+          "evidence": "start-server-production.sh.test.mjs: \">= 2 repair invocations\", \"FIRST repair before the build\", \"LAST repair after the server-kill\", \"LAST repair after the server-up confirmation\" — all PASSED."
         },
         {
-          "behavior": "Directory input stays editable and drives onPathChange",
+          "behavior": "Both new scripts are syntactically valid bash",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'navigates to step 2 on Next' types into the path input and advances the wizard PASSED"
+          "evidence": "`bash -n scripts/start-server-production.sh` and `bash -n scripts/stop-server.sh` both exit 0."
         },
         {
-          "behavior": "Removing filePicker.ts leaves no dangling references (dead-code deletion is clean)",
+          "behavior": "*.sh files are pinned to LF (eol=lf) so a Windows-authored script cannot ship CRLF (which fails on macOS with \"bad interpreter: env bash^M\")",
           "disposition": "tested",
-          "evidence": "tsc --noEmit exit 0 + repo-wide grep: no filePicker/pasteFromClipboard/looksLikePath references remain in client source"
+          "evidence": "`git ls-files --eol` shows i/lf + attr/text eol=lf for all three .sh; `git cat-file blob` reports CR=0 for each staged blob."
+        },
+        {
+          "behavior": "The ~/.claude.json self-heal helper invoked by the .sh is cross-platform (resolves the home dir portably, no Windows-only paths)",
+          "disposition": "tested",
+          "evidence": "Audit of scripts/repair-claude-json.mjs: targets `path.join(os.homedir(), \".claude.json\")` and uses path.join throughout — no %USERPROFILE% / drive-letter / win32-only branch on the target path."
+        },
+        {
+          "behavior": "start-server-production.sh actually stops the old server (lsof/kill of the :PORT listener + tsx pids), backgrounds the fresh build via nohup, and confirms the port is bound",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "evidence": "Requires a real macOS/Linux host with a live server process to start/stop; not available here and destructive on the Windows dev box (would kill the running production server). Same structural-test-only bar as the parallel start-server-production.ps1, which likewise has no end-to-end test."
+        },
+        {
+          "behavior": "stop-server.sh kills the :PORT listener + tsx process, or reports \"nothing was running\"",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "evidence": "Requires real listener/tsx processes to kill on a macOS/Linux host; destructive to exercise here. Parity with stop-server.ps1, which also ships without a test. Syntax verified via `bash -n`."
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
-        "untestable": 0,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 3,
+        "covered_acs": 3
       }
     },
     "degraded": []

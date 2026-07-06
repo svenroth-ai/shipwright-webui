@@ -10,3 +10,9 @@ shipwright_events.jsonl merge=union
 
 .shipwright/agent_docs/architecture.md merge=union
 .shipwright/agent_docs/conventions.md merge=union
+
+# Shell scripts must stay LF regardless of a contributor's core.autocrlf.
+# They are authored on Windows but run on macOS/Linux (the production
+# rebuild+restart helpers, the hook installer). A CRLF `.sh` fails there
+# with "bad interpreter: /usr/bin/env bash^M", so pin the line endings.
+*.sh text eol=lf
