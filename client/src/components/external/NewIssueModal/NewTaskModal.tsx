@@ -14,6 +14,7 @@ import type { UseNewIssueFormReturn } from "./useNewIssueForm";
 import { CommandPreviewPanel } from "../CommandPreviewPanel";
 import { FieldLabel } from "./FieldLabel";
 import { LeadwrightFieldsFragment } from "./LeadwrightFields";
+import { MoreOptionsDisclosure } from "./MoreOptionsDisclosure";
 import { PhaseDropdown } from "./PhaseDropdown";
 import { paramsToPreview } from "./paramHelpers";
 import {
@@ -90,24 +91,8 @@ export function NewTaskModal({ form }: { form: UseNewIssueFormReturn }) {
         setDescription={form.setDescription}
       />
 
-      <LeadwrightFieldsFragment
-        showLeadDomain={form.showLeadDomain}
-        showLeadPriority={form.showLeadPriority}
-        showLeadComplexityHint={form.showLeadComplexityHint}
-        showLeadTags={form.showLeadTags}
-        showLeadBlockedBy={form.showLeadBlockedBy}
-        leadDomain={form.leadDomain}
-        setLeadDomain={form.setLeadDomain}
-        leadPriority={form.leadPriority}
-        setLeadPriority={form.setLeadPriority}
-        leadComplexityHint={form.leadComplexityHint}
-        setLeadComplexityHint={form.setLeadComplexityHint}
-        leadTagsRaw={form.leadTagsRaw}
-        setLeadTagsRaw={form.setLeadTagsRaw}
-        leadBlockedByRaw={form.leadBlockedByRaw}
-        setLeadBlockedByRaw={form.setLeadBlockedByRaw}
-      />
-
+      {/* Required params stay visible — a hidden required field would
+          disable Launch with no visible cause. */}
       <RequiredParamsFragment
         requiredFields={form.requiredFields}
         advancedFields={form.advancedFields}
@@ -120,39 +105,62 @@ export function NewTaskModal({ form }: { form: UseNewIssueFormReturn }) {
         advancedOpen={form.advancedOpen}
         setAdvancedOpen={form.setAdvancedOpen}
       />
-      <AdvancedParamsFragment
-        requiredFields={form.requiredFields}
-        advancedFields={form.advancedFields}
-        paramValues={form.paramValues}
-        setParamValues={form.setParamValues}
-        revealedSecrets={form.revealedSecrets}
-        setRevealedSecrets={form.setRevealedSecrets}
-        paramEnabled={form.paramEnabled}
-        onParamEnableToggle={form.onParamEnableToggle}
-        advancedOpen={form.advancedOpen}
-        setAdvancedOpen={form.setAdvancedOpen}
-      />
 
-      <FieldLabel
-        label="Command preview"
-        hint="phase drives the slash command · auto-runs in the embedded terminal on Launch"
+      <MoreOptionsDisclosure
+        open={form.moreOptionsOpen}
+        onToggle={() => form.setMoreOptionsOpen((v) => !v)}
       >
-        <CommandPreviewPanel
-          mode="new-task"
-          title={form.title}
-          description={form.description}
-          projectPath={form.selectedProject?.path ?? ""}
-          sessionUuid="<session-uuid>"
-          autonomy={form.showAutonomyToggle ? form.autonomy : undefined}
-          phaseId={form.phaseId}
-          phaseLabel={form.currentPhase?.label}
-          parameters={paramsToPreview(
-            form.currentSchema,
-            form.paramValues,
-            form.paramEnabled,
-          )}
+        <LeadwrightFieldsFragment
+          showLeadDomain={form.showLeadDomain}
+          showLeadPriority={form.showLeadPriority}
+          showLeadComplexityHint={form.showLeadComplexityHint}
+          showLeadTags={form.showLeadTags}
+          showLeadBlockedBy={form.showLeadBlockedBy}
+          leadDomain={form.leadDomain}
+          setLeadDomain={form.setLeadDomain}
+          leadPriority={form.leadPriority}
+          setLeadPriority={form.setLeadPriority}
+          leadComplexityHint={form.leadComplexityHint}
+          setLeadComplexityHint={form.setLeadComplexityHint}
+          leadTagsRaw={form.leadTagsRaw}
+          setLeadTagsRaw={form.setLeadTagsRaw}
+          leadBlockedByRaw={form.leadBlockedByRaw}
+          setLeadBlockedByRaw={form.setLeadBlockedByRaw}
         />
-      </FieldLabel>
+        <AdvancedParamsFragment
+          requiredFields={form.requiredFields}
+          advancedFields={form.advancedFields}
+          paramValues={form.paramValues}
+          setParamValues={form.setParamValues}
+          revealedSecrets={form.revealedSecrets}
+          setRevealedSecrets={form.setRevealedSecrets}
+          paramEnabled={form.paramEnabled}
+          onParamEnableToggle={form.onParamEnableToggle}
+          advancedOpen={form.advancedOpen}
+          setAdvancedOpen={form.setAdvancedOpen}
+        />
+
+        <FieldLabel
+          label="Command preview"
+          hint="phase drives the slash command · auto-runs in the embedded terminal on Launch"
+        >
+          <CommandPreviewPanel
+            mode="new-task"
+            title={form.title}
+            description={form.description}
+            projectPath={form.selectedProject?.path ?? ""}
+            sessionUuid="<session-uuid>"
+            autonomy={form.showAutonomyToggle ? form.autonomy : undefined}
+            phaseId={form.phaseId}
+            phaseLabel={form.currentPhase?.label}
+            parameters={paramsToPreview(
+              form.currentSchema,
+              form.paramValues,
+              form.paramEnabled,
+            )}
+          />
+        </FieldLabel>
+      </MoreOptionsDisclosure>
     </>
   );
 }

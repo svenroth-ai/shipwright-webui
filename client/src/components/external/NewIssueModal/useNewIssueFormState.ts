@@ -62,6 +62,14 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
   const [error, setError] = useState<string | null>(null);
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Collapsed-by-default "More options" section (everything below the
+  // Description: metadata, params, command preview). Auto-expands when the
+  // modal opens pre-seeded with advanced content (e.g. triage "Fix now"
+  // carries priority/domain) so carried-over values aren't hidden.
+  // iterate-2026-07-06-collapse-dialog-more-options.
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(
+    Boolean(initialPriority || initialDomain),
+  );
   const [paramValues, setParamValues] = useState<
     Record<string, string | boolean>
   >({});
@@ -129,6 +137,7 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setPhaseId(ctx.initialPhaseId ?? ctx.firstPhaseId);
     setSelectedProjectId(ctx.seedProjectId);
     setAdvancedOpen(false);
+    setMoreOptionsOpen(Boolean(ctx.initialPriority || ctx.initialDomain));
     setParamValues({});
     setRevealedSecrets({});
     setParamEnabled({});
@@ -160,6 +169,8 @@ export function useNewIssueFormState(input: UseNewIssueFormStateInput) {
     setError,
     advancedOpen,
     setAdvancedOpen,
+    moreOptionsOpen,
+    setMoreOptionsOpen,
     paramValues,
     setParamValues,
     revealedSecrets,

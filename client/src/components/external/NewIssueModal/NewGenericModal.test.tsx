@@ -10,6 +10,7 @@ import {
   GENERIC_ACTION,
   SAMPLE_ACTIONS,
   TASK_ACTION,
+  openMoreOptions,
   renderModal,
 } from "./__testFixtures";
 
@@ -34,7 +35,7 @@ describe("NewGenericModal — rendering", () => {
     expect(screen.getByText("Run the content pipeline.")).toBeTruthy();
   });
 
-  it("does NOT render Phase, Autonomy, or the live CommandPreviewPanel", () => {
+  it("does NOT render Phase, Autonomy, or the live CommandPreviewPanel; uses the static generic hint inside More options", () => {
     renderModal({
       action: GENERIC_ACTION,
       projectActions: {
@@ -44,6 +45,9 @@ describe("NewGenericModal — rendering", () => {
     });
     expect(screen.queryByTestId("new-issue-phase-select")).toBeNull();
     expect(screen.queryByTestId("autonomy-toggle")).toBeNull();
+    // The static generic hint lives inside the collapsed More options section.
+    expect(screen.queryByTestId("command-preview-generic")).toBeNull();
+    openMoreOptions();
     expect(screen.queryByTestId("command-preview-panel")).toBeNull();
     expect(screen.getByTestId("command-preview-generic")).toBeTruthy();
   });

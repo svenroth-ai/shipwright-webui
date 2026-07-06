@@ -45,6 +45,7 @@ import {
 } from "./core/profile-loader.js";
 
 import { createProjectRoutes } from "./routes/projects.js";
+import { cascadeDeleteProjectTasks } from "./core/cascade-delete-project-tasks.js";
 import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
@@ -286,7 +287,8 @@ if (isMainModule) {
         writeFileSync: (p: string, d: string) => fs.writeFileSync(p, d),
         renameSync: (from: string, to: string) => fs.renameSync(from, to),
       };
-      app.route("/", createProjectRoutes(projectManager, projectFsDeps));
+      // createProjectRoutes is registered below — its DELETE cascade needs the
+      // scrollback + snapshot stores constructed further down.
       app.route("/", createSettingsRoutes(settingsPath, settingsDeps));
       app.route("/", createProfilesRoutes());
       // Section 03 (iterate 3) — preview-session manager. Single instance
@@ -389,6 +391,15 @@ if (isMainModule) {
           );
         }
       }
+      // /api/projects/* — registered here so the DELETE cascade reaches the
+      // scrollback + snapshot stores above (iterate-2026-07-06-project-delete-cascades-tasks).
+      app.route("/", createProjectRoutes(projectManager, projectFsDeps, (id) =>
+        cascadeDeleteProjectTasks(id, {
+          store: sdkSessionsStore,
+          scrollbackClearBestEffort: (t) => scrollbackStore.clearBestEffort(t),
+          snapshotClearBestEffort: (t) => snapshotStore.clearBestEffort(t),
+        })));
+
       // Iterate 4 (ADR-067) — embedded-terminal pty manager.
       // PtyManager owns shell-pty lifecycle (Plan-D''-conform: shells only,
       // never `claude`). Construction is async because the @lydell/node-pty

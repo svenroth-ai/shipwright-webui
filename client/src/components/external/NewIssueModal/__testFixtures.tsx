@@ -6,7 +6,7 @@
  * vitest run. Each per-concern test file imports from this fixture.
  */
 
-import { render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
@@ -117,6 +117,20 @@ export function makeFetchMock(opts: FetchMockOpts) {
     }
     return new Response("{}", { status: 200 });
   });
+}
+
+/**
+ * Expand the collapsed "More options" section so the below-Description
+ * fields (leadwright inputs, advanced params, command preview) mount.
+ * iterate-2026-07-06-collapse-dialog-more-options: these are collapsed by
+ * default, so any test asserting on them must open the disclosure first.
+ * `fireEvent` auto-wraps in act for the synchronous toggle.
+ */
+export function openMoreOptions() {
+  const toggle = screen.queryByTestId("new-issue-more-options-toggle");
+  if (toggle && toggle.getAttribute("aria-expanded") !== "true") {
+    fireEvent.click(toggle);
+  }
 }
 
 export type RenderModalOverrides = Partial<

@@ -135,6 +135,9 @@ const REQUIRED_TOKENS = [
   'terminal-appearance',
   'xterm-theme-options',
   'useTerminalAppearance',
+  // iterate-2026-07-06-collapse-dialog-more-options — collapsed-by-default
+  // gray "More options" wrapper below the create-dialog Description
+  'MoreOptionsDisclosure',
 ] as const;
 
 let claudeMd = '';

@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-06-collapse-dialog-more-options",
+  "date": "2026-07-06T10:49:21.854035Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/collapse-dialog-more-options",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-07-06-collapse-dialog-more-options"
+}

@@ -473,9 +473,9 @@
     {
       "path": "server/src/index.ts",
       "limit": 300,
-      "current": 888,
+      "current": 899,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-03-start-campaign-action"
+      "adr": "iterate-2026-07-06-project-delete-cascades-tasks"
     },
     {
       "path": "server/src/lib/resolveTrustedOrigins.test.ts",

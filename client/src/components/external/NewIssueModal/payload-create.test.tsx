@@ -20,6 +20,7 @@ import {
   SAMPLE_ACTIONS,
   TASK_ACTION,
   makeFetchMock,
+  openMoreOptions,
   renderModal,
 } from "./__testFixtures";
 import type { ResolvedProjectActions } from "../../../lib/externalApi";
@@ -183,6 +184,10 @@ describe("createTask POST body — bit-perfect (Step 3.5 OpenAI #9)", () => {
       fireEvent.change(screen.getByTestId("new-issue-title-input"), {
         target: { value: "lead task" },
       });
+    });
+    // Leadwright inputs are inside the collapsed More options section.
+    await act(async () => {
+      openMoreOptions();
     });
     await act(async () => {
       fireEvent.change(screen.getByTestId("new-issue-tags-input"), {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { Hono } from "hono";
 import { createProjectRoutes } from "./projects.js";
-import { errorHandler } from "../middleware/error-handler.js";
+import { AppError, errorHandler } from "../middleware/error-handler.js";
 
 const mockProject = {
   id: "p1",
@@ -13,13 +13,20 @@ const mockProject = {
   lastActive: "2026-01-01",
 };
 
-function setup() {
+function setup(
+  opts: {
+    onProjectDeleted?: (projectId: string) => number | Promise<number>;
+    deleteThrows?: boolean;
+  } = {},
+) {
   const projectManager = {
     getAll: vi.fn(() => [mockProject]),
     getById: vi.fn((id: string) => (id === "p1" ? mockProject : undefined)),
     create: vi.fn((data: Partial<typeof mockProject>) => ({ ...mockProject, ...data })),
     update: vi.fn((_id: string, patch: Partial<typeof mockProject>) => ({ ...mockProject, ...patch })),
-    delete: vi.fn(),
+    delete: vi.fn((_id: string) => {
+      if (opts.deleteThrows) throw new AppError("Project not found", 404);
+    }),
   } as unknown as import("../core/project-manager.js").ProjectManager;
 
   const fsDeps = {
@@ -31,7 +38,10 @@ function setup() {
 
   const app = new Hono();
   app.onError(errorHandler);
-  app.route("/", createProjectRoutes(projectManager, fsDeps));
+  app.route(
+    "/",
+    createProjectRoutes(projectManager, fsDeps, opts.onProjectDeleted),
+  );
   return { app, projectManager, fsDeps };
 }
 
@@ -129,6 +139,27 @@ describe("Project Routes (Plan D'' simplified)", () => {
     const { app } = setup();
     const res = await app.request("/api/projects/p1", { method: "DELETE" });
     expect(res.status).toBe(200);
+  });
+
+  // iterate-2026-07-06-project-delete-cascades-tasks — deleting a project must
+  // cascade to its tasks so no orphaned "Unassigned" bucket lingers. The route
+  // delegates the cascade to the injected callback and reports how many tasks
+  // it removed.
+  it("DELETE /api/projects/:id cascades: calls onProjectDeleted(id) and returns deletedTaskCount", async () => {
+    const onProjectDeleted = vi.fn(async () => 3);
+    const { app } = setup({ onProjectDeleted });
+    const res = await app.request("/api/projects/p1", { method: "DELETE" });
+    expect(res.status).toBe(200);
+    expect(onProjectDeleted).toHaveBeenCalledWith("p1");
+    expect(await res.json()).toEqual({ ok: true, deletedTaskCount: 3 });
+  });
+
+  it("DELETE /api/projects/:id does NOT cascade when the project is unknown (404)", async () => {
+    const onProjectDeleted = vi.fn(async () => 0);
+    const { app } = setup({ onProjectDeleted, deleteThrows: true });
+    const res = await app.request("/api/projects/nope", { method: "DELETE" });
+    expect(res.status).toBe(404);
+    expect(onProjectDeleted).not.toHaveBeenCalled();
   });
 
   // Iterate 3.7e-b3 (2026-04-22) — PATCH body flows through project-manager
