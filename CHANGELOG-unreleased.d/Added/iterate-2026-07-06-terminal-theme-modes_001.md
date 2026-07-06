@@ -1,0 +1,1 @@
+Embedded terminal light/dark appearance (FR-01.44): the terminal now mirrors Claude Code's theme by default so light mode renders readably instead of black-on-black; a Settings "Terminal appearance" selector (Auto / System / Dark / Light) re-themes the open terminal live.

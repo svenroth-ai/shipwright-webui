@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-06-terminal-theme-modes",
+  "date": "2026-07-06T11:25:59.381389Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/terminal-theme-modes",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-07-06-terminal-theme-modes.md",
+  "adr": "iterate-2026-07-06-terminal-theme-modes"
+}

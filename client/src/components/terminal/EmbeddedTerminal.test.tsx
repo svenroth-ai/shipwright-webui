@@ -411,7 +411,7 @@ describe("<EmbeddedTerminal>", () => {
     // (line-ending + bracketed-paste normalization), not a raw
     // socket.send that made multi-line prompts submit on the first line.
     expect(pasteSpy).toHaveBeenCalledWith("hello\nworld");
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect((globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]).includes("/paste-image"))).toHaveLength(0); // FR-01.44: mount-time claude-theme GET is orthogonal
   });
 
   it("paste-handler — image-wins: image item triggers fetch /paste-image; text in same payload is dropped", async () => {
@@ -495,7 +495,7 @@ describe("<EmbeddedTerminal>", () => {
     });
 
     expect(ev.defaultPrevented).toBe(false);
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect((globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]).includes("/paste-image"))).toHaveLength(0); // FR-01.44: mount-time claude-theme GET is orthogonal
     document.body.removeChild(outside);
   });
 
@@ -610,7 +610,7 @@ describe("<EmbeddedTerminal>", () => {
       target.dispatchEvent(ev);
     });
     expect(ev.defaultPrevented).toBe(false);
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect((globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls.filter((c) => String(c[0]).includes("/paste-image"))).toHaveLength(0); // FR-01.44: mount-time claude-theme GET is orthogonal
   });
 
   it("read-only banner is suppressed for 1500 ms after ready (ADR-084 AC-1 banner-grace), then armed if role stays reader, then cleared on writer-promoted (StrictMode race fence)", async () => {

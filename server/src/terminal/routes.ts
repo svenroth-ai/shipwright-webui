@@ -503,9 +503,9 @@ export async function createNodePtySpawnFn(): Promise<PtySpawnFn> {
       cols: opts.cols ?? 120,
       rows: opts.rows ?? 30,
       env: termEnv,
-      // node-pty's own `name` is used by some Win32 conpty paths; we
-      // keep it on "xterm" so the conpty layer stays sane while the
-      // child-process env still sees TERM=dumb.
+      // node-pty's own `name` is the conpty pseudo-terminal name (some Win32
+      // conpty paths key off it); keep "xterm". Independent of `env.TERM`
+      // (now `xterm-256color` by default — FR-01.44 / spawn-env.ts).
       name: opts.name ?? "xterm",
     });
     // The library's IPty matches our PtyHandleApi shape; cast is safe.

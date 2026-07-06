@@ -1,0 +1,1 @@
+The embedded terminal is now a faithful truecolor terminal (VS Code parity): the pty runs with TERM=xterm-256color + COLORTERM=truecolor so Claude Code and CLI tools (vim/htop/less) render their own colors, superseding the ADR-067 16-color brand clamp. Reversible via SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1.

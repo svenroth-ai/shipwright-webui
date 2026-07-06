@@ -1,17 +1,18 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-project-delete-cascades-tasks",
+    "run_id": "iterate-2026-07-06-terminal-theme-modes",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 3524,
-      "total": 3524
+      "passed": 3573,
+      "total": 3573,
+      "note": "client 1859 + server 1714"
     },
     "integration": {
-      "status": "passed",
-      "passed": 4,
-      "total": 4
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -19,9 +20,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,73 +33,82 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "vitest (in-process Hono app.request + real ProjectManager/SdkSessionsStore)",
+      "surface": "web",
+      "runner": "playwright (chromium, isolated worktree stack)",
       "exit_code": 0,
-      "tests_run": 6,
-      "evidence_path": "server/src/core/project-delete-unassigned.integration.test.ts",
-      "timestamp": "2026-07-06T13:10:00.000Z",
-      "justification": "small-complexity BUG. The DELETE /api/projects/:id route is touched (Backend-affects-Frontend), but the full observable outcome is proven end-to-end WITHOUT a browser: an in-process HTTP-surface integration test drives the real Hono route -> real cascadeDeleteProjectTasks -> real SdkSessionsStore and then GET /api/projects against the real ProjectManager.getAll() synthesis, asserting the project row AND its tasks are gone and NO synthesized 'Unassigned' row remains; a companion in-process integration test pins the same against the real domain objects incl. the 'other-project + genuinely-unassigned tasks untouched' case; and ProjectsPage.test.tsx mounts the real page to assert the delete-confirm task-count warning. No browser-only behavior — delete -> useDeleteProject invalidates the projects + tasks queries -> standard TanStack re-render. Phase matrix does not mandate a live browser E2E at small."
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-06-terminal-theme-modes/surface_verification.json",
+      "timestamp": "2026-07-06T11:24:23.000Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Deleting a project cascade-removes every task whose projectId matches (store rows)",
+          "behavior": "LIGHT_PALETTE + DARK_PALETTE clear WCAG-AA/AA-large per slot",
           "disposition": "tested",
-          "evidence": "cascade-delete-project-tasks.test.ts 'removes exactly the matching tasks...' PASSED; route + HTTP integration confirm the wiring"
+          "evidence": "terminal-theme.test.ts 46 cases PASSED (fg/bg >= AA; each swept ANSI slot >= AA-large on the palette bg; light excludes brightWhite, dark excludes black)"
         },
         {
-          "behavior": "Cascade clears each removed task's scrollback + snapshot side-files (best-effort)",
+          "behavior": "paletteFor selects the correct palette; EMBEDDED_TERMINAL_PALETTE alias still = DARK",
           "disposition": "tested",
-          "evidence": "cascade-delete-project-tasks.test.ts asserts scrollback + snapshot callbacks fire once per removed task"
+          "evidence": "terminal-theme.test.ts paletteFor block PASSED"
         },
         {
-          "behavior": "Cascade is a no-op (returns 0, no cleanup) when the project has no tasks",
+          "behavior": "resolveAppearance precedence (manual/system/auto=mirror-Claude) + Claude-theme->family mapping (light*/dark*/auto/custom)",
           "disposition": "tested",
-          "evidence": "cascade-delete-project-tasks.test.ts 'returns 0 and performs no cleanup when nothing matches' PASSED"
+          "evidence": "terminalAppearance.test.ts PASSED (incl. auto->OS for Claude 'auto', custom/unknown->dark)"
         },
         {
-          "behavior": "Cascade persists the removal so it survives a store reload",
+          "behavior": "spawn-env default truecolor (TERM=xterm-256color, COLORTERM=truecolor, no FORCE_COLOR); inherited FORCE_COLOR stripped; LEGACY opt-out restores clamp; NO_FLICKER + session-marker strip unchanged",
           "disposition": "tested",
-          "evidence": "cascade-delete-project-tasks.test.ts 'persists the removal so it survives a reload' PASSED"
+          "evidence": "pty-env-flicker.test.ts (extended matrix) PASSED"
         },
         {
-          "behavior": "Cascade is best-effort: a throwing cleanup callback neither rejects nor aborts the delete",
+          "behavior": "claude-theme-reader parses/trims theme, returns null on missing/malformed/non-string/empty",
           "disposition": "tested",
-          "evidence": "cascade-delete-project-tasks.test.ts 'is best-effort: a throwing cleanup callback...' PASSED"
+          "evidence": "claude-theme-reader.test.ts PASSED"
         },
         {
-          "behavior": "Cascade leaves other projects' tasks and genuinely-unassigned tasks untouched",
+          "behavior": "GET /api/terminal/claude-theme returns {theme} / {theme:null}",
           "disposition": "tested",
-          "evidence": "project-delete-unassigned.integration.test.ts 'the cascade leaves genuinely-unassigned tasks (and other projects' tasks) untouched' PASSED"
+          "evidence": "terminal-appearance.test.ts (Hono app.request) PASSED"
         },
         {
-          "behavior": "DELETE /api/projects/:id returns {ok,deletedTaskCount} and only cascades on success (unknown id -> 404, no cascade)",
+          "behavior": "applyAppearance sets a fresh ITheme (light #ffffff / dark #1a1a1a) + refresh; swallows refresh throw; resolveAppearanceNow reads prefs+cache",
           "disposition": "tested",
-          "evidence": "projects.test.ts two new DELETE cascade tests PASSED; HTTP integration asserts {ok:true,deletedTaskCount:2}"
+          "evidence": "useTerminalAppearance.test.ts PASSED"
         },
         {
-          "behavior": "After project delete, GET /api/projects synthesizes NO Unassigned row for the removed tasks (end-to-end, real domain objects)",
+          "behavior": "Settings Appearance selector defaults auto, reflects persisted value, persists + emits same-tab change event, offers 4 options",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "project-delete-unassigned.integration.test.ts (real ProjectManager.getAll synthesis + real store) HTTP case asserts data has no 'unassigned' row and length 0 PASSED"
+          "evidence": "TerminalSettingsCard.test.tsx PASSED"
         },
         {
-          "behavior": "The delete confirm dialog warns how many tasks will be removed (>0) and omits the warning at 0 tasks",
+          "behavior": "Open terminal re-themes LIVE to light with no remount; fresh mount picks up persisted Light",
           "disposition": "tested",
-          "evidence": "ProjectsPage.test.tsx two new delete-confirm tests PASSED (2 tasks -> '2 tasks belonging...'; 0 tasks -> no 'belonging to this project')"
+          "evidence": "e2e 95-terminal-appearance.spec.ts 2/2 PASSED (real browser vs live pty)"
+        },
+        {
+          "behavior": "Bug-B convertEol:false guard follows the moved constant to xterm-theme-options.ts",
+          "disposition": "tested",
+          "evidence": "embedded-terminal-convert-eol.test.ts 4/4 PASSED (regex still uniquely matches one convertEol line)"
+        },
+        {
+          "behavior": "Actual light-mode readability with real Claude themes + PowerShell PSReadLine prompt flicker under TERM=xterm-256color",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "evidence": "Visual/flicker verification is user-UAT per ADR-098 precedent for this terminal-rendering class; node-pty (native) unavailable in the junctioned worktree for a byte-capture. Instant revert via SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1."
         }
       ],
       "counts": {
-        "testable": 9,
-        "tested": 9,
-        "untestable": 0,
+        "testable": 10,
+        "tested": 10,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []

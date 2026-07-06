@@ -34,15 +34,23 @@
  * mid-paint, leaking partial-redraw state into Claude TUI's alt-screen.
  */
 
-import { Terminal, type ITerminalOptions } from "@xterm/xterm";
+import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import "@xterm/xterm/css/xterm.css";
 
-import { EMBEDDED_TERMINAL_PALETTE } from "./terminal-theme";
+import type { ResolvedAppearance } from "./terminal-theme";
+import {
+  buildEmbeddedXtermOptions,
+  buildXtermTheme,
+} from "./xterm-theme-options";
 import { getTerminalRendererOverride } from "./terminal-renderer";
 import { attachWebglAtlasRepaint } from "./webgl-atlas-repaint";
+
+// Re-exported from the split-out theme module so existing importers
+// (`xtermAddons.test.ts`, EmbeddedTerminal) keep resolving from here.
+export { buildEmbeddedXtermOptions, buildXtermTheme };
 
 /**
  * Exact-pinned xterm.js + addon versions (CLAUDE.md rule 22 / ADR-097 / ADR-098).
@@ -77,81 +85,6 @@ export interface EmbeddedXtermHandle {
   term: Terminal;
   fit: FitAddon;
   dispose: () => void;
-}
-
-/**
- * Helper — resolve a CSS variable from the document body, falling back to
- * the static palette literal. Mirrors the source's inline `cssVar` lambda
- * so the brand-var-aware tokens (--color-error, --color-success, …) still
- * thread through.
- */
-function cssVar(name: string, fallback: string): string {
-  if (typeof document === "undefined") return fallback;
-  const v = getComputedStyle(document.body).getPropertyValue(name).trim();
-  return v.length > 0 ? v : fallback;
-}
-
-/**
- * Build the Terminal constructor options. Exported separately from
- * `createEmbeddedXterm` so a test can capture the options object without
- * needing a working DOM container — the existing `EmbeddedTerminal.test.tsx`
- * "terminal options — VS Code parity" block relies on capturing the options
- * via the `vi.mock("@xterm/xterm")` factory.
- */
-export function buildEmbeddedXtermOptions(): ITerminalOptions {
-  const palette = EMBEDDED_TERMINAL_PALETTE;
-  return {
-    // convertEol — MUST stay false (CLAUDE.md rule 22, Bug B fence).
-    // ConPTY + Claude Code's TUI emit bare LF as "cursor down, keep
-    // column"; convertEol:true would yank to col 0 and smear the
-    // kept-column content.
-    convertEol: false,
-    cursorBlink: true,
-    fontFamily:
-      'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-    fontSize: 13,
-    theme: {
-      background: palette.background,
-      foreground: palette.foreground,
-      cursor: palette.cursor,
-      cursorAccent: palette.cursorAccent,
-      selectionBackground: palette.selectionBackground,
-      black: palette.black,
-      red: palette.red,
-      green: palette.green,
-      yellow: palette.yellow,
-      blue: palette.blue,
-      magenta: palette.magenta,
-      cyan: palette.cyan,
-      white: palette.white,
-      brightBlack: palette.brightBlack,
-      // Brand semantics still flow through CSS-vars where the slot has a
-      // natural correspondence; fallback matches the static palette so
-      // test luminance assertions stay deterministic.
-      brightRed: cssVar("--color-error", palette.brightRed),
-      brightGreen: cssVar("--color-success", palette.brightGreen),
-      brightYellow: cssVar("--color-warning", palette.brightYellow),
-      brightBlue: cssVar("--color-info", palette.brightBlue),
-      brightMagenta: cssVar("--color-purple", palette.brightMagenta),
-      brightCyan: palette.brightCyan,
-      brightWhite: palette.brightWhite,
-    },
-    scrollback: 10000,
-    allowProposedApi: true,
-    // ADR-099 — rescale glyphs that exceed cell width so they don't bleed
-    // into the next cell. xterm 6.0's default is `false` (documented as a
-    // real bug in xtermjs/xterm.js#5100); VS Code sets it via terminal
-    // configuration setting `terminal.integrated.rescaleOverlappingGlyphs`
-    // which defaults to `true`.
-    rescaleOverlappingGlyphs: true,
-    // VS Code-parity selection knobs (iterate-2026-05-23 terminal-
-    // selection-uxd). References: src/vs/workbench/contrib/terminal/
-    // browser/xterm/xtermTerminal.ts:226-275 + terminalConfiguration.ts
-    // `terminalWordSeparators` default.
-    rightClickSelectsWord: true,
-    macOptionClickForcesSelection: true,
-    wordSeparator: " ()[]{}',\"`|;:!?",
-  };
 }
 
 /**
@@ -216,8 +149,9 @@ function installDimensionsStubBeforeDispose(term: Terminal): void {
  */
 export function createEmbeddedXterm(
   container: HTMLElement,
+  appearance: ResolvedAppearance = "dark",
 ): EmbeddedXtermHandle {
-  const term = new Terminal(buildEmbeddedXtermOptions());
+  const term = new Terminal(buildEmbeddedXtermOptions(appearance));
 
   const fit = new FitAddon();
   const links = new WebLinksAddon();
