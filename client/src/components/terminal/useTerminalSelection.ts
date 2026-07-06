@@ -41,6 +41,20 @@ export interface AttachTerminalSelectionOptions {
   setMouseEventsActive: Dispatch<SetStateAction<boolean>>;
   /** Dismissal flip — off→on re-arms a previously dismissed banner. */
   setBannerDismissed: Dispatch<SetStateAction<boolean>>;
+  /**
+   * Capture the settled selection into the redraw-proof copy cache
+   * (iterate-2026-07-06-terminal-copy-selection-cache). Fired at selection
+   * settle (mouseup / shift-select keyup) REGARDLESS of the copy-on-selection
+   * preference — capturing is NOT a clipboard write, so it never clobbers the
+   * OS clipboard. Optional.
+   */
+  captureSelection?: (text: string) => void;
+  /**
+   * Invalidate the copy cache + Copy pill: a fresh selection gesture
+   * (mousedown in the terminal) or committing keyboard input. Keeps a stale
+   * selection from hijacking a later Ctrl+C-as-SIGINT. Optional.
+   */
+  invalidateSelection?: () => void;
 }
 
 /**
@@ -53,7 +67,14 @@ export interface AttachTerminalSelectionOptions {
 export function attachTerminalSelection(
   opts: AttachTerminalSelectionOptions,
 ): () => void {
-  const { term, disposedRef, setMouseEventsActive, setBannerDismissed } = opts;
+  const {
+    term,
+    disposedRef,
+    setMouseEventsActive,
+    setBannerDismissed,
+    captureSelection,
+    invalidateSelection,
+  } = opts;
   const termElement = term.element;
   if (!termElement) {
     // term.open() hasn't run yet — caller misuse. Return a no-op disposer
@@ -72,8 +93,13 @@ export function attachTerminalSelection(
     if (disposedRef.current) return;
     try {
       const sel = term.getSelection();
-      state.latestSelection = sel;
-      if (!sel || sel.trim().length === 0) {
+      // Keep the LAST NON-EMPTY selection: Claude's mouse-tracking redraw
+      // clears the live selection (fires onSelectionChange with "") a moment
+      // after the drag — overwriting the tracker with "" would lose the text
+      // the user selected before they can copy it.
+      if (sel && sel.trim().length > 0) {
+        state.latestSelection = sel;
+      } else {
         state.lastCopiedSelection = "";
       }
     } catch {
@@ -83,21 +109,49 @@ export function attachTerminalSelection(
 
   const onTerminalMousedown = (event: Event): void => {
     const target = event.target as Node | null;
-    state.dragStartedInTerminal = !!(target && termElement.contains(target));
+    const inside = !!(target && termElement.contains(target));
+    state.dragStartedInTerminal = inside;
+    // Drop the redraw-survival tracker on EVERY mousedown — even one that
+    // STARTS OUTSIDE the terminal. Otherwise a cross-boundary drag (mousedown
+    // outside → mouseup inside, which produces no live xterm selection)
+    // resurrects a stale `latestSelection` at mouseup via the `if (!raw)`
+    // fallback and lets it hijack a later Ctrl+C-as-SIGINT (review Finding A).
+    // The keyup / Shift+Arrow capture path has no mousedown, so it is
+    // unaffected.
+    state.latestSelection = "";
+    if (inside) {
+      invalidateSelection?.();
+    }
+  };
+
+  // Committing keyboard input invalidates the cached selection so it can't
+  // hijack a later Ctrl+C-as-SIGINT. Bare modifiers, the copy chords (the key
+  // handler reads the cache on the SAME keydown), and shift-select extensions
+  // are exempt. keydown for mouse-reports never fires here (those are xterm
+  // onData, not DOM key events), so this is redraw-safe.
+  //
+  // Registered in the CAPTURE phase: xterm calls `stopPropagation()` on the
+  // keydowns it handles, so a bubble-phase document listener would never see a
+  // typed character. Capture fires BEFORE xterm's textarea handler — and
+  // before the clipboard key handler reads the cache on Ctrl+C — which is why
+  // the copy chords are exempted here.
+  const onKeydownInvalidate = (event: Event): void => {
+    if (disposedRef.current) return;
+    const ke = event as KeyboardEvent;
+    const active = document.activeElement;
+    if (!active || !termElement.contains(active)) return;
+    const k = ke.key;
+    if (k === "Shift" || k === "Control" || k === "Alt" || k === "Meta") return;
+    if (ke.ctrlKey && (k === "c" || k === "C" || k === "Insert")) return;
+    if (ke.shiftKey && /^(Arrow|Home|End|Page)/.test(k)) return;
+    invalidateSelection?.();
   };
 
   const flushSelectionCopy = (event: Event): void => {
     if (disposedRef.current) return;
-    // Copy-on-selection is OPT-IN (default off,
-    // iterate-2026-06-30-terminal-paste-single-sink). Read live so the
-    // Settings toggle takes effect without a remount. When disabled, a
-    // selection must NOT auto-copy / clobber the OS clipboard the user is
-    // about to paste — but still reset the drag-origin tracker so stale
-    // state doesn't carry across gestures.
-    if (!getCopyOnSelection()) {
-      if (event.type === "mouseup") state.dragStartedInTerminal = false;
-      return;
-    }
+    // Qualify the gesture (drag-origin gate for mouseup; Shift+navigation for
+    // keyup). The drag-origin reset runs for BOTH copy-on-selection states so
+    // stale state never carries across gestures.
     if (event.type === "mouseup") {
       if (!state.dragStartedInTerminal) {
         const target = event.target as Node | null;
@@ -111,6 +165,9 @@ export function attachTerminalSelection(
       const active = document.activeElement;
       if (!active || !termElement.contains(active)) return;
     }
+    // Resolve the selection text: live preferred, else the last non-empty
+    // tracked value (survives a redraw that cleared the live selection between
+    // drag and release).
     let raw = "";
     try {
       if (term.hasSelection()) raw = term.getSelection();
@@ -119,16 +176,24 @@ export function attachTerminalSelection(
     }
     if (!raw) raw = state.latestSelection;
     if (!raw || raw.trim().length === 0) return;
+    // ALWAYS capture for the redraw-proof copy cache + Copy pill. Capturing is
+    // NOT a clipboard write — no clobber — so it runs regardless of the pref.
+    captureSelection?.(raw);
+    // Copy-on-selection AUTO-write stays OPT-IN (default off,
+    // iterate-2026-06-30-terminal-paste-single-sink; read live so the Settings
+    // toggle takes effect without a remount).
+    if (!getCopyOnSelection()) return;
     if (raw === state.lastCopiedSelection) return;
     state.lastCopiedSelection = raw;
     void copyText(raw).catch(() => {
-      /* silent — explicit Ctrl+C is the retry path */
+      /* silent — explicit Ctrl+C / Copy pill is the retry path */
     });
   };
 
   document.addEventListener("mousedown", onTerminalMousedown);
   document.addEventListener("mouseup", flushSelectionCopy);
   document.addEventListener("keyup", flushSelectionCopy);
+  document.addEventListener("keydown", onKeydownInvalidate, true);
 
   // Initial sync read — terminal mounted ALREADY in mouse mode shows
   // the banner immediately (external-review MED-7).
@@ -161,6 +226,7 @@ export function attachTerminalSelection(
     document.removeEventListener("mousedown", onTerminalMousedown);
     document.removeEventListener("mouseup", flushSelectionCopy);
     document.removeEventListener("keyup", flushSelectionCopy);
+    document.removeEventListener("keydown", onKeydownInvalidate, true);
     observer.disconnect();
   };
 }

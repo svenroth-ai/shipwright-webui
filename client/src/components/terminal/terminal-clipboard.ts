@@ -118,6 +118,19 @@ export interface ClipboardKeyHandlerDeps {
   copy: (text: string) => Promise<void>;
   /** Read the OS clipboard (readClipboardForPaste). */
   readClipboard: () => Promise<PasteRead>;
+  /**
+   * Fallback selection source when the LIVE xterm selection has already been
+   * wiped by an app redraw (Claude's any-motion mouse tracking clears the
+   * selection before the user can press Ctrl+C — see useTerminalClipboard).
+   * Optional; legacy callers omit it and keep the pre-cache behaviour.
+   * iterate-2026-07-06-terminal-copy-selection-cache.
+   */
+  getCachedSelection?: () => string;
+  /**
+   * Called after a successful copy (live OR cached selection) so the caller
+   * can clear the Copy pill + the selection cache. Optional.
+   */
+  onCopySuccess?: () => void;
 }
 
 /**
@@ -144,16 +157,23 @@ export interface ClipboardKeyHandlerDeps {
 export function createClipboardKeyHandler(
   deps: ClipboardKeyHandlerDeps,
 ): (ev: KeyboardEvent) => boolean {
-  const { term, isDisposed, notify, copy, readClipboard } = deps;
+  const { term, isDisposed, notify, copy, readClipboard, getCachedSelection, onCopySuccess } =
+    deps;
 
   return (ev: KeyboardEvent): boolean => {
     const intent = classifyClipboardChord(ev);
     if (intent === "passthrough") return true;
 
     if (intent === "copy") {
-      const selection = term.hasSelection() ? term.getSelection() : "";
-      // Empty / whitespace-only selection → let the key through:
-      // Ctrl+C becomes SIGINT, Ctrl+Insert reaches the foreground app.
+      let selection = term.hasSelection() ? term.getSelection() : "";
+      // The live selection is routinely wiped by an app redraw before Ctrl+C
+      // (Claude's mouse tracking) — fall back to the last captured selection so
+      // an intentional copy still copies instead of degrading to SIGINT.
+      if (selection.trim().length === 0 && getCachedSelection) {
+        selection = getCachedSelection();
+      }
+      // Truly nothing to copy → let the key through: Ctrl+C becomes SIGINT,
+      // Ctrl+Insert reaches the foreground app.
       if (selection.trim().length === 0) return true;
       // Suppress xterm's default AND the browser's native `copy` event.
       ev.preventDefault();
@@ -167,6 +187,7 @@ export function createClipboardKeyHandler(
           // the user can retry or fall back to right-click → Copy.
           term.clearSelection();
           notify("copied");
+          onCopySuccess?.();
         },
         () => {
           if (isDisposed()) return;

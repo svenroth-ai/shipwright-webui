@@ -1,13 +1,13 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-project-delete-cascade-e2e",
+    "run_id": "iterate-2026-07-06-terminal-copy-selection-cache",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1868,
-      "total": 1868,
-      "note": "client suite; server unchanged (test-only e2e addition)"
+      "passed": 1895,
+      "total": 1895,
+      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal fix)"
     },
     "integration": {
       "status": "not_run",
@@ -21,8 +21,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 3,
+      "total": 3
     },
     "design_fidelity": {
       "status": "skipped",
@@ -34,32 +34,56 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3951)",
+      "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "client/e2e/flows/project-delete-cascade.spec.ts",
-      "timestamp": "2026-07-06T16:15:00.000Z",
-      "justification": "Real-browser regression guard for #200: the spec seeds a project + a task assigned to it, drives the ProjectsPage delete affordance + confirm dialog, and asserts the project row AND the synthesized 'Unassigned' row are both absent afterwards (pre-#200 the orphaned task synthesized a phantom row, so this assertion would fail), plus confirms via GET /api/external/tasks that the task is deleted (not re-homed). Ran green (1/1)."
+      "tests_run": 3,
+      "evidence_path": "client/e2e/flows/terminal-copy-cache.spec.ts",
+      "timestamp": "2026-07-06T18:12:00.000Z",
+      "justification": "Real-browser proof against a live pty of the redraw-proof copy: (1) after term.clearSelection() simulates Claude's redraw wiping the live selection, Ctrl+C still copies the captured text to the clipboard (AC-1); (2) the mouse-only Copy pill appears on a settled selection and copies on click, then clears (AC-3); (3) a committing keystroke invalidates the cache so Ctrl+C reverts to SIGINT (\\u0003) (AC-4). Ran green (3/3). This run also CAUGHT a real bug the unit tests missed — a bubble-phase keydown listener never fired because xterm stopPropagations handled keys; fixed by registering the invalidation listener capture-phase. Note: localhost is a secure context so the copy here takes the navigator.clipboard fast path; the execCommand fallback exercised in the user's real non-secure http/Tailscale context is unit-covered (lib/clipboard) and was validated live via console instrumentation."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Deleting a project that has a task leaves no phantom synthesized 'Unassigned' row and the task is gone (browser, end-to-end)",
+          "behavior": "AC-1: Ctrl+C / Ctrl+Insert copies the last CAPTURED selection when the live xterm selection was cleared by an app redraw",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "client/e2e/flows/project-delete-cascade.spec.ts ran green (chromium, 1/1) against a real Hono stack — asserts project row + Unassigned row absent post-delete, confirm warns '1 task belonging...', task absent from GET /api/external/tasks"
+          "evidence": "terminal-clipboard-handler.test.ts 'cached-selection fallback' block (empty live selection copies cache; Ctrl+Insert too) + e2e terminal-copy-cache.spec.ts test 1 (clearSelection then Ctrl+C copies) green"
+        },
+        {
+          "behavior": "AC-2: with an empty / whitespace cache the copy chord passes through as SIGINT (interrupt preserved)",
+          "disposition": "tested",
+          "evidence": "terminal-clipboard-handler.test.ts 'empty live + empty cache -> passthrough' and 'whitespace-only cache -> passthrough' + e2e test 3 asserts \\u0003 sent after invalidation"
+        },
+        {
+          "behavior": "AC-3: a mouse-only Copy pill appears on a settled selection and copies it on click, then clears",
+          "disposition": "tested",
+          "evidence": "useTerminalClipboard.test.ts (captureSelection shows pill; onCopySelection copies via copyText then clears) + useTerminalSelection.test.ts (mouseup captures even when copy-on-selection OFF) + e2e test 2 (pill visible, click copies, pill hidden) green"
+        },
+        {
+          "behavior": "AC-4: cache + pill invalidated on a new selection gesture (mousedown, incl. cross-boundary origin) and on committing keyboard input, so a stale selection never hijacks a later Ctrl+C-as-SIGINT",
+          "disposition": "tested",
+          "evidence": "useTerminalSelection.test.ts invalidation block incl. the review Finding-A cross-boundary regression (OUTSIDE-origin mousedown clears the tracker) + capture-phase keydown-invalidate + e2e test 3 green"
+        },
+        {
+          "behavior": "AC-5: copy-on-selection auto-write stays opt-in / default-off; capturing-for-copy never writes to the OS clipboard (no #186 clobber)",
+          "disposition": "tested",
+          "evidence": "useTerminalSelection.test.ts 'captures ... even when copy-on-selection OFF (no clipboard write)' + existing EmbeddedTerminal.test.tsx copy-on-selection debounce/dedup block still green (351/351 terminal tests)"
+        },
+        {
+          "behavior": "AC-6: the copy write works with no navigator.clipboard (non-secure http) via the execCommand fallback",
+          "disposition": "tested",
+          "evidence": "lib/clipboard copyText execCommand fallback path (unit-covered; skips when navigator.clipboard absent) + review-confirmed the pill click retains user-activation for execCommand; validated live over http/Tailscale via console instrumentation (localhost E2E cannot exercise a non-secure context)"
         }
       ],
       "counts": {
-        "testable": 1,
-        "tested": 1,
+        "testable": 6,
+        "tested": 6,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 1,
-        "covered_acs": 1
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []
