@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-remove-project-paste-button",
+    "run_id": "iterate-2026-07-06-terminal-theme-modes",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1812,
-      "total": 1812
+      "passed": 3573,
+      "total": 3573,
+      "note": "client 1859 + server 1714"
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +20,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,47 +33,82 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "playwright (chromium, isolated worktree stack)",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-remove-project-paste-button/surface_verification.json",
-      "timestamp": "2026-07-06T09:52:35.543Z",
-      "justification": "Static client-only render change in the Add-Project wizard (FR-01.03): removed the clipboard Paste button and reworded the directory hint. No API route, store mutation, SSE/WS handler, or message contract touched, so the Backend-affects-Frontend rule does not trigger. The full observable outcome (Paste button + testid absent, new hint text present, path input still editable and driving onPathChange) is deterministically asserted by ProjectWizard.test.tsx which mounts the real ProjectWizard -> ProjectInfoStep tree; full client suite 1812/1812 green. small-complexity CHANGE+UI: phase matrix does not require E2E."
+      "tests_run": 2,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-06-terminal-theme-modes/surface_verification.json",
+      "timestamp": "2026-07-06T11:24:23.000Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Paste button no longer renders in the Add-Project wizard directory step",
+          "behavior": "LIGHT_PALETTE + DARK_PALETTE clear WCAG-AA/AA-large per slot",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'has no paste button and instructs the user to paste the path in' PASSED — queryByTestId('project-path-paste') and queryByText('Paste') both absent"
+          "evidence": "terminal-theme.test.ts 46 cases PASSED (fg/bg >= AA; each swept ANSI slot >= AA-large on the palette bg; light excludes brightWhite, dark excludes black)"
         },
         {
-          "behavior": "Directory-step hint instructs the user to copy the path and paste it in",
+          "behavior": "paletteFor selects the correct palette; EMBEDDED_TERMINAL_PALETTE alias still = DARK",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx same test asserts getByText('Copy the full path from Explorer/Finder and paste it in here.')"
+          "evidence": "terminal-theme.test.ts paletteFor block PASSED"
         },
         {
-          "behavior": "Directory input stays editable and drives onPathChange",
+          "behavior": "resolveAppearance precedence (manual/system/auto=mirror-Claude) + Claude-theme->family mapping (light*/dark*/auto/custom)",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'navigates to step 2 on Next' types into the path input and advances the wizard PASSED"
+          "evidence": "terminalAppearance.test.ts PASSED (incl. auto->OS for Claude 'auto', custom/unknown->dark)"
         },
         {
-          "behavior": "Removing filePicker.ts leaves no dangling references (dead-code deletion is clean)",
+          "behavior": "spawn-env default truecolor (TERM=xterm-256color, COLORTERM=truecolor, no FORCE_COLOR); inherited FORCE_COLOR stripped; LEGACY opt-out restores clamp; NO_FLICKER + session-marker strip unchanged",
           "disposition": "tested",
-          "evidence": "tsc --noEmit exit 0 + repo-wide grep: no filePicker/pasteFromClipboard/looksLikePath references remain in client source"
+          "evidence": "pty-env-flicker.test.ts (extended matrix) PASSED"
+        },
+        {
+          "behavior": "claude-theme-reader parses/trims theme, returns null on missing/malformed/non-string/empty",
+          "disposition": "tested",
+          "evidence": "claude-theme-reader.test.ts PASSED"
+        },
+        {
+          "behavior": "GET /api/terminal/claude-theme returns {theme} / {theme:null}",
+          "disposition": "tested",
+          "evidence": "terminal-appearance.test.ts (Hono app.request) PASSED"
+        },
+        {
+          "behavior": "applyAppearance sets a fresh ITheme (light #ffffff / dark #1a1a1a) + refresh; swallows refresh throw; resolveAppearanceNow reads prefs+cache",
+          "disposition": "tested",
+          "evidence": "useTerminalAppearance.test.ts PASSED"
+        },
+        {
+          "behavior": "Settings Appearance selector defaults auto, reflects persisted value, persists + emits same-tab change event, offers 4 options",
+          "disposition": "tested",
+          "evidence": "TerminalSettingsCard.test.tsx PASSED"
+        },
+        {
+          "behavior": "Open terminal re-themes LIVE to light with no remount; fresh mount picks up persisted Light",
+          "disposition": "tested",
+          "evidence": "e2e 95-terminal-appearance.spec.ts 2/2 PASSED (real browser vs live pty)"
+        },
+        {
+          "behavior": "Bug-B convertEol:false guard follows the moved constant to xterm-theme-options.ts",
+          "disposition": "tested",
+          "evidence": "embedded-terminal-convert-eol.test.ts 4/4 PASSED (regex still uniquely matches one convertEol line)"
+        },
+        {
+          "behavior": "Actual light-mode readability with real Claude themes + PowerShell PSReadLine prompt flicker under TERM=xterm-256color",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "evidence": "Visual/flicker verification is user-UAT per ADR-098 precedent for this terminal-rendering class; node-pty (native) unavailable in the junctioned worktree for a byte-capture. Instant revert via SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1."
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
-        "untestable": 0,
+        "testable": 10,
+        "tested": 10,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []

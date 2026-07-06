@@ -187,7 +187,7 @@ browser tab/window.
 
 ### `terminal/` (ADR-125, Campaign C / C5)
 
-The `client/src/components/terminal/` folder also houses 7 colocated hooks / helpers / theme modules that are not React components and are therefore not listed in this inventory: `xtermAddons.ts`, `usePasteImage.ts`, `useTerminalResize.ts`, `useReplayDrainGate.ts`, `useAutoLaunch.ts`, `useTerminalSelection.ts`, `useTerminalShellEffects.ts`, `terminal-clipboard.ts`, `terminal-theme.ts`, `touch-scroll.ts`.
+The `client/src/components/terminal/` folder also houses colocated hooks / helpers / theme modules that are not React components and are therefore not listed in this inventory: `xtermAddons.ts`, `xterm-theme-options.ts` (the ITheme + constructor-options builder split out for FR-01.44), `useTerminalAppearance.ts` (live light/dark re-theming, FR-01.44), `usePasteImage.ts`, `useTerminalResize.ts`, `useReplayDrainGate.ts`, `useAutoLaunch.ts`, `useTerminalSelection.ts`, `useTerminalShellEffects.ts`, `terminal-clipboard.ts`, `terminal-theme.ts` (`DARK_PALETTE` + `LIGHT_PALETTE` + `paletteFor`), `touch-scroll.ts`. The appearance preference + resolver live in `client/src/lib/{terminalPrefs,terminalAppearance,terminalAppearanceApi}.ts`.
 
 | Name | Path | LOC | Usages |
 |------|------|-----|--------|

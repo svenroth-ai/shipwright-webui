@@ -129,6 +129,12 @@ const REQUIRED_TOKENS = [
   'useProjectCompliance',
   'ComplianceGradeBadge',
   'ComplianceDetailModal',
+  // iterate-2026-07-06-terminal-theme-modes — embedded terminal light/dark
+  // appearance (FR-01.44), mirror Claude Code + VS Code truecolor parity
+  'claude-theme-reader',
+  'terminal-appearance',
+  'xterm-theme-options',
+  'useTerminalAppearance',
 ] as const;
 
 let claudeMd = '';

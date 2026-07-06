@@ -58,9 +58,12 @@ const FIXTURE_PATH = resolve(
 );
 // server/src/terminal/ → up 3 → repo root → client component.
 // Campaign C / C5 — the Terminal constructor was extracted from
-// `EmbeddedTerminal.tsx` into `xtermAddons.ts`. The `convertEol: false`
-// literal now lives there. Redirecting the regression-guard source-of-
-// truth to the new location keeps the Bug B fence intact.
+// `EmbeddedTerminal.tsx` into `xtermAddons.ts`. iterate-2026-07-06
+// (FR-01.44) then split the constructor-options builder out of
+// `xtermAddons.ts` into `xterm-theme-options.ts` (300-LOC guideline), so
+// the `convertEol: false` literal now lives THERE. Redirecting the
+// regression-guard source-of-truth to the new location keeps the Bug B
+// fence intact.
 const CLIENT_EMBEDDED_TERMINAL = resolve(
   __dirname,
   "..",
@@ -70,7 +73,7 @@ const CLIENT_EMBEDDED_TERMINAL = resolve(
   "src",
   "components",
   "terminal",
-  "xtermAddons.ts",
+  "xterm-theme-options.ts",
 );
 
 /**

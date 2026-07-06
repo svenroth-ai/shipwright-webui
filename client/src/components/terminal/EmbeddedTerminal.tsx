@@ -40,6 +40,7 @@ import { attachSettleRepaint } from "./repaint-on-settle";
 import { copyText } from "../../lib/clipboard";
 
 import { createEmbeddedXterm } from "./xtermAddons";
+import { useTerminalAppearance, resolveAppearanceNow } from "./useTerminalAppearance";
 import { usePasteImage } from "./usePasteImage";
 import { useTerminalResize } from "./useTerminalResize";
 import { useReplayDrainGate } from "./useReplayDrainGate";
@@ -118,9 +119,7 @@ export const EmbeddedTerminal = forwardRef<
 
   // ── Hook chain (lifecycle-ordered) ──
   const coord = useLaunchCoordinator();
-  // Size-sync seam (iterate-2026-07-01-terminal-title-wrap-smear): the gate is
-  // created before the socket, so it calls through syncSizeRef, which
-  // useTerminalSizeSync (post-socket) populates. See that hook for the why.
+  // Size-sync seam (iterate-2026-07-01-terminal-title-wrap-smear): gate created pre-socket → calls through syncSizeRef, populated post-socket by useTerminalSizeSync.
   const syncSizeRef = useRef<(() => void) | null>(null);
   const gateOnReplaySettled = useCallback(() => syncSizeRef.current?.(), []);
   const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled);
@@ -164,6 +163,7 @@ export const EmbeddedTerminal = forwardRef<
     onReadyChange,
     onTerminalMeta,
   });
+  useTerminalAppearance(termRef, disposedRef); // live light/dark re-theme (FR-01.44)
 
   const readOnly = readOnlyArmed && socket.role === "reader";
 
@@ -199,7 +199,7 @@ export const EmbeddedTerminal = forwardRef<
     const container = containerRef.current;
     if (!container) return;
 
-    const handle = createEmbeddedXterm(container);
+    const handle = createEmbeddedXterm(container, resolveAppearanceNow()); // FR-01.44 initial palette
     termRef.current = handle.term;
     fitAddonRef.current = handle.fit;
     disposedRef.current = false;

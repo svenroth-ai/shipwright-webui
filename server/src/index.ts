@@ -49,6 +49,7 @@ import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
+import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
 import { createCampaignsRoutes } from "./routes/campaigns.js";
 import { resolveCampaignsDir } from "./core/campaign-paths.js";
@@ -556,6 +557,8 @@ if (isMainModule) {
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
+      // FR-01.44 — Claude-theme mirror; literal path, before terminal routes.
+      app.route("/", createTerminalAppearanceRoutes());
 
       // FR-01.30 / ADR-101 — Triage Tab routes. Mounts after /api/external
       // so it inherits the same CORS/Origin gate. The promote route uses
@@ -574,11 +577,8 @@ if (isMainModule) {
             if (!p || p.synthesized) return undefined;
             return { id: p.id, path: p.path, synthesized: p.synthesized };
           },
-          // ADR-106: collision-safe `.weblock` lock path so the webui
-          // never clashes with the Python `_FileLock` regular-file
-          // sidecar at `triage.jsonl.lock` (RC1). The route no longer
-          // takes a separate sdk-sessions lock (RC2 — store.persist()
-          // locks itself), so `sessionsLockPath` is gone.
+          // ADR-106: collision-safe `.weblock` lock path (never clashes with the
+          // Python `_FileLock` sidecar `triage.jsonl.lock`); store.persist() self-locks.
           lock: createTriageLock(),
           // FR-01.33 — injected campaign-ref reader so the triage route can
           // annotate items with the campaign that expands them WITHOUT
