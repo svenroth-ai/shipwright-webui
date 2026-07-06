@@ -92,19 +92,16 @@ function mtimeOrNull(p: string): number | null {
 }
 
 /**
- * Tolerant per-file reader — parses one JSONL file into plain objects,
- * skipping blank + corrupt + non-object lines (mirrors Python
- * `_iter_raw_lines_at`). Returns [] when the file is missing/unreadable.
- * `line.trim()` absorbs a trailing `\r` (CRLF), so a Windows-written or
- * human-edited line round-trips unchanged.
+ * Tolerant string→objects parser — splits a raw JSONL blob into plain
+ * objects, skipping blank + corrupt + non-object lines (mirrors Python
+ * `_iter_raw_lines_at`). `line.trim()` absorbs a trailing `\r` (CRLF), so a
+ * Windows-written or human-edited line round-trips unchanged.
+ *
+ * Exported so the delivered-origin composer (`triage-compose.ts`) can parse a
+ * `git show origin/…:…` blob through the SAME tolerant contract as on-disk
+ * reads, without re-implementing it. `readAllItems` behavior is unchanged.
  */
-function readRawLines(p: string): Record<string, unknown>[] {
-  let raw: string;
-  try {
-    raw = readFileSync(p, "utf-8");
-  } catch {
-    return [];
-  }
+export function parseRawLines(raw: string): Record<string, unknown>[] {
   const out: Record<string, unknown>[] = [];
   for (const rawLine of raw.split("\n")) {
     const line = rawLine.trim();
@@ -115,6 +112,39 @@ function readRawLines(p: string): Record<string, unknown>[] {
     out.push(parsed);
   }
   return out;
+}
+
+/**
+ * Tolerant per-file reader — parses one JSONL file into plain objects.
+ * Returns [] when the file is missing/unreadable.
+ */
+function readRawLines(p: string): Record<string, unknown>[] {
+  let raw: string;
+  try {
+    raw = readFileSync(p, "utf-8");
+  } catch {
+    return [];
+  }
+  return parseRawLines(raw);
+}
+
+/**
+ * Raw JSONL lines for the LOCAL union, kept SPLIT as `{ tracked, outbox }`
+ * (each in file order). `readAllItems` resolves the concatenation
+ * `[...tracked, ...outbox]`; the delivered-origin composer instead splices the
+ * origin source between them (`[...tracked, ...origin, ...outbox]`) so the
+ * outbox stays LAST — preserving the existing "freshest local intent wins an
+ * equal-ts tie" file-order contract. `readAllItems` itself is unchanged.
+ */
+export function readLocalRawLinesSplit(trackedPath: string): {
+  tracked: Record<string, unknown>[];
+  outbox: Record<string, unknown>[];
+} {
+  const outboxPath = outboxPathFor(trackedPath);
+  return {
+    tracked: readRawLines(trackedPath),
+    outbox: readRawLines(outboxPath),
+  };
 }
 
 /** ISO-8601-Z string sort key; non-string/missing ts sorts EARLIEST (""). */
@@ -128,8 +158,12 @@ function tsKey(raw: Record<string, unknown>): string {
  * outbox, file order). Byte-for-byte mirror of Python `read_all_items`'s
  * resolution body — Pass 1 applies all `append` events, Pass 2 applies all
  * `status` events ordered by (ts, file-order).
+ *
+ * Exported for the delivered-origin composer (`triage-compose.ts`): the same
+ * multi-source union already reconciles tracked ∪ outbox, so adding origin as
+ * a third raw-line source is a natural extension resolved by identical rules.
  */
-function resolveUnion(rawLines: Record<string, unknown>[]): TriageItem[] {
+export function resolveUnion(rawLines: Record<string, unknown>[]): TriageItem[] {
   // Pass 1 — every append establishes a base record (union of both files).
   // A duplicate append for the same id (post-sweep, pre-GC) collapses to one
   // record; the later line's fields win (identical content → harmless).

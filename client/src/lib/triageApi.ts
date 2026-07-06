@@ -62,6 +62,24 @@ export interface TriageItem {
   pendingDelivery?: boolean;
 }
 
+/**
+ * Origin drift metadata (additive, from GET /api/triage/:projectId). Drives the
+ * staleness banner: `available` = the delivered-origin snapshot was unioned into
+ * the board read; `behind` = commits the local checkout is behind its upstream.
+ * Absent on an older server → treated as degraded ({ available:false, behind:null }).
+ */
+export interface TriageOrigin {
+  available: boolean;
+  behind: number | null;
+}
+
+export interface TriageListResponse {
+  items: TriageItem[];
+  origin: TriageOrigin;
+}
+
+const DEGRADED_ORIGIN: TriageOrigin = { available: false, behind: null };
+
 export interface TriageCountsResponse {
   counts: Record<string, number>;
   total: number;
@@ -100,14 +118,18 @@ export interface StatusFlipBody {
   reason?: string | null;
 }
 
-export async function listTriageItems(projectId: string): Promise<TriageItem[]> {
+export async function fetchTriage(projectId: string): Promise<TriageListResponse> {
   const res = await fetch(`${TRIAGE_API}/${encodeURIComponent(projectId)}`);
   if (!res.ok) {
-    if (res.status === 404) return [];
+    if (res.status === 404) return { items: [], origin: DEGRADED_ORIGIN };
     throw new Error(`triage list failed: ${res.status}`);
   }
-  const body = (await res.json()) as { items: TriageItem[] };
-  return body.items;
+  const body = (await res.json()) as { items: TriageItem[]; origin?: TriageOrigin };
+  return { items: body.items, origin: body.origin ?? DEGRADED_ORIGIN };
+}
+
+export async function listTriageItems(projectId: string): Promise<TriageItem[]> {
+  return (await fetchTriage(projectId)).items;
 }
 
 export async function getTriageCounts(): Promise<TriageCountsResponse> {
