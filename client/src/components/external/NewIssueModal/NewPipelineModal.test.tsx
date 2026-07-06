@@ -6,7 +6,12 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
 
-import { PIPELINE_ACTION, SAMPLE_ACTIONS, renderModal } from "./__testFixtures";
+import {
+  PIPELINE_ACTION,
+  SAMPLE_ACTIONS,
+  openMoreOptions,
+  renderModal,
+} from "./__testFixtures";
 import type { ResolvedProjectActions } from "../../../lib/externalApi";
 
 beforeEach(() => {
@@ -29,8 +34,10 @@ describe("NewPipelineModal — rendering", () => {
     expect(screen.queryByTestId("new-issue-phase-select")).toBeNull();
   });
 
-  it("Pipeline mode renders the CommandPreviewPanel (live, not the static generic hint)", () => {
+  it("Pipeline mode renders the CommandPreviewPanel once More options is expanded (live, not the static generic hint)", () => {
     renderModal({ action: PIPELINE_ACTION });
+    expect(screen.queryByTestId("command-preview-panel")).toBeNull();
+    openMoreOptions();
     expect(screen.getByTestId("command-preview-panel")).toBeTruthy();
     expect(screen.queryByTestId("command-preview-generic")).toBeNull();
   });

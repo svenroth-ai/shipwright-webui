@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-remove-project-paste-button",
+    "run_id": "iterate-2026-07-06-collapse-dialog-more-options",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1812,
-      "total": 1812
+      "passed": 1819,
+      "total": 1819
     },
     "integration": {
       "status": "not_run",
@@ -19,60 +19,75 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "surface_verification": {
       "surface": "none",
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-remove-project-paste-button/surface_verification.json",
-      "timestamp": "2026-07-06T09:52:35.543Z",
-      "justification": "Static client-only render change in the Add-Project wizard (FR-01.03): removed the clipboard Paste button and reworded the directory hint. No API route, store mutation, SSE/WS handler, or message contract touched, so the Backend-affects-Frontend rule does not trigger. The full observable outcome (Paste button + testid absent, new hint text present, path input still editable and driving onPathChange) is deterministically asserted by ProjectWizard.test.tsx which mounts the real ProjectWizard -> ProjectInfoStep tree; full client suite 1812/1812 green. small-complexity CHANGE+UI: phase matrix does not require E2E."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-06-collapse-dialog-more-options/surface_verification.json",
+      "timestamp": "2026-07-06T10:48:18.637Z",
+      "justification": "Static client-only render change to the create dialogs (FR-01.16 New-* modal / FR-01.08 leadwright fields): the below-Description metadata fields, schema params and command preview are wrapped in a collapsed-by-default gray MoreOptionsDisclosure; required params stay outside it. No API route, store mutation, WS/SSE handler or message contract changed (server untouched). Verified by 1819 passing client unit tests (collapsed-by-default + expand across New Task/Iterate/Pipeline/custom bodies, required-stays-visible, reset-to-collapsed on reopen, auto-expand-on-prefill, unchanged submit payloads) PLUS a manual real-browser Playwright smoke (Vite 5174 -> Hono 3848 against real ~/.claude projects): New Task modal opened collapsed (command-preview absent, aria-expanded=false), clicking 'More options' revealed the fields + command preview (aria-expanded=true); collapsed + expanded screenshots captured."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Paste button no longer renders in the Add-Project wizard directory step",
+          "behavior": "Below-Description area (leadwright, schema params, command preview) is collapsed by default in New Task/Iterate/Pipeline/custom-project dialogs",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'has no paste button and instructs the user to paste the path in' PASSED — queryByTestId('project-path-paste') and queryByText('Paste') both absent"
+          "evidence": "MoreOptionsDisclosure.test.tsx + NewIterateModal/NewPipelineModal/NewGenericModal/NewTaskModal.test.tsx assert command-preview/content absent by default PASSED"
         },
         {
-          "behavior": "Directory-step hint instructs the user to copy the path and paste it in",
+          "behavior": "Section expands on toggle click, mounting the fields + command preview",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx same test asserts getByText('Copy the full path from Explorer/Finder and paste it in here.')"
+          "evidence": "MoreOptionsDisclosure.test.tsx 'reveals children when open' + integration open-then-assert tests PASSED"
         },
         {
-          "behavior": "Directory input stays editable and drives onPathChange",
+          "behavior": "Required params render OUTSIDE the collapsed section (Launch never blocked by a hidden field)",
           "disposition": "tested",
-          "evidence": "ProjectWizard.test.tsx 'navigates to step 2 on Next' types into the path input and advances the wizard PASSED"
+          "evidence": "NewTaskModal.test.tsx 'required field visible without opening Advanced or More options (P2)' PASSED"
         },
         {
-          "behavior": "Removing filePicker.ts leaves no dangling references (dead-code deletion is clean)",
+          "behavior": "Section resets to collapsed on modal reopen",
           "disposition": "tested",
-          "evidence": "tsc --noEmit exit 0 + repo-wide grep: no filePicker/pasteFromClipboard/looksLikePath references remain in client source"
+          "evidence": "NewIssueModal.test.tsx 'close + reopen wipes ... leadwright state' (reopens collapsed) PASSED"
+        },
+        {
+          "behavior": "Section auto-expands when opened pre-seeded with priority/domain (triage Fix now)",
+          "disposition": "tested",
+          "evidence": "NewTaskModal.test.tsx 'More options auto-expands when opened pre-seeded with priority/domain' PASSED"
+        },
+        {
+          "behavior": "Submit payloads (leadwright + params) unchanged after the wrap",
+          "disposition": "tested",
+          "evidence": "payload-create.test.tsx 'Save with leadwright fields ...' (open section then submit) + payload-launch.test.tsx PASSED"
+        },
+        {
+          "behavior": "Plain Claude dialog is unaffected (no below-Description area, no disclosure rendered)",
+          "disposition": "tested",
+          "evidence": "NewPlainModal.test.tsx rendering tests PASSED unchanged"
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
+        "testable": 7,
+        "tested": 7,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 7,
+        "covered_acs": 7
       }
     },
     "degraded": []
