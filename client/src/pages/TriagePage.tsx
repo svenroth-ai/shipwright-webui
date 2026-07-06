@@ -26,7 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { useProjects } from "../hooks/useProjects";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useProjectFilter } from "../hooks/useProjectFilter";
-import { useTriageCounts, useTriageItems } from "../hooks/useTriage";
+import { useTriageCounts, useTriageDrift, useTriageItems } from "../hooks/useTriage";
 import { TriageItemCard } from "../components/triage/TriageItemCard";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
 import { NewIssueModal } from "../components/external/NewIssueModal";
@@ -65,6 +65,7 @@ function PerProjectSection({
   onNavigateToBoard: (projectId: string) => void;
 }) {
   const { data: items = [], isLoading } = useTriageItems(project.id);
+  const { data: drift } = useTriageDrift(project.id);
   const [selected, setSelected] = useState<TriageItem | null>(null);
 
   const triageItems = useMemo(() => filterTriage(items), [items]);
@@ -120,6 +121,19 @@ function PerProjectSection({
           ({triageItems.length})
         </span>
       </h2>
+      {drift?.behind != null && drift.behind > 0 && (
+        <div
+          role="status"
+          data-testid={`triage-stale-banner-${project.id}`}
+          className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+        >
+          Local checkout is {drift.behind} commit{drift.behind === 1 ? "" : "s"} behind
+          origin — <code>git pull</code> to sync.
+          {drift.available === false
+            ? " Origin is unavailable, so already-dismissed items may still appear here."
+            : ""}
+        </div>
+      )}
       {sortedSources.map((source) => (
         <div key={source} className="mb-4">
           <h3 className="text-xs font-semibold text-stone-700 uppercase mb-2">

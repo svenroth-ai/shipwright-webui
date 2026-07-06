@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-collapse-dialog-more-options",
+    "run_id": "iterate-2026-07-06-terminal-copy-selection-cache",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1819,
-      "total": 1819
+      "passed": 1895,
+      "total": 1895,
+      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal fix)"
     },
     "integration": {
       "status": "not_run",
@@ -19,75 +20,70 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 3,
+      "total": 3
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-06-collapse-dialog-more-options/surface_verification.json",
-      "timestamp": "2026-07-06T10:48:18.637Z",
-      "justification": "Static client-only render change to the create dialogs (FR-01.16 New-* modal / FR-01.08 leadwright fields): the below-Description metadata fields, schema params and command preview are wrapped in a collapsed-by-default gray MoreOptionsDisclosure; required params stay outside it. No API route, store mutation, WS/SSE handler or message contract changed (server untouched). Verified by 1819 passing client unit tests (collapsed-by-default + expand across New Task/Iterate/Pipeline/custom bodies, required-stays-visible, reset-to-collapsed on reopen, auto-expand-on-prefill, unchanged submit payloads) PLUS a manual real-browser Playwright smoke (Vite 5174 -> Hono 3848 against real ~/.claude projects): New Task modal opened collapsed (command-preview absent, aria-expanded=false), clicking 'More options' revealed the fields + command preview (aria-expanded=true); collapsed + expanded screenshots captured."
+      "tests_run": 3,
+      "evidence_path": "client/e2e/flows/terminal-copy-cache.spec.ts",
+      "timestamp": "2026-07-06T18:12:00.000Z",
+      "justification": "Real-browser proof against a live pty of the redraw-proof copy: (1) after term.clearSelection() simulates Claude's redraw wiping the live selection, Ctrl+C still copies the captured text to the clipboard (AC-1); (2) the mouse-only Copy pill appears on a settled selection and copies on click, then clears (AC-3); (3) a committing keystroke invalidates the cache so Ctrl+C reverts to SIGINT (\\u0003) (AC-4). Ran green (3/3). This run also CAUGHT a real bug the unit tests missed — a bubble-phase keydown listener never fired because xterm stopPropagations handled keys; fixed by registering the invalidation listener capture-phase. Note: localhost is a secure context so the copy here takes the navigator.clipboard fast path; the execCommand fallback exercised in the user's real non-secure http/Tailscale context is unit-covered (lib/clipboard) and was validated live via console instrumentation."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Below-Description area (leadwright, schema params, command preview) is collapsed by default in New Task/Iterate/Pipeline/custom-project dialogs",
+          "behavior": "AC-1: Ctrl+C / Ctrl+Insert copies the last CAPTURED selection when the live xterm selection was cleared by an app redraw",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx + NewIterateModal/NewPipelineModal/NewGenericModal/NewTaskModal.test.tsx assert command-preview/content absent by default PASSED"
+          "evidence": "terminal-clipboard-handler.test.ts 'cached-selection fallback' block (empty live selection copies cache; Ctrl+Insert too) + e2e terminal-copy-cache.spec.ts test 1 (clearSelection then Ctrl+C copies) green"
         },
         {
-          "behavior": "Section expands on toggle click, mounting the fields + command preview",
+          "behavior": "AC-2: with an empty / whitespace cache the copy chord passes through as SIGINT (interrupt preserved)",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx 'reveals children when open' + integration open-then-assert tests PASSED"
+          "evidence": "terminal-clipboard-handler.test.ts 'empty live + empty cache -> passthrough' and 'whitespace-only cache -> passthrough' + e2e test 3 asserts \\u0003 sent after invalidation"
         },
         {
-          "behavior": "Required params render OUTSIDE the collapsed section (Launch never blocked by a hidden field)",
+          "behavior": "AC-3: a mouse-only Copy pill appears on a settled selection and copies it on click, then clears",
           "disposition": "tested",
-          "evidence": "NewTaskModal.test.tsx 'required field visible without opening Advanced or More options (P2)' PASSED"
+          "evidence": "useTerminalClipboard.test.ts (captureSelection shows pill; onCopySelection copies via copyText then clears) + useTerminalSelection.test.ts (mouseup captures even when copy-on-selection OFF) + e2e test 2 (pill visible, click copies, pill hidden) green"
         },
         {
-          "behavior": "Section resets to collapsed on modal reopen",
+          "behavior": "AC-4: cache + pill invalidated on a new selection gesture (mousedown, incl. cross-boundary origin) and on committing keyboard input, so a stale selection never hijacks a later Ctrl+C-as-SIGINT",
           "disposition": "tested",
-          "evidence": "NewIssueModal.test.tsx 'close + reopen wipes ... leadwright state' (reopens collapsed) PASSED"
+          "evidence": "useTerminalSelection.test.ts invalidation block incl. the review Finding-A cross-boundary regression (OUTSIDE-origin mousedown clears the tracker) + capture-phase keydown-invalidate + e2e test 3 green"
         },
         {
-          "behavior": "Section auto-expands when opened pre-seeded with priority/domain (triage Fix now)",
+          "behavior": "AC-5: copy-on-selection auto-write stays opt-in / default-off; capturing-for-copy never writes to the OS clipboard (no #186 clobber)",
           "disposition": "tested",
-          "evidence": "NewTaskModal.test.tsx 'More options auto-expands when opened pre-seeded with priority/domain' PASSED"
+          "evidence": "useTerminalSelection.test.ts 'captures ... even when copy-on-selection OFF (no clipboard write)' + existing EmbeddedTerminal.test.tsx copy-on-selection debounce/dedup block still green (351/351 terminal tests)"
         },
         {
-          "behavior": "Submit payloads (leadwright + params) unchanged after the wrap",
+          "behavior": "AC-6: the copy write works with no navigator.clipboard (non-secure http) via the execCommand fallback",
           "disposition": "tested",
-          "evidence": "payload-create.test.tsx 'Save with leadwright fields ...' (open section then submit) + payload-launch.test.tsx PASSED"
-        },
-        {
-          "behavior": "Plain Claude dialog is unaffected (no below-Description area, no disclosure rendered)",
-          "disposition": "tested",
-          "evidence": "NewPlainModal.test.tsx rendering tests PASSED unchanged"
+          "evidence": "lib/clipboard copyText execCommand fallback path (unit-covered; skips when navigator.clipboard absent) + review-confirmed the pill click retains user-activation for execCommand; validated live over http/Tailscale via console instrumentation (localhost E2E cannot exercise a non-secure context)"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
+        "testable": 6,
+        "tested": 6,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []

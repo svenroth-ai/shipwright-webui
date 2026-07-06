@@ -57,6 +57,8 @@ interface HarnessOverrides {
   isDisposed?: () => boolean;
   copy?: (text: string) => Promise<void>;
   readClipboard?: () => Promise<PasteRead>;
+  getCachedSelection?: () => string;
+  onCopySuccess?: () => void;
 }
 
 function harness(over: HarnessOverrides = {}) {
@@ -66,14 +68,17 @@ function harness(over: HarnessOverrides = {}) {
   const readClipboard =
     over.readClipboard ??
     vi.fn(async (): Promise<PasteRead> => ({ ok: true, text: "CLIP" }));
+  const onCopySuccess = over.onCopySuccess ?? vi.fn();
   const handler = createClipboardKeyHandler({
     term,
     isDisposed: over.isDisposed ?? (() => false),
     notify,
     copy,
     readClipboard,
+    getCachedSelection: over.getCachedSelection,
+    onCopySuccess,
   });
-  return { term, notify, copy, readClipboard, handler };
+  return { term, notify, copy, readClipboard, onCopySuccess, handler };
 }
 
 describe("createClipboardKeyHandler — copy", () => {
@@ -230,5 +235,57 @@ describe("createClipboardKeyHandler — passthrough", () => {
   it("a plain typed key passes through", () => {
     const h = harness();
     expect(h.handler(keyEvent({ key: "a" }))).toBe(true);
+  });
+});
+
+describe("createClipboardKeyHandler — cached-selection fallback (redraw-proof copy)", () => {
+  it("Ctrl+C with an empty LIVE selection copies the cached selection", async () => {
+    const h = harness({ selection: "", getCachedSelection: () => "CACHED" });
+    const ev = keyEvent({ ctrlKey: true, key: "c" });
+    expect(h.handler(ev)).toBe(false);
+    expect(ev.preventDefault).toHaveBeenCalled();
+    expect(h.copy).toHaveBeenCalledWith("CACHED");
+    await flush();
+    expect(h.notify).toHaveBeenCalledWith("copied");
+    expect(h.onCopySuccess).toHaveBeenCalled();
+  });
+
+  it("Ctrl+Insert also falls back to the cache", () => {
+    const h = harness({ selection: "", getCachedSelection: () => "CACHED" });
+    expect(h.handler(keyEvent({ ctrlKey: true, key: "Insert" }))).toBe(false);
+    expect(h.copy).toHaveBeenCalledWith("CACHED");
+  });
+
+  it("empty live selection AND empty cache → passthrough (SIGINT preserved)", () => {
+    const h = harness({ selection: "", getCachedSelection: () => "" });
+    const ev = keyEvent({ ctrlKey: true, key: "c" });
+    expect(h.handler(ev)).toBe(true);
+    expect(h.copy).not.toHaveBeenCalled();
+    expect(ev.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it("a whitespace-only cache does NOT copy (→ passthrough/SIGINT)", () => {
+    const h = harness({ selection: "", getCachedSelection: () => "  \n " });
+    expect(h.handler(keyEvent({ ctrlKey: true, key: "c" }))).toBe(true);
+    expect(h.copy).not.toHaveBeenCalled();
+  });
+
+  it("prefers the LIVE selection over the cache when both exist", () => {
+    const h = harness({ selection: "LIVE", getCachedSelection: () => "CACHED" });
+    h.handler(keyEvent({ ctrlKey: true, key: "c" }));
+    expect(h.copy).toHaveBeenCalledWith("LIVE");
+  });
+
+  it("onCopySuccess also fires for a live-selection copy", async () => {
+    const h = harness({ selection: "LIVE" });
+    h.handler(keyEvent({ ctrlKey: true, key: "c" }));
+    await flush();
+    expect(h.onCopySuccess).toHaveBeenCalled();
+  });
+
+  it("no getCachedSelection dep → legacy behaviour (empty selection passes through)", () => {
+    const h = harness({ selection: "" }); // getCachedSelection undefined
+    expect(h.handler(keyEvent({ ctrlKey: true, key: "c" }))).toBe(true);
+    expect(h.copy).not.toHaveBeenCalled();
   });
 });

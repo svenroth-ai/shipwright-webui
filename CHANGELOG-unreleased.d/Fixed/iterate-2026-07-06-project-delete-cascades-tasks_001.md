@@ -1,0 +1,1 @@
+Deleting a project now also removes its tasks, so no leftover "Unassigned" entry lingers after deletion (the row previously stuck around until a server restart). The delete confirmation warns how many tasks will be removed; on-disk Claude transcripts are untouched. (FR-01.25)

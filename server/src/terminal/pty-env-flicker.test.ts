@@ -83,16 +83,47 @@ describe("buildSpawnEnv — Iterate J (ADR-098) CLAUDE_CODE_NO_FLICKER injection
     expect(env.CLAUDE_CODE_NO_FLICKER).toBe("1");
   });
 
-  it("preserves the ADR-067 brand-fit env overrides", () => {
+  it("DEFAULT color mode is truecolor (VS-Code parity, FR-01.44)", () => {
+    // Supersedes the ADR-067 16-color brand clamp. The pane is now a
+    // faithful terminal: TERM=xterm-256color + COLORTERM=truecolor and NO
+    // FORCE_COLOR cap, so Claude/ink render their own truecolor themes.
+    const baseEnv: Record<string, string | undefined> = { PATH: "/usr/bin" };
+    const env = buildSpawnEnv(baseEnv);
+    expect(env.TERM).toBe("xterm-256color");
+    expect(env.COLORTERM).toBe("truecolor");
+    expect("FORCE_COLOR" in env).toBe(false);
+  });
+
+  it("strips an INHERITED FORCE_COLOR cap in the truecolor path", () => {
+    // A stale FORCE_COLOR=1 in the webui server's own env would pin chalk
+    // to level 1 (16-color) and defeat truecolor — it must be deleted.
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin",
-      TERM: "xterm-256color",
-      COLORTERM: "truecolor",
+      FORCE_COLOR: "1",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect("FORCE_COLOR" in env).toBe(false);
+  });
+
+  it("LEGACY opt-out (SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1) restores the ADR-067 clamp verbatim", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS: "1",
     };
     const env = buildSpawnEnv(baseEnv);
     expect(env.TERM).toBe("dumb");
     expect(env.COLORTERM).toBe("");
     expect(env.FORCE_COLOR).toBe("1");
+  });
+
+  it("LEGACY opt-out only triggers on the literal '1' (any other value keeps truecolor)", () => {
+    const baseEnv: Record<string, string | undefined> = {
+      PATH: "/usr/bin",
+      SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS: "true",
+    };
+    const env = buildSpawnEnv(baseEnv);
+    expect(env.TERM).toBe("xterm-256color");
+    expect(env.COLORTERM).toBe("truecolor");
   });
 
   it("caller-supplied env overrides (test escape hatch) — default-ON path", () => {

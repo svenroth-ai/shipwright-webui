@@ -1,12 +1,13 @@
 # Project Activity Dashboard
-> Updated: 2026-07-06 10:48 UTC | Session: ff3939df-5254-4a07-9251-129ffa15b434 | Run: iterate-2026-07-06-collapse-dialog-more-options
+> Updated: 2026-07-06 11:13 UTC | Session: e72c8c7d-d3aa-4d6e-888b-0ee4a4fca984 | Run: iterate-2026-07-06-project-delete-cascades-tasks
 
-## Recent Changes (192 iterations)
+## Recent Changes (193 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
 | feature | Add macOS/Linux production rebuild+restart scripts (scripts/start-server-production.sh + scripts/stop-server.sh) mirroring the Windows .ps1 1:1 (install+build both halves before killing the old server; double ~/.claude.json self-heal around the restart). Pin *.sh to eol=lf so Windows-authored scripts cannot ship CRLF. Document the macOS one-step helper in docs/guide.md (sections 7 and 10) and README.md. | 0/0 |  | infra | 2026-07-06 |
 | change | Collapse the create-dialog area below the Description (leadwright fields, schema params, command preview) into a shared gray, collapsed-by-default MoreOptionsDisclosure across the New Task / Iterate / Pipeline / custom-project dialogs; required params stay visible outside it; auto-expands when pre-seeded with priority/domain. | 1819/1819 |  | FR-01.16, FR-01.08 | 2026-07-06 |
+| bug | DELETE /api/projects/:id now cascade-removes the project's tasks (rows + best-effort scrollback/snapshot) via cascadeDeleteProjectTasks, so no orphaned synthetic 'Unassigned' row lingers at runtime; response gains deletedTaskCount and the delete confirm warns the affected count. | 3524/3524 |  | FR-01.25 | 2026-07-06 |
 | change | Remove the Add-Project wizard Paste button and reword the directory hint to guide manual paste | 1812/1812 |  | FR-01.03 | 2026-07-06 |
 | bug | Normalise paste-artifact surrounding quotes on filesystem paths (project.path / task.cwd) at the input boundary so the FR-01.10 launch command cd prefix is correctly single-quoted on macOS/Linux instead of the broken double-escaped cd. | 0/0 |  | FR-01.10 | 2026-07-06 |
 | bug | Fix embedded-terminal title-wrap smear: pre-launch pty size-sync + post-replay writer convergence so Claude renders its title pill at the client's real width. | 1817/1817 |  | FR-01.28 | 2026-07-01 |
@@ -199,7 +200,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-07-06 | Unit: 1819/1819 | Smoke: passed | (iterate)
+Last run: 2026-07-06 | Unit: 3524/3524 | Integration: 4/4 | Smoke: not_run | (iterate)
 
 ## Pipeline
 

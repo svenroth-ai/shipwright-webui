@@ -24,6 +24,9 @@
 import { describe, expect, it } from "vitest";
 import {
   EMBEDDED_TERMINAL_PALETTE,
+  LIGHT_PALETTE,
+  DARK_PALETTE,
+  paletteFor,
   contrastRatio,
   relativeLuminance,
 } from "./terminal-theme";
@@ -125,5 +128,66 @@ describe("EMBEDDED_TERMINAL_PALETTE — TUI escape-sequence fixtures (AC-2 fixtu
     expect(contrastRatio(p.brightBlack, p.background)).toBeGreaterThanOrEqual(
       AA_LARGE,
     );
+  });
+});
+
+describe("LIGHT_PALETTE — WCAG AA contrast (light-mode readability, FR-01.44)", () => {
+  const p = LIGHT_PALETTE;
+
+  it("foreground vs background ≥ AA (4.5:1) — primary legibility on the light bg", () => {
+    expect(contrastRatio(p.foreground, p.background)).toBeGreaterThanOrEqual(AA);
+  });
+
+  // Symmetric to DARK: on a light bg, `brightWhite` is the near-bg slot
+  // (excluded); `black` is now a readable foreground slot (swept).
+  // `selectionBackground` is a translucent overlay, not a fg.
+  const fgSlotsToSweep: Array<keyof typeof p> = [
+    "black",
+    "red",
+    "green",
+    "yellow",
+    "blue",
+    "magenta",
+    "cyan",
+    "white",
+    "brightBlack",
+    "brightRed",
+    "brightGreen",
+    "brightYellow",
+    "brightBlue",
+    "brightMagenta",
+    "brightCyan",
+  ];
+
+  for (const slot of fgSlotsToSweep) {
+    it(`${String(slot)} vs background ≥ AA-large (3.0:1)`, () => {
+      expect(contrastRatio(p[slot] as string, p.background)).toBeGreaterThanOrEqual(
+        AA_LARGE,
+      );
+    });
+  }
+
+  it("black slot vs background ≥ AA — the slot Claude light theme uses for prompt text", () => {
+    // The mirror of the dark-mode bug: Claude's light theme emits dark text
+    // (≈ ANSI black / default fg). On the light bg it must clear AA, not be
+    // black-on-black (which is what today's dark-only palette produced).
+    expect(contrastRatio(p.black, p.background)).toBeGreaterThanOrEqual(AA);
+    expect(contrastRatio(p.foreground, p.background)).toBeGreaterThanOrEqual(AA);
+  });
+
+  it("reverse-video pattern (`\\e[7m`) stays ≥ AA on the light palette", () => {
+    expect(contrastRatio(p.background, p.foreground)).toBeGreaterThanOrEqual(AA);
+  });
+});
+
+describe("paletteFor — resolved-appearance selector", () => {
+  it("returns the dark palette for 'dark'", () => {
+    expect(paletteFor("dark")).toBe(DARK_PALETTE);
+  });
+  it("returns the light palette for 'light'", () => {
+    expect(paletteFor("light")).toBe(LIGHT_PALETTE);
+  });
+  it("EMBEDDED_TERMINAL_PALETTE back-compat alias still resolves to DARK", () => {
+    expect(EMBEDDED_TERMINAL_PALETTE).toBe(DARK_PALETTE);
   });
 });

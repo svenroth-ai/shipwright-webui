@@ -15,8 +15,10 @@
  * pty. Factored out of `createNodePtySpawnFn` so it can be unit-tested
  * without the native node-pty binary.
  *
- * Layered as: baseProcessEnv → TERM/COLORTERM/FORCE_COLOR brand-fit
- * overrides (ADR-067) → CLAUDE_CODE_NO_FLICKER toggle
+ * Layered as: baseProcessEnv → TERM/COLORTERM color overrides (default
+ * truecolor for VS-Code parity, FR-01.44; the legacy ADR-067 16-color
+ * brand clamp only under SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1) →
+ * CLAUDE_CODE_NO_FLICKER toggle
  * (ADR-095/ADR-097/ADR-098) → caller-supplied opts.env (last-write-wins
  * for most keys; the default-on CLAUDE_CODE_NO_FLICKER is protected
  * from accidental caller silent-revert — see opt-out-wins symmetry
@@ -54,6 +56,12 @@ export function buildSpawnEnv(
   baseProcessEnv: Record<string, string | undefined>,
   callerEnv?: Record<string, string | undefined>,
 ): Record<string, string | undefined> {
+  // ┌─ SUPERSEDED (iterate-2026-07-06-terminal-theme-modes / FR-01.44) ─┐
+  // │ The ADR-067 brand-fit rationale below is retained for history     │
+  // │ (Chesterton's Fence) but is NO LONGER the default — see the       │
+  // │ truecolor override further down. It applies ONLY when             │
+  // │ SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1 restores the clamp.      │
+  // └───────────────────────────────────────────────────────────────────┘
   // ADR-067 brand fit on Windows: chalk's `supports-color` package
   // has a hardcoded Windows branch that returns level 3 (truecolor)
   // for Windows 10 build ≥14931 — REGARDLESS of TERM, COLORTERM, or
@@ -84,12 +92,50 @@ export function buildSpawnEnv(
   // shell. Keeping TERM=dumb. Real flicker fix is xterm.js side:
   // scrollOnEraseInDisplay (see EmbeddedTerminal.tsx) — see xtermjs
   // issue #5620 + maintainer @jerch's diagnosis.
-  const env: Record<string, string | undefined> = {
-    ...baseProcessEnv,
-    TERM: "dumb",
-    COLORTERM: "",
-    FORCE_COLOR: "1",
-  };
+  // iterate-2026-07-06-terminal-theme-modes (FR-01.44) — SUPERSEDES the
+  // ADR-067 brand-fit clamp above. The clamp existed to force Claude's
+  // colors into a 16-slot BRAND palette on a beige terminal. That goal is
+  // abandoned: the pane is now a FAITHFUL terminal like VS Code's, so
+  // Claude (and vim/htop/less) render their own truecolor themes and the
+  // xterm bg tracks Claude's light/dark theme (client-side, terminal-
+  // theme.ts). Dropping TERM=dumb also re-enables Claude's OSC 11
+  // background query, which xterm.js answers from its theme.background —
+  // so Claude's `auto` theme detects our light/dark bg directly.
+  //
+  // Default = xterm-256color + COLORTERM=truecolor (VS Code sets exactly
+  // TERM=xterm-256color for its integrated terminal). FORCE_COLOR is NOT
+  // set: the pty is a real TTY so chalk/ink detect truecolor natively, and
+  // a FORCE_COLOR cap is what pinned Claude to 16-color before.
+  //
+  // Reversible: SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1 restores the old
+  // TERM=dumb / COLORTERM="" / FORCE_COLOR=1 clamp verbatim (instant revert
+  // if the truecolor path regresses, e.g. re-surfaced PowerShell PSReadLine
+  // prompt flicker that TERM=dumb used to suppress — user-UAT verified per
+  // the ADR-098 precedent for this visual class). CLAUDE_CODE_NO_FLICKER
+  // (the real streaming-flicker fix, ADR-095/098) is INDEPENDENT of TERM
+  // and stays default-on below.
+  const legacyBrandColors =
+    baseProcessEnv.SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS === "1";
+  const env: Record<string, string | undefined> = legacyBrandColors
+    ? {
+        ...baseProcessEnv,
+        TERM: "dumb",
+        COLORTERM: "",
+        FORCE_COLOR: "1",
+      }
+    : {
+        ...baseProcessEnv,
+        TERM: "xterm-256color",
+        COLORTERM: "truecolor",
+      };
+  if (!legacyBrandColors) {
+    // Strip any FORCE_COLOR inherited from the webui server's OWN env — a
+    // stale `FORCE_COLOR=1` (chalk level 1) would pin Claude back to
+    // 16-color and defeat the truecolor path. Deleted (not set to
+    // undefined) so it can't survive a downstream spread. chalk/ink then
+    // detect truecolor from the real TTY + COLORTERM.
+    delete env.FORCE_COLOR;
+  }
   // Iterate G (ADR-095), restored Iterate J (ADR-098) after the
   // Iterate I (ADR-097) opt-in attempt was empirically falsified.
   // Claude TUI flicker workaround: default ON — Claude Code 2.1.139
