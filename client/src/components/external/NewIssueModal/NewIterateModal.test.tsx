@@ -7,7 +7,7 @@
 import { describe, it, expect, afterEach, beforeEach } from "vitest";
 import { cleanup, screen } from "@testing-library/react";
 
-import { ITERATE_ACTION, renderModal } from "./__testFixtures";
+import { ITERATE_ACTION, openMoreOptions, renderModal } from "./__testFixtures";
 
 beforeEach(() => {
   if (typeof window !== "undefined" && window.sessionStorage)
@@ -29,8 +29,16 @@ describe("NewIterateModal — rendering", () => {
     expect(screen.queryByTestId("new-issue-phase-select")).toBeNull();
   });
 
-  it("Iterate mode renders the live CommandPreviewPanel (not the static generic hint)", () => {
+  it("Command preview is collapsed by default, inside the More options section", () => {
     renderModal({ action: ITERATE_ACTION });
+    // Collapsed by default → not in the DOM until the section is expanded.
+    expect(screen.getByTestId("new-issue-more-options-toggle")).toBeTruthy();
+    expect(screen.queryByTestId("command-preview-panel")).toBeNull();
+  });
+
+  it("Iterate mode renders the live CommandPreviewPanel once More options is expanded (not the static generic hint)", () => {
+    renderModal({ action: ITERATE_ACTION });
+    openMoreOptions();
     expect(screen.getByTestId("command-preview-panel")).toBeTruthy();
     expect(screen.queryByTestId("command-preview-generic")).toBeNull();
   });

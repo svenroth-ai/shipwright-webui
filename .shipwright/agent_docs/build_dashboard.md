@@ -1,10 +1,15 @@
 # Project Activity Dashboard
-> Updated: 2026-06-30 20:34 UTC | Session: 58ae49b5-61ed-46af-9a17-86023cf3a58c | Run: iterate-2026-06-30-osv-dep-advisories
+> Updated: 2026-07-06 10:48 UTC | Session: ff3939df-5254-4a07-9251-129ffa15b434 | Run: iterate-2026-07-06-collapse-dialog-more-options
 
-## Recent Changes (187 iterations)
+## Recent Changes (192 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
+| feature | Add macOS/Linux production rebuild+restart scripts (scripts/start-server-production.sh + scripts/stop-server.sh) mirroring the Windows .ps1 1:1 (install+build both halves before killing the old server; double ~/.claude.json self-heal around the restart). Pin *.sh to eol=lf so Windows-authored scripts cannot ship CRLF. Document the macOS one-step helper in docs/guide.md (sections 7 and 10) and README.md. | 0/0 |  | infra | 2026-07-06 |
+| change | Collapse the create-dialog area below the Description (leadwright fields, schema params, command preview) into a shared gray, collapsed-by-default MoreOptionsDisclosure across the New Task / Iterate / Pipeline / custom-project dialogs; required params stay visible outside it; auto-expands when pre-seeded with priority/domain. | 1819/1819 |  | FR-01.16, FR-01.08 | 2026-07-06 |
+| change | Remove the Add-Project wizard Paste button and reword the directory hint to guide manual paste | 1812/1812 |  | FR-01.03 | 2026-07-06 |
+| bug | Normalise paste-artifact surrounding quotes on filesystem paths (project.path / task.cwd) at the input boundary so the FR-01.10 launch command cd prefix is correctly single-quoted on macOS/Linux instead of the broken double-escaped cd. | 0/0 |  | FR-01.10 | 2026-07-06 |
+| bug | Fix embedded-terminal title-wrap smear: pre-launch pty size-sync + post-replay writer convergence so Claude renders its title pill at the client's real width. | 1817/1817 |  | FR-01.28 | 2026-07-01 |
 | change | Clear all open advisories reported by the OSV/Scorecard Vulnerabilities check across both npm workspaces via lockfile-only dependency bumps (no package.json range edits, no --force, no major bumps). Every flagged package is dev-server / build-time / test-only tooling; the production runtime dependency tree is unaffected. CVE/package specifics are recorded in the gitignored security report. Verified: full unit suite 3500/3500 green, typecheck + lint + both builds clean, npm audit 0/0 in server and client. | 3500/3500 |  | infra | 2026-06-30 |
 | change | Remove webui .github/workflows/scorecard.yml + the Added changelog drop. Keep the A+C grade work + the methodology citation. Token-permissions + open vulns + pinned-deps tracked as triage. | 0/0 |  | infra | 2026-06-30 |
 | change | Regenerate compliance with the updated plugin (honesty gate + 29148/12207/SSDF anchors); add native scorecard.yml. Grade stays A99 — webui has no traceability decline. | 0/0 |  | compliance | 2026-06-30 |
@@ -194,7 +199,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-06-30 | Unit: 3500/3500 | Smoke: not_run | (iterate)
+Last run: 2026-07-06 | Unit: 1819/1819 | Smoke: passed | (iterate)
 
 ## Pipeline
 
