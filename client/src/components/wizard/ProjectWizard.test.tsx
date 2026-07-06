@@ -41,13 +41,16 @@ describe('ProjectWizard', () => {
     expect(screen.getByTestId('wizard-next')).toBeDisabled();
   });
 
-  // Iterate 14.7.1 — the old "Browse" button was renamed to "Paste" (the
-  // File System Access API never returned a usable absolute path; we now
-  // paste from the clipboard instead).
-  it('shows paste button for the project directory field', () => {
+  // iterate-2026-07-06 — the "Paste" button was removed. The directory field
+  // is a plain editable input; the hint tells the user to copy the path from
+  // Explorer/Finder and paste it in manually (Ctrl+V). See ProjectInfoStep.tsx.
+  it('has no paste button and instructs the user to paste the path in', () => {
     renderWizard();
-    expect(screen.getByTestId('project-path-paste')).toBeInTheDocument();
-    expect(screen.getByText('Paste')).toBeInTheDocument();
+    expect(screen.queryByTestId('project-path-paste')).not.toBeInTheDocument();
+    expect(screen.queryByText('Paste')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Copy the full path from Explorer/Finder and paste it in here.'),
+    ).toBeInTheDocument();
   });
 
   // Iterate 3.7e-b3 — color picker appears on the confirmation step so a

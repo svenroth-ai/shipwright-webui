@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-01",
+  "last_updated": "2026-07-06T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-fix-launch-path-quote-strip",
+    "run_id": "iterate-2026-07-06-remove-project-paste-button",
     "date": "2026-07-06",
     "unit": {
       "status": "passed",
-      "passed": 1698,
-      "total": 1698
+      "passed": 1812,
+      "total": 1812
     },
     "integration": {
       "status": "not_run",
@@ -19,12 +19,12 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -33,64 +33,46 @@
     },
     "surface_verification": {
       "surface": "none",
+      "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Server-only defect fix (input-boundary path normalisation). No client/UI/contract change. Verified end-to-end via the server HTTP integration test (routes.test.ts drives the real POST /tasks -> POST /launch flow and asserts the emitted posix cd is single-quoted, reproducing the reported macOS bug byte-for-byte) plus normalize-fs-path unit tests and projects-route tests; full server suite 1698/1698 green.",
-      "timestamp": "2026-07-06T00:00:00Z"
+      "evidence_path": ".shipwright/runs/iterate-2026-07-06-remove-project-paste-button/surface_verification.json",
+      "timestamp": "2026-07-06T09:52:35.543Z",
+      "justification": "Static client-only render change in the Add-Project wizard (FR-01.03): removed the clipboard Paste button and reworded the directory hint. No API route, store mutation, SSE/WS handler, or message contract touched, so the Backend-affects-Frontend rule does not trigger. The full observable outcome (Paste button + testid absent, new hint text present, path input still editable and driving onPathChange) is deterministically asserted by ProjectWizard.test.tsx which mounts the real ProjectWizard -> ProjectInfoStep tree; full client suite 1812/1812 green. small-complexity CHANGE+UI: phase matrix does not require E2E."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "task cwd wrapped in a surrounding single-quote pair is normalised so /launch emits `cd '<path>' &&`, not the double-escaped `cd ''''<path>'''' &&`",
+          "behavior": "Paste button no longer renders in the Add-Project wizard directory step",
           "disposition": "tested",
-          "evidence": "routes.launch-cwd-quote.test.ts::emits a single-quoted cd, not the double-escaped form PASSED (reproduces the exact macOS command byte-for-byte)"
+          "evidence": "ProjectWizard.test.tsx 'has no paste button and instructs the user to paste the path in' PASSED — queryByTestId('project-path-paste') and queryByText('Paste') both absent"
         },
         {
-          "behavior": "normalizeFsPath strips a surrounding single-quote pair",
+          "behavior": "Directory-step hint instructs the user to copy the path and paste it in",
           "disposition": "tested",
-          "evidence": "normalize-fs-path.test.ts::strips a surrounding single-quote pair PASSED"
+          "evidence": "ProjectWizard.test.tsx same test asserts getByText('Copy the full path from Explorer/Finder and paste it in here.')"
         },
         {
-          "behavior": "normalizeFsPath strips a surrounding double-quote pair (Windows paste)",
+          "behavior": "Directory input stays editable and drives onPathChange",
           "disposition": "tested",
-          "evidence": "normalize-fs-path.test.ts::strips a surrounding double-quote pair PASSED"
+          "evidence": "ProjectWizard.test.tsx 'navigates to step 2 on Next' types into the path input and advances the wizard PASSED"
         },
         {
-          "behavior": "normalizeFsPath leaves unquoted / lone-quote / mismatched-quote paths untouched (no corruption)",
+          "behavior": "Removing filePicker.ts leaves no dangling references (dead-code deletion is clean)",
           "disposition": "tested",
-          "evidence": "normalize-fs-path.test.ts::leaves an unquoted path untouched / does NOT strip a lone leading or trailing quote / does not strip mismatched quote types PASSED"
-        },
-        {
-          "behavior": "normalizeFsPath preserves an inner apostrophe (o'brien)",
-          "disposition": "tested",
-          "evidence": "normalize-fs-path.test.ts::preserves an inner apostrophe PASSED"
-        },
-        {
-          "behavior": "empty / quotes-only value collapses to '' and task-create then falls back to process.cwd()",
-          "disposition": "tested",
-          "evidence": "normalize-fs-path.test.ts::collapses an empty / quotes-only value to the empty string PASSED (create.ts `rawCwd || process.cwd()` fallback)"
-        },
-        {
-          "behavior": "POST /api/projects normalises path before the existsSync/mkdir probes and create()",
-          "disposition": "tested",
-          "evidence": "projects.test.ts::POST /api/projects strips a surrounding quote pair before fs probes + create PASSED"
-        },
-        {
-          "behavior": "PATCH /api/projects/:id normalises path before update()",
-          "disposition": "tested",
-          "evidence": "projects.test.ts::PATCH /api/projects/:id strips a surrounding quote pair from path PASSED"
+          "evidence": "tsc --noEmit exit 0 + repo-wide grep: no filePicker/pasteFromClipboard/looksLikePath references remain in client source"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 8,
-        "covered_acs": 8
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "degraded": []
