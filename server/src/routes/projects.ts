@@ -11,6 +11,7 @@
 import { Hono } from "hono";
 import type { ProjectManager } from "../core/project-manager.js";
 import { AppError } from "../middleware/error-handler.js";
+import { normalizeFsPath } from "../core/normalize-fs-path.js";
 
 export interface ProjectRouteDeps {
   existsSync: (path: string) => boolean;
@@ -58,6 +59,12 @@ export function createProjectRoutes(
 
   app.post("/api/projects", async (c) => {
     const body = await c.req.json();
+    // Strip a paste-artifact surrounding quote pair BEFORE the fs probes and
+    // create() below run against it — a quoted path would otherwise fail
+    // existsSync, mkdir a garbage relative directory, and (once stored) feed a
+    // broken `cd ''\''…'\'''` prefix into the launch command. See
+    // core/normalize-fs-path.ts.
+    if (typeof body.path === "string") body.path = normalizeFsPath(body.path);
     if (!body.name || !body.path) {
       throw new AppError("name and path are required", 400);
     }
@@ -86,6 +93,8 @@ export function createProjectRoutes(
 
   app.patch("/api/projects/:id", async (c) => {
     const body = await c.req.json();
+    // Same paste-artifact guard as POST, for path edits via the settings UI.
+    if (typeof body.path === "string") body.path = normalizeFsPath(body.path);
     const updated = projectManager.update(c.req.param("id"), body);
     if (!updated) throw new AppError("Project not found", 404);
     return c.json({ data: updated });
