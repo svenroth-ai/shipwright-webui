@@ -4,10 +4,14 @@
  * LIVE @xterm/addon-webgl instance.
  *
  * Bug: during active rendering single cells show the WRONG glyph (a clean
- * letter-for-letter swap) and only a manual resize heals it. Root cause: when
- * the GPU texture-atlas regenerates mid-stream, cells drawn before the change
- * keep stale page/coordinate references. Fix: subscribe the addon's
- * `onChangeTextureAtlas` event to a full-viewport `term.refresh`.
+ * letter-for-letter swap) and only a manual resize heals it. Root cause: an atlas
+ * SWAP on a terminal-option change (WebglRenderer._handleOptionsChanged →
+ * onChangeTextureAtlas — e.g. the live theme re-resolve, FR-01.44) builds a fresh
+ * atlas WITHOUT clearing the render model, so cells keep coordinates into the old
+ * layout → a wrong glyph. Fix (2026-07-07, superseding the earlier `term.refresh`,
+ * which skips "unchanged" cells): subscribe `onChangeTextureAtlas` (load-bearing) +
+ * `onRemoveTextureAtlasCanvas` (defensive) to a deferred `term.clearTextureAtlas()`
+ * — the public equivalent of the resize heal (it clears the model).
  *
  * This spec drives the live renderer with a load of DISTINCT full-width glyphs
  * (each scrolled line rasterises new code points until an atlas page overflows →
@@ -122,12 +126,15 @@ async function forceAtlasChurn(page: Page): Promise<number> {
       await frame();
       await frame();
     }
-    // Belt-and-suspenders deterministic trigger (GPU-independent): a font-size
-    // change re-rasterises every glyph at the new size, rebuilding the atlas →
-    // onChangeTextureAtlas fires. The colour churn above ALSO contributes on this
-    // runner — each distinct colour mints an atlas entry until a page overflows →
-    // onAddTextureAtlasCanvas (the user's real long-session trigger). Both events
-    // route through our one handler, so atlasRepaints counts both paths.
+    // Primary deterministic trigger (GPU-independent): a font-size change
+    // re-rasterises every glyph at the new size, replacing the atlas →
+    // onChangeTextureAtlas fires → our heal (clearTextureAtlas) runs. The colour
+    // churn above is what mints enough distinct atlas entries that pages fill and
+    // eventually merge/repack → onRemoveTextureAtlasCanvas, the REAL corruption
+    // path (existing coordinates rewritten). Both change + remove route through
+    // our heal, so atlasRepaints counts them. NOTE: a plain page-ADD is
+    // intentionally NOT healed (append-only; clearing on it would feedback-loop),
+    // so this probe relies on the change/remove paths, not onAddTextureAtlasCanvas.
     const opt = term as unknown as { options: { fontSize?: number } };
     const orig = opt.options.fontSize ?? 13;
     for (let k = 0; k < 4; k++) {

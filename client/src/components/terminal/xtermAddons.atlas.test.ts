@@ -1,28 +1,35 @@
 /*
  * xtermAddons.atlas.test.ts — root-cause regression fence for the WebGL
  * glyph-atlas corruption ("einzelne Wörter mit falschen Buchstaben",
- * user report 2026-06-27; iterate-2026-06-27-webgl-atlas-glyph-corruption).
+ * user reports 2026-06-27 + 2026-07-07).
  *
  * SYMPTOM: during active rendering single cells show the WRONG glyph — a clean
  * letter-for-letter swap, NOT pixel garbage — and a manual resize heals it
  * (distinct from the hide/show "smear", which is a stale GL FRAMEBUFFER and is
  * already handled by the visibility/focus refresh in useTerminalResize).
  *
- * ROOT CAUSE: the WebGL renderer caches glyphs in a GPU texture-atlas keyed by
- * glyph+fg+bg+style. When the atlas mutates mid-stream — a page added on overflow
- * (onAddTextureAtlasCanvas) or the atlas cleared/repacked (onChangeTextureAtlas) —
- * cells drawn BEFORE the mutation are not re-marked dirty, so they keep sampling
- * their old page/coord; after a repack that coord can hold a DIFFERENT glyph → a
- * clean wrong letter. `term.refresh` re-resolves every visible cell against the
- * CURRENT atlas; the gap is purely TIMING — the existing repaint triggers never
- * fire at atlas-mutation time, so only a manual resize (which marks every cell
- * dirty) healed it.
+ * ROOT CAUSE (2026-07-07, superseding the #175 `term.refresh` approach): the
+ * WebGL renderer caches glyphs in a GPU texture-atlas. The LOAD-BEARING corruption
+ * is a WHOLE-ATLAS SWAP on a terminal-option change — WebglRenderer._handleOptionsChanged
+ * → _refreshCharAtlas fires onChangeTextureAtlas but does NOT clear the render
+ * model, so cells keep coordinates into the OLD atlas layout (a clean letter-swap).
+ * This fires on the live theme re-resolve (`term.options.theme = <fresh object>`,
+ * FR-01.44 #201). `term.refresh` can't heal it because _updateModel skips cells
+ * that "look unchanged"; only a manual resize (which clears the model) healed it.
+ * (The atlas REPACK path — _mergePages → onRemoveTextureAtlasCanvas — self-heals
+ * via _requestClearModel; we still clear on it defensively.)
  *
- * FIX: `createEmbeddedXterm` routes ALL of the addon's atlas-mutation events
- * (change + add + remove) through a single full-viewport `term.refresh(0, rows-1)`
- * (see webgl-atlas-repaint.ts), so the viewport is repainted exactly when the
- * atlas changes — automatically, with no manual resize. Co-located with the
- * `onContextLoss` self-recovery (both are the addon's own staleness handlers).
+ * FIX: `attachWebglAtlasRepaint` calls `term.clearTextureAtlas()` — the public
+ * equivalent of the resize heal (clears atlas + model + glyph renderer, then a
+ * full redraw) — on the two atlas events that reassign EXISTING coordinates
+ * (onChangeTextureAtlas + onRemoveTextureAtlasCanvas). Two invariants this fence
+ * pins, because getting either wrong makes the "fix" worse than the bug:
+ *   1. onAddTextureAtlasCanvas is NOT subscribed. A plain page-add appends new
+ *      glyphs to fresh coordinates (no letter-swap), and clearing on add is a
+ *      feedback loop: clear → re-raster → page overflow → onAdd → clear → …
+ *   2. The clear is DEFERRED (one coalesced microtask), never synchronous —
+ *      onRemoveTextureAtlasCanvas fires MID-_mergePages, so a synchronous clear
+ *      would tear down the atlas the merge is still mutating.
  *
  * This is the DETERMINISTIC half of the validation; the real-browser half (the
  * live WebGL addon actually emitting the event on a real GPU under load) is
@@ -41,6 +48,7 @@ interface FakeTerm {
   cols: number;
   rows: number;
   refresh: ReturnType<typeof vi.fn>;
+  clearTextureAtlas: ReturnType<typeof vi.fn>;
   loadAddon: ReturnType<typeof vi.fn>;
   open: ReturnType<typeof vi.fn>;
   dispose: ReturnType<typeof vi.fn>;
@@ -54,6 +62,7 @@ vi.mock("@xterm/xterm", () => ({
       cols: 80,
       rows: 24,
       refresh: vi.fn(),
+      clearTextureAtlas: vi.fn(),
       loadAddon: vi.fn((addon: unknown) => loadedAddons.push(addon)),
       open: vi.fn(),
       dispose: vi.fn(),
@@ -116,6 +125,9 @@ vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
 import { createEmbeddedXterm } from "./xtermAddons";
 
+/** Flush the pending microtask the deferred atlas heal schedules. */
+const flushMicrotasks = (): Promise<void> => Promise.resolve();
+
 function webglOf(): WebglAddonFake {
   const w = loadedAddons.find(
     (a) =>
@@ -126,45 +138,74 @@ function webglOf(): WebglAddonFake {
   return w;
 }
 
-describe("xtermAddons — WebGL atlas-change full repaint (glyph-corruption fence)", () => {
+describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)", () => {
   beforeEach(() => {
     loadedAddons.length = 0;
     lastTerm = null;
   });
   afterEach(() => vi.clearAllMocks());
 
-  it("subscribes to all three atlas-mutation events exactly once each", () => {
+  it("subscribes to the coordinate-reassigning events (change + remove) only, NOT add", () => {
     createEmbeddedXterm(document.createElement("div"));
     const webgl = webglOf();
     expect(webgl.onChangeTextureAtlas).toHaveBeenCalledTimes(1);
-    expect(webgl.onAddTextureAtlasCanvas).toHaveBeenCalledTimes(1);
     expect(webgl.onRemoveTextureAtlasCanvas).toHaveBeenCalledTimes(1);
+    // onAdd is a plain append (no coordinate reassignment) AND clearing on it
+    // would feedback-loop (clear → re-raster → overflow → onAdd → clear …), so
+    // it MUST NOT be subscribed.
+    expect(webgl.onAddTextureAtlasCanvas).not.toHaveBeenCalled();
   });
 
-  it("any atlas mutation (change / add / remove) forces a full-viewport term.refresh(0, rows-1)", () => {
+  it("a change or remove mutation heals via a DEFERRED term.clearTextureAtlas()", async () => {
     createEmbeddedXterm(document.createElement("div"));
     const webgl = webglOf();
-    const lastRow = (lastTerm?.rows ?? 1) - 1;
-    // No spurious repaint before the atlas actually mutates.
-    expect(lastTerm?.refresh).not.toHaveBeenCalled();
-    // Each event the live GPU can emit must trigger a full-viewport repaint —
-    // crucially the page-ADD (overflow) path, the long-session corruption case.
+    // No spurious heal before the atlas actually mutates.
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+
     webgl.changeAtlasCb?.();
-    expect(lastTerm?.refresh).toHaveBeenLastCalledWith(0, lastRow);
-    webgl.addCanvasCb?.();
-    expect(lastTerm?.refresh).toHaveBeenLastCalledWith(0, lastRow);
+    // Deferred: the clear must NOT run synchronously inside the event handler
+    // (onRemove fires mid-_mergePages — a re-entrant clear would corrupt it).
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalledTimes(1);
+
     webgl.removeCanvasCb?.();
-    expect(lastTerm?.refresh).toHaveBeenLastCalledWith(0, lastRow);
-    expect(lastTerm?.refresh).toHaveBeenCalledTimes(3);
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalledTimes(2);
+
+    // We never call refresh anymore — clearTextureAtlas forces its own full redraw.
+    expect(lastTerm?.refresh).not.toHaveBeenCalled();
   });
 
-  it("the atlas repaint swallows a mid-dispose term throw (no crash)", () => {
+  it("coalesces a burst of atlas mutations in one tick into a single clear", async () => {
     createEmbeddedXterm(document.createElement("div"));
     const webgl = webglOf();
-    lastTerm?.refresh.mockImplementation(() => {
+    webgl.changeAtlasCb?.();
+    webgl.removeCanvasCb?.();
+    webgl.changeAtlasCb?.();
+    await flushMicrotasks();
+    // One global clear heals every corruption up to this point; a per-event
+    // clear would be N full re-rasters for one repack burst.
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalledTimes(1);
+  });
+
+  it("the atlas heal swallows a mid-dispose term throw (no unhandled rejection)", async () => {
+    createEmbeddedXterm(document.createElement("div"));
+    const webgl = webglOf();
+    lastTerm?.clearTextureAtlas.mockImplementation(() => {
       throw new Error("term mid-dispose");
     });
-    expect(() => webgl.changeAtlasCb?.()).not.toThrow();
-    expect(() => webgl.addCanvasCb?.()).not.toThrow();
+    webgl.changeAtlasCb?.();
+    await expect(flushMicrotasks()).resolves.toBeUndefined();
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalled();
+  });
+
+  it("disposing the handle cancels a subsequent heal (no clear on a dead term)", async () => {
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    const webgl = webglOf();
+    handle.dispose();
+    webgl.changeAtlasCb?.();
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
   });
 });
