@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-07-07T00:00:00Z",
+  "last_updated": "2026-07-07T12:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-07-terminal-osc52-clipboard",
+    "run_id": "iterate-2026-07-07-terminal-rightclick-double-paste",
     "date": "2026-07-07",
     "unit": {
       "status": "passed",
-      "passed": 1867,
-      "total": 1867,
-      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal change)"
+      "passed": 1882,
+      "total": 1882,
+      "note": "full client Vitest suite (191 files); server unchanged (client-only terminal input filter)"
     },
     "integration": {
       "status": "not_run",
@@ -21,9 +21,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 5,
-      "total": 5,
-      "note": "terminal-osc52.spec.ts (2) + terminal-copy-paste.spec.ts (3, paste + Ctrl+C-SIGINT)"
+      "passed": 1,
+      "total": 1,
+      "note": "terminal-rightclick-mouse.spec.ts (real right-click in mouse mode not forwarded; left-click is)"
     },
     "design_fidelity": {
       "status": "skipped",
@@ -37,59 +37,39 @@
       "surface": "web",
       "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
       "exit_code": 0,
-      "tests_run": 5,
-      "evidence_path": "client/e2e/flows/terminal-osc52.spec.ts",
-      "timestamp": "2026-07-07T00:00:00.000Z",
-      "justification": "Real-browser proof against a live pty: an OSC 52 clipboard-write escape written to the real xterm parser lands the decoded text on the OS clipboard (AC-1), and an OSC 52 READ request (52;c;?) leaves the clipboard untouched — deny, no leak (AC-2). Paste is intact (Ctrl+V multi-line CR-normalized, Shift+Insert) and Ctrl+C now passes through as SIGINT (AC-4/AC-5). Ran green (5/5). Note: localhost is a secure context so the copy takes the navigator.clipboard fast path; the execCommand fallback + its focus-preservation (the http/Tailscale path, review HIGH fix) is unit-covered (lib/clipboard.test.ts) and the mechanism was validated live via the user's console instrumentation over real http/Tailscale."
+      "tests_run": 1,
+      "evidence_path": "client/e2e/flows/terminal-rightclick-mouse.spec.ts",
+      "timestamp": "2026-07-07T12:00:00.000Z",
+      "justification": "Real-browser proof against a live pty: with xterm put into SGR mouse-reporting mode (ESC[?1006h ESC[?1000h, what Claude enables), a REAL right-click on the canvas produces NO right-button (<2) report in the sent WS frames — dropped by the onData filter — while a real left-click DOES send a left-button (<0) report. Ran green (1/1). This confirms the fix removes the second (Claude) paste while leaving left/middle/wheel forwarding (Claude selection/scroll) intact."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1: an OSC 52 clipboard WRITE emitted by the terminal is decoded + written to the OS clipboard (execCommand fallback, http-safe)",
+          "behavior": "AC-1: right-button SGR mouse reports (press/release/drag) are NOT forwarded to the pty, so Claude never sees the right-click (no second paste)",
           "disposition": "tested",
-          "evidence": "terminal-osc52.test.ts (write relays to copy; UTF-8 decode) + e2e terminal-osc52.spec.ts 'write lands on the OS clipboard' green"
+          "evidence": "terminal-mouse-report.test.ts (Cb=2/34/6 -> true) + EmbeddedTerminal.test.tsx 'drops right-button ...' (onData with <2 not in ws.sent) + e2e terminal-rightclick-mouse.spec.ts (no <2 in sent frames) green"
         },
         {
-          "behavior": "AC-2: an OSC 52 READ request (52;c;?) is DENIED — consumed, no reply, clipboard untouched (no leak)",
+          "behavior": "AC-2: left/middle button + wheel reports ARE still forwarded (Claude selection / clicks / scroll unaffected)",
           "disposition": "tested",
-          "evidence": "terminal-osc52.test.ts (read -> no copy, returns true; parseOsc52 classifies ?, c;?, bare ?) + e2e 'read request does NOT alter the clipboard' green"
+          "evidence": "terminal-mouse-report.test.ts (Cb=0/1/32/64/65/66 -> false) + EmbeddedTerminal.test.tsx (<0 and <64 present in ws.sent) + e2e (left-click <0 present in sent frames)"
         },
         {
-          "behavior": "AC-3: malformed / empty / oversized OSC 52 payloads swallowed safely (no parser throw, no clobber, size pre-check)",
+          "behavior": "AC-3: the classifier matches only complete SGR right-button reports — not keyboard / bracketed-paste / Ctrl+C / legacy-X10 / embedded reports",
           "disposition": "tested",
-          "evidence": "terminal-osc52.test.ts (invalid base64 -> null not throw; empty -> no copy; oversized -> invalid via pre-check before decode)"
-        },
-        {
-          "behavior": "AC-4: WebUI no longer intercepts Ctrl+C / Ctrl+Insert (pass through as interrupt/SIGINT); copy-on-selection, redraw cache, Copy pill, mouse-mode hint removed",
-          "disposition": "tested",
-          "evidence": "terminal-clipboard.test.ts (Ctrl+C -> passthrough) + terminal-clipboard-handler.test.ts (passthrough block) + EmbeddedTerminal.test.tsx (Ctrl+C passes through) + e2e terminal-copy-paste.spec.ts (Ctrl+C -> SIGINT); deleted useTerminalSelection + tests; full suite green"
-        },
-        {
-          "behavior": "AC-5: paste (Ctrl+V / Shift+Insert / right-click) + clipboard-notice (paste-hint/paste-failed/copy-failed) intact",
-          "disposition": "tested",
-          "evidence": "terminal-clipboard-handler.test.ts (paste block) + e2e terminal-copy-paste.spec.ts (Ctrl+V multiline, Shift+Insert) + useTerminalClipboard.test.ts (notice)"
-        },
-        {
-          "behavior": "AC-6: terminal Appearance setting (FR-01.44) unaffected by removing the copy-on-selection toggle",
-          "disposition": "tested",
-          "evidence": "TerminalSettingsCard.test.tsx (appearance selector — 4 tests still green)"
-        },
-        {
-          "behavior": "Review HIGH: async OSC 52 relay does not steal terminal keyboard focus on the http/execCommand path",
-          "disposition": "tested",
-          "evidence": "lib/clipboard.test.ts 'preserveFocus restores the previously-focused element' + 'without preserveFocus, focus is NOT restored' (opt-in guard for menu callers)"
+          "evidence": "terminal-mouse-report.test.ts ('plain keyboard/paste/control data' + 'legacy X10' + 'embedded in a larger string' -> false)"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
+        "testable": 3,
+        "tested": 3,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 3,
+        "covered_acs": 3
       }
     },
     "degraded": []
