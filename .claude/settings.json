@@ -1,1 +1,5 @@
-{}
+{
+  "env": {
+    "SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS": "1"
+  }
+}
