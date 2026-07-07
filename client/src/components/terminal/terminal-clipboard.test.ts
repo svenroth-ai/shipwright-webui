@@ -29,13 +29,15 @@ function ev(partial: Partial<ChordEventLike>): ChordEventLike {
 }
 
 describe("classifyClipboardChord", () => {
-  it("Ctrl+C → copy", () => {
-    expect(classifyClipboardChord(ev({ ctrlKey: true, key: "c" }))).toBe("copy");
+  it("Ctrl+C → passthrough (copy is OSC 52 now; Ctrl+C stays interrupt)", () => {
+    expect(classifyClipboardChord(ev({ ctrlKey: true, key: "c" }))).toBe(
+      "passthrough",
+    );
   });
 
-  it("Ctrl+Insert → copy", () => {
+  it("Ctrl+Insert → passthrough (no longer a copy chord)", () => {
     expect(classifyClipboardChord(ev({ ctrlKey: true, key: "Insert" }))).toBe(
-      "copy",
+      "passthrough",
     );
   });
 
@@ -51,13 +53,7 @@ describe("classifyClipboardChord", () => {
     );
   });
 
-  it("Shift+Insert does NOT classify as copy", () => {
-    expect(
-      classifyClipboardChord(ev({ shiftKey: true, key: "Insert" })),
-    ).not.toBe("copy");
-  });
-
-  it("Ctrl+Shift+C → passthrough (DevTools accelerator, not bound)", () => {
+  it("Ctrl+Shift+C → passthrough (not bound)", () => {
     expect(
       classifyClipboardChord(ev({ ctrlKey: true, shiftKey: true, key: "C" })),
     ).toBe("passthrough");
@@ -117,9 +113,9 @@ describe("classifyClipboardChord", () => {
     ).toBe("passthrough");
   });
 
-  it("uppercase key 'C' with Ctrl only (caps lock) → copy", () => {
+  it("uppercase Ctrl+C (caps lock) → passthrough", () => {
     expect(classifyClipboardChord(ev({ ctrlKey: true, key: "C" }))).toBe(
-      "copy",
+      "passthrough",
     );
   });
 });

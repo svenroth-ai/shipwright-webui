@@ -7,8 +7,10 @@
  * Campaign C / C5 (2026-05-26) — the 1856-LOC monolith was split into a thin
  * shell + extracted modules under `client/src/components/terminal/`:
  * xtermAddons, usePasteImage, useTerminalResize, useReplayDrainGate,
- * useTerminalSizeSync, useAutoLaunch, useTerminalSelection, useTerminalShellEffects, touch-scroll,
+ * useTerminalSizeSync, useAutoLaunch, useTerminalShellEffects, touch-scroll,
  * scroll-repaint, repaint-on-settle (data-driven smear repaint), TerminalBanners.
+ * Terminal COPY is OSC 52 relay only (terminal-osc52.ts) — Claude copies its
+ * own selection; the WebUI no longer intercepts Ctrl+C or auto-copies selections.
  * Hard invariants (CLAUDE.md rules 17-22): convertEol:false; no windowsMode;
  * CLAUDE_CODE_NO_FLICKER default ON; client-side WS auto-execute; no chunked replay.
  */
@@ -33,6 +35,7 @@ import {
   createClipboardKeyHandler,
   readClipboardForPaste,
 } from "./terminal-clipboard";
+import { createOsc52ClipboardHandler } from "./terminal-osc52";
 import { attachTouchScroll } from "./touch-scroll";
 import { attachScrollRepaint } from "./scroll-repaint";
 import { attachSettleRepaint } from "./repaint-on-settle";
@@ -45,7 +48,6 @@ import { useTerminalResize } from "./useTerminalResize";
 import { useReplayDrainGate } from "./useReplayDrainGate";
 import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
-import { attachTerminalSelection } from "./useTerminalSelection";
 import { useTerminalClipboard } from "./useTerminalClipboard";
 import { useTerminalShellEffects } from "./useTerminalShellEffects";
 import { TerminalBanners } from "./TerminalBanners";
@@ -108,11 +110,8 @@ export const EmbeddedTerminal = forwardRef<
   // Shell-owned banner state.
   const [readOnlyArmed, setReadOnlyArmed] = useState(false);
   const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
-  const [mouseEventsActive, setMouseEventsActive] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
-  // Clipboard notice + redraw-proof selection cache / Copy-pill state
-  // (iterate-2026-07-06-terminal-copy-selection-cache).
-  const clip = useTerminalClipboard({ disposedRef });
+  // Transient clipboard-notice state (paste hints + OSC 52 copy-failed).
+  const clip = useTerminalClipboard();
 
   useEffect(() => {
     setResetBannerDismissed(false);
@@ -201,12 +200,24 @@ export const EmbeddedTerminal = forwardRef<
         term: handle.term,
         isDisposed: () => disposedRef.current,
         notify: clip.notify,
-        copy: copyText,
         readClipboard: readClipboardForPaste,
-        // Redraw-proof copy: fall back to the last captured selection when the
-        // live one was wiped by an app redraw; clear the pill after a copy.
-        getCachedSelection: clip.getCachedSelection,
-        onCopySuccess: clip.invalidateSelection,
+      }),
+    );
+
+    // OSC 52 clipboard relay (iterate-2026-07-07): Claude Code copies a mouse
+    // selection via OSC 52; xterm drops it by default, so the write never
+    // reached the OS clipboard (paste returned the old entry). Route it through
+    // copyText (execCommand fallback → works over http). Read requests are
+    // denied inside the handler so the clipboard is never leaked back to the app.
+    handle.term.parser.registerOscHandler(
+      52,
+      createOsc52ClipboardHandler({
+        // preserveFocus: the relay fires async (no user gesture) while the
+        // terminal holds focus; without it the execCommand fallback (http path)
+        // would steal keyboard focus from the terminal on every copy.
+        copy: (t) => copyText(t, { preserveFocus: true }),
+        isDisposed: () => disposedRef.current,
+        onError: () => clip.notify("copy-failed"),
       }),
     );
 
@@ -224,14 +235,6 @@ export const EmbeddedTerminal = forwardRef<
     // Transcript→Terminal switch / return-from-home (see repaint-on-settle.ts).
     const settle = attachSettleRepaint(handle.term, () => disposedRef.current);
     settleArmRef.current = settle.arm;
-    const disposeSelection = attachTerminalSelection({
-      term: handle.term,
-      disposedRef,
-      setMouseEventsActive,
-      setBannerDismissed,
-      captureSelection: clip.captureSelection,
-      invalidateSelection: clip.invalidateSelection,
-    });
 
     const onDataDispose = handle.term.onData((data) => {
       socket.send({ type: "data", payload: data });
@@ -242,11 +245,6 @@ export const EmbeddedTerminal = forwardRef<
       // OUR code short-circuit before dereferencing nulled internals.
       disposedRef.current = true;
       onDataDispose.dispose();
-      try {
-        disposeSelection();
-      } catch {
-        /* best-effort */
-      }
       try {
         disposeScrollRepaint();
         disposeTouchScroll();
@@ -286,13 +284,8 @@ export const EmbeddedTerminal = forwardRef<
         manualSendCommand={manualSendCommand}
         onManualSend={handleManualSend}
         onDismissManualSend={dismissManualSend}
-        mouseEventsActive={mouseEventsActive}
-        bannerDismissed={bannerDismissed}
-        onDismissMouseHint={() => setBannerDismissed(true)}
         clipboardNotice={clip.clipboardNotice}
         onDismissClipboardNotice={clip.dismissClipboardNotice}
-        copyableSelection={clip.copyableSelection}
-        onCopySelection={clip.onCopySelection}
       />
       <div
         ref={containerRef}

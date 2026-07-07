@@ -82,31 +82,6 @@ async function openTerminal(
   await page.waitForTimeout(settleMs);
 }
 
-/** Read the full xterm scrollback as a flat string (via the window ref). */
-function readTerminalBuffer(page: Page) {
-  return page.evaluate(() => {
-    const t = (
-      window as unknown as {
-        __embeddedTerminal?: {
-          buffer: {
-            active: {
-              length: number;
-              getLine(i: number): { translateToString(): string } | undefined;
-            };
-          };
-        };
-      }
-    ).__embeddedTerminal;
-    if (!t) return "";
-    const buf = t.buffer.active;
-    let s = "";
-    for (let i = 0; i < buf.length; i++) {
-      s += (buf.getLine(i)?.translateToString() ?? "") + "\n";
-    }
-    return s;
-  });
-}
-
 test.describe("iterate-2026-05-18 — terminal copy/paste", () => {
   test("Ctrl+V pastes a multi-line payload — CR-normalized via term.paste(), no truncation", async ({
     page,
@@ -197,52 +172,8 @@ test.describe("iterate-2026-05-18 — terminal copy/paste", () => {
     }
   });
 
-  test("Ctrl+C and Ctrl+Insert copy the terminal selection to the clipboard", async ({
-    page,
-    request,
-  }) => {
-    const cwd = await makeTaskCwd();
-    const taskId = await createTask(request, cwd);
-    try {
-      await openTerminal(page, taskId, 1000);
-
-      // Type a unique marker; the pty echoes it into the xterm buffer.
-      const marker = "COPYMARKER1234";
-      await page.locator(".xterm-helper-textarea").focus();
-      await page.keyboard.type(marker);
-      await expect
-        .poll(() => readTerminalBuffer(page), { timeout: 10000 })
-        .toContain(marker);
-
-      const selectAll = () =>
-        page.evaluate(() =>
-          (
-            window as unknown as { __embeddedTerminal?: { selectAll(): void } }
-          ).__embeddedTerminal?.selectAll(),
-        );
-
-      // Ctrl+C with a selection → OS clipboard + "Copied" pill.
-      await selectAll();
-      await page.locator(".xterm-helper-textarea").focus();
-      await page.keyboard.press("Control+C");
-      expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
-        marker,
-      );
-      await expect(
-        page.getByTestId("embedded-terminal-clipboard-notice"),
-      ).toHaveAttribute("data-notice-kind", "copied", { timeout: 4000 });
-
-      // Ctrl+Insert is the second copy chord — re-select (the first copy
-      // cleared the selection) and confirm it copies too.
-      await page.evaluate(() => navigator.clipboard.writeText("cleared"));
-      await selectAll();
-      await page.locator(".xterm-helper-textarea").focus();
-      await page.keyboard.press("Control+Insert");
-      expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
-        marker,
-      );
-    } finally {
-      await cleanupCwd(cwd);
-    }
-  });
+  // Terminal-text COPY (Ctrl+C / Ctrl+Insert) was removed in
+  // iterate-2026-07-07-terminal-osc52-clipboard — Claude copies its own mouse
+  // selection via OSC 52 and the WebUI relays it (see terminal-osc52.spec.ts).
+  // Ctrl+C now always passes through as SIGINT (covered above).
 });

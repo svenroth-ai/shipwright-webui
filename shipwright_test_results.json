@@ -1,80 +1,84 @@
 {
-  "last_updated": "2026-07-07T09:30:00.000Z",
+  "last_updated": "2026-07-07T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-07-terminal-glyph-atlas-clear",
+    "run_id": "iterate-2026-07-07-terminal-osc52-clipboard",
     "date": "2026-07-07",
     "unit": {
       "status": "passed",
-      "passed": 1897,
-      "total": 1897,
-      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal render fix)"
+      "passed": 1867,
+      "total": 1867,
+      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal change)"
     },
     "integration": {
-      "status": "n/a",
-      "note": "no CRUD/integration surface touched"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
-      "status": "n/a"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "real-browser flow spec 94 against isolated single-process stack"
+      "passed": 5,
+      "total": 5,
+      "note": "terminal-osc52.spec.ts (2) + terminal-copy-paste.spec.ts (3, paste + Ctrl+C-SIGINT)"
     },
     "design_fidelity": {
-      "status": "n/a",
-      "note": "no visual/structural UI change; render-correctness fix only"
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "smoke": {
-      "status": "n/a"
+      "status": "not_run"
     },
     "surface_verification": {
       "surface": "web",
       "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "client/e2e/flows/94-webgl-atlas-repaint.spec.ts",
-      "timestamp": "2026-07-07T09:30:00.000Z",
-      "justification": "Real-browser proof the atlas-corruption heal is wired to the LIVE @xterm/addon-webgl: renderer=webgl, 3 canvas layers, atlasRepaints=5 -> the deferred term.clearTextureAtlas() fired on real atlas mutations, and the BOUNDED count (5, not runaway) confirms no clear->re-raster->onAdd feedback loop. Visual elimination of the intermittent, GPU-specific corruption over a long session remains the user's real-device confirmation (spec 94's documented stance)."
+      "tests_run": 5,
+      "evidence_path": "client/e2e/flows/terminal-osc52.spec.ts",
+      "timestamp": "2026-07-07T00:00:00.000Z",
+      "justification": "Real-browser proof against a live pty: an OSC 52 clipboard-write escape written to the real xterm parser lands the decoded text on the OS clipboard (AC-1), and an OSC 52 READ request (52;c;?) leaves the clipboard untouched — deny, no leak (AC-2). Paste is intact (Ctrl+V multi-line CR-normalized, Shift+Insert) and Ctrl+C now passes through as SIGINT (AC-4/AC-5). Ran green (5/5). Note: localhost is a secure context so the copy takes the navigator.clipboard fast path; the execCommand fallback + its focus-preservation (the http/Tailscale path, review HIGH fix) is unit-covered (lib/clipboard.test.ts) and the mechanism was validated live via the user's console instrumentation over real http/Tailscale."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "On onChangeTextureAtlas (the load-bearing option-change / live-theme atlas swap) a DEFERRED term.clearTextureAtlas() clears the render model and heals the wrong-glyph corruption",
+          "behavior": "AC-1: an OSC 52 clipboard WRITE emitted by the terminal is decoded + written to the OS clipboard (execCommand fallback, http-safe)",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'heals via a DEFERRED term.clearTextureAtlas()' (change path, +1 after microtask) + real-browser e2e 94-webgl-atlas-repaint.spec.ts (renderer=webgl, atlasRepaints=5)"
+          "evidence": "terminal-osc52.test.ts (write relays to copy; UTF-8 decode) + e2e terminal-osc52.spec.ts 'write lands on the OS clipboard' green"
         },
         {
-          "behavior": "On onRemoveTextureAtlasCanvas (atlas repack; defensive — the merge path self-heals via _requestClearModel but we clear anyway) the same deferred heal fires",
+          "behavior": "AC-2: an OSC 52 READ request (52;c;?) is DENIED — consumed, no reply, clipboard untouched (no leak)",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'heals via a DEFERRED term.clearTextureAtlas()' (remove path, toHaveBeenCalledTimes(2))"
+          "evidence": "terminal-osc52.test.ts (read -> no copy, returns true; parseOsc52 classifies ?, c;?, bare ?) + e2e 'read request does NOT alter the clipboard' green"
         },
         {
-          "behavior": "onAddTextureAtlasCanvas is NOT subscribed (append-only; clearing on it would feedback-loop clear->re-raster->overflow->onAdd->clear)",
+          "behavior": "AC-3: malformed / empty / oversized OSC 52 payloads swallowed safely (no parser throw, no clobber, size pre-check)",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'change + remove only, NOT add' (onAddTextureAtlasCanvas not called) + e2e 94 atlasRepaints=5 bounded (no runaway loop under real load)"
+          "evidence": "terminal-osc52.test.ts (invalid base64 -> null not throw; empty -> no copy; oversized -> invalid via pre-check before decode)"
         },
         {
-          "behavior": "The clear is DEFERRED via microtask, never synchronous inside the event callback (re-entrancy safety: onRemove fires mid-_mergePages)",
+          "behavior": "AC-4: WebUI no longer intercepts Ctrl+C / Ctrl+Insert (pass through as interrupt/SIGINT); copy-on-selection, redraw cache, Copy pill, mouse-mode hint removed",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts asserts clearTextureAtlas NOT called before flushMicrotasks(), called after"
+          "evidence": "terminal-clipboard.test.ts (Ctrl+C -> passthrough) + terminal-clipboard-handler.test.ts (passthrough block) + EmbeddedTerminal.test.tsx (Ctrl+C passes through) + e2e terminal-copy-paste.spec.ts (Ctrl+C -> SIGINT); deleted useTerminalSelection + tests; full suite green"
         },
         {
-          "behavior": "A burst of atlas mutations in one tick coalesces into a single clearTextureAtlas (idempotent global heal)",
+          "behavior": "AC-5: paste (Ctrl+V / Shift+Insert / right-click) + clipboard-notice (paste-hint/paste-failed/copy-failed) intact",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'coalesces a burst ... into a single clear' (3 events -> 1 clear)"
+          "evidence": "terminal-clipboard-handler.test.ts (paste block) + e2e terminal-copy-paste.spec.ts (Ctrl+V multiline, Shift+Insert) + useTerminalClipboard.test.ts (notice)"
         },
         {
-          "behavior": "Disposing the xterm handle cancels a still-pending heal (no clearTextureAtlas on a torn-down terminal; disposed flag set before term.dispose())",
+          "behavior": "AC-6: terminal Appearance setting (FR-01.44) unaffected by removing the copy-on-selection toggle",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'disposing the handle cancels a subsequent heal'"
+          "evidence": "TerminalSettingsCard.test.tsx (appearance selector — 4 tests still green)"
         },
         {
-          "behavior": "A mid-dispose term throw inside the deferred flush is swallowed (no unhandled rejection)",
+          "behavior": "Review HIGH: async OSC 52 relay does not steal terminal keyboard focus on the http/execCommand path",
           "disposition": "tested",
-          "evidence": "xtermAddons.atlas.test.ts 'swallows a mid-dispose term throw'"
+          "evidence": "lib/clipboard.test.ts 'preserveFocus restores the previously-focused element' + 'without preserveFocus, focus is NOT restored' (opt-in guard for menu callers)"
         }
       ],
       "counts": {
@@ -84,9 +88,8 @@
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7,
-        "note": "BUG fix: 'acs' = enumerated fix-behaviors (root-cause heal + 6 safety invariants), each pinned by a unit assertion; the live-WebGL wiring additionally proven by e2e 94"
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []
