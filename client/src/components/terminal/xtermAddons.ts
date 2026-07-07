@@ -166,6 +166,11 @@ export function createEmbeddedXterm(
   // eslint-disable-next-line no-console
   console.info(`[EmbeddedTerminal] renderer=${renderer}`);
 
+  // Tears down the atlas-heal subscription AND cancels any pending (deferred)
+  // clearTextureAtlas so a heal can never land on a torn-down terminal. Undefined
+  // in the DOM-renderer arm (no WebGL addon, no atlas events). See dispose below.
+  let disposeAtlasRepaint: (() => void) | undefined;
+
   if (renderer === "webgl") {
     // ADR-099 — WebGL loaded BEFORE term.open(container) so the DOM renderer
     // never initialises. Wrapped in try/catch: jsdom + WebGL-disabled +
@@ -188,10 +193,11 @@ export function createEmbeddedXterm(
           /* already disposed — best-effort */
         }
       });
-      // Glyph-atlas-change full repaint (root-cause fix for the "wrong letter"
-      // corruption) — see webgl-atlas-repaint.ts. Registered before loadAddon so
-      // no early atlas-change event is missed, mirroring onContextLoss above.
-      attachWebglAtlasRepaint(webgl, term);
+      // Glyph-atlas-corruption heal (root-cause fix for the "wrong letter"
+      // corruption) — clears the texture atlas on an atlas repack, see
+      // webgl-atlas-repaint.ts. Registered before loadAddon so no early
+      // atlas-change event is missed, mirroring onContextLoss above.
+      disposeAtlasRepaint = attachWebglAtlasRepaint(webgl, term).dispose;
       term.loadAddon(webgl);
     } catch (err) {
       // eslint-disable-next-line no-console
@@ -217,6 +223,9 @@ export function createEmbeddedXterm(
   }
 
   const dispose = (): void => {
+    // Cancel any still-pending deferred atlas heal FIRST — its microtask could
+    // otherwise fire clearTextureAtlas after term.dispose() nulled the renderer.
+    disposeAtlasRepaint?.();
     installDimensionsStubBeforeDispose(term);
     // Per external code-review openai HIGH #2 (Iterate 2026-05-15 v0.9.2):
     // do NOT swallow term.dispose() failures. The dimensions-stub above

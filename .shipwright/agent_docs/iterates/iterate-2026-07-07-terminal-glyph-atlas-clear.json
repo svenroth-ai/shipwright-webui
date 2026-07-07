@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-07-terminal-glyph-atlas-clear",
+  "date": "2026-07-07T08:39:00.600895Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/terminal-glyph-atlas-clear",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-07-terminal-glyph-atlas-clear",
+  "spec": "none"
+}
