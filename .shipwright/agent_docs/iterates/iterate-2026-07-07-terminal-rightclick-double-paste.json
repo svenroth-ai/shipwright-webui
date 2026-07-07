@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-07-terminal-rightclick-double-paste",
+  "date": "2026-07-07T11:28:05.004646Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/terminal-rightclick-double-paste",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-07-07-terminal-rightclick-double-paste"
+}

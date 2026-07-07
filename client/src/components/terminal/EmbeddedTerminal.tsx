@@ -36,6 +36,7 @@ import {
   readClipboardForPaste,
 } from "./terminal-clipboard";
 import { createOsc52ClipboardHandler } from "./terminal-osc52";
+import { isRightButtonMouseReport } from "./terminal-mouse-report";
 import { attachTouchScroll } from "./touch-scroll";
 import { attachScrollRepaint } from "./scroll-repaint";
 import { attachSettleRepaint } from "./repaint-on-settle";
@@ -237,6 +238,11 @@ export const EmbeddedTerminal = forwardRef<
     settleArmRef.current = settle.arm;
 
     const onDataDispose = handle.term.onData((data) => {
+      // Right-click is browser business (context menu → Paste). Claude treats a
+      // reported right-click as paste, so forwarding it double-pastes with the
+      // browser's own Paste — drop right-button mouse reports (left/middle/wheel
+      // unaffected). iterate-2026-07-07-terminal-rightclick-double-paste.
+      if (isRightButtonMouseReport(data)) return;
       socket.send({ type: "data", payload: data });
     });
 

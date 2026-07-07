@@ -358,6 +358,25 @@ describe("<EmbeddedTerminal>", () => {
     expect(ws.sent.some((s) => s.includes('"type":"data"') && s.includes('"ls\\n"'))).toBe(true);
   });
 
+  it("drops right-button mouse reports (Claude must not see the right-click), but forwards left-button + wheel", async () => {
+    // iterate-2026-07-07-terminal-rightclick-double-paste: a right-click
+    // reported to Claude made it paste on top of the browser's own Paste.
+    render(<EmbeddedTerminal taskId="t1" active />);
+    await act(async () => {});
+    const ws = FakeWebSocket.instances[0];
+    const ESC = String.fromCharCode(27);
+    await act(async () => {
+      onDataHandlers[0](ESC + "[<2;10;5M"); // right-button press — DROP
+      onDataHandlers[0](ESC + "[<2;10;5m"); // right-button release — DROP
+      onDataHandlers[0](ESC + "[<0;20;6M"); // left-button press — forward
+      onDataHandlers[0](ESC + "[<64;30;7M"); // wheel up — forward
+    });
+    const all = ws.sent.join("");
+    expect(all).not.toContain("<2;10;5"); // right-click never reaches the pty
+    expect(all).toContain("<0;20;6"); // left-click still forwarded
+    expect(all).toContain("<64;30;7"); // wheel still forwarded
+  });
+
   it("forwards inbound 'data' envelopes to xterm.write()", async () => {
     render(<EmbeddedTerminal taskId="t1" active />);
     await act(async () => {});
