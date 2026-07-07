@@ -86,29 +86,20 @@ jobs:
           npm test -- --run --coverage --coverage.provider=v8 \
             --coverage.reporter=cobertura --coverage.reportsDirectory=./coverage
 
-      - name: Install uv
-        # Third-party action pinned to a full commit SHA (supply-chain hardening);
-        # the trailing comment records the human-readable tag.
-        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39  # v3
-
-      - name: Diff coverage
-        shell: bash
-        run: |
-          # origin/main is the diff base; fetch it explicitly.
-          git fetch --no-tags origin main
-          # diff-cover is PINNED (a release can't silently change flags/exit
-          # codes). It resolves client/ + server/ paths from each cobertura's
-          # <source> root and exits non-zero iff diff-coverage < 80%
-          # (continue-on-error downgrades that to a warning during the settling
-          # window). The markdown report prints either way.
-          echo "::group::Diff coverage (warn-only, --fail-under=80)"
-          rc=0
-          uvx diff-cover@10.3.0 \
-            client/coverage/cobertura-coverage.xml \
-            server/coverage/cobertura-coverage.xml \
-            --compare-branch=origin/main --fail-under=80 || rc=$?
-          echo "::endgroup::"
-          exit "$rc"
+      # Single source of truth: the gate mechanics (pinned diff-cover, the base
+      # fetch, --fail-under, injection-safe input plumbing, SHA-pinned setup-uv)
+      # live in the shipwright monorepo's composite action, so a gate fix flows
+      # here on the next run — no ci.yml edit. `@main` is intentional first-party
+      # auto-propagation (both repos are svenroth-ai; the mutable-tag Semgrep
+      # finding is an accepted risk). WARN-vs-HARD stays this job's
+      # `continue-on-error` above — when we hard-flip, pin the action to a
+      # released tag (…@v1) instead of `@main`. diff-cover resolves client/ +
+      # server/ paths natively via each cobertura's <source> root (no combine).
+      # The action installs uv itself.
+      - name: Diff coverage (gate)
+        uses: svenroth-ai/shipwright/.github/actions/diff-coverage-gate@main
+        with:
+          coverage-files: client/coverage/cobertura-coverage.xml server/coverage/cobertura-coverage.xml
 
   server-checks:
     name: Server (type + lint + test)
