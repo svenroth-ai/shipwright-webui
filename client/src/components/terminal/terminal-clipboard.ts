@@ -1,31 +1,29 @@
 /*
- * Terminal clipboard helpers — copy/paste for the embedded xterm.
+ * terminal-clipboard — PASTE chord handling for the embedded xterm.
  *
- * iterate-2026-05-18-terminal-copy-paste. xterm.js ships no text-copy
- * binding and its built-in Ctrl+V fails silently in a non-secure context
- * (the WebUI is reached over the Tailscale IP — plain http — where
- * `navigator.clipboard` is unavailable). `EmbeddedTerminal` registers the
- * handler from `createClipboardKeyHandler` via `attachCustomKeyEventHandler`.
+ * iterate-2026-05-18-terminal-copy-paste (paste fidelity). COPY handling was
+ * REMOVED in iterate-2026-07-07-terminal-osc52-clipboard: Claude Code copies
+ * its own mouse selection via OSC 52 and the WebUI relays it to the OS
+ * clipboard (see terminal-osc52.ts), so the WebUI no longer intercepts Ctrl+C /
+ * Ctrl+Insert. Ctrl+C now ALWAYS passes through to the pty (SIGINT / Claude's
+ * own interrupt) — the correct behaviour inside Claude, where the old copy
+ * interception could swallow a real interrupt when a selection existed.
  *
- * Chord set = VS Code Windows-terminal parity: Ctrl+C / Ctrl+Insert copy,
- * Ctrl+V / Shift+Insert paste. `Ctrl+Shift+C` is deliberately NOT a copy
- * chord — it is Chrome's DevTools "inspect" accelerator and is not
- * reliably interceptable from a browser tab. `Meta+*` (macOS) and `Alt+*`
- * (Claude TUI's Alt+V image-paste) are always passthrough so the browser
- * / Claude handle them natively.
- *
- * The logic here is renderer-free + DOM-event-free at its core (the pure
- * classifier) and dependency-injected at its edge (the handler factory),
- * so both are unit-testable without mounting xterm.
+ * Paste chords = VS Code Windows-terminal parity: Ctrl+V / Shift+Insert.
+ * xterm's built-in Ctrl+V fails silently in a non-secure context (the WebUI
+ * reached over the Tailscale IP — plain http — where `navigator.clipboard` is
+ * unavailable); this handler surfaces an inline "use right-click → Paste" hint
+ * instead of failing silently. `Meta+*` (macOS) and `Alt+*` (Claude TUI's
+ * Alt+V image-paste) are always passthrough.
  */
 
 import type { Terminal } from "@xterm/xterm";
 
-export type ClipboardChord = "copy" | "paste" | "passthrough";
+export type ClipboardChord = "paste" | "passthrough";
 
 /**
- * Subset of `KeyboardEvent` the classifier reads. Declared as an
- * interface so the classifier is unit-testable without a DOM event.
+ * Subset of `KeyboardEvent` the classifier reads. Declared as an interface so
+ * the classifier is unit-testable without a DOM event.
  */
 export interface ChordEventLike {
   type: string;
@@ -37,27 +35,22 @@ export interface ChordEventLike {
 }
 
 /**
- * Map a keyboard event to a clipboard intent. Pure — `keydown` only;
- * `keyup` / `keypress` and every non-clipboard key are `passthrough`.
- * Uses the semantic `ev.key` (not `ev.code`) so the intent follows the
- * character the user's layout produces, per external review.
+ * Map a keyboard event to a clipboard intent. Pure — `keydown` only. Only
+ * PASTE is intercepted; every other key (including Ctrl+C / Ctrl+Insert) is
+ * `passthrough` so it reaches the pty. Uses the semantic `ev.key` so the intent
+ * follows the character the user's layout produces.
  */
 export function classifyClipboardChord(ev: ChordEventLike): ClipboardChord {
   if (ev.type !== "keydown") return "passthrough";
-  // macOS Cmd+* and Alt+* are never our chords — let the browser /
-  // Claude TUI handle them (Cmd+V fires a native `paste` event).
+  // macOS Cmd+* and Alt+* are never our chords — let the browser / Claude TUI
+  // handle them (Cmd+V fires a native `paste` event).
   if (ev.metaKey || ev.altKey) return "passthrough";
 
   const key = ev.key.toLowerCase();
   const isInsert = ev.key === "Insert";
 
-  // Copy — Ctrl+C / Ctrl+Insert. Shift excluded so Ctrl+Shift+C and
-  // Ctrl+Shift+Insert fall through to passthrough.
-  if (ev.ctrlKey && !ev.shiftKey && (key === "c" || isInsert)) {
-    return "copy";
-  }
-  // Paste — Ctrl+V, or Shift+Insert (Ctrl excluded so Ctrl+Shift+Insert
-  // is not a paste either).
+  // Paste — Ctrl+V, or Shift+Insert (Ctrl excluded so Ctrl+Shift+Insert is not
+  // a paste either).
   if (ev.ctrlKey && !ev.shiftKey && key === "v") return "paste";
   if (ev.shiftKey && !ev.ctrlKey && isInsert) return "paste";
 
@@ -73,10 +66,9 @@ export type PasteRead =
  * Read the OS clipboard for a paste.
  *
  * - `unavailable` — the async Clipboard API is absent. This is the
- *   non-secure-context case (the WebUI over Tailscale http): the caller
- *   shows the "use right-click → Paste" hint.
- * - `denied` — `readText()` rejected (permission denied / browser-level
- *   failure): the caller shows a "Paste failed" notice — never silent.
+ *   non-secure-context case (the WebUI over Tailscale http): the caller shows
+ *   the "use right-click → Paste" hint.
+ * - `denied` — `readText()` rejected: the caller shows a "Paste failed" notice.
  */
 export async function readClipboardForPaste(): Promise<PasteRead> {
   if (
@@ -94,110 +86,44 @@ export async function readClipboardForPaste(): Promise<PasteRead> {
   }
 }
 
-/** Kind of transient notice the copy/paste handler surfaces. */
-export type ClipboardNoticeKind =
-  | "copied"
-  | "copy-failed"
-  | "paste-hint"
-  | "paste-failed";
+/** Kind of transient notice the clipboard surfaces (corner pill). */
+export type ClipboardNoticeKind = "copy-failed" | "paste-hint" | "paste-failed";
 
-/** xterm surface the key handler needs — kept minimal for test fakes. */
-export type ClipboardTerminal = Pick<
-  Terminal,
-  "hasSelection" | "getSelection" | "clearSelection" | "paste"
->;
+/** xterm surface the paste handler needs — kept minimal for test fakes. */
+export type ClipboardTerminal = Pick<Terminal, "paste">;
 
 export interface ClipboardKeyHandlerDeps {
-  /** The xterm terminal — selection source + paste sink. */
+  /** The xterm terminal — paste sink. */
   term: ClipboardTerminal;
   /** True once the terminal is disposed; async callbacks then no-op. */
   isDisposed: () => boolean;
   /** Surface a transient notice (corner pill). */
   notify: (kind: ClipboardNoticeKind) => void;
-  /** Copy text to the OS clipboard (lib/clipboard.copyText). Rejects on failure. */
-  copy: (text: string) => Promise<void>;
   /** Read the OS clipboard (readClipboardForPaste). */
   readClipboard: () => Promise<PasteRead>;
-  /**
-   * Fallback selection source when the LIVE xterm selection has already been
-   * wiped by an app redraw (Claude's any-motion mouse tracking clears the
-   * selection before the user can press Ctrl+C — see useTerminalClipboard).
-   * Optional; legacy callers omit it and keep the pre-cache behaviour.
-   * iterate-2026-07-06-terminal-copy-selection-cache.
-   */
-  getCachedSelection?: () => string;
-  /**
-   * Called after a successful copy (live OR cached selection) so the caller
-   * can clear the Copy pill + the selection cache. Optional.
-   */
-  onCopySuccess?: () => void;
 }
 
 /**
- * Build the `attachCustomKeyEventHandler` callback for the embedded
- * terminal. Returns `true` to let xterm process the key, `false` to
- * suppress it.
- *
- * Copy (Ctrl+C / Ctrl+Insert):
- *  - non-empty selection → `preventDefault` (suppress the native `copy`
- *    event), copy, clear the selection ON SUCCESS ONLY (preserved on
- *    failure so the user can retry), notify.
- *  - empty / whitespace-only selection → passthrough: Ctrl+C reaches the
- *    pty as SIGINT, Ctrl+Insert reaches an app that binds it.
- *  - held chord (`ev.repeat`) with a selection → suppress, no re-copy.
+ * Build the `attachCustomKeyEventHandler` callback for the embedded terminal.
+ * Returns `true` to let xterm process the key, `false` to suppress it.
  *
  * Paste (Ctrl+V / Shift+Insert):
- *  - always `preventDefault` + `stopPropagation`: both chords ALSO fire
- *    a native browser `paste` event → without this the text lands twice.
+ *  - always `preventDefault` + `stopPropagation`: both chords ALSO fire a
+ *    native browser `paste` event → without this the text lands twice.
  *  - read the clipboard → `term.paste()` (line-ending + bracketed-paste
- *    normalization); `unavailable` → "paste-hint"; `denied` →
- *    "paste-failed".
+ *    normalization); `unavailable` → "paste-hint"; `denied` → "paste-failed".
  *  - held chord → suppress, no re-paste.
+ *
+ * Every other key — including Ctrl+C / Ctrl+Insert — passes through to the pty.
  */
 export function createClipboardKeyHandler(
   deps: ClipboardKeyHandlerDeps,
 ): (ev: KeyboardEvent) => boolean {
-  const { term, isDisposed, notify, copy, readClipboard, getCachedSelection, onCopySuccess } =
-    deps;
+  const { term, isDisposed, notify, readClipboard } = deps;
 
   return (ev: KeyboardEvent): boolean => {
-    const intent = classifyClipboardChord(ev);
-    if (intent === "passthrough") return true;
+    if (classifyClipboardChord(ev) !== "paste") return true;
 
-    if (intent === "copy") {
-      let selection = term.hasSelection() ? term.getSelection() : "";
-      // The live selection is routinely wiped by an app redraw before Ctrl+C
-      // (Claude's mouse tracking) — fall back to the last captured selection so
-      // an intentional copy still copies instead of degrading to SIGINT.
-      if (selection.trim().length === 0 && getCachedSelection) {
-        selection = getCachedSelection();
-      }
-      // Truly nothing to copy → let the key through: Ctrl+C becomes SIGINT,
-      // Ctrl+Insert reaches the foreground app.
-      if (selection.trim().length === 0) return true;
-      // Suppress xterm's default AND the browser's native `copy` event.
-      ev.preventDefault();
-      ev.stopPropagation();
-      // Held chord — the first keydown already copied this selection.
-      if (ev.repeat) return false;
-      void copy(selection).then(
-        () => {
-          if (isDisposed()) return;
-          // Clear ONLY on success — a failed copy keeps the selection so
-          // the user can retry or fall back to right-click → Copy.
-          term.clearSelection();
-          notify("copied");
-          onCopySuccess?.();
-        },
-        () => {
-          if (isDisposed()) return;
-          notify("copy-failed");
-        },
-      );
-      return false;
-    }
-
-    // intent === "paste"
     // Suppress xterm's default AND the native `paste` event that Ctrl+V /
     // Shift+Insert also fire — otherwise the pasted text lands twice.
     ev.preventDefault();
@@ -207,9 +133,8 @@ export function createClipboardKeyHandler(
       if (isDisposed()) return;
       if (result.ok) {
         // term.paste() normalizes line endings + wraps the text in
-        // bracketed-paste markers when the app enabled them, so a
-        // multi-line prompt pastes intact instead of submitting on its
-        // first line.
+        // bracketed-paste markers when the app enabled them, so a multi-line
+        // prompt pastes intact instead of submitting on its first line.
         if (result.text) term.paste(result.text);
       } else if (result.reason === "unavailable") {
         notify("paste-hint");

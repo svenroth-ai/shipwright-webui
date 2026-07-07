@@ -85,4 +85,31 @@ describe("copyText", () => {
     await expect(copyText("no-modern-api")).resolves.toBeUndefined();
     expect(exec).toHaveBeenCalledWith("copy");
   });
+
+  it("preserveFocus restores the previously-focused element (execCommand path)", async () => {
+    // The OSC 52 relay path: async copy while the terminal holds focus must
+    // not be stolen by the temp-textarea dance.
+    stubExecCommand(true); // navigator.clipboard absent → execCommand path
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    await copyText("focus-me", { preserveFocus: true });
+
+    expect(document.activeElement).toBe(input); // focus restored
+    input.remove();
+  });
+
+  it("without preserveFocus, focus is NOT restored (default menu-caller path)", async () => {
+    stubExecCommand(true);
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    await copyText("no-restore");
+
+    expect(document.activeElement).not.toBe(input);
+    input.remove();
+  });
 });

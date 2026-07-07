@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-07-06T00:00:00Z",
+  "last_updated": "2026-07-07T00:00:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-06-terminal-copy-selection-cache",
-    "date": "2026-07-06",
+    "run_id": "iterate-2026-07-07-terminal-osc52-clipboard",
+    "date": "2026-07-07",
     "unit": {
       "status": "passed",
-      "passed": 1895,
-      "total": 1895,
-      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal fix)"
+      "passed": 1867,
+      "total": 1867,
+      "note": "full client Vitest suite (190 files); server unchanged (client-only terminal change)"
     },
     "integration": {
       "status": "not_run",
@@ -21,8 +21,9 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 3,
-      "total": 3
+      "passed": 5,
+      "total": 5,
+      "note": "terminal-osc52.spec.ts (2) + terminal-copy-paste.spec.ts (3, paste + Ctrl+C-SIGINT)"
     },
     "design_fidelity": {
       "status": "skipped",
@@ -36,48 +37,53 @@
       "surface": "web",
       "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
       "exit_code": 0,
-      "tests_run": 3,
-      "evidence_path": "client/e2e/flows/terminal-copy-cache.spec.ts",
-      "timestamp": "2026-07-06T18:12:00.000Z",
-      "justification": "Real-browser proof against a live pty of the redraw-proof copy: (1) after term.clearSelection() simulates Claude's redraw wiping the live selection, Ctrl+C still copies the captured text to the clipboard (AC-1); (2) the mouse-only Copy pill appears on a settled selection and copies on click, then clears (AC-3); (3) a committing keystroke invalidates the cache so Ctrl+C reverts to SIGINT (\\u0003) (AC-4). Ran green (3/3). This run also CAUGHT a real bug the unit tests missed — a bubble-phase keydown listener never fired because xterm stopPropagations handled keys; fixed by registering the invalidation listener capture-phase. Note: localhost is a secure context so the copy here takes the navigator.clipboard fast path; the execCommand fallback exercised in the user's real non-secure http/Tailscale context is unit-covered (lib/clipboard) and was validated live via console instrumentation."
+      "tests_run": 5,
+      "evidence_path": "client/e2e/flows/terminal-osc52.spec.ts",
+      "timestamp": "2026-07-07T00:00:00.000Z",
+      "justification": "Real-browser proof against a live pty: an OSC 52 clipboard-write escape written to the real xterm parser lands the decoded text on the OS clipboard (AC-1), and an OSC 52 READ request (52;c;?) leaves the clipboard untouched — deny, no leak (AC-2). Paste is intact (Ctrl+V multi-line CR-normalized, Shift+Insert) and Ctrl+C now passes through as SIGINT (AC-4/AC-5). Ran green (5/5). Note: localhost is a secure context so the copy takes the navigator.clipboard fast path; the execCommand fallback + its focus-preservation (the http/Tailscale path, review HIGH fix) is unit-covered (lib/clipboard.test.ts) and the mechanism was validated live via the user's console instrumentation over real http/Tailscale."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC-1: Ctrl+C / Ctrl+Insert copies the last CAPTURED selection when the live xterm selection was cleared by an app redraw",
+          "behavior": "AC-1: an OSC 52 clipboard WRITE emitted by the terminal is decoded + written to the OS clipboard (execCommand fallback, http-safe)",
           "disposition": "tested",
-          "evidence": "terminal-clipboard-handler.test.ts 'cached-selection fallback' block (empty live selection copies cache; Ctrl+Insert too) + e2e terminal-copy-cache.spec.ts test 1 (clearSelection then Ctrl+C copies) green"
+          "evidence": "terminal-osc52.test.ts (write relays to copy; UTF-8 decode) + e2e terminal-osc52.spec.ts 'write lands on the OS clipboard' green"
         },
         {
-          "behavior": "AC-2: with an empty / whitespace cache the copy chord passes through as SIGINT (interrupt preserved)",
+          "behavior": "AC-2: an OSC 52 READ request (52;c;?) is DENIED — consumed, no reply, clipboard untouched (no leak)",
           "disposition": "tested",
-          "evidence": "terminal-clipboard-handler.test.ts 'empty live + empty cache -> passthrough' and 'whitespace-only cache -> passthrough' + e2e test 3 asserts \\u0003 sent after invalidation"
+          "evidence": "terminal-osc52.test.ts (read -> no copy, returns true; parseOsc52 classifies ?, c;?, bare ?) + e2e 'read request does NOT alter the clipboard' green"
         },
         {
-          "behavior": "AC-3: a mouse-only Copy pill appears on a settled selection and copies it on click, then clears",
+          "behavior": "AC-3: malformed / empty / oversized OSC 52 payloads swallowed safely (no parser throw, no clobber, size pre-check)",
           "disposition": "tested",
-          "evidence": "useTerminalClipboard.test.ts (captureSelection shows pill; onCopySelection copies via copyText then clears) + useTerminalSelection.test.ts (mouseup captures even when copy-on-selection OFF) + e2e test 2 (pill visible, click copies, pill hidden) green"
+          "evidence": "terminal-osc52.test.ts (invalid base64 -> null not throw; empty -> no copy; oversized -> invalid via pre-check before decode)"
         },
         {
-          "behavior": "AC-4: cache + pill invalidated on a new selection gesture (mousedown, incl. cross-boundary origin) and on committing keyboard input, so a stale selection never hijacks a later Ctrl+C-as-SIGINT",
+          "behavior": "AC-4: WebUI no longer intercepts Ctrl+C / Ctrl+Insert (pass through as interrupt/SIGINT); copy-on-selection, redraw cache, Copy pill, mouse-mode hint removed",
           "disposition": "tested",
-          "evidence": "useTerminalSelection.test.ts invalidation block incl. the review Finding-A cross-boundary regression (OUTSIDE-origin mousedown clears the tracker) + capture-phase keydown-invalidate + e2e test 3 green"
+          "evidence": "terminal-clipboard.test.ts (Ctrl+C -> passthrough) + terminal-clipboard-handler.test.ts (passthrough block) + EmbeddedTerminal.test.tsx (Ctrl+C passes through) + e2e terminal-copy-paste.spec.ts (Ctrl+C -> SIGINT); deleted useTerminalSelection + tests; full suite green"
         },
         {
-          "behavior": "AC-5: copy-on-selection auto-write stays opt-in / default-off; capturing-for-copy never writes to the OS clipboard (no #186 clobber)",
+          "behavior": "AC-5: paste (Ctrl+V / Shift+Insert / right-click) + clipboard-notice (paste-hint/paste-failed/copy-failed) intact",
           "disposition": "tested",
-          "evidence": "useTerminalSelection.test.ts 'captures ... even when copy-on-selection OFF (no clipboard write)' + existing EmbeddedTerminal.test.tsx copy-on-selection debounce/dedup block still green (351/351 terminal tests)"
+          "evidence": "terminal-clipboard-handler.test.ts (paste block) + e2e terminal-copy-paste.spec.ts (Ctrl+V multiline, Shift+Insert) + useTerminalClipboard.test.ts (notice)"
         },
         {
-          "behavior": "AC-6: the copy write works with no navigator.clipboard (non-secure http) via the execCommand fallback",
+          "behavior": "AC-6: terminal Appearance setting (FR-01.44) unaffected by removing the copy-on-selection toggle",
           "disposition": "tested",
-          "evidence": "lib/clipboard copyText execCommand fallback path (unit-covered; skips when navigator.clipboard absent) + review-confirmed the pill click retains user-activation for execCommand; validated live over http/Tailscale via console instrumentation (localhost E2E cannot exercise a non-secure context)"
+          "evidence": "TerminalSettingsCard.test.tsx (appearance selector — 4 tests still green)"
+        },
+        {
+          "behavior": "Review HIGH: async OSC 52 relay does not steal terminal keyboard focus on the http/execCommand path",
+          "disposition": "tested",
+          "evidence": "lib/clipboard.test.ts 'preserveFocus restores the previously-focused element' + 'without preserveFocus, focus is NOT restored' (opt-in guard for menu callers)"
         }
       ],
       "counts": {
-        "testable": 6,
-        "tested": 6,
+        "testable": 7,
+        "tested": 7,
         "untestable": 0,
         "untested_testable": 0
       },

@@ -21,15 +21,32 @@
  *      `requestAnimationFrame`).
  */
 
+/** Options for {@link copyText}. */
+export interface CopyTextOptions {
+  /**
+   * Restore the previously-focused element after the `execCommand` textarea
+   * dance. iterate-2026-07-07-terminal-osc52-clipboard: the OSC 52 clipboard
+   * relay fires `copyText` ASYNCHRONOUSLY (from the pty, no user gesture)
+   * while the terminal holds keyboard focus; focusing + removing the temp
+   * textarea would otherwise steal focus from the terminal so the user's next
+   * keystrokes go nowhere. Menu callers (gesture-bound, menu already closed)
+   * leave this OFF so their focus flow is unchanged.
+   */
+  preserveFocus?: boolean;
+}
+
 /**
  * Copy `text` to the clipboard. Resolves on success; rejects with a
  * descriptive `Error` when every available path fails — callers MUST
  * surface that rejection (no silent swallow).
  */
-export async function copyText(text: string): Promise<void> {
+export async function copyText(
+  text: string,
+  opts?: CopyTextOptions,
+): Promise<void> {
   // Modern async Clipboard API — the primary path. Needs a secure
   // context + transient activation; both hold when called from a click
-  // handler on localhost.
+  // handler on localhost. No focus-steal on this path.
   if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text);
@@ -49,6 +66,10 @@ export async function copyText(text: string): Promise<void> {
   if (typeof document === "undefined") {
     throw new Error("clipboard unavailable: no document");
   }
+  const prevFocus =
+    opts?.preserveFocus && document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.setAttribute("readonly", "");
@@ -67,5 +88,13 @@ export async function copyText(text: string): Promise<void> {
     }
   } finally {
     document.body.removeChild(ta);
+    // Restore terminal focus for the async OSC 52 relay path.
+    if (prevFocus) {
+      try {
+        prevFocus.focus();
+      } catch {
+        /* element may be gone — best-effort */
+      }
+    }
   }
 }

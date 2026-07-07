@@ -4,8 +4,7 @@
  *
  * Pure JSX, no React state of its own. The shell owns the banner state
  * (readOnly / showResetBanner / replayOnly / previewCommand /
- * manualSendCommand / clipboardNotice / mouse-mode-hint) and passes
- * everything through. This slot exists to keep the shell ≤250 LOC.
+ * manualSendCommand / clipboardNotice) and passes everything through.
  *
  * Banner ordering (top to bottom, source-faithful):
  *   1. read-only (ADR-084 grace-armed)
@@ -13,11 +12,15 @@
  *   3. replay-only (Iterate v0.8.2 AC-7)
  *   4. preview command (ADR-068-A1 AC-16)
  *   5. manual-send (resume-cta-rework AC-2)
- *   6. mouse-mode hint (iterate-2026-05-23 terminal-selection-uxd)
- *   7. clipboard notice (iterate-2026-05-18)
+ *   6. clipboard notice (iterate-2026-05-18)
  *
- * (1)-(5) render as -mx-2 / -mt-2 header strips on the dark frame; (6)
- * sits absolute top-right; (7) sits absolute bottom-right.
+ * (1)-(5) render as -mx-2 / -mt-2 header strips on the dark frame; (6) sits
+ * absolute bottom-right.
+ *
+ * The Copy pill (iterate-2026-07-06) and the "Maus-Modus aktiv" mouse-mode hint
+ * (iterate-2026-05-23) were removed in iterate-2026-07-07-terminal-osc52-clipboard
+ * when OSC 52 became the sole terminal copy path (Claude copies its own mouse
+ * selection; the WebUI relays it — see terminal-osc52.ts).
  */
 
 import type { ReactElement } from "react";
@@ -25,20 +28,17 @@ import type { ReactElement } from "react";
 import type { ClipboardNoticeKind } from "./terminal-clipboard";
 
 export const CLIPBOARD_NOTICE_TEXT: Record<ClipboardNoticeKind, string> = {
-  copied: "Copied",
   "copy-failed": "Copy failed",
   "paste-hint":
     "Keyboard paste needs HTTPS or localhost — use right-click → Paste",
   "paste-failed": "Paste failed — clipboard permission denied",
 };
 export const CLIPBOARD_NOTICE_MS: Record<ClipboardNoticeKind, number> = {
-  copied: 2500,
   "copy-failed": 8000,
   "paste-hint": 8000,
   "paste-failed": 8000,
 };
 const CLIPBOARD_NOTICE_CLASS: Record<ClipboardNoticeKind, string> = {
-  copied: "border-emerald-700 bg-[#0f2417] text-emerald-300",
   "copy-failed": "border-red-800 bg-[#2a1416] text-red-300",
   "paste-hint": "border-sky-800 bg-[#0f1d2e] text-sky-300",
   "paste-failed": "border-red-800 bg-[#2a1416] text-red-300",
@@ -61,20 +61,8 @@ export interface TerminalBannersProps {
   manualSendCommand: string | null;
   onManualSend: () => void;
   onDismissManualSend: () => void;
-  mouseEventsActive: boolean;
-  bannerDismissed: boolean;
-  onDismissMouseHint: () => void;
   clipboardNotice: ClipboardNoticeKind | null;
   onDismissClipboardNotice: () => void;
-  /**
-   * Captured terminal selection offered by the mouse-only Copy pill
-   * (redraw-proof copy, iterate-2026-07-06-terminal-copy-selection-cache).
-   * `null`/absent hides the pill. Optional so existing callers/tests need no
-   * change.
-   */
-  copyableSelection?: string | null;
-  /** Copy the captured selection (Copy-pill click). */
-  onCopySelection?: () => void;
 }
 
 export function TerminalBanners(props: TerminalBannersProps): ReactElement {
@@ -88,13 +76,8 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
     manualSendCommand,
     onManualSend,
     onDismissManualSend,
-    mouseEventsActive,
-    bannerDismissed,
-    onDismissMouseHint,
     clipboardNotice,
     onDismissClipboardNotice,
-    copyableSelection,
-    onCopySelection,
   } = props;
   return (
     <>
@@ -190,43 +173,6 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
           </div>
         </div>
       ) : null}
-      {mouseEventsActive && !bannerDismissed ? (
-        <div
-          className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded border border-sky-800 bg-[#0f1d2e] px-2.5 py-1 text-[11px] text-sky-300 shadow-md"
-          data-testid="embedded-terminal-mouse-mode-hint"
-          role="status"
-        >
-          <span>Maus-Modus aktiv — Shift+Drag zum Markieren</span>
-          <button
-            type="button"
-            onMouseDown={(ev) => ev.preventDefault()}
-            onClick={onDismissMouseHint}
-            className="shrink-0 rounded px-1 leading-none hover:bg-white/10"
-            data-testid="embedded-terminal-mouse-mode-hint-dismiss"
-            aria-label="Hinweis schließen"
-          >
-            ✕
-          </button>
-        </div>
-      ) : null}
-      {copyableSelection && onCopySelection ? (
-        <div
-          className="absolute bottom-3 left-3 z-10 flex items-center rounded border border-emerald-700 bg-[#0f2417] text-emerald-300 shadow-md"
-          data-testid="embedded-terminal-copy-pill"
-        >
-          <button
-            type="button"
-            // Keep the terminal's focus/selection — don't let the mousedown
-            // steal focus before onClick copies from the cache.
-            onMouseDown={(ev) => ev.preventDefault()}
-            onClick={onCopySelection}
-            className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium hover:opacity-90"
-            data-testid="embedded-terminal-copy-pill-button"
-          >
-            <span aria-hidden>⧉</span> Auswahl kopieren
-          </button>
-        </div>
-      ) : null}
       {clipboardNotice ? (
         <div
           className={`absolute bottom-3 right-3 z-10 flex max-w-[min(90%,28rem)] items-center gap-2 rounded border px-2.5 py-1 text-[11px] shadow-md ${CLIPBOARD_NOTICE_CLASS[clipboardNotice]}`}
@@ -234,17 +180,15 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
           data-notice-kind={clipboardNotice}
         >
           <span>{CLIPBOARD_NOTICE_TEXT[clipboardNotice]}</span>
-          {clipboardNotice !== "copied" ? (
-            <button
-              type="button"
-              onClick={onDismissClipboardNotice}
-              className="shrink-0 rounded px-1 leading-none hover:bg-white/10"
-              data-testid="embedded-terminal-clipboard-notice-dismiss"
-              aria-label="Dismiss"
-            >
-              ✕
-            </button>
-          ) : null}
+          <button
+            type="button"
+            onClick={onDismissClipboardNotice}
+            className="shrink-0 rounded px-1 leading-none hover:bg-white/10"
+            data-testid="embedded-terminal-clipboard-notice-dismiss"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
         </div>
       ) : null}
     </>

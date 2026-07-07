@@ -1,6 +1,7 @@
 /*
- * TerminalSettingsCard.test.tsx — appearance selector + copy-on-selection
- * toggle (iterate-2026-07-06-terminal-theme-modes, FR-01.44).
+ * TerminalSettingsCard.test.tsx — appearance selector
+ * (iterate-2026-07-06-terminal-theme-modes, FR-01.44). The copy-on-selection
+ * toggle was removed in iterate-2026-07-07-terminal-osc52-clipboard.
  */
 
 import { afterEach, describe, expect, it, vi } from "vitest";
