@@ -1,1 +1,0 @@
-macOS/Linux production rebuild+restart scripts (`scripts/start-server-production.sh` + `scripts/stop-server.sh`), the bash twins of the Windows `.ps1` helpers: one-step install+build of both halves, stop-old, start-fresh, with the same double `~/.claude.json` self-heal around the restart.

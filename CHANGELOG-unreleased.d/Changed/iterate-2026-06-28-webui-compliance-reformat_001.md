@@ -1,1 +1,0 @@
-Compliance: regenerated the Command Center compliance dashboard with the current grading plugin and reconciled all behavior-touched requirements (re-verified via the full test suite) — honest Control Grade rises to A (98), now with the Change-reconciliation dimension and the RTM Reconciled column.

@@ -1,1 +1,0 @@
-Resolved all open dependency advisories reported by the OSV/Scorecard Vulnerabilities check by updating developer/build/test tooling to patched versions. No production-runtime libraries were affected; behavior is unchanged.

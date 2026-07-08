@@ -1,1 +1,0 @@
-Harden cmd.exe argument quoting (launcher qCmd) to the CommandLineToArgvW backslash/quote rules so a trailing backslash or a backslash-before-quote in a task title can't break out of the quoted launch argument (CodeQL js/incomplete-sanitization).

@@ -3115,3 +3115,368 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Consequences:** Terminal gets more room on phones; the resume-picker finger-pan scrolls the loaded scrollback; legible keys; smear healed regardless of mobile redraw latency. AC-3/AC-4 final on-device behavior is device-UAT.
 - **Rejected:** Extending the fixed repaint timers (fragile vs mobile latency); collapsible-drawer + tighten-only header variants (user chose condense); trimming the MainLayout top bar (already a 44px touch target).
 - **Details:** [2026-06-20-mobile-terminal-touch-ux.md](../planning/iterate/2026-06-20-mobile-terminal-touch-ux.md)
+
+---
+
+### ADR-203: Data-independent activation repaint for idle terminal tab-switch
+- **Date:** 2026-06-22
+- **Section:** Terminal rendering
+- **Run-ID:** iterate-2026-06-22-terminal-idle-tab-switch-smear
+- **Context:** PR #164 (ADR-202) replaced the fixed 130/350ms trailing repaints with a data-driven settle window (repaint-on-settle.ts) that repaints ONLY on parsed writes. An IDLE Claude session emits no writes after a Transcript->Terminal switch, so only the single synchronous term.refresh ran -- before the un-hidden display:none->block WebGL canvas composited -- leaving the stale-frame smear (4th smear report).
+- **Decision:** Add a separate data-independent trailing-repaint module (activation-repaint.ts, 130/350ms staggered, GPU-cheap full-viewport refreshes) scheduled by useTerminalResize on tab-activation + visibility/focus, regardless of data flow.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Restores the pre-#164 heal for the no-data path while KEEPING #164's data-driven settle window for the streaming case (Claude's late async redraw). The two mechanisms are complementary -- documented as a Chesterton's fence in useTerminalResize.ts.
+- **Consequences:** Idle tab-switch / focus-restore clears the smear without depending on output. Two extra full-viewport refreshes per layout-change event. Visual confirmation is requires-physical-device (user UAT).
+- **Rejected:** Re-arming the settle window unconditionally (entangles its data-driven tests + fires on every write); a single deferred refresh (insufficient for a slow multi-frame Windows/ANGLE composite).
+
+---
+
+### ADR-204: Reopen a Done card dragged out of the Done column
+- **Date:** 2026-06-23
+- **Section:** Iterate — bug: board drag Done→In Progress leaves task locked
+- **Run-ID:** iterate-2026-06-23-board-drag-done-reopen
+- **Context:** Dragging a done task out of Done set only boardColumn; state stayed done, so TaskCard's !isDone gate hid the entire action row — the card was stranded locked in the new column (no Resume/Launch), status unchanged.
+- **Decision:** A done card dragged/menu-moved OUT of Done routes through /reopen with the drop-target column (state done→draft, lands unlocked); /reopen gained an optional column param; /column still never touches state; live (non-done) cards stay pure column moves.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Only the terminal done state is locked in every column, so only it strands on a drag-out; reopening matches the existing ⋯-menu Re-open semantics and the user's mental model.
+- **Consequences:** Reopened card shows Resume/Launch in the dropped column; rule-23 decoupling preserved for live tasks; one extra client mutation field (reopen) + an additive optional /reopen body param (backward-compatible).
+- **Rejected:** Re-couple column↔state in /column (violates rule 23); render-only CTA on a done card (status stays 'done' — the actual complaint); drag-into-Done=close (breaks 'a live task can be parked in any column').
+
+---
+
+### ADR-205: Disable DragOverlay drop animation on the board
+- **Date:** 2026-06-23
+- **Section:** Iterate — bug: board drop animation flips card back to origin
+- **Run-ID:** iterate-2026-06-23-board-drop-animation
+- **Context:** dnd-kit's default DragOverlay drop animation returns the dragged clone to the SOURCE position on release; the optimistic column move relocates the card at the same instant, so the clone visibly flips back to the origin while the card is already at the destination.
+- **Decision:** Set dropAnimation={null} on the board's <DragOverlay> so the overlay just vanishes on drop; the already-relocated card stays put.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The card relocates across containers (column), so the default same-position return animation is wrong; disabling it is the standard dnd-kit fix for cross-container moves.
+- **Consequences:** No flip-back; instant settle. No change to drag/drop logic. Guarded by TaskBoardColumns.dropanim.test.tsx (captures the prop dnd-kit receives).
+- **Rejected:** Custom dropAnimation targeting the destination cell (brittle — needs measuring the moved node mid-transition); keeping the default (the bug).
+
+---
+
+### ADR-206: Runtime renderer override to isolate the WebGL smear root cause
+- **Date:** 2026-06-23
+- **Section:** Terminal rendering
+- **Run-ID:** iterate-2026-06-23-terminal-renderer-toggle
+- **Context:** The embedded-terminal smear survived FIVE trigger-based fixes (convertEol, #146 refocus, #147 reflow, #164 settle, #167 idle-tab-switch), all variants of 'find trigger -> term.refresh'. It reproduces across active / idle / read-only-replay, which points past the trigger to the WebGL renderer: term.refresh redraws glyphs but does not reset the GL framebuffer/atlas that goes stale after display:none hide or replay re-feed.
+- **Decision:** Add a runtime renderer override (terminal-renderer.ts) read by xtermAddons.ts: ?terminalRenderer=dom or localStorage skips the WebGL addon so xterm uses its DOM renderer. Default unchanged (webgl). This is a DIAGNOSTIC to A/B the renderer on a real GPU, not the fix.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Stop stacking term.refresh patches; change ONE variable (the renderer) and let empirical reality on the user's GPU decide, instead of more theorizing.
+- **Consequences:** If the DOM renderer kills the smear across all cases, WebGL is confirmed the root cause and the real fix follows (make DOM default + overturn ADR-099, or a proper WebGL context/atlas reset). Reversible: clear the query/storage. No default behavior change.
+- **Rejected:** Another term.refresh trigger (6th patch); clearTextureAtlas/context-reload without first proving WebGL is the cause; silently switching to DOM (overturns ADR-099 without evidence).
+
+---
+
+### ADR-207: CodeQL config hardening + qCmd CommandLineToArgvW quoting
+- **Date:** 2026-06-27
+- **Section:** Iterate — change: CodeQL noise reduction + cmd.exe quoting fix
+- **Run-ID:** iterate-2026-06-27-codeql-hardening
+- **Context:** GitHub CodeQL reported 47 open alerts (31 high) but ~34 were non-actionable: maintainability-only queries plus findings in tests/e2e/dev-scripts on a localhost single-user tool. One genuine production finding sat on the launch command-quoting boundary.
+- **Decision:** Switch CodeQL to security-extended + add .github/codeql/codeql-config.yml paths-ignore (tests/e2e/scripts). Fix launcher.ts qCmd to the CommandLineToArgvW backslash/quote rules; escape backslash-before-quote in the CommandPreviewPanel preview string.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Noise is removed durably via config rather than per-alert dismissal. CommandLineToArgvW is the standard algorithm claude.exe's runtime parses against; blanket backslash-escaping would corrupt normal paths (C:\foo).
+- **Consequences:** Future scans report only production app-code security alerts. qCmd now produces argv-correct cmd.exe quoting for titles/paths containing quotes or backslashes; normal paths stay byte-identical.
+- **Rejected:** Per-alert GitHub dismissal of all 34 (ephemeral, re-flags on new code); rewriting 8 production TOCTOU files (negative ROI on a loopback tool); a full cmd.exe metachar layer (out of scope, risks over-escaping).
+
+---
+
+### ADR-208: Mobile modal touch-safety: iOS focus-zoom + footer button symmetry
+- **Date:** 2026-06-27
+- **Section:** Iterate — bug: mobile-modal-touch-safety
+- **Run-ID:** iterate-2026-06-27-mobile-modal-terminal-scroll
+- **Context:** On iOS Safari the New-Task modal auto-zoomed and right-clipped when a sub-16px input was focused. The Launch button had a 44px touch min-height but Save to Backlog did not, so Launch towered over it on touch.
+- **Decision:** Add pointer-coarse:text-[16px] to the three modal text controls and pointer-coarse:min-h-[44px] to BOTH footer buttons; the fine-pointer (desktop) layout is untouched.
+- **Commit:** (assigned post-merge)
+- **Rationale:** 16px is the documented iOS no-zoom threshold; the pointer-coarse: variant scopes both changes to touch so desktop density is preserved, matching FR-01.39's existing touch-target convention.
+- **Consequences:** iOS no longer focus-zooms the dialog and the footer buttons are symmetric 44px touch targets. Real-browser verified in spec 90 (mobile-chromium, Pixel 5).
+- **Rejected:** Viewport meta maximum-scale=1 (kills pinch-zoom / accessibility); full-width stacked footer buttons on mobile (more change than requested).
+
+---
+
+### ADR-209: Repaint the embedded terminal on every WebGL texture-atlas mutation
+- **Date:** 2026-06-27
+- **Section:** client/terminal
+- **Run-ID:** iterate-2026-06-27-webgl-atlas-glyph-corruption
+- **Context:** During active use single embedded-terminal cells render a clean letter-for-letter WRONG glyph (not pixel garbage), healed only by a manual resize. The WebGL glyph atlas is keyed by glyph+fg+bg+style; when it mutates mid-stream (overflow page-add, or clear/repack on font/theme/DPR change) cells drawn earlier keep sampling a stale page/coordinate that may now hold a different glyph. No repaint fires at atlas-mutation time; only resize healed it.
+- **Decision:** Add webgl-atlas-repaint.ts (sibling of scroll-/settle-/activation-repaint), wired in xtermAddons.ts beside onContextLoss. It routes all three addon atlas-mutation events (onChangeTextureAtlas + onAddTextureAtlasCanvas + onRemoveTextureAtlasCanvas) through one full-viewport term.refresh(0, rows-1), repainting exactly when the atlas changes. Self-contained: no threading through EmbeddedTerminal.tsx (grandfathered at its 311-line ratchet ceiling).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Clean wrong LETTER (not garbage) = stale atlas-coordinate mapping; resize heals by regenerating the atlas + full-repainting. onChangeTextureAtlas covers only clear/repack (proven via fontSize toggle); the overflow page-add path needed onAddTextureAtlasCanvas (code-review MED), confirmed when atlasRepaints jumped 5 to 32 once all three were subscribed.
+- **Consequences:** Wrong-letter corruption self-heals with no manual resize. A full refresh is idempotent and cheap and atlas mutations are rare after warm-up, so no perf regression (spec 94: atlasRepaints=32 matched the deliberate mutations, no runaway loop). Real-browser proof covers overflow page-add and repack; the final visual check on the user GPU stays a one-time real-device confirmation.
+- **Rejected:** (1) clearTextureAtlas() on focus/visibility triggers: needs the addon threaded through ratchet-locked EmbeddedTerminal.tsx and does not fire during active use. (2) A 6th heuristic term.refresh trigger: the smear class already failed five such patches. (3) onChangeTextureAtlas only: misses the overflow page-add path.
+
+---
+
+### ADR-210: BP-1 WebUI traceability backfill: classify all events + close NOT-VERIFIED FRs
+- **Date:** 2026-06-28
+- **Section:** 01-adopted
+- **Run-ID:** iterate-2026-06-28-bp1-webui-fr-backfill
+- **Context:** Control Grade was capped at B (85) solely by requirement traceability: 27/41 FRs covered, 110/245 changes FR-tagged. 69 work events were unclassified and 14 adopted endpoints/pages were NOT-VERIFIED (untraced), though most had real test coverage.
+- **Decision:** Classify all 245 work events (FR-tag by intent or explicit none_reason); close the 5 NOT-VERIFIED FRs with clean event evidence by amending the verifying event; verify the other 9 by re-running their existing route tests (3464/3464 green) and link that fresh verification. No webui code/tests changed.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Traceability was a linking gap, not a verification gap; honest closure links real work/tests, never fabricated coverage.
+- **Consequences:** Control Grade B(85)->A(95); RTM NOT-VERIFIED 14->0; 41/41 FRs covered; every work event FR-classified. Change-reconciliation + Security stay n/a (BP-2 is monorepo/shared; security via CI gate).
+- **Rejected:** Force-cover via routes.ts file co-location (dishonest: co-located != exercised); leave Group B NOT-VERIFIED (real tests exist, verify-and-link is more accurate).
+
+---
+
+### ADR-211: WebUI compliance reformat + reconciliation to A (regenerate with current plugin)
+- **Date:** 2026-06-28
+- **Section:** 01-adopted
+- **Run-ID:** iterate-2026-06-28-webui-compliance-reformat
+- **Context:** The #178 dashboard was generated with the cache at #279 (pre cc1/cc2/cc3), carrying the old rendering and an inflated A95 — the old scorer never measured Change reconciliation. Regenerating with the current plugin showed the honest B89, capped by reconciliation (12/22 behavior-touched FRs never re-verified).
+- **Decision:** Regenerate all compliance docs with the current plugin; reconcile the 12 unreconciled FRs honestly by re-running the full suite (3464 green) and linking that re-verification on this iterate event (spec_impact=none). Defer AR-10 CI-security wiring.
+- **Commit:** (assigned post-merge)
+- **Rationale:** n/a-excluded Scorecard math means reconciliation alone reaches A; honest re-verification via the real suite run, never fabricated.
+- **Consequences:** Honest Control Grade B89 to A98; Change reconciliation 0/22; RTM gains the Reconciled? column. Security stays n/a (excluded from denominator, no grade impact) until the security.yml AR-10 upgrade.
+- **Rejected:** Keep the inflated A95 (dishonest, stale plugin); do the security CI overhaul now (not needed for A, sensitive-path Tier-3, separate scope).
+
+---
+
+### ADR-212: Bump 7 dependencies to clear Trivy high+medium CVEs (light Security dimension)
+- **Date:** 2026-06-28
+- **Section:** 01-adopted
+- **Run-ID:** iterate-2026-06-28-webui-dep-cve-fixes
+- **Context:** AR-10 (#291) makes the WebUI Security dimension measurable. The latest scan showed 6 high + 24 medium real Trivy dependency CVEs (incl. shell-quote command-injection CVE-2026-9277, react-router, hono, ws) - 0 critical. n/a no longer hid them.
+- **Decision:** Bump the 7 flagged packages to CVE-fixed versions (direct: mermaid/hono/shell-quote/react-router-dom; npm overrides for transitive dompurify/uuid/ws). Verified by the full suite (3464 green) + client/server builds. Re-scan + re-ingest lights Security at 0 high/critical.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Real CVEs to root remediation (dependency bumps), not suppression; patch/minor semver-safe bumps verified by the full suite + builds.
+- **Consequences:** Clears the Trivy high+medium dependency findings; the WebUI Control-Grade Security dimension lights clean (honest A) after the post-merge re-scan + ci-security.json ingest. Fixes a real command-injection in shell-quote (used by quotePathForShell).
+- **Rejected:** Accept the honest B89 (real high CVEs should not be left open); .trivyignore the findings (suppression, not a fix).
+
+---
+
+### ADR-213: Light the Security dimension via AR-10 SARIF ingest (0 high/critical to A99)
+- **Date:** 2026-06-28
+- **Section:** 01-adopted
+- **Run-ID:** iterate-2026-06-28-webui-light-security
+- **Context:** After the dep-CVE fixes (#180), the WebUI main security.yml scan reports 0 high/critical. AR-10's SARIF-ingestion fallback (#291, now cache-synced) parses the SARIF the webui uploads.
+- **Decision:** Ingest the fresh scan via refresh_ci_security into the tracked ci-security.json + regenerate the dashboard, lighting the Security dimension (0 open high/critical to sec_score 1.0).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Honest lighting - Security is genuinely clean because the CVEs were fixed (#180), not suppressed.
+- **Consequences:** WebUI Control Grade A98 to A99; the Security dimension is now measured + green (was n/a). All 7 measurable dimensions OK. Only the 24 none_reason-without-change_type events keep it off 100 (deferred micro-cleanup).
+- **Rejected:** Leave Security n/a (the posture is now genuinely clean + measurable, so n/a would understate it).
+
+---
+
+### ADR-214: Reconcile detective-audit B7/D3/G2/H2 post-v0.21.0
+- **Date:** 2026-06-29
+- **Section:** Iterate — change: compliance reconciliation (B7/D3/G2/H2)
+- **Run-ID:** iterate-2026-06-29-compliance-b7-d3-g2-h2-reconcile
+- **Context:** The post-v0.21.0 detective audit flagged four findings: B7 (commit dd7f7468 / PR #168 safeFit refactor had no matching event), D3 (FR-01.42 promised via new_frs on evt-2646f4da but never reaffirmed), G2 (scopes 'mobile'/'images' unregistered), H2 (4 bloat-baseline entries over-recorded vs on-disk LOC).
+- **Decision:** Backfill a work_completed event carrying dd7f7468's SHA (FR-01.28); amend evt-2646f4da affected_frs to add FR-01.42 while preserving the BP-1 FR-01.01; register 'mobile'+'images' in audit_config.json g2_stoplist; tighten the 4 bloat-baseline current values to exact on-disk LOC.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Established compliance-reconciliation pattern (PRs #127/#129/#142): root-cause the event-log/config drift, never suppress the check. Amending the origin event (not a fresh reaffirm) preserves FR-01.01 since apply_amendments replaces the affected_frs field wholesale.
+- **Consequences:** All four detective checks (B7/D3/G2/H2) pass; bloat anti-ratchet stays clean (measured==current). No source or behavior change; the reconcile's own event stays No-FR (change_type compliance).
+- **Rejected:** Suppressing checks via disabled_checks (hides real drift); a fresh No-FR reaffirm event for D3 instead of amending the origin (memory: amend the original, keep the reconcile event No-FR).
+
+---
+
+### ADR-215: Empirical Playwright coverage of both Grade render sites + absence
+- **Date:** 2026-06-30
+- **Section:** Iterate — change: compliance Grade E2E hardening
+- **Run-ID:** iterate-2026-06-30-compliance-grade-e2e-hardening
+- **Context:** The FR-01.43 E2E spec only drove the Projects-table badge; the Task-Board header pill + graceful-absence (no-dashboard project) were covered by jsdom component tests, not a real browser.
+- **Decision:** Extend 95-compliance-grade.spec.ts to seed a second project WITHOUT a dashboard (assert no badge) and to navigate the Task Board with the project selected (assert the header pill + modal). Test-only; no production change.
+- **Commit:** (assigned post-merge)
+- **Rationale:** User asked for clean empirical E2E coverage; the component tests proved the badge logic but not the header wiring or the absent-dashboard path through a real DOM.
+- **Consequences:** Both render sites + graceful absence are now empirically verified in a real browser; permanent regression guard. spec_impact none.
+- **Rejected:** Leaving the header pill on component-test-only coverage; an ad-hoc one-off check without a committed regression guard.
+
+---
+
+### ADR-216: Surface per-project compliance Grade by parsing dashboard.md
+- **Date:** 2026-06-30
+- **Section:** Iterate — feature: compliance Grade in WebUI
+- **Run-ID:** iterate-2026-06-30-compliance-grade-webui
+- **Context:** The compliance Control Grade + verdict + dimension/CI tables live ONLY in .shipwright/compliance/dashboard.md (no JSON form); the WebUI had no in-app view of a project's compliance health.
+- **Decision:** Add a read-only GET /api/external/projects/:id/compliance that parses dashboard.md into {grade,score,verdict,generatedAt} + raw markdown slices of the Control-Verdict and CI-Security sections; render a per-project Grade pill (Projects table + Task-Board header) that opens a modal rendering those slices via the existing DocumentMarkdown.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Parsing the stable machine-generated markdown is self-contained (no monorepo change); reusing react-markdown+remark-gfm avoids re-modeling the table; section-slicing excludes the trailing Compliance Artifacts links table (dead in-browser).
+- **Consequences:** Per-project Grade visible at a glance + click-through table parity with the dashboard. WebUI stays a read-only observer (no .shipwright writes). Tradeoff: one polling query per project row on the Projects page.
+- **Rejected:** Producer-emitted dashboard.json (cross-repo, still needs a markdown fallback); structured table modeling; a single global sidebar badge (a grade can't aggregate across projects); a dedicated Compliance page.
+
+---
+
+### ADR-217: Clear OSV/Scorecard dependency advisories via lockfile-only bumps
+- **Date:** 2026-06-30
+- **Section:** Security / Dependencies
+- **Run-ID:** iterate-2026-06-30-osv-dep-advisories
+- **Context:** OSV/Scorecard's Vulnerabilities check flagged open advisories across both npm workspaces. Triage established that every flagged package is dev-server / build-time / test-only tooling; the production runtime dependency tree (the deployed node dist/index.js + static client) is unaffected and appears in zero advisories.
+- **Decision:** Remediate with lockfile-only bumps: npm audit fix (non-forced) in client, plus a tsx minor bump (within the existing semver range) that pulls the fixed transitive esbuild in both workspaces. No package.json range edits, no --force, no major bumps. CVE/package specifics kept in the gitignored security report.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Pragmatic minimum. The fixes are semver-compatible and cheap, and clearing the check removes noise so a real future advisory is not lost in a stale backlog. A force/major bump to chase the last dev-only low would be disproportionate.
+- **Consequences:** Both workspaces report 0 advisories at all severities; the Scorecard Vulnerabilities check clears. Full unit suite + typecheck + lint + builds stay green. No behavior change; vite stays within v6.
+- **Rejected:** Accept/dismiss the advisories (leaves the P1 triage item open + a Scorecard ding); force-bump (--force) the last esbuild low, which would require a breaking vite/tsx major for a dev-only, loopback-only, low-severity advisory.
+
+---
+
+### ADR-218: Suppress Semgrep audit-rule FPs; converge dashboard/GitHub/triage
+- **Date:** 2026-06-30
+- **Section:** Iterate — change: Semgrep false-positive suppression (security theater)
+- **Run-ID:** iterate-2026-06-30-semgrep-fp-suppression
+- **Context:** GitHub code-scanning showed 130 Semgrep OSS findings (111 'high', 19 'medium') while the dashboard ingest graded the same findings 'low' (Grade A 99); triage trg-4c0ab9b0 escalated GitHub's number to P1. Investigation found 0 real vulns: 99/105 spawn-shell-true in test files; 6 prod = pty-manager whitelisted spawn (ADR-067) + Win version-probe + POC; rest = the bidi-injection-DEFENSE regex, trusted-config RegExp compiles, loopback ws.
+- **Decision:** Add a root .semgrepignore (exclude *.test.*/*.spec.*, client/e2e/, server/scripts/, .shipwright/) + inline '// nosemgrep:<rule>' with justification on the 8 production FP lines; reword one useTerminalSocket comment to drop a literal ws:// string.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root-cause the noise rather than suppress the dashboard signal. Follows repo precedent (#177 scoped CodeQL; pr_review.py already uses nosemgrep). Test/e2e/docs are not a production attack surface; prod FPs are documented inline with ADR-067 refs (better than a silent flag).
+- **Consequences:** Semgrep findings drop from 130 toward ~0; dashboard, GitHub code-scanning, and triage converge on the real near-zero count. No runtime behavior change (comment + ignore-config only); typecheck/lint/62 unit tests green.
+- **Rejected:** Disabling rules in security.yml (touches .github/workflows -> PR-Review hard-block + over-broad rule kill); leaving the dashboard 'low' mapping vs GitHub 'high' divergence as-is (perpetuates the theater the user flagged).
+
+---
+
+### ADR-219: Pre-launch pty size-sync
+- **Date:** 2026-07-01
+- **Section:** Iterate — bug: terminal title-wrap smear
+- **Run-ID:** iterate-2026-07-01-terminal-title-wrap-smear
+- **Context:** Long titles smeared in the embedded terminal ('Der'->'D er'): the pty spawns at a hardcoded 120 cols while the client's narrower half-screen width arrives late via a throttled resize, so Claude renders its width-sensitive title pill at the wrong width and it wraps onto the '>' prompt row.
+- **Decision:** Emit a resize on the same ordered WS immediately before the launch command (useAutoLaunch onBeforeDispatch -> EmbeddedTerminal syncSizeNow), and re-converge a WRITER's xterm to real width after a replay_snapshot settles.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The artifact is real ANSI-cyan background content (verified in raw pty bytes + pixel sample), not a GL framebuffer smear, so term.refresh cannot heal it; root cause is column desync at render time. Headless replay confirmed a consistent-width stream renders clean at every width.
+- **Consequences:** Claude renders the title banner at the correct cols; pty and xterm stay width-synced on launch + re-attach. Reader replay width (#150) preserved via a render-body writer gate.
+- **Rejected:** Another term.refresh repaint (wrong layer - cells hold real content); spawning the pty at the client width (unknown server-side at spawn); disk-first replay precedence.
+
+---
+
+### ADR-220: Create dialogs: collapse below-Description area into a gray 'More options' section
+- **Date:** 2026-07-06
+- **Section:** Iterate — change: collapse create-dialog area below Description
+- **Run-ID:** iterate-2026-07-06-collapse-dialog-more-options
+- **Context:** The New Task / Iterate / Pipeline / custom-project create dialogs rendered leadwright metadata, schema parameters and the command preview inline under the Description, cluttering the common 'just make a task' flow.
+- **Decision:** Wrap that area in a shared, gray-backgrounded MoreOptionsDisclosure, collapsed by default. Required params render OUTSIDE it so Launch is never blocked by a hidden field. It auto-expands only when opened pre-seeded with priority/domain (e.g. triage Fix-now).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Progressive disclosure keeps the default path clean without hiding required inputs. Behavior-preserving, so spec_impact is none.
+- **Consequences:** Create dialogs open compact; every field stays one click away; submit payloads are unchanged. Plain Claude is unaffected (nothing below Description).
+- **Rejected:** Collapsing required params too (would disable Launch with no visible cause); persisting the open state across opens (a plain new task should always start collapsed).
+
+---
+
+### ADR-221: Normalise paste-artifact quoting on filesystem paths at the input boundary
+- **Date:** 2026-07-06
+- **Section:** core/normalize-fs-path
+- **Run-ID:** iterate-2026-07-06-fix-launch-path-quote-strip
+- **Context:** On macOS a project path with spaces (e.g. '/Users/marcelburkart/Projects/Claude Command Center') was registered wrapped in surrounding single quotes (a shell-copy paste artifact). It was stored verbatim as project.path/task.cwd and core/launcher.ts then shell-escaped the LITERAL quotes, emitting 'cd \'\'\\'\'/…\'\\'\'\'' && claude …' which zsh reads as a directory literally named "'…'" -> cd fails and the launch never starts.
+- **Decision:** Add core/normalize-fs-path.ts (normalizeFsPath) which strips ONE balanced surrounding quote pair (single or double) + trims, and apply it at the two input boundaries that feed the launcher: POST/PATCH /api/projects (path) and POST /api/external/tasks (cwd). The launcher's per-shell escaping is left unchanged.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Fix belongs at the input boundary, not the escaper: the escaper is correct for the value it is given. A directory path is never legitimately wrapped in a matching quote pair, so stripping is always safe (Chesterton: quotes here are only ever a paste artifact).
+- **Consequences:** Space-containing paths pasted with quotes now launch correctly; the fs probes in the project route see the clean path (no garbage relative dir); a real path is never corrupted because it never both begins and ends with the same quote char. Inner apostrophes preserved.
+- **Rejected:** Stripping/altering quotes inside core/launcher.ts (would conflate escaping with sanitisation and risk under-escaping a genuinely quote-containing path); client-side stripping only (server is the trust boundary and accepts arbitrary cwd).
+
+---
+
+### ADR-222: macOS/Linux production rebuild+restart parallel to the Windows scripts
+- **Date:** 2026-07-06
+- **Section:** Operational tooling / cross-platform deploy
+- **Run-ID:** iterate-2026-07-06-mac-rebuild-restart-scripts
+- **Context:** The one-step production rebuild+restart (install+build both halves, stop old, start fresh, plus a double ~/.claude.json self-heal) shipped only as PowerShell (start-server-production.ps1 / stop-server.ps1). Non-Windows operators had no equivalent; guide section 8 explicitly noted no first-party helper.
+- **Decision:** Ship bash twins scripts/start-server-production.sh + stop-server.sh mirroring the .ps1 semantics 1:1 (lsof/kill replaces Get-NetTCPConnection, nohup replaces hidden Start-Process, same cross-platform repair-claude-json.mjs). Preserve both load-bearing contracts: every install+build runs BEFORE the server-kill, and the ~/.claude.json heal runs twice (before and after the kill). Pin *.sh to eol=lf in .gitattributes so Windows-authored scripts cannot ship CRLF.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirroring in bash keeps the battle-tested, test-pinned .ps1 untouched; smaller blast radius than a cross-platform rewrite.
+- **Consequences:** Cross-platform parity with the Windows .ps1 path left untouched. A parallel structural test (start-server-production.sh.test.mjs) pins the two contracts, mirroring the .ps1 test. End-to-end deploy stays structurally-tested only (no macOS CI host), same bar as the .ps1.
+- **Rejected:** A single cross-platform deploy.mjs replacing both scripts; it would force retiring the working test-pinned .ps1, a larger blast radius than the parallel-to-Windows ask.
+
+---
+
+### ADR-223: Playwright browser E2E for project-delete cascade
+- **Date:** 2026-07-06
+- **Section:** Iterate — E2E regression guard for #200
+- **Run-ID:** iterate-2026-07-06-project-delete-cascade-e2e
+- **Context:** PR #200 fixed the phantom 'Unassigned' row on project delete with unit + in-process HTTP/integration coverage but NO real-browser E2E. A browser-level regression guard was requested to lock the delete → no-orphan-row flow.
+- **Decision:** Add client/e2e/flows/project-delete-cascade.spec.ts: seeds a project + a task, drives the ProjectsPage delete affordance + confirm dialog in Chromium, asserts the project row AND the synthesized Unassigned row are both absent afterwards, and confirms the task is deleted (not re-homed). Ran green (1/1) against an isolated single-process Hono stack serving the built SPA.
+- **Commit:** (assigned post-merge)
+- **Rationale:** In-process HTTP coverage proves the chain but not the browser click → TanStack invalidation → re-render; the guard closes that gap.
+- **Consequences:** Locks FR-01.25 delete-cascade at the browser layer; pre-#200 code would fail the Unassigned-row-absent assertion. Test-only — no product behavior change.
+- **Rejected:** Leave it at integration/unit coverage (user explicitly asked for a real browser E2E).
+
+---
+
+### ADR-224: Project delete cascade-removes its tasks (no phantom Unassigned row)
+- **Date:** 2026-07-06
+- **Section:** Iterate — project delete cascade
+- **Run-ID:** iterate-2026-07-06-project-delete-cascades-tasks
+- **Context:** Deleting a project only removed the projects.json row; its tasks kept a dangling projectId, so ProjectManager.getAll() perpetually synthesized a phantom, un-clearable 'Unassigned' row (the client counted those tasks under the dead id, so the row showed 0 and could not be filtered). SdkSessionsStore O26 only self-heals stale references on the next boot, so a runtime delete stranded the row.
+- **Decision:** DELETE /api/projects/:id now cascades: cascadeDeleteProjectTasks removes every task whose projectId matches (store row + best-effort scrollback + snapshot side-files), persists once, and returns {ok, deletedTaskCount}. The delete confirm dialog warns how many tasks are affected. Per the user's explicit choice, tasks are removed (not re-homed to Unassigned).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Root cause is runtime orphaning; O26 only heals on reboot. Cascade fulfills FR-01.25 ('DELETE removes the row and any synthetic Unassigned reassignment for orphaned tasks') and the user's product decision.
+- **Consequences:** No orphaned Unassigned bucket after a runtime project delete. On-disk Claude JSONL is untouched. The Unassigned bucket stays a safety net for tasks orphaned by non-delete means (O26 on boot). Response gained deletedTaskCount (additive; client apiDelete ignores the body).
+- **Rejected:** Re-home orphaned tasks to 'unassigned' on delete (leaves a visible Unassigned row — fails 'the entry must be gone'); boot-time destructive cleanup of all dangling tasks (too aggressive).
+
+---
+
+### ADR-225: Drop the wizard clipboard Paste button; guide manual paste
+- **Date:** 2026-07-06
+- **Section:** Iterate — change: remove Add-Project Paste button
+- **Run-ID:** iterate-2026-07-06-remove-project-paste-button
+- **Context:** The Add-Project wizard directory step shipped a clipboard Paste button (iterate 14.7.1) backed by filePicker.ts. It duplicated the field's own Ctrl+V paste and added a bespoke clipboard helper to maintain.
+- **Decision:** Removed the Paste button, its handler and state; the directory input is a plain editable field. Reworded the hint to tell the user to copy the path and paste it in. Deleted the now-orphaned filePicker.ts and filePicker.test.ts.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The button only did what the field's native paste already does; keeping bespoke clipboard code plus a dead module was unjustified maintenance weight (YAGNI).
+- **Consequences:** One fewer control in the wizard; users paste the path directly (Ctrl+V). No backend/API surface affected; FR-01.03's collected fields (name, path, profile, color) are unchanged.
+- **Rejected:** Keep the button (redundant); move to a paste-icon inside the input (still bespoke clipboard code for no gain).
+
+---
+
+### ADR-226: Redraw-proof terminal copy cache
+- **Date:** 2026-07-06
+- **Section:** Iterate — bug: terminal copy selection cache
+- **Run-ID:** iterate-2026-07-06-terminal-copy-selection-cache
+- **Context:** In Claude's mouse-tracking TUI (mode 1003) every mouse move makes the app redraw, and an xterm redraw clears the live selection a moment before Ctrl+C — so hasSelection() is false and Ctrl+C degrades to SIGINT ('copy broken'). #186 removed copy-on-selection, which had been the only thing capturing the text at mouseup before the redraw wiped it.
+- **Decision:** Capture the last non-empty selection at settle (mouseup / shift-select keyup) into a per-terminal cache (new useTerminalClipboard hook). Ctrl+C / Ctrl+Insert fall back to the cache when the live selection is empty; a mouse-only Copy pill copies it on click. Invalidate the cache on a new mousedown gesture (any origin) and on committing keydown (capture-phase, since xterm stopPropagations keys).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Grab the selection the instant it settles and hold it, rather than fighting xterm/Claude over selection persistence. Capturing writes only refs/React state, never the OS clipboard, so it is clobber-free by construction.
+- **Consequences:** Copy works reliably over non-secure http/Tailscale via the execCommand fallback; SIGINT is preserved when nothing is selected; no #186 clipboard clobber (capture is not a write); copy-on-selection stays opt-in/off. The hook absorbs the clipboard-notice state so EmbeddedTerminal drops 316->294 LOC (under its bloat ceiling).
+- **Rejected:** Re-enabling copy-on-selection as default (reintroduces the #186 Win+V clobber the user explicitly rejected); suppressing mouse-move reports while Shift is held (fights xterm internals, risks breaking Claude's mouse UX); hijacking right-click for copy (would break the only working paste path over http, which is the browser-native right-click paste).
+
+---
+
+### ADR-227: Embedded terminal appearance: faithful truecolor + mirror Claude Code (supersedes ADR-067 brand-fit)
+- **Date:** 2026-07-06
+- **Section:** FR-01.44
+- **Run-ID:** iterate-2026-07-06-terminal-theme-modes
+- **Context:** The embedded terminal hardcoded one dark xterm palette. Claude Code paints no background of its own; a light Claude theme rendered dark text on our dark bg = black-on-black. The dark-only palette was itself a workaround for the mirror-image bug, and TERM=dumb+FORCE_COLOR=1 (ADR-067) clamped Claude to a 16-color brand palette — a goal the user has abandoned in favor of a VS-Code-faithful terminal.
+- **Decision:** spawn-env.ts defaults to TERM=xterm-256color + COLORTERM=truecolor (no FORCE_COLOR cap) so Claude/tools render their own truecolor and Claude auto detects the xterm bg via OSC 11; reversible via SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS=1. A WCAG-AA LIGHT_PALETTE joins the unchanged DARK; buildXtermTheme(appearance) drives a live term.options.theme swap (no remount). Default appearance Auto mirrors ~/.claude/settings.json theme (new read-only GET /api/terminal/claude-theme).
+- **Commit:** (assigned post-merge)
+- **Rationale:** The recurring black-on-black class is one root cause (terminal bg never tracked Claude's theme); mirroring Claude + owning the bg fixes it end-to-end. VS Code ships TERM=xterm-256color with no smear (counter-evidence to the flicker risk). Reversibility via the legacy opt-out matches the ADR-098 precedent for this visual class.
+- **Consequences:** CLAUDE_CODE_NO_FLICKER + session-marker strip unchanged. Claude output is no longer brand-recolored (faithful, like VS Code); vim/htop/less regain color. New modules: server core/claude-theme-reader.ts + routes/terminal-appearance.ts; client xterm-theme-options.ts, useTerminalAppearance.ts, lib/terminalAppearance{,Api}.ts, LIGHT_PALETTE. Settings gains an Appearance selector. Only the ADR-067 brand-fit env clause is superseded; the shell-whitelist is intact.
+- **Rejected:** Keep the 16-color clamp and only swap bg (rejected: not truecolor-faithful, user wants VS Code parity). COLORFGBG injection (rejected: OSC 11 subsumes it). Per-Claude-theme distinct palettes incl. daltonized/ansi (rejected: collapse to light/dark family under readability).
+- **Details:** [2026-07-06-terminal-theme-modes.md](../planning/iterate/2026-07-06-terminal-theme-modes.md)
+
+---
+
+### ADR-228: Heal WebGL atlas corruption with clearTextureAtlas (model clear), not term.refresh
+- **Date:** 2026-07-07
+- **Section:** FR-01.28
+- **Run-ID:** iterate-2026-07-07-terminal-glyph-atlas-clear
+- **Context:** Recurring glyph corruption (transposed letters) in the embedded terminal survived the #175 fix (term.refresh on atlas events). Source review of @xterm/addon-webgl 0.19.0 found the load-bearing path is a whole-atlas swap on a terminal-option change (WebglRenderer._handleOptionsChanged -> onChangeTextureAtlas), notably the live theme re-resolve (FR-01.44), which builds a fresh atlas WITHOUT clearing the render model; refresh skips 'unchanged' cells so the stale coordinate persists.
+- **Decision:** Replace term.refresh with a deferred, coalesced term.clearTextureAtlas() (clears the render model, the resize-heal equivalent) subscribed to onChangeTextureAtlas + onRemoveTextureAtlasCanvas only.
+- **Commit:** (assigned post-merge)
+- **Rationale:** clearTextureAtlas does _clearModel(true), which term.refresh does not; a manual resize healed precisely because resize clears the model.
+- **Consequences:** Corruption self-heals on the next atlas swap with no manual resize. onAddTextureAtlasCanvas is intentionally not subscribed (append-only; clearing there feedback-loops). Deferral avoids a re-entrant clear mid-_mergePages. Real-browser proof: spec 94 (atlasRepaints=5, bounded).
+- **Rejected:** Renderer swap to DOM/Canvas (reverses ADR-099; unnecessary since resize proves the atlas is recoverable). Per-event synchronous clear (re-entrancy risk mid-merge). Subscribing onAdd (feedback loop).
+
+---
+
+### ADR-229: OSC 52 as the sole terminal copy path
+- **Date:** 2026-07-07
+- **Section:** Iterate — bug: terminal OSC 52 clipboard
+- **Run-ID:** iterate-2026-07-07-terminal-osc52-clipboard
+- **Context:** xterm.js drops OSC 52 by default; Claude Code copies its own mouse selection via OSC 52, so the WebUI (no handler) never wrote it to the OS clipboard — copy silently failed over http (paste returned the old entry). The WebUI's own copy was also redundant and conflicting: Ctrl+C interception could swallow a real interrupt when a selection existed.
+- **Decision:** Register term.parser.registerOscHandler(52) (terminal-osc52.ts) to decode + relay clipboard WRITES via a focus-preserving copyText (execCommand fallback, http-safe); DENY read requests. Remove the WebUI's own copy: Ctrl+C/Ctrl+Insert interception, copy-on-selection + Settings toggle, the redraw cache + Copy pill (iterate-2026-07-06), and the mouse-mode hint.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Claude owns selection+copy natively now, so the WebUI should RELAY its OSC 52, not re-implement copy. Write-only + read-deny is the safe OSC 52 posture (VS Code parity). Focus preservation is opt-in on copyText so menu-copy callers are unchanged.
+- **Consequences:** Copy works over http; Ctrl+C is interrupt/SIGINT again; the OS clipboard is never leaked to a program (read-deny); the async relay preserves terminal focus. Net -1911 LOC (useTerminalSelection.ts deleted). Paste unchanged.
+- **Rejected:** Keeping the WebUI copy (redundant + Ctrl+C conflict); honoring OSC 52 READ (would leak the OS clipboard to any program that emits the escape); globally changing shared copyText focus behavior (opt-in flag instead, to not disturb the Radix menu-copy path).
+
+---
+
+### ADR-230: Don't forward right-click to the pty
+- **Date:** 2026-07-07
+- **Section:** Iterate — bug: terminal right-click double-paste
+- **Run-ID:** iterate-2026-07-07-terminal-rightclick-double-paste
+- **Context:** Claude Code treats a reported right-click as PASTE (from its own copy buffer). In mouse-tracking mode xterm reports the right button to Claude, so a right-click made Claude paste ON TOP OF the browser context-menu Paste that the WebUI relays (usePasteImage) = an intermittent double-paste. Confirmed live: right-click + Esc (no menu Paste) still pasted.
+- **Decision:** Filter the EmbeddedTerminal onData sink: drop SGR right-button mouse reports (new terminal-mouse-report.ts isRightButtonMouseReport - Cb<64 && Cb&3==2, matching press/release/drag) so Claude never sees a right-click. Right-click stays browser-only (menu -> Paste).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Right-click is browser business; Claude should not also paste on it. Dropping only the right button is the minimal cut that removes the double without touching Claude selection/scroll. SGR-only (Claude uses mode 1006).
+- **Consequences:** Right-click = exactly one paste (the browser menu). Left/middle button + wheel still forwarded, so Claude selection/clicks/scroll are unaffected. Fail-open: an unrecognized report is forwarded (never breaks input).
+- **Rejected:** Suppressing the browser context menu + WebUI-only right-click paste (impossible over http: navigator.clipboard read is absent); filtering by DOM-intercepting mousedown button 2 (more fragile vs. xterm listener placement than filtering the generated report).
