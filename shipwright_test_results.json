@@ -1,13 +1,12 @@
 {
-  "last_updated": "2026-07-07T12:00:00Z",
+  "last_updated": "2026-07-08",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-07-terminal-rightclick-double-paste",
-    "date": "2026-07-07",
+    "run_id": "iterate-2026-07-08-more-options-colors",
+    "date": "2026-07-08",
     "unit": {
       "status": "passed",
       "passed": 1882,
-      "total": 1882,
-      "note": "full client Vitest suite (191 files); server unchanged (client-only terminal input filter)"
+      "total": 1882
     },
     "integration": {
       "status": "not_run",
@@ -20,13 +19,12 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "terminal-rightclick-mouse.spec.ts (real right-click in mouse mode not forwarded; left-click is)"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -35,42 +33,15 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
-      "exit_code": 0,
       "tests_run": 1,
-      "evidence_path": "client/e2e/flows/terminal-rightclick-mouse.spec.ts",
-      "timestamp": "2026-07-07T12:00:00.000Z",
-      "justification": "Real-browser proof against a live pty: with xterm put into SGR mouse-reporting mode (ESC[?1006h ESC[?1000h, what Claude enables), a REAL right-click on the canvas produces NO right-button (<2) report in the sent WS frames — dropped by the onData filter — while a real left-click DOES send a left-button (<0) report. Ran green (1/1). This confirms the fix removes the second (Claude) paste while leaving left/middle/wheel forwarding (Claude selection/scroll) intact."
+      "exit_code": 0,
+      "method": "Rendered the real MoreOptionsDisclosure/LeadwrightFields/ParamSections/ParamField components against the real index.css theme in a Vite story and screenshotted via Playwright; computed backgroundColor sampled per element.",
+      "findings": "header #ede8e1 (grey, kept), body #f5f0eb (lighter grey), all fields #ffffff (white), Advanced-parameters card grey header + light body. Matches the requested design.",
+      "justification": "Trivial UI-color change; F0.5 is advisory at trivial. Verified in a real browser rather than via the full Playwright E2E orchestrator."
     },
     "test_completeness": {
-      "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "AC-1: right-button SGR mouse reports (press/release/drag) are NOT forwarded to the pty, so Claude never sees the right-click (no second paste)",
-          "disposition": "tested",
-          "evidence": "terminal-mouse-report.test.ts (Cb=2/34/6 -> true) + EmbeddedTerminal.test.tsx 'drops right-button ...' (onData with <2 not in ws.sent) + e2e terminal-rightclick-mouse.spec.ts (no <2 in sent frames) green"
-        },
-        {
-          "behavior": "AC-2: left/middle button + wheel reports ARE still forwarded (Claude selection / clicks / scroll unaffected)",
-          "disposition": "tested",
-          "evidence": "terminal-mouse-report.test.ts (Cb=0/1/32/64/65/66 -> false) + EmbeddedTerminal.test.tsx (<0 and <64 present in ws.sent) + e2e (left-click <0 present in sent frames)"
-        },
-        {
-          "behavior": "AC-3: the classifier matches only complete SGR right-button reports — not keyboard / bracketed-paste / Ctrl+C / legacy-X10 / embedded reports",
-          "disposition": "tested",
-          "evidence": "terminal-mouse-report.test.ts ('plain keyboard/paste/control data' + 'legacy X10' + 'embedded in a larger string' -> false)"
-        }
-      ],
-      "counts": {
-        "testable": 3,
-        "tested": 3,
-        "untestable": 0,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3
-      }
+      "status": "n/a",
+      "justification": "Trivial behavior-preserving CSS-color change (no logic); ledger auto-n/a at trivial. Visual result verified in a real browser (pixel-sampled + screenshot)."
     },
     "degraded": []
   }

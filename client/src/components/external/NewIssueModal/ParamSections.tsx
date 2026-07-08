@@ -68,24 +68,27 @@ export function AdvancedParamsFragment(props: ParamSectionsProps) {
   const { advancedFields, advancedOpen, setAdvancedOpen } = props;
   if (advancedFields.length === 0) return null;
   return (
-    <div data-testid="new-issue-advanced-section">
+    <div
+      data-testid="new-issue-advanced-section"
+      className="overflow-hidden rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)]"
+    >
       <button
         type="button"
         data-testid="new-issue-advanced-toggle"
         onClick={() => setAdvancedOpen((p) => !p)}
         aria-expanded={advancedOpen}
-        className="flex w-full items-center justify-between rounded-[var(--radius-button,8px)] px-2 py-1.5 text-[12px] font-medium text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)]"
+        className="flex w-full items-center justify-between bg-[var(--color-muted-bg,#ede8e1)] px-3 py-2 text-[12px] font-semibold text-[var(--color-text,#1a1a1a)] hover:bg-[var(--color-border,#e0dbd4)]"
       >
         <span>Advanced parameters ({advancedFields.length})</span>
         <ChevronDown
           size={12}
-          className={`transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+          className={`flex-shrink-0 text-[var(--color-muted,#6b7280)] transition-transform ${advancedOpen ? "rotate-180" : ""}`}
         />
       </button>
       {advancedOpen && (
         <div
           data-testid="new-issue-advanced-content"
-          className="mt-2 flex flex-col gap-3 rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f9f6f3)] px-3 py-3"
+          className="flex flex-col gap-3 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-3 py-3"
         >
           {advancedFields.map((p) => (
             <ParamField

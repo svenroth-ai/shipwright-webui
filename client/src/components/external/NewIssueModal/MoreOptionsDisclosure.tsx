@@ -38,7 +38,7 @@ export function MoreOptionsDisclosure({
   return (
     <div
       data-testid="new-issue-more-options"
-      className="rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)]"
+      className="overflow-hidden rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)]"
     >
       <button
         type="button"
@@ -66,7 +66,7 @@ export function MoreOptionsDisclosure({
       {open && (
         <div
           data-testid="new-issue-more-options-content"
-          className="flex flex-col gap-4 border-t border-[var(--color-border,#e0dbd4)] px-3 py-3"
+          className="flex flex-col gap-4 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-3 py-3"
         >
           {children}
         </div>

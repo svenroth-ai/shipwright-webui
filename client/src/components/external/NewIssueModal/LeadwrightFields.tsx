@@ -59,7 +59,7 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
             onChange={(e) => props.setLeadDomain(e.target.value)}
             data-testid="new-issue-domain-input"
             placeholder="e.g. shipwright"
-            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
           />
         </FieldLabel>
       )}
@@ -108,7 +108,7 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
             onChange={(e) => props.setLeadTagsRaw(e.target.value)}
             data-testid="new-issue-tags-input"
             placeholder="auth, billing"
-            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
           />
         </FieldLabel>
       )}
@@ -123,7 +123,7 @@ export function LeadwrightFieldsFragment(props: LeadwrightFieldsProps) {
             onChange={(e) => props.setLeadBlockedByRaw(e.target.value)}
             data-testid="new-issue-blocked-by-input"
             placeholder="task-x, task-y"
-            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+            className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#fff)] px-3 py-2 text-[13px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
           />
         </FieldLabel>
       )}
