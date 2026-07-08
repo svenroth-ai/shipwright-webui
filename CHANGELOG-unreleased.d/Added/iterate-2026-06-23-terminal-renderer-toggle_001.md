@@ -1,1 +1,0 @@
-Diagnostic: an embedded-terminal renderer override (`?terminalRenderer=dom` query or `localStorage["shipwright:terminal-renderer"]="dom"`) skips the WebGL addon and uses xterm's DOM renderer. Default is unchanged (WebGL). Lets the persistent terminal-smear be A/B-tested against the renderer on a real GPU.
