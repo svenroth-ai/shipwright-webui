@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-07-07T12:00:00Z",
+  "last_updated": "2026-07-08",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-07-terminal-rightclick-double-paste",
-    "date": "2026-07-07",
+    "run_id": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile",
+    "date": "2026-07-08",
     "unit": {
-      "status": "passed",
-      "passed": 1882,
-      "total": 1882,
-      "note": "full client Vitest suite (191 files); server unchanged (client-only terminal input filter)"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "Data-only detective-audit reconciliation (event-log backfill + audit-config g2_stoplist + bloat-baseline LOC). No client/**, server/**, or test file changed, so the app Vitest/Playwright suites are invariant. Empirical verification is the re-run detective audit (B/D/G/H any_fail:False) + bloat anti_ratchet_check --worktree (exit 0)."
     },
     "integration": {
       "status": "not_run",
@@ -20,10 +20,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "terminal-rightclick-mouse.spec.ts (real right-click in mouse mode not forwarded; left-click is)"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
       "status": "skipped",
@@ -34,43 +33,17 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "playwright (chromium) vs isolated single-process Hono serving the built SPA + API (temp USERPROFILE, 127.0.0.1:3947)",
+      "surface": "none",
+      "runner": "detective-audit re-run (run_audit.py --only B,D,G,H) + bloat anti_ratchet_check.py --worktree",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "client/e2e/flows/terminal-rightclick-mouse.spec.ts",
-      "timestamp": "2026-07-07T12:00:00.000Z",
-      "justification": "Real-browser proof against a live pty: with xterm put into SGR mouse-reporting mode (ESC[?1006h ESC[?1000h, what Claude enables), a REAL right-click on the canvas produces NO right-button (<2) report in the sent WS frames — dropped by the onData filter — while a real left-click DOES send a left-button (<0) report. Ran green (1/1). This confirms the fix removes the second (Claude) paste while leaving left/middle/wheel forwarding (Claude selection/scroll) intact."
+      "tests_run": 0,
+      "evidence_path": ".shipwright/compliance/audit-report.json (gitignored; regenerated in-worktree)",
+      "timestamp": "2026-07-08T09:00:00.000Z",
+      "justification": "Data-only detective-audit reconciliation: the diff touches only tracked metadata (shipwright_events.jsonl, audit_config.json, shipwright_bloat_baseline.json, .shipwright/triage.jsonl) — no client/**, server/**, API route, store, SSE/WS handler, or message-contract file, so the Backend-affects-Frontend rule does not trigger and surface=none is correct. The one config boundary touched is audit_config.json's g2_stoplist consumed by the detective audit; its round-trip is empirically proven by re-running run_audit.py --only B,D,G,H against the worktree (parsed all three edited files, returned any_fail:False) plus anti_ratchet_check.py --worktree exit 0. tests_run=0 is therefore justified."
     },
     "test_completeness": {
-      "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "AC-1: right-button SGR mouse reports (press/release/drag) are NOT forwarded to the pty, so Claude never sees the right-click (no second paste)",
-          "disposition": "tested",
-          "evidence": "terminal-mouse-report.test.ts (Cb=2/34/6 -> true) + EmbeddedTerminal.test.tsx 'drops right-button ...' (onData with <2 not in ws.sent) + e2e terminal-rightclick-mouse.spec.ts (no <2 in sent frames) green"
-        },
-        {
-          "behavior": "AC-2: left/middle button + wheel reports ARE still forwarded (Claude selection / clicks / scroll unaffected)",
-          "disposition": "tested",
-          "evidence": "terminal-mouse-report.test.ts (Cb=0/1/32/64/65/66 -> false) + EmbeddedTerminal.test.tsx (<0 and <64 present in ws.sent) + e2e (left-click <0 present in sent frames)"
-        },
-        {
-          "behavior": "AC-3: the classifier matches only complete SGR right-button reports — not keyboard / bracketed-paste / Ctrl+C / legacy-X10 / embedded reports",
-          "disposition": "tested",
-          "evidence": "terminal-mouse-report.test.ts ('plain keyboard/paste/control data' + 'legacy X10' + 'embedded in a larger string' -> false)"
-        }
-      ],
-      "counts": {
-        "testable": 3,
-        "tested": 3,
-        "untestable": 0,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3
-      }
+      "status": "n/a",
+      "justification": "Data-only compliance reconciliation (B7 event backfill x3, D3 FR-01.44 reaffirmation amend, G2 stoplist registration x4, H1 two bloat-baseline additions, H2 three LOC tightenings). spec_impact=none, change_type=compliance — no product AC/behavior is introduced or changed, so there is no testable product behavior to enumerate. Empirical completeness IS the detective audit (B/D/G/H all PASS: 47 commits matched, every promised FR reaffirmed, every scope resolves, all oversize files baselined, baseline LOC matches on-disk) plus anti-ratchet exit 0."
     },
     "degraded": []
   }
