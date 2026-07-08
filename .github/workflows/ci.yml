@@ -47,20 +47,22 @@ jobs:
         run: npm test -- --run
 
   diff-coverage:
-    name: Diff coverage (warn-only gate)
+    name: Diff coverage (gate)
     # Diff-coverage gate for the WebUI client/server monorepo — the % of the
-    # CHANGED lines (vs origin/main) that tests execute. WARN-ONLY for now:
-    # continue-on-error keeps it non-blocking during the settling window, so an
-    # under-tested PR shows a visible FAILURE annotation but does NOT block merge
-    # yet (mirrors the shipwright monorepo's proven warn -> prove -> hard-flip
-    # rollout; flip later once the real-PR numbers look sane). 80 matches the
-    # monorepo threshold. Self-contained: it re-runs both suites WITH coverage
-    # and feeds both cobertura reports to diff-cover, which resolves each package's
-    # paths natively via its <source> root (no combine/reroot needed). Only on PRs
+    # CHANGED lines (vs origin/main) that tests execute. HARD GATE: an
+    # under-tested PR (diff-coverage < 80%) FAILS this job. Flipped from
+    # warn-only 2026-07-08 after the proving window (#205 warn -> prove ->
+    # hard-flip rollout): every source-changing PR since the gate landed cleared
+    # the bar (#207 89%, #206/#211 100%; nothing would have blocked). 80 matches
+    # the monorepo threshold. NOTE: a failing job only BLOCKS merge once this
+    # check is listed in the `main-protection` ruleset's required_status_checks —
+    # removing continue-on-error is necessary but not sufficient on its own.
+    # Self-contained: it re-runs both suites WITH coverage and feeds both
+    # cobertura reports to diff-cover, which resolves each package's paths
+    # natively via its <source> root (no combine/reroot needed). Only on PRs
     # (needs a compare base).
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,16 +90,16 @@ jobs:
 
       # Single source of truth: the gate mechanics (pinned diff-cover, the base
       # fetch, --fail-under, injection-safe input plumbing, SHA-pinned setup-uv)
-      # live in the shipwright monorepo's composite action, so a gate fix flows
-      # here on the next run — no ci.yml edit. `@main` is intentional first-party
-      # auto-propagation (both repos are svenroth-ai; the mutable-tag Semgrep
-      # finding is an accepted risk). WARN-vs-HARD stays this job's
-      # `continue-on-error` above — when we hard-flip, pin the action to a
-      # released tag (…@v1) instead of `@main`. diff-cover resolves client/ +
-      # server/ paths natively via each cobertura's <source> root (no combine).
-      # The action installs uv itself.
+      # live in the shipwright monorepo's composite action. Pinned to a full
+      # commit SHA (supply-chain hardening): a bumped SHA is how an upstream gate
+      # fix reaches us, and the pin clears the `github-actions-mutable-action-tag`
+      # Semgrep finding. NOTE: a version tag (…@v1) would NOT clear that rule — a
+      # tag is still mutable; only a full 40-char SHA does. Re-pin (or add
+      # Dependabot) to pick up upstream action changes. diff-cover resolves
+      # client/ + server/ paths natively via each cobertura's <source> root (no
+      # combine). The action installs uv itself.
       - name: Diff coverage (gate)
-        uses: svenroth-ai/shipwright/.github/actions/diff-coverage-gate@main
+        uses: svenroth-ai/shipwright/.github/actions/diff-coverage-gate@f36a656208b512e3260c6e95dbad84bb1650f223  # main
         with:
           coverage-files: client/coverage/cobertura-coverage.xml server/coverage/cobertura-coverage.xml
 
