@@ -1,1 +1,0 @@
-Removed the native OpenSSF Scorecard workflow (.github/workflows/scorecard.yml): its aggregate is human-review-centric (the Code-Review check credits human PR approvals), the wrong external anchor for an AI-first SDLC. The Control Grade still cites Scorecard's methodology; actionable supply-chain checks are tracked as triage.
