@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-08",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-08-flip-diff-coverage-gate-hard",
+    "run_id": "iterate-2026-07-08-board-sort-last-modified",
     "date": "2026-07-08",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 3649,
+      "total": 3649,
+      "note": "full suites: client 1900 + server 1749"
     },
     "integration": {
       "status": "not_run",
@@ -19,12 +20,13 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1,
+      "total": 1,
+      "note": "96-board-list-sort: board+list newest-first at Desktop/Tablet/Phone + List Updated toggle"
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -32,16 +34,92 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "tests_run": 0,
+      "surface": "web",
+      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts board-list-sort",
       "exit_code": 0,
-      "method": "pyyaml parse of .github/workflows/ci.yml + assertions: job name 'Diff coverage (gate)', continue-on-error removed, action pinned to 40-char SHA f36a656208b512e3260c6e95dbad84bb1650f223.",
-      "findings": "CI-config-only change (single file, no app source/runtime surface). The flipped hard gate is exercised end-to-end by this PR's own CI run.",
-      "justification": "No app runtime surface — CI workflow gate flip + composite-action SHA-pin. F0.5 advisory at trivial; behavioral verification is the PR's own CI (diff-cover runs on the PR; this PR touches only ci.yml so diff-cover reports 'no lines' and passes)."
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\board-sort-last-modified\\.shipwright\\runs\\iterate-2026-07-08-board-sort-last-modified\\surface_verification.log",
+      "timestamp": "2026-07-08T13:43:23.341Z"
     },
     "test_completeness": {
-      "status": "n/a",
-      "justification": "Trivial CI-workflow change (remove continue-on-error + action SHA-pin); no app runtime/source behavior to unit-test. Ledger auto-n/a at trivial; the only behavior is CI-side, exercised by the PR's own CI run."
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "taskLastModifiedMs precedence mtime->launchedAt->createdAt->0",
+          "disposition": "tested",
+          "evidence": "client/src/lib/taskSort.test.ts 'precedence chain' PASSED"
+        },
+        {
+          "behavior": "non-finite mtime / unparseable ISO skipped, finite floor (never poisons sort)",
+          "disposition": "tested",
+          "evidence": "client/src/lib/taskSort.test.ts 'defensive against malformed timestamps' PASSED"
+        },
+        {
+          "behavior": "compareTasksByLastModifiedDesc newest-first + taskId string tiebreak",
+          "disposition": "tested",
+          "evidence": "client/src/lib/taskSort.test.ts 'order + determinism' PASSED"
+        },
+        {
+          "behavior": "sortTasksByLastModifiedDesc non-mutating + mixed-source order",
+          "disposition": "tested",
+          "evidence": "client/src/lib/taskSort.test.ts 'immutability + full order' PASSED"
+        },
+        {
+          "behavior": "Board within-column newest-first",
+          "disposition": "tested",
+          "evidence": "TaskBoardColumns.test.tsx AC-1 PASSED + e2e 96 PASSED"
+        },
+        {
+          "behavior": "Board equal-timestamp tiebreak",
+          "disposition": "tested",
+          "evidence": "TaskBoardColumns.test.tsx AC-4 PASSED"
+        },
+        {
+          "behavior": "List default order newest-first",
+          "disposition": "tested",
+          "evidence": "TaskList.test.tsx AC-2 PASSED + e2e 96 PASSED"
+        },
+        {
+          "behavior": "List 'Updated' header toggle -> oldest-first",
+          "disposition": "tested",
+          "evidence": "TaskList.test.tsx AC-2 toggle PASSED + e2e 96 toggle PASSED"
+        },
+        {
+          "behavior": "List equal-timestamp tiebreak",
+          "disposition": "tested",
+          "evidence": "TaskList.test.tsx AC-4 PASSED"
+        },
+        {
+          "behavior": "Board<->List order parity (same fixture)",
+          "disposition": "tested",
+          "evidence": "sortParity.test.tsx AC-3 PASSED"
+        },
+        {
+          "behavior": "Device parity Desktop/Tablet/Phone",
+          "disposition": "tested",
+          "evidence": "e2e 96-board-list-sort 3-viewport loop (AC-5) PASSED"
+        },
+        {
+          "behavior": "List/Card 'Updated' display unchanged after dedupe",
+          "disposition": "tested",
+          "evidence": "existing TaskList.test.tsx + TaskCard.test.tsx suites green"
+        },
+        {
+          "behavior": "Board memoized sort (perf, behavior-preserving)",
+          "disposition": "tested",
+          "evidence": "existing TaskBoardColumns grouping/decouple tests green"
+        }
+      ],
+      "counts": {
+        "testable": 13,
+        "tested": 13,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
     },
     "degraded": []
   }

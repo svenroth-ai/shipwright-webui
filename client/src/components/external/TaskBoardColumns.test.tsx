@@ -81,6 +81,39 @@ describe("TaskBoardColumns — grouping", () => {
     expect(inProg.getByTestId("task-card-launch-draftInProg")).toBeTruthy();
   });
 
+  it("orders cards within a column newest-modified first (AC-1)", () => {
+    // Same column (all active → in-progress), deliberately fed out of order.
+    renderBoard([
+      t("stale", { state: "active", lastJsonlSeenMtimeMs: 1_000 }),
+      t("fresh", { state: "active", lastJsonlSeenMtimeMs: 9_000 }),
+      t("mid", { state: "active", lastJsonlSeenMtimeMs: 5_000 }),
+    ]);
+    const col = screen.getByTestId("column-in-progress");
+    const ids = Array.from(
+      col.querySelectorAll('[data-testid^="task-card-draggable-"]'),
+    ).map((el) => el.getAttribute("data-testid"));
+    expect(ids).toEqual([
+      "task-card-draggable-fresh",
+      "task-card-draggable-mid",
+      "task-card-draggable-stale",
+    ]);
+  });
+
+  it("breaks equal-timestamp ties deterministically by taskId (AC-4)", () => {
+    renderBoard([
+      t("zebra", { state: "active", lastJsonlSeenMtimeMs: 1_000 }),
+      t("alpha", { state: "active", lastJsonlSeenMtimeMs: 1_000 }),
+    ]);
+    const col = screen.getByTestId("column-in-progress");
+    const ids = Array.from(
+      col.querySelectorAll('[data-testid^="task-card-draggable-"]'),
+    ).map((el) => el.getAttribute("data-testid"));
+    expect(ids).toEqual([
+      "task-card-draggable-alpha",
+      "task-card-draggable-zebra",
+    ]);
+  });
+
   it("renders a per-column count", () => {
     renderBoard([t("a", { state: "active" }), t("b", { state: "idle" })]);
     expect(within(screen.getByTestId("column-in-progress")).getByText("2")).toBeTruthy();

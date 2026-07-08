@@ -18,7 +18,7 @@
  * Preserved testids: task-board-columns, column-draft, column-in-progress,
  * column-done, task-card-<id>.
  */
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -39,6 +39,7 @@ import {
   resolveBoardColumn,
   type BoardColumn,
 } from "../../lib/boardColumnApi";
+import { sortTasksByLastModifiedDesc } from "../../lib/taskSort";
 import { useSetBoardColumn } from "../../hooks/useExternalTasks";
 import { TaskCard } from "./TaskCard";
 
@@ -86,13 +87,22 @@ const COLUMN_STYLES: Record<ColumnTone, ColumnStyle> = {
   },
 };
 
+/**
+ * Group tasks into their board columns, each column ordered newest-modified
+ * first. Sorting the whole list ONCE up front then bucketing works because the
+ * `for…of` push preserves the sorted order per column — the shared comparator
+ * (lib/taskSort) is the SAME one the List view's default order uses, so the two
+ * views agree card-for-card. There is no manual within-column reordering on the
+ * board (DnD only moves cards BETWEEN columns), so a strict time sort clobbers
+ * no user layout.
+ */
 function groupByColumn(tasks: ExternalTask[]): Record<BoardColumn, ExternalTask[]> {
   const out: Record<BoardColumn, ExternalTask[]> = {
     backlog: [],
     in_progress: [],
     done: [],
   };
-  for (const t of tasks) out[resolveBoardColumn(t)].push(t);
+  for (const t of sortTasksByLastModifiedDesc(tasks)) out[resolveBoardColumn(t)].push(t);
   return out;
 }
 
@@ -165,7 +175,11 @@ function DroppableColumn({ meta, items }: DroppableColumnProps) {
 }
 
 export function TaskBoardColumns({ tasks }: { tasks: ExternalTask[] }) {
-  const columns = groupByColumn(tasks);
+  // Memoized so the sort + regroup only runs when the task list itself changes,
+  // not on every unrelated re-render (drag state, hover) — external-review perf
+  // fold. The ~2 s poll returns a fresh array reference, which correctly busts
+  // the memo and re-sorts.
+  const columns = useMemo(() => groupByColumn(tasks), [tasks]);
   const setColumn = useSetBoardColumn();
   const [activeTask, setActiveTask] = useState<ExternalTask | null>(null);
 
