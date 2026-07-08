@@ -193,14 +193,14 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
-      "current": 2205,
+      "current": 1746,
       "state": "grandfathered",
       "adr": "iterate-2026-06-30-terminal-paste-single-sink"
     },
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
       "limit": 300,
-      "current": 316,
+      "current": 314,
       "state": "grandfathered",
       "adr": "iterate-2026-07-01-terminal-title-wrap-smear"
     },
@@ -501,7 +501,7 @@
     {
       "path": "server/src/routes/triage.ts",
       "limit": 300,
-      "current": 725,
+      "current": 715,
       "state": "grandfathered",
       "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
     },
@@ -595,6 +595,20 @@
       "current": 550,
       "state": "exception",
       "adr": "ADR-103"
+    },
+    {
+      "path": "client/src/pages/TriagePage.tsx",
+      "limit": 300,
+      "current": 302,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
+    },
+    {
+      "path": "server/src/core/triage-store.ts",
+      "limit": 300,
+      "current": 305,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
     }
   ]
 }

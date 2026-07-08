@@ -1,30 +1,36 @@
 # Commit Change Log
 
-Generated: 2026-07-06T11:13:39.104420+00:00
-Total commits: 624
+Generated: 2026-07-08T08:42:03.071892+00:00
+Total commits: 638
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 226
-    "feat" : 149
-    "chore" : 125
+    "fix" : 232
+    "feat" : 150
+    "chore" : 129
     "docs" : 64
-    "refactor" : 27
-    "test" : 22
-    "ci" : 6
+    "refactor" : 28
+    "test" : 23
+    "ci" : 7
     "other" : 4
     "build" : 1
 ```
 
 ## Changes by Type
 
-### Fixes (fix) — 226 commits
+### Fixes (fix) — 232 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-07-06 | projects | cascade-delete a project's tasks on delete (no phantom Unassigned row) | 163d467445cc |
+| 2026-07-08 | compliance | reconcile detective-audit B7/D3/G2/H1/H2 post-v0.21.0 (data-only) | a149e312a551 |
+| 2026-07-07 | terminal | don't forward right-click to the pty — kills the right-click double-paste (FR-01.28) (#211) | f935606768bf |
+| 2026-07-07 | terminal | honor Claude's OSC 52 clipboard copy over http; drop the WebUI's own copy machinery (FR-01.28) (#207) | cedfdc7497f2 |
+| 2026-07-07 | terminal | clear the WebGL glyph atlas (not just refresh) to heal wrong-letter corruption (FR-01.28) (#206) | 8a516188e541 |
+| 2026-07-06 | terminal | redraw-proof copy — Ctrl+C works again after Claude mouse-tracking clears the selection (FR-01.28) (#204) | 7b0347886f5d |
+| 2026-07-06 | triage | union delivered-origin state so dismissed items stop reappearing (#203) | b48b83cc4644 |
+| 2026-07-06 | projects | cascade-delete a project's tasks on delete (no phantom Unassigned row) (#200) | ff077d696c2b |
 | 2026-07-06 | launch | strip paste-artifact quotes from filesystem paths (FR-01.10) (#195) | 3499eac186ab |
 | 2026-07-01 | terminal | sync pty width before launch to stop long-title input smear (#194) | 5108524a14f3 |
 | 2026-06-30 | security | clear OSV/Scorecard dependency advisories via lockfile-only bumps (#192) | 5c54a121005f |
@@ -251,10 +257,11 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 149 commits
+### Features (feat) — 150 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | terminal | light/dark appearance mirroring Claude Code + truecolor (FR-01.44) (#201) | 190582200464 |
 | 2026-07-06 | external | collapse create-dialog area below Description into a gray "More options" section (#198) | 80ab31fb48b4 |
 | 2026-07-06 | scripts | add macOS/Linux production rebuild+restart scripts (#197) | f3d2e3dbf59f |
 | 2026-06-30 | compliance | propagate Control-Grade honesty gate + anchors + native Scorecard (#189) | 9487fa864208 |
@@ -405,10 +412,14 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 125 commits
+### Chores (chore) — 129 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-08 | release | v0.22.0 (#212) | 69d7e83ff89b |
+| 2026-07-08 | triage | sweep 1 outbox append(s) into branch | 98a935d6ec75 |
+| 2026-07-07 | triage | dismiss gh-security:webui false alarm (accepted-risk GH-owned action-tags) (#209) | 6f9abf5cfc51 |
+| 2026-07-07 | triage | opt into accepted-risk GH-owned action-tag tailoring (#208) | 6e77a3ef66d4 |
 | 2026-07-01 | compliance | re-grade with the composition-neutral Control Grade (B to A) (#193) | 738c35ea029a |
 | 2026-06-30 | ci | remove native OpenSSF Scorecard workflow (wrong anchor for AI-first) (#190) | ae24cf9ca887 |
 | 2026-06-30 | compliance | regenerate traceability-matrix with the UTC-date renderer (#188) | e4590f6d908a |
@@ -604,10 +615,11 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 27 commits
+### Refactoring (refactor) — 28 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-07 | ci | consume the diff-coverage gate from the shipwright composite action (#210) | 1364e8290f1e |
 | 2026-07-06 | wizard | remove Add-Project Paste button; guide manual path paste (#196) | 00bc3ab81f37 |
 | 2026-06-23 | terminal | extract safeFit into safe-fit.ts to keep useTerminalResize under 300 LOC (#168) | dd7f74681f0b |
 | 2026-05-30 | smartviewer | extract PathStrip to drop SmartViewer under the 300-LOC limit | 73736dcaeebe |
@@ -636,10 +648,11 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 22 commits
+### Tests (test) — 23 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-06 | e2e | project-delete cascade regression guard (#200 follow-up) (#202) | 8f538bc071d8 |
 | 2026-06-30 | compliance | empirical E2E coverage for both Grade render sites + graceful absence (FR-01.43) (#185) | 738dddc58e34 |
 | 2026-06-23 | terminal | real-browser E2E proving the renderer override switches WebGL<->DOM (#172) | 37a39ae8ef3c |
 | 2026-06-20 | terminal | split useTerminalResize.test.ts under the 300-LOC guideline (#165) | 9499eba74590 |
@@ -663,10 +676,11 @@ pie title Commit Types
 | 2026-04-11 | — | complete test phase — 299 unit tests, 5 E2E tests, smoke PASS | 8741d7487b3d |
 | 2026-04-11 | e2e | set up Playwright with E2E specs and smoke test results | 7aba77a0232f |
 
-### CI/CD (ci) — 6 commits
+### CI/CD (ci) — 7 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-07 | — | add a warn-only diff-coverage gate (client + server) (#205) | b449fbedd025 |
 | 2026-07-01 | security | least-privilege GITHUB_TOKEN permissions per workflow (#191) | c864d63f9838 |
 | 2026-06-12 | review | migrate WebUI PR review to OpenRouter Tier-3 (align to monorepo B4.5) (#125) | 8bace6de63e3 |
 | 2026-06-05 | security | checkout at fetch-depth 1 (no scanner reads git history) | 8d73f3d5d5f8 |
@@ -693,7 +707,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 624 |
+| Total commits | 638 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 624 |
+| Human-authored commits | 638 |
 
