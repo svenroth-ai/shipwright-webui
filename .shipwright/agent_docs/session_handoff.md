@@ -1,34 +1,35 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-07-08-more-options-colors"
+run_id: "iterate-2026-07-06-project-delete-cascades-tasks"
 phase: "iterate"
-reason: "F11 pre-merge refresh: iterate-2026-07-08-more-options-colors"
-timestamp: "2026-07-08T08:46:53.879152+00:00"
+reason: "F11 pre-merge refresh: iterate-2026-07-06-project-delete-cascades-tasks"
+timestamp: "2026-07-06T11:13:39.104420+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-07-08 08:46:53 UTC
+> Auto-generated 2026-07-06 11:13:39 UTC
 
 ## Session Info
 
-- **Session ID**: a4996ae5-7d31-4f21-8434-47d92597c104
-- **Timestamp**: 2026-07-08 08:46:53 UTC
-- **Reason**: F11 pre-merge refresh: iterate-2026-07-08-more-options-colors
+- **Session ID**: e72c8c7d-d3aa-4d6e-888b-0ee4a4fca984
+- **Timestamp**: 2026-07-06 11:13:39 UTC
+- **Reason**: F11 pre-merge refresh: iterate-2026-07-06-project-delete-cascades-tasks
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-08-more-options-colors
-- **Date**: 2026-07-08T08:47:31.718368Z
-- **Type**: change
-- **Complexity**: trivial
-- **Branch**: iterate/more-options-colors
-- **ADR**: iterate-2026-07-08-more-options-colors
+- **Run ID**: iterate-2026-07-06-project-delete-cascades-tasks
+- **Date**: 2026-07-06T11:13:02.790011Z
+- **Type**: bug
+- **Complexity**: small
+- **Branch**: iterate/project-delete-cascades-tasks
+- **ADR**: iterate-2026-07-06-project-delete-cascades-tasks
 - **Tests passed**: True
+- **Spec**: .shipwright/planning/01-adopted/spec.md#FR-01.25
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/more-options-colors
+- **Branch**: iterate/project-delete-cascades-tasks
 - **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
 
 ### Mandatory replay on Resume
@@ -47,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/more-options-colors
-- **Last Commit**: 4f504cd Merge remote-tracking branch 'origin/main' into iterate/more-options-colors
+- **Branch**: iterate/project-delete-cascades-tasks
+- **Last Commit**: 7a8d8ec Merge remote-tracking branch 'origin/main' into iterate/project-delete-cascades-tasks
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -64,23 +65,24 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-f9853d69 | work_completed | iterate (recolor create-dialog More-options panel for readability) | 2026-07-08 |
-| evt-f46ce469 | work_completed | iterate (Stop forwarding RIGHT-button mouse reports to the pty. Claude Code treats a reported right-click as paste (from its own copy buffer), so a right-click pasted ON TOP OF the browser context-menu Paste that the WebUI relays = double-paste. New terminal-mouse-report.ts isRightButtonMouseReport() filters the EmbeddedTerminal onData sink; right-click is now browser-only (menu -> Paste = one path). Left/middle button + wheel still forwarded (Claude selection/clicks/scroll unaffected).) | 2026-07-07 |
-| evt-ef831aeb | work_completed | iterate (Fix recurring WebGL glyph-atlas corruption (transposed/wrong letters in long sessions): clear the render model via a deferred, coalesced term.clearTextureAtlas() on onChangeTextureAtlas + onRemoveTextureAtlasCanvas (not the too-shallow term.refresh, and not onAdd which would feedback-loop).) | 2026-07-07 |
-| evt-c063ff87 | work_completed | iterate (OSC 52 becomes the sole terminal copy path: register term.parser.registerOscHandler(52) (terminal-osc52.ts) to decode Claude Code OSC 52 clipboard writes and relay them to the OS clipboard via copyText (execCommand fallback, http-safe); READ requests denied (no clipboard leak). Removes the redundant WebUI copy machinery: Ctrl+C/Ctrl+Insert interception, copy-on-selection + Settings toggle, the redraw cache + Copy pill (iterate-2026-07-06), and the mouse-mode hint. Ctrl+C now passes through as interrupt/SIGINT; paste unchanged.) | 2026-07-07 |
-| evt-16c6e192 | work_completed | iterate (Redraw-proof terminal copy: capture the selection at settle into a cache so Ctrl+C / Ctrl+Insert (and a new mouse-only Copy pill) copy reliably after Claude mouse-tracking redraws clear the live xterm selection; execCommand fallback keeps copy working over http/Tailscale. Copy-on-selection stays opt-in/off.) | 2026-07-06 |
+| evt-13edd7c6 | work_completed | iterate (Add macOS/Linux production rebuild+restart scripts (scripts/start-server-production.sh + scripts/stop-server.sh) mirroring the Windows .ps1 1:1 (install+build both halves before killing the old server; double ~/.claude.json self-heal around the restart). Pin *.sh to eol=lf so Windows-authored scripts cannot ship CRLF. Document the macOS one-step helper in docs/guide.md (sections 7 and 10) and README.md.) | 2026-07-06 |
+| evt-083b2011 | work_completed | iterate (Collapse the create-dialog area below the Description (leadwright fields, schema params, command preview) into a shared gray, collapsed-by-default MoreOptionsDisclosure across the New Task / Iterate / Pipeline / custom-project dialogs; required params stay visible outside it; auto-expands when pre-seeded with priority/domain.) | 2026-07-06 |
+| evt-34ca637d | work_completed | iterate (DELETE /api/projects/:id now cascade-removes the project's tasks (rows + best-effort scrollback/snapshot) via cascadeDeleteProjectTasks, so no orphaned synthetic 'Unassigned' row lingers at runtime; response gains deletedTaskCount and the delete confirm warns the affected count.) | 2026-07-06 |
+| evt-22daf83f | work_completed | iterate (Remove the Add-Project wizard Paste button and reword the directory hint to guide manual paste) | 2026-07-06 |
+| evt-dd0e4c80 | work_completed | iterate (Normalise paste-artifact surrounding quotes on filesystem paths (project.path / task.cwd) at the input boundary so the FR-01.10 launch command cd prefix is correctly single-quoted on macOS/Linux instead of the broken double-escaped cd.) | 2026-07-06 |
 
 ## Recovery
 
 - **Pipeline**: 3 phases completed
-- **Total work events**: 270
-- **Last iterate**: change — recolor create-dialog More-options panel for readability (2026-07-08)
+- **Total work events**: 263
+- **Last iterate**: feature — Add macOS/Linux production rebuild+restart scripts (scripts/start-server-production.sh + scripts/stop-server.sh) mirroring the Windows .ps1 1:1 (install+build both halves before killing the old server; double ~/.claude.json self-heal around the restart). Pin *.sh to eol=lf so Windows-authored scripts cannot ship CRLF. Document the macOS one-step helper in docs/guide.md (sections 7 and 10) and README.md. (2026-07-06)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-230: Don't forward right-click to the pty
-- **Date:** 2026-07-07
-- **Section:** Iterate — bug: terminal right-click double-paste
-- **Run-ID:** iterate-2026-07-07-terminal-rightclick-double-paste
-- **Context:** Claude Code treats a reported right-click as PASTE (from its own copy buffer). In mouse-tracking mode xterm reports the right button to Claude, so a right-click made Claude paste ON TOP OF the browser context-menu Paste that the WebUI relays (usePasteImage) = an intermittent double-paste. 
+### ADR-202: Mobile/touch terminal UX: condense phone header, buffer-first touch-scroll, data-driven settle-repaint
+- **Date:** 2026-06-20
+- **Section:** iterate-2026-06-20-mobile-terminal-touch-ux
+- **Run-ID:** iterate-2026-06-20-mobile-terminal-touch-ux
+- **Context:** Mobile use over Tailscale surfaced four issues: oversized phone task-detail header, dead touch-scroll at Claude's --resume picker, low-contrast touch keys, and input-area smear on Transcript->Terminal switch / return-from-home.
+- **Decis

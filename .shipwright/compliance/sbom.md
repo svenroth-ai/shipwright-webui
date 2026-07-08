@@ -1,23 +1,23 @@
 # Software Bill of Materials (SBOM)
 
-Generated: 2026-07-08T08:46:53.879152+00:00
+Generated: 2026-07-06T11:13:39.104420+00:00
 
 ## Summary
 
 | Metric | Value |
 |--------|-------|
 | Runtime dependencies | 43 (deduplicated) |
-| Dev dependencies | 24 |
-| Total packages | 67 |
-| Licenses resolved | 67 / 67 |
+| Dev dependencies | 23 |
+| Total packages | 66 |
+| Licenses resolved | 66 / 66 |
 | Unique licenses | 4 (Apache-2.0, BSD-3-Clause, ISC, MIT) |
 | Copyleft licenses | 0 |
 
 ## License Distribution
 
 ```mermaid
-pie title License Distribution (all 67 packages)
-    "MIT" : 62
+pie title License Distribution (all 66 packages)
+    "MIT" : 61
     "Apache-2.0" : 3
     "BSD-3-Clause" : 1
     "ISC" : 1
@@ -88,7 +88,6 @@ pie title License Distribution (all 67 packages)
 | @types/react-dom | ^19.0.0 | MIT |
 | @types/shell-quote | ^1.7.5 | MIT |
 | @vitejs/plugin-react | ^4.0.0 | MIT |
-| @vitest/coverage-v8 | ^4.1.10 | MIT |
 | jsdom | ^25.0.0 | MIT |
 | msw | ^2.0.0 | MIT |
 | oxlint | ^1.66.0 | MIT |
@@ -102,5 +101,5 @@ pie title License Distribution (all 67 packages)
 
 ## License Compliance
 
-No license concerns: all 67 packages resolved (0 unknown, 0 copyleft).
+No license concerns: all 66 packages resolved (0 unknown, 0 copyleft).
 

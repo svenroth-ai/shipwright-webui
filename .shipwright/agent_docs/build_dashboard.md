@@ -1,20 +1,13 @@
 # Project Activity Dashboard
-> Updated: 2026-07-08 08:46 UTC | Session: a4996ae5-7d31-4f21-8434-47d92597c104 | Run: iterate-2026-07-08-more-options-colors
+> Updated: 2026-07-06 11:13 UTC | Session: e72c8c7d-d3aa-4d6e-888b-0ee4a4fca984 | Run: iterate-2026-07-06-project-delete-cascades-tasks
 
-## Recent Changes (200 iterations)
+## Recent Changes (193 iterations)
 
 | Type | Description | Tests | Commit | FRs | Date |
 |------|-------------|-------|--------|-----|------|
-| change | recolor create-dialog More-options panel for readability | 1882/1882 |  | FR-01.16, FR-01.08 | 2026-07-08 |
-| bug | Stop forwarding RIGHT-button mouse reports to the pty. Claude Code treats a reported right-click as paste (from its own copy buffer), so a right-click pasted ON TOP OF the browser context-menu Paste that the WebUI relays = double-paste. New terminal-mouse-report.ts isRightButtonMouseReport() filters the EmbeddedTerminal onData sink; right-click is now browser-only (menu -> Paste = one path). Left/middle button + wheel still forwarded (Claude selection/clicks/scroll unaffected). | 1882/1882 |  | FR-01.28 | 2026-07-07 |
-| bug | Fix recurring WebGL glyph-atlas corruption (transposed/wrong letters in long sessions): clear the render model via a deferred, coalesced term.clearTextureAtlas() on onChangeTextureAtlas + onRemoveTextureAtlasCanvas (not the too-shallow term.refresh, and not onAdd which would feedback-loop). | 0/0 |  | FR-01.28 | 2026-07-07 |
-| bug | OSC 52 becomes the sole terminal copy path: register term.parser.registerOscHandler(52) (terminal-osc52.ts) to decode Claude Code OSC 52 clipboard writes and relay them to the OS clipboard via copyText (execCommand fallback, http-safe); READ requests denied (no clipboard leak). Removes the redundant WebUI copy machinery: Ctrl+C/Ctrl+Insert interception, copy-on-selection + Settings toggle, the redraw cache + Copy pill (iterate-2026-07-06), and the mouse-mode hint. Ctrl+C now passes through as interrupt/SIGINT; paste unchanged. | 1865/1865 |  | FR-01.28 | 2026-07-07 |
-| bug | Redraw-proof terminal copy: capture the selection at settle into a cache so Ctrl+C / Ctrl+Insert (and a new mouse-only Copy pill) copy reliably after Claude mouse-tracking redraws clear the live xterm selection; execCommand fallback keeps copy working over http/Tailscale. Copy-on-selection stays opt-in/off. | 1894/1894 |  | FR-01.28 | 2026-07-06 |
-| change | Add a Playwright browser E2E regression guard for the project-delete cascade (#200): drives the ProjectsPage delete + confirm in Chromium and asserts no phantom 'Unassigned' row survives + the task is deleted. | 1868/1868 |  | FR-01.25 | 2026-07-06 |
 | feature | Add macOS/Linux production rebuild+restart scripts (scripts/start-server-production.sh + scripts/stop-server.sh) mirroring the Windows .ps1 1:1 (install+build both halves before killing the old server; double ~/.claude.json self-heal around the restart). Pin *.sh to eol=lf so Windows-authored scripts cannot ship CRLF. Document the macOS one-step helper in docs/guide.md (sections 7 and 10) and README.md. | 0/0 |  | infra | 2026-07-06 |
 | change | Collapse the create-dialog area below the Description (leadwright fields, schema params, command preview) into a shared gray, collapsed-by-default MoreOptionsDisclosure across the New Task / Iterate / Pipeline / custom-project dialogs; required params stay visible outside it; auto-expands when pre-seeded with priority/domain. | 1819/1819 |  | FR-01.16, FR-01.08 | 2026-07-06 |
 | bug | DELETE /api/projects/:id now cascade-removes the project's tasks (rows + best-effort scrollback/snapshot) via cascadeDeleteProjectTasks, so no orphaned synthetic 'Unassigned' row lingers at runtime; response gains deletedTaskCount and the delete confirm warns the affected count. | 3524/3524 |  | FR-01.25 | 2026-07-06 |
-| feature | Embedded terminal light/dark appearance mirroring Claude Code; faithful truecolor terminal (VS Code parity) that supersedes the ADR-067 brand-fit env clamp. New /api/terminal/claude-theme + client palette/resolver/live-re-theme + Settings selector. | 0/0 |  | FR-01.28 | 2026-07-06 |
 | change | Remove the Add-Project wizard Paste button and reword the directory hint to guide manual paste | 1812/1812 |  | FR-01.03 | 2026-07-06 |
 | bug | Normalise paste-artifact surrounding quotes on filesystem paths (project.path / task.cwd) at the input boundary so the FR-01.10 launch command cd prefix is correctly single-quoted on macOS/Linux instead of the broken double-escaped cd. | 0/0 |  | FR-01.10 | 2026-07-06 |
 | bug | Fix embedded-terminal title-wrap smear: pre-launch pty size-sync + post-replay writer convergence so Claude renders its title pill at the client's real width. | 1817/1817 |  | FR-01.28 | 2026-07-01 |
@@ -207,7 +200,7 @@
 | feature | VS Code .code-workspace auto-generated on POST /api/projects | 537/537 | a31594e | FR-01.24 | 2026-05-01 |
 
 ## Test Status
-Last run: 2026-07-08 | Unit: 1882/1882 | Smoke: not_run | (iterate)
+Last run: 2026-07-06 | Unit: 3524/3524 | Integration: 4/4 | Smoke: not_run | (iterate)
 
 ## Pipeline
 
