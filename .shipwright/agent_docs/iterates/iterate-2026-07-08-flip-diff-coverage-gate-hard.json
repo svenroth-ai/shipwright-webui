@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-08-flip-diff-coverage-gate-hard",
+  "date": "2026-07-08T09:55:01.301414Z",
+  "type": "change",
+  "complexity": "trivial",
+  "branch": "iterate/flip-diff-coverage-gate-hard",
+  "tests_passed": true,
+  "spec": null,
+  "adr": "iterate-2026-07-08-flip-diff-coverage-gate-hard"
+}
