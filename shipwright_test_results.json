@@ -1,13 +1,12 @@
 {
   "last_updated": "2026-07-08",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile",
+    "run_id": "iterate-2026-07-08-more-options-colors",
     "date": "2026-07-08",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "Data-only detective-audit reconciliation (event-log backfill + audit-config g2_stoplist + bloat-baseline LOC). No client/**, server/**, or test file changed, so the app Vitest/Playwright suites are invariant. Empirical verification is the re-run detective audit (B/D/G/H any_fail:False) + bloat anti_ratchet_check --worktree (exit 0)."
+      "status": "passed",
+      "passed": 1882,
+      "total": 1882
     },
     "integration": {
       "status": "not_run",
@@ -25,7 +24,7 @@
       "total": 0
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -33,17 +32,16 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "detective-audit re-run (run_audit.py --only B,D,G,H) + bloat anti_ratchet_check.py --worktree",
+      "surface": "web",
+      "tests_run": 1,
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/compliance/audit-report.json (gitignored; regenerated in-worktree)",
-      "timestamp": "2026-07-08T09:00:00.000Z",
-      "justification": "Data-only detective-audit reconciliation: the diff touches only tracked metadata (shipwright_events.jsonl, audit_config.json, shipwright_bloat_baseline.json, .shipwright/triage.jsonl) — no client/**, server/**, API route, store, SSE/WS handler, or message-contract file, so the Backend-affects-Frontend rule does not trigger and surface=none is correct. The one config boundary touched is audit_config.json's g2_stoplist consumed by the detective audit; its round-trip is empirically proven by re-running run_audit.py --only B,D,G,H against the worktree (parsed all three edited files, returned any_fail:False) plus anti_ratchet_check.py --worktree exit 0. tests_run=0 is therefore justified."
+      "method": "Rendered the real MoreOptionsDisclosure/LeadwrightFields/ParamSections/ParamField components against the real index.css theme in a Vite story and screenshotted via Playwright; computed backgroundColor sampled per element.",
+      "findings": "header #ede8e1 (grey, kept), body #f5f0eb (lighter grey), all fields #ffffff (white), Advanced-parameters card grey header + light body. Matches the requested design.",
+      "justification": "Trivial UI-color change; F0.5 is advisory at trivial. Verified in a real browser rather than via the full Playwright E2E orchestrator."
     },
     "test_completeness": {
       "status": "n/a",
-      "justification": "Data-only compliance reconciliation (B7 event backfill x3, D3 FR-01.44 reaffirmation amend, G2 stoplist registration x4, H1 two bloat-baseline additions, H2 three LOC tightenings). spec_impact=none, change_type=compliance — no product AC/behavior is introduced or changed, so there is no testable product behavior to enumerate. Empirical completeness IS the detective audit (B/D/G/H all PASS: 47 commits matched, every promised FR reaffirmed, every scope resolves, all oversize files baselined, baseline LOC matches on-disk) plus anti-ratchet exit 0."
+      "justification": "Trivial behavior-preserving CSS-color change (no logic); ledger auto-n/a at trivial. Visual result verified in a real browser (pixel-sampled + screenshot)."
     },
     "degraded": []
   }

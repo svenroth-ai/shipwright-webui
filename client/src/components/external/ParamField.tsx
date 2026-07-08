@@ -279,7 +279,7 @@ export function ParamField({
                 ? "border-[var(--color-error,#DC2626)]"
                 : "border-[var(--color-border,#e0dbd4)]"
             } ${isSensitive ? "pr-8 font-mono" : ""} ${
-              valueDisabled ? "cursor-not-allowed bg-[var(--color-muted-bg,#ede8e1)] opacity-60" : ""
+              valueDisabled ? "cursor-not-allowed bg-[var(--color-muted-bg,#ede8e1)] opacity-60" : "bg-[var(--color-surface,#fff)]"
             }`}
           />
           {isSensitive && onRevealToggle && (
