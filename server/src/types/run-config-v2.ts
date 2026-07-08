@@ -41,6 +41,32 @@ export type SplitMode = "none" | "per_split" | null;
 
 export type RunStatus = "in_progress" | "complete" | "failed" | "needs_validation";
 
+/**
+ * Pipeline execution mode (schema field `run_config.mode`).
+ *
+ *  - `single_session` — the /shipwright-run master drives every phase via a
+ *    phase-runner subagent in ONE conversation; the sole supported FRESH-write
+ *    mode (SS8, 2026-07-08). Runs on every surface.
+ *  - `multi_session`  — each phase is its own external UUID-bound Claude
+ *    session (pre-SS1 behaviour). DEPRECATED, retained for back-compat.
+ *
+ * OPTIONAL on disk (NOT in the schema's `required`): a mode-less legacy config
+ * reads as `DEFAULT_RUN_MODE`. Mirrors shared/schemas/run_config.v2.schema.json.
+ */
+export type RunMode = "multi_session" | "single_session";
+
+export const RUN_MODES: readonly RunMode[] = [
+  "multi_session",
+  "single_session",
+] as const;
+
+/**
+ * Absent-read fallback for `mode`. MUST equal the schema `default` and the
+ * framework's `config_io.run_mode` absent-read so a consumer applying schema
+ * defaults never silently reinterprets a mode-less legacy run.
+ */
+export const DEFAULT_RUN_MODE: RunMode = "multi_session";
+
 export type PhaseTaskStatus =
   | "backlog"
   | "awaiting_launch"
@@ -96,6 +122,8 @@ export interface RunConfigV2 {
   scope: "full_app" | "extension";
   profile?: string | null;
   autonomy: "guided" | "autonomous";
+  /** OPTIONAL; absent → DEFAULT_RUN_MODE via resolveRunMode(). See RunMode. */
+  mode?: RunMode;
   deploy_target: string;
   pipeline: RunPhase[];
   runConditions: RunConditions;
@@ -185,4 +213,33 @@ export function deriveReadyToLaunchTasks(config: RunConfigV2): PhaseTask[] {
 
 export function isTerminalPhaseTaskStatus(s: PhaseTaskStatus): boolean {
   return TERMINAL_PHASE_TASK_STATUSES.includes(s);
+}
+
+export function isRunMode(v: unknown): v is RunMode {
+  return v === "multi_session" || v === "single_session";
+}
+
+/**
+ * Resolve a run's execution mode. Absent OR unrecognised → DEFAULT_RUN_MODE
+ * ("multi_session") — matching the schema note that "an unrecognised value is
+ * also read as multi_session so a typo can't select an unbuilt path". Stays
+ * defensive even though the reader already drops unrecognised values.
+ */
+export function resolveRunMode(config: { mode?: RunMode }): RunMode {
+  return isRunMode(config.mode) ? config.mode : DEFAULT_RUN_MODE;
+}
+
+/**
+ * Parse the raw `mode` value off a run-config for the reader. Valid → the mode;
+ * absent/null → `{}` (no warning; consumers default via resolveRunMode); an
+ * UNRECOGNISED value → a warning and NO mode (the reader NEVER rejects the
+ * config over `mode`, so a typo can't select an unbuilt path). Lives next to
+ * the RunMode type instead of growing the at-ceiling run-config-reader.
+ */
+export function parseRunMode(raw: unknown): { mode?: RunMode; warnings: string[] } {
+  if (isRunMode(raw)) return { mode: raw, warnings: [] };
+  if (raw === undefined || raw === null) return { warnings: [] };
+  return {
+    warnings: [`mode ${JSON.stringify(raw)} not recognized; treating as ${DEFAULT_RUN_MODE}`],
+  };
 }

@@ -1,0 +1,1 @@
+WebUI now reads the pipeline run_config `mode` (single-session vs multi-session) and stamps embedded-terminal sessions with a `SHIPWRIGHT_WEBUI=1` marker — foundation for single-session pipeline support (no user-visible change yet).
