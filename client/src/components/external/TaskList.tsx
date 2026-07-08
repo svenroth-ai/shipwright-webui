@@ -48,6 +48,10 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 import type { ExternalTask, ExternalTaskState } from "../../lib/externalApi";
 import {
+  compareTasksByLastModifiedDesc,
+  taskLastModifiedMs,
+} from "../../lib/taskSort";
+import {
   useCloseExternalTask,
   useDeleteExternalTask,
 } from "../../hooks/useExternalTasks";
@@ -80,10 +84,15 @@ export function TaskList({ tasks }: Props) {
           sensitivity: "base",
         }),
       );
+      if (sortDir === "desc") arr.reverse();
     } else {
-      arr.sort((a, b) => lastActivityMs(a) - lastActivityMs(b));
+      // "Updated" (the default). Desc = newest-modified first, via the SAME
+      // shared comparator the board columns use — so the List default order
+      // and each board column agree card-for-card (incl. the taskId tiebreak).
+      // Asc just flips it for the header toggle.
+      arr.sort(compareTasksByLastModifiedDesc);
+      if (sortDir === "asc") arr.reverse();
     }
-    if (sortDir === "desc") arr.reverse();
     return arr;
   }, [tasks, sortKey, sortDir]);
 
@@ -503,27 +512,14 @@ function iconClass(state: ExternalTaskState): string {
 function lastActivity(
   task: ExternalTask,
 ): { short: string; full: string } | null {
-  const ms = lastActivityMs(task);
+  // Same canonical timestamp the sort uses (lib/taskSort) — so the "Updated"
+  // column text and the row's sort position can never disagree.
+  const ms = taskLastModifiedMs(task);
   if (!ms) return null;
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return null;
   const ago = relative(Date.now() - ms);
   return { short: ago, full: `${ago} (${d.toISOString()})` };
-}
-
-function lastActivityMs(task: ExternalTask): number {
-  return (
-    task.lastJsonlSeenMtimeMs ??
-    toMs(task.launchedAt) ??
-    toMs(task.createdAt) ??
-    0
-  );
-}
-
-function toMs(iso: string | undefined): number | null {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  return Number.isFinite(t) ? t : null;
 }
 
 function relative(deltaMs: number): string {

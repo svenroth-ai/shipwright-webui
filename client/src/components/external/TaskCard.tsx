@@ -75,6 +75,7 @@ import { useProjects } from "../../hooks/useProjects";
 import { getProjectColor, type ProjectColor } from "../../lib/projectColor";
 import { getPhaseStyle, resolveTaskPhase } from "../../lib/phaseStyle";
 import { isInProgressState, hasLaunchedBefore } from "../../lib/taskLifecycle";
+import { taskLastModifiedMs } from "../../lib/taskSort";
 import { TerminalLaunchButton } from "./TerminalLaunchButton";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { EditTaskModal } from "./EditTaskModal";
@@ -513,19 +514,15 @@ function iconClass(state: ExternalTaskState): string {
 }
 
 function lastActivity(task: ExternalTask): { short: string; full: string } | null {
-  // Prefer JSONL mtime; fall back to launchedAt; fall back to createdAt.
-  const ms = task.lastJsonlSeenMtimeMs ?? toMs(task.launchedAt) ?? toMs(task.createdAt);
+  // Canonical "last modified" (JSONL mtime → launchedAt → createdAt), shared
+  // with the board sort + List view via lib/taskSort so the card's timestamp
+  // and its sorted position always agree.
+  const ms = taskLastModifiedMs(task);
   if (!ms) return null;
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return null;
   const ago = relative(Date.now() - ms);
   return { short: ago, full: `${ago} (${d.toISOString()})` };
-}
-
-function toMs(iso: string | undefined): number | null {
-  if (!iso) return null;
-  const t = new Date(iso).getTime();
-  return Number.isFinite(t) ? t : null;
 }
 
 function relative(deltaMs: number): string {

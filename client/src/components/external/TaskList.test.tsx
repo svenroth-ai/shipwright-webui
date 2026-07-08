@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 import { TaskList } from "./TaskList";
@@ -76,6 +76,47 @@ describe("TaskList — Resume/Launch icon on compact (AC-4)", () => {
     expect(label).not.toBeNull();
     expect(label!.className).toContain("hidden");
     expect(label!.className).toContain("lg:inline");
+  });
+});
+
+describe("TaskList — default sort order (iterate board-sort-last-modified)", () => {
+  function rowIds(): (string | null)[] {
+    return Array.from(
+      document.querySelectorAll('[data-testid^="task-list-row-"]'),
+    ).map((el) => el.getAttribute("data-testid"));
+  }
+
+  it("AC-2: defaults to newest-modified first with no header interaction", () => {
+    renderList([
+      baseTask({ taskId: "old", lastJsonlSeenMtimeMs: 1_000 }),
+      baseTask({ taskId: "new", lastJsonlSeenMtimeMs: 9_000 }),
+      baseTask({ taskId: "mid", lastJsonlSeenMtimeMs: 5_000 }),
+    ]);
+    expect(rowIds()).toEqual([
+      "task-list-row-new",
+      "task-list-row-mid",
+      "task-list-row-old",
+    ]);
+  });
+
+  it("AC-2: clicking the Updated header toggles to oldest-first", () => {
+    renderList([
+      baseTask({ taskId: "old", lastJsonlSeenMtimeMs: 1_000 }),
+      baseTask({ taskId: "new", lastJsonlSeenMtimeMs: 9_000 }),
+    ]);
+    const btn = screen
+      .getByTestId("task-list-header-updated")
+      .querySelector("button");
+    fireEvent.click(btn!);
+    expect(rowIds()).toEqual(["task-list-row-old", "task-list-row-new"]);
+  });
+
+  it("AC-4: equal timestamps break by taskId ascending (deterministic)", () => {
+    renderList([
+      baseTask({ taskId: "zebra", lastJsonlSeenMtimeMs: 1_000 }),
+      baseTask({ taskId: "alpha", lastJsonlSeenMtimeMs: 1_000 }),
+    ]);
+    expect(rowIds()).toEqual(["task-list-row-alpha", "task-list-row-zebra"]);
   });
 });
 
