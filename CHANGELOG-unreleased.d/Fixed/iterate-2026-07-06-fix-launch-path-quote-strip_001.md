@@ -1,1 +1,0 @@
-Launch on macOS/Linux no longer fails with "cd: no such file or directory" when a project path containing spaces was registered wrapped in quotes: filesystem paths are now normalised (surrounding quote pair stripped) at the input boundary before the launch command is built.

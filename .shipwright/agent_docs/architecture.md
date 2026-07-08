@@ -275,3 +275,13 @@ _**One line per change, ≤600 chars** — always-loaded Layer-1 context; detail
 - **iterate-2026-07-06-terminal-copy-selection-cache** (2026-07-06, FR-01.28, BUG): new `useTerminalClipboard.ts` redraw-proof copy cache — Claude's mouse-tracking redraws clear the xterm selection before Ctrl+C (copy degraded to SIGINT); the selection is captured at settle (`useTerminalSelection.ts`) and Ctrl+C/Ctrl+Insert + a mouse-only Copy pill (`TerminalBanners.tsx`) copy it via the `execCommand` fallback (http-safe), invalidated on gesture/keydown so SIGINT survives. Copy-on-selection stays opt-in/off. Detail in the decision-drop / ADR.
 - **iterate-2026-07-07-terminal-osc52-clipboard** (2026-07-07, FR-01.28, BUG): OSC 52 is now the SOLE terminal copy path — Claude copies its own selection via OSC 52; new `terminal-osc52.ts` (`registerOscHandler(52)`) decodes + writes via `copyText` (execCommand, http-safe) and DENIES read requests (no clipboard leak). Supersedes the WebUI's own copy: Ctrl+C interception, copy-on-selection + toggle, the iterate-2026-07-06 redraw cache + Copy pill (`useTerminalSelection.ts` deleted), mouse-mode hint — all removed. Ctrl+C now passes through (SIGINT); paste unchanged. Detail in the decision-drop.
 - **iterate-2026-07-07-terminal-rightclick-double-paste** (2026-07-07, FR-01.28, BUG): the embedded terminal no longer forwards RIGHT-button mouse reports to the pty — new `terminal-mouse-report.ts` `isRightButtonMouseReport()` filters the `onData` sink. Claude treated a reported right-click as paste (own copy buffer), so it pasted on top of the browser context-menu Paste = double-paste. Right-click is now browser-only (menu → Paste = one path); left/middle/wheel still forwarded (SGR `Cb<64 && Cb&3==2`). Detail in the decision-drop.
+- **ADR-203** (2026-06-22): Data-independent activation repaint for idle terminal tab-switch
+- **ADR-204** (2026-06-23): Reopen a Done card dragged out of the Done column
+- **ADR-206** (2026-06-23): Runtime renderer override to isolate the WebGL smear root cause
+- **ADR-209** (2026-06-27): Repaint the embedded terminal on every WebGL texture-atlas mutation
+- **ADR-216** (2026-06-30): Surface per-project compliance Grade by parsing dashboard.md
+- **ADR-219** (2026-07-01): Pre-launch pty size-sync
+- **ADR-224** (2026-07-06): Project delete cascade-removes its tasks (no phantom Unassigned row)
+- **ADR-226** (2026-07-06): Redraw-proof terminal copy cache
+- **ADR-229** (2026-07-07): OSC 52 as the sole terminal copy path
+- **ADR-230** (2026-07-07): Don't forward right-click to the pty

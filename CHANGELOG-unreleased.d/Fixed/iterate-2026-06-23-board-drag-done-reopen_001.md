@@ -1,1 +1,0 @@
-Task Board: dragging a Done card to In Progress (or Backlog) — or moving it there via the card's ⋯ menu — now reopens the task (status returns to draft) so it lands unlocked with a Resume/Launch action, instead of staying marked done and locked in the new column.
