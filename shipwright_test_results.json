@@ -1,18 +1,19 @@
 {
-  "last_updated": "2026-07-08",
+  "last_updated": "2026-07-09",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-08-board-sort-last-modified",
-    "date": "2026-07-08",
+    "run_id": "iterate-2026-07-09-w1-mode-aware-config",
+    "date": "2026-07-09",
     "unit": {
       "status": "passed",
-      "passed": 3649,
-      "total": 3649,
-      "note": "full suites: client 1900 + server 1749"
+      "passed": 3669,
+      "total": 3669,
+      "note": "full suites: client 1904 + server 1765"
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 2,
+      "total": 2,
+      "note": "run-config route round-trip via the REAL reader (mode passthrough + unrecognised-drop), within the server vitest suite"
     },
     "pgtap": {
       "status": "not_run",
@@ -20,10 +21,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "96-board-list-sort: board+list newest-first at Desktop/Tablet/Phone + List Updated toggle"
+      "status": "skipped",
+      "passed": 0,
+      "total": 0,
+      "note": "No browser surface in W1 — mode drives no UI yet (W3) and the marker is consumed by the monorepo /shipwright-run (W2). Cross-surface Playwright E2E is the campaign's W4 sub-iterate. F0.5 ran surface=cli instead (see surface_verification)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -34,91 +35,71 @@
       "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "cmd /c client\\node_modules\\.bin\\playwright.cmd test --config=client/playwright.config.ts board-list-sort",
+      "surface": "cli",
+      "runner": "cmd /c server\\node_modules\\.bin\\vitest.cmd run --root server run-config-mode pty-env-flicker run-config-route",
       "exit_code": 0,
-      "tests_run": 1,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\board-sort-last-modified\\.shipwright\\runs\\iterate-2026-07-08-board-sort-last-modified\\surface_verification.log",
-      "timestamp": "2026-07-08T13:43:23.341Z"
+      "tests_run": 41,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w1-mode-aware-config\\.shipwright\\runs\\iterate-2026-07-09-w1-mode-aware-config\\surface_verification.log",
+      "timestamp": "2026-07-08T23:06:41.684Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "taskLastModifiedMs precedence mtime->launchedAt->createdAt->0",
+          "behavior": "AC1 server mirror: RunMode/RUN_MODES/DEFAULT_RUN_MODE + resolveRunMode (present->itself, absent->multi_session) + isRunMode",
           "disposition": "tested",
-          "evidence": "client/src/lib/taskSort.test.ts 'precedence chain' PASSED"
+          "evidence": "server/src/core/run-config-mode.test.ts 'run-config-v2 mode helpers (W1)' PASSED"
         },
         {
-          "behavior": "non-finite mtime / unparseable ISO skipped, finite floor (never poisons sort)",
+          "behavior": "AC1 client mirror: same helpers exported + correct (mirrors never import each other, own coverage)",
           "disposition": "tested",
-          "evidence": "client/src/lib/taskSort.test.ts 'defensive against malformed timestamps' PASSED"
+          "evidence": "client/src/lib/run-config-v2.test.ts 'mode helpers (client mirror, W1)' PASSED"
         },
         {
-          "behavior": "compareTasksByLastModifiedDesc newest-first + taskId string tiebreak",
+          "behavior": "AC2 reader surfaces a valid mode (single_session / multi_session), no warning",
           "disposition": "tested",
-          "evidence": "client/src/lib/taskSort.test.ts 'order + determinism' PASSED"
+          "evidence": "server/src/core/run-config-mode.test.ts 'surfaces a valid mode=...' PASSED"
         },
         {
-          "behavior": "sortTasksByLastModifiedDesc non-mutating + mixed-source order",
+          "behavior": "AC2 reader omits mode when absent OR null, no warning",
           "disposition": "tested",
-          "evidence": "client/src/lib/taskSort.test.ts 'immutability + full order' PASSED"
+          "evidence": "server/src/core/run-config-mode.test.ts 'omits mode when absent' + 'treats mode=null like absent' PASSED"
         },
         {
-          "behavior": "Board within-column newest-first",
+          "behavior": "AC2 reader drops an unrecognised mode + warns, NEVER rejects the config",
           "disposition": "tested",
-          "evidence": "TaskBoardColumns.test.tsx AC-1 PASSED + e2e 96 PASSED"
+          "evidence": "server/src/core/run-config-mode.test.ts 'drops an unrecognised mode + warns; config still ok' PASSED"
         },
         {
-          "behavior": "Board equal-timestamp tiebreak",
+          "behavior": "AC3 run-config route surfaces a valid mode end-to-end (real reader through Hono)",
           "disposition": "tested",
-          "evidence": "TaskBoardColumns.test.tsx AC-4 PASSED"
+          "evidence": "server/src/external/run-config-route.test.ts 'surfaces a valid mode end-to-end' PASSED"
         },
         {
-          "behavior": "List default order newest-first",
+          "behavior": "AC3 run-config route: unrecognised mode dropped+warned, route still 200/ok",
           "disposition": "tested",
-          "evidence": "TaskList.test.tsx AC-2 PASSED + e2e 96 PASSED"
+          "evidence": "server/src/external/run-config-route.test.ts 'unrecognised mode -> dropped + warned, route still 200/ok' PASSED"
         },
         {
-          "behavior": "List 'Updated' header toggle -> oldest-first",
+          "behavior": "AC4 buildSpawnEnv sets SHIPWRIGHT_WEBUI=1 by default (and in the legacy brand-colors path)",
           "disposition": "tested",
-          "evidence": "TaskList.test.tsx AC-2 toggle PASSED + e2e 96 toggle PASSED"
+          "evidence": "server/src/terminal/pty-env-flicker.test.ts 'sets SHIPWRIGHT_WEBUI=1 by default' + 'legacy brand-colors path' PASSED"
         },
         {
-          "behavior": "List equal-timestamp tiebreak",
+          "behavior": "AC4 SHIPWRIGHT_WEBUI marker is authoritative: neither base env nor caller can override/unset it",
           "disposition": "tested",
-          "evidence": "TaskList.test.tsx AC-4 PASSED"
-        },
-        {
-          "behavior": "Board<->List order parity (same fixture)",
-          "disposition": "tested",
-          "evidence": "sortParity.test.tsx AC-3 PASSED"
-        },
-        {
-          "behavior": "Device parity Desktop/Tablet/Phone",
-          "disposition": "tested",
-          "evidence": "e2e 96-board-list-sort 3-viewport loop (AC-5) PASSED"
-        },
-        {
-          "behavior": "List/Card 'Updated' display unchanged after dedupe",
-          "disposition": "tested",
-          "evidence": "existing TaskList.test.tsx + TaskCard.test.tsx suites green"
-        },
-        {
-          "behavior": "Board memoized sort (perf, behavior-preserving)",
-          "disposition": "tested",
-          "evidence": "existing TaskBoardColumns grouping/decouple tests green"
+          "evidence": "server/src/terminal/pty-env-flicker.test.ts 'overrides a stale...inherited' + 'a caller cannot override or unset the marker' PASSED"
         }
       ],
       "counts": {
-        "testable": 13,
-        "tested": 13,
+        "testable": 9,
+        "tested": 9,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 4,
+        "covered_acs": 4
       }
     },
     "degraded": []

@@ -238,3 +238,40 @@ describe("buildSpawnEnv — strip parent/child Claude-session markers (empty-Tra
     expect(env.KEEP_ME).toBe("yes");
   });
 });
+
+describe("buildSpawnEnv — SHIPWRIGHT_WEBUI spawn marker (W1)", () => {
+  // Every embedded-terminal pty is spawned BY the WebUI, so /shipwright-run can
+  // branch on SHIPWRIGHT_WEBUI=1 to show the board-handoff banner instead of the
+  // plain-terminal paste card (design: Spec/pipeline-as-campaign-convergence.md
+  // §8). buildSpawnEnv is the SOLE pty-env chokepoint, and the marker is an
+  // identity fact about the spawn source, not a tunable — so it is set
+  // unconditionally and authoritatively (a caller can neither override nor
+  // unset it).
+  it("sets SHIPWRIGHT_WEBUI='1' by default", () => {
+    const env = buildSpawnEnv({ PATH: "/usr/bin" });
+    expect(env.SHIPWRIGHT_WEBUI).toBe("1");
+  });
+
+  it("sets SHIPWRIGHT_WEBUI='1' in the legacy brand-colors path too", () => {
+    const env = buildSpawnEnv({
+      PATH: "/usr/bin",
+      SHIPWRIGHT_TERMINAL_LEGACY_BRAND_COLORS: "1",
+    });
+    expect(env.SHIPWRIGHT_WEBUI).toBe("1");
+  });
+
+  it("overrides a stale SHIPWRIGHT_WEBUI inherited from the server's own env", () => {
+    const env = buildSpawnEnv({ PATH: "/usr/bin", SHIPWRIGHT_WEBUI: "0" });
+    expect(env.SHIPWRIGHT_WEBUI).toBe("1");
+  });
+
+  it("a caller cannot override or unset the marker (authoritative post-merge)", () => {
+    const env = buildSpawnEnv(
+      { PATH: "/usr/bin" },
+      { SHIPWRIGHT_WEBUI: "0", KEEP_ME: "yes" },
+    );
+    expect(env.SHIPWRIGHT_WEBUI).toBe("1");
+    // other caller vars still flow through
+    expect(env.KEEP_ME).toBe("yes");
+  });
+});

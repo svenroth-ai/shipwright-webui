@@ -20,7 +20,11 @@ import {
 } from "../core/sdk-sessions-store.js";
 import { SessionWatcher } from "../core/session-watcher.js";
 import { createExternalRoutes, type ExternalRouteProjectView } from "./routes.js";
-import type { RunConfigReadResult } from "../core/run-config-reader.js";
+import {
+  clearRunConfigReaderCache,
+  readRunConfig,
+  type RunConfigReadResult,
+} from "../core/run-config-reader.js";
 import type { RunConfigV2 } from "../types/run-config-v2.js";
 
 const FIXTURE_PATH = path.join(
@@ -182,6 +186,46 @@ describe("GET /api/external/projects/:projectId/run-config", () => {
         diagnostics: { droppedPhaseTaskIds: string[] };
       };
       expect(body.diagnostics.droppedPhaseTaskIds).toEqual(["ptk-bad1", "ptk-bad2"]);
+    });
+  });
+
+  describe("mode passthrough (W1) — round-trip via the REAL reader", () => {
+    // AC3: the route is a verbatim passthrough of `result.config`. These wire
+    // the REAL readRunConfig (stubbed readFile) through the route so the whole
+    // parse → response chain is exercised, not just the stubbed passthrough.
+    function realReaderFor(json: string): (p: string) => Promise<RunConfigReadResult> {
+      clearRunConfigReaderCache();
+      return (projectPath: string) =>
+        readRunConfig(projectPath, {
+          readFile: async () => json,
+          stat: async () => ({ mtimeMs: 1 }),
+          sleep: async () => undefined,
+          now: () => 1_000_000,
+        });
+    }
+
+    it("surfaces a valid mode end-to-end", async () => {
+      const json = JSON.stringify({ ...FIXTURE, mode: "single_session" });
+      app = await makeApp({ reader: realReaderFor(json) });
+      const res = await app.request("/api/external/projects/p-test/run-config");
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { status: string; config: { mode?: string } };
+      expect(body.status).toBe("ok");
+      expect(body.config.mode).toBe("single_session");
+    });
+
+    it("unrecognised mode → dropped + warned, route still 200/ok", async () => {
+      const json = JSON.stringify({ ...FIXTURE, mode: "bogus" });
+      app = await makeApp({ reader: realReaderFor(json) });
+      const res = await app.request("/api/external/projects/p-test/run-config");
+      const body = (await res.json()) as {
+        status: string;
+        config: { mode?: string };
+        diagnostics: { warnings: string[] };
+      };
+      expect(body.status).toBe("ok");
+      expect(body.config.mode).toBeUndefined();
+      expect(body.diagnostics.warnings.some((w) => w.includes("mode"))).toBe(true);
     });
   });
 });

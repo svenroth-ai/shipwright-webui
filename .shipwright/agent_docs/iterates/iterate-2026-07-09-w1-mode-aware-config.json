@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-09-w1-mode-aware-config",
+  "date": "2026-07-08T22:54:42.406328Z",
+  "type": "feature",
+  "complexity": "small",
+  "branch": "iterate/w1-mode-aware-config",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-pipeline-convergence/sub-iterates/W1-mode-aware-config.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-09-w1-mode-aware-config"
+}

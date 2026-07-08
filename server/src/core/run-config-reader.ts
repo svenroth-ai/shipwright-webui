@@ -26,6 +26,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+  parseRunMode,
   PHASE_TASK_ID_PATTERN,
   RUN_ID_PATTERN,
   RUN_PHASES,
@@ -278,6 +279,10 @@ function validateRunConfigV2(
     return { status: "invalid", reason: "created_at missing" };
   }
 
+  // mode: parsed by parseRunMode (kept next to the RunMode type — this reader
+  // is at its bloat ceiling). Unrecognised → dropped + warned, never rejects.
+  const { mode, warnings } = parseRunMode(top.mode);
+
   const phaseTasksRaw = top.phase_tasks;
   if (!Array.isArray(phaseTasksRaw)) {
     return { status: "invalid", reason: "phase_tasks must be an array" };
@@ -314,6 +319,7 @@ function validateRunConfigV2(
     phase_tasks,
     created_at: top.created_at as string,
   };
+  if (mode !== undefined) config.mode = mode;
   if (typeof top.updated_at === "string") config.updated_at = top.updated_at;
   if (top.phase_history && typeof top.phase_history === "object" && !Array.isArray(top.phase_history)) {
     config.phase_history = top.phase_history as Record<string, unknown>;
@@ -325,7 +331,7 @@ function validateRunConfigV2(
   return {
     status: "ok",
     config,
-    diagnostics: { droppedPhaseTaskIds, warnings: [] },
+    diagnostics: { droppedPhaseTaskIds, warnings },
   };
 }
 
@@ -423,14 +429,7 @@ function isRunStatus(v: unknown): v is RunStatus {
 }
 
 function isPhaseTaskStatus(v: unknown): v is PhaseTaskStatus {
-  return (
-    v === "backlog" ||
-    v === "awaiting_launch" ||
-    v === "in_progress" ||
-    v === "done" ||
-    v === "failed" ||
-    v === "skipped"
-  );
+  return v === "backlog" || v === "awaiting_launch" || v === "in_progress" || v === "done" || v === "failed" || v === "skipped";
 }
 
 function stringifyErr(err: unknown): string {

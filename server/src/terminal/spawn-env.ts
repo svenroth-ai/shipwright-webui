@@ -22,7 +22,8 @@
  * (ADR-095/ADR-097/ADR-098) → caller-supplied opts.env (last-write-wins
  * for most keys; the default-on CLAUDE_CODE_NO_FLICKER is protected
  * from accidental caller silent-revert — see opt-out-wins symmetry
- * below) → strip of parent/child Claude-session identity markers (the
+ * below) → SHIPWRIGHT_WEBUI=1 spawn marker (W1, authoritative post-merge)
+ * → strip of parent/child Claude-session identity markers (the
  * empty-Transcripts fix, 2026-06-13).
  *
  * CLAUDE_CODE_NO_FLICKER (ADR-098):
@@ -165,6 +166,15 @@ export function buildSpawnEnv(
       env[k] = v;
     }
   }
+  // WebUI-spawn marker (W1, iterate-2026-07-09; design:
+  // Spec/pipeline-as-campaign-convergence.md §8). Every embedded-terminal pty
+  // is spawned BY the WebUI, so /shipwright-run can branch on this to show the
+  // board-handoff banner instead of the plain-terminal paste card. Set AFTER
+  // the callerEnv merge and unconditionally: a caller can neither override nor
+  // unset it — it is an identity fact about the spawn source, not a tunable.
+  // buildSpawnEnv is the SOLE pty-env chokepoint (ADR-067 shell-only
+  // whitelist), so this is the single place the marker belongs.
+  env.SHIPWRIGHT_WEBUI = "1";
   // Strip parent/child Claude-session identity markers so the embedded
   // claude ALWAYS launches as a fresh TOP-LEVEL session. When the webui
   // server is started from inside a Claude Code session (e.g. claude-vscode),
