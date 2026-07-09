@@ -1,19 +1,17 @@
 {
   "last_updated": "2026-07-09",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-09-w1-mode-aware-config",
+    "run_id": "iterate-2026-07-09-w2-master-launch-handoff",
     "date": "2026-07-09",
     "unit": {
       "status": "passed",
-      "passed": 3669,
-      "total": 3669,
-      "note": "full suites: client 1904 + server 1765"
+      "passed": 3696,
+      "total": 3696
     },
     "integration": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "run-config route round-trip via the REAL reader (mode passthrough + unrecognised-drop), within the server vitest suite"
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -21,10 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "note": "No browser surface in W1 — mode drives no UI yet (W3) and the marker is consumed by the monorepo /shipwright-run (W2). Cross-surface Playwright E2E is the campaign's W4 sub-iterate. F0.5 ran surface=cli instead (see surface_verification)."
+      "status": "passed",
+      "passed": 4,
+      "total": 4
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,74 +29,115 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "skipped"
     },
     "surface_verification": {
-      "surface": "cli",
-      "runner": "cmd /c server\\node_modules\\.bin\\vitest.cmd run --root server run-config-mode pty-env-flicker run-config-route",
+      "surface": "web",
+      "runner": "BASE_URL=http://127.0.0.1:3849 playwright test e2e/flows/97-single-session-master-launch.spec.ts --project=chromium (isolated Hono stack)",
       "exit_code": 0,
-      "tests_run": 41,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w1-mode-aware-config\\.shipwright\\runs\\iterate-2026-07-09-w1-mode-aware-config\\surface_verification.log",
-      "timestamp": "2026-07-08T23:06:41.684Z"
+      "tests_run": 4,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w2-master-launch-handoff\\.shipwright\\runs\\iterate-2026-07-09-w2-master-launch-handoff\\surface_verification.log",
+      "timestamp": "2026-07-09T08:41:00.000Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 server mirror: RunMode/RUN_MODES/DEFAULT_RUN_MODE + resolveRunMode (present->itself, absent->multi_session) + isRunMode",
+          "behavior": "masterRun+single_session fresh -> server-built /shipwright-run",
           "disposition": "tested",
-          "evidence": "server/src/core/run-config-mode.test.ts 'run-config-v2 mode helpers (W1)' PASSED"
+          "evidence": "master-run-branch.test.ts AC1 + e2e/flows/97 (real config)"
         },
         {
-          "behavior": "AC1 client mirror: same helpers exported + correct (mirrors never import each other, own coverage)",
+          "behavior": "no readable run_config -> 400 master_launch_no_run_config",
           "disposition": "tested",
-          "evidence": "client/src/lib/run-config-v2.test.ts 'mode helpers (client mirror, W1)' PASSED"
+          "evidence": "master-run-branch.test.ts AC2 + e2e/97"
         },
         {
-          "behavior": "AC2 reader surfaces a valid mode (single_session / multi_session), no warning",
+          "behavior": "project not resolvable -> 400 master_launch_no_run_config",
           "disposition": "tested",
-          "evidence": "server/src/core/run-config-mode.test.ts 'surfaces a valid mode=...' PASSED"
+          "evidence": "master-run-branch.test.ts AC2"
         },
         {
-          "behavior": "AC2 reader omits mode when absent OR null, no warning",
+          "behavior": "multi_session / mode-absent -> 400 master_launch_wrong_mode",
           "disposition": "tested",
-          "evidence": "server/src/core/run-config-mode.test.ts 'omits mode when absent' + 'treats mode=null like absent' PASSED"
+          "evidence": "master-run-branch.test.ts AC2 + e2e/97"
         },
         {
-          "behavior": "AC2 reader drops an unrecognised mode + warns, NEVER rejects the config",
+          "behavior": "masterRun + actionId/phaseTaskRef/campaignSlug/campaignStep -> 400 mixed_launch_intents",
           "disposition": "tested",
-          "evidence": "server/src/core/run-config-mode.test.ts 'drops an unrecognised mode + warns; config still ok' PASSED"
+          "evidence": "master-run-branch.test.ts AC3 (x4) + e2e/97"
         },
         {
-          "behavior": "AC3 run-config route surfaces a valid mode end-to-end (real reader through Hono)",
+          "behavior": "genuine resume (JSONL) -> null -> legacy --resume, no /shipwright-run",
           "disposition": "tested",
-          "evidence": "server/src/external/run-config-route.test.ts 'surfaces a valid mode end-to-end' PASSED"
+          "evidence": "master-run-branch.test.ts"
         },
         {
-          "behavior": "AC3 run-config route: unrecognised mode dropped+warned, route still 200/ok",
+          "behavior": "absent masterRun -> falls through (no /shipwright-run)",
           "disposition": "tested",
-          "evidence": "server/src/external/run-config-route.test.ts 'unrecognised mode -> dropped + warned, route still 200/ok' PASSED"
+          "evidence": "master-run-branch.test.ts"
         },
         {
-          "behavior": "AC4 buildSpawnEnv sets SHIPWRIGHT_WEBUI=1 by default (and in the legacy brand-colors path)",
+          "behavior": "persist awaiting_external_start + launchedAt on real launch",
           "disposition": "tested",
-          "evidence": "server/src/terminal/pty-env-flicker.test.ts 'sets SHIPWRIGHT_WEBUI=1 by default' + 'legacy brand-colors path' PASSED"
+          "evidence": "master-run-branch.test.ts"
         },
         {
-          "behavior": "AC4 SHIPWRIGHT_WEBUI marker is authoritative: neither base env nor caller can override/unset it",
+          "behavior": "parseLaunchBody surfaces masterRun boolean",
           "disposition": "tested",
-          "evidence": "server/src/terminal/pty-env-flicker.test.ts 'overrides a stale...inherited' + 'a caller cannot override or unset the marker' PASSED"
+          "evidence": "exercised by every master-run-branch.test.ts case"
+        },
+        {
+          "behavior": "client fresh: create master shadow + launch + handoff",
+          "disposition": "tested",
+          "evidence": "useLaunchMasterRun.test.ts"
+        },
+        {
+          "behavior": "client idempotent reuse (un-launched -> fresh)",
+          "disposition": "tested",
+          "evidence": "useLaunchMasterRun.test.ts"
+        },
+        {
+          "behavior": "client reuse ESTABLISHED (JSONL) -> resume -> legacy --resume",
+          "disposition": "tested",
+          "evidence": "useLaunchMasterRun.test.ts"
+        },
+        {
+          "behavior": "client ignores different-run / non-master shadow",
+          "disposition": "tested",
+          "evidence": "useLaunchMasterRun.test.ts (x2)"
+        },
+        {
+          "behavior": "default handoff writes webui:pending-auto-launch:<id> with resume flag",
+          "disposition": "tested",
+          "evidence": "useLaunchMasterRun.test.ts"
+        },
+        {
+          "behavior": "create_failed / launch_failed discriminated results",
+          "disposition": "tested",
+          "evidence": "useLaunchMasterRun.test.ts (x2)"
+        },
+        {
+          "behavior": "API body shape ({masterRun}/{+resume}), URL-encode, error-propagate",
+          "disposition": "tested",
+          "evidence": "masterRunApi.test.ts (x4)"
+        },
+        {
+          "behavior": "board-button -> handoff -> embedded-terminal auto-execute (cross-surface)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "W2 ships no UI caller; the real board->terminal run is W4's Playwright capstone by campaign design"
         }
       ],
       "counts": {
-        "testable": 9,
-        "tested": 9,
-        "untestable": 0,
+        "testable": 16,
+        "tested": 16,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 4,
-        "covered_acs": 4
+        "acs": 5,
+        "covered_acs": 5
       }
     },
     "degraded": []

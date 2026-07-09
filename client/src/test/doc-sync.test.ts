@@ -138,6 +138,12 @@ const REQUIRED_TOKENS = [
   // iterate-2026-07-06-collapse-dialog-more-options — collapsed-by-default
   // gray "More options" wrapper below the create-dialog Description
   'MoreOptionsDisclosure',
+  // iterate-2026-07-09-w2-master-launch-handoff — single-session master launch
+  // mechanism (campaign webui-pipeline-convergence W2): server launch branch +
+  // client hook + API wrapper (no UI yet — consumer lands in W3)
+  'master-run-branch',
+  'masterRunApi',
+  'useLaunchMasterRun',
 ] as const;
 
 let claudeMd = '';
