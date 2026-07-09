@@ -196,3 +196,30 @@ configured ports — it never reaches beyond them. The historic
 `VITE_ALT_PORT=5177` hardcode was removed in v0.3.2 because it broke the
 per-worktree contract; if you happen to run Vite on 5177, set
 `VITE_PORT=5177` explicitly.
+
+## Asking the user questions (plain language)
+
+When you ask the user a question — a clarification, a choice between options,
+or a confirmation — phrase it so a **non-senior developer or a normal user**
+can understand, from a functional standpoint, what is actually being decided.
+The person answering may not know the internals; do not make them decode
+jargon to reply.
+
+- **Lead with the functional meaning:** say what the choice changes about what
+  the user sees or does in the Command Center — not the implementation detail.
+  Ask "Should a closed task disappear from the board, or stay visible in a
+  'Done' column?" rather than "Set `boardColumn` to `done` or filter the
+  derived state?".
+- **Avoid unexplained jargon.** If a technical term is genuinely unavoidable,
+  add a short plain-language gloss in parentheses (e.g. "stateless read — the
+  server keeps no memory of where you were, so multiple tabs just work").
+- **Make options concrete and comparable.** Give each option in plain words
+  with its real-world trade-off ("Option A shows updates instantly but uses
+  more CPU; Option B refreshes once a second and is lighter"), not a raw
+  technical menu.
+- **Rule of thumb:** a product owner reading the question should be able to
+  answer it without asking "what does that mean?". If they couldn't, rewrite it.
+
+This applies to every interactive question — clarifications, design feedback,
+and remediation choices alike. It governs *phrasing only*; the underlying rigor
+of the work is unchanged.
