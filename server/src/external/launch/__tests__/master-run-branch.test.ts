@@ -213,4 +213,83 @@ describe("launch master-run branch — POST /launch { masterRun }", () => {
     expect(t.state).toBe("awaiting_external_start");
     expect(typeof t.launchedAt).toBe("string");
   });
+
+  // ── W3 double-master guard (mirrors campaign_run_already_attached) ──────────
+
+  /** Add a SECOND master shadow for a run and force it into a given state. */
+  function addOtherMaster(opts: {
+    runId?: string;
+    projectId?: string;
+    parentRunMaster?: boolean;
+    state?: string;
+    firstJsonlObservedAt?: string;
+  }): string {
+    const other = store.create({
+      title: "other master",
+      cwd: "/proj/root",
+      pluginDirs: [],
+      projectId: opts.projectId ?? "p-1",
+      runId: opts.runId ?? "run-a1b2c3d4",
+      parentRunMaster: opts.parentRunMaster ?? true,
+    });
+    store.patch(other.taskId, {
+      ...(opts.state ? { state: opts.state as never } : {}),
+      ...(opts.firstJsonlObservedAt
+        ? { firstJsonlObservedAt: opts.firstJsonlObservedAt }
+        : {}),
+    });
+    return other.taskId;
+  }
+
+  it("AC4: 409 master_run_already_attached when another master is attached (by state)", async () => {
+    const otherId = addOtherMaster({ state: "active" });
+    const { res, json } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(409);
+    expect(json.error).toBe("master_run_already_attached");
+    expect(json.detail).toBe(otherId);
+  });
+
+  it("AC4: 409 when the other master is launched-but-not-yet-observed (awaiting_external_start)", async () => {
+    addOtherMaster({ state: "awaiting_external_start" });
+    const { res, json } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(409);
+    expect(json.error).toBe("master_run_already_attached");
+  });
+
+  it("AC4: a terminal `done` master (with an observed JSONL) does NOT block a fresh launch", async () => {
+    // Regression: a completed master necessarily carries firstJsonlObservedAt;
+    // it must NOT be treated as attached (would strand a re-run of the same run).
+    addOtherMaster({ state: "done", firstJsonlObservedAt: "2026-07-09T00:00:00Z" });
+    const { res, json } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(200);
+    expect((json.commands as { posix: string }).posix).toContain("'/shipwright-run'");
+  });
+
+  it("AC4: a NON-attached other master (launch_failed / done / draft) does NOT block", async () => {
+    addOtherMaster({ state: "launch_failed" });
+    addOtherMaster({ state: "done" });
+    addOtherMaster({ state: "draft" });
+    const { res, json } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(200);
+    expect((json.commands as { posix: string }).posix).toContain("'/shipwright-run'");
+  });
+
+  it("AC4: an attached master for a DIFFERENT run does NOT block", async () => {
+    addOtherMaster({ runId: "run-99999999", state: "active" });
+    const { res } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(200);
+  });
+
+  it("AC4: a same-run NON-master (parentRunMaster false) active task does NOT block", async () => {
+    addOtherMaster({ parentRunMaster: false, state: "active" });
+    const { res } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(200);
+  });
+
+  it("AC4: an attached master with the SAME runId but a DIFFERENT project does NOT block (dup-dir isolation)", async () => {
+    // A duplicated project dir copies runId verbatim; scope the guard by project.
+    addOtherMaster({ projectId: "p-2", state: "active" });
+    const { res } = await launch({ masterRun: true, dryRun: true });
+    expect(res.status).toBe(200);
+  });
 });

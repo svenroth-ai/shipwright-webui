@@ -76,9 +76,10 @@ import {
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
 import { useIsPhoneViewport } from "../hooks/useIsCompactViewport";
 import { NewIssueModal } from "../components/external/NewIssueModal";
-import { MasterTaskCard } from "../components/external/MasterTaskCard";
+import { PipelineLaneCard } from "../components/external/PipelineLaneCard";
 import { CampaignsLane } from "../components/external/CampaignsLane";
 import { ContinuePipelineModal } from "../components/external/ContinuePipelineModal";
+import { resolveRunMode } from "../lib/run-config-v2";
 import { UNASSIGNED_PROJECT_ID } from "../lib/projectIds";
 
 /** Synthetic action id used by the "Continue Pipeline" entry. Routed
@@ -178,7 +179,10 @@ export default function TaskBoardPage() {
   const continuePipelineAvailable =
     runConfigQuery.data?.status === "ok" &&
     runConfigQuery.data.config.status === "in_progress" &&
-    runConfigQuery.data.readyToLaunchTasks.length > 0;
+    runConfigQuery.data.readyToLaunchTasks.length > 0 &&
+    // Single-session runs are driven by the /shipwright-run master (no per-phase
+    // Continue) — the menu entry is a multi-session-only affordance (W3).
+    resolveRunMode(runConfigQuery.data.config) !== "single_session";
 
   const actionsList: ActionDefinition[] = useMemo(() => {
     if (!continuePipelineAvailable) return baseActionsList;
@@ -380,27 +384,12 @@ export default function TaskBoardPage() {
           pixel offset from the sidebar. List view keeps its own internal
           layout (handled in TaskList).
           Iterate 3.7e-b1: gap-8 → gap-10 (32 → 40 px gutter). */}
-      {/* iterate/multi-session-run-orchestrator-v2 — Pipelines lane.
-          Renders one Master TaskCard per Run when the active project has a
-          v2 run-config. v1_legacy / missing / invalid → no lane (legacy
-          flat-task path is unchanged). Currently scoped to the active
-          project only; multi-project view is out of scope per plan. */}
-      {runConfigQuery.data?.status === "ok" && activeProjectMeta && (
-        <div
-          className="page-container flex w-full flex-col gap-3 pt-6 pb-2"
-          data-testid="task-board-pipelines-lane"
-        >
-          <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted,#6b7280)]">
-            Pipelines
-          </div>
-          <MasterTaskCard
-            project={activeProjectMeta}
-            config={runConfigQuery.data.config}
-            readyToLaunchTasks={runConfigQuery.data.readyToLaunchTasks}
-            diagnostics={runConfigQuery.data.diagnostics}
-          />
-        </div>
-      )}
+      {/* Pipelines lane (campaign webui-pipeline-convergence W3). The lane host
+          picks the representation by run mode: single_session → the campaign-like
+          SingleSessionRunCard; multi_session / mode-less legacy → MasterTaskCard.
+          Returns null for missing / v1 / invalid run-config (legacy flat-task
+          path is unchanged) or when no project is resolved. */}
+      <PipelineLaneCard runConfig={runConfigQuery.data} project={activeProjectMeta} />
 
       {/* FR-01.31/33 — Campaigns lane (extracted to CampaignsLane so the
           dismiss affordance has a home without growing this file). Hidden

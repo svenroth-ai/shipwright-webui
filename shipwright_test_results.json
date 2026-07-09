@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-09",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-09-w2-master-launch-handoff",
+    "run_id": "iterate-2026-07-09-w3-single-session-board",
     "date": "2026-07-09",
     "unit": {
       "status": "passed",
-      "passed": 3696,
-      "total": 3696
+      "passed": 3738,
+      "total": 3738
     },
     "integration": {
       "status": "not_run",
@@ -29,115 +29,119 @@
       "total": 0
     },
     "smoke": {
-      "status": "skipped"
+      "status": "not_run"
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3849 playwright test e2e/flows/97-single-session-master-launch.spec.ts --project=chromium (isolated Hono stack)",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts --project=chromium e2e/flows/98-single-session-board.spec.ts",
       "exit_code": 0,
       "tests_run": 4,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w2-master-launch-handoff\\.shipwright\\runs\\iterate-2026-07-09-w2-master-launch-handoff\\surface_verification.log",
-      "timestamp": "2026-07-09T08:41:00.000Z"
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w3-single-session-board\\.shipwright\\runs\\iterate-2026-07-09-w3-single-session-board\\surface_verification.log",
+      "timestamp": "2026-07-09T16:44:32.465Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "masterRun+single_session fresh -> server-built /shipwright-run",
+          "behavior": "PipelineLaneCard null for missing/v1/invalid/no-project",
           "disposition": "tested",
-          "evidence": "master-run-branch.test.ts AC1 + e2e/flows/97 (real config)"
+          "evidence": "PipelineLaneCard.test.tsx (x3)"
         },
         {
-          "behavior": "no readable run_config -> 400 master_launch_no_run_config",
+          "behavior": "single_session -> SingleSessionRunCard",
           "disposition": "tested",
-          "evidence": "master-run-branch.test.ts AC2 + e2e/97"
+          "evidence": "PipelineLaneCard.test.tsx + flow 98"
         },
         {
-          "behavior": "project not resolvable -> 400 master_launch_no_run_config",
+          "behavior": "multi_session / mode-less -> unchanged MasterTaskCard",
           "disposition": "tested",
-          "evidence": "master-run-branch.test.ts AC2"
+          "evidence": "PipelineLaneCard.test.tsx (x2) + flow 98"
         },
         {
-          "behavior": "multi_session / mode-absent -> 400 master_launch_wrong_mode",
+          "behavior": "lane keeps task-board-pipelines-lane testid + Pipelines label",
           "disposition": "tested",
-          "evidence": "master-run-branch.test.ts AC2 + e2e/97"
+          "evidence": "PipelineLaneCard.test.tsx + flow 98"
         },
         {
-          "behavior": "masterRun + actionId/phaseTaskRef/campaignSlug/campaignStep -> 400 mixed_launch_intents",
+          "behavior": "steady frontier progress bar monotonic across fan-out; complete/failed/empty",
           "disposition": "tested",
-          "evidence": "master-run-branch.test.ts AC3 (x4) + e2e/97"
+          "evidence": "pipelineProgress.test.ts (8) + SingleSessionRunCard.test.tsx"
         },
         {
-          "behavior": "genuine resume (JSONL) -> null -> legacy --resume, no /shipwright-run",
+          "behavior": "phase checklist over real phase_tasks incl. splitId fan-out rows",
+          "disposition": "tested",
+          "evidence": "SingleSessionRunCard.test.tsx + flow 98"
+        },
+        {
+          "behavior": "selective status note for in_progress/awaiting_launch/failed",
+          "disposition": "tested",
+          "evidence": "SingleSessionRunCard.test.tsx"
+        },
+        {
+          "behavior": "NO per-row Continue button",
+          "disposition": "tested",
+          "evidence": "SingleSessionRunCard.test.tsx + flow 98"
+        },
+        {
+          "behavior": "empty-state note + diagnostics banner",
+          "disposition": "tested",
+          "evidence": "SingleSessionRunCard.test.tsx (x2)"
+        },
+        {
+          "behavior": "CTA hidden on terminal run",
+          "disposition": "tested",
+          "evidence": "MasterRunLaunchButton.test.tsx (x2) + flow 98"
+        },
+        {
+          "behavior": "CTA Resume (established) vs Launch (fresh); ignores other-run shadow",
+          "disposition": "tested",
+          "evidence": "MasterRunLaunchButton.test.tsx (x4)"
+        },
+        {
+          "behavior": "CTA launches {project,config,tasks} + navigates; disabled no-project; inline error",
+          "disposition": "tested",
+          "evidence": "MasterRunLaunchButton.test.tsx (x3)"
+        },
+        {
+          "behavior": "guard 409 for an attached same-run+project master (awaiting_external_start)",
           "disposition": "tested",
           "evidence": "master-run-branch.test.ts"
         },
         {
-          "behavior": "absent masterRun -> falls through (no /shipwright-run)",
+          "behavior": "guard: terminal done master (observed JSONL) does NOT block (HIGH fix)",
           "disposition": "tested",
           "evidence": "master-run-branch.test.ts"
         },
         {
-          "behavior": "persist awaiting_external_start + launchedAt on real launch",
+          "behavior": "guard: different run / different project / non-master do NOT block",
           "disposition": "tested",
-          "evidence": "master-run-branch.test.ts"
+          "evidence": "master-run-branch.test.ts (x3)"
         },
         {
-          "behavior": "parseLaunchBody surfaces masterRun boolean",
+          "behavior": "guard: resume path + single-shadow fresh launch never trip it",
           "disposition": "tested",
-          "evidence": "exercised by every master-run-branch.test.ts case"
+          "evidence": "master-run-branch.test.ts (W2 suite, 19 total)"
         },
         {
-          "behavior": "client fresh: create master shadow + launch + handoff",
+          "behavior": "TaskBoardPage swaps to PipelineLaneCard, no bloat ratchet (438<=449)",
           "disposition": "tested",
-          "evidence": "useLaunchMasterRun.test.ts"
+          "evidence": "full client suite + bloat baseline check"
         },
         {
-          "behavior": "client idempotent reuse (un-launched -> fresh)",
+          "behavior": "Continue-Pipeline menu gated off single_session",
           "disposition": "tested",
-          "evidence": "useLaunchMasterRun.test.ts"
-        },
-        {
-          "behavior": "client reuse ESTABLISHED (JSONL) -> resume -> legacy --resume",
-          "disposition": "tested",
-          "evidence": "useLaunchMasterRun.test.ts"
-        },
-        {
-          "behavior": "client ignores different-run / non-master shadow",
-          "disposition": "tested",
-          "evidence": "useLaunchMasterRun.test.ts (x2)"
-        },
-        {
-          "behavior": "default handoff writes webui:pending-auto-launch:<id> with resume flag",
-          "disposition": "tested",
-          "evidence": "useLaunchMasterRun.test.ts"
-        },
-        {
-          "behavior": "create_failed / launch_failed discriminated results",
-          "disposition": "tested",
-          "evidence": "useLaunchMasterRun.test.ts (x2)"
-        },
-        {
-          "behavior": "API body shape ({masterRun}/{+resume}), URL-encode, error-propagate",
-          "disposition": "tested",
-          "evidence": "masterRunApi.test.ts (x4)"
-        },
-        {
-          "behavior": "board-button -> handoff -> embedded-terminal auto-execute (cross-surface)",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "reason": "W2 ships no UI caller; the real board->terminal run is W4's Playwright capstone by campaign design"
+          "evidence": "flow 98"
         }
       ],
       "counts": {
-        "testable": 16,
-        "tested": 16,
-        "untestable": 1,
+        "testable": 18,
+        "tested": 18,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "degraded": []
