@@ -1,0 +1,1 @@
+WebUI can now launch the single-session pipeline master (`/shipwright-run`) once into the embedded terminal via a new `masterRun` launch intent + `useLaunchMasterRun` hook — foundation for the single-session pipeline card (no user-visible change yet; the card lands next).

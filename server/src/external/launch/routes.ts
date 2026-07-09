@@ -1,11 +1,14 @@
 /*
  * external/launch/routes.ts — POST /api/external/tasks/:id/launch.
  *
- * The launch handler dispatches across three branches in precedence
- * order. Each branch lives in its own file to keep this shell ≤ 300 LOC:
+ * The launch handler dispatches across branches in precedence order.
+ * Each branch lives in its own file to keep this shell ≤ 300 LOC:
  *
  *   1. ./phase-task-branch.ts        — body.phaseTaskRef present
  *   2. ./campaign-branch.ts          — body.campaignSlug + fresh-start (FR-01.34)
+ *   2.5 ./campaign-step-branch.ts    — body.campaignStep + fresh-start (FR-01.36)
+ *   2.6 ./master-run-branch.ts       — body.masterRun + fresh-start + single_session
+ *                                      run_config (campaign webui-pipeline-convergence W2)
  *   3. ./action-substitution-branch.ts — actionId + fresh-start + project
  *   4. ./legacy-fallback-branch.ts    — terminal default
  *
@@ -29,6 +32,7 @@ import {
   applyPhaseTaskBranch,
   applyCampaignBranch,
   applyCampaignStepBranch,
+  applyMasterRunBranch,
   applyActionSubstitutionBranch,
   applyLegacyFallbackBranch,
   type LaunchBranchResult,
@@ -135,6 +139,27 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       );
     }
 
+    // Campaign webui-pipeline-convergence W2 — a single-session master launch is
+    // its own intent. Reject a mix with any other explicit intent. Checked on
+    // the raw body (`parsed.masterRun` is derived from `body.masterRun`, which is
+    // never persisted) so a once-set-always-used field can't spuriously trip it.
+    if (
+      Boolean(body.masterRun) &&
+      (body.actionId !== undefined ||
+        body.phaseTaskRef !== undefined ||
+        (typeof body.campaignSlug === "string" && body.campaignSlug.trim().length > 0) ||
+        body.campaignStep !== undefined)
+    ) {
+      return c.json(
+        {
+          error: "mixed_launch_intents",
+          detail:
+            "masterRun is mutually exclusive with actionId / phaseTaskRef / campaignSlug / campaignStep",
+        },
+        400,
+      );
+    }
+
     // iterate-2026-05-18-fix-resume-description — a Resume click on a
     // task whose Claude conversation was never established (no
     // <uuid>.jsonl ever observed on disk → there is nothing to resume)
@@ -175,6 +200,20 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         parsed,
         effectivelyFreshStart,
         getProjectById,
+      });
+    }
+
+    // Branch 2.6 — single-session master launch (campaign
+    // webui-pipeline-convergence W2). Command built server-side (`/shipwright-run`)
+    // gated on a readable single_session run_config; null when no masterRun / a
+    // resume (→ legacy `--resume <masterUuid>`).
+    if (!branchResult) {
+      branchResult = await applyMasterRunBranch({
+        task,
+        parsed,
+        effectivelyFreshStart,
+        getProjectById,
+        runConfigReader,
       });
     }
 

@@ -26,6 +26,11 @@ export interface ParsedLaunchBody {
    *  builds `/shipwright-iterate "<specPath>"`. Launch-body only (never
    *  persisted). Undefined unless both slug + stepId are non-empty strings. */
   campaignStep: { slug: string; stepId: string } | undefined;
+  /** Campaign webui-pipeline-convergence W2 — body-only single-session master
+   *  launch. The master-run branch validates the run against a readable
+   *  single_session run_config + builds the fixed `/shipwright-run` command;
+   *  this just surfaces the boolean intent. Launch-body only (never persisted). */
+  masterRun: boolean;
 }
 
 /**
@@ -147,5 +152,6 @@ export function parseLaunchBody(
     phaseTaskRefRaw: body.phaseTaskRef,
     campaignSlug,
     campaignStep,
+    masterRun: Boolean(body.masterRun),
   };
 }
