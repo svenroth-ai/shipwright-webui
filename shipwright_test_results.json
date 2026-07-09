@@ -1,7 +1,7 @@
 {
   "last_updated": "2026-07-09",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-09-w3-single-session-board",
+    "run_id": "iterate-2026-07-09-w4-playwright-e2e",
     "date": "2026-07-09",
     "unit": {
       "status": "passed",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 4,
-      "total": 4
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -33,115 +33,66 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts --project=chromium e2e/flows/98-single-session-board.spec.ts",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts 99-single-session-cross-surface-capstone --project=chromium --reporter=list",
       "exit_code": 0,
-      "tests_run": 4,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w3-single-session-board\\.shipwright\\runs\\iterate-2026-07-09-w3-single-session-board\\surface_verification.log",
-      "timestamp": "2026-07-09T16:44:32.465Z"
+      "tests_run": 2,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w4-playwright-e2e\\.shipwright\\runs\\iterate-2026-07-09-w4-playwright-e2e\\surface_verification.log",
+      "timestamp": "2026-07-09T20:45:09.298Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "PipelineLaneCard null for missing/v1/invalid/no-project",
+          "behavior": "single_session board renders SingleSessionRunCard + its ONE Launch CTA (data-mode=launch)",
           "disposition": "tested",
-          "evidence": "PipelineLaneCard.test.tsx (x3)"
+          "evidence": "flow 99 test 1"
         },
         {
-          "behavior": "single_session -> SingleSessionRunCard",
+          "behavior": "multi-session MasterTaskCard is NOT rendered for a single_session run",
           "disposition": "tested",
-          "evidence": "PipelineLaneCard.test.tsx + flow 98"
+          "evidence": "flow 99 test 1 (toHaveCount 0)"
         },
         {
-          "behavior": "multi_session / mode-less -> unchanged MasterTaskCard",
+          "behavior": "board Launch CTA click -> client-navigates to /tasks/<uuid>",
           "disposition": "tested",
-          "evidence": "PipelineLaneCard.test.tsx (x2) + flow 98"
+          "evidence": "flow 99 test 1 (waitForURL)"
         },
         {
-          "behavior": "lane keeps task-board-pipelines-lane testid + Pipelines label",
+          "behavior": "server-built /shipwright-run master command reaches the terminal WS as a data frame (cross-surface parity, CR-terminated)",
           "disposition": "tested",
-          "evidence": "PipelineLaneCard.test.tsx + flow 98"
+          "evidence": "flow 99 test 1 (ws-capture awaitFrame + payload asserts)"
         },
         {
-          "behavior": "steady frontier progress bar monotonic across fan-out; complete/failed/empty",
+          "behavior": "no --campaign / --resume / phase-command leak in the launched command",
           "disposition": "tested",
-          "evidence": "pipelineProgress.test.ts (8) + SingleSessionRunCard.test.tsx"
+          "evidence": "flow 99 test 1 (not.toContain x3)"
         },
         {
-          "behavior": "phase checklist over real phase_tasks incl. splitId fan-out rows",
+          "behavior": "card mirrors on-disk progression 1/7 -> advance -> 4/7 (CTA stays)",
           "disposition": "tested",
-          "evidence": "SingleSessionRunCard.test.tsx + flow 98"
+          "evidence": "flow 99 test 2 (mutate + reload)"
         },
         {
-          "behavior": "selective status note for in_progress/awaiting_launch/failed",
+          "behavior": "terminal run: card still renders full bar 7/7 and HIDES the single CTA",
           "disposition": "tested",
-          "evidence": "SingleSessionRunCard.test.tsx"
+          "evidence": "flow 99 test 2 (status:complete + reload)"
         },
         {
-          "behavior": "NO per-row Continue button",
-          "disposition": "tested",
-          "evidence": "SingleSessionRunCard.test.tsx + flow 98"
-        },
-        {
-          "behavior": "empty-state note + diagnostics banner",
-          "disposition": "tested",
-          "evidence": "SingleSessionRunCard.test.tsx (x2)"
-        },
-        {
-          "behavior": "CTA hidden on terminal run",
-          "disposition": "tested",
-          "evidence": "MasterRunLaunchButton.test.tsx (x2) + flow 98"
-        },
-        {
-          "behavior": "CTA Resume (established) vs Launch (fresh); ignores other-run shadow",
-          "disposition": "tested",
-          "evidence": "MasterRunLaunchButton.test.tsx (x4)"
-        },
-        {
-          "behavior": "CTA launches {project,config,tasks} + navigates; disabled no-project; inline error",
-          "disposition": "tested",
-          "evidence": "MasterRunLaunchButton.test.tsx (x3)"
-        },
-        {
-          "behavior": "guard 409 for an attached same-run+project master (awaiting_external_start)",
-          "disposition": "tested",
-          "evidence": "master-run-branch.test.ts"
-        },
-        {
-          "behavior": "guard: terminal done master (observed JSONL) does NOT block (HIGH fix)",
-          "disposition": "tested",
-          "evidence": "master-run-branch.test.ts"
-        },
-        {
-          "behavior": "guard: different run / different project / non-master do NOT block",
-          "disposition": "tested",
-          "evidence": "master-run-branch.test.ts (x3)"
-        },
-        {
-          "behavior": "guard: resume path + single-shadow fresh launch never trip it",
-          "disposition": "tested",
-          "evidence": "master-run-branch.test.ts (W2 suite, 19 total)"
-        },
-        {
-          "behavior": "TaskBoardPage swaps to PipelineLaneCard, no bloat ratchet (438<=449)",
-          "disposition": "tested",
-          "evidence": "full client suite + bloat baseline check"
-        },
-        {
-          "behavior": "Continue-Pipeline menu gated off single_session",
-          "disposition": "tested",
-          "evidence": "flow 98"
+          "behavior": "Claude Code actually EXECUTING /shipwright-run end-to-end",
+          "disposition": "untestable",
+          "reason_code": "requires-interactive-tty",
+          "reason": "the isolated stack has a temp USERPROFILE with no auth/plugin config by design; the master never bootstraps. The capstone asserts the command REACHES the terminal (the last unproven cross-surface hop), not that Claude runs it (the framework SS7 half)."
         }
       ],
       "counts": {
-        "testable": 18,
-        "tested": 18,
-        "untestable": 0,
+        "testable": 7,
+        "tested": 7,
+        "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "degraded": []
