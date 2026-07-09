@@ -26,6 +26,13 @@
  * (JSONL on disk) — a resume injects no slash command, so it falls through to
  * the legacy `--resume` branch unchanged (`claude --resume <masterUuid>`
  * rebuilds the master conversation, which re-enters the single-session loop).
+ *
+ * Double-master guard (W3, mirrors applyCampaignBranch's
+ * `campaign_run_already_attached`): a fresh master launch is refused with 409
+ * `master_run_already_attached` when ANOTHER master shadow is already attached to
+ * the same run. Two `/shipwright-run` masters driving one run_config would race
+ * phase_task claims. Client idempotency (reuse the master shadow) covers the
+ * single-tab path; this closes the multi-tab / direct-API hole it cannot.
  */
 
 import { buildCopyCommands } from "../../core/launcher.js";
@@ -39,6 +46,25 @@ import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ParsedLaunchBody } from "./parse-body.js";
 import type { LaunchBranchResult } from "./_helpers.js";
 
+/** A master shadow is "attached" when it is LAUNCHED and NOT terminal — i.e. one
+ *  of the four in-progress states. This is defined by STATE alone (NOT
+ *  `firstJsonlObservedAt`): a terminal `done` master necessarily carries a
+ *  historical `firstJsonlObservedAt`, and counting that as "attached" would block
+ *  a fresh launch for a completed run forever. `draft` (never launched),
+ *  `launch_failed` (dead), and `done` (terminal) therefore do NOT block; the
+ *  two-tab race is still caught because a racing master sits in
+ *  `awaiting_external_start` the instant it launches. */
+const ATTACHED_MASTER_STATES: ReadonlySet<ExternalTaskState> = new Set([
+  "awaiting_external_start",
+  "active",
+  "idle",
+  "jsonl_missing",
+]);
+
+function isAttachedMaster(t: ExternalTask): boolean {
+  return ATTACHED_MASTER_STATES.has(t.state);
+}
+
 export async function applyMasterRunBranch(args: {
   task: ExternalTask;
   parsed: ParsedLaunchBody;
@@ -47,9 +73,19 @@ export async function applyMasterRunBranch(args: {
     | ((id: string) => ExternalRouteProjectView | undefined)
     | undefined;
   runConfigReader: (projectPath: string) => Promise<RunConfigReadResult>;
+  /** Snapshot of all tasks — the double-master guard scans it for another
+   *  attached master of the same run. Optional so direct callers without a
+   *  store can opt out; the route always wires it. */
+  listTasks?: () => ExternalTask[];
 }): Promise<LaunchBranchResult | null> {
-  const { task, parsed, effectivelyFreshStart, getProjectById, runConfigReader } =
-    args;
+  const {
+    task,
+    parsed,
+    effectivelyFreshStart,
+    getProjectById,
+    runConfigReader,
+    listTasks,
+  } = args;
   if (!parsed.masterRun) return null; // not a master-run launch
   // A resume injects no slash command — fall through to the legacy --resume
   // shape (`claude --resume <masterUuid>` re-enters the single-session loop).
@@ -84,6 +120,28 @@ export async function applyMasterRunBranch(args: {
     return {
       error: { error: "master_launch_wrong_mode", detail: mode },
       status: 400,
+    };
+  }
+
+  // Double-master guard: refuse a second master while another shadow is already
+  // attached to this run. Only OTHER shadows count (`taskId !== task.taskId`);
+  // the launching task is the client-reused master in the normal path. Resume
+  // returned null above, so this only gates a genuine fresh launch. Scoped to the
+  // SAME project (`projectId`) so a duplicated project dir — which copies the
+  // `runId` verbatim into its `shipwright_run_config.json` — can't cross-block;
+  // mirrors applyCampaignBranch's project-scoped `campaign_run_already_attached`.
+  const attached = (listTasks?.() ?? []).find(
+    (t) =>
+      t.taskId !== task.taskId &&
+      t.parentRunMaster === true &&
+      t.projectId === task.projectId &&
+      t.runId === cfg.config.runId &&
+      isAttachedMaster(t),
+  );
+  if (attached) {
+    return {
+      error: { error: "master_run_already_attached", detail: attached.taskId },
+      status: 409,
     };
   }
 

@@ -144,6 +144,13 @@ const REQUIRED_TOKENS = [
   'master-run-branch',
   'masterRunApi',
   'useLaunchMasterRun',
+  // iterate-2026-07-09-w3-single-session-board — the campaign-like single-session
+  // pipeline board card (campaign webui-pipeline-convergence W3): a mode-selecting
+  // lane host + the card + its one Launch/Resume CTA + the steady-progress helper
+  'PipelineLaneCard',
+  'SingleSessionRunCard',
+  'MasterRunLaunchButton',
+  'pipelineProgress',
 ] as const;
 
 let claudeMd = '';

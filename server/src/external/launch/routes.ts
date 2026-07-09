@@ -214,6 +214,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         effectivelyFreshStart,
         getProjectById,
         runConfigReader,
+        listTasks: () => store.list(),
       });
     }
 
