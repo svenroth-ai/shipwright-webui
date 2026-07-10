@@ -1,16 +1,13 @@
 /*
- * routes.delete-cascade.test.ts — Iterate C (ADR-087, MEDIUM-B1 fix).
+ * routes.delete-cascade.test.ts — Iterate C (ADR-087, MEDIUM-B1 fix) +
+ * D01 review-round RED guard (suspended-flush resurrection race).
  *
- * DELETE /api/external/tasks/:id MUST cascade-clear BOTH:
- *   - scrollback files (`<taskId>.log` + `<taskId>.log.1`) via
- *     `scrollbackClearBestEffort` (existing behavior).
- *   - cell-state snapshot file (`<taskId>.snapshot`) via
- *     `snapshotClearBestEffort` (NEW in Iterate C).
- *
- * Why this matters: snapshots capture rendered terminal cell state and
- * may contain secrets (env vars, file content, prompt history). The
- * 24-h TTL is a backstop — the task delete is the authoritative
- * privacy boundary, so the snapshot file MUST go with the task.
+ * DELETE /api/external/tasks/:id MUST cascade-clear the scrollback files and
+ * the cell-state snapshot (both may hold secrets — the task delete is the
+ * authoritative privacy boundary). The real-ConPTY teardown guard (Guard 1)
+ * lives in delete-cascade-pty-teardown.test.ts and the SnapshotStore.clear()
+ * fence (F05) in snapshot-clear-fence.test.ts — split out to keep every test
+ * file <= 300 LOC (Stop-gate).
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -61,12 +58,8 @@ describe("DELETE /tasks/:id — cascade cleanup (Iterate C MEDIUM-B1)", () => {
         store,
         watcher,
         ptyManager: { get: () => undefined },
-        scrollbackClearBestEffort: async (taskId) => {
-          scrollbackCalls.push(taskId);
-        },
-        snapshotClearBestEffort: async (taskId) => {
-          snapshotCalls.push(taskId);
-        },
+        scrollbackClearBestEffort: async (taskId) => { scrollbackCalls.push(taskId); },
+        snapshotClearBestEffort: async (taskId) => { snapshotCalls.push(taskId); },
       }),
     );
   });
@@ -83,16 +76,13 @@ describe("DELETE /tasks/:id — cascade cleanup (Iterate C MEDIUM-B1)", () => {
 
   it("invokes BOTH scrollbackClearBestEffort and snapshotClearBestEffort", async () => {
     const taskId = await createTask("t-cascade");
-    const del = await app.request(`/api/external/tasks/${taskId}`, {
-      method: "DELETE",
-    });
+    const del = await app.request(`/api/external/tasks/${taskId}`, { method: "DELETE" });
     expect(del.status).toBe(200);
     expect(scrollbackCalls).toEqual([taskId]);
     expect(snapshotCalls).toEqual([taskId]);
   });
 
   it("succeeds even when snapshot cleanup throws (best-effort)", async () => {
-    // Override the snapshot dep to throw.
     app = new Hono();
     app.route(
       "/",
@@ -101,15 +91,11 @@ describe("DELETE /tasks/:id — cascade cleanup (Iterate C MEDIUM-B1)", () => {
         watcher: new SessionWatcher({ projectsDir: "/tmp/projects" }),
         ptyManager: { get: () => undefined },
         scrollbackClearBestEffort: async () => {},
-        snapshotClearBestEffort: async () => {
-          throw new Error("simulated EACCES");
-        },
+        snapshotClearBestEffort: async () => { throw new Error("simulated EACCES"); },
       }),
     );
     const taskId = await createTask("t-fail-snapshot");
-    const del = await app.request(`/api/external/tasks/${taskId}`, {
-      method: "DELETE",
-    });
+    const del = await app.request(`/api/external/tasks/${taskId}`, { method: "DELETE" });
     expect(del.status).toBe(200);
   });
 
@@ -121,16 +107,12 @@ describe("DELETE /tasks/:id — cascade cleanup (Iterate C MEDIUM-B1)", () => {
         store,
         watcher: new SessionWatcher({ projectsDir: "/tmp/projects" }),
         ptyManager: { get: () => undefined },
-        scrollbackClearBestEffort: async (taskId) => {
-          scrollbackCalls.push(taskId);
-        },
+        scrollbackClearBestEffort: async (taskId) => { scrollbackCalls.push(taskId); },
         // snapshotClearBestEffort intentionally omitted.
       }),
     );
     const taskId = await createTask("t-no-snapshot-dep");
-    const del = await app.request(`/api/external/tasks/${taskId}`, {
-      method: "DELETE",
-    });
+    const del = await app.request(`/api/external/tasks/${taskId}`, { method: "DELETE" });
     expect(del.status).toBe(200);
     expect(scrollbackCalls).toEqual([taskId]);
   });
@@ -147,65 +129,42 @@ describe("DELETE /tasks/:id — cascade cleanup (Iterate C MEDIUM-B1)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// D01 / F01 Guard 1 — independent RED integration guard with a REAL ConPTY
-// (MUST-NOT-MODIFY, author != fixer).
+// D01 review-round — RED guard for the "suspended-flush-across-delete"
+// resurrection race (MUST-NOT-MODIFY, author != fixer). In the documented F01
+// scenario a WS-onClose flushMirrorSnapshot captures `entry` then parks at
+// serializeStable BEFORE enqueuing its write; the awaited DELETE kill runs
+// finalize -> releaseQueue (queue empty -> DELETED) then clear() (queue gone
+// -> F05 fence is a no-op -> unlink). The flush then resumes and its write
+// creates a FRESH queue -> <taskId>.snapshot is resurrected after the wipe.
 //
-// Full production stack: real PtyManager (real @lydell/node-pty shell) with
-// the headless mirror ON, a real ScrollbackStore + SnapshotStore in a fresh
-// temp dir, and the REAL lifecycle DELETE handler (createExternalRoutes). A
-// unique secret is driven into BOTH the scrollback `.log` and the mirror
-// snapshot, the task is DELETEd, then — past the last-detach flush and one
-// transcript-poll tick — the `.log`, `.snapshot`, and `.snapshot.tmp-*`
-// artifacts must be absent AND STAY absent, and the OS child shell must be
-// dead. On pre-fix code the DELETE never kills the pty, so the last-detach
-// flushMirrorSnapshot re-writes `<taskId>.snapshot` after the wipe and the
-// shell stays alive → RED.
-//
-// Seam the fixer must add: `ptyManager.kill(taskId)` on the DELETE-handler
-// dep (see routes.test.ts Guard 2). Combined with the F05 clear() fence,
-// this guard goes GREEN.
-//
-// Evidence: Spec/audits/2026-07-10-webui-deep-audit.md § F01.
+// Determinism: gate the live mirror.serializeStable (test-only monkeypatch, no
+// production edit) so the flush is provably parked while the real kill+clear
+// run; release afterwards. Fixer seam: re-check entry liveness (or a post-clear
+// tombstone) INSIDE flushMirrorSnapshot before its write — no new test hook.
+// Evidence: Spec/audits/2026-07-10-webui-deep-audit.md § F01 (residual).
 // ---------------------------------------------------------------------------
 
-describe("DELETE /tasks/:id — live ConPTY teardown (D01/F01 Guard 1 RED)", () => {
-  let scrollbackDir: string;
+describe("DELETE /tasks/:id — suspended-flush resurrection race (D01 review RED guard)", () => {
+  let dir: string;
   let scrollbackStore: ScrollbackStore;
   let snapshotStore: SnapshotStore;
   let ptyManager: PtyManager;
   let capturedPty: (PtyHandleApi & { pid?: number }) | null;
   let killTaskId = "";
 
-  const sleep = (ms: number): Promise<void> =>
-    new Promise((r) => setTimeout(r, ms));
+  const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
   const SECRET = `SECRET-${Math.random().toString(16).slice(2)}-MARKER`;
   const shell = process.platform === "win32" ? "cmd.exe" : "bash";
 
-  async function fileExists(p: string): Promise<boolean> {
-    try {
-      await fsp.stat(p);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  function pidAlive(pid: number | undefined): boolean {
-    if (!pid) return false;
-    try {
-      process.kill(pid, 0);
-      return true;
-    } catch {
-      return false;
-    }
+  async function exists(p: string): Promise<boolean> {
+    try { await fsp.stat(p); return true; } catch { return false; }
   }
 
   beforeEach(async () => {
-    scrollbackDir = await fsp.mkdtemp(path.join(os.tmpdir(), "d01-guard1-"));
-    scrollbackStore = new ScrollbackStore(scrollbackDir, {
-      maxBytesPerTask: 5_000_000,
-    });
+    dir = await fsp.mkdtemp(path.join(os.tmpdir(), "d01-race-"));
+    scrollbackStore = new ScrollbackStore(dir, { maxBytesPerTask: 5_000_000 });
     await scrollbackStore.init();
-    snapshotStore = new SnapshotStore(scrollbackDir);
+    snapshotStore = new SnapshotStore(dir);
     await snapshotStore.init();
     const realSpawn = await createNodePtySpawnFn();
     capturedPty = null;
@@ -218,228 +177,95 @@ describe("DELETE /tasks/:id — live ConPTY teardown (D01/F01 Guard 1 RED)", () 
       scrollbackStore,
       snapshotStore,
       headlessMirrorEnabled: true,
-      idleTimeoutMs: 3_600_000, // keep the idle reaper from killing mid-test
+      idleTimeoutMs: 3_600_000,
     });
   });
 
   afterEach(async () => {
-    try {
-      if (killTaskId) ptyManager.kill(killTaskId);
-    } catch {
-      /* best-effort */
-    }
-    // Belt-and-braces: terminate the captured OS child directly so no shell
-    // or conhost leaks even if the guard failed mid-way.
+    // kill() is async (D01/F01) — await it so teardown settles before rm.
+    try { if (killTaskId) await ptyManager.kill(killTaskId); } catch { /* best-effort */ }
     const pid = capturedPty?.pid;
-    if (pid && pidAlive(pid)) {
-      try {
-        process.kill(pid);
-      } catch {
-        /* best-effort */
-      }
-    }
+    if (pid) { try { process.kill(pid, 0); process.kill(pid); } catch { /* dead */ } }
     await sleep(150);
-    try {
-      await fsp.rm(scrollbackDir, { recursive: true, force: true });
-    } catch {
-      /* best-effort */
-    }
+    try { await fsp.rm(dir, { recursive: true, force: true }); } catch { /* best-effort */ }
     killTaskId = "";
   });
 
-  it("kills the pty so log/snapshot/tmp stay wiped and the OS child dies", async () => {
+  it("a flushMirrorSnapshot parked at serializeStable must not re-create <taskId>.snapshot after kill+clear", async () => {
     const store = new SdkSessionsStore("/store/sdk-sessions.json", inMemoryDeps());
     await store.load();
     const watcher = new SessionWatcher({ projectsDir: "/tmp/projects" });
-    const task = store.create({
-      title: "secret-task",
-      cwd: scrollbackDir,
-      pluginDirs: [],
-    });
+    const task = store.create({ title: "secret", cwd: dir, pluginDirs: [] });
     killTaskId = task.taskId;
+    ptyManager.spawn(task.taskId, { cwd: dir, shell });
+    const logPath = path.join(dir, `${task.taskId}.log`);
+    const snapPath = path.join(dir, `${task.taskId}.snapshot`);
 
-    // Real ConPTY shell + headless mirror.
-    ptyManager.spawn(task.taskId, { cwd: scrollbackDir, shell });
-    const pid = capturedPty?.pid;
-    expect(capturedPty).not.toBeNull();
-
-    // Drive the secret into scrollback + mirror; wait until the `.log` has it.
-    const logPath = path.join(scrollbackDir, `${task.taskId}.log`);
-    const snapPath = path.join(scrollbackDir, `${task.taskId}.snapshot`);
+    // Drive the secret into the live mirror; wait until scrollback has it.
     capturedPty!.write(`echo ${SECRET}\r`);
     const deadline = Date.now() + 8000;
     while (Date.now() < deadline) {
-      if (await fileExists(logPath)) {
-        const raw = await fsp.readFile(logPath, "utf8");
-        if (raw.includes(SECRET)) break;
-      }
+      if (await exists(logPath) && (await fsp.readFile(logPath, "utf8")).includes(SECRET)) break;
       await sleep(100);
     }
-    // Persist the mirror snapshot (models the last-detach flush).
-    await ptyManager.flushMirrorSnapshot(task.taskId);
 
-    // Setup sanity — the secret is on disk in BOTH artifacts.
-    expect(await fileExists(logPath)).toBe(true);
-    expect((await fsp.readFile(logPath, "utf8")).includes(SECRET)).toBe(true);
-    expect(await fileExists(snapPath)).toBe(true);
+    // Gate the live mirror.serializeStable so the flush parks BEFORE it enqueues
+    // its write. Pre-capture the secret-bearing payload (mirror alive now;
+    // disposed by kill's finalize before the flush resumes).
+    const internal = ptyManager as unknown as {
+      entries: Map<string, {
+        mirror: { serializeStable: () => Promise<string>; dimensions: { cols: number; rows: number } } | null;
+      }>;
+    };
+    const mirror = internal.entries.get(task.taskId)?.mirror;
+    if (!mirror) throw new Error("expected a live headless mirror for the task");
+    const realSerialize = mirror.serializeStable.bind(mirror);
+    const secretStable = await realSerialize();
+    let releaseFlush: () => void = () => {};
+    const flushGate = new Promise<void>((r) => { releaseFlush = r; });
+    let calls = 0;
+    mirror.serializeStable = async (): Promise<string> => {
+      calls += 1;
+      if (calls === 1) { await flushGate; return secretStable; } // the flush — parked
+      return realSerialize(); // the kill-finalize serialize — passes through
+    };
 
-    // Wire the REAL DELETE cascade with a ptyManager that CAN kill.
+    // (1) WS onClose fires the fire-and-forget flush; it parks at the gate.
+    const flushP = ptyManager.flushMirrorSnapshot(task.taskId);
+    await sleep(0);
+
+    // (2)+(3) REAL DELETE handler: awaited kill (finalize writes + releaseQueue
+    // DELETES the queue + mirror disposed) then clear() (queue gone -> fence
+    // no-op -> unlink).
     const ptyDep = {
       get: (id: string) => ptyManager.get(id),
       kill: (id: string) => ptyManager.kill(id),
       peekTerminalText: (id: string) => ptyManager.peekTerminalText(id),
     };
     const app = new Hono();
-    app.route(
-      "/",
-      createExternalRoutes({
-        store,
-        watcher,
-        ptyManager: ptyDep as unknown as Parameters<
-          typeof createExternalRoutes
-        >[0]["ptyManager"],
-        scrollbackClearBestEffort: (id) => scrollbackStore.clearBestEffort(id),
-        snapshotClearBestEffort: (id) => snapshotStore.clearBestEffort(id),
-      }),
-    );
-    const del = await app.request(`/api/external/tasks/${task.taskId}`, {
-      method: "DELETE",
-    });
+    app.route("/", createExternalRoutes({
+      store,
+      watcher,
+      ptyManager: ptyDep as unknown as Parameters<typeof createExternalRoutes>[0]["ptyManager"],
+      scrollbackClearBestEffort: (id) => scrollbackStore.clearBestEffort(id),
+      snapshotClearBestEffort: (id) => snapshotStore.clearBestEffort(id),
+    }));
+    const del = await app.request(`/api/external/tasks/${task.taskId}`, { method: "DELETE" });
     expect(del.status).toBe(200);
+    // The privacy wipe has completed — snapshot is gone at this point.
+    expect(await exists(snapPath)).toBe(false);
 
-    // Model the two post-delete resurrection legs the audit describes:
-    //   (1) last-detach flushMirrorSnapshot re-writes <taskId>.snapshot,
-    //   (2) the still-live shell re-creates <taskId>.log on further output.
-    await ptyManager.flushMirrorSnapshot(task.taskId);
-    try {
-      capturedPty!.write(`echo ${SECRET}_AGAIN\r`);
-    } catch {
-      /* pty is already dead on fixed code — expected */
-    }
-    await sleep(1200); // past the flush + one transcript-poll tick.
-
-    const orphanTmps = (await fsp.readdir(scrollbackDir)).filter((n) =>
-      n.startsWith(`${task.taskId}.snapshot.tmp-`),
-    );
-    const snapshotResurrected = await fileExists(snapPath);
-    const logResurrected = await fileExists(logPath);
-    const shellStillAlive = pidAlive(pid);
-
-    expect(snapshotResurrected).toBe(false);
-    expect(orphanTmps).toEqual([]);
-    expect(logResurrected).toBe(false);
-    expect(shellStillAlive).toBe(false);
-
-    // …and STAY absent after a further tick (kill-finalize must not resurrect).
-    await sleep(600);
-    expect(await fileExists(snapPath)).toBe(false);
-    expect(await fileExists(logPath)).toBe(false);
-  }, 30000);
-});
-
-// ---------------------------------------------------------------------------
-// D01 / F05 Guard 2 (queue fence) — RED regression guard
-// (MUST-NOT-MODIFY, author != fixer).
-//
-// SnapshotStore.clear() MUST fence the per-task write queue: a
-// flushMirrorSnapshot write enqueued BEFORE clear() must NOT resurrect the
-// snapshot after clear() resolves. On pre-fix code clear() unlinks FIRST and
-// only awaits onIdle for Map hygiene (and early-returns on ENOENT before ever
-// touching the queue), so an in-flight tmp->final rename lands the
-// secret-bearing file AFTER the privacy wipe. The gate is released on a timer
-// (not gated on clear()) so a correct fence-first fix cannot deadlock.
-//
-// Uses the store's existing SnapshotStoreOpts.renameFn seam (no new
-// production hook required). Homed here (not in the baselined
-// snapshot-store.test.ts) alongside the DELETE-cascade privacy guards.
-//
-// Evidence: Spec/audits/2026-07-10-webui-deep-audit.md § F05 (CASE A + B).
-// ---------------------------------------------------------------------------
-
-describe("SnapshotStore.clear() — in-flight write fence (D01/F05 RED guard)", () => {
-  const FENCE_UUID = "11111111-2222-3333-4444-555555555555";
-  const sleep = (ms: number): Promise<void> =>
-    new Promise((r) => setTimeout(r, ms));
-  let fenceDir: string;
-
-  beforeEach(async () => {
-    fenceDir = await fsp.mkdtemp(path.join(os.tmpdir(), "d01-f05-"));
-  });
-  afterEach(async () => {
-    try {
-      await fsp.rm(fenceDir, { recursive: true, force: true });
-    } catch {
-      /* best-effort */
-    }
-  });
-
-  it("does not resurrect the snapshot when a write is in flight AND a file already exists (F05 CASE A)", async () => {
-    let renameCount = 0;
-    let releaseGate: () => void = () => {};
-    const gate = new Promise<void>((res) => {
-      releaseGate = res;
-    });
-    const store = new SnapshotStore(fenceDir, {
-      renameFn: async (from, to) => {
-        renameCount += 1;
-        // Hold the SECOND write's rename (the in-flight flush) at the gate.
-        if (renameCount === 2) await gate;
-        await fsp.rename(from, to);
-      },
-    });
-    await store.init();
-
-    // A snapshot already on disk — the artifact the DELETE cascade must wipe.
-    await store.write(FENCE_UUID, { cols: 80, rows: 24, data: "OLD-SECRET" });
-    // A last-detach flushMirrorSnapshot write, still in flight when clear runs.
-    const inFlight = store.write(FENCE_UUID, {
-      cols: 80,
-      rows: 24,
-      data: "SECRET-IN-FLIGHT",
-    });
-    await sleep(50); // 2nd write's tmp is written; its rename is gated.
-
-    // The in-flight rename lands shortly after — models the flush completing
-    // concurrently with / just after the delete. Scheduled BEFORE the clear()
-    // await so a fence-first fix that waits on the queue cannot deadlock.
-    setTimeout(() => releaseGate(), 60);
-    await store.clear(FENCE_UUID);
-    await inFlight;
-
-    // Privacy boundary: the snapshot MUST be gone after clear() resolves.
-    expect(await store.has(FENCE_UUID)).toBe(false);
-  });
-
-  it("does not resurrect the snapshot when no file exists yet at clear() time (F05 CASE B / ENOENT early-return)", async () => {
-    let releaseGate: () => void = () => {};
-    const gate = new Promise<void>((res) => {
-      releaseGate = res;
-    });
-    let firstRename = true;
-    const store = new SnapshotStore(fenceDir, {
-      renameFn: async (from, to) => {
-        if (firstRename) {
-          firstRename = false;
-          await gate;
-        }
-        await fsp.rename(from, to);
-      },
-    });
-    await store.init();
-
-    // Only an in-flight write exists — no snapshot on disk yet, so pre-fix
-    // clear() hits ENOENT and early-returns WITHOUT ever fencing the queue.
-    const inFlight = store.write(FENCE_UUID, {
-      cols: 80,
-      rows: 24,
-      data: "SECRET-IN-FLIGHT",
-    });
+    // (4) The suspended flush now resumes and attempts its write.
+    releaseFlush();
+    await flushP;
     await sleep(50);
 
-    setTimeout(() => releaseGate(), 60);
-    await store.clear(FENCE_UUID);
-    await inFlight;
-
-    expect(await store.has(FENCE_UUID)).toBe(false);
-  });
+    const orphanTmps = (await fsp.readdir(dir)).filter((n) =>
+      n.startsWith(`${task.taskId}.snapshot.tmp-`));
+    const snapshotResurrected = await exists(snapPath);
+    expect(snapshotResurrected).toBe(false);
+    expect(orphanTmps).toEqual([]);
+    await sleep(200); // …and STAYS absent.
+    expect(await exists(snapPath)).toBe(false);
+  }, 30000);
 });
