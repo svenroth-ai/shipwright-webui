@@ -247,6 +247,8 @@ interface PtyEntry {
    * is a no-op.
    */
   closing: boolean;
+  /** D01/F01 — resolved in onExit so kill() can await teardown before a delete wipes side-files. */
+  onExitDone?: () => void;
 }
 
 export interface PtyManagerOpts {
@@ -479,18 +481,15 @@ export class PtyManager {
     });
 
     pty.onExit(() => {
-      // iterate-2026-05-08 v0.8.7 AC-2 — when this exit was triggered by
-      // an INTENTIONAL kill (kill(taskId) or idle-ceiling timer set
-      // entry.closing=true before invoking pty.kill), append a single
-      // dim-grey marker frame to disk-scrollback. Natural exits (user
-      // typed `exit`, shell crashed) leave closing=false → no marker.
-      // Append happens AFTER the dying-process flush bytes (per external
-      // review gemini medium): pty.onExit fires once the process has
-      // closed its stdio handles, so onData has drained.
+      // AC-2 — intentional kill (closing=true) appends a dim-grey
+      // "shell stopped" marker AFTER the dying-process flush drains
+      // (onExit fires once stdio handles closed). Natural exit → none.
       if (entry.closing && this.scrollbackStore) {
         this.appendShellStoppedMarker(taskId);
       }
-      this.cleanup(taskId);
+      void this.cleanup(taskId);
+      // D01/F01 — release a delete-cascade kill() awaiting full teardown.
+      entry.onExitDone?.();
     });
 
     this.touchIdle(entry);
@@ -578,23 +577,21 @@ export class PtyManager {
     }
   }
 
-  kill(taskId: string): void {
+  async kill(taskId: string): Promise<void> {
     const entry = this.entries.get(taskId);
     if (!entry) return;
-    // iterate-2026-05-08 v0.8.7 AC-2 — flag intentional kill so onExit
-    // appends the marker. Closing-flag dedupe: a duplicate kill() lands
-    // here AFTER onExit fired + cleanup ran, so `entries.get` returns
-    // undefined and the function returns early — no second marker.
+    // AC-2 — flag intentional kill so onExit appends the marker; the
+    // closing-flag dedupe makes a duplicate kill() a no-op (entry gone).
     entry.closing = true;
+    // D01/F01 — a live entry guarantees onExit fires after pty.kill();
+    // `exited` lets a delete-cascade caller await the marker append.
+    const exited = new Promise<void>((r) => { entry.onExitDone = r; });
     try {
       entry.pty.kill();
     } catch {
       // best-effort
     }
-    this.cleanup(taskId);
-    // ADR-068-A1: release scrollback FD lifecycle. Best-effort + non-throwing
-    // — if the queue is busy with rotation, closeStream resolves after that
-    // settles. Detached from kill() return so kill() stays sync.
+    const finalize = this.cleanup(taskId);
     if (this.scrollbackStore) {
       void this.scrollbackStore
         .closeStream(taskId)
@@ -605,6 +602,9 @@ export class PtyManager {
           );
         });
     }
+    // D01/F01 — await marker + finalize-snapshot writes so a delete
+    // cascade's subsequent clears cannot be re-created by this teardown.
+    await Promise.allSettled([exited, finalize]);
   }
 
   killAll(): void {
@@ -954,18 +954,17 @@ export class PtyManager {
 
   // --- internals -----------------------------------------------------------
 
-  private cleanup(taskId: string): void {
+  private cleanup(taskId: string): Promise<void> {
     const entry = this.entries.get(taskId);
-    if (!entry) return;
+    if (!entry) return Promise.resolve();
     this.idleReaper.cancel(taskId);
     this.entries.delete(taskId);
-    // ADR-088: finalize the headless mirror snapshot, then dispose.
-    // Detached from the cleanup return because serializeStable() is
-    // async and cleanup is sync (called from onExit + kill). Failures
-    // never propagate — kill path must stay infallible. The mirror's
-    // own resources are freed in the finally block.
+    // ADR-088: finalize the headless mirror snapshot, then dispose. The
+    // returned promise lets kill() await the finalize (D01/F01) so a delete
+    // cascade can clear AFTER the snapshot write lands. Failures never
+    // propagate — finalizeMirrorSnapshot is best-effort/infallible.
     if (entry.mirror && this.snapshotStore) {
-      void this.finalizeMirrorSnapshot(taskId, entry.mirror);
+      return this.finalizeMirrorSnapshot(taskId, entry.mirror);
     } else if (entry.mirror) {
       // No snapshot store wired — just dispose so the Terminal frees.
       try {
@@ -974,6 +973,7 @@ export class PtyManager {
         /* ignore */
       }
     }
+    return Promise.resolve();
   }
 
   /**

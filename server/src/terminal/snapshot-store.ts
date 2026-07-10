@@ -349,21 +349,14 @@ export class SnapshotStore {
     }
   }
 
-  /** Delete the snapshot file. Idempotent. */
+  /**
+   * Delete the snapshot file. Idempotent. D01/F05 — fence the write queue
+   * (await onIdle) BEFORE unlink (no ENOENT early-return) so a flush can't re-create it.
+   */
   async clear(taskId: string): Promise<void> {
     this.validateTaskId(taskId);
-    const target = await this.resolveTargetPath(taskId);
-    try {
-      await fsAsync.unlink(target);
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-      throw err;
-    }
-    // External review (gemini): drop the per-task write queue once
-    // the snapshot is cleared so the Map cannot grow unboundedly
-    // for sessions that churn through many tasks. The queue may still
-    // be processing a concurrent write; we await onIdle FIRST so the
-    // in-flight write completes before we drop the reference.
+    // Fence first: drain any queued/in-flight write, then drop the queue
+    // ref (bounds the Map). The unlink below then wipes it for good.
     const q = this.writeQueues.get(taskId);
     if (q) {
       try {
@@ -372,6 +365,13 @@ export class SnapshotStore {
         /* best-effort */
       }
       this.writeQueues.delete(taskId);
+    }
+    const target = await this.resolveTargetPath(taskId);
+    try {
+      await fsAsync.unlink(target);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw err;
     }
   }
 

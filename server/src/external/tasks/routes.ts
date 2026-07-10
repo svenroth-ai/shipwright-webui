@@ -29,7 +29,12 @@ import { registerTasksLifecycle } from "./lifecycle.js";
 export interface TasksRouterDeps {
   store: SdkSessionsStore;
   watcher: SessionWatcher;
-  ptyManager: { get(taskId: string): unknown };
+  // D01/F01 — `kill` tears down the live embedded pty on DELETE (optional:
+  // legacy/test harnesses pass `{ get }` only).
+  ptyManager: {
+    get(taskId: string): unknown;
+    kill?(taskId: string): void | Promise<void>;
+  };
   getKnownProjectIds?: () => Set<string>;
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
   scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
