@@ -43,13 +43,17 @@ interface WsFrame {
 interface WsCapture {
   url: string;
   frames: WsFrame[];
+  /** FULL payloads of replay_snapshot frames — the disk-history assertion
+   *  checks the serialized cell-state carries the marker (a 400-char slice
+   *  would miss a marker past the shell banner in the serialized buffer). */
+  replayPayloads: string[];
 }
 
 function attachWsCapture(page: Page): WsCapture[] {
   const capture: WsCapture[] = [];
   page.on("websocket", (ws: PWWebSocket) => {
     if (!ws.url().includes("/api/terminal/")) return;
-    const entry: WsCapture = { url: ws.url(), frames: [] };
+    const entry: WsCapture = { url: ws.url(), frames: [], replayPayloads: [] };
     capture.push(entry);
     ws.on("framereceived", (frame) => {
       if (typeof frame.payload !== "string") return;
@@ -60,6 +64,7 @@ function attachWsCapture(page: Page): WsCapture[] {
       } catch {
         /* ignore non-JSON */
       }
+      if (type === "replay_snapshot") entry.replayPayloads.push(frame.payload);
       entry.frames.push({ type, rawSlice: frame.payload.slice(0, 400) });
     });
   });
@@ -115,10 +120,15 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
     try {
       await request.get("/", { timeout: 5_000 });
     } catch (err) {
-      test.skip(
-        true,
-        `baseURL unreachable (${(err as Error).message}); soft-skipping GUARD 3.`,
-      );
+      const reason = `baseURL unreachable (${(err as Error).message})`;
+      // MAX-gate enforcement: when the finalizer's F0.5 web-surface run / the
+      // post-merge smoke set SHIPWRIGHT_E2E_REQUIRE_STACK=1, a missing stack is
+      // a HARD FAILURE — a silent skip would let the required gate pass vacuously.
+      if (process.env.SHIPWRIGHT_E2E_REQUIRE_STACK === "1") {
+        throw new Error(`${reason} — GUARD 3 is a required MAX gate (SHIPWRIGHT_E2E_REQUIRE_STACK=1)`);
+      }
+      // Casual local run without the flag: soft-skip, matching the sibling spec.
+      test.skip(true, `${reason}; soft-skipping GUARD 3.`);
     }
   });
 
@@ -214,6 +224,11 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
       const replaySnapshotEmitted = !!reattachConn?.frames.some(
         (f) => f.type === "replay_snapshot",
       );
+      // The replay PATH ran AND carried the disk history: a replay_snapshot
+      // frame whose serialized payload contains the marker. Distinguishes disk
+      // replay from the marker re-appearing via post-respawn shell echo.
+      const reattachReplayHasMarker =
+        !!reattachConn?.replayPayloads.some((p) => p.includes(MARKER));
       await page.getByTestId("embedded-terminal").screenshot({
         path: path.join(ARTIFACT_DIR, "post-reattach.png"),
       });
@@ -223,6 +238,7 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
         marker_seen_pre_kill: markerSeenPreKill,
         marker_seen_post_reattach: markerSeenPostReattach,
         replay_snapshot_emitted_on_reattach: replaySnapshotEmitted,
+        reattach_replay_snapshot_carries_marker: reattachReplayHasMarker,
         ws_connection_count: taskConns.length,
         rows_after_reattach_excerpt: rowsAfterReattach.slice(-10),
       };
@@ -242,6 +258,11 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
       expect(
         result.marker_seen_post_reattach,
         "MARKER lost after kill+reattach — F02 disk-snapshot fallback not in effect",
+      ).toBeTruthy();
+      // Prove the replay PATH carried the disk history (not shell echo).
+      expect(
+        result.reattach_replay_snapshot_carries_marker,
+        "reattach replay_snapshot frame did not carry the disk history (marker) — replay path did not serve the persisted snapshot",
       ).toBeTruthy();
     } finally {
       if (taskId) await deleteTask(request, taskId);

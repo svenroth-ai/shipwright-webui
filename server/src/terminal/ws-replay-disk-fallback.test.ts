@@ -1,17 +1,16 @@
 /*
  * ws-replay-disk-fallback.test.ts — F02 / D02 regression guards.
  *
- * FROZEN GUARD SET — author ≠ fixer (must-not-modify). Committed BEFORE the
- * fix; the fix agent may NOT weaken these. GUARD 1 is RED on pre-fix `main`
- * for the DEFECT reason: the empty fresh-mirror replay shadows the persisted
- * disk snapshot (not a setup error).
+ * FROZEN GUARD SET — author ≠ fixer (must-not-modify); the fix agent may NOT
+ * weaken these. GUARD 1 is RED on pre-fix `main` for the DEFECT reason: the
+ * empty fresh-mirror replay shadows the persisted disk snapshot.
  *
  * DEFECT (F02, HIGH — ws-upgrade-handler.ts:269-277): `buildLiveHandlers`
  * spawns the ensure-or-create pty (NEW empty HeadlessMirror) BEFORE
  * `resolveReplaySnapshot`, whose `serializeMirrorIfLive` returns a truthy
  * empty record for the fresh mirror, so `tryReadSnapshot` (disk) is never
- * reached. After any pty death the rich `<taskId>.snapshot` is never
- * replayed — blank shell on reopen.
+ * reached — after any pty death the rich `<taskId>.snapshot` is never
+ * replayed (blank shell on reopen).
  *
  * Uses a REAL PtyManager + REAL HeadlessMirror + REAL SnapshotStore so the
  * production spawn→resolve ordering is genuinely under test (the mock-based
@@ -47,9 +46,7 @@ import {
 const TASK = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
 // Fake pty (native-binary-free). The mirror + store are the REAL impls.
-interface FakePty extends PtyHandleApi {
-  __emit(data: string): void;
-}
+interface FakePty extends PtyHandleApi { __emit(data: string): void }
 function createFakePty(): FakePty {
   const dataL: Array<(s: string) => void> = [];
   const exitL: Array<(e: { exitCode: number }) => void> = [];
@@ -74,14 +71,27 @@ function makeSpawn(): { fn: PtySpawnFn; lastPty: () => FakePty } {
     },
   };
 }
-
-/** Real-timer delay so async serialize/warm-parse round-trips settle. */
+// Real-timer delay so the headless parser settles after emitting bytes.
 const delay = (ms = 250): Promise<void> => new Promise((r) => setTimeout(r, ms));
-
 function replayFrame(ws: MockWs): Record<string, unknown> | undefined {
   return readSent(ws).find(
     (s) => (s as { type?: string }).type === "replay_snapshot",
   ) as Record<string, unknown> | undefined;
+}
+
+// Deterministically await the async replay path's COMPLETION. `onOpen` is
+// fire-and-forget (void return, internal `void (async…)()` IIFE), so we poll
+// for its end-of-replay signal — the emitted replay_snapshot frame (later
+// sends are synchronous within the IIFE). Throws on timeout (no masked pass);
+// replaces fixed post-onOpen sleeps so assertions run AFTER replay completes.
+async function awaitReplay(ws: MockWs, timeoutMs = 4000): Promise<void> {
+  const start = Date.now();
+  while (!replayFrame(ws)) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error("awaitReplay: no replay_snapshot frame within timeout");
+    }
+    await new Promise((r) => setTimeout(r, 10));
+  }
 }
 
 describe("F02/D02 — disk-snapshot replay reachability in the live WS branch", () => {
@@ -176,7 +186,7 @@ describe("F02/D02 — disk-snapshot replay reachability in the live WS branch", 
           task: makeTask({ taskId: TASK, state: "active" }),
         }),
       ).onOpen?.({} as Event, ws as never);
-      await delay(300);
+      await awaitReplay(ws);
       const frame = replayFrame(ws);
       expect(frame, "a replay_snapshot envelope must be emitted").toBeDefined();
       // Disk snapshot is STILL present at resolve time — merely shadowed.
@@ -214,7 +224,7 @@ describe("F02/D02 — disk-snapshot replay reachability in the live WS branch", 
           task: makeTask({ taskId: TASK, state: "active" }),
         }),
       ).onOpen?.({} as Event, ws as never);
-      await delay(300);
+      await awaitReplay(ws);
       const frame = replayFrame(ws);
       expect(frame).toBeDefined();
       expect(
@@ -244,7 +254,7 @@ describe("F02/D02 — disk-snapshot replay reachability in the live WS branch", 
           task: makeTask({ taskId: TASK, state: "done" }),
         }),
       ).onOpen?.({} as Event, ws as never);
-      await delay(200);
+      await awaitReplay(ws);
 
       const frame = replayFrame(ws);
       expect(frame, "replay-only branch must emit the disk snapshot").toBeDefined();
@@ -279,7 +289,7 @@ describe("F02/D02 — disk-snapshot replay reachability in the live WS branch", 
           task: makeTask({ taskId: TASK, state: "active" }),
         }),
       ).onOpen?.({} as Event, ws as never);
-      await delay(300);
+      await awaitReplay(ws);
       expect(
         disposeSpy,
         "the attach resolve/replay path must not dispose the mirror",
