@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-09",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-09-w4-playwright-e2e",
-    "date": "2026-07-09",
+    "run_id": "iterate-2026-07-10-design-gate-review-host",
+    "date": "2026-07-10",
     "unit": {
       "status": "passed",
-      "passed": 3738,
-      "total": 3738
+      "passed": 3806,
+      "total": 3806
     },
     "integration": {
       "status": "not_run",
@@ -20,79 +20,120 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts 99-single-session-cross-surface-capstone --project=chromium --reporter=list",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts 100-design-gate-review --project=chromium",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w4-playwright-e2e\\.shipwright\\runs\\iterate-2026-07-09-w4-playwright-e2e\\surface_verification.log",
-      "timestamp": "2026-07-09T20:45:09.298Z"
+      "tests_run": 1,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\design-gate-review-host\\.shipwright\\runs\\iterate-2026-07-10-design-gate-review-host\\surface_verification.log",
+      "timestamp": "2026-07-10T08:27:55Z"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "single_session board renders SingleSessionRunCard + its ONE Launch CTA (data-mode=launch)",
+          "behavior": "computeNextRound disk-derived N (numeric, ignore non-round) \u2014 AC3",
           "disposition": "tested",
-          "evidence": "flow 99 test 1"
+          "evidence": "server/src/core/design-feedback.test.ts"
         },
         {
-          "behavior": "multi-session MasterTaskCard is NOT rendered for a single_session run",
+          "behavior": "normalizeRoundHeading rewrites round only, preserves bytes/dash, no free-text touch \u2014 AC4",
           "disposition": "tested",
-          "evidence": "flow 99 test 1 (toHaveCount 0)"
+          "evidence": "server/src/core/design-feedback.test.ts"
         },
         {
-          "behavior": "board Launch CTA click -> client-navigates to /tasks/<uuid>",
+          "behavior": "looksLikeDesignFeedback first-line contract guard",
           "disposition": "tested",
-          "evidence": "flow 99 test 1 (waitForURL)"
+          "evidence": "server/src/core/design-feedback.test.ts"
         },
         {
-          "behavior": "server-built /shipwright-run master command reaches the terminal WS as a data frame (cross-surface parity, CR-terminated)",
+          "behavior": "deriveDesignGate paused\u2227design\u2227viewer\u2227non-terminal predicate + inactive branches \u2014 AC1",
           "disposition": "tested",
-          "evidence": "flow 99 test 1 (ws-capture awaitFrame + payload asserts)"
+          "evidence": "server/src/core/run-loop-state-reader.test.ts"
         },
         {
-          "behavior": "no --campaign / --resume / phase-command leak in the launched command",
+          "behavior": "readLoopState absent/torn/valid safety",
           "disposition": "tested",
-          "evidence": "flow 99 test 1 (not.toContain x3)"
+          "evidence": "server/src/core/run-loop-state-reader.test.ts"
         },
         {
-          "behavior": "card mirrors on-disk progression 1/7 -> advance -> 4/7 (CTA stays)",
+          "behavior": "GET /design-gate active/inactive/no-viewer/no-config/404",
           "disposition": "tested",
-          "evidence": "flow 99 test 2 (mutate + reload)"
+          "evidence": "server/src/external/design-review/__tests__/gate.test.ts"
         },
         {
-          "behavior": "terminal run: card still renders full bar 7/7 and HIDES the single CTA",
+          "behavior": "GET /designs/* text/html + bridge-into-index-only + verbatim screens + no nosniff/CSP-block + 404 + traversal-reject + 415 \u2014 AC1",
           "disposition": "tested",
-          "evidence": "flow 99 test 2 (status:complete + reload)"
+          "evidence": "server/src/external/design-review/__tests__/serve.test.ts"
         },
         {
-          "behavior": "Claude Code actually EXECUTING /shipwright-run end-to-end",
+          "behavior": "injectFeedbackBridge before-script/before-body/append",
+          "disposition": "tested",
+          "evidence": "server/src/external/design-review/__tests__/serve.test.ts"
+        },
+        {
+          "behavior": "POST /design-feedback round1/disk-N/round-trip-shape/not_design_feedback/designs_dir_missing/exclusive-create/413/404 \u2014 AC2/3/4",
+          "disposition": "tested",
+          "evidence": "server/src/external/design-review/__tests__/feedback-write.test.ts"
+        },
+        {
+          "behavior": "Bridge showSaveFilePicker override \u2192 postMessage \u2192 host write (real browser) \u2014 AC1+AC2",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/100-design-gate-review.spec.ts"
+        },
+        {
+          "behavior": "isDesignFeedbackMessage guard + designsViewerUrl relative/encoded",
+          "disposition": "tested",
+          "evidence": "client/src/lib/designReviewApi.test.ts"
+        },
+        {
+          "behavior": "Overlay postMessage origin/source validation + write + 'Saved \u2014 Round N'",
+          "disposition": "tested",
+          "evidence": "client/src/components/external/MockupReviewOverlay.test.tsx"
+        },
+        {
+          "behavior": "SingleSessionRunCard renders DesignGatePanel only when gate active + non-terminal",
+          "disposition": "tested",
+          "evidence": "client/src/components/external/SingleSessionRunCard.test.tsx"
+        },
+        {
+          "behavior": "DesignGatePanel Review-button \u2192 overlay + saved hint \u2014 AC1/AC2",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/100-design-gate-review.spec.ts"
+        },
+        {
+          "behavior": "Resume clears the gate via existing MasterRunLaunchButton (webui runs no orchestrator.py) \u2014 AC5",
           "disposition": "untestable",
-          "reason_code": "requires-interactive-tty",
-          "reason": "the isolated stack has a temp USERPROFILE with no auth/plugin config by design; the master never bootstraps. The capstone asserts the command REACHES the terminal (the last unproven cross-surface hop), not that Claude runs it (the framework SS7 half)."
+          "reason_code": "covered-by-existing-test",
+          "reason": "resume path is unchanged; covered by flows 97/98/99 + master-run-branch.ts"
+        },
+        {
+          "behavior": "useDesignGate 5s poll cadence (useQuery wrapper)",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "thin wrapper mirroring useRunConfig; enablement covered by the card + E2E behaviors"
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
-        "untestable": 1,
+        "testable": 14,
+        "tested": 14,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 5,
+        "covered_acs": 5
       }
     },
     "degraded": []

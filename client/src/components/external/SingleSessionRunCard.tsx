@@ -24,13 +24,16 @@ import { Check, ChevronRight, Circle, Loader2, Play, XCircle, AlertTriangle } fr
 import type { Project } from "../../types";
 import {
   formatRunLabel,
+  isTerminalRunStatus,
   type PhaseTaskStatus,
   type RunConfigDiagnostics,
   type RunConfigV2,
   type RunStatus,
 } from "../../lib/run-config-v2";
 import { derivePhaseProgress } from "../../lib/pipelineProgress";
+import { useDesignGate } from "../../hooks/useDesignGate";
 import { MasterRunLaunchButton } from "./MasterRunLaunchButton";
+import { DesignGatePanel } from "./DesignGatePanel";
 
 const RUN_STATUS_PALETTE: Record<RunStatus, { bg: string; fg: string }> = {
   in_progress: { bg: "#dbeafe", fg: "#1e40af" },
@@ -87,6 +90,9 @@ export function SingleSessionRunCard({
   diagnostics: RunConfigDiagnostics;
 }) {
   const progress = derivePhaseProgress(config);
+
+  // Design gate — only poll while the run is live (never for a terminal run).
+  const designGate = useDesignGate(project?.id, !isTerminalRunStatus(config.status));
 
   return (
     <div
@@ -174,6 +180,14 @@ export function SingleSessionRunCard({
           </li>
         )}
       </ol>
+
+      {/* Paused-at-design-gate affordance — Review mockups + feedback write
+          (FR-01.45). Rendered only when the gate is active AND the run is live
+          (never off stale cached gate data for a terminal run); Resume below
+          applies the feedback. */}
+      {!isTerminalRunStatus(config.status) && designGate.data?.active && project?.id && (
+        <DesignGatePanel projectId={project.id} />
+      )}
 
       {/* Single Launch / Resume CTA (hidden when the run is terminal). */}
       <MasterRunLaunchButton project={project} config={config} />

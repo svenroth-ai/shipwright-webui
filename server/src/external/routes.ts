@@ -56,6 +56,7 @@ import { createTranscriptRouter } from "./transcript/routes.js";
 import { createTasksRouter } from "./tasks/routes.js";
 import { createLaunchRouter } from "./launch/routes.js";
 import { createPrStatusRouter } from "./pr-status/routes.js";
+import { createDesignReviewRouter } from "./design-review/routes.js";
 
 // Back-compat re-exports — 14+ sibling test files + downstream consumers
 // import these from `./routes.js` directly. Sources of truth post-C2:
@@ -220,6 +221,12 @@ export function createExternalRoutes(args: {
   app.route(
     "/",
     createComplianceRouter({ getProjectById, readCompliance: args.readCompliance }),
+  );
+  // FR-01.45 — single-session design-gate mockup review: gate observer + viewer
+  // host + the transient round-feedback write (the sole new write surface).
+  app.route(
+    "/",
+    createDesignReviewRouter({ getProjectById, readRunConfig: runConfigReader }),
   );
   // ADR-044 / CLAUDE.md rule 9 (shell:false invariant for preview spawn).
   app.route(
