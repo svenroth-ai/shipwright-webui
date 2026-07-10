@@ -90,6 +90,8 @@ Usage column = number of `.ts*` files under `client/src/` that mention the compo
 | `PipelineLaneCard` | `external/PipelineLaneCard.tsx` | 54 | 1 |
 | `SingleSessionRunCard` | `external/SingleSessionRunCard.tsx` | 182 | 1 |
 | `MasterRunLaunchButton` | `external/MasterRunLaunchButton.tsx` | 118 | 1 |
+| `DesignGatePanel` (paused-design affordance, FR-01.45, iterate-2026-07-10-design-gate-review-host) | `external/DesignGatePanel.tsx` | 65 | 1 |
+| `MockupReviewOverlay` (full-bleed sandboxed viewer host, FR-01.45) | `external/MockupReviewOverlay.tsx` | 185 | 1 |
 | `CampaignLaneCard` | `external/CampaignLaneCard.tsx` | 239 | 3 |
 | `CampaignAutonomousLaunchButton` | `external/CampaignAutonomousLaunchButton.tsx` | 228 | 1 |
 | `SkillCard` | `external/SkillCard.tsx` | 118 | 7 |
@@ -221,6 +223,19 @@ table (Grade column) + Task-Board header.
 |------|------|-----|--------|
 | `ComplianceGradeBadge` | `compliance/ComplianceGradeBadge.tsx` | ~70 | 2 |
 | `ComplianceDetailModal` | `compliance/ComplianceDetailModal.tsx` | ~85 | 1 |
+
+### `design-review/` (FR-01.45, iterate-2026-07-10-design-gate-review-host)
+
+Single-session design-gate mockup review hosting. Server: `core/run-loop-state-reader.ts`
+(reads `.shipwright/run_loop_state.json`, derives the design gate) + `core/design-feedback.ts`
+(disk-derived round number + contract-preserving heading rewrite) + the
+`external/design-review/` sub-router (`gate.ts` / `serve.ts` / `feedback-write.ts` /
+`routes.ts`) exposing `GET /design-gate`, `GET /designs/:rest{.+}` (viewer host with an
+injected `showSaveFilePicker` bridge), `POST /design-feedback` (the round-file write).
+Client: `lib/designReviewApi.ts` + hook `useDesignGate` → `DesignGatePanel` →
+`MockupReviewOverlay` (sandboxed full-bleed iframe). Read-only observer except the
+transient `design-feedback-round{N}.md` write (gitignored scratch). Resume = the existing
+`MasterRunLaunchButton` CTA (webui runs no orchestrator.py).
 
 ### `wizard/`
 

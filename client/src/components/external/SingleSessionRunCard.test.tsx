@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import { SingleSessionRunCard } from "./SingleSessionRunCard";
@@ -17,6 +17,18 @@ import type {
 vi.mock("./MasterRunLaunchButton", () => ({
   MasterRunLaunchButton: () => <div data-testid="stub-cta" />,
 }));
+// Stub the design-gate panel + hook — the card only decides WHEN to render it;
+// the panel/overlay are covered by their own tests + E2E flow 100. Mocking the
+// hook also frees the card render from needing a QueryClientProvider.
+vi.mock("./DesignGatePanel", () => ({
+  DesignGatePanel: () => <div data-testid="stub-design-gate-panel" />,
+}));
+vi.mock("../../hooks/useDesignGate", () => ({
+  useDesignGate: vi.fn(() => ({ data: undefined })),
+}));
+
+import { useDesignGate } from "../../hooks/useDesignGate";
+const mockUseDesignGate = vi.mocked(useDesignGate);
 
 const RUN_ID = "run-a1b2c3d4";
 const PROJECT: Project = {
@@ -70,6 +82,11 @@ function renderCard(config: RunConfigV2, diagnostics: RunConfigDiagnostics = NO_
 }
 
 describe("SingleSessionRunCard", () => {
+  beforeEach(() => {
+    // Default: gate inactive (the existing render tests don't care about it).
+    mockUseDesignGate.mockReturnValue({ data: undefined } as ReturnType<typeof useDesignGate>);
+  });
+
   it("renders the run label, status badge and N/total phase progress", () => {
     renderCard(makeConfig({ phase_tasks: [pt("project", "done"), pt("design", "in_progress")] }));
     expect(screen.getByTestId(`single-session-run-card-${RUN_ID}`)).toHaveAttribute("data-run-status", "in_progress");
@@ -138,5 +155,21 @@ describe("SingleSessionRunCard", () => {
   it("a complete run shows 7/7 and 100% progress", () => {
     renderCard(makeConfig({ status: "complete", phase_tasks: [pt("project", "done")] }));
     expect(screen.getByTestId(`single-session-progress-${RUN_ID}`)).toHaveTextContent("7/7");
+  });
+
+  it("renders the DesignGatePanel ONLY when the design gate is active (FR-01.45)", () => {
+    mockUseDesignGate.mockReturnValue({
+      data: { active: true, phaseTaskId: "ptk-x", phase: "design" },
+    } as ReturnType<typeof useDesignGate>);
+    renderCard(makeConfig({ phase_tasks: [pt("design", "in_progress")] }));
+    expect(screen.getByTestId("stub-design-gate-panel")).toBeInTheDocument();
+  });
+
+  it("does NOT render the DesignGatePanel when the gate is inactive", () => {
+    mockUseDesignGate.mockReturnValue({
+      data: { active: false, phaseTaskId: null, phase: null },
+    } as ReturnType<typeof useDesignGate>);
+    renderCard(makeConfig({ phase_tasks: [pt("design", "in_progress")] }));
+    expect(screen.queryByTestId("stub-design-gate-panel")).toBeNull();
   });
 });

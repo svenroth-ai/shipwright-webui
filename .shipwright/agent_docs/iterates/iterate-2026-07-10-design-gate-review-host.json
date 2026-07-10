@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-design-gate-review-host",
+  "date": "2026-07-10T08:29:10.403753Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/design-gate-review-host",
+  "spec": ".shipwright/planning/iterate/2026-07-10-design-gate-review-host.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-design-gate-review-host"
+}
