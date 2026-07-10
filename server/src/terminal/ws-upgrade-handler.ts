@@ -126,9 +126,7 @@ const tryReadSnapshot = (
 ): Promise<SnapshotRecord | null> =>
   tryReadSnapshotShared(snapshotStore, taskId, expectedTerminalVersion);
 
-// ADR-092 — replay-snapshot resolution. LIVE mirror wins over disk
-// (closes the ADR-091 bug + avoids serving stale disk image when
-// last-detach flushed and the shell produced more output after).
+// ADR-092 — replay resolution: LIVE mirror wins over disk snapshot.
 const resolveReplaySnapshot = async (
   ctx: ValidatedWsUpgradeContext,
 ): Promise<SnapshotRecord | null> => {
@@ -267,6 +265,11 @@ function buildLiveHandlers(
   // between this probe and spawn(), and Node is single-threaded,
   // so no concurrent WS attach can create the pty in between.
   const ptyExistedBeforeAttach = ctx.ptyManager.get(taskId) !== undefined;
+  // D02/F02 — with NO live pty, resolve the disk snapshot BEFORE spawn()
+  // (its fresh empty mirror would else shadow it). Live pty → resolve in the
+  // IIFE (ADR-092 live-first / Guard 2a; spawn idempotent keeps the mirror).
+  const preSpawnReplay: Promise<SnapshotRecord | null> | null =
+    ptyExistedBeforeAttach ? null : resolveReplaySnapshot(ctx);
   // Ensure-or-create the pty against the realpath-validated cwd.
   // ptyManager.spawn(): `shell` is a whitelisted binary NAME (ADR-067 allowlist +
   // loopback Origin gate), not child_process({shell:true}). Semgrep false positive.
@@ -437,14 +440,11 @@ function buildLiveHandlers(
               }),
             );
           } catch { /* ignore */ }
-          // ADR-092 (Iterate E) — live mirror FIRST, disk snapshot
-          // FALLBACK. Closes the ADR-091 bug where re-attach to a
-          // live pty (no prior kill → no disk snapshot) yielded a
-          // blank terminal, AND avoids serving a stale disk
-          // snapshot when last-detach flushed but the shell
-          // produced more output after. Disk is the fallback for
-          // done/exited tasks and post-server-restart scenarios.
-          const snap = await resolveReplaySnapshot(ctx);
+          // ADR-092 live-first / disk-fallback (resolveReplaySnapshot).
+          // D02/F02 — a no-live-pty attach was already resolved BEFORE spawn
+          // (preSpawnReplay) so the fresh empty mirror cannot shadow the disk
+          // snapshot; a live pty resolves here exactly as before.
+          const snap = await (preSpawnReplay ?? resolveReplaySnapshot(ctx));
           if (snap) {
             sendReplaySnapshot(
               ws as unknown as Parameters<typeof sendReplaySnapshot>[0],
