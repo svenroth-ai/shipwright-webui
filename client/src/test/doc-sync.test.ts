@@ -151,6 +151,16 @@ const REQUIRED_TOKENS = [
   'SingleSessionRunCard',
   'MasterRunLaunchButton',
   'pipelineProgress',
+  // iterate-2026-07-10-design-gate-review-host — single-session design-gate
+  // mockup review hosting (FR-01.45): gate observer + viewer host + round
+  // feedback write + the client overlay/panel/hook.
+  'run-loop-state-reader',
+  'design-feedback',
+  'design-review',
+  'designReviewApi',
+  'useDesignGate',
+  'DesignGatePanel',
+  'MockupReviewOverlay',
 ] as const;
 
 let claudeMd = '';
