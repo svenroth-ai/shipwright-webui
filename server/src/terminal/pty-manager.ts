@@ -249,6 +249,12 @@ interface PtyEntry {
   closing: boolean;
   /** D01/F01 — resolved in onExit so kill() can await teardown before a delete wipes side-files. */
   onExitDone?: () => void;
+  /** D01 #3 — the single finalize promise both onExit + kill() await (no double cleanup). */
+  finalizePromise?: Promise<void>;
+  /** D01 #2 — set true by kill(): gates post-serialize snapshot writes + post-kill
+   *  scrollback appends so a parked flush / stuck shell can't resurrect a wiped
+   *  side-file. Lives on the entry (which the parked flush holds) → no leak. */
+  tornDown?: boolean;
 }
 
 export interface PtyManagerOpts {
@@ -403,11 +409,8 @@ export class PtyManager {
       cols: opts.cols ?? 120,
       rows: opts.rows ?? 30,
     });
-    // ADR-088: optional headless mirror. Created here so the mirror's
-    // lifetime is co-extensive with the entry; disposed in cleanup().
-    // Cols/rows match the pty-spawn defaults so the mirror sees the
-    // same initial dimensions the shell does. Subsequent resize() calls
-    // forward to both pty and mirror.
+    // ADR-088: optional headless mirror — lifetime co-extensive with the
+    // entry (disposed in cleanup()); dims match the pty-spawn defaults.
     const mirror = this.headlessMirrorEnabled
       ? new HeadlessMirror({
           taskId,
@@ -438,11 +441,10 @@ export class PtyManager {
     // Forward pty output to all subscribers + reset idle timer.
     pty.onData((data) => {
       this.touchIdle(entry);
-      // ADR-068-A1: persist to disk before broadcast. Synchronous via
-      // fs.appendFileSync so subsequent reads see the bytes immediately.
-      // Wrapped in try/catch so a disk error / rotation-buffer-overflow
-      // never breaks the broadcaster.
-      if (this.scrollbackStore) {
+      // ADR-068-A1: persist to disk before broadcast (fs.appendFileSync;
+      // try/catch so a disk error never breaks the broadcaster). D01 #2 —
+      // skip once torn down so a stuck shell can't re-create <taskId>.log.
+      if (this.scrollbackStore && !entry.tornDown) {
         try {
           this.scrollbackStore.append(taskId, Buffer.from(data, "utf8"));
         } catch (err) {
@@ -487,7 +489,7 @@ export class PtyManager {
       if (entry.closing && this.scrollbackStore) {
         this.appendShellStoppedMarker(taskId);
       }
-      void this.cleanup(taskId);
+      this.cleanup(taskId);
       // D01/F01 — release a delete-cascade kill() awaiting full teardown.
       entry.onExitDone?.();
     });
@@ -498,31 +500,17 @@ export class PtyManager {
 
   /**
    * iterate-2026-05-08 v0.8.7 AC-2 — append a single dim-grey ANSI marker
-   * frame to disk-scrollback. Best-effort; failures logged via
-   * console.warn and never thrown (caller is in onExit cleanup which
-   * MUST be infallible). Exact format:
+   * frame to disk-scrollback on intentional kill. Best-effort; never throws
+   * (onExit cleanup must stay infallible). Format:
    *
    *     \r\n\x1b[2m──── shell stopped at HH:MM:SS ────\x1b[m\r\n
    *
-   * `\x1b[2m` = SGR dim. Box-drawing char `─` is U+2500 (3 UTF-8 bytes).
-   * Marker bytes flow through the same `scrollbackStore.append()` path
-   * as live `pty.onData` output, so `scrollbackBytes` accounting on
-   * the `scrollback-meta` envelope reflects them correctly.
-   *
-   * **Timing safety (per external code review openai 2026-05-08 high):**
-   *
-   * `ScrollbackStore.append()` uses `fs.appendFileSync` (one open-write-
-   * close syscall sequence per call — see `scrollback-store.ts` header
-   * "Architecture invariants"). It is FULLY SYNCHRONOUS — the marker
-   * bytes are durable on disk before this function returns. There is
-   * no per-task WriteStream that could be closed mid-write; closeStream
-   * is a no-op for the file (only resets the per-task size cache).
-   *
-   * Therefore: the kill→onExit→appendMarker→cleanup sequence is safe.
-   * cleanup deletes the pty entry from `this.entries` BUT does not
-   * touch `this.scrollbackStore.states` — append() looks up by taskId
-   * + reopens the file via O_APPEND each call, so a deleted entry has
-   * no effect on subsequent append correctness.
+   * Timing safety (openai 2026-05-08 high; D01 #5): ScrollbackStore.append()
+   * is fs.appendFileSync — one open(O_APPEND)→write→close per call, no
+   * per-task WriteStream. closeStream() only resets the size cache, so the
+   * marker append in onExit CANNOT land on a closed handle even though kill()
+   * fires closeStream before awaiting onExit; a deleted entry doesn't affect
+   * append correctness (lookup by taskId + reopen each call).
    */
   private appendShellStoppedMarker(taskId: string): void {
     if (!this.scrollbackStore) return;
@@ -580,18 +568,22 @@ export class PtyManager {
   async kill(taskId: string): Promise<void> {
     const entry = this.entries.get(taskId);
     if (!entry) return;
-    // AC-2 — flag intentional kill so onExit appends the marker; the
-    // closing-flag dedupe makes a duplicate kill() a no-op (entry gone).
+    // AC-2 — flag intentional kill so onExit appends the marker; a duplicate
+    // kill() is a no-op (entry already gone). D01 #2 — tombstone the entry first
+    // so a parked flush / stuck-shell onData can't resurrect the wiped side-files.
     entry.closing = true;
-    // D01/F01 — a live entry guarantees onExit fires after pty.kill();
-    // `exited` lets a delete-cascade caller await the marker append.
+    entry.tornDown = true;
+    // D01/F01 — a live entry guarantees onExit fires; `exited` = the marker append.
     const exited = new Promise<void>((r) => { entry.onExitDone = r; });
     try {
       entry.pty.kill();
     } catch {
       // best-effort
     }
-    const finalize = this.cleanup(taskId);
+    // D01 #3 — cleanup stores the SINGLE finalize on the entry; read it here so
+    // a synchronous onExit (which ran cleanup already) is still awaited.
+    this.cleanup(taskId);
+    const finalize = entry.finalizePromise ?? Promise.resolve();
     if (this.scrollbackStore) {
       void this.scrollbackStore
         .closeStream(taskId)
@@ -602,14 +594,21 @@ export class PtyManager {
           );
         });
     }
-    // D01/F01 — await marker + finalize-snapshot writes so a delete
-    // cascade's subsequent clears cannot be re-created by this teardown.
-    await Promise.allSettled([exited, finalize]);
+    // D01 #1 — never hang the DELETE: finalize (privacy) is fully awaited; the
+    // proof-of-death `exited` degrades to a bounded 3 s ceiling (onExit is
+    // reliable for a live entry, but pty.kill() could throw / child could wedge).
+    await Promise.allSettled([
+      Promise.race([exited, new Promise<void>((r) => { setTimeout(r, 3000).unref?.(); })]),
+      finalize,
+    ]);
   }
 
   killAll(): void {
+    // D01 #4 — kill() is async now, but shutdown must not block on per-pty
+    // teardown; finalize writes are best-effort on process death (pre-existing
+    // F26, orphaned tmps swept by snapshot-tmp-sweep). Fire-and-forget.
     const taskIds = [...this.entries.keys()];
-    for (const id of taskIds) this.kill(id);
+    for (const id of taskIds) void this.kill(id);
     if (this.watchdogTimer !== null) {
       clearInterval(this.watchdogTimer);
       this.watchdogTimer = null;
@@ -852,6 +851,9 @@ export class PtyManager {
     if (!entry || !entry.mirror || !this.snapshotStore) return;
     try {
       const stable = await entry.mirror.serializeStable();
+      // D01 #2 — re-check the captured entry on THIS tick: a flush that parked
+      // at serializeStable across a delete's kill+clear must NOT re-land the file.
+      if (entry.tornDown) return;
       const { cols, rows } = entry.mirror.dimensions;
       await this.snapshotStore.write(taskId, { cols, rows, data: stable });
     } catch (err) {
@@ -954,26 +956,21 @@ export class PtyManager {
 
   // --- internals -----------------------------------------------------------
 
-  private cleanup(taskId: string): Promise<void> {
+  private cleanup(taskId: string): void {
     const entry = this.entries.get(taskId);
-    if (!entry) return Promise.resolve();
+    if (!entry) return;
     this.idleReaper.cancel(taskId);
     this.entries.delete(taskId);
-    // ADR-088: finalize the headless mirror snapshot, then dispose. The
-    // returned promise lets kill() await the finalize (D01/F01) so a delete
-    // cascade can clear AFTER the snapshot write lands. Failures never
-    // propagate — finalizeMirrorSnapshot is best-effort/infallible.
+    // ADR-088: finalize the headless mirror snapshot, then dispose. D01 #3 —
+    // store the promise on the entry so BOTH onExit and kill() await the SAME
+    // finalize (a synchronous onExit no longer drops kill()'s await). Failures
+    // never propagate — finalizeMirrorSnapshot is best-effort/infallible.
     if (entry.mirror && this.snapshotStore) {
-      return this.finalizeMirrorSnapshot(taskId, entry.mirror);
-    } else if (entry.mirror) {
-      // No snapshot store wired — just dispose so the Terminal frees.
-      try {
-        entry.mirror.dispose();
-      } catch {
-        /* ignore */
-      }
+      entry.finalizePromise = this.finalizeMirrorSnapshot(taskId, entry.mirror);
+    } else {
+      if (entry.mirror) { try { entry.mirror.dispose(); } catch { /* ignore */ } }
+      entry.finalizePromise = Promise.resolve();
     }
-    return Promise.resolve();
   }
 
   /**
