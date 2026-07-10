@@ -1,12 +1,13 @@
 {
-  "last_updated": "2026-07-09",
+  "last_updated": "2026-07-10T08:47:30Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-09-w4-playwright-e2e",
-    "date": "2026-07-09",
+    "run_id": "iterate-2026-07-10-claude-md-guard-index",
+    "date": "2026-07-10",
     "unit": {
       "status": "passed",
       "passed": 3738,
-      "total": 3738
+      "total": 3738,
+      "note": "client vitest 1954/1954 + server vitest 1784/1784; tsc clean both workspaces; doc-sync meta-test 82/82"
     },
     "integration": {
       "status": "not_run",
@@ -14,14 +15,15 @@
       "total": 0
     },
     "pgtap": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2
+      "status": "skipped",
+      "passed": 0,
+      "total": 0,
+      "note": "docs-only CLAUDE.md change; no user-facing surface"
     },
     "design_fidelity": {
       "status": "skipped",
@@ -29,71 +31,20 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "skipped"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts 99-single-session-cross-surface-capstone --project=chromium --reporter=list",
+      "surface": "none",
+      "runner": "",
       "exit_code": 0,
-      "tests_run": 2,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\w4-playwright-e2e\\.shipwright\\runs\\iterate-2026-07-09-w4-playwright-e2e\\surface_verification.log",
-      "timestamp": "2026-07-09T20:45:09.298Z"
+      "tests_run": 0,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-10-claude-md-guard-index/surface_verification.json",
+      "timestamp": "2026-07-10T08:47:11.296Z",
+      "justification": "Docs-only change: CLAUDE.md (agent-context markdown) condensed; no startable surface affected. Guard verification = doc-sync meta-test (82/82 green) + full client/server suites in F0."
     },
     "test_completeness": {
-      "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "single_session board renders SingleSessionRunCard + its ONE Launch CTA (data-mode=launch)",
-          "disposition": "tested",
-          "evidence": "flow 99 test 1"
-        },
-        {
-          "behavior": "multi-session MasterTaskCard is NOT rendered for a single_session run",
-          "disposition": "tested",
-          "evidence": "flow 99 test 1 (toHaveCount 0)"
-        },
-        {
-          "behavior": "board Launch CTA click -> client-navigates to /tasks/<uuid>",
-          "disposition": "tested",
-          "evidence": "flow 99 test 1 (waitForURL)"
-        },
-        {
-          "behavior": "server-built /shipwright-run master command reaches the terminal WS as a data frame (cross-surface parity, CR-terminated)",
-          "disposition": "tested",
-          "evidence": "flow 99 test 1 (ws-capture awaitFrame + payload asserts)"
-        },
-        {
-          "behavior": "no --campaign / --resume / phase-command leak in the launched command",
-          "disposition": "tested",
-          "evidence": "flow 99 test 1 (not.toContain x3)"
-        },
-        {
-          "behavior": "card mirrors on-disk progression 1/7 -> advance -> 4/7 (CTA stays)",
-          "disposition": "tested",
-          "evidence": "flow 99 test 2 (mutate + reload)"
-        },
-        {
-          "behavior": "terminal run: card still renders full bar 7/7 and HIDES the single CTA",
-          "disposition": "tested",
-          "evidence": "flow 99 test 2 (status:complete + reload)"
-        },
-        {
-          "behavior": "Claude Code actually EXECUTING /shipwright-run end-to-end",
-          "disposition": "untestable",
-          "reason_code": "requires-interactive-tty",
-          "reason": "the isolated stack has a temp USERPROFILE with no auth/plugin config by design; the master never bootstraps. The capstone asserts the command REACHES the terminal (the last unproven cross-surface hop), not that Claude runs it (the framework SS7 half)."
-        }
-      ],
-      "counts": {
-        "testable": 7,
-        "tested": 7,
-        "untestable": 1,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
-      }
+      "status": "n/a",
+      "justification": "trivial docs-only iterate; the sole testable behavior (doc-sync token-bundle coverage + literal assertions) is covered by the existing meta-test client/src/test/doc-sync.test.ts (82/82 passed)"
     },
     "degraded": []
   }

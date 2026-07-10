@@ -1,0 +1,1 @@
+CLAUDE.md regression guards and architecture rules condensed to a one-line index (imperative + ADR pointer) — 34% smaller always-loaded agent context, all 33 rules and their numbering retained; rationale lives in the cited ADRs
