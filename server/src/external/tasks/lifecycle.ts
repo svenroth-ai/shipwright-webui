@@ -29,7 +29,12 @@ export function registerTasksLifecycle(
   app: Hono,
   deps: {
     store: SdkSessionsStore;
-    ptyManager: { get(taskId: string): unknown };
+    ptyManager: {
+      get(taskId: string): unknown;
+      // D01/F01 — tear down the live embedded pty on DELETE before the
+      // privacy clears (optional: legacy/test harnesses omit it).
+      kill?(taskId: string): void | Promise<void>;
+    };
     scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
     snapshotClearBestEffort?: (taskId: string) => Promise<void>;
   },
@@ -207,6 +212,17 @@ export function registerTasksLifecycle(
     const deleted = store.delete(taskId);
     if (!deleted) return c.json({ error: "Task not found" }, 404);
     await store.persist();
+    // D01/F01 — tear down the live embedded pty FIRST. `kill` is awaited so
+    // the teardown's shell-stopped marker (.log) + finalize snapshot writes
+    // LAND before the clears below wipe them; the pty is then dead, so
+    // nothing re-creates the secret-bearing artifacts after the privacy wipe.
+    if (ptyManager.kill) {
+      try {
+        await ptyManager.kill(taskId);
+      } catch {
+        /* best-effort — never block the delete on pty teardown */
+      }
+    }
     // ADR-068-A1: cascade-clean scrollback files. Best-effort.
     if (scrollbackClearBestEffort) {
       try {

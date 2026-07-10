@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-delete-cascade-pty-teardown",
+  "date": "2026-07-10T23:01:04.858942Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D01-delete-cascade-pty-teardown",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D01-delete-cascade-pty-teardown.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-delete-cascade-pty-teardown"
+}

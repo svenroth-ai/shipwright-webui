@@ -391,11 +391,12 @@ if (isMainModule) {
           );
         }
       }
-      // /api/projects/* — registered here so the DELETE cascade reaches the
-      // scrollback + snapshot stores above (iterate-2026-07-06-project-delete-cascades-tasks).
+      // /api/projects/* — here so the DELETE cascade reaches the stores above (iterate-2026-07-06).
       app.route("/", createProjectRoutes(projectManager, projectFsDeps, (id) =>
         cascadeDeleteProjectTasks(id, {
           store: sdkSessionsStore,
+          // D01/F01 — tear down each doomed task's live pty before its clears.
+          ptyKillBestEffort: (t) => ptyManager.kill(t),
           scrollbackClearBestEffort: (t) => scrollbackStore.clearBestEffort(t),
           snapshotClearBestEffort: (t) => snapshotStore.clearBestEffort(t),
         })));
@@ -549,10 +550,8 @@ if (isMainModule) {
           // ADR-068-A1: cascade-clean scrollback on DELETE /tasks/:id.
           scrollbackClearBestEffort: (taskId: string) =>
             scrollbackStore.clearBestEffort(taskId),
-          // Iterate C (ADR-087, MEDIUM-B1 fix): cascade-clean cell-state
-          // snapshot on DELETE /tasks/:id. Snapshots may contain secrets;
-          // the 24-h TTL is a backstop, the task delete is the
-          // authoritative privacy boundary.
+          // Iterate C (ADR-087, MEDIUM-B1): cascade-clean the cell-state
+          // snapshot on DELETE (may contain secrets; delete = privacy boundary).
           snapshotClearBestEffort: (taskId: string) =>
             snapshotStore.clearBestEffort(taskId),
           // iterate-2026-05-08 v0.8.7 AC-1: live-pty lookup so transcript
@@ -562,6 +561,7 @@ if (isMainModule) {
           // live @xterm/headless mirror.
           ptyManager: {
             get: (taskId: string) => ptyManager.get(taskId),
+            kill: (taskId: string) => ptyManager.kill(taskId), // D01/F01 — teardown before clears
             peekTerminalText: (taskId: string) =>
               ptyManager.peekTerminalText(taskId),
           },

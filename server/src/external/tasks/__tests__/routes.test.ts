@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
 
-import { createTasksRouter } from "../routes.js";
+import { createTasksRouter, type TasksRouterDeps } from "../routes.js";
 import {
   SdkSessionsStore,
   type SdkSessionsStoreDeps,
@@ -229,5 +229,70 @@ describe("createTasksRouter — DELETE /api/external/tasks/:id", () => {
     });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D01 / F01 Guard 2 — RED regression guard (MUST-NOT-MODIFY, author != fixer).
+//
+// The DELETE handler MUST tear down the live embedded pty, and it MUST do so
+// BEFORE clearing the scrollback + snapshot side-files — otherwise the
+// still-live pty's last-detach flush / kill-finalize re-writes the
+// secret-bearing snapshot AFTER the wipe (privacy cascade defeated).
+//
+// Missing seam for the fixer: `ptyManager.kill(taskId)` must be added to the
+// DELETE-handler ptyManager dep (index.ts injection + lifecycle.ts type) and
+// invoked before the clears. On pre-fix code the handler never touches
+// ptyManager on DELETE, so the kill spy is never called → RED.
+//
+// Evidence: Spec/audits/2026-07-10-webui-deep-audit.md § F01.
+// ---------------------------------------------------------------------------
+
+describe("createTasksRouter — DELETE tears down pty before clears (D01/F01 Guard 2 RED)", () => {
+  it("invokes ptyManager.kill BEFORE scrollback + snapshot clears", async () => {
+    const store = new SdkSessionsStore("/store/sdk-sessions.json", inMemoryDeps());
+    await store.load();
+    const watcher = new SessionWatcher({ projectsDir: "/projects" });
+    const t = store.create({ title: "secret", cwd: "/c", pluginDirs: [] });
+
+    const events: string[] = [];
+    // Runtime object carries `kill`; the cast widens past the current narrow
+    // ptyManager dep type so the frozen test compiles against pre- and
+    // post-fix type definitions alike.
+    const ptyManager = {
+      get: () => undefined,
+      kill: (id: string) => {
+        events.push(`kill:${id}`);
+      },
+    } as unknown as TasksRouterDeps["ptyManager"];
+
+    const app = new Hono();
+    app.route(
+      "/",
+      createTasksRouter({
+        store,
+        watcher,
+        ptyManager,
+        scrollbackClearBestEffort: async (id) => {
+          events.push(`scrollback:${id}`);
+        },
+        snapshotClearBestEffort: async (id) => {
+          events.push(`snapshot:${id}`);
+        },
+      }),
+    );
+
+    const res = await app.request(`/api/external/tasks/${t.taskId}`, {
+      method: "DELETE",
+    });
+    expect(res.status).toBe(200);
+
+    // The live pty MUST be killed…
+    expect(events).toContain(`kill:${t.taskId}`);
+    // …and BEFORE both privacy clears.
+    const killAt = events.indexOf(`kill:${t.taskId}`);
+    expect(killAt).toBeGreaterThanOrEqual(0);
+    expect(killAt).toBeLessThan(events.indexOf(`scrollback:${t.taskId}`));
+    expect(killAt).toBeLessThan(events.indexOf(`snapshot:${t.taskId}`));
   });
 });

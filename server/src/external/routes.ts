@@ -145,6 +145,12 @@ export function createExternalRoutes(args: {
   ptyManager: {
     get(taskId: string): unknown;
     /**
+     * D01/F01 — tear down the live embedded pty on DELETE /tasks/:id BEFORE
+     * the scrollback + snapshot privacy clears. Optional: legacy/test
+     * harnesses pass `{ get }` only; production (index.ts) wires it.
+     */
+    kill?(taskId: string): void | Promise<void>;
+    /**
      * iterate-2026-05-18-inbox-terminal-prompts — decoded visible-viewport
      * text of the task's live headless mirror, or null when there is no
      * live mirror. Optional: legacy test harnesses pass `{ get }` only;

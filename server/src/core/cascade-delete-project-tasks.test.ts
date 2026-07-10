@@ -14,7 +14,10 @@ import {
   SdkSessionsStore,
   type SdkSessionsStoreDeps,
 } from "./sdk-sessions-store.js";
-import { cascadeDeleteProjectTasks } from "./cascade-delete-project-tasks.js";
+import {
+  cascadeDeleteProjectTasks,
+  type CascadeDeleteProjectTasksDeps,
+} from "./cascade-delete-project-tasks.js";
 
 function inMemoryDeps(): SdkSessionsStoreDeps {
   const files = new Map<string, string>();
@@ -115,5 +118,56 @@ describe("cascadeDeleteProjectTasks", () => {
     });
     expect(count).toBe(1);
     expect(store.list()).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D01 / F01 Guard 2 (project-delete cascade) — RED regression guard
+// (MUST-NOT-MODIFY, author != fixer).
+//
+// The project-delete cascade currently receives no pty teardown seam at all,
+// so a doomed task's live embedded pty survives the cascade and re-writes its
+// secret-bearing snapshot / scrollback after the wipe (same defeat as the
+// single-task DELETE, F01).
+//
+// Missing seam for the fixer: add
+//   `ptyKillBestEffort?: (taskId: string) => Promise<void>`
+// to CascadeDeleteProjectTasksDeps and invoke it for each doomed task BEFORE
+// the scrollback + snapshot clears. On pre-fix code the cascade never calls
+// it, so the kill spy is never invoked → RED.
+//
+// Evidence: Spec/audits/2026-07-10-webui-deep-audit.md § F01 (cascade leg).
+// ---------------------------------------------------------------------------
+
+describe("cascadeDeleteProjectTasks — kills each pty before clears (D01/F01 Guard 2 RED)", () => {
+  it("invokes ptyKillBestEffort BEFORE scrollback + snapshot clears for a doomed task", async () => {
+    const { store } = await makeStore();
+    const a = store.create({ title: "a", cwd: "/c", projectId: "p-doomed" });
+
+    const events: string[] = [];
+    // Runtime deps carry `ptyKillBestEffort`; the cast widens past the
+    // current interface so the frozen test compiles against pre- and
+    // post-fix definitions alike.
+    const deps = {
+      store,
+      ptyKillBestEffort: async (id: string) => {
+        events.push(`kill:${id}`);
+      },
+      scrollbackClearBestEffort: async (id: string) => {
+        events.push(`scrollback:${id}`);
+      },
+      snapshotClearBestEffort: async (id: string) => {
+        events.push(`snapshot:${id}`);
+      },
+    } as unknown as CascadeDeleteProjectTasksDeps;
+
+    const count = await cascadeDeleteProjectTasks("p-doomed", deps);
+    expect(count).toBe(1);
+
+    expect(events).toContain(`kill:${a.taskId}`);
+    const killAt = events.indexOf(`kill:${a.taskId}`);
+    expect(killAt).toBeGreaterThanOrEqual(0);
+    expect(killAt).toBeLessThan(events.indexOf(`scrollback:${a.taskId}`));
+    expect(killAt).toBeLessThan(events.indexOf(`snapshot:${a.taskId}`));
   });
 });

@@ -1,0 +1,1 @@
+Deleting a task (or its project) now terminates the live embedded terminal before wiping its saved scrollback and snapshot, and the snapshot wipe waits for any in-flight save to finish first — so a secret shown in the terminal can no longer survive on disk after a delete (privacy hardening; DELETE /tasks/:id, project-delete cascade, SnapshotStore.clear).

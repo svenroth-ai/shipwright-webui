@@ -23,6 +23,10 @@ import type { SdkSessionsStore } from "./sdk-sessions-store.js";
 
 export interface CascadeDeleteProjectTasksDeps {
   store: SdkSessionsStore;
+  // D01/F01 — tear down each doomed task's live embedded pty BEFORE clearing
+  // its scrollback + snapshot, else the still-live pty re-writes the
+  // secret-bearing artifacts after the wipe. Best-effort; awaited per task.
+  ptyKillBestEffort?: (taskId: string) => Promise<void>;
   scrollbackClearBestEffort?: (taskId: string) => Promise<void>;
   snapshotClearBestEffort?: (taskId: string) => Promise<void>;
 }
@@ -36,7 +40,12 @@ export async function cascadeDeleteProjectTasks(
   projectId: string,
   deps: CascadeDeleteProjectTasksDeps,
 ): Promise<number> {
-  const { store, scrollbackClearBestEffort, snapshotClearBestEffort } = deps;
+  const {
+    store,
+    ptyKillBestEffort,
+    scrollbackClearBestEffort,
+    snapshotClearBestEffort,
+  } = deps;
   const doomed = store.list().filter((t) => t.projectId === projectId);
   if (doomed.length === 0) return 0;
 
@@ -49,6 +58,15 @@ export async function cascadeDeleteProjectTasks(
   // is independently best-effort: a failure to clear one task's scrollback
   // must not abort the rest or reject the cascade.
   for (const t of doomed) {
+    // D01/F01 — kill the live pty BEFORE this task's clears so its
+    // last-detach flush / kill-finalize cannot resurrect the wiped files.
+    if (ptyKillBestEffort) {
+      try {
+        await ptyKillBestEffort(t.taskId);
+      } catch {
+        /* best-effort */
+      }
+    }
     if (scrollbackClearBestEffort) {
       try {
         await scrollbackClearBestEffort(t.taskId);
