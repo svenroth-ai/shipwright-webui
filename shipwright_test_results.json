@@ -1,18 +1,19 @@
 {
-  "last_updated": "2026-07-10T08:47:30Z",
+  "last_updated": "2026-07-11T00:58:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-claude-md-guard-index",
+    "run_id": "iterate-2026-07-10-delete-cascade-pty-teardown",
     "date": "2026-07-10",
     "unit": {
       "status": "passed",
-      "passed": 3738,
-      "total": 3738,
-      "note": "client vitest 1954/1954 + server vitest 1784/1784; tsc clean both workspaces; doc-sync meta-test 82/82"
+      "passed": 1843,
+      "total": 1843,
+      "note": "server vitest 155 files / 1843 tests green (SHIPWRIGHT_NETWORK_PROFILE=local); tsc --noEmit clean. Includes the 27 independent RED-first guards (author!=fixer): real-ConPTY teardown, F05 clear-fence, F01 ordering, suspended-flush resurrection race. Client suite unaffected (server-only diff; no client/** file changed)."
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 27,
+      "total": 27,
+      "note": "27 independent must-not-modify guards, each proven RED on pre-fix main then GREEN: real-ConPTY delete-with-secret teardown (route->ptyManager->snapshotStore->disk/process), project-delete cascade, snapshot clear-fence, bounded-kill, tombstone resurrection race."
     },
     "pgtap": {
       "status": "skipped",
@@ -23,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "docs-only CLAUDE.md change; no user-facing surface"
+      "note": "server-only privacy hardening; no UI-observable behavior change. Real-app proof deferred to batched post-merge :3847 delete-with-secret smoke (Guard 4, orchestrator-run after D05)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -38,13 +39,62 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-10-claude-md-guard-index/surface_verification.json",
-      "timestamp": "2026-07-10T08:47:11.296Z",
-      "justification": "Docs-only change: CLAUDE.md (agent-context markdown) condensed; no startable surface affected. Guard verification = doc-sync meta-test (82/82 green) + full client/server suites in F0."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-10-delete-cascade-pty-teardown/surface_verification.json",
+      "timestamp": "2026-07-10T22:57:33.222Z",
+      "justification": "Server-only privacy hardening (DELETE /tasks/:id + project-delete cascade tear down the live pty before wiping scrollback/snapshot; SnapshotStore.clear() fences the per-task write queue before unlink). NO UI-observable behavior change: the DELETE HTTP contract and every rendered surface are unchanged; the fix is a disk/process-table side-effect (pty killed, <taskId>.log/.snapshot/.snapshot.tmp-* absent and staying absent, child pid dead) that a browser cannot observe. Behavioral proof = 27 real-ConPTY server integration guards (author!=fixer, RED-on-pre-fix-main then GREEN) + full server suite 1843/1843. Real-app proof = batched post-merge :3847 delete-with-secret smoke (Guard 4), orchestrator-run after D05. Frontend-change detector false-positive: substring 'src/' matches 'server/src/...'; no client/**, .tsx, or .css file changed."
     },
     "test_completeness": {
-      "status": "n/a",
-      "justification": "trivial docs-only iterate; the sole testable behavior (doc-sync token-bundle coverage + literal assertions) is covered by the existing meta-test client/src/test/doc-sync.test.ts (82/82 passed)"
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "DELETE /tasks/:id tears down the live pty (kill) BEFORE clearing scrollback + snapshot (F01 ordering)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "server/src/external/delete-cascade-pty-teardown.test.ts (real ConPTY: pid dead + <taskId>.log/.snapshot/.snapshot.tmp-* absent and stay absent) + server/src/external/tasks/__tests__/routes.test.ts (fake pty: kill-before-clear order) PASSED"
+        },
+        {
+          "behavior": "Project-delete cascade tears down each task pty BEFORE wiping its scrollback/snapshot",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "server/src/core/cascade-delete-project-tasks.test.ts + server/src/external/routes.delete-cascade.test.ts PASSED"
+        },
+        {
+          "behavior": "SnapshotStore.clear() awaits the per-task write queue (fence) BEFORE unlink, and does not early-return on ENOENT before fencing, so a queued/in-flight flushMirrorSnapshot cannot resurrect the snapshot (F05)",
+          "disposition": "tested",
+          "evidence": "server/src/external/snapshot-clear-fence.test.ts (enqueue slow write -> clear() -> await -> assert file gone) + server/src/terminal/snapshot-store.test.ts PASSED"
+        },
+        {
+          "behavior": "Bounded kill teardown: a DELETE cannot hang unboundedly on a pathological slow-dying child (review R1 HIGH remediation)",
+          "disposition": "tested",
+          "evidence": "server/src/terminal/pty-manager.test.ts bounded-kill guard PASSED (48737ba)"
+        },
+        {
+          "behavior": "Snapshot-writer tombstone blocks a suspended-flush resurrection race after clear (review R1 MEDIUM remediation)",
+          "disposition": "tested",
+          "evidence": "server/src/external/snapshot-clear-fence.test.ts resurrection-race guard PASSED (765d7df, 48737ba)"
+        },
+        {
+          "behavior": "Single-finalize: sync onExit does not double-run cleanup after an explicit kill (review R1 LOW remediation)",
+          "disposition": "tested",
+          "evidence": "server/src/terminal/pty-manager.test.ts single-finalize guard PASSED (48737ba)"
+        },
+        {
+          "behavior": "AC3 no-regression: full existing server suite stays green and no ADR/invariant is regressed",
+          "disposition": "tested",
+          "evidence": "server vitest 1843/1843 + tsc --noEmit clean in F0"
+        }
+      ],
+      "counts": {
+        "testable": 7,
+        "tested": 7,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      },
+      "note": "The batched post-merge :3847 delete-with-secret real-app smoke (Guard 4) is an ADDITIONAL real-deployment confirmation of behaviors already tested here by the real-ConPTY integration guard, not a distinct untested behavior; orchestrator-run after D05."
     },
     "degraded": []
   }
