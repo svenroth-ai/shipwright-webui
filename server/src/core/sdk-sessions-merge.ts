@@ -17,7 +17,13 @@
  * precisely what tells this instance which fields it owns.
  */
 
+import { randomUUID } from "node:crypto";
+import { rename as fsRename, unlink as fsUnlink } from "node:fs/promises";
+
 import type { ExternalTask } from "./sdk-sessions-store.js";
+
+/** Rename `code`s that are transient on Windows — retried (CLAUDE.md rule 6). */
+const RETRYABLE_RENAME_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
 
 /** Deep structural equality for JSON-shaped ExternalTask values. */
 export function deepEqual(a: unknown, b: unknown): boolean {
@@ -51,16 +57,21 @@ export function cloneSessions(
 
 /**
  * Merge this instance's local changes (baseline → memory) onto the current
- * on-disk state (disk). Returns a fresh map; the inputs are never mutated.
+ * on-disk state (disk). `deleted` is the set of ids this instance removed since
+ * baseline — they are dropped UNCONDITIONALLY (a delete wins over a concurrent
+ * instance's poll rewrite; taskIds are random UUIDs, never reused). Returns a
+ * fresh map; the inputs are never mutated.
  */
 export function mergeSessions(
   baseline: Map<string, ExternalTask>,
   memory: Map<string, ExternalTask>,
   disk: Map<string, ExternalTask>,
+  deleted: ReadonlySet<string>,
 ): Map<string, ExternalTask> {
   const out = new Map<string, ExternalTask>();
   const ids = new Set<string>([...baseline.keys(), ...memory.keys(), ...disk.keys()]);
   for (const id of ids) {
+    if (deleted.has(id)) continue; // this instance deleted it → delete always wins
     const base = baseline.get(id);
     const mem = memory.get(id);
     const dsk = disk.get(id);
@@ -73,14 +84,117 @@ export function mergeSessions(
       if (base && deepEqual(base, mem)) continue;
       out.set(id, structuredClone(mem));
     } else if (dsk) {
-      // Not in this instance's memory. A baseline means this instance deleted
-      // it: drop it only when disk is unchanged since baseline (a concurrent
-      // modification beats the delete). No baseline → a foreign row: keep it.
+      // Not in memory and NOT locally deleted (that set was handled above).
+      // A baseline means it vanished from memory some other way — drop only
+      // when disk is unchanged; else a foreign row / concurrent edit: keep it.
       if (base && deepEqual(base, dsk)) continue;
       out.set(id, structuredClone(dsk));
     }
   }
   return out;
+}
+
+/**
+ * Classify + parse the on-disk file for a merge re-read (read-only; never
+ * writes a corrupt-aside). Returns null when the bytes are unreadable — corrupt
+ * JSON, a non-object root, a malformed `sessions`, or a `schemaVersion` outside
+ * the 1..current window (a FUTURE version this build must not downgrade). An
+ * empty / whitespace file is a legitimately-empty store (schemaVersion=current,
+ * no rows). The caller skips the merge on null and writes its full memory.
+ */
+export function parseDiskState(
+  raw: string,
+  current: number,
+): { schemaVersion: 1 | 2 | 3 | 4; sessions: Record<string, unknown> } | null {
+  if (!raw.trim()) return { schemaVersion: current as 1 | 2 | 3 | 4, sessions: {} };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object") return null;
+  const v = (parsed as { schemaVersion?: unknown }).schemaVersion;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > current) return null;
+  const sessions = (parsed as { sessions?: unknown }).sessions;
+  if (!sessions || typeof sessions !== "object") return null;
+  return { schemaVersion: v as 1 | 2 | 3 | 4, sessions: sessions as Record<string, unknown> };
+}
+
+/**
+ * Build the on-disk sessions map for a merge, reusing the store's own row
+ * validator (passed in to avoid a store↔merge import cycle). Returns null iff
+ * the file was unreadable/future-schema (see parseDiskState) so the caller can
+ * skip the merge and preserve its full in-memory state.
+ */
+export function readDiskMap(
+  raw: string,
+  current: number,
+  validate: (id: string, value: unknown, schemaVersion: 1 | 2 | 3 | 4) => ExternalTask | null,
+): Map<string, ExternalTask> | null {
+  const parsed = parseDiskState(raw, current);
+  if (!parsed) return null;
+  const disk = new Map<string, ExternalTask>();
+  for (const [id, value] of Object.entries(parsed.sessions)) {
+    const task = validate(id, value, parsed.schemaVersion);
+    if (task) disk.set(id, task);
+  }
+  return disk;
+}
+
+/**
+ * Atomic-rename with a bounded EBUSY/EPERM/EACCES backoff (6 attempts,
+ * 50→1600 ms) — mirrors the torn-read budget (CLAUDE.md rule 6) so a transient
+ * Windows file lock on the rename target doesn't fail the persist.
+ */
+async function renameWithRetry(
+  rename: (from: string, to: string) => Promise<void>,
+  from: string,
+  to: string,
+): Promise<void> {
+  let delay = 50;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await rename(from, to);
+      return;
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (attempt >= 5 || !code || !RETRYABLE_RENAME_CODES.has(code)) throw err;
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 1600);
+    }
+  }
+}
+
+/**
+ * Atomic write: stage to a unique `<path>.tmp-*` (a mid-write crash lands there,
+ * never truncating the live file) then rename it into place — using the
+ * injected `rename`, else the fs default when a lock is held (real fs), with the
+ * EBUSY/EPERM/EACCES retry + best-effort temp cleanup. Lock-less test doubles
+ * (no injected rename) fall back to an in-place write of the SAME payload.
+ */
+export async function atomicWriteFile(
+  deps: {
+    writeFile: (path: string, data: string) => Promise<void>;
+    rename?: (from: string, to: string) => Promise<void>;
+  },
+  path: string,
+  data: string,
+  hasLock: boolean,
+): Promise<void> {
+  const tmp = `${path}.tmp-${randomUUID()}`;
+  await deps.writeFile(tmp, data);
+  const doRename = deps.rename ?? (hasLock ? fsRename : undefined);
+  if (!doRename) {
+    await deps.writeFile(path, data);
+    return;
+  }
+  try {
+    await renameWithRetry(doRename, tmp, path);
+  } catch (err) {
+    try { await fsUnlink(tmp); } catch { /* best-effort temp cleanup */ }
+    throw err;
+  }
 }
 
 /**

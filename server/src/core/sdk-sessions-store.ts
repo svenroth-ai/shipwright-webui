@@ -30,7 +30,7 @@
 import { randomUUID } from "node:crypto";
 
 import { type BoardColumn, isBoardColumn } from "./board-column.js";
-import { cloneSessions, mergeSessions } from "./sdk-sessions-merge.js";
+import { atomicWriteFile, cloneSessions, mergeSessions, readDiskMap } from "./sdk-sessions-merge.js";
 
 export type ExternalTaskState =
   | "draft"
@@ -218,6 +218,8 @@ export class SdkSessionsStore {
   private sessions = new Map<string, ExternalTask>();
   /** Deep-copy of `sessions` at load()/last-persist — the 3-way merge base (F08). */
   private baseline = new Map<string, ExternalTask>();
+  /** ids deleted since baseline — merge drops them so a delete beats disk churn (F08). */
+  private deletedSinceBaseline = new Set<string>();
   private loaded = false;
 
   constructor(path: string, deps: SdkSessionsStoreDeps) {
@@ -486,13 +488,15 @@ export class SdkSessionsStore {
   }
 
   delete(taskId: string): boolean {
-    return this.sessions.delete(taskId);
+    const existed = this.sessions.delete(taskId);
+    // Track deletes of rows that exist on disk (in baseline) so the next
+    // merge drops them unconditionally — a delete must beat a concurrent
+    // instance's ~1/sec poll rewrite (F08). Cleared after a successful persist.
+    if (existed && this.baseline.has(taskId)) this.deletedSinceBaseline.add(taskId);
+    return existed;
   }
 
-  /**
-   * Merge this instance's changes under the injected lock (see F08 note in the
-   * file header) and atomically flush to disk. `await` after any mutation.
-   */
+  /** Merge under the lock (F08 header note) + atomically flush. `await` after any mutation. */
   async persist(): Promise<void> {
     // Ensure parent dir + file exist before locking (proper-lockfile lstats).
     const lastSlash = Math.max(this.path.lastIndexOf("/"), this.path.lastIndexOf("\\"));
@@ -504,36 +508,34 @@ export class SdkSessionsStore {
 
     const release = this.deps.lock ? await this.deps.lock(this.path) : null;
     try {
-      // F08 — UNDER the lock, re-read the shared file (throwaway loader reuses
-      // the exact parse/validate path; getKnownProjectIds omitted → no O26, so
-      // foreign projectIds stay verbatim) and 3-way merge against the baseline
-      // snapshot: a concurrent INSTANCE's rows + externally written claim fields
-      // survive, only fields THIS instance changed win. No lock ⇒ no cross-process
-      // coordination is possible and a stale re-read would clobber same-process
-      // concurrent writers, so write memory directly (last-write-wins).
+      // F08 — UNDER the lock, re-read (READ-ONLY, never a corrupt-aside) + 3-way
+      // merge onto disk: a concurrent instance's rows + external claim fields
+      // survive, only fields THIS instance changed win, deletes always win. An
+      // unreadable/future-schema disk → readDiskMap===null → skip the merge, write
+      // our FULL memory (don't drop own rows). No lock ⇒ no cross-process
+      // coordination + a stale re-read would clobber same-process writers → direct.
+      let next = this.sessions;
       if (release) {
-        const diskStore = new SdkSessionsStore(this.path, {
-          ...this.deps,
-          getKnownProjectIds: undefined,
-        });
-        await diskStore.load();
-        const disk = new Map(diskStore.list().map((t) => [t.taskId, t] as const));
-        this.sessions = mergeSessions(this.baseline, this.sessions, disk);
-        this.baseline = cloneSessions(this.sessions);
+        let disk: Map<string, ExternalTask> | null = null;
+        try {
+          const raw = this.deps.existsSync(this.path) ? await this.deps.readFile(this.path, "utf-8") : "";
+          disk = readDiskMap(raw, CURRENT_SCHEMA_VERSION, validateExternalTask);
+        } catch { disk = null; } // read error → keep full memory (no self-drop)
+        if (disk) next = mergeSessions(this.baseline, this.sessions, disk, this.deletedSinceBaseline);
       }
 
       const payload: SdkSessionsFile = {
         schemaVersion: CURRENT_SCHEMA_VERSION,
-        sessions: Object.fromEntries(this.sessions),
+        sessions: Object.fromEntries(next),
       };
       const serialized = JSON.stringify(payload, null, 2);
-      // Atomic write: the temp write absorbs a mid-write crash (the live file is
-      // never truncated); rename swaps it in. Doubles omit `rename` → in-place
-      // write of the SAME payload.
-      const tmp = `${this.path}.tmp-${randomUUID()}`;
-      await this.deps.writeFile(tmp, serialized);
-      if (this.deps.rename) await this.deps.rename(tmp, this.path);
-      else await this.deps.writeFile(this.path, serialized);
+      await atomicWriteFile(this.deps, this.path, serialized, Boolean(release));
+
+      // Swap in-memory state only AFTER the write succeeds (a failed write keeps
+      // the baseline + delete-set intact for the retry).
+      this.sessions = next;
+      this.baseline = cloneSessions(next);
+      this.deletedSinceBaseline.clear();
     } finally {
       if (release) await release();
     }
