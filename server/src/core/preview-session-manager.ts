@@ -4,15 +4,14 @@
  * Contract: spawn(projectId, profile, opts?) → {url, sessionId};
  *   get(projectId) → live entry | undefined; killAll() → SIGTERM all + clear.
  *
- * Security model (ADR-044 — `shell: false` on EVERY path):
- *   - POSIX: `dev_server.command` is tokenized via `shell-quote.parse`; any
- *     OPERATOR token (`&&`, `|`, `;`, `>`, …) → refuse (would need a shell).
- *   - win32: backslash-safe tokenizer (keeps `C:\…` paths) + hard refuse of
- *     shell metacharacters, then PATHEXT resolution + a `cmd.exe /d /s /c`
- *     wrapper (discrete argv, never a joined string) for `.cmd`/`.bat` shims —
- *     see `preview-win32-spawn.ts`.
- *   - child_process.spawn always runs `shell: false` + the pre-tokenized argv;
- *     env is sanitized to drop `CLAUDE_*` / `SHIPWRIGHT_*` (webui internals).
+ * Security model (ADR-044 — `shell: false` on EVERY path). The win32 metachar
+ * fence is a BLOCKLIST (separators/substitution + `%`), not a total-safety proof
+ * (cmd builtins survive) — it stops the cmd.exe wrapper amplifying a `.cmd` shim
+ * into shell semantics or a repo-cwd binary hijack. POSIX: `shell-quote.parse`,
+ * operator token → refuse. win32: backslash-safe tokenizer (keeps `C:\…`) +
+ * PATH-only bare-name resolution + a `cmd.exe /d /s /c` wrapper (discrete argv,
+ * or a verbatim outer-quoted line for spaced paths) — see `preview-win32-spawn.ts`.
+ * spawn always runs `shell: false`; env drops `CLAUDE_*` / `SHIPWRIGHT_*`.
  *
  * Error codes (structured class instances handed to the route layer):
  *   - PreviewProfileInvalidError (empty / operators / metachars),
@@ -207,7 +206,7 @@ export class PreviewSessionManager {
     // win32: backslash-safe tokenize (F31) + injection fence. `process.platform`
     // is read at call time so tests can stub it; POSIX shell-quote path unchanged.
     if (process.platform === "win32") {
-      if (/[&|;`$<>\r\n]/.test(command)) {
+      if (/[&|;`$<>%\r\n]/.test(command)) {
         throw new PreviewProfileInvalidError(
           "dev_server.command contains a shell metacharacter — webui runs no shell",
         );
@@ -288,15 +287,16 @@ export class PreviewSessionManager {
       if (!free) throw new PreviewPortInUseError(port);
     }
 
-    const { command: spawnCmd, args: spawnArgs } = resolveSpawn(argv, opts.cwd);
+    const resolved = resolveSpawn(argv, opts.cwd);
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawnFn(spawnCmd, spawnArgs, {
+      child = spawnFn(resolved.command, resolved.args, {
         cwd: opts.cwd,
         env: opts.env ?? sanitizeEnv(process.env),
         shell: false,
         detached: false,
         stdio: "pipe",
+        windowsVerbatimArguments: resolved.windowsVerbatimArguments,
       }) as ChildProcessWithoutNullStreams;
     } catch (err) {
       const detail =

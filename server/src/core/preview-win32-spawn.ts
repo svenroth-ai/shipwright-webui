@@ -9,19 +9,21 @@
  * preview-session-manager.ts (which sits at its bloat ceiling). POSIX is a
  * pass-through, so the existing behaviour stays byte-identical.
  *
- * SECURITY (ADR-044 — `shell: false` on EVERY path):
+ * SECURITY posture (ADR-044 — `shell: false` on EVERY path). This is NOT a
+ * proof of total safety:
  *   - `splitWin32Command` never treats backslash as an escape, so
- *     `C:\tools\node.exe` survives verbatim (F31). The caller refuses any
- *     command carrying a shell command-execution metacharacter BEFORE it is
- *     ever tokenized or resolved.
- *   - `resolveSpawn` NEVER sets `options.shell` and NEVER builds a single
- *     joined command string. A `.cmd`/`.bat` shim is delivered to cmd.exe as
- *     DISCRETE argv (`/d /s /c <shim> <arg> …`) — each argument is its own
- *     array element, so cmd.exe receives every token literally and no
- *     character can act as a command separator.
- *   - With command-execution metacharacters already refused upstream, nothing
- *     that reaches cmd.exe can be interpreted as a command — the refuse-fence
- *     makes the safety proof trivial.
+ *     `C:\tools\node.exe` survives verbatim (F31).
+ *   - The fence (in preview-session-manager.tokenizeCommand) is a BLOCKLIST: it
+ *     refuses shell separators / substitution + `%` before resolving. It is NOT
+ *     an allow-list — cmd builtins (`start`, `for`, `(…)`, `call`, `@`) survive
+ *     it. It does not sandbox a hostile string: the profile author is already
+ *     trusted to name an executable (a bare `.exe` is spawned directly). The
+ *     fence's narrower job is to stop this cmd.exe wrapper from AMPLIFYING a
+ *     `.cmd` shim into shell semantics or a lower-trust repo-cwd binary hijack.
+ *   - `resolveSpawn` never sets `options.shell`. It hands cmd.exe DISCRETE argv
+ *     when no token needs quoting; for a spaced token it emits the canonical
+ *     verbatim `cmd /d /s /c ""<quoted-shim>" <args>"` line. Separators are
+ *     refused upstream, so no token can break that quoting.
  */
 
 import path from "node:path";
@@ -33,6 +35,9 @@ const WIN32_SHIM_EXTS = new Set([".cmd", ".bat"]);
 export interface ResolvedSpawn {
   command: string;
   args: string[];
+  /** win32 only: set when the cmd.exe line is pre-quoted for `cmd /s` (a spaced
+   *  shim path) — the caller passes it straight through to child_process.spawn. */
+  windowsVerbatimArguments?: boolean;
 }
 
 /**
@@ -107,10 +112,12 @@ function resolveViaPathExt(name: string, cwd: string): string | undefined {
     // Explicit path — honour an exact match first, then PATHEXT.
     return firstFile(path.resolve(cwd, name), true);
   }
-  // Bare command — search cwd + PATH with PATHEXT only. Windows never runs an
-  // extensionless bare name off PATH, so the empty ext is excluded here (it
-  // would otherwise match a POSIX shim like the extensionless `npm` script).
-  const dirs = [cwd];
+  // Bare command — search PATH ONLY, never the untrusted previewed-project cwd:
+  // a planted `<cwd>\npm.exe` must not shadow the real tool (a shell resolves
+  // bare names from PATH, not cwd). Path-like commands stay cwd-relative above.
+  // The empty ext is excluded so an extensionless POSIX shim (the `npm` bash
+  // script) is not matched.
+  const dirs: string[] = [];
   for (const dir of (process.env.PATH ?? process.env.Path ?? "").split(";")) {
     if (dir.trim()) dirs.push(dir.trim());
   }
@@ -121,10 +128,32 @@ function resolveViaPathExt(name: string, cwd: string): string | undefined {
   return undefined;
 }
 
+function win32NeedsQuote(token: string): boolean {
+  return token === "" || /\s/.test(token);
+}
+
 function win32CmdWrap(target: string, rest: string[]): ResolvedSpawn {
-  // Discrete argv — NEVER a single joined string. cmd.exe /d /s /c runs the
-  // shim with each token delivered literally (caller keeps shell:false).
-  return { command: win32ComSpec(), args: ["/d", "/s", "/c", target, ...rest] };
+  const parts = [target, ...rest];
+  const command = win32ComSpec();
+  // No token has a space → discrete argv: Node quotes nothing it needn't and
+  // cmd.exe /d /s /c runs each token literally (caller keeps shell:false).
+  if (!parts.some(win32NeedsQuote)) {
+    return { command, args: ["/d", "/s", "/c", ...parts] };
+  }
+  // A token has a space (e.g. `C:\Program Files\nodejs\npm.cmd`). Under `cmd /s`
+  // Node's own arg-quoting is stripped, so build the canonical
+  // `cmd /d /s /c ""<quoted-shim>" <args>"` line ourselves and pass it verbatim:
+  // `/s` strips ONLY the outer quote pair, leaving the inner shim-path quotes
+  // intact. Safe because every shell separator (and `%`) is refused upstream, so
+  // no token can carry a metacharacter that would break out of the quoting.
+  const inner = parts
+    .map((p) => (win32NeedsQuote(p) ? `"${p}"` : p))
+    .join(" ");
+  return {
+    command,
+    args: ["/d", "/s", "/c", `"${inner}"`],
+    windowsVerbatimArguments: true,
+  };
 }
 
 /**
@@ -134,7 +163,8 @@ function win32CmdWrap(target: string, rest: string[]): ResolvedSpawn {
  *
  *   - argv0 is a real `.exe`/`.com`      → spawn it directly (no cmd.exe).
  *   - argv0 is a `.cmd`/`.bat` shim OR an unresolved bare command (npm/yarn/
- *     pnpm are `.cmd` shims) → run through `cmd.exe /d /s /c` as discrete argv.
+ *     pnpm are `.cmd` shims) → run through `cmd.exe /d /s /c` — discrete argv,
+ *     or a verbatim outer-quoted line when a token contains a space.
  */
 export function resolveSpawn(argv: string[], cwd: string): ResolvedSpawn {
   if (process.platform !== "win32") {
