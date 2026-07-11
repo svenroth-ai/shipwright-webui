@@ -35,7 +35,11 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { execSync, spawn } = require('node:child_process');
 const path = require('node:path');
-const { computeKillTargets } = require('./kill-targets');
+const {
+  computeKillTargets,
+  parseWindowsListenerPids,
+  buildLsofCommand,
+} = require('./kill-targets');
 
 const WEBUI_PORTS = computeKillTargets(process.env, process.platform);
 const isWin = process.platform === 'win32';
@@ -44,28 +48,36 @@ function log(msg) {
   console.log(`[dev-restart] ${msg}`);
 }
 
-/** Return a Set of PIDs listening on any of the given ports. */
+/**
+ * Return a Set of PIDs LISTENING on any of the given ports.
+ *
+ * Kill-scope precision (F16 / D11): both platforms filter to LISTENING sockets
+ * with an EXACT port match, so an open browser tab (ESTABLISHED on the Vite
+ * port) or a port-prefix collision (:51730 vs :5173) is never a kill target.
+ *   - Windows: one plain `netstat -ano` read, parsed structurally by
+ *     `parseWindowsListenerPids` (no substring pre-filter; IPv6 included).
+ *   - POSIX:   `buildLsofCommand` -> state-filtered lsof (see kill-targets.js).
+ */
 function findPidsOnPorts(ports) {
   const pids = new Set();
   if (isWin) {
-    for (const port of ports) {
-      try {
-        const out = execSync(`netstat -ano -p TCP | findstr :${port}`, {
-          encoding: 'utf-8',
-          stdio: ['ignore', 'pipe', 'ignore'],
-        });
-        for (const line of out.split(/\r?\n/)) {
-          const match = line.trim().match(/\s(\d+)$/);
-          if (match) pids.add(match[1]);
-        }
-      } catch {
-        // No listeners on this port — fine.
-      }
+    try {
+      // Plain `netstat -ano` (NOT `-p TCP`): the `-p TCP` filter EXCLUDES IPv6
+      // (`[::]`) listeners, which Vite/Node bind by default — those would
+      // survive the restart. Empirically verified on Windows 11: `-p TCP`
+      // returns zero `[::]` rows; plain `-ano` labels IPv6 rows proto `TCP`.
+      // parseWindowsListenerPids does the TCP/LISTENING/exact-port filtering.
+      const out = execSync('netstat -ano', {
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      for (const pid of parseWindowsListenerPids(out, ports)) pids.add(pid);
+    } catch {
+      // netstat unavailable / no TCP table — nothing to kill.
     }
   } else {
     try {
-      const portList = ports.join(',');
-      const out = execSync(`lsof -ti tcp:${portList}`, {
+      const out = execSync(buildLsofCommand(ports), {
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
       });

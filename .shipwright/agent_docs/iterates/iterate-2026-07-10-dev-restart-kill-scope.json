@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-dev-restart-kill-scope",
+  "date": "2026-07-11T14:20:00.000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D11-dev-restart-kill-scope",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D11-dev-restart-kill-scope.md",
+  "adr": "iterate-2026-07-10-dev-restart-kill-scope"
+}
