@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 
 import { continuePipeline } from "./useContinuePipeline";
-import { runConfigPollIntervalMs } from "./useRunConfig";
 import type { Project } from "../types";
 import type {
   PhaseTask,
@@ -222,35 +221,5 @@ describe("continuePipeline (imperative)", () => {
     expect(result.detail).toContain("server 500");
   });
 });
-
-describe("runConfigPollIntervalMs", () => {
-  it("polls 5s for in_progress runs", () => {
-    const cfg = okConfig();
-    if (cfg.status === "ok") cfg.config.status = "in_progress";
-    expect(runConfigPollIntervalMs(cfg)).toBe(5_000);
-  });
-
-  it("polls 60s for needs_validation runs", () => {
-    const cfg = okConfig();
-    if (cfg.status === "ok") cfg.config.status = "needs_validation";
-    expect(runConfigPollIntervalMs(cfg)).toBe(60_000);
-  });
-
-  it("does not poll terminal runs (complete / failed)", () => {
-    for (const status of ["complete", "failed"] as const) {
-      const cfg = okConfig();
-      if (cfg.status === "ok") cfg.config.status = status;
-      expect(runConfigPollIntervalMs(cfg)).toBe(false);
-    }
-  });
-
-  it("does not poll missing/v1_legacy/invalid", () => {
-    expect(runConfigPollIntervalMs({ status: "missing" })).toBe(false);
-    expect(runConfigPollIntervalMs({ status: "v1_legacy" })).toBe(false);
-    expect(runConfigPollIntervalMs({ status: "invalid", reason: "x" })).toBe(false);
-  });
-
-  it("does not poll undefined data (initial load)", () => {
-    expect(runConfigPollIntervalMs(undefined)).toBe(false);
-  });
-});
+// runConfigPollIntervalMs unit tests now live in useRunConfig.test.ts (with the
+// unit under test), including the F15 keep-polling-on-transient-invalid case.

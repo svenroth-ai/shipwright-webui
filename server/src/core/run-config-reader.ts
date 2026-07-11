@@ -7,9 +7,11 @@
  * Mitigations:
  *   - Retry 3 times with 50/150/450 ms backoff on SyntaxError + EBUSY /
  *     EPERM / EACCES (mirrors core/session-watcher.ts torn-read budget but
- *     shorter, since the file is small and rotates fast).
- *   - Fall back to a per-path last-good cache (5s TTL) so a torn read
- *     never produces an `invalid` flap visible to the UI.
+ *     shorter, since the file is small and rotates fast). The SAME retry
+ *     envelope covers the existence stat probe, not just the read (F15).
+ *   - Fall back to a per-path last-good cache (30s TTL — comfortably above
+ *     the 5s client poll cadence, F15) so a torn read never produces an
+ *     `invalid` flap visible to the UI.
  *
  * Per-row fault isolation for `phase_tasks[]`: a malformed row is dropped
  * AND surfaced via `diagnostics.droppedPhaseTaskIds[]` — silent drop hides
@@ -26,8 +28,11 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
+  isRetryableTornRead,
   parseRunMode,
   PHASE_TASK_ID_PATTERN,
+  retryTornRead,
+  RUN_CONFIG_RETRY_DELAYS_MS,
   RUN_ID_PATTERN,
   RUN_PHASES,
   SESSION_UUID_PATTERN,
@@ -56,8 +61,9 @@ export type RunConfigReadResult =
 
 const RUN_CONFIG_FILENAME = "shipwright_run_config.json";
 
-const RETRY_DELAYS_MS = [50, 150, 450] as const;
-const LAST_GOOD_TTL_MS = 5000;
+// TTL is held comfortably ABOVE the client poll cadence (5s) so a single torn
+// poll never expires the cache at fallback time — the root of F15's flap.
+const LAST_GOOD_TTL_MS = 30_000;
 
 interface LastGood {
   expiresAt: number;
@@ -65,11 +71,25 @@ interface LastGood {
 }
 const lastGoodCache = new Map<string, LastGood>();
 
-const RETRYABLE_FS_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
-function isRetryable(err: unknown): boolean {
-  if (err instanceof SyntaxError) return true;
-  const code = (err as NodeJS.ErrnoException | undefined)?.code;
-  return Boolean(code && RETRYABLE_FS_CODES.has(code));
+/**
+ * Serve the per-path last-good cache when still within TTL (else null). A
+ * single torn stat/read/parse during the orchestrator's atomic-rename window
+ * must never surface as `invalid` and latch the client poll OFF (F15).
+ */
+function serveLastGood(
+  path: string,
+  now: () => number,
+  warning: string,
+): Extract<RunConfigReadResult, { status: "ok" }> | null {
+  const cached = lastGoodCache.get(path);
+  if (!cached || cached.expiresAt <= now()) return null;
+  return {
+    ...cached.result,
+    diagnostics: {
+      ...cached.result.diagnostics,
+      warnings: [...cached.result.diagnostics.warnings, warning],
+    },
+  };
 }
 
 function sleep(ms: number): Promise<void> {
@@ -108,58 +128,41 @@ export async function readRunConfig(
   const wait = deps.sleep ?? sleep;
   const now = deps.now ?? (() => Date.now());
 
-  // Quick existence probe — no retry on ENOENT (truly missing is a stable
-  // state; we don't pretend it might come back in 50ms).
-  let st: { mtimeMs: number } | null;
-  try {
-    st = await fsStat(path);
-  } catch (err) {
-    return { status: "invalid", reason: `stat failed: ${stringifyErr(err)}` };
+  // Existence probe — retry a Windows rename-window fault (EPERM/EBUSY/EACCES)
+  // exactly like the read path; ENOENT resolves to null (stable state, no
+  // retry). On exhaustion serve last-good so a transient stat fault never
+  // flaps the lane to `invalid` and latches the client poll OFF (F15).
+  const statAttempt = await retryTornRead(() => fsStat(path), wait);
+  if (!statAttempt.ok) {
+    return (
+      serveLastGood(path, now, `stat retried and served last-good cache: ${stringifyErr(statAttempt.error)}`) ??
+      { status: "invalid", reason: `stat failed: ${stringifyErr(statAttempt.error)}` }
+    );
   }
+  const st = statAttempt.value;
   if (st === null) return { status: "missing" };
 
-  // Read with retry budget. SyntaxError / EBUSY / EPERM / EACCES → retry.
-  let lastError: unknown = null;
-  let raw: string | null = null;
-  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
-    try {
-      raw = await fsRead(path);
-      break;
-    } catch (err) {
-      lastError = err;
-      if (!isRetryable(err) || attempt === RETRY_DELAYS_MS.length) break;
-      await wait(RETRY_DELAYS_MS[attempt] ?? 0);
-    }
+  // Read with retry budget (EBUSY/EPERM/EACCES → retry); on exhaustion fall
+  // back to the last-good cache within TTL.
+  const readAttempt = await retryTornRead(() => fsRead(path), wait);
+  if (!readAttempt.ok) {
+    return (
+      serveLastGood(path, now, `read retried and served last-good cache: ${stringifyErr(readAttempt.error)}`) ??
+      { status: "invalid", reason: `read failed: ${stringifyErr(readAttempt.error)}` }
+    );
   }
-  if (raw === null) {
-    // All retries exhausted on a retryable error → fall back to last-good
-    // cache if available within TTL.
-    const cached = lastGoodCache.get(path);
-    if (cached && cached.expiresAt > now()) {
-      return {
-        ...cached.result,
-        diagnostics: {
-          ...cached.result.diagnostics,
-          warnings: [
-            ...cached.result.diagnostics.warnings,
-            `read retried 3x and fell back to last-good cache: ${stringifyErr(lastError)}`,
-          ],
-        },
-      };
-    }
-    return { status: "invalid", reason: `read failed: ${stringifyErr(lastError)}` };
-  }
+  const raw = readAttempt.value;
 
   // Parse with retry budget on SyntaxError (torn-read mid-rename window).
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch (err) {
-    if (isRetryable(err)) {
+    if (isRetryableTornRead(err)) {
       // One more re-read pass for SyntaxError specifically — orchestrator's
       // atomic write window is short.
-      for (let attempt = 0; attempt < RETRY_DELAYS_MS.length; attempt++) {
-        await wait(RETRY_DELAYS_MS[attempt] ?? 0);
+      for (let attempt = 0; attempt < RUN_CONFIG_RETRY_DELAYS_MS.length; attempt++) {
+        await wait(RUN_CONFIG_RETRY_DELAYS_MS[attempt] ?? 0);
         try {
           const reread = await fsRead(path);
           parsed = JSON.parse(reread);
@@ -169,20 +172,10 @@ export async function readRunConfig(
         }
       }
       if (parsed === undefined) {
-        const cached = lastGoodCache.get(path);
-        if (cached && cached.expiresAt > now()) {
-          return {
-            ...cached.result,
-            diagnostics: {
-              ...cached.result.diagnostics,
-              warnings: [
-                ...cached.result.diagnostics.warnings,
-                "torn read on JSON parse; served last-good cache",
-              ],
-            },
-          };
-        }
-        return { status: "invalid", reason: "torn JSON read on retry" };
+        return (
+          serveLastGood(path, now, "torn read on JSON parse; served last-good cache") ??
+          { status: "invalid", reason: "torn JSON read on retry" }
+        );
       }
     } else {
       return { status: "invalid", reason: `parse failed: ${stringifyErr(err)}` };

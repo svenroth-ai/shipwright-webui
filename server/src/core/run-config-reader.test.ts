@@ -268,7 +268,7 @@ describe("readRunConfig — torn-read retry + last-good cache", () => {
     const ok = await readRunConfig(PROJECT_ROOT, deps);
     expect(ok.status).toBe("ok");
     mode = "fail";
-    clock += 6000; // > 5s TTL
+    clock += 31_000; // > 30s TTL (raised above the poll cadence for F15)
     const expired = await readRunConfig(PROJECT_ROOT, deps);
     expect(expired.status).toBe("invalid");
   });
