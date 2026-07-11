@@ -89,10 +89,14 @@ test.describe("Schema v1 → v4 migration (ADR-038)", () => {
       expect(seededA?.projectId).toBe(UNASSIGNED_PROJECT_ID);
       expect(seededB?.projectId).toBe(UNASSIGNED_PROJECT_ID);
 
-      // UI: under the Unassigned project filter the legacy card renders.
+      // UI: under the Unassigned project filter BOTH legacy cards render, so
+      // a UI that surfaces only one migrated legacy row fails.
       await page.goto(`/?projectId=${UNASSIGNED_PROJECT_ID}`);
       await expect(page.getByTestId("task-board-page")).toBeVisible();
       await expect(page.getByTestId(`task-card-${rowA}`)).toBeVisible({
+        timeout: 8000,
+      });
+      await expect(page.getByTestId(`task-card-${rowB}`)).toBeVisible({
         timeout: 8000,
       });
 

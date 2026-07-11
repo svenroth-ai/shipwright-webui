@@ -103,29 +103,50 @@ function isUnder(parent: string, child: string): boolean {
 }
 
 /**
+ * Explicit opt-in sentinel the isolated recipe MUST set. Required IN ADDITION
+ * to the under-os.tmpdir() check because the tmpdir proxy is blind to a
+ * `TEMP=%USERPROFILE%` (win32) / `TMPDIR=$HOME` (posix) layout: on such a box
+ * the real `~/.shipwright-webui` IS under os.tmpdir(), so a fumbled run with no
+ * home override could otherwise pass. A plain real-machine `npm run test:e2e`
+ * never sets this env, so no tmp layout can bypass the self-lock.
+ */
+export const ISOLATION_SENTINEL_ENV = "SHIPWRIGHT_E2E_ISOLATED";
+
+/**
  * Guard 1 — isolation self-lock. THROW (aborting the spec before any read or
- * write) unless the resolved store lives under the OS temp dir. The real
- * `~/.shipwright-webui` is NEVER under `os.tmpdir()`, so a mis-configured run
- * (USERPROFILE/HOME not pointed at a temp dir) fails loudly here instead of
- * mutating / downgrading the user's real task store. Returns the vetted path
- * so call sites can write `const p = assertIsolatedStore()`.
+ * write) unless BOTH hold: (a) `SHIPWRIGHT_E2E_ISOLATED === "1"` (the isolated
+ * recipe's explicit opt-in), AND (b) the resolved store lives under the OS
+ * temp dir. Either one missing → hard-abort, so a mis-configured run
+ * (USERPROFILE/HOME not pointed at a temp dir, or a real-machine run that
+ * never sets the sentinel) fails loudly here instead of mutating / downgrading
+ * the user's real task store. Returns the vetted path so call sites can write
+ * `const p = assertIsolatedStore()`.
  */
 export function assertIsolatedStore(storePath: string = isolatedStorePath()): string {
   const registryDir = path.dirname(storePath);
   const realAnchor = canonical(nearestExistingAncestor(registryDir));
   const realTmp = canonical(os.tmpdir());
-  if (!isUnder(realTmp, realAnchor)) {
+  const sentinelSet = process.env[ISOLATION_SENTINEL_ENV] === "1";
+  const underTmp = isUnder(realTmp, realAnchor);
+  if (!sentinelSet || !underTmp) {
     throw new Error(
       "[isolated-store SELF-LOCK] Refusing to touch " +
         storePath +
-        ": its registry dir (" +
-        registryDir +
-        ") is NOT under the OS temp dir (" +
+        ": this ADR-038 schema spec (D05) MUST run against an isolated temp " +
+        "USERPROFILE/HOME stack. Required: " +
+        ISOLATION_SENTINEL_ENV +
+        "=1 (set=" +
+        String(sentinelSet) +
+        ") AND registry dir under the OS temp dir " +
         realTmp +
-        "). This ADR-038 schema spec (D05) MUST run against an isolated temp " +
-        "USERPROFILE/HOME stack. Point USERPROFILE (win32) / HOME (posix) at a " +
-        "throwaway dir under os.tmpdir() before running so the real " +
-        "~/.shipwright-webui store can NEVER be downgraded or mutated.",
+        " (registryDir=" +
+        registryDir +
+        ", underTmp=" +
+        String(underTmp) +
+        "). The sentinel is required IN ADDITION to the tmp check because a " +
+        "TEMP=%USERPROFILE% layout can place the real ~/.shipwright-webui " +
+        "under os.tmpdir(); a plain real-machine run never sets it, so the " +
+        "real store can NEVER be downgraded or mutated.",
     );
   }
   return storePath;
@@ -171,6 +192,10 @@ export interface V1SeedRow {
  * `persist()`, which re-reads + merges the on-disk rows under the lock. This
  * overwrites the whole file (the throwaway store is disposable); the seeded
  * rows are the migration subjects the spec then asserts on.
+ *
+ * Single-writer assumption: this plain (unlocked) write is safe because the
+ * seed runs before the spec provokes any server persist() — the isolated
+ * stack has no concurrent writer racing the file at seed time.
  */
 export function seedV1Store(
   rows: V1SeedRow[],

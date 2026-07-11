@@ -101,9 +101,11 @@ test.describe("Flow G — Schema v4 persistence (ADR-038)", () => {
         // The bystander kept its projectId (no schema regression dropped it).
         expect(after?.sessions[bystander]?.projectId).toBe(bystanderProjectBefore);
 
-        // No row lost its projectId field.
+        // No row lost its projectId field — HARD assertion: the ADR-038
+        // downgrade-guard's whole point is that a regression dropping
+        // projectId from ANY persisted row must turn this spec red.
         for (const [tid, row] of Object.entries(after?.sessions ?? {})) {
-          expect.soft(
+          expect(
             typeof row.projectId,
             `task ${tid} must still carry a projectId field`,
           ).toBe("string");
