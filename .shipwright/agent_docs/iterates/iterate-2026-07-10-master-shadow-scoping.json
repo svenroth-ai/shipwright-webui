@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-master-shadow-scoping",
+  "date": "2026-07-11T11:27:56.634389Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D07-master-shadow-scoping",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D07-master-shadow-scoping.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-master-shadow-scoping"
+}

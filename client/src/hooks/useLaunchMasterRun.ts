@@ -37,6 +37,11 @@ import { formatRunLabel } from "../lib/run-config-v2";
  *  `--session-id` would make Claude reject the duplicate session id). */
 export interface MasterShadowCandidate {
   taskId: string;
+  /** The owning project — the shadow lookup is scoped to it (F06). A duplicated
+   *  project dir copies `runId` verbatim into its `shipwright_run_config.json`,
+   *  so `runId` + `parentRunMaster` alone are NOT a unique master key; the
+   *  wrong project's master would be reused/resumed without this filter. */
+  projectId?: string;
   runId?: string;
   parentRunMaster?: boolean;
   firstJsonlObservedAt?: string | null;
@@ -88,12 +93,26 @@ function writePendingAutoLaunch(
   }
 }
 
-/** The run's existing master shadow, if any (`parentRunMaster && runId`). */
+/** The run's existing master shadow WITHIN this project, if any
+ *  (`parentRunMaster && runId && projectId`). Project-scoped (F06): matching on
+ *  `parentRunMaster + runId` over the ALL-projects task list would reuse a
+ *  DIFFERENT project's master when a duplicated project dir shares the `runId`. */
 function findMasterShadow(
   tasks: MasterShadowCandidate[],
   runId: string,
+  projectId: string,
 ): MasterShadowCandidate | undefined {
-  return tasks.find((t) => t.parentRunMaster === true && t.runId === runId);
+  // Never cross-match on an absent scope: without this guard a candidate whose
+  // `projectId` is undefined would `=== undefined` a missing arg and reuse the
+  // wrong master. `args.project.id` is always set today, but the guard makes the
+  // project-scoping invariant explicit + falsifiable.
+  if (!projectId) return undefined;
+  return tasks.find(
+    (t) =>
+      t.parentRunMaster === true &&
+      t.runId === runId &&
+      t.projectId === projectId,
+  );
 }
 
 /**
@@ -111,7 +130,7 @@ export async function startMasterRun(
   args: LaunchMasterRunArgs,
   deps: LaunchMasterRunDeps,
 ): Promise<LaunchMasterRunResult> {
-  const existing = findMasterShadow(args.tasks, args.config.runId);
+  const existing = findMasterShadow(args.tasks, args.config.runId, args.project.id);
 
   let taskId: string;
   let reused: boolean;

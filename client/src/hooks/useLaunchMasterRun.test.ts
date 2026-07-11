@@ -65,6 +65,7 @@ describe("startMasterRun", () => {
       taskId: "t-master",
       runId: RUN_ID,
       parentRunMaster: true,
+      projectId: "p1", // same project as args() → matches
       // no firstJsonlObservedAt → never launched → fresh.
     };
     const res = await startMasterRun(args([existing]), d);
@@ -79,6 +80,7 @@ describe("startMasterRun", () => {
       taskId: "t-master",
       runId: RUN_ID,
       parentRunMaster: true,
+      projectId: "p1", // same project as args() → matches
       firstJsonlObservedAt: "2026-07-09T00:00:00.000Z",
     };
     const res = await startMasterRun(args([established]), d);
@@ -88,6 +90,50 @@ describe("startMasterRun", () => {
     // a fresh `--session-id` re-inject would be rejected as a duplicate session.
     expect(d.launch).toHaveBeenCalledWith("t-master", true);
     expect(d.handoff).toHaveBeenCalledWith("t-master", COMMANDS, true);
+  });
+
+  it("F06: does NOT reuse a master shadow from a DIFFERENT project sharing the same runId (dup-dir isolation)", async () => {
+    // A user duplicates a project dir — which copies shipwright_run_config.json
+    // (and therefore runId) verbatim — and registers both copies. Project A's
+    // master shadow already exists. Launching on project B (id "p1", per args())
+    // must create B's OWN master, never launch/resume A's.
+    const d = deps();
+    const projectAMaster: MasterShadowCandidate = {
+      taskId: "t-projectA-master",
+      runId: RUN_ID,
+      parentRunMaster: true,
+      projectId: "pA", // DIFFERENT project, same runId
+      firstJsonlObservedAt: "2026-07-09T00:00:00.000Z", // established → would RESUME if reused
+    };
+    const res = await startMasterRun(args([projectAMaster]), d);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.taskId).toBe("t-1"); // B's newly created master, NOT A's
+      expect(res.reused).toBe(false);
+      expect(res.resume).toBe(false); // fresh launch of B's own — never A's resume
+    }
+    expect(d.create).toHaveBeenCalledOnce();
+    expect(d.launch).toHaveBeenCalledWith("t-1", false);
+  });
+
+  it("F06: never cross-matches a scope-less candidate when the project id is absent", async () => {
+    // Defense-in-depth (external plan review): a candidate whose projectId is
+    // undefined must NOT reuse when the launch itself has no project scope —
+    // `undefined === undefined` would otherwise cross-match. Creates its own.
+    const d = deps();
+    const scopeless: MasterShadowCandidate = {
+      taskId: "t-scopeless",
+      runId: RUN_ID,
+      parentRunMaster: true,
+      // no projectId
+    };
+    const res = await startMasterRun(
+      { project: { id: "", path: "/proj" }, config: { runId: RUN_ID }, tasks: [scopeless] },
+      d,
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.taskId).toBe("t-1");
+    expect(d.create).toHaveBeenCalledOnce();
   });
 
   it("does NOT reuse a master shadow from a DIFFERENT run", async () => {

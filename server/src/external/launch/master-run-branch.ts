@@ -152,9 +152,17 @@ export async function applyMasterRunBranch(args: {
     title: task.title,
     slashCommand: "/shipwright-run",
   });
+  // Stamp the run identity on the launched task (F34). Without this, a
+  // direct-API `{ masterRun: true }` launch on a PLAIN task (created without
+  // parentRunMaster/runId) would attach a master the double-master guard scan
+  // (`parentRunMaster === true && runId === cfg.runId`) cannot see — the exact
+  // hole this guard exists to close. `runId` comes from the re-read run_config
+  // above (WebUI never trusts a client-supplied runId; CLAUDE.md rule 12).
   const taskUpdate: Partial<ExternalTask> = {
     state: "awaiting_external_start" as ExternalTaskState,
     launchedAt: new Date().toISOString(),
+    parentRunMaster: true,
+    runId: cfg.config.runId,
   };
   return { commands, taskUpdate };
 }
