@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-07-11T20:20:04.000Z",
+  "last_updated": "2026-07-11T20:39:26.000Z",
   "iterate_latest": {
     "run_id": "iterate-2026-07-10-preview-child-lifecycle",
     "date": "2026-07-11",
     "unit": {
       "status": "passed",
-      "passed": 1967,
-      "total": 1968,
-      "note": "server vitest 170 files / 1967 tests green + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). New preview-child-lifecycle.test.ts (16: drainStdio x3, treeKill x4, awaitExit x3, + 6 manager regressions) drives the REAL PreviewSessionManager through injected spawn/platform/processKill/killSpawn seams so no real taskkill or process-group signal fires against a host pid. preview-session-manager.test.ts net-neutral (killAll describe moved to the new file under injected seams; +in-flight-rejection retry test). No client/** change (all 4 changed files under server/src/core/)."
+      "passed": 1986,
+      "total": 1987,
+      "note": "server vitest 170 files / 1967 tests green + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). New preview-child-lifecycle.test.ts (16: drainStdio x3, treeKill x4, awaitExit x3, + 6 manager regressions) drives the REAL PreviewSessionManager through injected spawn/platform/processKill/killSpawn seams so no real taskkill or process-group signal fires against a host pid. preview-session-manager.test.ts net-neutral (killAll describe moved to the new file under injected seams; +in-flight-rejection retry test). No client/** change (all 4 changed files under server/src/core/). Diff-coverage remediation: added preview-child-lifecycle.branches.test.ts (19 tests) covering the moved port/readiness probes + treeKill win32/fallback edges + drainStdio setEncoding branch -> module 100% lines / 92% branch (was 60.6%); total server suite 171 files / 1986 passed + 1 skipped."
     },
     "integration": {
       "status": "passed",
