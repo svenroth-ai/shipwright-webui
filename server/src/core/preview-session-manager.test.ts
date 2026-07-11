@@ -98,7 +98,9 @@ describe("PreviewSessionManager.spawn", () => {
   let mgr: PreviewSessionManager;
 
   beforeEach(() => {
-    mgr = new PreviewSessionManager();
+    // platform+processKill seams keep the transient-cleanup tree-kill off the
+    // host (no real taskkill / process-group signal against a fake pid).
+    mgr = new PreviewSessionManager({ platform: "linux", processKill: () => {} });
   });
 
   function baseProfile() {
@@ -238,6 +240,33 @@ describe("PreviewSessionManager.spawn", () => {
     ).rejects.toBeInstanceOf(PreviewSpawnFailedError);
   });
 
+  it("clears the in-flight entry when a spawn rejects, so the next click retries", async () => {
+    let attempt = 0;
+    const spawn = vi.fn(() => {
+      attempt += 1;
+      if (attempt === 1) {
+        const err = new Error("spawn ENOENT") as NodeJS.ErrnoException;
+        err.code = "ENOENT";
+        throw err;
+      }
+      return fakeChild() as unknown;
+    });
+    const opts = {
+      cwd: "/tmp",
+      spawn: spawn as unknown as never,
+      probePort: async () => true,
+      probeReady: async () => true,
+      env: {},
+    };
+    await expect(mgr.spawn("p1", baseProfile(), opts)).rejects.toBeInstanceOf(
+      PreviewSpawnFailedError,
+    );
+    // A poisoned in-flight promise would make every retry fail; it must not.
+    const ok = await mgr.spawn("p1", baseProfile(), opts);
+    expect(ok.sessionId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(spawn).toHaveBeenCalledTimes(2);
+  });
+
   it("throws PreviewPortInUseError when the port probe reports not free", async () => {
     const spawn = vi.fn(() => fakeChild() as unknown);
     await expect(
@@ -309,33 +338,4 @@ describe("PreviewSessionManager.spawn", () => {
   });
 });
 
-describe("PreviewSessionManager.killAll", () => {
-  it("SIGTERMs every tracked child + clears the map", async () => {
-    const mgr = new PreviewSessionManager();
-    const child = fakeChild();
-    const spawn = vi.fn(() => child as unknown);
-
-    await mgr.spawn(
-      "p1",
-      {
-        dev_server: {
-          command: "npm run dev",
-          port: 5173,
-          ready_timeout_seconds: 5,
-        },
-      },
-      {
-        cwd: "/tmp",
-        spawn: spawn as unknown as never,
-        probePort: async () => true,
-        probeReady: async () => true,
-        env: {},
-      },
-    );
-
-    expect(mgr.size()).toBe(1);
-    mgr.killAll();
-    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
-    expect(mgr.size()).toBe(0);
-  });
-});
+// killAll/tree-kill + respawn-exit-wait + drain + dedup: see preview-child-lifecycle.test.ts (D20).

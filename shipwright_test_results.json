@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T20:35:00.000Z",
+  "last_updated": "2026-07-11T20:20:04.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-launch-resume-on-jsonl",
-    "date": "2026-07-11T20:35:00.000Z",
+    "run_id": "iterate-2026-07-10-preview-child-lifecycle",
+    "date": "2026-07-11",
     "unit": {
       "status": "passed",
-      "passed": 1939,
-      "total": 1940,
-      "note": "F0 fresh gate green. Server vitest 168 files / 1939 passed + 1 skipped (1940) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green. Client ALSO re-run (client label-logic touched): 204 files / 1983 passed + npm run build (tsc+vite) green. New D18 coverage: server resume-on-jsonl.test.ts (5 tests through the REAL SessionWatcher + REAL on-disk <uuid>.jsonl via createExternalRoutes) - F14 masterRun+resume:false+JSONL-on-disk -> --resume (not --session-id /shipwright-run) + rule-9 --plugin-dir survival + firstJsonlObservedAt stamp; F14 repeated-launch idempotency stays --resume; F28 phaseTaskRef re-Continue+JSONL-on-disk -> --resume (not --session-id, slash cmd dropped) + stamp; two negative-control regression pins (no JSONL -> fresh --session-id). Client: useLaunchMasterRun.test.ts (live lastJsonlSeenMtimeMs -> resume) + MasterRunLaunchButton.test.tsx (label 'Resume' from live overlay)."
+      "passed": 1967,
+      "total": 1968,
+      "note": "server vitest 170 files / 1967 tests green + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). New preview-child-lifecycle.test.ts (16: drainStdio x3, treeKill x4, awaitExit x3, + 6 manager regressions) drives the REAL PreviewSessionManager through injected spawn/platform/processKill/killSpawn seams so no real taskkill or process-group signal fires against a host pid. preview-session-manager.test.ts net-neutral (killAll describe moved to the new file under injected seams; +in-flight-rejection retry test). No client/** change (all 4 changed files under server/src/core/)."
     },
     "integration": {
       "status": "passed",
-      "passed": 4,
-      "total": 4,
-      "note": "Confidence-calibration probes (Step 3.8, medium + touches_io_boundary) of the disk<->launch boundary - producer = Claude's <uuid>.jsonl on disk; consumer = the launch route's resume-vs-fresh decision via SessionWatcher.findByUuid. (1) RED-first round-trip through the REAL createExternalRoutes launch route with a REAL jsonl written to a temp projects dir: pre-fix (4 source files git-stashed) F14 master-run + F28 phase-task both emitted --session-id (2 RED / 2 pins passed); post-fix both --resume (4/4 green). (2) rule-9 parity: --plugin-dir re-passed on the resume shape. (3) idempotency: two back-to-back masterRun launches on an established master both stay --resume. (4) negative control: NO jsonl -> fresh --session-id (+slash cmd) - probe does not over-fire. Probe 1 found the defects (RED, fixed); probes 2-4 found nothing new -> two consecutive clean rounds => asymptote reached, boundary calibrated. Edge not probed: zero-byte/torn jsonl (findByUuid torn-read retry already governs it, and the established new-plain resume path trusts the same existence signal); a true two-process launch race (the conditional stamp rides the F08 merge-under-lock persist path)."
+      "passed": 16,
+      "total": 16,
+      "note": "The 6 manager regressions exercise the real spawn()/doSpawn() dedup wrapper, the real profile-change respawn (treeKill + awaitExit), the real killAll, and the real drainStdio wiring through the injected fake-spawn seam. RED-first proven by neutralizing each fix (seams kept): all 6 regressions FAIL on pre-fix behavior, 10 helper unit tests pass; restoring the fix -> 16/16 green."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. The client change is a pure label-text derivation (MasterRunLaunchButton CTA 'Resume' vs 'Launch' + the useLaunchMasterRun resume flag), fully pinned by MasterRunLaunchButton.test.tsx which renders the REAL component in jsdom and asserts the label + data-mode for BOTH the firstJsonlObservedAt and the LIVE lastJsonlSeenMtimeMs cases. detect_frontend_changes.py reports has_frontend_changes=false; no route, Vite-config, proxy, WS-origin, CORS, or new UI affordance. The server launch-command change is non-browser-reproducible (a ~5-15s on-disk JSONL race) and is pinned by the real-fs round-trip test. F0.5 surface=none (see surface_verification)."
+      "note": "No preview E2E run. D20 is server-side child-process lifecycle with NO UI-observable change (the Preview button + /preview route are unchanged; the fix makes the existing spawn drain/dedup/tree-kill correctly). Behavioral proof is the deterministic server regressions. The real cross-process taskkill/process.kill(-pid) against a live OS group is not unit-probeable (tests must not kill real host groups) -> the platform seam is unit-verified and the real spawn path is unchanged from D03; post-merge :3847 smoke (click Preview, switch profiles, confirm no orphan node/cmd) is the real-stack proof."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,50 +39,79 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": "",
-      "timestamp": "2026-07-11T20:35:00.000Z",
-      "attempts": 0,
-      "justification": "Server launch-branch logic (master-run-branch.ts + phase-task-branch.ts: probe on-disk <uuid>.jsonl -> emit --resume) + a client CTA label derivation. The client change is a boolean->text derivation ('Resume' vs 'Launch') with no new rendering, route, Vite-config/proxy/WS-origin/CORS surface and no new UI affordance; it is authoritatively covered by MasterRunLaunchButton.test.tsx (real React render + label/data-mode assertions for both the persisted stamp and the live lastJsonlSeenMtimeMs overlay). detect_frontend_changes.py reports has_frontend_changes=false. The server-side resume-vs-fresh command is non-browser-reproducible (a held first-JSONL-write race) and is pinned by resume-on-jsonl.test.ts through the REAL SessionWatcher + REAL on-disk jsonl. F0.5 surface=none - no fabricated browser run.",
-      "runtime_gate": "n/a"
+      "evidence_path": ".shipwright/runs/iterate-2026-07-10-preview-child-lifecycle/surface_verification.json",
+      "timestamp": "2026-07-11T20:20:04.000Z",
+      "justification": "Server-side Preview dev-server child lifecycle (FR-01.17); no UI-observable change. Drain (F11): stdout/stderr consumed into a bounded ring so a full OS pipe can't freeze the child. Dedup (F12): concurrent Preview clicks coalesce onto one child (different profile serializes) so no untracked orphan leaks. Tree-kill (F13): killAll/respawn/cleanup terminate the whole npm->node group (win32 taskkill /T, POSIX kill(-pid)) and await the old child's exit before the respawn probe. Proof is the deterministic server regressions (preview-child-lifecycle.test.ts 16 tests + preview-session-manager.test.ts) green on this win32 host and Linux CI via injected platform seams. No client/** file changed; the frontend-change detector only false-positives on the 'src/' substring inside 'server/src/'."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - both launch branches probe on-disk <uuid>.jsonl (SessionWatcher.findByUuid) before building the command and emit --resume regardless of the client flag, stamping firstJsonlObservedAt on discovery; the client CTA label mirrors the disk-truth. F14 (master CTA resume:false in the first-write window) and F28 (phaseTaskRef re-Continue after a pre-claim crash) no longer reproduce.",
+          "behavior": "AC1/F11 (MEDIUM) - spawn drains stdout+stderr into a bounded ring so a never-read OS pipe buffer can't backpressure-freeze the child; the captured tail is attached to PreviewExitedEarlyError/PreviewTimeoutError",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "resume-on-jsonl.test.ts: master-run + phase-task each emit --resume (not --session-id / slash command) when a real jsonl exists on disk under the watcher's projects dir, and stamp firstJsonlObservedAt. Client: useLaunchMasterRun resume + MasterRunLaunchButton label derive from firstJsonlObservedAt OR the live lastJsonlSeenMtimeMs overlay."
+          "evidence": "preview-child-lifecycle.test.ts 'F11: spawn drains...' (data listener attached to both streams) + 'F11: early-exit error carries the captured stderr tail' - RED on pre-fix (0 listeners / empty tail) -> GREEN. drainStdio x3 unit tests (attach, bounded tail, null-safe)."
         },
         {
-          "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
+          "behavior": "AC1/F12 (MEDIUM) - two concurrent spawn() for the same project+profile coalesce onto a single child (no untracked orphan killAll can never reach)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "resume-on-jsonl.test.ts (5 tests). RED captured on pre-fix code (4 source files git-stashed): F14 expected --resume got '--session-id ... /shipwright-run'; F28 expected --resume got '--session-id ... /shipwright-build' (2 failed / 2 regression-pins passed). GREEN after: 5/5. Plus client live-overlay tests (RED before the masterShadowIsEstablished change: label would read 'Launch')."
+          "evidence": "preview-child-lifecycle.test.ts 'F12: concurrent spawn() ... coalesces' - RED on pre-fix main (spawn called twice) -> GREEN (once). Promise.all over two mgr.spawn() through the injected spawn seam."
         },
         {
-          "behavior": "AC3 - full server + client suites stay green; no invariant/ADR regressed.",
+          "behavior": "AC1/F12 (MEDIUM) - a different-profile concurrent spawn serializes onto the in-flight start then respawns, tree-killing the old child instead of orphaning it",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "Server vitest 168 files / 1939 passed + 1 skipped (1940) + build green. Client 204 files / 1983 passed + build green. CLAUDE.md rule 1 (launcher only builds strings; webui never spawns Claude) + rule 9 (--plugin-dir re-passed on the resume shape - asserted) + read-only-observer rules 1/12 (no run_config/JSONL writes) intact. Legacy new-plain resume suite (routes.launch-newplain-resume.test.ts) unchanged and green - the fix is localized to the two branches."
+          "category": "integration",
+          "evidence": "preview-child-lifecycle.test.ts 'F12: a different-profile concurrent spawn serializes + tree-kills the old child' - RED on pre-fix (old child never killed) -> GREEN (processKill(-pid) called, one live entry). Addresses the external-code-review serialization finding."
         },
         {
-          "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted.",
+          "behavior": "AC1/F13 (MEDIUM) - killAll and profile-change respawn tree-kill the whole npm->node group (win32 taskkill /pid /t /f, POSIX kill(-pid)); the transient in-spawn cleanup does too (the detached child would otherwise orphan its group)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-child-lifecycle.test.ts 'F13: killAll tree-kills...' + treeKill x4 unit (POSIX group, throw->fallback, win32 taskkill argv shell:false, no-pid fallback) - RED on pre-fix (only the direct child SIGTERMed) -> GREEN."
+        },
+        {
+          "behavior": "AC1/F13 (MEDIUM) - a profile-change respawn awaits the old child's exit before probing the new port (no race where the probe beats the port release)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-child-lifecycle.test.ts 'F13: a profile-change respawn waits for the old child to exit before probing' - RED on pre-fix (probe observes not-yet-exited) -> GREEN. awaitExit x3 unit (already-exited, later-exit, bounded timeout)."
+        },
+        {
+          "behavior": "AC2 - a NEW regression test is RED on pre-fix behavior and green after (defect actually reproduced)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "Neutralize+run cycle recorded: 6 manager regressions FAIL on pre-fix (drain/dedup/serialize/killAll/respawn/tail), 10 helper unit tests pass; restore -> 16/16 green."
+        },
+        {
+          "behavior": "AC3 - full existing server suite stays green; no invariant/ADR regressed (ADR-044 shell:false, D03 win32 resolveSpawn wrapper preserved)",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Touched source all < 300 (master-run-branch.ts 168->~190, phase-task-branch.ts 187->~205, launch/routes.ts 262->~278, external/routes.ts 264->~276, useLaunchMasterRun.ts 193->~210, MasterRunLaunchButton.tsx 120->~124 - none baselined). New resume-on-jsonl.test.ts (~245 LOC, no crossing, no baseline entry): a sanctioned cohesive sibling because phase-task-launch.test.ts is grandfathered at 383/300 - growing it would ratchet the baseline (anti-ratchet hook-block). No shipwright_bloat_baseline.json entry touched/ratcheted. Serial #18, deps=D07 (merged), blocks none -> no live parallel collision."
+          "evidence": "170 files / 1967 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). preview-session-manager.win32.test.ts + preview-win32-resolve.test.ts (D03 guards) still green; oxlint + tsc clean."
+        },
+        {
+          "behavior": "AC4 - files stay within footprint (+2 cohesive files per campaign guardrail) and bloat baselines are not ratcheted",
+          "disposition": "tested",
+          "category": "unit",
+          "evidence": "preview-session-manager.ts 392<=393, preview-session-manager.test.ts 341<=341, new preview-child-lifecycle.ts 228<300, preview-child-lifecycle.test.ts 292<300. Anti-ratchet hook clean."
+        },
+        {
+          "behavior": "Regression - an in-flight spawn that rejects clears its map entry so the next Preview click retries (no poisoned dedup)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-session-manager.test.ts 'clears the in-flight entry when a spawn rejects, so the next click retries' - addresses the external-plan-review poisoned-promise finding."
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
+        "testable": 9,
+        "tested": 9,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
         "acs": 4,
         "covered_acs": 4
-      }
+      },
+      "note": "4 ACs (AC1-AC4) + 2 review-driven regressions, all tested. Enumeration basis = the sub-iterate spec's Acceptance Criteria; each maps to >=1 RED-first regression in preview-child-lifecycle.test.ts (findings F11/F12/F13)."
     },
     "degraded": []
   }
