@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-launch-resume-on-jsonl",
+  "date": "2026-07-11T20:35:00.000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D18-launch-resume-on-jsonl",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D18-launch-resume-on-jsonl.md",
+  "adr": "iterate-2026-07-10-launch-resume-on-jsonl"
+}

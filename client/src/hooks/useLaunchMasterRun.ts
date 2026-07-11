@@ -32,9 +32,11 @@ import { launchMasterRun } from "../lib/masterRunApi";
 import { formatRunLabel } from "../lib/run-config-v2";
 
 /** The subset of an ExternalTask the idempotent master-shadow lookup needs.
- *  `firstJsonlObservedAt` decides fresh-launch vs resume on reuse: a reused
- *  master whose `<uuid>.jsonl` already exists must RESUME (re-injecting
- *  `--session-id` would make Claude reject the duplicate session id). */
+ *  `firstJsonlObservedAt` / `lastJsonlSeenMtimeMs` decide fresh-launch vs resume
+ *  on reuse: a reused master whose `<uuid>.jsonl` already exists must RESUME
+ *  (re-injecting `--session-id` would make Claude reject the duplicate session
+ *  id). The server enforces this from the disk regardless (D18/F14) — this
+ *  client signal just keeps the handoff + CTA label truthful. */
 export interface MasterShadowCandidate {
   taskId: string;
   /** The owning project — the shadow lookup is scoped to it (F06). A duplicated
@@ -45,6 +47,21 @@ export interface MasterShadowCandidate {
   runId?: string;
   parentRunMaster?: boolean;
   firstJsonlObservedAt?: string | null;
+  /** D18/F14 — LIVE JSONL mtime overlaid by `GET /tasks` (ADR-102) straight
+   *  from disk, so it flips true the instant Claude writes the transcript —
+   *  BEFORE the watcher poll stamps `firstJsonlObservedAt`. Using it here aligns
+   *  the resume decision (and the CTA label) with what the server will actually
+   *  emit inside that write window. */
+  lastJsonlSeenMtimeMs?: number | null;
+}
+
+/** True when the master's `<uuid>.jsonl` is known to exist — via the persisted
+ *  first-observation stamp OR the live disk mtime overlay. Either means a fresh
+ *  `--session-id` re-launch would be rejected, so the launch must RESUME. */
+export function masterShadowIsEstablished(
+  t: Pick<MasterShadowCandidate, "firstJsonlObservedAt" | "lastJsonlSeenMtimeMs">,
+): boolean {
+  return Boolean(t.firstJsonlObservedAt) || t.lastJsonlSeenMtimeMs != null;
 }
 
 export interface LaunchMasterRunArgs {
@@ -135,7 +152,7 @@ export async function startMasterRun(
   let taskId: string;
   let reused: boolean;
   // An established master (JSONL on disk) must resume; anything else is fresh.
-  const resume = Boolean(existing?.firstJsonlObservedAt);
+  const resume = existing ? masterShadowIsEstablished(existing) : false;
   if (existing) {
     taskId = existing.taskId;
     reused = true;
