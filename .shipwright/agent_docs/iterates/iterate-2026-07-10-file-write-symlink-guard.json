@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-file-write-symlink-guard",
+  "date": "2026-07-11T13:00:00.000000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D09-file-write-symlink-guard",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D09-file-write-symlink-guard.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-file-write-symlink-guard"
+}

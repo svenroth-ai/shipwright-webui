@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T12:12:00.000Z",
+  "last_updated": "2026-07-11T13:00:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-projects-json-load-tolerance",
-    "date": "2026-07-11T12:12:00.000Z",
+    "run_id": "iterate-2026-07-10-file-write-symlink-guard",
+    "date": "2026-07-11T13:00:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1912,
-      "total": 1912,
-      "note": "Server vitest 163 files / 1912 tests green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. D08 is server-only (server/src/core/project-manager.ts, new server/src/core/project-registry-io.ts, new server/src/core/project-manager-corrupt-load.test.ts, server/src/index.ts) so the client suite (1971 tests, unchanged since D07 - no D08 client files) was not re-run. New F07 coverage: project-manager-corrupt-load.test.ts (16 tests: ProjectManager.load over empty/whitespace/truncated/non-array/well-formed + atomic-vs-plain persist; project-registry-io parse/load/quarantine/atomic-write units + the read-failure retry-then-empty guard)."
+      "passed": 1915,
+      "total": 1916,
+      "note": "Server vitest 164 files / 1915 passed + 1 skipped (1916) green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. D09 is server-only (server/src/external/file/write.ts, new server/src/external/file/__tests__/write-symlink-guard.test.ts) so the client suite (unchanged since D07 - no D09 client files) was not re-run. New F09 coverage: write-symlink-guard.test.ts (3 passed + 1 skipped: a `.md`-named symlink target is rejected 403 symlink_forbidden with the escape target byte-identical - via a real symlink through createExternalRoutes (skipped on this Windows host, EPERM: file symlinks need admin/Developer Mode; RUNS on Linux CI ubuntu-latest) AND via the injected lstat seam (deterministic, cross-platform); a symlink reported non-file (broken link / symlink-to-dir) is still 403; a regular .md write still succeeds)."
     },
     "integration": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "Real-filesystem confidence-calibration probe (server/dist shipped module, Windows 11): (1) fs.promises.rename OVERWRITES an existing projects.json dest (overwrote=true, tmpGone=true, no error) - empirically refutes the external code-review claim that Windows fs.rename cannot replace an existing file; Node maps it to MoveFileExW|MOVEFILE_REPLACE_EXISTING, same proven path as sdk-sessions-store atomicWriteFile. (2) round-trip corrupt->quarantine->re-persist: truncated file loads empty, is renamed aside to .corrupt-<ts>-<uuid>, live file moved away, a subsequent atomic persist writes valid JSON, no tmp left behind. (3) empty file -> empty map, no quarantine."
+      "passed": 2,
+      "total": 2,
+      "note": "Confidence-calibration probes of the touches_io_boundary write surface (Windows 11; file symlinks unavailable - symlinkSync returns EPERM without Developer Mode/admin - so the boundary is probed through the registerMarkdownWrite lstat seam, and the real-symlink end-to-end path is exercised on Linux CI). (1) Rejection probe: the route rejects a target whose lstat reports isSymbolicLink() (both symlink-to-file and non-file/broken-symlink) with 403 symlink_forbidden BEFORE the If-Match/read/write - the on-disk stand-in target is byte-identical. (2) RED-first sensitivity probe: with only the `if (lst.isSymbolicLink())` rejection removed, the SAME request writes through (200, target clobbered) - proving the probe detects the defect, not a false-green. Round-trip stability (GET ETag -> PUT If-Match -> GET ETag stable) for a regular .md write is confirmed by file-write-route.test.ts. Two consecutive clean rejection probes (symlink-to-file, non-file symlink) => asymptote reached."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. D08 is a server-only boot-path / persistence hardening of the projects.json registry (ProjectManager.load + persist) with NO UI-consumed contract change: no route shape, DOM, prop, Vite-config/proxy/WS-origin/CORS surface changed. The recovery is observable only at server boot (a corrupt file no longer FATAL-exits). A browser smoke adds no signal the deterministic server Vitest + real-fs round-trip probe already provide. F0.5 surface=none."
+      "note": "No Playwright run. D09 is a server-only hardening of the PUT /api/external/projects/:id/file markdown-write route (FR-01.34) with NO UI-consumed contract change: no route shape (only a new 403 symlink_forbidden rejection branch), no DOM/prop/render, no Vite-config/proxy/WS-origin/CORS surface changed. detect_frontend_changes.py reports has_frontend_changes=false. A browser smoke adds no signal the deterministic server Vitest already provides. F0.5 surface=none."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,34 +40,34 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T12:11:30.000Z",
+      "timestamp": "2026-07-11T12:59:30.000Z",
       "attempts": 0,
-      "justification": "Server-only ProjectManager registry boot-load / persist hardening (F07). No UI-consumed contract changed: no /api route shape, no DOM/prop/render, no Vite-config/proxy/WS-origin/CORS surface. The behavior is observable only at server startup - a truncated/empty projects.json no longer makes Hono exit FATAL. AC2 correctness is proven by RED-first server Vitest (project-manager-corrupt-load.test.ts: on pre-fix tree ProjectManager.load throws SyntaxError at project-manager.ts:96 for empty/whitespace/truncated/non-array content, and persist is non-atomic; all GREEN after) plus a real-filesystem round-trip probe against the shipped dist module. A browser run would add no signal the deterministic unit + integration tests lack, so F0.5 surface=none (no fabricated browser run)."
+      "justification": "Server-only path-guard hardening of the markdown-write route (FR-01.34, F09). No UI-consumed contract changed: no /api route shape (adds only a 403 symlink_forbidden branch), no DOM/prop/render, no Vite-config/proxy/WS-origin/CORS surface; detect_frontend_changes.py = has_frontend_changes:false. AC2 correctness is proven by a RED-first server test: on pre-fix code a within-root `.md`-named symlink write SUCCEEDS (200, target clobbered) - captured on this Windows host via the injected lstat seam with the rejection line removed, and end-to-end via a real `notes.md -> config.json` symlink on Linux CI (ubuntu-latest); GREEN after (403 symlink_forbidden, escape target byte-identical). A browser run would add no signal the deterministic unit tests lack, so F0.5 surface=none (no fabricated browser run)."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - ProjectManager.load() tolerates a corrupt / unreadable projects.json: empty/whitespace loads an empty registry (no quarantine); an unreadable file (transient EBUSY/EPERM/EACCES lock or permission error) is retried on the rule-6 budget then degrades to an empty registry (a boot load never throws-and-bricks); truncated/unparseable/non-array content is quarantined aside to projects.json.corrupt-<ts>-<uuid> (best-effort, never re-throws) and boot continues with an empty registry instead of exiting FATAL; persist() writes atomically via tmp+rename (rename retried on a transient lock; the staged tmp is unlinked on a hard failure so it can't orphan).",
+          "behavior": "AC1 - PUT /file rejects a within-root .md-named symlink escape: the markdown-only write boundary previously validated the .md/.markdown allowlist on the pathGuard string-resolved path (the symlink NAME) while the write followed the link to its realpath, and realPathGuard only re-checked CONTAINMENT - so a `notes.md -> shipwright_run_config.json` (or -> package.json / a build script) passed both checks and clobbered a non-markdown file. The fix lstat's the target (does not follow the final component) and rejects any final-component symlink with 403 symlink_forbidden; the read+rename write target is now the requested path (not the realpath) so renameSync replaces the final directory entry and cannot dereference a TOCTOU-swapped symlink. realPathGuard is retained as defense-in-depth for a parent-directory symlink escape.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "server/src/core/project-manager-corrupt-load.test.ts - ProjectManager.load over '' / whitespace / truncated JSON (renames aside) / non-array (quarantines) / well-formed (populates); persist atomic tmp+rename when a rename dep is present (asserts NO direct write to the live path) + plain in-place fallback when absent; NEW loadProjectRegistry EBUSY read-failure retry-then-empty guard (6 attempts, no throw; RED on pre-fix which re-threw); project-registry-io units for parse/load/quarantine (incl. never-throws-on-fs-failure + copy-aside fallback) and atomic-write. Real-fs round-trip probe (integration block) confirms the full producer/consumer chain on Windows."
+          "evidence": "server/src/external/file/__tests__/write-symlink-guard.test.ts - real symlink `notes.md -> config.json` through createExternalRoutes returns 403 symlink_forbidden and leaves config.json byte-identical (runs on Linux CI; skipped where file symlinks need elevation); injected-lstat seam rejects a symlink-to-file target 403 with no write-through; a symlink reported non-file (broken link / symlink-to-dir) is still 403; a regular .md write still succeeds (guard is symlink-specific). Existing file-write-route.test.ts (415 non-md, 400 traversal, 409 stale If-Match, atomic round-trip) stays green."
         },
         {
           "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
           "disposition": "tested",
-          "evidence": "RED captured on pre-fix tree (HEAD project-manager.ts restored, new io module present): 5 ProjectManager-level cases fail - empty/whitespace/truncated/non-array all throw SyntaxError 'Unexpected end of JSON input' / 'Unterminated string' / 'projects is not iterable' at project-manager.ts:96-97, and the atomic-persist case fails (0 tmp writes, no rename). GREEN after the fix (49 tests across the two project-manager test files)."
+          "evidence": "RED captured on this Windows host: with only the `if (lst.isSymbolicLink())` rejection removed (pre-fix behavior), the mocked-lstat test FAILS - expected 403, got 200; the PUT wrote through to the target (write SUCCEEDED, defect reproduced). GREEN after the fix (403 symlink_forbidden, target byte-identical). On Linux CI the real-symlink test reproduces the same RED->green end-to-end (a `.md`-named symlink write escaping the markdown-only boundary succeeds pre-fix, rejected after)."
         },
         {
           "behavior": "AC3 - full server suite + build stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "evidence": "F0: server vitest 163 files / 1912/1912 (SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. project-delete-unassigned.integration.test.ts + all sdk-sessions/store tests green. CLAUDE.md read-only-observer rules 1/12 intact (writes only projects.json + its quarantine/tmp side-files; never ~/.claude/projects/** or shipwright_run_config.json). Client untouched (server-only iterate)."
+          "evidence": "F0: server vitest 164 files / 1915 passed + 1 skipped (1916) (SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. path-guard.test.ts, file-route.test.ts, file-write-route.test.ts, file/__tests__/routes.test.ts all green. CLAUDE.md rule 10 (realpath+path.relative containment, NOT startsWith) intact + strengthened; read-only-observer rules 1/12 intact (no writes to ~/.claude/projects/** or shipwright_run_config.json). Client untouched (server-only iterate)."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "All three baselined touch-files stay at or below their ceilings (anti-ratchet hook exit 0): project-manager.ts 420==420 (delegates to the new module), index.ts 892<899 (verbose inline deps type replaced with the exported ProjectManagerDeps to make room for the rename dep wiring). New non-baselined files below the 300 limit: project-registry-io.ts 227, project-manager-corrupt-load.test.ts 279. project-manager.test.ts unchanged at 480. shipwright_bloat_baseline.json not modified (no ratchet)."
+          "evidence": "Touched write.ts (186 -> 225 < 300, not baselined) and one NEW non-baselined test file write-symlink-guard.test.ts (246 < 300). New test file (cohesive symlink-escape defense) is used instead of the spec-listed file-route.test.ts because that file is bloat-baselined at 312 (grandfathered, limit 300) - adding to it would RATCHET the baseline (anti-ratchet contract violation); the campaign guardrail sanctions a new cohesive *.test.ts. shipwright_bloat_baseline.json not modified (no ratchet; anti-ratchet hook clean). D09 is serial #9 with all predecessors merged, so the parallel-safety footprint contract has zero collision risk."
         }
       ],
       "counts": {
