@@ -1,38 +1,25 @@
 /*
  * Preview dev-server spawn manager (iterate 3 section 03 / plan.md § 4.2).
  *
- * Contract:
- *   - spawn(projectId, profile, opts?) → {url, sessionId}
- *   - get(projectId) → cached entry if alive, else undefined
- *   - killAll() → SIGTERM every tracked PID and clear the map
+ * Contract: spawn(projectId, profile, opts?) → {url, sessionId};
+ *   get(projectId) → live entry | undefined; killAll() → SIGTERM all + clear.
  *
- * Security model:
- *   - `profile.dev_server.command` is tokenized via `shell-quote.parse`. If
- *     the parse yields any OPERATOR token (`&&`, `|`, `;`, `>`, etc.) we
- *     refuse to spawn — those are shell features and we are NOT running
- *     through a shell (`shell: false`).
- *   - child_process.spawn is invoked with `shell: false` + the pre-tokenized
- *     argv. The first token is argv0, the rest are args.
- *   - Environment is sanitized to drop any keys that start with `CLAUDE_` or
- *     `SHIPWRIGHT_` — those are webui internals and the user's dev server
- *     has no business inheriting them.
+ * Security model (ADR-044 — `shell: false` on EVERY path). The win32 metachar
+ * fence is a BLOCKLIST (separators/substitution + `%`), not a total-safety proof
+ * (cmd builtins survive) — it stops the cmd.exe wrapper amplifying a `.cmd` shim
+ * into shell semantics or a repo-cwd binary hijack. POSIX: `shell-quote.parse`,
+ * operator token → refuse. win32: backslash-safe tokenizer (keeps `C:\…`) +
+ * PATH-only bare-name resolution + a `cmd.exe /d /s /c` wrapper (discrete argv,
+ * or a verbatim outer-quoted line for spaced paths) — see `preview-win32-spawn.ts`.
+ * spawn always runs `shell: false`; env drops `CLAUDE_*` / `SHIPWRIGHT_*`.
  *
- * Error codes (returned to route layer as structured class instances):
- *   - PreviewProfileInvalidError   — command field empty or contains shell operators
- *   - PreviewSpawnFailedError      — spawn threw (ENOENT, EACCES, ...)
- *   - PreviewPortInUseError        — TCP probe pre-spawn returned EADDRINUSE
- *   - PreviewExitedEarlyError      — child emitted `exit` before the ready signal
- *   - PreviewTimeoutError          — no ready signal within `ready_timeout_seconds`
+ * Error codes (structured class instances handed to the route layer):
+ *   - PreviewProfileInvalidError (empty / operators / metachars),
+ *     PreviewSpawnFailedError (spawn threw), PreviewPortInUseError (EADDRINUSE),
+ *     PreviewExitedEarlyError (child exited pre-ready), PreviewTimeoutError.
  *
- * Dedup: a repeat spawn() call for a projectId with a live entry returns
- * the cached {url, sessionId} without spawning. The cache is keyed by
- * projectId + a `profileHash` — if the profile changes (new command /
- * port / ready timeout), the next spawn() re-spawns from scratch.
- *
- * Shutdown: `process.on("exit" | "SIGINT" | "SIGTERM", ...)` is wired by
- * the server entry (index.ts) calling `killAll()` in the graceful-shutdown
- * path. The manager itself does NOT install signal handlers — that's the
- * caller's job so shutdown ordering stays coherent with other subsystems.
+ * Dedup: a repeat spawn() for a live projectId returns the cached entry (key =
+ * projectId + `profileHash`). Shutdown: index.ts calls killAll(); none here.
  */
 
 import {
@@ -42,6 +29,7 @@ import {
 import { randomUUID, createHash } from "node:crypto";
 import { createServer } from "node:net";
 import { parse as shellParse } from "shell-quote";
+import { resolveSpawn, splitWin32Command } from "./preview-win32-spawn.js";
 
 export interface PreviewProfile {
   dev_server?: {
@@ -215,6 +203,16 @@ export class PreviewSessionManager {
         "dev_server.command is empty or missing",
       );
     }
+    // win32: backslash-safe tokenize (F31) + injection fence. `process.platform`
+    // is read at call time so tests can stub it; POSIX shell-quote path unchanged.
+    if (process.platform === "win32") {
+      if (/[&|;`$<>%\r\n]/.test(command)) {
+        throw new PreviewProfileInvalidError(
+          "dev_server.command contains a shell metacharacter — webui runs no shell",
+        );
+      }
+      return splitWin32Command(command);
+    }
     const parsed = shellParse(command);
     const argv: string[] = [];
     for (const tok of parsed) {
@@ -289,14 +287,16 @@ export class PreviewSessionManager {
       if (!free) throw new PreviewPortInUseError(port);
     }
 
+    const resolved = resolveSpawn(argv, opts.cwd);
     let child: ChildProcessWithoutNullStreams;
     try {
-      child = spawnFn(argv[0], argv.slice(1), {
+      child = spawnFn(resolved.command, resolved.args, {
         cwd: opts.cwd,
         env: opts.env ?? sanitizeEnv(process.env),
         shell: false,
         detached: false,
         stdio: "pipe",
+        windowsVerbatimArguments: resolved.windowsVerbatimArguments,
       }) as ChildProcessWithoutNullStreams;
     } catch (err) {
       const detail =

@@ -126,13 +126,13 @@ describe("PreviewSessionManager.spawn", () => {
     });
 
     expect(spawn).toHaveBeenCalledTimes(1);
-    const call = spawn.mock.calls[0] as unknown as [
-      string,
-      string[],
-      { shell: boolean; cwd: string },
-    ];
-    expect(call[0]).toBe("npm");
-    expect(call[1]).toEqual(["run", "dev"]);
+    const call = spawn.mock.calls[0] as unknown as [string, string[], { shell: boolean; cwd: string }];
+    if (process.platform === "win32") {
+      expect(String(call[0]).toLowerCase()).toMatch(/(?:^|[\\/])cmd\.exe$/);
+    } else {
+      expect(call[0]).toBe("npm");
+      expect(call[1]).toEqual(["run", "dev"]);
+    }
     expect(call[2].shell).toBe(false);
     expect(call[2].cwd).toBe("/tmp");
 
