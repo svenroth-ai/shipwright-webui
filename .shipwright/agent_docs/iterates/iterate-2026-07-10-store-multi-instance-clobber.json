@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-store-multi-instance-clobber",
+  "date": "2026-07-11T08:32:37.831190Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D04-store-multi-instance-clobber",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D04-store-multi-instance-clobber.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-store-multi-instance-clobber"
+}

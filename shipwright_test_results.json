@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T02:20:00Z",
+  "last_updated": "2026-07-11T08:30:52.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-preview-win32-spawn",
-    "date": "2026-07-10",
+    "run_id": "iterate-2026-07-10-store-multi-instance-clobber",
+    "date": "2026-07-11T08:30:52.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1871,
-      "total": 1871,
-      "note": "server vitest 158 files / 1871 tests green (SHIPWRIGHT_NETWORK_PROFILE=local). +24 vs pre-D03 (1847): the two new frozen guard files (author!=fixer, must-not-modify) — preview-session-manager.win32.test.ts (16: Guard 2a F03, Guard 2b F31, Guard 2c POSIX pin, Guard 1 injection fence x2 platforms x5 payloads) + preview-win32-resolve.test.ts (8: Guard 3 cwd-before-PATH, Guard 4 spaced-shim verbatim quoting, Guard 5 %-refusal, Guard 6 bare-absent throw). The win32 branch is process.platform-stubbed so the guards run AND pass on the Linux CI (case-sensitive fs handled via lowercase planted .cmd + PATHEXT='.cmd'). No client/src production change (all 5 changed files under server/src/core/)."
+      "passed": 1887,
+      "total": 1887,
+      "note": "server vitest 161 files / 1887 tests green (SHIPWRIGHT_NETWORK_PROFILE=local). The three new frozen guard files (author!=fixer, must-not-modify) contribute 16 of these: sdk-sessions-store-merge.test.ts (6), sdk-sessions-store-merge-edge.test.ts (6), sdk-sessions-store-concurrency.test.ts (4). OS-deterministic - the same guards run on ubuntu CI."
     },
     "integration": {
       "status": "passed",
-      "passed": 24,
-      "total": 24,
-      "note": "The two frozen guard files drive the REAL PreviewSessionManager + the REAL resolveSpawn()/tokenizeCommand() executable-resolution logic (real fs shim planting + real realpathSync.native), through the injected fake-spawn seam so no payload (calc/reboot/rm) ever executes. RED-first proven on this win32 host for Guard 2a (F03 bare npm not cmd.exe-wrapped), Guard 2b (F31 C:\\tools\\node.exe backslash mangled), Guard 3 (cwd-before-PATH hijack), Guard 4 (spaced Program Files shim), Guard 5 (%-refusal), Guard 6 (bare-absent cwd-fallback) — each RED->GREEN; Guard 1 injection fence + Guard 2c POSIX pin GREEN throughout."
+      "passed": 16,
+      "total": 16,
+      "note": "The 16 frozen guards drive the REAL SdkSessionsStore.persist() merge-under-lock path with real proper-lockfile, real fs, and an isolated temp registryDir (the rename/lock seams injected only to simulate mid-write failure + win32 EBUSY). Every guard was RED-first on pre-fix main and GREEN after the fix. Author != fixer; the fix agent could not weaken them."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No preview E2E run here. D03 is server-side spawn-command construction with NO UI-observable change (the Preview button already rendered pre-fix; the fix makes the shell:false spawn actually WORK on win32). The behavioral proof is the deterministic server guards. The spaced Program-Files cmd.exe-shim path is exercised only via stub because Node on this host lives at a SPACELESS WinGet path, so a host browser smoke cannot drive it. Real-stack proof deferred to the post-merge :3847 smoke (Guard 4: click Preview on the supabase-nextjs profile, confirm the dev server actually spawns)."
+      "note": "No E2E for D04. This is a cross-instance shared-file data-integrity invariant on the server (two OS processes racing one ~/.shipwright-webui/sdk-sessions.json); no browser can drive it and there is no UI-observable change. The deterministic server guards are the behavioral proof (surface=none, justified below)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,77 +39,90 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-10-preview-win32-spawn/surface_verification.json",
-      "timestamp": "2026-07-11T02:17:41.724Z",
-      "justification": "Server-side Preview dev-server spawn-command construction (FR-01.17); no UI-observable change — the Preview button already rendered pre-fix, the fix makes the shell:false spawn actually WORK on win32 (npm->cmd.exe wrapper, PATHEXT resolution, backslash-safe tokenization). Behavioral proof is the deterministic server guards (preview-session-manager.win32.test.ts + preview-win32-resolve.test.ts, 1871-test suite green on both this win32 host and the Linux CI via process.platform stubs). The spaced Program-Files cmd.exe-shim path is exercised only via stub because Node on this host lives at a SPACELESS WinGet path, so a host browser smoke cannot drive it. Post-merge :3847 smoke (Guard 4: click Preview on the supabase-nextjs profile, confirm the dev server spawns) is the real-stack proof. No client/** file changed; the frontend-change detector false-positived on the 'src/' substring inside 'server/src/'."
+      "evidence_path": "",
+      "timestamp": "2026-07-11T08:28:30.009Z",
+      "attempts": 0,
+      "justification": "Server-side sdk-sessions.json persistence: persist() now re-reads + 3-way merges under the proper-lockfile critical section and writes atomically (tmp+rename) — restoring the intended no-lost-update + claim-field-preservation guarantee when two documented concurrent webui instances (autostart-prod + PORT-override dev; parallel worktrees) share ~/.shipwright-webui/sdk-sessions.json (FR-01.08/FR-01.09). NO UI-observable change: the task store create/patch/delete contract is byte-identical; this is a data-integrity invariant, not a visible feature. Behavioral proof is 16 frozen guards (author!=fixer, RED-first on pre-fix main) over the REAL SdkSessionsStore with real proper-lockfile + real fs on an isolated temp registryDir: sdk-sessions-store-merge.test.ts (foreign-row/claim-field survival, 3-way field merge, atomic write), sdk-sessions-store-merge-edge.test.ts (delete-resurrection, unreadable/future-schema disk preservation), sdk-sessions-store-concurrency.test.ts (swap-after-write lost-update, transient-read reject). No browser can drive two OS processes racing one shared JSON file, so there is no post-merge UI smoke. Full server suite 1887 green (161 files, SHIPWRIGHT_NETWORK_PROFILE=local); OS-deterministic on ubuntu CI. Zero client/** files changed (the frontend-change detector false-positives on the 'src/' substring inside 'server/src/')."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1/F03 (HIGH) — on win32, dev_server.command 'npm run dev' is wrapped in cmd.exe /d /s /c with DISCRETE argv (['npm'(.cmd)?, 'run', 'dev']), shell:false; argv0 is the cmd.exe shim, never bare 'npm' (npm.cmd is EINVAL/ENOENT-blocked under shell:false by Node's CVE-2024-27980 hardening)",
+          "behavior": "AC1/Guard1 - a foreign task row written out-of-band to sdk-sessions.json survives an instance-A persist() of an unrelated patch (no whole-file clobber)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-session-manager.win32.test.ts Guard 2a — RED on pre-fix main (bare npm, no wrapper) -> GREEN after e931d25. Real mgr.spawn() through the injected spawn seam under a stubbed win32 platform with a planted npm.cmd on PATH."
+          "evidence": "sdk-sessions-store-merge.test.ts - RED on pre-fix main (persist rewrote the whole file from the boot cache, dropping the foreign row); GREEN after the merge-under-lock fix. Real SdkSessionsStore, real proper-lockfile, real fs on an isolated temp registryDir."
         },
         {
-          "behavior": "AC1/F31 (LOW) — on win32, dev_server.command 'C:\\tools\\node.exe server.js' keeps its backslashes in argv[0] (not mangled to 'C:toolsnode.exe' by POSIX backslash-escape); tokenizeCommand + spawn both preserve them",
+          "behavior": "AC1/Guard1 - externally-written claim fields (claimToken/claimedBy) survive A's persist AND become visible in A's in-memory view so the 409 claim guard can fire",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-session-manager.win32.test.ts Guard 2b (2 tests: spawn argv + tokenizeCommand) — RED on pre-fix main (shell-quote POSIX escape mangles it) -> GREEN after e931d25."
+          "evidence": "sdk-sessions-store-merge.test.ts - RED on pre-fix (claim clobbered + invisible); GREEN: the 3-way merge refreshes the in-memory map from the merged result."
         },
         {
-          "behavior": "AC2/AC5 Guard 1 — injection security fence: '& calc.exe', '; rm -rf /', backticks, '$(reboot)', '| whoami' are NEVER shell-interpreted; the manager either refuses (throws, no spawn) or spawns discrete non-interpolated shell-less argv (no single arg fuses the whole command, no whitespace-fused operator, no bare separator token)",
+          "behavior": "AC1 - field-level 3-way merge on a row both sides touched: baseline->memory diff applied over the disk row, same-field last-writer-wins; A's own mutation is present",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-session-manager.win32.test.ts Guard 1 — permanent fence, GREEN on both win32 and linux (2 platforms x 5 payloads = 10 cases). No payload ever reaches a real child_process."
+          "evidence": "sdk-sessions-store-merge.test.ts - asserts A's patched field wins on the field A changed while a concurrently-written disk field on the same row is retained."
         },
         {
-          "behavior": "AC3 POSIX pin — tokenizeCommand + spawn shape are byte-identical on linux/darwin (POSIX backslash-escape stays correct: 'C:\\tools\\node.exe'->['C:toolsnode.exe',...]; 'npm run dev'->['npm','run','dev'] with shell:false); the win32 branch does not regress the non-Windows path",
-          "disposition": "tested",
-          "category": "unit",
-          "evidence": "preview-session-manager.win32.test.ts Guard 2c — GREEN throughout (2 POSIX platforms tokenize + 1 linux spawn-shape)."
-        },
-        {
-          "behavior": "Security HIGH (cwd-before-PATH hijack) — a BARE command resolves via PATH ONLY, never the untrusted previewed-project cwd (a planted <cwd>\\npm.cmd in a hostile repo can never win); a path-like command still resolves cwd-relative (fix does not over-reach)",
+          "behavior": "AC2/Guard2 - two store instances over one shared file with N interleaved persist() calls: the union of all rows survives (no lost update)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-win32-resolve.test.ts Guard 3 — RED->GREEN. Two shims planted (cwd bait + legit PATH); resolveSpawn returns the PATH shim, not the cwd bait."
+          "evidence": "sdk-sessions-store-merge.test.ts - interleave scenario; RED on pre-fix main (last-writer-wins erased the other instance's rows)."
         },
         {
-          "behavior": "Security HIGH (spaced-shim under cmd /s) — a resolved '.cmd' shim whose path contains a space (e.g. Program Files\\nodejs\\npm.cmd) is emitted as the canonical verbatim outer-quoted line cmd /d /s /c \"\"<quoted-shim>\" run dev\" with windowsVerbatimArguments:true (outer pair strips under /s, inner shim-path quotes survive), shell:false",
+          "behavior": "Guard2 - load->persist->load round-trip equality and no unintended schemaVersion bump (stays v4)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-win32-resolve.test.ts Guard 4 — exact argv pinned (args.length===4, args[3]===`\"\"<shim>\" run dev\"`, windowsVerbatimArguments===true). RED->GREEN after 0789af0."
+          "evidence": "sdk-sessions-store-merge.test.ts - round-trip equality + schemaVersion invariant assertions."
         },
         {
-          "behavior": "Security MEDIUM (% var-expansion) — win32 REFUSES a command containing %...% ('%COMSPEC% run dev', 'npm run %CD%') with PreviewProfileInvalidError; never spawns",
+          "behavior": "Guard3 - atomicity: a mid-write interruption never leaves sdk-sessions.json truncated (tmp+rename, injected rename seam)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-win32-resolve.test.ts Guard 5 — 2 payloads, both throw before any spawn. RED->GREEN."
+          "evidence": "sdk-sessions-store-merge.test.ts - simulated mid-write failure leaves the prior complete file intact."
         },
         {
-          "behavior": "Security HIGH (bare-absent throw) — a BARE command ABSENT from PATH THROWS (command-not-found), never falls through to 'cmd /d /s /c <bare>' where cmd's cwd-first resolution would run a planted <cwd>\\npm.cmd; a bare command ON PATH still resolves; a path-like absent command still wraps as today (no throw)",
+          "behavior": "Edge - a row this instance deleted since baseline is NOT resurrected by concurrent disk churn (deletedSinceBaseline reconciliation within the persist transaction)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-win32-resolve.test.ts Guard 6 — RED on 0789af0 (cwd-first cmd delegation) -> GREEN after 1af7b47. 3 tests (absent-throw, on-PATH-resolves, path-like-absent-wraps)."
+          "evidence": "sdk-sessions-store-merge-edge.test.ts - RED for same-instance delete-resurrection; GREEN after deletedSinceBaseline reconciliation."
         },
         {
-          "behavior": "AC3 no-regression — the full existing server suite stays green; no invariant/ADR regressed (ADR-044 shell:false posture, C-07 injection safety, POSIX tokenization all intact)",
+          "behavior": "Edge - A's own rows are preserved when the on-disk file is unreadable/corrupt at re-read time (classifyDiskRaw parse-status fallback), never self-dropped",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "server vitest 1871/1871 green (F0, SHIPWRIGHT_NETWORK_PROFILE=local). Client unaffected: zero client/** files changed."
+          "category": "integration",
+          "evidence": "sdk-sessions-store-merge-edge.test.ts - RED for own-row drop on unreadable disk; GREEN via classifyDiskRaw."
         },
         {
-          "behavior": "AC4 footprint / bloat baseline — the win32 logic went to a NEW cohesive module preview-win32-spawn.ts (204 LOC, narrow resolveSpawn interface) and 2 new test files, because preview-session-manager.ts is AT its 393 baseline and preview-session-manager.test.ts is AT its 341 baseline; shipwright_bloat_baseline.json NOT ratcheted",
+          "behavior": "Edge - a disk file tagged a FUTURE schemaVersion is preserved (no downgrade clobber); persist aborts rather than overwriting a newer-binary write",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "git diff origin/main..HEAD = 5 files (preview-session-manager.ts +23/-37 net-negative; preview-session-manager.test.ts +14/-; new preview-win32-spawn.ts 204; new preview-session-manager.win32.test.ts 245; new preview-win32-resolve.test.ts 244). Baseline unchanged (no anti-ratchet violation)."
+          "category": "integration",
+          "evidence": "sdk-sessions-store-merge-edge.test.ts + sdk-sessions-store-concurrency.test.ts - future-schema disk preserved; intentional fail-loud abort."
+        },
+        {
+          "behavior": "Concurrency - swap-after-write lost-update (a regression the remediation itself introduced) is fixed: keep the live map, snapshot pre-write, baseline=written-bytes, reconcile only pre-write deletes",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "sdk-sessions-store-concurrency.test.ts - RED reproduced the swap-after-write discard of a concurrent mutation; GREEN after the live-map-preserving rewrite."
+        },
+        {
+          "behavior": "Concurrency - a transient I/O error re-reading under the lock retries (rule-6 budget) then REJECTS, never clobbers disk with a partial/empty view",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "sdk-sessions-store-concurrency.test.ts - transient-read reject guard (withFsRetry + reject-on-exhaustion)."
+        },
+        {
+          "behavior": "Concurrency/Edge - Windows rename EBUSY/EPERM/EACCES on the atomic rename is retried before surfacing (win32 rename flakiness)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "sdk-sessions-store-concurrency.test.ts - rename-retry guard exercises the withFsRetry wrapper on the injected rename seam."
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
+        "testable": 12,
+        "tested": 12,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -117,7 +130,7 @@
         "acs": 5,
         "covered_acs": 5
       },
-      "note": "5 spec ACs (AC1 fix behavior + no-repro; AC2 RED-first regression test; AC3 suites green; AC4 footprint/no-ratchet; AC5 MAX gates) map onto 10 enumerated behaviors: AC1->F03(Guard 2a)+F31(Guard 2b); AC2/AC5->Guard 1 fence + the 4 security guards (3/4/5/6, all RED->GREEN); AC3->POSIX pin (Guard 2c) + full-suite no-regression; AC4->new-cohesive-module footprint + bloat-baseline-not-ratcheted. All testable, all tested; untested_testable=0. The spaced-Program-Files path (Guard 4) is stub-exercised only because this host's Node is at a spaceless WinGet path — the real-app confirmation is the post-merge :3847 Preview smoke (Guard 4 real-stack)."
+      "note": "AC1-AC5 (5) all covered. AC3 (full suites green) is the 1887-test suite; AC4 (footprint/anti-ratchet) and AC5 (MAX gates: independent RED-first guards + doubt-reviewer x3 + external openrouter x3) are process gates recorded in the decision-drop, not per-behavior rows. Every enumerated behavior is tested; untested_testable=0."
     },
     "degraded": []
   }
