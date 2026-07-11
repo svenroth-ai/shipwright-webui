@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-transcript-poll-dedupe-stop",
+  "date": "2026-07-11T18:35:00.000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D15-transcript-poll-dedupe-stop",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D15-transcript-poll-dedupe-stop.md",
+  "adr": "iterate-2026-07-10-transcript-poll-dedupe-stop"
+}

@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T16:05:00.000Z",
+  "last_updated": "2026-07-11T18:35:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-prod-ps1-port-parity",
-    "date": "2026-07-11T16:05:00.000Z",
+    "run_id": "iterate-2026-07-10-transcript-poll-dedupe-stop",
+    "date": "2026-07-11T18:35:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 3926,
-      "total": 3927,
-      "note": "F0 fresh gate green. Server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green. Client vitest 203 files / 1972 passed + npm run build green (client re-run for completeness though no client/** file changed; detect_frontend_changes.py has_frontend_changes=false). New D14 coverage lives in the scripts node:test suite (node --test scripts/stop-server.test.mjs scripts/start-server-production.test.mjs): 30 passed - the NEW stop-server.test.mjs (9 tests: structure guard + $env:PORT/3847 derivation + kill-sweep-uses-variable + message-uses-variable + single-$Port-reuse + no-stray-3847) plus a parity block added to start-server-production.test.mjs (kill+poll both -LocalPort $Port, child-scoped launch env `set PORT=$Port`, failure-message-uses-$Port, single-$Port-reuse, no-stray-3847). AC2 proven RED-first on pre-fix main (11/20 failed with the final assertions: the ps1 hardcoded 3847), green after (30 passed). Counts: 1924 server + 1972 client + 30 scripts = 3926 passed / 3927 total (the scripts node:test suite is separate from the vitest workspaces, folded into the reported count here)."
+      "passed": 3904,
+      "total": 3905,
+      "note": "F0 fresh gate green. Client vitest 204 files / 1980 passed + npm run build green; server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; tsc --noEmit + oxlint clean on the touched files. New D15 coverage lives in the NEW client/src/hooks/useTaskTranscript.test.ts (9 vitest fake-timer tests): F21 terminal-state stop (done + launch_failed each fetch exactly once then freeze; active keeps polling), the external-review cross-taskId-switch guard (a prior done task's state must not leak into a newly-selected running task even when its first tick rejects), F22 single-source modelName (the hook exposes the last `\"model\":\"...\"` from content; null when absent), and the pure extractModelName helper (last-wins / no-model / empty). Counts: 1980 client + 1924 server = 3904 passed / 3905 total (the +1 is the 1 long-standing skipped server test)."
     },
     "integration": {
       "status": "passed",
       "passed": 2,
       "total": 2,
-      "note": "Confidence-calibration probes of the operator-env -> $Port -> OS-port-table/launched-child/messages boundary, run REAL on this Win11 box under Windows PowerShell 5.1 (producer = $env:PORT + repo-root .env.local; consumer = Get-NetTCPConnection -LocalPort $Port, the launched node child env, operator messages). (1) Derivation edge-input probe: the exact `if ($env:PORT -match '^\\d{1,5}$') { [int]$env:PORT } else { 3847 }` under 8 inputs -> unset->3847, '4000'->4000, ''->3847, 'abc'->3847, '3847 '->3847, '99999999999'->3847 (overflow degraded, NO throw - validates the code-review overflow fix), '0'->0 (parity with .sh keeping '0'), '65535'->65535; all graceful, no throws. (2) Runtime query+message+child-cmd probe (read-only, no kill): PORT=4999 -> $Port=4999, Get-NetTCPConnection -LocalPort $Port accepted the variable and ran (0 listeners on 4999), messages interpolated '...port 4999.', inner cmd rendered `set \"PORT=4999\"&& node --env-file-if-exists=../.env.local dist/index.js`. Two consecutive clean probes => asymptote reached, boundary calibrated. Edge not probed: the FULL scripts (they Stop-Process real listeners + rebuild/restart the live server - out of safe-probe scope; those primitives are UNCHANGED from pre-fix, only the port variable threaded through them changed)."
+      "note": "Confidence-calibration probes (Step 3.8) of the two boundaries this iterate touches, run REAL via vitest. (1) Transcript-content -> extractModelName parse boundary (producer = Claude's JSONL `\"model\":\"...\"` events; consumer = the header's model label): probed multi-model (last wins -> claude-opus-4-8), no-model (-> null), and empty content (-> null); a prior in-header regex had no null/empty guard path exercised -> the pure helper now pins all three. (2) Poll-lifecycle state-machine boundary (producer = server-reported task.state on each tick; consumer = the tick's terminal-state stop): the initial fake-timer probe reproduced F21 (done task polled 6x across 5 s instead of 1x); fixed via the latestStateRef; a follow-up probe from external code review found a SECOND bug (the ref outlived the effect, so a done->running taskId switch with a failing first tick inherited the stale `done` and stopped) -> fixed via a per-effect-run ref reset -> re-probe clean. Two consecutive clean probe rounds after the last fix => asymptote reached, both boundaries calibrated. Edge not probed: a real multi-second wall-clock browser session (the fake-timer model is deterministic and faithful to the sequential-poll setTimeout cadence; a live browser adds no discriminating signal for poll-count/stop logic)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. This iterate touches ONLY scripts/start-server-production.ps1 + scripts/stop-server.ps1 (Windows production operator scripts) + their co-located node:test files - no client/src or server/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke exercises nothing these operator scripts affect."
+      "note": "No Playwright run. This iterate changes client transcript-poll LOGIC only (client/src/hooks/useTaskTranscript.ts + its new test, plus a prop-plumbing change in TaskDetailHeader.tsx / TaskDetailPage.tsx). The observable UI (transcript pane, header model label, live updates) is behavior-preserving; the fix (poller stops on terminal state; one poller per page) is a time+state-dependent lifecycle assertion best pinned by deterministic fake-timer vitest, which an e2e cannot exercise more faithfully. No Vite-config / proxy / WS-origin / CORS / route surface changed. The real TaskDetailHeader (TaskDetailHeader.test.tsx + .phone.test.tsx) and the real TaskDetailPage (TaskDetailPage.test.tsx) render green under RTL with the new prop wiring, covering the render path. F0.5 surface=none (see surface_verification)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,37 +40,37 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T16:05:00.000Z",
+      "timestamp": "2026-07-11T18:35:00.000Z",
       "attempts": 0,
-      "justification": "This iterate changes only scripts/start-server-production.ps1 and scripts/stop-server.ps1 (the Windows production start/stop operator scripts) + their co-located node:test files. No file under client/src or server/src is touched - detect_frontend_changes.py reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. The behavior (both scripts must honor $env:PORT with a 3847 default for the kill sweep, launch env, readiness poll, and operator messages, mirroring the .sh twins) is only observable by running the scripts under PowerShell, which the structural node:test pins (derivation + variable-in-every-sink + no-stray-3847, AC2 RED-first on pre-fix main: hardcoded 3847 -> 11/20 failed, green after 30 passed) and the empirical on-Windows PowerShell probes reproduce (derivation degrades all edge inputs to 3847 without throwing; Get-NetTCPConnection accepts $Port; messages + child cmd interpolate the resolved port). F0.5 surface=none - no fabricated browser run.",
+      "justification": "This iterate is a behavior-preserving fix to the CLIENT transcript poller (useTaskTranscript) that consumes FR-01.12 (stateless byte-range transcript read). detect_frontend_changes reports has_frontend_changes=true (client/** touched), but there is no NEW browser-observable behavior to smoke: the transcript still renders, the header still shows the model label, and live updates behave identically - the only changes are (1) the poller stops when the task is done/launch_failed as its docblock already promised, and (2) the header no longer runs a duplicate second poller (its model label now arrives as a prop from the page's single poller). Both are poll-count / lifecycle assertions that a browser smoke (which confirms 'page loads with no console errors') cannot discriminate; they are pinned deterministically by the 9 fake-timer vitest tests in useTaskTranscript.test.ts (AC2 RED-first on pre-fix main: the done-task stop test fetched 6x instead of 1x; green after) and the render path is covered by the real TaskDetailHeader + TaskDetailPage RTL tests (48 passed). No Vite-config/proxy/WS-origin/CORS/route change. F0.5 surface=none - no fabricated browser run.",
       "runtime_gate": "n/a"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - start-server-production.ps1 and stop-server.ps1 derive $Port once from $env:PORT (default 3847) and use it for the kill sweep, the launched server env, the readiness poll, and every operator message; the custom-PORT failure scenario (old server survives, EADDRINUSE, wrong 'port 3847' diagnosis) no longer reproduces.",
+          "behavior": "AC1 - the transcript poller stops on a terminal state (done / launch_failed) and each open task page runs exactly ONE poller: useTaskTranscript tracks the freshest server-reported state in a ref (reset per taskId) so the terminal-state stop fires; TaskDetailHeader's own useTaskTranscript is removed and the model label flows from TaskDetailPage's single poller as a prop. The F21/F22 scenarios no longer reproduce.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "stop-server.test.mjs + start-server-production.test.mjs pin -LocalPort $Port on the kill sweep (both scripts) and the readiness poll (start), `set PORT=$Port` on the launch child env (start), and $Port interpolation in the 'nothing was running on port' + 'did NOT come up on port' messages; a single $Port is derived from $env:PORT and reused in every sink. Empirical PowerShell probe: PORT=4999 -> $Port=4999 flows to the cmdlet query + messages + child cmd."
+          "evidence": "useTaskTranscript.test.ts asserts a done (and a launch_failed) task fetches exactly once then freezes across a 5 s fake-timer advance, while an active task keeps polling (>=4 fetches), and that a done->running taskId switch keeps polling even when the new task's first tick rejects. modelName is exposed by the single poller (last `\"model\":\"...\"` wins; null when absent). TaskDetailHeader.test.tsx + .phone.test.tsx + TaskDetailPage.test.tsx stay green with the prop wiring."
         },
         {
           "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "NEW scripts/stop-server.test.mjs created (modeled on start-server-production.test.mjs) + a parity block added to start-server-production.test.mjs. RED captured on pre-fix main (ps1 hardcoded 3847) via `git stash push` of the two ps1 files with the final assertions in place: 20 tests, 9 pass, 11 fail. GREEN after restoring the fix: node --test over both files -> 30 passed / 0 failed."
+          "evidence": "NEW client/src/hooks/useTaskTranscript.test.ts. RED captured on pre-fix code: the F21 done-stop test asserted 1 fetch but the stale-closure poller fired 6 (across the 5 s advance) -> 'expected 1, got 6'; the F22 modelName tests + extractModelName unit tests failed with 'extractModelName is not a function' / undefined modelName. GREEN after the fix: 9/9 passed. The external-review cross-taskId-switch test is RED without the per-effect ref reset (only 1 fetch after the switch) and GREEN with it."
         },
         {
-          "behavior": "AC3 - full server (1924) + client (1972) suites + both builds stay green; no invariant/ADR regressed.",
+          "behavior": "AC3 - full client (1980) + server (1924/+1 skipped) suites + both builds stay green; no invariant/ADR regressed.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Server vitest 166 files / 1924 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; client vitest 203 files / 1972 passed + npm run build green. Read-only-observer rules 1/12 intact (the scripts write only into %USERPROFILE%\\.shipwright-webui\\; no ~/.claude/projects/** or shipwright_run_config.json)."
+          "evidence": "Client vitest 204 files / 1980 passed + npm run build green; server vitest 166 files / 1924 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; tsc --noEmit clean. Read-only-observer rules 1/12 intact - useTaskTranscript still only GETs /transcript and writes nothing into ~/.claude/projects/** or shipwright_run_config.json."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Footprint: scripts/start-server-production.ps1 (167 -> 183) + scripts/stop-server.ps1 (18 -> 26) [the 2 spec'd source files] + scripts/stop-server.test.mjs (new, 124) + scripts/start-server-production.test.mjs (126 -> 234) [the AC2-mandated tests] - all < 300, none in shipwright_bloat_baseline.json (no new crossing, baseline unchanged). Serial #14, deps/blocks none, D01-D13 merged -> no live parallel collision."
+          "evidence": "Footprint: client/src/hooks/useTaskTranscript.ts (126 -> 162), client/src/hooks/useTaskTranscript.test.ts (new, 191), client/src/components/external/TaskDetailHeader.tsx (230 -> 220, shrank), client/src/pages/TaskDetailPage.tsx (676 -> 676, net-zero: one JSX prop added). TaskDetailPage.tsx stays exactly at its baseline current=676 (not ratcheted); TaskDetailHeader.tsx + useTaskTranscript.ts are not baselined and are < 300. TaskDetailPage.test.tsx (baseline current=362) was NOT modified - all new tests live in the un-baselined useTaskTranscript.test.ts. Serial #15, deps/blocks none, D01-D14 merged -> no live parallel collision."
         }
       ],
       "counts": {

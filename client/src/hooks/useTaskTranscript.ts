@@ -23,6 +23,11 @@ export interface UseTaskTranscriptResult {
   size: number;
   fingerprint: string | null;
   task: ExternalTask | null;
+  /** Best-effort model name from the most recent `"model":"..."` in the
+   *  transcript. Derived here (once per poll) so the single poller is the
+   *  SOLE source — TaskDetailHeader reads it as a prop instead of mounting
+   *  its own duplicate poller (campaign D15 / F22). */
+  modelName: string | null;
   errorMessage: string | null;
 }
 
@@ -40,11 +45,24 @@ export function useTaskTranscript(taskId: string | null, options: { intervalMs?:
     size: 0,
     fingerprint: null,
     task: null,
+    modelName: null,
     errorMessage: null,
   });
   const fingerprintRef = useRef<string | null>(null);
+  // F21 fix — the terminal-state stop condition below used to read
+  // `result.task` from this effect's MOUNT-time closure (always the
+  // initial `null`), so it never fired: a `done` / `launch_failed` task
+  // polled forever. Track the freshest server-reported state in a ref the
+  // tick can read on each iteration.
+  const latestStateRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // Reset the terminal-state tracker for THIS effect run: the ref
+    // outlives the effect, so a prior `done` task's state must not leak
+    // into a newly-selected running task (which would stop its first
+    // tick prematurely — external code review, D15). Each taskId change
+    // starts from a clean "unknown" slate.
+    latestStateRef.current = null;
     if (!taskId) {
       setResult((r) => ({ ...r, status: "idle" }));
       return;
@@ -67,6 +85,7 @@ export function useTaskTranscript(taskId: string | null, options: { intervalMs?:
             size: 0,
             fingerprint: null,
             task: response.task,
+            modelName: null,
             errorMessage: null,
           });
         } else if (response.status === "rotated") {
@@ -80,6 +99,7 @@ export function useTaskTranscript(taskId: string | null, options: { intervalMs?:
             size: response.chunk.size,
             fingerprint: response.chunk.fingerprint,
             task: response.task,
+            modelName: extractModelName(response.chunk.content),
             errorMessage: null,
           });
         }
@@ -89,6 +109,7 @@ export function useTaskTranscript(taskId: string | null, options: { intervalMs?:
         // (all readers of useExternalTask) reflect new states without
         // needing their own refetch interval.
         if (response.task) {
+          latestStateRef.current = response.task.state;
           qc.setQueryData(["external-task", response.task.taskId], response.task);
         }
       } catch (err) {
@@ -100,7 +121,7 @@ export function useTaskTranscript(taskId: string | null, options: { intervalMs?:
         }));
       }
       if (cancelled) return;
-      const currentState = (result.task?.state ?? "");
+      const currentState = latestStateRef.current ?? "";
       if (currentState === "done" || currentState === "launch_failed") {
         return;
       }
@@ -123,4 +144,19 @@ export function useTaskTranscript(taskId: string | null, options: { intervalMs?:
  *  re-renders downstream. */
 export function isFreshChunk(prev: string, next: TranscriptChunk): boolean {
   return next.content !== prev;
+}
+
+/** Best-effort model name = the LAST `"model":"..."` occurrence in the raw
+ *  JSONL. Returns null when none is present. Pure so it can be unit-tested
+ *  and reused; previously duplicated inside TaskDetailHeader's own poller
+ *  (campaign D15 / F22). */
+export function extractModelName(content: string): string | null {
+  if (!content) return null;
+  const re = /"model"\s*:\s*"([^"]+)"/g;
+  let last: string | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content)) !== null) {
+    last = m[1];
+  }
+  return last;
 }
