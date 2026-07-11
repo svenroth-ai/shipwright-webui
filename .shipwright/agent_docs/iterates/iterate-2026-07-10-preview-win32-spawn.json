@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-preview-win32-spawn",
+  "date": "2026-07-11T02:22:07.308020Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D03-preview-win32-spawn",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D03-preview-win32-spawn.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-preview-win32-spawn"
+}

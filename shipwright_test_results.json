@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T00:10:00Z",
+  "last_updated": "2026-07-11T02:20:00Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-replay-disk-fallback",
+    "run_id": "iterate-2026-07-10-preview-win32-spawn",
     "date": "2026-07-10",
     "unit": {
       "status": "passed",
-      "passed": 1847,
-      "total": 1847,
-      "note": "server vitest 156 files / 1847 tests green (SHIPWRIGHT_NETWORK_PROFILE=local); +4 vs pre-D02 (1843) from the ws-replay-disk-fallback guard set. Client vitest 202 files / 1969 tests green (unaffected — no client/src production change; the only client/ file is a Playwright E2E spec). tsc --noEmit clean."
+      "passed": 1871,
+      "total": 1871,
+      "note": "server vitest 158 files / 1871 tests green (SHIPWRIGHT_NETWORK_PROFILE=local). +24 vs pre-D03 (1847): the two new frozen guard files (author!=fixer, must-not-modify) — preview-session-manager.win32.test.ts (16: Guard 2a F03, Guard 2b F31, Guard 2c POSIX pin, Guard 1 injection fence x2 platforms x5 payloads) + preview-win32-resolve.test.ts (8: Guard 3 cwd-before-PATH, Guard 4 spaced-shim verbatim quoting, Guard 5 %-refusal, Guard 6 bare-absent throw). The win32 branch is process.platform-stubbed so the guards run AND pass on the Linux CI (case-sensitive fs handled via lowercase planted .cmd + PATHEXT='.cmd'). No client/src production change (all 5 changed files under server/src/core/)."
     },
     "integration": {
       "status": "passed",
-      "passed": 4,
-      "total": 4,
-      "note": "server/src/terminal/ws-replay-disk-fallback.test.ts — 4 independent must-not-modify guards (author!=fixer) exercising the REAL ws-upgrade spawn->resolve ordering with a real PtyManager + real HeadlessMirror + real SnapshotStore: GUARD 1 (RED on pre-fix main -> GREEN) disk-snapshot replayed after pty death; GUARD 2a live-mirror-wins (ADR-092) stays GREEN; GUARD 2b done/launch_failed replay-only branch still reads disk; GUARD 2c the attach resolve/replay path never disposes the mirror (rule 21)."
+      "passed": 24,
+      "total": 24,
+      "note": "The two frozen guard files drive the REAL PreviewSessionManager + the REAL resolveSpawn()/tokenizeCommand() executable-resolution logic (real fs shim planting + real realpathSync.native), through the injected fake-spawn seam so no payload (calc/reboot/rm) ever executes. RED-first proven on this win32 host for Guard 2a (F03 bare npm not cmd.exe-wrapped), Guard 2b (F31 C:\\tools\\node.exe backslash mangled), Guard 3 (cwd-before-PATH hijack), Guard 4 (spaced Program Files shim), Guard 5 (%-refusal), Guard 6 (bare-absent cwd-fallback) — each RED->GREEN; Guard 1 injection fence + Guard 2c POSIX pin GREEN throughout."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "Guard 3 real-browser spec committed (client/e2e/flows/v0-9-6-disk-snapshot-replay.spec.ts, kill-pty-then-reattach -> disk history rendered in xterm). Not run here: an isolated-stack Playwright run is infeasible/flaky in this environment (operator's live prod stack holds :3847; task-create rejects the unknown projectId 400 without a seeded temp store; Windows real-ConPTY/WS/StrictMode flakiness). Real-app proof deferred to the orchestrator's seeded isolated run of Guard 3 + the batched post-merge :3847 kill-pty-then-reattach smoke (Guard 4)."
+      "note": "No preview E2E run here. D03 is server-side spawn-command construction with NO UI-observable change (the Preview button already rendered pre-fix; the fix makes the shell:false spawn actually WORK on win32). The behavioral proof is the deterministic server guards. The spaced Program-Files cmd.exe-shim path is exercised only via stub because Node on this host lives at a SPACELESS WinGet path, so a host browser smoke cannot drive it. Real-stack proof deferred to the post-merge :3847 smoke (Guard 4: click Preview on the supabase-nextjs profile, confirm the dev server actually spawns)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,59 +39,77 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-10-replay-disk-fallback/surface_verification.json",
-      "timestamp": "2026-07-11T00:06:40.617Z",
-      "justification": "Browser-OBSERVABLE change (embedded-terminal disk-snapshot replay renders in the real xterm), so a real-browser Guard 3 spec exists (client/e2e/flows/v0-9-6-disk-snapshot-replay.spec.ts, committed, RED-on-pre-fix-main). An isolated-stack Playwright run was attempted but is genuinely infeasible/flaky in THIS environment: (1) the canonical Hono port :3847 is held by the operator's LIVE production stack — running the destructive spec (creates/launches/DELETEs a real-ConPTY task) against it would pollute the operator's real USERPROFILE sessions and violates the isolated-USERPROFILE mandate; a clean run needs alt ports + a temp USERPROFILE; (2) POST /api/external/tasks rejects the spec's unknown projectId with 400 (validateProjectIdOrError) unless the exact projects.json is seeded into the temp store; (3) real-ConPTY + WS-ready + StrictMode-first-WS-abort + xterm-buffer-read are documented-flaky on Windows. No browser run is fabricated and the operator's live stack is not touched. Behavioral proof = the DETERMINISTIC server Guard 1 (server/src/terminal/ws-replay-disk-fallback.test.ts) which drives the REAL ws-upgrade spawn->resolve ordering with a real PtyManager + real HeadlessMirror + real SnapshotStore — proven RED on pre-fix main (empty fresh-mirror shadows the persisted disk snapshot) then GREEN after the fix (disk history replayed) — plus fences 2a/2b/2c, all inside the full server suite 1847/1847. Real-app confirmation deferred to the committed Guard 3 spec (runs green in the orchestrator's seeded isolated stack) + the mandatory post-merge :3847 kill-pty-then-reattach smoke (Guard 4), orchestrator-run. F2 browser-verify N/A: no production frontend diff — the only client/ file is the E2E test spec; the shipped client bundle is byte-identical to origin/main (detector false-positive on 'client/e2e' + the 'server/src/' substring)."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-10-preview-win32-spawn/surface_verification.json",
+      "timestamp": "2026-07-11T02:17:41.724Z",
+      "justification": "Server-side Preview dev-server spawn-command construction (FR-01.17); no UI-observable change — the Preview button already rendered pre-fix, the fix makes the shell:false spawn actually WORK on win32 (npm->cmd.exe wrapper, PATHEXT resolution, backslash-safe tokenization). Behavioral proof is the deterministic server guards (preview-session-manager.win32.test.ts + preview-win32-resolve.test.ts, 1871-test suite green on both this win32 host and the Linux CI via process.platform stubs). The spaced Program-Files cmd.exe-shim path is exercised only via stub because Node on this host lives at a SPACELESS WinGet path, so a host browser smoke cannot drive it. Post-merge :3847 smoke (Guard 4: click Preview on the supabase-nextjs profile, confirm the dev server spawns) is the real-stack proof. No client/** file changed; the frontend-change detector false-positived on the 'src/' substring inside 'server/src/'."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1/F02 — with NO live pty, the WS re-attach resolves the persisted DISK snapshot BEFORE spawn() so the fresh empty mirror can no longer shadow it; terminal history is replayed after pty death (server restart / stop-session / idle reap / shell exit)",
+          "behavior": "AC1/F03 (HIGH) — on win32, dev_server.command 'npm run dev' is wrapped in cmd.exe /d /s /c with DISCRETE argv (['npm'(.cmd)?, 'run', 'dev']), shell:false; argv0 is the cmd.exe shim, never bare 'npm' (npm.cmd is EINVAL/ENOENT-blocked under shell:false by Node's CVE-2024-27980 hardening)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "server/src/terminal/ws-replay-disk-fallback.test.ts GUARD 1 — real PtyManager+HeadlessMirror+SnapshotStore, process A flushes a marker to disk then kills the pty; a FRESH PtyManager on the SAME SnapshotStore runs the real ws-upgrade order and the emitted replay_snapshot carries the disk marker. Proven RED on pre-fix main, GREEN after 3d53edc."
+          "evidence": "preview-session-manager.win32.test.ts Guard 2a — RED on pre-fix main (bare npm, no wrapper) -> GREEN after e931d25. Real mgr.spawn() through the injected spawn seam under a stubbed win32 platform with a planted npm.cmd on PATH."
         },
         {
-          "behavior": "AC5/Guard 2a — with a LIVE pty, the resolve path returns the live mirror (ADR-092 live-first precedence not broken by the fix)",
+          "behavior": "AC1/F31 (LOW) — on win32, dev_server.command 'C:\\tools\\node.exe server.js' keeps its backslashes in argv[0] (not mangled to 'C:toolsnode.exe' by POSIX backslash-escape); tokenizeCommand + spawn both preserve them",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "server/src/terminal/ws-replay-disk-fallback.test.ts GUARD 2a — a stale disk sentinel is written, a live pty emits a marker; the replay_snapshot carries the live marker and NOT the stale disk sentinel. Stays GREEN."
+          "evidence": "preview-session-manager.win32.test.ts Guard 2b (2 tests: spawn argv + tokenizeCommand) — RED on pre-fix main (shell-quote POSIX escape mangles it) -> GREEN after e931d25."
         },
         {
-          "behavior": "Guard 2b — the done/launch_failed replay-only branch still reads the disk snapshot (unchanged by the fix)",
+          "behavior": "AC2/AC5 Guard 1 — injection security fence: '& calc.exe', '; rm -rf /', backticks, '$(reboot)', '| whoami' are NEVER shell-interpreted; the manager either refuses (throws, no spawn) or spawns discrete non-interpolated shell-less argv (no single arg fuses the whole command, no whitespace-fused operator, no bare separator token)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "server/src/terminal/ws-replay-disk-fallback.test.ts GUARD 2b — task state=done, disk snapshot written; replay-only branch emits it and closes 1000. Stays GREEN."
+          "evidence": "preview-session-manager.win32.test.ts Guard 1 — permanent fence, GREEN on both win32 and linux (2 platforms x 5 payloads = 10 cases). No payload ever reaches a real child_process."
         },
         {
-          "behavior": "Guard 2c — the WS-attach resolve/replay path never calls HeadlessMirror.dispose() (CLAUDE.md DO-NOT rule 21)",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "server/src/terminal/ws-replay-disk-fallback.test.ts GUARD 2c — dispose spy installed AFTER process A teardown; asserts the re-attach resolve/replay path does not dispose the mirror. Stays GREEN."
-        },
-        {
-          "behavior": "AC3 no-regression — the full existing server + client suites stay green; no ADR/invariant (ADR-092 live-first, rule-21 no-dispose, envelope shape, done-branch) regressed",
+          "behavior": "AC3 POSIX pin — tokenizeCommand + spawn shape are byte-identical on linux/darwin (POSIX backslash-escape stays correct: 'C:\\tools\\node.exe'->['C:toolsnode.exe',...]; 'npm run dev'->['npm','run','dev'] with shell:false); the win32 branch does not regress the non-Windows path",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "server vitest 1847/1847 + client vitest 1969/1969 + tsc --noEmit clean in F0."
+          "evidence": "preview-session-manager.win32.test.ts Guard 2c — GREEN throughout (2 POSIX platforms tokenize + 1 linux spawn-shape)."
         },
         {
-          "behavior": "AC4 footprint / bloat baseline — the fix is confined to ws-upgrade-handler.ts ordering (pty-manager untouched); net-zero LOC; guards split into new sibling files to avoid ratcheting the grandfathered baselines (v0-9-6-live-pty-replay.spec.ts 372 LOC)",
+          "behavior": "Security HIGH (cwd-before-PATH hijack) — a BARE command resolves via PATH ONLY, never the untrusted previewed-project cwd (a planted <cwd>\\npm.cmd in a hostile repo can never win); a path-like command still resolves cwd-relative (fix does not over-reach)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-win32-resolve.test.ts Guard 3 — RED->GREEN. Two shims planted (cwd bait + legit PATH); resolveSpawn returns the PATH shim, not the cwd bait."
+        },
+        {
+          "behavior": "Security HIGH (spaced-shim under cmd /s) — a resolved '.cmd' shim whose path contains a space (e.g. Program Files\\nodejs\\npm.cmd) is emitted as the canonical verbatim outer-quoted line cmd /d /s /c \"\"<quoted-shim>\" run dev\" with windowsVerbatimArguments:true (outer pair strips under /s, inner shim-path quotes survive), shell:false",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-win32-resolve.test.ts Guard 4 — exact argv pinned (args.length===4, args[3]===`\"\"<shim>\" run dev\"`, windowsVerbatimArguments===true). RED->GREEN after 0789af0."
+        },
+        {
+          "behavior": "Security MEDIUM (% var-expansion) — win32 REFUSES a command containing %...% ('%COMSPEC% run dev', 'npm run %CD%') with PreviewProfileInvalidError; never spawns",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-win32-resolve.test.ts Guard 5 — 2 payloads, both throw before any spawn. RED->GREEN."
+        },
+        {
+          "behavior": "Security HIGH (bare-absent throw) — a BARE command ABSENT from PATH THROWS (command-not-found), never falls through to 'cmd /d /s /c <bare>' where cmd's cwd-first resolution would run a planted <cwd>\\npm.cmd; a bare command ON PATH still resolves; a path-like absent command still wraps as today (no throw)",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "preview-win32-resolve.test.ts Guard 6 — RED on 0789af0 (cwd-first cmd delegation) -> GREEN after 1af7b47. 3 tests (absent-throw, on-PATH-resolves, path-like-absent-wraps)."
+        },
+        {
+          "behavior": "AC3 no-regression — the full existing server suite stays green; no invariant/ADR regressed (ADR-044 shell:false posture, C-07 injection safety, POSIX tokenization all intact)",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "git diff origin/main..HEAD = 3 files (ws-upgrade-handler.ts +11/-11; new ws-replay-disk-fallback.test.ts; new v0-9-6-disk-snapshot-replay.spec.ts). shipwright_bloat_baseline.json not ratcheted."
+          "evidence": "server vitest 1871/1871 green (F0, SHIPWRIGHT_NETWORK_PROFILE=local). Client unaffected: zero client/** files changed."
         },
         {
-          "behavior": "Guard 3 — real-browser kill-pty-then-reattach renders the disk history in the actual xterm",
+          "behavior": "AC4 footprint / bloat baseline — the win32 logic went to a NEW cohesive module preview-win32-spawn.ts (204 LOC, narrow resolveSpawn interface) and 2 new test files, because preview-session-manager.ts is AT its 393 baseline and preview-session-manager.test.ts is AT its 341 baseline; shipwright_bloat_baseline.json NOT ratcheted",
           "disposition": "tested",
-          "category": "e2e",
-          "evidence": "client/e2e/flows/v0-9-6-disk-snapshot-replay.spec.ts committed (RED-on-pre-fix-main, SHIPWRIGHT_E2E_REQUIRE_STACK=1 hard-fail on missing stack). Executed in the orchestrator's seeded isolated stack + the post-merge :3847 smoke (Guard 4); not runnable in this finalize env (live prod stack on :3847 + unseeded temp store)."
+          "category": "unit",
+          "evidence": "git diff origin/main..HEAD = 5 files (preview-session-manager.ts +23/-37 net-negative; preview-session-manager.test.ts +14/-; new preview-win32-spawn.ts 204; new preview-session-manager.win32.test.ts 245; new preview-win32-resolve.test.ts 244). Baseline unchanged (no anti-ratchet violation)."
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
+        "testable": 10,
+        "tested": 10,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -99,7 +117,7 @@
         "acs": 5,
         "covered_acs": 5
       },
-      "note": "The Guard 3 real-browser E2E is an ADDITIONAL real-deployment confirmation of the disk-snapshot-replay behavior already proven here by the deterministic server Guard 1 (real ws-upgrade ordering), not a distinct untested behavior; it runs in the orchestrator's seeded isolated stack + the post-merge :3847 smoke (Guard 4)."
+      "note": "5 spec ACs (AC1 fix behavior + no-repro; AC2 RED-first regression test; AC3 suites green; AC4 footprint/no-ratchet; AC5 MAX gates) map onto 10 enumerated behaviors: AC1->F03(Guard 2a)+F31(Guard 2b); AC2/AC5->Guard 1 fence + the 4 security guards (3/4/5/6, all RED->GREEN); AC3->POSIX pin (Guard 2c) + full-suite no-regression; AC4->new-cohesive-module footprint + bloat-baseline-not-ratcheted. All testable, all tested; untested_testable=0. The spaced-Program-Files path (Guard 4) is stub-exercised only because this host's Node is at a spaceless WinGet path — the real-app confirmation is the post-merge :3847 Preview smoke (Guard 4 real-stack)."
     },
     "degraded": []
   }
