@@ -29,6 +29,7 @@ import { isTerminalRunStatus, type RunConfigV2 } from "../../lib/run-config-v2";
 import { useExternalTasks } from "../../hooks/useExternalTasks";
 import {
   useLaunchMasterRun,
+  masterShadowIsEstablished,
   type LaunchMasterRunResult,
 } from "../../hooks/useLaunchMasterRun";
 
@@ -63,8 +64,10 @@ export function MasterRunLaunchButton({
   );
   // An established master (JSONL observed) resumes; anything else is a fresh
   // launch. `useLaunchMasterRun` self-selects the same way — the label just
-  // mirrors it so the button reads true.
-  const established = Boolean(masterShadow?.firstJsonlObservedAt);
+  // mirrors it so the button reads true. D18/F14 — also honour the LIVE
+  // `lastJsonlSeenMtimeMs` overlay so the label flips to "Resume" the instant
+  // the transcript hits disk, matching the server's disk-truth launch decision.
+  const established = masterShadow ? masterShadowIsEstablished(masterShadow) : false;
   const label = established ? "Resume" : "Launch";
   const canLaunch = Boolean(project);
 

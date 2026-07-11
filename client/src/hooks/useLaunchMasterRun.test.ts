@@ -92,6 +92,26 @@ describe("startMasterRun", () => {
     expect(d.handoff).toHaveBeenCalledWith("t-master", COMMANDS, true);
   });
 
+  it("D18/F14: a reused master whose JSONL is LIVE-observed (lastJsonlSeenMtimeMs, not yet stamped) still RESUMES", async () => {
+    // The ~5-15 s window: the master's <uuid>.jsonl is on disk (GET /tasks
+    // overlays a live lastJsonlSeenMtimeMs) but the watcher has not yet stamped
+    // firstJsonlObservedAt. Sending resume:false here would make the server's
+    // fresh path re-emit --session-id and Claude reject the duplicate.
+    const d = deps();
+    const liveButUnstamped: MasterShadowCandidate = {
+      taskId: "t-master",
+      runId: RUN_ID,
+      parentRunMaster: true,
+      projectId: "p1",
+      firstJsonlObservedAt: undefined,
+      lastJsonlSeenMtimeMs: Date.now(),
+    };
+    const res = await startMasterRun(args([liveButUnstamped]), d);
+    expect(res).toMatchObject({ ok: true, taskId: "t-master", reused: true, resume: true });
+    expect(d.launch).toHaveBeenCalledWith("t-master", true);
+    expect(d.handoff).toHaveBeenCalledWith("t-master", COMMANDS, true);
+  });
+
   it("F06: does NOT reuse a master shadow from a DIFFERENT project sharing the same runId (dup-dir isolation)", async () => {
     // A user duplicates a project dir — which copies shipwright_run_config.json
     // (and therefore runId) verbatim — and registers both copies. Project A's

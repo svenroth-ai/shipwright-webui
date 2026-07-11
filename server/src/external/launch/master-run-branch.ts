@@ -77,6 +77,13 @@ export async function applyMasterRunBranch(args: {
    *  attached master of the same run. Optional so direct callers without a
    *  store can opt out; the route always wires it. */
   listTasks?: () => ExternalTask[];
+  /** D18/F14 — ground-truth JSONL probe (`SessionWatcher.findByUuid !== null`).
+   *  The persisted `firstJsonlObservedAt` lags Claude's first write by 5-15 s,
+   *  and the master CTA sends `resume:false` during that window; a fresh
+   *  `--session-id` re-launch is then REJECTED by Claude ("Session ID already
+   *  in use"). Trust the disk. Optional so direct callers without a watcher opt
+   *  out (absent → treated as "no JSONL"); the route wires it from the watcher. */
+  jsonlExistsOnDisk?: (sessionUuid: string) => Promise<boolean>;
 }): Promise<LaunchBranchResult | null> {
   const {
     task,
@@ -85,10 +92,48 @@ export async function applyMasterRunBranch(args: {
     getProjectById,
     runConfigReader,
     listTasks,
+    jsonlExistsOnDisk,
   } = args;
   if (!parsed.masterRun) return null; // not a master-run launch
-  // A resume injects no slash command — fall through to the legacy --resume
-  // shape (`claude --resume <masterUuid>` re-enters the single-session loop).
+
+  // D18/F14 — the master's `<uuid>.jsonl` already exists → this is a genuine
+  // resume regardless of the (possibly stale) client `resume` flag. Re-enter
+  // the master conversation with `--resume <masterUuid>` (no slash command);
+  // re-injecting `--session-id '/shipwright-run'` would make Claude reject the
+  // duplicate session id. Only walk the disk when the persisted stamp is absent
+  // (short-circuit). This function stays PURE — it returns a `taskUpdate` and
+  // the route persists it; it never writes the store itself.
+  const discovered =
+    !task.firstJsonlObservedAt &&
+    Boolean(await jsonlExistsOnDisk?.(task.sessionUuid));
+  const established = Boolean(task.firstJsonlObservedAt) || discovered;
+  if (established) {
+    const commands = buildCopyCommands({
+      sessionUuid: task.sessionUuid,
+      cwd: task.cwd,
+      resume: true,
+      pluginDirs: task.pluginDirs,
+      title: task.title,
+    });
+    return {
+      commands,
+      taskUpdate: {
+        state: "awaiting_external_start" as ExternalTaskState,
+        launchedAt: new Date().toISOString(),
+        // Spec: stamp on discovery so the board CTA + the next launch reflect the
+        // established master immediately. Conditional (only when the stamp was
+        // absent) so a concurrent re-launch just re-writes the same field — the
+        // background transcript poll records the same stamp independently.
+        ...(discovered
+          ? { firstJsonlObservedAt: new Date().toISOString() }
+          : {}),
+      },
+    };
+  }
+
+  // Not established. A resume request with no JSONL yet (or a dryRun) falls
+  // through to the legacy branch exactly as before — the fresh `/shipwright-run`
+  // path below is gated on `effectivelyFreshStart`.
   if (!effectivelyFreshStart) return null;
 
   // Defense-in-depth: the project must resolve AND carry a readable

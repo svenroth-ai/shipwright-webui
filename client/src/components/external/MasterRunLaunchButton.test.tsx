@@ -8,7 +8,10 @@ import type { RunConfigV2, RunStatus } from "../../lib/run-config-v2";
 
 // ── mocks ────────────────────────────────────────────────────────────────
 const launchMasterRunMock = vi.fn();
-vi.mock("../../hooks/useLaunchMasterRun", () => ({
+vi.mock("../../hooks/useLaunchMasterRun", async (importOriginal) => ({
+  // Keep the real `masterShadowIsEstablished` (the label predicate under test);
+  // stub only the hook so no network/query-client is needed.
+  ...(await importOriginal<typeof import("../../hooks/useLaunchMasterRun")>()),
   useLaunchMasterRun: () => launchMasterRunMock,
 }));
 
@@ -105,6 +108,17 @@ describe("MasterRunLaunchButton", () => {
 
   it("labels the button 'Resume' when the master shadow has an observed JSONL", () => {
     taskList = [masterShadow({ firstJsonlObservedAt: "2026-07-09T00:00:00Z" })];
+    renderBtn(makeConfig());
+    const btn = screen.getByTestId(TESTID);
+    expect(btn).toHaveTextContent("Resume");
+    expect(btn).toHaveAttribute("data-mode", "resume");
+  });
+
+  it("D18/F14: labels 'Resume' when the JSONL is LIVE-observed (lastJsonlSeenMtimeMs) before the stamp lands", () => {
+    // GET /tasks overlays a live lastJsonlSeenMtimeMs the instant the transcript
+    // hits disk — before firstJsonlObservedAt is stamped. The label must track
+    // that disk truth so it matches the server's --resume launch decision.
+    taskList = [masterShadow({ firstJsonlObservedAt: undefined, lastJsonlSeenMtimeMs: Date.now() })];
     renderBtn(makeConfig());
     const btn = screen.getByTestId(TESTID);
     expect(btn).toHaveTextContent("Resume");

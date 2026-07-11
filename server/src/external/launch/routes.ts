@@ -43,11 +43,21 @@ export interface LaunchRouterDeps {
   ptyManager: { get(taskId: string): unknown };
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
   runConfigReader: (projectPath: string) => Promise<RunConfigReadResult>;
+  /**
+   * D18/F14+F28 — ground-truth "does `<uuid>.jsonl` exist on disk?" probe.
+   * The phase-task + master-run branches emit `--resume` (not a duplicate
+   * `--session-id`) when it resolves true, closing the "Session ID already in
+   * use" hole where the persisted `firstJsonlObservedAt` lags the disk. Wired
+   * from `SessionWatcher.findByUuid` by `createExternalRoutes`; optional so the
+   * per-router unit tests that don't wire a watcher default to "no JSONL".
+   */
+  jsonlExistsOnDisk?: (sessionUuid: string) => Promise<boolean>;
 }
 
 export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
   const app = new Hono();
-  const { store, ptyManager, getProjectById, runConfigReader } = deps;
+  const { store, ptyManager, getProjectById, runConfigReader, jsonlExistsOnDisk } =
+    deps;
 
   app.post("/api/external/tasks/:id/launch", async (c) => {
     const rawBody = await c.req.json().catch(() => ({}));
@@ -177,6 +187,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
       parsed,
       getProjectById,
       runConfigReader,
+      jsonlExistsOnDisk,
     });
     let branchResult: LaunchBranchResult | null = phaseResult;
 
@@ -215,6 +226,7 @@ export function createLaunchRouter(deps: LaunchRouterDeps): Hono {
         getProjectById,
         runConfigReader,
         listTasks: () => store.list(),
+        jsonlExistsOnDisk,
       });
     }
 

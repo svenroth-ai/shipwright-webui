@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T19:45:00.000Z",
+  "last_updated": "2026-07-11T20:35:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-route-error-mapping",
-    "date": "2026-07-11T19:45:00.000Z",
+    "run_id": "iterate-2026-07-10-launch-resume-on-jsonl",
+    "date": "2026-07-11T20:35:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1934,
-      "total": 1935,
-      "note": "F0 fresh gate green. Server-only change (server/src/middleware/error-handler.ts + its co-located error-handler.test.ts): server vitest 167 files / 1934 passed + 1 skipped (1935) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green. Client NOT re-run - detect_frontend_changes.py has_frontend_changes=false (no client/** touched). New D17 coverage: 6 NEW tests in error-handler.test.ts - (1) ELOCKED error -> 409 {error:'sdk-sessions.json is locked, retry'}, (2) ELOCKED prefers 409 over the generic 500 fallback, (3) malformed JSON body (real c.req.json() SyntaxError) -> 400 invalid_json, (4) empty JSON body -> 400 invalid_json, (5) non-body SyntaxError (regex) -> stays 500 (over-catch guard), (6) lowercase-'json' parse SyntaxError -> 400 (case-insensitive guard). All exercise the real Hono app.onError path."
+      "passed": 1939,
+      "total": 1940,
+      "note": "F0 fresh gate green. Server vitest 168 files / 1939 passed + 1 skipped (1940) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green. Client ALSO re-run (client label-logic touched): 204 files / 1983 passed + npm run build (tsc+vite) green. New D18 coverage: server resume-on-jsonl.test.ts (5 tests through the REAL SessionWatcher + REAL on-disk <uuid>.jsonl via createExternalRoutes) - F14 masterRun+resume:false+JSONL-on-disk -> --resume (not --session-id /shipwright-run) + rule-9 --plugin-dir survival + firstJsonlObservedAt stamp; F14 repeated-launch idempotency stays --resume; F28 phaseTaskRef re-Continue+JSONL-on-disk -> --resume (not --session-id, slash cmd dropped) + stamp; two negative-control regression pins (no JSONL -> fresh --session-id). Client: useLaunchMasterRun.test.ts (live lastJsonlSeenMtimeMs -> resume) + MasterRunLaunchButton.test.tsx (label 'Resume' from live overlay)."
     },
     "integration": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "Confidence-calibration probes (Step 3.8, medium + touches_io_boundary) of the HTTP error-response contract boundary - producer = the global errorHandler (status + JSON body); consumers = client fetch wrappers that gate on the status code (markdownFileApi.ts r.status===409) + the invalid_json code (actionsUpload.ts err.code==='invalid_json'). (1) RED-first probe through the REAL app.request()/app.onError path: pre-fix, an ELOCKED throw and a malformed/empty body both returned 500 (4 new tests RED); post-fix 409/400 (11/11 green). (2) Real-producer probe (throwaway Node script, run then deleted): confirmed Hono 4.12.27 c.req.json() throws instanceof SyntaxError with 'JSON' in the message on BOTH malformed and empty bodies - so the mapping is anchored on the actual framework producer, not a mock. (3) Over-catch guard probe: a non-body SyntaxError (regex/Function defect, no 'json' in message) still surfaces as a truthful 500, and a lowercase-'json' variant still maps to 400 (case-insensitive /json/i). Probe 1 found the defect (RED, fixed); probes 2+3 found nothing new -> two consecutive clean probe rounds => asymptote reached, boundary calibrated. Edge not probed: non-Node runtimes (Bun/CF-Workers) JSON-error shapes - webui is Node-only (node-pty/fs deps), not a real target; a live two-process proper-lockfile race - the synthetic {code:'ELOCKED'} exactly matches proper-lockfile's documented error and the live race is already covered by the per-route rule-6 tests (external/tasks/__tests__/routes.test.ts)."
+      "passed": 4,
+      "total": 4,
+      "note": "Confidence-calibration probes (Step 3.8, medium + touches_io_boundary) of the disk<->launch boundary - producer = Claude's <uuid>.jsonl on disk; consumer = the launch route's resume-vs-fresh decision via SessionWatcher.findByUuid. (1) RED-first round-trip through the REAL createExternalRoutes launch route with a REAL jsonl written to a temp projects dir: pre-fix (4 source files git-stashed) F14 master-run + F28 phase-task both emitted --session-id (2 RED / 2 pins passed); post-fix both --resume (4/4 green). (2) rule-9 parity: --plugin-dir re-passed on the resume shape. (3) idempotency: two back-to-back masterRun launches on an established master both stay --resume. (4) negative control: NO jsonl -> fresh --session-id (+slash cmd) - probe does not over-fire. Probe 1 found the defects (RED, fixed); probes 2-4 found nothing new -> two consecutive clean rounds => asymptote reached, boundary calibrated. Edge not probed: zero-byte/torn jsonl (findByUuid torn-read retry already governs it, and the established new-plain resume path trusts the same existence signal); a true two-process launch race (the conditional stamp rides the F08 merge-under-lock persist path)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. This iterate changes SERVER error-mapping LOGIC only (server/src/middleware/error-handler.ts, the global app.onError). No client/** touched (detect_frontend_changes.py has_frontend_changes=false); no route, UI, Vite-config, proxy, WS-origin, or CORS change. The two contracts (ELOCKED->409, malformed-body->400) require a held cross-process lock and a raw malformed HTTP body respectively - neither is meaningfully reproducible from a browser; both are pinned deterministically by vitest through the real Hono onError path. F0.5 surface=none (see surface_verification)."
+      "note": "No Playwright run. The client change is a pure label-text derivation (MasterRunLaunchButton CTA 'Resume' vs 'Launch' + the useLaunchMasterRun resume flag), fully pinned by MasterRunLaunchButton.test.tsx which renders the REAL component in jsdom and asserts the label + data-mode for BOTH the firstJsonlObservedAt and the LIVE lastJsonlSeenMtimeMs cases. detect_frontend_changes.py reports has_frontend_changes=false; no route, Vite-config, proxy, WS-origin, CORS, or new UI affordance. The server launch-command change is non-browser-reproducible (a ~5-15s on-disk JSONL race) and is pinned by the real-fs round-trip test. F0.5 surface=none (see surface_verification)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,37 +40,37 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T19:45:00.000Z",
+      "timestamp": "2026-07-11T20:35:00.000Z",
       "attempts": 0,
-      "justification": "Server-only, behavior-preserving error-contract hardening in the global errorHandler (server/src/middleware/error-handler.ts). detect_frontend_changes.py reports has_frontend_changes=false (no client/** touched) -> F2 browser-verify honestly skipped. Although the HTTP status returned for two error conditions changes (ELOCKED-contention 500->409; malformed/empty request body 500->400), the client already consumed both established contracts (status===409 retry, invalid_json 400) and no NEW UI affordance, route, Vite-config/proxy/WS-origin/CORS/WS surface is introduced. Both conditions are non-browser-reproducible (a held cross-process lock; a raw malformed body) and are pinned deterministically by 6 vitest tests through the real Hono app.onError path plus a real-producer Node probe of c.req.json(). F0.5 surface=none - no fabricated browser run.",
+      "justification": "Server launch-branch logic (master-run-branch.ts + phase-task-branch.ts: probe on-disk <uuid>.jsonl -> emit --resume) + a client CTA label derivation. The client change is a boolean->text derivation ('Resume' vs 'Launch') with no new rendering, route, Vite-config/proxy/WS-origin/CORS surface and no new UI affordance; it is authoritatively covered by MasterRunLaunchButton.test.tsx (real React render + label/data-mode assertions for both the persisted stamp and the live lastJsonlSeenMtimeMs overlay). detect_frontend_changes.py reports has_frontend_changes=false. The server-side resume-vs-fresh command is non-browser-reproducible (a held first-JSONL-write race) and is pinned by resume-on-jsonl.test.ts through the REAL SessionWatcher + REAL on-disk jsonl. F0.5 surface=none - no fabricated browser run.",
       "runtime_gate": "n/a"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - the shared errorHandler now maps proper-lockfile ELOCKED to the retryable 409 body the per-route handlers already emit ({error:'sdk-sessions.json is locked, retry'}) and maps an unguarded request-body parse SyntaxError to the established 400 invalid_json contract; per-route handlers still short-circuit first. The F29 (opaque 500 on lock contention for ~8 store-mutating endpoints) and F33 (500 on malformed/empty body for projects POST/PATCH + settings PUT) scenarios no longer reproduce.",
+          "behavior": "AC1 - both launch branches probe on-disk <uuid>.jsonl (SessionWatcher.findByUuid) before building the command and emit --resume regardless of the client flag, stamping firstJsonlObservedAt on discovery; the client CTA label mirrors the disk-truth. F14 (master CTA resume:false in the first-write window) and F28 (phaseTaskRef re-Continue after a pre-claim crash) no longer reproduce.",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "error-handler.test.ts: an Error with code 'ELOCKED' -> 409 with the exact body; malformed and empty JSON bodies (thrown by the real c.req.json()) -> 400 invalid_json; verified all server-side JSON.parse in handlers (settings.ts:34/60, upload.ts:101) is try/catch-guarded so the only SyntaxError reaching the global handler is a body-parse failure."
+          "category": "integration",
+          "evidence": "resume-on-jsonl.test.ts: master-run + phase-task each emit --resume (not --session-id / slash command) when a real jsonl exists on disk under the watcher's projects dir, and stamp firstJsonlObservedAt. Client: useLaunchMasterRun resume + MasterRunLaunchButton label derive from firstJsonlObservedAt OR the live lastJsonlSeenMtimeMs overlay."
         },
         {
           "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "6 NEW tests in error-handler.test.ts. RED captured on pre-fix code: the ELOCKED test expected 409 got 500, the malformed-body and empty-body tests expected 400 got 500 (4 failed / 5 passed). GREEN after the fix: 11/11 passed. The over-catch guard tests (non-body SyntaxError->500, lowercase-json->400) were added during external-review hardening and pin the /json/i narrowing."
+          "category": "integration",
+          "evidence": "resume-on-jsonl.test.ts (5 tests). RED captured on pre-fix code (4 source files git-stashed): F14 expected --resume got '--session-id ... /shipwright-run'; F28 expected --resume got '--session-id ... /shipwright-build' (2 failed / 2 regression-pins passed). GREEN after: 5/5. Plus client live-overlay tests (RED before the masterShadowIsEstablished change: label would read 'Launch')."
         },
         {
-          "behavior": "AC3 - full server suite (1934/+1 skipped) + build stay green; no invariant/ADR regressed.",
+          "behavior": "AC3 - full server + client suites stay green; no invariant/ADR regressed.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Server vitest 167 files / 1934 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green. api-contract-sweep (22-entry baseline) still green - the change adds no rows, only corrects previously-uncovered 500 leaks. DO-NOT rule 6 (multi-writer state files use proper-lockfile; PATCH surfaces ELOCKED as 409) preserved and extended. Read-only-observer rules 1/12 intact - errorHandler writes nothing. Client not re-run (has_frontend_changes=false)."
+          "evidence": "Server vitest 168 files / 1939 passed + 1 skipped (1940) + build green. Client 204 files / 1983 passed + build green. CLAUDE.md rule 1 (launcher only builds strings; webui never spawns Claude) + rule 9 (--plugin-dir re-passed on the resume shape - asserted) + read-only-observer rules 1/12 (no run_config/JSONL writes) intact. Legacy new-plain resume suite (routes.launch-newplain-resume.test.ts) unchanged and green - the fix is localized to the two branches."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Footprint exactly the spec's two files: server/src/middleware/error-handler.ts (42 -> 89, well under the 300 source limit, NOT baselined) + server/src/middleware/error-handler.test.ts (64 -> 169, under 300, NOT baselined). No shipwright_bloat_baseline.json entry touched. Serial #17, deps/blocks none, D01-D16 merged -> no live parallel collision."
+          "evidence": "Touched source all < 300 (master-run-branch.ts 168->~190, phase-task-branch.ts 187->~205, launch/routes.ts 262->~278, external/routes.ts 264->~276, useLaunchMasterRun.ts 193->~210, MasterRunLaunchButton.tsx 120->~124 - none baselined). New resume-on-jsonl.test.ts (~245 LOC, no crossing, no baseline entry): a sanctioned cohesive sibling because phase-task-launch.test.ts is grandfathered at 383/300 - growing it would ratchet the baseline (anti-ratchet hook-block). No shipwright_bloat_baseline.json entry touched/ratcheted. Serial #18, deps=D07 (merged), blocks none -> no live parallel collision."
         }
       ],
       "counts": {

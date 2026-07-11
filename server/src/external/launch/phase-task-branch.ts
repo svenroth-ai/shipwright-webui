@@ -37,8 +37,15 @@ export async function applyPhaseTaskBranch(args: {
     | ((id: string) => ExternalRouteProjectView | undefined)
     | undefined;
   runConfigReader: (projectPath: string) => Promise<RunConfigReadResult>;
+  /** D18/F28 — ground-truth JSONL probe (`SessionWatcher.findByUuid !== null`).
+   *  Pre-fix this branch ALWAYS emitted a fresh `--session-id`; a re-Continue
+   *  after a pre-claim crash (JSONL written, phase_task still `awaiting_launch`)
+   *  then hit Claude's "Session ID already in use". Optional so direct callers
+   *  without a watcher opt out (absent → "no JSONL"); the route wires it. */
+  jsonlExistsOnDisk?: (sessionUuid: string) => Promise<boolean>;
 }): Promise<LaunchBranchResult | null> {
-  const { task, parsed, getProjectById, runConfigReader } = args;
+  const { task, parsed, getProjectById, runConfigReader, jsonlExistsOnDisk } =
+    args;
   if (parsed.phaseTaskRefRaw === undefined) return null;
 
   if (parsed.actionId) {
@@ -166,12 +173,24 @@ export async function applyPhaseTaskBranch(args: {
     phase: phaseTask.phase,
     splitId: phaseTask.splitId,
   });
+  // D18/F28 — when the phase session's `<uuid>.jsonl` already exists (started
+  // then crashed before the orchestrator claim), emit `--resume` instead of a
+  // fresh `--session-id`. The slash command is DROPPED on resume: Claude
+  // already holds the phase conversation, and a trailing `/shipwright-<phase>`
+  // would re-fire the phase as a new prompt. Only walk the disk when the
+  // persisted stamp is absent (short-circuit). This function stays PURE — it
+  // returns a `taskUpdate` and the route persists it.
+  const discovered =
+    !task.firstJsonlObservedAt &&
+    Boolean(await jsonlExistsOnDisk?.(phaseTask.sessionUuid));
+  const established = Boolean(task.firstJsonlObservedAt) || discovered;
   const commands: CopyCommandForms = buildCopyCommands({
     sessionUuid: phaseTask.sessionUuid,
     cwd: task.cwd,
+    resume: established,
     pluginDirs: task.pluginDirs,
     title: derivedName,
-    slashCommand: phaseTask.slashCommand,
+    ...(established ? {} : { slashCommand: phaseTask.slashCommand }),
   });
   const taskUpdate: Partial<ExternalTask> = {
     state: "awaiting_external_start" as ExternalTaskState,
@@ -182,6 +201,10 @@ export async function applyPhaseTaskBranch(args: {
     phase: phaseTask.phase,
     phaseLabel: phaseTask.phase,
     title: derivedName,
+    // Spec: stamp `firstJsonlObservedAt` on first disk discovery so the CTA +
+    // next launch reflect the established session immediately (conditional —
+    // only when it was absent; the background transcript poll records it too).
+    ...(discovered ? { firstJsonlObservedAt: new Date().toISOString() } : {}),
   };
   return { commands, taskUpdate };
 }

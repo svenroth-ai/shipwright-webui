@@ -212,7 +212,17 @@ export function createExternalRoutes(args: {
   // phaseTaskRef + actionId → 400 mixed_launch_intents.
   app.route(
     "/",
-    createLaunchRouter({ store, ptyManager, getProjectById, runConfigReader }),
+    createLaunchRouter({
+      store,
+      ptyManager,
+      getProjectById,
+      runConfigReader,
+      // D18/F14+F28 — ground-truth JSONL probe so a re-launch inside Claude's
+      // first-write window (or after a pre-claim crash) emits `--resume`, not a
+      // duplicate `--session-id`. Filename-first discovery (CLAUDE.md rule 3).
+      jsonlExistsOnDisk: async (uuid) =>
+        (await watcher.findByUuid(uuid)) !== null,
+    }),
   );
   // CLAUDE.md rule 4 — STATELESS byte-offset; multi-tab works by construction.
   app.route("/", createTranscriptRouter({ store, watcher, ptyManager }));
