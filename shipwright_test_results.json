@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T13:00:00.000Z",
+  "last_updated": "2026-07-11T13:35:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-file-write-symlink-guard",
-    "date": "2026-07-11T13:00:00.000Z",
+    "run_id": "iterate-2026-07-10-run-config-transient-resilience",
+    "date": "2026-07-11T13:35:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1915,
-      "total": 1916,
-      "note": "Server vitest 164 files / 1915 passed + 1 skipped (1916) green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. D09 is server-only (server/src/external/file/write.ts, new server/src/external/file/__tests__/write-symlink-guard.test.ts) so the client suite (unchanged since D07 - no D09 client files) was not re-run. New F09 coverage: write-symlink-guard.test.ts (3 passed + 1 skipped: a `.md`-named symlink target is rejected 403 symlink_forbidden with the escape target byte-identical - via a real symlink through createExternalRoutes (skipped on this Windows host, EPERM: file symlinks need admin/Developer Mode; RUNS on Linux CI ubuntu-latest) AND via the injected lstat seam (deterministic, cross-platform); a symlink reported non-file (broken link / symlink-to-dir) is still 403; a regular .md write still succeeds)."
+      "passed": 3890,
+      "total": 3891,
+      "note": "F0 gate green both workspaces. Server vitest 165 files / 1918 passed + 1 skipped (1919) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + build green. Client vitest 203 files / 1972 passed + build green + tsc clean. New F15 coverage: server run-config-reader.transient.test.ts (3: stat EPERM with fresh last-good -> cached ok; last-good survives a full 5s poll gap; non-retryable EIO with no cache still invalid) + client useRunConfig.test.ts (6: invalid keeps polling at 10s; in_progress 5s; needs_validation 60s; complete/failed off; missing/v1_legacy off; undefined off). The run-config-reader.test.ts TTL-expiry boundary was moved 6s -> 31s (TTL raised 5s -> 30s)."
     },
     "integration": {
       "status": "passed",
       "passed": 2,
       "total": 2,
-      "note": "Confidence-calibration probes of the touches_io_boundary write surface (Windows 11; file symlinks unavailable - symlinkSync returns EPERM without Developer Mode/admin - so the boundary is probed through the registerMarkdownWrite lstat seam, and the real-symlink end-to-end path is exercised on Linux CI). (1) Rejection probe: the route rejects a target whose lstat reports isSymbolicLink() (both symlink-to-file and non-file/broken-symlink) with 403 symlink_forbidden BEFORE the If-Match/read/write - the on-disk stand-in target is byte-identical. (2) RED-first sensitivity probe: with only the `if (lst.isSymbolicLink())` rejection removed, the SAME request writes through (200, target clobbered) - proving the probe detects the defect, not a false-green. Round-trip stability (GET ETag -> PUT If-Match -> GET ETag stable) for a regular .md write is confirmed by file-write-route.test.ts. Two consecutive clean rejection probes (symlink-to-file, non-file symlink) => asymptote reached."
+      "note": "Confidence-calibration probes of the touches_io_boundary run-config read surface (producer=orchestrator atomic run_config rewrite -> file -> consumer readRunConfig). (1) Injected-deps unit round-trips (committed): stat EPERM + fresh last-good -> served ok; last-good survives a 5s poll gap; EIO-no-cache -> invalid; existing read/parse retry + TTL-expiry suite green. (2) THROWAWAY real-fs probe (run then deleted): producer writes real config -> readRunConfig with DEFAULT deps (real fs.stat + fs.readFile) -> ok (runId run-a1b2c3d4); malformed-but-readable file WITH a fresh cache -> invalid (NOT stale, proving stale-serve is bounded to physical faults); removed file -> missing (ENOENT->null); rewrite valid -> ok (cache refreshes to new content). PROBE PASS. Two consecutive clean probe rounds (probe set 2 found no issues after the fix) => asymptote reached; the real-fs probe falsified the plan-review TTL-staleness worry."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. D09 is a server-only hardening of the PUT /api/external/projects/:id/file markdown-write route (FR-01.34) with NO UI-consumed contract change: no route shape (only a new 403 symlink_forbidden rejection branch), no DOM/prop/render, no Vite-config/proxy/WS-origin/CORS surface changed. detect_frontend_changes.py reports has_frontend_changes=false. A browser smoke adds no signal the deterministic server Vitest already provides. F0.5 surface=none."
+      "note": "No Playwright run. The only client change is a pure poll-cadence function (runConfigPollIntervalMs in client/src/hooks/useRunConfig.ts feeding TanStack Query's refetchInterval) - no DOM/prop/render, no route/component, no Vite-config/proxy/WS-origin/CORS surface. Covered by 6 deterministic client unit tests + the full 1972-test jsdom suite (mounts real components) + client build. A browser smoke exercises nothing new. F0.5 surface=none (see surface_verification)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,34 +40,34 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T12:59:30.000Z",
+      "timestamp": "2026-07-11T13:34:00.000Z",
       "attempts": 0,
-      "justification": "Server-only path-guard hardening of the markdown-write route (FR-01.34, F09). No UI-consumed contract changed: no /api route shape (adds only a 403 symlink_forbidden branch), no DOM/prop/render, no Vite-config/proxy/WS-origin/CORS surface; detect_frontend_changes.py = has_frontend_changes:false. AC2 correctness is proven by a RED-first server test: on pre-fix code a within-root `.md`-named symlink write SUCCEEDS (200, target clobbered) - captured on this Windows host via the injected lstat seam with the rejection line removed, and end-to-end via a real `notes.md -> config.json` symlink on Linux CI (ubuntu-latest); GREEN after (403 symlink_forbidden, escape target byte-identical). A browser run would add no signal the deterministic unit tests lack, so F0.5 surface=none (no fabricated browser run)."
+      "justification": "HONEST client-touch disclosure: this iterate DOES touch a client `.ts` file (client/src/hooks/useRunConfig.ts) - detect_frontend_changes.py classifies any .ts under client/src/ as frontend by path, so it would report has_frontend_changes=true once committed (NOT claimed false). However the modification is a headless pure function: runConfigPollIntervalMs returns the number/false that TanStack Query uses for refetchInterval. There is no DOM/render/prop/visual change, no new route/component, and no Vite-config/proxy/WS-origin/CORS surface. It is fully covered by 6 new deterministic client unit tests, the full 1972-test client jsdom suite (which mounts real components importing the hook), a clean tsc --noEmit, and a green client build. AC2 correctness is proven RED-first on pre-fix main (invalid -> false latched polling OFF; now -> 10s). A browser_verify run would add no signal the client build + jsdom suite lack, so F0.5 surface=none - no fabricated browser run."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - PUT /file rejects a within-root .md-named symlink escape: the markdown-only write boundary previously validated the .md/.markdown allowlist on the pathGuard string-resolved path (the symlink NAME) while the write followed the link to its realpath, and realPathGuard only re-checked CONTAINMENT - so a `notes.md -> shipwright_run_config.json` (or -> package.json / a build script) passed both checks and clobbered a non-markdown file. The fix lstat's the target (does not follow the final component) and rejects any final-component symlink with 403 symlink_forbidden; the read+rename write target is now the requested path (not the realpath) so renameSync replaces the final directory entry and cannot dereference a TOCTOU-swapped symlink. realPathGuard is retained as defense-in-depth for a parent-directory symlink escape.",
+          "behavior": "AC1 - a transient run-config read no longer vanishes the pipeline lane: the existence stat probe now runs through the same retryTornRead envelope as the read path and falls back to last-good on exhaustion (was: bare try/catch -> instant invalid on any non-ENOENT fault); LAST_GOOD_TTL_MS 5000 -> 30000 (comfortably above the 5s poll cadence so a torn poll never expires the cache at fallback); client runConfigPollIntervalMs keeps polling on invalid at a 10s backoff instead of latching OFF.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "server/src/external/file/__tests__/write-symlink-guard.test.ts - real symlink `notes.md -> config.json` through createExternalRoutes returns 403 symlink_forbidden and leaves config.json byte-identical (runs on Linux CI; skipped where file symlinks need elevation); injected-lstat seam rejects a symlink-to-file target 403 with no write-through; a symlink reported non-file (broken link / symlink-to-dir) is still 403; a regular .md write still succeeds (guard is symlink-specific). Existing file-write-route.test.ts (415 non-md, 400 traversal, 409 stale If-Match, atomic round-trip) stays green."
+          "evidence": "server run-config-reader.transient.test.ts (stat EPERM + fresh last-good -> served ok with a last-good warning; last-good survives a full 5s poll gap; EIO-no-cache still invalid) + run-config-reader.test.ts (existing read/parse retry + last-good + TTL-expiry@31s green) + client useRunConfig.test.ts (invalid -> 10s; in_progress 5s; needs_validation 60s; terminal/missing/v1_legacy/undefined off). Real-fs round-trip probe confirms malformed-readable -> invalid (not stale) and rewrite -> fresh."
         },
         {
           "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
           "disposition": "tested",
-          "evidence": "RED captured on this Windows host: with only the `if (lst.isSymbolicLink())` rejection removed (pre-fix behavior), the mocked-lstat test FAILS - expected 403, got 200; the PUT wrote through to the target (write SUCCEEDED, defect reproduced). GREEN after the fix (403 symlink_forbidden, target byte-identical). On Linux CI the real-symlink test reproduces the same RED->green end-to-end (a `.md`-named symlink write escaping the markdown-only boundary succeeds pre-fix, rejected after)."
+          "evidence": "RED captured on pre-fix main: server transient.test.ts 'stat throws EPERM' -> expected 'invalid' to be 'ok'; 'last-good survives a 5s poll gap' -> expected 'invalid' to be 'ok' (2 failed); client useRunConfig.test.ts 'keeps polling on a transient invalid' -> expected false to be truthy (1 failed). GREEN after the fix (server transient 3 passed; client useRunConfig 6 passed)."
         },
         {
-          "behavior": "AC3 - full server suite + build stay green (no invariant/ADR regressed)",
+          "behavior": "AC3 - full server + client suites + builds stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "evidence": "F0: server vitest 164 files / 1915 passed + 1 skipped (1916) (SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. path-guard.test.ts, file-route.test.ts, file-write-route.test.ts, file/__tests__/routes.test.ts all green. CLAUDE.md rule 10 (realpath+path.relative containment, NOT startsWith) intact + strengthened; read-only-observer rules 1/12 intact (no writes to ~/.claude/projects/** or shipwright_run_config.json). Client untouched (server-only iterate)."
+          "evidence": "Server vitest 165 files / 1918 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc + build green; client vitest 203 files / 1972 passed + tsc + build green. no-cross-package-imports.test.ts green (helper added to the SERVER types mirror only; client lib mirror untouched - no client-bundle pollution). Read-only-observer rules 1/12 intact (no writes to shipwright_run_config.json or ~/.claude/projects/**)."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Touched write.ts (186 -> 225 < 300, not baselined) and one NEW non-baselined test file write-symlink-guard.test.ts (246 < 300). New test file (cohesive symlink-escape defense) is used instead of the spec-listed file-route.test.ts because that file is bloat-baselined at 312 (grandfathered, limit 300) - adding to it would RATCHET the baseline (anti-ratchet contract violation); the campaign guardrail sanctions a new cohesive *.test.ts. shipwright_bloat_baseline.json not modified (no ratchet; anti-ratchet hook clean). D09 is serial #9 with all predecessors merged, so the parallel-safety footprint contract has zero collision risk."
+          "evidence": "run-config-reader.ts 438 -> 431 (< 439 baseline current; the retry envelope shrank it, no ratchet); types/run-config-v2.ts 245 -> 297 (< 300, not baselined - the sanctioned parseRunMode home for reader-ceiling helpers); new cohesive run-config-reader.transient.test.ts 102 (< 300) instead of pushing run-config-reader.test.ts past 300 (campaign guardrail); useRunConfig.ts 45 -> 57; new useRunConfig.test.ts 54. Footprint deviations vs the spec's 4-file list: (a) types module - EXPLICITLY directed by the brief + spec Fix direction; (b) new transient test file - explicitly permitted when a footprint test hits the ceiling; (c) useContinuePipeline.test.ts - FORCED by AC3 (its pre-existing poll block asserted invalid->false, moved to useRunConfig.test.ts). Serial #10, deps/blocks none, D01-D09 merged -> no live parallel collision. shipwright_bloat_baseline.json unchanged."
         }
       ],
       "counts": {
