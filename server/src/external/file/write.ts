@@ -21,6 +21,7 @@
  *
  * Status codes:
  *   400 traversal / absolute / null-byte / missing path / missing If-Match / not-a-file
+ *   403 symlink_forbidden — the target's final path component is a symlink (F09)
  *   404 missing project / missing target file
  *   409 fingerprint_mismatch (If-Match != current content hash)
  *   413 body over MARKDOWN_WRITE_MAX_BYTES (Content-Length precheck AND byte-accurate post-read)
@@ -35,7 +36,7 @@ import {
   renameSync,
   unlinkSync,
   existsSync,
-  statSync,
+  lstatSync,
 } from "node:fs";
 import { dirname, extname, join } from "node:path";
 
@@ -50,10 +51,21 @@ import {
 
 export interface MarkdownWriteDeps {
   getProjectById?: (id: string) => ExternalRouteProjectView | undefined;
+  /**
+   * Injectable `lstat` for the symlink-escape guard (F09), defaulting to
+   * node:fs `lstatSync`. This is a deliberate test seam: file symlinks
+   * cannot be created without elevation (admin / Developer Mode) on Windows
+   * dev hosts, so the guard's rejection branch would otherwise be untestable
+   * there. A fake that reports `isSymbolicLink() === true` gives
+   * deterministic, cross-platform coverage; Linux CI additionally exercises
+   * the real-symlink path end-to-end.
+   */
+  lstatSync?: (path: string) => { isSymbolicLink(): boolean; isFile(): boolean };
 }
 
 export function registerMarkdownWrite(app: Hono, deps: MarkdownWriteDeps): void {
   const { getProjectById } = deps;
+  const lstat = deps.lstatSync ?? ((p: string) => lstatSync(p));
 
   app.put("/api/external/projects/:projectId/file", async (c) => {
     const projectId = c.req.param("projectId");
@@ -106,10 +118,25 @@ export function registerMarkdownWrite(app: Hono, deps: MarkdownWriteDeps): void 
       );
     }
 
-    // Target must already exist + be a regular file.
-    let st;
+    // Target must already exist, must NOT be a symlink at its final path
+    // component, and must be a regular file. lstat does NOT follow the final
+    // component (statSync would), so a `.md`-named symlink is caught HERE.
+    //
+    // F09: the extension allowlist above is checked on the REQUEST path — the
+    // symlink's NAME. A within-root symlink whose target is a non-markdown
+    // file (`notes.md -> shipwright_run_config.json`, `-> package.json`,
+    // `-> scripts/<build-script>`) passes that allowlist AND the realpath
+    // CONTAINMENT check below (the target is inside the root), yet a follow-
+    // through write would land on the target — defeating the markdown-only
+    // write boundary and the read-only run-config invariant (DO-NOT #12),
+    // up to code-execution via a build-script / git-hook target. There is no
+    // legitimate write-through-symlink case on this Phase-1 edit-existing-doc
+    // surface, so we reject any final-component symlink outright with a
+    // distinct 403 (CLAUDE.md rule 10). realPathGuard below is retained as
+    // defense-in-depth for a PARENT-directory symlink that escapes the root.
+    let lst;
     try {
-      st = statSync(guard.absolute);
+      lst = lstat(guard.absolute);
     } catch (err) {
       const code = (err as NodeJS.ErrnoException)?.code;
       if (code === "ENOENT") {
@@ -120,16 +147,29 @@ export function registerMarkdownWrite(app: Hono, deps: MarkdownWriteDeps): void 
         500,
       );
     }
-    if (!st.isFile()) {
+    if (lst.isSymbolicLink()) {
+      return c.json({ error: "symlink_forbidden", path: relpath }, 403);
+    }
+    if (!lst.isFile()) {
       return c.json({ error: "not_a_file", path: relpath }, 400);
     }
 
-    // Symlink-escape defense — realpath re-check now that the target exists.
+    // Defense-in-depth — realpath re-check catches a parent-directory symlink
+    // that escapes the root (the final component is already known non-symlink).
     const realGuard = realPathGuard(project.path, guard.absolute);
     if (!realGuard.ok) {
       return c.json({ error: "path_traversal", detail: realGuard.reason }, 400);
     }
-    const target = realGuard.absolute;
+    // TOCTOU hardening (external review, F09): read + rename through the
+    // REQUESTED path, not the realpath. renameSync replaces the final
+    // directory entry and NEVER dereferences a symlink AT that entry, so even
+    // if the final component is swapped to a symlink in the window between the
+    // lstat check above and the rename below, the write lands on (replaces)
+    // the entry itself and can never redirect through the link to its target.
+    // realGuard above still gates containment (a parent-dir symlink escaping
+    // the root is rejected); for a valid non-symlink target it resolves to the
+    // same file, so this is behavior-preserving in the normal case.
+    const target = guard.absolute;
 
     // Optimistic concurrency: hash the CURRENT on-disk bytes and compare to the
     // caller's If-Match. Missing precondition is a hard 400 (never blind-write).
