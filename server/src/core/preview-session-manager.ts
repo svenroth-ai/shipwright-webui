@@ -27,9 +27,16 @@ import {
   type ChildProcessWithoutNullStreams,
 } from "node:child_process";
 import { randomUUID, createHash } from "node:crypto";
-import { createServer } from "node:net";
 import { parse as shellParse } from "shell-quote";
 import { resolveSpawn, splitWin32Command } from "./preview-win32-spawn.js";
+import {
+  drainStdio,
+  treeKill,
+  awaitExit,
+  defaultProbePort,
+  defaultProbeReady,
+  type TreeKillDeps,
+} from "./preview-child-lifecycle.js";
 
 export interface PreviewProfile {
   dev_server?: {
@@ -98,19 +105,25 @@ export class PreviewPortInUseError extends Error {
 
 export class PreviewExitedEarlyError extends Error {
   readonly code: number | null;
-  constructor(code: number | null) {
+  /** Captured tail of the child's stdout/stderr (F11 diagnostic). */
+  readonly tail: string;
+  constructor(code: number | null, tail = "") {
     super(`Preview process exited early (code=${code})`);
     this.name = "PreviewExitedEarlyError";
     this.code = code;
+    this.tail = tail;
   }
 }
 
 export class PreviewTimeoutError extends Error {
   readonly seconds: number;
-  constructor(seconds: number) {
+  /** Captured tail of the child's stdout/stderr (F11 diagnostic). */
+  readonly tail: string;
+  constructor(seconds: number, tail = "") {
     super(`Preview ready timeout after ${seconds}s`);
     this.name = "PreviewTimeoutError";
     this.seconds = seconds;
+    this.tail = tail;
   }
 }
 
@@ -134,63 +147,21 @@ function sanitizeEnv(base: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   return out;
 }
 
-async function defaultProbePort(port: number): Promise<boolean> {
-  // `free` = we could create + bind a server on that port right now.
-  return await new Promise((resolve) => {
-    const server = createServer();
-    server.once("error", () => resolve(false));
-    server.once("listening", () => {
-      server.close(() => resolve(true));
-    });
-    try {
-      server.listen(port, "127.0.0.1");
-    } catch {
-      resolve(false);
-    }
-  });
-}
-
-/**
- * Defense: a malicious profile file could set ready_path to something
- * like `@evil.com/` which, when concatenated into the URL string, would
- * redirect the readiness probe off-host. We build the URL via the URL
- * constructor and assert the resolved host is 127.0.0.1 before fetching.
- */
-function buildReadyUrl(port: number, readyPath: string): URL | null {
-  try {
-    const base = new URL(`http://127.0.0.1:${port}/`);
-    // Treat readyPath as a pathname+search segment. Strip any leading
-    // authority / scheme characters so a malicious string can't smuggle
-    // another host through the URL constructor.
-    const clean = readyPath.replace(/^[/@]+/, "/").trim() || "/";
-    const url = new URL(clean, base);
-    if (url.hostname !== "127.0.0.1") return null;
-    if (url.port !== String(port)) return null;
-    return url;
-  } catch {
-    return null;
-  }
-}
-
-async function defaultProbeReady(args: {
-  port: number;
-  readyPath: string;
-  signal: AbortSignal;
-}): Promise<boolean> {
-  const url = buildReadyUrl(args.port, args.readyPath);
-  if (!url) return false;
-  try {
-    const res = await fetch(url.toString(), { signal: args.signal });
-    // Any HTTP response at all (even 404) proves the server bound the port
-    // and is routable. Vite's default index sometimes 404s on `/`.
-    return res.status >= 0;
-  } catch {
-    return false;
-  }
+/** Lifecycle deps (test seams for tree-kill + respawn exit-wait). */
+export interface PreviewLifecycleDeps extends TreeKillDeps {
+  /** Bounded wait (ms) for an old child to exit before a respawn port probe. */
+  awaitExitMs?: number;
 }
 
 export class PreviewSessionManager {
   private entries = new Map<string, PreviewEntry>();
+  /** In-flight spawns keyed by projectId — dedup for concurrent clicks (F12). */
+  private inFlight = new Map<
+    string,
+    { hash: string; promise: Promise<PreviewEntry> }
+  >();
+
+  constructor(private readonly lifecycle: PreviewLifecycleDeps = {}) {}
 
   /**
    * Validate + tokenize a dev command. Exposed for tests and for the
@@ -251,26 +222,49 @@ export class PreviewSessionManager {
     profile: PreviewProfile,
     opts: PreviewSpawnOptions,
   ): Promise<PreviewEntry> {
+    const profileHash = hashProfile(profile);
+    // In-flight dedup (F12): same-profile concurrent spawns coalesce onto the
+    // pending child; a different profile serializes then respawns (no orphan).
+    const inflight = this.inFlight.get(projectId);
+    if (inflight?.hash === profileHash) return inflight.promise;
+    if (inflight) {
+      await inflight.promise.catch(() => undefined);
+      return this.spawn(projectId, profile, opts);
+    }
+
+    const promise = this.doSpawn(projectId, profile, profileHash, opts);
+    this.inFlight.set(projectId, { hash: profileHash, promise });
+    try {
+      return await promise;
+    } finally {
+      if (this.inFlight.get(projectId)?.promise === promise) {
+        this.inFlight.delete(projectId);
+      }
+    }
+  }
+
+  private async doSpawn(
+    projectId: string,
+    profile: PreviewProfile,
+    profileHash: string,
+    opts: PreviewSpawnOptions,
+  ): Promise<PreviewEntry> {
     const spawnFn = opts.spawn ?? realSpawn;
     const probePort = opts.probePort ?? defaultProbePort;
     const probeReady = opts.probeReady ?? defaultProbeReady;
     const now = opts.now ?? (() => Date.now());
-
-    const profileHash = hashProfile(profile);
 
     // Dedup: live entry with matching profile hash → return cached.
     const cached = this.get(projectId);
     if (cached && cached.profileHash === profileHash) {
       return cached;
     }
-    // Profile changed under us — kill the old child so we can respawn.
+    // Profile changed under us — tree-kill the old child (npm + grandchildren)
+    // and WAIT for it to exit (release its port) before we probe/respawn (F13).
     if (cached) {
-      try {
-        cached.child.kill("SIGTERM");
-      } catch {
-        // ignore
-      }
+      treeKill(cached.child, "SIGTERM", this.lifecycle);
       this.entries.delete(projectId);
+      await awaitExit(cached.child, this.lifecycle.awaitExitMs);
     }
 
     const argv = PreviewSessionManager.tokenizeCommand(
@@ -294,7 +288,10 @@ export class PreviewSessionManager {
         cwd: opts.cwd,
         env: opts.env ?? sanitizeEnv(process.env),
         shell: false,
-        detached: false,
+        // POSIX: lead our own group so treeKill can kill(-pid) the whole
+        // npm→sh→node tree (win32: taskkill /T). Same effective platform as
+        // treeKill, so spawn/kill agree on whether a group exists (F13).
+        detached: (this.lifecycle.platform ?? process.platform) !== "win32",
         stdio: "pipe",
         windowsVerbatimArguments: resolved.windowsVerbatimArguments,
       }) as ChildProcessWithoutNullStreams;
@@ -305,6 +302,10 @@ export class PreviewSessionManager {
           : String(err).slice(0, 200);
       throw new PreviewSpawnFailedError(detail);
     }
+
+    // Continuously drain stdout/stderr so a full OS pipe buffer can't freeze
+    // the dev server (F11); retain a bounded tail for the diagnostics below.
+    const drained = drainStdio(child);
 
     // Spawn-time error event can still fire after the constructor returned
     // (e.g. Windows sometimes reports ENOENT asynchronously). Race it
@@ -318,7 +319,7 @@ export class PreviewSessionManager {
         reject(new PreviewSpawnFailedError(detail));
       });
       child.once("exit", (code) => {
-        reject(new PreviewExitedEarlyError(code));
+        reject(new PreviewExitedEarlyError(code, drained.tail()));
       });
     });
 
@@ -339,23 +340,24 @@ export class PreviewSessionManager {
         }
         await new Promise((r) => setTimeout(r, 500));
       }
-      throw new PreviewTimeoutError(readyTimeoutSec);
+      throw new PreviewTimeoutError(readyTimeoutSec, drained.tail());
     })();
 
     try {
       await Promise.race([readinessPoll, earlyExit]);
     } catch (err) {
-      // Whatever happened, we don't want the child sitting around.
+      // Tree-kill on cleanup too: the child is spawned detached (POSIX), so a
+      // plain child.kill would orphan its grandchildren (F13). An ESRCH on an
+      // already-exited child is swallowed inside treeKill.
       readyAbort.abort();
-      try {
-        child.kill("SIGTERM");
-      } catch {
-        // ignore
-      }
+      treeKill(child, "SIGTERM", this.lifecycle);
       throw err;
     }
 
     readyAbort.abort();
+    // Readiness won; the child's later exit must not surface as an unhandled
+    // rejection through the (now-settled) earlyExit race loser.
+    void earlyExit.catch(() => {});
 
     const entry: PreviewEntry = {
       projectId,
@@ -376,12 +378,9 @@ export class PreviewSessionManager {
   }
 
   killAll(): void {
+    // Tree-kill every child so npm's grandchildren die with it (F13).
     for (const entry of this.entries.values()) {
-      try {
-        entry.child.kill("SIGTERM");
-      } catch {
-        // ignore
-      }
+      treeKill(entry.child, "SIGTERM", this.lifecycle);
     }
     this.entries.clear();
   }
