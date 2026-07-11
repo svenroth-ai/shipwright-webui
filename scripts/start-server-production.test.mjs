@@ -124,3 +124,111 @@ test('every npm install runs BEFORE the server-kill (a failed install leaves the
       'aborts while the currently running server is still untouched (ORDER MATTERS contract).',
   );
 });
+
+// --- $PORT / .sh parity (campaign webui-deep-audit D14, F35) ---------------
+// The .sh twin (start-server-production.sh) derives PORT once with
+// PORT="${PORT:-3847}" and uses it for the kill sweep, the launch env, the
+// readiness poll, and every operator message. The .ps1 hardcoded 3847 for the
+// kill sweep + readiness poll, so a Windows operator on a custom PORT (a
+// documented env override; repo-root .env.local can carry it) left the OLD
+// server on the custom port alive, hit EADDRINUSE on the new one, and got a
+// wrong "did NOT come up on port 3847" diagnosis. Pin the parity.
+const codeLines = lines.filter((l) => !isComment(l));
+const localPortLines = codeLines.filter((l) =>
+  /Get-NetTCPConnection\s+-LocalPort/i.test(l),
+);
+
+test('derives the port from $env:PORT with a 3847 default (parity with the .sh PORT="${PORT:-3847}")', () => {
+  const derives = codeLines.some(
+    (l) => /\$env:PORT/.test(l) && /\b3847\b/.test(l),
+  );
+  assert.ok(
+    derives,
+    'expected a port variable derived from $env:PORT that defaults to 3847 — ' +
+      'the .ps1 parallel of the .sh twin PORT="${PORT:-3847}".',
+  );
+});
+
+test('every Get-NetTCPConnection kill/poll targets the port variable, not a hardcoded 3847 (RED on pre-fix main)', () => {
+  assert.ok(
+    localPortLines.length >= 2,
+    `expected >= 2 -LocalPort lines (the kill sweep + the readiness poll), found ${localPortLines.length}`,
+  );
+  for (const l of localPortLines) {
+    assert.match(
+      l,
+      /-LocalPort\s+\$\w+/i,
+      `-LocalPort must reference the derived port variable: ${l.trim()}`,
+    );
+    assert.doesNotMatch(
+      l,
+      /-LocalPort\s+3847\b/,
+      `-LocalPort must not hardcode 3847: ${l.trim()}`,
+    );
+  }
+});
+
+test('the launched server env carries the resolved PORT (parity with the .sh PORT="$PORT" node prefix)', () => {
+  // The inner cmd must scope PORT to the CHILD (`set "PORT=$Port"&& node ...`),
+  // not mutate the script's own $env:PORT — mirrors the .sh PORT="$PORT" prefix
+  // and avoids leaking into a dot-sourcing operator's shell.
+  const setsEnv = codeLines.some((l) => /PORT=\$Port\b/.test(l));
+  assert.ok(
+    setsEnv,
+    'expected the resolved port passed to the launched node child (e.g. ' +
+      '`set "PORT=$Port"&& node ...`) so it reaches node — mirrors the .sh ' +
+      'PORT="$PORT" prefix.',
+  );
+});
+
+test('the "did NOT come up on port" failure message references the port variable, not a literal 3847 (RED on pre-fix main)', () => {
+  // AC1 requires the SAME resolved port in EVERY operator message, not just the
+  // kill/poll. A hardcoded "port 3847" here misdiagnoses a custom-PORT run.
+  const failLine =
+    codeLines.find((l) => /did NOT come up on port/i.test(l)) ?? '';
+  assert.ok(failLine, 'expected a "did NOT come up on port" failure message');
+  assert.match(
+    failLine,
+    /\$Port\b/,
+    'the failure message must interpolate the derived $Port variable.',
+  );
+  assert.doesNotMatch(
+    failLine,
+    /port 3847\b/,
+    'the failure message must not name a hardcoded port 3847.',
+  );
+});
+
+test('one SINGLE variable ($Port) is derived from $env:PORT and reused in every sink (kill/launch/poll/message)', () => {
+  // Guards the openai code-review concern: structural checks could pass if the
+  // script derived $Port but then used a DIFFERENT variable in one sink. Pin the
+  // exact name — derivation + both -LocalPort lines + the launch child env + the
+  // failure message must all reference $Port.
+  const usesPort = (re) => codeLines.some((l) => re.test(l));
+  assert.ok(
+    usesPort(/\$Port\s*=\s*if\s*\(\s*\$env:PORT/i),
+    'expected `$Port = if ($env:PORT ...` derivation',
+  );
+  for (const l of localPortLines) {
+    assert.match(l, /-LocalPort\s+\$Port\b/i, `-LocalPort must use $Port: ${l.trim()}`);
+  }
+  assert.ok(
+    usesPort(/set\b[^\n]*PORT=\$Port\b/i),
+    'launch child env (`set "PORT=$Port"&& node ...`) must use $Port',
+  );
+  assert.ok(
+    usesPort(/did NOT come up on port \$Port\b/i),
+    'the failure message must use $Port',
+  );
+});
+
+test('no stray hardcoded 3847 on a code line (only the $env:PORT default derivation keeps it)', () => {
+  const strays = codeLines
+    .filter((l) => /\b3847\b/.test(l) && !/\$env:PORT/.test(l))
+    .map((l) => l.trim());
+  assert.deepEqual(
+    strays,
+    [],
+    `no 3847 literal may appear outside the $env:PORT default derivation; found: ${JSON.stringify(strays)}`,
+  );
+});
