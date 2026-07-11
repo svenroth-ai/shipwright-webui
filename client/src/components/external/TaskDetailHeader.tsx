@@ -17,7 +17,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 
 import type { ExternalTask } from "../../lib/externalApi";
-import { useTaskTranscript } from "../../hooks/useTaskTranscript";
 import { useProjects } from "../../hooks/useProjects";
 import { useDeleteExternalTask } from "../../hooks/useExternalTasks";
 import { formatRelativeTime } from "../../lib/formatTime";
@@ -51,11 +50,14 @@ function ctaFor(
 
 interface Props {
   task: ExternalTask;
+  /** Model label sourced from TaskDetailPage's single transcript poller
+   *  (campaign D15 / F22). The header no longer mounts its own poller just
+   *  to regex the model name — that doubled full-JSONL disk reads per tab. */
+  modelName?: string | null;
 }
 
-export function TaskDetailHeader({ task }: Props) {
+export function TaskDetailHeader({ task, modelName }: Props) {
   const projectsQ = useProjects();
-  const transcript = useTaskTranscript(task.taskId);
   const deleteMut = useDeleteExternalTask();
   const navigate = useNavigate();
   // iterate-2026-06-20 AC-1 — on a phone the breadcrumb + meta sub-line are
@@ -102,18 +104,6 @@ export function TaskDetailHeader({ task }: Props) {
   const lastEventAt = task.lastJsonlSeenMtimeMs
     ? new Date(task.lastJsonlSeenMtimeMs).toISOString()
     : undefined;
-
-  // Best-effort model name from the most recent `"model":"..."` in transcript.
-  const modelName = useMemo<string | null>(() => {
-    if (!transcript.content) return null;
-    const re = /"model"\s*:\s*"([^"]+)"/g;
-    let last: string | null = null;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(transcript.content)) !== null) {
-      last = m[1];
-    }
-    return last;
-  }, [transcript.content]);
 
   const handleRename = useCallback(() => titleRef.current?.startEdit(), []);
 

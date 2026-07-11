@@ -458,7 +458,7 @@ function TaskDetailPageBody() {
       data-testid="task-detail-page"
       style={{ background: "var(--color-bg, #f5f0eb)" }}
     >
-      <TaskDetailHeader task={task} />
+      <TaskDetailHeader task={task} modelName={transcript.modelName} />
 
       <div className="min-h-0 flex-1">
         <TaskDetailThreePane
