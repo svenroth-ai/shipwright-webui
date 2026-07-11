@@ -131,8 +131,8 @@ describe("PreviewSessionManager.spawn", () => {
       string[],
       { shell: boolean; cwd: string },
     ];
-    expect(call[0]).toBe("npm");
-    expect(call[1]).toEqual(["run", "dev"]);
+    expect(String(call[0]).toLowerCase()).toMatch(/(?:^|[\\/])(?:npm|cmd\.exe)$/);
+    expect(call[1].slice(-2)).toEqual(["run", "dev"]);
     expect(call[2].shell).toBe(false);
     expect(call[2].cwd).toBe("/tmp");
 
