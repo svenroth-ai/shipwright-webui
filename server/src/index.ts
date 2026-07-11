@@ -208,14 +208,14 @@ if (isMainModule) {
         mkdirSync: (p: string, o?: { recursive: boolean }) => fs.mkdirSync(p, o),
         lock: lockPath,
         ensureFile: ensureFileExists,
+        // F08 — atomic tmp+rename for the merge-under-lock persist path.
+        rename: (from: string, to: string) => fs.promises.rename(from, to),
         getKnownProjectIds: () => new Set(projectManager.getAll().filter((p) => !p.synthesized).map((p) => p.id)),
       };
       const sdkSessionsStore = new SdkSessionsStore(sdkSessionsPath, sdkSessionsDeps);
       await sdkSessionsStore.load();
 
-      // Late-bind getTaskProjectIds on the already-constructed
-      // projectManager — its deps shape is public (mutable fields), so we
-      // append here rather than threading through constructor args above.
+      // Late-bind getTaskProjectIds — projectManager.deps is public (mutable), so append here.
       (projectManager as unknown as { deps: { getTaskProjectIds: () => Set<string> } }).deps.getTaskProjectIds =
         () => new Set(sdkSessionsStore.list().map((t) => t.projectId));
 

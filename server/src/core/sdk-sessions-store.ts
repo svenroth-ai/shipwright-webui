@@ -1,63 +1,36 @@
 /*
  * Persisted store for external-launch task metadata.
  *
- * Shape (on disk, `<registryDir>/sdk-sessions.json`):
- *   {
- *     schemaVersion: 4,
- *     sessions: {
- *       [taskId]: {
- *         taskId,
- *         sessionUuid,
- *         cwd,
- *         pluginDirs,
- *         parentTaskId?,
- *         parentSessionUuid?,
- *         state,               // see PocTaskState below
- *         title,
- *         projectId,           // v2 (iterate 3 section 02) — "unassigned" reserved
- *         phaseTaskId?,        // v3 — links shadow to a run-config phase_task
- *         runId?,              // v3 — owning run
- *         parentRunMaster?,    // v3 — true iff the shadow represents the master conv
- *         createdAt,
- *         launchedAt?,
- *         firstJsonlObservedAt?,
- *         lastJsonlSeenMtimeMs?,
- *         inbox: { pendingToolUseIds: string[], dismissedToolUseIds: string[], lastProcessedByteOffset: number },
- *       }
- *     }
- *   }
+ * On disk at `<registryDir>/sdk-sessions.json`: { schemaVersion: 4, sessions:
+ * { [taskId]: ExternalTask } } — see the SdkSessionsFile + ExternalTask
+ * interfaces below for the full row shape.
  *
  * Schema migration (ADR-038 + -v2 + iterate-2026-06-17 boardColumn):
- * CURRENT_SCHEMA_VERSION = 4. The loader accepts v1–v4 on disk.
- * v1 rows are backfilled with `projectId: "unassigned"` in memory; older
- * rows load with newer fields undefined. Write-on-touch — the first
- * persist() after any mutation flushes the whole shape as v4. This keeps
- * the migration incremental — large stores migrate over days of normal
- * use rather than on boot, and rollback is a one-line constant revert.
+ * CURRENT_SCHEMA_VERSION = 4; the loader accepts v1–v4. v1 rows backfill
+ * `projectId: "unassigned"`; older rows load with newer fields undefined.
+ * Write-on-touch — the first persist() after a mutation flushes the whole
+ * shape as v4, so large stores migrate over days of use (not on boot) and
+ * rollback is a one-line constant revert.
+ * O26 (deleted project refs): if `getKnownProjectIds` is injected, v2 rows
+ * whose projectId is unknown resolve to "unassigned" in memory + next persist.
+ * O25 (forward compat): the v1 branch tolerates an unknown projectId field so
+ * older binaries don't crash on a v2-ish row tagged v1 (partial rollback).
  *
- * O26 (deleted project references): if a dep `getKnownProjectIds` is
- * injected, v2 rows whose projectId is not in the known set resolve
- * to "unassigned" in memory and on the next persist. Keeps the task
- * store coherent with projects.json without a separate reconcile job.
+ * Writes are guarded by proper-lockfile (injected lock dep). F08 — persist()
+ * re-reads + 3-way merges under that lock and writes atomically (tmp+rename)
+ * so concurrent instances sharing the file never clobber each other's rows /
+ * externally-written claim fields (see sdk-sessions-merge.ts). Reads are
+ * unguarded — dirty reads (post-write, pre-flush) are acceptable.
  *
- * O25 (forward compat): the v1 branch tolerates an unknown projectId
- * field — older binaries don't crash when faced with a v2-ish row
- * tagged v1 (e.g. after a partial rollback).
- *
- * Writes are guarded by proper-lockfile (via injected lock dep). Reads
- * are unguarded — the store is consulted on every request, and dirty
- * reads (post-write, pre-flush) are acceptable since we persist the
- * full shape atomically.
- *
- * Corruption tolerance: a malformed entry fails ONLY its own read, not
- * the whole file. We deliberately soft-skip entries that fail schema
- * validation rather than throwing, because a single bad row shouldn't
- * knock out every other session on restart (round-2 GPT MAJOR 6).
+ * Corruption tolerance: a malformed entry fails ONLY its own read — we
+ * soft-skip rows that fail schema validation rather than throwing, so one bad
+ * row can't kill every other session on restart (round-2 GPT MAJOR 6).
  */
 
 import { randomUUID } from "node:crypto";
 
 import { type BoardColumn, isBoardColumn } from "./board-column.js";
+import { cloneSessions, mergeSessions } from "./sdk-sessions-merge.js";
 
 export type ExternalTaskState =
   | "draft"
@@ -226,6 +199,8 @@ export interface SdkSessionsStoreDeps {
   lock?: (path: string) => Promise<() => Promise<void>>;
   /** Creates an empty file if missing (proper-lockfile requires lstat). */
   ensureFile: (path: string) => void;
+  /** Optional atomic rename (default `fs.promises.rename`); omitted in unit doubles. */
+  rename?: (from: string, to: string) => Promise<void>;
   /**
    * Optional — section 02 O26. If provided, v2-loaded rows whose
    * projectId is not in this set are resolved to UNASSIGNED_PROJECT_ID
@@ -241,6 +216,8 @@ export class SdkSessionsStore {
   private readonly path: string;
   private readonly deps: SdkSessionsStoreDeps;
   private sessions = new Map<string, ExternalTask>();
+  /** Deep-copy of `sessions` at load()/last-persist — the 3-way merge base (F08). */
+  private baseline = new Map<string, ExternalTask>();
   private loaded = false;
 
   constructor(path: string, deps: SdkSessionsStoreDeps) {
@@ -317,9 +294,14 @@ export class SdkSessionsStore {
       if (task) this.sessions.set(taskId, task);
     }
 
-    // O26: resolve stale projectId references to UNASSIGNED. Only runs when
-    // the wiring provides a known-project-id set (production has it; unit
-    // tests typically don't — which is fine, they test the pre-resolve shape).
+    // Baseline = RAW on-disk rows (pre-O26). O26 below is a local change this
+    // instance makes, so it must read as a diff the merge propagates — else
+    // persist would take disk's stale projectId back and O26 never reaches disk (F08).
+    this.baseline = cloneSessions(this.sessions);
+
+    // O26: resolve stale projectId references to UNASSIGNED. Only runs when the
+    // wiring provides a known-project-id set (production has it; unit tests
+    // typically don't — fine, they test the pre-resolve shape).
     if (this.deps.getKnownProjectIds) {
       const known = this.deps.getKnownProjectIds();
       for (const task of this.sessions.values()) {
@@ -436,19 +418,16 @@ export class SdkSessionsStore {
     if (typeof args.parentRunMaster === "boolean") {
       task.parentRunMaster = args.parentRunMaster;
     }
-    // iterate-2026-05-14 lead-foundation: only assign when the caller
-    // actually passed the field, so omitted fields stay absent (not
-    // present-as-undefined) in the in-memory record. The dropUndefined
-    // pass in persist() then keeps the JSON file quiet.
+    // iterate-2026-05-14 lead-foundation: assign only when the caller passed
+    // the field, so omitted fields stay absent (JSON.stringify drops the rest).
     if (typeof args.domain === "string") task.domain = args.domain;
     if (args.priority) task.priority = args.priority;
     if (args.complexityHint) task.complexityHint = args.complexityHint;
     if (Array.isArray(args.tags)) task.tags = args.tags;
     if (Array.isArray(args.blockedBy)) task.blockedBy = args.blockedBy;
-    // iterate-2026-05-14 triage-tab (ADR-101): back-ref to the upstream
-    // triage item that the operator promoted. Set ONLY by the
-    // /api/triage/:projectId/promote route (NOT exposed to public POST
-    // /api/external/tasks); the daemon-only-fields pattern from ADR-100.
+    // iterate-2026-05-14 triage-tab (ADR-101): back-ref to the promoted triage
+    // item. Set ONLY by /api/triage/:projectId/promote (not public POST
+    // /api/external/tasks); daemon-only-fields pattern from ADR-100.
     if (typeof args.promotedFromTriageId === "string") {
       task.promotedFromTriageId = args.promotedFromTriageId;
     }
@@ -458,12 +437,9 @@ export class SdkSessionsStore {
 
   /**
    * v3 — find an existing non-terminal task by `phaseTaskId`. Used by the
-   * create-task route to make Continue Pipeline launches idempotent: a
-   * second click on the same phase_task should reuse the prior shadow
-   * rather than create a duplicate (review O #6).
-   *
-   * Returns the first match (there should only ever be one non-terminal
-   * shadow per phase_task; defensive against duplicates).
+   * create-task route to make Continue Pipeline launches idempotent: a second
+   * click on the same phase_task reuses the prior shadow (review O #6). Returns
+   * the first match (only one non-terminal shadow per phase_task; defensive).
    */
   findByPhaseTaskId(phaseTaskId: string): ExternalTask | undefined {
     for (const t of this.sessions.values()) {
@@ -514,9 +490,8 @@ export class SdkSessionsStore {
   }
 
   /**
-   * Atomically persist the current in-memory state to disk. Guarded by the
-   * injected lock if provided. Callers should `await persist()` after any
-   * mutation that matters for a later server restart.
+   * Merge this instance's changes under the injected lock (see F08 note in the
+   * file header) and atomically flush to disk. `await` after any mutation.
    */
   async persist(): Promise<void> {
     // Ensure parent dir + file exist before locking (proper-lockfile lstats).
@@ -527,15 +502,38 @@ export class SdkSessionsStore {
     }
     this.deps.ensureFile(this.path);
 
-    const payload: SdkSessionsFile = {
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      sessions: Object.fromEntries(this.sessions),
-    };
-    const serialized = JSON.stringify(payload, null, 2);
-
     const release = this.deps.lock ? await this.deps.lock(this.path) : null;
     try {
-      await this.deps.writeFile(this.path, serialized);
+      // F08 — UNDER the lock, re-read the shared file (throwaway loader reuses
+      // the exact parse/validate path; getKnownProjectIds omitted → no O26, so
+      // foreign projectIds stay verbatim) and 3-way merge against the baseline
+      // snapshot: a concurrent INSTANCE's rows + externally written claim fields
+      // survive, only fields THIS instance changed win. No lock ⇒ no cross-process
+      // coordination is possible and a stale re-read would clobber same-process
+      // concurrent writers, so write memory directly (last-write-wins).
+      if (release) {
+        const diskStore = new SdkSessionsStore(this.path, {
+          ...this.deps,
+          getKnownProjectIds: undefined,
+        });
+        await diskStore.load();
+        const disk = new Map(diskStore.list().map((t) => [t.taskId, t] as const));
+        this.sessions = mergeSessions(this.baseline, this.sessions, disk);
+        this.baseline = cloneSessions(this.sessions);
+      }
+
+      const payload: SdkSessionsFile = {
+        schemaVersion: CURRENT_SCHEMA_VERSION,
+        sessions: Object.fromEntries(this.sessions),
+      };
+      const serialized = JSON.stringify(payload, null, 2);
+      // Atomic write: the temp write absorbs a mid-write crash (the live file is
+      // never truncated); rename swaps it in. Doubles omit `rename` → in-place
+      // write of the SAME payload.
+      const tmp = `${this.path}.tmp-${randomUUID()}`;
+      await this.deps.writeFile(tmp, serialized);
+      if (this.deps.rename) await this.deps.rename(tmp, this.path);
+      else await this.deps.writeFile(this.path, serialized);
     } finally {
       if (release) await release();
     }
