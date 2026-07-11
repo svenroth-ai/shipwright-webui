@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-snapshot-tmp-sweep",
+  "date": "2026-07-11T19:26:00.000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D19-snapshot-tmp-sweep",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D19-snapshot-tmp-sweep.md",
+  "adr": "iterate-2026-07-10-snapshot-tmp-sweep"
+}

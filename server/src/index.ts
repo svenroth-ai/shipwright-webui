@@ -64,6 +64,7 @@ import {
 import { ScrollbackStore } from "./terminal/scrollback-store.js";
 import { SnapshotStore } from "./terminal/snapshot-store.js";
 import { runBootWipe } from "./terminal/boot-wipe.js";
+import { sweepOrphanSnapshotTmp } from "./terminal/snapshot-tmp-sweep.js";
 import { probeHeadlessDeps } from "./terminal/headless-probe.js";
 import { createNodeWebSocket } from "@hono/node-ws";
 
@@ -391,6 +392,7 @@ if (isMainModule) {
           // D01/F01 — tear down each doomed task's live pty before its clears.
           ptyKillBestEffort: (t) => ptyManager.kill(t),
           scrollbackClearBestEffort: (t) => scrollbackStore.clearBestEffort(t),
+          // D19/F26 — clearBestEffort → clear() now also sweeps `.snapshot.tmp-*`.
           snapshotClearBestEffort: (t) => snapshotStore.clearBestEffort(t),
         })));
 
@@ -489,6 +491,7 @@ if (isMainModule) {
           }),
         );
       }
+      await sweepOrphanSnapshotTmp({ dir: config.terminalScrollbackDir }).catch(() => {});
       // Daily periodic sweep. setInterval is unref'd so it doesn't keep the
       // event loop alive past graceful shutdown.
       const dailySweepTimer = setInterval(() => {
@@ -506,6 +509,7 @@ if (isMainModule) {
               }),
             );
           });
+        void sweepOrphanSnapshotTmp({ dir: config.terminalScrollbackDir }).catch(() => {});
       }, 24 * 60 * 60 * 1000);
       dailySweepTimer.unref();
 
@@ -544,7 +548,8 @@ if (isMainModule) {
           scrollbackClearBestEffort: (taskId: string) =>
             scrollbackStore.clearBestEffort(taskId),
           // Iterate C (ADR-087, MEDIUM-B1): cascade-clean the cell-state
-          // snapshot on DELETE (may contain secrets; delete = privacy boundary).
+          // snapshot on DELETE (secrets; privacy boundary). D19/F26: clear()
+          // also sweeps the task's orphaned `.snapshot.tmp-*` strays.
           snapshotClearBestEffort: (taskId: string) =>
             snapshotStore.clearBestEffort(taskId),
           // iterate-2026-05-08 v0.8.7 AC-1: live-pty lookup so transcript

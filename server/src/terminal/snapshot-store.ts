@@ -54,6 +54,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
 import PQueue from "p-queue";
+import { clearTaskSnapshotTmp } from "./snapshot-tmp-sweep.js";
 
 // Pinned terminal-emulator version that produced the snapshot payload.
 // Sourced from @xterm/headless's package.json at module load. We do NOT
@@ -170,23 +171,16 @@ export class SnapshotStore {
   private readonly renameFn: SnapshotRenameFn;
   private resolvedDir: string | null = null;
   /**
-   * Iterate B (close MEDIUM-1 from A's code review) — per-task PQueue
-   * (concurrency=1) serializes all WRITE operations for the same taskId.
-   * Two simultaneous `write(taskId, …)` calls for the same task — possible
-   * under fast kill→respawn→kill cycles, test loops, or server-restart
-   * races — would otherwise collide on the tmp file path
-   * (`<taskId>.snapshot.tmp-<pid>-<ms>`), and one writer's `writeFile`
-   * could clobber the other's tmp file before its `rename` lands.
-   *
-   * Mirrors scrollback-store.ts's per-task queue pattern. Read/has/clear
-   * stay unqueued — they only touch the FINAL `<taskId>.snapshot` path,
-   * not the tmp staging path, and fs.rename is atomic against concurrent
-   * readers on every supported platform.
-   *
-   * The random suffix on the tmp path (crypto.randomBytes(4)) is a
-   * belt-AND-braces second defense: if a future iterate routes writes
-   * around the queue (e.g. cross-process), the suffix still rules out
-   * same-millisecond collision.
+   * Iterate B (MEDIUM-1) — per-task PQueue (concurrency=1) serializes all
+   * WRITE operations for the same taskId. Two simultaneous `write()`s (fast
+   * kill→respawn cycles, test loops, restart races) would otherwise collide
+   * on the tmp path `<taskId>.snapshot.tmp-<pid>-<ms>-<rand>` — one writer's
+   * writeFile clobbering the other's tmp before its rename lands. Mirrors
+   * scrollback-store's per-task queue. Read/has stay unqueued (they touch
+   * only the FINAL `.snapshot`; rename is atomic vs concurrent readers).
+   * clear() drains this queue (onIdle) BEFORE unlinking the final AND before
+   * sweeping tmp strays (D19/F26), so no live rename can race the wipe. The
+   * crypto.randomBytes(4) tmp suffix is a belt-AND-braces second defense.
    */
   private readonly writeQueues = new Map<string, PQueue>();
 
@@ -350,13 +344,16 @@ export class SnapshotStore {
   }
 
   /**
-   * Delete the snapshot file. Idempotent. D01/F05 — fence the write queue
-   * (await onIdle) BEFORE unlink (no ENOENT early-return) so a flush can't re-create it.
+   * Delete the snapshot file + any orphaned `<taskId>.snapshot.tmp-*` strays.
+   * Idempotent. D01/F05 — fence the write queue (await onIdle) BEFORE unlink so
+   * a flush can't re-create it. D19/F26 — the tmp sweep runs AFTER the fence
+   * (no live rename can race it) and REGARDLESS of the final's presence (an
+   * interrupted write leaves a tmp with no `.snapshot`).
    */
   async clear(taskId: string): Promise<void> {
     this.validateTaskId(taskId);
     // Fence first: drain any queued/in-flight write, then drop the queue
-    // ref (bounds the Map). The unlink below then wipes it for good.
+    // ref (bounds the Map). The unlinks below then wipe it for good.
     const q = this.writeQueues.get(taskId);
     if (q) {
       try {
@@ -366,13 +363,14 @@ export class SnapshotStore {
       }
       this.writeQueues.delete(taskId);
     }
+    const dir = await this.ensureDirResolved();
     const target = await this.resolveTargetPath(taskId);
     try {
       await fsAsync.unlink(target);
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === "ENOENT") return;
-      throw err;
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
     }
+    await clearTaskSnapshotTmp({ dir, taskId });
   }
 
   /**
