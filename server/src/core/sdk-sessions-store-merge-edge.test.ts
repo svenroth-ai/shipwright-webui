@@ -168,9 +168,15 @@ describe("Guard 1 (F08) — a cross-instance delete is honored, not resurrected 
   }, 15_000);
 });
 
-// ---------- Guard 2 (MEDIUM) — unreadable/future disk must not drop own rows ----------
+// ---------- Guard 2 (MEDIUM) — unreadable vs future-schema disk at re-read ----------
+//
+// Corrupt JSON has no salvageable foreign data → A's memory is authoritative,
+// full-write recover (GREEN fence on f013773). A FUTURE schemaVersion DOES hold
+// another (newer) instance's rows → a full-write would DOWNGRADE + destroy them,
+// so persist() must ABORT and leave the newer file untouched (REVISED — RED on
+// f013773, which currently downgrades).
 
-describe("Guard 2 (F08) — an unreadable or future-schema disk must not silently drop this instance's own rows [RED on 7216ac9]", () => {
+describe("Guard 2 (F08) — re-read recovery: corrupt→full-write, future-schema→ABORT [future RED on f013773]", () => {
   it("keeps A's untouched row when the on-disk file is corrupt JSON at re-read time", async () => {
     const file = makeTmpFile();
     const deps = realDeps();
@@ -190,7 +196,7 @@ describe("Guard 2 (F08) — an unreadable or future-schema disk must not silentl
     expect(after.R2).toBeDefined(); // A's own untouched row must survive
   }, 15_000);
 
-  it("keeps A's untouched row when the on-disk file is a future schemaVersion", async () => {
+  it("ABORTS (throws) and leaves the on-disk future-schema file byte-unchanged", async () => {
     const file = makeTmpFile();
     const deps = realDeps();
     seed(file, { R1: makeRow("R1"), R2: makeRow("R2") });
@@ -198,15 +204,24 @@ describe("Guard 2 (F08) — an unreadable or future-schema disk must not silentl
     const a = new SdkSessionsStore(file, deps);
     await a.load();
 
-    // Another (newer) instance wrote a version this build can't parse.
+    // Another (newer) instance wrote a version this build can't parse. Full-
+    // writing our v4 memory over it would DOWNGRADE the file and destroy Z, so
+    // persist() must abort with a clear version-mismatch error and NOT write.
     seed(file, { Z: makeRow("Z") }, CURRENT_SCHEMA_VERSION + 1);
+    const before = fs.readFileSync(file, "utf-8");
 
     a.patch("R1", { title: "patched-by-a" });
-    await a.persist();
+    await expect(a.persist()).rejects.toThrow(/version|schema/i);
 
-    const after = readDisk(file).sessions;
-    expect(after.R1?.title).toBe("patched-by-a");
-    expect(after.R2).toBeDefined(); // A's own untouched row must survive
+    // Disk is byte-for-byte the newer instance's file — not downgraded/clobbered.
+    expect(fs.readFileSync(file, "utf-8")).toBe(before);
+    const after = readDisk(file);
+    expect(after.schemaVersion).toBe(CURRENT_SCHEMA_VERSION + 1);
+    expect(after.sessions.Z).toBeDefined();
+    expect(after.sessions.R1).toBeUndefined(); // our rows were NOT written down
+    // A's in-memory rows are intact (not dropped from memory on the abort).
+    expect(a.get("R1")).toBeDefined();
+    expect(a.get("R2")).toBeDefined();
   }, 15_000);
 });
 
