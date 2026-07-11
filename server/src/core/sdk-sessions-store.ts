@@ -1,63 +1,36 @@
 /*
  * Persisted store for external-launch task metadata.
  *
- * Shape (on disk, `<registryDir>/sdk-sessions.json`):
- *   {
- *     schemaVersion: 4,
- *     sessions: {
- *       [taskId]: {
- *         taskId,
- *         sessionUuid,
- *         cwd,
- *         pluginDirs,
- *         parentTaskId?,
- *         parentSessionUuid?,
- *         state,               // see PocTaskState below
- *         title,
- *         projectId,           // v2 (iterate 3 section 02) — "unassigned" reserved
- *         phaseTaskId?,        // v3 — links shadow to a run-config phase_task
- *         runId?,              // v3 — owning run
- *         parentRunMaster?,    // v3 — true iff the shadow represents the master conv
- *         createdAt,
- *         launchedAt?,
- *         firstJsonlObservedAt?,
- *         lastJsonlSeenMtimeMs?,
- *         inbox: { pendingToolUseIds: string[], dismissedToolUseIds: string[], lastProcessedByteOffset: number },
- *       }
- *     }
- *   }
+ * On disk at `<registryDir>/sdk-sessions.json`: { schemaVersion: 4, sessions:
+ * { [taskId]: ExternalTask } } — see the SdkSessionsFile + ExternalTask
+ * interfaces below for the full row shape.
  *
  * Schema migration (ADR-038 + -v2 + iterate-2026-06-17 boardColumn):
- * CURRENT_SCHEMA_VERSION = 4. The loader accepts v1–v4 on disk.
- * v1 rows are backfilled with `projectId: "unassigned"` in memory; older
- * rows load with newer fields undefined. Write-on-touch — the first
- * persist() after any mutation flushes the whole shape as v4. This keeps
- * the migration incremental — large stores migrate over days of normal
- * use rather than on boot, and rollback is a one-line constant revert.
+ * CURRENT_SCHEMA_VERSION = 4; the loader accepts v1–v4. v1 rows backfill
+ * `projectId: "unassigned"`; older rows load with newer fields undefined.
+ * Write-on-touch — the first persist() after a mutation flushes the whole
+ * shape as v4, so large stores migrate over days of use (not on boot) and
+ * rollback is a one-line constant revert.
+ * O26 (deleted project refs): if `getKnownProjectIds` is injected, v2 rows
+ * whose projectId is unknown resolve to "unassigned" in memory + next persist.
+ * O25 (forward compat): the v1 branch tolerates an unknown projectId field so
+ * older binaries don't crash on a v2-ish row tagged v1 (partial rollback).
  *
- * O26 (deleted project references): if a dep `getKnownProjectIds` is
- * injected, v2 rows whose projectId is not in the known set resolve
- * to "unassigned" in memory and on the next persist. Keeps the task
- * store coherent with projects.json without a separate reconcile job.
+ * Writes are guarded by proper-lockfile (injected lock dep). F08 — persist()
+ * re-reads + 3-way merges under that lock and writes atomically (tmp+rename)
+ * so concurrent instances sharing the file never clobber each other's rows /
+ * externally-written claim fields (see sdk-sessions-merge.ts). Reads are
+ * unguarded — dirty reads (post-write, pre-flush) are acceptable.
  *
- * O25 (forward compat): the v1 branch tolerates an unknown projectId
- * field — older binaries don't crash when faced with a v2-ish row
- * tagged v1 (e.g. after a partial rollback).
- *
- * Writes are guarded by proper-lockfile (via injected lock dep). Reads
- * are unguarded — the store is consulted on every request, and dirty
- * reads (post-write, pre-flush) are acceptable since we persist the
- * full shape atomically.
- *
- * Corruption tolerance: a malformed entry fails ONLY its own read, not
- * the whole file. We deliberately soft-skip entries that fail schema
- * validation rather than throwing, because a single bad row shouldn't
- * knock out every other session on restart (round-2 GPT MAJOR 6).
+ * Corruption tolerance: a malformed entry fails ONLY its own read — we
+ * soft-skip rows that fail schema validation rather than throwing, so one bad
+ * row can't kill every other session on restart (round-2 GPT MAJOR 6).
  */
 
 import { randomUUID } from "node:crypto";
 
 import { type BoardColumn, isBoardColumn } from "./board-column.js";
+import { atomicWriteFile, cloneSessions, mergeSessions, reReadDisk } from "./sdk-sessions-merge.js";
 
 export type ExternalTaskState =
   | "draft"
@@ -226,6 +199,8 @@ export interface SdkSessionsStoreDeps {
   lock?: (path: string) => Promise<() => Promise<void>>;
   /** Creates an empty file if missing (proper-lockfile requires lstat). */
   ensureFile: (path: string) => void;
+  /** Optional atomic rename (default `fs.promises.rename`); omitted in unit doubles. */
+  rename?: (from: string, to: string) => Promise<void>;
   /**
    * Optional — section 02 O26. If provided, v2-loaded rows whose
    * projectId is not in this set are resolved to UNASSIGNED_PROJECT_ID
@@ -241,6 +216,10 @@ export class SdkSessionsStore {
   private readonly path: string;
   private readonly deps: SdkSessionsStoreDeps;
   private sessions = new Map<string, ExternalTask>();
+  /** Deep-copy of `sessions` at load()/last-persist — the 3-way merge base (F08). */
+  private baseline = new Map<string, ExternalTask>();
+  /** ids deleted since baseline — merge drops them so a delete beats disk churn (F08). */
+  private deletedSinceBaseline = new Set<string>();
   private loaded = false;
 
   constructor(path: string, deps: SdkSessionsStoreDeps) {
@@ -317,9 +296,14 @@ export class SdkSessionsStore {
       if (task) this.sessions.set(taskId, task);
     }
 
-    // O26: resolve stale projectId references to UNASSIGNED. Only runs when
-    // the wiring provides a known-project-id set (production has it; unit
-    // tests typically don't — which is fine, they test the pre-resolve shape).
+    // Baseline = RAW on-disk rows (pre-O26). O26 below is a local change this
+    // instance makes, so it must read as a diff the merge propagates — else
+    // persist would take disk's stale projectId back and O26 never reaches disk (F08).
+    this.baseline = cloneSessions(this.sessions);
+
+    // O26: resolve stale projectId references to UNASSIGNED. Only runs when the
+    // wiring provides a known-project-id set (production has it; unit tests
+    // typically don't — fine, they test the pre-resolve shape).
     if (this.deps.getKnownProjectIds) {
       const known = this.deps.getKnownProjectIds();
       for (const task of this.sessions.values()) {
@@ -436,19 +420,16 @@ export class SdkSessionsStore {
     if (typeof args.parentRunMaster === "boolean") {
       task.parentRunMaster = args.parentRunMaster;
     }
-    // iterate-2026-05-14 lead-foundation: only assign when the caller
-    // actually passed the field, so omitted fields stay absent (not
-    // present-as-undefined) in the in-memory record. The dropUndefined
-    // pass in persist() then keeps the JSON file quiet.
+    // iterate-2026-05-14 lead-foundation: assign only when the caller passed
+    // the field, so omitted fields stay absent (JSON.stringify drops the rest).
     if (typeof args.domain === "string") task.domain = args.domain;
     if (args.priority) task.priority = args.priority;
     if (args.complexityHint) task.complexityHint = args.complexityHint;
     if (Array.isArray(args.tags)) task.tags = args.tags;
     if (Array.isArray(args.blockedBy)) task.blockedBy = args.blockedBy;
-    // iterate-2026-05-14 triage-tab (ADR-101): back-ref to the upstream
-    // triage item that the operator promoted. Set ONLY by the
-    // /api/triage/:projectId/promote route (NOT exposed to public POST
-    // /api/external/tasks); the daemon-only-fields pattern from ADR-100.
+    // iterate-2026-05-14 triage-tab (ADR-101): back-ref to the promoted triage
+    // item. Set ONLY by /api/triage/:projectId/promote (not public POST
+    // /api/external/tasks); daemon-only-fields pattern from ADR-100.
     if (typeof args.promotedFromTriageId === "string") {
       task.promotedFromTriageId = args.promotedFromTriageId;
     }
@@ -458,12 +439,9 @@ export class SdkSessionsStore {
 
   /**
    * v3 — find an existing non-terminal task by `phaseTaskId`. Used by the
-   * create-task route to make Continue Pipeline launches idempotent: a
-   * second click on the same phase_task should reuse the prior shadow
-   * rather than create a duplicate (review O #6).
-   *
-   * Returns the first match (there should only ever be one non-terminal
-   * shadow per phase_task; defensive against duplicates).
+   * create-task route to make Continue Pipeline launches idempotent: a second
+   * click on the same phase_task reuses the prior shadow (review O #6). Returns
+   * the first match (only one non-terminal shadow per phase_task; defensive).
    */
   findByPhaseTaskId(phaseTaskId: string): ExternalTask | undefined {
     for (const t of this.sessions.values()) {
@@ -510,14 +488,15 @@ export class SdkSessionsStore {
   }
 
   delete(taskId: string): boolean {
-    return this.sessions.delete(taskId);
+    const existed = this.sessions.delete(taskId);
+    // Track deletes of rows that exist on disk (in baseline) so the next
+    // merge drops them unconditionally — a delete must beat a concurrent
+    // instance's ~1/sec poll rewrite (F08). Cleared after a successful persist.
+    if (existed && this.baseline.has(taskId)) this.deletedSinceBaseline.add(taskId);
+    return existed;
   }
 
-  /**
-   * Atomically persist the current in-memory state to disk. Guarded by the
-   * injected lock if provided. Callers should `await persist()` after any
-   * mutation that matters for a later server restart.
-   */
+  /** Merge under the lock (F08 header note) + atomically flush. `await` after any mutation. */
   async persist(): Promise<void> {
     // Ensure parent dir + file exist before locking (proper-lockfile lstats).
     const lastSlash = Math.max(this.path.lastIndexOf("/"), this.path.lastIndexOf("\\"));
@@ -527,15 +506,36 @@ export class SdkSessionsStore {
     }
     this.deps.ensureFile(this.path);
 
-    const payload: SdkSessionsFile = {
-      schemaVersion: CURRENT_SCHEMA_VERSION,
-      sessions: Object.fromEntries(this.sessions),
-    };
-    const serialized = JSON.stringify(payload, null, 2);
-
     const release = this.deps.lock ? await this.deps.lock(this.path) : null;
     try {
-      await this.deps.writeFile(this.path, serialized);
+      // F08 — UNDER the lock, re-read + 3-way merge onto disk (read-only): a
+      // concurrent instance's rows + external claims survive, only fields THIS
+      // instance changed win, deletes always win. corrupt disk → recover (write
+      // full memory); FUTURE schemaVersion → ABORT (don't downgrade a newer file);
+      // a transient read I/O error retries then rejects inside reReadDisk (never
+      // clobbers). The merge is applied into this.sessions SYNCHRONOUSLY before
+      // the write await, so a create/patch/delete during the write lands on the
+      // LIVE map + is preserved for the next persist (never lost to a stale swap).
+      // No lock ⇒ no cross-process coordination possible → write memory directly.
+      if (release) {
+        const rr = await reReadDisk(this.deps, this.path, CURRENT_SCHEMA_VERSION, validateExternalTask);
+        if (rr.kind === "future") throw new Error("sdk-sessions.json on disk has a newer schemaVersion than this build supports — refusing to overwrite (version mismatch)");
+        if (rr.kind === "ok") this.sessions = mergeSessions(this.baseline, this.sessions, rr.disk, this.deletedSinceBaseline);
+        // rr.kind === "corrupt": keep this.sessions (full-write recover)
+      }
+
+      // Snapshot EXACTLY what we write (immune to concurrent mutation during the
+      // await) + which deletes this write reconciles — both captured pre-await.
+      const snapshot = cloneSessions(this.sessions);
+      const reconciledDeletes = new Set(this.deletedSinceBaseline);
+      const payload = { schemaVersion: CURRENT_SCHEMA_VERSION, sessions: Object.fromEntries(snapshot) } satisfies SdkSessionsFile;
+      await atomicWriteFile(this.deps, this.path, JSON.stringify(payload, null, 2), Boolean(release));
+
+      // On success only: baseline = what was actually written (NOT the possibly-
+      // mutated live map); drop ONLY the reconciled tombstones so a delete during
+      // the write survives to the next persist.
+      this.baseline = snapshot;
+      for (const id of reconciledDeletes) this.deletedSinceBaseline.delete(id);
     } finally {
       if (release) await release();
     }
