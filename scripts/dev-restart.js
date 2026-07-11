@@ -76,8 +76,10 @@ function findPidsOnPorts(ports) {
       // netstat unavailable / no TCP table — nothing to kill.
     }
   } else {
+    const cmd = buildLsofCommand(ports);
+    if (!cmd) return pids; // no valid ports -> kill nothing
     try {
-      const out = execSync(buildLsofCommand(ports), {
+      const out = execSync(cmd, {
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
       });

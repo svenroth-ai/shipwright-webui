@@ -7,7 +7,7 @@
       "status": "passed",
       "passed": 3890,
       "total": 3891,
-      "note": "F0 gate green both workspaces. Server vitest 165 files / 1918 passed + 1 skipped (1919) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + build green. Client vitest 203 files / 1972 passed. New F16 coverage lives in the scripts node:test suite (node --test scripts/kill-targets.test.js): 21 passed (9 pre-existing computeKillTargets + 12 new) - parseWindowsListenerPids returns ONLY exact-match LISTENING PIDs from a realistic netstat -ano dump; ignores ESTABLISHED browser sockets (9100); ignores :51730/:38470 prefix collisions (7777/8888); catches IPv6 TCP + TCPv6 listeners; ignores a UDP listener on the port (6000); empty/malformed tolerance; buildLsofCommand pins -sTCP:LISTEN + coerces/drops non-integer ports (injection-proof); dev-restart.js wiring guard (imports+invokes the fixed helpers, no findstr / -p TCP / un-filtered lsof). The scripts suite is separate from the vitest workspaces (root scripts/, run via node --test), so its 21 are reported here in the note rather than folded into the 3890 vitest count."
+      "note": "F0 gate green both workspaces. Server vitest 165 files / 1918 passed + 1 skipped (1919) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + build green. Client vitest 203 files / 1972 passed. New F16 coverage lives in the scripts node:test suite (node --test scripts/kill-targets.test.js): 22 passed (9 pre-existing computeKillTargets + 13 new) - parseWindowsListenerPids returns ONLY exact-match LISTENING PIDs from a realistic netstat -ano dump; ignores ESTABLISHED browser sockets (9100); ignores :51730/:38470 prefix collisions (7777/8888); catches IPv6 TCP + TCPv6 listeners; ignores a UDP listener on the port (6000); empty/malformed tolerance; buildLsofCommand EXACT-string ordering (lsof -ti tcp:5173,3847 -sTCP:LISTEN - address bound to -i, state filter appended) + single-port + injection-proof coercion + empty-ports returns '' (kill nothing); dev-restart.js wiring guard (imports+invokes the fixed helpers, empty-cmd guard, no findstr / -p TCP / un-filtered lsof). Code-review round 2 fixed a HIGH lsof arg-ordering bug (the old order left -i addressless -> killed every macOS/Linux listener) - the exact-string test was proven RED against the broken order, green after. The scripts suite is separate from the vitest workspaces (root scripts/, run via node --test), so its 22 are reported here in the note rather than folded into the 3890 vitest count."
     },
     "integration": {
       "status": "passed",
@@ -51,13 +51,13 @@
           "behavior": "AC1 - dev-restart kills ONLY the real listener PID: findPidsOnPorts now parses netstat structurally (proto startsWith TCP + state LISTENING + EXACT local-address port match) on Windows and runs `lsof -ti -sTCP:LISTEN tcp:<ports>` on POSIX; the over-matching scenarios (ESTABLISHED browser socket on :5173, :51730/:38470 prefix collisions) no longer reproduce, and IPv6 [::] listeners (missed by the old -p TCP) are now found.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "scripts/kill-targets.test.js: parseWindowsListenerPids over a realistic netstat -ano fixture returns EXACTLY {4200,4300} - browser ESTABLISHED (9100), :51730 (7777), :38470 (8888) and UDP-on-5173 (6000) all excluded; IPv6 TCP + TCPv6 rows resolve to the real PIDs; buildLsofCommand pins -sTCP:LISTEN + the exact comma port list. Live-netstat probe confirmed -p TCP drops all [::] rows (the IPv6 gap fixed by dropping it)."
+          "evidence": "scripts/kill-targets.test.js: parseWindowsListenerPids over a realistic netstat -ano fixture returns EXACTLY {4200,4300} - browser ESTABLISHED (9100), :51730 (7777), :38470 (8888) and UDP-on-5173 (6000) all excluded; IPv6 TCP + TCPv6 rows resolve to the real PIDs; buildLsofCommand emits the EXACT canonical string `lsof -ti tcp:5173,3847 -sTCP:LISTEN` (address bound to -i, state filter appended - the round-2 HIGH fix) and returns '' for no valid ports. Live-netstat probe confirmed -p TCP drops all [::] rows (the IPv6 gap fixed by dropping it)."
         },
         {
           "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "RED captured on pre-fix main (kill-targets.js had no parser/builder): 7 new tests failed with `TypeError: parseWindowsListenerPids is not a function` / `buildLsofCommand is not a function`. GREEN after the fix: node --test scripts/kill-targets.test.js -> 21 passed / 0 failed (12 new)."
+          "evidence": "RED captured on pre-fix main (kill-targets.js had no parser/builder): 7 new tests failed with `TypeError: parseWindowsListenerPids is not a function` / `buildLsofCommand is not a function`. GREEN after the fix. Round 2: the buildLsofCommand EXACT-string ordering + empty-ports tests were proven RED against the broken `lsof -ti -sTCP:LISTEN tcp:...` order (4 failed - the prior substring assert.match passed for it, hiding the bug), green after the reorder. Final: node --test scripts/kill-targets.test.js -> 22 passed / 0 failed (13 new)."
         },
         {
           "behavior": "AC3 - full server + client suites + builds stay green (no invariant/ADR regressed)",
@@ -69,7 +69,7 @@
           "behavior": "AC4 - files stay within the expected 3-file footprint; bloat baseline not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Exact footprint: scripts/dev-restart.js (165 -> 177), scripts/kill-targets.js (43 -> 131), scripts/kill-targets.test.js (103 -> 279) - all < 300, no new bloat crossing, shipwright_bloat_baseline.json unchanged (no scripts/ entry). Serial #11, deps/blocks none, D01-D10 merged -> no live parallel collision."
+          "evidence": "Exact footprint: scripts/dev-restart.js (165 -> 179), scripts/kill-targets.js (43 -> 140), scripts/kill-targets.test.js (103 -> 292) - all < 300, no new bloat crossing, shipwright_bloat_baseline.json unchanged (no scripts/ entry). Serial #11, deps/blocks none, D01-D10 merged -> no live parallel collision."
         }
       ],
       "counts": {

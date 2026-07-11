@@ -215,26 +215,39 @@ test('parseWindowsListenerPids tolerates empty / malformed input', () => {
   assert.deepEqual([...parseWindowsListenerPids(undefined, [5173])], []);
 });
 
-test('buildLsofCommand pins -sTCP:LISTEN and the exact port list', () => {
-  const cmd = buildLsofCommand([5173, 3847]);
-  // POSIX fix: without -sTCP:LISTEN, `lsof -ti tcp:5173,3847` returns every
-  // socket (incl. ESTABLISHED browser connections) on those ports.
-  assert.match(cmd, /-sTCP:LISTEN/);
-  assert.match(cmd, /tcp:5173,3847/);
+test('buildLsofCommand binds the address to -i, THEN the state filter (EXACT)', () => {
+  // Ordering is load-bearing (exact-string, not substring). `-sTCP:LISTEN`
+  // BETWEEN `-i` and its address leaves `-i` addressless — the next token
+  // starts with `-` — so `-i` selects EVERY internet file, `-sTCP:LISTEN`
+  // then narrows to ALL listeners machine-wide (kills every listener), and
+  // `tcp:PORTS` degrades to an unmatched name. The address MUST stay bound to
+  // `-i` (as the proven pre-fix command did); the state filter is appended.
+  // Without -sTCP:LISTEN, plain `lsof -ti tcp:5173,3847` returns every socket
+  // (incl. ESTABLISHED browser connections) on those ports.
+  assert.equal(
+    buildLsofCommand([5173, 3847]),
+    'lsof -ti tcp:5173,3847 -sTCP:LISTEN',
+  );
 });
 
-test('buildLsofCommand handles a single port', () => {
-  const cmd = buildLsofCommand([3847]);
-  assert.match(cmd, /-sTCP:LISTEN/);
-  assert.match(cmd, /tcp:3847/);
+test('buildLsofCommand handles a single port (EXACT)', () => {
+  assert.equal(buildLsofCommand([3847]), 'lsof -ti tcp:3847 -sTCP:LISTEN');
 });
 
-test('buildLsofCommand coerces + drops non-integer ports (injection-proof)', () => {
+test('buildLsofCommand coerces + drops non-integer ports (injection-proof, EXACT)', () => {
   // Defense in depth: the command is run via a shell, so a hypothetical bad
   // value must never reach the command string. Only clean integers survive.
   const cmd = buildLsofCommand(['5173; rm -rf ~', 3847, NaN, -1, 0]);
-  assert.equal(cmd, 'lsof -ti -sTCP:LISTEN tcp:3847');
+  assert.equal(cmd, 'lsof -ti tcp:3847 -sTCP:LISTEN');
   assert.doesNotMatch(cmd, /rm -rf/);
+});
+
+test('buildLsofCommand returns empty (kill nothing) for no valid ports', () => {
+  // A portless `lsof -ti tcp:` selects ALL TCP files -> must never happen.
+  // Now that the helper is exported/reusable, an empty filtered port list
+  // yields an empty command; findPidsOnPorts skips execSync on empty.
+  assert.equal(buildLsofCommand([]), '');
+  assert.equal(buildLsofCommand([NaN, -1, 0, 'x']), '');
 });
 
 // ---------------------------------------------------------------------------
@@ -260,8 +273,13 @@ test('dev-restart.js imports and uses the fixed kill helpers', () => {
   );
   assert.match(
     devRestartSrc,
-    /execSync\(buildLsofCommand\(ports\)/,
-    'POSIX branch must run the state-filtered lsof command',
+    /buildLsofCommand\(ports\)/,
+    'POSIX branch must build the state-filtered lsof command',
+  );
+  assert.match(
+    devRestartSrc,
+    /if \(!cmd\) return pids/,
+    'POSIX branch must skip execSync (kill nothing) on an empty command',
   );
 });
 

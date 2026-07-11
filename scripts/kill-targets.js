@@ -108,20 +108,29 @@ function parseWindowsListenerPids(netstatOutput, ports) {
  * without it, `lsof -ti tcp:<ports>` returns every socket (incl. the
  * ESTABLISHED browser connections) bound to those ports.
  *
+ * Argument ORDER is load-bearing: the address (`tcp:<ports>`) MUST stay bound
+ * to `-i`, with `-sTCP:LISTEN` APPENDED AFTER it. If `-sTCP:LISTEN` sat between
+ * `-i` and its address, `-i` would be addressless (its argument starts with
+ * `-`) → it selects EVERY internet file and `-sTCP:LISTEN` then narrows to ALL
+ * listeners machine-wide, killing every listener — the inverse of this fix.
+ *
  * The command is run via `execSync` (shell), so — although callers pass ports
  * already validated by computeKillTargets — every port is coerced to a positive
  * integer and non-integers are dropped here too. That keeps the exported helper
- * injection-proof regardless of caller (defense in depth at the boundary).
+ * injection-proof regardless of caller (defense in depth at the boundary). An
+ * empty filtered port list returns '' (kill nothing) so a portless
+ * `lsof -ti tcp:` (which would select ALL TCP files) can never be built.
  *
  * @param {number[]} ports
- * @returns {string} shell command string for execSync
+ * @returns {string} shell command string for execSync ('' when no valid ports)
  */
 function buildLsofCommand(ports) {
   const portList = ports
     .map(Number)
     .filter((p) => Number.isInteger(p) && p > 0)
     .join(',');
-  return `lsof -ti -sTCP:LISTEN tcp:${portList}`;
+  if (portList === '') return '';
+  return `lsof -ti tcp:${portList} -sTCP:LISTEN`;
 }
 
 module.exports = {
