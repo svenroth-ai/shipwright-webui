@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T14:20:00.000Z",
+  "last_updated": "2026-07-11T15:25:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-spawn-env-port-strip",
-    "date": "2026-07-11T14:56:29.000Z",
+    "run_id": "iterate-2026-07-10-installer-vbs-encoding",
+    "date": "2026-07-11T15:25:00.000Z",
     "unit": {
       "status": "passed",
       "passed": 1924,
       "total": 1925,
-      "note": "F0 fresh gate green. Server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + npm run build green. New F17 coverage in server/src/terminal/spawn-env.test.ts (6 tests): PORT strip, VITE_PORT+HONO_HOST strip, caller-cannot-re-leak (strip runs AFTER the merge), unrelated-vars-survive incl. the SUPPORT_EMAIL substring-of-PORT guard + SHIPWRIGHT_MONOREPO_PATH, full parent-session-strip contract intact under the port-strip (CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE), and a non-network SHIPWRIGHT_* knob (MAX_CONCURRENT) still inheritable. AC2 proven RED-first on pre-fix main (5/5 failed: PORT/VITE_PORT/HONO_HOST spread through the pty env -> PORT-in-env true), green after. The existing pty-env-flicker.test.ts (22) stays green -> no flicker/color/marker regression. Client workspace NOT re-run: no client/** file changed (detect_frontend_changes.py has_frontend_changes=false); the change is confined to server/src/terminal/spawn-env.ts + its co-located test, outside the client workspace."
+      "note": "F0 fresh gate green. Server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + npm run build green. New F18 coverage lives in the scripts node:test suite (node --test scripts/install-windows.test.mjs): 5 passed (3 pre-existing npm-gating contracts + 2 new): (1) the VBS launcher is written with -Encoding Unicode and NEVER -Encoding ASCII (ASCII maps char>127 to '?', corrupting a non-ASCII repo path); (2) after writing, the installer re-reads $VbsPath (Get-Content) and can abort (exit 1) if the embedded server path did not round-trip. AC2 proven RED-first on pre-fix main (2/2 new failed: -Encoding ASCII present + no Get-Content re-read after the write), green after. The scripts suite is separate from the vitest workspaces (root scripts/, run via node --test), so its 5 are reported here in the note rather than folded into the 1924 vitest count. Client workspace NOT re-run: no client/** file changed (detect_frontend_changes.py has_frontend_changes=false); the change is confined to scripts/install-windows.ps1 + its co-located test, outside both workspaces."
     },
     "integration": {
       "status": "passed",
       "passed": 3,
       "total": 3,
-      "note": "Confidence-calibration probes of the touches_io_boundary env boundary (producer = webui production launchers stamping PORT + the process.env spread -> consumer = the spawned pty child shell / a nested dev server). (1) Windows round-trip probe (real, on this Win11 box): PORT=3847 VITE_PORT=5173 HONO_HOST=true node -e spread-then-exact-delete -> the three keys spread as canonical UPPERCASE and exact-delete removes ALL three -> the launcher-stamped casing is handled; no finding. (2) RED-first regression probe: the new suite is 5/5 RED on pre-fix main (leak reproduced), GREEN after. (3) Call-site probe: the SOLE runtime caller pty-manager.spawn() calls spawnFn(shell,[],{cwd,cols,rows}) with NO env field -> opts.env is always undefined -> strip-after-merge breaks no real caller (callerEnv is a test-only escape hatch); no finding. Two consecutive clean rounds (probe 1 + probe 3) => asymptote reached, boundary calibrated. Edge not probed: case-variant injection (Port) - accepted, no launcher emits it (probe 1 covers the canonical case)."
+      "note": "Confidence-calibration probes of the installer->VBS-file->wscript boundary (producer = install-windows.ps1 stamping $ServerDir; consumer = wscript.exe / node reading the embedded path), run REAL on this Win11 box. (1) Round-trip probe: an umlaut path C:\\Users\\Müller\\...\\server written with -Encoding Unicode, re-read with Get-Content -Raw -Encoding Unicode -> .Contains($escapedServerDir) TRUE (path survives); no finding. (2) Negative/corruption probe: the SAME content written with the OLD -Encoding ASCII -> re-read .Contains() FALSE (umlaut became '?') -> proves the round-trip guard is NOT vacuous and actually catches F18. (3) BOM probe: the -Encoding Unicode file's first two bytes are FF FE (UTF-16LE BOM, the documented WSH read signal) -> wscript reads it natively; no finding. (4) Refactor-preservation probe: the new $escapedServerDir variable form is byte-identical to the old inline $($ServerDir -replace '\\\\','\\\\') form; no finding. Two-plus consecutive clean rounds => asymptote reached, boundary calibrated. Edge not probed: a path containing '\"' - accepted, unreachable ('\"' is an illegal Windows filename char; $ServerDir is a real directory)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. This iterate touches ONLY server/src/terminal/spawn-env.ts (a pure env-map factory) + its co-located unit test - no client/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke would exercise nothing this env-strip affects - env-var stripping is only observable by spawning a real pty and inspecting its child env, which the unit test does directly against buildSpawnEnv."
+      "note": "No Playwright run. This iterate touches ONLY scripts/install-windows.ps1 (the Windows autostart installer) + its co-located node:test file scripts/install-windows.test.mjs - no client/src or server/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke exercises nothing this installer-encoding change affects."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,36 +40,36 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T14:56:29.000Z",
+      "timestamp": "2026-07-11T15:25:00.000Z",
       "attempts": 0,
-      "justification": "This iterate changes only server/src/terminal/spawn-env.ts (the pure buildSpawnEnv env-map factory for the embedded-terminal pty) + its co-located unit test. No file under client/src is touched - detect_frontend_changes.py reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. The behavior (the pty env must NOT inherit the webui's PORT/VITE_PORT/HONO_HOST) is only observable by inspecting a spawned child's env, which the Vitest suite does directly against buildSpawnEnv (6 tests, AC2 RED-first on pre-fix main: PORT/VITE_PORT/HONO_HOST leaked -> 5/5 failed, green after) plus the empirical Windows process.env round-trip calibration probe. F0.5 surface=none - no fabricated browser run."
+      "justification": "This iterate changes only scripts/install-windows.ps1 (the Windows login-autostart installer that writes the start-server.vbs launcher) + its co-located node:test. No file under client/src or server/src is touched - detect_frontend_changes.py reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. The behavior (the VBS must be written as UTF-16LE so a non-ASCII repo path survives, and the install must abort loudly if it does not) is only observable by writing + re-reading the launcher file under PowerShell, which the structural node:test pins (encoding flag + round-trip guard presence, AC2 RED-first on pre-fix main: -Encoding ASCII + no re-read -> 2/2 failed, green after) and the empirical on-Windows PowerShell smoke reproduces (ASCII corrupts the umlaut path to '?', Unicode round-trips, UTF-16LE BOM present). F0.5 surface=none - no fabricated browser run."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - buildSpawnEnv strips the webui's own PORT/VITE_PORT/HONO_HOST so a PORT-honouring dev server started in the embedded terminal no longer collides with the webui (production launchers stamp PORT=3847).",
+          "behavior": "AC1 - install-windows.ps1 writes the autostart VBS as UTF-16LE (-Encoding Unicode) instead of ASCII, so a non-ASCII repo path (umlaut/accent/CJK, e.g. C:\\Users\\Müller\\...) is no longer corrupted to '?', and a post-write round-trip check aborts the install loudly if the embedded path did not survive.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "spawn-env.test.ts: with base env PORT=3847/VITE_PORT=5173/HONO_HOST=true, the returned env lacks all three; a WEBUI_OPERATIONAL_ENV_KEYS strip loop deletes them AFTER the base+caller merge (mirroring PARENT_SESSION_ENV_KEYS)."
+          "evidence": "install-windows.test.mjs: the Set-Content writing $VbsPath uses -Encoding Unicode and NOT -Encoding ASCII; after the write the script re-reads $VbsPath (Get-Content) and can exit 1. Empirical PowerShell smoke on this Win11 box: umlaut path written Unicode round-trips TRUE, written ASCII round-trips FALSE (corrupted to '?'), UTF-16LE BOM FF FE present."
         },
         {
           "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "RED captured on pre-fix main (no strip loop): 5/5 new tests failed - PORT-in-env expected false, received true (PORT/VITE_PORT/HONO_HOST spread through). GREEN after the fix: vitest spawn-env.test.ts + pty-env-flicker.test.ts -> 28 passed."
+          "evidence": "RED captured on pre-fix main (line 116 was -Encoding ASCII, no post-write re-read): 2/2 new tests failed - the Unicode-not-ASCII assertion failed on the literal ASCII line, and the round-trip-check assertion failed for the missing Get-Content re-read of $VbsPath. GREEN after the fix: node --test scripts/install-windows.test.mjs -> 5 passed / 0 failed."
         },
         {
-          "behavior": "AC3 - full server suite + build stay green; no invariant/ADR regressed (ADR-067 shell-only whitelist, SHIPWRIGHT_WEBUI marker, CLAUDE_CODE_NO_FLICKER default-ON, parent-session strip all intact).",
+          "behavior": "AC3 - full server suite + build stay green; no invariant/ADR regressed (the 3 pre-existing npm exit-code-gating + no-stderr-to-$null contracts stay green).",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Server vitest 166 files / 1924 passed + 1 skipped + tsc + build green; the 22 pty-env-flicker.test.ts contracts stay green. Client not re-run (no client/** change). Read-only-observer rules 1/12 intact."
+          "evidence": "Server vitest 166 files / 1924 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc + npm run build green; the 3 pre-existing install-windows.test.mjs contracts stay green. Client not re-run (no client/** change). Read-only-observer rules 1/12 intact (the installer writes only into %USERPROFILE%\\.shipwright-webui\\ + the Startup folder; no ~/.claude/projects/** or shipwright_run_config.json)."
         },
         {
-          "behavior": "AC4 - files stay within the 2-file footprint; bloat baseline not ratcheted.",
+          "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Exact footprint: server/src/terminal/spawn-env.ts (201 -> 234) + new server/src/terminal/spawn-env.test.ts (136) - both < 300, spawn-env.ts is NOT in shipwright_bloat_baseline.json (no new crossing, baseline unchanged). Serial #12, deps/blocks none, D01-D11 merged -> no live parallel collision."
+          "evidence": "Exact footprint: scripts/install-windows.ps1 (136 -> 152) + scripts/install-windows.test.mjs (58 -> 110, the AC2-mandated co-located regression test) - both < 300, neither is in shipwright_bloat_baseline.json (no new crossing, baseline unchanged). Serial #13, deps/blocks none, D01-D12 merged -> no live parallel collision."
         }
       ],
       "counts": {

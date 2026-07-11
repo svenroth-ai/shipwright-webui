@@ -55,3 +55,59 @@ test('each npm step is gated on its exit code ($ErrorActionPreference does not t
       'startup shortcut is created.',
   );
 });
+
+// iterate-2026-07-10-installer-vbs-encoding (F18): the autostart VBS was written
+// with `Set-Content -Encoding ASCII`, which maps every char >127 to '?'. A repo
+// cloned under a non-ASCII path (umlauts / accents / CJK — e.g.
+// C:\Users\Müller\Documents\shipwright-webui) got a corrupted $ServerDir /
+// $serverEntryPoint baked into the launcher, silently breaking the login
+// autostart while the installer still reported success. wscript.exe reads
+// UTF-16LE natively, so the VBS must be written with -Encoding Unicode, and a
+// post-write round-trip re-read must fail the install loudly if the path did
+// not survive the encoding.
+
+const vbsWriteLines = lines.filter(
+  (l) => !isComment(l) && /Set-Content/.test(l) && /\$VbsPath/.test(l),
+);
+
+test('the VBS launcher is written as Unicode (UTF-16LE), never ASCII — non-ASCII repo paths must survive', () => {
+  assert.equal(
+    vbsWriteLines.length,
+    1,
+    `expected exactly one Set-Content writing $VbsPath, found ${vbsWriteLines.length}`,
+  );
+  const line = vbsWriteLines[0];
+  assert.ok(
+    !/-Encoding\s+ASCII/i.test(line),
+    '-Encoding ASCII corrupts non-ASCII path characters to "?" — the login ' +
+      `autostart would break silently for umlaut/accent/CJK repo paths: ${line}`,
+  );
+  assert.ok(
+    /-Encoding\s+Unicode/i.test(line),
+    `the VBS launcher must be written with -Encoding Unicode (UTF-16LE): ${line}`,
+  );
+});
+
+test('the installer re-reads the VBS and fails loudly if the embedded server path did not round-trip', () => {
+  const setIdx = lines.findIndex(
+    (l) => !isComment(l) && /Set-Content/.test(l) && /\$VbsPath/.test(l),
+  );
+  assert.ok(setIdx >= 0, 'could not locate the Set-Content that writes $VbsPath');
+  // The sanity check must come AFTER the write.
+  const after = lines.slice(setIdx + 1).join('\n');
+  assert.match(
+    after,
+    /Get-Content[^\n]*\$VbsPath/,
+    'expected a Get-Content re-read of $VbsPath after writing it (post-write round-trip check)',
+  );
+  assert.match(
+    after,
+    /\$ServerDir/,
+    'the round-trip check must verify the embedded $ServerDir survived the encoding',
+  );
+  assert.match(
+    after,
+    /exit 1/,
+    'a failed round-trip must abort the install (exit 1) instead of reporting success',
+  );
+});
