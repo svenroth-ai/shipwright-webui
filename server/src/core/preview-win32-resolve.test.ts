@@ -1,25 +1,30 @@
 /*
- * FROZEN GUARD — D03 (preview-win32-spawn), security-review round 2.
+ * FROZEN GUARD — D03 (preview-win32-spawn), security-review rounds 2-3.
  * Author != fixer. Run-ID: iterate-2026-07-10-preview-win32-spawn.
  *
- * Committed AFTER the first fix (e931d25); MUST-NOT-MODIFY by the fixer. Each
- * anchor is RED on e931d25 and GREEN after remediation. Split out of
- * preview-session-manager.win32.test.ts (which is at 216 LOC — adding here would
- * exceed the 300-LOC ceiling); cohesive to preview-win32-spawn.ts resolution.
+ * Committed alongside the fix; MUST-NOT-MODIFY by the fixer. Cohesive to
+ * preview-win32-spawn.ts executable resolution. Guard 6 is RED on 0789af0 and
+ * GREEN after remediation; Guards 3-5 are regression pins (GREEN on 0789af0).
  *
- *   Guard 3 (HIGH)   — cwd-before-PATH hijack: a BARE command must resolve via
- *     PATH, never the untrusted previewed-project cwd. Path-like commands must
- *     stay cwd-relative (fix must not over-reach).
- *   Guard 4 (HIGH)   — a spaced `.cmd` shim path must stay QUOTED
- *     (windowsVerbatimArguments + an outer-quote wrap) so cmd.exe /s does not
- *     strip the quotes off `C:\Program Files\…` (breaks spawn + re-opens the
- *     unquoted-search-path hole).
- *   Guard 5 (MEDIUM) — win32 must REFUSE a `%…%` command (cmd var-expansion),
- *     like the other shell metacharacters.
+ * Cross-OS determinism: CI runs server vitest on ubuntu (case-SENSITIVE fs), and
+ * resolveSpawn's win32 branch is only reached when process.platform is stubbed —
+ * so these tests must run AND pass on Linux to cover it. They therefore set
+ * PATHEXT=".cmd" (matches the lowercase planted shims EXACTLY, so realpathSync
+ * resolves on a case-sensitive fs too) and use forward-slash path-like inputs.
+ * Real files live only under os.tmpdir().
  *
- * Isolation: Guard 3 exercises the exported resolveSpawn() (pure resolution — no
- * spawn at all). Guards 4/5 drive mgr.spawn() through the injected fake-spawn
- * seam, so NOTHING ever executes. Real files are planted only under os.tmpdir().
+ *   Guard 3 (HIGH, GREEN) — a BARE command resolves via PATH, never the
+ *     untrusted previewed-project cwd; a path-like command stays cwd-relative.
+ *   Guard 4 (HIGH, GREEN) — a spaced .cmd shim path is emitted as the canonical
+ *     verbatim `cmd /d /s /c ""<quoted-shim>" <args>"` line (exact argv pinned).
+ *   Guard 5 (MEDIUM, GREEN) — win32 refuses a `%…%` command.
+ *   Guard 6 (HIGH, RED anchor) — a BARE command ABSENT from PATH must THROW,
+ *     never fall through to `cmd /d /s /c <bare>` (cmd resolves cwd-first → a
+ *     planted <cwd>\npm.cmd in an untrusted repo would execute).
+ *
+ * Isolation: Guards 3/6 exercise the exported resolveSpawn() (pure resolution —
+ * no spawn). Guards 4/5 drive mgr.spawn() through the injected fake-spawn seam,
+ * so NOTHING ever executes.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
@@ -54,12 +59,17 @@ function tmp(): string {
   return d;
 }
 
-// Plant a real file (never executed) and return its canonical realpath.
+// Plant a real file (never executed) and return its canonical realpath. Lower-
+// case `.cmd` + PATHEXT=".cmd" → the lookup matches on a case-sensitive fs too.
 function plant(dir: string, rel: string): string {
   const full = path.join(dir, rel);
   mkdirSync(path.dirname(full), { recursive: true });
   writeFileSync(full, "@echo planted\r\n");
   return realpathSync.native(full);
+}
+
+function usePathExt(): void {
+  process.env.PATHEXT = ".cmd";
 }
 
 afterEach(() => {
@@ -141,21 +151,19 @@ async function capture(command: string, platform: NodeJS.Platform, cwd: string) 
   return { spawn, rejected };
 }
 
-describe("D03 Guard 3 — cwd-before-PATH hijack (RED anchor, HIGH)", () => {
-  it("resolves a BARE command via PATH, not the untrusted cwd", () => {
+describe("D03 Guard 3 — bare resolves via PATH, not cwd (regression pin, HIGH)", () => {
+  it("resolves a BARE command via PATH, never the untrusted cwd", () => {
     setPlatform("win32");
     const cwd = tmp();
     const pathDir = tmp();
-    const cwdShim = plant(cwd, "npm.cmd"); // malicious, planted in project dir
+    const cwdShim = plant(cwd, "npm.cmd"); // hijack bait in the previewed repo
     const pathShim = plant(pathDir, "npm.cmd"); // legit, on PATH
     process.env.PATH = pathDir;
-    process.env.PATHEXT = ".COM;.EXE;.BAT;.CMD";
+    usePathExt();
 
     const { args } = resolveSpawn(["npm", "run", "dev"], cwd);
-    // cmd.exe wrap → args = ["/d","/s","/c", <shim>, "run", "dev"]
-    const target = args[3];
-    expect(target).toBe(pathShim);
-    expect(target).not.toBe(cwdShim);
+    expect(args[3]).toBe(pathShim);
+    expect(args[3]).not.toBe(cwdShim);
   });
 
   it("still resolves a path-like command cwd-relative (fix must not over-reach)", () => {
@@ -163,40 +171,38 @@ describe("D03 Guard 3 — cwd-before-PATH hijack (RED anchor, HIGH)", () => {
     const cwd = tmp();
     const localShim = plant(cwd, "localdev.cmd");
     process.env.PATH = tmp(); // empty dir on PATH — cannot satisfy the resolve
-    process.env.PATHEXT = ".COM;.EXE;.BAT;.CMD";
+    usePathExt();
 
-    const { args } = resolveSpawn([".\\localdev", "run"], cwd);
+    const { args } = resolveSpawn(["./localdev", "run"], cwd);
     expect(args[3]).toBe(localShim);
   });
 });
 
-describe("D03 Guard 4 — spaced .cmd shim quoting (RED anchor, HIGH)", () => {
-  it("quotes a spaced shim path + sets windowsVerbatimArguments for cmd /s", async () => {
+describe("D03 Guard 4 — spaced .cmd shim quoting (regression pin, HIGH)", () => {
+  it("emits the canonical verbatim outer-quoted cmd.exe line for a spaced shim", async () => {
     const cwd = tmp(); // empty previewed-project dir
-    const base = tmp();
-    const shim = plant(base, path.join("Program Files", "nodejs", "npm.cmd"));
+    const shim = plant(tmp(), path.join("Program Files", "nodejs", "npm.cmd"));
     expect(shim).toContain(" "); // sanity: the resolved shim path has a space
     process.env.PATH = path.dirname(shim);
-    process.env.PATHEXT = ".COM;.EXE;.BAT;.CMD";
+    usePathExt();
 
     const { spawn } = await capture("npm run dev", "win32", cwd);
     expect(spawn).toHaveBeenCalledTimes(1);
     const [command, args, options] = spawn.mock
       .calls[0] as unknown as SpawnCall;
     expect(options.shell).toBeFalsy();
-    // Node must NOT auto-quote (cmd /s then strips it) — verbatim + our quoting.
+    // Verbatim mode → the EXACT argv is load-bearing; pin it directly (no join).
     expect(options.windowsVerbatimArguments).toBe(true);
-    const line = [command, ...args].join(" ");
-    // spaced shim path survives, wrapped in its own quotes …
-    expect(line).toContain(`"${shim}"`);
-    // … inside an OUTER quote pair (canonical `cmd /d /s /c ""<quoted>" args"`) …
-    expect(line).toMatch(/\/c\s+""/);
-    // … with the args tail intact.
-    expect(line).toMatch(/npm\.cmd" run dev/i);
+    expect(String(command).toLowerCase()).toMatch(/(?:^|[\\/])cmd\.exe$/);
+    expect(args).toHaveLength(4);
+    expect(args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    // canonical `cmd /d /s /c ""<quoted-shim>" run dev"` — outer pair strips
+    // under /s, leaving the inner shim-path quotes intact.
+    expect(args[3]).toBe(`""${shim}" run dev"`);
   });
 });
 
-describe("D03 Guard 5 — win32 refuses '%' var-expansion (RED anchor, MEDIUM)", () => {
+describe("D03 Guard 5 — win32 refuses '%' var-expansion (regression pin, MEDIUM)", () => {
   for (const cmd of ["%COMSPEC% run dev", "npm run %CD%"]) {
     it(`refuses ${JSON.stringify(cmd)} on win32 (never spawns)`, async () => {
       const { spawn, rejected } = await capture(cmd, "win32", "C:\\proj");
@@ -204,4 +210,35 @@ describe("D03 Guard 5 — win32 refuses '%' var-expansion (RED anchor, MEDIUM)",
       expect(rejected).toBeInstanceOf(PreviewProfileInvalidError);
     });
   }
+});
+
+describe("D03 Guard 6 — bare-absent must throw, not cmd-delegate (RED anchor, HIGH)", () => {
+  it("throws for a BARE command absent from PATH (no cwd-first cmd delegation)", () => {
+    setPlatform("win32");
+    const cwd = tmp();
+    plant(cwd, "npm.cmd"); // hijack bait: cmd would resolve <cwd>\npm.cmd first
+    process.env.PATH = tmp(); // empty dir → bare `npm` is NOT on PATH
+    usePathExt();
+    // Must refuse (throw), NOT fall through to `cmd /d /s /c npm run dev`.
+    expect(() => resolveSpawn(["npm", "run", "dev"], cwd)).toThrow();
+  });
+
+  it("a bare command that IS on PATH still resolves (green companion)", () => {
+    setPlatform("win32");
+    const pathShim = plant(tmp(), "npm.cmd");
+    process.env.PATH = path.dirname(pathShim);
+    usePathExt();
+    const { args } = resolveSpawn(["npm", "run", "dev"], tmp());
+    expect(args[3]).toBe(pathShim);
+  });
+
+  it("a path-like absent command still wraps as today (no throw)", () => {
+    setPlatform("win32");
+    process.env.PATH = tmp();
+    usePathExt();
+    const ghost = "C:\\tools\\ghostserver";
+    const { command, args } = resolveSpawn([ghost, "run"], tmp());
+    expect(String(command).toLowerCase()).toMatch(/(?:^|[\\/])cmd\.exe$/);
+    expect(args).toEqual(["/d", "/s", "/c", ghost, "run"]);
+  });
 });

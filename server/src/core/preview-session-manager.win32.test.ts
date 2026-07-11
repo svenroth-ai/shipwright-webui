@@ -21,13 +21,30 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import { PreviewSessionManager } from "./preview-session-manager.js";
 
 const REAL_PLATFORM = process.platform;
+const ORIG_PATH = process.env.PATH;
+const ORIG_PATHEXT = process.env.PATHEXT;
+const tmpDirs: string[] = [];
 
 function setPlatform(p: NodeJS.Platform): void {
   Object.defineProperty(process, "platform", { value: p, configurable: true });
+}
+
+// Plant a resolvable `<dir>\npm.cmd` on PATH so a BARE `npm` resolves
+// deterministically on any CI OS (PATHEXT=".cmd" matches the lowercase file on a
+// case-sensitive fs; post-fix an ABSENT bare command throws — see Guard 6).
+function plantNpmOnPath(): void {
+  const dir = mkdtempSync(path.join(tmpdir(), "d03-2a-"));
+  tmpDirs.push(dir);
+  writeFileSync(path.join(dir, "npm.cmd"), "@echo planted\r\n");
+  process.env.PATH = dir;
+  process.env.PATHEXT = ".cmd";
 }
 
 afterEach(() => {
@@ -35,6 +52,17 @@ afterEach(() => {
     value: REAL_PLATFORM,
     configurable: true,
   });
+  if (ORIG_PATH === undefined) delete process.env.PATH;
+  else process.env.PATH = ORIG_PATH;
+  if (ORIG_PATHEXT === undefined) delete process.env.PATHEXT;
+  else process.env.PATHEXT = ORIG_PATHEXT;
+  for (const d of tmpDirs.splice(0)) {
+    try {
+      rmSync(d, { recursive: true, force: true });
+    } catch {
+      // best-effort temp cleanup
+    }
+  }
   vi.restoreAllMocks();
 });
 
@@ -102,6 +130,7 @@ async function capture(command: string, platform: NodeJS.Platform) {
 
 describe("D03 Guard 2a — F03 win32 npm spawn (RED anchor)", () => {
   it("wraps 'npm run dev' in cmd.exe /d /s /c with discrete argv, shell:false", async () => {
+    plantNpmOnPath();
     const { spawn } = await capture("npm run dev", "win32");
     expect(spawn).toHaveBeenCalledTimes(1);
     const [command, args, options] = spawn.mock.calls[0] as unknown as SpawnCall;
