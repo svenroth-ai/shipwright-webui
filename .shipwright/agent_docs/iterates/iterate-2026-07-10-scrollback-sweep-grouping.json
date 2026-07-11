@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-scrollback-sweep-grouping",
+  "date": "2026-07-11T19:15:00.000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D16-scrollback-sweep-grouping",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D16-scrollback-sweep-grouping.md",
+  "adr": "iterate-2026-07-10-scrollback-sweep-grouping"
+}
