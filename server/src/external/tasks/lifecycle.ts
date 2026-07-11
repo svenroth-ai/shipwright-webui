@@ -22,7 +22,7 @@ import {
   SdkSessionsStore,
   isBacklogSourceState,
 } from "../../core/sdk-sessions-store.js";
-import { withLiveSession } from "../_shared/helpers.js";
+import { normalizeTitle, withLiveSession } from "../_shared/helpers.js";
 import { isBoardColumn, type BoardColumn } from "../../core/board-column.js";
 
 export function registerTasksLifecycle(
@@ -50,10 +50,18 @@ export function registerTasksLifecycle(
     const parent = store.get(c.req.param("id"));
     if (!parent) return c.json({ error: "Parent task not found" }, 404);
     const body = await c.req.json().catch(() => ({}));
-    const title =
-      typeof body.title === "string" && body.title.trim()
-        ? body.title.trim()
-        : `${parent.title} — fork`;
+    // D22/F27 — validate a PROVIDED (non-blank) fork title with the same rule
+    // PATCH applies BEFORE creating the child, so an invalid title (embedded
+    // newlines / over-length) is rejected up-front instead of leaving an
+    // orphan child row behind (the pre-fix normalizeTitle throw in
+    // buildCopyCommands 500'd AFTER store.create). An absent / blank title
+    // keeps the "<parent> — fork" default.
+    let title = `${parent.title} — fork`;
+    if (typeof body.title === "string" && body.title.trim()) {
+      const r = normalizeTitle(body.title);
+      if (!r.ok) return c.json({ error: r.error }, 400);
+      title = r.value;
+    }
     const child = store.create({
       title,
       cwd: parent.cwd,

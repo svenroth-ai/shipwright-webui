@@ -14,6 +14,7 @@ import { normalizeFsPath } from "../../core/normalize-fs-path.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
   normalizeDescription,
+  normalizeTitle,
   readLeadCreateFields,
   validateProjectIdOrError,
   withLiveSession,
@@ -33,10 +34,17 @@ export function registerTasksCreate(
 
   app.post("/api/external/tasks", async (c) => {
     const body = await c.req.json().catch(() => ({}));
-    const title =
-      typeof body.title === "string" && body.title.trim()
-        ? body.title.trim()
-        : "Untitled task";
+    // D22/F27 — a PROVIDED (non-blank) title is validated with the same rule
+    // PATCH applies (shared normalizeTitle: reject embedded newlines /
+    // over-length) so an automated writer can't persist a title that later
+    // 500s every Launch/Resume. An absent / whitespace-only title keeps the
+    // "Untitled task" default affordance.
+    let title = "Untitled task";
+    if (typeof body.title === "string" && body.title.trim()) {
+      const r = normalizeTitle(body.title);
+      if (!r.ok) return c.json({ error: r.error }, 400);
+      title = r.value;
+    }
     // normalizeFsPath strips a paste-artifact surrounding quote pair (a
     // space-containing path copied from a shell context) before it reaches
     // core/launcher.ts, which would otherwise shell-escape the literal quotes

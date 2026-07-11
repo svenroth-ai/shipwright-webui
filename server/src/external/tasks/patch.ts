@@ -22,9 +22,9 @@ import {
 } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import {
-  TITLE_MAX_LENGTH,
   normalizeDescription,
   normalizeStringArray,
+  normalizeTitle,
   validateProjectIdOrError,
   withLiveSession,
 } from "../_shared/helpers.js";
@@ -85,20 +85,9 @@ export function registerTasksPatch(
     const patch: Partial<ExternalTask> = {};
 
     if ("title" in body) {
-      if (typeof body.title !== "string" || /[\r\n]/.test(body.title)) {
-        return c.json({ error: "title cannot contain newlines" }, 400);
-      }
-      const trimmed = body.title.trim();
-      if (trimmed.length === 0) {
-        return c.json({ error: "title cannot be empty" }, 400);
-      }
-      if (trimmed.length > TITLE_MAX_LENGTH) {
-        return c.json(
-          { error: `title exceeds ${TITLE_MAX_LENGTH} characters` },
-          400,
-        );
-      }
-      patch.title = trimmed;
+      const r = normalizeTitle(body.title);
+      if (!r.ok) return c.json({ error: r.error }, 400);
+      patch.title = r.value;
     }
 
     if ("projectId" in body) {
