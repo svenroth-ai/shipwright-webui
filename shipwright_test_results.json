@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T13:35:00.000Z",
+  "last_updated": "2026-07-11T14:20:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-run-config-transient-resilience",
-    "date": "2026-07-11T13:35:00.000Z",
+    "run_id": "iterate-2026-07-10-dev-restart-kill-scope",
+    "date": "2026-07-11T14:20:00.000Z",
     "unit": {
       "status": "passed",
       "passed": 3890,
       "total": 3891,
-      "note": "F0 gate green both workspaces. Server vitest 165 files / 1918 passed + 1 skipped (1919) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + build green. Client vitest 203 files / 1972 passed + build green + tsc clean. New F15 coverage: server run-config-reader.transient.test.ts (3: stat EPERM with fresh last-good -> cached ok; last-good survives a full 5s poll gap; non-retryable EIO with no cache still invalid) + client useRunConfig.test.ts (6: invalid keeps polling at 10s; in_progress 5s; needs_validation 60s; complete/failed off; missing/v1_legacy off; undefined off). The run-config-reader.test.ts TTL-expiry boundary was moved 6s -> 31s (TTL raised 5s -> 30s)."
+      "note": "F0 gate green both workspaces. Server vitest 165 files / 1918 passed + 1 skipped (1919) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + build green. Client vitest 203 files / 1972 passed. New F16 coverage lives in the scripts node:test suite (node --test scripts/kill-targets.test.js): 22 passed (9 pre-existing computeKillTargets + 13 new) - parseWindowsListenerPids returns ONLY exact-match LISTENING PIDs from a realistic netstat -ano dump; ignores ESTABLISHED browser sockets (9100); ignores :51730/:38470 prefix collisions (7777/8888); catches IPv6 TCP + TCPv6 listeners; ignores a UDP listener on the port (6000); empty/malformed tolerance; buildLsofCommand EXACT-string ordering (lsof -ti tcp:5173,3847 -sTCP:LISTEN - address bound to -i, state filter appended) + single-port + injection-proof coercion + empty-ports returns '' (kill nothing); dev-restart.js wiring guard (imports+invokes the fixed helpers, empty-cmd guard, no findstr / -p TCP / un-filtered lsof). Code-review round 2 fixed a HIGH lsof arg-ordering bug (the old order left -i addressless -> killed every macOS/Linux listener) - the exact-string test was proven RED against the broken order, green after. The scripts suite is separate from the vitest workspaces (root scripts/, run via node --test), so its 22 are reported here in the note rather than folded into the 3890 vitest count."
     },
     "integration": {
       "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "Confidence-calibration probes of the touches_io_boundary run-config read surface (producer=orchestrator atomic run_config rewrite -> file -> consumer readRunConfig). (1) Injected-deps unit round-trips (committed): stat EPERM + fresh last-good -> served ok; last-good survives a 5s poll gap; EIO-no-cache -> invalid; existing read/parse retry + TTL-expiry suite green. (2) THROWAWAY real-fs probe (run then deleted): producer writes real config -> readRunConfig with DEFAULT deps (real fs.stat + fs.readFile) -> ok (runId run-a1b2c3d4); malformed-but-readable file WITH a fresh cache -> invalid (NOT stale, proving stale-serve is bounded to physical faults); removed file -> missing (ENOENT->null); rewrite valid -> ok (cache refreshes to new content). PROBE PASS. Two consecutive clean probe rounds (probe set 2 found no issues after the fix) => asymptote reached; the real-fs probe falsified the plan-review TTL-staleness worry."
+      "passed": 3,
+      "total": 3,
+      "note": "Confidence-calibration probes of the touches_io_boundary port-table surface (producer = OS netstat/lsof output -> file/pipe -> consumer parseWindowsListenerPids -> kill-target PID list). (1) Fixture round-trip unit probes (committed): a realistic netstat -ano dump with IPv4+IPv6 (TCP+TCPv6) real listeners, an ESTABLISHED browser socket, :51730/:38470 prefix collisions, and a UDP decoy -> parser returns EXACTLY {4200,4300}; 9100/7777/8888/6000 excluded. (2) LIVE Windows netstat -ano probe (throwaway): confirmed the real proto column is TCP for IPv6 [::] rows, `-p TCP` returns ZERO [::] rows (the IPv6 gap), and UDP rows are 4-token *:* (excluded by the <5 guard). This probe FOUND the IPv6 defect -> fixed (dropped -p TCP, startsWith('TCP')). (3) Re-run after the fix: fixture + wiring probes green, no further findings. Two consecutive clean rounds => asymptote reached, boundary calibrated."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. The only client change is a pure poll-cadence function (runConfigPollIntervalMs in client/src/hooks/useRunConfig.ts feeding TanStack Query's refetchInterval) - no DOM/prop/render, no route/component, no Vite-config/proxy/WS-origin/CORS surface. Covered by 6 deterministic client unit tests + the full 1972-test jsdom suite (mounts real components) + client build. A browser smoke exercises nothing new. F0.5 surface=none (see surface_verification)."
+      "note": "No Playwright run. This iterate touches ONLY dev-tooling scripts at the repo root (scripts/dev-restart.js, scripts/kill-targets.js, scripts/kill-targets.test.js) - no client/src or server/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke exercises nothing this change affects."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,34 +40,36 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T13:34:00.000Z",
+      "timestamp": "2026-07-11T14:19:00.000Z",
       "attempts": 0,
-      "justification": "HONEST client-touch disclosure: this iterate DOES touch a client `.ts` file (client/src/hooks/useRunConfig.ts) - detect_frontend_changes.py classifies any .ts under client/src/ as frontend by path, so it would report has_frontend_changes=true once committed (NOT claimed false). However the modification is a headless pure function: runConfigPollIntervalMs returns the number/false that TanStack Query uses for refetchInterval. There is no DOM/render/prop/visual change, no new route/component, and no Vite-config/proxy/WS-origin/CORS surface. It is fully covered by 6 new deterministic client unit tests, the full 1972-test client jsdom suite (which mounts real components importing the hook), a clean tsc --noEmit, and a green client build. AC2 correctness is proven RED-first on pre-fix main (invalid -> false latched polling OFF; now -> 10s). A browser_verify run would add no signal the client build + jsdom suite lack, so F0.5 surface=none - no fabricated browser run."
+      "justification": "This iterate changes only developer-tooling scripts at the repo root (scripts/dev-restart.js + scripts/kill-targets.js + scripts/kill-targets.test.js), which drive `npm run dev:fresh`. No file under client/src or server/src is touched - detect_frontend_changes.py classifies frontend by path (client/**) and reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. Correctness is covered by the scripts node:test suite (21 passed, AC2 proven RED-first on pre-fix main: parseWindowsListenerPids/buildLsofCommand absent -> 7 TypeError failures, then green after) plus the empirical live-netstat calibration probe. F0.5 surface=none - no fabricated browser run."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - a transient run-config read no longer vanishes the pipeline lane: the existence stat probe now runs through the same retryTornRead envelope as the read path and falls back to last-good on exhaustion (was: bare try/catch -> instant invalid on any non-ENOENT fault); LAST_GOOD_TTL_MS 5000 -> 30000 (comfortably above the 5s poll cadence so a torn poll never expires the cache at fallback); client runConfigPollIntervalMs keeps polling on invalid at a 10s backoff instead of latching OFF.",
+          "behavior": "AC1 - dev-restart kills ONLY the real listener PID: findPidsOnPorts now parses netstat structurally (proto startsWith TCP + state LISTENING + EXACT local-address port match) on Windows and runs `lsof -ti -sTCP:LISTEN tcp:<ports>` on POSIX; the over-matching scenarios (ESTABLISHED browser socket on :5173, :51730/:38470 prefix collisions) no longer reproduce, and IPv6 [::] listeners (missed by the old -p TCP) are now found.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "server run-config-reader.transient.test.ts (stat EPERM + fresh last-good -> served ok with a last-good warning; last-good survives a full 5s poll gap; EIO-no-cache still invalid) + run-config-reader.test.ts (existing read/parse retry + last-good + TTL-expiry@31s green) + client useRunConfig.test.ts (invalid -> 10s; in_progress 5s; needs_validation 60s; terminal/missing/v1_legacy/undefined off). Real-fs round-trip probe confirms malformed-readable -> invalid (not stale) and rewrite -> fresh."
+          "evidence": "scripts/kill-targets.test.js: parseWindowsListenerPids over a realistic netstat -ano fixture returns EXACTLY {4200,4300} - browser ESTABLISHED (9100), :51730 (7777), :38470 (8888) and UDP-on-5173 (6000) all excluded; IPv6 TCP + TCPv6 rows resolve to the real PIDs; buildLsofCommand emits the EXACT canonical string `lsof -ti tcp:5173,3847 -sTCP:LISTEN` (address bound to -i, state filter appended - the round-2 HIGH fix) and returns '' for no valid ports. Live-netstat probe confirmed -p TCP drops all [::] rows (the IPv6 gap fixed by dropping it)."
         },
         {
           "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
           "disposition": "tested",
-          "evidence": "RED captured on pre-fix main: server transient.test.ts 'stat throws EPERM' -> expected 'invalid' to be 'ok'; 'last-good survives a 5s poll gap' -> expected 'invalid' to be 'ok' (2 failed); client useRunConfig.test.ts 'keeps polling on a transient invalid' -> expected false to be truthy (1 failed). GREEN after the fix (server transient 3 passed; client useRunConfig 6 passed)."
+          "category": "unit",
+          "evidence": "RED captured on pre-fix main (kill-targets.js had no parser/builder): 7 new tests failed with `TypeError: parseWindowsListenerPids is not a function` / `buildLsofCommand is not a function`. GREEN after the fix. Round 2: the buildLsofCommand EXACT-string ordering + empty-ports tests were proven RED against the broken `lsof -ti -sTCP:LISTEN tcp:...` order (4 failed - the prior substring assert.match passed for it, hiding the bug), green after the reorder. Final: node --test scripts/kill-targets.test.js -> 22 passed / 0 failed (13 new)."
         },
         {
           "behavior": "AC3 - full server + client suites + builds stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "evidence": "Server vitest 165 files / 1918 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc + build green; client vitest 203 files / 1972 passed + tsc + build green. no-cross-package-imports.test.ts green (helper added to the SERVER types mirror only; client lib mirror untouched - no client-bundle pollution). Read-only-observer rules 1/12 intact (no writes to shipwright_run_config.json or ~/.claude/projects/**)."
+          "category": "unit",
+          "evidence": "Server vitest 165 files / 1918 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc + build green; client vitest 203 files / 1972 passed. The change is confined to root scripts/ (outside both workspaces), so neither suite is affected; oxlint clean; node --check clean on all three scripts. Read-only-observer rules 1/12 intact (script writes into no ~/.claude/projects/** or shipwright_run_config.json)."
         },
         {
-          "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted",
+          "behavior": "AC4 - files stay within the expected 3-file footprint; bloat baseline not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "run-config-reader.ts 438 -> 431 (< 439 baseline current; the retry envelope shrank it, no ratchet); types/run-config-v2.ts 245 -> 297 (< 300, not baselined - the sanctioned parseRunMode home for reader-ceiling helpers); new cohesive run-config-reader.transient.test.ts 102 (< 300) instead of pushing run-config-reader.test.ts past 300 (campaign guardrail); useRunConfig.ts 45 -> 57; new useRunConfig.test.ts 54. Footprint deviations vs the spec's 4-file list: (a) types module - EXPLICITLY directed by the brief + spec Fix direction; (b) new transient test file - explicitly permitted when a footprint test hits the ceiling; (c) useContinuePipeline.test.ts - FORCED by AC3 (its pre-existing poll block asserted invalid->false, moved to useRunConfig.test.ts). Serial #10, deps/blocks none, D01-D09 merged -> no live parallel collision. shipwright_bloat_baseline.json unchanged."
+          "evidence": "Exact footprint: scripts/dev-restart.js (165 -> 179), scripts/kill-targets.js (43 -> 140), scripts/kill-targets.test.js (103 -> 292) - all < 300, no new bloat crossing, shipwright_bloat_baseline.json unchanged (no scripts/ entry). Serial #11, deps/blocks none, D01-D10 merged -> no live parallel collision."
         }
       ],
       "counts": {
