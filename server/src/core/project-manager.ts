@@ -13,6 +13,9 @@ import {
   checkContractVersion,
   RUN_CONFIG_CONTRACT_VERSION,
 } from "./contract-version.js";
+// F07 (D08) — corrupt-file-tolerant load + atomic write, split out because
+// this file is at its bloat ceiling. See project-registry-io.ts.
+import { loadProjectRegistry, atomicWriteRegistry } from "./project-registry-io.js";
 
 /**
  * Section 02 (iterate 3) — reserved projectId for the synthesized
@@ -34,6 +37,11 @@ export interface ProjectManagerDeps {
   // which exercise persist() sequentially against an in-memory store.
   lock?: (path: string) => Promise<() => Promise<void>>;
   ensureFile?: (path: string) => void;
+  // F07 (D08) — atomic tmp+rename for persist() + corrupt-file quarantine on
+  // load(). Injected by index.ts (`fs.promises.rename`). When omitted (unit
+  // doubles) persist() falls back to a plain in-place write and load()
+  // quarantine copies the bytes aside via writeFile instead of renaming.
+  rename?: (from: string, to: string) => Promise<void>;
   // Iterate 14.1 — preview capability detection.
   //
   // statSync / readFileSync are used for mtime-cached sync reads of
@@ -82,21 +90,10 @@ export class ProjectManager {
   ) {}
 
   async load(): Promise<void> {
-    const dir = this.registryPath.substring(0, this.registryPath.lastIndexOf("/"));
-    if (dir && !this.deps.existsSync(dir)) {
-      this.deps.mkdirSync(dir, { recursive: true });
-    }
-
-    if (!this.deps.existsSync(this.registryPath)) {
-      await this.deps.writeFile(this.registryPath, "[]");
-      return;
-    }
-
-    const content = await this.deps.readFile(this.registryPath, "utf-8");
-    const projects: Project[] = JSON.parse(content);
-    for (const p of projects) {
-      this.projects.set(p.id, p);
-    }
+    // F07 (D08) — corrupt-file-tolerant read (project-registry-io.ts): a
+    // truncated/empty projects.json (force-kill mid fire-and-forget persist)
+    // is quarantined aside + loads empty instead of exiting FATAL on boot.
+    this.projects = await loadProjectRegistry(this.deps, this.registryPath);
   }
 
   create(data: Omit<Project, "id" | "createdAt" | "lastActive">): Project {
@@ -406,13 +403,16 @@ export class ProjectManager {
 
   private async persistLocked(data: string): Promise<void> {
     if (this.deps.ensureFile) this.deps.ensureFile(this.registryPath);
+    // F07 (D08) — atomic tmp+rename write (project-registry-io.ts) shrinks the
+    // corruption window at the source. No lock ⇒ still write (atomic when a
+    // rename dep is present, else plain in-place — the prior behaviour).
     if (!this.deps.lock) {
-      await this.deps.writeFile(this.registryPath, data);
+      await atomicWriteRegistry(this.deps, this.registryPath, data);
       return;
     }
     const release = await this.deps.lock(this.registryPath);
     try {
-      await this.deps.writeFile(this.registryPath, data);
+      await atomicWriteRegistry(this.deps, this.registryPath, data);
     } finally {
       await release();
     }
