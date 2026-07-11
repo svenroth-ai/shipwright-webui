@@ -55,6 +55,15 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
       expectFingerprint,
     });
 
+    // D06/F04 (iterate-2026-07-10-transcript-state-guards) — terminal states
+    // are IMMUTABLE from poll results. A task the user completed/closed weeks
+    // ago (state=done) or one that failed to launch (state=launch_failed) must
+    // never be resurrected by a background transcript poll: not to
+    // `jsonl_missing` when Claude's 30-day cleanup deletes the JSONL, and not
+    // back to `active` when a JSONL happens to sit under its uuid.
+    const isTerminalState =
+      task.state === "done" || task.state === "launch_failed";
+
     // Apply state-machine transitions based on probe outcome + mtime.
     if (result.status === "missing") {
       if (
@@ -64,7 +73,9 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
         // back to the Backlog is sticky: a transient JSONL-probe miss
         // must NOT yank a `draft` task into `jsonl_missing` (which would
         // relocate it out of the Backlog column).
-        task.state !== "draft"
+        task.state !== "draft" &&
+        // D06/F04 — done / launch_failed never flip to jsonl_missing.
+        !isTerminalState
       ) {
         store.patch(task.taskId, { state: "jsonl_missing" });
         await store.persist();
@@ -98,9 +109,15 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
     const loc = await watcher.findByUuid(task.sessionUuid);
     const mtime = loc?.mtimeMs ?? 0;
 
-    const patch: Partial<ExternalTask> = { lastJsonlSeenMtimeMs: mtime };
+    const patch: Partial<ExternalTask> = {};
     let nextState: ExternalTaskState = task.state;
-    if (!task.firstJsonlObservedAt) {
+    // D06/F04 — terminal states (done, launch_failed) never transition on a
+    // poll. Skipping the whole transition block keeps a closed task from
+    // being resurrected to `active` via the `!firstJsonlObservedAt` arm (the
+    // too-narrow exemption a `done` row with no recorded observation hit).
+    if (isTerminalState) {
+      // no-op — state is immutable; mtime bookkeeping below is skipped too.
+    } else if (!task.firstJsonlObservedAt) {
       // First JSONL ever observed for this task — record the timestamp
       // regardless of state.
       patch.firstJsonlObservedAt = new Date().toISOString();
@@ -145,8 +162,20 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
     if (nextState !== task.state) {
       patch.state = nextState;
     }
-    store.patch(task.taskId, patch);
-    await store.persist();
+    // D06/F23 — dirty-check the mtime: only record it when it actually moved.
+    // An idle task whose JSONL mtime is unchanged for hours must NOT rewrite
+    // sdk-sessions.json (a full JSON.stringify of ALL tasks) on every 1 s poll.
+    // Terminal states are fully immutable from poll results (spec-literal): the
+    // transcript chunk is read live every poll (byte-offset driven, NOT gated
+    // on this field), so a done row skipping mtime never truncates the view.
+    if (!isTerminalState && mtime !== (task.lastJsonlSeenMtimeMs ?? 0)) {
+      patch.lastJsonlSeenMtimeMs = mtime;
+    }
+    // D06/F23 — persist only when something changed. No diff → no write.
+    if (Object.keys(patch).length > 0) {
+      store.patch(task.taskId, patch);
+      await store.persist();
+    }
 
     return c.json({
       status: "ok",

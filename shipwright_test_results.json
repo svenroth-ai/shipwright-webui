@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T09:39:38.000Z",
+  "last_updated": "2026-07-11T10:50:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-e2e-schema-spec-repair",
-    "date": "2026-07-11T09:39:38.000Z",
+    "run_id": "iterate-2026-07-10-transcript-state-guards",
+    "date": "2026-07-11T10:50:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1969,
-      "total": 1969,
-      "note": "Client vitest 202 files / 1969 tests green (finalize F0 gate). Server vitest 161 files / 1887 tests also green (SHIPWRIGHT_NETWORK_PROFILE=local), unaffected. D05 changes are Playwright e2e specs (not vitest), so the unit suites are unchanged; F0 confirms no regression. tsc --noEmit clean (the playwright config change typechecks)."
+      "passed": 1893,
+      "total": 1893,
+      "note": "Server vitest 161 files / 1893 tests green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local). Client vitest 202 files / 1969 tests green (unaffected — diff is server-only; run for AC3 assurance). tsc --noEmit clean (server build). The D06 changes touch server/src/external/transcript/routes.ts + server/src/core/session-watcher.ts and their vitest suites only."
     },
     "integration": {
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No new vitest integration. The cross-instance schema-migration behavior (v1->v4 write-on-touch + projectId backfill; PATCH v4 preservation) is exercised by the two Playwright e2e guards, recorded under e2e."
+      "note": "No separate integration harness. The transcript-poll state machine + sdk-sessions.json persist round-trip is covered by the server vitest route tests (recorded under unit)."
     },
     "pgtap": {
       "status": "skipped",
@@ -21,10 +21,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "Specs 62 (v1->v4 migration on write-on-touch) + 70-g (v4 persistence on PATCH), both ADR-038 guards, proven GREEN in the build phase under the sentinel-gated schema-isolated Playwright project (SHIPWRIGHT_E2E_ISOLATED=1, temp USERPROFILE under os.tmpdir()) by a separate verifier (author!=fixer). RED-first demonstrated: 62 red when the v1->v4 backfill is broken (rows dropped); 70-g red when the on-disk schema version is tampered. testIgnored from the default desktop project + collected only under the sentinel-only schema-isolated project, so NOT re-executed in this finalize-only run; the real store sha256 f0610675 was byte-unchanged throughout."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0,
+      "note": "Playwright 38-jsonl-missing-transition exercises the active->jsonl_missing flip for a NON-terminal task, which this change preserves (only terminal done/launch_failed rows gained immutability; a POST-created task is draft->active, never terminal). Not re-run in this server-only iterate — no client/production surface changed (detect_frontend_changes: has_frontend_changes=false). The preserved transition is fenced by the unchanged routes.transcript-newplain-* vitest suites (re-run green) + routes.test.ts active/jsonl_missing/awaiting cases."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,49 +40,44 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T09:36:16.469Z",
+      "timestamp": "2026-07-11T10:50:00.000Z",
       "attempts": 0,
-      "justification": "Test-repair iterate: only Playwright e2e specs (62 schema-migration, 70-g schema-persistence), the isolated-store helper, and playwright config changed — no server/client production code. The two schema specs are testIgnored from the default Playwright project and collected only under the sentinel-gated schema-isolated project (SHIPWRIGHT_E2E_ISOLATED=1 against a temp home under os.tmpdir()), so no browser can drive them on the default stack without the isolated sentinel. Correctness is proven by the independent verifier's isolated green run plus RED-first proofs (62 RED when the v1->v4 backfill is broken, 70-g RED when the on-disk schema version is tampered); the real store sha256 was byte-unchanged throughout. No production surface changed, so there is no startable user-experienceable surface."
+      "justification": "Server-only hardening: the diff touches server/src/external/transcript/routes.ts (transcript-poll state machine) + server/src/core/session-watcher.ts (JSONL discovery retry) + their vitest suites. detect_frontend_changes reports has_frontend_changes=false, so there is no startable frontend/UI surface this change alters and no browser-verify is applicable (F2 skipped by the shared detector). Correctness is proven by 5 RED-first server tests (RED on pre-fix main: done/launch_failed flipping to jsonl_missing + persisting, done resurrected to active, 3 persists per idle poll, findByUuid returning null on a one-shot EBUSY stat) that all pass after the fix, plus a throwaway real-fs round-trip probe (a done task with its JSONL deleted stayed done on a freshly reloaded on-disk store, store file byte-identical across 3 polls). No browser run was fabricated."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - the two ADR-038 schema guards no longer reproduce their failures (70-g permanently red on schemaVersion===2; 62 vacuous via wrong registry path)",
+          "behavior": "AC1 - terminal states no longer resurrect: done/launch_failed stay put on poll (both missing- and ok-branch); a closed row is never yanked to active; idle/terminal polls no longer rewrite the store; a transient fs error in findByUuid discovery no longer yields an authoritative miss",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "Both specs GREEN on the isolated temp-home schema-isolated stack (build phase, verifier author!=fixer): 62 asserts v1 rows load as projectId=unassigned + on-disk upgrades to v4; 70-g asserts PATCH keeps schemaVersion 4 + preserves every row's projectId."
+          "category": "unit",
+          "evidence": "server/src/external/transcript/__tests__/routes.test.ts (D06 blocks) + server/src/core/session-watcher.test.ts (EBUSY retry). Real-fs probe confirmed the done-row disk round-trip."
         },
         {
-          "behavior": "AC2 - a NEW regression proof is RED on the pre-fix path and GREEN after",
+          "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
           "disposition": "tested",
-          "evidence": "RED-first: 62 goes red when the v1->v4 backfill is deliberately broken (rows dropped); 70-g goes red when the on-disk schema version is tampered. Recorded by the independent verifier."
+          "evidence": "5 new tests proven RED on the pre-fix tree (captured: missing-branch done+launch_failed flip+persist; ok-branch done resurrected to 'active'; unchanged-mtime 3 persists; findByUuid null on one-shot EBUSY), all GREEN after the fix."
         },
         {
           "behavior": "AC3 - full server + client suites stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "evidence": "F0: server vitest 1887/1887 (SHIPWRIGHT_NETWORK_PROFILE=local), client vitest 1969/1969, tsc --noEmit clean."
+          "evidence": "F0: server vitest 1893/1893 (SHIPWRIGHT_NETWORK_PROFILE=local) + client vitest 1969/1969; server tsc --noEmit clean. CLAUDE.md rules 1-4/12 (read-only observer, stateless transcript, no JSONL writes) intact; the FR-01.32 draft-sticky + newplain state-machine fences re-run green."
         },
         {
-          "behavior": "AC4 - files stay within footprint; bloat baseline not ratcheted",
+          "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted",
           "disposition": "tested",
-          "evidence": "Diff = 2 specs + isolated-store.ts helper + 2 playwright config files (documented deliberate footprint deviation for the safe isolated repair). shipwright_bloat_baseline.json unchanged (no ratchet)."
-        },
-        {
-          "behavior": "AC5 (MAX) - every hardening gate passes: author!=fixer guard, RED-first, doubt-reviewer + external_review, isolation audit + real-store safety",
-          "disposition": "tested",
-          "evidence": "Isolation self-lock aborts (writeAttempted=[]) when SHIPWRIGHT_E2E_ISOLATED!=1 or store outside os.tmpdir(); doubt-reviewer closed junction/realpath, partial-prefix, walk-up, case, trailing-sep, write-before-gate + the TEMP=%USERPROFILE% residual (sentinel); external_review high/medium findings applied (hard projectId asserts, both-cards assert, sentinel), seedV1Store unlocked-write accepted-with-rationale (single-writer isolated stack). Real store sha256 f0610675 byte-unchanged."
+          "evidence": "Only footprint files changed: transcript/routes.ts (188 LOC), transcript/__tests__/routes.test.ts (285), session-watcher.ts (299, held < 300 - no new crossing), session-watcher.test.ts (259). shipwright_bloat_baseline.json unchanged (no ratchet); none of the touched files are baselined."
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 4,
+        "covered_acs": 4
       }
     },
     "degraded": []

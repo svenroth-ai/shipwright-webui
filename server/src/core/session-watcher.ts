@@ -81,7 +81,8 @@ export class SessionWatcher {
     const wanted = `${sessionUuid.toLowerCase()}.jsonl`;
     let subs: string[];
     try {
-      subs = await this.deps.readdir(this.deps.projectsDir);
+      // D06/F24 — retry transient fs errors, fast-fail ENOENT (absent dir).
+      subs = await readWithRetry(() => this.deps.readdir(this.deps.projectsDir), ENOENT_FATAL);
     } catch {
       if (debug) {
         // eslint-disable-next-line no-console
@@ -94,14 +95,14 @@ export class SessionWatcher {
     for (const sub of subs) {
       const subPath = path.join(this.deps.projectsDir, sub);
       try {
-        const s = await this.deps.stat(subPath);
+        const s = await readWithRetry(() => this.deps.stat(subPath), ENOENT_FATAL);
         if (!s.isDirectory()) continue;
       } catch {
         continue;
       }
       let files: string[];
       try {
-        files = await this.deps.readdir(subPath);
+        files = await readWithRetry(() => this.deps.readdir(subPath), ENOENT_FATAL);
       } catch {
         continue;
       }
@@ -109,7 +110,8 @@ export class SessionWatcher {
         if (f.toLowerCase() !== wanted) continue;
         const fp = path.join(subPath, f);
         try {
-          const fs = await this.deps.stat(fp);
+          // D06/F24 core fix — retry the matched file's stat (pre-fix a transient EBUSY here read as an authoritative "JSONL missing").
+          const fs = await readWithRetry(() => this.deps.stat(fp), ENOENT_FATAL);
           if (debug) {
             // eslint-disable-next-line no-console
             console.log(
@@ -266,9 +268,12 @@ export function computeFingerprint(loc: JsonlLocation): string {
 
 const RETRY_DELAYS_MS = [50, 100, 200, 400, 800, 1600];
 const RETRY_ERROR_CODES = new Set(["EBUSY", "EPERM", "EACCES", "ENOENT"]);
+/** D06/F24 — discovery passes this so ENOENT (absent) is an authoritative miss. */
+const ENOENT_FATAL: ReadonlySet<string> = new Set(["ENOENT"]);
 
-/** 6-attempt exponential backoff covering Windows filesystem errors. */
-export async function readWithRetry<T>(op: () => Promise<T>): Promise<T> {
+/** 6-attempt exponential backoff over Windows fs errors; `fatalCodes` bails
+ * immediately on the given codes (e.g. ENOENT for discovery). */
+export async function readWithRetry<T>(op: () => Promise<T>, fatalCodes?: ReadonlySet<string>): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i < RETRY_DELAYS_MS.length; i++) {
     try {
@@ -276,9 +281,8 @@ export async function readWithRetry<T>(op: () => Promise<T>): Promise<T> {
     } catch (err) {
       lastErr = err;
       const code = (err as NodeJS.ErrnoException)?.code;
-      if (!code || !RETRY_ERROR_CODES.has(code)) {
-        // Non-retryable error (permissions, syntax, etc.) — bail immediately.
-        throw err;
+      if (!code || !RETRY_ERROR_CODES.has(code) || fatalCodes?.has(code)) {
+        throw err; // non-retryable (permissions, syntax) or caller-fatal
       }
       if (i === RETRY_DELAYS_MS.length - 1) break;
       await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[i]));

@@ -54,6 +54,40 @@ describe("SessionWatcher.findByUuid", () => {
     const loc = await watcher.findByUuid(UUID.toUpperCase());
     expect(loc).not.toBeNull();
   });
+
+  // D06/F24 (iterate-2026-07-10-transcript-state-guards) — the torn-read
+  // retry envelope must also cover discovery's per-file stat. Before the
+  // fix, a single transient EBUSY on the matched file's stat returned an
+  // authoritative `null` (== "JSONL missing"), which the transcript-poll
+  // state machine then persisted as a state flip. AV scanner / OneDrive
+  // sync momentary locks are the exact threat the 6-attempt envelope was
+  // built for (module header lines 15-19).
+  it("retries a one-shot EBUSY on the matched file's stat and still finds it", async () => {
+    const wanted = `${UUID}.jsonl`;
+    let fileStatCalls = 0;
+    const watcher = new SessionWatcher({
+      projectsDir: "/projects",
+      readdir: async (p: string) =>
+        // top-level projectsDir → the single subdir; the subdir → the file
+        p.toLowerCase().endsWith("enc") ? [wanted] : ["enc"],
+      stat: async (p: string) => {
+        if (p.toLowerCase().endsWith(".jsonl")) {
+          fileStatCalls++;
+          if (fileStatCalls === 1) {
+            throw Object.assign(new Error("busy"), { code: "EBUSY" });
+          }
+          return { mtimeMs: 42, size: 7, isDirectory: () => false };
+        }
+        return { mtimeMs: 1, size: 0, isDirectory: () => true };
+      },
+    });
+    const loc = await watcher.findByUuid(UUID);
+    expect(loc).not.toBeNull();
+    expect(loc?.mtimeMs).toBe(42);
+    expect(loc?.sizeBytes).toBe(7);
+    // Proves the retry actually fired (call 1 threw, call 2 succeeded).
+    expect(fileStatCalls).toBe(2);
+  });
 });
 
 describe("SessionWatcher.readChunk", () => {
