@@ -144,6 +144,25 @@ describe("createPreviewRouter — POST /api/external/projects/:projectId/preview
     expect(body.detail).toBe("shell metacharacter");
   });
 
+  it("400 maps a missing-port PreviewProfileInvalidError → preview_profile_invalid", async () => {
+    // F30: the manager rejects a profile without dev_server.port up front; the
+    // route must surface it as the 4xx config-omission code, not a 5xx spawn error.
+    const app = makeApp({
+      spawnImpl: async () => {
+        throw new PreviewProfileInvalidError(
+          "dev_server.port must be a positive integer",
+        );
+      },
+    });
+    const res = await app.request("/api/external/projects/p-test/preview", {
+      method: "POST",
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; detail: string };
+    expect(body.error).toBe("preview_profile_invalid");
+    expect(body.detail).toBe("dev_server.port must be a positive integer");
+  });
+
   it("500 maps PreviewPortInUseError → preview_port_in_use with port", async () => {
     const app = makeApp({
       spawnImpl: async () => {

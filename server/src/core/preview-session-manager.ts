@@ -35,6 +35,8 @@ import {
   awaitExit,
   defaultProbePort,
   defaultProbeReady,
+  isValidPort,
+  buildPreviewUrl,
   type TreeKillDeps,
 } from "./preview-child-lifecycle.js";
 
@@ -270,16 +272,14 @@ export class PreviewSessionManager {
     const argv = PreviewSessionManager.tokenizeCommand(
       profile.dev_server?.command,
     );
-    const port = profile.dev_server?.port ?? 0;
+    const port = profile.dev_server?.port;
+    if (!isValidPort(port)) throw new PreviewProfileInvalidError("dev_server.port must be a positive integer");
     const readyPath = profile.dev_server?.ready_path ?? "/";
     const readyTimeoutSec = profile.dev_server?.ready_timeout_seconds ?? 60;
 
-    // Port probe before spawn — a server we can't reach because another
-    // process owns the port is worse than a clear error.
-    if (port > 0) {
-      const free = await probePort(port);
-      if (!free) throw new PreviewPortInUseError(port);
-    }
+    // Port probe before spawn — a port owned by another process is worse than a clear error.
+    const free = await probePort(port);
+    if (!free) throw new PreviewPortInUseError(port);
 
     const resolved = resolveSpawn(argv, opts.cwd);
     let child: ChildProcessWithoutNullStreams;
@@ -362,7 +362,7 @@ export class PreviewSessionManager {
     const entry: PreviewEntry = {
       projectId,
       pid: child.pid ?? -1,
-      url: `http://localhost:${port}${readyPath === "/" ? "" : readyPath}`,
+      url: buildPreviewUrl(port, readyPath),
       sessionId: randomUUID(),
       startedAt: now(),
       profileHash,
