@@ -43,6 +43,7 @@ import {
   loadProfile as loadProfileReal,
   getProfilesDir,
 } from "./core/profile-loader.js";
+import { evaluatePreviewCoherence } from "./core/preview-coherence.js";
 
 import { createProjectRoutes } from "./routes/projects.js";
 import { cascadeDeleteProjectTasks } from "./core/cascade-delete-project-tasks.js";
@@ -707,7 +708,10 @@ if (isMainModule) {
       // Warn (don't fail) when stack.frontend is declared but dev_server
       // is not wired, or vice versa. Non-fatal — the API route resolves
       // preview.enabled per request, but the log helps operators diagnose
-      // "why isn't Preview showing up?" without opening devtools.
+      // "why isn't Preview showing up?" without opening devtools. An
+      // intentionally-empty `stack.frontend: {}` (bundled
+      // python-plugin-monorepo) is backend-only by design and stays quiet
+      // (F32) — predicate + matrix live in core/preview-coherence.ts.
       try {
         const all = projectManager.getAll().filter((p) => !p.synthesized);
         for (const proj of all) {
@@ -716,32 +720,8 @@ if (isMainModule) {
             | (ReturnType<typeof loadProfileReal> & { stack?: { frontend?: unknown } })
             | null;
           if (!prof) continue;
-          const hasFrontend = Boolean(
-            (prof as { stack?: { frontend?: unknown } }).stack?.frontend,
-          );
-          const hasDevServer = Boolean(prof.dev_server?.command);
-          if (hasFrontend && !hasDevServer) {
-            console.warn(
-              JSON.stringify({
-                level: "warn",
-                message:
-                  "profile declares stack.frontend but no dev_server.command — preview button will stay hidden",
-                projectId: proj.id,
-                profile: proj.profile,
-              }),
-            );
-          }
-          if (!hasFrontend && hasDevServer) {
-            console.warn(
-              JSON.stringify({
-                level: "warn",
-                message:
-                  "profile has dev_server.command but no stack.frontend — preview gate denies regardless (ADR-036)",
-                projectId: proj.id,
-                profile: proj.profile,
-              }),
-            );
-          }
+          const warning = evaluatePreviewCoherence(proj.id, proj.profile, prof);
+          if (warning) console.warn(JSON.stringify(warning));
         }
       } catch (err) {
         // Non-fatal — the diagnostic is purely informational.
