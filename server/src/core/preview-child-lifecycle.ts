@@ -210,6 +210,45 @@ export function buildReadyUrl(port: number, readyPath: string): URL | null {
   }
 }
 
+/**
+ * A dev-server port must be a positive integer inside the TCP range (F30). A
+ * missing / zero / non-integer port would otherwise skip the pre-spawn probe
+ * and leave the readiness poll hammering port 0 for the full timeout before it
+ * tree-kills the healthy dev server and misreports preview_timeout.
+ */
+export function isValidPort(port: unknown): port is number {
+  return (
+    typeof port === "number" &&
+    Number.isInteger(port) &&
+    port > 0 &&
+    port <= 65535
+  );
+}
+
+/**
+ * Build the RETURNED preview URL (the one handed to window.open in the
+ * browser). Mirrors buildReadyUrl's host-pinning (F10): a malicious profile
+ * ready_path like "@evil.com/" — or an absolute "http://evil.com/" — must not
+ * smuggle a new authority into the string. We resolve the path through the URL
+ * constructor against a localhost origin and reject any host drift, preserving
+ * the historical host-only shape for a root path.
+ */
+export function buildPreviewUrl(port: number, readyPath: string): string {
+  const origin = `http://localhost:${port}`;
+  try {
+    const clean = readyPath.replace(/^[/@]+/, "/").trim() || "/";
+    const url = new URL(clean, `${origin}/`);
+    // Reject any host OR scheme drift: an absolute "http://evil.com/", a
+    // "//"/"\\" authority smuggle, or a "javascript:"/"data:" scheme all
+    // resolve away from the pinned http://localhost origin.
+    if (url.protocol !== "http:" || url.hostname !== "localhost") return origin;
+    if (url.pathname === "/" && !url.search && !url.hash) return origin;
+    return `${origin}${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return origin;
+  }
+}
+
 export async function defaultProbeReady(args: {
   port: number;
   readyPath: string;

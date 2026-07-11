@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T20:39:26.000Z",
+  "last_updated": "2026-07-11T21:20:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-preview-child-lifecycle",
+    "run_id": "iterate-2026-07-10-preview-config-validation",
     "date": "2026-07-11",
     "unit": {
       "status": "passed",
-      "passed": 1986,
-      "total": 1987,
-      "note": "server vitest 170 files / 1967 tests green + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). New preview-child-lifecycle.test.ts (16: drainStdio x3, treeKill x4, awaitExit x3, + 6 manager regressions) drives the REAL PreviewSessionManager through injected spawn/platform/processKill/killSpawn seams so no real taskkill or process-group signal fires against a host pid. preview-session-manager.test.ts net-neutral (killAll describe moved to the new file under injected seams; +in-flight-rejection retry test). No client/** change (all 4 changed files under server/src/core/). Diff-coverage remediation: added preview-child-lifecycle.branches.test.ts (19 tests) covering the moved port/readiness probes + treeKill win32/fallback edges + drainStdio setEncoding branch -> module 100% lines / 92% branch (was 60.6%); total server suite 171 files / 1986 passed + 1 skipped."
+      "passed": 2005,
+      "total": 2006,
+      "note": "server vitest 172 files / 2005 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). D21 adds 19 tests: preview-session-manager.validation.test.ts (6 AC2 behavioral regressions RED-first on pre-fix main: 5 fail / 1 pass) + preview-child-lifecycle.branches.test.ts (12: isValidPort x2, buildPreviewUrl x10 incl. host-drift/backslash/non-http-scheme/catch) + routes.test.ts (1: missing-port 400 mapping). Only 2 production files touched (preview-session-manager.ts -1 line ->392<=393; preview-child-lifecycle.ts +2 cohesive helpers). No client/** change. tsc + oxlint clean."
     },
     "integration": {
       "status": "passed",
-      "passed": 16,
-      "total": 16,
-      "note": "The 6 manager regressions exercise the real spawn()/doSpawn() dedup wrapper, the real profile-change respawn (treeKill + awaitExit), the real killAll, and the real drainStdio wiring through the injected fake-spawn seam. RED-first proven by neutralizing each fix (seams kept): all 6 regressions FAIL on pre-fix behavior, 10 helper unit tests pass; restoring the fix -> 16/16 green."
+      "passed": 7,
+      "total": 7,
+      "note": "6 validation.test.ts regressions drive the REAL PreviewSessionManager.spawn()/doSpawn() through injected spawn/probe seams (F10 returned-URL host pinning: @evil.com/ -> http://localhost:5173/evil.com/, dashboard -> .../dashboard, absolute off-host -> bare origin, root -> host-only; F30 port reject: missing/0/-1/3000.5/70000 -> PreviewProfileInvalidError with spawn never called) + 1 route test pins PreviewProfileInvalidError -> 400 preview_profile_invalid. RED-first proven: 5/6 fail on pre-fix (the pass is the root case pre-fix concat already produced)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No preview E2E run. D20 is server-side child-process lifecycle with NO UI-observable change (the Preview button + /preview route are unchanged; the fix makes the existing spawn drain/dedup/tree-kill correctly). Behavioral proof is the deterministic server regressions. The real cross-process taskkill/process.kill(-pid) against a live OS group is not unit-probeable (tests must not kill real host groups) -> the platform seam is unit-verified and the real spawn path is unchanged from D03; post-merge :3847 smoke (click Preview, switch profiles, confirm no orphan node/cmd) is the real-stack proof."
+      "note": "No preview E2E run. D21 is a server-side config-validation hardening with NO UI-observable change on a valid profile (the Preview button + /preview route + returned-URL shape for a normal ready_path are unchanged). The two defects are only reachable via a hand-authored malicious/incomplete profile; both are proven by deterministic server regressions + a 24-case adversarial boundary probe (15 URL smuggles + 9 ports, 0 off-host escapes) against the built dist. The client already handles preview_profile_invalid (PreviewButton.tsx); no client file changed."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,71 +39,65 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-10-preview-child-lifecycle/surface_verification.json",
-      "timestamp": "2026-07-11T20:20:04.000Z",
-      "justification": "Server-side Preview dev-server child lifecycle (FR-01.17); no UI-observable change. Drain (F11): stdout/stderr consumed into a bounded ring so a full OS pipe can't freeze the child. Dedup (F12): concurrent Preview clicks coalesce onto one child (different profile serializes) so no untracked orphan leaks. Tree-kill (F13): killAll/respawn/cleanup terminate the whole npm->node group (win32 taskkill /T, POSIX kill(-pid)) and await the old child's exit before the respawn probe. Proof is the deterministic server regressions (preview-child-lifecycle.test.ts 16 tests + preview-session-manager.test.ts) green on this win32 host and Linux CI via injected platform seams. No client/** file changed; the frontend-change detector only false-positives on the 'src/' substring inside 'server/src/'."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-10-preview-config-validation/surface_verification.json",
+      "timestamp": "2026-07-11T21:20:00.000Z",
+      "justification": "Server-side Preview config validation (FR-01.17); no UI-observable change on a valid profile. F10: the returned preview URL is now built via buildPreviewUrl (URL-constructor host+scheme-pinning against http://localhost:<port>, same normalization the readiness probe's buildReadyUrl uses) instead of raw string concatenation, so a malicious ready_path can't smuggle an off-host authority into window.open. F30: a missing/invalid dev_server.port is rejected up front with PreviewProfileInvalidError (route -> 400 preview_profile_invalid) instead of probing a dead port for 60s then killing the healthy dev server. Proof is the deterministic server regressions (validation.test.ts + branches.test.ts + routes.test.ts) green on this win32 host, plus the adversarial URL/port boundary probe (0 findings). No client/** file changed; the frontend-change detector only false-positives on the 'src/' substring inside 'server/src/'."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1/F11 (MEDIUM) - spawn drains stdout+stderr into a bounded ring so a never-read OS pipe buffer can't backpressure-freeze the child; the captured tail is attached to PreviewExitedEarlyError/PreviewTimeoutError",
+          "behavior": "AC1/F10 (MEDIUM) - the returned preview URL is host-pinned: a ready_path smuggling an authority ('@evil.com/') stays on-host as a path, not a new host",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-child-lifecycle.test.ts 'F11: spawn drains...' (data listener attached to both streams) + 'F11: early-exit error carries the captured stderr tail' - RED on pre-fix (0 listeners / empty tail) -> GREEN. drainStdio x3 unit tests (attach, bounded tail, null-safe)."
+          "evidence": "validation.test.ts 'keeps a smuggled @evil.com/ ready_path on-host' - RED on pre-fix (http://localhost:5173@evil.com/, host evil.com) -> GREEN (http://localhost:5173/evil.com/, host localhost). branches.test.ts buildPreviewUrl x10 cover //, backslash, absolute off-host, javascript:/data:, catch."
         },
         {
-          "behavior": "AC1/F12 (MEDIUM) - two concurrent spawn() for the same project+profile coalesce onto a single child (no untracked orphan killAll can never reach)",
+          "behavior": "AC1/F10 (MEDIUM) - a slash-less ready_path yields an openable URL, and a root ready_path preserves the historical host-only shape (no trailing slash)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-child-lifecycle.test.ts 'F12: concurrent spawn() ... coalesces' - RED on pre-fix main (spawn called twice) -> GREEN (once). Promise.all over two mgr.spawn() through the injected spawn seam."
+          "evidence": "validation.test.ts 'normalizes a slash-less ready_path' (pre-fix http://localhost:5173dashboard -> http://localhost:5173/dashboard) + 'still renders host-only for a root ready_path' (http://localhost:5173) - the root case pins the pre-existing contract so no literal-comparison regression."
         },
         {
-          "behavior": "AC1/F12 (MEDIUM) - a different-profile concurrent spawn serializes onto the in-flight start then respawns, tree-killing the old child instead of orphaning it",
+          "behavior": "AC1/F30 (LOW) - a profile with dev_server.command but a missing/invalid port is rejected before spawning (never probes port 0 / never kills the healthy dev server)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-child-lifecycle.test.ts 'F12: a different-profile concurrent spawn serializes + tree-kills the old child' - RED on pre-fix (old child never killed) -> GREEN (processKill(-pid) called, one live entry). Addresses the external-code-review serialization finding."
+          "evidence": "validation.test.ts 'rejects a profile whose dev_server.port is missing - never spawns' + 'rejects a zero / negative / non-integer / out-of-range port' - RED on pre-fix (port defaulted to 0, probe skipped, spawn resolved) -> GREEN (PreviewProfileInvalidError, spawn never called). branches.test.ts isValidPort x2."
         },
         {
-          "behavior": "AC1/F13 (MEDIUM) - killAll and profile-change respawn tree-kill the whole npm->node group (win32 taskkill /pid /t /f, POSIX kill(-pid)); the transient in-spawn cleanup does too (the detached child would otherwise orphan its group)",
+          "behavior": "AC1/F30 (LOW) - the route maps the missing-port PreviewProfileInvalidError to 400 preview_profile_invalid (config-omission code, not a 5xx spawn error)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-child-lifecycle.test.ts 'F13: killAll tree-kills...' + treeKill x4 unit (POSIX group, throw->fallback, win32 taskkill argv shell:false, no-pid fallback) - RED on pre-fix (only the direct child SIGTERMed) -> GREEN."
+          "evidence": "routes.test.ts '400 maps a missing-port PreviewProfileInvalidError -> preview_profile_invalid' asserts status 400 + detail 'dev_server.port must be a positive integer'."
         },
         {
-          "behavior": "AC1/F13 (MEDIUM) - a profile-change respawn awaits the old child's exit before probing the new port (no race where the probe beats the port release)",
+          "behavior": "AC2 - a NEW regression test is RED on pre-fix main and green after (defect actually reproduced)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-child-lifecycle.test.ts 'F13: a profile-change respawn waits for the old child to exit before probing' - RED on pre-fix (probe observes not-yet-exited) -> GREEN. awaitExit x3 unit (already-exited, later-exit, bounded timeout)."
+          "evidence": "validation.test.ts run against unmodified source: 5 failed / 1 passed (the 4 URL smuggle/normalize cases + the 2 port-reject cases fail; root case passes). After the fix: 6/6 green."
         },
         {
-          "behavior": "AC2 - a NEW regression test is RED on pre-fix behavior and green after (defect actually reproduced)",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "Neutralize+run cycle recorded: 6 manager regressions FAIL on pre-fix (drain/dedup/serialize/killAll/respawn/tail), 10 helper unit tests pass; restore -> 16/16 green."
-        },
-        {
-          "behavior": "AC3 - full existing server suite stays green; no invariant/ADR regressed (ADR-044 shell:false, D03 win32 resolveSpawn wrapper preserved)",
+          "behavior": "AC3 - full existing server suite stays green; no invariant/ADR regressed (D03 shell:false/win32 spawn, D20 lifecycle, ADR-044 single-spawn-path preserved)",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "170 files / 1967 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). preview-session-manager.win32.test.ts + preview-win32-resolve.test.ts (D03 guards) still green; oxlint + tsc clean."
+          "evidence": "172 files / 2005 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). preview-child-lifecycle.test.ts (D20) + preview-win32 guards still green; tsc + oxlint clean."
         },
         {
-          "behavior": "AC4 - files stay within footprint (+2 cohesive files per campaign guardrail) and bloat baselines are not ratcheted",
+          "behavior": "AC4 - files stay within footprint (helpers in the cohesive child-lifecycle module + a new test file per the campaign guardrail) and bloat baselines are not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "preview-session-manager.ts 392<=393, preview-session-manager.test.ts 341<=341, new preview-child-lifecycle.ts 228<300, preview-child-lifecycle.test.ts 292<300. Anti-ratchet hook clean."
+          "evidence": "preview-session-manager.ts 392<=393 (net -1), preview-session-manager.test.ts 341<=341 (untouched), preview-child-lifecycle.ts 267<300, branches.test.ts 290<300, validation.test.ts 153<300, routes.test.ts 280<300. Anti-ratchet hook clean."
         },
         {
-          "behavior": "Regression - an in-flight spawn that rejects clears its map entry so the next Preview click retries (no poisoned dedup)",
+          "behavior": "Confidence calibration (touches_io_boundary) - adversarial URL/port boundary probe: no ready_path resolves off-host, no invalid port validates",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "preview-session-manager.test.ts 'clears the in-flight entry when a spawn rejects, so the next click retries' - addresses the external-plan-review poisoned-promise finding."
+          "evidence": "Node probe over built dist: 15 adversarial ready_paths (@/////\\\\/absolute/https/javascript/data/user:pass@/leading-space/query/fragment) all resolve host=localhost (0 off-host); 9 ports incl. '3000'(string)/undefined/NaN/65536 all validate as expected (0 mis-validations)."
         }
       ],
       "counts": {
-        "testable": 9,
-        "tested": 9,
+        "testable": 8,
+        "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -111,7 +105,7 @@
         "acs": 4,
         "covered_acs": 4
       },
-      "note": "4 ACs (AC1-AC4) + 2 review-driven regressions, all tested. Enumeration basis = the sub-iterate spec's Acceptance Criteria; each maps to >=1 RED-first regression in preview-child-lifecycle.test.ts (findings F11/F12/F13)."
+      "note": "4 ACs (AC1-AC4) split across F10 (2) + F30 (2) + AC2 RED-first + AC3 + AC4 + the io-boundary calibration probe, all tested. Enumeration basis = the sub-iterate spec's Acceptance Criteria; each maps to >=1 RED-first regression in preview-session-manager.validation.test.ts (findings F10/F30) plus per-branch unit coverage in preview-child-lifecycle.branches.test.ts."
     },
     "degraded": []
   }
