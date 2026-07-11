@@ -20,6 +20,15 @@ $server = Join-Path $repo 'server'
 $client = Join-Path $repo 'client'
 $logDir = Join-Path $env:USERPROFILE '.shipwright-webui'
 $log    = Join-Path $logDir 'server-manual.log'
+# Honor $env:PORT (default 3847) — the .ps1 parallel of the .sh twin's
+# PORT="${PORT:-3847}". Used for the kill sweep, the launched server env, the
+# readiness poll, and every operator message, so a custom-PORT operator stops
+# the OLD server and polls the RIGHT one (a hardcoded 3847 left it alive). The
+# `^\d{1,5}$` guard degrades an unset/blank/non-numeric PORT to the 3847 default
+# instead of throwing on the [int] cast; the 5-digit cap (<=99999) keeps the
+# cast below Int32.MaxValue so a huge numeric PORT degrades rather than throwing
+# an overflow — matching the .sh twin's non-crashing behavior.
+$Port   = if ($env:PORT -match '^\d{1,5}$') { [int]$env:PORT } else { 3847 }
 
 Write-Host ''
 Write-Host '=== Shipwright WebUI - (re)start Hono (PRODUCTION, background) ===' -ForegroundColor Cyan
@@ -98,12 +107,12 @@ if ($LASTEXITCODE -ne 0) {
 }
 Set-Location $server
 
-# 2. Build OK -> stop the old Hono: port-3847 listener + any `tsx` process
+# 2. Build OK -> stop the old Hono: the port listener + any `tsx` process
 #    running this repo's server entry (the watch parent and its child).
 Write-Host ''
 Write-Host 'Build OK. Stopping the old server...' -ForegroundColor Yellow
 $killed = New-Object System.Collections.Generic.List[int]
-Get-NetTCPConnection -LocalPort 3847 -State Listen -ErrorAction SilentlyContinue |
+Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
   Select-Object -ExpandProperty OwningProcess -Unique |
   ForEach-Object { $killed.Add([int]$_); Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
@@ -113,20 +122,27 @@ $ids = ($killed | Sort-Object -Unique) -join ' '
 if ($ids) { Write-Host "  stopped PID(s): $ids" -ForegroundColor DarkGray }
 Start-Sleep -Milliseconds 700
 
-# 3. Launch the fresh build HIDDEN + detached, output -> log file.
+# 3. Launch the fresh build HIDDEN + detached, output -> log file. The inner
+#    cmd sets PORT for the CHILD only (`set "PORT=<port>"&& node ...`) — the
+#    .ps1 parallel of the .sh twin's `PORT="$PORT" node ...` prefix. Scoping it
+#    to the child (rather than mutating this script's own $env:PORT) makes the
+#    resolved value explicit to node without leaking into the operator's shell
+#    session if the script is dot-sourced. Precedence between this PORT and any
+#    PORT in .env.local is node's own (--env-file-if-exists) and is now
+#    identical to the .sh path — the point of the parity fix.
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-$inner = "node --env-file-if-exists=../.env.local dist/index.js > `"$log`" 2>&1"
+$inner = "set `"PORT=$Port`"&& node --env-file-if-exists=../.env.local dist/index.js > `"$log`" 2>&1"
 $proc  = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $inner `
   -WorkingDirectory $server -WindowStyle Hidden -PassThru
 
-# 4. Confirm it bound port 3847.
+# 4. Confirm it bound the port.
 Write-Host ''
 Write-Host 'Starting in background...' -ForegroundColor Cyan
 $up = $false
 for ($i = 0; $i -lt 16; $i++) {
   Start-Sleep -Milliseconds 500
   if ($proc.HasExited) { break }
-  if (Get-NetTCPConnection -LocalPort 3847 -State Listen -ErrorAction SilentlyContinue) { $up = $true; break }
+  if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { $up = $true; break }
 }
 Write-Host ''
 if ($up) {
@@ -157,7 +173,7 @@ if ($up) {
   Write-Host '  This window closes itself in 4s...' -ForegroundColor DarkGray
   Start-Sleep -Seconds 4
 } else {
-  Write-Host '  Server did NOT come up on port 3847.' -ForegroundColor Red
+  Write-Host "  Server did NOT come up on port $Port." -ForegroundColor Red
   if (Test-Path $log) {
     Write-Host '  --- last lines of server-manual.log ---' -ForegroundColor Red
     Get-Content $log -Tail 25 -ErrorAction SilentlyContinue

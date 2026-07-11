@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T15:25:00.000Z",
+  "last_updated": "2026-07-11T16:05:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-installer-vbs-encoding",
-    "date": "2026-07-11T15:25:00.000Z",
+    "run_id": "iterate-2026-07-10-prod-ps1-port-parity",
+    "date": "2026-07-11T16:05:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1924,
-      "total": 1925,
-      "note": "F0 fresh gate green. Server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + npm run build green. New F18 coverage lives in the scripts node:test suite (node --test scripts/install-windows.test.mjs): 5 passed (3 pre-existing npm-gating contracts + 2 new): (1) the VBS launcher is written with -Encoding Unicode and NEVER -Encoding ASCII (ASCII maps char>127 to '?', corrupting a non-ASCII repo path); (2) after writing, the installer re-reads $VbsPath (Get-Content) and can abort (exit 1) if the embedded server path did not round-trip. AC2 proven RED-first on pre-fix main (2/2 new failed: -Encoding ASCII present + no Get-Content re-read after the write), green after. The scripts suite is separate from the vitest workspaces (root scripts/, run via node --test), so its 5 are reported here in the note rather than folded into the 1924 vitest count. Client workspace NOT re-run: no client/** file changed (detect_frontend_changes.py has_frontend_changes=false); the change is confined to scripts/install-windows.ps1 + its co-located test, outside both workspaces."
+      "passed": 3926,
+      "total": 3927,
+      "note": "F0 fresh gate green. Server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green. Client vitest 203 files / 1972 passed + npm run build green (client re-run for completeness though no client/** file changed; detect_frontend_changes.py has_frontend_changes=false). New D14 coverage lives in the scripts node:test suite (node --test scripts/stop-server.test.mjs scripts/start-server-production.test.mjs): 30 passed - the NEW stop-server.test.mjs (9 tests: structure guard + $env:PORT/3847 derivation + kill-sweep-uses-variable + message-uses-variable + single-$Port-reuse + no-stray-3847) plus a parity block added to start-server-production.test.mjs (kill+poll both -LocalPort $Port, child-scoped launch env `set PORT=$Port`, failure-message-uses-$Port, single-$Port-reuse, no-stray-3847). AC2 proven RED-first on pre-fix main (11/20 failed with the final assertions: the ps1 hardcoded 3847), green after (30 passed). Counts: 1924 server + 1972 client + 30 scripts = 3926 passed / 3927 total (the scripts node:test suite is separate from the vitest workspaces, folded into the reported count here)."
     },
     "integration": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "Confidence-calibration probes of the installer->VBS-file->wscript boundary (producer = install-windows.ps1 stamping $ServerDir; consumer = wscript.exe / node reading the embedded path), run REAL on this Win11 box. (1) Round-trip probe: an umlaut path C:\\Users\\Müller\\...\\server written with -Encoding Unicode, re-read with Get-Content -Raw -Encoding Unicode -> .Contains($escapedServerDir) TRUE (path survives); no finding. (2) Negative/corruption probe: the SAME content written with the OLD -Encoding ASCII -> re-read .Contains() FALSE (umlaut became '?') -> proves the round-trip guard is NOT vacuous and actually catches F18. (3) BOM probe: the -Encoding Unicode file's first two bytes are FF FE (UTF-16LE BOM, the documented WSH read signal) -> wscript reads it natively; no finding. (4) Refactor-preservation probe: the new $escapedServerDir variable form is byte-identical to the old inline $($ServerDir -replace '\\\\','\\\\') form; no finding. Two-plus consecutive clean rounds => asymptote reached, boundary calibrated. Edge not probed: a path containing '\"' - accepted, unreachable ('\"' is an illegal Windows filename char; $ServerDir is a real directory)."
+      "passed": 2,
+      "total": 2,
+      "note": "Confidence-calibration probes of the operator-env -> $Port -> OS-port-table/launched-child/messages boundary, run REAL on this Win11 box under Windows PowerShell 5.1 (producer = $env:PORT + repo-root .env.local; consumer = Get-NetTCPConnection -LocalPort $Port, the launched node child env, operator messages). (1) Derivation edge-input probe: the exact `if ($env:PORT -match '^\\d{1,5}$') { [int]$env:PORT } else { 3847 }` under 8 inputs -> unset->3847, '4000'->4000, ''->3847, 'abc'->3847, '3847 '->3847, '99999999999'->3847 (overflow degraded, NO throw - validates the code-review overflow fix), '0'->0 (parity with .sh keeping '0'), '65535'->65535; all graceful, no throws. (2) Runtime query+message+child-cmd probe (read-only, no kill): PORT=4999 -> $Port=4999, Get-NetTCPConnection -LocalPort $Port accepted the variable and ran (0 listeners on 4999), messages interpolated '...port 4999.', inner cmd rendered `set \"PORT=4999\"&& node --env-file-if-exists=../.env.local dist/index.js`. Two consecutive clean probes => asymptote reached, boundary calibrated. Edge not probed: the FULL scripts (they Stop-Process real listeners + rebuild/restart the live server - out of safe-probe scope; those primitives are UNCHANGED from pre-fix, only the port variable threaded through them changed)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. This iterate touches ONLY scripts/install-windows.ps1 (the Windows autostart installer) + its co-located node:test file scripts/install-windows.test.mjs - no client/src or server/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke exercises nothing this installer-encoding change affects."
+      "note": "No Playwright run. This iterate touches ONLY scripts/start-server-production.ps1 + scripts/stop-server.ps1 (Windows production operator scripts) + their co-located node:test files - no client/src or server/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke exercises nothing these operator scripts affect."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,36 +40,37 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T15:25:00.000Z",
+      "timestamp": "2026-07-11T16:05:00.000Z",
       "attempts": 0,
-      "justification": "This iterate changes only scripts/install-windows.ps1 (the Windows login-autostart installer that writes the start-server.vbs launcher) + its co-located node:test. No file under client/src or server/src is touched - detect_frontend_changes.py reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. The behavior (the VBS must be written as UTF-16LE so a non-ASCII repo path survives, and the install must abort loudly if it does not) is only observable by writing + re-reading the launcher file under PowerShell, which the structural node:test pins (encoding flag + round-trip guard presence, AC2 RED-first on pre-fix main: -Encoding ASCII + no re-read -> 2/2 failed, green after) and the empirical on-Windows PowerShell smoke reproduces (ASCII corrupts the umlaut path to '?', Unicode round-trips, UTF-16LE BOM present). F0.5 surface=none - no fabricated browser run."
+      "justification": "This iterate changes only scripts/start-server-production.ps1 and scripts/stop-server.ps1 (the Windows production start/stop operator scripts) + their co-located node:test files. No file under client/src or server/src is touched - detect_frontend_changes.py reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. The behavior (both scripts must honor $env:PORT with a 3847 default for the kill sweep, launch env, readiness poll, and operator messages, mirroring the .sh twins) is only observable by running the scripts under PowerShell, which the structural node:test pins (derivation + variable-in-every-sink + no-stray-3847, AC2 RED-first on pre-fix main: hardcoded 3847 -> 11/20 failed, green after 30 passed) and the empirical on-Windows PowerShell probes reproduce (derivation degrades all edge inputs to 3847 without throwing; Get-NetTCPConnection accepts $Port; messages + child cmd interpolate the resolved port). F0.5 surface=none - no fabricated browser run.",
+      "runtime_gate": "n/a"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - install-windows.ps1 writes the autostart VBS as UTF-16LE (-Encoding Unicode) instead of ASCII, so a non-ASCII repo path (umlaut/accent/CJK, e.g. C:\\Users\\Müller\\...) is no longer corrupted to '?', and a post-write round-trip check aborts the install loudly if the embedded path did not survive.",
+          "behavior": "AC1 - start-server-production.ps1 and stop-server.ps1 derive $Port once from $env:PORT (default 3847) and use it for the kill sweep, the launched server env, the readiness poll, and every operator message; the custom-PORT failure scenario (old server survives, EADDRINUSE, wrong 'port 3847' diagnosis) no longer reproduces.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "install-windows.test.mjs: the Set-Content writing $VbsPath uses -Encoding Unicode and NOT -Encoding ASCII; after the write the script re-reads $VbsPath (Get-Content) and can exit 1. Empirical PowerShell smoke on this Win11 box: umlaut path written Unicode round-trips TRUE, written ASCII round-trips FALSE (corrupted to '?'), UTF-16LE BOM FF FE present."
+          "evidence": "stop-server.test.mjs + start-server-production.test.mjs pin -LocalPort $Port on the kill sweep (both scripts) and the readiness poll (start), `set PORT=$Port` on the launch child env (start), and $Port interpolation in the 'nothing was running on port' + 'did NOT come up on port' messages; a single $Port is derived from $env:PORT and reused in every sink. Empirical PowerShell probe: PORT=4999 -> $Port=4999 flows to the cmdlet query + messages + child cmd."
         },
         {
           "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "RED captured on pre-fix main (line 116 was -Encoding ASCII, no post-write re-read): 2/2 new tests failed - the Unicode-not-ASCII assertion failed on the literal ASCII line, and the round-trip-check assertion failed for the missing Get-Content re-read of $VbsPath. GREEN after the fix: node --test scripts/install-windows.test.mjs -> 5 passed / 0 failed."
+          "evidence": "NEW scripts/stop-server.test.mjs created (modeled on start-server-production.test.mjs) + a parity block added to start-server-production.test.mjs. RED captured on pre-fix main (ps1 hardcoded 3847) via `git stash push` of the two ps1 files with the final assertions in place: 20 tests, 9 pass, 11 fail. GREEN after restoring the fix: node --test over both files -> 30 passed / 0 failed."
         },
         {
-          "behavior": "AC3 - full server suite + build stay green; no invariant/ADR regressed (the 3 pre-existing npm exit-code-gating + no-stderr-to-$null contracts stay green).",
+          "behavior": "AC3 - full server (1924) + client (1972) suites + both builds stay green; no invariant/ADR regressed.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Server vitest 166 files / 1924 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc + npm run build green; the 3 pre-existing install-windows.test.mjs contracts stay green. Client not re-run (no client/** change). Read-only-observer rules 1/12 intact (the installer writes only into %USERPROFILE%\\.shipwright-webui\\ + the Startup folder; no ~/.claude/projects/** or shipwright_run_config.json)."
+          "evidence": "Server vitest 166 files / 1924 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; client vitest 203 files / 1972 passed + npm run build green. Read-only-observer rules 1/12 intact (the scripts write only into %USERPROFILE%\\.shipwright-webui\\; no ~/.claude/projects/** or shipwright_run_config.json)."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Exact footprint: scripts/install-windows.ps1 (136 -> 152) + scripts/install-windows.test.mjs (58 -> 110, the AC2-mandated co-located regression test) - both < 300, neither is in shipwright_bloat_baseline.json (no new crossing, baseline unchanged). Serial #13, deps/blocks none, D01-D12 merged -> no live parallel collision."
+          "evidence": "Footprint: scripts/start-server-production.ps1 (167 -> 183) + scripts/stop-server.ps1 (18 -> 26) [the 2 spec'd source files] + scripts/stop-server.test.mjs (new, 124) + scripts/start-server-production.test.mjs (126 -> 234) [the AC2-mandated tests] - all < 300, none in shipwright_bloat_baseline.json (no new crossing, baseline unchanged). Serial #14, deps/blocks none, D01-D13 merged -> no live parallel collision."
         }
       ],
       "counts": {
