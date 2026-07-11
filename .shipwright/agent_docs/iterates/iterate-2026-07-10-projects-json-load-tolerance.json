@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-10-projects-json-load-tolerance",
+  "date": "2026-07-11T12:12:00.000000Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/D08-projects-json-load-tolerance",
+  "spec": ".shipwright/planning/iterate/campaigns/webui-deep-audit-2026-07-10/sub-iterates/D08-projects-json-load-tolerance.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-10-projects-json-load-tolerance"
+}

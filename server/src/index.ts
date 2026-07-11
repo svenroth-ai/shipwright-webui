@@ -29,7 +29,7 @@ import { resolveHonoHost } from "./lib/resolveHonoHost.js";
 import { resolveTrustedOrigins } from "./lib/resolveTrustedOrigins.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import { requestLogger } from "./middleware/logger.js";
-import { ProjectManager } from "./core/project-manager.js";
+import { ProjectManager, type ProjectManagerDeps } from "./core/project-manager.js";
 import { SdkSessionsStore } from "./core/sdk-sessions-store.js";
 import { SessionWatcher } from "./core/session-watcher.js";
 import {
@@ -158,16 +158,7 @@ if (isMainModule) {
       // ProjectManager — still used by /api/projects + wizard.
       // getTaskProjectIds (section 02) is late-bound below, after the
       // sessionsStore is constructed.
-      const projectManagerDeps: {
-        readFile: (p: string, e: string) => Promise<string>;
-        writeFile: (p: string, d: string) => Promise<void>;
-        existsSync: (p: string) => boolean;
-        mkdirSync: (p: string, o?: { recursive: boolean }) => void;
-        readdirSync: (p: string, o?: { withFileTypes: boolean }) => Array<{ name: string; isDirectory: () => boolean }>;
-        lock: (p: string) => Promise<() => Promise<void>>;
-        ensureFile: (p: string) => void;
-        getTaskProjectIds?: () => Set<string>;
-      } = {
+      const projectManagerDeps: ProjectManagerDeps = {
         readFile: (p: string, e: string) => readFile(p, e as BufferEncoding),
         writeFile: (p: string, d: string) => writeFile(p, d),
         existsSync: (p: string) => fs.existsSync(p),
@@ -179,6 +170,8 @@ if (isMainModule) {
         ) => Array<{ name: string; isDirectory: () => boolean }>,
         lock: lockPath,
         ensureFile: ensureFileExists,
+        // F07 (D08) — atomic tmp+rename persist + corrupt-file quarantine.
+        rename: (from: string, to: string) => fs.promises.rename(from, to),
       };
       const projectManager = new ProjectManager(
         `${config.registryDir}/projects.json`,

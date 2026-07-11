@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T11:25:00.000Z",
+  "last_updated": "2026-07-11T12:12:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-master-shadow-scoping",
-    "date": "2026-07-11T11:25:00.000Z",
+    "run_id": "iterate-2026-07-10-projects-json-load-tolerance",
+    "date": "2026-07-11T12:12:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 3867,
-      "total": 3867,
-      "note": "Server vitest 162 files / 1896 tests green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local) + client vitest 202 files / 1971 tests green (AC3); combined 3867. Both workspace builds green (tsc --noEmit clean; client vite build). D07 touches client/src/hooks/useLaunchMasterRun.ts (F06 project-scoped master-shadow reuse) + server/src/external/launch/master-run-branch.ts (F34 stamp parentRunMaster+runId) and their vitest suites (useLaunchMasterRun.test.ts 10 tests, master-run-branch.test.ts 19, new master-run-branch.stamp.test.ts 3)."
+      "passed": 1912,
+      "total": 1912,
+      "note": "Server vitest 163 files / 1912 tests green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. D08 is server-only (server/src/core/project-manager.ts, new server/src/core/project-registry-io.ts, new server/src/core/project-manager-corrupt-load.test.ts, server/src/index.ts) so the client suite (1971 tests, unchanged since D07 - no D08 client files) was not re-run. New F07 coverage: project-manager-corrupt-load.test.ts (16 tests: ProjectManager.load over empty/whitespace/truncated/non-array/well-formed + atomic-vs-plain persist; project-registry-io parse/load/quarantine/atomic-write units + the read-failure retry-then-empty guard)."
     },
     "integration": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "note": "No separate integration harness. The launch route + sdk-sessions.json persist round-trip (masterRun launch -> store.patch stamp -> persist -> guard scan) is covered by the server vitest route tests recorded under unit, plus a throwaway on-disk round-trip probe."
+      "status": "passed",
+      "passed": 3,
+      "total": 3,
+      "note": "Real-filesystem confidence-calibration probe (server/dist shipped module, Windows 11): (1) fs.promises.rename OVERWRITES an existing projects.json dest (overwrote=true, tmpGone=true, no error) - empirically refutes the external code-review claim that Windows fs.rename cannot replace an existing file; Node maps it to MoveFileExW|MOVEFILE_REPLACE_EXISTING, same proven path as sdk-sessions-store atomicWriteFile. (2) round-trip corrupt->quarantine->re-persist: truncated file loads empty, is renamed aside to .corrupt-<ts>-<uuid>, live file moved away, a subsequent atomic persist writes valid JSON, no tmp left behind. (3) empty file -> empty map, no quarantine."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. D07 is internal launch-logic hardening with no new UI-consumed contract: the client hook change project-scopes an in-hook lookup using projectId already present on the tasks MasterRunLaunchButton passes (call signature unchanged, no new prop/DOM/render); the server change stamps two existing fields into the launch taskUpdate (surfaced to the UI only via the pre-existing 409 error path). No Vite-config/proxy/WS-origin/CORS surface changed, so a browser smoke adds no signal the deterministic client+server Vitest already provides. F0.5 surface=none."
+      "note": "No Playwright run. D08 is a server-only boot-path / persistence hardening of the projects.json registry (ProjectManager.load + persist) with NO UI-consumed contract change: no route shape, DOM, prop, Vite-config/proxy/WS-origin/CORS surface changed. The recovery is observable only at server boot (a corrupt file no longer FATAL-exits). A browser smoke adds no signal the deterministic server Vitest + real-fs round-trip probe already provide. F0.5 surface=none."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,33 +40,34 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T11:24:30.464Z",
+      "timestamp": "2026-07-11T12:11:30.000Z",
       "attempts": 0,
-      "justification": "Internal launch-logic hardening with no new UI-consumed contract: the client half (useLaunchMasterRun.ts) project-scopes an in-hook master-shadow lookup using projectId already present on the tasks the MasterRunLaunchButton passes (call signature unchanged, no new prop/DOM/render); the server half stamps parentRunMaster+runId into the launch taskUpdate (surfaced to the UI only via the pre-existing 409 error path). No Vite-config/proxy/WS-origin/CORS change, so a browser smoke adds no signal a deterministic unit test lacks. AC2 correctness proven by RED-first client Vitest (useLaunchMasterRun.test.ts F06: project B never reuses A's shadow) + server Vitest (master-run-branch.stamp.test.ts F34: plain launch stamps parentRunMaster+runId, second master 409s) + a throwaway on-disk sdk-sessions.json round-trip probe (stamp survives serialize->disk->reload)."
+      "justification": "Server-only ProjectManager registry boot-load / persist hardening (F07). No UI-consumed contract changed: no /api route shape, no DOM/prop/render, no Vite-config/proxy/WS-origin/CORS surface. The behavior is observable only at server startup - a truncated/empty projects.json no longer makes Hono exit FATAL. AC2 correctness is proven by RED-first server Vitest (project-manager-corrupt-load.test.ts: on pre-fix tree ProjectManager.load throws SyntaxError at project-manager.ts:96 for empty/whitespace/truncated/non-array content, and persist is non-atomic; all GREEN after) plus a real-filesystem round-trip probe against the shipped dist module. A browser run would add no signal the deterministic unit + integration tests lack, so F0.5 surface=none (no fabricated browser run)."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - master-shadow reuse is project-scoped (F06): launching the single-session master on a project never reuses/resumes a DIFFERENT project's master that shares the same runId (duplicated project dir). And a direct-API masterRun launch stamps parentRunMaster+runId (F34) so every attached master is visible to the double-master guard.",
+          "behavior": "AC1 - ProjectManager.load() tolerates a corrupt / unreadable projects.json: empty/whitespace loads an empty registry (no quarantine); an unreadable file (transient EBUSY/EPERM/EACCES lock or permission error) is retried on the rule-6 budget then degrades to an empty registry (a boot load never throws-and-bricks); truncated/unparseable/non-array content is quarantined aside to projects.json.corrupt-<ts>-<uuid> (best-effort, never re-throws) and boot continues with an empty registry instead of exiting FATAL; persist() writes atomically via tmp+rename (rename retried on a transient lock; the staged tmp is unlinked on a hard failure so it can't orphan).",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "client/src/hooks/useLaunchMasterRun.test.ts (F06 cross-project isolation + absent-scope guard) + server/src/external/launch/__tests__/master-run-branch.stamp.test.ts (F34 stamp + 409 guard visibility + dryRun-no-stamp). Throwaway on-disk sdk-sessions.json round-trip probe confirmed the stamp survives serialize->disk->reload."
+          "evidence": "server/src/core/project-manager-corrupt-load.test.ts - ProjectManager.load over '' / whitespace / truncated JSON (renames aside) / non-array (quarantines) / well-formed (populates); persist atomic tmp+rename when a rename dep is present (asserts NO direct write to the live path) + plain in-place fallback when absent; NEW loadProjectRegistry EBUSY read-failure retry-then-empty guard (6 attempts, no throw; RED on pre-fix which re-threw); project-registry-io units for parse/load/quarantine (incl. never-throws-on-fs-failure + copy-aside fallback) and atomic-write. Real-fs round-trip probe (integration block) confirms the full producer/consumer chain on Windows."
         },
         {
           "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
           "disposition": "tested",
-          "evidence": "RED captured on pre-fix tree: client F06 reused project A's 't-projectA-master' instead of creating B's own; server F34 left parentRunMaster undefined and the second masterRun returned 200 instead of 409. All GREEN after the fix."
+          "evidence": "RED captured on pre-fix tree (HEAD project-manager.ts restored, new io module present): 5 ProjectManager-level cases fail - empty/whitespace/truncated/non-array all throw SyntaxError 'Unexpected end of JSON input' / 'Unterminated string' / 'projects is not iterable' at project-manager.ts:96-97, and the atomic-persist case fails (0 tmp writes, no rename). GREEN after the fix (49 tests across the two project-manager test files)."
         },
         {
-          "behavior": "AC3 - full server + client suites stay green (no invariant/ADR regressed)",
+          "behavior": "AC3 - full server suite + build stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "evidence": "F0: server vitest 1896/1896 (SHIPWRIGHT_NETWORK_PROFILE=local) + client vitest 1971/1971; both builds green. CLAUDE.md read-only-observer rules 1/12 intact (no writes to ~/.claude/projects/** or shipwright_run_config.json; runId stamped from the re-read config, never client-supplied). W3 double-master project-scoping + fresh-vs-resume selection preserved."
+          "evidence": "F0: server vitest 163 files / 1912/1912 (SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. project-delete-unassigned.integration.test.ts + all sdk-sessions/store tests green. CLAUDE.md read-only-observer rules 1/12 intact (writes only projects.json + its quarantine/tmp side-files; never ~/.claude/projects/** or shipwright_run_config.json). Client untouched (server-only iterate)."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted",
           "disposition": "tested",
-          "evidence": "Footprint files: useLaunchMasterRun.ts (193 LOC), useLaunchMasterRun.test.ts (197), master-run-branch.ts (168), master-run-branch.test.ts (295, unchanged, held < 300). F34 tests split into a new cohesive master-run-branch.stamp.test.ts (158) to avoid a NEW 300-LOC crossing on the existing test file. shipwright_bloat_baseline.json unchanged (no ratchet); none of the touched files are baselined."
+          "category": "unit",
+          "evidence": "All three baselined touch-files stay at or below their ceilings (anti-ratchet hook exit 0): project-manager.ts 420==420 (delegates to the new module), index.ts 892<899 (verbose inline deps type replaced with the exported ProjectManagerDeps to make room for the rename dep wiring). New non-baselined files below the 300 limit: project-registry-io.ts 227, project-manager-corrupt-load.test.ts 279. project-manager.test.ts unchanged at 480. shipwright_bloat_baseline.json not modified (no ratchet)."
         }
       ],
       "counts": {
