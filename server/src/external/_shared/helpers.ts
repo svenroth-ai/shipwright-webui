@@ -148,6 +148,36 @@ export function normalizeDescription(
 }
 
 /**
+ * D22 / F27 — canonical task-title validation, shared by PATCH /tasks/:id
+ * (setting a title), POST /tasks, and POST /tasks/:id/fork so all three
+ * enforce the SAME rule set with identical error strings. Mirrors the
+ * launcher's `normalizeTitle` contract: embedded CR/LF break the
+ * single-line `--name` copy-paste flow (uncaught throw → 500 on the next
+ * launch), so they are rejected up-front instead.
+ *
+ * Non-string / newline → "title cannot contain newlines" (PATCH also maps
+ * a non-string title here). Trims to empty → "title cannot be empty".
+ * Over TITLE_MAX_LENGTH → "title exceeds N characters". Otherwise the
+ * trimmed value. Create/fork keep their own synthesized-default fallback
+ * for an ABSENT / blank title and only call this for a provided one.
+ */
+export function normalizeTitle(
+  raw: unknown,
+): { ok: true; value: string } | { ok: false; error: string } {
+  if (typeof raw !== "string" || /[\r\n]/.test(raw)) {
+    return { ok: false, error: "title cannot contain newlines" };
+  }
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return { ok: false, error: "title cannot be empty" };
+  }
+  if (trimmed.length > TITLE_MAX_LENGTH) {
+    return { ok: false, error: `title exceeds ${TITLE_MAX_LENGTH} characters` };
+  }
+  return { ok: true, value: trimmed };
+}
+
+/**
  * iterate-2026-05-18-edit-task-dialog — normalize a `tags` / `blockedBy`
  * PATCH array: keep strings only, trim, drop empties, dedupe (order
  * preserved). Caller-supplied non-array input is rejected upstream.

@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T21:20:00.000Z",
+  "last_updated": "2026-07-11T21:52:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-preview-config-validation",
+    "run_id": "iterate-2026-07-10-task-title-validation",
     "date": "2026-07-11",
     "unit": {
       "status": "passed",
-      "passed": 2005,
-      "total": 2006,
-      "note": "server vitest 172 files / 2005 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). D21 adds 19 tests: preview-session-manager.validation.test.ts (6 AC2 behavioral regressions RED-first on pre-fix main: 5 fail / 1 pass) + preview-child-lifecycle.branches.test.ts (12: isValidPort x2, buildPreviewUrl x10 incl. host-drift/backslash/non-http-scheme/catch) + routes.test.ts (1: missing-port 400 mapping). Only 2 production files touched (preview-session-manager.ts -1 line ->392<=393; preview-child-lifecycle.ts +2 cohesive helpers). No client/** change. tsc + oxlint clean."
+      "passed": 2018,
+      "total": 2019,
+      "note": "server vitest 173 files / 2018 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). D22 adds title-validation.test.ts (13 tests): create newline (LF/CR/CRLF) + over-length reject (RED-first on pre-fix), create valid + blank-default, fork newline/CRLF/over-length reject with no-orphan-row (RED-first), fork valid emits commands + blank-default, PATCH newline/over-length parity. Production touched: create.ts + lifecycle.ts (fork) + patch.ts (refactor to shared helper) + _shared/helpers.ts (new normalizeTitle). No client/** change. tsc + oxlint clean."
     },
     "integration": {
       "status": "passed",
-      "passed": 7,
-      "total": 7,
-      "note": "6 validation.test.ts regressions drive the REAL PreviewSessionManager.spawn()/doSpawn() through injected spawn/probe seams (F10 returned-URL host pinning: @evil.com/ -> http://localhost:5173/evil.com/, dashboard -> .../dashboard, absolute off-host -> bare origin, root -> host-only; F30 port reject: missing/0/-1/3000.5/70000 -> PreviewProfileInvalidError with spawn never called) + 1 route test pins PreviewProfileInvalidError -> 400 preview_profile_invalid. RED-first proven: 5/6 fail on pre-fix (the pass is the root case pre-fix concat already produced)."
+      "passed": 13,
+      "total": 13,
+      "note": "title-validation.test.ts drives the REAL create/fork/patch Hono routes end-to-end through an in-memory SdkSessionsStore: POST /tasks + POST /tasks/:id/fork with foo\\nbar / foo\\rbar / foo\\r\\nbar / over-length -> 400 with the same error string PATCH gives, and store.list() proves nothing was persisted (fork proves no orphan child). Valid + blank-default paths + the fork happy-path commands emission also asserted."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No preview E2E run. D21 is a server-side config-validation hardening with NO UI-observable change on a valid profile (the Preview button + /preview route + returned-URL shape for a normal ready_path are unchanged). The two defects are only reachable via a hand-authored malicious/incomplete profile; both are proven by deterministic server regressions + a 24-case adversarial boundary probe (15 URL smuggles + 9 ports, 0 off-host escapes) against the built dist. The client already handles preview_profile_invalid (PreviewButton.tsx); no client file changed."
+      "note": "No E2E run. D22 is a server-side write-boundary validation hardening with NO UI-observable change on the normal path: the NewTaskModal / EditableTaskTitle client paths always send trimmed single-line titles, so the browser flow is unchanged. The invalid-title path is only reachable by an automated writer (run-config phase title, triage fix-now seed, leadwright daemon), not the browser UI. Proven by deterministic server route regressions + a real-fs create->persist->reload round-trip probe. No client file changed."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,60 +39,60 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-10-preview-config-validation/surface_verification.json",
-      "timestamp": "2026-07-11T21:20:00.000Z",
-      "justification": "Server-side Preview config validation (FR-01.17); no UI-observable change on a valid profile. F10: the returned preview URL is now built via buildPreviewUrl (URL-constructor host+scheme-pinning against http://localhost:<port>, same normalization the readiness probe's buildReadyUrl uses) instead of raw string concatenation, so a malicious ready_path can't smuggle an off-host authority into window.open. F30: a missing/invalid dev_server.port is rejected up front with PreviewProfileInvalidError (route -> 400 preview_profile_invalid) instead of probing a dead port for 60s then killing the healthy dev server. Proof is the deterministic server regressions (validation.test.ts + branches.test.ts + routes.test.ts) green on this win32 host, plus the adversarial URL/port boundary probe (0 findings). No client/** file changed; the frontend-change detector only false-positives on the 'src/' substring inside 'server/src/'."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-10-task-title-validation/surface_verification.json",
+      "timestamp": "2026-07-11T21:52:00.000Z",
+      "justification": "Server-side task-title validation at the create/fork write boundary (FR-01.08 create, FR-01.09 edit-parity); no UI-observable change on the normal path. The browser create/rename flows (NewTaskModal, EditableTaskTitle) always submit trimmed single-line titles, so the observable contract for a valid title is unchanged (same 200, same trimmed title, same 'Untitled task' / '<parent> - fork' default for a blank title). The defect (an automated writer persisting a newline/over-length title that then 500s every Launch/Resume, plus a fork orphan row) is reachable only via a non-browser API client. Proof is the deterministic server regressions (title-validation.test.ts, 4 RED-first on pre-fix main) plus a throwaway real-fs round-trip probe (valid Unicode+whitespace title survives persist->reload byte-identical trimmed; invalid newline title -> 400, reloaded store still 1 row, disk never carried the newline; 8/8 checks pass). No client/** file changed; the frontend-change detector reports has_frontend_changes=false."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1/F10 (MEDIUM) - the returned preview URL is host-pinned: a ready_path smuggling an authority ('@evil.com/') stays on-host as a path, not a new host",
+          "behavior": "AC1/F27 - POST /tasks rejects a provided title with an embedded newline (CR, LF, or CRLF) with the same 'title cannot contain newlines' 400 PATCH gives, and does not persist it",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "validation.test.ts 'keeps a smuggled @evil.com/ ready_path on-host' - RED on pre-fix (http://localhost:5173@evil.com/, host evil.com) -> GREEN (http://localhost:5173/evil.com/, host localhost). branches.test.ts buildPreviewUrl x10 cover //, backslash, absolute off-host, javascript:/data:, catch."
+          "evidence": "title-validation.test.ts 'POST /tasks ... 400 title cannot contain newlines' (parameterized foo\\nbar / foo\\rbar / foo\\r\\nbar) - RED on pre-fix (create trimmed + persisted 200) -> GREEN, store.list() length 0."
         },
         {
-          "behavior": "AC1/F10 (MEDIUM) - a slash-less ready_path yields an openable URL, and a root ready_path preserves the historical host-only shape (no trailing slash)",
+          "behavior": "AC1/F27 - POST /tasks rejects an over-length title with the same 'title exceeds N characters' 400 PATCH gives, and does not persist it",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "validation.test.ts 'normalizes a slash-less ready_path' (pre-fix http://localhost:5173dashboard -> http://localhost:5173/dashboard) + 'still renders host-only for a root ready_path' (http://localhost:5173) - the root case pins the pre-existing contract so no literal-comparison regression."
+          "evidence": "title-validation.test.ts '400 title exceeds N characters on over-length - not persisted' - RED on pre-fix (persisted 200) -> GREEN, store.list() length 0."
         },
         {
-          "behavior": "AC1/F30 (LOW) - a profile with dev_server.command but a missing/invalid port is rejected before spawning (never probes port 0 / never kills the healthy dev server)",
+          "behavior": "AC1/F27 - POST /tasks/:id/fork validates the title BEFORE creating the child so an invalid title leaves NO orphan child row (pre-fix normalizeTitle threw in buildCopyCommands AFTER store.create -> 500 + orphan)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "validation.test.ts 'rejects a profile whose dev_server.port is missing - never spawns' + 'rejects a zero / negative / non-integer / out-of-range port' - RED on pre-fix (port defaulted to 0, probe skipped, spawn resolved) -> GREEN (PreviewProfileInvalidError, spawn never called). branches.test.ts isValidPort x2."
+          "evidence": "title-validation.test.ts fork newline (500->400) + fork CRLF + fork over-length (200->400) each assert store.list() length 1 (parent only). RED on pre-fix (500/200 + orphan) -> GREEN."
         },
         {
-          "behavior": "AC1/F30 (LOW) - the route maps the missing-port PreviewProfileInvalidError to 400 preview_profile_invalid (config-omission code, not a 5xx spawn error)",
+          "behavior": "AC1/F27 - a valid title still creates/forks (trimmed), a blank/absent title keeps the 'Untitled task' / '<parent> - fork' default, and a valid fork still emits launch commands (buildCopyCommands non-regression)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "routes.test.ts '400 maps a missing-port PreviewProfileInvalidError -> preview_profile_invalid' asserts status 400 + detail 'dev_server.port must be a positive integer'."
+          "evidence": "title-validation.test.ts valid-create ('  Ship it  ' -> 'Ship it'), blank-create ('   ' -> 'Untitled task'), valid-fork (+ commands defined), blank-fork ('   ' -> 'parent - fork')."
         },
         {
           "behavior": "AC2 - a NEW regression test is RED on pre-fix main and green after (defect actually reproduced)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "validation.test.ts run against unmodified source: 5 failed / 1 passed (the 4 URL smuggle/normalize cases + the 2 port-reject cases fail; root case passes). After the fix: 6/6 green."
+          "evidence": "title-validation.test.ts run against unmodified source: 4 failed / 6 passed (create newline+over-length; fork newline 500+orphan; fork over-length persisted). After the fix: 13/13 green."
         },
         {
-          "behavior": "AC3 - full existing server suite stays green; no invariant/ADR regressed (D03 shell:false/win32 spawn, D20 lifecycle, ADR-044 single-spawn-path preserved)",
+          "behavior": "AC3 - full existing server suite stays green; no invariant/ADR regressed (D01 DELETE/kill lifecycle wiring untouched; PATCH error contract preserved byte-identical)",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "172 files / 2005 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). preview-child-lifecycle.test.ts (D20) + preview-win32 guards still green; tsc + oxlint clean."
+          "evidence": "173 files / 2018 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). Existing routes.test.ts PATCH empty/ELOCKED + D01 delete-cascade guard still green; tsc + oxlint clean (no warnings in touched files)."
         },
         {
-          "behavior": "AC4 - files stay within footprint (helpers in the cohesive child-lifecycle module + a new test file per the campaign guardrail) and bloat baselines are not ratcheted",
+          "behavior": "AC4 - files stay within footprint (shared normalizeTitle in _shared/helpers.ts + a new cohesive title-validation.test.ts per the campaign guardrail) and bloat baselines are not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "preview-session-manager.ts 392<=393 (net -1), preview-session-manager.test.ts 341<=341 (untouched), preview-child-lifecycle.ts 267<300, branches.test.ts 290<300, validation.test.ts 153<300, routes.test.ts 280<300. Anti-ratchet hook clean."
+          "evidence": "create.ts 179<300, lifecycle.ts 253<300, patch.ts 224<300 (net -11 via helper reuse), helpers.ts 245<300, title-validation.test.ts 231<300. New test file chosen because routes.test.ts is at 298 LOC (adding tests crosses the 300 ceiling = new bloat crossing). None of the touched files are baselined; no ratchet."
         },
         {
-          "behavior": "Confidence calibration (touches_io_boundary) - adversarial URL/port boundary probe: no ready_path resolves off-host, no invalid port validates",
+          "behavior": "Confidence calibration (medium + touches_io_boundary) - real-fs create->persist->reload round-trip: a valid title survives byte-identical (trimmed), an invalid title never lands on disk (no orphan)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "Node probe over built dist: 15 adversarial ready_paths (@/////\\\\/absolute/https/javascript/data/user:pass@/leading-space/query/fragment) all resolve host=localhost (0 off-host); 9 ports incl. '3000'(string)/undefined/NaN/65536 all validate as expected (0 mis-validations)."
+          "evidence": "Throwaway node probe over built dist: valid 'Round Trip Unicode' title -> real disk persist -> reload -> title byte-identical + disk JSON has no newline in the title field; invalid 'evil\\ntitle' -> 400 -> reloaded store still 1 row + disk never contained it. 8/8 checks pass; two consecutive clean probe rounds -> asymptote reached."
         }
       ],
       "counts": {
@@ -105,7 +105,7 @@
         "acs": 4,
         "covered_acs": 4
       },
-      "note": "4 ACs (AC1-AC4) split across F10 (2) + F30 (2) + AC2 RED-first + AC3 + AC4 + the io-boundary calibration probe, all tested. Enumeration basis = the sub-iterate spec's Acceptance Criteria; each maps to >=1 RED-first regression in preview-session-manager.validation.test.ts (findings F10/F30) plus per-branch unit coverage in preview-child-lifecycle.branches.test.ts."
+      "note": "4 ACs (AC1-AC4) from the sub-iterate spec: AC1 split across create-newline / create-over-length / fork-no-orphan / valid+default (4 behaviors), AC2 RED-first, AC3 full-suite, AC4 footprint+bloat, plus the medium/io-boundary calibration probe. Each AC1 facet maps to >=1 RED-first regression in title-validation.test.ts; the create/fork validation reuses the single normalizeTitle source of truth PATCH consumes."
     },
     "degraded": []
   }
