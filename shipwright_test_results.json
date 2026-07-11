@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T08:30:52.000Z",
+  "last_updated": "2026-07-11T09:39:38.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-store-multi-instance-clobber",
-    "date": "2026-07-11T08:30:52.000Z",
+    "run_id": "iterate-2026-07-10-e2e-schema-spec-repair",
+    "date": "2026-07-11T09:39:38.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1887,
-      "total": 1887,
-      "note": "server vitest 161 files / 1887 tests green (SHIPWRIGHT_NETWORK_PROFILE=local). The three new frozen guard files (author!=fixer, must-not-modify) contribute 16 of these: sdk-sessions-store-merge.test.ts (6), sdk-sessions-store-merge-edge.test.ts (6), sdk-sessions-store-concurrency.test.ts (4). OS-deterministic - the same guards run on ubuntu CI."
+      "passed": 1969,
+      "total": 1969,
+      "note": "Client vitest 202 files / 1969 tests green (finalize F0 gate). Server vitest 161 files / 1887 tests also green (SHIPWRIGHT_NETWORK_PROFILE=local), unaffected. D05 changes are Playwright e2e specs (not vitest), so the unit suites are unchanged; F0 confirms no regression. tsc --noEmit clean (the playwright config change typechecks)."
     },
     "integration": {
-      "status": "passed",
-      "passed": 16,
-      "total": 16,
-      "note": "The 16 frozen guards drive the REAL SdkSessionsStore.persist() merge-under-lock path with real proper-lockfile, real fs, and an isolated temp registryDir (the rename/lock seams injected only to simulate mid-write failure + win32 EBUSY). Every guard was RED-first on pre-fix main and GREEN after the fix. Author != fixer; the fix agent could not weaken them."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0,
+      "note": "No new vitest integration. The cross-instance schema-migration behavior (v1->v4 write-on-touch + projectId backfill; PATCH v4 preservation) is exercised by the two Playwright e2e guards, recorded under e2e."
     },
     "pgtap": {
       "status": "skipped",
@@ -21,10 +21,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "note": "No E2E for D04. This is a cross-instance shared-file data-integrity invariant on the server (two OS processes racing one ~/.shipwright-webui/sdk-sessions.json); no browser can drive it and there is no UI-observable change. The deterministic server guards are the behavioral proof (surface=none, justified below)."
+      "status": "passed",
+      "passed": 2,
+      "total": 2,
+      "note": "Specs 62 (v1->v4 migration on write-on-touch) + 70-g (v4 persistence on PATCH), both ADR-038 guards, proven GREEN in the build phase under the sentinel-gated schema-isolated Playwright project (SHIPWRIGHT_E2E_ISOLATED=1, temp USERPROFILE under os.tmpdir()) by a separate verifier (author!=fixer). RED-first demonstrated: 62 red when the v1->v4 backfill is broken (rows dropped); 70-g red when the on-disk schema version is tampered. testIgnored from the default desktop project + collected only under the sentinel-only schema-isolated project, so NOT re-executed in this finalize-only run; the real store sha256 f0610675 was byte-unchanged throughout."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,97 +40,50 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T08:28:30.009Z",
+      "timestamp": "2026-07-11T09:36:16.469Z",
       "attempts": 0,
-      "justification": "Server-side sdk-sessions.json persistence: persist() now re-reads + 3-way merges under the proper-lockfile critical section and writes atomically (tmp+rename) — restoring the intended no-lost-update + claim-field-preservation guarantee when two documented concurrent webui instances (autostart-prod + PORT-override dev; parallel worktrees) share ~/.shipwright-webui/sdk-sessions.json (FR-01.08/FR-01.09). NO UI-observable change: the task store create/patch/delete contract is byte-identical; this is a data-integrity invariant, not a visible feature. Behavioral proof is 16 frozen guards (author!=fixer, RED-first on pre-fix main) over the REAL SdkSessionsStore with real proper-lockfile + real fs on an isolated temp registryDir: sdk-sessions-store-merge.test.ts (foreign-row/claim-field survival, 3-way field merge, atomic write), sdk-sessions-store-merge-edge.test.ts (delete-resurrection, unreadable/future-schema disk preservation), sdk-sessions-store-concurrency.test.ts (swap-after-write lost-update, transient-read reject). No browser can drive two OS processes racing one shared JSON file, so there is no post-merge UI smoke. Full server suite 1887 green (161 files, SHIPWRIGHT_NETWORK_PROFILE=local); OS-deterministic on ubuntu CI. Zero client/** files changed (the frontend-change detector false-positives on the 'src/' substring inside 'server/src/')."
+      "justification": "Test-repair iterate: only Playwright e2e specs (62 schema-migration, 70-g schema-persistence), the isolated-store helper, and playwright config changed — no server/client production code. The two schema specs are testIgnored from the default Playwright project and collected only under the sentinel-gated schema-isolated project (SHIPWRIGHT_E2E_ISOLATED=1 against a temp home under os.tmpdir()), so no browser can drive them on the default stack without the isolated sentinel. Correctness is proven by the independent verifier's isolated green run plus RED-first proofs (62 RED when the v1->v4 backfill is broken, 70-g RED when the on-disk schema version is tampered); the real store sha256 was byte-unchanged throughout. No production surface changed, so there is no startable user-experienceable surface."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1/Guard1 - a foreign task row written out-of-band to sdk-sessions.json survives an instance-A persist() of an unrelated patch (no whole-file clobber)",
+          "behavior": "AC1 - the two ADR-038 schema guards no longer reproduce their failures (70-g permanently red on schemaVersion===2; 62 vacuous via wrong registry path)",
           "disposition": "tested",
           "category": "integration",
-          "evidence": "sdk-sessions-store-merge.test.ts - RED on pre-fix main (persist rewrote the whole file from the boot cache, dropping the foreign row); GREEN after the merge-under-lock fix. Real SdkSessionsStore, real proper-lockfile, real fs on an isolated temp registryDir."
+          "evidence": "Both specs GREEN on the isolated temp-home schema-isolated stack (build phase, verifier author!=fixer): 62 asserts v1 rows load as projectId=unassigned + on-disk upgrades to v4; 70-g asserts PATCH keeps schemaVersion 4 + preserves every row's projectId."
         },
         {
-          "behavior": "AC1/Guard1 - externally-written claim fields (claimToken/claimedBy) survive A's persist AND become visible in A's in-memory view so the 409 claim guard can fire",
+          "behavior": "AC2 - a NEW regression proof is RED on the pre-fix path and GREEN after",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge.test.ts - RED on pre-fix (claim clobbered + invisible); GREEN: the 3-way merge refreshes the in-memory map from the merged result."
+          "evidence": "RED-first: 62 goes red when the v1->v4 backfill is deliberately broken (rows dropped); 70-g goes red when the on-disk schema version is tampered. Recorded by the independent verifier."
         },
         {
-          "behavior": "AC1 - field-level 3-way merge on a row both sides touched: baseline->memory diff applied over the disk row, same-field last-writer-wins; A's own mutation is present",
+          "behavior": "AC3 - full server + client suites stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge.test.ts - asserts A's patched field wins on the field A changed while a concurrently-written disk field on the same row is retained."
+          "evidence": "F0: server vitest 1887/1887 (SHIPWRIGHT_NETWORK_PROFILE=local), client vitest 1969/1969, tsc --noEmit clean."
         },
         {
-          "behavior": "AC2/Guard2 - two store instances over one shared file with N interleaved persist() calls: the union of all rows survives (no lost update)",
+          "behavior": "AC4 - files stay within footprint; bloat baseline not ratcheted",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge.test.ts - interleave scenario; RED on pre-fix main (last-writer-wins erased the other instance's rows)."
+          "evidence": "Diff = 2 specs + isolated-store.ts helper + 2 playwright config files (documented deliberate footprint deviation for the safe isolated repair). shipwright_bloat_baseline.json unchanged (no ratchet)."
         },
         {
-          "behavior": "Guard2 - load->persist->load round-trip equality and no unintended schemaVersion bump (stays v4)",
+          "behavior": "AC5 (MAX) - every hardening gate passes: author!=fixer guard, RED-first, doubt-reviewer + external_review, isolation audit + real-store safety",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge.test.ts - round-trip equality + schemaVersion invariant assertions."
-        },
-        {
-          "behavior": "Guard3 - atomicity: a mid-write interruption never leaves sdk-sessions.json truncated (tmp+rename, injected rename seam)",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge.test.ts - simulated mid-write failure leaves the prior complete file intact."
-        },
-        {
-          "behavior": "Edge - a row this instance deleted since baseline is NOT resurrected by concurrent disk churn (deletedSinceBaseline reconciliation within the persist transaction)",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge-edge.test.ts - RED for same-instance delete-resurrection; GREEN after deletedSinceBaseline reconciliation."
-        },
-        {
-          "behavior": "Edge - A's own rows are preserved when the on-disk file is unreadable/corrupt at re-read time (classifyDiskRaw parse-status fallback), never self-dropped",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge-edge.test.ts - RED for own-row drop on unreadable disk; GREEN via classifyDiskRaw."
-        },
-        {
-          "behavior": "Edge - a disk file tagged a FUTURE schemaVersion is preserved (no downgrade clobber); persist aborts rather than overwriting a newer-binary write",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-merge-edge.test.ts + sdk-sessions-store-concurrency.test.ts - future-schema disk preserved; intentional fail-loud abort."
-        },
-        {
-          "behavior": "Concurrency - swap-after-write lost-update (a regression the remediation itself introduced) is fixed: keep the live map, snapshot pre-write, baseline=written-bytes, reconcile only pre-write deletes",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-concurrency.test.ts - RED reproduced the swap-after-write discard of a concurrent mutation; GREEN after the live-map-preserving rewrite."
-        },
-        {
-          "behavior": "Concurrency - a transient I/O error re-reading under the lock retries (rule-6 budget) then REJECTS, never clobbers disk with a partial/empty view",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-concurrency.test.ts - transient-read reject guard (withFsRetry + reject-on-exhaustion)."
-        },
-        {
-          "behavior": "Concurrency/Edge - Windows rename EBUSY/EPERM/EACCES on the atomic rename is retried before surfacing (win32 rename flakiness)",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "sdk-sessions-store-concurrency.test.ts - rename-retry guard exercises the withFsRetry wrapper on the injected rename seam."
+          "evidence": "Isolation self-lock aborts (writeAttempted=[]) when SHIPWRIGHT_E2E_ISOLATED!=1 or store outside os.tmpdir(); doubt-reviewer closed junction/realpath, partial-prefix, walk-up, case, trailing-sep, write-before-gate + the TEMP=%USERPROFILE% residual (sentinel); external_review high/medium findings applied (hard projectId asserts, both-cards assert, sentinel), seedV1Store unlocked-write accepted-with-rationale (single-writer isolated stack). Real store sha256 f0610675 byte-unchanged."
         }
       ],
       "counts": {
-        "testable": 12,
-        "tested": 12,
+        "testable": 5,
+        "tested": 5,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
         "acs": 5,
         "covered_acs": 5
-      },
-      "note": "AC1-AC5 (5) all covered. AC3 (full suites green) is the 1887-test suite; AC4 (footprint/anti-ratchet) and AC5 (MAX gates: independent RED-first guards + doubt-reviewer x3 + external openrouter x3) are process gates recorded in the decision-drop, not per-behavior rows. Every enumerated behavior is tested; untested_testable=0."
+      }
     },
     "degraded": []
   }

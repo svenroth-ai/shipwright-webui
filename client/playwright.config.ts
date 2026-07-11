@@ -9,6 +9,20 @@ import { defineConfig, devices } from '@playwright/test';
 const baseURL = process.env.BASE_URL || 'http://localhost:5173';
 const skipManagedWebServer = Boolean(process.env.BASE_URL);
 
+// D05 (F19/F20) — the two ADR-038 schema specs mutate sdk-sessions.json on
+// disk and run ONLY under an isolated temp-USERPROFILE/HOME stack that exports
+// SHIPWRIGHT_E2E_ISOLATED=1 (their isolated-store self-lock hard-aborts
+// otherwise). They are ALWAYS testIgnored from the desktop project below; the
+// dedicated `schema-isolated` project is added ONLY when that sentinel is set,
+// so a plain `npm run test:e2e` on a developer's real USERPROFILE neither
+// collects nor throws them. Playwright has no per-project process env
+// (`env` exists only on webServer), so the sentinel MUST be exported by the
+// isolated recipe's shell — gating the project on it makes the project's very
+// existence imply the sentinel, and the spec's self-lock still additionally
+// requires a temp-dir home so a misconfigured run fails loudly.
+const SCHEMA_ISOLATED_SPECS = /(62-schema-migration|70-g-schema-persistence)\.spec\.ts$/;
+const runSchemaIsolated = process.env.SHIPWRIGHT_E2E_ISOLATED === '1';
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
@@ -31,7 +45,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: /90-phone-responsive\.spec\.ts/,
+      testIgnore: [/90-phone-responsive\.spec\.ts/, SCHEMA_ISOLATED_SPECS],
     },
     // Touch phone project runs ONLY the phone spec. Pixel 5 sets
     // hasTouch + isMobile + a 393px viewport so `(pointer: coarse)` and
@@ -41,6 +55,17 @@ export default defineConfig({
       use: { ...devices['Pixel 5'] },
       testMatch: /90-phone-responsive\.spec\.ts/,
     },
+    // D05 isolated schema guards — present ONLY under the isolated recipe
+    // (SHIPWRIGHT_E2E_ISOLATED=1). See the SCHEMA_ISOLATED_SPECS note above.
+    ...(runSchemaIsolated
+      ? [
+          {
+            name: 'schema-isolated',
+            use: { ...devices['Desktop Chrome'] },
+            testMatch: SCHEMA_ISOLATED_SPECS,
+          },
+        ]
+      : []),
   ],
   ...(skipManagedWebServer
     ? {}

@@ -1,88 +1,120 @@
 /*
- * Flow G — Schema v2 persistence on PATCH (ADR-038).
+ * Flow G — Schema v4 persistence on PATCH (ADR-038). D05 / F19.
  *
- *   1. The live sdk-sessions.json currently reports schemaVersion 2.
- *   2. PATCH to rename a task succeeds (no 500).
- *   3. After the rename, the on-disk file is STILL schemaVersion 2 (no
- *      accidental downgrade), the renamed task carries a projectId, and
- *      the task count is preserved.
+ * REPAIRED (F19): the prior spec hard-asserted on-disk schemaVersion === 2,
+ * but the store has persisted CURRENT_SCHEMA_VERSION = 4 since
+ * iterate-2026-06-17 — so it was permanently red (or skipped). It also read
+ * the REAL store, used an absolute http://localhost:3847 (bypassing baseURL),
+ * and a hardcoded UAT projectId, so it could not run isolated.
+ *
+ * This version runs ONLY against an isolated temp-USERPROFILE stack and
+ * hard-aborts (Guard 1 self-lock) if the resolved registry dir is not under
+ * os.tmpdir(), so the real ~/.shipwright-webui can never be mutated. It uses
+ * the relative baseURL (no absolute :3847), no hardcoded UAT projectId, and
+ * asserts against EXPECTED_SCHEMA_VERSION (mirrored from the server) rather
+ * than a stale literal.
+ *
+ * Contract:
+ *   1. A rename PATCH succeeds (no 500).
+ *   2. After the rename the on-disk file is STILL schemaVersion 4 (no
+ *      accidental downgrade), the renamed task carries a projectId, a
+ *      pre-existing bystander row keeps its projectId, and the task count
+ *      grew by exactly the one created-then-renamed task.
  */
 
 import { test, expect } from "@playwright/test";
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import path from "node:path";
+import os from "node:os";
+import type { APIRequestContext } from "@playwright/test";
 
-const UAT_PROJECT_ID = "fa10a30a-21b1-48e0-a588-e7f721ca5bfc";
-const UAT_PATH = "C:\\tmp\\uat-1";
+import {
+  EXPECTED_SCHEMA_VERSION,
+  assertIsolatedStore,
+  isolatedStorePath,
+  readIsolatedStore,
+} from "../helpers/isolated-store";
 
-function storePath(): string {
-  // Match server/src/config/paths.ts default for SHIPWRIGHT_WEBUI_HOME.
-  const registry = process.env.SHIPWRIGHT_WEBUI_HOME
-    ?? path.join(homedir(), ".shipwright-webui");
-  return path.join(registry, "sdk-sessions.json");
+async function createTask(
+  request: APIRequestContext,
+  title: string,
+): Promise<string> {
+  const res = await request.post("/api/external/tasks", {
+    data: { title, cwd: os.tmpdir() },
+  });
+  if (!res.ok()) {
+    throw new Error(`create task: HTTP ${res.status()} — ${await res.text()}`);
+  }
+  const body = (await res.json()) as { task: { taskId: string } };
+  return body.task.taskId;
 }
 
-test.describe("Flow G — Schema v2 persistence (ADR-038)", () => {
-  test("existing v2 store rewrites v2 after a rename PATCH", async ({ request }) => {
-    const file = storePath();
-    test.skip(!existsSync(file), `sdk-sessions.json not found at ${file}`);
+test.describe("Flow G — Schema v4 persistence (ADR-038)", () => {
+  test("rename PATCH keeps schemaVersion 4 + preserves every row's projectId", async ({
+    request,
+  }) => {
+    // Guard 1 — hard-abort before ANY write unless the store is isolated.
+    const storePath = assertIsolatedStore(isolatedStorePath());
 
-    // Snapshot before.
-    const beforeRaw = readFileSync(file, "utf-8");
-    const before = JSON.parse(beforeRaw) as {
-      schemaVersion: number;
-      sessions: Record<string, Record<string, unknown>>;
-    };
-    expect(before.schemaVersion).toBe(2);
-    const taskCountBefore = Object.keys(before.sessions).length;
+    // Bystander row — proves OTHER rows keep their projectId across the PATCH.
+    const bystander = await createTask(request, `spec70g-bystander-${Date.now()}`);
+    try {
+      // Snapshot BEFORE the rename target is created.
+      const before = readIsolatedStore(storePath);
+      expect(before, "store must exist after a create").toBeTruthy();
+      expect(
+        before?.schemaVersion,
+        "store must persist the current schema version",
+      ).toBe(EXPECTED_SCHEMA_VERSION);
+      const countBefore = Object.keys(before?.sessions ?? {}).length;
+      const bystanderProjectBefore = before?.sessions[bystander]?.projectId;
+      expect(typeof bystanderProjectBefore).toBe("string");
 
-    // Create a throw-away task to rename + delete.
-    const createResp = await request.post("http://localhost:3847/api/external/tasks", {
-      data: {
-        title: `spec70g-schema-${Date.now()}`,
-        cwd: UAT_PATH,
-        projectId: UAT_PROJECT_ID,
-      },
-    });
-    expect(createResp.ok()).toBeTruthy();
-    const { task } = (await createResp.json()) as { task: { taskId: string } };
+      // Create the throw-away task to rename.
+      const target = await createTask(request, `spec70g-schema-${Date.now()}`);
+      try {
+        const newTitle = `spec70g-renamed-${Date.now()}`;
+        const patchResp = await request.patch(`/api/external/tasks/${target}`, {
+          data: { title: newTitle },
+        });
+        expect(
+          patchResp.ok(),
+          `PATCH must succeed — got ${patchResp.status()}`,
+        ).toBeTruthy();
 
-    // PATCH — rename.
-    const newTitle = `spec70g-renamed-${Date.now()}`;
-    const patchResp = await request.patch(
-      `http://localhost:3847/api/external/tasks/${task.taskId}`,
-      { data: { title: newTitle } },
-    );
-    expect(patchResp.ok(), `PATCH must succeed — got ${patchResp.status()}`).toBeTruthy();
+        // Re-read disk.
+        const after = readIsolatedStore(storePath);
+        expect(after, "store must exist after PATCH").toBeTruthy();
+        // No accidental downgrade.
+        expect(
+          after?.schemaVersion,
+          "schemaVersion must remain v4 after PATCH",
+        ).toBe(EXPECTED_SCHEMA_VERSION);
 
-    // Re-read disk.
-    const afterRaw = readFileSync(file, "utf-8");
-    const after = JSON.parse(afterRaw) as {
-      schemaVersion: number;
-      sessions: Record<string, { projectId?: string; title?: string }>;
-    };
-    expect(after.schemaVersion, "schemaVersion must remain 2 after PATCH").toBe(2);
+        const persisted = after?.sessions[target];
+        expect(persisted, "renamed task must be in the on-disk store").toBeTruthy();
+        expect(persisted?.title).toBe(newTitle);
+        expect(typeof persisted?.projectId).toBe("string");
+        expect((persisted?.projectId ?? "").length).toBeGreaterThan(0);
 
-    const persisted = after.sessions[task.taskId];
-    expect(persisted, "renamed task must be in on-disk store").toBeDefined();
-    expect(persisted?.title).toBe(newTitle);
-    expect(typeof persisted?.projectId).toBe("string");
-    expect(persisted?.projectId?.length ?? 0).toBeGreaterThan(0);
+        // Count grew by exactly the created-then-renamed task.
+        expect(Object.keys(after?.sessions ?? {}).length).toBe(countBefore + 1);
 
-    // Task count increased by exactly 1.
-    expect(Object.keys(after.sessions).length).toBe(taskCountBefore + 1);
+        // The bystander kept its projectId (no schema regression dropped it).
+        expect(after?.sessions[bystander]?.projectId).toBe(bystanderProjectBefore);
 
-    // Every existing row still carries a projectId (no schema regression
-    // that would silently drop the field for other tasks).
-    for (const [tid, row] of Object.entries(after.sessions)) {
-      expect.soft(
-        typeof (row as { projectId?: unknown }).projectId,
-        `task ${tid} must still carry a projectId field`,
-      ).toBe("string");
+        // No row lost its projectId field — HARD assertion: the ADR-038
+        // downgrade-guard's whole point is that a regression dropping
+        // projectId from ANY persisted row must turn this spec red.
+        for (const [tid, row] of Object.entries(after?.sessions ?? {})) {
+          expect(
+            typeof row.projectId,
+            `task ${tid} must still carry a projectId field`,
+          ).toBe("string");
+        }
+      } finally {
+        await request.delete(`/api/external/tasks/${target}`).catch(() => {});
+      }
+    } finally {
+      await request.delete(`/api/external/tasks/${bystander}`).catch(() => {});
     }
-
-    // Cleanup.
-    await request.delete(`http://localhost:3847/api/external/tasks/${task.taskId}`);
   });
 });
