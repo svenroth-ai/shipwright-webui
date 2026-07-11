@@ -30,7 +30,7 @@
 import { randomUUID } from "node:crypto";
 
 import { type BoardColumn, isBoardColumn } from "./board-column.js";
-import { atomicWriteFile, cloneSessions, mergeSessions, readDiskMap } from "./sdk-sessions-merge.js";
+import { atomicWriteFile, cloneSessions, mergeSessions, reReadDisk } from "./sdk-sessions-merge.js";
 
 export type ExternalTaskState =
   | "draft"
@@ -508,34 +508,34 @@ export class SdkSessionsStore {
 
     const release = this.deps.lock ? await this.deps.lock(this.path) : null;
     try {
-      // F08 — UNDER the lock, re-read (READ-ONLY, never a corrupt-aside) + 3-way
-      // merge onto disk: a concurrent instance's rows + external claim fields
-      // survive, only fields THIS instance changed win, deletes always win. An
-      // unreadable/future-schema disk → readDiskMap===null → skip the merge, write
-      // our FULL memory (don't drop own rows). No lock ⇒ no cross-process
-      // coordination + a stale re-read would clobber same-process writers → direct.
-      let next = this.sessions;
+      // F08 — UNDER the lock, re-read + 3-way merge onto disk (read-only): a
+      // concurrent instance's rows + external claims survive, only fields THIS
+      // instance changed win, deletes always win. corrupt disk → recover (write
+      // full memory); FUTURE schemaVersion → ABORT (don't downgrade a newer file);
+      // a transient read I/O error retries then rejects inside reReadDisk (never
+      // clobbers). The merge is applied into this.sessions SYNCHRONOUSLY before
+      // the write await, so a create/patch/delete during the write lands on the
+      // LIVE map + is preserved for the next persist (never lost to a stale swap).
+      // No lock ⇒ no cross-process coordination possible → write memory directly.
       if (release) {
-        let disk: Map<string, ExternalTask> | null = null;
-        try {
-          const raw = this.deps.existsSync(this.path) ? await this.deps.readFile(this.path, "utf-8") : "";
-          disk = readDiskMap(raw, CURRENT_SCHEMA_VERSION, validateExternalTask);
-        } catch { disk = null; } // read error → keep full memory (no self-drop)
-        if (disk) next = mergeSessions(this.baseline, this.sessions, disk, this.deletedSinceBaseline);
+        const rr = await reReadDisk(this.deps, this.path, CURRENT_SCHEMA_VERSION, validateExternalTask);
+        if (rr.kind === "future") throw new Error("sdk-sessions.json on disk has a newer schemaVersion than this build supports — refusing to overwrite (version mismatch)");
+        if (rr.kind === "ok") this.sessions = mergeSessions(this.baseline, this.sessions, rr.disk, this.deletedSinceBaseline);
+        // rr.kind === "corrupt": keep this.sessions (full-write recover)
       }
 
-      const payload: SdkSessionsFile = {
-        schemaVersion: CURRENT_SCHEMA_VERSION,
-        sessions: Object.fromEntries(next),
-      };
-      const serialized = JSON.stringify(payload, null, 2);
-      await atomicWriteFile(this.deps, this.path, serialized, Boolean(release));
+      // Snapshot EXACTLY what we write (immune to concurrent mutation during the
+      // await) + which deletes this write reconciles — both captured pre-await.
+      const snapshot = cloneSessions(this.sessions);
+      const reconciledDeletes = new Set(this.deletedSinceBaseline);
+      const payload = { schemaVersion: CURRENT_SCHEMA_VERSION, sessions: Object.fromEntries(snapshot) } satisfies SdkSessionsFile;
+      await atomicWriteFile(this.deps, this.path, JSON.stringify(payload, null, 2), Boolean(release));
 
-      // Swap in-memory state only AFTER the write succeeds (a failed write keeps
-      // the baseline + delete-set intact for the retry).
-      this.sessions = next;
-      this.baseline = cloneSessions(next);
-      this.deletedSinceBaseline.clear();
+      // On success only: baseline = what was actually written (NOT the possibly-
+      // mutated live map); drop ONLY the reconciled tombstones so a delete during
+      // the write survives to the next persist.
+      this.baseline = snapshot;
+      for (const id of reconciledDeletes) this.deletedSinceBaseline.delete(id);
     } finally {
       if (release) await release();
     }

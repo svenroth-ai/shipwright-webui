@@ -22,8 +22,8 @@ import { rename as fsRename, unlink as fsUnlink } from "node:fs/promises";
 
 import type { ExternalTask } from "./sdk-sessions-store.js";
 
-/** Rename `code`s that are transient on Windows — retried (CLAUDE.md rule 6). */
-const RETRYABLE_RENAME_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
+/** fs error `code`s that are transient on Windows — retried (CLAUDE.md rule 6). */
+const RETRYABLE_FS_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
 
 /** Deep structural equality for JSON-shaped ExternalTask values. */
 export function deepEqual(a: unknown, b: unknown): boolean {
@@ -94,52 +94,85 @@ export function mergeSessions(
   return out;
 }
 
+export type DiskReadResult =
+  | { kind: "ok"; disk: Map<string, ExternalTask> }
+  | { kind: "corrupt" } // salvageably-empty: unparseable bytes hold no foreign rows
+  | { kind: "future" }; // a NEWER instance's file — never downgrade/overwrite it
+
 /**
- * Classify + parse the on-disk file for a merge re-read (read-only; never
- * writes a corrupt-aside). Returns null when the bytes are unreadable — corrupt
- * JSON, a non-object root, a malformed `sessions`, or a `schemaVersion` outside
- * the 1..current window (a FUTURE version this build must not downgrade). An
- * empty / whitespace file is a legitimately-empty store (schemaVersion=current,
- * no rows). The caller skips the merge on null and writes its full memory.
+ * Classify the on-disk bytes for a merge re-read (pure; no side effects). Empty
+ * / whitespace is a legitimately-empty store. Corrupt = unparseable JSON, a
+ * non-object root, a malformed `sessions`, or a non-integer / < 1 schemaVersion.
+ * Future = valid JSON whose integer schemaVersion is GREATER than this build's.
  */
-export function parseDiskState(
+export function classifyDiskRaw(
   raw: string,
   current: number,
-): { schemaVersion: 1 | 2 | 3 | 4; sessions: Record<string, unknown> } | null {
-  if (!raw.trim()) return { schemaVersion: current as 1 | 2 | 3 | 4, sessions: {} };
+):
+  | { kind: "ok"; schemaVersion: 1 | 2 | 3 | 4; sessions: Record<string, unknown> }
+  | { kind: "corrupt" }
+  | { kind: "future" } {
+  if (!raw.trim()) return { kind: "ok", schemaVersion: current as 1 | 2 | 3 | 4, sessions: {} };
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return null;
+    return { kind: "corrupt" };
   }
-  if (!parsed || typeof parsed !== "object") return null;
+  if (!parsed || typeof parsed !== "object") return { kind: "corrupt" };
   const v = (parsed as { schemaVersion?: unknown }).schemaVersion;
-  if (typeof v !== "number" || !Number.isInteger(v) || v < 1 || v > current) return null;
+  if (typeof v !== "number" || !Number.isInteger(v) || v < 1) return { kind: "corrupt" };
+  if (v > current) return { kind: "future" };
   const sessions = (parsed as { sessions?: unknown }).sessions;
-  if (!sessions || typeof sessions !== "object") return null;
-  return { schemaVersion: v as 1 | 2 | 3 | 4, sessions: sessions as Record<string, unknown> };
+  if (!sessions || typeof sessions !== "object") return { kind: "corrupt" };
+  return { kind: "ok", schemaVersion: v as 1 | 2 | 3 | 4, sessions: sessions as Record<string, unknown> };
+}
+
+/** Retry a transient (EBUSY/EPERM/EACCES) fs op up to 6× with 50→1600 ms backoff. */
+async function withFsRetry<T>(op: () => Promise<T>): Promise<T> {
+  let delay = 50;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await op();
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (attempt >= 5 || !code || !RETRYABLE_FS_CODES.has(code)) throw err;
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 1600);
+    }
+  }
 }
 
 /**
- * Build the on-disk sessions map for a merge, reusing the store's own row
- * validator (passed in to avoid a store↔merge import cycle). Returns null iff
- * the file was unreadable/future-schema (see parseDiskState) so the caller can
- * skip the merge and preserve its full in-memory state.
+ * Re-read + classify + validate the on-disk file for a persist merge. A missing
+ * file / ENOENT is an empty store; a TRANSIENT read error (EBUSY/EPERM/EACCES)
+ * is retried, then re-thrown (the caller must reject, NOT full-write — that
+ * would clobber a concurrent instance's rows). Returns "corrupt"/"future" for
+ * the caller to recover / abort. Reuses the store's row validator (injected to
+ * avoid a store↔merge import cycle).
  */
-export function readDiskMap(
-  raw: string,
+export async function reReadDisk(
+  deps: { existsSync: (p: string) => boolean; readFile: (p: string, e: string) => Promise<string> },
+  path: string,
   current: number,
   validate: (id: string, value: unknown, schemaVersion: 1 | 2 | 3 | 4) => ExternalTask | null,
-): Map<string, ExternalTask> | null {
-  const parsed = parseDiskState(raw, current);
-  if (!parsed) return null;
+): Promise<DiskReadResult> {
+  const raw = deps.existsSync(path)
+    ? await withFsRetry(() =>
+        deps.readFile(path, "utf-8").catch((err: NodeJS.ErrnoException) => {
+          if (err?.code === "ENOENT") return ""; // vanished mid-flight → empty store
+          throw err;
+        }),
+      )
+    : "";
+  const cls = classifyDiskRaw(raw, current);
+  if (cls.kind !== "ok") return cls;
   const disk = new Map<string, ExternalTask>();
-  for (const [id, value] of Object.entries(parsed.sessions)) {
-    const task = validate(id, value, parsed.schemaVersion);
+  for (const [id, value] of Object.entries(cls.sessions)) {
+    const task = validate(id, value, cls.schemaVersion);
     if (task) disk.set(id, task);
   }
-  return disk;
+  return { kind: "ok", disk };
 }
 
 /**
@@ -152,18 +185,7 @@ async function renameWithRetry(
   from: string,
   to: string,
 ): Promise<void> {
-  let delay = 50;
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await rename(from, to);
-      return;
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (attempt >= 5 || !code || !RETRYABLE_RENAME_CODES.has(code)) throw err;
-      await new Promise((r) => setTimeout(r, delay));
-      delay = Math.min(delay * 2, 1600);
-    }
-  }
+  await withFsRetry(() => rename(from, to));
 }
 
 /**
