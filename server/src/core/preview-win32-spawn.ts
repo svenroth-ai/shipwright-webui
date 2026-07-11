@@ -28,6 +28,9 @@
 
 import path from "node:path";
 import { statSync, realpathSync } from "node:fs";
+// Intra-package import used only inside resolveSpawn's body (never at module
+// load), so the preview-session-manager ↔ this-module cycle is ESM-safe.
+import { PreviewProfileInvalidError } from "./preview-session-manager.js";
 
 const WIN32_EXECUTABLE_EXTS = new Set([".exe", ".com"]);
 const WIN32_SHIM_EXTS = new Set([".cmd", ".bat"]);
@@ -185,8 +188,17 @@ export function resolveSpawn(argv: string[], cwd: string): ResolvedSpawn {
       }
       return win32CmdWrap(resolved, rest);
     }
-    // Unresolved bare command — assume a shim (npm/yarn/pnpm are `.cmd`);
-    // cmd.exe surfaces a clear "not recognized" error if it truly is absent.
+    // Unresolved. A BARE (non-path-like) name resolves from PATH ONLY (never
+    // cwd) — so if PATHEXT can't find it we REFUSE here. Delegating
+    // `cmd /d /s /c <bare>` would let cmd.exe do its own cwd-first lookup and run
+    // a planted `<cwd>\npm.cmd` from an untrusted previewed repo. A path-like
+    // name (absolute or `.`/`..`-relative) is the author's explicit target, so
+    // it still wraps below.
+    if (!looksPathLike(name)) {
+      throw new PreviewProfileInvalidError(
+        `dev_server.command not found on PATH: ${name}`,
+      );
+    }
   }
   return win32CmdWrap(name, rest);
 }
