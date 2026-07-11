@@ -198,6 +198,31 @@ describe("project-registry-io (F07 / D08)", () => {
     expect(files["/reg/projects.json"]).toBeUndefined();
   });
 
+  // Finding 1 (coordinator) — a boot load must never throw-and-brick. An
+  // unreadable projects.json (transient EBUSY/EPERM/EACCES lock, the same
+  // force-kill class F07 targets) is retried on the rule-6 budget, then degrades
+  // to an empty registry instead of a FATAL exit.
+  it("loadProjectRegistry retries then starts empty (no throw) when the read persistently fails (EBUSY)", async () => {
+    vi.useFakeTimers();
+    try {
+      const err = Object.assign(new Error("locked"), { code: "EBUSY" });
+      const deps: RegistryIoDeps = {
+        readFile: vi.fn(async () => { throw err; }),
+        writeFile: vi.fn(async () => {}),
+        existsSync: vi.fn(() => true),
+        mkdirSync: vi.fn(),
+      };
+      const pending = loadProjectRegistry(deps, "/reg/projects.json");
+      await vi.runAllTimersAsync();
+      const map = await pending;
+      expect(map.size).toBe(0);
+      // Exhausted the full rule-6 budget (6 attempts) before degrading to empty.
+      expect((deps.readFile as any).mock.calls.length).toBe(6);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("quarantineCorruptRegistry copies bytes aside via writeFile when no rename dep", async () => {
     const files: Record<string, string> = { "/reg/projects.json": "[bad" };
     const deps: RegistryIoDeps = {

@@ -5,9 +5,9 @@
     "date": "2026-07-11T12:12:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 1911,
-      "total": 1911,
-      "note": "Server vitest 163 files / 1911 tests green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. D08 is server-only (server/src/core/project-manager.ts, new server/src/core/project-registry-io.ts, new server/src/core/project-manager-corrupt-load.test.ts, server/src/index.ts) so the client suite (1971 tests, unchanged since D07 - no D08 client files) was not re-run. New F07 coverage: project-manager-corrupt-load.test.ts (15 tests: ProjectManager.load over empty/whitespace/truncated/non-array/well-formed + atomic-vs-plain persist; project-registry-io parse/load/quarantine/atomic-write units)."
+      "passed": 1912,
+      "total": 1912,
+      "note": "Server vitest 163 files / 1912 tests green (F0 gate, SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. D08 is server-only (server/src/core/project-manager.ts, new server/src/core/project-registry-io.ts, new server/src/core/project-manager-corrupt-load.test.ts, server/src/index.ts) so the client suite (1971 tests, unchanged since D07 - no D08 client files) was not re-run. New F07 coverage: project-manager-corrupt-load.test.ts (16 tests: ProjectManager.load over empty/whitespace/truncated/non-array/well-formed + atomic-vs-plain persist; project-registry-io parse/load/quarantine/atomic-write units + the read-failure retry-then-empty guard)."
     },
     "integration": {
       "status": "passed",
@@ -48,10 +48,10 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - ProjectManager.load() tolerates a corrupt projects.json: empty/whitespace loads an empty registry (no quarantine); truncated/unparseable/non-array content is quarantined aside to projects.json.corrupt-<ts>-<uuid> (best-effort, never re-throws) and boot continues with an empty registry instead of exiting FATAL; persist() writes atomically via tmp+rename.",
+          "behavior": "AC1 - ProjectManager.load() tolerates a corrupt / unreadable projects.json: empty/whitespace loads an empty registry (no quarantine); an unreadable file (transient EBUSY/EPERM/EACCES lock or permission error) is retried on the rule-6 budget then degrades to an empty registry (a boot load never throws-and-bricks); truncated/unparseable/non-array content is quarantined aside to projects.json.corrupt-<ts>-<uuid> (best-effort, never re-throws) and boot continues with an empty registry instead of exiting FATAL; persist() writes atomically via tmp+rename (rename retried on a transient lock; the staged tmp is unlinked on a hard failure so it can't orphan).",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "server/src/core/project-manager-corrupt-load.test.ts - ProjectManager.load over '' / whitespace / truncated JSON (renames aside) / non-array (quarantines) / well-formed (populates); persist atomic tmp+rename when a rename dep is present (asserts NO direct write to the live path) + plain in-place fallback when absent; project-registry-io units for parse/load/quarantine (incl. never-throws-on-fs-failure + copy-aside fallback) and atomic-write. Real-fs round-trip probe (integration block) confirms the full producer/consumer chain on Windows."
+          "evidence": "server/src/core/project-manager-corrupt-load.test.ts - ProjectManager.load over '' / whitespace / truncated JSON (renames aside) / non-array (quarantines) / well-formed (populates); persist atomic tmp+rename when a rename dep is present (asserts NO direct write to the live path) + plain in-place fallback when absent; NEW loadProjectRegistry EBUSY read-failure retry-then-empty guard (6 attempts, no throw; RED on pre-fix which re-threw); project-registry-io units for parse/load/quarantine (incl. never-throws-on-fs-failure + copy-aside fallback) and atomic-write. Real-fs round-trip probe (integration block) confirms the full producer/consumer chain on Windows."
         },
         {
           "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
@@ -61,13 +61,13 @@
         {
           "behavior": "AC3 - full server suite + build stay green (no invariant/ADR regressed)",
           "disposition": "tested",
-          "evidence": "F0: server vitest 163 files / 1911/1911 (SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. project-delete-unassigned.integration.test.ts + all sdk-sessions/store tests green. CLAUDE.md read-only-observer rules 1/12 intact (writes only projects.json + its quarantine/tmp side-files; never ~/.claude/projects/** or shipwright_run_config.json). Client untouched (server-only iterate)."
+          "evidence": "F0: server vitest 163 files / 1912/1912 (SHIPWRIGHT_NETWORK_PROFILE=local); server tsc --noEmit clean + build green. project-delete-unassigned.integration.test.ts + all sdk-sessions/store tests green. CLAUDE.md read-only-observer rules 1/12 intact (writes only projects.json + its quarantine/tmp side-files; never ~/.claude/projects/** or shipwright_run_config.json). Client untouched (server-only iterate)."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "All three baselined touch-files stay at or below their ceilings (anti-ratchet hook exit 0): project-manager.ts 420==420 (delegates to the new module), index.ts 892<899 (verbose inline deps type replaced with the exported ProjectManagerDeps to make room for the rename dep wiring). New non-baselined files below the 300 limit: project-registry-io.ts 164, project-manager-corrupt-load.test.ts 254. project-manager.test.ts unchanged at 480. shipwright_bloat_baseline.json not modified (no ratchet)."
+          "evidence": "All three baselined touch-files stay at or below their ceilings (anti-ratchet hook exit 0): project-manager.ts 420==420 (delegates to the new module), index.ts 892<899 (verbose inline deps type replaced with the exported ProjectManagerDeps to make room for the rename dep wiring). New non-baselined files below the 300 limit: project-registry-io.ts 227, project-manager-corrupt-load.test.ts 279. project-manager.test.ts unchanged at 480. shipwright_bloat_baseline.json not modified (no ratchet)."
         }
       ],
       "counts": {

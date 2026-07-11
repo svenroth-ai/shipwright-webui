@@ -12,16 +12,44 @@
  * These helpers are factored out of project-manager.ts (which sits at its bloat
  * ceiling) and mirror the sdk-sessions-store recovery pattern:
  *   • empty / whitespace-only  → treat as an empty registry (nothing to save).
- *   • unparseable / wrong-shape → quarantine the bytes aside (`.corrupt-<ts>`)
- *     and continue with an empty registry.
- *   • persist → stage to `<path>.tmp-<uuid>` then rename into place, so a
- *     force-kill mid-write lands on the throwaway tmp, never truncating the
- *     live file (shrinking the corruption window at the source).
+ *   • unreadable (transient EBUSY/EPERM/EACCES lock, or a permission error) →
+ *     retry on the rule-6 budget, then degrade to an empty registry — a boot
+ *     load must never throw-and-brick.
+ *   • unparseable / wrong-shape → quarantine the bytes aside
+ *     (`.corrupt-<ts>-<uuid>`) and continue with an empty registry.
+ *   • persist → stage to `<path>.tmp-<uuid>` then rename into place (retried on
+ *     a transient lock; the tmp is unlinked on a hard failure), so a force-kill
+ *     mid-write lands on the throwaway tmp, never truncating the live file
+ *     (shrinking the corruption window at the source).
  */
 
 import { randomUUID } from "crypto";
+import { unlink as fsUnlink } from "node:fs/promises";
 
 import type { Project } from "../types/project.js";
+
+/** fs error `code`s that are transient on Windows — retried (CLAUDE.md rule 6). */
+const RETRYABLE_FS_CODES = new Set(["EBUSY", "EPERM", "EACCES"]);
+
+/**
+ * Retry a transient (EBUSY/EPERM/EACCES) fs op up to 6× with 50→1600 ms backoff
+ * — the torn-read budget from CLAUDE.md rule 6 / `core/session-watcher.ts`,
+ * replicated here (sdk-sessions-merge's copy is module-private). A non-transient
+ * error, or exhaustion after 6 attempts, re-throws for the caller to handle.
+ */
+async function withFsRetry<T>(op: () => Promise<T>): Promise<T> {
+  let delay = 50;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await op();
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (attempt >= 5 || !code || !RETRYABLE_FS_CODES.has(code)) throw err;
+      await new Promise((r) => setTimeout(r, delay));
+      delay = Math.min(delay * 2, 1600);
+    }
+  }
+}
 
 /** The narrow fs surface these helpers need — structurally satisfied by ProjectManagerDeps. */
 export interface RegistryIoDeps {
@@ -61,7 +89,28 @@ export async function loadProjectRegistry(
     await deps.writeFile(registryPath, "[]");
     return projects;
   }
-  const content = await deps.readFile(registryPath, "utf-8");
+  // A boot-time load must NEVER throw-and-brick. existsSync already passed, so a
+  // transient Windows lock (EBUSY/EPERM/EACCES — the same force-kill class F07
+  // targets) or a permission error here would otherwise be FATAL. Retry the read
+  // on the transient codes (rule 6); a PERSISTENT failure degrades to an empty
+  // registry — the next persist rewrites a fresh file. (Unlike D04's reReadDisk,
+  // which rejects a *persist* on read failure to avoid clobbering a peer; this is
+  // a boot load with nothing to clobber, so degrade-to-empty is correct.)
+  let content: string;
+  try {
+    content = await withFsRetry(() => deps.readFile(registryPath, "utf-8"));
+  } catch (err) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        message:
+          "projects.json could not be read — starting with an empty registry",
+        registryPath,
+        error: String(err),
+      }),
+    );
+    return projects;
+  }
   const parsed = parseProjectRegistry(content);
   if (parsed.kind === "corrupt") {
     await quarantineCorruptRegistry(deps, registryPath, content);
@@ -113,10 +162,12 @@ export async function quarantineCorruptRegistry(
   // `-${randomUUID()}` guards against a same-millisecond collision clobbering a
   // prior aside copy (rapid restart loops / repeated recovery attempts).
   const asidePath = `${registryPath}.corrupt-${Date.now()}-${randomUUID()}`;
+  const rename = deps.rename;
   let quarantined = false;
   try {
-    if (deps.rename) {
-      await deps.rename(registryPath, asidePath);
+    if (rename) {
+      // Retry a transient lock on the aside rename (rule 6) before giving up.
+      await withFsRetry(() => rename(registryPath, asidePath));
     } else {
       await deps.writeFile(asidePath, content);
     }
@@ -154,11 +205,23 @@ export async function atomicWriteRegistry(
   registryPath: string,
   data: string,
 ): Promise<void> {
-  if (!deps.rename) {
+  const rename = deps.rename;
+  if (!rename) {
     await deps.writeFile(registryPath, data);
     return;
   }
   const tmp = `${registryPath}.tmp-${randomUUID()}`;
   await deps.writeFile(tmp, data);
-  await deps.rename(tmp, registryPath);
+  try {
+    // Retry a transient lock on the rename (rule 6); on a hard failure clean up
+    // the staged tmp so it can't orphan on disk, then re-throw for the caller.
+    await withFsRetry(() => rename(tmp, registryPath));
+  } catch (err) {
+    try {
+      await fsUnlink(tmp);
+    } catch {
+      /* best-effort temp cleanup */
+    }
+    throw err;
+  }
 }
