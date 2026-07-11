@@ -79,6 +79,8 @@ export interface ScrollbackStoreOpts {
   renameFn?: RenameFn;
   /** Hook for tests to seed the time source (used for sweepExpired). */
   now?: () => number;
+  /** Hook for tests to control readdir order in sweepExpired. */
+  readdirFn?: (dir: string) => Promise<string[]>;
 }
 
 export interface SweepOpts {
@@ -137,6 +139,7 @@ export class ScrollbackStore {
   private readonly renameMaxAttempts: number;
   private readonly renameFn: RenameFn;
   private readonly now: () => number;
+  private readonly readdirFn: (dir: string) => Promise<string[]>;
   private resolvedDir: string | null = null;
 
   constructor(
@@ -149,6 +152,7 @@ export class ScrollbackStore {
     this.renameMaxAttempts = opts.renameMaxAttempts ?? 3;
     this.renameFn = opts.renameFn ?? ((from, to) => fsAsync.rename(from, to));
     this.now = opts.now ?? Date.now;
+    this.readdirFn = opts.readdirFn ?? ((d) => fsAsync.readdir(d));
   }
 
   /** Whether persistence is disabled via env var (`SHIPWRIGHT_TERMINAL_SCROLLBACK_MAX_BYTES=0`). */
@@ -317,20 +321,22 @@ export class ScrollbackStore {
 
     let entries: string[];
     try {
-      entries = await fsAsync.readdir(dir);
+      entries = await this.readdirFn(dir);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") return result;
       throw err;
     }
 
-    // Phase-3 review fix (MEDIUM): group by task so .log + .log.1 of
-    // the same task count as ONE deletion unit against maxFilesPerPass
-    // (otherwise a 100-file cap would only free 50 tasks of history).
+    // Phase-3 fix (MEDIUM): group by task so `.log` + `.log.1` count as
+    // ONE deletion unit against maxFilesPerPass. D16 (F25): TWO-PASS —
+    // bucket every file by taskId (flag if ANY is fresh), then unlink only
+    // all-expired groups. The old single-pass form mutated the map in
+    // readdir order, so a fresh `.log` before an expired `.log.1` deleted it.
     interface TaskGroup {
       taskId: string;
       files: string[];
       newestMtime: number;
-      oldestMtime: number;
+      hasFresh: boolean;
     }
     const groupsById = new Map<string, TaskGroup>();
     for (const name of entries) {
@@ -339,25 +345,19 @@ export class ScrollbackStore {
       const taskId = m[1];
       if (sweepOpts.activeTaskIds.has(taskId)) continue;
       try {
-        const stats = await fsAsync.stat(path.join(dir, name));
-        // Keep the WHOLE task only if every file in the group is
-        // expired. If any file is fresh, skip the entire task.
-        if (stats.mtimeMs >= cutoffMs) {
-          groupsById.delete(taskId);
-          // Mark "fresh" so we don't add expired siblings later.
-          continue;
-        }
+        const mtimeMs = (await fsAsync.stat(path.join(dir, name))).mtimeMs;
+        const fresh = mtimeMs >= cutoffMs;
         const g = groupsById.get(taskId);
         if (g) {
           g.files.push(name);
-          g.newestMtime = Math.max(g.newestMtime, stats.mtimeMs);
-          g.oldestMtime = Math.min(g.oldestMtime, stats.mtimeMs);
+          g.newestMtime = Math.max(g.newestMtime, mtimeMs);
+          g.hasFresh = g.hasFresh || fresh;
         } else {
           groupsById.set(taskId, {
             taskId,
             files: [name],
-            newestMtime: stats.mtimeMs,
-            oldestMtime: stats.mtimeMs,
+            newestMtime: mtimeMs,
+            hasFresh: fresh,
           });
         }
       } catch {
@@ -365,11 +365,10 @@ export class ScrollbackStore {
       }
     }
 
-    // Oldest-first by newestMtime so the group whose live file is
-    // oldest gets cleaned first (aligned with TTL semantics).
-    const groups = [...groupsById.values()].sort(
-      (a, b) => a.newestMtime - b.newestMtime,
-    );
+    // Any fresh file vetoes the whole task; survivors oldest-first (TTL).
+    const groups = [...groupsById.values()]
+      .filter((g) => !g.hasFresh)
+      .sort((a, b) => a.newestMtime - b.newestMtime);
 
     for (const g of groups) {
       if (result.deleted >= maxFiles) {

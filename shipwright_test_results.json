@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-11T18:35:00.000Z",
+  "last_updated": "2026-07-11T19:15:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-transcript-poll-dedupe-stop",
-    "date": "2026-07-11T18:35:00.000Z",
+    "run_id": "iterate-2026-07-10-scrollback-sweep-grouping",
+    "date": "2026-07-11T19:15:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 3904,
-      "total": 3905,
-      "note": "F0 fresh gate green. Client vitest 204 files / 1980 passed + npm run build green; server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; tsc --noEmit + oxlint clean on the touched files. New D15 coverage lives in the NEW client/src/hooks/useTaskTranscript.test.ts (9 vitest fake-timer tests): F21 terminal-state stop (done + launch_failed each fetch exactly once then freeze; active keeps polling), the external-review cross-taskId-switch guard (a prior done task's state must not leak into a newly-selected running task even when its first tick rejects), F22 single-source modelName (the hook exposes the last `\"model\":\"...\"` from content; null when absent), and the pure extractModelName helper (last-wins / no-model / empty). Counts: 1980 client + 1924 server = 3904 passed / 3905 total (the +1 is the 1 long-standing skipped server test)."
+      "passed": 1928,
+      "total": 1929,
+      "note": "F0 fresh gate green. Server-only change (server/src/terminal/scrollback-store.ts + NEW server/src/terminal/scrollback-store-sweep-grouping.test.ts): server vitest 167 files / 1928 passed + 1 skipped (1929) (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; tsc --noEmit + oxlint clean on the touched files. Client NOT re-run - detect_frontend_changes.py has_frontend_changes=false (no client/** touched). New D16 coverage lives in the NEW scrollback-store-sweep-grouping.test.ts (4 vitest tests): fresh-first veto (fresh .log + expired .log.1, alphabetical order -> deletes nothing), expired-first veto (order-independence), fully-expired one-unit delete (both files gone, deleted=1), and fresh-veto-under-cap (maxFilesPerPass:1, fresh .log dead-last across 2 expired peer tasks -> mixed task survives intact). Counts: 1928 passed / 1929 total (the +1 is the 1 long-standing skipped server test)."
     },
     "integration": {
       "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "Confidence-calibration probes (Step 3.8) of the two boundaries this iterate touches, run REAL via vitest. (1) Transcript-content -> extractModelName parse boundary (producer = Claude's JSONL `\"model\":\"...\"` events; consumer = the header's model label): probed multi-model (last wins -> claude-opus-4-8), no-model (-> null), and empty content (-> null); a prior in-header regex had no null/empty guard path exercised -> the pure helper now pins all three. (2) Poll-lifecycle state-machine boundary (producer = server-reported task.state on each tick; consumer = the tick's terminal-state stop): the initial fake-timer probe reproduced F21 (done task polled 6x across 5 s instead of 1x); fixed via the latestStateRef; a follow-up probe from external code review found a SECOND bug (the ref outlived the effect, so a done->running taskId switch with a failing first tick inherited the stale `done` and stopped) -> fixed via a per-effect-run ref reset -> re-probe clean. Two consecutive clean probe rounds after the last fix => asymptote reached, both boundaries calibrated. Edge not probed: a real multi-second wall-clock browser session (the fake-timer model is deterministic and faithful to the sequential-poll setTimeout cadence; a live browser adds no discriminating signal for poll-count/stop logic)."
+      "passed": 3,
+      "total": 3,
+      "note": "Confidence-calibration probes (Step 3.8, touches_io_boundary) of the scrollback filesystem sweep boundary - producer = rotation writing <id>.log / <id>.log.1; consumer = sweepExpired (readdir -> stat -> unlink). (1) RED-first probe, run TWICE (initial + final committed test code): restoring the pre-fix single-pass logic makes the fresh-first test fail (deleted=1, the expired .log.1 archive wrongly unlinked while the live .log is fresh), other 3 green -> proves the tests reproduce F25. (2) Committed unit probes (4, above) all green post-fix, both readdir orders + the maxFilesPerPass cap-independence pinned. (3) THROWAWAY real-fs probe (run, then deleted): fresh .log + expired .log.1 in a real temp dir with NO readdirFn -> exercised the production fs.readdir; real Windows/NTFS order = [<id>.log, <id>.log.1] (fresh-first, the exact bug-triggering order), result {deleted:0,remaining:0,errors:0}, both files survive. Probe 1 found the bug (RED, fixed); probes 2 + 3 found nothing new -> two consecutive clean probe rounds => asymptote reached, boundary calibrated. Edge not probed: .log.2+ multi-archive groups (rotation keeps exactly one .log.1 -> unreachable); persistent unlink EPERM (covered by the tolerant try/catch -> counted as errors, non-fatal); mtime === cutoff exact boundary (the >= cutoffMs operator is preserved verbatim from pre-fix)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. This iterate changes client transcript-poll LOGIC only (client/src/hooks/useTaskTranscript.ts + its new test, plus a prop-plumbing change in TaskDetailHeader.tsx / TaskDetailPage.tsx). The observable UI (transcript pane, header model label, live updates) is behavior-preserving; the fix (poller stops on terminal state; one poller per page) is a time+state-dependent lifecycle assertion best pinned by deterministic fake-timer vitest, which an e2e cannot exercise more faithfully. No Vite-config / proxy / WS-origin / CORS / route surface changed. The real TaskDetailHeader (TaskDetailHeader.test.tsx + .phone.test.tsx) and the real TaskDetailPage (TaskDetailPage.test.tsx) render green under RTL with the new prop wiring, covering the render path. F0.5 surface=none (see surface_verification)."
+      "note": "No Playwright run. This iterate changes SERVER filesystem-sweep LOGIC only (server/src/terminal/scrollback-store.ts sweepExpired + its new unit test). There is no browser surface: sweepExpired is a boot/daily TTL job with no route, no UI, no Vite-config / proxy / WS-origin / CORS change. detect_frontend_changes.py reports has_frontend_changes=false. The order-dependent grouping invariant is pinned deterministically by vitest (readdir order forced via the readdirFn test hook + a real-fs production-readdir probe); a browser cannot exercise it. F0.5 surface=none (see surface_verification)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,37 +40,37 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T18:35:00.000Z",
+      "timestamp": "2026-07-11T19:15:00.000Z",
       "attempts": 0,
-      "justification": "This iterate is a behavior-preserving fix to the CLIENT transcript poller (useTaskTranscript) that consumes FR-01.12 (stateless byte-range transcript read). detect_frontend_changes reports has_frontend_changes=true (client/** touched), but there is no NEW browser-observable behavior to smoke: the transcript still renders, the header still shows the model label, and live updates behave identically - the only changes are (1) the poller stops when the task is done/launch_failed as its docblock already promised, and (2) the header no longer runs a duplicate second poller (its model label now arrives as a prop from the page's single poller). Both are poll-count / lifecycle assertions that a browser smoke (which confirms 'page loads with no console errors') cannot discriminate; they are pinned deterministically by the 9 fake-timer vitest tests in useTaskTranscript.test.ts (AC2 RED-first on pre-fix main: the done-task stop test fetched 6x instead of 1x; green after) and the render path is covered by the real TaskDetailHeader + TaskDetailPage RTL tests (48 passed). No Vite-config/proxy/WS-origin/CORS/route change. F0.5 surface=none - no fabricated browser run.",
+      "justification": "Server-only, behavior-preserving fix to ScrollbackStore.sweepExpired (a boot/daily TTL filesystem-cleanup job). detect_frontend_changes.py reports has_frontend_changes=false (no client/** touched) -> F2 browser-verify honestly skipped. There is no browser-observable behavior: no route, no UI, no Vite-config/proxy/WS-origin/CORS/WS surface changed. The fix is an order-independent per-task grouping invariant pinned deterministically by 4 vitest unit tests (AC2 RED-first proven twice against the restored single-pass logic: fresh-first deletes the archive, deleted=1) plus a throwaway real-fs probe through the production fs.readdir path. F0.5 surface=none - no fabricated browser run.",
       "runtime_gate": "n/a"
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - the transcript poller stops on a terminal state (done / launch_failed) and each open task page runs exactly ONE poller: useTaskTranscript tracks the freshest server-reported state in a ref (reset per taskId) so the terminal-state stop fires; TaskDetailHeader's own useTaskTranscript is removed and the model label flows from TaskDetailPage's single poller as a prop. The F21/F22 scenarios no longer reproduce.",
+          "behavior": "AC1 - sweepExpired groups a task's .log + .log.1 BEFORE deleting and skips the whole task if any file is fresh, independent of readdir order: the sweep is now two-pass (bucket every file by taskId + OR-accumulate hasFresh, then unlink only all-expired groups). The F25 fresh-first scenario no longer reproduces.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "useTaskTranscript.test.ts asserts a done (and a launch_failed) task fetches exactly once then freezes across a 5 s fake-timer advance, while an active task keeps polling (>=4 fetches), and that a done->running taskId switch keeps polling even when the new task's first tick rejects. modelName is exposed by the single poller (last `\"model\":\"...\"` wins; null when absent). TaskDetailHeader.test.tsx + .phone.test.tsx + TaskDetailPage.test.tsx stay green with the prop wiring."
+          "evidence": "scrollback-store-sweep-grouping.test.ts asserts: fresh .log + expired .log.1 in alphabetical (fresh-first) order deletes nothing (both files survive, deleted=0); the same holds with expired-.log.1-first order (order-independence); a fully-expired task deletes as ONE unit (deleted=1, both gone); a fresh file vetoes its task even when 2 expired peer tasks fill maxFilesPerPass=1 with the fresh .log dead-last in readdir order. Real-fs probe confirms the production fs.readdir path on Windows/NTFS (fresh-first native order) preserves the fresh task."
         },
         {
           "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "NEW client/src/hooks/useTaskTranscript.test.ts. RED captured on pre-fix code: the F21 done-stop test asserted 1 fetch but the stale-closure poller fired 6 (across the 5 s advance) -> 'expected 1, got 6'; the F22 modelName tests + extractModelName unit tests failed with 'extractModelName is not a function' / undefined modelName. GREEN after the fix: 9/9 passed. The external-review cross-taskId-switch test is RED without the per-effect ref reset (only 1 fetch after the switch) and GREEN with it."
+          "evidence": "NEW server/src/terminal/scrollback-store-sweep-grouping.test.ts. RED captured on the restored pre-fix single-pass logic (run twice - initial + final committed test code): the fresh-first test failed 'expected 1 to be +0' (r.deleted=1; the expired .log.1 was wrongly unlinked), other 3 green. GREEN after the two-pass fix: 4/4 passed."
         },
         {
-          "behavior": "AC3 - full client (1980) + server (1924/+1 skipped) suites + both builds stay green; no invariant/ADR regressed.",
+          "behavior": "AC3 - full server suite (1928/+1 skipped) + build stay green; no invariant/ADR regressed.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Client vitest 204 files / 1980 passed + npm run build green; server vitest 166 files / 1924 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; tsc --noEmit clean. Read-only-observer rules 1/12 intact - useTaskTranscript still only GETs /transcript and writes nothing into ~/.claude/projects/** or shipwright_run_config.json."
+          "evidence": "Server vitest 167 files / 1928 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + npm run build green; tsc --noEmit + oxlint clean on the touched files. Read-only-observer rules 1/12 intact - sweepExpired only readdir/stat/unlinks the webui-owned scrollback dir; writes nothing into ~/.claude/projects/** or shipwright_run_config.json. Client not re-run (has_frontend_changes=false)."
         },
         {
           "behavior": "AC4 - files stay within the expected footprint; bloat baseline not ratcheted.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Footprint: client/src/hooks/useTaskTranscript.ts (126 -> 162), client/src/hooks/useTaskTranscript.test.ts (new, 191), client/src/components/external/TaskDetailHeader.tsx (230 -> 220, shrank), client/src/pages/TaskDetailPage.tsx (676 -> 676, net-zero: one JSX prop added). TaskDetailPage.tsx stays exactly at its baseline current=676 (not ratcheted); TaskDetailHeader.tsx + useTaskTranscript.ts are not baselined and are < 300. TaskDetailPage.test.tsx (baseline current=362) was NOT modified - all new tests live in the un-baselined useTaskTranscript.test.ts. Serial #15, deps/blocks none, D01-D14 merged -> no live parallel collision."
+          "evidence": "Footprint: server/src/terminal/scrollback-store.ts (688 -> 687, held UNDER its grandfathered baseline current=688 - the +4-line readdirFn test hook is funded by removing the dead oldestMtime field + tightening the sweep comments); server/src/terminal/scrollback-store-sweep-grouping.test.ts (NEW, 145 < 300, not baselined). The existing scrollback-store.test.ts is at its 636 bloat baseline; appending there would ratchet the grandfathered entry (a HARD anti-ratchet gate), so the new cohesive test file is the sanctioned at-baseline exception. Serial #16, deps/blocks none, D01-D15 merged -> no live parallel collision."
         }
       ],
       "counts": {
