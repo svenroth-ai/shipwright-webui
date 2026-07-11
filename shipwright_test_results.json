@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-07-11T14:20:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-dev-restart-kill-scope",
-    "date": "2026-07-11T14:20:00.000Z",
+    "run_id": "iterate-2026-07-10-spawn-env-port-strip",
+    "date": "2026-07-11T14:56:29.000Z",
     "unit": {
       "status": "passed",
-      "passed": 3890,
-      "total": 3891,
-      "note": "F0 gate green both workspaces. Server vitest 165 files / 1918 passed + 1 skipped (1919) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + build green. Client vitest 203 files / 1972 passed. New F16 coverage lives in the scripts node:test suite (node --test scripts/kill-targets.test.js): 22 passed (9 pre-existing computeKillTargets + 13 new) - parseWindowsListenerPids returns ONLY exact-match LISTENING PIDs from a realistic netstat -ano dump; ignores ESTABLISHED browser sockets (9100); ignores :51730/:38470 prefix collisions (7777/8888); catches IPv6 TCP + TCPv6 listeners; ignores a UDP listener on the port (6000); empty/malformed tolerance; buildLsofCommand EXACT-string ordering (lsof -ti tcp:5173,3847 -sTCP:LISTEN - address bound to -i, state filter appended) + single-port + injection-proof coercion + empty-ports returns '' (kill nothing); dev-restart.js wiring guard (imports+invokes the fixed helpers, empty-cmd guard, no findstr / -p TCP / un-filtered lsof). Code-review round 2 fixed a HIGH lsof arg-ordering bug (the old order left -i addressless -> killed every macOS/Linux listener) - the exact-string test was proven RED against the broken order, green after. The scripts suite is separate from the vitest workspaces (root scripts/, run via node --test), so its 22 are reported here in the note rather than folded into the 3890 vitest count."
+      "passed": 1924,
+      "total": 1925,
+      "note": "F0 fresh gate green. Server vitest 166 files / 1924 passed + 1 skipped (1925) (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc --noEmit clean + npm run build green. New F17 coverage in server/src/terminal/spawn-env.test.ts (6 tests): PORT strip, VITE_PORT+HONO_HOST strip, caller-cannot-re-leak (strip runs AFTER the merge), unrelated-vars-survive incl. the SUPPORT_EMAIL substring-of-PORT guard + SHIPWRIGHT_MONOREPO_PATH, full parent-session-strip contract intact under the port-strip (CHILD_SESSION/SESSION_ID/ENTRYPOINT/CLAUDECODE), and a non-network SHIPWRIGHT_* knob (MAX_CONCURRENT) still inheritable. AC2 proven RED-first on pre-fix main (5/5 failed: PORT/VITE_PORT/HONO_HOST spread through the pty env -> PORT-in-env true), green after. The existing pty-env-flicker.test.ts (22) stays green -> no flicker/color/marker regression. Client workspace NOT re-run: no client/** file changed (detect_frontend_changes.py has_frontend_changes=false); the change is confined to server/src/terminal/spawn-env.ts + its co-located test, outside the client workspace."
     },
     "integration": {
       "status": "passed",
       "passed": 3,
       "total": 3,
-      "note": "Confidence-calibration probes of the touches_io_boundary port-table surface (producer = OS netstat/lsof output -> file/pipe -> consumer parseWindowsListenerPids -> kill-target PID list). (1) Fixture round-trip unit probes (committed): a realistic netstat -ano dump with IPv4+IPv6 (TCP+TCPv6) real listeners, an ESTABLISHED browser socket, :51730/:38470 prefix collisions, and a UDP decoy -> parser returns EXACTLY {4200,4300}; 9100/7777/8888/6000 excluded. (2) LIVE Windows netstat -ano probe (throwaway): confirmed the real proto column is TCP for IPv6 [::] rows, `-p TCP` returns ZERO [::] rows (the IPv6 gap), and UDP rows are 4-token *:* (excluded by the <5 guard). This probe FOUND the IPv6 defect -> fixed (dropped -p TCP, startsWith('TCP')). (3) Re-run after the fix: fixture + wiring probes green, no further findings. Two consecutive clean rounds => asymptote reached, boundary calibrated."
+      "note": "Confidence-calibration probes of the touches_io_boundary env boundary (producer = webui production launchers stamping PORT + the process.env spread -> consumer = the spawned pty child shell / a nested dev server). (1) Windows round-trip probe (real, on this Win11 box): PORT=3847 VITE_PORT=5173 HONO_HOST=true node -e spread-then-exact-delete -> the three keys spread as canonical UPPERCASE and exact-delete removes ALL three -> the launcher-stamped casing is handled; no finding. (2) RED-first regression probe: the new suite is 5/5 RED on pre-fix main (leak reproduced), GREEN after. (3) Call-site probe: the SOLE runtime caller pty-manager.spawn() calls spawnFn(shell,[],{cwd,cols,rows}) with NO env field -> opts.env is always undefined -> strip-after-merge breaks no real caller (callerEnv is a test-only escape hatch); no finding. Two consecutive clean rounds (probe 1 + probe 3) => asymptote reached, boundary calibrated. Edge not probed: case-variant injection (Port) - accepted, no launcher emits it (probe 1 covers the canonical case)."
     },
     "pgtap": {
       "status": "skipped",
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No Playwright run. This iterate touches ONLY dev-tooling scripts at the repo root (scripts/dev-restart.js, scripts/kill-targets.js, scripts/kill-targets.test.js) - no client/src or server/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke exercises nothing this change affects."
+      "note": "No Playwright run. This iterate touches ONLY server/src/terminal/spawn-env.ts (a pure env-map factory) + its co-located unit test - no client/src file, no DOM/route/component, no Vite-config/proxy/WS-origin/CORS surface. detect_frontend_changes.py reports has_frontend_changes=false (nothing under client/**). F0.5 surface=none (see surface_verification); a browser smoke would exercise nothing this env-strip affects - env-var stripping is only observable by spawning a real pty and inspecting its child env, which the unit test does directly against buildSpawnEnv."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -40,36 +40,36 @@
       "exit_code": 0,
       "tests_run": 0,
       "evidence_path": "",
-      "timestamp": "2026-07-11T14:19:00.000Z",
+      "timestamp": "2026-07-11T14:56:29.000Z",
       "attempts": 0,
-      "justification": "This iterate changes only developer-tooling scripts at the repo root (scripts/dev-restart.js + scripts/kill-targets.js + scripts/kill-targets.test.js), which drive `npm run dev:fresh`. No file under client/src or server/src is touched - detect_frontend_changes.py classifies frontend by path (client/**) and reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. Correctness is covered by the scripts node:test suite (21 passed, AC2 proven RED-first on pre-fix main: parseWindowsListenerPids/buildLsofCommand absent -> 7 TypeError failures, then green after) plus the empirical live-netstat calibration probe. F0.5 surface=none - no fabricated browser run."
+      "justification": "This iterate changes only server/src/terminal/spawn-env.ts (the pure buildSpawnEnv env-map factory for the embedded-terminal pty) + its co-located unit test. No file under client/src is touched - detect_frontend_changes.py reports has_frontend_changes=false, so there is genuinely no browser/DOM/route/Vite-config/proxy/WS/CORS surface to verify. The behavior (the pty env must NOT inherit the webui's PORT/VITE_PORT/HONO_HOST) is only observable by inspecting a spawned child's env, which the Vitest suite does directly against buildSpawnEnv (6 tests, AC2 RED-first on pre-fix main: PORT/VITE_PORT/HONO_HOST leaked -> 5/5 failed, green after) plus the empirical Windows process.env round-trip calibration probe. F0.5 surface=none - no fabricated browser run."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 - dev-restart kills ONLY the real listener PID: findPidsOnPorts now parses netstat structurally (proto startsWith TCP + state LISTENING + EXACT local-address port match) on Windows and runs `lsof -ti -sTCP:LISTEN tcp:<ports>` on POSIX; the over-matching scenarios (ESTABLISHED browser socket on :5173, :51730/:38470 prefix collisions) no longer reproduce, and IPv6 [::] listeners (missed by the old -p TCP) are now found.",
+          "behavior": "AC1 - buildSpawnEnv strips the webui's own PORT/VITE_PORT/HONO_HOST so a PORT-honouring dev server started in the embedded terminal no longer collides with the webui (production launchers stamp PORT=3847).",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "scripts/kill-targets.test.js: parseWindowsListenerPids over a realistic netstat -ano fixture returns EXACTLY {4200,4300} - browser ESTABLISHED (9100), :51730 (7777), :38470 (8888) and UDP-on-5173 (6000) all excluded; IPv6 TCP + TCPv6 rows resolve to the real PIDs; buildLsofCommand emits the EXACT canonical string `lsof -ti tcp:5173,3847 -sTCP:LISTEN` (address bound to -i, state filter appended - the round-2 HIGH fix) and returns '' for no valid ports. Live-netstat probe confirmed -p TCP drops all [::] rows (the IPv6 gap fixed by dropping it)."
+          "evidence": "spawn-env.test.ts: with base env PORT=3847/VITE_PORT=5173/HONO_HOST=true, the returned env lacks all three; a WEBUI_OPERATIONAL_ENV_KEYS strip loop deletes them AFTER the base+caller merge (mirroring PARENT_SESSION_ENV_KEYS)."
         },
         {
-          "behavior": "AC2 - a NEW regression proof is RED on pre-fix main and GREEN after",
+          "behavior": "AC2 - a NEW regression test is RED on pre-fix main and GREEN after.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "RED captured on pre-fix main (kill-targets.js had no parser/builder): 7 new tests failed with `TypeError: parseWindowsListenerPids is not a function` / `buildLsofCommand is not a function`. GREEN after the fix. Round 2: the buildLsofCommand EXACT-string ordering + empty-ports tests were proven RED against the broken `lsof -ti -sTCP:LISTEN tcp:...` order (4 failed - the prior substring assert.match passed for it, hiding the bug), green after the reorder. Final: node --test scripts/kill-targets.test.js -> 22 passed / 0 failed (13 new)."
+          "evidence": "RED captured on pre-fix main (no strip loop): 5/5 new tests failed - PORT-in-env expected false, received true (PORT/VITE_PORT/HONO_HOST spread through). GREEN after the fix: vitest spawn-env.test.ts + pty-env-flicker.test.ts -> 28 passed."
         },
         {
-          "behavior": "AC3 - full server + client suites + builds stay green (no invariant/ADR regressed)",
+          "behavior": "AC3 - full server suite + build stay green; no invariant/ADR regressed (ADR-067 shell-only whitelist, SHIPWRIGHT_WEBUI marker, CLAUDE_CODE_NO_FLICKER default-ON, parent-session strip all intact).",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Server vitest 165 files / 1918 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local) + tsc + build green; client vitest 203 files / 1972 passed. The change is confined to root scripts/ (outside both workspaces), so neither suite is affected; oxlint clean; node --check clean on all three scripts. Read-only-observer rules 1/12 intact (script writes into no ~/.claude/projects/** or shipwright_run_config.json)."
+          "evidence": "Server vitest 166 files / 1924 passed + 1 skipped + tsc + build green; the 22 pty-env-flicker.test.ts contracts stay green. Client not re-run (no client/** change). Read-only-observer rules 1/12 intact."
         },
         {
-          "behavior": "AC4 - files stay within the expected 3-file footprint; bloat baseline not ratcheted",
+          "behavior": "AC4 - files stay within the 2-file footprint; bloat baseline not ratcheted.",
           "disposition": "tested",
           "category": "unit",
-          "evidence": "Exact footprint: scripts/dev-restart.js (165 -> 179), scripts/kill-targets.js (43 -> 140), scripts/kill-targets.test.js (103 -> 292) - all < 300, no new bloat crossing, shipwright_bloat_baseline.json unchanged (no scripts/ entry). Serial #11, deps/blocks none, D01-D10 merged -> no live parallel collision."
+          "evidence": "Exact footprint: server/src/terminal/spawn-env.ts (201 -> 234) + new server/src/terminal/spawn-env.test.ts (136) - both < 300, spawn-env.ts is NOT in shipwright_bloat_baseline.json (no new crossing, baseline unchanged). Serial #12, deps/blocks none, D01-D11 merged -> no live parallel collision."
         }
       ],
       "counts": {

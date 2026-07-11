@@ -188,6 +188,32 @@ export function buildSpawnEnv(
   // pass through; the embedded claude sets its own on boot. Stripped AFTER
   // the callerEnv merge so neither base nor caller can leak them back.
   for (const k of PARENT_SESSION_ENV_KEYS) delete env[k];
+  // Strip the webui's OWN operational network vars so a PORT-honouring dev
+  // server started INSIDE the embedded terminal doesn't collide with the
+  // webui itself (F17, deep-audit 2026-07-10). The production launchers
+  // stamp PORT explicitly — start-server-production.sh runs
+  // `PORT="$PORT" nohup node ...` (default 3847), install-windows.ps1's
+  // autostart runs `cmd /c set PORT=3847 && node ...` — so process.env.PORT
+  // is 3847 on a deployed server and the `{ ...baseProcessEnv }` spread
+  // forwarded it into every pty. A nested `npm run dev` (another webui, a
+  // Vite app, any PORT-honouring server) then bound 3847 and clashed.
+  // VITE_PORT + HONO_HOST are the sibling network vars with the same leak.
+  // Deleted AFTER the callerEnv merge (mirroring the parent-session strip
+  // above) so neither the server's own env NOR a caller can leak them; the
+  // child shell gets a clean network slate and the user's dev server picks
+  // its own default port. Deliberately NARROW: only the three network-bind
+  // vars. Audit of config.ts's SHIPWRIGHT_* consumers (the spec's "audit
+  // config.ts consumers" instruction): NO_FLICKER / _LEGACY_BRAND_COLORS are
+  // consumed by THIS helper; SHIPWRIGHT_WEBUI is set on purpose above; the
+  // rest (MAX_CONCURRENT / STATIC_DIR / CLAUDE_PASTES_KEEP_LAST / TERMINAL_WS_
+  // BUFFER_BYTES / _IDLE_TIMEOUT_MS / PTY_SHELL_OVERRIDE / _SCROLLBACK_* /
+  // _SWEEP_* / _HEADLESS_MIRROR) are internal knobs that bind NO port/host, so
+  // none causes the F17 collision and none is stripped. A blanket SHIPWRIGHT_*
+  // sweep would be scope creep that breaks those contracts (Chesterton's
+  // Fence). HOST is intentionally NOT stripped: no webui launcher stamps it
+  // (start-server-production.sh / install-windows.ps1 / dev-restart.js stamp
+  // PORT/VITE_PORT only) and it sits outside the finding's footprint.
+  for (const k of WEBUI_OPERATIONAL_ENV_KEYS) delete env[k];
   return env;
 }
 
@@ -198,3 +224,11 @@ const PARENT_SESSION_ENV_KEYS = [
   "CLAUDE_CODE_ENTRYPOINT",
   "CLAUDECODE",
 ] as const;
+
+/**
+ * The webui's own operational network vars, stripped by {@link buildSpawnEnv}
+ * so a PORT-honouring dev server started in the embedded terminal cannot
+ * inherit the webui's PORT (3847 on a deployed server) and collide with it
+ * (F17). Narrow by design — see the strip-site comment above.
+ */
+const WEBUI_OPERATIONAL_ENV_KEYS = ["PORT", "VITE_PORT", "HONO_HOST"] as const;
