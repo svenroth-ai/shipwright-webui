@@ -21,7 +21,7 @@
  * (mirrors pty-manager-live-snapshot.test.ts).
  */
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as fs from "node:fs/promises";
 import * as fsSync from "node:fs";
 import * as os from "node:os";
@@ -217,5 +217,63 @@ describe("flushMirrorSnapshot — ADR-096 preservation gate (regression guard)",
     const onDiskAfter = await snapshot.read(TASK);
     expect(onDiskAfter).not.toBeNull();
     expect(onDiskAfter!.data).toBe(largePayload);
+  });
+
+  // RED-first (doubt-review HIGH): the extraction introduced an unqueued
+  // `await store.read` inside the flush write path. That read YIELDS the event
+  // loop AFTER the flush's `if (entry.tornDown) return` guard, reopening a
+  // window where a delete cascade (kill flips tornDown + clear() unlinks the
+  // snapshot) can land — and the post-read write would RESURRECT the just-wiped
+  // secret-bearing snapshot. The shouldProceed re-check (() => !entry.tornDown)
+  // must abort the write. Gating the helper's read (NOT serializeStable, which
+  // the existing F01 guard covers) is what makes this bug observable.
+  it("does NOT resurrect a wiped snapshot when a delete cascade lands during the flush read-park", async () => {
+    const mgr = makeMgr();
+    mgr.spawn(TASK, { cwd: process.cwd(), shell: "bash" });
+    spawn.lastPty().__emit("secret-bearing content\r\n");
+    await settle(50);
+
+    // A real secret-bearing snapshot exists on disk (a prior detach flush).
+    await snapshot.write(TASK, { cols: 120, rows: 30, data: "S".repeat(40) });
+    expect(await snapshot.has(TASK)).toBe(true);
+
+    // Gate the flush's helper read on a controllable deferred + signal on entry.
+    let releaseRead!: () => void;
+    const readGate = new Promise<void>((r) => { releaseRead = r; });
+    let signalReadEntered!: () => void;
+    const readEntered = new Promise<void>((r) => { signalReadEntered = r; });
+    const origRead = snapshot.read.bind(snapshot);
+    snapshot.read = async (id: string) => {
+      signalReadEntered();
+      await readGate;
+      return origRead(id);
+    };
+    const writeSpy = vi.spyOn(snapshot, "write");
+
+    // Fire-and-forget flush: serializes (tornDown false → guard passes) then
+    // parks at store.read.
+    const flushP = mgr.flushMirrorSnapshot(TASK);
+    await readEntered;
+
+    // Delete cascade lands while parked: tornDown flips + on-disk snapshot wiped.
+    const entry = (mgr as unknown as {
+      entries: Map<string, { tornDown?: boolean }>;
+    }).entries.get(TASK)!;
+    entry.tornDown = true;
+    await snapshot.clearBestEffort(TASK);
+    expect(await snapshot.has(TASK)).toBe(false); // wipe done
+
+    // Release the read; the flush proceeds past the park.
+    releaseRead();
+    await flushP;
+
+    // No resurrection: the write was aborted, the snapshot stays wiped.
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(await snapshot.has(TASK)).toBe(false);
+
+    writeSpy.mockRestore();
+    snapshot.read = origRead;
+    mgr.kill(TASK);
+    await settle(200);
   });
 });

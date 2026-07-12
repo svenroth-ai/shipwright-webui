@@ -871,11 +871,19 @@ export class PtyManager {
       // ADR-096 shared preservation gate — do NOT clobber a richer on-disk
       // snapshot with a thinner mirror (see snapshot-preserve.ts). Same gate
       // as finalizeMirrorSnapshot. Mirror is NOT disposed here (rule 21).
+      //
+      // shouldProceed re-checks entry.tornDown SYNCHRONOUSLY immediately
+      // before the write enqueue — the helper's unqueued `await store.read`
+      // yields the loop after the guard above, so a delete cascade that lands
+      // in that gap (kill sets tornDown + clear() unlinks the snapshot) MUST
+      // abort this write, or it would resurrect the just-wiped secret-bearing
+      // snapshot (doubt-review HIGH, iterate-2026-07-12). finalize OMITS this
+      // predicate — its kill-path write is authoritative and must land.
       await writeSnapshotPreservingLarger(
         this.snapshotStore,
         taskId,
         { cols, rows, data: stable },
-        { caller: "flushMirrorSnapshot" },
+        { caller: "flushMirrorSnapshot", shouldProceed: () => !entry.tornDown },
       );
     } catch (err) {
       // eslint-disable-next-line no-console

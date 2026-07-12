@@ -1,13 +1,13 @@
 {
-  "last_updated": "2026-07-12T05:41:19Z",
+  "last_updated": "2026-07-12T06:11:23Z",
   "iterate_latest": {
     "run_id": "iterate-2026-07-12-mirror-flush-preserve-gate",
     "date": "2026-07-12",
     "unit": {
       "status": "passed",
-      "passed": 2041,
-      "total": 2042,
-      "note": "server vitest 176 files / 2041 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). Adds snapshot-preserve.test.ts (8 helper unit tests) + pty-manager-flush-preserve.test.ts (4 integration tests). Production: new snapshot-preserve.ts (126 LOC) holds the shared ADR-096 gate; pty-manager.ts 1214->1186 (SHRANK 28, no baseline ratchet) as finalizeMirrorSnapshot + flushMirrorSnapshot both delegate to writeSnapshotPreservingLarger. snapshot-store.ts untouched. No client/** change. tsc + oxlint clean; npm run build green."
+      "passed": 2046,
+      "total": 2047,
+      "note": "server vitest 176 files / 2041 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). Adds snapshot-preserve.test.ts (8 helper unit tests) + pty-manager-flush-preserve.test.ts (4 integration tests). Production: new snapshot-preserve.ts (126 LOC) holds the shared ADR-096 gate; pty-manager.ts 1214->1186 (SHRANK 28, no baseline ratchet) as finalizeMirrorSnapshot + flushMirrorSnapshot both delegate to writeSnapshotPreservingLarger. snapshot-store.ts untouched. No client/** change. tsc + oxlint clean; npm run build green. REMEDIATION (doubt-review HIGH): added shouldProceed liveness re-check to the shared gate + 5 new tests (4 helper abort-branch unit + 1 pty-manager resurrection-race integration); full suite 176 files / 2046 passed + 1 skipped."
     },
     "integration": {
       "status": "skipped",
@@ -93,19 +93,31 @@
           "category": "integration",
           "disposition": "tested",
           "evidence": "Throwaway probe against built dist/ SnapshotStore, 4/4 PASS: seed-rich->flush-thin->read PRESERVED; seed-thin->flush-rich->read OVERWRITTEN; corrupt envelope->read throws->best-effort WRITE; exact-60% boundary->WRITE. warn skip/read-fail lines fired with correct byte counts. Probe set 1 (RED-first) found the bug; sets 2-3 clean -> asymptote reached."
+        },
+        {
+          "behavior": "AC6 (doubt-review HIGH, RED-first) - the extraction MUST NOT resurrect a snapshot deleted during the flush read-park; shouldProceed(() => !entry.tornDown) aborts the post-read write synchronously before the enqueue; finalize omits it",
+          "category": "integration",
+          "disposition": "tested",
+          "evidence": "pty-manager-flush-preserve.test.ts 'does NOT resurrect a wiped snapshot when a delete cascade lands during the flush read-park'. RED on pre-fix flush call site (no shouldProceed): expect(writeSpy).not.toHaveBeenCalled() failed - 'write ... been called 1 times' (late write recreated the wiped .snapshot). GREEN after restoring shouldProceed: write not called + has(TASK)===false."
+        },
+        {
+          "behavior": "shouldProceed abort branch fully covered (sync false-abort, sync true-write, async post-read-park abort, preserve-branch unaffected, finalize omits predicate)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "snapshot-preserve.test.ts 4 new tests. snapshot-preserve.ts 100% (19/19 stmts, 15/15 branches, 2/2 funcs). pty-manager.ts flush call site L882 15 hits, L886 (options+shouldProceed arrow) 13 hits incl. the () => !entry.tornDown arrow invoked; finalize L1032 28 hits (no shouldProceed)."
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 10,
+        "tested": 10,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
+        "acs": 6,
+        "covered_acs": 6
       },
-      "note": "5 ACs (AC1-AC5) from the iterate spec: AC1 shared-helper + no-ratchet, AC2 RED-first preserve, AC3 overwrite, AC4 no-dispose (rule 21), AC5 finalize symmetry; plus the full-suite/build gate, the hard diff-coverage gate, and the medium/replay-boundary calibration probe. Each AC maps to >=1 committed Vitest behavior; AC2 is RED-first proven."
+      "note": "5 ACs (AC1-AC5) from the iterate spec: AC1 shared-helper + no-ratchet, AC2 RED-first preserve, AC3 overwrite, AC4 no-dispose (rule 21), AC5 finalize symmetry; plus the full-suite/build gate, the hard diff-coverage gate, and the medium/replay-boundary calibration probe. Each AC maps to >=1 committed Vitest behavior; AC2 is RED-first proven. AC6 added post-push from the doubt-review HIGH (resurrection guard): the unqueued helper read reopened a delete-cascade window; shouldProceed restores the pre-extraction synchronous-liveness-before-write guarantee (flush only)."
     },
     "degraded": []
   }

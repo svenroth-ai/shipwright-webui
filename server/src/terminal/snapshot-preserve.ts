@@ -43,6 +43,24 @@
  * inline finalize gate already had; per-task write serialisation lives one
  * layer down in SnapshotStore's PQueue. Adding cross-read+write locking is
  * explicitly OUT of scope for the extraction (see ADR).
+ *
+ * RESURRECTION GUARD (iterate-2026-07-12, doubt-review HIGH): the
+ * `await store.read` below YIELDS the event loop. SnapshotStore.write()
+ * enqueues SYNCHRONOUSLY (validateTaskId -> getOrCreateWriteQueue ->
+ * queue.add all run before its first await), so pre-extraction the caller's
+ * `if (entry.tornDown) return;` guard sat DIRECTLY before the synchronous
+ * write with no yield between them — a concurrent delete cascade's clear()
+ * fence always serialised AFTER the write. Introducing the unqueued
+ * `store.read` reopened that gap: a delete (kill sets tornDown + releaseQueue,
+ * then clear() unlinks the `.snapshot`) can land while we park at read, and
+ * the post-read write would RE-CREATE the just-wiped, secret-bearing file
+ * (privacy resurrection). The optional `shouldProceed` predicate restores the
+ * pre-extraction guarantee: it is re-checked SYNCHRONOUSLY immediately before
+ * the write enqueue (no await between), so a caller passing
+ * `() => !entry.tornDown` aborts the write exactly when the old guard would
+ * have. The kill/finalize path OMITS the predicate (its write MUST land — it
+ * is the authoritative exit snapshot, fenced by kill-awaits-finalize-before-
+ * clear).
  */
 
 /** ADR-096 threshold. A new payload below this fraction of an existing
@@ -69,11 +87,27 @@ export interface WriteSnapshotPreservingLargerOpts {
   /** Caller label embedded in the warn lines (e.g. "finalizeMirrorSnapshot"
    *  / "flushMirrorSnapshot") so a skip is attributable in the logs. */
   caller?: string;
+  /** SYNCHRONOUS liveness predicate re-checked immediately before the write
+   *  enqueue (no await between the check and store.write). Returns false to
+   *  ABORT the write — closes the resurrection race where the unqueued
+   *  `await store.read` yields the loop and a concurrent delete cascade
+   *  (kill sets tornDown + clear() unlinks the snapshot) lands in the gap;
+   *  without this, the post-read write would re-create the just-wiped file.
+   *  The flush path passes `() => !entry.tornDown`; the kill/finalize path
+   *  OMITS it (its write must land). See the RESURRECTION GUARD note above. */
+  shouldProceed?: () => boolean;
 }
 
 export interface WriteSnapshotResult {
-  /** True when the write was skipped to preserve a larger existing snapshot. */
+  /** True when the write did NOT happen — either a preserve-skip (richer
+   *  existing snapshot) or a liveness abort (see `aborted`). */
   skipped: boolean;
+  /** True when the write was ABORTED by `shouldProceed()` returning false
+   *  (liveness lost between read and write — a concurrent delete/teardown).
+   *  Distinct from a preserve-skip: `aborted` means "do NOT resurrect", not
+   *  "keep the richer existing one". Absent/false on the preserve-skip and
+   *  write branches. */
+  aborted?: boolean;
 }
 
 /**
@@ -119,6 +153,18 @@ export async function writeSnapshotPreservingLarger(
       `[snapshot-preserve] ${caller}: preserving richer on-disk snapshot for ${taskId} (new=${newDataLen}B, existing=${existingDataLen}B — likely Claude TUI exit clear, ADR-096)`,
     );
     return { skipped: true };
+  }
+
+  // Resurrection guard — re-check liveness SYNCHRONOUSLY here, immediately
+  // before the write enqueue. `store.write` enqueues synchronously, so there
+  // is NO await between this check and the enqueue: a delete cascade that
+  // completed while we parked at `store.read` above cannot be re-raced by
+  // this write. Abort rather than re-create a just-wiped snapshot.
+  if (opts.shouldProceed && !opts.shouldProceed()) {
+    warn(
+      `[snapshot-preserve] ${caller}: aborting write for ${taskId} — liveness lost after read (concurrent delete/teardown); not resurrecting the snapshot`,
+    );
+    return { skipped: true, aborted: true };
   }
 
   await store.write(taskId, payload);
