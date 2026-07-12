@@ -1,1 +1,0 @@
-Embedded terminal: preserve terminal scrollback across repeated detach/reopen cycles - the last-detach snapshot flush no longer overwrites a richer saved snapshot with a thinner one (e.g. after a Claude TUI screen clear)

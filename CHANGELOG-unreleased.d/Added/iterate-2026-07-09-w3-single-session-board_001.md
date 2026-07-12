@@ -1,1 +1,0 @@
-Single-session pipeline runs now appear on the Task Board as a campaign-like card — a progress bar, a phase checklist, and one Launch/Resume button that starts the /shipwright-run master — instead of the per-phase Continue card. Multi-session runs are unchanged.

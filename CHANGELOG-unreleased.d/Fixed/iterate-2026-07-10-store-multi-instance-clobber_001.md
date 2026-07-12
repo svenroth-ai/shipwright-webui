@@ -1,1 +1,0 @@
-sdk-sessions.json persist() now re-reads and 3-way merges under the proper-lockfile critical section and writes atomically (tmp+rename), so two concurrent webui instances sharing ~/.shipwright-webui no longer erase each other's task rows or clobber externally-written daemon claim fields (FR-01.08 / FR-01.09).

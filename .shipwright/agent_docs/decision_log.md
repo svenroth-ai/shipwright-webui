@@ -3480,3 +3480,429 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Right-click is browser business; Claude should not also paste on it. Dropping only the right button is the minimal cut that removes the double without touching Claude selection/scroll. SGR-only (Claude uses mode 1006).
 - **Consequences:** Right-click = exactly one paste (the browser menu). Left/middle button + wheel still forwarded, so Claude selection/clicks/scroll are unaffected. Fail-open: an unrecognized report is forwarded (never breaks input).
 - **Rejected:** Suppressing the browser context menu + WebUI-only right-click paste (impossible over http: navigator.clipboard read is absent); filtering by DOM-intercepting mousedown button 2 (more fragile vs. xterm listener placement than filtering the generated report).
+
+---
+
+### ADR-231: Board + List default order = Last Modified (desc)
+- **Date:** 2026-07-08
+- **Section:** FR-01.01
+- **Run-ID:** iterate-2026-07-08-board-sort-last-modified
+- **Context:** Board columns had no within-column sort — cards rendered in server-return order (looked arbitrary, reshuffled on the 2s poll). The List already defaulted to Updated-desc but owned a private 'last modified' definition, drifting from TaskCard's own near-duplicate copy.
+- **Decision:** Extract one shared helper (client/src/lib/taskSort.ts): taskLastModifiedMs (mtime -> launchedAt -> createdAt -> 0, NaN/unparseable-guarded) + compareTasksByLastModifiedDesc with a deterministic taskId tiebreak. Board columns (memoized sort-then-bucket) and the List default both use it; TaskCard/TaskList 'Updated' display dedupe onto the same function.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A client-side shared helper keeps one testable definition with zero backend risk; the board has no manual within-column reorder (DnD moves cards only between columns), so a strict time-sort clobbers no user layout.
+- **Consequences:** Board + List order identically, newest-first, deterministically, on Desktop/Tablet/Phone (sort is data-layer, layout-independent). Two private copies removed. No server/schema change. A non-finite mtime now falls through to launchedAt/createdAt for the display text (unreachable via fs.stat; strictly more correct).
+- **Rejected:** Server-side sort in the /tasks GET route: the List still re-sorts client-side for Title/asc, it couples presentation to the stateless read endpoint (rule 4), and within-column order is a pure view concern.
+
+---
+
+### ADR-232: Reconcile detective-audit B7/D3/G2/H1/H2 post-v0.21.0
+- **Date:** 2026-07-08
+- **Section:** compliance
+- **Run-ID:** iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile
+- **Context:** The compliance dashboard flagged 5 detective-audit findings after v0.21.0 (B7, D3, G2, H1, H2). Re-auditing fresh origin/main showed a moving target: B7 grew to 3 commits (#210 joined once origin advanced) and H2 to 3 entries (EmbeddedTerminal.tsx settled at 314, not the dashboard's stale 315).
+- **Decision:** Data-only reconciliation. Backfill 3 work_completed events with the real SHAs (FR-01.30 / FR-01.28 / No-FR infra); amend evt-6482eb15 to add FR-01.44; append projects/conventions/external/launch to g2_stoplist; add TriagePage.tsx+triage-store.ts to the baseline (grandfathered) and tighten 3 current LOC to on-disk. Verified: detective audit B/D/G/H any_fail:False + anti-ratchet exit 0.
+- **Commit:** (assigned post-merge)
+- **Rationale:** B7/G2 are working-as-designed backstops; grandfathering barely-over files is the default (splitting a 302-line file moves complexity outward). Re-triaging fresh origin/main is mandatory — the audit chases its own tail.
+- **Consequences:** All five findings clear; the reconcile commit carries a Run-ID footer + adr_id==run_id so it does not self-flag under B7. Compliance-MD regen reverted per the webui iterate-PR convention.
+- **Rejected:** Splitting TriagePage.tsx/triage-store.ts (barely over 300, cohesive). Reaffirming FR-01.44 via the reconcile's own event (amend the original per D3). Trusting stale dashboard LOC (worktree is authoritative).
+
+---
+
+### ADR-233: Flip webui diff-coverage gate to hard-block + SHA-pin the composite action
+- **Date:** 2026-07-08
+- **Section:** CI / diff-coverage gate
+- **Run-ID:** iterate-2026-07-08-flip-diff-coverage-gate-hard
+- **Context:** diff-coverage landed warn-only (#205) for a warn->prove->hard-flip rollout. Proving window 2026-07-06..08: all source-changing PRs cleared 80% (#207 89%, #206/#211 100%); nothing would have blocked. The action was pinned to @main (mutable) — an accepted-risk Semgrep mutable-action-tag finding.
+- **Decision:** Remove continue-on-error (hard gate: PRs with <80% diff-coverage now fail) and SHA-pin the diff-coverage-gate composite action to f36a656 (clears the mutable-action-tag finding). Blocking additionally requires adding the 'Diff coverage (gate)' check to the main-protection ruleset required_status_checks (admin follow-up, sequenced AFTER this merge).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Threshold 80 matches the monorepo (already hard, #340). Only a full 40-char SHA clears the Semgrep rule.
+- **Consequences:** Under-tested PRs are blocked once the ruleset entry is added. Action updates now need a manual SHA re-pin (or Dependabot). The accepted-risk mutable-tag finding is resolved.
+- **Rejected:** Pin to @v1 (a version tag is still mutable; wouldn't clear the finding); keep warn-only (proving window is complete); broaden owner-tailoring to svenroth-ai (over-broad, reduces security).
+
+---
+
+### ADR-234: Two-tone More-options panel (grey header, lighter body, white fields)
+- **Date:** 2026-07-08
+- **Section:** Iterate — change: create-dialog More-options colors
+- **Run-ID:** iterate-2026-07-08-more-options-colors
+- **Context:** The create-dialog More-options panel rendered header, body and several inputs in one flat beige (#ede8e1); low contrast made fields and the Advanced-parameters header hard to read.
+- **Decision:** Keep the header bar grey (#ede8e1), give the body area a lighter grey (--color-bg #f5f0eb), make every field white (--color-surface), and reframe Advanced parameters as a bordered sub-card with its own grey header strip.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Contrast/hierarchy via existing warm-beige theme tokens (no new tokens); mirrors the outer disclosure pattern for the Advanced sub-section.
+- **Consequences:** Clear visual hierarchy (grey header -> lighter body -> white fields); Advanced parameters is now an obvious, recognizable section. Presentational only; no behavior change.
+- **Rejected:** Introducing a cool-grey (#f3f4f6) body — rejected: clashes with the warm-beige theme.
+
+---
+
+### ADR-235: run_config.mode awareness + SHIPWRIGHT_WEBUI spawn marker
+- **Date:** 2026-07-09
+- **Section:** Iterate — feature: run_config.mode + SHIPWRIGHT_WEBUI marker (W1)
+- **Run-ID:** iterate-2026-07-09-w1-mode-aware-config
+- **Context:** WebUI must distinguish single- vs multi-session pipeline runs (pipeline-as-campaign convergence, campaign W1), and /shipwright-run must know when it launched inside the WebUI to show the board hand-off instead of the paste card.
+- **Decision:** Add optional RunConfigV2.mode (multi_session|single_session), mirrored client+server with resolveRunMode() defaulting absent to multi_session; the reader drops an unrecognised value with a diagnostics warning and never rejects the config. buildSpawnEnv sets SHIPWRIGHT_WEBUI=1 authoritatively after the caller-env merge.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the authoritative run_config.v2.schema.json (default multi_session; an unrecognised value is read as multi_session so a typo cannot select an unbuilt path). The marker is an identity fact about the spawn source, so it is un-overridable by design.
+- **Consequences:** W2/W3 can branch on mode and /shipwright-run on the marker. Foundational only: no UI renders mode and no launcher reads the marker yet. WebUI stays a read-only run-config observer.
+- **Rejected:** Rejecting the whole config on a bad mode (would blank the board); a caller-overridable marker; defaulting mode to single_session (would misread legacy multi-session runs).
+
+---
+
+### ADR-236: Single-session master-launch via masterRun launch branch + pending-auto-launch handoff
+- **Date:** 2026-07-09
+- **Section:** Iterate — feature: W2 single-session master-launch mechanism
+- **Run-ID:** iterate-2026-07-09-w2-master-launch-handoff
+- **Context:** The single-session pipeline master (/shipwright-run) had no WebUI launch path; the pipeline-as-campaign convergence needs it launched ONCE into the embedded terminal (no per-phase Continue). W2 is the mechanism slice — the campaign-like card that surfaces it is W3.
+- **Decision:** Add server launch branch applyMasterRunBranch that builds /shipwright-run server-side, gated on a readable single_session run_config; a client useLaunchMasterRun hook (idempotent master-shadow reuse; an established shadow resumes) + masterRunApi wrapper feeding the webui:pending-auto-launch handoff.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors the proven campaign path (applyCampaignBranch + useLaunchCampaign), one-file-per-branch; server stays the sole command author (guard #19); run_config stays read-only (rule 12); resume reuses the unchanged legacy --resume path.
+- **Consequences:** New /launch intent masterRun (mutually exclusive with actionId/phaseTaskRef/campaignSlug/campaignStep); fail-closed 400 master_launch_no_run_config / master_launch_wrong_mode; no new persisted write surface. W3 wires the CTA and should add a server-side double-master attach guard (deferred).
+- **Rejected:** Folding a runMaster intent into applyCampaignBranch — rejected: that branch is cohesive around campaign-slug/dir validation + the attach guard; a new sibling file keeps single responsibility and the <=300-LOC ceiling.
+
+---
+
+### ADR-237: Single-session pipeline board is a campaign-like card
+- **Date:** 2026-07-09
+- **Section:** Iterate — feature: single-session board card (campaign webui-pipeline-convergence W3)
+- **Run-ID:** iterate-2026-07-09-w3-single-session-board
+- **Context:** W1/W2 added the single_session run mode + the master-launch mechanism, but nothing rendered it; the multi-session MasterTaskCard's per-phase Continue is the wrong model for a master-driven single-session run.
+- **Decision:** A PipelineLaneCard host selects by resolveRunMode: single_session renders a campaign-like SingleSessionRunCard (steady 7-phase frontier bar + phase_tasks checklist + one state-aware Launch/Resume CTA via useLaunchMasterRun); multi/legacy keep the unchanged MasterTaskCard. Server applyMasterRunBranch gains a 409 master_run_already_attached double-master guard.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Mirrors CampaignLaneCard (design of record); a thin mode selector keeps the bloat-baselined MasterTaskCard + TaskBoardPage behavior-unchanged and each path independently testable.
+- **Consequences:** Single-session runs get the campaign look + one-click master launch; the per-phase Continue-Pipeline menu is hidden for them. Multi-session is byte-for-byte unchanged (deprecated; removal is triage trg-0e8e7f90).
+- **Rejected:** Restyling MasterTaskCard in place — forks a grandfathered, load-bearing component and grows it past its bloat ceiling.
+
+---
+
+### ADR-238: Single-session pipeline cross-surface E2E capstone (flow 99)
+- **Date:** 2026-07-09
+- **Section:** Campaign webui-pipeline-convergence · W4 (Playwright cross-surface E2E)
+- **Run-ID:** iterate-2026-07-09-w4-playwright-e2e
+- **Context:** W2 (flow 97) proved the POST /launch {masterRun} endpoint and W3 (flow 98) proved the board card render; BOTH deferred the full board CTA -> pending-auto-launch sessionStorage handoff -> embedded-terminal WS hop to W4, the WebUI half of the SS7 capstone.
+- **Decision:** Added client/e2e/flows/99-single-session-cross-surface-capstone.spec.ts against the REAL isolated built stack: (1) the board single-session Launch CTA -> navigate -> the server-built '/shipwright-run' master reaches the terminal WS as a {type:data} frame (asserts claude --session-id + /shipwright-run, no campaign/resume/phase leak, CR-terminated) = cross-surface parity; (2) the card mirrors an on-disk run advancing 1/7 -> 4/7 -> 7/7, CTA hidden at completion. Reuses ws-capture.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Full cross-surface depth proves the last unproven hop; the ws-capture predicate keys on the stable 'claude --session-id' marker so a dropped-/shipwright-run regression fails fast on a content assertion, not as an ambiguous awaitFrame timeout.
+- **Consequences:** Single-session convergence (W1-W3) is now verified end-to-end across board and terminal. No product code changed (spec_impact none); the capstone asserts the command REACHES the terminal, not that Claude executes it (isolated USERPROFILE has no auth).
+- **Rejected:** WS route-stub (fakes the hop under test); endpoint/handoff-only parity (leaves the terminal hop unproven).
+
+---
+
+### ADR-239: Empty stack.frontend {} is backend-only in the boot preview-coherence check (F32)
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: boot coherence empty frontend is backend-only (D23, campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-boot-coherence-frontend-check
+- **Context:** The boot-time preview-capability coherence check (index.ts § Section 03, inside the isMainModule boot IIFE) used hasFrontend = Boolean(prof.stack?.frontend). Boolean({}) is true, so the bundled python-plugin-monorepo profile — which intentionally ships stack.frontend:{} with dev_server:null (backend-only by design) — was read as 'frontend declared'. With no dev_server.command the hasFrontend && !hasDevServer branch fired, logging a spurious 'preview button will stay hidden' warning on EVERY server boot for backend-only projects (F32, LOW/noise).
+- **Decision:** Extract the predicate + warn matrix into a new pure module core/preview-coherence.ts. profileDeclaresFrontend(frontend) treats an empty object/array as NOT declared (Object.keys length 0), while a non-object value keeps the pre-fix Boolean semantics — so the fix narrows ONLY the empty-object case. evaluatePreviewCoherence(projectId, profile, prof) returns the byte-identical warn envelope or null. index.ts § Section 03 now calls it per resolved profile and owns the console.warn; the two verbose inline warn blocks are deleted (net -20 LOC, 877<=899, not ratcheted).
+- **Commit:** 1446c37b6b269567e1a4f342801cf057457e9345
+- **Rationale:** medium/STANDARD: AC2 RED-first proven (preview-coherence.test.ts against the pre-fix Boolean(...) predicate = 4 fail / 6 pass incl. the F32 matrix pin 'expected {level:warn} to be null'; post-fix 11/11 + full server 2029/1-skip + build green). Diff coverage 83% on changed lines (module 100%; the 2 misses are the boot-IIFE call, un-runnable under Vitest). External openrouter plan + code review. Confidence calibration (io_boundary): real round-trip probe over the actual bundled profiles dir through production loadProfile + evaluatePreviewCoherence — python-plugin-monorepo -> no warn, supabase-nextjs -> no warn, vite-hono -> warn; asymptote reached.
+- **Consequences:** Backend-only profiles boot quietly; a genuinely misconfigured profile (populated frontend, no dev_server.command) STILL warns, and dev_server-without-frontend still warns per ADR-036. The PreviewButton visibility gate (external/actions/get.ts, same Boolean idiom) is left untouched — out of the footprint AND already masked by && dev_server.command (for python-plugin-monorepo the button is hidden regardless), so no user-visible defect there. profile-loader.ts untouched.
+- **Rejected:** Inline predicate in index.ts (spec's 2-file footprint): rejected — grows index.ts past its 899 bloat baseline (HARD anti-ratchet) AND the boot IIFE is guarded by isMainModule so it never runs under Vitest (un-coverable, fails AC2 + the diff-coverage gate). Put helper in profile-loader.ts: rejected — mixes the preview-coherence concern into the loader/cache module. Also fix get.ts: rejected — out of footprint; the bug is already masked there. External 'new files violate AC4' (both rounds): accepted-with-reason — baseline+coverage-forced, brief-sanctioned, and D23 is the last serial unit so parallel-safety is moot (D19 precedent).
+
+---
+
+### ADR-240: CLAUDE.md guards + architecture rules become a one-line index
+- **Date:** 2026-07-10
+- **Section:** Iterate — change: claude-md-guard-index
+- **Run-ID:** iterate-2026-07-10-claude-md-guard-index
+- **Context:** CLAUDE.md had grown to 23.5KB/2831 words (2.4x the monorepo's) with the DO-NOT guard section alone ~46% of the always-loaded context; the prose duplicated rationale already recorded in the cited ADRs.
+- **Decision:** The 23 DO-NOT guards and 10 architecture rules are each one line: imperative + key mechanism + ADR pointer. Rationale stays solely in decision_log.md / .shipwright/planning/adr/. Numbering is frozen and both sections now say so.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Verified before cutting: all 80 file-map tokens covered by architecture.md/component_inventory.md; each dropped mechanic present in its cited ADR entry; the three doc-sync literal assertions (ADR-044, shipwright-run, actions route) retained; source comments cite rule numbers, so numbering must never change.
+- **Consequences:** CLAUDE.md 23.5KB -> 15.4KB (-34%); doc-sync meta-test 82/82 green; every guard imperative retained; agents open the cited ADR for full mechanics.
+- **Rejected:** Deleting guards (loses enforcement); moving guards to a sidecar doc (not always-loaded); renumbering or merging rules (breaks 'CLAUDE.md rule N' source comments).
+
+---
+
+### ADR-241: DELETE kills the live pty before wiping; SnapshotStore.clear fences the write queue
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: delete-cascade pty teardown + snapshot clear fence
+- **Run-ID:** iterate-2026-07-10-delete-cascade-pty-teardown
+- **Context:** DELETE /tasks/:id + the project-delete cascade wiped scrollback/snapshot but never killed the live pty (ptyManager.kill was unreachable from the injected deps), and SnapshotStore.clear() unlinked BEFORE fencing the per-task write queue (early-returned on ENOENT). So a post-delete detach-flush / kill-finalize write deterministically resurrected secret-bearing artifacts, defeating the MEDIUM-B1 privacy cascade (CLAUDE.md rule 20).
+- **Decision:** Widen the DELETE ptyManager dep (index.ts) to include kill; in lifecycle.ts + cascade-delete-project-tasks.ts kill the pty FIRST (bounded, suppressing finalizeMirrorSnapshot) before clearing scrollback+snapshot. In SnapshotStore.clear(): await queue.onIdle() then unlink (no ENOENT early-return before the fence) and tombstone the per-task snapshot writers so a suspended flush cannot land after the wipe.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Privacy boundary + irreversible + kill-the-right-process: a green-but-wrong fix leaves a re-flush window or kills the wrong pty. MAX hardening: independent RED-first guards (author!=fixer, must-not-modify) proven RED on pre-fix main; doubt-reviewer x2 + external_review --mode code; real-ConPTY integration + deferred post-merge smoke.
+- **Consequences:** Delete deterministically leaves no <taskId>.log / .snapshot / .snapshot.tmp-*; the OS child pid is dead (no orphan conhost/shell); a DELETE can no longer hang unboundedly on a slow-dying child; single-finalize (no double cleanup on sync onExit).
+- **Rejected:** Fire-and-forget kill without awaiting finalize (leaves the re-flush window open). Unlink-then-drain in clear() (an in-flight flush still lands after the wipe). change_type=bug on the FR-gate (rejected — used spec_impact=none + affected_frs instead).
+
+---
+
+### ADR-242: Host the emitted design viewer in-app; bridge Export→worktree write
+- **Date:** 2026-07-10
+- **Section:** Iterate — feature: single-session design-gate mockup review hosting
+- **Run-ID:** iterate-2026-07-10-design-gate-review-host
+- **Context:** In single_session the design gate is orchestrator-approve: the master emits the mockups + the index.html review viewer and pauses (run_loop_state paused_human_gate). The Command Center had no way to review them full-fidelity or capture per-round feedback without the manual File System Access export.
+- **Decision:** Host the phase's OWN emitted index.html in a full-bleed sandboxed iframe; inject a showSaveFilePicker override so the viewer's existing Export posts its markdown to the host, which writes design-feedback-round{N}.md (N disk-derived) into the worktree. Resume reuses the existing MasterRunLaunchButton.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Hosting the emitted viewer avoids rebuilding the mockup viewer/feedback form in React and avoids fighting the mockups' own design tokens; the showSaveFilePicker seam needs zero viewer changes.
+- **Consequences:** New read-only observer of run_loop_state.json + a second project-file write surface (the transient gitignored round file). Webui still runs no orchestrator.py and writes no run_config/JSONL. Smart Viewer is not used for mockups.
+- **Rejected:** Rebuild the feedback form in React / read localStorage and regenerate the markdown in the host (duplicates the viewer's generateMarkdown, fragile, out of scope); render mockups in Smart Viewer (renders html as source, hides the viewer's feedback panel).
+
+---
+
+### ADR-243: dev-restart kill scope: structural netstat parse (LISTENING + exact port), IPv6-inclusive; POSIX -sTCP:LISTEN
+- **Date:** 2026-07-11
+- **Section:** D11 / F16
+- **Run-ID:** iterate-2026-07-10-dev-restart-kill-scope
+- **Context:** npm run dev:fresh (scripts/dev-restart.js findPidsOnPorts) discovered kill-target PIDs by unanchored substring match: Windows `netstat -ano -p TCP | findstr :<port>` and POSIX `lsof -ti tcp:<ports>` with no state filter. This over-matched ESTABLISHED browser sockets whose FOREIGN address ended :<port> and port-prefix collisions (:5173 in :51730), then taskkill /F /T killed the user's browser tree (F16, campaign webui-deep-audit D11).
+- **Decision:** Parse netstat output structurally in an exported parseWindowsListenerPids(): require proto startsWith('TCP') + state LISTENING + an EXACT local-address port match (port = digits after the last colon, so :51730 != :5173 and [::]:5173 parses), then take the PID column, dedup. POSIX buildLsofCommand() adds -sTCP:LISTEN and coerces ports to positive integers before interpolation. dev-restart.js runs one plain `netstat -ano` read (NOT -p TCP, which EXCLUDES IPv6 [::] listeners Vite/Node bind by default) and buildLsofCommand on POSIX.
+- **Commit:** d7c8dd8aabce83e372e8f60b6a4975e09d6918d9
+- **Rationale:** Substring matching over whole netstat lines conflates local-vs-foreign address and lacks a state filter; a structural column parse with an exact port match and a LISTENING gate is the root fix and is unit-testable over fixture dumps (the finding's read-only-probe recommendation). Dropping -p TCP was required to catch IPv6 listeners (empirically verified: -p TCP returns zero [::] rows on Windows 11).
+- **Consequences:** Kill scope is now exactly the LISTENING processes on the two configured ports, IPv6 included; the user's browser tab and port-prefix collisions are never killed. Helpers are exported + unit-tested over fixture dumps (21 node:test passing, AC2 RED-first). 3-file footprint, no bloat crossing. Read-only-observer rules 1/12 intact.
+- **Rejected:** 1) Keep findstr as a coarse pre-filter then post-parse — the substring pre-filter still passes decoy rows; parsing netstat once is simpler. 2) Match ':<port> ' with a trailing space — brittle (column alignment varies) and does nothing for the ESTABLISHED-foreign-address bug. 3) Keep -p TCP — drops IPv6 listeners.
+
+---
+
+### ADR-244: Isolated-store repair of the two ADR-038 schema E2E guards
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: e2e schema spec repair (D05)
+- **Run-ID:** iterate-2026-07-10-e2e-schema-spec-repair
+- **Context:** The two ADR-038 schema E2E guards had drifted and could not run safely: 70-g (F19) hard-asserted on-disk schemaVersion===2 while the store persists CURRENT_SCHEMA_VERSION=4 (permanently red); 62 (F20) computed a wrong registry path via a dead WEBUI_REGISTRY_DIR env var so its v1 seed + assertions were dead code — and a naive path fix would have DOWNGRADED the user's real ~/.shipwright-webui store.
+- **Decision:** Rebuilt both specs on the isolated-stack recipe with an isolation self-lock (new helper client/e2e/helpers/isolated-store.ts: assertIsolatedStore aborts BEFORE any read/write unless SHIPWRIGHT_E2E_ISOLATED=1 AND the store sits under os.tmpdir()). Assert the CURRENT schema version (EXPECTED_SCHEMA_VERSION=4, duplicated with an origin comment, no cross-package import per ADR-080). Gate both into a sentinel-only schema-isolated Playwright project so they never run in the default e2e suite.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Safety is from machinery, not diff review. Author-not-fixer verifier proved: self-lock aborts (writeAttempted=[]) when the sentinel is unset or the store is outside os.tmpdir(); both specs GREEN on an isolated temp-home stack; RED-first (62 red on broken v1->v4 backfill, 70-g red on tampered on-disk version). Doubt-reviewer: self-lock survives junction/realpath, partial-prefix, walk-up, case, trailing-sep, write-before-gate; the TEMP=%USERPROFILE% residual is closed by the sentinel.
+- **Consequences:** Footprint deviation (deliberate/necessary): beyond the 2 spec files the repair added the isolation helper isolated-store.ts and touched playwright.config.ts + playwright.iterate.config.ts (the sentinel-gated schema-isolated project) so the specs don't break a normal npm run test:e2e. F0.5 surface=none and F2 Browser-Verify skipped: only Playwright test infra changed (no production UI in the app bundle). Real store sha256 f0610675 byte-unchanged throughout.
+- **Rejected:** Naive registry-path fix (would seed/downgrade the user's real ~/.shipwright-webui store). Asserting the literal schemaVersion 2 (drifted from the v4 the store persists — permanently red/vacuous). Accepted-with-rationale (not rejected): the single unlocked seedV1Store write is safe because the isolated stack is single-writer — no concurrent server persist races the seed.
+
+---
+
+### ADR-245: Reject a .md-named symlink escape on the markdown write path
+- **Date:** 2026-07-11
+- **Section:** external/file/write.ts — PUT /file markdown write surface (F09, FR-01.34)
+- **Run-ID:** iterate-2026-07-10-file-write-symlink-guard
+- **Context:** PUT /api/external/projects/:id/file validated the .md/.markdown allowlist on the pathGuard string-resolved path (the symlink NAME) while the write followed the link to its realpath. The existing realPathGuard only re-checked CONTAINMENT, so a within-root .md-named symlink — notes.md -> shipwright_run_config.json (or -> package.json, or a build script / git hook) — passed both the extension allowlist AND the containment check, and the save landed on the non-markdown target: bypassing the markdown-only write boundary and the read-only run-config invariant (DO-NOT #12), up to code-execution via a build-script / git-hook target (F09, MEDIUM, security).
+- **Decision:** lstat the target (does NOT follow the final path component, where statSync did) and reject any final-component symlink outright with a distinct 403 symlink_forbidden; the Phase-1 edit-existing-doc surface has no legitimate write-through-symlink case (CLAUDE.md rule 10). TOCTOU hardening from the external code review: the read + atomic rename now target the REQUESTED path, not the realpath, so renameSync replaces the final directory entry and never dereferences a symlink swapped in between the lstat check and the rename. realPathGuard is retained as defense-in-depth for a PARENT-directory symlink escaping the root. An optional injected lstatSync seam on MarkdownWriteDeps (node:fs default) gives the security guard deterministic cross-platform coverage, matching the codebase DI-for-fs pattern (D08 rename, sdk-sessions-store).
+- **Commit:** 9ae4cd10884c00acf3d3585c1238962d1d8b3eb4
+- **Rationale:** The atomic tmp+rename write plus the lstat rejection make the boundary robust even under a TOCTOU swap. RED-first proof was captured on this Windows host via the lstat seam with the rejection removed (write succeeds 200, target clobbered) and runs end-to-end on Linux CI (ubuntu-latest) via a real notes.md -> config.json symlink; GREEN after (403 symlink_forbidden, escape target byte-identical).
+- **Consequences:** A .md-named symlink can no longer redirect a markdown save to a non-markdown target. Behavior-preserving for a valid non-symlink target (realpath == requested path). No FR text change: FR-01.34 intended behavior (markdown-only writes inside the project) is preserved and now correctly enforced. A broken symlink or symlink-to-dir also returns 403 (was 404 for a broken link). GET/read behavior, the .md allowlist, and the ETag/If-Match concurrency flow are unchanged. CLAUDE.md read-only-observer rules 1/12 intact.
+- **Rejected:** (1) realpath + re-validate the .md extension on the realpath: narrower (a .md -> other.md symlink still passes) and redundant once final-component symlinks are rejected outright. (2) Putting the regression test in the spec-listed file-route.test.ts: that file is bloat-baselined at 312 (grandfathered, limit 300), so adding to it RATCHETS the baseline (anti-ratchet contract violation); a new cohesive write-symlink-guard.test.ts (246 < 300, non-baselined) is used instead, which the campaign guardrail sanctions. (3) Dropping the lstat DI seam and relying only on the POSIX-conditional real-symlink test: leaves the guard with no deterministic coverage on Windows dev hosts where file symlinks need elevation.
+
+---
+
+### ADR-246: install-windows writes the autostart VBS as UTF-16LE (D13/F18)
+- **Date:** 2026-07-11
+- **Section:** Build - D13 installer-vbs-encoding (F18)
+- **Run-ID:** iterate-2026-07-10-installer-vbs-encoding
+- **Context:** install-windows.ps1 wrote start-server.vbs with Set-Content -Encoding ASCII, mapping every char >127 to '?'. A non-ASCII repo path (umlaut/accent/CJK, e.g. C:\Users\<accented>\...) got a corrupted server path baked into the launcher, so login autostart silently never started while the installer reported success (F18).
+- **Decision:** Write the VBS with -Encoding Unicode (UTF-16LE + BOM, read natively by wscript.exe). Compute the backslash-escaped path once and reuse it in both the VBS generator and a new post-write round-trip guard that re-reads the file and, if the embedded server path did not survive, removes the bad launcher and exits 1 before any Startup shortcut is created.
+- **Commit:** 923297a75fc723b7e54725d8cc11713027048d49
+- **Consequences:** Non-ASCII repo paths round-trip; a corrupting encoding fails loudly (fail-closed) instead of a false success. Guard shares the escaped-path variable with the generator (no recomputation drift). Pre-existing backslash-doubling unchanged (out of F18 scope). Read-only-observer rules 1/12 intact.
+- **Rejected:** UTF8 (PS5.1 writes a UTF-8 BOM wscript does not honour); Default/ANSI (code-page dependent); dropping the guard (spec-mandated, defends a future encoding regression); fixing the backslash-doubling (out of scope; shipped ASCII-path autostart proves Windows tolerates it).
+
+---
+
+### ADR-247: Master-shadow identity is project-scoped (client) + stamped at launch (server)
+- **Date:** 2026-07-11
+- **Section:** external/launch — master-shadow identity (FR-01.01)
+- **Run-ID:** iterate-2026-07-10-master-shadow-scoping
+- **Context:** The client findMasterShadow matched parentRunMaster+runId across the all-projects task list with no projectId filter (F06), so a duplicated project dir — which copies shipwright_run_config.json and therefore runId verbatim — could launch/resume the WRONG project's single-session master. Separately, applyMasterRunBranch's taskUpdate stamped only state+launchedAt, so a direct-API masterRun launch on a plain task (no parentRunMaster/runId) was invisible to the double-master 409 guard scan (F34).
+- **Decision:** Thread the launching projectId into findMasterShadow and require t.projectId===projectId (plus an absent-scope guard so an empty scope never cross-matches). On the server, stamp parentRunMaster:true + runId (server-derived from the re-read run_config, never client-supplied) into the launch taskUpdate so every attached master is guard-visible regardless of launch path.
+- **Commit:** (assigned post-merge)
+- **Rationale:** projectId is already the canonical task-identity key (ADR-037, always present on v2 responses); runId alone is non-unique across duplicated project dirs. runId is stamped from the same validated cfg.config.runId the guard already trusts.
+- **Consequences:** Master-shadow reuse never crosses projects; the double-master guard (409 master_run_already_attached) now sees every attached master incl. direct-API launches. No FR text change (corrects FR-01.01 observable behavior). Display-only MasterTaskCard/MasterRunLaunchButton label lookups keep the unscoped match (cosmetic label only, never a wrong-project launch; out of the F06 footprint) — noted as a follow-up candidate.
+- **Rejected:** (1) Also fixing the display-card label lookups — out of footprint, cosmetic, and risks the parallel-safety contract with launch-resume-on-jsonl. (2) Inlining the F34 test into master-run-branch.test.ts — would push it 295->~345 LOC, a new 300-LOC bloat crossing / ratchet forbidden by AC4; split into a cohesive sibling instead.
+
+---
+
+### ADR-248: Preview child lifecycle: drain stdio, dedup spawn, tree-kill + await-exit
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: preview child lifecycle (D20, campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-preview-child-lifecycle
+- **Context:** The Preview dev-server child (FR-01.17) had an unmanaged lifecycle: stdout/stderr were stdio:'pipe' but never consumed (F11 — a full ~64KB OS pipe buffer backpressure-freezes any line-buffered dev server; boot output >64KB false-times-out); concurrent spawn() had no in-flight dedup (F12 — two tabs clicking Preview in the startup window double-spawn, leaking an untracked orphan killAll can never reach); killAll/respawn only SIGTERM the direct child (F13 — npm's node grandchild survives; respawn probes the port before the old child releases it).
+- **Decision:** New cohesive module preview-child-lifecycle.ts (manager at its 393 bloat baseline): drainStdio (bounded 16KB ring + setEncoding, tail attached to early-exit/timeout errors), treeKill (win32 taskkill /T /F shell:false, POSIX kill(-pid) group signal — child spawned detached off the SAME effective platform), awaitExit (bounded exit wait). Manager gets an in-flight Map<projectId,{hash,promise}>: spawn() wraps doSpawn() — same-profile concurrent spawns coalesce, a different profile serializes then respawns; finally clears the entry on rejection. killAll/respawn/transient-cleanup all route through treeKill. D03 shell:false + resolveSpawn cmd.exe wrapper + ADR-044 preserved.
+- **Commit:** (assigned post-merge)
+- **Rationale:** medium/STANDARD: RED-first proven by neutralizing each fix (seams kept) — 6 manager regressions FAIL on pre-fix, 10 helper unit tests pass; restore -> 16/16 green. TWO external (openrouter) rounds. Findings CLOSED: HIGH detached+direct-kill orphans the group (routed transient cleanup through treeKill); MEDIUM different-profile concurrent double-spawn (serialize by projectId); MEDIUM detached keyed off the injected platform seam; MEDIUM poisoned in-flight promise (finally-clear + regression); LOW cross-chunk UTF-8 (setEncoding). Verified-already: hash-gated coalesce, ESRCH try/catch fallback.
+- **Consequences:** Footprint deviation forced by the anti-ratchet Iron Law: lifecycle helpers + the moved port/readiness probes went to a NEW cohesive module preview-child-lifecycle.ts (228 LOC) + a new test file (292) because preview-session-manager.ts (392<=393) and its test (341) are AT baseline. The real cross-process taskkill/process.kill(-pid) against a live OS group is not unit-probeable (tests inject platform/processKill/killSpawn seams so no host pid is ever signalled); post-merge :3847 smoke (switch profiles, confirm no orphan node/cmd) is the real-stack proof.
+- **Rejected:** REJECTED-with-reason: external 'new file violates the spec 2-file footprint / AC4' (both plan + code review) = campaign guardrail supersedes — the manager is AT its 393 bloat baseline, anti-ratchet forbids growing it, so a new cohesive module is the mandated path; serial D20->D21 ordering = no parallel collision. Partially-accepted: a separate timeout-path tail test — redundant, the timeout shares the identical drained.tail() call site (verified). Rejected: ratcheting the manager/test baselines; a per-session stop route (out of scope, noted as follow-up).
+
+---
+
+### ADR-249: Preview: host-pin the returned URL + reject an invalid dev_server.port (F10/F30)
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: preview config validation (D21, campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-preview-config-validation
+- **Context:** The Preview manager (FR-01.17) trusted profile values raw at two edges. F10: entry.url was raw concatenation of the unsanitized ready_path, bypassing buildReadyUrl host-pinning — '@evil.com/' yielded http://localhost:5173@evil.com/ so window.open went off-host; 'dashboard' was unopenable. F30: a profile with dev_server.command but no valid port defaulted to 0, skipped the pre-spawn probe, then probed the dead port 60s before killing the healthy dev server + misreporting preview_timeout.
+- **Decision:** New buildPreviewUrl() builds the returned URL via the URL constructor against a pinned http://localhost:<port> origin using the SAME normalization the probe's buildReadyUrl uses; rejects protocol/host drift (bare-origin fallback); keeps the host-only root shape. New isValidPort() rejects a missing/invalid port up front with PreviewProfileInvalidError (route -> 400); the old 'port>0' guard becomes unconditional. Both helpers in preview-child-lifecycle.ts (manager at 393 bloat baseline).
+- **Commit:** b744128b4589f437be7fb97319aab5b8b8ee5c9f
+- **Rationale:** medium/STANDARD: AC2 RED-first proven (validation.test.ts on unmodified source = 5 fail / 1 pass; post-fix 6/6 + full suite 2005/1-skip). Diff coverage 100% on all changed manager lines + both helpers. Two external (openrouter) rounds. Confidence calibration (io_boundary): 24-case adversarial URL/port probe on the built dist = 0 off-host escapes / 0 port mis-validations; asymptote reached.
+- **Consequences:** A malformed/malicious ready_path can only land on the local dev server or its root, never off-host; a portless profile fails fast with a clear error instead of hanging 60s then killing the dev server. Net manager delta -1 (392<=393); D03 shell:false + D20 lifecycle + ADR-044 preserved. Footprint expanded to preview-child-lifecycle.ts + a new validation test file per the campaign anti-ratchet guardrail (same as D20); serial D20->D21 = no collision.
+- **Rejected:** External 'tests belong in the 3-file footprint/AC4' (both rounds): rejected — manager+test are AT bloat baseline; anti-ratchet mandates new cohesive/test files (same as D20). Coerce string ports: rejected (no profile authors a string port; masks malformed). Clamp bad port: rejected (spawns on an un-authored port). FALSE code-review highs: gemini 'git-warning in isValidPort' (hallucination; tsc clean) + openai 'buildReadyUrl no-trim' (it trims l.203). Deferred LOW: client toast err.detail.
+
+---
+
+### ADR-250: Win32 Preview spawn: PATHEXT + cmd.exe wrapper, shell:false preserved
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: preview win32 dev-server spawn (D03, campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-preview-win32-spawn
+- **Context:** Preview spawn (FR-01.17) was dead on win32: shell-quote applied POSIX backslash-escape (F31: C:\tools\node.exe -> C:toolsnode.exe) and shell:false could not run npm.cmd (F03: Node CVE-2024-27980 EINVAL-blocks .cmd). A Windows user on the supabase-nextjs profile clicking Preview got 0% functionality. MAX-hardened: security-adjacent (a win32 shim reintroducing a shell = command injection).
+- **Decision:** Added a win32 branch in a NEW cohesive module preview-win32-spawn.ts (resolveSpawn): backslash-safe tokenization, PATHEXT resolution, .cmd/.bat shims run via cmd /d /s /c with discrete argv + windowsVerbatimArguments (canonical outer-quoted line for spaced shims). Bare argv0 resolves via PATH ONLY (never cwd); bare-absent throws; % is refused. POSIX path stays byte-identical. shell:false throughout (ADR-044 / C-07).
+- **Commit:** (assigned post-merge)
+- **Rationale:** MAX: independent guards (author!=fixer), each RED->GREEN. THREE doubt-reviewer + TWO external (openrouter) rounds. Security findings all CLOSED: HIGH cwd-before-PATH hijack, HIGH spaced-shim under cmd /s, MEDIUM false trivial-safety comment, %-expansion, LOW bare-absent cwd-fallback. Blanket-% refusal over-refuses a rare NTFS %-in-path command — accepted: %VAR% never expands under shell:false on the direct-.exe path anyway and no bundled profile uses %.
+- **Consequences:** Footprint deviation forced by the anti-ratchet Iron Law: the win32 logic went to a NEW cohesive module preview-win32-spawn.ts (204 LOC) + 2 new test files because preview-session-manager.ts (393) and its test (341) are AT baseline. The spaced Program-Files shim path is stub-only: this host's Node is at a SPACELESS WinGet path so the :3847 host smoke can't drive it; post-merge Guard-4 smoke is the real-stack proof.
+- **Rejected:** REJECTED-with-reason: external 'embedded-quote not escaped' = FALSE POSITIVE — splitWin32Command consumes every quote as a grouping toggle before tokens reach the wrap, so no token carries a quote to desync (byte-traced by the doubt-reviewer). External footprint/AC4 findings = bloat-forced deviation (documented above). Rejected: shell:true / one interpolated command string (injection, ADR-044); ratcheting the manager baseline.
+
+---
+
+### ADR-251: PS1 prod start/stop scripts honor $env:PORT like their .sh twins (D14/F35)
+- **Date:** 2026-07-11
+- **Section:** Build - D14 prod-ps1-port-parity (F35)
+- **Run-ID:** iterate-2026-07-10-prod-ps1-port-parity
+- **Context:** start-server-production.ps1 and stop-server.ps1 hardcoded port 3847 for the kill sweep and the readiness poll while their .sh twins honor $PORT via PORT="${PORT:-3847}". A Windows operator on a custom PORT (a documented env override in CLAUDE.md; repo-root .env.local, loaded by the launched node via --env-file-if-exists, can carry it) got the OLD server on the custom port surviving the stop/restart, EADDRINUSE on the new one, a wrong 'did NOT come up on port 3847' diagnosis, and a skipped claude.json re-heal (F35).
+- **Decision:** Both scripts derive $Port once via `if ($env:PORT -match '^\d{1,5}$') { [int]$env:PORT } else { 3847 }` and thread it through the kill sweep (-LocalPort $Port), the readiness poll, the launched node child env, and every operator message - the .ps1 parallel of PORT="${PORT:-3847}". The start script scopes PORT to the CHILD only via the inner cmd `set "PORT=$Port"&& node ...` (mirrors the .sh PORT="$PORT" node prefix, no parent-shell mutation).
+- **Commit:** 22583e7
+- **Consequences:** A custom-PORT Windows operator now stops the right server, launches node on the resolved port, and polls/reports that port. The 5-digit numeric guard degrades unset/blank/non-numeric/overflow PORT to 3847 without throwing (graceful, matching the non-crashing .sh degrade). No Command Center product behavior change; read-only-observer rules 1/12 intact. Structural node:test (stop-server.test.mjs new + start-server-production.test.mjs parity block) pins every sink to a single $Port, backed by REAL Windows PowerShell probes.
+- **Rejected:** Bare [int]$env:PORT cast (throws on non-numeric/overflow - external review); parent-scoped $env:PORT = mutation (leaks into a dot-sourcing shell - external review); 1..65535 range clamp (parity-breaking scope creep - the .sh twin does not range-validate either, so an out-of-range PORT fails-to-bind identically on both); dropping the structural tests for a runtime harness (PS1 is not portably executable under node --test; the established repo pattern is structural + an empirical PowerShell probe).
+
+---
+
+### ADR-252: ProjectManager tolerates a corrupt projects.json on boot + writes it atomically
+- **Date:** 2026-07-11
+- **Section:** core/project-manager — projects.json registry load + persist (F07, FR-01.24/FR-01.25)
+- **Run-ID:** iterate-2026-07-10-projects-json-load-tolerance
+- **Context:** ProjectManager.load() ran a bare JSON.parse with zero corrupt-file tolerance while its writers (create/update/delete/touchLastActive/updateAutonomy) are non-atomic fire-and-forget persists. A save interrupted mid-write — a force-kill via the documented taskkill dev workflow, a power loss, or a tsx-watch restart — truncates projects.json, and the next boot's JSON.parse threw an unattributed SyntaxError, making the Hono server exit FATAL on EVERY subsequent boot (F07, MEDIUM).
+- **Decision:** Mirror the sdk-sessions-store recovery pattern. load() delegates to a new core/project-registry-io.ts: empty/whitespace -> empty registry (no quarantine, nothing to preserve); unparseable or non-array JSON -> quarantine the bytes aside to projects.json.corrupt-<ts>-<uuid> (best-effort, wrapped in try/catch, never re-throws) + continue with an empty registry; a well-formed array populates the map, skipping rows without a string id. persist() writes atomically: stage to <path>.tmp-<uuid> then rename into place (fs.rename is atomic and replaces the destination), so a mid-write force-kill lands on the throwaway tmp and never truncates the live file. The rename dep is injected (fs.promises.rename in index.ts); with no rename dep (unit doubles) persist falls back to a plain in-place write and quarantine copies the bytes aside via writeFile.
+- **Commit:** (assigned post-merge)
+- **Rationale:** sdk-sessions-store already proved this exact tolerant-load + atomic-write pattern in production on this Windows-heavy codebase (F08/ADR); reusing it keeps behavior consistent. A real-fs confidence-calibration probe on Windows 11 confirmed fs.promises.rename OVERWRITES an existing dest (MoveFileExW|MOVEFILE_REPLACE_EXISTING) and the full corrupt->quarantine->re-persist round-trip works with the shipped dist module — empirically refuting the external code-review's HIGH 'Windows rename can't overwrite' concern.
+- **Consequences:** The Command Center always boots — a corrupt registry self-recovers with the bytes preserved for manual recovery. Writes can no longer leave a half-written projects.json. No FR text change (corrects FR-01.24 GET/POST load+persist and FR-01.25 PATCH/DELETE observable boot behavior). CLAUDE.md read-only-observer rules 1/12 intact (writes only projects.json + its side-files; never ~/.claude/projects/** or shipwright_run_config.json).
+- **Rejected:** (1) Staying strictly within the spec's 2-file footprint (project-manager.ts + .test.ts) as several external reviewers urged — IMPOSSIBLE without ratcheting: project-manager.ts (420), project-manager.test.ts (480) and index.ts (899) all sit at EXACTLY their bloat-baseline ceilings, the anti-ratchet hook is installed and blocks measured>current, and bumping current upward is itself a contract violation. Extraction to a new non-baselined module is the established webui pattern (run-config-reader, externalApi). (2) Making atomic-write the DI-independent default via fs.promises.rename — breaks in-memory unit doubles that write via a mock writeFile (real fs.rename on a fake tmp path -> ENOENT); DI with production wiring is the correct reconciliation. (3) fsync durability before rename — out of scope; the fix prevents truncation of the live file (the actual defect), matching sdk-sessions atomicWriteFile which also does not fsync.
+
+---
+
+### ADR-253: Resolve the disk replay snapshot BEFORE spawn() when no live pty exists, so a fresh empty mirror can no longer shadow it
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: WS re-attach replays the disk snapshot when no live pty exists (F02 / D02)
+- **Run-ID:** iterate-2026-07-10-replay-disk-fallback
+- **Context:** In the WS-upgrade live branch (buildLiveHandlers) the ensure-or-create pty — which constructs a NEW empty HeadlessMirror — was spawned BEFORE resolveReplaySnapshot ran. serializeMirrorIfLive therefore always returned a truthy but empty snapshot for that fresh mirror, so the disk-snapshot fallback (tryReadSnapshot) was unreachable dead code. Terminal history was never replayed after any pty death (Hono/tsx restart, user Stop-terminal-session, 12h idle reap, shell exit): the user re-opened to a blank shell even though a rich <taskId>.snapshot was persisted on disk.
+- **Decision:** Confine the change to ws-upgrade ordering (pty-manager untouched). When ptyExistedBeforeAttach is false, resolve the replay source into preSpawnReplay via resolveReplaySnapshot(ctx) BEFORE spawn(), so the fresh empty mirror cannot shadow the persisted disk snapshot; the onOpen IIFE consumes `preSpawnReplay ?? resolveReplaySnapshot(ctx)`. A live pty still resolves inside the IIFE exactly as before (spawn is idempotent, the mirror is kept) — ADR-092 live-first precedence and the done/launch_failed replay-only branch are preserved, and the replay path never disposes the mirror (rule 21). Envelope shape unchanged; net-zero LOC (comment compression offsets the reorder), bloat baseline not ratcheted.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Silent-wrong terminal history for every session after any pty death; not faithfully unit-testable via the mock ws-upgrade-handler.test.ts (it cannot observe the real spawn->resolve order). MAX hardening: an independent guard set (author != fixer, must-not-modify) driving a real PtyManager + real HeadlessMirror + real SnapshotStore, GUARD 1 proven RED on pre-fix main then GREEN; fences 2a/2b/2c; a committed real-browser Guard 3 spec; doubt-reviewer (microtask crux + no-unhandled-rejection + single-frame + ADR-092/rule-21/done-branch/envelope all CLOSED) + external_review --mode code (openrouter: test-hardening nits applied in ada812d; footprint/AC4 findings rejected-with-reason — the spec footprint's live-pty spec is AT its anti-ratchet baseline, so Guard 3 went to a new sibling spec and the server guards to a new *.test.ts, the deviation the spec's footprint note sanctions).
+- **Consequences:** After any pty death the FIRST death->reattach cycle now replays the persisted disk history into xterm instead of a blank shell. The microtask-ordering crux is closed: serializeMirrorIfLive's entries.get runs synchronously before spawn's entries.set, so no live pty can be created between the ptyExistedBeforeAttach probe and spawn (Node single-threaded); real-ConPTY timing cannot change it. Single replay_snapshot frame per attach; no unhandled rejection.
+- **Rejected:** change_type=bug on the ADR-059 FR-gate (rejected — used spec_impact=none + affected_frs=[FR-01.28] instead: the fix restores the replay-on-attach behavior FR-01.28 already intends; no HTTP/UI contract changes, so no spec.md edit). Appending Guard 3 to v0-9-6-live-pty-replay.spec.ts (rejected — that file is at its 372-LOC grandfathered bloat baseline; a second test would ratchet it, violating AC4).
+
+---
+
+### ADR-254: Central 409 (ELOCKED) + 400 (invalid_json body) mapping in the shared errorHandler
+- **Date:** 2026-07-11
+- **Section:** middleware/error-handler — global app.onError error mapping (F29+F33, FR-01.08/01.09/01.24/01.25)
+- **Run-ID:** iterate-2026-07-10-route-error-mapping
+- **Context:** The shared Hono errorHandler only branched on AppError; everything else fell through to an opaque 500. proper-lockfile ELOCKED contention on the ~8 store-mutating endpoints that call store.persist() WITHOUT an inline try/catch (fork, close, create, launch, DELETE task, inbox dismiss, settings PUT, project-delete cascade) and a SyntaxError from an unguarded c.req.json() (routes/projects.ts POST+PATCH, routes/settings.ts PUT) both surfaced as 500s, breaking the established retryable-409 (CLAUDE.md rule 6 / DO-NOT #6) and 400 invalid_json contracts.
+- **Decision:** Add two central branches, AFTER the AppError branch and BEFORE the 500 fallback: (err as NodeJS.ErrnoException)?.code==='ELOCKED' -> 409 {error:'sdk-sessions.json is locked, retry'} (the exact per-route body); err instanceof SyntaxError && /json/i.test(err.message) -> 400 {error:'invalid_json'}. Per-route handlers still short-circuit first so pinned contracts are untouched. The /json/i gate keeps a server-side non-body SyntaxError (regex, dynamic Function) as a truthful 500 — verified every server-side JSON.parse in a handler (settings.ts, upload.ts) is try/catch-guarded, so the only SyntaxError reaching the global handler is a request-body parse failure.
+- **Commit:** 20f44c225d2ba8055973b328c9d16054a7071bce
+- **Rationale:** FR-01.09 already documents 'ELOCKED bubbles up as 409 so the client can retry'; centralizing extends that same contract to its sibling store-mutating endpoints instead of duplicating the try/catch into ~8 handlers. Centralizing in the one global onError is the minimal surgical change (Simplicity First) and matches the spec footprint (error-handler.ts + its test only).
+- **Consequences:** F29/F33 no longer reproduce; the 8 uncovered store-mutating endpoints plus projects/settings body-parse now honor the retryable-409 / 400 contracts the client already consumes (status-gated: markdownFileApi r.status===409, actionsUpload err.code==='invalid_json'). Behavior-preserving (spec_impact none); DO-NOT rule 6 preserved and extended. No new UI/route/Vite/proxy/WS surface. Server vitest 167 files / 1934 passed + 1 skipped + build green.
+- **Rejected:** Map ALL SyntaxError -> 400 (external plan+code review flagged it masks server-side non-body SyntaxErrors) -> narrowed to && /json/i + a non-body-SyntaxError->500 regression pin, then made case-insensitive after a code-review MED on casing brittleness (+ a lowercase-json->400 pin). Change the 409 body to a generic 'resource locked' message (both plan reviewers, MED) -> rejected-with-reason: spec + task brief mandate the exact per-route body for D01-D16 contract consistency; clients gate on the 409 STATUS not the string; 6 of 8 bubbling endpoints do persist sdk-sessions.json.
+
+---
+
+### ADR-255: Run-config stat probe joins the torn-read retry envelope; last-good TTL raised above the poll cadence; client stops latching on transient invalid
+- **Date:** 2026-07-11
+- **Section:** D10 / F15
+- **Run-ID:** iterate-2026-07-10-run-config-transient-resilience
+- **Context:** readRunConfig's existence stat probe had no retry / no last-good fallback for a non-ENOENT fault, and LAST_GOOD_TTL_MS (5000) equalled the 5s client poll cadence so the read/parse cache was always expired at fallback; client runConfigPollIntervalMs returned false for invalid, latching polling OFF. One torn poll during the orchestrator's atomic run_config rewrite vanished the Pipelines lane mid-run (F15).
+- **Decision:** Route the stat probe through the same retryTornRead envelope + last-good cache as the read path (helper in the run-config-v2 types module, SERVER mirror only, since the reader is at its 439-LOC bloat ceiling); raise LAST_GOOD_TTL_MS to 30000 (above the poll cadence); keep client polling on invalid at a 10s backoff so a transient flap self-heals. Stale-serve stays bounded to physical faults (malformed-readable returns invalid immediately).
+- **Commit:** (assigned post-merge)
+- **Rationale:** Reinforces the existing torn-read resilience convention (session-watcher / read path) uniformly across the stat probe; the TTL==cadence equality was dead-cache by construction.
+- **Consequences:** A single torn run-config read no longer surfaces as invalid or latches the lane OFF; genuinely-missing/malformed configs behave exactly as before; read-only-observer invariants (rules 1/12) preserved. reader 438->431 LOC (no ratchet).
+- **Rejected:** Inline in the reader (breaches the 439 bloat ceiling; brief-forbidden); a bounded client retry-latch (re-introduces the vanish bug on a long transient).
+
+---
+
+### ADR-256: Strip webui PORT/VITE_PORT/HONO_HOST from the embedded-pty env
+- **Date:** 2026-07-11
+- **Section:** Build - D12 spawn-env-port-strip (F17)
+- **Run-ID:** iterate-2026-07-10-spawn-env-port-strip
+- **Context:** buildSpawnEnv spread the whole webui SERVER process.env into every embedded-terminal pty and stripped only FORCE_COLOR + CLAUDE_CODE_* markers. Production launchers stamp PORT=3847 explicitly, so a PORT-honouring dev server started in the terminal inherited 3847 (plus VITE_PORT/HONO_HOST) and collided with the webui (F17, touches_io_boundary).
+- **Decision:** Add a narrow WEBUI_OPERATIONAL_ENV_KEYS=[PORT,VITE_PORT,HONO_HOST] strip loop, deleted AFTER the base+caller merge (symmetric with the existing PARENT_SESSION_ENV_KEYS strip) so neither the server env nor a caller can leak them.
+- **Commit:** ae3792af4b61229511ae5d2ba208f4ea890d27d7
+- **Rationale:** Surgical over blanket: config.ts SHIPWRIGHT_* consumers are internal knobs binding no port/host; a blanket sweep would break the NO_FLICKER/LEGACY/WEBUI contracts (Chesterton's Fence). Strip-after-merge is safe: the sole runtime caller pty-manager.spawn passes no env field (empirical call-site audit).
+- **Consequences:** The embedded pty starts with a clean network slate; nested dev servers pick their own default port. ADR-067 shell-only whitelist + SHIPWRIGHT_WEBUI marker + CLAUDE_CODE_NO_FLICKER default-ON + parent-session strip all unchanged. spawn-env.ts 201->234 (<300, not baselined).
+- **Rejected:** Blanket SHIPWRIGHT_* strip (scope creep, breaks contracts); strip-before-merge (no runtime caller sets PORT, defensive after-merge symmetry preferred); add HOST (no webui launcher stamps it); case-insensitive delete (empirical probe: launchers stamp canonical uppercase, exact-delete removes all three).
+
+---
+
+### ADR-257: sdk-sessions persist merges under lock (3-way) + atomic write
+- **Date:** 2026-07-11
+- **Section:** Iterate - bug: sdk-sessions multi-instance clobber (F08)
+- **Run-ID:** iterate-2026-07-10-store-multi-instance-clobber
+- **Context:** F08 - two documented concurrent webui instances sharing ~/.shipwright-webui/sdk-sessions.json (autostart-prod + PORT-override dev; parallel worktrees) silently erased each other's rows and clobbered externally-written daemon claim fields, because persist() rewrote the whole file from a boot-time cache it never re-read - so proper-lockfile could not prevent lost updates.
+- **Decision:** Inside the lock, persist() re-reads disk and 3-way merges (baseline->memory diff applied field-level over the disk row, same-field last-writer-wins), preserving foreign rows + external claim fields and refreshing the in-memory map, then writes atomically (tmp+rename). The reconciliation lives in a new pure module core/sdk-sessions-merge.ts (mergeSessions/classifyDiskRaw/withFsRetry/reReadDisk), validator injected to avoid an import cycle.
+- **Commit:** (assigned post-merge)
+- **Rationale:** A field-level 3-way merge (baseline->memory diff over the disk row) is the correct reconciliation because ExternalTask has no updatedAt, so a row-level 'prefer newer' cannot be computed.
+- **Consequences:** No cross-instance row loss; claim fields survive and become visible to the 409 claim guard; a delete wins over concurrent churn (deletedSinceBaseline); a future-schema disk file is preserved (abort, never downgraded); a transient re-read I/O error retries the rule-6 budget then rejects rather than clobbering.
+- **Rejected:** External reviewers' recurring 'prefer newer updatedAt' - ExternalTask has no updatedAt field. Whole-map last-writer-wins (the original bug). Boot-time-only re-read (races the lock).
+
+---
+
+### ADR-258: D04 footprint deviation + deferred tombstone follow-ups
+- **Date:** 2026-07-11
+- **Section:** Iterate - bug: sdk-sessions multi-instance clobber (footprint + follow-ups)
+- **Run-ID:** iterate-2026-07-10-store-multi-instance-clobber
+- **Context:** sdk-sessions-store.ts is AT its 791-line bloat baseline and sdk-sessions-store.test.ts AT its 557; the anti-ratchet Iron Law forbids ratcheting either, but the spec footprint named only those two files.
+- **Decision:** The merge logic went to a NEW cohesive module core/sdk-sessions-merge.ts and the 16 frozen guards to 3 new test files (-merge, -merge-edge, -concurrency); the bloat baseline was NOT ratcheted. index.ts gained only the injected atomic 'rename' seam. Deliberate footprint deviation forced by the Iron Law.
+- **Commit:** (assigned post-merge)
+- **Rationale:** The spec explicitly bounds D04 to merge-under-lock + atomic write and defers a fuller per-instance-registry architecture; a durable tombstone is that deferred architecture, out of scope for one iterate.
+- **Consequences:** Deferred (documented, neutral, NOT regressions - pre-fix last-writer-wins had the same outcome): cross-instance delete resurrection needs a DURABLE on-disk tombstone (a delete on instance A can be revived by instance B poll-churn); a validator-rejected foreign row is treated as a remote-delete (same tombstone root, LOW); a forward-compat field strip (pre-existing).
+- **Rejected:** Ratcheting the bloat baseline (Iron Law). Inlining the merge into the store body (crosses the 791 baseline). Row-level updatedAt reconciliation (no such field).
+
+---
+
+### ADR-259: D04 non-blocking robustness notes (deferred)
+- **Date:** 2026-07-11
+- **Section:** Iterate - bug: sdk-sessions multi-instance clobber (non-blocking notes)
+- **Run-ID:** iterate-2026-07-10-store-multi-instance-clobber
+- **Context:** Review (3 doubt-reviewer + 3 external openrouter rounds) surfaced non-integrity robustness notes plus a new intentional fail-loud throw on future-schema disk.
+- **Decision:** Documented, not fixed in D04: (a) lock-hold tail-latency ~6s under sustained Windows EBUSY on the rename retry; (b) a dead-branch tmp leak that never runs since production always injects 'rename'; (c) the future-schema abort is a new intentional fail-loud throw - a typed-error to HTTP-response mapping is a nice-to-have follow-up.
+- **Commit:** (assigned post-merge)
+- **Rationale:** D04 is bounded to the data-loss integrity fix; these are availability/ergonomics concerns that do not change the no-lost-update guarantee.
+- **Consequences:** None affect data integrity: (a) is availability not integrity; (b) is unreachable in production; (c) fails loud rather than silently downgrading. Captured for a future iterate.
+- **Rejected:** Widening D04 scope to add typed-error response mapping or a rename-retry backoff cap - both defer cleanly.
+
+---
+
+### ADR-260: Validate task titles at create + fork with the same rule PATCH applies (F27)
+- **Date:** 2026-07-11
+- **Section:** Iterate — bug: task title validation at create/fork (D22, campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-task-title-validation
+- **Context:** POST /tasks and POST /tasks/:id/fork only TRIMMED the title while PATCH (+ launcher normalizeTitle) reject embedded CR/LF, empty, and over-length. An automated writer (run-config phase title, triage fix-now seed, leadwright daemon) could persist a newline title; every later Launch/Resume then 500s via the uncaught normalizeTitle throw in buildCopyCommands. Fork additionally left an ORPHAN child row because store.create ran before the throw.
+- **Decision:** Extracted PATCH's inline title validation into a shared normalizeTitle(raw) helper in _shared/helpers.ts ({ok,value}|{ok:false,error}, identical error strings) — single source of truth, mirroring normalizeDescription. patch.ts calls it (net -11 LOC, behavior-identical); create.ts + fork validate a PROVIDED non-blank title -> 400 before persistence; fork validates BEFORE store.create so no orphan. Absent/blank keeps the Untitled task / <parent> - fork default.
+- **Commit:** (assigned post-merge)
+- **Rationale:** medium/STANDARD: AC2 RED-first proven (title-validation.test.ts on unmodified source = 4 fail / 6 pass: create newline+over-length, fork newline 500+orphan, fork over-length persisted; post-fix 13/13 + full server 2018/1-skip). Diff coverage 100% on all changed production lines. Two external (openrouter) rounds. Confidence calibration (medium + io_boundary): real-fs persist->reload round-trip 8/8, asymptote reached.
+- **Consequences:** An automated writer can no longer persist a newline/over-length title that later 500s every launch; a rejected fork leaves no orphan child. D01 DELETE/kill lifecycle wiring untouched; PATCH error contract byte-identical. Footprint expanded to _shared/helpers.ts + patch.ts to reuse PATCH validation (parallel-safety moot: serial D22/23, deps merged); new cohesive title-validation.test.ts because routes.test.ts is at 298 LOC (300 ceiling).
+- **Rejected:** Reuse launcher normalizeTitle directly (both rounds): rejected — DIVERGENT (throws, no length check, private), breaks 'same error PATCH gives'. Reject empty at create/fork: rejected — the default is a load-bearing quick-add affordance; empty never breaks launch. Tests-in-routes.test.ts (AC4): rejected — it is at 298 LOC, adding crosses the 300 ceiling; guardrail sanctions a new test file. Retroactive sanitize of legacy titles: deferred (out of F27 scope) as triage.
+
+---
+
+### ADR-261: Transcript poller stops on terminal state (state ref) + one poller per page (model name flows as a prop)
+- **Date:** 2026-07-11
+- **Section:** Iterate → D15-transcript-poll-dedupe-stop (campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-transcript-poll-dedupe-stop
+- **Context:** useTaskTranscript's terminal-state stop condition read result.task from the effect's mount-time closure (deps [taskId, intervalMs]), where result is always the initial null — so the done/launch_failed stop never fired and a finished task polled the stateless transcript endpoint (FR-01.12) forever (F21). Separately, TaskDetailHeader mounted its OWN useTaskTranscript(task.taskId) solely to regex the latest "model":"..." out of the content, so every open task page ran TWO independent 1 Hz pollers — doubling full-JSONL disk reads, payloads, and the locked sdk-sessions.json cache writes per open tab (F22).
+- **Decision:** F21: track the freshest server-reported task.state in a latestStateRef updated inside the tick (in the existing `if (response.task)` block, which runs for all ok/missing/rotated variants) and read it in the terminal-state stop check. Reset latestStateRef to null at the top of every effect run so a prior done task's state never leaks into a newly-selected running task. F22: delete TaskDetailHeader's useTaskTranscript; add a pure exported extractModelName(content) helper on the hook module; useTaskTranscript now exposes modelName (computed once per poll, not per render); TaskDetailPage passes transcript.modelName to <TaskDetailHeader> as a prop (net-zero line change so TaskDetailPage.tsx stays at its 676 bloat baseline).
+- **Commit:** (assigned post-merge)
+- **Rationale:** The single poller is the sole source of transcript-derived data; the header becoming a pure prop consumer is the mechanism that removes the duplicate poll.
+- **Consequences:** A done/launch_failed task's Transcript view stops polling after a single fetch; each open task page issues one transcript GET per second instead of two; the header still shows the model label, sourced from the page's single poller. Behavior-preserving (spec_impact none, FR-01.12 preserved). Model-name extraction moved to a bounded once-per-tick compute (was a per-content-change useMemo in the header) — no perf regression.
+- **Rejected:** Page-level useMemo(extractModelName) in TaskDetailPage — rejected: it adds a net line and TaskDetailPage.tsx sits exactly at its 676 bloat baseline (would ratchet). Instead the hook exposes modelName (net-zero page change, better perf). A fabricated browser smoke — rejected: the fix is poll-count/lifecycle logic pinned deterministically by fake-timer vitest; a real TaskDetailHeader + TaskDetailPage RTL render already covers the paint path (F0.5 surface=none). Adding the F22 fence to TaskDetailPage.test.tsx / TaskDetailHeader.test.tsx — rejected: both are at their bloat baselines; the new fence lives in the un-baselined useTaskTranscript.test.ts.
+
+---
+
+### ADR-262: Transcript poll: terminal states immutable + dirty-checked persist + findByUuid retry
+- **Date:** 2026-07-11
+- **Section:** Iterate → D06-transcript-state-guards (campaign webui-deep-audit-2026-07-10)
+- **Run-ID:** iterate-2026-07-10-transcript-state-guards
+- **Context:** The transcript-poll state machine treated a single JSONL probe as authoritative for every state and persisted sdk-sessions.json unconditionally each 1s poll; findByUuid's discovery stat/readdir sat outside the torn-read retry envelope (F04/F23/F24).
+- **Decision:** isTerminalState=done|launch_failed → terminal rows fully immutable from poll in BOTH branches (never flip to jsonl_missing, never resurrect to active, no mtime write). Widen the ok-branch guard so a closed row without firstJsonlObservedAt is never yanked to active. Dirty-check mtime so patch+persist fire only on a real change. Wrap findByUuid discovery stat/readdir in readWithRetry with ENOENT_FATAL (EBUSY/EPERM/EACCES retry; absent dir = fast miss).
+- **Commit:** (assigned post-merge)
+- **Consequences:** A done task whose JSONL was 30-day-cleaned stays done when re-opened; idle/terminal tasks stop rewriting the whole store every second; a transient AV/OneDrive fs lock during discovery no longer yields an authoritative miss + state flip. spec_impact none (FR-01.08/FR-01.12/FR-01.32 preserved, hardened).
+- **Rejected:** Keeping mtime bookkeeping for terminal tasks (plan review suggested it) — the chunk is byte-offset driven, not gated on lastJsonlSeenMtimeMs, so immutability never truncates. Wrapping findManyByUuid — deferred (never persists state; out of footprint; 300-LOC ceiling).
+
+---
+
+### ADR-263: Share the ADR-096 preserve-gate across both snapshot write paths
+- **Date:** 2026-07-12
+- **Section:** Iterate — bug: mirror-flush snapshot preservation gate
+- **Run-ID:** iterate-2026-07-12-mirror-flush-preserve-gate
+- **Context:** flushMirrorSnapshot (ADR-092 last-detach) wrote unconditionally while finalizeMirrorSnapshot had the ADR-096 preserve gate; on the 2nd detach->reopen cycle a thin mirror clobbered the richer disk snapshot, blanking terminal scrollback.
+- **Decision:** Extract the gate into snapshot-preserve.ts (writeSnapshotPreservingLarger); both surfaces call it. flush MUST NOT dispose the mirror (rule 21); finalize keeps its finally-dispose.
+- **Commit:** (assigned post-merge)
+- **Rationale:** Two real call sites justify the extract; the 60% threshold + read-failure-falls-through-to-write are preserved verbatim; RED-first proven on the pre-fix flush path.
+- **Consequences:** pty-manager.ts shrank 1214->1186 (no baseline ratchet); one extra read per flush (the same read finalize already did); snapshot envelope format unchanged so the replay consumer is unaffected.
+- **Rejected:** Adding locking/atomicity to the read-then-write (pre-existing non-atomicity, shared with finalize) and changing the 60% threshold - both explicitly out of scope.
