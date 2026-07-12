@@ -1,1 +1,0 @@
-CI: the diff-coverage gate is now hard-blocking (was warn-only) — a PR whose changed lines fall below 80% diff-coverage now fails the build; the shipwright diff-coverage-gate composite action is SHA-pinned.

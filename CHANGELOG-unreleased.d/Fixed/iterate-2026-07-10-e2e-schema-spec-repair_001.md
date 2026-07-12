@@ -1,1 +1,0 @@
-Repaired the two ADR-038 schema-migration E2E guards (specs 62 and 70-g): they now run against an isolated throwaway session store behind a self-lock and assert the current on-disk schema version, so they no longer sit permanently red/vacuous and can never touch the real session store (internal test-suite correctness; no user-facing behavior change).
