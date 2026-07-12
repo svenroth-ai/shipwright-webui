@@ -91,6 +91,8 @@ client/e2e/.poc-screenshots/
 /.shipwright/planning/iterate/campaigns/
 /.shipwright/triage.outbox.quarantine.jsonl
 /.shipwright/designs/design-feedback-round*.md
+/.shipwright/agent_docs/iterates/*.plan.json
+/.shipwright/agent_docs/iterates/*.phase_timings.jsonl
 # === END Shipwright canonical .shipwright artifact-ignore (managed) ===
 
 # Triage Inbox (shipwright)
