@@ -1,22 +1,22 @@
 {
-  "last_updated": "2026-07-11T22:40:00.000Z",
+  "last_updated": "2026-07-12T06:11:23Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-10-boot-coherence-frontend-check",
-    "date": "2026-07-11",
+    "run_id": "iterate-2026-07-12-mirror-flush-preserve-gate",
+    "date": "2026-07-12",
     "unit": {
       "status": "passed",
-      "passed": 2029,
-      "total": 2030,
-      "note": "server vitest 174 files / 2029 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). D23 adds preview-coherence.test.ts (11 tests): profileDeclaresFrontend quadrants (empty {} -> false, populated -> true, null/undefined -> false, non-object Boolean-parity, empty/non-empty array) + evaluatePreviewCoherence matrix (frontend:{}+dev_server:null -> no warn [F32 pin], +undefined twin, populated-no-devserver -> warn, devserver-no-frontend -> warn per ADR-036, fully-wired -> no warn, no-stack-key -> no warn). Production: index.ts (-20 LOC, 877<=899 baseline) collapses the two inline warn blocks to an evaluatePreviewCoherence call; new core/preview-coherence.ts (86 LOC). No client/** change. tsc clean."
+      "passed": 2046,
+      "total": 2047,
+      "note": "server vitest 176 files / 2041 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). Adds snapshot-preserve.test.ts (8 helper unit tests) + pty-manager-flush-preserve.test.ts (4 integration tests). Production: new snapshot-preserve.ts (126 LOC) holds the shared ADR-096 gate; pty-manager.ts 1214->1186 (SHRANK 28, no baseline ratchet) as finalizeMirrorSnapshot + flushMirrorSnapshot both delegate to writeSnapshotPreservingLarger. snapshot-store.ts untouched. No client/** change. tsc + oxlint clean; npm run build green. REMEDIATION (doubt-review HIGH): added shouldProceed liveness re-check to the shared gate + 5 new tests (4 helper abort-branch unit + 1 pty-manager resurrection-race integration); full suite 176 files / 2046 passed + 1 skipped."
     },
     "integration": {
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No HTTP-route integration test. The fix is a pure predicate + warn-matrix extraction (core/preview-coherence.ts) covered by deterministic unit tests; the boot-time driver in index.ts (guarded by isMainModule) is exercised end-to-end by the real-profile round-trip probe (see surface_verification)."
+      "note": "The pty-manager flush/finalize integration IS exercised by pty-manager-flush-preserve.test.ts through the real HeadlessMirror serialize -> real SnapshotStore disk write/read round-trip (Vitest, counted under unit). No separate HTTP-route surface changed."
     },
     "pgtap": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -24,7 +24,7 @@
       "status": "skipped",
       "passed": 0,
       "total": 0,
-      "note": "No E2E run. D23 is a server-only boot-diagnostic fix with NO UI-observable change: the coherence check is a startup console.warn, not a rendered surface, and the PreviewButton visibility gate (get.ts, masked by && dev_server.command) is unchanged. detect_frontend_changes.py reports has_frontend_changes=false (no client/** file touched)."
+      "note": "No E2E. Pure server-side snapshot-persistence decision (which payload bytes persist); snapshot envelope format byte-identical so the replay-on-attach consumer contract is unchanged. detect_frontend_changes reports has_frontend_changes=false (no client/** touched). surface: none (see surface_verification + ADR F0.5 justification)."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -39,67 +39,85 @@
       "runner": "",
       "exit_code": 0,
       "tests_run": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-10-boot-coherence-frontend-check/surface_verification.json",
-      "timestamp": "2026-07-11T22:40:00.000Z",
-      "justification": "Server-only boot-time preview-capability coherence diagnostic (FR-01.17); no UI-observable change. The check is a startup console.warn emitted inside index.ts's isMainModule boot IIFE (never a rendered surface), and the PreviewButton visibility gate is unchanged (for the python-plugin-monorepo profile the button is already hidden because dev_server is null). Proof is the deterministic unit suite (preview-coherence.test.ts, 4 RED-first on the pre-fix Boolean(...) predicate incl. the F32 'expected {level:warn} to be null' matrix pin) plus a real round-trip probe over the actual bundled profiles dir through the production loadProfile + evaluatePreviewCoherence: python-plugin-monorepo (frontend:{}, dev_server:null) -> NO warn (F32 fixed), supabase-nextjs (populated frontend + dev_server.command) -> NO warn, vite-hono (populated frontend, no dev_server.command) -> WARN (regression pin). No client/** file changed; the frontend-change detector reports has_frontend_changes=false (only false-positives on the 'src/' substring inside 'server/src/')."
+      "evidence_path": "",
+      "timestamp": "2026-07-12T05:39:05.228Z",
+      "justification": "Server-side snapshot-persistence decision (which payload bytes get written to the on-disk snapshot). No client/** file changed; snapshot envelope format byte-identical, so the replay-on-attach consumer contract is unchanged. Proven by a deterministic server-side Vitest guard (RED on pre-fix flush, green after) + a real-disk producer->file->consumer round-trip probe. A browser E2E cannot deterministically reproduce the DECRST-1049 alt-screen-clear + 2nd-detach timing that triggers the bug."
     },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1/F32 - an intentionally-empty stack.frontend {} paired with dev_server:null is classified backend-only, so the boot coherence check emits NO spurious warning",
-          "disposition": "tested",
+          "behavior": "AC1 - a shared helper (writeSnapshotPreservingLarger) encapsulates the ADR-096 gate and BOTH write surfaces call it; pty-manager.ts does not ratchet its bloat baseline",
           "category": "unit",
-          "evidence": "preview-coherence.test.ts 'does NOT warn for a backend-only stack (frontend:{}, dev_server:null) - F32 regression' - RED on pre-fix Boolean(...) predicate (returned a {level:warn} envelope) -> GREEN (null). Backed by the profileDeclaresFrontend({}) === false predicate pin (RED 'expected true to be false')."
+          "disposition": "tested",
+          "evidence": "snapshot-preserve.test.ts (8 tests, 16/16 stmts + 11/11 branches covered). Both call sites hit in coverage json: pty-manager.ts L874 (flush) 14 hits, L1024 (finalize) 27 hits. pty-manager.ts 1214->1186 (shrank 28); snapshot-store.ts 511 unchanged; new module 126<300."
         },
         {
-          "behavior": "AC1/F32 - a genuinely misconfigured profile (populated frontend, no dev_server.command) STILL warns (regression pin), and dev_server-without-frontend still warns per ADR-036",
+          "behavior": "AC2 (RED-first) - a thin flush PRESERVES a richer on-disk snapshot",
+          "category": "integration",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "preview-coherence.test.ts 'warns when a populated frontend has no dev_server.command' + 'warns when dev_server.command exists but no frontend is declared (ADR-036)' assert the exact byte-identical warn messages; fully-wired + no-stack-key cases assert null."
+          "evidence": "pty-manager-flush-preserve.test.ts 'PRESERVES a richer on-disk snapshot when the flushed mirror is thin'. RED on pre-fix flush (unconditional write): expect(onDiskAfter.data).toBe(largePayload) failed - received '$ \\u001b[?25h' (thin serialize) vs expected 2000-byte payload. GREEN after the helper call restored."
         },
         {
-          "behavior": "AC2 - a NEW regression test is RED on the pre-fix main predicate and green after",
+          "behavior": "AC3 - a richer flush payload DOES overwrite a thin on-disk snapshot (gate skips only the substantially-smaller case)",
+          "category": "integration",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "Reverting profileDeclaresFrontend to 'return Boolean(frontend)' (pre-fix main logic) yields 4 failed / 6 passed, incl. the F32 matrix pin ('expected {level:warn} to be null') and the empty-{} predicate pin. Restored -> 11/11 green."
+          "evidence": "pty-manager-flush-preserve.test.ts 'OVERWRITES a thin on-disk snapshot when the flushed mirror is richer' + helper unit tests (boundary at exactly 60% writes; larger overwrites)."
         },
         {
-          "behavior": "AC3 - full existing server suite stays green; no invariant/ADR regressed",
+          "behavior": "AC4 - flushMirrorSnapshot does NOT dispose the mirror even when the gate SKIPS (CLAUDE.md rule 21 / ADR-092 keep-alive)",
+          "category": "integration",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "174 files / 2029 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). npm run build green. tsc clean. The warn output envelope + the two messages are byte-identical to the pre-fix inline blocks."
+          "evidence": "pty-manager-flush-preserve.test.ts 'does NOT dispose the mirror when the gate skips the write (rule 21)': after a skip, serializeMirrorIfLive returns a record AND a fresh emit still mirrors (a disposed mirror would return null / not update)."
         },
         {
-          "behavior": "AC4 - files stay within footprint (new cohesive module + new test per the campaign guardrail) and bloat baselines are not ratcheted",
+          "behavior": "AC5 - finalizeMirrorSnapshot behaves identically after the extraction (symmetry)",
+          "category": "integration",
           "disposition": "tested",
-          "category": "unit",
-          "evidence": "index.ts 877<=899 (net -20; anti-ratchet clean), core/preview-coherence.ts 86<300, core/preview-coherence.test.ts 90<300. Neither new file is baselined; profile-loader.ts untouched. Footprint deviation (new files vs the 2-file spec) recorded in the ADR: baseline-forced (index.ts at 899) + coverage-forced (boot IIFE uncoverable) + brief-sanctioned + parallel-safe (D23 is the last serial unit)."
+          "evidence": "pty-manager-flush-preserve.test.ts finalize-symmetry test (thin finalize preserves rich disk snapshot) + the pre-existing pty-manager-live-snapshot.test.ts H.1-H.6 finalize suite still green."
         },
         {
-          "behavior": "Diff coverage (hard gate >=80%) - every changed production line covered",
-          "disposition": "tested",
+          "behavior": "Full existing server suite stays green; build + tsc + oxlint clean",
           "category": "unit",
-          "evidence": "diff-cover vs origin/main: 12 changed lines, 2 missing (the two index.ts boot-IIFE call lines, structurally unreachable under Vitest per the isMainModule guard - same limitation as every index.ts iterate), coverage 83% >= 80%. core/preview-coherence.ts 100%."
+          "disposition": "tested",
+          "evidence": "176 files / 2041 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). npm run build exit 0. tsc --noEmit exit 0. oxlint exit 0 (changed files clean)."
         },
         {
-          "behavior": "Confidence calibration (medium + touches_io_boundary) - real profile-JSON round-trip: the boundary between profile files on disk and evaluatePreviewCoherence via the production loader",
-          "disposition": "tested",
+          "behavior": "Diff-coverage hard gate (>=80%) - every changed production line covered",
           "category": "unit",
-          "evidence": "Real round-trip probe over the actual profiles dir through production loadProfile + evaluatePreviewCoherence: python-plugin-monorepo (on-disk frontend:{} + dev_server:null) -> NO warn, supabase-nextjs -> NO warn, vite-hono (populated frontend, dev_server:undefined) -> WARN. Matches the unit matrix exactly; probe 1 (predicate revert) found the F32 defect, probes 2-3 clean -> asymptote reached."
+          "disposition": "tested",
+          "evidence": "snapshot-preserve.ts 100% (16/16 stmts, 11/11 branches, 2/2 funcs). The two new pty-manager.ts executable lines both hit: L874 (flush helper call) 14 hits, L1024 (finalize helper call) 27 hits. 100% on changed lines, above the 80% gate."
+        },
+        {
+          "behavior": "Confidence calibration (medium + replay/io-boundary) - real-disk producer->file->consumer round-trip",
+          "category": "integration",
+          "disposition": "tested",
+          "evidence": "Throwaway probe against built dist/ SnapshotStore, 4/4 PASS: seed-rich->flush-thin->read PRESERVED; seed-thin->flush-rich->read OVERWRITTEN; corrupt envelope->read throws->best-effort WRITE; exact-60% boundary->WRITE. warn skip/read-fail lines fired with correct byte counts. Probe set 1 (RED-first) found the bug; sets 2-3 clean -> asymptote reached."
+        },
+        {
+          "behavior": "AC6 (doubt-review HIGH, RED-first) - the extraction MUST NOT resurrect a snapshot deleted during the flush read-park; shouldProceed(() => !entry.tornDown) aborts the post-read write synchronously before the enqueue; finalize omits it",
+          "category": "integration",
+          "disposition": "tested",
+          "evidence": "pty-manager-flush-preserve.test.ts 'does NOT resurrect a wiped snapshot when a delete cascade lands during the flush read-park'. RED on pre-fix flush call site (no shouldProceed): expect(writeSpy).not.toHaveBeenCalled() failed - 'write ... been called 1 times' (late write recreated the wiped .snapshot). GREEN after restoring shouldProceed: write not called + has(TASK)===false."
+        },
+        {
+          "behavior": "shouldProceed abort branch fully covered (sync false-abort, sync true-write, async post-read-park abort, preserve-branch unaffected, finalize omits predicate)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "snapshot-preserve.test.ts 4 new tests. snapshot-preserve.ts 100% (19/19 stmts, 15/15 branches, 2/2 funcs). pty-manager.ts flush call site L882 15 hits, L886 (options+shouldProceed arrow) 13 hits incl. the () => !entry.tornDown arrow invoked; finalize L1032 28 hits (no shouldProceed)."
         }
       ],
       "counts": {
-        "testable": 7,
-        "tested": 7,
+        "testable": 10,
+        "tested": 10,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 4,
-        "covered_acs": 4
+        "acs": 6,
+        "covered_acs": 6
       },
-      "note": "4 ACs (AC1-AC4) from the sub-iterate spec: AC1 split across the F32 empty-{} no-warn pin and the still-warns regression pin (2 behaviors), AC2 RED-first, AC3 full-suite+build, AC4 footprint+bloat, plus the hard diff-coverage gate and the medium/io-boundary calibration probe. Each AC1 facet maps to >=1 RED-first regression in preview-coherence.test.ts; the fix is a single profileDeclaresFrontend predicate consumed by the pure evaluatePreviewCoherence matrix that index.ts drives."
+      "note": "5 ACs (AC1-AC5) from the iterate spec: AC1 shared-helper + no-ratchet, AC2 RED-first preserve, AC3 overwrite, AC4 no-dispose (rule 21), AC5 finalize symmetry; plus the full-suite/build gate, the hard diff-coverage gate, and the medium/replay-boundary calibration probe. Each AC maps to >=1 committed Vitest behavior; AC2 is RED-first proven. AC6 added post-push from the doubt-review HIGH (resurrection guard): the unqueued helper read reopened a delete-cascade window; shouldProceed restores the pre-extraction synchronous-liveness-before-write guarantee (flush only)."
     },
     "degraded": []
   }

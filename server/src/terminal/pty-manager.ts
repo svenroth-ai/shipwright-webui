@@ -27,6 +27,7 @@ import type { ScrollbackStore } from "./scrollback-store.js";
 import { HeadlessMirror } from "./headless-mirror.js";
 import { IdleReaper, DEFAULT_IDLE_TIMEOUT_MS } from "./idle-reaper.js";
 import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
+import { writeSnapshotPreservingLarger } from "./snapshot-preserve.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -839,6 +840,18 @@ export class PtyManager {
    * snapshot at `tryReadSnapshot`. Without it, a Hono restart loses
    * every live-pty's state since the last `pty.kill`.
    *
+   * The write goes through the shared ADR-096 preservation gate
+   * (`writeSnapshotPreservingLarger`, snapshot-preserve.ts) — SAME gate
+   * finalizeMirrorSnapshot uses. Before this was shared, flush wrote
+   * unconditionally and could clobber a richer on-disk snapshot with a
+   * thin mirror (Claude TUI alt-screen exit) on the 2nd detach→reopen
+   * cycle, blanking the scrollback. The gate skips the write when the
+   * new payload is substantially smaller than the existing one.
+   *
+   * CLAUDE.md rule 21 / ADR-092: flush is a KEEP-ALIVE path — it MUST
+   * NOT dispose the mirror (the pty stays alive so subsequent onData
+   * keeps mirroring). Only finalizeMirrorSnapshot disposes.
+   *
    * No-op when:
    *   - no entry for `taskId`,
    *   - entry has no mirror (flag off),
@@ -855,7 +868,23 @@ export class PtyManager {
       // at serializeStable across a delete's kill+clear must NOT re-land the file.
       if (entry.tornDown) return;
       const { cols, rows } = entry.mirror.dimensions;
-      await this.snapshotStore.write(taskId, { cols, rows, data: stable });
+      // ADR-096 shared preservation gate — do NOT clobber a richer on-disk
+      // snapshot with a thinner mirror (see snapshot-preserve.ts). Same gate
+      // as finalizeMirrorSnapshot. Mirror is NOT disposed here (rule 21).
+      //
+      // shouldProceed re-checks entry.tornDown SYNCHRONOUSLY immediately
+      // before the write enqueue — the helper's unqueued `await store.read`
+      // yields the loop after the guard above, so a delete cascade that lands
+      // in that gap (kill sets tornDown + clear() unlinks the snapshot) MUST
+      // abort this write, or it would resurrect the just-wiped secret-bearing
+      // snapshot (doubt-review HIGH, iterate-2026-07-12). finalize OMITS this
+      // predicate — its kill-path write is authoritative and must land.
+      await writeSnapshotPreservingLarger(
+        this.snapshotStore,
+        taskId,
+        { cols, rows, data: stable },
+        { caller: "flushMirrorSnapshot", shouldProceed: () => !entry.tornDown },
+      );
     } catch (err) {
       // eslint-disable-next-line no-console
       console.warn(
@@ -983,32 +1012,14 @@ export class PtyManager {
    * spike — small but non-zero. Detaching keeps the close path
    * responsive and avoids back-pressuring the broadcaster.
    *
-   * Iterate H (ADR-096) — snapshot preservation heuristic:
-   *
-   * Before writing, compare the new payload's byte length against any
-   * existing on-disk snapshot. If the new one is substantially smaller
-   * (<60 % of existing), preserve the existing snapshot and skip the
-   * write. Rationale: a Claude TUI shutdown emits `DECRST 1049` (leave
-   * alt-screen) before pty.onExit fires; those bytes are processed by
-   * the mirror before serializeStable() runs, yielding an almost-empty
-   * cell-state. The previous `flushMirrorSnapshot`-from-last-detach
-   * snapshot (Iterate E ADR-092) captured a richer state and is the
-   * correct artifact for replay — finalize must not clobber it on the
-   * way out.
-   *
-   * Edge cases handled below:
-   *   - No existing snapshot (`read` returns null) → write the new one
-   *     (first writer wins; the comparison never fires).
-   *   - `read` throws (malformed header, IO error) → log + write the
-   *     new one (best-effort fallback; do not lose data on read fail).
-   *   - New payload is empty + existing has content → preserve existing
-   *     (subsumed by the 60 % rule; explicit for readability).
-   *   - mirror.dispose() + releaseQueue still run in `finally` on every
-   *     branch (skip or write).
-   *
-   * The 60 % threshold is heuristic and the skip-decision is logged via
-   * `console.warn` so observability picks up misclassifications without
-   * a code change.
+   * Iterate H (ADR-096) — the write goes through the shared preservation
+   * gate `writeSnapshotPreservingLarger` (snapshot-preserve.ts): if an
+   * existing on-disk snapshot is substantially larger than the about-to-
+   * write one (a Claude TUI alt-screen-exit clear yields a near-empty
+   * cell-state), the write is SKIPPED so the richer replay artifact
+   * survives. Same gate flushMirrorSnapshot now uses (iterate-2026-07-12
+   * de-dup). mirror.dispose() + releaseQueue still run in `finally` on
+   * every branch (skip or write).
    */
   private async finalizeMirrorSnapshot(
     taskId: string,
@@ -1018,43 +1029,12 @@ export class PtyManager {
       const stable = await mirror.serializeStable();
       const { cols, rows } = mirror.dimensions;
       if (this.snapshotStore) {
-        // Iterate H ADR-096 — snapshot preservation gate. Read any
-        // existing on-disk snapshot first; if its payload is
-        // substantially larger than the about-to-write one, prefer
-        // the older snapshot. Read failures fall through to write
-        // (best-effort — don't lose data on a stat/parse error).
-        let existingDataLen = 0;
-        try {
-          const existing = await this.snapshotStore.read(taskId);
-          if (existing) {
-            existingDataLen = existing.data.length;
-          }
-        } catch (readErr) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[pty-manager] finalize: existing snapshot read failed for ${taskId} (${(readErr as Error).message}) — proceeding with write`,
-          );
-          // existingDataLen stays 0 → comparison below won't fire,
-          // new snapshot will be written.
-        }
-        const newDataLen = stable.length;
-        if (
-          existingDataLen > 0 &&
-          newDataLen < existingDataLen * 0.6
-        ) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            `[pty-manager] finalizeMirrorSnapshot: preserving last-detach snapshot for ${taskId} (new=${newDataLen}B, existing=${existingDataLen}B — likely Claude TUI exit clear, ADR-096)`,
-          );
-          // Skip the write. existing snapshot stays; mirror still
-          // disposed in the finally block.
-        } else {
-          await this.snapshotStore.write(taskId, {
-            cols,
-            rows,
-            data: stable,
-          });
-        }
+        await writeSnapshotPreservingLarger(
+          this.snapshotStore,
+          taskId,
+          { cols, rows, data: stable },
+          { caller: "finalizeMirrorSnapshot" },
+        );
       }
     } catch (err) {
       // eslint-disable-next-line no-console

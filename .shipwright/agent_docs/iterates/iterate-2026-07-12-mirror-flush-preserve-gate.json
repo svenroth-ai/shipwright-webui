@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-12-mirror-flush-preserve-gate",
+  "date": "2026-07-12T05:43:16.252280Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/mirror-flush-preserve-gate",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-12-mirror-flush-preserve-gate/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-12-mirror-flush-preserve-gate"
+}
