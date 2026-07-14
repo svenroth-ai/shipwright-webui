@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-07-14-modal-scroll-body-invariant",
+  "date": "2026-07-14T16:09:43.085364Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/modal-scroll-body-invariant",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-14-modal-scroll-body-invariant"
+}

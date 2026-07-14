@@ -44,7 +44,7 @@ export function CampaignsLane({
         Campaigns
       </div>
       <div
-        className="flex max-h-[40vh] flex-col gap-3 overflow-y-auto"
+        className="flex max-h-[40vh] flex-col gap-3 overflow-y-auto [&>*]:shrink-0"
         data-testid="task-board-campaigns-scroll"
       >
         {visible.map((c) => (

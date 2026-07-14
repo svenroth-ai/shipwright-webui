@@ -162,7 +162,11 @@ function DroppableColumn({ meta, items }: DroppableColumnProps) {
           {items.length}
         </span>
       </div>
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-[10px] pb-[14px]">
+      {/* [&>*]:shrink-0 — bounded column-flex scroller; see
+          components/common/ModalScrollBody.tsx for the invariant. NB the
+          direct child is DraggableCard's wrapper div, so TaskCard's own
+          shrink-0 is a grandchild and does NOT guard this container. */}
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-[10px] pb-[14px] [&>*]:shrink-0">
         {items.length === 0 && (
           <div className="py-1 text-[11px] text-[var(--color-muted)]">none</div>
         )}

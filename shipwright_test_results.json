@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-07-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-14-more-options-flex-clip",
+    "run_id": "iterate-2026-07-14-modal-scroll-body-invariant",
     "date": "2026-07-14",
     "unit": {
       "status": "passed",
-      "passed": 4102,
-      "total": 4103,
-      "note": "client vitest 206 files / 2017 passed (2016 baseline + 1 new CI fence in ModalShell.test.tsx). server vitest 178 files / 2085 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local; untouched by this diff). tsc --noEmit clean; oxlint clean on the touched files. The new fence was falsified both ways: it PASSES with [&>*]:shrink-0 present and FAILS when the class is removed - it is a real guard, not decoration."
+      "passed": 4110,
+      "total": 4111,
+      "note": "client vitest 208 files / 2025 passed (206/2017 on main: +2 files = ModalScrollBody.test.tsx + the modal-scroll-body-invariant meta-test, +8 tests). server vitest 178 files / 2085 passed + 1 skipped (untouched). tsc --noEmit clean; oxlint clean on all touched files. doc-sync.test.ts green, so the new CLAUDE.md DO-NOT #24 is consistent."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No integration surface: the diff is a single CSS rule on a presentational shell plus two comments. No route, store, contract, or cross-component machinery touched."
+      "note": "No integration surface: presentational refactor + a source-scanning meta-test. No route, store, contract, or cross-component machinery touched."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,90 +22,114 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "F0.5 gate run (3 specs): the NEW triage-fix-now-more-options-clip.spec.ts + the 2 existing triage-fix-now.spec.ts cases (which exercise BOTH the new-task and new-iterate modal bodies). The new spec was confirmed RED before the fix (422px of the More-options panel clipped, modal body NOT scrollable) and GREEN after (0px clipped, body scrolls). Additionally re-run outside the gate: 80-tablet-responsive.spec.ts 21/21 passed (layout non-regression across the compact/desktop bands). 70-b-dropdown-modes + 50-new-task-modal fail/skip in the isolated stack, but fail IDENTICALLY on the untouched baseline (verified by stashing the fix and re-running): they need a project-SCOPED board (the app renders ProjectCreateCascade, not create-menu-primary, in All-projects scope). Pre-existing fixture gap, not a regression."
+      "passed": 24,
+      "total": 24,
+      "note": "F0.5 gate, 24 tests, exit 0. The load-bearing one is triage-fix-now-more-options-clip.spec.ts: it proves the PR #250 clip fix SURVIVES this refactor (0px clipped, modal body scrolls). Plus triage-fix-now (both dialog bodies) + 80-tablet-responsive 21/21. campaign-status-filter fails in the isolated stack, but fails IDENTICALLY with my CampaignsLane change reverted (verified) — the lane element never mounts (no campaign fixtures under the temp USERPROFILE), so it is a fixture gap, not a regression."
     },
     "design_fidelity": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No visual redesign - the fix RESTORES the intended rendering of an existing panel. Verified by real-browser screenshot before/after."
+      "note": "Behavior-preserving refactor — no visual change by construction; the class sets are identical (ModalShell) or gain only a verified no-op guard."
     },
     "smoke": {
       "status": "passed",
       "passed": 1,
       "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx server on :3901, temp USERPROFILE, 127.0.0.1): /api/health 200, index served 200."
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3902, temp USERPROFILE, 127.0.0.1): /api/health 200."
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node C:\\01_Development\\shipwright-webui\\client\\node_modules\\@playwright\\test\\cli.js test --config client/playwright.config.ts client/e2e/flows/triage-fix-now-more-options-clip.spec.ts client/e2e/flows/triage-fix-now.spec.ts --project=chromium",
+      "runner": "node C:/01_Development/shipwright-webui/client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts client/e2e/flows/triage-fix-now-more-options-clip.spec.ts client/e2e/flows/triage-fix-now.spec.ts client/e2e/flows/80-tablet-responsive.spec.ts --project=chromium",
       "exit_code": 0,
-      "tests_run": 3,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\more-options-flex-clip\\.shipwright\\runs\\iterate-2026-07-14-more-options-flex-clip\\surface_verification.log",
-      "timestamp": "2026-07-14T15:22:27.294Z",
+      "tests_run": 24,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\modal-scroll-body-invariant\\.shipwright\\runs\\iterate-2026-07-14-modal-scroll-body-invariant\\surface_verification.log",
+      "timestamp": "2026-07-14T16:08:02.496Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behavior this diff introduces or changes. The diff is one CSS rule on ModalShell's scroll body (plus two explanatory comments and one new data-testid), so the behavior set is: the rule's own presence (CI fence), the layout outcome it produces (5 distinct assertions in the new E2E), and non-regression of the surfaces the rule newly applies to (the other create-dialog bodies + the responsive bands) = 8 behaviors.",
-      "behaviors": [
-        {
-          "behavior": "ModalShell's scroll body pins [&>*]:shrink-0 (+ keeps overflow-y-auto and its max-h) so no direct child can absorb the container's overflow",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "ModalShell.test.tsx 'modal body pins [&>*]:shrink-0...' - vitest is the CI gate here; Playwright is not. Falsified: removing the class turns this test RED."
-        },
-        {
-          "behavior": "Opened from a triage item, the More-options panel renders UNCLIPPED (scrollHeight - clientHeight <= 1)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now-more-options-clip.spec.ts - RED before fix (422px clipped), GREEN after (0px)."
-        },
-        {
-          "behavior": "The last field in the panel (Tags) sits fully inside the panel's painted box - the row the user saw sliced in half",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now-more-options-clip.spec.ts boundingBox comparison."
-        },
-        {
-          "behavior": "The modal BODY takes the overflow and becomes scrollable (the second half of the bug: the disclosure ate the negative space, so the clipped fields were unreachable, not merely off-screen)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now-more-options-clip.spec.ts scrollHeight > clientHeight on new-issue-modal-body. Doubles as the anti-vacuity guard: if the form ever fit, the clip assertions could pass trivially - this one fails loud instead."
-        },
-        {
-          "behavior": "The clipped fields are actually reachable by scrolling",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now-more-options-clip.spec.ts scrollIntoViewIfNeeded + toBeInViewport."
-        },
-        {
-          "behavior": "The triage auto-expand is PRESERVED (More options opens with aria-expanded=true so the carried-over priority/domain are visible) - the behavior the user explicitly chose to keep",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now-more-options-clip.spec.ts precondition assertion."
-        },
-        {
-          "behavior": "The rule does not regress the other create-dialog bodies it now also applies to (new-task, new-iterate)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now.spec.ts (2 cases: github->new-task, iterate->new-iterate) GREEN. Direct children of the scroll body were additionally enumerated across all five bodies in code review: none declares flex-1/shrink/basis, so shrink-0 is a no-op for every child except the overflow-hidden one it targets."
-        },
-        {
-          "behavior": "No layout regression across the compact/desktop responsive bands",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "80-tablet-responsive.spec.ts 21/21 passed."
-        }
-      ],
+      "enumeration_basis": "Every behavior the diff introduces or changes: the carrier's contract (2), behavior-PRESERVATION for each of the 3 dialog bodies it now backs (3), the 2 lanes newly guarded (2), the ratchet's own two guarantees (2), the end-to-end proof that the PR #250 fix survives (1), non-regression (1), and the bloat-baseline hold (1) = 12 behaviors.",
       "counts": {
-        "total": 8,
-        "tested": 8,
+        "total": 12,
+        "tested": 12,
         "untestable": 0,
         "untested_testable": 0
-      }
+      },
+      "behaviors": [
+        {
+          "behavior": "ModalScrollBody always emits the invariant half (flex-col + overflow-y-auto + [&>*]:shrink-0)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "components/common/ModalScrollBody.test.tsx"
+        },
+        {
+          "behavior": "ModalScrollBody merges the caller's variable half (height budget + gap) without dropping the guard",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "ModalScrollBody.test.tsx (asserts max-h-[calc(100vh-260px)] + gap-3.5 + the guard coexist)"
+        },
+        {
+          "behavior": "ModalShell's body keeps its EXACT pre-refactor class set (behavior preservation)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "The pre-existing ModalShell.test.tsx fence from PR #250 (asserts overflow-y-auto + max-h-[calc(100vh-280px)] + [&>*]:shrink-0) still passes unchanged."
+        },
+        {
+          "behavior": "ContinuePipelineModal's body now inherits the guard (it had none)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "ContinuePipelineModal.test.tsx 'scroll body inherits the bounded-scroll-container guard'"
+        },
+        {
+          "behavior": "EditTaskModal's body now inherits the guard, with its DIFFERENT budget (260px/gap-3.5) preserved",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "EditTaskModal.test.tsx 'scroll body inherits the bounded-scroll-container guard'"
+        },
+        {
+          "behavior": "The TaskBoard column lane is guarded (its apparent child-layer guard was a no-op: TaskCard's shrink-0 sits on a grandchild behind DraggableCard's wrapper div)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "modal-scroll-body-invariant.test.ts structural scan (falsified: removing the class makes it FAIL and name the file)"
+        },
+        {
+          "behavior": "The Campaigns lane is guarded (bounded via max-h-[40vh]; invisible to the first draft of the ratchet)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "modal-scroll-body-invariant.test.ts structural scan"
+        },
+        {
+          "behavior": "RATCHET: any NEW self-scrolling column-flex container without the guard fails the build",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "modal-scroll-body-invariant.test.ts — falsified against 5 evasions (max-h-[85vh], overflow-auto, max-h-[calc(100dvh-..)], flex-1-bounded, guard-only-in-a-comment): ALL caught. vitest gates CI; Playwright does not."
+        },
+        {
+          "behavior": "RATCHET: a ModalScrollBody caller cannot smuggle a class beyond max-h-*/gap-* (no tailwind-merge, so a stray overflow-visible would silently win/lose by source order)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "modal-scroll-body-invariant.test.ts 'callers pass only the variable half'"
+        },
+        {
+          "behavior": "The PR #250 clip fix still holds THROUGH the refactor (the whole point of behavior preservation)",
+          "category": "e2e",
+          "disposition": "tested",
+          "evidence": "e2e/flows/triage-fix-now-more-options-clip.spec.ts GREEN in real Chromium against the refactored build (0px clipped, body scrolls)."
+        },
+        {
+          "behavior": "No regression to the create-dialog bodies or the responsive bands",
+          "category": "e2e",
+          "disposition": "tested",
+          "evidence": "triage-fix-now.spec.ts (new-task + new-iterate bodies) + 80-tablet-responsive 21/21. F0.5: 24 tests, exit 0."
+        },
+        {
+          "behavior": "Both grandfathered bloat-baseline files stay AT baseline (the anti-ratchet hook blocks any growth)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "ContinuePipelineModal 321/321, EditTaskModal 439/439; pre-commit anti_ratchet_check passes."
+        }
+      ]
     },
     "degraded": []
   }
