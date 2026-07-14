@@ -36,7 +36,15 @@ async function getFile(request: APIRequestContext, relPath: string) {
 
 test.describe("Flow I — Tree + file routes", () => {
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "70-i-tree-file-routes" });
+    project = await seedProject(request, {
+      name: "70-i-tree-file-routes",
+      adopted: true,
+      // The tree + file routes need real files to list and read.
+      files: {
+        "README.md": "# Seeded\n\nE2E fixture file.\n",
+        "src/index.ts": "export const seeded = true;\n",
+      },
+    });
     await setActiveProject(page, project.projectId);
   });
   test.afterEach(async ({ request }) => {

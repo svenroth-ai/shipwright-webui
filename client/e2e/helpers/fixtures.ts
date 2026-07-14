@@ -22,11 +22,17 @@
 
 import type { APIRequestContext, Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import fs from "node:fs/promises";
-import fsSync from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { apiUrl } from "./env";
+import {
+  assertTempPath,
+  makeFixedDir,
+  makeTempDir,
+  removeTempDir,
+  writeFiles,
+} from "./temp-dir";
+
+// Re-exported so specs can keep importing them from the fixtures barrel.
+export { makeTempDir, removeTempDir } from "./temp-dir";
 
 /** localStorage key the app reads the active project from (client/src/lib/projectIds.ts). */
 export const ACTIVE_PROJECT_STORAGE_KEY = "webui.activeProjectId";
@@ -47,33 +53,6 @@ export interface SeededTask {
 }
 
 /**
- * Hard-abort unless `p` resolves under the OS temp dir. Mirrors the
- * isolated-store self-lock: a fumbled fixture must fail loudly here rather than
- * mkdir into (or later `rm -rf`) a real directory on the developer's disk.
- */
-function assertTempPath(p: string): string {
-  const real = (q: string) => {
-    try {
-      return fsSync.realpathSync.native(q);
-    } catch {
-      return path.resolve(q);
-    }
-  };
-  const norm = (s: string) => (process.platform === "win32" ? s.toLowerCase() : s);
-  const tmp = norm(real(os.tmpdir()));
-  const target = norm(real(path.dirname(p)));
-  const rel = path.relative(tmp, target);
-  const under = rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
-  if (!under) {
-    throw new Error(
-      `[fixtures SELF-LOCK] Refusing to use ${p}: E2E fixtures may only create ` +
-        `directories under the OS temp dir (${tmp}). Got parent=${target}.`,
-    );
-  }
-  return p;
-}
-
-/**
  * Hex id for run-config fixtures. The run-config reader's `RUN_ID_PATTERN` /
  * `PHASE_TASK_ID_PATTERN` (server/src/types/run-config-v2.ts) SILENTLY reject a
  * non-hex id — the config is dropped and the card simply never renders, which
@@ -81,31 +60,6 @@ function assertTempPath(p: string): string {
  */
 export function hexId(length = 12): string {
   return randomUUID().replace(/-/g, "").slice(0, length);
-}
-
-/** Create a throwaway directory under the OS temp dir. */
-export async function makeTempDir(prefix = "sw-e2e-"): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), prefix));
-}
-
-/**
- * A temp dir with a FIXED name — for the visual specs only.
- *
- * The Projects page (and Settings) renders the project's PATH. With `mkdtemp` the
- * random suffix changes every run, so those glyphs differ on a no-op change and the
- * pixel gate fails against its own baselines. Determinism has to come from the
- * fixture, not from a pixel budget loose enough to swallow a line of text — a budget
- * that could swallow a path could swallow a broken layout too.
- *
- * Safe because the `visual` project runs with workers: 1 and each spec cleans up
- * after itself; a fixed name would be a collision hazard under parallelism, which is
- * why it is opt-in rather than the default.
- */
-export async function makeFixedDir(name: string): Promise<string> {
-  const dir = assertTempPath(path.join(os.tmpdir(), name));
-  await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
-  await fs.mkdir(dir, { recursive: true });
-  return dir;
 }
 
 /**
@@ -127,12 +81,42 @@ export const FIXTURE_PROJECT_COLOR = "#4f46e5";
  */
 export async function seedProject(
   request: APIRequestContext,
-  opts: { name?: string; profile?: string; color?: string; dirName?: string } = {},
+  opts: {
+    name?: string;
+    profile?: string;
+    color?: string;
+    dirName?: string;
+    /**
+     * Make the project look ADOPTED. `adopted` is nothing more than the presence of
+     * `shipwright_run_config.json` (project-manager.ts `isAdopted`) — and it is
+     * load-bearing: an un-adopted project's action catalog collapses to
+     * `/shipwright-adopt`, so a spec asserting on the normal Launch command sees an
+     * "Adopt:" command instead. Several specs assumed the developer's project was
+     * adopted; now they say so.
+     */
+    adopted?: boolean;
+    /** Files to create in the project dir (the tree/file-route specs need real ones). */
+    files?: Record<string, string>;
+  } = {},
 ): Promise<SeededProject> {
   // dirName -> a deterministic path (the visual specs render it on screen).
   const dir = opts.dirName
     ? await makeFixedDir(opts.dirName)
     : assertTempPath(await makeTempDir("sw-e2e-project-"));
+
+  await writeFiles(dir, {
+    ...(opts.adopted
+      ? {
+          "shipwright_run_config.json": JSON.stringify(
+            { schema_version: 2, status: "complete", iterate_history: [] },
+            null,
+            2,
+          ),
+        }
+      : {}),
+    ...(opts.files ?? {}),
+  });
+
   const name = opts.name ?? `E2E Project ${hexId(6)}`;
   const res = await request.post(apiUrl("/api/projects"), {
     data: {
@@ -158,9 +142,21 @@ export async function seedProject(
  */
 export async function seedTask(
   request: APIRequestContext,
-  opts: { title?: string; cwd?: string; projectId?: string; pluginDirs?: string[] } = {},
+  opts: {
+    title?: string;
+    cwd?: string;
+    projectId?: string;
+    pluginDirs?: string[];
+    /**
+     * Files to create in the task's cwd. The TaskDetail folder tree lists the TASK's
+     * cwd, not the project dir — a freshly-mkdtemp'd cwd is empty, so a spec asserting
+     * on a tree row was relying on whatever happened to be in the developer's folder.
+     */
+    files?: Record<string, string>;
+  } = {},
 ): Promise<SeededTask> {
   const cwd = opts.cwd ?? assertTempPath(await makeTempDir("sw-e2e-task-"));
+  await writeFiles(cwd, opts.files);
   const title = opts.title ?? `E2E task ${hexId(6)}`;
   const res = await request.post(apiUrl("/api/external/tasks"), {
     data: {
@@ -240,17 +236,3 @@ export async function cleanupProject(
   await removeTempDir(project.path);
 }
 
-/** Remove a temp dir created by `makeTempDir`. Self-locks, then retries on EBUSY. */
-export async function removeTempDir(dir: string | undefined): Promise<void> {
-  if (!dir) return;
-  assertTempPath(dir);
-  for (let attempt = 0; attempt < 5; attempt++) {
-    try {
-      await fs.rm(dir, { recursive: true, force: true });
-      return;
-    } catch {
-      if (attempt === 4) return;
-      await new Promise((r) => setTimeout(r, 250));
-    }
-  }
-}

@@ -43,7 +43,7 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
   });
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "70-a-taskboard-save-launch" });
+    project = await seedProject(request, { name: "70-a-taskboard-save-launch", adopted: true });
     await setActiveProject(page, project.projectId);
     // Make sure the activeProjectId defaults to UAT 1 so the modal has
     // actions resolved (and the Save/Launch paths don't 400 on missing
@@ -220,7 +220,15 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     } else {
       // Default path: sessionStorage hand-off worked, clipboard untouched.
       // Verify the server response still has the command shape we expect.
-      expect.soft(expectedClipboardText).toMatch(/claude\s+\/shipwright-/);
+      // A00 — the pattern used to be /claude\s+\/shipwright-/, i.e. it required the
+      // slash-command to sit IMMEDIATELY after `claude`. That stopped being true when
+      // the session uuid was pre-bound at task creation (CLAUDE.md rule 2): the real
+      // command is now
+      //   claude --session-id <uuid> --name '<title>' '/shipwright-…'
+      // so the old pattern could never match the current, CORRECT command. The intent
+      // — claude invokes a shipwright slash-command — is unchanged; only the
+      // adjacency assumption, which was never the point, is dropped.
+      expect.soft(expectedClipboardText).toMatch(/claude[\s\S]*\/shipwright-/);
     }
 
     // The task state is no longer "draft" on the server.

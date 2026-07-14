@@ -15,14 +15,13 @@ import { test, expect } from "@playwright/test";
 let project: SeededProject;
 
 
-const UAT_PATH = "C:\\tmp\\uat-1";
 
 async function createTask(
   request: import("@playwright/test").APIRequestContext,
   title: string,
 ) {
   const resp = await request.post(apiUrl("/api/external/tasks"), {
-    data: { title, cwd: UAT_PATH, projectId: project.projectId },
+    data: { title, cwd: project.path, projectId: project.projectId },
   });
   expect(resp.ok()).toBeTruthy();
   const body = (await resp.json()) as { task: { taskId: string } };
@@ -31,7 +30,17 @@ async function createTask(
 
 test.describe("Flow F — iterate-2 / iterate-3 regression guards", () => {
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "70-f-regression-invariants" });
+    project = await seedProject(request, {
+      name: "70-f-regression-invariants",
+      adopted: true,
+      // The task cwd IS the project dir, and the folder tree lists it — so it
+      // needs real files. This used to be `C:\tmp\uat-1`, a Windows-only
+      // absolute path on one developer's disk that does not exist on a CI runner.
+      files: {
+        "README.md": "# Seeded\n\nE2E fixture file.\n",
+        "src/index.ts": "export const seeded = true;\n",
+      },
+    });
     await setActiveProject(page, project.projectId);
   });
   test.afterEach(async ({ request }) => {
