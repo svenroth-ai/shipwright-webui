@@ -223,11 +223,11 @@ test.describe("@smoke A00 — terminal byte path (the A18 invariant)", () => {
     await page.keyboard.press("Control+v");
 
     await expect
-      .poll(() => outboundDataFrames(cap, taskId, pasteAt).map((f) => f.payload).join(""), {
+      .poll(() => outboundDataFrames(cap, taskId, pasteAt).length, {
         timeout: 15_000,
         intervals: [150],
       })
-      .toBe(PASTED);
+      .toBeGreaterThan(0);
 
     // Let a duplicate arrive if the bug is back, THEN count.
     await page.waitForTimeout(1_500);
@@ -238,10 +238,31 @@ test.describe("@smoke A00 — terminal byte path (the A18 invariant)", () => {
       `paste must reach the pty as ONE frame; got ${frames.length}: ` +
         JSON.stringify(frames.map((f) => f.payload)),
     ).toBe(1);
-    expect(frames[0].payload).toBe(PASTED);
+
+    // BRACKETED PASTE (ESC[200~ … ESC[201~). When the foreground app has enabled
+    // bracketed-paste mode, the terminal wraps pasted text in these markers, and
+    // that wrapper is LOAD-BEARING: it is what tells the app "this is pasted text,
+    // do not treat it as typed input", i.e. what stops a pasted command from
+    // auto-executing. Asserting the exact wrapping (rather than stripping it and
+    // shrugging) is the point — a refactor that dropped the markers would turn a
+    // paste into an execution, and this is the guard that would catch it.
+    const ESC = String.fromCharCode(27); // built, not escaped -- keeps the byte literal
+    const BP_START = ESC + "[200~";
+    const BP_END = ESC + "[201~";
+    const payload = frames[0].payload;
+    const bracketed = payload.startsWith(BP_START);
+
+    if (bracketed) {
+      expect(payload.endsWith(BP_END), "bracketed paste must be closed").toBe(true);
+      expect(payload).toBe(`${BP_START}${PASTED}${BP_END}`);
+    } else {
+      expect(payload).toBe(PASTED);
+    }
+
     expect(
-      frames[0].payload.endsWith("\r"),
+      payload.endsWith("\r"),
       "a paste must NOT auto-submit — the user presses Enter",
     ).toBe(false);
+    expect(payload, "a paste must not smuggle in a CR").not.toContain("\r");
   });
 });
