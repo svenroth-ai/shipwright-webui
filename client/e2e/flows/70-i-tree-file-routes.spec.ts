@@ -41,7 +41,7 @@ test.describe("Flow I — Tree + file routes", () => {
       adopted: true,
       // The tree + file routes need real files to list and read.
       files: {
-        "README.md": "# Seeded\n\nE2E fixture file.\n",
+        "README.md": "# UAT 1 Test Project\n\nSeeded by the E2E fixture.\n",
         "src/index.ts": "export const seeded = true;\n",
       },
     });

@@ -40,7 +40,7 @@ test.describe("Flow D — TaskDetail 3-pane", () => {
       // needs real files. This used to be `C:\tmp\uat-1`, a Windows-only
       // absolute path on one developer's disk that does not exist on a CI runner.
       files: {
-        "README.md": "# Seeded\n\nE2E fixture file.\n",
+        "README.md": "# UAT 1 Test Project\n\nSeeded by the E2E fixture.\n",
         "src/index.ts": "export const seeded = true;\n",
       },
     });
