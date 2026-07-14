@@ -1,0 +1,1 @@
+Embedded terminal: wrong letters after returning to the window are gone - a re-show (window focus/visibility restore, or switching back to the Terminal tab) now rebuilds the WebGL glyph atlas instead of only repainting it, so cells the browser's background GPU-texture eviction had scrambled are re-resolved rather than redrawn from a stale coordinate (FR-01.28).

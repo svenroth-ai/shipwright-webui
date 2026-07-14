@@ -85,20 +85,38 @@ export type HealScheduler = (cb: () => void) => void;
  * subscriptions are also torn down automatically when the addon disposes (via
  * `term.dispose()` / context-loss), so disposing is idempotent.
  *
+ * `heal` exposes the SAME fence to callers that have no atlas-mutation event to
+ * ride (iterate-2026-07-14, FR-01.28): when the browser evicts or repacks the
+ * GPU texture of a BACKGROUNDED window, xterm emits nothing — the WebGL context
+ * survives, so `onContextLoss` stays quiet too — yet the cached render model now
+ * points at stale coordinates and every `term.refresh` dirty-skips right past it.
+ * The re-show path (window refocus / tab activation, see `activation-repaint.ts`)
+ * therefore calls `heal()` directly rather than growing a second clear.
+ *
  * @param schedule injectable for deterministic tests; defaults to queueMicrotask.
  */
 export function attachWebglAtlasRepaint(
   webgl: AtlasHealEvents,
   term: Pick<Terminal, "clearTextureAtlas">,
   schedule: HealScheduler = queueMicrotask,
-): { dispose: () => void } {
+): { dispose: () => void; heal: () => void } {
   let disposed = false;
   let pending = false;
 
   const flush = (): void => {
-    pending = false;
-    if (disposed) return;
+    if (disposed) {
+      pending = false;
+      return;
+    }
     try {
+      // `pending` stays TRUE across the clear: were a future xterm to emit an
+      // atlas-mutation event synchronously FROM clearTextureAtlas(), a re-entrant
+      // heal() would otherwise queue another microtask — and a microtask loop has
+      // no macrotask break, i.e. a hung tab. Unreachable in the pinned 6.0.0
+      // family (TextureAtlas.clearTexture fires no emitter), and the exact pin is
+      // CLAUDE.md rule 22 — but this is the feedback-loop class the header calls
+      // "worse than the bug", so it costs one line to make it structurally
+      // impossible rather than pin-dependent.
       term.clearTextureAtlas();
       if (typeof window !== "undefined") {
         const w = window as unknown as Record<string, number | undefined>;
@@ -109,6 +127,8 @@ export function attachWebglAtlasRepaint(
       // at debug so a PERSISTENT failure (corruption left masked) stays visible.
       // eslint-disable-next-line no-console
       console.debug("[atlas-heal] clearTextureAtlas skipped (term unavailable)", err);
+    } finally {
+      pending = false;
     }
   };
 
@@ -124,6 +144,7 @@ export function attachWebglAtlasRepaint(
   ];
 
   return {
+    heal,
     dispose: () => {
       disposed = true;
       for (const s of subs) {

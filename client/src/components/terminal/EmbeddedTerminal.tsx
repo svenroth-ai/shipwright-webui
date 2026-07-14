@@ -107,6 +107,8 @@ export const EmbeddedTerminal = forwardRef<
   const disposedRef = useRef(false);
   // Arm-fn for the data-driven settle-repaint (AC-4); set in the mount-effect.
   const settleArmRef = useRef<(() => void) | null>(null);
+  // WebGL glyph-atlas heal (FR-01.28) — see activation-repaint.ts "ATLAS HEAL".
+  const atlasHealRef = useRef<(() => void) | null>(null);
 
   // Shell-owned banner state.
   const [readOnlyArmed, setReadOnlyArmed] = useState(false);
@@ -153,6 +155,7 @@ export const EmbeddedTerminal = forwardRef<
     socketSend: socket.send,
     active,
     settleArmRef,
+    atlasHealRef,
   });
   useTerminalShellEffects({
     socket,
@@ -205,11 +208,9 @@ export const EmbeddedTerminal = forwardRef<
       }),
     );
 
-    // OSC 52 clipboard relay (iterate-2026-07-07): Claude Code copies a mouse
-    // selection via OSC 52; xterm drops it by default, so the write never
-    // reached the OS clipboard (paste returned the old entry). Route it through
-    // copyText (execCommand fallback → works over http). Read requests are
-    // denied inside the handler so the clipboard is never leaked back to the app.
+    // OSC 52 clipboard relay (iterate-2026-07-07) — xterm drops OSC 52 by
+    // default, so Claude's copy never reached the OS clipboard. Rationale +
+    // the read-DENY rule: terminal-osc52.ts header.
     handle.term.parser.registerOscHandler(
       52,
       createOsc52ClipboardHandler({
@@ -222,13 +223,8 @@ export const EmbeddedTerminal = forwardRef<
       }),
     );
 
-    // ADR-133: touch-scroll replicates the mouse wheel. A finger pan
-    // dispatches synthetic WheelEvents onto term.element; xterm encodes the
-    // mouse-report (Claude TUI's alt-screen, mouse-tracking on — CLAUDE.md
-    // rule 22 / ADR-095) or converts to arrow keys (no-mouse alt-screen
-    // TUIs) exactly as a real mouse wheel does, while the normal-buffer
-    // scrollback keeps term.scrollLines(). Supersedes the ADR-131/132
-    // arrow-key path, which Claude bound to input-history navigation.
+    // ADR-133: touch-scroll replicates the mouse wheel (synthetic WheelEvents on
+    // term.element), superseding the ADR-131/132 arrow-key path — touch-scroll.ts.
     const disposeTouchScroll = attachTouchScroll(handle.term, container);
     // Full-viewport WebGL repaint on scroll — fixes the table-scroll smear.
     const disposeScrollRepaint = attachScrollRepaint(handle.term, container, () => disposedRef.current);
@@ -236,6 +232,7 @@ export const EmbeddedTerminal = forwardRef<
     // Transcript→Terminal switch / return-from-home (see repaint-on-settle.ts).
     const settle = attachSettleRepaint(handle.term, () => disposedRef.current);
     settleArmRef.current = settle.arm;
+    atlasHealRef.current = handle.healAtlas ?? null; // null in the DOM arm
 
     const onDataDispose = handle.term.onData((data) => {
       // Right-click is browser business (context menu → Paste). Claude treats a
@@ -250,6 +247,9 @@ export const EmbeddedTerminal = forwardRef<
       // ADR-084 — disposedRef flipped FIRST so straggler async tails of
       // OUR code short-circuit before dereferencing nulled internals.
       disposedRef.current = true;
+      // Outside the try: a throw below must NOT skip this (a trailing pass that
+      // wins the race against teardown would else reach a torn-down renderer).
+      atlasHealRef.current = null;
       onDataDispose.dispose();
       try {
         disposeScrollRepaint();

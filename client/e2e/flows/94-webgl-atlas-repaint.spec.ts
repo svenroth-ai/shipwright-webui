@@ -201,4 +201,97 @@ test.describe("Iterate webgl-atlas-repaint — atlas-change full repaint (real b
       await task.cleanup();
     }
   });
+
+  /*
+   * iterate-2026-07-14 (terminal-atlas-heal-on-refocus) — the RE-SHOW path.
+   * A background GPU-texture eviction emits NO atlas event (and does not lose
+   * the context), so the heal above never ran on a window restore and
+   * `term.refresh` dirty-skipped the stale cells. The trailing activation pass
+   * now calls the same deferred fence. Asserted as a DELTA on the live counter,
+   * plus a settled/bounded check (a runaway would mean the clear re-triggered
+   * itself — the feedback loop #206 fenced off). Wiring detail: unit suites.
+   */
+  test("a window re-show heals the live atlas exactly once (and does not loop)", async ({
+    page,
+    request,
+  }) => {
+    const logs: string[] = [];
+    page.on("console", (m) => {
+      const t = m.text();
+      if (t.includes(RENDERER_LOG)) logs.push(t);
+    });
+
+    const task = await createBareTask(page, request);
+    try {
+      await gotoTerminal(page, task.taskId);
+      const rendererLog = logs.find((l) => l.includes(RENDERER_LOG));
+      const canvases = await canvasCount(page);
+
+      if (canvases === 0 || !rendererLog?.includes("webgl")) {
+        // GPU-less runner → DOM fallback: no atlas exists, so there is nothing
+        // to heal and `healAtlas` is intentionally undefined (unit-pinned).
+        expect(canvases, "DOM fallback creates no canvas").toBe(0);
+        return;
+      }
+
+      // Baseline AFTER mount: `pageshow` at initial presentation may already
+      // have driven one (no-op) heal, so measure a delta, never an absolute.
+      const baseline = await page.evaluate(
+        (key) => (window as unknown as Record<string, number>)[key] ?? 0,
+        ATLAS_KEY,
+      );
+
+      // Return to the window: the real browser fires both of these on a restore.
+      await page.evaluate(() => {
+        window.dispatchEvent(new Event("focus"));
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+
+      // The heal rides the LAST trailing pass (350 ms) — deliberately, so it
+      // lands after the re-shown canvas has composited. Nothing may have healed
+      // before that; assert the wait is actually load-bearing.
+      const immediately = await page.evaluate(
+        (key) => (window as unknown as Record<string, number>)[key] ?? 0,
+        ATLAS_KEY,
+      );
+      expect(
+        immediately - baseline,
+        "the heal must NOT fire synchronously on the event (canvas has not composited)",
+      ).toBe(0);
+
+      await page.waitForTimeout(900); // past the 350 ms trailing pass + slack
+      const afterRestore = await page.evaluate(
+        (key) => (window as unknown as Record<string, number>)[key] ?? 0,
+        ATLAS_KEY,
+      );
+      // eslint-disable-next-line no-console
+      console.log(
+        `[spec94] re-show: baseline=${baseline} immediate=${immediately} after=${afterRestore}`,
+      );
+
+      // At least one clear for the restore. NOT an exact-equals: this counter is
+      // SHARED with the event-driven heal, so an unrelated atlas mutation inside
+      // the window (a theme re-resolve, a page merge from the post-clear
+      // re-raster) would red the spec for a non-defect. "Exactly one per burst"
+      // is pinned deterministically in the unit suites; what only a real browser
+      // can prove is that the heal reaches the LIVE renderer at all.
+      expect(
+        afterRestore - baseline,
+        "a window re-show must clear the glyph atlas on the live WebGL renderer",
+      ).toBeGreaterThanOrEqual(1);
+
+      // …and it must STAY there: no self-retriggering clear loop.
+      await page.waitForTimeout(1_500);
+      const settled = await page.evaluate(
+        (key) => (window as unknown as Record<string, number>)[key] ?? 0,
+        ATLAS_KEY,
+      );
+      expect(
+        settled,
+        "the atlas heal must not feedback-loop (count stays put once settled)",
+      ).toBe(afterRestore);
+    } finally {
+      await task.cleanup();
+    }
+  });
 });

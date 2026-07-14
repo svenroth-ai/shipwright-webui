@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-12T06:11:23Z",
+  "last_updated": "2026-07-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-12-mirror-flush-preserve-gate",
-    "date": "2026-07-12",
+    "run_id": "iterate-2026-07-14-terminal-atlas-heal-on-refocus",
+    "date": "2026-07-14",
     "unit": {
       "status": "passed",
-      "passed": 2046,
-      "total": 2047,
-      "note": "server vitest 176 files / 2041 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). Adds snapshot-preserve.test.ts (8 helper unit tests) + pty-manager-flush-preserve.test.ts (4 integration tests). Production: new snapshot-preserve.ts (126 LOC) holds the shared ADR-096 gate; pty-manager.ts 1214->1186 (SHRANK 28, no baseline ratchet) as finalizeMirrorSnapshot + flushMirrorSnapshot both delegate to writeSnapshotPreservingLarger. snapshot-store.ts untouched. No client/** change. tsc + oxlint clean; npm run build green. REMEDIATION (doubt-review HIGH): added shouldProceed liveness re-check to the shared gate + 5 new tests (4 helper abort-branch unit + 1 pty-manager resurrection-race integration); full suite 176 files / 2046 passed + 1 skipped."
+      "passed": 2016,
+      "total": 2016,
+      "note": "client vitest 206 files / 2016 passed (main: 205 / 2007). Server suite re-run green and unaffected (176 files / 2046 passed + 1 skipped, SHIPWRIGHT_NETWORK_PROFILE=local). New test files: useTerminalResize.atlas-heal.test.ts (14 hook tests), EmbeddedTerminal.atlas-heal.test.tsx (4 component tests joining the wiring seam). Extended: activation-repaint.test.ts (+7), xtermAddons.atlas.test.ts (+8, incl. 3 GPU-context-loss), useTerminalResize.test-harness.ts (atlasHeal seam). Production: webgl-atlas-repaint.ts exposes its coalesced heal (pending now reset in finally); xtermAddons.ts surfaces handle.healAtlas (WebGL arm only, assigned after loadAddon succeeds, retracted on context loss); activation-repaint.ts fires it on every trailing pass; useTerminalResize.ts gates it on active (read at fire time); EmbeddedTerminal.tsx holds the ref. EmbeddedTerminal.tsx held at its bloat baseline (exactly 314; anti_ratchet_check.py --worktree exit 0). tsc + oxlint clean; npm run build green."
     },
     "integration": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "note": "The pty-manager flush/finalize integration IS exercised by pty-manager-flush-preserve.test.ts through the real HeadlessMirror serialize -> real SnapshotStore disk write/read round-trip (Vitest, counted under unit). No separate HTTP-route surface changed."
+      "status": "passed",
+      "passed": 4,
+      "total": 4,
+      "note": "EmbeddedTerminal.atlas-heal.test.tsx mounts the REAL component over mocked @xterm/* doubles and drives the real hook chain (useTerminalResize -> activation-repaint -> the webgl-atlas-repaint fence -> term.clearTextureAtlas). Added because the two unit suites each covered one half of the seam and would BOTH have stayed green if the wiring were deleted (code-review MED). The trailing passes are advanced as separate macrotasks with a microtask drain between them, so the fence coalescing is modelled the way the browser does it -- a single-tick advance collapsed the two heals into one and passed for the wrong reason."
     },
     "pgtap": {
       "status": "not_run",
@@ -21,10 +21,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0,
-      "note": "No E2E. Pure server-side snapshot-persistence decision (which payload bytes persist); snapshot envelope format byte-identical so the replay-on-attach consumer contract is unchanged. detect_frontend_changes reports has_frontend_changes=false (no client/** touched). surface: none (see surface_verification + ADR F0.5 justification)."
+      "status": "passed",
+      "passed": 2,
+      "total": 2,
+      "note": "client/e2e/flows/94-webgl-atlas-repaint.spec.ts, real Chromium against an isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx server on :3947, temp USERPROFILE). Pre-existing test still green (renderer=webgl, canvases=3, atlasRepaints=5). NEW re-show test: baseline=1, immediate=1 (the heal is NOT synchronous on the event -- pins the plan-review correction), after=3 (two clears per re-show: the 130 ms + 350 ms passes), settled count unchanged (no feedback loop). Probe: window.__embeddedTerminalAtlasRepaints."
     },
     "design_fidelity": {
       "status": "skipped",
@@ -35,89 +35,105 @@
       "status": "skipped"
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "runner": "node node_modules/@playwright/test/cli.js test --config=playwright.config.ts e2e/flows/94-webgl-atlas-repaint.spec.ts --project=chromium",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": "",
-      "timestamp": "2026-07-12T05:39:05.228Z",
-      "justification": "Server-side snapshot-persistence decision (which payload bytes get written to the on-disk snapshot). No client/** file changed; snapshot envelope format byte-identical, so the replay-on-attach consumer contract is unchanged. Proven by a deterministic server-side Vitest guard (RED on pre-fix flush, green after) + a real-disk producer->file->consumer round-trip probe. A browser E2E cannot deterministically reproduce the DECRST-1049 alt-screen-clear + 2nd-detach timing that triggers the bug."
+      "tests_run": 2,
+      "evidence_path": "client/e2e/flows/94-webgl-atlas-repaint.spec.ts",
+      "timestamp": "2026-07-14T00:00:00.000Z",
+      "justification": "Client-only rendering fix (WebGL glyph atlas). Executed in a real browser against an isolated stack on :3947 -- the deployed :3847 serves an older client build. The WebGL renderer cannot be exercised in jsdom, so a real-browser run is the only proof the heal reaches the LIVE addon."
     },
     "test_completeness": {
       "status": "complete",
+      "enumeration_basis": "The 5 acceptance criteria in .shipwright/planning/iterate/2026-07-14-terminal-atlas-heal-on-refocus.md, plus every branch introduced by the four review rounds (external plan review, code review, external code review, doubt review) = 14 behaviors.",
+      "untested_testable": 0,
       "behaviors": [
         {
-          "behavior": "AC1 - a shared helper (writeSnapshotPreservingLarger) encapsulates the ADR-096 gate and BOTH write surfaces call it; pty-manager.ts does not ratchet its bloat baseline",
+          "behavior": "AC-1a: a window focus / visibilitychange / pageshow (bfcache) restore drives the atlas heal",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "snapshot-preserve.test.ts (8 tests, 16/16 stmts + 11/11 branches covered). Both call sites hit in coverage json: pty-manager.ts L874 (flush) 14 hits, L1024 (finalize) 27 hits. pty-manager.ts 1214->1186 (shrank 28); snapshot-store.ts 511 unchanged; new module 126<300."
+          "evidence": "useTerminalResize.atlas-heal.test.ts (3 tests)"
         },
         {
-          "behavior": "AC2 (RED-first) - a thin flush PRESERVES a richer on-disk snapshot",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "pty-manager-flush-preserve.test.ts 'PRESERVES a richer on-disk snapshot when the flushed mirror is thin'. RED on pre-fix flush (unconditional write): expect(onDiskAfter.data).toBe(largePayload) failed - received '$ \\u001b[?25h' (thin serialize) vs expected 2000-byte payload. GREEN after the helper call restored."
-        },
-        {
-          "behavior": "AC3 - a richer flush payload DOES overwrite a thin on-disk snapshot (gate skips only the substantially-smaller case)",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "pty-manager-flush-preserve.test.ts 'OVERWRITES a thin on-disk snapshot when the flushed mirror is richer' + helper unit tests (boundary at exactly 60% writes; larger overwrites)."
-        },
-        {
-          "behavior": "AC4 - flushMirrorSnapshot does NOT dispose the mirror even when the gate SKIPS (CLAUDE.md rule 21 / ADR-092 keep-alive)",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "pty-manager-flush-preserve.test.ts 'does NOT dispose the mirror when the gate skips the write (rule 21)': after a skip, serializeMirrorIfLive returns a record AND a fresh emit still mirrors (a disposed mirror would return null / not update)."
-        },
-        {
-          "behavior": "AC5 - finalizeMirrorSnapshot behaves identically after the extraction (symmetry)",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "pty-manager-flush-preserve.test.ts finalize-symmetry test (thin finalize preserves rich disk snapshot) + the pre-existing pty-manager-live-snapshot.test.ts H.1-H.6 finalize suite still green."
-        },
-        {
-          "behavior": "Full existing server suite stays green; build + tsc + oxlint clean",
+          "behavior": "AC-1b: the in-app Transcript->Terminal tab activation drives the atlas heal",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "176 files / 2041 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local). npm run build exit 0. tsc --noEmit exit 0. oxlint exit 0 (changed files clean)."
+          "evidence": "useTerminalResize.atlas-heal.test.ts + EmbeddedTerminal.atlas-heal.test.tsx"
         },
         {
-          "behavior": "Diff-coverage hard gate (>=80%) - every changed production line covered",
+          "behavior": "AC-2 (timing): the heal is never synchronous on the event and rides EVERY trailing pass (two shots)",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "snapshot-preserve.ts 100% (16/16 stmts, 11/11 branches, 2/2 funcs). The two new pty-manager.ts executable lines both hit: L874 (flush helper call) 14 hits, L1024 (finalize helper call) 27 hits. 100% on changed lines, above the 80% gate."
+          "evidence": "useTerminalResize.atlas-heal.test.ts (2), activation-repaint.test.ts (2), EmbeddedTerminal.atlas-heal.test.tsx"
         },
         {
-          "behavior": "Confidence calibration (medium + replay/io-boundary) - real-disk producer->file->consumer round-trip",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "Throwaway probe against built dist/ SnapshotStore, 4/4 PASS: seed-rich->flush-thin->read PRESERVED; seed-thin->flush-rich->read OVERWRITTEN; corrupt envelope->read throws->best-effort WRITE; exact-60% boundary->WRITE. warn skip/read-fail lines fired with correct byte counts. Probe set 1 (RED-first) found the bug; sets 2-3 clean -> asymptote reached."
-        },
-        {
-          "behavior": "AC6 (doubt-review HIGH, RED-first) - the extraction MUST NOT resurrect a snapshot deleted during the flush read-park; shouldProceed(() => !entry.tornDown) aborts the post-read write synchronously before the enqueue; finalize omits it",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "pty-manager-flush-preserve.test.ts 'does NOT resurrect a wiped snapshot when a delete cascade lands during the flush read-park'. RED on pre-fix flush call site (no shouldProceed): expect(writeSpy).not.toHaveBeenCalled() failed - 'write ... been called 1 times' (late write recreated the wiped .snapshot). GREEN after restoring shouldProceed: write not called + has(TASK)===false."
-        },
-        {
-          "behavior": "shouldProceed abort branch fully covered (sync false-abort, sync true-write, async post-read-park abort, preserve-branch unaffected, finalize omits predicate)",
+          "behavior": "AC-2 (coalescing): an event burst costs ONE set of passes, not one set per event",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "snapshot-preserve.test.ts 4 new tests. snapshot-preserve.ts 100% (19/19 stmts, 15/15 branches, 2/2 funcs). pty-manager.ts flush call site L882 15 hits, L886 (options+shouldProceed arrow) 13 hits incl. the () => !entry.tornDown arrow invoked; finalize L1032 28 hits (no shouldProceed)."
+          "evidence": "useTerminalResize.atlas-heal.test.ts, activation-repaint.test.ts, xtermAddons.atlas.test.ts"
+        },
+        {
+          "behavior": "AC-3: no heal while the document is hidden or the Terminal tab is inactive (the canvas never composites)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "useTerminalResize.atlas-heal.test.ts (3), EmbeddedTerminal.atlas-heal.test.tsx"
+        },
+        {
+          "behavior": "The active gate is read at FIRE time, not at schedule time",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "useTerminalResize.atlas-heal.test.ts"
+        },
+        {
+          "behavior": "AC-3: a disposed / unmounted terminal is never cleared (a queued heal is cancelled)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "useTerminalResize.atlas-heal.test.ts (2), activation-repaint.test.ts, xtermAddons.atlas.test.ts, EmbeddedTerminal.atlas-heal.test.tsx"
+        },
+        {
+          "behavior": "AC-3: the DOM-renderer arm exposes no heal handle; the refresh passes still run",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "xtermAddons.atlas.test.ts, activation-repaint.test.ts"
+        },
+        {
+          "behavior": "WebGL activation throws (GPU-blacklisted host) -> no heal handle",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "xtermAddons.atlas.test.ts (loss-during-activation)"
+        },
+        {
+          "behavior": "A GPU context loss retracts the heal AND cancels a heal already queued on the fence",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "xtermAddons.atlas.test.ts (2 tests)"
+        },
+        {
+          "behavior": "AC-4: the #206 fences hold -- onAddTextureAtlasCanvas unsubscribed, heal deferred, never wired to the data / scroll / resize paths",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "xtermAddons.atlas.test.ts, useTerminalResize.atlas-heal.test.ts"
+        },
+        {
+          "behavior": "A throwing heal does not break the trailing pass (mid-dispose term)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "activation-repaint.test.ts, xtermAddons.atlas.test.ts"
+        },
+        {
+          "behavior": "AC-5: the heal reaches the LIVE WebGL renderer on a real GPU and does not feedback-loop",
+          "category": "e2e",
+          "disposition": "tested",
+          "evidence": "e2e flow spec 94, executed (renderer=webgl, canvases=3, re-show delta=2, settled count unchanged)"
+        },
+        {
+          "behavior": "The wrong letters are VISUALLY gone on the user GPU",
+          "category": "visual",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "evidence": "SwiftShader (headless Chromium) neither evicts nor repacks GPU textures, so it cannot reproduce GPU-specific glyph corruption -- the same residual #206 and #167 carried. Resolved by user UAT after the deploy."
         }
-      ],
-      "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 0,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
-      },
-      "note": "5 ACs (AC1-AC5) from the iterate spec: AC1 shared-helper + no-ratchet, AC2 RED-first preserve, AC3 overwrite, AC4 no-dispose (rule 21), AC5 finalize symmetry; plus the full-suite/build gate, the hard diff-coverage gate, and the medium/replay-boundary calibration probe. Each AC maps to >=1 committed Vitest behavior; AC2 is RED-first proven. AC6 added post-push from the doubt-review HIGH (resurrection guard): the unqueued helper read reopened a delete-cascade window; shouldProceed restores the pre-extraction synchronous-liveness-before-write guarantee (flush only)."
+      ]
     },
     "degraded": []
   }
