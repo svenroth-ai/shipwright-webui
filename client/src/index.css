@@ -204,7 +204,7 @@
   --font-family: 'Inter', sans-serif;
   --radius: 12px;
   --radius-button: 8px;
-  --color-border: #e0dbd4;
+  --color-border: #ff0000; /* AC1-VISUAL-DRILL */
   --shadow-card: 0 6px 30px rgba(0, 0, 0, 0.10);
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
 
