@@ -52,7 +52,7 @@ test.describe("@smoke core surfaces", () => {
 
     // "The page rendered" is not enough — a repaint that drops the COLUMNS still
     // renders a page. The columns are the board.
-    await expect(page.getByTestId("task-board-columns-AC3-DRILL")).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId("task-board-columns")).toBeVisible();
     await expect(page.getByTestId(`task-card-${taskId}`)).toBeVisible({ timeout: 15_000 });
   });
 
