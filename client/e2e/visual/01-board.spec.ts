@@ -34,7 +34,7 @@ test.describe("visual: board", () => {
   });
 
   test("board", async ({ page, request }) => {
-    project = await seedProject(request, { name: "Atlas" });
+    project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas" });
 
     // One card per lane, with stable titles — the baseline must encode the
     // COLUMNS, not just "some cards rendered".

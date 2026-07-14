@@ -28,7 +28,7 @@ test.describe("visual: task detail", () => {
   let taskId: string;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "Atlas" });
+    project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas" });
     const task = await seedTask(request, {
       title: "Survey the hull",
       projectId: project.projectId,

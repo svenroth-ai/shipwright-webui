@@ -29,7 +29,7 @@ test.describe("visual: shell routes", () => {
   let project: SeededProject;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "Atlas" });
+    project = await seedProject(request, { name: "Atlas", dirName: "sw-visual-atlas" });
     await setActiveProject(page, project.projectId);
   });
 

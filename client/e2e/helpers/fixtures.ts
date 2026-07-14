@@ -89,6 +89,26 @@ export async function makeTempDir(prefix = "sw-e2e-"): Promise<string> {
 }
 
 /**
+ * A temp dir with a FIXED name — for the visual specs only.
+ *
+ * The Projects page (and Settings) renders the project's PATH. With `mkdtemp` the
+ * random suffix changes every run, so those glyphs differ on a no-op change and the
+ * pixel gate fails against its own baselines. Determinism has to come from the
+ * fixture, not from a pixel budget loose enough to swallow a line of text — a budget
+ * that could swallow a path could swallow a broken layout too.
+ *
+ * Safe because the `visual` project runs with workers: 1 and each spec cleans up
+ * after itself; a fixed name would be a collision hazard under parallelism, which is
+ * why it is opt-in rather than the default.
+ */
+export async function makeFixedDir(name: string): Promise<string> {
+  const dir = assertTempPath(path.join(os.tmpdir(), name));
+  await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  await fs.mkdir(dir, { recursive: true });
+  return dir;
+}
+
+/**
  * Fixed project colour. WITHOUT this, the colour is derived per project and the
  * project id is fresh on every run, so the Kanban colour dot and the card's left
  * accent stripe come out a different hue each time. That is ~900 differing pixels —
@@ -107,9 +127,12 @@ export const FIXTURE_PROJECT_COLOR = "#4f46e5";
  */
 export async function seedProject(
   request: APIRequestContext,
-  opts: { name?: string; profile?: string; color?: string } = {},
+  opts: { name?: string; profile?: string; color?: string; dirName?: string } = {},
 ): Promise<SeededProject> {
-  const dir = assertTempPath(await makeTempDir("sw-e2e-project-"));
+  // dirName -> a deterministic path (the visual specs render it on screen).
+  const dir = opts.dirName
+    ? await makeFixedDir(opts.dirName)
+    : assertTempPath(await makeTempDir("sw-e2e-project-"));
   const name = opts.name ?? `E2E Project ${hexId(6)}`;
   const res = await request.post(apiUrl("/api/projects"), {
     data: {
