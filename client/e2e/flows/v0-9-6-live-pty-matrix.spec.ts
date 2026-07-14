@@ -255,7 +255,7 @@ test.describe("Iterate E (ADR-092) — live-pty preservation 4-type matrix", () 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "v0-9-6-live-pty-matrix" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
     await fs.mkdir(ARTIFACT_DIR, { recursive: true });
   });
 

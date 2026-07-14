@@ -41,7 +41,7 @@ async function deleteTask(request: APIRequestContext, taskId: string): Promise<v
 }
 
 async function setProjectStorage(page: Page): Promise<void> {
-  await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+  await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
 }
 
 test.describe("Iterate E (ADR-092) probe — multi-tab + server-restart", () => {

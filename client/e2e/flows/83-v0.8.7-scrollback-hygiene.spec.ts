@@ -128,7 +128,7 @@ test.describe("Spec 83 — v0.8.7 scrollback hygiene + new-plain idle", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "83-v0.8.7-scrollback-hygiene" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("AC-1: new-plain `active → idle` after pty kill (Resume CTA returns)", async ({

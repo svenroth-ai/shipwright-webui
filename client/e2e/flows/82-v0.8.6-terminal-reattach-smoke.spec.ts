@@ -117,7 +117,7 @@ test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "82-v0.8.6-terminal-reattach-smoke" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("AC-2: terminal full-buffer (incl. scrollback) does not accumulate across Task → Board → Task navigation", async ({

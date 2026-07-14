@@ -111,7 +111,7 @@ test.describe("Spec 85 — v0.8.9 replay pushdown to scrollback", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "85-v0.8.9-replay-pushdown-to-scrollback" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("after replay-on-attach, the shell-stopped marker lives in scrollback (NOT active viewport)", async ({

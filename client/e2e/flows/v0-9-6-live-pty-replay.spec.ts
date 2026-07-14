@@ -186,7 +186,7 @@ test.describe("Iterate E (ADR-092) — LIVE-pty re-attach regression guard", () 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "v0-9-6-live-pty-replay" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("LIVE pty: type marker, navigate away, navigate back -> outcome A required (ADR-092)", async ({

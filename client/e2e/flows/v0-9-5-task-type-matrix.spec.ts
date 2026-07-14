@@ -344,7 +344,7 @@ test.describe("v0.9.5 / Iterate D — task-type × scenario matrix [ADR-087/088/
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "v0-9-5-task-type-matrix" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   for (const spec of TASK_TYPES) {

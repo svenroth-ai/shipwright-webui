@@ -143,7 +143,7 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "v0-9-6-disk-snapshot-replay" });
     await setActiveProject(page, project.projectId);
-    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"' });
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"' });
   });
 
   test("kill session pty, re-open TaskDetail -> disk history (marker) is rendered", async ({
