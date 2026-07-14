@@ -65,6 +65,25 @@ function assertIsolatedHome(): string {
   return home;
 }
 
+/**
+ * Seed Claude's global `~/.claude/settings.json`.
+ *
+ * The embedded terminal's palette MIRRORS whichever theme Claude Code is using —
+ * the server reads it from that file (core/claude-theme-reader.ts) and the xterm
+ * background follows (`#1a1a1a` dark / `#ffffff` light, terminal-theme.ts). With no
+ * settings.json the palette falls back to plain black, so a spec asserting on the
+ * dark background was reading the DEVELOPER'S OWN Claude theme. Seeding it makes the
+ * theme under test explicit.
+ */
+export function seedClaudeSettings(settings: Record<string, unknown>): string {
+  const home = assertIsolatedHome();
+  const dir = path.join(home, ".claude");
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, "settings.json");
+  fs.writeFileSync(file, JSON.stringify(settings, null, 2), "utf-8");
+  return file;
+}
+
 /** One JSONL event line, in the shape Claude writes. */
 function line(sessionId: string, type: string, extra: Record<string, unknown> = {}): string {
   return JSON.stringify({
