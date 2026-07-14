@@ -8,40 +8,30 @@
  * (distinct from the hide/show "smear", which is a stale GL FRAMEBUFFER and is
  * already handled by the visibility/focus refresh in useTerminalResize).
  *
- * ROOT CAUSE (2026-07-07, superseding the #175 `term.refresh` approach): the
- * WebGL renderer caches glyphs in a GPU texture-atlas. The LOAD-BEARING corruption
- * is a WHOLE-ATLAS SWAP on a terminal-option change — WebglRenderer._handleOptionsChanged
- * → _refreshCharAtlas fires onChangeTextureAtlas but does NOT clear the render
- * model, so cells keep coordinates into the OLD atlas layout (a clean letter-swap).
- * This fires on the live theme re-resolve (`term.options.theme = <fresh object>`,
- * FR-01.44 #201). `term.refresh` can't heal it because _updateModel skips cells
- * that "look unchanged"; only a manual resize (which clears the model) healed it.
- * (The atlas REPACK path — _mergePages → onRemoveTextureAtlasCanvas — self-heals
- * via _requestClearModel; we still clear on it defensively.)
- *
- * FIX: `attachWebglAtlasRepaint` calls `term.clearTextureAtlas()` — the public
- * equivalent of the resize heal (clears atlas + model + glyph renderer, then a
- * full redraw) — on the two atlas events that reassign EXISTING coordinates
- * (onChangeTextureAtlas + onRemoveTextureAtlasCanvas). Two invariants this fence
- * pins, because getting either wrong makes the "fix" worse than the bug:
- *   1. onAddTextureAtlasCanvas is NOT subscribed. A plain page-add appends new
- *      glyphs to fresh coordinates (no letter-swap), and clearing on add is a
- *      feedback loop: clear → re-raster → page overflow → onAdd → clear → …
+ * ROOT CAUSE + FIX (2026-07-07, superseding the #175 `term.refresh` approach):
+ * full derivation in the webgl-atlas-repaint.ts header. In short — the render
+ * model keeps coordinates into a replaced atlas, and `term.refresh` cannot undo
+ * that (it skips cells that "look unchanged"); only `clearTextureAtlas()` clears
+ * atlas + model. Two invariants this fence pins, because getting either wrong
+ * makes the "fix" worse than the bug:
+ *   1. onAddTextureAtlasCanvas is NOT subscribed — clearing on add feedback-loops
+ *      (clear → re-raster → page overflow → onAdd → clear → …).
  *   2. The clear is DEFERRED (one coalesced microtask), never synchronous —
- *      onRemoveTextureAtlasCanvas fires MID-_mergePages, so a synchronous clear
- *      would tear down the atlas the merge is still mutating.
+ *      onRemoveTextureAtlasCanvas fires MID-_mergePages.
  *
- * This is the DETERMINISTIC half of the validation; the real-browser half (the
- * live WebGL addon actually emitting the event on a real GPU under load) is
+ * iterate-2026-07-14 adds the RE-SHOW half: a background GPU-texture eviction
+ * fires NO atlas event (and does not lose the context), so the fence is also
+ * exposed as `handle.healAtlas` for the refocus/activation path to call.
+ *
+ * This is the DETERMINISTIC half of the validation; the real-browser half is
  * e2e flow spec 94.
  */
 
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
-// Minimal, atlas-focused mocks (independent of xtermAddons.test.ts so both
-// files stay under the 300-LOC guideline). vitest 4 constructs the mock on
-// `new`, so each implementation MUST be a real `function` (an arrow throws
-// "is not a constructor").
+// Minimal, atlas-focused mocks (independent of xtermAddons.test.ts). vitest 4
+// constructs the mock on `new`, so each implementation MUST be a real
+// `function` (an arrow throws "is not a constructor").
 const loadedAddons: unknown[] = [];
 
 interface FakeTerm {
@@ -63,7 +53,14 @@ vi.mock("@xterm/xterm", () => ({
       rows: 24,
       refresh: vi.fn(),
       clearTextureAtlas: vi.fn(),
-      loadAddon: vi.fn((addon: unknown) => loadedAddons.push(addon)),
+      loadAddon: vi.fn((addon: unknown) => {
+        loadedAddons.push(addon);
+        // `loadAddon` is where WebglAddon.activate() runs — a GPU-process
+        // restart mid-activation surfaces as a context loss right here.
+        if (loseContextOnLoad) {
+          (addon as { contextLossCb?: (() => void) | null }).contextLossCb?.();
+        }
+      }),
       open: vi.fn(),
       dispose: vi.fn(),
       _core: { _renderService: { dimensions: { existing: true } } },
@@ -82,11 +79,18 @@ class WebLinksAddonFake {
   activate = vi.fn();
   dispose = vi.fn();
 }
+/** When true, the term mock loses the GPU context DURING `loadAddon`. */
+let loseContextOnLoad = false;
+
 class WebglAddonFake {
   activate = vi.fn();
   dispose = vi.fn();
   clearTextureAtlas = vi.fn();
-  onContextLoss = vi.fn(() => ({ dispose: vi.fn() }));
+  contextLossCb: (() => void) | null = null;
+  onContextLoss = vi.fn(function (this: WebglAddonFake, cb: () => void) {
+    this.contextLossCb = cb;
+    return { dispose: vi.fn() };
+  });
   // Mirrors @xterm/addon-webgl 0.19.0 atlas-mutation events → IDisposable. The
   // captured callbacks let a test simulate each mutation the live GPU emits.
   changeAtlasCb: (() => void) | null = null;
@@ -124,6 +128,7 @@ vi.mock("@xterm/addon-webgl", () => ({
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 
 import { createEmbeddedXterm } from "./xtermAddons";
+import { RENDERER_STORAGE_KEY } from "./terminal-renderer";
 
 /** Flush the pending microtask the deferred atlas heal schedules. */
 const flushMicrotasks = (): Promise<void> => Promise.resolve();
@@ -207,5 +212,97 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
     webgl.changeAtlasCb?.();
     await flushMicrotasks();
     expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+  });
+
+  // --- The heal as an EXPLICIT handle (iterate-2026-07-14, FR-01.28) ---
+  // The re-show path has no atlas-mutation event to ride, so it invokes the SAME
+  // fence directly rather than growing a second heal (see the file header).
+
+  it("exposes healAtlas — one deferred, coalesced clear per call", async () => {
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    expect(handle.healAtlas).toBeTypeOf("function");
+
+    handle.healAtlas?.();
+    // Deferred — same fence as the event-driven heal (never re-entrant).
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalledTimes(1);
+  });
+
+  it("a burst of healAtlas() calls in one tick collapses into a single clear", async () => {
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    handle.healAtlas?.();
+    handle.healAtlas?.();
+    handle.healAtlas?.();
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalledTimes(1);
+  });
+
+  it("healAtlas + a concurrent atlas mutation still yield ONE clear per tick", async () => {
+    // openai plan-review #4: prove the clear cannot compound with the
+    // event-driven heal (they share one `pending` flag, not two).
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    const webgl = webglOf();
+    handle.healAtlas?.();
+    webgl.changeAtlasCb?.();
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).toHaveBeenCalledTimes(1);
+  });
+
+  it("a healAtlas queued before dispose() never lands on the torn-down term", async () => {
+    // openai plan-review #5: the real race is a re-show event scheduling a heal
+    // immediately before React cleanup runs.
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    handle.healAtlas?.(); // queued…
+    handle.dispose(); // …then the terminal dies before the microtask drains
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+  });
+
+  // --- GPU context loss retracts the heal (external code-review MED) ---
+  // The addon disposes and xterm swaps to the DOM renderer: no atlas is left to
+  // clear, so a heal must neither run nor be COUNTED (the probe is what e2e
+  // spec 94 reads as "the heal fired").
+
+  it("a heal queued just before a context loss is cancelled, not counted", async () => {
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    const webgl = webglOf();
+    handle.healAtlas?.(); // queued on the fence…
+    webgl.contextLossCb?.(); // …GPU context dies before the microtask drains
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+  });
+
+  it("healAtlas is inert after a context loss (renderer is DOM now)", async () => {
+    const handle = createEmbeddedXterm(document.createElement("div"));
+    const webgl = webglOf();
+    webgl.contextLossCb?.();
+    handle.healAtlas?.();
+    await flushMicrotasks();
+    expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+  });
+
+  it("a context loss DURING activation does not resurrect the heal", async () => {
+    // The loss fires from inside loadAddon → BEFORE `webglAtlasLive = …`, so an
+    // unconditional `true` there would hand out a heal for a dead renderer.
+    loseContextOnLoad = true;
+    try {
+      const handle = createEmbeddedXterm(document.createElement("div"));
+      handle.healAtlas?.();
+      await flushMicrotasks();
+      expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
+    } finally {
+      loseContextOnLoad = false;
+    }
+  });
+
+  it("healAtlas is undefined in the DOM-renderer arm (no atlas to clear)", () => {
+    localStorage.setItem(RENDERER_STORAGE_KEY, "dom");
+    try {
+      const handle = createEmbeddedXterm(document.createElement("div"));
+      expect(handle.healAtlas).toBeUndefined();
+    } finally {
+      localStorage.removeItem(RENDERER_STORAGE_KEY);
+    }
   });
 });

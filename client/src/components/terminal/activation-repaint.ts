@@ -36,6 +36,14 @@ export interface ActivationRepaintDeps {
   setTimer?: (cb: () => void, ms: number) => ReturnType<typeof setTimeout>;
   /** Test seam for `clearTimeout`. */
   clearTimer?: (handle: ReturnType<typeof setTimeout>) => void;
+  /**
+   * The WebGL glyph-atlas heal (`term.clearTextureAtlas()` behind the #206
+   * deferred/coalesced fence — `webgl-atlas-repaint.ts`). Read lazily: the
+   * caller holds it behind a ref that is null before mount, after dispose, and
+   * for the whole life of the DOM-renderer arm (no atlas → nothing to clear).
+   * See ATLAS HEAL below for why it rides the LAST pass.
+   */
+  getHealAtlas?: () => (() => void) | null | undefined;
 }
 
 export interface ActivationRepaintHandle {
@@ -67,6 +75,41 @@ export function createActivationRepaint(
     timers = [];
   };
 
+  /**
+   * ATLAS HEAL — `term.refresh` CANNOT undo glyph-atlas corruption (it routes to
+   * WebglRenderer._updateModel, which skips cells that "look unchanged"), so the
+   * trailing passes above are powerless against the "wrong letter" class. The
+   * heal clears the texture AND the render model (`clearTextureAtlas`).
+   *
+   * It rides EVERY pass, not just the last — and that is a corrected decision.
+   * The first draft healed only on the trailing pass, on the theory that an
+   * early clear (against a `display:none → block` canvas that has not composited
+   * at its real size) would be "wasted AND leave a model no later refresh can
+   * fix". The doubt-review disproved the second half against the installed
+   * @xterm/addon-webgl: `clearTextureAtlas → _clearModel(true) →
+   * GlyphRenderer.clear()` invalidates every atlas texture (`version = -1`), and
+   * the next frame re-uploads each page whose version differs. Model and atlas
+   * are therefore CONSISTENT after any clear — an early heal is redundant, never
+   * poisoning. Healing on every pass is thus free, and it buys the thing that
+   * matters: a second shot if the compositor is late. A single fixed deadline is
+   * exactly the fragility #167 already learned to avoid (it shipped TWO refresh
+   * passes for the same reason).
+   *
+   * Never synchronous on the event, though: that would be a third clear with
+   * nothing to gain (the first pass is 130 ms away).
+   *
+   * A no-op in the DOM-renderer arm (no atlas). Throws are swallowed for the
+   * same reason as the refresh above — a mid-dispose term is expected, and the
+   * next schedule() re-arms.
+   */
+  const healAtlas = (): void => {
+    try {
+      deps.getHealAtlas?.()?.();
+    } catch {
+      /* term/addon mid-dispose — the #206 fence re-checks `disposed` too */
+    }
+  };
+
   const schedule = (): void => {
     clear();
     if (isDisposed()) return;
@@ -81,6 +124,7 @@ export function createActivationRepaint(
           } catch {
             /* term mid-dispose — a later schedule() reschedules a fresh pass */
           }
+          healAtlas();
         }, delay),
       );
     }

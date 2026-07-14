@@ -11,6 +11,15 @@
  * captures the observer callback + exposes a manual trigger, plus the mock
  * term/fit and the `setup` that renders the hook. Call it in `beforeEach`
  * (paired with `vi.useFakeTimers()`); the captured callback resets per install.
+ *
+ * KNOWN DIVERGENCE from the real component (doubt-review LOW-5): `setup` seeds
+ * `termRef` with a LIVE term before the hook first renders, so the hook's
+ * `[active]` effect finds a terminal on mount and schedules its passes. In
+ * `EmbeddedTerminal` the hook's effects run BEFORE the xterm mount-effect, so on
+ * the very first mount `termRef.current` is still null and the activation pass
+ * early-returns — the first re-show is what schedules. Harmless for what these
+ * specs assert (they exercise re-show triggers, not first mount), but do not
+ * read "heals on mount" here as a claim about production.
  */
 
 import { renderHook } from "@testing-library/react";
@@ -48,6 +57,8 @@ export function setHidden(value: boolean): void {
 export interface SetupResult {
   socketSend: ReturnType<typeof vi.fn>;
   settleArm: ReturnType<typeof vi.fn>;
+  /** The WebGL atlas heal (`term.clearTextureAtlas()` behind the #206 fence). */
+  atlasHeal: ReturnType<typeof vi.fn>;
   term: Terminal;
   fit: FitAddon;
   disposed: { current: boolean };
@@ -84,6 +95,7 @@ export function installResizeHarness(): ResizeHarness {
   const setup = (initialActive: boolean): SetupResult => {
     const socketSend = vi.fn();
     const settleArm = vi.fn();
+    const atlasHeal = vi.fn();
     const term = makeTerm();
     const fit = makeFit();
     const disposed = { current: false };
@@ -96,6 +108,7 @@ export function installResizeHarness(): ResizeHarness {
         const fitAddonRef = useRef<FitAddon | null>(fit);
         const disposedRef = useRef<boolean>(disposed.current);
         const settleArmRef = useRef<(() => void) | null>(settleArm);
+        const atlasHealRef = useRef<(() => void) | null>(atlasHeal);
         // Sync the disposed flag into the ref the hook sees.
         disposedRef.current = disposed.current;
         useTerminalResize({
@@ -106,6 +119,7 @@ export function installResizeHarness(): ResizeHarness {
           socketSend,
           active: props.active,
           settleArmRef,
+          atlasHealRef,
         });
       },
       { initialProps: { active: initialActive } },
@@ -114,6 +128,7 @@ export function installResizeHarness(): ResizeHarness {
     return {
       socketSend,
       settleArm,
+      atlasHeal,
       term,
       fit,
       disposed,

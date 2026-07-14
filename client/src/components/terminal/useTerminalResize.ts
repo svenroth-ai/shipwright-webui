@@ -73,6 +73,14 @@ export interface UseTerminalResizeOptions {
    * hook stays usable in isolation (unit tests pass a spy).
    */
   settleArmRef?: RefObject<(() => void) | null>;
+  /**
+   * WebGL glyph-atlas heal (`term.clearTextureAtlas()` behind the #206 fence) —
+   * held behind a ref for the same reason as `settleArmRef` (the handle is
+   * created in EmbeddedTerminal's mount-effect, which commits AFTER this hook's
+   * effects). Null in the DOM-renderer arm. Consumed by `activation-repaint`,
+   * which fires it on the trailing pass of BOTH re-show paths (FR-01.28).
+   */
+  atlasHealRef?: RefObject<(() => void) | null>;
 }
 
 /**
@@ -89,6 +97,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     socketSend,
     active,
     settleArmRef,
+    atlasHealRef,
   } = opts;
 
   // Plan-review gemini #1: pin `socketSend` behind a latest-ref so the
@@ -109,11 +118,26 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
 
   // Data-independent trailing repaints (`activation-repaint.ts`) — lazily
   // created once; reads term/disposed through the stable refs the hook owns.
+  // The trailing set also carries the WebGL glyph-atlas heal (`term.refresh`
+  // cannot undo a stale atlas — dirty-skip); see its ATLAS HEAL note.
+  //
+  // The heal is gated on `active`: TaskDetailPage keeps this component MOUNTED
+  // behind the inactive tab (`forceMount` + `display:none`), so a window refocus
+  // while the user sits on Transcript would re-raster the atlas into a canvas
+  // that never composites. Nothing is lost — switching TO the Terminal tab
+  // re-schedules, and those passes heal with the canvas visible.
+  // In an effect, not during render: a render-phase ref write is not rolled back
+  // when React 19 discards a concurrent render. Reads happen 130/350 ms later.
+  const activeRef = useRef(active);
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
   const activationRepaintRef = useRef<ActivationRepaintHandle | null>(null);
   if (activationRepaintRef.current === null) {
     activationRepaintRef.current = createActivationRepaint(
       () => termRef.current,
       () => disposedRef.current,
+      { getHealAtlas: () => (activeRef.current ? atlasHealRef?.current : null) },
     );
   }
   // Cancel any pending passes on unmount (timers self-guard on disposedRef,

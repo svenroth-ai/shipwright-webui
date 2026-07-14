@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-14-terminal-atlas-heal-on-refocus",
+  "date": "2026-07-14T08:27:39.406974Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/terminal-atlas-heal-on-refocus",
+  "spec": ".shipwright/planning/iterate/2026-07-14-terminal-atlas-heal-on-refocus.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-14-terminal-atlas-heal-on-refocus"
+}

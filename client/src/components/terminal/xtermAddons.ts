@@ -85,6 +85,14 @@ export interface EmbeddedXtermHandle {
   term: Terminal;
   fit: FitAddon;
   dispose: () => void;
+  /**
+   * Deferred, coalesced WebGL glyph-atlas heal (`webgl-atlas-repaint.ts`) for
+   * callers with no atlas-mutation event to ride — the re-show path (window
+   * refocus / tab activation), where the browser silently evicted the GPU
+   * texture (FR-01.28, iterate-2026-07-14). **undefined in the DOM-renderer arm
+   * and whenever the WebGL addon failed to load** — there is no atlas to clear.
+   */
+  healAtlas?: () => void;
 }
 
 /**
@@ -170,6 +178,13 @@ export function createEmbeddedXterm(
   // clearTextureAtlas so a heal can never land on a torn-down terminal. Undefined
   // in the DOM-renderer arm (no WebGL addon, no atlas events). See dispose below.
   let disposeAtlasRepaint: (() => void) | undefined;
+  // The same fence, exposed on the handle for the re-show path (see below).
+  // Stays undefined unless the WebGL addon ACTIVATED, so a caller can never
+  // invoke a heal against a renderer that has no atlas; `webglAtlasLive` then
+  // retracts it if the GPU context is lost later (→ DOM-renderer fallback).
+  let healAtlas: (() => void) | undefined;
+  let webglAtlasLive = false;
+  let contextLost = false;
 
   if (renderer === "webgl") {
     // ADR-099 — WebGL loaded BEFORE term.open(container) so the DOM renderer
@@ -187,6 +202,24 @@ export function createEmbeddedXterm(
       // repaints), and the visibility/focus refit in useTerminalResize then
       // re-fits cleanly. Registered before loadAddon so no loss event is missed.
       webgl.onContextLoss(() => {
+        // NOTE this fires 3 s AFTER the real `webglcontextlost` — the addon
+        // preventDefaults the canvas event and only gives up once a restore has
+        // failed to arrive (WebglRenderer ctor: setTimeout(fire, 3e3)). So a
+        // heal inside that window still calls into a dead context (a silent GL
+        // no-op) and still bumps the probe. Harmless — xterm self-heals on
+        // restore via handleResize → _clearModel — but do not read this handler
+        // as "the moment the context died".
+        //
+        // From here the renderer falls back to DOM: no atlas left to clear, so
+        // the re-show heal must go quiet with it (else it would keep bumping the
+        // atlas-repaint probe and claim heals that never happened).
+        contextLost = true;
+        webglAtlasLive = false;
+        // Disposing the fence ALSO cancels a heal already queued on it — a clear
+        // scheduled microtasks before the loss would otherwise still land, and
+        // still be counted (external code-review MED).
+        disposeAtlasRepaint?.();
+        disposeAtlasRepaint = undefined;
         try {
           webgl.dispose();
         } catch {
@@ -197,9 +230,28 @@ export function createEmbeddedXterm(
       // corruption) — clears the texture atlas on an atlas repack, see
       // webgl-atlas-repaint.ts. Registered before loadAddon so no early
       // atlas-change event is missed, mirroring onContextLoss above.
-      disposeAtlasRepaint = attachWebglAtlasRepaint(webgl, term).dispose;
+      // `heal` is ALSO surfaced on the handle: a background GPU-texture eviction
+      // emits no atlas event at all (and does not lose the context), so the
+      // re-show path has to invoke the fence itself (FR-01.28, 2026-07-14).
+      const atlasRepaint = attachWebglAtlasRepaint(webgl, term);
+      disposeAtlasRepaint = atlasRepaint.dispose;
+      // `loadAddon` is where WebglAddon.activate() runs — i.e. where a
+      // WebGL-disabled / GPU-blacklisted host THROWS into the fallback below.
+      // The handle may only advertise a heal once that succeeded, or a
+      // DOM-rendered terminal would "heal" an atlas it does not have.
       term.loadAddon(webgl);
+      // `!contextLost`, not `true`: activation itself can lose the context
+      // (a GPU-process restart mid-`activate()`), and that loss fires BEFORE
+      // this line — an unconditional `true` would resurrect the heal.
+      webglAtlasLive = !contextLost;
+      healAtlas = () => {
+        if (webglAtlasLive) atlasRepaint.heal();
+      };
     } catch (err) {
+      // Activation failed → no atlas. Drop the subscription AND the heal.
+      disposeAtlasRepaint?.();
+      disposeAtlasRepaint = undefined;
+      healAtlas = undefined;
       // eslint-disable-next-line no-console
       console.warn(
         "[EmbeddedTerminal] WebGL renderer unavailable — falling back to Canvas/DOM:",
@@ -235,5 +287,5 @@ export function createEmbeddedXterm(
     term.dispose();
   };
 
-  return { term, fit, dispose };
+  return { term, fit, dispose, healAtlas };
 }
