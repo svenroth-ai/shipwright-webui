@@ -25,7 +25,7 @@ test.describe("SmartViewer cross-file nav (FR-01.02, real RTM)", () => {
   let project: SeededProject;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "smartviewer-crossfile-nav" });
+    project = await seedProject(request, { name: "smartviewer-crossfile-nav", adopted: true });
     await setActiveProject(page, project.projectId);
   });
 

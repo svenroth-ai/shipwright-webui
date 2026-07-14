@@ -28,7 +28,7 @@ test.describe("Performance — 1000-event transcript", () => {
   let project: SeededProject;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "37c-perf-1000-events" });
+    project = await seedProject(request, { name: "37c-perf-1000-events", adopted: true });
     await setActiveProject(page, project.projectId);
     // A00 — the center tab is persisted and defaults to "terminal"
     // (TaskDetailPage.tsx), so the transcript pane is HIDDEN on a fresh profile.

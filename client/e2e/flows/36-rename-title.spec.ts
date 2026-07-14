@@ -20,7 +20,7 @@ test.describe("TaskDetail title rename + launch sync", () => {
   let project: SeededProject;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "36-rename-title" });
+    project = await seedProject(request, { name: "36-rename-title", adopted: true });
     await setActiveProject(page, project.projectId);
     // A00 — the center tab is persisted and defaults to "terminal"
     // (TaskDetailPage.tsx), so the transcript pane is HIDDEN on a fresh profile.

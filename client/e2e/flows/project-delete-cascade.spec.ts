@@ -23,7 +23,7 @@ test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)",
   let project: SeededProject;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "project-delete-cascade" });
+    project = await seedProject(request, { name: "project-delete-cascade", adopted: true });
     await setActiveProject(page, project.projectId);
   });
 
