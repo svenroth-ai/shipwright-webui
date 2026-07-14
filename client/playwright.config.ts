@@ -109,16 +109,30 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 800 },
         deviceScaleFactor: 1,
-        colorScheme: 'dark',
+        // NOTE: no `colorScheme` override. The app ships a single (light) palette —
+        // there is no dark block in index.css — so forcing `dark` only changed
+        // user-agent defaults (scrollbars, form controls) and made the baselines
+        // look like a theme the product does not have.
       },
       expect: {
         toHaveScreenshot: {
           animations: 'disabled',
           caret: 'hide',
           scale: 'css',
-          // Tight enough to BITE. A threshold so loose it never fails is the
-          // same as having no gate at all (A00 AC1).
-          maxDiffPixelRatio: 0.01,
+          // ── CALIBRATED BY THE AC1 DRILL, NOT BY GUESSWORK ────────────────────
+          // The first attempt used `maxDiffPixelRatio: 0.01`. The drill (flip
+          // `--color-border` to red) then PASSED — because 1% of a 1280px-wide page
+          // is ~10k pixels, and recolouring 1px borders changes far fewer than that.
+          // A gate that shrugs at a wholesale token change is theatre; that is the
+          // exact thing AC1 exists to catch, and it caught it.
+          //
+          // Absolute budget instead: capture is deterministic (pinned container,
+          // fixed viewport, animations off, seeded fixtures, frozen clock), so the
+          // honest noise floor is ~0 and 100 px is pure anti-aliasing slack.
+          maxDiffPixels: 100,
+          // Per-pixel sensitivity (0-1, default 0.2). Lowered so a subtle shade
+          // shift registers as a differing pixel at all, instead of being absorbed.
+          threshold: 0.1,
         },
       },
     },
