@@ -12,9 +12,23 @@
  * it from API → clipboard without escape artifacts.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 test.describe("Tricky-char titles — clipboard round-trip", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "48-tricky-char-titles" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
   test("single quotes, dollar, backtick, emoji, umlaut, CJK all preserved", async ({

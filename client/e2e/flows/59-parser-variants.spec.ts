@@ -7,6 +7,7 @@
  * fallback card. `system` visibility is covered in spec 60.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -15,6 +16,19 @@ import { homedir } from "node:os";
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
 test.describe("Parser variants (FR-03.50 / 03.52)", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "59-parser-variants" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("renders custom-title / agent-name / permission-mode as chips, not Unknown", async ({
     page,
     request,

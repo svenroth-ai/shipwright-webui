@@ -1,3 +1,4 @@
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -19,6 +20,19 @@ const EXPECTED_CMD =
   '/shipwright-iterate ".shipwright/planning/iterate/campaigns/2026-06-02-campaigns-demo/sub-iterates/B1-beta.md"';
 
 test.describe("Campaigns lane on the Task Board", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "campaigns-board-lane" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("renders the seeded campaign with progress + a working Copy launch button", async ({
     page,
   }) => {

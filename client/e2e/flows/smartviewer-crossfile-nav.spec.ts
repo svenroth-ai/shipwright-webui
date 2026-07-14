@@ -14,11 +14,25 @@
  * loudly rather than skipping silently.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 const RTM_PATH = ".shipwright/compliance/traceability-matrix.md";
 
 test.describe("SmartViewer cross-file nav (FR-01.02, real RTM)", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "smartviewer-crossfile-nav" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("clicking a real RTM FR link navigates the pane to spec.md", async ({
     page,
     request,

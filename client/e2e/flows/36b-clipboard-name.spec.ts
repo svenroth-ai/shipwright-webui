@@ -9,9 +9,23 @@
  * on the round-trip: button click → clipboard → command shape correct.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 test.describe("TerminalLaunchButton — clipboard --name shape", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "36b-clipboard-name" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
   test("primary variant copies command including --name '<title>' (PowerShell on Windows-UA)", async ({

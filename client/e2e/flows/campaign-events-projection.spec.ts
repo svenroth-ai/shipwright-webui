@@ -1,3 +1,4 @@
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -21,6 +22,19 @@ import { test, expect } from "@playwright/test";
 const SLUG = "2026-06-11-ghost-deploy";
 
 test.describe("Campaigns lane — events.jsonl projection (deployed clone)", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "campaign-events-projection" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("surfaces a derived campaign with the events badge when no campaign dir exists", async ({
     page,
   }) => {

@@ -13,10 +13,24 @@
  * then assert the project row is gone AND no Unassigned row appeared.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 import { makeTaskCwd, cleanupCwd } from "../helpers/task-fixture";
 
 test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "project-delete-cascade" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("deleting a project with a task leaves no phantom Unassigned row", async ({
     page,
     request,

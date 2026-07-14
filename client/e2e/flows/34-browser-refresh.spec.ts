@@ -5,6 +5,7 @@
  * this spec is a regression guard that proves it.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -13,6 +14,19 @@ import { homedir } from "node:os";
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
 test.describe("Browser refresh during JSONL write", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "34-browser-refresh" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("no duplicate events after reload", async ({ page, request }) => {
     const create = await request.post("/api/external/tasks", {
       data: { title: "refresh-test", cwd: "C:/tmp/refresh-test" },
