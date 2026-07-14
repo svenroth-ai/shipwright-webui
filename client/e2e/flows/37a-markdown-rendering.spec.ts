@@ -9,7 +9,7 @@
  * (not a silent drop).
  */
 
-import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -25,6 +25,12 @@ test.describe("Markdown + code + ANSI + long-line rendering", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "37a-markdown-rendering" });
     await setActiveProject(page, project.projectId);
+    // A00 — the center tab is persisted and defaults to "terminal"
+    // (TaskDetailPage.tsx), so the transcript pane is HIDDEN on a fresh profile.
+    // These specs were inheriting the developer's selected tab.
+    await seedLocalStorage(page, {
+      "webui:embedded-terminal-default-tab": '"transcript"',
+    });
   });
 
   test.afterEach(async ({ request }) => {

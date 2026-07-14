@@ -11,7 +11,7 @@
  * correctly quoted for the host platform.
  */
 
-import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 test.describe("TaskDetail title rename + launch sync", () => {
@@ -22,6 +22,12 @@ test.describe("TaskDetail title rename + launch sync", () => {
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "36-rename-title" });
     await setActiveProject(page, project.projectId);
+    // A00 — the center tab is persisted and defaults to "terminal"
+    // (TaskDetailPage.tsx), so the transcript pane is HIDDEN on a fresh profile.
+    // These specs were inheriting the developer's selected tab.
+    await seedLocalStorage(page, {
+      "webui:embedded-terminal-default-tab": '"transcript"',
+    });
   });
 
   test.afterEach(async ({ request }) => {
