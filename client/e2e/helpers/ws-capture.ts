@@ -137,3 +137,82 @@ export async function awaitFrame(
 export function isTerminalSocket(socketUrl: string, taskId: string): boolean {
   return socketUrl.includes(`/api/terminal/${taskId}/`);
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * OUTBOUND capture. A00 (iterate-2026-07-10-harness-hardening), AC5.
+ *
+ * Everything above this line is about what the SERVER sends. The bytes that
+ * matter for A18 are the ones the CLIENT sends: A18 rebuilds the Files & Terminal
+ * shell around a real xterm, and a restyle must not be able to change WHAT BYTES
+ * REACH THE PTY. The client's entire outbound vocabulary is a single envelope —
+ * `{type:"data", payload:string}` (useAutoLaunch.ts, EmbeddedTerminal.tsx,
+ * TerminalKeyBar.tsx all funnel through `socket.send`) — so pinning it is cheap
+ * and total.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+/** The one envelope the client is allowed to send to the pty. */
+export interface OutboundDataFrame {
+  ts: number;
+  socketId: number;
+  payload: string;
+}
+
+/**
+ * Every outbound `{type:"data"}` frame on the given task's terminal socket, in
+ * send order, optionally restricted to frames sent after `sinceTs` (use the
+ * click timestamp to ignore prewarm/replay chatter from earlier page state).
+ */
+export function outboundDataFrames(
+  cap: WsCapture,
+  taskId: string,
+  sinceTs = 0,
+): OutboundDataFrame[] {
+  const out: OutboundDataFrame[] = [];
+  for (const f of cap.frames) {
+    if (f.kind !== "tx" || f.ts < sinceTs) continue;
+    if (!isTerminalSocket(f.url, taskId)) continue;
+    const env = tryParseEnvelope(f.text);
+    if (!env || env.type !== "data") continue;
+    if (typeof env.payload !== "string") continue;
+    out.push({ ts: f.ts, socketId: f.socketId, payload: env.payload });
+  }
+  return out;
+}
+
+/**
+ * The COMPLETE outbound vocabulary the client is allowed to speak to a pty:
+ *
+ *   data   — keystrokes, paste, and the auto-execute launch command
+ *            (useAutoLaunch.ts, EmbeddedTerminal.tsx, TerminalKeyBar.tsx)
+ *   resize — pty size sync. Load-bearing, not cosmetic: a pty whose column count
+ *            disagrees with xterm's makes Claude wrap its own TUI at the wrong
+ *            width and smears the input line (#194). `useTerminalSizeSync` sends
+ *            this on mount and before launch.
+ *
+ * Anything else appearing on the wire means the client grew a NEW way to talk to
+ * the pty that no guard covers.
+ */
+export const ALLOWED_OUTBOUND_TYPES = ["data", "resize"] as const;
+
+/**
+ * Outbound frames whose `type` is outside `allowed`. Asserting this is empty is
+ * what turns the byte-path guard from "the frames I thought to check are right"
+ * into "no OTHER frames exist" — the difference between a spot-check and a fence.
+ */
+export function outboundUnknownFrames(
+  cap: WsCapture,
+  taskId: string,
+  sinceTs = 0,
+  allowed: readonly string[] = ALLOWED_OUTBOUND_TYPES,
+): string[] {
+  const out: string[] = [];
+  for (const f of cap.frames) {
+    if (f.kind !== "tx" || f.ts < sinceTs) continue;
+    if (!isTerminalSocket(f.url, taskId)) continue;
+    const env = tryParseEnvelope(f.text);
+    if (!env || typeof env.type !== "string" || !allowed.includes(env.type)) {
+      out.push(f.text);
+    }
+  }
+  return out;
+}

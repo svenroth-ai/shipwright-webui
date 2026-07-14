@@ -17,7 +17,7 @@
 
 import { test, expect } from "@playwright/test";
 
-test.describe("No chat panel (architecture guard)", () => {
+test.describe("@smoke No chat panel (architecture guard)", () => {
   test("task detail has no chat-* testids and no message textbox", async ({ page, request }) => {
     const create = await request.post("/api/external/tasks", {
       data: { title: "no-chat-guard", cwd: "C:/tmp/no-chat" },

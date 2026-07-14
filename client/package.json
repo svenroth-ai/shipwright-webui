@@ -13,7 +13,13 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "lint": "oxlint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:e2e": "tsc --noEmit -p tsconfig.e2e.json",
+    "test:e2e": "playwright test --project=chromium --project=mobile-chromium",
+    "test:e2e:smoke": "playwright test --project=chromium --grep @smoke",
+    "test:e2e:quarantine": "playwright test --project=quarantine",
+    "test:visual": "playwright test --project=visual",
+    "test:visual:update": "playwright test --project=visual --update-snapshots"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
