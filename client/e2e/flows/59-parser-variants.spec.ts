@@ -28,6 +28,12 @@ test.describe("Parser variants (FR-03.50 / 03.52)", () => {
     // These specs were inheriting the developer's selected tab.
     await seedLocalStorage(page, {
       "webui:embedded-terminal-default-tab": '"transcript"',
+      // custom-title / agent-name / permission-mode are SYSTEM events, which the
+      // transcript HIDES by default (that default is exactly what spec 60 guards).
+      // This spec asserts they render as chips, so the toggle must be on — it was
+      // inheriting the developer's own preference. Raw "true", not JSON-encoded
+      // (BubbleTranscript/useSystemVisibility.ts reads it with a === "true" compare).
+      "webui.transcript.showSystem": "true",
     });
   });
 
