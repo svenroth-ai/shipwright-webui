@@ -25,7 +25,17 @@ test.describe("SmartViewer cross-file nav (FR-01.02, real RTM)", () => {
   let project: SeededProject;
 
   test.beforeEach(async ({ page, request }) => {
-    project = await seedProject(request, { name: "smartviewer-crossfile-nav", adopted: true });
+    project = await seedProject(request, {
+      name: "smartviewer-crossfile-nav",
+      adopted: true,
+      // The spec clicks a CROSS-FILE FR link in the RTM. It used to read the
+      // developer's own compliance docs; now the fixture writes them, so the
+      // exact link shape under test is explicit rather than inherited.
+      files: {
+        ".shipwright/compliance/traceability-matrix.md": "# Traceability Matrix\n\n| FR | Spec |\n| --- | --- |\n| [FR-01.01](../planning/spec.md#fr-0101) | Board renders |\n",
+        ".shipwright/planning/spec.md": "# Spec\n\n## FR-01.01\n\nThe board renders its columns.\n",
+      },
+    });
     await setActiveProject(page, project.projectId);
   });
 
@@ -35,23 +45,15 @@ test.describe("SmartViewer cross-file nav (FR-01.02, real RTM)", () => {
 
   test("clicking a real RTM FR link navigates the pane to spec.md", async ({
     page,
-    request,
   }, testInfo) => {
-    const res = await request.get("/api/projects");
-    expect(res.ok()).toBeTruthy();
-    const body = (await res.json()) as {
-      data: Array<{ id: string; name: string; path: string }>;
-    };
-    const proj = body.data.find(
-      (p) => /shipwright-webui/i.test(p.path ?? "") || /shipwright-webui/i.test(p.name ?? ""),
-    );
-    expect(
-      proj,
-      "shipwright-webui project must be registered in the running webui",
-    ).toBeTruthy();
-
+    // A00 — this used to scan /api/projects for a project whose PATH contained
+    // "shipwright-webui", i.e. it required the developer's own checkout to be
+    // registered in the running webui. That is machine state, and on a CI runner it
+    // simply does not exist. The RTM + spec.md are now seeded by the fixture (see the
+    // beforeEach), so the cross-file link shape under test is explicit rather than
+    // inherited from whatever the developer's compliance docs happened to say.
     await page.goto(
-      `/preview?projectId=${encodeURIComponent(proj!.id)}&path=${encodeURIComponent(RTM_PATH)}`,
+      `/preview?projectId=${encodeURIComponent(project.projectId)}&path=${encodeURIComponent(RTM_PATH)}`,
     );
 
     const doc = page.getByTestId("document-markdown");
