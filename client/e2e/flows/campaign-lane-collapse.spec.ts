@@ -1,3 +1,4 @@
+import { seedCampaigns } from "../helpers/campaign-fixture";
 import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
@@ -22,6 +23,16 @@ test.describe("Campaign lane collapse + layout", () => {
 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "campaign-lane-collapse" });
+
+    seedCampaigns(
+      project.path,
+      ["2026-06-03-aaa", "2026-06-03-bbb", "2026-06-03-ccc"].map((slug) => ({
+        slug,
+        status: "active" as const,
+        total: 3,
+        done: 1,
+      })),
+    );
     await setActiveProject(page, project.projectId);
   });
 

@@ -1,3 +1,4 @@
+import { seedCampaigns } from "../helpers/campaign-fixture";
 import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
@@ -26,6 +27,17 @@ test.describe("Campaign autonomous launch from the board", () => {
 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "campaign-autonomous-launch" });
+
+    seedCampaigns(project.path, [
+      {
+        slug: "2026-06-03-autolaunch-demo",
+        status: "active",
+        subIterates: [
+          { id: "B0", slug: "alpha", status: "complete" },
+          { id: "B1", slug: "beta", status: "pending" },
+        ],
+      },
+    ]);
     await setActiveProject(page, project.projectId);
   });
 

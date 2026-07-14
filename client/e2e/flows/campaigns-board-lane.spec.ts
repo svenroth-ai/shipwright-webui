@@ -1,4 +1,5 @@
-import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { seedCampaigns } from "../helpers/campaign-fixture";
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -26,7 +27,22 @@ test.describe("Campaigns lane on the Task Board", () => {
 
   test.beforeEach(async ({ page, request }) => {
     project = await seedProject(request, { name: "campaigns-board-lane" });
+
+    seedCampaigns(project.path, [
+      {
+        slug: "2026-06-02-campaigns-demo",
+        status: "active",
+        subIterates: [
+          { id: "B0", slug: "alpha", status: "complete" },
+          { id: "B1", slug: "beta", status: "pending" },
+        ],
+      },
+    ]);
     await setActiveProject(page, project.projectId);
+    // The lane card is COLLAPSED by default (per-slug localStorage). The ordered
+    // steps this spec asserts on only render when expanded — it used to inherit
+    // the developer's own click. Seed the expanded state.
+    await seedLocalStorage(page, { [`webui:campaign-card-collapsed:${SLUG}`]: "false" });
   });
 
   test.afterEach(async ({ request }) => {
