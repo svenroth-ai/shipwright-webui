@@ -115,3 +115,20 @@ export function backdateJsonl(file: string, ageMs: number): void {
   const when = new Date(Date.now() - ageMs);
   fs.utimesSync(file, when, when);
 }
+
+/**
+ * Keep a transcript fresh — what a LIVE Claude session does, and the other half of
+ * impersonating it.
+ *
+ * A resumed session is only held `active` because Claude keeps writing to the
+ * JSONL; the server reads freshness straight off the mtime. On an isolated stack
+ * there is no `claude` binary, so an un-touched transcript stays stale and the task
+ * correctly decays back to idle — which looks like a UI bug but is the server being
+ * right. A spec that asserts post-resume behaviour must therefore go on playing
+ * Claude's part, not just set the stage and walk off.
+ */
+export function touchJsonl(file: string): void {
+  assertIsolatedHome();
+  const now = new Date();
+  fs.utimesSync(file, now, now);
+}

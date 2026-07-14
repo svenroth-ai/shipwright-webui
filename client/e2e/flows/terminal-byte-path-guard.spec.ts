@@ -93,7 +93,11 @@ test.describe("@smoke A00 — terminal byte path (the A18 invariant)", () => {
       shellKind.toLowerCase(),
       "pty spawn target MUST be a whitelisted shell, never `claude` (rule 1 / ADR-067)",
     ).not.toContain("claude");
-    expect(["pwsh", "powershell", "bash", "sh", "zsh", "cmd"]).toContain(shellKind.toLowerCase());
+    // `ShellKind` is exactly this closed set (server/src/terminal/pty-manager.ts) —
+    // "posix" on the Linux CI runner, "pwsh"/"cmd" on Windows. Asserting the closed
+    // set (rather than a guessed list of binary names) means a NEW spawn target
+    // cannot appear without this failing.
+    expect(["pwsh", "cmd", "posix"]).toContain(shellKind.toLowerCase());
 
     // BEFORE the click: the client must not have sent a launch command. Auto-execute
     // is gated on an explicit CTA click (DO-NOT #19) — nothing else may open that door.

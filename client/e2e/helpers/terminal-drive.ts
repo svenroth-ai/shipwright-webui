@@ -15,6 +15,7 @@
  */
 
 import { expect, type Page } from "@playwright/test";
+import { inboundDataBytes, type WsCapture } from "./ws-capture";
 
 /** Bytes of scrollback the replay-path specs need to exercise a real replay. */
 export const SUBSTANTIAL_SCROLLBACK_BYTES = 80_000;
@@ -47,39 +48,41 @@ export async function openTaskTerminal(
 /**
  * Emit a high-volume payload through the REAL pty so the task accumulates real
  * persisted scrollback. Shell-dialect-aware: the pty spawns the platform's
- * whitelisted shell (PowerShell on win32, sh/bash on Linux CI), and a `for`
- * loop written for the wrong one just prints an error instead of 5000 lines.
+ * whitelisted shell (PowerShell on win32, sh/bash on the Linux CI runner), and a
+ * `for` loop written for the wrong one just prints an error instead of 1200 lines.
  *
- * Returns once the terminal has actually rendered the sentinel that closes the
- * payload — polling on the sentinel rather than sleeping a fixed duration keeps
- * this deterministic on a slow CI runner.
+ * Completion is measured by the BYTES that actually came back over the WebSocket,
+ * not by reading the terminal's text. The WebGL renderer paints to a canvas, so
+ * the terminal's `textContent` contains only xterm's injected <style> block — a
+ * DOM poll for output silently waits forever on the wrong string. The wire does
+ * not lie.
  */
 export async function driveScrollback(
   page: Page,
+  cap: WsCapture,
+  taskId: string,
   opts: { lines?: number; timeoutMs?: number } = {},
 ): Promise<void> {
-  const lines = opts.lines ?? 1200;
-  const sentinel = `SCROLLBACK_READY_${Date.now()}`;
+  const lines = opts.lines ?? 1500;
 
   await page.getByTestId("embedded-terminal-canvas").click();
   await page.waitForTimeout(300);
+  const startedAt = Date.now();
 
-  // ~66 bytes/line × 1200 ≈ 80 KB — past SUBSTANTIAL_SCROLLBACK_BYTES.
+  // ~66 bytes/line × 1500 ≈ 99 KB — comfortably past SUBSTANTIAL_SCROLLBACK_BYTES.
   const filler = "payload bytes to fill the wire and the scrollback ring";
   const script =
     process.platform === "win32"
-      ? `for ($i=1; $i -le ${lines}; $i++) { Write-Host "line $i ${filler}" }; Write-Host "${sentinel}"`
-      : `for i in $(seq 1 ${lines}); do echo "line $i ${filler}"; done; echo "${sentinel}"`;
+      ? `for ($i=1; $i -le ${lines}; $i++) { Write-Host "line $i ${filler}" }`
+      : `for i in $(seq 1 ${lines}); do echo "line $i ${filler}"; done`;
 
   await page.keyboard.insertText(script);
   await page.keyboard.press("Enter");
 
-  // The sentinel lands in the xterm buffer once the whole payload has flushed.
   await expect
-    .poll(
-      async () =>
-        page.evaluate(() => document.querySelector('[data-testid="embedded-terminal"]')?.textContent ?? ""),
-      { timeout: opts.timeoutMs ?? 60_000, intervals: [250] },
-    )
-    .toContain(sentinel);
+    .poll(() => inboundDataBytes(cap, taskId, startedAt), {
+      timeout: opts.timeoutMs ?? 90_000,
+      intervals: [250],
+    })
+    .toBeGreaterThan(SUBSTANTIAL_SCROLLBACK_BYTES);
 }

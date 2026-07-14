@@ -38,7 +38,15 @@ const runSchemaIsolated = process.env.SHIPWRIGHT_E2E_ISOLATED === '1';
 //     Tailscale MagicDNS hostname. The literal origins inside it are the SUBJECT
 //     of its assertions, not incidental config. Needs a tailnet; already carries
 //     its own `playwright.tailscale.config.ts`.
-const QUARANTINE_SPECS = [/v091-tailscale-ws\.spec\.ts$/];
+//
+//   e2e/quarantine/** — one entry today:
+//     v0-9-3-ac2-resume-cta-visibility — the Resume CTA's visibility is derived
+//       from live-session detection, which needs a real `claude` process holding
+//       the pty. An isolated stack has no claude binary; the CTA correctly
+//       reappears. Weakening the assertion would leave a green test checking
+//       nothing. (Its sibling AC-1 — the actual ping-pong regression fence — DOES
+//       run, in e2e/flows/v0-9-3-resume-state-machine.spec.ts.)
+const QUARANTINE_SPECS = [/v091-tailscale-ws\.spec\.ts$/, /quarantine[\\/].*\.spec\.ts$/];
 
 // The visual project owns e2e/visual/**; the functional projects must not also
 // collect it (a screenshot assertion running under `chromium` would resolve no

@@ -50,10 +50,11 @@ test.describe("visual: board", () => {
 
     // Move one card out of Backlog so more than one lane is populated. The board
     // column is user-owned and decoupled from session state (CLAUDE.md rule 23) —
-    // POST /column is the supported way to place a card.
+    // POST /column is the canonical command path. Body key is `column`; the closed
+    // set is backlog | in_progress | done (server/src/core/board-column.ts).
     const moved = await request.post(
       apiUrl(`/api/external/tasks/${second.taskId}/column`),
-      { data: { boardColumn: "in_progress" } },
+      { data: { column: "in_progress" } },
     );
     expect(moved.ok(), `POST /column -> ${moved.status()}`).toBeTruthy();
 

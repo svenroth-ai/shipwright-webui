@@ -158,6 +158,25 @@ export interface OutboundDataFrame {
 }
 
 /**
+ * Total bytes of pty OUTPUT the page has received for a task.
+ *
+ * This is the honest way to know a terminal has accumulated real scrollback. The
+ * obvious alternative — reading the terminal's `textContent` — does not work: the
+ * WebGL renderer paints to a canvas, so the DOM only carries xterm's injected
+ * <style> block, and a poll on it silently waits forever on the wrong string.
+ */
+export function inboundDataBytes(cap: WsCapture, taskId: string, sinceTs = 0): number {
+  let total = 0;
+  for (const f of cap.frames) {
+    if (f.kind !== "rx" || f.ts < sinceTs) continue;
+    if (!isTerminalSocket(f.url, taskId)) continue;
+    const env = tryParseEnvelope(f.text);
+    if (env?.type === "data" && typeof env.payload === "string") total += env.payload.length;
+  }
+  return total;
+}
+
+/**
  * Every outbound `{type:"data"}` frame on the given task's terminal socket, in
  * send order, optionally restricted to frames sent after `sinceTs` (use the
  * click timestamp to ignore prewarm/replay chatter from earlier page state).
