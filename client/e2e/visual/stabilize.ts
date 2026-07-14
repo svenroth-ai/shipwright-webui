@@ -27,16 +27,21 @@
 import type { Locator, Page } from "@playwright/test";
 
 /**
- * Offset between the fixture's createdAt and the frozen client clock. Deliberately
- * coarse: seeded rows are milliseconds apart, and at hour granularity that jitter
- * is invisible, so every card renders the same label.
+ * Offset between the fixture's createdAt and the frozen client clock.
+ *
+ * The half-hour is load-bearing, not decoration. `formatRelativeTime` buckets by
+ * FLOOR, so a plain 2h offset puts the anchor task at exactly 2h ("2h ago") while a
+ * sibling seeded one second later lands at 1h59m59s — which floors to "1h ago". Two
+ * cards created a second apart then render different labels, and worse, whether they
+ * do depends on how fast the seeding ran. Offsetting into the MIDDLE of a bucket
+ * means a few seconds of seeding jitter cannot cross a boundary.
  */
-export const CLOCK_OFFSET_MS = 2 * 60 * 60 * 1000; // 2h
+export const CLOCK_OFFSET_MS = 2.5 * 60 * 60 * 1000; // 2h30m — mid-bucket
 
 /**
- * Freeze the page clock at `anchorIso + 2h`. MUST be called before `page.goto`.
- * `anchorIso` should be the seeded fixture's own `createdAt`, so the offset — and
- * therefore the rendered relative label — is identical on every run.
+ * Freeze the page clock at `anchorIso + CLOCK_OFFSET_MS`. MUST be called before
+ * `page.goto`. `anchorIso` should be the seeded fixture's own `createdAt`, so the
+ * offset — and therefore every rendered relative label — is identical on every run.
  */
 export async function freezeClock(page: Page, anchorIso: string): Promise<void> {
   const anchor = new Date(anchorIso).getTime();

@@ -89,17 +89,36 @@ export async function makeTempDir(prefix = "sw-e2e-"): Promise<string> {
 }
 
 /**
+ * Fixed project colour. WITHOUT this, the colour is derived per project and the
+ * project id is fresh on every run, so the Kanban colour dot and the card's left
+ * accent stripe come out a different hue each time. That is ~900 differing pixels —
+ * enough to fail the visual gate against its OWN baselines, on a no-op change.
+ *
+ * A flaky pixel gate is worse than none: it trains people to run
+ * `--update-snapshots` reflexively, which is exactly how a visual gate stops
+ * catching anything. Determinism is a property of the FIXTURE, so it is pinned
+ * here rather than papered over with a looser pixel threshold.
+ */
+export const FIXTURE_PROJECT_COLOR = "#4f46e5";
+
+/**
  * Create a project through the real `POST /api/projects` and return its
  * SERVER-GENERATED id. The project's path is a fresh temp dir.
  */
 export async function seedProject(
   request: APIRequestContext,
-  opts: { name?: string; profile?: string } = {},
+  opts: { name?: string; profile?: string; color?: string } = {},
 ): Promise<SeededProject> {
   const dir = assertTempPath(await makeTempDir("sw-e2e-project-"));
   const name = opts.name ?? `E2E Project ${hexId(6)}`;
   const res = await request.post(apiUrl("/api/projects"), {
-    data: { name, path: dir, profile: opts.profile ?? "custom", status: "active" },
+    data: {
+      name,
+      path: dir,
+      profile: opts.profile ?? "custom",
+      status: "active",
+      settings: { color: opts.color ?? FIXTURE_PROJECT_COLOR },
+    },
   });
   if (!res.ok()) {
     throw new Error(
