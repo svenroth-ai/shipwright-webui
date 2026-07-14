@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-07-14-more-options-flex-clip",
+  "date": "2026-07-14T15:27:53.931276Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/more-options-flex-clip",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-14-more-options-flex-clip"
+}

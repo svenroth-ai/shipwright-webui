@@ -16,6 +16,13 @@
  * — see useNewIssueFormState). Required parameters render OUTSIDE this
  * disclosure (a hidden required field would disable Launch with no visible
  * cause), so this wrapper never traps the user.
+ *
+ * The `overflow-hidden` below rounds the corners over the header's hover
+ * fill — but it also strips this element's flex automatic minimum size, so
+ * a bounded column-flex parent may squeeze and clip it
+ * (iterate-2026-07-14-more-options-flex-clip). ModalShell's body pins
+ * `[&>*]:shrink-0` to prevent that — see the canonical explanation there.
+ * Any other bounded flex parent hosting this component owes it the same.
  */
 
 import { ChevronDown } from "lucide-react";

@@ -159,6 +159,45 @@ describe("ModalShell", () => {
     );
   });
 
+  /*
+   * iterate-2026-07-14-more-options-flex-clip — CI fence.
+   *
+   * jsdom has no layout engine, so it CANNOT catch the actual bug (a flex
+   * item with `overflow-hidden` losing its automatic minimum size, being
+   * squeezed below its content and clipping it). The behavioral proof lives
+   * in e2e/flows/triage-fix-now-more-options-clip.spec.ts — but Playwright
+   * is NOT a CI gate in this repo (CI gates tsc + lint + vitest +
+   * diff-coverage), so without this test the fix could be deleted by a
+   * refactor or a class-sorter and every gating check would stay green.
+   *
+   * Class presence is not a layout assertion — it is a fence. Precedent:
+   * ProjectContextStrip.test.tsx does the same for its layout-critical
+   * classes. See ModalShell.tsx for why the class is load-bearing.
+   */
+  it("modal body pins [&>*]:shrink-0 so an overflow-hidden child cannot be squeezed + clipped", () => {
+    render(
+      <ModalShell
+        open
+        onOpenChange={() => {}}
+        mode="new-task"
+        action={TASK_ACTION}
+        palette={PALETTE["new-task"]}
+        canSubmit={true}
+        submitting={false}
+        error={null}
+        onSubmit={() => {}}
+      >
+        <div />
+      </ModalShell>,
+    );
+    const body = screen.getByTestId("new-issue-modal-body");
+    // The scroll container is what creates the negative free space...
+    expect(body.className).toContain("overflow-y-auto");
+    expect(body.className).toContain("max-h-[calc(100vh-280px)]");
+    // ...and this is the rule that stops its children absorbing it.
+    expect(body.className).toContain("[&>*]:shrink-0");
+  });
+
   it("Launch button is type=submit (form triggers onSubmit(launch))", () => {
     const onSubmit = vi.fn();
     render(
