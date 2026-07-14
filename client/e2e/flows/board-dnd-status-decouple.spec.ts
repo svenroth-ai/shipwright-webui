@@ -13,9 +13,11 @@
  * Targets the live stack (127.0.0.1:3847 backend + vite). Cleans up after
  * itself. Modelled on move-to-backlog.spec.ts.
  */
+import { seedLocalStorage } from "../helpers/fixtures";
+import { API_BASE } from "../helpers/env";
 import { test, expect, type Page } from "@playwright/test";
 
-const API = process.env.WEBUI_API_URL || "http://127.0.0.1:3847";
+const API = API_BASE;
 
 /** Simulate a @dnd-kit mouse drag (MouseSensor, 8 px activation distance)
  *  from a card to a target column. dnd-kit needs intermediate mousemove
@@ -66,13 +68,7 @@ test.describe("Board DnD — status decoupled from session state", () => {
     const taskId = task.taskId;
 
     try {
-      await page.addInitScript((id) => {
-        try {
-          localStorage.setItem("webui.activeProjectId", id);
-        } catch {
-          /* noop */
-        }
-      }, projectId);
+      await seedLocalStorage(page, { "webui.activeProjectId": projectId });
       await page.goto("/");
       await expect(page.getByTestId("task-board-page")).toBeVisible();
 
@@ -142,13 +138,7 @@ test.describe("Board DnD — status decoupled from session state", () => {
     const taskId = task.taskId;
 
     try {
-      await page.addInitScript((id) => {
-        try {
-          localStorage.setItem("webui.activeProjectId", id);
-        } catch {
-          /* noop */
-        }
-      }, projectId);
+      await seedLocalStorage(page, { "webui.activeProjectId": projectId });
       await page.goto("/");
       await expect(page.getByTestId(`task-card-${taskId}`)).toBeVisible({
         timeout: 6_000,
@@ -218,13 +208,7 @@ test.describe("Board DnD — status decoupled from session state", () => {
     expect(closeResp.ok()).toBeTruthy();
 
     try {
-      await page.addInitScript((id) => {
-        try {
-          localStorage.setItem("webui.activeProjectId", id);
-        } catch {
-          /* noop */
-        }
-      }, projectId);
+      await seedLocalStorage(page, { "webui.activeProjectId": projectId });
       await page.goto("/");
       await expect(page.getByTestId("task-board-page")).toBeVisible();
 

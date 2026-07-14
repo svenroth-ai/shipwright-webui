@@ -22,7 +22,6 @@ import { test, expect } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
-import fsSync from "node:fs";
 
 async function makeTaskCwd(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "auto-launch-e2e-"));

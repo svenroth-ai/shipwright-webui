@@ -42,13 +42,17 @@
  * fix is producer-side and network-independent.
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ARTIFACT_DIR = path.resolve(
@@ -158,7 +162,7 @@ async function runOneCell(
         title: `Iterate E ${type} matrix`,
         cwd,
         actionId: type,
-        projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+        projectId: project.projectId,
       },
     });
     expect(created.ok()).toBeTruthy();
@@ -226,6 +230,10 @@ async function runOneCell(
 }
 
 test.describe("Iterate E (ADR-092) — live-pty preservation 4-type matrix", () => {
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(180_000);
 
   // External code review MED #4 — soft-skip when running against a
@@ -244,18 +252,10 @@ test.describe("Iterate E (ADR-092) — live-pty preservation 4-type matrix", () 
     }
   });
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-        localStorage.setItem(
-          "webui:embedded-terminal-default-tab",
-          '"terminal"',
-        );
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "v0-9-6-live-pty-matrix" });
+    await setActiveProject(page, project.projectId);
+    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
     await fs.mkdir(ARTIFACT_DIR, { recursive: true });
   });
 

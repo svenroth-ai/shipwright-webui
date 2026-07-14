@@ -13,9 +13,10 @@
  * exports BASE_URL + PROJECT_ID.
  */
 
+import { API_BASE } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 
-const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3863";
+const BASE = API_BASE;
 const PID = process.env.PROJECT_ID ?? "";
 const RAMP_LEN = 100;
 

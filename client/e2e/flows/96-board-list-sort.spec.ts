@@ -12,9 +12,10 @@
  *
  * Targets the live/isolated stack via BASE_URL (F0.5). Cleans up after itself.
  */
+import { API_BASE } from "../helpers/env";
 import { test, expect, type Page } from "@playwright/test";
 
-const API = process.env.BASE_URL || "http://127.0.0.1:5173";
+const API = API_BASE;
 
 const VIEWPORTS = [
   { name: "desktop", width: 1280, height: 900 },

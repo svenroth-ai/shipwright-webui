@@ -12,13 +12,17 @@
  * Artifact: `client/playwright-report/v0.9.6-live-pty-multitab/`.
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ARTIFACT_DIR = path.resolve(
@@ -37,18 +41,18 @@ async function deleteTask(request: APIRequestContext, taskId: string): Promise<v
 }
 
 async function setProjectStorage(page: Page): Promise<void> {
-  await page.addInitScript((id) => {
-    try {
-      localStorage.setItem("webui.activeProjectId", id);
-      localStorage.setItem(
-        "webui:embedded-terminal-default-tab",
-        '"terminal"',
-      );
-    } catch { /* noop */ }
-  }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
 }
 
 test.describe("Iterate E (ADR-092) probe — multi-tab + server-restart", () => {
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "_v0-9-6-live-pty-multitab-probe" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(120_000);
 
   test("multi-tab: state preserved when one tab closes", async ({ browser, request }) => {
@@ -70,7 +74,7 @@ test.describe("Iterate E (ADR-092) probe — multi-tab + server-restart", () => 
           title: "ADR-092 multitab probe",
           cwd,
           actionId: "new-task",
-          projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+          projectId: project.projectId,
         },
       });
       expect(created.ok()).toBeTruthy();

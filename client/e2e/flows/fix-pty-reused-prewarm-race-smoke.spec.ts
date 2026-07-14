@@ -44,7 +44,7 @@ import {
  *  inside this. The handshake constant is 250 ms quiesce. */
 const AUTO_EXECUTE_WINDOW_MS = 8_000;
 
-function launchSendForTask(taskId: string, afterMs: number) {
+function launchSendForTask(_taskId: string, afterMs: number) {
   return (
     f: CapturedFrame,
     env: Record<string, unknown> | null,

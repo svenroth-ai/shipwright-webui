@@ -1,0 +1,26 @@
+{
+  // A00 (iterate-2026-07-10-harness-hardening) — `tsconfig.json` sets
+  // `rootDir: ./src` and includes only `src/**`, so the 114 Playwright specs
+  // under `e2e/` were type-checked by NOTHING: `tsc --noEmit` never saw them and
+  // Playwright transpiles specs with esbuild, which strips types without
+  // checking them. A spec could reference a field that does not exist and still
+  // "pass" by silently evaluating `undefined`.
+  //
+  // This config type-checks the suite. It is wired into `npm run typecheck:e2e`
+  // and runs in the `E2E smoke (gate)` CI job.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "resolveJsonModule": true
+  },
+  "include": ["e2e/**/*.ts"]
+}

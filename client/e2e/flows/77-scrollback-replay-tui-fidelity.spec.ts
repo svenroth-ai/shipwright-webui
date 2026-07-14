@@ -20,9 +20,14 @@
  * patterns appear in any of those payloads.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { apiUrl } from "../helpers/env";
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "50e86b6e-3ade-44c4-9e21-2c62c65f804e";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 interface CapturedFrame {
   ts: number;
@@ -54,7 +59,7 @@ function attachWsCapture(page: Page): { frames: CapturedFrame[] } {
 async function cleanup(request: APIRequestContext, taskId: string): Promise<void> {
   if (!taskId) return;
   try {
-    await request.delete(`http://localhost:3847/api/external/tasks/${taskId}`);
+    await request.delete(apiUrl(`/api/external/tasks/${taskId}`));
   } catch {
     /* ignore */
   }
@@ -107,14 +112,12 @@ async function awaitReplayEnd(
 test.describe("Spec 77 — scrollback replay TUI fidelity (AC-1)", () => {
   test.setTimeout(180_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "77-scrollback-replay-tui-fidelity" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
   });
 
   test("PowerShell prompt-repaint fixture: replay contains no cursor-control codes", async ({

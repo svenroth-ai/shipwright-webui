@@ -52,7 +52,7 @@ import {
  */
 const SYNC_ADJACENCY_MAX_MS = 150;
 
-function launchDataFrame(cap: WsCapture, taskId: string) {
+function launchDataFrame(_cap: WsCapture, taskId: string) {
   return (f: CapturedFrame, env: Record<string, unknown> | null): boolean => {
     if (f.kind !== "tx") return false;
     if (env?.type !== "data") return false;

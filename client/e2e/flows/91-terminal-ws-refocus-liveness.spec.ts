@@ -13,6 +13,8 @@
  * with WEBUI_API_URL). Creates + cleans up its own task. Modelled on
  * 76-autolaunch-reader-writer-race.spec.ts + the ws-capture helper.
  */
+import { seedLocalStorage } from "../helpers/fixtures";
+import { API_BASE } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 import {
   attachWsCapture,
@@ -21,7 +23,7 @@ import {
   tryParseEnvelope,
 } from "../helpers/ws-capture";
 
-const API = process.env.WEBUI_API_URL || "http://127.0.0.1:3847";
+const API = API_BASE;
 
 test.describe("Terminal WS liveness — refocus ping/pong", () => {
   test.setTimeout(120_000);
@@ -50,13 +52,7 @@ test.describe("Terminal WS liveness — refocus ping/pong", () => {
 
     try {
       const cap = attachWsCapture(page);
-      await page.addInitScript((id) => {
-        try {
-          localStorage.setItem("webui.activeProjectId", id);
-        } catch {
-          /* noop */
-        }
-      }, projectId);
+      await seedLocalStorage(page, { "webui.activeProjectId": projectId });
 
       await page.goto("/");
       await expect(page.getByTestId("task-board-page")).toBeVisible({ timeout: 15_000 });

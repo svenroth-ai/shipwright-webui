@@ -19,6 +19,7 @@
  *      disk-derived (AC3).
  */
 
+import { seedLocalStorage } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
 import os from "node:os";
@@ -162,13 +163,7 @@ async function registerProject(request: APIRequestContext, dir: string): Promise
 }
 
 async function openBoard(page: Page, projectId: string): Promise<void> {
-  await page.addInitScript((id) => {
-    try {
-      localStorage.setItem("webui.activeProjectId", id);
-    } catch {
-      /* noop */
-    }
-  }, projectId);
+  await seedLocalStorage(page, { "webui.activeProjectId": projectId });
   await page.goto("/");
   await expect(page.getByTestId("task-board-page")).toBeVisible();
 }

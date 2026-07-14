@@ -70,12 +70,16 @@
  * (DOM selectors, WS framereceived, REST GETs).
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type Page, type WebSocket as PWWebSocket } from "@playwright/test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 const SCROLLBACK_DIR = path.join(
   os.homedir(),
   ".shipwright-webui",
@@ -186,21 +190,6 @@ function attachWsCapture(page: Page): WsCapture[] {
   return capture;
 }
 
-/**
- * Returns the WS for a given taskId that received the most envelopes —
- * picks up the "authoritative" connection after any StrictMode mount-1
- * transient discard.
- */
-function pickAuthoritativeWs(
-  capture: WsCapture[],
-  taskId: string,
-): WsCapture | undefined {
-  const matching = capture.filter(
-    (c) =>
-      c.url.includes(`/api/terminal/${taskId}/ws`) && c.envelopes.length > 0,
-  );
-  return matching.length > 0 ? matching[matching.length - 1] : undefined;
-}
 
 function countWsForTask(capture: WsCapture[], taskId: string): number {
   return capture.filter((c) =>
@@ -254,7 +243,7 @@ async function createTask(
   const body: Record<string, unknown> = {
     title: `IterateD ${spec.id} ${titleSuffix}`,
     cwd,
-    projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+    projectId: project.projectId,
     actionId: spec.actionId,
   };
   if (spec.phase) {
@@ -348,18 +337,14 @@ async function getCursorBoundingBox(page: Page) {
 }
 
 test.describe("v0.9.5 / Iterate D — task-type × scenario matrix [ADR-087/088/089]", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((projectId) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", projectId);
-        localStorage.setItem(
-          "webui:embedded-terminal-default-tab",
-          '"terminal"',
-        );
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "v0-9-5-task-type-matrix" });
+    await setActiveProject(page, project.projectId);
+    await seedLocalStorage(page, { "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   for (const spec of TASK_TYPES) {

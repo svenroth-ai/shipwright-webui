@@ -12,24 +12,37 @@
  * pure-HTTP assertions.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { API_BASE } from "../helpers/env";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 
-const UAT_PROJECT_ID = "fa10a30a-21b1-48e0-a588-e7f721ca5bfc";
-const BASE = "http://localhost:3847";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
+const BASE = API_BASE;
 
 async function getTree(request: APIRequestContext, relPath?: string) {
-  const url = new URL(`${BASE}/api/external/projects/${UAT_PROJECT_ID}/tree`);
+  const url = new URL(`${BASE}/api/external/projects/${project.projectId}/tree`);
   if (relPath !== undefined) url.searchParams.set("path", relPath);
   return await request.get(url.toString());
 }
 
 async function getFile(request: APIRequestContext, relPath: string) {
-  const url = new URL(`${BASE}/api/external/projects/${UAT_PROJECT_ID}/file`);
+  const url = new URL(`${BASE}/api/external/projects/${project.projectId}/file`);
   url.searchParams.set("path", relPath);
   return await request.get(url.toString());
 }
 
 test.describe("Flow I — Tree + file routes", () => {
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "70-i-tree-file-routes" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("GET /tree returns the UAT 1 root with .shipwright-webui flagged ignored", async ({
     request,
   }) => {

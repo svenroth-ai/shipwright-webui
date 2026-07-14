@@ -43,7 +43,7 @@ const ATLAS_KEY = "__embeddedTerminalAtlasRepaints";
 
 /** Create a bare task (shell pty; no Claude launch) + a cleanup. */
 async function createBareTask(
-  page: Page,
+  _page: Page,
   request: APIRequestContext,
 ): Promise<{ taskId: string; cleanup: () => Promise<void> }> {
   const project = await ensureProject(request);
