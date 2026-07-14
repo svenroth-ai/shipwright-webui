@@ -92,6 +92,17 @@ function renderModal(task: ExternalTask, onOpenChange = vi.fn()) {
 }
 
 describe("EditTaskModal — never-started task (AC-1)", () => {
+  /* Twin of the ContinuePipelineModal fence. Height budget differs (260px,
+   * gap-3.5) — that half is the caller's; the guard half is not.
+   * Why: components/common/ModalScrollBody.tsx. */
+  it("scroll body inherits the bounded-scroll-container guard from ModalScrollBody", () => {
+    renderModal(baseTask());
+    const body = screen.getByTestId("edit-task-modal-body");
+    expect(body.className).toContain("overflow-y-auto");
+    expect(body.className).toContain("[&>*]:shrink-0");
+    expect(body.className).toContain("max-h-[calc(100vh-260px)]");
+  });
+
   it("renders every field as an editable input", () => {
     renderModal(baseTask());
     expect(screen.getByTestId("edit-task-title-input")).toBeInTheDocument();

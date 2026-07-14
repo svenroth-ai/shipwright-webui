@@ -88,6 +88,17 @@ function renderModal(props: {
 }
 
 describe("ContinuePipelineModal", () => {
+  /* This dialog had copied the scroll-body class string WITHOUT the guard; it
+   * now inherits it from <ModalScrollBody>. Fence proves the class reaches the
+   * DOM (jsdom cannot assert the layout). Why: components/common/ModalScrollBody.tsx. */
+  it("scroll body inherits the bounded-scroll-container guard from ModalScrollBody", () => {
+    renderModal({ runConfig: okConfig([PHASE_TASK_BUILD]) });
+    const body = screen.getByTestId("continue-pipeline-body");
+    expect(body.className).toContain("overflow-y-auto");
+    expect(body.className).toContain("[&>*]:shrink-0");
+    expect(body.className).toContain("max-h-[calc(100vh-280px)]");
+  });
+
   it("renders an empty state when run-config is missing/v1/invalid", () => {
     renderModal({ runConfig: { status: "missing" } });
     expect(screen.getByTestId("continue-pipeline-empty")).toBeInTheDocument();

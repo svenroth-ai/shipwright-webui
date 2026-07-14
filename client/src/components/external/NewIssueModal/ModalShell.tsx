@@ -20,6 +20,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Bookmark, X } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
 
+import { ModalScrollBody } from "../../common/ModalScrollBody";
 import {
   modeHeading,
   modeIcon,
@@ -100,40 +101,21 @@ export function ModalShell({
             data-testid="new-issue-modal-form"
           >
             {/*
-             * CANONICAL EXPLANATION — `[&>*]:shrink-0` is load-bearing, not
-             * cosmetic (iterate-2026-07-14-more-options-flex-clip).
+             * The bounded-scroll-container invariant (children keep their
+             * natural height; the container scrolls) lives in ModalScrollBody —
+             * see that file for why it is load-bearing. `[&>*]:shrink-0` used to
+             * be typed inline here; it is now inherited, so no dialog can
+             * silently omit it (iterate-2026-07-14-modal-scroll-body-invariant).
              *
-             * This is a column flex container with a bounded height. A flex
-             * item is normally floored at its content height by the automatic
-             * minimum size (`min-height: auto`) — but CSS turns that floor OFF
-             * for any item whose `overflow` is not `visible`. Such an item is
-             * therefore the one flexbox is free to squeeze below its content,
-             * which it then silently CLIPS; and because it swallows the
-             * negative free space, this container never becomes scrollable, so
-             * the clipped fields are unreachable rather than merely off-screen.
-             * MoreOptionsDisclosure (overflow-hidden, for corner rounding) hit
-             * exactly this and rendered ~300px of fields into a ~12px box.
-             *
-             * Invariant: children keep their natural height; the container
-             * scrolls. Never the other way round.
-             *
-             * Scope: `[&>*]` is a child combinator — it covers DIRECT children
-             * only. AdvancedParamsFragment (ParamSections.tsx) also carries
-             * overflow-hidden but nests inside MoreOptionsDisclosure, so it is
-             * safe only while its own flex parent stays height-unbounded.
-             * A future child that legitimately must shrink needs an explicit
-             * escape hatch (its own `min-h-0`), not a bare `shrink` — equal
-             * specificity means source order would decide.
-             *
-             * Guards: ModalShell.test.tsx pins the class (vitest is the CI
-             * gate; Playwright is not), and
-             * e2e/flows/triage-fix-now-more-options-clip.spec.ts proves the
-             * actual layout in a real browser — jsdom has no layout engine and
-             * cannot see this class of bug at all.
+             * Scope note that stays local: `[&>*]` is a child combinator, so it
+             * covers DIRECT children only. AdvancedParamsFragment
+             * (ParamSections.tsx) also carries overflow-hidden but nests inside
+             * MoreOptionsDisclosure, so it is safe only while its own flex
+             * parent stays height-unbounded.
              */}
-            <div
+            <ModalScrollBody
               data-testid="new-issue-modal-body"
-              className="flex max-h-[calc(100vh-280px)] flex-col gap-4 overflow-y-auto px-5 py-4 [&>*]:shrink-0"
+              className="max-h-[calc(100vh-280px)] gap-4"
             >
               {children}
 
@@ -175,7 +157,7 @@ export function ModalShell({
                   {error}
                 </div>
               )}
-            </div>
+            </ModalScrollBody>
 
             <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
               <div

@@ -31,6 +31,7 @@ import {
 import { useProjectActions } from "../../hooks/useProjectActions";
 import { useUpdateTask } from "../../hooks/useExternalTasks";
 import { isFieldEditable, isNeverStarted } from "../../lib/taskEditability";
+import { ModalScrollBody } from "../common/ModalScrollBody";
 
 /** Catalog-free fallback field set — Phase is omitted because validating a
  *  phase id needs the project's actions catalog. */
@@ -241,7 +242,7 @@ export function EditTaskModal({ open, onOpenChange, task }: Props) {
             </div>
           ) : (
             <form onSubmit={(e) => void onSubmit(e)} data-testid="edit-task-modal-form">
-              <div className="flex max-h-[calc(100vh-260px)] flex-col gap-3.5 overflow-y-auto px-5 py-4">
+              <ModalScrollBody data-testid="edit-task-modal-body" className="max-h-[calc(100vh-260px)] gap-3.5">
                 <Field label="Title" required>
                   <input
                     type="text"
@@ -382,8 +383,7 @@ export function EditTaskModal({ open, onOpenChange, task }: Props) {
                     {error}
                   </div>
                 )}
-              </div>
-
+              </ModalScrollBody>
               <div className="flex flex-wrap items-center justify-end gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
                 <Dialog.Close asChild>
                   <button

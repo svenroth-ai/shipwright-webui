@@ -140,6 +140,7 @@ One-line index — imperative + pointer only; rationale and full mechanics live 
 21. (ADR-092) **WS replay is LIVE-mirror first, disk-snapshot fallback**; snapshot-on-detach via atomic `detachAndCount`; never `mirror.dispose()` in `flushMirrorSnapshot`. Guard: `v0-9-6-live-pty-replay.spec.ts`.
 22. (ADR-097 + ADR-098) **xterm.js + paired addons are exact-pinned (6.0.0 family, NO carets)**; snapshot envelope v2-only; `CLAUDE_CODE_NO_FLICKER` defaults ON (opt-out `SHIPWRIGHT_TERMINAL_NO_FLICKER=0`); DO NOT add `windowsMode`.
 23. (iterate-2026-06-17 + ADR-204) **Board column is DECOUPLED from session `state`** — `POST /tasks/:id/column` sets the user-owned `boardColumn` ONLY (never `state`/JSONL); `/close|/backlog|/reopen` sync it; DO NOT re-couple. Exception: a `done` card moved out of Done routes through `/reopen` (state→draft, lands unlocked — ADR-204).
+24. (iterate-2026-07-14) **A self-scrolling column-flex container MUST carry `[&>*]:shrink-0`** — CSS drops the automatic minimum size of any direct child whose `overflow` is not `visible`, so that child gets squeezed below its content, silently CLIPPED, and (having eaten the negative free space) the container never scrolls, making the content unreachable. DO NOT hand-roll a dialog scroll body — use `components/common/ModalScrollBody.tsx` (the sole carrier; its `className` takes the height budget + gap ONLY). Meta-test `client/src/test/modal-scroll-body-invariant.test.ts` ratchets both.
 
 ### Title integration (`--name`)
 

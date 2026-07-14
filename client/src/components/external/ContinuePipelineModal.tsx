@@ -27,6 +27,7 @@ import {
   type RunConfigResponse,
 } from "../../lib/run-config-v2";
 import { useContinuePipeline } from "../../hooks/useContinuePipeline";
+import { ModalScrollBody } from "../common/ModalScrollBody";
 
 interface Props {
   open: boolean;
@@ -134,15 +135,14 @@ export function ContinuePipelineModal({
           </div>
 
           <form onSubmit={(e) => void onSubmit(e)} data-testid="continue-pipeline-form">
-            <div className="flex max-h-[calc(100vh-280px)] flex-col gap-4 overflow-y-auto px-5 py-4">
+            <ModalScrollBody data-testid="continue-pipeline-body" className="max-h-[calc(100vh-280px)] gap-4">
               <Body
                 ready={ready}
                 runConfig={runConfig}
                 selectedId={selectedId}
                 onSelect={setSelectedId}
               />
-            </div>
-
+            </ModalScrollBody>
             {error && (
               <div
                 data-testid="continue-pipeline-error"
