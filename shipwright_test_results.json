@@ -50,7 +50,6 @@
     "test_completeness": {
       "status": "complete",
       "enumeration_basis": "Every behavior this diff introduces or changes. The diff is one CSS rule on ModalShell's scroll body (plus two explanatory comments and one new data-testid), so the behavior set is: the rule's own presence (CI fence), the layout outcome it produces (5 distinct assertions in the new E2E), and non-regression of the surfaces the rule newly applies to (the other create-dialog bodies + the responsive bands) = 8 behaviors.",
-      "untested_testable": 0,
       "behaviors": [
         {
           "behavior": "ModalShell's scroll body pins [&>*]:shrink-0 (+ keeps overflow-y-auto and its max-h) so no direct child can absorb the container's overflow",
@@ -100,7 +99,13 @@
           "disposition": "tested",
           "evidence": "80-tablet-responsive.spec.ts 21/21 passed."
         }
-      ]
+      ],
+      "counts": {
+        "total": 8,
+        "tested": 8,
+        "untestable": 0,
+        "untested_testable": 0
+      }
     },
     "degraded": []
   }
