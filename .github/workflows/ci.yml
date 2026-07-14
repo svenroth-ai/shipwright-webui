@@ -103,6 +103,101 @@ jobs:
         with:
           coverage-files: client/coverage/cobertura-coverage.xml server/coverage/cobertura-coverage.xml
 
+  # ── A00 (iterate-2026-07-10-harness-hardening) ──────────────────────────────
+  # Before this job, CI gated tsc + oxlint + vitest + diff-cover and NOTHING else:
+  # 114 Playwright specs existed and zero of them could block a merge. An agent
+  # could open a fully-green PR having visually destroyed a screen — vitest cannot
+  # see that the board lost its columns or that a glass panel went white-on-white.
+  #
+  # Both jobs run INSIDE the pinned Playwright image, which is also the only
+  # environment the visual baselines are ever generated in. Font rasterisation
+  # differs between a Windows dev box and a Linux runner, so a locally-generated
+  # PNG would fail here 100% of the time; the image tag must stay in lockstep with
+  # `@playwright/test` in client/package.json.
+  #
+  # NOTE (the arming step): a failing job only BLOCKS a merge once its check name
+  # is listed in the `main-protection` ruleset's required_status_checks. Removing
+  # continue-on-error is necessary but NOT sufficient. The names are the contract:
+  #   "E2E smoke (gate)"  and  "Visual regression (gate)"
+  e2e-smoke:
+    name: E2E smoke (gate)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          cd client && npm ci
+          cd ../server && npm ci
+
+      # The 114 specs were type-checked by NOTHING before A00: client/tsconfig.json
+      # pins rootDir to ./src, and Playwright transpiles specs with esbuild, which
+      # strips types without checking them.
+      - name: Type check the E2E suite
+        run: cd client && npm run typecheck:e2e
+
+      - name: Build client
+        run: cd client && npm run build
+
+      - name: Boot the isolated stack + run the smoke gate
+        run: bash .github/scripts/e2e-stack.sh smoke
+        env:
+          PORT: '4847'
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-smoke-report
+          path: |
+            client/playwright-report/
+            client/test-results/
+          retention-days: 7
+
+  visual:
+    name: Visual regression (gate)
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          cd client && npm ci
+          cd ../server && npm ci
+
+      - name: Build client
+        run: cd client && npm run build
+
+      - name: Boot the isolated stack + run the visual gate
+        run: bash .github/scripts/e2e-stack.sh visual
+        env:
+          PORT: '4848'
+
+      # BASELINE BOOTSTRAP. On a missing snapshot Playwright WRITES the actual PNG
+      # and fails the test. Uploading the snapshot dir on failure is therefore how
+      # baselines get created in the first place — and, crucially, they are created
+      # by byte-exactly the environment that will later police them. Download this
+      # artifact, commit the PNGs, push: the job then goes green.
+      #   gh run download <run-id> -n visual-baselines -D client/e2e/visual/__screenshots__
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-baselines
+          path: client/e2e/visual/__screenshots__/
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: visual-diff-report
+          path: |
+            client/playwright-report/
+            client/test-results/
+          retention-days: 7
+
   server-checks:
     name: Server (type + lint + test)
     runs-on: ubuntu-latest
