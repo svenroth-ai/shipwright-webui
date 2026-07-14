@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-07-14",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-14-deploy-self-kill",
+    "run_id": "iterate-2026-07-14-more-options-flex-clip",
     "date": "2026-07-14",
     "unit": {
       "status": "passed",
-      "passed": 4169,
-      "total": 4169,
-      "note": "server vitest 178 files / 2085 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local; +2 new CI-gated guard files: deploy-detach.test.ts = caller half, deploy-swap-contract.test.ts = swapper half, 39 tests). client vitest 206 files / 2016 passed (untouched). scripts node --test: 68 passed (deploy-swap.test.mjs new; start-server-production{,.sh}.test.mjs re-pointed at the new contract per the Test-Update-Klausel). tsc --noEmit clean in both workspaces; oxlint clean on the new files."
+      "passed": 4102,
+      "total": 4103,
+      "note": "client vitest 206 files / 2017 passed (2016 baseline + 1 new CI fence in ModalShell.test.tsx). server vitest 178 files / 2085 passed + 1 skipped (SHIPWRIGHT_NETWORK_PROFILE=local; untouched by this diff). tsc --noEmit clean; oxlint clean on the touched files. The new fence was falsified both ways: it PASSES with [&>*]:shrink-0 present and FAILS when the class is removed - it is a real guard, not decoration."
     },
     "integration": {
-      "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "Purpose-built pty harness (throwaway, documented in the iterate spec): the REAL deploy script runs inside a REAL @lydell/node-pty shell hosted by the process that owns the port - the exact topology of the Command Center embedded terminal. Run twice: against the pre-fix script from git HEAD and against the fixed one. This is the only construction that can exercise the bug; a unit test cannot model a ConPTY teardown."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "No integration surface: the diff is a single CSS rule on a presentational shell plus two comments. No route, store, contract, or cross-component machinery touched."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,148 +22,90 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2,
-      "note": "The end-to-end verification for this change IS the pty deploy harness above (not a Playwright spec - the change has no web surface). RED: pre-fix script => caller killed by the ConPTY cascade, NO server on :3947, no status file = the 2026-07-14 outage reproduced exactly. GREEN: fixed script => caller killed just the same, server back (pid 17664), HTTP 200 on /api/diagnostics, deploy-status.json ok:true readiness:listener. Re-run after every rework round, including the full post-review rebuild."
+      "passed": 3,
+      "total": 3,
+      "note": "F0.5 gate run (3 specs): the NEW triage-fix-now-more-options-clip.spec.ts + the 2 existing triage-fix-now.spec.ts cases (which exercise BOTH the new-task and new-iterate modal bodies). The new spec was confirmed RED before the fix (422px of the More-options panel clipped, modal body NOT scrollable) and GREEN after (0px clipped, body scrolls). Additionally re-run outside the gate: 80-tablet-responsive.spec.ts 21/21 passed (layout non-regression across the compact/desktop bands). 70-b-dropdown-modes + 50-new-task-modal fail/skip in the isolated stack, but fail IDENTICALLY on the untouched baseline (verified by stashing the fix and re-running): they need a project-SCOPED board (the app renders ProjectCreateCascade, not create-menu-primary, in All-projects scope). Pre-existing fixture gap, not a regression."
     },
     "design_fidelity": {
       "status": "not_run",
-      "note": "No UI change (ops tooling)."
+      "passed": 0,
+      "total": 0,
+      "note": "No visual redesign - the fix RESTORES the intended rendering of an existing panel. Verified by real-browser screenshot before/after."
     },
     "smoke": {
       "status": "passed",
-      "note": "The fixed script was also run directly (no pty, isolated PORT=3947 + temp HOME): build -> hand-off -> swapper -> server up; the caller reported OK from the swapper status file. Confirms the surviving-caller path, which the pty run cannot show (there the caller is dead by design)."
+      "passed": 1,
+      "total": 1,
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx server on :3901, temp USERPROFILE, 127.0.0.1): /api/health 200, index served 200."
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": null,
+      "surface": "web",
+      "runner": "node C:\\01_Development\\shipwright-webui\\client\\node_modules\\@playwright\\test\\cli.js test --config client/playwright.config.ts client/e2e/flows/triage-fix-now-more-options-clip.spec.ts client/e2e/flows/triage-fix-now.spec.ts --project=chromium",
       "exit_code": 0,
-      "tests_run": 0,
-      "evidence_path": ".shipwright/planning/iterate/2026-07-14-deploy-self-kill.md",
-      "timestamp": "2026-07-14T11:00:00.000Z",
-      "justification": "Ops tooling only: the diff touches scripts/ (two deploy shell scripts + two new Node helpers) and two server vitest guard files. No route, store mutation, WS handler, message contract, or any code consumed by the UI changed - there is no web surface to drive, so the Backend-affects-Frontend rule does not apply. It was instead verified end-to-end where the bug actually lives: the real deploy script executed inside a real node-pty shell hosted by the process owning the port (the embedded-terminal topology), once against the pre-fix script from git HEAD (caller killed, NO server, no status file - the outage reproduced) and once against the fixed script (caller killed just the same, server back, HTTP 200, deploy-status.json ok:true). Playwright cannot model a ConPTY teardown; this harness is the only proof that exists."
+      "tests_run": 3,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\more-options-flex-clip\\.shipwright\\runs\\iterate-2026-07-14-more-options-flex-clip\\surface_verification.log",
+      "timestamp": "2026-07-14T15:22:27.294Z",
+      "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "The 6 acceptance criteria in .shipwright/planning/iterate/2026-07-14-deploy-self-kill.md, plus every behavior the diff introduces (port contract, kill scope, kill verification, readiness, status file, heal placement, detach mechanics, log degradation), plus every defect the two review rounds surfaced (external LLM review + internal code review) - each became its own row = 19 behaviors.",
-      "untested_testable": 0,
+      "enumeration_basis": "Every behavior this diff introduces or changes. The diff is one CSS rule on ModalShell's scroll body (plus two explanatory comments and one new data-testid), so the behavior set is: the rule's own presence (CI fence), the layout outcome it produces (5 distinct assertions in the new E2E), and non-regression of the surfaces the rule newly applies to (the other create-dialog bodies + the responsive bands) = 8 behaviors.",
       "behaviors": [
         {
-          "behavior": "Caller performs no kill; delegates to the swapper (.ps1 + .sh)",
+          "behavior": "ModalShell's scroll body pins [&>*]:shrink-0 (+ keeps overflow-y-auto and its max-h) so no direct child can absorb the container's overflow",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "server/src/test/deploy-detach.test.ts (CI-gated)"
+          "evidence": "ModalShell.test.tsx 'modal body pins [&>*]:shrink-0...' - vitest is the CI gate here; Playwright is not. Falsified: removing the class turns this test RED."
         },
         {
-          "behavior": "Hand-off happens only AFTER the build (failed build => running server untouched)",
-          "category": "unit",
+          "behavior": "Opened from a triage item, the More-options panel renders UNCLIPPED (scrollHeight - clientHeight <= 1)",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "deploy-detach.test.ts + scripts/start-server-production{,.sh}.test.mjs"
+          "evidence": "triage-fix-now-more-options-clip.spec.ts - RED before fix (422px clipped), GREEN after (0px)."
         },
         {
-          "behavior": "EVERY npm install/build step carries an ABORT guard (order alone is not enough)",
-          "category": "unit",
+          "behavior": "The last field in the panel (Tags) sits fully inside the panel's painted box - the row the user saw sliced in half",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "deploy-detach.test.ts (added after code review: the order-only test stayed green with every guard deleted)"
+          "evidence": "triage-fix-now-more-options-clip.spec.ts boundingBox comparison."
         },
         {
-          "behavior": "Hand-off is detached (Start-Process / nohup|setsid, stdin from /dev/null)",
-          "category": "unit",
+          "behavior": "The modal BODY takes the overflow and becomes scrollable (the second half of the bug: the disclosure ate the negative space, so the clipped fields were unreachable, not merely off-screen)",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "deploy-detach.test.ts"
+          "evidence": "triage-fix-now-more-options-clip.spec.ts scrollHeight > clientHeight on new-issue-modal-body. Doubles as the anti-vacuity guard: if the form ever fit, the clip assertions could pass trivially - this one fails loud instead."
         },
         {
-          "behavior": "Hand-off survives a repo path containing spaces",
-          "category": "boundary-probe",
+          "behavior": "The clipped fields are actually reachable by scrolling",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "measured: unquoted + spaced path => node 'Cannot find module'; quoted => correct argv"
+          "evidence": "triage-fix-now-more-options-clip.spec.ts scrollIntoViewIfNeeded + toBeInViewport."
         },
         {
-          "behavior": "The .ps1 parses under Windows PowerShell 5.1 (the shell the embedded terminal spawns)",
-          "category": "boundary-probe",
+          "behavior": "The triage auto-expand is PRESERVED (More options opens with aria-expanded=true so the carried-over priority/domain are visible) - the behavior the user explicitly chose to keep",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "5.1 parser run + ASCII-only-code-lines test in deploy-detach.test.ts"
+          "evidence": "triage-fix-now-more-options-clip.spec.ts precondition assertion."
         },
         {
-          "behavior": "Swapper kills ONE PID, never the tree (/T would kill the swapper itself)",
-          "category": "unit",
+          "behavior": "The rule does not regress the other create-dialog bodies it now also applies to (new-task, new-iterate)",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "server/src/test/deploy-swap-contract.test.ts"
+          "evidence": "triage-fix-now.spec.ts (2 cases: github->new-task, iterate->new-iterate) GREEN. Direct children of the scroll body were additionally enumerated across all five bodies in code review: none declares flex-1/shrink/basis, so shrink-0 is a no-op for every child except the overflow-hidden one it targets."
         },
         {
-          "behavior": "Swapper does NOT start when the port never frees (old server beats no server)",
-          "category": "unit",
+          "behavior": "No layout regression across the compact/desktop responsive bands",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "deploy-swap-contract.test.ts (freed:false path)"
-        },
-        {
-          "behavior": "Readiness = OUR child owns the port (a surviving old listener is not success)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "deploy-swap-contract.test.ts"
-        },
-        {
-          "behavior": "Readiness degrades, never fails, where listeners are unobservable (no lsof)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "deploy-swap-contract.test.ts (process-alive)"
-        },
-        {
-          "behavior": "Swapper starts the new server detached (it outlives the swapper)",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "deploy-swap-contract.test.ts + pty harness: the server outlived the swapper exit"
-        },
-        {
-          "behavior": "Post-restart claude.json heal runs in the swapper, AFTER readiness (clean window)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "deploy-swap-contract.test.ts ordering assertion"
-        },
-        {
-          "behavior": "A verdict is written in EVERY path, including an unexpected throw",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "deploy-swap-contract.test.ts (.catch) + buildStatus units"
-        },
-        {
-          "behavior": "An unopenable log never blocks the server start (EBUSY => degrade)",
-          "category": "boundary-probe",
-          "disposition": "tested",
-          "evidence": "contract test + reproduced: server started, log skipped with a warning"
-        },
-        {
-          "behavior": "Caller verdict comes from a FRESH deploy-status.json, never a bare listener",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "deploy-detach.test.ts (a listener check must not set the success flag)"
-        },
-        {
-          "behavior": "PORT contract identical in caller(s) + swapper (1-5 digits, > 0, else 3847)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "scripts/deploy-swap.test.mjs (units + structural parity on both callers)"
-        },
-        {
-          "behavior": "Kill scope is the Hono port only - never the Vite port",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "deploy-swap.test.mjs (killPortsFor)"
-        },
-        {
-          "behavior": "AC1: the server comes back although the caller is killed mid-deploy",
-          "category": "integration",
-          "disposition": "tested",
-          "evidence": "pty harness RED/GREEN: pre-fix => caller killed + NO server; fixed => caller killed + server up (HTTP 200, deploy-status.json ok:true)"
-        },
-        {
-          "behavior": "The .sh twin executes on macOS (setsid absent => nohup branch)",
-          "category": "unit",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "No macOS host available here. Mitigated: all logic lives in the shared cross-platform Node swapper (unit-tested); the .sh delta is the hand-off line - structurally pinned, bash -n syntax-checked, and the nohup branch is exactly the one macOS takes."
+          "evidence": "80-tablet-responsive.spec.ts 21/21 passed."
         }
-      ]
+      ],
+      "counts": {
+        "total": 8,
+        "tested": 8,
+        "untestable": 0,
+        "untested_testable": 0
+      }
     },
     "degraded": []
   }
