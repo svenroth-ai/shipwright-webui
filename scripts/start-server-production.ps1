@@ -10,25 +10,43 @@
 # Run it:  right-click -> "Run with PowerShell".  Re-run anytime to restart.
 # Stop it: run stop-server.ps1 the same way.
 # Server log: %USERPROFILE%\.shipwright-webui\server-manual.log
+# Deploy log: %USERPROFILE%\.shipwright-webui\deploy-swap.log  (+ deploy-status.json)
 #
-# ORDER MATTERS — install + build FIRST, then swap. A failed install/build (or
-# a window closed mid-build) leaves the currently running server UNTOUCHED. You
-# can never end up with no server.
+# TWO ORDERING RULES, both load-bearing:
+#
+# 1. INSTALL + BUILD FIRST, then swap. A failed install/build (or a window closed
+#    mid-build) leaves the currently running server UNTOUCHED. You can never end
+#    up with no server.
+#
+# 2. THIS SCRIPT NEVER KILLS THE SERVER ITSELF. When it runs inside the Command
+#    Center's embedded terminal — the normal case for a Claude session the WebUI
+#    launched — this script is a DESCENDANT of the Hono server:
+#
+#        Hono (:PORT) -> node-pty shell -> claude -> this script
+#
+#    Killing Hono tears down the ConPTY, which kills the pty shell and every
+#    process under it — this script included. It used to die exactly there, at
+#    its own kill step, so the "start the new build" step that followed was never
+#    reached: fresh build on disk, no server, and no error message (the process
+#    that would have printed one was dead). That is the 2026-07-14 outage.
+#    Kill + start + readiness + heal therefore live in scripts/deploy-swap.mjs,
+#    spawned DETACHED below BEFORE any kill happens — a Start-Process child
+#    provably survives the cascade that kills this script.
 # ---------------------------------------------------------------------------
 $repo   = Split-Path -Parent $PSScriptRoot
 $server = Join-Path $repo 'server'
 $client = Join-Path $repo 'client'
 $logDir = Join-Path $env:USERPROFILE '.shipwright-webui'
-$log    = Join-Path $logDir 'server-manual.log'
-# Honor $env:PORT (default 3847) — the .ps1 parallel of the .sh twin's
-# PORT="${PORT:-3847}". Used for the kill sweep, the launched server env, the
-# readiness poll, and every operator message, so a custom-PORT operator stops
-# the OLD server and polls the RIGHT one (a hardcoded 3847 left it alive). The
-# `^\d{1,5}$` guard degrades an unset/blank/non-numeric PORT to the 3847 default
-# instead of throwing on the [int] cast; the 5-digit cap (<=99999) keeps the
-# cast below Int32.MaxValue so a huge numeric PORT degrades rather than throwing
-# an overflow — matching the .sh twin's non-crashing behavior.
-$Port   = if ($env:PORT -match '^\d{1,5}$') { [int]$env:PORT } else { 3847 }
+$status = Join-Path $logDir 'deploy-status.json'
+# ONE PORT contract, shared by this script, start-server-production.sh and
+# deploy-swap.mjs: 1-5 digits and > 0 — anything else (unset, blank, "abc",
+# "999999", "0") degrades to 3847. Used for the hand-off, the readiness poll and
+# every operator message, so a custom-PORT operator restarts the RIGHT server.
+# The regex also keeps the [int] cast below Int32.MaxValue (no overflow throw),
+# and the `-gt 0` check keeps `PORT=0` — which the regex alone accepts — from
+# leaving this script polling port 0 while the swapper deploys on 3847. The
+# swapper applies the SAME rule to its own fallback, so the two cannot disagree.
+$Port   = if ($env:PORT -match '^\d{1,5}$' -and [int]$env:PORT -gt 0) { [int]$env:PORT } else { 3847 }
 
 Write-Host ''
 Write-Host '=== Shipwright WebUI - (re)start Hono (PRODUCTION, background) ===' -ForegroundColor Cyan
@@ -38,11 +56,11 @@ Write-Host ''
 #    the server -> every embedded `claude` pty dies -> on reload many `claude`
 #    CLIs start at once and race on the (non-atomic, unlocked) ~/.claude.json,
 #    which can leave a truncation-tail-corrupt file that breaks every running
-#    session. This Step-0 run heals corruption left by a PREVIOUS deploy; the
-#    corruption THIS deploy causes happens ~13s later (step 2's server-kill
-#    races the embedded writers), so step 5 below re-runs the guard after the
-#    restart. BEST EFFORT: the deploy NEVER gates on
-#    the result — the exit code is intentionally ignored and a missing `node`
+#    session. This Step-0 run heals corruption left by a PREVIOUS deploy. The
+#    corruption THIS deploy causes happens later — the server-kill races the
+#    embedded writers — and healing THAT is the swapper's job, because this
+#    script is usually already dead by then. BEST EFFORT: the deploy NEVER gates
+#    on the result — the exit code is intentionally ignored and a missing `node`
 #    or a script error must not block the deploy (server/build don't depend on
 #    ~/.claude.json). See scripts/repair-claude-json.mjs.
 Write-Host 'Checking ~/.claude.json integrity...' -ForegroundColor Cyan
@@ -56,10 +74,10 @@ try {
 # here — a corrupt-but-unrepairable file (exit 1) must not stop the deploy.
 $global:LASTEXITCODE = 0
 
-# 1. Install deps + build FIRST (server + client). If ANY step fails, the
-#    running server is left alone (it is not killed until step 2). The Hono
-#    server serves client/dist in production, so the client must be installed +
-#    built too — otherwise the UI is stale/missing.
+# 1. Install deps + build FIRST (server + client). If ANY step fails, the running
+#    server is left alone: nothing is killed until the swapper runs, and a failed
+#    build never spawns it. The Hono server serves client/dist in production, so
+#    the client must be installed + built too — otherwise the UI is stale/missing.
 #
 #    npm install is REQUIRED, not optional: a dependency added by a merged PR
 #    lands in package-lock.json on `git pull` but is absent from node_modules
@@ -107,77 +125,73 @@ if ($LASTEXITCODE -ne 0) {
 }
 Set-Location $server
 
-# 2. Build OK -> stop the old Hono: the port listener + any `tsx` process
-#    running this repo's server entry (the watch parent and its child).
-Write-Host ''
-Write-Host 'Build OK. Stopping the old server...' -ForegroundColor Yellow
-$killed = New-Object System.Collections.Generic.List[int]
-Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
-  Select-Object -ExpandProperty OwningProcess -Unique |
-  ForEach-Object { $killed.Add([int]$_); Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
-Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
-  Where-Object { $_.CommandLine -and ($_.CommandLine -match 'tsx') -and ($_.CommandLine -match 'src[\\/]index\.ts') } |
-  ForEach-Object { $killed.Add([int]$_.ProcessId); Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-$ids = ($killed | Sort-Object -Unique) -join ' '
-if ($ids) { Write-Host "  stopped PID(s): $ids" -ForegroundColor DarkGray }
-Start-Sleep -Milliseconds 700
-
-# 3. Launch the fresh build HIDDEN + detached, output -> log file. The inner
-#    cmd sets PORT for the CHILD only (`set "PORT=<port>"&& node ...`) — the
-#    .ps1 parallel of the .sh twin's `PORT="$PORT" node ...` prefix. Scoping it
-#    to the child (rather than mutating this script's own $env:PORT) makes the
-#    resolved value explicit to node without leaking into the operator's shell
-#    session if the script is dot-sourced. Precedence between this PORT and any
-#    PORT in .env.local is node's own (--env-file-if-exists) and is now
-#    identical to the .sh path — the point of the parity fix.
+# 2. Build OK -> hand the swap to a DETACHED helper and let go. Everything below
+#    this point may never execute: the swapper's first act is to kill the old
+#    server, and when this script runs inside an embedded terminal that kill takes
+#    this very process down with it (header rule 2). The swapper is a
+#    Start-Process child — it provably survives that cascade and finishes alone.
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
-$inner = "set `"PORT=$Port`"&& node --env-file-if-exists=../.env.local dist/index.js > `"$log`" 2>&1"
-$proc  = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $inner `
-  -WorkingDirectory $server -WindowStyle Hidden -PassThru
-
-# 4. Confirm it bound the port.
 Write-Host ''
-Write-Host 'Starting in background...' -ForegroundColor Cyan
-$up = $false
-for ($i = 0; $i -lt 16; $i++) {
+Write-Host 'Build OK. Handing the restart to the detached swapper...' -ForegroundColor Yellow
+$startedAt = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+# Kept on ONE line on purpose: script path, --port and the detach flag together are
+# the contract, and the structural tests assert it by reading this line.
+#
+# The path is EMBEDDED IN QUOTES ('"' + path + '"'): Start-Process joins
+# -ArgumentList with spaces and does NOT quote the elements, so a repo under e.g.
+# "C:\Users\Sven Roth\..." would hand node a truncated path — the swapper would
+# never run, nothing would be killed, and the deploy would look like it did
+# something. Verified: unquoted + spaced path = "Cannot find module".
+#
+# String CONCATENATION, not "`"$(...)`"": the embedded terminal spawns
+# powershell.exe (Windows PowerShell 5.1, NOT pwsh 7), and 5.1's parser chokes on
+# an escaped quote wrapping a subexpression that itself contains quotes — the whole
+# script then fails to parse and the deploy silently never starts. Keep this
+# 5.1-safe; it is the shell the Command Center actually runs it in.
+Start-Process -FilePath 'node' -ArgumentList ('"' + (Join-Path $PSScriptRoot 'deploy-swap.mjs') + '"'), '--port', $Port -WorkingDirectory $repo -WindowStyle Hidden | Out-Null
+
+# 3. Report the outcome — from the SWAPPER'S OWN VERDICT, never from a weaker
+#    signal. Watching the port ourselves is NOT good enough and would be actively
+#    dangerous: the first probe lands before the swapper can even have killed the
+#    old server, so we would see the PRE-KILL listener and print a green OK over a
+#    deploy that has not happened yet — and if the swap then failed, the operator
+#    would close a success message over a machine with no server. The swapper
+#    checks that the listener belongs to the child IT started, so only its fresh
+#    verdict (ts >= $startedAt) counts. No verdict within the window = FAILURE,
+#    because the swapper writes one in every path it can still run in.
+#    If the swapper's kill already took this process down, nobody reads any of
+#    this — deploy-status.json + deploy-swap.log carry the same verdict on disk.
+Write-Host 'Waiting for the server to come back...' -ForegroundColor Cyan
+$verdict = $null
+for ($i = 0; $i -lt 60; $i++) {
   Start-Sleep -Milliseconds 500
-  if ($proc.HasExited) { break }
-  if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) { $up = $true; break }
-}
-Write-Host ''
-if ($up) {
-  Write-Host '  OK - Hono runs in the background, no window.' -ForegroundColor Green
-  Write-Host '  Restart: run this again.  Stop: stop-server.ps1' -ForegroundColor Green
-  Write-Host "  Log: $log" -ForegroundColor Green
-  Write-Host ''
-
-  # 5. Self-heal ~/.claude.json a SECOND time, now that the server is up. The
-  #    Step-0 run can only heal a PREVIOUS deploy's leftover corruption; THIS
-  #    deploy's server-kill (step 2) took down every embedded `claude` pty and
-  #    the racing shutdown writes are what corrupt the (non-atomic, unlocked)
-  #    file. This is the clean window: the old sessions are dead and a UI reload
-  #    has not yet spawned new ones, so heal here before the user reconnects.
-  #    SAME best-effort contract — exit code ignored; a missing `node` or a
-  #    script error must never gate the deploy. (Residual: a reload that spawns
-  #    several sessions at once can still re-corrupt; the real fix is upstream —
-  #    the CLI must write ~/.claude.json atomically + lock-guarded.)
-  Write-Host 'Re-checking ~/.claude.json integrity (post-restart)...' -ForegroundColor Cyan
-  try {
-    & node (Join-Path $PSScriptRoot 'repair-claude-json.mjs')
-  } catch {
-    Write-Host "  (skipped: $($_.Exception.Message))" -ForegroundColor DarkGray
+  if (Test-Path $status) {
+    try { $s = Get-Content $status -Raw | ConvertFrom-Json } catch { $s = $null }
+    if ($s -and $null -ne $s.ts -and [int64]$s.ts -ge $startedAt) { $verdict = $s; break }
   }
-  $global:LASTEXITCODE = 0
+}
 
+Write-Host ''
+if ($null -ne $verdict -and $verdict.ok) {
+  Write-Host "  OK - Hono runs in the background, no window (pid $($verdict.pid), port $($verdict.port))." -ForegroundColor Green
+  Write-Host '  Restart: run this again.  Stop: stop-server.ps1' -ForegroundColor Green
+  Write-Host "  Log: $(Join-Path $logDir 'server-manual.log')" -ForegroundColor Green
   Write-Host ''
   Write-Host '  This window closes itself in 4s...' -ForegroundColor DarkGray
   Start-Sleep -Seconds 4
 } else {
   Write-Host "  Server did NOT come up on port $Port." -ForegroundColor Red
-  if (Test-Path $log) {
-    Write-Host '  --- last lines of server-manual.log ---' -ForegroundColor Red
-    Get-Content $log -Tail 25 -ErrorAction SilentlyContinue
+  if ($null -ne $verdict) {
+    Write-Host "  deploy-status.json: $($verdict.error)" -ForegroundColor Red
+  } else {
+    Write-Host '  The swapper never reported back (it may not have started at all).' -ForegroundColor Red
+    # A listener here means the OLD server is still up — worth saying, so nobody
+    # mistakes a surviving old build for a successful deploy.
+    if (Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue) {
+      Write-Host "  NOTE: something is still listening on port $Port - most likely the OLD server, not the new build." -ForegroundColor Yellow
+    }
   }
+  Write-Host "  Swapper log: $(Join-Path $logDir 'deploy-swap.log')" -ForegroundColor Red
   Read-Host 'Press Enter to close'
   exit 1
 }

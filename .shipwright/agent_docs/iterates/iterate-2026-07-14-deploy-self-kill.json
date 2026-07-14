@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-14-deploy-self-kill",
+  "date": "2026-07-14T11:00:08.756317Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/deploy-self-kill",
+  "spec": ".shipwright/planning/iterate/2026-07-14-deploy-self-kill.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-14-deploy-self-kill"
+}

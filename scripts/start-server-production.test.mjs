@@ -1,17 +1,28 @@
 /**
  * Structural tests for start-server-production.ps1 — the production deploy
- * script. PowerShell is not executable cross-platform under `node --test`, so
- * we assert the deploy's *structure* by reading the script text (same
- * file-reading convention as repair-claude-json.test.mjs / kill-targets.test.js).
+ * script. PowerShell is not executable cross-platform under `node --test`, so we
+ * assert the deploy's *structure* by reading the script text (same file-reading
+ * convention as repair-claude-json.test.mjs / kill-targets.test.js).
  *
- * What we pin (the bug this iterate fixes): the ~/.claude.json self-heal guard
- * (repair-claude-json.mjs) must run TWICE — once up-front (Step 0, before the
- * build) to heal corruption left by a PREVIOUS deploy, and once AGAIN after the
- * server-kill + server-up confirmation, because THIS deploy's server-kill is
- * what races the embedded `claude` writers and corrupts the file ~13s after
- * Step 0. A single Step-0 run can never heal the corruption the same deploy
- * causes (the damage happens strictly after it). See the iterate planning doc
- * 2026-06-14-repair-claude-json-end-heal.md.
+ * The caller is now HALF the deploy: it installs, builds, and hands the swap to
+ * the detached scripts/deploy-swap.mjs. It must not kill anything itself — run
+ * from the Command Center's embedded terminal it is a descendant of the Hono
+ * server, so its own kill used to take it down before it could start the new
+ * build (iterate-2026-07-14-deploy-self-kill). That no-kill / delegation contract
+ * is pinned in CI by server/src/test/deploy-detach.test.ts; THIS suite is the
+ * exhaustive local one (ordering, PORT parity, heal placement).
+ *
+ * What we pin here:
+ *  - the ~/.claude.json self-heal still runs TWICE across the deploy — once
+ *    up-front in the caller (Step 0, heals a PREVIOUS deploy's corruption) and
+ *    once AFTER the restart. The second one now lives in deploy-swap.mjs: it has
+ *    to, because the corruption THIS deploy causes happens when the server-kill
+ *    races the embedded `claude` writers — and by then the caller is dead. Older
+ *    revisions asserted both invocations sat in this script; that placement is
+ *    exactly what made the heal unreachable.
+ *  - install + build precede the HAND-OFF (a failed build must leave the running
+ *    server untouched — nothing is killed before the swapper is spawned).
+ *  - one single $Port variable feeds every sink.
  *
  * Run: node --test scripts/start-server-production.test.mjs
  */
@@ -23,31 +34,27 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const ps1Path = path.join(here, 'start-server-production.ps1');
-const src = fs.readFileSync(ps1Path, 'utf8');
+const src = fs.readFileSync(path.join(here, 'start-server-production.ps1'), 'utf8');
+const swapSrc = fs.readFileSync(path.join(here, 'deploy-swap.mjs'), 'utf8');
 const lines = src.split(/\r?\n/);
 
 // A PowerShell line comment starts with `#` (after optional leading whitespace).
 const isComment = (l) => l.trimStart().startsWith('#');
+const codeLines = lines.filter((l) => !isComment(l));
 
 // Lines that actually INVOKE the repair helper — `node ... repair-claude-json.mjs`
-// on a non-comment line. Prose mentions of the script (in the header comment)
-// are intentionally excluded so the count reflects real invocations only.
+// on a non-comment line. Prose mentions (in the header comment) are excluded so
+// the count reflects real invocations only.
 const invokeLineNumbers = lines
   .map((l, i) => [l, i])
   .filter(([l]) => !isComment(l) && /node\b.*repair-claude-json\.mjs/.test(l))
   .map(([, i]) => i);
 
-const firstLineMatching = (re) => lines.findIndex((l) => re.test(l));
+const firstLineMatching = (re) => lines.findIndex((l) => !isComment(l) && re.test(l));
 const buildLine = firstLineMatching(/npm run build/); // first build (server)
-const killLine = firstLineMatching(/Stopping the old server/); // the server-kill
+const handoffLine = firstLineMatching(/deploy-swap\.mjs/); // the detached hand-off
 const upConfirmLine = firstLineMatching(/Hono runs in the background/); // server-up OK
 
-// Lines that run `npm install` / `npm run build` (non-comment). The deploy MUST
-// sync node_modules with package-lock.json BEFORE building: a dependency added
-// by a merged PR lands in the lockfile on `git pull` but is absent from
-// node_modules until `npm install` runs, so the build otherwise fails with
-// "cannot find module" (e.g. @dnd-kit/core). See iterate-2026-06-19-deploy-npm-install.
 const installLineNumbers = lines
   .map((l, i) => [l, i])
   .filter(([l]) => !isComment(l) && /npm install/.test(l))
@@ -58,44 +65,42 @@ const buildLineNumbers = lines
   .map(([, i]) => i);
 
 test('deploy structure markers are present (guards the other assertions)', () => {
-  // If any of these markers are renamed in a refactor, the ordering assertions
-  // below would silently pass on a `-1` index — fail loudly instead.
+  // If any marker is renamed in a refactor, the ordering assertions below would
+  // silently pass on a `-1` index — fail loudly instead.
   assert.ok(buildLine >= 0, 'expected an `npm run build` step');
-  assert.ok(killLine >= 0, 'expected a "Stopping the old server" step');
+  assert.ok(handoffLine >= 0, 'expected a deploy-swap.mjs hand-off');
   assert.ok(upConfirmLine >= 0, 'expected a server-up confirmation line');
 });
 
-test('repair-claude-json.mjs is invoked at least TWICE (start + end)', () => {
+test('the caller runs the Step-0 repair BEFORE the build (heals a prior deploy)', () => {
+  assert.ok(invokeLineNumbers.length >= 1, 'expected a Step-0 repair invocation');
   assert.ok(
-    invokeLineNumbers.length >= 2,
-    `expected >= 2 repair invocations, found ${invokeLineNumbers.length}. ` +
-      'A single Step-0 run cannot heal the corruption THIS deploy causes — the ' +
-      'server-kill races the embedded `claude` writers ~13s after Step 0.',
+    invokeLineNumbers[0] < buildLine,
+    'the first repair invocation must precede the build step',
   );
 });
 
-test('the FIRST repair runs before the build (Step 0 — heals a prior deploy)', () => {
-  assert.ok(
-    invokeLineNumbers[0] >= 0 && invokeLineNumbers[0] < buildLine,
-    'first repair invocation must precede the build step',
+test('the POST-RESTART repair lives in deploy-swap.mjs (the caller is dead by then)', () => {
+  // A single Step-0 run cannot heal the corruption THIS deploy causes — the
+  // server-kill races the embedded `claude` writers strictly after it. The heal
+  // must therefore run in the process that survives the kill.
+  assert.match(
+    swapSrc,
+    /repair-claude-json\.mjs/,
+    'deploy-swap.mjs must run the post-restart ~/.claude.json heal — the caller ' +
+      'cannot: the kill that causes the corruption is the same kill that kills it.',
   );
 });
 
-test('the LAST repair runs AFTER the server-kill (heals THIS deploy)', () => {
-  const last = invokeLineNumbers[invokeLineNumbers.length - 1];
-  assert.ok(
-    last > killLine,
-    'final repair invocation must run after the server-kill that causes ' +
-      'the corruption — otherwise it can never heal it',
-  );
-});
-
-test('the LAST repair runs AFTER the server-up confirmation (clean window)', () => {
-  const last = invokeLineNumbers[invokeLineNumbers.length - 1];
-  assert.ok(
-    last > upConfirmLine,
-    'final repair must run after the server is confirmed up — old embedded ' +
-      '`claude` are dead, new ones not yet spawned: the clean heal window',
+test('the caller does not attempt a post-restart repair of its own (unreachable code)', () => {
+  // Anything the caller schedules after the hand-off may never run. A heal parked
+  // there looks like protection and provides none.
+  const afterHandoff = invokeLineNumbers.filter((n) => n > handoffLine);
+  assert.deepEqual(
+    afterHandoff,
+    [],
+    'a repair invocation after the hand-off is unreachable whenever the deploy ' +
+      'runs inside an embedded terminal — it belongs in deploy-swap.mjs.',
   );
 });
 
@@ -116,32 +121,37 @@ test('the FIRST npm install precedes the FIRST build (sync before compile)', () 
   );
 });
 
-test('every npm install runs BEFORE the server-kill (a failed install leaves the running server untouched)', () => {
+test('every npm install runs BEFORE the hand-off (a failed install leaves the running server untouched)', () => {
   const lastInstall = installLineNumbers[installLineNumbers.length - 1];
   assert.ok(
-    lastInstall >= 0 && lastInstall < killLine,
-    'all npm install steps must run before the server-kill so a failed install ' +
-      'aborts while the currently running server is still untouched (ORDER MATTERS contract).',
+    lastInstall >= 0 && lastInstall < handoffLine,
+    'all npm install steps must run before the swapper is spawned, so a failed ' +
+      'install aborts while the currently running server is still untouched ' +
+      '(ORDER MATTERS contract — nothing is killed until the swapper runs).',
+  );
+});
+
+test('every npm run build runs BEFORE the hand-off (a failed build leaves the running server untouched)', () => {
+  const lastBuild = buildLineNumbers[buildLineNumbers.length - 1];
+  assert.ok(
+    lastBuild >= 0 && lastBuild < handoffLine,
+    'all builds must complete before the swapper is spawned — the swapper kills ' +
+      'the old server unconditionally.',
   );
 });
 
 // --- $PORT / .sh parity (campaign webui-deep-audit D14, F35) ---------------
-// The .sh twin (start-server-production.sh) derives PORT once with
-// PORT="${PORT:-3847}" and uses it for the kill sweep, the launch env, the
-// readiness poll, and every operator message. The .ps1 hardcoded 3847 for the
-// kill sweep + readiness poll, so a Windows operator on a custom PORT (a
-// documented env override; repo-root .env.local can carry it) left the OLD
-// server on the custom port alive, hit EADDRINUSE on the new one, and got a
-// wrong "did NOT come up on port 3847" diagnosis. Pin the parity.
-const codeLines = lines.filter((l) => !isComment(l));
-const localPortLines = codeLines.filter((l) =>
-  /Get-NetTCPConnection\s+-LocalPort/i.test(l),
-);
+// The .sh twin derives PORT once with PORT="${PORT:-3847}" and uses it for the
+// hand-off, the readiness poll, and every operator message. The .ps1 once
+// hardcoded 3847 for the kill sweep + readiness poll, so a Windows operator on a
+// custom PORT left the OLD server alive, hit EADDRINUSE, and got a wrong "did NOT
+// come up on port 3847" diagnosis. Pin the parity. (The kill sweep itself has
+// since moved into deploy-swap.mjs, which applies the SAME guard to its own
+// fallback and is handed the resolved port explicitly via --port.)
+const localPortLines = codeLines.filter((l) => /Get-NetTCPConnection\s+-LocalPort/i.test(l));
 
 test('derives the port from $env:PORT with a 3847 default (parity with the .sh PORT="${PORT:-3847}")', () => {
-  const derives = codeLines.some(
-    (l) => /\$env:PORT/.test(l) && /\b3847\b/.test(l),
-  );
+  const derives = codeLines.some((l) => /\$env:PORT/.test(l) && /\b3847\b/.test(l));
   assert.ok(
     derives,
     'expected a port variable derived from $env:PORT that defaults to 3847 — ' +
@@ -149,61 +159,36 @@ test('derives the port from $env:PORT with a 3847 default (parity with the .sh P
   );
 });
 
-test('every Get-NetTCPConnection kill/poll targets the port variable, not a hardcoded 3847 (RED on pre-fix main)', () => {
+test('every Get-NetTCPConnection poll targets the port variable, not a hardcoded 3847', () => {
   assert.ok(
-    localPortLines.length >= 2,
-    `expected >= 2 -LocalPort lines (the kill sweep + the readiness poll), found ${localPortLines.length}`,
+    localPortLines.length >= 1,
+    `expected >= 1 -LocalPort line (the readiness poll), found ${localPortLines.length}`,
   );
   for (const l of localPortLines) {
-    assert.match(
-      l,
-      /-LocalPort\s+\$\w+/i,
-      `-LocalPort must reference the derived port variable: ${l.trim()}`,
-    );
-    assert.doesNotMatch(
-      l,
-      /-LocalPort\s+3847\b/,
-      `-LocalPort must not hardcode 3847: ${l.trim()}`,
-    );
+    assert.match(l, /-LocalPort\s+\$Port\b/i, `-LocalPort must use $Port: ${l.trim()}`);
   }
 });
 
-test('the launched server env carries the resolved PORT (parity with the .sh PORT="$PORT" node prefix)', () => {
-  // The inner cmd must scope PORT to the CHILD (`set "PORT=$Port"&& node ...`),
-  // not mutate the script's own $env:PORT — mirrors the .sh PORT="$PORT" prefix
-  // and avoids leaking into a dot-sourcing operator's shell.
-  const setsEnv = codeLines.some((l) => /PORT=\$Port\b/.test(l));
-  assert.ok(
-    setsEnv,
-    'expected the resolved port passed to the launched node child (e.g. ' +
-      '`set "PORT=$Port"&& node ...`) so it reaches node — mirrors the .sh ' +
-      'PORT="$PORT" prefix.',
-  );
-});
-
-test('the "did NOT come up on port" failure message references the port variable, not a literal 3847 (RED on pre-fix main)', () => {
-  // AC1 requires the SAME resolved port in EVERY operator message, not just the
-  // kill/poll. A hardcoded "port 3847" here misdiagnoses a custom-PORT run.
-  const failLine =
-    codeLines.find((l) => /did NOT come up on port/i.test(l)) ?? '';
-  assert.ok(failLine, 'expected a "did NOT come up on port" failure message');
+test('the resolved port is handed to the swapper explicitly (--port $Port)', () => {
+  // The swapper has its own env fallback, but the caller passing its RESOLVED
+  // value keeps ONE port in every sink: caller poll, swapper kill, swapper launch.
+  const handoff = codeLines.find((l) => /deploy-swap\.mjs/.test(l)) ?? '';
   assert.match(
-    failLine,
-    /\$Port\b/,
-    'the failure message must interpolate the derived $Port variable.',
-  );
-  assert.doesNotMatch(
-    failLine,
-    /port 3847\b/,
-    'the failure message must not name a hardcoded port 3847.',
+    handoff,
+    /'--port',\s*\$Port\b/,
+    'the hand-off must pass --port $Port so caller and swapper can never target ' +
+      'different ports.',
   );
 });
 
-test('one SINGLE variable ($Port) is derived from $env:PORT and reused in every sink (kill/launch/poll/message)', () => {
-  // Guards the openai code-review concern: structural checks could pass if the
-  // script derived $Port but then used a DIFFERENT variable in one sink. Pin the
-  // exact name — derivation + both -LocalPort lines + the launch child env + the
-  // failure message must all reference $Port.
+test('the "did NOT come up on port" failure message references the port variable, not a literal 3847', () => {
+  const failLine = codeLines.find((l) => /did NOT come up on port/i.test(l)) ?? '';
+  assert.ok(failLine, 'expected a "did NOT come up on port" failure message');
+  assert.match(failLine, /\$Port\b/, 'the failure message must interpolate $Port.');
+  assert.doesNotMatch(failLine, /port 3847\b/, 'the failure message must not name a hardcoded port.');
+});
+
+test('one SINGLE variable ($Port) is derived from $env:PORT and reused in every sink', () => {
   const usesPort = (re) => codeLines.some((l) => re.test(l));
   assert.ok(
     usesPort(/\$Port\s*=\s*if\s*\(\s*\$env:PORT/i),
@@ -212,14 +197,8 @@ test('one SINGLE variable ($Port) is derived from $env:PORT and reused in every 
   for (const l of localPortLines) {
     assert.match(l, /-LocalPort\s+\$Port\b/i, `-LocalPort must use $Port: ${l.trim()}`);
   }
-  assert.ok(
-    usesPort(/set\b[^\n]*PORT=\$Port\b/i),
-    'launch child env (`set "PORT=$Port"&& node ...`) must use $Port',
-  );
-  assert.ok(
-    usesPort(/did NOT come up on port \$Port\b/i),
-    'the failure message must use $Port',
-  );
+  assert.ok(usesPort(/deploy-swap\.mjs.*--port.*\$Port|'--port',\s*\$Port/), 'the hand-off must use $Port');
+  assert.ok(usesPort(/did NOT come up on port \$Port\b/i), 'the failure message must use $Port');
 });
 
 test('no stray hardcoded 3847 on a code line (only the $env:PORT default derivation keeps it)', () => {
