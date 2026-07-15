@@ -79,6 +79,22 @@ const MUTED = token(WD, 'muted');
 const FAINT = token(WD, 'faint');
 const ACCENT = token(WD, 'accent');
 
+// ── A04 swept surfaces: semantic text tokens + their tint/inset/dark grounds.
+//    The colour sweep (A04, FR-01.48) moved every legacy palette-class badge/
+//    banner onto these token×ground pairs; the ladder must now cover them so a
+//    future token edit that breaks a swept badge fails here, not in prod. ──
+const WARN = token(WD, 'warn');
+const ERR = token(WD, 'err');
+const OK = token(WD, 'ok');
+const INFO = token(WD, 'info');
+const INSET = token(WD, 'inset');
+const DARK_2 = token(WD, 'dark-2');
+const ERR_TINT = token(WD, 'err-tint');
+const WARN_TINT = token(WD, 'warn-tint');
+const OK_TINT = token(WD, 'ok-tint');
+const INFO_TINT = token(WD, 'info-tint');
+const ACCENT_TINT = token(WD, 'accent-tint');
+
 // ── on-photo light chrome — PARSED from the .on-photo flip block so a bad edit
 //    to the on-dark accent bites here (not a stale hard-coded copy). ──
 const ON_PHOTO = block(OP, /\.on-photo/);
@@ -125,6 +141,22 @@ const LADDER: Rung[] = [
   { name: 'glass 2ndary rule-3 --body #1C1917', fg: G_BODY, bg: GLASS_WORST, min: BODY_MIN },
   { name: 'glass 2ndary rule-3 --muted #4A443E', fg: G_MUTED, bg: GLASS_WORST, min: BODY_MIN },
   { name: 'glass 2ndary rule-3 --faint #6B645D', fg: G_FAINT, bg: GLASS_WORST, min: BODY_MIN },
+  // ── A04 swept badge/banner pairs (severity, status, grade, phase, state) ──
+  // semantic text on its own tint (badges: TriageBadgeUI, StateBadge, phaseStyle,
+  // ComplianceGradeBadge, SessionMetadata)
+  { name: 'A04 --err on --err-tint', fg: ERR, bg: ERR_TINT, min: BODY_MIN },
+  { name: 'A04 --warn on --warn-tint', fg: WARN, bg: WARN_TINT, min: BODY_MIN },
+  { name: 'A04 --ok on --ok-tint', fg: OK, bg: OK_TINT, min: BODY_MIN },
+  { name: 'A04 --info on --info-tint', fg: INFO, bg: INFO_TINT, min: BODY_MIN },
+  { name: 'A04 --accent on --accent-tint', fg: ACCENT, bg: ACCENT_TINT, min: BODY_MIN },
+  // semantic text on white cards (banners / inline error text)
+  { name: 'A04 --err on card', fg: ERR, bg: CARD, min: BODY_MIN },
+  { name: 'A04 --warn on card', fg: WARN, bg: CARD, min: BODY_MIN },
+  { name: 'A04 --ok on card', fg: OK, bg: CARD, min: BODY_MIN },
+  { name: 'A04 --info on card', fg: INFO, bg: CARD, min: BODY_MIN },
+  // neutral badges: --body on the recessed --inset ground (muted FAILS 4.39 on
+  // inset — the sweep uses --body there, this rung locks that in)
+  { name: 'A04 --body on --inset', fg: BODY, bg: INSET, min: BODY_MIN },
 ];
 
 describe('AA contrast ladder (AC1) — every declared token×ground pair clears its role', () => {
@@ -155,6 +187,17 @@ describe('AC1 — the four Fable-B5 failures are FIXED or explicitly RE-ROLED', 
   it('dismissed-triage opacity:.6 — replaced by a DEFINED muted token on a SOLID ground', () => {
     // opacity over a photo is not a contrast strategy; --muted on a solid card is.
     expect(contrast(MUTED, CARD)).toBeGreaterThanOrEqual(BODY_MIN); // ~4.79
+  });
+});
+
+describe('AC1/A04 — --faint on a DARK ground is a legit light-on-dark text pair', () => {
+  // The Fable-B5 re-role excludes --faint from the LIGHT-ground body matrix
+  // (2.52 on card). On the dark command-preview panel (CommandPreviewPanel copy
+  // affordance) --faint is a LIGHT colour on a DARK ground and clears AA — a
+  // categorically different relationship, asserted here (not in LADDER, so the
+  // "--faint not a text rung" light-ground invariant above stays intact).
+  it('--faint copy-button label on --dark-2 >= 4.5:1', () => {
+    expect(contrast(FAINT, DARK_2)).toBeGreaterThanOrEqual(BODY_MIN);
   });
 });
 
