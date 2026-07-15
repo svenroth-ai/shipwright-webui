@@ -94,7 +94,7 @@ export function StopHookCard({ gateName, body }: Props) {
             className="px-3.5 py-2.5"
             style={{
               borderTop: "1px solid var(--color-border, #e0dbd4)",
-              background: "#fafaf8",
+              background: "var(--card)",
             }}
             data-testid="stop-hook-card-body"
           >

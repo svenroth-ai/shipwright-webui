@@ -191,61 +191,58 @@
  * default sanitizer). */
 
 :root {
-  /* Core palette (warm-beige theme — matches webui/designs/screens mockups). */
-  --color-primary: #6b5e56;
-  --color-background: #f5f0eb;
-  --color-surface: #ffffff;
-  --color-sidebar-bg: #5c5652;
-  --color-sidebar-text: #ffffff;
-  --color-phase-project: #9ca3af;
-  --color-phase-design: #a855f7;
-  --color-phase-plan: #3b82f6;
-  --color-phase-build: #f97316;
-  --color-phase-test: #22c55e;
-  --color-phase-deploy: #14b8a6;
+  /* ── Weather-Deck ALIAS LAYER (A04, FR-01.48) ────────────────────────────
+     Legacy warm-beige `--color-*` names RE-POINTED onto A03's Weather-Deck
+     tokens (styles/weather-deck.css). 368 call sites consume these names; one
+     edit re-skins all of them — no per-site churn. Every alias resolves to a
+     REAL token (tokens.no-dead-vars.test.ts stays green). Mapping SSoT = the
+     prototype (Spec/prototype/styles.css). Reviewer notes in the A04 PR body. */
+  /* surfaces */
+  --color-surface: var(--card);
+  --color-background: var(--page);
+  --color-bg: var(--page);
+  --color-muted-bg: var(--inset);
+  --color-sidebar-bg: var(--sidebar-bg);   /* anthracite #23262c, not #5c5652 */
+  /* text + borders */
+  --color-text: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--line);
+  /* accent — ONE teal accent; the legacy two-brown split (--color-primary
+     #6b5e56 + --color-accent #857568) collapses onto it. Resume terracotta
+     #C08862 had no WD equivalent + failed AA white-on-terracotta (~2.5:1) →
+     RETIRED onto the accent (label, not colour, marks Resume vs Launch). */
+  --color-primary: var(--accent);
+  --color-primary-hover: var(--accent-hover);
+  --color-accent: var(--accent);
+  --color-resume: var(--accent);
+  --color-resume-hover: var(--accent-hover);
+  /* semantic families → --warn / --err / --info / --ok (+ -tint) */
+  --color-warning: var(--warn);
+  --color-warning-bg: var(--warn-tint);
+  --color-warning-text: var(--warn);
+  --color-error: var(--err);
+  --color-error-bg: var(--err-tint);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-tint);
+  --color-success: var(--ok);
+  --color-success-bg: var(--ok-tint);
+  --color-success-text: var(--ok);
+  /* no purple in WD → info/blue (keeps new-pipeline mode distinct from
+     new-task/amber, new-iterate/green, plain/slate) */
+  --color-purple: var(--info);
+  --color-purple-bg: var(--info-tint);
+  --color-purple-text: var(--info);
+  /* RETIRED, 0 consumers (verified): --color-sidebar-text, --color-phase-*
+     (phase ramp is driven by lib/phaseStyle.ts, not these tokens). */
+  /* non-colour tokens — unchanged (outside the colour sweep) */
   --font-family: 'Inter', sans-serif;
   --radius: 12px;
   --radius-button: 8px;
-  --color-border: #e0dbd4;
+  --radius-card: 12px;
   --shadow-card: 0 6px 30px rgba(0, 0, 0, 0.10);
   --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
-
-  /* Iterate 3 remediation (Phase A1 — 2026-04-20):
-     These tokens were previously referenced across 23 component files
-     via inline hex fallbacks (e.g. `var(--color-muted, #6b7280)`) but
-     never defined here. Adding them means central theming actually
-     works; the hex fallbacks become dead-code safety nets. */
-  --color-bg: #f5f0eb;              /* alias for --color-background */
-  --color-muted-bg: #ede8e1;
-  --color-muted: #6b7280;
-  --color-text: #1a1a1a;
-  --color-accent: #857568;
-  --color-primary-hover: #5a4f48;
-  --color-warning: #D97706;
-  --color-warning-bg: #FEF3C7;
-  --color-warning-text: #92400E;
-  --color-error: #DC2626;
-  --color-error-bg: #FEE2E2;
-  --color-info: #3B82F6;
-  --color-info-bg: #DBEAFE;
-  --color-success: #059669;
-  --color-success-bg: #D1FAE5;
-  --color-success-text: #065F46;
-  --color-purple: #8B5CF6;
-  --color-purple-bg: #F3E8FF;
-  --color-purple-text: #6B21A8;
-
-  /* iterate 3.7g (Sven UAT 2026-04-22): Resume-button tint.
-     Soft warm terracotta/clay — distinct from --color-primary (brown,
-     Terminal) and --color-warning (alert orange). Picked from the project
-     color-picker palette so it stays visually coherent with the warm-beige
-     tokens. */
-  --color-resume: #C08862;
-  --color-resume-hover: #A67352;
-
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.28), 0 6px 18px rgba(0, 0, 0, 0.15);
-  --radius-card: 12px;               /* alias for --radius (card surfaces) */
 }
 body {
   font-family: var(--font-family);

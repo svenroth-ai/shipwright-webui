@@ -54,7 +54,7 @@ export function ComplianceDetailModal({
                   Compliance — Grade {grade} ({score}/100)
                 </Dialog.Title>
                 {generatedLabel && (
-                  <p className="text-xs text-stone-500 mt-1">
+                  <p className="text-xs text-[var(--color-muted)] mt-1">
                     Generated: {generatedLabel}
                   </p>
                 )}
@@ -70,7 +70,7 @@ export function ComplianceDetailModal({
               </Dialog.Close>
             </div>
 
-            <div className="border-t border-stone-200 pt-4">
+            <div className="border-t border-[var(--color-border)] pt-4">
               <DocumentMarkdown text={body} />
             </div>
           </div>

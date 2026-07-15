@@ -3,10 +3,13 @@ import { getPhaseStyle, derivePhaseFromTitle, resolveTaskPhase } from "./phaseSt
 
 describe("getPhaseStyle", () => {
   it("returns the right palette for each canonical phase id", () => {
-    expect(getPhaseStyle("compliance").dot).toContain("#0EA5E9");
-    expect(getPhaseStyle("build").dot).toContain("#F59E0B");
-    expect(getPhaseStyle("security").dot).toContain("#DC2626");
-    expect(getPhaseStyle("adopt").dot).toContain("#64748B");
+    // A04 Weather-Deck sweep: phase dots moved off raw hex onto the semantic
+    // -solid / neutral tokens (compliance/design/plan/changelog → info,
+    // build → warn, security → err, adopt/project → muted).
+    expect(getPhaseStyle("compliance").dot).toContain("var(--info-solid)");
+    expect(getPhaseStyle("build").dot).toContain("var(--warn-solid)");
+    expect(getPhaseStyle("security").dot).toContain("var(--err-solid)");
+    expect(getPhaseStyle("adopt").dot).toContain("bg-[var(--color-muted)]");
   });
 
   it("is case-insensitive on phase id", () => {

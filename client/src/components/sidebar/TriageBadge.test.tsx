@@ -21,8 +21,8 @@ describe("TriageBadge", () => {
   it("uses orange (NOT Inbox red) so the two badges are visually distinct", () => {
     render(<TriageBadge count={3} />);
     const badge = screen.getByTestId("triage-badge");
-    expect(badge.className).toContain("bg-orange-500");
-    expect(badge.className).not.toContain("bg-red-500");
+    expect(badge.className).toContain("bg-[var(--warn-solid)]");
+    expect(badge.className).not.toContain("bg-[var(--err-solid)]");
   });
 
   it("clamps negative counts to 0 (hides the badge)", () => {

@@ -94,7 +94,7 @@ export function TaskListCardShell({
             width: 8,
             height: 8,
             borderRadius: "50%",
-            background: "#10b981",
+            background: "var(--ok-solid)",
           }}
           aria-hidden="true"
         />
@@ -188,7 +188,7 @@ function statusStyle(status: TaskStatus): {
     case "in_progress":
       return {
         Icon: Asterisk,
-        iconColor: "#10b981",
+        iconColor: "var(--ok-solid)",
         textColor: "var(--color-text, #1a1a1a)",
         strike: false,
         weight: 500,

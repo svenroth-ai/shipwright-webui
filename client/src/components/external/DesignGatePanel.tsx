@@ -22,9 +22,9 @@ export function DesignGatePanel({ projectId }: { projectId: string }) {
   return (
     <div
       data-testid="design-gate-panel"
-      className="flex flex-col gap-1.5 rounded-[var(--radius-button,8px)] border border-[#fcd34d] bg-[#fffbeb] px-2.5 py-2"
+      className="flex flex-col gap-1.5 rounded-[var(--radius-button,8px)] border border-[var(--warn-line)] bg-warn-tint px-2.5 py-2"
     >
-      <div className="flex items-start gap-2 text-[11px] text-[#78350f]">
+      <div className="flex items-start gap-2 text-[11px] text-warn">
         <AlertTriangle size={12} className="mt-[2px] shrink-0" />
         <span>
           Design paused for your review. Open the mockups, submit feedback, then
@@ -37,7 +37,7 @@ export function DesignGatePanel({ projectId }: { projectId: string }) {
           type="button"
           onClick={() => setOpen(true)}
           data-testid="design-gate-review-button"
-          className="inline-flex items-center gap-1.5 rounded-[6px] border border-[#f59e0b] bg-white px-2.5 py-1 text-[12px] font-medium text-[#92400e] transition-colors hover:bg-[#fef3c7]"
+          className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--warn-line)] bg-white px-2.5 py-1 text-[12px] font-medium text-warn transition-colors hover:bg-warn-tint"
         >
           <MonitorPlay size={13} />
           Review mockups
@@ -46,7 +46,7 @@ export function DesignGatePanel({ projectId }: { projectId: string }) {
         {savedRound !== null && (
           <span
             data-testid="design-gate-saved-hint"
-            className="text-[11px] font-medium text-[#065f46]"
+            className="text-[11px] font-medium text-ok"
           >
             Round {savedRound} feedback saved — press Resume to apply.
           </span>

@@ -11,23 +11,23 @@ describe('ModeBadge', () => {
     render(<ModeBadge mode="pipeline" />);
     const el = screen.getByTestId('mode-badge-pipeline');
     expect(el.textContent).toBe('Pipeline');
-    expect(el.className).toMatch(/bg-blue-100/);
-    expect(el.className).toMatch(/text-blue-900/);
+    expect(el.className).toMatch(/bg-info-tint/);
+    expect(el.className).toMatch(/text-info/);
   });
 
   it('renders the iterate label with amber classes', () => {
     render(<ModeBadge mode="iterate" />);
     const el = screen.getByTestId('mode-badge-iterate');
     expect(el.textContent).toBe('Iterate');
-    expect(el.className).toMatch(/bg-amber-100/);
-    expect(el.className).toMatch(/text-amber-900/);
+    expect(el.className).toMatch(/bg-warn-tint/);
+    expect(el.className).toMatch(/text-warn/);
   });
 
   it('renders the standalone label with gray classes', () => {
     render(<ModeBadge mode="standalone" />);
     const el = screen.getByTestId('mode-badge-standalone');
     expect(el.textContent).toBe('Standalone');
-    expect(el.className).toMatch(/bg-gray-100/);
+    expect(el.className).toMatch(/bg-inset/);
   });
 
   it('renders nothing when mode is undefined', () => {

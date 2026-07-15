@@ -111,7 +111,7 @@ export function ToolCard({ id, name, input, result }: Props) {
           className="px-3.5 py-2.5"
           style={{
             borderTop: "1px solid var(--color-border, #e0dbd4)",
-            background: "#fafaf8",
+            background: "var(--card)",
             fontFamily: "var(--font-mono, ui-monospace, Menlo, Consolas, monospace)",
             fontSize: 12,
             lineHeight: 1.6,
@@ -131,7 +131,7 @@ export function ToolCard({ id, name, input, result }: Props) {
           className="px-3.5 py-2.5"
           style={{
             borderTop: "1px solid var(--color-border, #e0dbd4)",
-            background: "#fafaf8",
+            background: "var(--card)",
           }}
           data-testid="tool-card-output"
         >

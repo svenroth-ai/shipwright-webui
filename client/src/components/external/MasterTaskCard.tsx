@@ -193,10 +193,10 @@ export function MasterTaskCard({
               className={
                 "inline-flex items-center gap-1 rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
                 (blockedSummary.state === "done"
-                  ? "bg-[#dcfce7] text-[#166534]"
+                  ? "bg-ok-tint text-ok"
                   : blockedSummary.state === "failed"
-                    ? "bg-[#fee2e2] text-[#b91c1c]"
-                    : "bg-[#fef3c7] text-[#a16207]")
+                    ? "bg-err-tint text-err"
+                    : "bg-warn-tint text-warn")
               }
               title={
                 blockedSummary.state === "done"
@@ -231,12 +231,12 @@ export function MasterTaskCard({
               className={
                 "inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide " +
                 (masterShadow.priority === "P0"
-                  ? "bg-[#fee2e2] text-[#b91c1c]"
+                  ? "bg-err-tint text-err"
                   : masterShadow.priority === "P1"
-                    ? "bg-[#ffedd5] text-[#c2410c]"
+                    ? "bg-warn-tint text-warn"
                     : masterShadow.priority === "P2"
-                      ? "bg-[#fef3c7] text-[#a16207]"
-                      : "bg-[#f1f5f9] text-[#475569]")
+                      ? "bg-warn-tint text-warn"
+                      : "bg-inset text-[var(--color-text)]")
               }
             >
               {masterShadow.priority}
@@ -256,7 +256,7 @@ export function MasterTaskCard({
       {diagnostics.droppedPhaseTaskIds.length > 0 && (
         <div
           data-testid={`master-card-diagnostics-${config.runId}`}
-          className="flex items-start gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[#fef3c7] px-4 py-2 text-[12px] text-[#78350f]"
+          className="flex items-start gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-warn-tint px-4 py-2 text-[12px] text-warn"
         >
           <AlertTriangle size={13} className="mt-[2px] shrink-0" />
           <div>
@@ -331,13 +331,13 @@ export function MasterTaskCard({
                       void onContinue(pt.phaseTaskId);
                     }}
                     disabled={pendingPhaseTaskId === pt.phaseTaskId}
-                    className="rounded-[var(--radius-button,8px)] bg-[var(--color-success,#059669)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#047857] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-[var(--radius-button,8px)] bg-[var(--color-success,#059669)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-ok disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {pendingPhaseTaskId === pt.phaseTaskId ? "…" : "Continue"}
                   </button>
                 )}
                 {pt.status === "failed" && (
-                  <span className="text-[11px] font-medium text-[#b91c1c]">failed</span>
+                  <span className="text-[11px] font-medium text-err">failed</span>
                 )}
               </li>
             );
@@ -434,7 +434,7 @@ export function MasterTaskCard({
       {error && (
         <div
           data-testid={`master-card-error-${config.runId}`}
-          className="border-t border-[var(--color-border,#e0dbd4)] bg-[#fee2e2] px-4 py-2 text-[12px] text-[#991b1b]"
+          className="border-t border-[var(--color-border,#e0dbd4)] bg-err-tint px-4 py-2 text-[12px] text-err"
         >
           {error}
         </div>

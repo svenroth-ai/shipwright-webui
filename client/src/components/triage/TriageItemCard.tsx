@@ -40,24 +40,24 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
         <SourceBadge source={item.source} />
         <SeverityBadge severity={item.severity} />
         {item.pendingDelivery && <PendingDeliveryBadge />}
-        <span className="text-[11px] text-stone-500 font-mono">{item.id}</span>
-        <span className="text-[11px] text-stone-500">
+        <span className="text-[11px] text-[var(--color-muted)] font-mono">{item.id}</span>
+        <span className="text-[11px] text-[var(--color-muted)]">
           → {item.suggestedPriority} / {item.suggestedDomain}
         </span>
         <span
-          className="text-[11px] text-stone-400 ml-auto"
+          className="text-[11px] text-[var(--color-muted)] ml-auto"
           title={item.originalTs}
           data-testid={`triage-item-${item.id}-relative-ts`}
         >
           {formatRelative(item.originalTs)}
         </span>
       </div>
-      <h3 className="text-sm font-medium text-stone-900 mb-1">{item.title}</h3>
-      <p className="text-xs text-stone-600 line-clamp-2 whitespace-pre-wrap">
+      <h3 className="text-sm font-medium text-[var(--color-text)] mb-1">{item.title}</h3>
+      <p className="text-xs text-[var(--color-text)] line-clamp-2 whitespace-pre-wrap">
         {item.detail}
       </p>
       {item.dedupKey && (
-        <p className="text-[10px] text-stone-400 font-mono mt-1.5">
+        <p className="text-[10px] text-[var(--color-muted)] font-mono mt-1.5">
           dedup: {item.dedupKey}
         </p>
       )}

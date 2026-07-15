@@ -49,7 +49,7 @@ describe("ComplianceGradeBadge", () => {
     render(<ComplianceGradeBadge projectId="p1" />);
     const badge = screen.getByTestId("compliance-grade-p1");
     expect(badge).toHaveTextContent("A");
-    expect(badge.className).toMatch(/emerald/);
+    expect(badge.className).toMatch(/bg-ok-tint/);
     const title = badge.getAttribute("title") ?? "";
     expect(title).toMatch(/Under full control/);
     expect(title).toMatch(/Generated: 2026-06-28/);
@@ -58,10 +58,10 @@ describe("ComplianceGradeBadge", () => {
   it("maps B → amber and C → red (AC-F)", () => {
     mockResult = ok("B");
     const { rerender } = render(<ComplianceGradeBadge projectId="p1" />);
-    expect(screen.getByTestId("compliance-grade-p1").className).toMatch(/amber/);
+    expect(screen.getByTestId("compliance-grade-p1").className).toMatch(/bg-warn-tint/);
     mockResult = ok("C");
     rerender(<ComplianceGradeBadge projectId="p1" />);
-    expect(screen.getByTestId("compliance-grade-p1").className).toMatch(/red/);
+    expect(screen.getByTestId("compliance-grade-p1").className).toMatch(/bg-err-tint/);
   });
 
   it("opens the detail modal on click and renders the dimension table (AC-G)", () => {

@@ -165,7 +165,7 @@ const COMPONENTS = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-700 underline decoration-blue-400 hover:decoration-blue-700"
+        className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
         {...rest}
       />
     );

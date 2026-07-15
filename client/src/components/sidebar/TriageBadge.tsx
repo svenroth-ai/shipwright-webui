@@ -18,7 +18,7 @@ export function TriageBadge({ count }: TriageBadgeProps) {
 
   return (
     <span
-      className="min-w-[18px] h-[18px] rounded-full bg-orange-500 text-white text-[11px] font-semibold flex items-center justify-center px-1"
+      className="min-w-[18px] h-[18px] rounded-full bg-[var(--warn-solid)] text-white text-[11px] font-semibold flex items-center justify-center px-1"
       data-testid="triage-badge"
     >
       {display}

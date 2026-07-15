@@ -57,7 +57,7 @@ const REACT_MARKDOWN_COMPONENTS = {
     if (!isFenced) {
       return (
         <code
-          className="rounded bg-neutral-100 px-1 py-0.5 font-mono text-[0.85em]"
+          className="rounded bg-inset px-1 py-0.5 font-mono text-[0.85em]"
           {...rest}
         >
           {children}
@@ -92,7 +92,7 @@ const REACT_MARKDOWN_COMPONENTS = {
         {...props}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-700 underline decoration-blue-400 hover:decoration-blue-700"
+        className="text-info underline decoration-[var(--info-line)] hover:decoration-[var(--info)]"
       />
     );
   },
@@ -142,7 +142,7 @@ function FencedCodeBlock({
       className="my-2 overflow-hidden"
       style={{ border: "1px solid var(--color-border)", borderRadius: "var(--radius-button)" }}
     >
-      <pre className="overflow-x-auto bg-neutral-900 p-3 text-xs leading-snug text-neutral-100">
+      <pre className="overflow-x-auto bg-dark p-3 text-xs leading-snug text-inset">
         <code className={className} data-testid="fenced-code">
           {visible}
         </code>
@@ -151,7 +151,7 @@ function FencedCodeBlock({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="block w-full bg-neutral-100 px-3 py-1 text-left text-xs text-neutral-600 hover:bg-neutral-200"
+          className="block w-full bg-inset px-3 py-1 text-left text-xs text-[var(--color-text)] hover:bg-[var(--color-border)]"
           data-testid="show-more-code"
         >
           {expanded
