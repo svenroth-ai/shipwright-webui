@@ -17,7 +17,7 @@
 import { test, expect } from "@playwright/test";
 import {
   cleanupProject,
-  cleanupTask,
+  cleanupTaskCwd,
   seedProject,
   seedTask,
   setActiveProject,
@@ -87,7 +87,7 @@ test.describe("@smoke Weather-Deck flip + reset (AC2)", () => {
   });
 
   test.afterEach(async ({ request }) => {
-    await cleanupTask(request, taskFx);
+    await cleanupTaskCwd(request, taskFx);
     await cleanupProject(request, project);
   });
 
