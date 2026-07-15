@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-07-15",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-15-e2e-pty-spawn-cwd-267",
+    "run_id": "iterate-2026-07-15-e2e-pty-harness",
     "date": "2026-07-15",
     "unit": {
       "status": "passed",
-      "passed": 2092,
-      "total": 2093,
-      "note": "server vitest 179 files / 2092 passed + 1 skipped (+7 vs main: the new terminal-spawn-failure.test.ts). Server-only diff; client suite untouched (2025 passed on main). tsc --noEmit clean (server + client); oxlint clean on all touched files."
+      "passed": 2025,
+      "total": 2025,
+      "note": "client vitest 208 files / 2025 passed (unchanged — the fixtures.ts change is an additive helper). tsc --noEmit clean (client); oxlint clean on the two touched files (only a pre-existing seedProject warning). Server untouched (test-harness-only diff)."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No integration surface: a robustness fix to the existing pty spawn boundary (typed error + caller handling). No new route/store/contract/cross-component machinery."
+      "note": "Test-harness-only change: E2E spec choreography + an additive fixture helper. No production/route/store/contract surface."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,88 +22,64 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 11,
-      "total": 11,
-      "note": "F0.5 web: 73-embedded-terminal.spec.ts on an isolated single-process stack (:3947, temp USERPROFILE, 127.0.0.1), exit 0. Proves the try/catch wrappers on the WS-upgrade + prewarm spawn seams do NOT regress the happy path — test #3 (WS upgrade emits ready) + #4/#5 (paste-image via prewarm spawn) all pass. The vanished-cwd ERROR path is covered deterministically by the server unit tests (a real cwd race is not reliably reproducible in one browser E2E)."
+      "passed": 13,
+      "total": 17,
+      "note": "F0.5 web on an isolated single-process stack (:3948, temp USERPROFILE, 127.0.0.1). v0-9-5-replay-snapshot: 2 passed (AC-1/AC-3 seed own valid-cwd target) + 4 skipped (AC-2/4/5/6 target done/launch_failed, none on a fresh stack — clean skip, never flaky-fail; previously AC-2/AC-4 FAILED on the live-task ConPTY ESC[2J). 73-embedded-terminal: 11/11 (no regression). Store=0 after v0-9-5 (ordered cleanupTaskCwd left no dead-cwd task). All exit 0."
     },
     "design_fidelity": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No UI change — server-only robustness fix; the only client-visible effect is that a WS upgrade against a vanished cwd now closes cleanly instead of an opaque failure."
+      "note": "No UI change — test-harness fix only."
     },
     "smoke": {
       "status": "passed",
       "passed": 1,
       "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3947, temp USERPROFILE, 127.0.0.1): GET /api/external/tasks 200."
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3948): GET /api/external/tasks 200."
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3947 npx playwright test client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
+      "runner": "BASE_URL=http://127.0.0.1:3948 npx playwright test client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
       "exit_code": 0,
-      "tests_run": 11,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-spawn-cwd-267/surface_verification.log",
-      "timestamp": "2026-07-15T16:38:00.000Z",
+      "tests_run": 13,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-harness/surface_verification.log",
+      "timestamp": "2026-07-15T17:45:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behavior the diff introduces or changes, enumerated from the 3 spec ACs (AC-1 typed error + no-leak, AC-2 WS clean rejection, AC-3 prewarm status split) plus the sub-behaviors those ACs decompose into (code parsing, isLikelyCwdError predicate, whitelist-vs-cwd-vs-other status mapping) and the happy-path non-regression. 8 behaviors; all tested; 0 untested-testable. The root-cause claim (267 = ERROR_DIRECTORY, NOT resource exhaustion) was proven empirically by 3 node-pty probes before the fix — diagnostic, not a committed test.",
+      "enumeration_basis": "Every behaviour the diff changes, from the 3 spec ACs: AC-1 (envelope-only specs seed a valid-cwd target and pass deterministically), AC-2 (DOM-render specs target done/launch_failed and skip cleanly, never flaky-fail), AC-3 (ordered cleanupTaskCwd leaves no dead-cwd task), plus a regression guard. 4 behaviours; all tested; 0 untested-testable. The ConPTY ESC[2J root cause was proven by a node-pty probe before the fix (diagnostic, not a committed test).",
       "counts": {
-        "total": 8,
-        "tested": 8,
+        "total": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "behaviors": [
         {
-          "behavior": "spawn() wraps a node-pty CreateProcess throw in PtySpawnFailedError and leaves NO pty entry registered (no leak)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-1 (instanceof + mgr.get(taskId) undefined)"
-        },
-        {
-          "behavior": "PtySpawnFailedError.code parses the native code (267) from the message; null when absent",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-1 (code===267) + AC-1b (code===null for EPERM)"
-        },
-        {
-          "behavior": "isLikelyCwdError is true for 267/ENOENT/ENOTDIR, false for EMFILE/EPERM",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-1c"
-        },
-        {
-          "behavior": "WS upgrade converts a spawn failure into a deterministic task_cwd_unusable rejection instead of an uncaught node-pty throw",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-2 (fake upgradeWebSocket captures the rejection reason)"
-        },
-        {
-          "behavior": "Prewarm POST /spawn returns 409 task_cwd_unusable on a vanished-cwd (267) spawn failure",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-3"
-        },
-        {
-          "behavior": "Prewarm keeps 400 pty_spawn_rejected for a whitelist rejection (unchanged)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-3b"
-        },
-        {
-          "behavior": "Prewarm returns 500 pty_spawn_failed for a NON-cwd spawn failure (EMFILE), not mislabelled as task_cwd_unusable",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "terminal-spawn-failure.test.ts AC-3c"
-        },
-        {
-          "behavior": "The terminal WS-upgrade + spawn + ready happy path (and prewarm-backed paste-image) is unregressed by the try/catch wrappers",
+          "behavior": "v0-9-5 AC-1/AC-3 seed their own valid-cwd target and pass deterministically (no dependency on accumulated dead-cwd session state)",
           "category": "e2e",
           "disposition": "tested",
-          "evidence": "73-embedded-terminal.spec.ts 11/11 on isolated stack, exit 0 (F0.5)"
+          "evidence": "isolated stack: AC-1 envelopes contain replay_snapshot (no chunked); AC-3 no chunked envelopes; both PASS, exit 0"
+        },
+        {
+          "behavior": "v0-9-5 AC-2/AC-4 target done||launch_failed and skip cleanly when none exists — never flaky-fail against a live task (whose ConPTY ESC[2J wipes the replay)",
+          "category": "e2e",
+          "disposition": "tested",
+          "evidence": "isolated stack: AC-2/AC-4 SKIP (no done task), matching AC-5/AC-6; exit 0. Previously FAILED on the live-task ESC[2J."
+        },
+        {
+          "behavior": "cleanupTaskCwd deletes the task (cascade kills+awaits the pty) BEFORE removing the cwd, leaving no dead-cwd task in the store",
+          "category": "e2e",
+          "disposition": "tested",
+          "evidence": "GET /api/external/tasks after the v0-9-5 run returned 0 tasks"
+        },
+        {
+          "behavior": "The additive fixtures.ts helper does not regress other pty-heavy specs",
+          "category": "e2e",
+          "disposition": "tested",
+          "evidence": "73-embedded-terminal 11/11 on the isolated stack; client vitest 2025 pass"
         }
       ]
     },

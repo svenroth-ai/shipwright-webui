@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-15-e2e-pty-harness",
+  "date": "2026-07-15T15:49:03.991049Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/e2e-pty-harness",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-15-e2e-pty-harness/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-15-e2e-pty-harness"
+}

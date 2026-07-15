@@ -39,7 +39,7 @@
     {
       "path": "client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts",
       "limit": 300,
-      "current": 545,
+      "current": 556,
       "state": "grandfathered",
       "adr": null
     },

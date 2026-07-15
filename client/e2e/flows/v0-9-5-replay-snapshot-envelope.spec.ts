@@ -44,6 +44,10 @@ import { test, expect, type WebSocket as PWWebSocket } from "@playwright/test";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
+// iterate-2026-07-15-e2e-pty-harness — AC-1/AC-3 seed their own valid-cwd target
+// (accumulated tasks may have a dead cwd → 267); AC-2/AC-4 target a done task
+// (a live shell's ConPTY ESC[2J wipes the DOM replay). See per-AC comments.
+import { seedTask, cleanupTaskCwd } from "../helpers/fixtures";
 
 const SCROLLBACK_DIR = path.join(
   os.homedir(),
@@ -149,17 +153,13 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
   }) => {
     test.setTimeout(30_000);
 
-    const tasks = await listTasks(page);
-    const target = tasks.find(
-      (t) => t.state !== "launching" && t.actionId !== "new-plain",
-    );
-    test.skip(
-      !target,
-      "No non-launching non-new-plain task in session — Iterate-B snapshot path requires a target.",
-    );
+    // Seed our own valid-cwd target — AC-1 asserts only the replay envelope
+    // TYPE, which the WS emits before the live shell's ConPTY ESC[2J, so a
+    // live-pty task is fine here (no DOM-render assertion to be wiped).
+    const target = await seedTask(page.request, { title: "iterateB-ac1" });
 
     const FIXTURE = "ITERATE-B-SNAPSHOT-FIXTURE: cell-state replay payload\r\n$ ";
-    await writeSnapshotFor(target!.taskId, 80, 24, FIXTURE);
+    await writeSnapshotFor(target.taskId, 80, 24, FIXTURE);
     try {
       const capture = attachWsCapture(page);
       await page.goto(`/tasks/${target!.taskId}`, {
@@ -188,7 +188,8 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       expect(envTypes).not.toContain("replay_separator");
       expect(envTypes).not.toContain("replay_end");
     } finally {
-      await removeSnapshotFor(target!.taskId);
+      await removeSnapshotFor(target.taskId);
+      await cleanupTaskCwd(page.request, target);
     }
   });
 
@@ -197,11 +198,18 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
   }) => {
     test.setTimeout(30_000);
 
+    // AC-2's DOM-render assertion only holds for a replay-only (done/
+    // launch_failed) task: a live shell's ConPTY ESC[2J (flushed after the
+    // replay) WIPES the rendered snapshot. Target a terminal-state task like
+    // AC-5/AC-6; skip when none — never flaky-fail against a live task.
     const tasks = await listTasks(page);
     const target = tasks.find(
-      (t) => t.state !== "launching" && t.actionId !== "new-plain",
+      (t) => t.state === "done" || t.state === "launch_failed",
     );
-    test.skip(!target, "No suitable task in session.");
+    test.skip(
+      !target,
+      "No done/launch_failed task in session — the DOM-render replay assertion needs a replay-only target.",
+    );
 
     // Use plain ASCII text so the xterm.js DOM contains it verbatim
     // (escape sequences would re-render and complicate the visible
@@ -268,16 +276,12 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
     // shell), by design.
     test.setTimeout(30_000);
 
-    const tasks = await listTasks(page);
-    const target = tasks.find(
-      (t) =>
-        t.state !== "launching" &&
-        t.state !== "done" &&
-        t.state !== "launch_failed",
-    );
-    test.skip(!target, "No suitable task in session for retirement fence.");
+    // Seed our own valid-cwd target — AC-3 checks only that NO chunked-replay
+    // envelope is emitted (no DOM assertion), so a live pty is fine. (On failure
+    // the task leaks with cwd INTACT — never a dead-cwd one; no try/finally.)
+    const target = await seedTask(page.request, { title: "iterateB-ac3" });
     // Ensure no snapshot on disk so the "fallback" path is forced.
-    await removeSnapshotFor(target!.taskId);
+    await removeSnapshotFor(target.taskId);
 
     const capture = attachWsCapture(page);
     await page.goto(`/tasks/${target!.taskId}`, {
@@ -306,6 +310,7 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
     // Snapshot may or may not appear depending on whether the live
     // pty produced enough state to write one — both outcomes are
     // valid per the plan's "no replay" trade-off.
+    await cleanupTaskCwd(page.request, target);
   });
 
   test("AC-4: resize before refresh + replay restores correctly via replay_snapshot", async ({
@@ -313,11 +318,17 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
   }) => {
     test.setTimeout(45_000);
 
+    // AC-4 asserts the disk snapshot RENDERS after refresh — replay-only target
+    // only (a live task's ConPTY ESC[2J wipes the rendered snapshot; see AC-2).
+    // Skip cleanly when no done/launch_failed task exists, like AC-5/AC-6.
     const tasks = await listTasks(page);
     const target = tasks.find(
-      (t) => t.state !== "launching" && t.actionId !== "new-plain",
+      (t) => t.state === "done" || t.state === "launch_failed",
     );
-    test.skip(!target, "No suitable task in session.");
+    test.skip(
+      !target,
+      "No done/launch_failed task in session — the post-refresh DOM-render assertion needs a replay-only target.",
+    );
 
     // Write a snapshot whose cols/rows match a "post-resize" state so
     // we can verify that the resized dims are reflected in the
