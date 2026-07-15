@@ -1,9 +1,0 @@
-{
-  "run_id": "iterate-2026-07-06-fix-launch-path-quote-strip",
-  "date": "2026-07-06T08:30:38.362747Z",
-  "type": "bug",
-  "complexity": "small",
-  "branch": "iterate/fix-launch-path-quote-strip",
-  "tests_passed": true,
-  "adr": "iterate-2026-07-06-fix-launch-path-quote-strip"
-}

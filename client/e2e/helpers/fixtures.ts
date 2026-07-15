@@ -219,6 +219,30 @@ export async function cleanupTask(
 }
 
 /**
+ * iterate-2026-07-15-e2e-pty-harness — ORDERED teardown for a seeded task whose
+ * cwd is a temp dir: delete the TASK first, THEN remove the cwd.
+ *
+ * Order is the fix, not incidental. A live embedded-terminal pty holds the
+ * task's cwd as its working directory. Removing the dir while that pty is still
+ * alive leaves it in Windows "delete-pending" limbo; a later pty spawn against
+ * that path (or a spec that picks the still-listed task) then hits node-pty's
+ * `Cannot create process, error code: 267` (ERROR_DIRECTORY) — the exact
+ * full-run-only flake. The task-DELETE cascade kills the pty and AWAITS it
+ * before returning, so deleting the task first guarantees the dir is unheld
+ * before the rm. Deleting the task also removes it from the shared store, so no
+ * dead-cwd task lingers for a later "pick any task" spec to target. Best-effort
+ * — never throws.
+ */
+export async function cleanupTaskCwd(
+  request: APIRequestContext,
+  task: { taskId: string; cwd: string } | undefined,
+): Promise<void> {
+  if (!task) return;
+  await cleanupTask(request, task.taskId);
+  await removeTempDir(task.cwd);
+}
+
+/**
  * Delete a seeded project and remove its temp dir. Best-effort — never throws.
  * The rm is retry-tolerant: Windows holds an EBUSY on a freshly-released dir
  * for a few ms after a pty exits (same pattern as `task-fixture.ts cleanupCwd`).

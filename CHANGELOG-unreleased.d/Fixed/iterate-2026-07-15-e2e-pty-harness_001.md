@@ -1,0 +1,1 @@
+E2E harness: the v0-9-5 replay-snapshot specs no longer flaky-fail in the full Windows run — AC-1/AC-3 seed their own valid-cwd target and AC-2/AC-4 target replay-only (done/launch_failed) tasks (a live shell's ConPTY ESC[2J wipes the replayed snapshot); a new ordered cleanupTaskCwd teardown (delete task, then remove cwd) closes the fixture delete-pending race. Test-only.
