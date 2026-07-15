@@ -61,8 +61,16 @@
   --color-bg: transparent; --color-background: transparent;
 }
 
-/* ── rule 2: solid-surface RESET (cards stay dark-on-white, shadow cancelled) ── */
-.on-photo :is(.card, .tcard, .orch-card, .table-wrap, .logentry, .promptbox, .recesspanel, .modal, .popover, .wz-opt, .wz-input, .sheet, .instr, .mc-hero, .termbig, .badge, .pill, .record, .artifact, .pane, .mc-verdict, .mc-tabs, .mc-op, .flightplan, .ft-card) {
+/* ── rule 2: solid-surface RESET (cards stay dark-on-white, shadow cancelled) ──
+   `.glass-card` is included here (the prototype's SSoT lists it only in rule 3,
+   but its own comment says glass-card text is "dark … via the reset list" — a
+   latent prototype inconsistency: without the reset, --ink stays #fff and the
+   photo text-shadow is uncancelled, so an ink/accent heading on a white glass
+   card renders near-white-on-white. A03's mandate is legibility engineering, so
+   we honor the documented intent and reset it. rule 3 below still darkens its
+   secondary text further. No baselined route renders a .glass-card today, so
+   this moves no visual baseline; it closes the trap before A07/A11–A18 add them. */
+.on-photo :is(.card, .tcard, .orch-card, .table-wrap, .logentry, .promptbox, .recesspanel, .modal, .popover, .wz-opt, .wz-input, .sheet, .instr, .mc-hero, .termbig, .badge, .pill, .record, .artifact, .pane, .mc-verdict, .mc-tabs, .mc-op, .flightplan, .glass-card, .ft-card) {
   --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
   --line: #E7E5E4; --line-strong: #D6D3D1; text-shadow: none;
   --accent: #0E7A6B; --accent-line: #9fd3ca; --focus: 0 0 0 4px rgba(14, 122, 107, .18);
