@@ -91,7 +91,7 @@ test.describe("Bubble lifecycle — AskUserQuestion pending → resolved", () =>
     await expect(page.getByTestId("askuser-pending")).toHaveCount(0);
   });
 
-  test("tool_use + tool_result render as sibling cards in chronological order", async ({
+  test("a resolved tool_result FOLDS into its tool_use card (ADR-065), not a sibling", async ({
     page,
     request,
   }) => {
@@ -126,12 +126,25 @@ test.describe("Bubble lifecycle — AskUserQuestion pending → resolved", () =>
     writeFileSync(jsonlPath, lines.join("\n") + "\n", "utf-8");
 
     await page.goto(`/tasks/${task.taskId}`);
+
+    // A00 — this spec used to assert tool_use + tool_result render as SIBLING cards.
+    // ADR-065 changed that: when a tool_use is a visible card, its matching
+    // tool_result is FOLDED into that card (rendered inside the `ToolOutputBlock`),
+    // and the user turn carrying only that result is dropped from the transcript
+    // entirely (filters.ts `filterEventsForRender`). So the correct rendering is:
+    //   - one `bubble-assistant` card,
+    //   - a `bubble-tool-use` block nested inside it (the folded ToolOutputBlock),
+    //   - and NO separate sibling `bubble-tool-result` — that testid now appears only
+    //     for an ORPHAN result whose tool_use isn't a visible card.
+    const assistant = page.getByTestId("bubble-assistant");
+    await expect(assistant).toBeVisible({ timeout: 5000 });
+
     const tu = page.getByTestId("bubble-tool-use");
-    const tr = page.getByTestId("bubble-tool-result");
     await expect(tu).toBeVisible({ timeout: 5000 });
-    await expect(tr).toBeVisible({ timeout: 5000 });
-    // Sibling check: neither is contained inside the other.
-    expect(await tu.locator("[data-testid='bubble-tool-result']").count()).toBe(0);
-    expect(await tr.locator("[data-testid='bubble-tool-use']").count()).toBe(0);
+    // The tool_use block is nested inside the assistant card (folded rendering).
+    expect(await assistant.locator("[data-testid='bubble-tool-use']").count()).toBeGreaterThan(0);
+
+    // The resolved result was folded in — it is NOT a separate sibling card.
+    await expect(page.getByTestId("bubble-tool-result")).toHaveCount(0);
   });
 });
