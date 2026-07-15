@@ -9,10 +9,8 @@
  * throw or a 500.
  *
  * Honesty (spec AC3), enforced structurally:
- *   - `phaseDurations` comes ONLY from a run's own `phase_timings` (per-run,
- *     unambiguous). Absent → `null` (render n/a). Pipeline transitions carry no
- *     run key → aggregated by (phase, splitId) at PROJECT level, never pinned to
- *     one run (attributing the whole array mis-attributes/drops durations).
+ *   - `phaseDurations` comes ONLY from a run's own `phase_timings` (absent →
+ *     `null`); pipeline transitions are aggregated by (phase, splitId) project-wide, never pinned to one run.
  *   - Durations are never synthesized/interpolated/estimated/back-filled.
  *   - Gates are DERIVED (`derived: true`, no `gate_verdict` object exists); only
  *     `test` carries a real per-run signal today. Current grade is NOT re-derived
