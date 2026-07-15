@@ -1,0 +1,1 @@
+Tracked event-log reader: a read-only `GET /api/external/projects/:projectId/events[?runId=]` endpoint over each project's `shipwright_events.jsonl`, projecting per-run facts (commit, tests, summary, spec-impact, affected FRs, phase transitions) for the Mission-Control / Ship's-Log surfaces. Durations degrade honestly to `n/a` when absent — never fabricated (FR-01.46).
