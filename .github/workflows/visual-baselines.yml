@@ -1,0 +1,77 @@
+name: Regenerate visual baselines
+
+# On-demand baseline regeneration for a repaint sub-iterate (campaign
+# webui-wow-usability-2026-07-10). A00 built the BOOTSTRAP path (a NEW screen's
+# missing baseline is written + uploaded by the `Visual regression (gate)` job on
+# failure). This is the UPDATE path for a CHANGED screen: a Playwright mismatch does
+# NOT rewrite the baseline (it only writes -actual.png to test-results), so a repaint
+# needs `--update-snapshots` — and that must run in the pinned Linux container, the
+# only place a baseline valid for CI can be produced (no local Docker; a Windows
+# baseline never matches the Linux runner's font rasterisation).
+#
+# Flow for a sub-iterate that repaints a baselined screen:
+#   1. push the screen change → `Visual regression (gate)` goes RED (mismatch).
+#   2. `gh workflow run visual-baselines.yml --ref <branch>`.
+#   3. download the `visual-baselines` artifact; read `changed-baselines.txt`.
+#   4. commit ONLY the routes you intended to change. If a route you did NOT touch is
+#      in the list, that is unintended visual bleed — STOP and investigate; do not
+#      blind-commit it. (This is the discipline that keeps the gate meaningful under
+#      autonomous operation — see the campaign RUNBOOK.)
+#   5. push → the gate re-runs green → then arm auto-merge.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch/ref to regenerate baselines on'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    name: Regenerate visual baselines
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.59.1-noble
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install dependencies
+        run: |
+          cd client && npm ci
+          cd ../server && npm ci
+
+      - name: Build client
+        run: cd client && npm run build
+
+      - name: Regenerate baselines (pinned container)
+        run: bash .github/scripts/e2e-stack.sh visual-update
+        env:
+          PORT: '4848'
+
+      # The changed-baseline list makes unintended visual bleed VISIBLE: the branch
+      # (or a reviewer) can compare it against the routes the sub-iterate meant to
+      # touch. `git diff` here is against the checked-out ref's committed baselines.
+      - name: List changed baselines
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git diff --name-only -- client/e2e/visual/__screenshots__ > changed-baselines.txt || true
+          echo '### Changed visual baselines' >> "$GITHUB_STEP_SUMMARY"
+          if [ -s changed-baselines.txt ]; then
+            sed 's#^#- #' changed-baselines.txt >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '_(none — no baseline changed; the screen may already match)_' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: visual-baselines
+          path: |
+            client/e2e/visual/__screenshots__/
+            changed-baselines.txt
+          retention-days: 7
