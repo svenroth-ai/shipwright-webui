@@ -55,15 +55,25 @@ test.describe("Tricky-char titles — clipboard round-trip", () => {
     expect(task.title).toBe(trickyTitle);
 
     await page.goto(`/tasks/${task.taskId}`);
-    // Iterate 3 section 04 — header CTA replaces TerminalLaunchButton on
-    // TaskDetail. A fresh task renders the Launch variant of the CTA.
+    await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible();
+
+    // A00 — the primary CTA auto-executes (ADR-068-A1) and no longer writes the
+    // clipboard. The surviving copy-to-clipboard workaround is the header-menu item
+    // `task-detail-menu-copy-resume-command`, gated on state != draft. Launch once,
+    // then copy via the menu — this is the path a user takes to paste the command
+    // into a different terminal, which is exactly what "tricky chars round-trip
+    // through the clipboard" needs to verify.
     await page.getByTestId("cta-launch-in-terminal").click();
-    // iterate 3.9c: after click, state flips draft → awaiting_external_start
-    // and cta-launch-in-terminal unmounts. Wait on the badge transition
-    // instead of the transient "Copied" label.
-    await expect(page.getByTestId("task-state-badge")).toHaveText(
-      "Awaiting launch",
-      { timeout: 5000 },
+    await expect(page.getByTestId("task-state-badge")).toHaveText("Awaiting launch", {
+      timeout: 5000,
+    });
+
+    await page.evaluate(() => navigator.clipboard.writeText(""));
+    await page.getByTestId("task-detail-menu-trigger").click();
+    await page.getByTestId("task-detail-menu-copy-resume-command").click();
+    await expect(page.getByTestId("task-detail-menu-notice")).toHaveAttribute(
+      "data-kind",
+      "ok",
     );
 
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());

@@ -50,18 +50,27 @@ test.describe("TaskDetail Launch CTA", () => {
     await expect(page.getByTestId("task-detail-page")).toBeVisible();
     await expect(page.getByTestId("task-state-badge")).toHaveText("Draft");
 
-    await page.evaluate(() => navigator.clipboard.writeText(""));
+    // A00 — the primary CTA now AUTO-EXECUTES in the embedded terminal (ADR-068-A1)
+    // and no longer writes the clipboard. The surviving "copy the command to paste
+    // into a DIFFERENT terminal" workaround is the header-menu item
+    // `task-detail-menu-copy-resume-command`, gated on state != draft. Launch once to
+    // leave draft, then copy the command via the menu.
     await page.getByTestId("cta-launch-in-terminal").click();
+    await expect(page.getByTestId("task-state-badge")).toHaveText("Awaiting launch", {
+      timeout: 5000,
+    });
 
-    // iterate 3.9c: after click, state flips draft → awaiting_external_start
-    // and cta-launch-in-terminal unmounts. Wait on the badge transition
-    // instead of the transient "Copied" label.
-    await expect(page.getByTestId("task-state-badge")).toHaveText(
-      "Awaiting launch",
-      { timeout: 5000 },
+    await page.evaluate(() => navigator.clipboard.writeText(""));
+    await page.getByTestId("task-detail-menu-trigger").click();
+    await page.getByTestId("task-detail-menu-copy-resume-command").click();
+    await expect(page.getByTestId("task-detail-menu-notice")).toHaveAttribute(
+      "data-kind",
+      "ok",
     );
 
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboard).toMatch(/--session-id '[0-9a-f-]{36}'/);
+    // The copied command carries the pre-bound uuid via `--resume '<uuid>'` (it is the
+    // Resume command — the point is continuing the session in another terminal).
+    expect(clipboard).toMatch(/--resume '[0-9a-f-]{36}'/);
   });
 });
