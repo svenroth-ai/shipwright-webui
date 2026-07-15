@@ -106,7 +106,7 @@ export function ContinuePipelineModal({
           <div className="flex items-center gap-3 border-b border-[var(--color-border,#e0dbd4)] px-5 py-4">
             <div
               className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[8px]"
-              style={{ background: "#dbeafe", color: "#1e40af" }}
+              style={{ background: "var(--info-tint)", color: "var(--info)" }}
               aria-hidden
             >
               <RotateCw size={18} strokeWidth={1.7} />
@@ -146,7 +146,7 @@ export function ContinuePipelineModal({
             {error && (
               <div
                 data-testid="continue-pipeline-error"
-                className="border-t border-[var(--color-border,#e0dbd4)] bg-[#fee2e2] px-5 py-2 text-[12px] text-[#991b1b]"
+                className="border-t border-[var(--color-border,#e0dbd4)] bg-err-tint px-5 py-2 text-[12px] text-err"
               >
                 {error}
               </div>

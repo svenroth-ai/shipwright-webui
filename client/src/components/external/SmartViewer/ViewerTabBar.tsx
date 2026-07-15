@@ -37,19 +37,19 @@ function iconFor(name: string) {
   const dot = name.lastIndexOf(".");
   const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
   if (ext === "md" || ext === "markdown") {
-    return <FileText size={12} className="shrink-0 text-[#2563EB]" />;
+    return <FileText size={12} className="shrink-0 text-info" />;
   }
   if (ext === "ts" || ext === "tsx" || ext === "js" || ext === "jsx") {
-    return <FileCode size={12} className="shrink-0 text-[#2563EB]" />;
+    return <FileCode size={12} className="shrink-0 text-info" />;
   }
   if (ext === "json" || ext === "yaml" || ext === "yml") {
-    return <FileJson size={12} className="shrink-0 text-[#D97706]" />;
+    return <FileJson size={12} className="shrink-0 text-warn" />;
   }
   if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) {
-    return <ImageIcon size={12} className="shrink-0 text-[#8B5CF6]" />;
+    return <ImageIcon size={12} className="shrink-0 text-info" />;
   }
   if (ext === "mmd" || ext === "mermaid") {
-    return <FileText size={12} className="shrink-0 text-[#059669]" />;
+    return <FileText size={12} className="shrink-0 text-ok" />;
   }
   return (
     <FileIcon

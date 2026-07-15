@@ -16,7 +16,7 @@ export function DiagnosticsBanner() {
 
   return (
     <div
-      className="flex items-center gap-2 border-b border-amber-300 bg-amber-50 px-3 py-1.5 text-xs text-amber-900"
+      className="flex items-center gap-2 border-b border-[var(--warn-line)] bg-warn-tint px-3 py-1.5 text-xs text-warn"
       data-testid="diagnostics-banner"
     >
       <AlertTriangle size={14} />

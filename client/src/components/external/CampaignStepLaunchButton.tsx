@@ -144,7 +144,7 @@ export function CampaignStepLaunchButton({
           <div className="flex items-center gap-3 border-b border-[var(--color-border,#e0dbd4)] px-5 py-4">
             <div
               className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[8px]"
-              style={{ background: "#fffbeb", color: "#b45309" }}
+              style={{ background: "var(--warn-tint)", color: "var(--warn)" }}
               aria-hidden
             >
               <TriangleAlert size={18} strokeWidth={1.7} />
@@ -178,7 +178,7 @@ export function CampaignStepLaunchButton({
           {error && (
             <div
               data-testid={`campaign-step-dialog-error-${slug}`}
-              className="mx-5 mb-2 rounded-[var(--radius-button,8px)] bg-[#fee2e2] px-3 py-2 text-[12px] text-[#991b1b]"
+              className="mx-5 mb-2 rounded-[var(--radius-button,8px)] bg-err-tint px-3 py-2 text-[12px] text-err"
             >
               {error}
             </div>

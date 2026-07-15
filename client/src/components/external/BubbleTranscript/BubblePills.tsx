@@ -72,13 +72,13 @@ export function CustomTitlePill({ event }: { event: CustomTitleEvent }) {
         className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
         style={{
           fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, monospace)",
-          color: "#1E40AF",
+          color: "var(--info)",
           background: "rgba(59,130,246,0.08)",
           borderRadius: "10px",
           opacity: 0.9,
         }}
       >
-        Title set: <strong style={{ color: "#1E40AF", fontWeight: 500 }}>{event.title}</strong>
+        Title set: <strong style={{ color: "var(--info)", fontWeight: 500 }}>{event.title}</strong>
       </span>
     </div>
   );
@@ -113,14 +113,14 @@ export function PermissionModePill({ event }: { event: PermissionModeEvent }) {
         className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
         style={{
           fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, monospace)",
-          color: "#6B21A8",
+          color: "var(--info)",
           background: "rgba(168,85,247,0.10)",
           borderRadius: "10px",
           opacity: 0.9,
         }}
       >
         Permission mode:{" "}
-        <strong style={{ color: "#6B21A8", fontWeight: 500 }}>{event.mode}</strong>
+        <strong style={{ color: "var(--info)", fontWeight: 500 }}>{event.mode}</strong>
       </span>
     </div>
   );
@@ -138,14 +138,14 @@ export function ModeChangePill({ event }: { event: ModeChangeEvent }) {
         className="inline-flex max-w-full items-center gap-1 truncate px-2.5 py-1 text-[11px]"
         style={{
           fontFamily: "var(--font-mono, ui-monospace, SFMono-Regular, monospace)",
-          color: "#6B21A8",
+          color: "var(--info)",
           background: "rgba(168,85,247,0.10)",
           borderRadius: "10px",
           opacity: 0.9,
         }}
       >
         Mode:{" "}
-        <strong style={{ color: "#6B21A8", fontWeight: 500 }}>{event.mode}</strong>
+        <strong style={{ color: "var(--info)", fontWeight: 500 }}>{event.mode}</strong>
       </span>
     </div>
   );

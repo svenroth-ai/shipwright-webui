@@ -119,7 +119,7 @@ export function SingleSessionRunCard({
       {diagnostics.droppedPhaseTaskIds.length > 0 && (
         <div
           data-testid={`single-session-diagnostics-${config.runId}`}
-          className="flex items-start gap-2 rounded-[var(--radius-button,8px)] bg-[#fef3c7] px-2.5 py-1.5 text-[11px] text-[#78350f]"
+          className="flex items-start gap-2 rounded-[var(--radius-button,8px)] bg-warn-tint px-2.5 py-1.5 text-[11px] text-warn"
         >
           <AlertTriangle size={12} className="mt-[2px] shrink-0" />
           <span>

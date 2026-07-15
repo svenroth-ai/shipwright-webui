@@ -68,16 +68,16 @@ function iconForEntry(name: string, kind: "file" | "dir", expanded: boolean) {
   const dot = name.lastIndexOf(".");
   const ext = dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
   if (ext === "md" || ext === "markdown") {
-    return <FileText size={14} className="shrink-0 text-[#2563EB]" />;
+    return <FileText size={14} className="shrink-0 text-info" />;
   }
   if (ext === "ts" || ext === "tsx" || ext === "js" || ext === "jsx") {
-    return <FileCode size={14} className="shrink-0 text-[#2563EB]" />;
+    return <FileCode size={14} className="shrink-0 text-info" />;
   }
   if (ext === "json" || ext === "yaml" || ext === "yml") {
-    return <FileJson size={14} className="shrink-0 text-[#D97706]" />;
+    return <FileJson size={14} className="shrink-0 text-warn" />;
   }
   if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext)) {
-    return <ImageIcon size={14} className="shrink-0 text-[#8B5CF6]" />;
+    return <ImageIcon size={14} className="shrink-0 text-info" />;
   }
   return <FileIcon size={14} className="shrink-0 text-[var(--color-muted,#6b7280)]" />;
 }

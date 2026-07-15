@@ -87,7 +87,7 @@ export function PreviewButton({
         disabled={loading || !projectId}
         data-testid="preview-button"
         title="Spawn dev server for this project (npm run dev)"
-        className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] border-[1.5px] border-[#bfdbfe] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-info)] transition-colors hover:border-[#93c5fd] hover:bg-[var(--color-info-bg)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] border-[1.5px] border-[var(--info-line)] bg-[var(--color-surface)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-info)] transition-colors hover:border-[var(--info-line)] hover:bg-[var(--color-info-bg)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? (
           <Loader2 size={12} className="animate-spin" />

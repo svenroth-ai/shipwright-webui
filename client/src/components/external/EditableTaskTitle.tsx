@@ -81,12 +81,12 @@ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="inline-flex items-center gap-2 text-left text-lg font-semibold text-neutral-900 hover:text-blue-700"
+        className="inline-flex items-center gap-2 text-left text-lg font-semibold text-ink hover:text-info"
         aria-label="Edit task title"
         data-testid="task-title-display"
       >
         <span>{task.title}</span>
-        <Pencil size={14} className="text-neutral-400" />
+        <Pencil size={14} className="text-muted" />
       </button>
     );
   }
@@ -112,12 +112,12 @@ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
         onBlur={() => void commit()}
         disabled={renameMut.isPending}
         maxLength={200}
-        className="w-full border border-blue-400 bg-white px-2 py-1 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+        className="w-full border border-[var(--info-line)] bg-white px-2 py-1 text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--info-line)] disabled:opacity-50"
         style={{ borderRadius: "var(--radius-button)" }}
         data-testid="task-title-input-edit"
       />
       {error && (
-        <span className="text-xs text-red-700" data-testid="task-title-error">
+        <span className="text-xs text-err" data-testid="task-title-error">
           {error}
         </span>
       )}

@@ -109,7 +109,7 @@ export function LaunchCTA({ task, onError }: LaunchCTAProps) {
       className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition disabled:opacity-60"
       style={{ background: "var(--color-success, #059669)" }}
       onMouseEnter={(ev) => {
-        ev.currentTarget.style.background = "#047857";
+        ev.currentTarget.style.background = "var(--ok)";
       }}
       onMouseLeave={(ev) => {
         ev.currentTarget.style.background = "var(--color-success, #059669)";

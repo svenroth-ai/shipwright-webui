@@ -157,7 +157,7 @@ export function TerminalLaunchButton({
       <button
         type="button"
         onClick={() => navigate(`/tasks/${task.taskId}`)}
-        className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline"
+        className="inline-flex items-center gap-1 text-xs text-info hover:underline"
         data-testid="terminal-launch-inline"
       >
         <TerminalIcon size={12} /> Open task
@@ -275,7 +275,7 @@ export function TerminalLaunchButton({
         type="button"
         onClick={() => void copy()}
         disabled={launchMut.isPending}
-        className="inline-flex items-center gap-2 bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex items-center gap-2 bg-dark px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-dark-2 disabled:cursor-not-allowed disabled:opacity-50"
         style={{ borderRadius: "var(--radius-button)" }}
         data-testid="terminal-launch-btn"
         aria-label={copied ? "Launch command copied" : "Copy launch command for terminal"}
@@ -283,11 +283,11 @@ export function TerminalLaunchButton({
         <Copy size={14} />
         {launchMut.isPending ? "Preparing…" : copied ? "Copied — paste into terminal" : "Copy launch command"}
       </button>
-      <span className="text-xs text-neutral-500" data-testid="terminal-launch-platform">
+      <span className="text-xs text-muted" data-testid="terminal-launch-platform">
         {detectedPlatform === "windows" ? "PowerShell" : "POSIX shell (bash/zsh)"}
       </span>
       {error && (
-        <span className="text-xs text-red-700" data-testid="terminal-launch-error">
+        <span className="text-xs text-err" data-testid="terminal-launch-error">
           {error}
         </span>
       )}

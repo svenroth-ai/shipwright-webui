@@ -1,5 +1,5 @@
 /*
- * Dark `#1e1e1e` panel that renders a live preview of the command the user
+ * Dark anthracite panel that renders a live preview of the command the user
  * will paste into their terminal. Used inside NewIssueModal for all three
  * modes (task / pipeline / iterate). Display-only: does NOT call the API.
  * The real command string (with the server-escaped values + actions-substitute
@@ -233,8 +233,8 @@ export function CommandPreviewPanel({
       data-testid="command-preview-panel"
       className="relative overflow-x-auto rounded-[var(--radius-button,8px)] px-[18px] py-[14px] font-mono text-[12px] leading-[1.7]"
       style={{
-        background: "#1e1e1e",
-        color: "#e6e6e6",
+        background: "var(--dark)",
+        color: "var(--inset)",
         borderLeft: `4px solid ${stripeColorFor(mode)}`,
       }}
     >
@@ -244,14 +244,14 @@ export function CommandPreviewPanel({
           data-testid="command-preview-reveal"
           onClick={() => setRevealSecrets((s) => !s)}
           aria-label={revealSecrets ? "Hide secrets" : "Show secrets"}
-          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-[4px] bg-[#2a2a2a] px-2 py-1 text-[10px] font-medium text-[#9ca3af] hover:bg-[#383838] hover:text-[#e6e6e6]"
+          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-[4px] bg-dark-2 px-2 py-1 text-[10px] font-medium text-faint hover:bg-[var(--dark-line)] hover:text-inset"
         >
           {revealSecrets ? <EyeOff size={11} /> : <Eye size={11} />}
           {revealSecrets ? "Hide" : "Show"} secrets
         </button>
       )}
       <pre
-        className="font-mono text-[12px] leading-[1.7] text-[#e6e6e6]"
+        className="font-mono text-[12px] leading-[1.7] text-inset"
         style={{ whiteSpace: "nowrap" }}
       >
         {commandText}

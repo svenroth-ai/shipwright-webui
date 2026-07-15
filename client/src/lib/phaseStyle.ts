@@ -18,16 +18,16 @@ export interface PhaseStyle {
 }
 
 const PHASE_STYLES: Record<string, PhaseStyle> = {
-  project: { cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]", dot: "bg-[#9ca3af]" },
-  design: { cls: "bg-[#F3E8FF] text-[#6B21A8]", dot: "bg-[#A855F7]" },
-  plan: { cls: "bg-[#DBEAFE] text-[#1E40AF]", dot: "bg-[#3B82F6]" },
-  build: { cls: "bg-[#FEF3C7] text-[#92400E]", dot: "bg-[#F59E0B]" },
-  test: { cls: "bg-[#D1FAE5] text-[#065F46]", dot: "bg-[#059669]" },
-  deploy: { cls: "bg-[#CCFBF1] text-[#115E59]", dot: "bg-[#14B8A6]" },
-  changelog: { cls: "bg-[#E0E7FF] text-[#3730A3]", dot: "bg-[#6366F1]" },
-  compliance: { cls: "bg-[#E0F2FE] text-[#075985]", dot: "bg-[#0EA5E9]" },
-  security: { cls: "bg-[#FEE2E2] text-[#991B1B]", dot: "bg-[#DC2626]" },
-  adopt: { cls: "bg-[#E2E8F0] text-[#334155]", dot: "bg-[#64748B]" },
+  project: { cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]", dot: "bg-muted" },
+  design: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
+  plan: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
+  build: { cls: "bg-warn-tint text-warn", dot: "bg-[var(--warn-solid)]" },
+  test: { cls: "bg-ok-tint text-ok", dot: "bg-[var(--ok-solid)]" },
+  deploy: { cls: "bg-accent-tint text-accent", dot: "bg-accent" },
+  changelog: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
+  compliance: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
+  security: { cls: "bg-err-tint text-err", dot: "bg-[var(--err-solid)]" },
+  adopt: { cls: "bg-inset text-body", dot: "bg-muted" },
   iterate: {
     cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]",
     dot: "bg-[var(--color-accent,#857568)]",

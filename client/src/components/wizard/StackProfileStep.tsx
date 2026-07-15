@@ -56,8 +56,8 @@ export function StackProfileStep({ profile, onProfileChange }: StackProfileStepP
             data-testid={`stack-profile-card-${p.name}`}
             className={`w-full text-left px-4 py-3.5 rounded-[var(--radius-button)] border-[1.5px] transition-colors ${
               isSelected
-                ? 'border-[var(--color-primary)] bg-[#f9f6f3] shadow-[0_0_0_1px_var(--color-primary)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] hover:bg-[#faf8f6]'
+                ? 'border-[var(--color-primary)] bg-inset shadow-[0_0_0_1px_var(--color-primary)]'
+                : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)] hover:bg-inset'
             }`}
           >
             <div className="text-sm font-semibold text-[var(--color-text)]">{display}</div>

@@ -22,7 +22,7 @@ export function ProjectInfoStep({ name, path, onNameChange, onPathChange }: Proj
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="My Awesome App"
-          className="w-full h-12 px-3.5 border-[1.5px] border-[var(--color-border)] rounded-[var(--radius-button)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] placeholder:text-[#b0a99f] hover:border-[var(--color-accent)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[var(--color-primary)]/10 transition-colors"
+          className="w-full h-12 px-3.5 border-[1.5px] border-[var(--color-border)] rounded-[var(--radius-button)] text-sm text-[var(--color-text)] bg-[var(--color-surface)] placeholder:text-muted hover:border-[var(--color-accent)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[var(--color-primary)]/10 transition-colors"
         />
       </div>
       <div>
@@ -34,7 +34,7 @@ export function ProjectInfoStep({ name, path, onNameChange, onPathChange }: Proj
           value={path}
           onChange={(e) => onPathChange(e.target.value)}
           placeholder="C:\Users\...\my-app"
-          className="w-full h-12 px-3.5 border-[1.5px] border-[var(--color-border)] rounded-[var(--radius-button)] text-[13px] font-mono text-[var(--color-text)] bg-[var(--color-surface)] placeholder:text-[#b0a99f] hover:border-[var(--color-accent)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[var(--color-primary)]/10 transition-colors"
+          className="w-full h-12 px-3.5 border-[1.5px] border-[var(--color-border)] rounded-[var(--radius-button)] text-[13px] font-mono text-[var(--color-text)] bg-[var(--color-surface)] placeholder:text-muted hover:border-[var(--color-accent)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-[3px] focus:ring-[var(--color-primary)]/10 transition-colors"
         />
         <p className="text-xs text-[var(--color-muted)] mt-1.5">
           Copy the full path from Explorer/Finder and paste it in here.

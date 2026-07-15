@@ -17,9 +17,9 @@ import { ComplianceDetailModal } from "./ComplianceDetailModal";
 
 function gradeClasses(grade: string): string {
   const letter = grade.charAt(0).toUpperCase();
-  if (letter === "A") return "bg-emerald-100 text-emerald-800 border-emerald-300";
-  if (letter === "B") return "bg-amber-100 text-amber-800 border-amber-300";
-  return "bg-red-100 text-red-800 border-red-300";
+  if (letter === "A") return "bg-ok-tint text-ok border-[var(--ok-line)]";
+  if (letter === "B") return "bg-warn-tint text-warn border-[var(--warn-line)]";
+  return "bg-err-tint text-err border-[var(--err-line)]";
 }
 
 export function ComplianceGradeBadge({

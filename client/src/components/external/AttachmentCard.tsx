@@ -76,8 +76,8 @@ export function AttachmentCard({ basename, extraCount = 0 }: Props) {
         style={{
           width: 36,
           height: 36,
-          background: "linear-gradient(135deg, #F3E8FF, #DDD6FE)",
-          color: "#7C3AED",
+          background: "linear-gradient(135deg, var(--info-tint), var(--info-line))",
+          color: "var(--info)",
         }}
       >
         {iconFor(kind)}

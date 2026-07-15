@@ -130,7 +130,7 @@ export function CampaignAutonomousLaunchButton({
           <div className="flex items-center gap-3 border-b border-[var(--color-border,#e0dbd4)] px-5 py-4">
             <div
               className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[8px]"
-              style={{ background: "#f3e8ff", color: "#7e22ce" }}
+              style={{ background: "var(--info-tint)", color: "var(--info)" }}
               aria-hidden
             >
               <Bot size={18} strokeWidth={1.7} />
@@ -172,7 +172,7 @@ export function CampaignAutonomousLaunchButton({
             {risky.length > 0 && (
               <div
                 data-testid={`campaign-autonomous-risky-${slug}`}
-                className="rounded-[var(--radius-button,8px)] border border-[#fcd34d] bg-[#fffbeb] px-3 py-2 text-[12px] text-[#92400e]"
+                className="rounded-[var(--radius-button,8px)] border border-[var(--warn-line)] bg-warn-tint px-3 py-2 text-[12px] text-warn"
               >
                 <div className="flex items-center gap-1.5 font-semibold">
                   <TriangleAlert size={13} />
@@ -182,8 +182,8 @@ export function CampaignAutonomousLaunchButton({
                   {risky.map((s) => (
                     <li key={s.id}>
                       <span className="font-mono font-semibold">{s.id}</span>{" "}
-                      <span className="text-[#b45309]">{s.title}</span>{" "}
-                      <span className="text-[#92400e]">— {riskyReason(s)}</span>
+                      <span className="text-warn">{s.title}</span>{" "}
+                      <span className="text-warn">— {riskyReason(s)}</span>
                     </li>
                   ))}
                 </ul>
@@ -203,7 +203,7 @@ export function CampaignAutonomousLaunchButton({
             {error && (
               <div
                 data-testid={`campaign-autonomous-error-${slug}`}
-                className="rounded-[var(--radius-button,8px)] bg-[#fee2e2] px-3 py-2 text-[12px] text-[#991b1b]"
+                className="rounded-[var(--radius-button,8px)] bg-err-tint px-3 py-2 text-[12px] text-err"
               >
                 {error}
               </div>

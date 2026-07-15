@@ -50,7 +50,7 @@ export function ProjectContextStrip({
   const shortPath = shortenProjectPath(path);
   return (
     <div
-      className="flex flex-nowrap items-center gap-2 rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-2 text-[12px] text-neutral-500"
+      className="flex flex-nowrap items-center gap-2 rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-3 py-2 text-[12px] text-muted"
       data-testid="project-context-strip"
     >
       <FolderOpen size={13} className="shrink-0 text-[var(--color-accent,#857568)]" />
@@ -61,7 +61,7 @@ export function ProjectContextStrip({
         style={{ background: color ?? "var(--color-muted, #9ca3af)" }}
       />
       <span
-        className="shrink-0 whitespace-nowrap font-semibold text-neutral-900"
+        className="shrink-0 whitespace-nowrap font-semibold text-ink"
         data-testid="project-context-name"
       >
         {name}

@@ -10,9 +10,9 @@ import type { ProjectMode } from '../../types/project';
  */
 
 const MODE_STYLES: Record<ProjectMode, { label: string; bg: string; text: string }> = {
-  pipeline: { label: 'Pipeline', bg: 'bg-blue-100', text: 'text-blue-900' },
-  iterate: { label: 'Iterate', bg: 'bg-amber-100', text: 'text-amber-900' },
-  standalone: { label: 'Standalone', bg: 'bg-gray-100', text: 'text-gray-700' },
+  pipeline: { label: 'Pipeline', bg: 'bg-info-tint', text: 'text-info' },
+  iterate: { label: 'Iterate', bg: 'bg-warn-tint', text: 'text-warn' },
+  standalone: { label: 'Standalone', bg: 'bg-inset', text: 'text-body' },
 };
 
 export interface ModeBadgeProps {

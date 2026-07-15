@@ -148,7 +148,7 @@ function SaveIndicator({ save }: { save: SaveState }) {
     return (
       <span
         data-testid="mockup-review-saved"
-        className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#d1fae5] px-2 py-0.5 text-[12px] font-semibold text-[#065f46]"
+        className="inline-flex items-center gap-1.5 rounded-[6px] bg-ok-tint px-2 py-0.5 text-[12px] font-semibold text-ok"
       >
         <Check size={13} /> Saved — Round {save.round}
       </span>
