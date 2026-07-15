@@ -13,13 +13,28 @@
  * exports BASE_URL + PROJECT_ID.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { API_BASE } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 
-const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3863";
+const BASE = API_BASE;
 const PID = process.env.PROJECT_ID ?? "";
 const RAMP_LEN = 100;
 
 test.describe("Flow J — /media video streaming", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "70-j-media-route" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("real-server Range request → 206 byte-exact slice", async ({ request }) => {
     const res = await request.get(
       `${BASE}/api/external/projects/${PID}/media?path=clip.mp4`,

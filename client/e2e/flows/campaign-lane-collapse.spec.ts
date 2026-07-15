@@ -1,3 +1,5 @@
+import { seedCampaigns } from "../helpers/campaign-fixture";
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -15,6 +17,29 @@ import { test, expect } from "@playwright/test";
 const SLUGS = ["2026-06-03-aaa", "2026-06-03-bbb", "2026-06-03-ccc"];
 
 test.describe("Campaign lane collapse + layout", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "campaign-lane-collapse" });
+
+    seedCampaigns(
+      project.path,
+      ["2026-06-03-aaa", "2026-06-03-bbb", "2026-06-03-ccc"].map((slug) => ({
+        slug,
+        status: "active" as const,
+        total: 3,
+        done: 1,
+      })),
+    );
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("default-collapsed, kanban stays visible when all expanded, persists on reload", async ({
     page,
   }) => {

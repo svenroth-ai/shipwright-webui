@@ -27,13 +27,17 @@
  * (renamed from D-bis's `-probe/` dir).
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page, type WebSocket as PWWebSocket } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ARTIFACT_DIR = path.resolve(
@@ -160,6 +164,10 @@ async function readCursorPos(page: Page): Promise<{ cursorX: number; cursorY: nu
 }
 
 test.describe("Iterate E (ADR-092) — LIVE-pty re-attach regression guard", () => {
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(180_000);
 
   // External code review MED #4 — soft-skip when the configured
@@ -175,18 +183,10 @@ test.describe("Iterate E (ADR-092) — LIVE-pty re-attach regression guard", () 
     }
   });
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-        localStorage.setItem(
-          "webui:embedded-terminal-default-tab",
-          '"terminal"',
-        );
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "v0-9-6-live-pty-replay" });
+    await setActiveProject(page, project.projectId);
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("LIVE pty: type marker, navigate away, navigate back -> outcome A required (ADR-092)", async ({
@@ -205,7 +205,7 @@ test.describe("Iterate E (ADR-092) — LIVE-pty re-attach regression guard", () 
           title: "D-bis live-pty probe",
           cwd,
           actionId: "new-task",
-          projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+          projectId: project.projectId,
         },
       });
       expect(created.ok()).toBeTruthy();

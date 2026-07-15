@@ -27,12 +27,16 @@
  * covered by the existing "paste-handler — …" unit cases.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "50e86b6e-3ade-44c4-9e21-2c62c65f804e";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 async function makeTaskCwd(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "v085-spec81-"));
@@ -101,14 +105,12 @@ async function deleteTask(
 test.describe("Spec 81 — v0.8.5 terminal fixes smoke", () => {
   test.setTimeout(120_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "81-v0.8.5-terminal-fixes-smoke" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
   });
 
   test("AC-1: EmbeddedTerminal wrapper has single-layer dark bg + 8px inner padding", async ({

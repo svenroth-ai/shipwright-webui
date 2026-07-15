@@ -1,203 +1,194 @@
 /*
  * v0.9.3 — Resume state-machine regression fence (ADR-085).
  *
- * Bug: clicking Resume on a `new-plain` task in `idle` state never
- * settled on `active`. The state ping-ponged idle ↔ active every
- * transcript-poll cycle because the `active → idle` decay rule used
- * JSONL mtime as the staleness signal, and `new-plain` never writes
- * JSONL until the user types their first message. After ~120s the
- * stale-mtime branch fired on every poll and yanked the state back
- * to idle, even though the pty was alive and Claude was running.
+ * AC-1: Clicking Resume on an IDLE `new-plain` task converges the task to
+ *       `active` and it STAYS active across multiple transcript polls. Pre-fix,
+ *       state ping-ponged active → idle → active every 1-2s.
+ * AC-2: The Resume button hides within ~2.5s of the click (≈2 poll cycles).
  *
- * Fix at `server/src/external/routes.ts` line 925: scope the
- * mtime-based decay to NON-`new-plain` actionIds (or `new-plain`
- * with pty gone). Pty existence is the authoritative signal for
- * "claude is running" for new-plain.
+ * ── A00: why this spec had never once run ───────────────────────────────────
+ * It pinned `31b4076d-…` — one task on one developer's machine — and skipped when
+ * that task was absent. The task was deleted long ago, so the skip fired on every
+ * machine, every run: a regression fence that never fired is a comment.
  *
- * Runs against the live Hono+Vite dev stack on the Tailscale interface
- * via `playwright.tailscale.config.ts`.
+ * The precondition is now MANUFACTURED. It needs a `new-plain` task that Claude
+ * has already run in, currently idle. WebUI derives all of that from ONE thing: the
+ * presence and mtime of the JSONL at ~/.claude/projects/<encoded-cwd>/<uuid>.jsonl
+ * (external/transcript/routes.ts). WebUI is a pure READ-ONLY observer of that file
+ * (CLAUDE.md rule 1 / DO-NOT #1) — no live `claude` process participates in the
+ * state machine at all. So the fixture writes the transcript, impersonating
+ * *Claude*, not webui, and the server observes it through exactly the production
+ * code path. That is what makes this runnable on a CI runner with no `claude`
+ * binary anywhere on it.
+ *
+ * Every assertion below is the original. They finally get to run.
  */
 
 import { test, expect } from "@playwright/test";
+import { apiUrl } from "../helpers/env";
+import {
+  cleanupProject,
+  cleanupTask,
+  seedProject,
+  setActiveProject,
+  type SeededProject,
+} from "../helpers/fixtures";
+import { backdateJsonl, seedClaudeJsonl } from "../helpers/claude-jsonl";
 
-const TASK_ID = "31b4076d-5a0a-4c62-b176-63553c165c03";
+/** Comfortably past the server's ACTIVE_IDLE_THRESHOLD_MS, so the poll after the
+ *  initial observation flips the task to `idle` without the spec sleeping. */
+const AGED_MS = 30 * 60 * 1000;
 
-test("AC-1 + AC-2: Resume click on idle new-plain converges to active and STAYS active across multiple poll cycles", async ({ page }) => {
-  test.setTimeout(45_000);
+/**
+ * Drive the state machine to `idle` WITHOUT a browser page.
+ *
+ * This is the crux of manufacturing the precondition. The transitions live in the
+ * transcript endpoint (external/transcript/routes.ts), and the only thing that
+ * polls it in the app is TaskDetail — which also mounts the terminal, which creates
+ * a pty. And a `new-plain` task WITH a live pty is deliberately HELD active
+ * regardless of JSONL mtime (ADR-085: for new-plain the mtime is meaningless
+ * because Claude writes nothing until the user types, so pty-liveness is the
+ * authoritative active→idle signal). So a new-plain task can never be observed
+ * going idle while a browser is looking at it — which is exactly why the original
+ * spec could only ever inherit this state from a task that had gone idle in some
+ * PRIOR session, and why it skipped forever once that task was gone.
+ *
+ * Calling the endpoint directly is the same production code path with no page
+ * attached: no terminal mounts, no pty exists, and the aged JSONL settles the task
+ * to `idle` in two polls. `state` is persisted, so TaskDetail then opens ON an idle
+ * task and offers Resume — precisely the situation both ACs describe.
+ */
+async function settleToIdle(
+  request: import("@playwright/test").APIRequestContext,
+  taskId: string,
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        // poll 1 records firstJsonlObservedAt -> active; poll 2 sees the aged
+        // mtime with no pty -> idle.
+        await request.get(apiUrl(`/api/external/tasks/${taskId}/transcript?fromByte=0`));
+        const t = await request
+          .get(apiUrl(`/api/external/tasks/${taskId}`))
+          .then((r) => r.json() as Promise<{ task: { state: string } }>);
+        return t.task.state;
+      },
+      { timeout: 30_000, intervals: [500] },
+    )
+    .toBe("idle");
+}
 
-  // Pre-flight (v0.9.4): skip if the repro task has been deleted.
-  const taskExists = await page.request
-    .get(`/api/external/tasks/${TASK_ID}`)
-    .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
-    .catch(() => false);
-  test.skip(
-    !taskExists,
-    `Repro task ${TASK_ID} no longer exists — state-machine regression fence requires this exact task.`,
-  );
+test.describe("v0.9.3 — Resume state machine (idle new-plain)", () => {
+  // Creating the task through the UI + seeding the transcript takes real time.
+  // A per-test setTimeout() does not cover hooks.
+  test.describe.configure({ timeout: 120_000 });
 
-  const pageErrors: string[] = [];
-  page.on("pageerror", (err) => pageErrors.push(err.message));
+  let project: SeededProject;
+  let taskId: string;
+  let jsonlPath: string;
 
-  await page.goto(`/tasks/${TASK_ID}`, {
-    waitUntil: "domcontentloaded",
-    timeout: 20_000,
+  /**
+   * Create a `new-plain` task through the REAL UI path (the plain-Claude button —
+   * this is what sets `actionId: "new-plain"`, which AC-1 asserts on), then give it
+   * an aged Claude transcript so the server observes it as a session that has run
+   * and since gone idle.
+   */
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "v0.9.3 resume" });
+    await setActiveProject(page, project.projectId);
+
+    await page.goto("/");
+    await expect(page.getByTestId("task-board-page")).toBeVisible({ timeout: 15_000 });
+
+    await page.getByTestId("plain-claude-button").click();
+    await expect(page.getByTestId("new-issue-modal-new-plain")).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId("new-issue-title-input").fill(`v093-${Date.now()}`);
+
+    const createResp = page.waitForResponse(
+      (r) => r.url().endsWith("/api/external/tasks") && r.request().method() === "POST",
+    );
+    await page.getByTestId("new-issue-save-btn").click();
+    const created = await createResp;
+    const body = (await created.json()) as {
+      task: { taskId: string; sessionUuid: string; cwd: string };
+    };
+    taskId = body.task.taskId;
+
+    // The transcript Claude would have written. Aged, so the task reads as idle
+    // rather than active the moment the server first observes it.
+    jsonlPath = seedClaudeJsonl({
+      sessionUuid: body.task.sessionUuid,
+      cwd: body.task.cwd,
+      turns: 2,
+    });
+    backdateJsonl(jsonlPath, AGED_MS);
+
+    // Settle to idle BEFORE any browser page mounts a terminal for this task.
+    await settleToIdle(request, taskId);
   });
 
-  // Open Terminal tab so the embedded terminal mounts + the WS attaches.
-  const terminalTab = page.getByRole("tab", { name: /terminal/i });
-  if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await terminalTab.click();
-  }
+  test.afterEach(async ({ request }) => {
+    await cleanupTask(request, taskId);
+    await cleanupProject(request, project);
+  });
 
-  // Wait for the page to settle (replay envelopes flush, polling cadence
-  // stabilizes).
-  await page.waitForTimeout(3_000);
+  test("AC-1 + AC-2: Resume click on idle new-plain converges to active and STAYS active across multiple poll cycles", async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (err) => pageErrors.push(err.message));
 
-  // Snapshot task state via the public API BEFORE click.
-  const taskBefore = await page.request
-    .get(`/api/external/tasks/${TASK_ID}`)
-    .then((r) => r.json() as Promise<{ task: { state: string; actionId: string } }>);
-  expect(taskBefore.task.actionId).toBe("new-plain");
-  // Pre-condition: task is idle. (If it's already active, this regression
-  // can't be observed — the user's earlier Resume click already settled.
-  // The reported repro task lives in idle most of the time.)
-  // We don't force idle — we just record the starting state for forensic.
-  const stateBeforeClick = taskBefore.task.state;
+    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
 
-  // Click Resume / Launch — exact text varies by state.
-  const resumeBtn = page.getByRole("button", { name: /resume|launch/i });
-  const hasResumeBeforeClick = await resumeBtn
-    .isVisible({ timeout: 3_000 })
-    .catch(() => false);
+    // The task is already idle (settled in the hook, before any pty existed).
+    const taskBefore = await page.request
+      .get(apiUrl(`/api/external/tasks/${taskId}`))
+      .then((r) => r.json() as Promise<{ task: { state: string; actionId: string } }>);
+    expect(taskBefore.task.actionId).toBe("new-plain");
+    const stateBeforeClick = taskBefore.task.state;
 
-  // The AC-1 stability assertion runs regardless of whether we triggered
-  // the click ourselves — the regression fence is "active stays active
-  // across multiple polls". If the task is already active (someone else
-  // resumed it earlier), the stability check is just as valid.
-  // openai medium #2 (post-stage1 review): track explicitly whether the
-  // click happened so a failure mode can be attributed correctly.
-  let resumeClickExecuted = false;
-  if (hasResumeBeforeClick) {
+    // Same locator fix as AC-2: the Resume CTA is its own component/testid.
+    const resumeBtn = page.getByTestId("cta-copy-resume-command");
+    await expect(resumeBtn).toBeVisible({ timeout: 10_000 });
     await resumeBtn.click();
-    resumeClickExecuted = true;
-  } else {
+    const resumeClickExecuted = true;
+
+    // The fix's core claim: state converges to "active" within ~2 transcript polls
+    // (~2 seconds at 1s polling) and STAYS active across multiple subsequent polls.
+    // Pre-fix, state ping-ponged every 1-2s.
+    const samples: { tMs: number; state: string }[] = [];
+    const start = Date.now();
+    for (let i = 0; i < 8; i++) {
+      const resp = await page.request
+        .get(apiUrl(`/api/external/tasks/${taskId}`))
+        .then((r) => r.json() as Promise<{ task: { state: string } }>);
+      samples.push({ tMs: Date.now() - start, state: resp.task.state });
+      if (i < 7) await page.waitForTimeout(1_500);
+    }
+
+    const activeSamples = samples.filter((s) => s.state === "active");
+    const idleSamples = samples.filter((s) => s.state === "idle");
+
     // eslint-disable-next-line no-console
     console.log(
-      `[v0.9.3] AC-1 precondition: task state was '${stateBeforeClick}' (not idle) — Resume button not visible. Asserting stability of pre-existing active state instead of post-click convergence.`,
+      `[v0.9.3] state samples (${samples.length}): active=${activeSamples.length}, idle=${idleSamples.length}, all=${JSON.stringify(samples)}`,
     );
-  }
 
-  // The fix's core claim: state converges to "active" within ~2 transcript
-  // polls (~2 seconds at 1s polling) and STAYS active across multiple
-  // subsequent polls. Pre-fix, state ping-ponged every 1-2s.
-  //
-  // Poll the public task API at 1.5s intervals for 12 seconds. Assert
-  // that AT LEAST 6 of the 8 samples report state === "active".
-  // (Allow 2 transient samples for the awaiting → active transition
-  // window right after the click.)
-  const samples: { tMs: number; state: string }[] = [];
-  const start = Date.now();
-  for (let i = 0; i < 8; i++) {
-    const resp = await page.request
-      .get(`/api/external/tasks/${TASK_ID}`)
-      .then((r) => r.json() as Promise<{ task: { state: string } }>);
-    samples.push({ tMs: Date.now() - start, state: resp.task.state });
-    if (i < 7) await page.waitForTimeout(1_500);
-  }
+    // The KEY regression assertion: after the initial awaiting → active transition
+    // the state MUST NOT decay back to idle on the next poll. Pre-fix the sequence
+    // was awaiting → active → idle → active → idle …; post-fix, once active it stays.
+    const stableSamples = samples.slice(2);
+    const stableIdles = stableSamples.filter((s) => s.state === "idle");
+    expect(stableIdles.length).toBe(0);
 
-  const activeSamples = samples.filter((s) => s.state === "active");
-  const idleSamples = samples.filter((s) => s.state === "idle");
+    // Belt-and-braces: no dimensions pageerrors regressed.
+    const dimensionsErrors = pageErrors.filter((m) => /dimensions|_renderService/.test(m));
+    expect(dimensionsErrors).toEqual([]);
 
-  // eslint-disable-next-line no-console
-  console.log(
-    `[v0.9.3] state samples (${samples.length}): active=${activeSamples.length}, idle=${idleSamples.length}, all=${JSON.stringify(samples)}`,
-  );
-
-  // The KEY regression assertion: after the initial awaiting → active
-  // transition the state MUST NOT decay back to idle on the next poll.
-  // Pre-fix, the sequence was: awaiting (poll1) → active (poll2) → idle
-  // (poll3) → active (poll4) → idle ... Post-fix, once active, stays
-  // active.
-  //
-  // Look at samples FROM index 2 onwards (after the initial transition
-  // window). All must be "active" — zero "idle" entries.
-  const stableSamples = samples.slice(2);
-  const stableIdles = stableSamples.filter((s) => s.state === "idle");
-  expect(stableIdles.length).toBe(0);
-
-  // Belt-and-braces: no dimensions pageerrors regressed.
-  const dimensionsErrors = pageErrors.filter((m) =>
-    /dimensions|_renderService/.test(m),
-  );
-  expect(dimensionsErrors).toEqual([]);
-
-  // Forensic logging for debugging if a regression run fails:
-  // eslint-disable-next-line no-console
-  console.log(
-    `[v0.9.3] AC-1 summary: resumeClickExecuted=${resumeClickExecuted}, stateBefore=${stateBeforeClick}, stableSamples=${JSON.stringify(stableSamples)}`,
-  );
-});
-
-test("AC-2: Resume button hides within 2.5s of clicking it on idle new-plain", async ({ page }) => {
-  test.setTimeout(30_000);
-
-  const taskExists = await page.request
-    .get(`/api/external/tasks/${TASK_ID}`)
-    .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
-    .catch(() => false);
-  test.skip(
-    !taskExists,
-    `Repro task ${TASK_ID} no longer exists — same precondition as AC-1.`,
-  );
-
-  await page.goto(`/tasks/${TASK_ID}`, {
-    waitUntil: "domcontentloaded",
-    timeout: 20_000,
+    // eslint-disable-next-line no-console
+    console.log(
+      `[v0.9.3] AC-1 summary: resumeClickExecuted=${resumeClickExecuted}, stateBefore=${stateBeforeClick}, stableSamples=${JSON.stringify(stableSamples)}`,
+    );
   });
-  const terminalTab = page.getByRole("tab", { name: /terminal/i });
-  if (await terminalTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await terminalTab.click();
-  }
-  await page.waitForTimeout(2_500);
 
-  const resumeBtn = page.getByRole("button", { name: /resume|launch/i });
-  const hasResumeBeforeClick = await resumeBtn
-    .isVisible({ timeout: 3_000 })
-    .catch(() => false);
-
-  // openai HIGH (post-stage1 review): never silently return success when
-  // the precondition for this test (Resume visible to click) is not met.
-  // Use test.skip with explicit reason so the runner reports it as
-  // SKIPPED, not PASSED.
-  test.skip(
-    !hasResumeBeforeClick,
-    "Resume button not visible at start — task is already non-idle (someone else resumed it). AC-2 precondition cannot be exercised on this task in this state.",
-  );
-
-  await resumeBtn.click();
-
-  // openai medium (post-stage1 review): tighten the assertion window to
-  // match the spec's "at most 2 transcript-poll cycles (~2s at 1s polling)".
-  // Allow a small tolerance: poll every 250ms for 2.5s = 10 samples.
-  // After the 5th sample (1.25s mark, ~1.5 transcript-poll cycles into
-  // the awaiting → active flip) the button MUST be hidden.
-  const visibilitySamples: { tMs: number; visible: boolean }[] = [];
-  const start = Date.now();
-  for (let i = 0; i < 10; i++) {
-    const visible = await resumeBtn.isVisible({ timeout: 200 }).catch(() => false);
-    visibilitySamples.push({ tMs: Date.now() - start, visible });
-    if (i < 9) await page.waitForTimeout(250);
-  }
-
-  // eslint-disable-next-line no-console
-  console.log(
-    `[v0.9.3 AC-2] Resume button visibility over 2.5s after click: ${JSON.stringify(visibilitySamples)}`,
-  );
-
-  // After the 5th sample (1.25s mark) the button MUST be hidden in every
-  // subsequent sample. (The first ~1 transcript-poll worth of samples
-  // can still show the button while state is awaiting_external_start.)
-  const stableSamples = visibilitySamples.slice(5);
-  const lateVisible = stableSamples.filter((s) => s.visible);
-  expect(lateVisible.length).toBe(0);
 });

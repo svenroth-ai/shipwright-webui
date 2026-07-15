@@ -1,3 +1,5 @@
+import { seedCampaigns } from "../helpers/campaign-fixture";
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -15,11 +17,37 @@ import { test, expect } from "@playwright/test";
  */
 
 const SLUG = "2026-06-02-campaigns-demo";
-const EXPECTED_CMD =
-  '/shipwright-iterate ".shipwright/planning/iterate/campaigns/2026-06-02-campaigns-demo/sub-iterates/B1-beta.md"';
 
 test.describe("Campaigns lane on the Task Board", () => {
-  test("renders the seeded campaign with progress + a working Copy launch button", async ({
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "campaigns-board-lane" });
+
+    seedCampaigns(project.path, [
+      {
+        slug: "2026-06-02-campaigns-demo",
+        status: "active",
+        subIterates: [
+          { id: "B0", slug: "alpha", status: "complete" },
+          { id: "B1", slug: "beta", status: "pending" },
+        ],
+      },
+    ]);
+    await setActiveProject(page, project.projectId);
+    // The lane card is COLLAPSED by default (per-slug localStorage). The ordered
+    // steps this spec asserts on only render when expanded — it used to inherit
+    // the developer's own click. Seed the expanded state.
+    await seedLocalStorage(page, { [`webui:campaign-card-collapsed:${SLUG}`]: "false" });
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
+  test("renders the seeded campaign with progress + a working per-step Launch button", async ({
     page,
   }) => {
     await page.goto("/");
@@ -43,15 +71,17 @@ test.describe("Campaigns lane on the Task Board", () => {
       "true",
     );
 
-    // AC-5 — Copy launch is enabled, labelled for the next-pending step, and
-    // copies the exact /shipwright-iterate command (clipboard perms granted in
-    // playwright.config.ts).
-    const launch = page.getByTestId(`campaign-launch-${SLUG}`);
+    // AC-5 — the per-step Launch button. A00: the old `campaign-launch-<slug>`
+    // "Copy launch" CLIPBOARD button was removed (FR-01.34) and replaced by
+    // `campaign-step-launch-<slug>` (CampaignStepLaunchButton.tsx). It is enabled,
+    // labelled for the next-pending step B1, and — because B1 is an ordinary
+    // (non-risky) next step — a single click launches DIRECTLY: it creates a task
+    // and navigates to its TaskDetail, where the embedded terminal auto-executes the
+    // /shipwright-iterate command. It no longer copies to the clipboard.
+    const launch = page.getByTestId(`campaign-step-launch-${SLUG}`);
     await expect(launch).toBeEnabled();
-    await expect(launch).toHaveText(/Copy launch \(B1\)/);
+    await expect(launch).toHaveText(/Launch \(B1\)/);
     await launch.click();
-    await expect(card.getByText("Copied")).toBeVisible();
-    const clip = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clip).toBe(EXPECTED_CMD);
+    await page.waitForURL(/\/tasks\/[0-9a-f-]{36}$/, { timeout: 10000 });
   });
 });

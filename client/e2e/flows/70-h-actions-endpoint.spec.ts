@@ -10,13 +10,18 @@
  * Pure API + one UI assertion. No JSONL mutation.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { apiUrl } from "../helpers/env";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 
-const UAT_PROJECT_ID = "fa10a30a-21b1-48e0-a588-e7f721ca5bfc";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 async function fetchActions(request: APIRequestContext) {
   const resp = await request.get(
-    `http://localhost:3847/api/external/projects/${UAT_PROJECT_ID}/actions`,
+    apiUrl(`/api/external/projects/${project.projectId}/actions`),
   );
   expect(resp.ok(), `actions endpoint must be reachable — got ${resp.status()}`).toBeTruthy();
   return (await resp.json()) as {
@@ -29,6 +34,14 @@ async function fetchActions(request: APIRequestContext) {
 }
 
 test.describe("Flow H — actions endpoint contract", () => {
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "70-h-actions-endpoint" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("GET /actions returns the Shipwright default schema", async ({ request }) => {
     const body = await fetchActions(request);
 
@@ -74,13 +87,7 @@ test.describe("Flow H — actions endpoint contract", () => {
     request,
   }) => {
     // Prime localStorage so resolvedProjectId is UAT 1.
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, UAT_PROJECT_ID);
+    await setActiveProject(page, project.projectId);
 
     const body = await fetchActions(request);
     await page.goto("/");

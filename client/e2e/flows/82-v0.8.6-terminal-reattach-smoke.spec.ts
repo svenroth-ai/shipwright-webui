@@ -31,10 +31,15 @@
  * after the matching Stage-1/2/3 fix lands.
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
+
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
 
 // The current user's local projects.json is the source of truth here —
 // the older specs hardcoded a different uuid for the same project name
@@ -42,7 +47,6 @@ import fs from "node:fs/promises";
 // (board filter never queried). For AC-4 we need the card on the
 // board, so the projectId must match a real project in the user's
 // local registry.
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
 
 async function makeTaskCwd(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "v086-spec82-"));
@@ -74,7 +78,7 @@ async function createAndLaunch(
       title,
       cwd,
       actionId: "new-plain",
-      projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+      projectId: project.projectId,
     },
   });
   if (!created.ok()) {
@@ -104,24 +108,16 @@ async function deleteTask(
 }
 
 test.describe("Spec 82 — v0.8.6 terminal reattach + card cleanup", () => {
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(180_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-        // Pin the center-tab to "terminal" so navigation lands on the
-        // dark canvas without an extra click. The default already is
-        // "terminal" but a stale localStorage from a previous test
-        // could be on "transcript".
-        localStorage.setItem(
-          "webui:embedded-terminal-default-tab",
-          '"terminal"',
-        );
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "82-v0.8.6-terminal-reattach-smoke" });
+    await setActiveProject(page, project.projectId);
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("AC-2: terminal full-buffer (incl. scrollback) does not accumulate across Task → Board → Task navigation", async ({

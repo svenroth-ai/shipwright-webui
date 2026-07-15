@@ -13,9 +13,23 @@
  * localhost-only HTTP is unreliable in CI.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 test.describe("NewIssueModal — Save to Backlog", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "50-new-task-modal" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("split-button opens modal → save lands the task in Backlog without clipboard write", async ({ page, request }) => {
     // Pre-seed a project so CreateMenuSplitButton has actions to render.
     // GET /api/projects does not accept a POST body create shortcut that

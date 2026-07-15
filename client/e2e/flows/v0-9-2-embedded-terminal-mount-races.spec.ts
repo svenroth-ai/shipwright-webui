@@ -15,20 +15,28 @@
  *         `term.dispose()` (or before `term.open()` populated the
  *         renderer). Fix: `safeFit` helper + `disposedRef` cleanup ordering.
  *
- * Runs against the live Hono+Vite dev stack on the Tailscale interface via
- * `playwright.tailscale.config.ts`. No `webServer` auto-start — assumes the
- * stack is already up (Hono on :3847 + Vite on :5173 with HONO_HOST=true OR
- * SHIPWRIGHT_NETWORK_PROFILE=tailscale).
+ * Runs against whatever stack BASE_URL points at (e2e/helpers/env.ts) — the local
+ * dev pair, or the isolated alt-port stack CI boots. Nothing here is machine-specific.
  *
- * The target task `31b4076d-5a0a-4c62-b176-63553c165c03` has substantial
- * persisted scrollback (~82 KB), so the replay path is exercised on every
- * navigate — that's the exact code path where the `dimensions` pageerror
- * surfaced in the v0.9.1-post repro.
+ * The replay path only runs when there IS something to replay, so this spec needs a
+ * task with substantial persisted scrollback. It used to INHERIT one (`31b4076d-…`,
+ * ~82 KB, on one developer's box) and `test.skip` when it was missing — which, once
+ * that task was deleted, meant always. Since A00 it MANUFACTURES the precondition
+ * instead (see the beforeEach). Same assertions; they finally get to run.
  */
 
 import { test, expect, type WebSocket as PWWebSocket } from "@playwright/test";
-
-const TASK_ID = "31b4076d-5a0a-4c62-b176-63553c165c03";
+import {
+  cleanupProject,
+  cleanupTask,
+  hexId,
+  seedProject,
+  seedTask,
+  setActiveProject,
+  type SeededProject,
+} from "../helpers/fixtures";
+import { driveScrollback, openTaskTerminal } from "../helpers/terminal-drive";
+import { attachWsCapture } from "../helpers/ws-capture";
 
 // Sample the read-only banner at 100 ms intervals across the 1500 ms grace
 // window so a transient flash (e.g. <100 ms during StrictMode mount-1 → mount-2
@@ -39,21 +47,37 @@ const SAMPLE_INTERVAL_MS = 100;
 const SAMPLE_COUNT = Math.ceil(GRACE_WINDOW_MS / SAMPLE_INTERVAL_MS); // 15
 
 test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
-  test("AC-1: no transient readonly banner across the 1500ms grace window", async ({ page }) => {
-    test.setTimeout(30_000);
+  // The beforeEach drives ~100 KB through a REAL pty to manufacture the
+  // scrollback. A per-test `setTimeout()` does not cover hooks, so the budget
+  // has to live here or the default 30s kills the seeding, not the assertions.
+  test.describe.configure({ timeout: 180_000 });
+  // A00 — the precondition (a task with real, substantial scrollback) is now
+  // MANUFACTURED rather than inherited from a machine-local repro task.
+  let project: SeededProject;
+  let taskId: string;
 
-    // Pre-flight (added v0.9.4): if the repro task has been deleted from
-    // the user's task list, skip cleanly. The regression-fence value is
-    // proportional to having a real task to drive — without it the spec
-    // can't observe the mount-races it's named after.
-    const taskExists = await page.request
-      .get(`/api/external/tasks/${TASK_ID}`)
-      .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
-      .catch(() => false);
-    test.skip(
-      !taskExists,
-      `Repro task ${TASK_ID} no longer exists in the user's task list — regression fence requires this exact task to drive the StrictMode mount-race scenario.`,
-    );
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "v0.9.2 mount races" });
+    await setActiveProject(page, project.projectId);
+    const task = await seedTask(request, {
+      title: `v092-${hexId(6)}`,
+      projectId: project.projectId,
+    });
+    taskId = task.taskId;
+    // Drive real bytes through the real pty until the scrollback is genuinely
+    // large, so the navigate below actually exercises the replay path.
+    const seedCap = attachWsCapture(page);
+    await openTaskTerminal(page, taskId);
+    await driveScrollback(page, seedCap, taskId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupTask(request, taskId);
+    await cleanupProject(request, project);
+  });
+  test("AC-1: no transient readonly banner across the 1500ms grace window", async ({ page }) => {
+    test.setTimeout(120_000);
+
 
     const pageErrors: { msg: string; stack: string }[] = [];
     page.on("pageerror", (err) =>
@@ -78,7 +102,7 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
       });
     });
 
-    await page.goto(`/tasks/${TASK_ID}`, {
+    await page.goto(`/tasks/${taskId}`, {
       waitUntil: "domcontentloaded",
       timeout: 20_000,
     });
@@ -149,16 +173,8 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
   });
 
   test("AC-2: no dimensions pageerror during mount + replay + resume click", async ({ page }) => {
-    test.setTimeout(45_000);
+    test.setTimeout(120_000);
 
-    const taskExists = await page.request
-      .get(`/api/external/tasks/${TASK_ID}`)
-      .then((r) => r.ok() && r.json().then((j) => Boolean((j as { task?: unknown }).task)))
-      .catch(() => false);
-    test.skip(
-      !taskExists,
-      `Repro task ${TASK_ID} no longer exists — same precondition as AC-1.`,
-    );
 
     const pageErrors: { msg: string; stack: string }[] = [];
     page.on("pageerror", (err) =>
@@ -183,7 +199,7 @@ test.describe("v0.9.2 — EmbeddedTerminal mount-race regression", () => {
       });
     });
 
-    await page.goto(`/tasks/${TASK_ID}`, {
+    await page.goto(`/tasks/${taskId}`, {
       waitUntil: "domcontentloaded",
       timeout: 20_000,
     });

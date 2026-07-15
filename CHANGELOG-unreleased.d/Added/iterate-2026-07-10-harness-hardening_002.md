@@ -1,0 +1,1 @@
+Visual-regression baselines for all 8 routes that exist today, plus a route manifest (`client/e2e/visual/routes.ts`) whose guard fails if a route is neither baselined nor explicitly pending with an owning sub-iterate.

@@ -1,6 +1,20 @@
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from '@playwright/test';
 
 test.describe('Board Navigation', () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "01-board-navigation" });
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test('loads kanban board at root route', async ({ page }) => {
     await page.goto('/');
     await expect(page.getByRole('navigation')).toBeVisible();

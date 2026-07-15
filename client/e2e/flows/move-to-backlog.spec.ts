@@ -12,12 +12,14 @@
  * Targets the live servers (localhost:3847 backend + localhost:5173
  * vite) and cleans up the task it creates.
  */
+import { seedLocalStorage } from "../helpers/fixtures";
+import { API_BASE } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 
 // Hono API base. Defaults to the loopback dev port; override via
 // WEBUI_API_URL when the stack runs elsewhere. Uses 127.0.0.1 (not
 // `localhost`) so it is unambiguous when the dev server binds IPv4-only.
-const API = process.env.WEBUI_API_URL || "http://127.0.0.1:3847";
+const API = API_BASE;
 
 test.describe("Move to Backlog (FR-01.32)", () => {
   test("an In-Progress task relocates to the Backlog column via the card ⋯-menu", async ({
@@ -56,13 +58,7 @@ test.describe("Move to Backlog (FR-01.32)", () => {
       ).toBeTruthy();
 
       // The board must show the card in the In-Progress column.
-      await page.addInitScript((id) => {
-        try {
-          localStorage.setItem("webui.activeProjectId", id);
-        } catch {
-          /* noop */
-        }
-      }, projectId);
+      await seedLocalStorage(page, { "webui.activeProjectId": projectId });
       await page.goto("/");
       await expect(page.getByTestId("task-board-page")).toBeVisible();
       await expect(page.getByTestId(`task-card-${taskId}`)).toBeVisible({

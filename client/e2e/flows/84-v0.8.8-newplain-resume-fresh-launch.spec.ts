@@ -14,12 +14,16 @@
  * route + store + launcher path.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 async function makeTaskCwd(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), "v088-spec84-"));
@@ -32,6 +36,14 @@ async function deleteTask(request: APIRequestContext, taskId: string): Promise<v
 }
 
 test.describe("Spec 84 — v0.8.8 new-plain Resume → fresh launch (AC-1)", () => {
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "84-v0.8.8-newplain-resume-fresh-launch" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(60_000);
 
   test("new-plain + POST /launch with resume=true → commands omit --resume", async ({ request }) => {
@@ -43,7 +55,7 @@ test.describe("Spec 84 — v0.8.8 new-plain Resume → fresh launch (AC-1)", () 
           title: "spec84-newplain-resume",
           cwd,
           actionId: "new-plain",
-          projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+          projectId: project.projectId,
         },
       });
       const cBody = (await created.json()) as { task: { taskId: string; sessionUuid: string } };
@@ -80,7 +92,7 @@ test.describe("Spec 84 — v0.8.8 new-plain Resume → fresh launch (AC-1)", () 
         data: {
           title: "spec84-real-resume",
           cwd,
-          projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+          projectId: project.projectId,
         },
       });
       const cBody = (await created.json()) as { task: { taskId: string; sessionUuid: string } };

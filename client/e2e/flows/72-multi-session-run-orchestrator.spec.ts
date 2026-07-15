@@ -16,9 +16,13 @@
  *   - useContinuePipeline orchestration branches (vitest)
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type Route } from "@playwright/test";
 
-const UAT_PROJECT_ID = "fa10a30a-21b1-48e0-a588-e7f721ca5bfc";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 const HEALTHY_V2_RESPONSE = {
   status: "ok",
@@ -98,19 +102,21 @@ async function mockRunConfig(
 }
 
 test.describe("Flow 72 — multi-session run-orchestrator integration", () => {
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "72-multi-session-run-orchestrator" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("Pipelines lane + Master TaskCard render when run-config is v2 healthy", async ({
     page,
   }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, UAT_PROJECT_ID);
+    await setActiveProject(page, project.projectId);
 
     await page.route(
-      `**/api/external/projects/${UAT_PROJECT_ID}/run-config`,
+      `**/api/external/projects/${project.projectId}/run-config`,
       (route) => mockRunConfig(route, HEALTHY_V2_RESPONSE),
     );
 
@@ -131,16 +137,10 @@ test.describe("Flow 72 — multi-session run-orchestrator integration", () => {
   test("Continue Pipeline entry appears in '+ New ▾' and opens the modal", async ({
     page,
   }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, UAT_PROJECT_ID);
+    await setActiveProject(page, project.projectId);
 
     await page.route(
-      `**/api/external/projects/${UAT_PROJECT_ID}/run-config`,
+      `**/api/external/projects/${project.projectId}/run-config`,
       (route) => mockRunConfig(route, HEALTHY_V2_RESPONSE),
     );
 
@@ -167,16 +167,10 @@ test.describe("Flow 72 — multi-session run-orchestrator integration", () => {
   test("v1_legacy run-config: no Pipelines lane, no Continue Pipeline entry", async ({
     page,
   }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, UAT_PROJECT_ID);
+    await setActiveProject(page, project.projectId);
 
     await page.route(
-      `**/api/external/projects/${UAT_PROJECT_ID}/run-config`,
+      `**/api/external/projects/${project.projectId}/run-config`,
       (route) => mockRunConfig(route, { status: "v1_legacy" }),
     );
 

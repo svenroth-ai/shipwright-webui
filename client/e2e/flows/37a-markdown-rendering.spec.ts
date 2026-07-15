@@ -9,6 +9,7 @@
  * (not a silent drop).
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -17,6 +18,25 @@ import { homedir } from "node:os";
 const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
 test.describe("Markdown + code + ANSI + long-line rendering", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "37a-markdown-rendering" });
+    await setActiveProject(page, project.projectId);
+    // A00 — the center tab is persisted and defaults to "terminal"
+    // (TaskDetailPage.tsx), so the transcript pane is HIDDEN on a fresh profile.
+    // These specs were inheriting the developer's selected tab.
+    await seedLocalStorage(page, {
+      "webui:embedded-terminal-default-tab": '"transcript"',
+    });
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("assistant markdown, fenced code, ANSI tool_result, long line all render without errors", async ({
     page,
     request,

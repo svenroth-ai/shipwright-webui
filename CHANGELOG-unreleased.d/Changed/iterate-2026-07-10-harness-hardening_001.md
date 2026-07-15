@@ -1,0 +1,1 @@
+The E2E suite no longer depends on one developer's machine: every host:port literal routes through `e2e/helpers/env.ts` and every pinned operator UUID is replaced by a project seeded through the real API. `client/e2e/**` is now type-checked (it never was).

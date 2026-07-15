@@ -29,6 +29,7 @@
  *     complements flow 98's static per-fixture snapshots.
  */
 
+import { seedLocalStorage } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
@@ -119,13 +120,7 @@ async function registerProject(request: APIRequestContext, dir: string): Promise
 /** Land on the board with `projectId` pre-selected (survives reloads — an init
  *  script runs on every navigation). */
 async function openBoard(page: Page, projectId: string): Promise<void> {
-  await page.addInitScript((id) => {
-    try {
-      localStorage.setItem("webui.activeProjectId", id);
-    } catch {
-      /* noop */
-    }
-  }, projectId);
+  await seedLocalStorage(page, { "webui.activeProjectId": projectId });
   await page.goto("/");
   await expect(page.getByTestId("task-board-page")).toBeVisible();
 }

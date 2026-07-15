@@ -1,3 +1,5 @@
+import { seedCampaigns } from "../helpers/campaign-fixture";
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -21,6 +23,30 @@ import { test, expect } from "@playwright/test";
 const SLUG = "2026-06-03-autolaunch-demo";
 
 test.describe("Campaign single-step launch from the board", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "campaign-step-launch" });
+
+    seedCampaigns(project.path, [
+      {
+        slug: "2026-06-03-autolaunch-demo",
+        status: "active",
+        subIterates: [
+          { id: "B0", slug: "alpha", status: "complete" },
+          { id: "B1", slug: "beta", status: "pending" },
+        ],
+      },
+    ]);
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("expand → Launch (B1) → direct launch → navigates to a TaskDetail", async ({
     page,
   }) => {

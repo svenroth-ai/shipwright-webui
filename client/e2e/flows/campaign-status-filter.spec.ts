@@ -1,3 +1,5 @@
+import { seedCampaigns } from "../helpers/campaign-fixture";
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -21,6 +23,34 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("Campaigns lane status filter", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "campaign-status-filter" });
+
+    // A00 — the five campaigns this spec asserts on were never created by it: it
+    // assumed a "fixture project" already on the developer's disk. Seed them into
+    // the project's own dir; the server reads campaigns straight off the filesystem.
+    seedCampaigns(project.path, [
+      { slug: "2026-06-03-active", status: "active", total: 3, done: 1 },
+      { slug: "2026-06-03-draft", status: "draft", total: 2, done: 0 },
+      { slug: "2026-06-03-complete", status: "complete", total: 2, done: 2 },
+      // Regression guard (2026-06-05): an `active` campaign at done==total must be
+      // HIDDEN — such a campaign used to render forever.
+      { slug: "2026-06-03-active-done", status: "active", total: 2, done: 2 },
+      // LEGACY: no lifecycle at all — the back-compat path must still show it.
+      { slug: "2026-06-03-legacy", total: 3, done: 1 },
+    ]);
+
+    await setActiveProject(page, project.projectId);
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("board shows only active + legacy campaigns; draft, complete, and stale-active-done are hidden", async ({
     page,
   }) => {

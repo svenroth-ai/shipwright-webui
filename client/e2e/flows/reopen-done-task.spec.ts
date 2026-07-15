@@ -13,9 +13,11 @@
  * Targets the live servers (localhost:3847 backend + localhost:5173 vite,
  * override the API base via WEBUI_API_URL) and cleans up the task it creates.
  */
+import { seedLocalStorage } from "../helpers/fixtures";
+import { API_BASE } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 
-const API = process.env.WEBUI_API_URL || "http://127.0.0.1:3847";
+const API = API_BASE;
 
 test.describe("Re-open done task", () => {
   test("a done task relocates to the Backlog column via the card ⋯-menu", async ({
@@ -51,13 +53,7 @@ test.describe("Re-open done task", () => {
         `close must succeed — got ${closeResp.status()}`,
       ).toBeTruthy();
 
-      await page.addInitScript((id) => {
-        try {
-          localStorage.setItem("webui.activeProjectId", id);
-        } catch {
-          /* noop */
-        }
-      }, projectId);
+      await seedLocalStorage(page, { "webui.activeProjectId": projectId });
       await page.goto("/");
       await expect(page.getByTestId("task-board-page")).toBeVisible();
       await expect(page.getByTestId(`task-card-${taskId}`)).toBeVisible({

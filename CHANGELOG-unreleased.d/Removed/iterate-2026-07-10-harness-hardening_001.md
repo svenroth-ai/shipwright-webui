@@ -1,0 +1,1 @@
+Retired the E2E spec `77-scrollback-replay-tui-fidelity`: it tested the ADR-069 disk-byte sanitizer, which ADR-087 removed (cell-state snapshots resolve control codes at capture). Replay-fidelity coverage now lives in `v0-9-6-disk-snapshot-replay` + `v0-9-5-replay-snapshot-envelope`.

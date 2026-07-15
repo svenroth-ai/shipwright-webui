@@ -32,9 +32,9 @@
  * loopback Origin header the server expects.
  */
 
+import { API_BASE } from "../helpers/env";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 
-const SERVER = "http://localhost:3847";
 
 interface ProjectView {
   id: string;
@@ -46,7 +46,7 @@ interface ProjectView {
 async function pickRealProject(
   request: APIRequestContext,
 ): Promise<ProjectView> {
-  const res = await request.get(`${SERVER}/api/projects`);
+  const res = await request.get(`${API_BASE}/api/projects`);
   expect(res.ok(), `GET /api/projects: ${res.status()}`).toBeTruthy();
   const body = (await res.json()) as { data?: ProjectView[] };
   const projects = body.data ?? [];
@@ -73,7 +73,7 @@ async function createTask(
   request: APIRequestContext,
   opts: CreateOpts,
 ): Promise<string> {
-  const res = await request.post(`${SERVER}/api/external/tasks`, {
+  const res = await request.post(`${API_BASE}/api/external/tasks`, {
     data: {
       title: opts.title ?? `spec75-${Date.now()}`,
       cwd: opts.cwd,
@@ -94,7 +94,7 @@ async function launchTask(
   body: Record<string, unknown> = {},
 ) {
   const res = await request.post(
-    `${SERVER}/api/external/tasks/${taskId}/launch`,
+    `${API_BASE}/api/external/tasks/${taskId}/launch`,
     { data: body },
   );
   expect(res.ok(), `launch ${taskId}: ${res.status()} ${await res.text()}`).toBeTruthy();
@@ -106,12 +106,12 @@ async function launchTask(
 
 async function deleteTask(request: APIRequestContext, taskId: string) {
   await request
-    .delete(`${SERVER}/api/external/tasks/${taskId}`)
+    .delete(`${API_BASE}/api/external/tasks/${taskId}`)
     .catch(() => undefined);
 }
 
 async function getTask(request: APIRequestContext, taskId: string) {
-  const res = await request.get(`${SERVER}/api/external/tasks/${taskId}`);
+  const res = await request.get(`${API_BASE}/api/external/tasks/${taskId}`);
   expect(res.ok()).toBeTruthy();
   const body = (await res.json()) as {
     task: { taskId: string; actionId?: string; phase?: string };
@@ -358,7 +358,7 @@ test.describe("Spec 75 — Session persistence across WS detach (BUG B regressio
       // pure idempotent ensure-or-create. Capture the meta as the
       // baseline for identity comparison.
       const spawn1 = await request.post(
-        `${SERVER}/api/terminal/${encodeURIComponent(taskId)}/spawn`,
+        `${API_BASE}/api/terminal/${encodeURIComponent(taskId)}/spawn`,
       );
       expect(spawn1.ok()).toBeTruthy();
       const meta1 = (await spawn1.json()) as {
@@ -435,7 +435,7 @@ test.describe("Spec 75 — Session persistence across WS detach (BUG B regressio
       // alone. The discriminator is the second WS-handshake reaching
       // ready in <5s WITHOUT having to wait for a fresh shell boot.
       const spawn2 = await request.post(
-        `${SERVER}/api/terminal/${encodeURIComponent(taskId)}/spawn`,
+        `${API_BASE}/api/terminal/${encodeURIComponent(taskId)}/spawn`,
       );
       expect(spawn2.ok()).toBeTruthy();
       const meta2 = (await spawn2.json()) as {
@@ -448,7 +448,7 @@ test.describe("Spec 75 — Session persistence across WS detach (BUG B regressio
       expect(meta2.cwd).toBe(meta1.cwd);
     } finally {
       await request
-        .post(`${SERVER}/api/terminal/${encodeURIComponent(taskId)}/close`)
+        .post(`${API_BASE}/api/terminal/${encodeURIComponent(taskId)}/close`)
         .catch(() => undefined);
       await deleteTask(request, taskId);
     }

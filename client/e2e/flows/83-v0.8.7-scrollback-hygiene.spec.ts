@@ -29,13 +29,17 @@
  * spec is authored AND run before commit.
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 // User's local active project — same value used by Spec 82.
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
 
 const STOP_MARKER_SUBSTRING = "──── shell stopped at";
 
@@ -65,7 +69,7 @@ async function createAndLaunch(
       title,
       cwd,
       actionId: "new-plain",
-      projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+      projectId: project.projectId,
     },
   });
   if (!created.ok()) {
@@ -115,20 +119,16 @@ function countMarkers(s: string): number {
 }
 
 test.describe("Spec 83 — v0.8.7 scrollback hygiene + new-plain idle", () => {
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(180_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-        localStorage.setItem(
-          "webui:embedded-terminal-default-tab",
-          '"terminal"',
-        );
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "83-v0.8.7-scrollback-hygiene" });
+    await setActiveProject(page, project.projectId);
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"', });
   });
 
   test("AC-1: new-plain `active → idle` after pty kill (Resume CTA returns)", async ({

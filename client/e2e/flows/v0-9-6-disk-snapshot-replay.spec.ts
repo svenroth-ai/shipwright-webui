@@ -22,13 +22,17 @@
  *     fresh empty mirror that shadowed tryReadSnapshot (F02).
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page, type WebSocket as PWWebSocket } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "eab3bd8d-d89a-4b8c-aaaa-60a5ff856407";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ARTIFACT_DIR = path.resolve(
@@ -114,6 +118,10 @@ async function waitTerminalReady(page: Page): Promise<void> {
 }
 
 test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk snapshot", () => {
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.setTimeout(180_000);
 
   test.beforeAll(async ({ request }) => {
@@ -132,15 +140,10 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
     }
   });
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-        localStorage.setItem("webui:embedded-terminal-default-tab", '"terminal"');
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "v0-9-6-disk-snapshot-replay" });
+    await setActiveProject(page, project.projectId);
+    await seedLocalStorage(page, { "shipwright:terminal-renderer": "dom", "webui:embedded-terminal-default-tab": '"terminal"' });
   });
 
   test("kill session pty, re-open TaskDetail -> disk history (marker) is rendered", async ({
@@ -158,7 +161,7 @@ test.describe("F02/D02 (GUARD 3) — kill-pty-then-reattach replays the disk sna
           title: "D02 disk-snapshot replay guard",
           cwd,
           actionId: "new-task",
-          projectId: SHIPWRIGHT_WEBUI_PROJECT_ID,
+          projectId: project.projectId,
         },
       });
       expect(created.ok()).toBeTruthy();

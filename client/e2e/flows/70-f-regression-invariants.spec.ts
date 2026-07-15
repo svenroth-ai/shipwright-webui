@@ -7,17 +7,21 @@
  *   - Terminal-launch button still fires its launch mutation.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { APP_BASE, apiUrl } from "../helpers/env";
 import { test, expect } from "@playwright/test";
 
-const UAT_PROJECT_ID = "fa10a30a-21b1-48e0-a588-e7f721ca5bfc";
-const UAT_PATH = "C:\\tmp\\uat-1";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 async function createTask(
   request: import("@playwright/test").APIRequestContext,
   title: string,
 ) {
-  const resp = await request.post("http://localhost:3847/api/external/tasks", {
-    data: { title, cwd: UAT_PATH, projectId: UAT_PROJECT_ID },
+  const resp = await request.post(apiUrl("/api/external/tasks"), {
+    data: { title, cwd: project.path, projectId: project.projectId },
   });
   expect(resp.ok()).toBeTruthy();
   const body = (await resp.json()) as { task: { taskId: string } };
@@ -25,6 +29,24 @@ async function createTask(
 }
 
 test.describe("Flow F — iterate-2 / iterate-3 regression guards", () => {
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, {
+      name: "70-f-regression-invariants",
+      adopted: true,
+      // The task cwd IS the project dir, and the folder tree lists it — so it
+      // needs real files. This used to be `C:\tmp\uat-1`, a Windows-only
+      // absolute path on one developer's disk that does not exist on a CI runner.
+      files: {
+        "README.md": "# Seeded\n\nE2E fixture file.\n",
+        "src/index.ts": "export const seeded = true;\n",
+      },
+    });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test("/tasks/:id has no textarea and no composer/message-input surface", async ({
     page,
     request,
@@ -50,7 +72,7 @@ test.describe("Flow F — iterate-2 / iterate-3 regression guards", () => {
     // And there is no <input type="text" placeholder~"message"> sneaking in.
     await expect.soft(page.locator('input[placeholder*="message" i]')).toHaveCount(0);
 
-    await request.delete(`http://localhost:3847/api/external/tasks/${taskId}`);
+    await request.delete(apiUrl(`/api/external/tasks/${taskId}`));
   });
 
   test("Launch button on a draft task fires POST /launch and transitions state", async ({
@@ -59,7 +81,7 @@ test.describe("Flow F — iterate-2 / iterate-3 regression guards", () => {
     request,
   }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: "http://localhost:5173",
+      origin: APP_BASE,
     });
 
     const taskId = await createTask(request, `spec70f-launch-${Date.now()}`);
@@ -76,11 +98,11 @@ test.describe("Flow F — iterate-2 / iterate-3 regression guards", () => {
     expect(resp.ok(), `launch must succeed — got ${resp.status()}`).toBeTruthy();
 
     // Task state flipped.
-    const after = await request.get(`http://localhost:3847/api/external/tasks`);
+    const after = await request.get(apiUrl(`/api/external/tasks`));
     const { tasks } = (await after.json()) as { tasks: Array<{ taskId: string; state: string }> };
     const server = tasks.find((t) => t.taskId === taskId);
     expect(server?.state).not.toBe("draft");
 
-    await request.delete(`http://localhost:3847/api/external/tasks/${taskId}`);
+    await request.delete(apiUrl(`/api/external/tasks/${taskId}`));
   });
 });

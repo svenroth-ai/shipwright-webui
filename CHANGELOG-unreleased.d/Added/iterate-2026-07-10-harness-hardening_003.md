@@ -1,0 +1,1 @@
+Terminal byte-path guard: pins the exact bytes the client sends to the pty (auto-execute / keystroke / paste, incl. bracketed-paste markers). The existing corpus only pinned the server→client direction.

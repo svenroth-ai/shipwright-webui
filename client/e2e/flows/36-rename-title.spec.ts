@@ -11,9 +11,29 @@
  * correctly quoted for the host platform.
  */
 
+import { cleanupProject, seedLocalStorage, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
 import { test, expect } from "@playwright/test";
 
 test.describe("TaskDetail title rename + launch sync", () => {
+  // A00 — this spec assumed a project already existed on the machine.
+  // Without one the board renders no create-menu, no columns, no chip.
+  let project: SeededProject;
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "36-rename-title", adopted: true });
+    await setActiveProject(page, project.projectId);
+    // A00 — the center tab is persisted and defaults to "terminal"
+    // (TaskDetailPage.tsx), so the transcript pane is HIDDEN on a fresh profile.
+    // These specs were inheriting the developer's selected tab.
+    await seedLocalStorage(page, {
+      "webui:embedded-terminal-default-tab": '"transcript"',
+    });
+  });
+
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
   test.use({ permissions: ["clipboard-read", "clipboard-write"] });
 
   test("rename in TaskDetail header survives reload + appears in launch command (--name)", async ({

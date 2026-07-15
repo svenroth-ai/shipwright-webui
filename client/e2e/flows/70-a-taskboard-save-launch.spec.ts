@@ -20,12 +20,17 @@
  * vite) and cleans up the tasks it creates.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { APP_BASE, apiUrl } from "../helpers/env";
 import { test, expect, type Dialog } from "@playwright/test";
 
-const UAT_PROJECT_ID = "fa10a30a-21b1-48e0-a588-e7f721ca5bfc";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 async function getTasks(request: import("@playwright/test").APIRequestContext) {
-  const resp = await request.get("http://localhost:3847/api/external/tasks");
+  const resp = await request.get(apiUrl("/api/external/tasks"));
   expect(resp.ok()).toBeTruthy();
   return (await resp.json()) as {
     tasks: Array<{ taskId: string; title: string; state: string; projectId: string }>;
@@ -33,17 +38,17 @@ async function getTasks(request: import("@playwright/test").APIRequestContext) {
 }
 
 test.describe("Flow A — TaskBoard create → save / launch", () => {
-  test.beforeEach(async ({ page }) => {
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
+  });
+
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "70-a-taskboard-save-launch", adopted: true });
+    await setActiveProject(page, project.projectId);
     // Make sure the activeProjectId defaults to UAT 1 so the modal has
     // actions resolved (and the Save/Launch paths don't 400 on missing
     // project). Setting it BEFORE goto prevents the localStorage-race.
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, UAT_PROJECT_ID);
+    await setActiveProject(page, project.projectId);
   });
 
   test("Save to Backlog lands the task in Draft without a native alert and persists across reload", async ({
@@ -116,10 +121,10 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     const server = tasks.find((t) => t.taskId === newTaskId);
     expect(server, "new task must be in server list").toBeDefined();
     expect(server?.state).toBe("draft");
-    expect(server?.projectId).toBe(UAT_PROJECT_ID);
+    expect(server?.projectId).toBe(project.projectId);
 
     // Cleanup.
-    await request.delete(`http://localhost:3847/api/external/tasks/${newTaskId}`);
+    await request.delete(apiUrl(`/api/external/tasks/${newTaskId}`));
   });
 
   test("Launch auto-runs in the embedded terminal and navigates to /tasks/:id", async ({
@@ -132,7 +137,7 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     // sessionStorage → LaunchCoordinator → WS data-frame; clipboard is
     // touched only when sessionStorage write fails (privacy mode).
     await context.grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: "http://localhost:5173",
+      origin: APP_BASE,
     });
 
     const title = `spec70a-launch-${Date.now()}`;
@@ -215,7 +220,15 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     } else {
       // Default path: sessionStorage hand-off worked, clipboard untouched.
       // Verify the server response still has the command shape we expect.
-      expect.soft(expectedClipboardText).toMatch(/claude\s+\/shipwright-/);
+      // A00 — the pattern used to be /claude\s+\/shipwright-/, i.e. it required the
+      // slash-command to sit IMMEDIATELY after `claude`. That stopped being true when
+      // the session uuid was pre-bound at task creation (CLAUDE.md rule 2): the real
+      // command is now
+      //   claude --session-id <uuid> --name '<title>' '/shipwright-…'
+      // so the old pattern could never match the current, CORRECT command. The intent
+      // — claude invokes a shipwright slash-command — is unchanged; only the
+      // adjacency assumption, which was never the point, is dropped.
+      expect.soft(expectedClipboardText).toMatch(/claude[\s\S]*\/shipwright-/);
     }
 
     // The task state is no longer "draft" on the server.
@@ -225,6 +238,6 @@ test.describe("Flow A — TaskBoard create → save / launch", () => {
     expect(server?.state).not.toBe("draft");
 
     // Cleanup.
-    await request.delete(`http://localhost:3847/api/external/tasks/${newTaskId}`);
+    await request.delete(apiUrl(`/api/external/tasks/${newTaskId}`));
   });
 });

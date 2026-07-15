@@ -20,9 +20,14 @@
  * re-attach, NOT a stuck reader role indefinitely.
  */
 
+import { cleanupProject, seedProject, setActiveProject, type SeededProject } from "../helpers/fixtures";
+import { apiUrl } from "../helpers/env";
 import { test, expect, type Page, type APIRequestContext } from "@playwright/test";
 
-const SHIPWRIGHT_WEBUI_PROJECT_ID = "50e86b6e-3ade-44c4-9e21-2c62c65f804e";
+// A00 — was a pinned operator UUID; seeded via the real API in beforeEach.
+let project: SeededProject;
+
+
 
 interface CapturedFrame {
   ts: number;
@@ -55,7 +60,7 @@ function attachWsCapture(page: Page): { frames: CapturedFrame[] } {
 async function cleanup(request: APIRequestContext, taskId: string): Promise<void> {
   if (!taskId) return;
   try {
-    await request.delete(`http://localhost:3847/api/external/tasks/${taskId}`);
+    await request.delete(apiUrl(`/api/external/tasks/${taskId}`));
   } catch {
     /* ignore */
   }
@@ -92,14 +97,12 @@ async function awaitWriterRole(
 test.describe("Spec 78 — re-attach under pty-load (AC-3)", () => {
   test.setTimeout(180_000);
 
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+  test.beforeEach(async ({ page, request }) => {
+    project = await seedProject(request, { name: "78-reattach-under-pty-load" });
+    await setActiveProject(page, project.projectId);
+  });
+  test.afterEach(async ({ request }) => {
+    await cleanupProject(request, project);
   });
 
   test("re-attach during high-volume pty output: new tab reaches writer role within 30s", async ({
@@ -109,13 +112,7 @@ test.describe("Spec 78 — re-attach under pty-load (AC-3)", () => {
     // 1. Page A — create + open the task, drive a high-volume payload.
     const ctxA = await browser.newContext();
     const pageA = await ctxA.newPage();
-    await pageA.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+    await setActiveProject(pageA, project.projectId);
 
     const capA = attachWsCapture(pageA);
     void capA; // captured for diagnostics; not asserted on
@@ -181,13 +178,7 @@ test.describe("Spec 78 — re-attach under pty-load (AC-3)", () => {
     //    scenario.
     const ctxB = await browser.newContext();
     const pageB = await ctxB.newPage();
-    await pageB.addInitScript((id) => {
-      try {
-        localStorage.setItem("webui.activeProjectId", id);
-      } catch {
-        /* noop */
-      }
-    }, SHIPWRIGHT_WEBUI_PROJECT_ID);
+    await setActiveProject(pageB, project.projectId);
 
     const capB = attachWsCapture(pageB);
 
