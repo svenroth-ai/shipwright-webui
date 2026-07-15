@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-14",
+  "last_updated": "2026-07-15",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-14-modal-scroll-body-invariant",
-    "date": "2026-07-14",
+    "run_id": "iterate-2026-07-15-task-type-matrix-snapshot-v2",
+    "date": "2026-07-15",
     "unit": {
-      "status": "passed",
-      "passed": 4110,
-      "total": 4111,
-      "note": "client vitest 208 files / 2025 passed (206/2017 on main: +2 files = ModalScrollBody.test.tsx + the modal-scroll-body-invariant meta-test, +8 tests). server vitest 178 files / 2085 passed + 1 skipped (untouched). tsc --noEmit clean; oxlint clean on all touched files. doc-sync.test.ts green, so the new CLAUDE.md DO-NOT #24 is consistent."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "Diff touches ONLY an E2E spec (client/e2e/flows/v0-9-5-task-type-matrix.spec.ts) — no vitest-covered code changed. tsc --noEmit clean (client); oxlint clean on the touched spec."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No integration surface: presentational refactor + a source-scanning meta-test. No route, store, contract, or cross-component machinery touched."
+      "note": "No integration surface — a test-fixture version-constant correction, no route/store/contract/cross-component machinery touched."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,112 +22,64 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 24,
-      "total": 24,
-      "note": "F0.5 gate, 24 tests, exit 0. The load-bearing one is triage-fix-now-more-options-clip.spec.ts: it proves the PR #250 clip fix SURVIVES this refactor (0px clipped, modal body scrolls). Plus triage-fix-now (both dialog bodies) + 80-tablet-responsive 21/21. campaign-status-filter fails in the isolated stack, but fails IDENTICALLY with my CampaignsLane change reverted (verified) — the lane element never mounts (no campaign fixtures under the temp USERPROFILE), so it is a fixture gap, not a regression."
+      "passed": 12,
+      "total": 16,
+      "note": "F0.5 isolated-stack run (temp USERPROFILE, :3848, 127.0.0.1), config playwright.iterate.config.ts, exit 0. 12 passed (axis A/B/D x 4 task types), 4 conditionally skipped (axis C cursor — the spec's documented test.skip when the replay-only path renders no focus-visible cursor), 0 failed. RED->GREEN proven: reverting the header to v1/5.5.0 makes axis A fail at toContainText(MARKER) (marker never renders); restoring v2/6.0.0 makes envs=[[ready,replay_snapshot]] and all 12 pass."
     },
     "design_fidelity": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "Behavior-preserving refactor — no visual change by construction; the class sets are identical (ModalShell) or gain only a verified no-op guard."
+      "note": "Test-only change; no visual/UI surface touched."
     },
     "smoke": {
       "status": "passed",
       "passed": 1,
       "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3902, temp USERPROFILE, 127.0.0.1): /api/health 200."
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3848, temp USERPROFILE, 127.0.0.1, SHIPWRIGHT_NETWORK_PROFILE=local) booted loopback-only with headless-mirror enabled; served the full 16-test E2E run."
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node C:/01_Development/shipwright-webui/client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts client/e2e/flows/triage-fix-now-more-options-clip.spec.ts client/e2e/flows/triage-fix-now.spec.ts client/e2e/flows/80-tablet-responsive.spec.ts --project=chromium",
+      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.iterate.config.ts client/e2e/flows/v0-9-5-task-type-matrix.spec.ts (BASE_URL=http://127.0.0.1:3848, USERPROFILE=<temp>, PLAYWRIGHT_BROWSERS_PATH=<real ms-playwright>)",
       "exit_code": 0,
-      "tests_run": 24,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\modal-scroll-body-invariant\\.shipwright\\runs\\iterate-2026-07-14-modal-scroll-body-invariant\\surface_verification.log",
-      "timestamp": "2026-07-14T16:08:02.496Z",
+      "tests_run": 16,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\task-type-matrix-snapshot-v2\\.shipwright\\runs\\iterate-2026-07-15-task-type-matrix-snapshot-v2\\surface_verification.log",
+      "timestamp": "2026-07-15T14:38:54Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behavior the diff introduces or changes: the carrier's contract (2), behavior-PRESERVATION for each of the 3 dialog bodies it now backs (3), the 2 lanes newly guarded (2), the ratchet's own two guarantees (2), the end-to-end proof that the PR #250 fix survives (1), non-regression (1), and the bloat-baseline hold (1) = 12 behaviors.",
+      "enumeration_basis": [
+        "The diff changes exactly one thing — the snapshot-envelope version the E2E fixture writer emits (v1/xterm@5.5.0 -> v2/xterm@6.0.0). Its full behavioral surface: (1) the server replay version-gate accepts the header and emits replay_snapshot; (2) the marker renders in the DOM after replay; (3) the single-pty/no-chunked-envelope contract (axis D) holds on the replay-only path. All three proven across the 4 task types. Axis C (cursor) is a pre-existing conditional skip, NOT a behavior this diff introduces. ACs=3, covered_acs=3."
+      ],
       "counts": {
-        "total": 12,
-        "tested": 12,
+        "total": 3,
+        "tested": 3,
         "untestable": 0,
         "untested_testable": 0
       },
+      "enumeration_basis_counts": {
+        "acs": 3,
+        "covered_acs": 3
+      },
       "behaviors": [
         {
-          "behavior": "ModalScrollBody always emits the invariant half (flex-col + overflow-y-auto + [&>*]:shrink-0)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "components/common/ModalScrollBody.test.tsx"
-        },
-        {
-          "behavior": "ModalScrollBody merges the caller's variable half (height budget + gap) without dropping the guard",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "ModalScrollBody.test.tsx (asserts max-h-[calc(100vh-260px)] + gap-3.5 + the guard coexist)"
-        },
-        {
-          "behavior": "ModalShell's body keeps its EXACT pre-refactor class set (behavior preservation)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "The pre-existing ModalShell.test.tsx fence from PR #250 (asserts overflow-y-auto + max-h-[calc(100vh-280px)] + [&>*]:shrink-0) still passes unchanged."
-        },
-        {
-          "behavior": "ContinuePipelineModal's body now inherits the guard (it had none)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "ContinuePipelineModal.test.tsx 'scroll body inherits the bounded-scroll-container guard'"
-        },
-        {
-          "behavior": "EditTaskModal's body now inherits the guard, with its DIFFERENT budget (260px/gap-3.5) preserved",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "EditTaskModal.test.tsx 'scroll body inherits the bounded-scroll-container guard'"
-        },
-        {
-          "behavior": "The TaskBoard column lane is guarded (its apparent child-layer guard was a no-op: TaskCard's shrink-0 sits on a grandchild behind DraggableCard's wrapper div)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts structural scan (falsified: removing the class makes it FAIL and name the file)"
-        },
-        {
-          "behavior": "The Campaigns lane is guarded (bounded via max-h-[40vh]; invisible to the first draft of the ratchet)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts structural scan"
-        },
-        {
-          "behavior": "RATCHET: any NEW self-scrolling column-flex container without the guard fails the build",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts — falsified against 5 evasions (max-h-[85vh], overflow-auto, max-h-[calc(100dvh-..)], flex-1-bounded, guard-only-in-a-comment): ALL caught. vitest gates CI; Playwright does not."
-        },
-        {
-          "behavior": "RATCHET: a ModalScrollBody caller cannot smuggle a class beyond max-h-*/gap-* (no tailwind-merge, so a stray overflow-visible would silently win/lose by source order)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts 'callers pass only the variable half'"
-        },
-        {
-          "behavior": "The PR #250 clip fix still holds THROUGH the refactor (the whole point of behavior preservation)",
+          "behavior": "A v2/xterm@6.0.0 snapshot header written by the E2E is accepted by the server replay version-gate (replay-snapshot.ts tryReadSnapshot + snapshot-store.ts SUPPORTED_VERSIONS={v2}) -> replay_snapshot emitted on WS attach for all 4 task types",
           "category": "e2e",
           "disposition": "tested",
-          "evidence": "e2e/flows/triage-fix-now-more-options-clip.spec.ts GREEN in real Chromium against the refactored build (0px clipped, body scrolls)."
+          "evidence": "v0-9-5-task-type-matrix.spec.ts axis A (4 pass): envs=[[ready,replay_snapshot],[ready,replay_snapshot]]. RED proof: v1/5.5.0 header emits NO replay_snapshot and axis A fails at toContainText(MARKER)."
         },
         {
-          "behavior": "No regression to the create-dialog bodies or the responsive bands",
+          "behavior": "The snapshot marker renders in .xterm-rows under the forced DOM renderer after replay, and pre-leave rows are a subset of post-return rows (rendering correctness)",
           "category": "e2e",
           "disposition": "tested",
-          "evidence": "triage-fix-now.spec.ts (new-task + new-iterate bodies) + 80-tablet-responsive 21/21. F0.5: 24 tests, exit 0."
+          "evidence": "v0-9-5-task-type-matrix.spec.ts axis A + axis B (8 pass across 4 task types)."
         },
         {
-          "behavior": "Both grandfathered bloat-baseline files stay AT baseline (the anti-ratchet hook blocks any growth)",
-          "category": "unit",
+          "behavior": "Replay-only path (done state) yields replayOnly:true, exactly one replay_snapshot per attach, ZERO chunked-replay envelopes, no pty spawned, and state stays done across N navigate-away/back cycles",
+          "category": "e2e",
           "disposition": "tested",
-          "evidence": "ContinuePipelineModal 321/321, EditTaskModal 439/439; pre-commit anti_ratchet_check passes."
+          "evidence": "v0-9-5-task-type-matrix.spec.ts axis D (4 pass across 4 task types)."
         }
       ]
     },
