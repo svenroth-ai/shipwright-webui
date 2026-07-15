@@ -98,7 +98,7 @@ function PerProjectSection({
     return (
       <section className="mb-8" data-testid={`triage-project-${project.id}`}>
         <h2 className="text-base font-semibold mb-2">{project.name}</h2>
-        <p className="text-sm text-stone-500">Loading…</p>
+        <p className="text-sm text-muted">Loading…</p>
       </section>
     );
   }
@@ -117,7 +117,7 @@ function PerProjectSection({
           }}
         />
         <span>{project.name}</span>
-        <span className="text-xs text-stone-500 font-normal">
+        <span className="text-xs text-muted font-normal">
           ({triageItems.length})
         </span>
       </h2>
@@ -125,7 +125,7 @@ function PerProjectSection({
         <div
           role="status"
           data-testid={`triage-stale-banner-${project.id}`}
-          className="mb-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-200"
+          className="mb-3 rounded-md border border-[var(--warn-line)] bg-warn-tint px-3 py-2 text-xs text-warn dark:border-[var(--warn-line)] dark:bg-warn-tint dark:text-warn"
         >
           Local checkout is {drift.behind} commit{drift.behind === 1 ? "" : "s"} behind
           origin — <code>git pull</code> to sync.
@@ -136,7 +136,7 @@ function PerProjectSection({
       )}
       {sortedSources.map((source) => (
         <div key={source} className="mb-4">
-          <h3 className="text-xs font-semibold text-stone-700 uppercase mb-2">
+          <h3 className="text-xs font-semibold text-body uppercase mb-2">
             {source} ({itemsBySource.get(source)!.length})
           </h3>
           <div className="space-y-2">
@@ -247,7 +247,7 @@ export default function TriagePage() {
         <div className="page-container">
           {realProjects.length === 0 ? (
             <p
-              className="text-sm text-stone-500"
+              className="text-sm text-muted"
               data-testid="triage-no-projects"
             >
               No projects registered. Add a project on the Projects page
@@ -265,7 +265,7 @@ export default function TriagePage() {
               ))}
               {counts !== undefined && totalTriage === 0 && (
                 <p
-                  className="text-center text-sm text-stone-500 py-8"
+                  className="text-center text-sm text-muted py-8"
                   data-testid="triage-empty-state"
                 >
                   No triage items pending. ✓

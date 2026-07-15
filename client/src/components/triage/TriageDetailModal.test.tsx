@@ -311,7 +311,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     renderCampaign({}); // baseItem has no campaignSlug
     expect(screen.queryByTestId("triage-campaign-cta")).toBeNull();
     expect(screen.getByTestId("triage-fix-now").className).toContain(
-      "bg-emerald-600",
+      "bg-accent",
     );
   });
 
@@ -324,7 +324,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(screen.queryByTestId("triage-go-to-board")).toBeNull();
     // Fix-now demoted: no emerald fill, carries the outline border token.
     const fixNow = screen.getByTestId("triage-fix-now");
-    expect(fixNow.className).not.toContain("bg-emerald-600");
+    expect(fixNow.className).not.toContain("bg-accent");
     expect(fixNow.className).toContain("border-[var(--color-border)]");
   });
 
@@ -410,7 +410,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(screen.queryByTestId("triage-go-to-board")).toBeNull();
     // No competing primary → Fix-now keeps its emerald primary styling.
     expect(screen.getByTestId("triage-fix-now").className).toContain(
-      "bg-emerald-600",
+      "bg-accent",
     );
   });
 });

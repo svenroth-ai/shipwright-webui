@@ -16,18 +16,18 @@ import type {
 } from "../../lib/triageApi";
 
 const SEVERITY_CLASSES: Record<TriageSeverity, string> = {
-  critical: "bg-red-100 text-red-700 border-red-200",
-  high: "bg-orange-100 text-orange-700 border-orange-200",
-  medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  low: "bg-slate-100 text-slate-600 border-slate-200",
-  info: "bg-stone-100 text-stone-600 border-stone-200",
+  critical: "bg-err-tint text-err border-[var(--err-line)]",
+  high: "bg-warn-tint text-warn border-[var(--warn-line)]",
+  medium: "bg-warn-tint text-warn border-[var(--warn-line)]",
+  low: "bg-inset text-body border-line-strong",
+  info: "bg-inset text-body border-line",
 };
 
 const STATUS_CLASSES: Record<TriageStatus, string> = {
-  triage: "bg-orange-100 text-orange-700 border-orange-200",
-  promoted: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  dismissed: "bg-slate-100 text-slate-600 border-slate-200",
-  snoozed: "bg-blue-100 text-blue-700 border-blue-200",
+  triage: "bg-warn-tint text-warn border-[var(--warn-line)]",
+  promoted: "bg-ok-tint text-ok border-[var(--ok-line)]",
+  dismissed: "bg-inset text-body border-line-strong",
+  snoozed: "bg-info-tint text-info border-[var(--info-line)]",
 };
 
 export function SeverityBadge({ severity }: { severity: TriageSeverity }) {
@@ -44,7 +44,7 @@ export function SeverityBadge({ severity }: { severity: TriageSeverity }) {
 export function SourceBadge({ source }: { source: string }) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-stone-100 text-stone-700 border border-stone-200"
+      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-inset text-body border border-line"
       data-testid={`triage-source-${source}`}
     >
       {source}
@@ -72,7 +72,7 @@ export function StatusBadge({ status }: { status: TriageStatus }) {
 export function PendingDeliveryBadge() {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800 border border-amber-200"
+      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-warn-tint text-warn border border-[var(--warn-line)]"
       title="Not yet in the tracked triage log — ships with the next iterate PR (setup sweep delivers it automatically)"
       data-testid="triage-pending-delivery"
     >

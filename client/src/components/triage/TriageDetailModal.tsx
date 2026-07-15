@@ -199,7 +199,7 @@ export function TriageDetailModal({
                     <SeverityBadge severity={item.severity} />
                     <StatusBadge status={item.status} />
                     {item.pendingDelivery && <PendingDeliveryBadge />}
-                    <code className="text-[11px] text-stone-500">{item.id}</code>
+                    <code className="text-[11px] text-muted">{item.id}</code>
                   </div>
                 </div>
                 <Dialog.Close asChild>
@@ -215,24 +215,24 @@ export function TriageDetailModal({
 
               <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
                 <div>
-                  <dt className="text-stone-500">Suggested priority</dt>
+                  <dt className="text-muted">Suggested priority</dt>
                   <dd className="font-mono">{item.suggestedPriority}</dd>
                 </div>
                 <div>
-                  <dt className="text-stone-500">Suggested domain</dt>
+                  <dt className="text-muted">Suggested domain</dt>
                   <dd>{item.suggestedDomain}</dd>
                 </div>
                 <div>
-                  <dt className="text-stone-500">Kind</dt>
+                  <dt className="text-muted">Kind</dt>
                   <dd>{item.kind}</dd>
                 </div>
                 <div>
-                  <dt className="text-stone-500">Original ts</dt>
+                  <dt className="text-muted">Original ts</dt>
                   <dd className="font-mono text-[10px]">{item.originalTs}</dd>
                 </div>
                 {item.dedupKey && (
                   <div className="col-span-2">
-                    <dt className="text-stone-500">Dedup key</dt>
+                    <dt className="text-muted">Dedup key</dt>
                     <dd className="font-mono text-[10px] break-all">
                       {item.dedupKey}
                     </dd>
@@ -240,7 +240,7 @@ export function TriageDetailModal({
                 )}
                 {item.evidencePath && (
                   <div className="col-span-2">
-                    <dt className="text-stone-500">Evidence</dt>
+                    <dt className="text-muted">Evidence</dt>
                     <dd className="font-mono text-[10px] break-all">
                       {item.evidencePath}
                     </dd>
@@ -248,12 +248,12 @@ export function TriageDetailModal({
                 )}
               </dl>
 
-              <div className="border-t border-stone-200 pt-4">
-                <h4 className="text-xs font-semibold text-stone-700 uppercase mb-2">
+              <div className="border-t border-line pt-4">
+                <h4 className="text-xs font-semibold text-body uppercase mb-2">
                   Detail
                 </h4>
                 <p
-                  className="text-sm text-stone-800 whitespace-pre-wrap"
+                  className="text-sm text-ink whitespace-pre-wrap"
                   data-testid="triage-detail-body"
                 >
                   {item.detail}
@@ -274,23 +274,23 @@ export function TriageDetailModal({
               )}
 
               {item.status === "triage" && (
-                <div className="border-t border-stone-200 pt-4 mt-4">
+                <div className="border-t border-line pt-4 mt-4">
                   <label className="block">
-                    <span className="text-xs font-medium text-stone-700">
+                    <span className="text-xs font-medium text-body">
                       Reason (optional, applies to Dismiss / Snooze)
                     </span>
                     <input
                       type="text"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      className="mt-1 w-full px-2 py-1.5 text-sm border border-stone-300 rounded"
+                      className="mt-1 w-full px-2 py-1.5 text-sm border border-line-strong rounded"
                       placeholder="out of scope this sprint"
                       data-testid="triage-action-reason"
                     />
                   </label>
                   {error && (
                     <div
-                      className="mt-3 p-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded"
+                      className="mt-3 p-2 text-xs text-err bg-err-tint border border-[var(--err-line)] rounded"
                       data-testid="triage-action-error"
                     >
                       {error}
@@ -298,7 +298,7 @@ export function TriageDetailModal({
                   )}
                   {fixNowFailure && (
                     <div
-                      className="mt-3 p-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded"
+                      className="mt-3 p-2 text-xs text-err bg-err-tint border border-[var(--err-line)] rounded"
                       data-testid="triage-fix-now-failure"
                     >
                       {fixNowFailure}
@@ -312,7 +312,7 @@ export function TriageDetailModal({
                       className={
                         showCampaignCta
                           ? "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-                          : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                          : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                       }
                       data-testid="triage-fix-now"
                     >
@@ -348,7 +348,7 @@ export function TriageDetailModal({
                     <button
                       type="button"
                       onClick={() => setPromoteOpen(true)}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-promote"
                     >
                       Promote
