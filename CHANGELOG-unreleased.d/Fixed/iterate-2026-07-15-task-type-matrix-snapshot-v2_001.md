@@ -1,0 +1,1 @@
+E2E: the `v0-9-5-task-type-matrix` snapshot-replay suite now writes a v2 / xterm@6.0.0 envelope header (was a stale v1 / 5.5.0), so the server replay version-gate accepts it and the task-type x scenario matrix (ADR-087/088/089, ADR-097) passes again.

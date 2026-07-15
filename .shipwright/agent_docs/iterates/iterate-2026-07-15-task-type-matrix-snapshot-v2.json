@@ -1,0 +1,16 @@
+{
+  "run_id": "iterate-2026-07-15-task-type-matrix-snapshot-v2",
+  "date": "2026-07-15T14:41:47.047896Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/task-type-matrix-snapshot-v2",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-15-task-type-matrix-snapshot-v2",
+  "spec": "none",
+  "spec_impact": "none",
+  "affected_frs": [
+    "FR-01.28"
+  ],
+  "untested_testable": 0,
+  "enumeration_basis": "Diff changes only the E2E snapshot-envelope version constant (v1/5.5.0 -> v2/6.0.0); behavioral surface = 3 tested behaviors (server accepts header -> replay_snapshot; marker renders; replay-only single-pty contract). ACs=3, covered=3."
+}

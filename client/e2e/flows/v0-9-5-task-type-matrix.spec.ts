@@ -85,8 +85,13 @@ const SCROLLBACK_DIR = path.join(
   ".shipwright-webui",
   "terminal-scrollback",
 );
-// Mirrors the value in server/node_modules/@xterm/headless/package.json.
-const PINNED_TERMINAL_VERSION = "5.5.0";
+// ADR-097 bumped @xterm/headless 5.5.0 → 6.0.0 AND the snapshot envelope
+// v1 → v2. The server's replay version-gate (replay-snapshot.ts
+// `tryReadSnapshot` + snapshot-store.ts `SUPPORTED_VERSIONS = {v2}`) rejects
+// any other version as `unknown_version`/mismatch and emits NO replay
+// envelope — so a stale header here yields a blank terminal (marker never
+// renders). Mirrors the value in server/node_modules/@xterm/headless/package.json.
+const PINNED_TERMINAL_VERSION = "6.0.0";
 
 type TaskTypeId = "pure-claude" | "task" | "iterate" | "pipeline";
 
@@ -203,7 +208,7 @@ async function writeSnapshotFor(
   rows: number,
   data: string,
 ): Promise<void> {
-  const header = `# shipwright-snapshot v1 xterm@${PINNED_TERMINAL_VERSION} ${cols}x${rows}\n`;
+  const header = `# shipwright-snapshot v2 xterm@${PINNED_TERMINAL_VERSION} ${cols}x${rows}\n`;
   const body = header + data;
   await fs.mkdir(SCROLLBACK_DIR, { recursive: true });
   await fs.writeFile(path.join(SCROLLBACK_DIR, `${taskId}.snapshot`), body, {
