@@ -1,0 +1,82 @@
+/* ============================================================================
+   ON-PHOTO — frosted glass surfaces + the .on-photo token-flip + the
+   solid-surface RESET (A03, FR-01.48). Split from weather-deck.css only to keep
+   each file <=300 LOC. Ported verbatim in values from Spec/prototype/styles.css
+   (v3.1 block, lines 596–706).
+
+   Three rules make it work, IN THIS ORDER (the 2nd and 3rd are the ones people
+   forget):
+     1. .on-photo flips the BARE-CHROME tokens light + adds an inherited
+        legibility text-shadow for text riding directly on the photo.
+     2. .on-photo :is(.card,.tcard,…) RESETS those tokens back to dark-on-white
+        and CANCELS the text-shadow. Solid surfaces are reading surfaces.
+     3. .on-photo :is(.record,.glass-card,…) darkens SECONDARY text further —
+        a glass ground is see-through and therefore lower-contrast than solid
+        white. This is the legibility engineering (see the ladder in
+        weather-deck.css).
+   ============================================================================ */
+
+/* ── glass surfaces ── */
+.glass-d {
+  background: var(--glass-dark);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05); backdrop-filter: blur(14px) saturate(1.05);
+  border: 1px solid var(--glass-dark-line); box-shadow: var(--sh-photo); color: #fff;
+}
+.glass-l {
+  background: var(--glass-light); border: 1px solid var(--glass-light-line);
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, .35), inset 0 1px 0 rgba(255, 255, 255, .6);
+}
+.glass-card {
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  border: 1px solid var(--glass-light-line); box-shadow: var(--sh-photo);
+}
+.btn-glass { background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .28); color: #fff; }
+.btn-glass:hover { background: rgba(255, 255, 255, .18); border-color: rgba(255, 255, 255, .42); }
+/* a sheet gathers rows on photo (one solid surface, heading rides inside) */
+.sheet {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .30), 0 16px 40px -12px rgba(0, 0, 0, .45);
+}
+/* opaque fallback where backdrop-filter is unsupported */
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-d, .on-photo .page-head { background: rgba(24, 21, 19, .92); }
+  .glass-l, .glass-card { background: rgba(255, 255, 255, .92); }
+}
+
+/* ── rule 1: token flip (bare chrome → light) ── */
+.on-photo {
+  --ink: #fff; --body: rgba(255, 255, 255, .9); --muted: rgba(255, 255, 255, .74); --faint: rgba(255, 255, 255, .52);
+  --line: rgba(255, 255, 255, .16); --line-strong: rgba(255, 255, 255, .28);
+  --accent: #35B8A4; --accent-line: rgba(53, 184, 164, .45); --focus: 0 0 0 4px rgba(94, 214, 193, .32);
+  /* bare text rides over bright warm photos → legibility shadow; inherited,
+     cancelled inside solid surfaces (rule 2) */
+  text-shadow: 0 1px 4px rgba(28, 22, 14, .55);
+  /* A03→A04 seam: the legacy pages paint an opaque --color-bg / --color-background
+     ground that would fully occlude the signature backdrop. Within the scene ONLY,
+     flip those two page-ground tokens transparent so deck-golden shows through and
+     the (still-opaque --color-surface) cards read on top. A04 re-points the whole
+     --color-* block onto the Weather-Deck tokens; until then this is the single
+     lever that makes "one backdrop on every route" (FR-01.48) actually VISIBLE. */
+  --color-bg: transparent; --color-background: transparent;
+}
+
+/* ── rule 2: solid-surface RESET (cards stay dark-on-white, shadow cancelled) ── */
+.on-photo :is(.card, .tcard, .orch-card, .table-wrap, .logentry, .promptbox, .recesspanel, .modal, .popover, .wz-opt, .wz-input, .sheet, .instr, .mc-hero, .termbig, .badge, .pill, .record, .artifact, .pane, .mc-verdict, .mc-tabs, .mc-op, .flightplan, .ft-card) {
+  --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
+  --line: #E7E5E4; --line-strong: #D6D3D1; text-shadow: none;
+  --accent: #0E7A6B; --accent-line: #9fd3ca; --focus: 0 0 0 4px rgba(14, 122, 107, .18);
+}
+/* buttons + suggestion chips are solid controls → no inherited photo text-shadow */
+.on-photo :is(.btn, .wz-chip) { text-shadow: none; }
+
+/* ── rule 3: darken SECONDARY text on glass grounds (see-through → lower contrast) ── */
+.on-photo :is(.record, .artifact, .mc-op, .flightplan, .glass-card, .ft-card) {
+  --body: #1C1917; --muted: #4A443E; --faint: #6B645D;
+}
+
+/* bare section headings mid-canvas get a legibility shadow; card titles (inside
+   solid, reset above) are unaffected */
+.on-photo > *:not(.card):not(.sheet) h2:not(.card h2) { text-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+/* title bars = solid taupe (like the nav), consistent across screens */
+.on-photo .page-head { background: var(--taupe); border-bottom: 1px solid var(--taupe-line); }

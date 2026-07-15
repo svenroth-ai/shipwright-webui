@@ -1,0 +1,171 @@
+/* ============================================================================
+   WEATHER DECK — design-system foundation (A03, FR-01.48)
+   Ported verbatim in VALUES from the clickable prototype
+   (Spec/prototype/styles.css: the v3 :root at line 10 + the v3.1 "WEATHER DECK"
+   block at line 558). This file carries the TOKENS, the Tailwind @theme wiring,
+   and the SCENE layer. Glass surfaces + the .on-photo flip/reset live in the
+   sibling on-photo.css (split only to keep each file <=300 LOC).
+
+   Rule of the system: GLASS is for chrome, SOLID is for reading, bare text only
+   in scrim bands. One signature backdrop (deck-golden.jpg) on every route
+   (Apple Liquid-Glass model, Sven 2026-07-14). NO imagery tier/band system —
+   data-scene-tier is RETRACTED and data-depth="band" is NOT ported (guard test).
+
+   ── THE AA CONTRAST LADDER (§5.3 — the primary deliverable) ──────────────────
+   Machine-checked in tokens.contrast.test.ts. Every ratio below is WCAG 2.1,
+   computed there; do not edit a token without re-running that test.
+
+   Grounds (worst-case, named in the test). The two composites are DETERMINISTIC
+   constants derived from the shipped asset by client/scripts/derive-weather-deck-
+   grounds.py (re-runnable; tied to client/public/backdrops/deck-golden.jpg):
+     card #FFFFFF · beige #ECE4D5 · taupe #23262C · terminal #131110
+     --ground-glass-worst #F9EFE5  (0.62α-white middle band of --glass-light over
+       the GLOBAL-MEAN region of deck-golden after --glass-filter brightness(1.55);
+       glass blur(20px) averages the backdrop toward the local mean, so the global
+       mean is the honest, grid-stable effective glass ground — a per-pixel extreme
+       would be neither reproducible nor physical under the blur.)
+     --ground-photo-worst #D5D4CF  (lightest region of deck-golden under the
+       3-layer .scene-bg::after scrim — a NON-TEXT ground: bare light text is
+       only ~1.5:1 here, which is the proof that text must ride chrome/glass/solid,
+       never the bare bright photo).
+
+   TOKEN            ROLE          ALLOWED GROUNDS                 WORST RATIO
+   --ink #1C1917    body          card, beige, glass-worst        15.4  (pass)
+   --body #44403C   body          card                            10.3  (pass)
+   --muted #79716B  body          card                            4.79  (pass)
+   --muted #79716B  large/UI      beige                            3.8  (pass >=3)
+   --accent #0E7A6B link/body     card, glass-worst                4.6  (pass)
+   --accent #0E7A6B large/UI      beige                            4.1  (pass >=3)
+   --faint #A8A29E  NON-TEXT      hairlines/disabled/decor ONLY    2.52 (re-roled)
+   --ink #fff       body          taupe, terminal                 15.2  (pass)
+   --accent #35B8A4 large/on-dark taupe, terminal                  6.2  (pass >=3)
+   term #f2f0ec     body          terminal #131110                16.5  (pass)
+   glass 2ndary     body          --ground-glass-worst (darkened by rule 3)
+     --body #1C1917 15.4 / --muted #4A443E 8.5 / --faint #6B645D 5.1   (pass)
+
+   The four Fable-B5 failures, each FIXED or RE-ROLED (asserted in the test):
+     brand tag  2.90  #0E7A6B on #23262C → teal on dark is #35B8A4 (6.2); A05
+                      removes the badge outright — the ladder must not bless it.
+     term dim   3.65–3.92  #78716C on dark → terminal ground #131110, text #f2f0ec.
+     --faint    2.52  #A8A29E as body text → re-roled NON-TEXT (excluded above).
+     dismissed  opacity:.6 over photo → a defined muted token on a SOLID ground,
+                never opacity over a photo (opacity is not a contrast strategy).
+   ============================================================================ */
+
+:root {
+  /* warm-neutral "stone" gray ramp */
+  --g25: #FDFDFC; --g50: #FAFAF9; --g100: #F5F5F4; --g200: #E7E5E4; --g300: #D6D3D1;
+  --g400: #A8A29E; --g500: #79716B; --g700: #44403C; --g800: #292524; --g900: #1C1917;
+  /* surfaces */
+  --page: #FAFAF9; --card: #FFFFFF; --inset: #F5F5F4;
+  --dark: #1C1917; --dark-2: #292524; --dark-line: #3a3531;
+  /* text */
+  --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
+  /* borders */
+  --line: #E7E5E4; --line-strong: #D6D3D1;
+  /* accent — teal, demoted to signature */
+  --accent: #0E7A6B; --accent-hover: #0B6355; --accent-tint: #E6F3F0; --accent-line: #9fd3ca;
+  --focus: 0 0 0 4px rgba(14, 122, 107, .18);
+  /* semantic */
+  --ok: #067647; --ok-tint: #ECFDF3; --ok-line: #ABEFC6; --ok-solid: #17B26A;
+  --warn: #B54708; --warn-tint: #FFFAEB; --warn-line: #FEDF89; --warn-solid: #F79009;
+  --err: #B42318; --err-tint: #FEF3F2; --err-line: #FECDCA; --err-solid: #F04438;
+  --info: #175CD3; --info-tint: #EFF8FF; --info-line: #B2DDFF; --info-solid: #2E90FA;
+  /* type */
+  --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* neutral layered elevation */
+  --sh-xs: 0 1px 2px rgba(28, 25, 23, .05);
+  --sh-sm: 0 1px 2px rgba(28, 25, 23, .06), 0 1px 3px rgba(28, 25, 23, .10);
+  --sh-md: 0 2px 4px -2px rgba(28, 25, 23, .06), 0 4px 8px -2px rgba(28, 25, 23, .10);
+  --sh-lg: 0 4px 6px -2px rgba(28, 25, 23, .03), 0 12px 16px -4px rgba(28, 25, 23, .08);
+  --sh-xl: 0 8px 8px -4px rgba(28, 25, 23, .03), 0 20px 24px -4px rgba(28, 25, 23, .10);
+  --r-card: 12px; --r-btn: 8px; --r-badge: 6px;
+  /* v2 compatibility aliases — referenced by screens but were undefined → silently
+     un-styled real UI (Fable B1). Ship them so no var(--x) resolves to nothing. */
+  --line-card: var(--line); --lead: var(--body); --hero: var(--inset); --recess: var(--inset);
+  --line-meaning: var(--accent-line); --accent-deep: var(--accent);
+  --amber: var(--warn); --amber-tint: var(--warn-tint); --amber-line: var(--warn-line);
+  --sh-hero: var(--sh-xl); --sh-card: var(--sh-sm); --radius-sm: 8px;
+
+  /* v3.1 Weather-Deck */
+  --scrim-ink: 44, 38, 29;
+  --taupe: #23262c; --taupe-line: rgba(255, 255, 255, .08); /* ANTHRACITE — nav + title bars */
+  --sidebar-bg: #23262c;
+  --glass-dark: rgba(44, 38, 29, .5); --glass-dark-line: rgba(255, 255, 255, .16);
+  /* WHITE frosted glass with a real SHEEN — a 122° four-stop gradient (near-opaque
+     white at the corners, more see-through through the middle where the brightened
+     photo shimmers). The gradient IS the shimmer; a flat tint cannot produce it. */
+  --glass-light: linear-gradient(122deg, rgba(255, 255, 255, .95) 0%, rgba(255, 255, 255, .64) 42%, rgba(255, 255, 255, .6) 64%, rgba(255, 255, 255, .94) 100%);
+  --glass-light-line: rgba(255, 255, 255, .82);
+  --glass-filter: blur(20px) saturate(1.3) brightness(1.55);
+  --sh-photo: inset 0 1px 0 rgba(255, 255, 255, .1), 0 2px 8px rgba(0, 0, 0, .2), 0 16px 40px -12px rgba(0, 0, 0, .34);
+
+  /* promoted from A18's inline values — the Terminal/Transcript reading surface */
+  --beige: #ECE4D5; --beige-line: #D8CFBD;
+
+  /* derived composite grounds — computed once from deck-golden.jpg (see the ladder
+     header above for the derivation). Documented constants so the ladder tests a
+     real number, not an eyeballed guess. */
+  --ground-glass-worst: #F9EFE5;
+  --ground-photo-worst: #D5D4CF;
+}
+
+/* ── Tailwind v4 theme wiring ──────────────────────────────────────────────
+   Expose the Weather-Deck tokens as real utilities (bg-card, text-ink,
+   border-line, …) so A04 can sweep onto utility classes instead of 300 more
+   bg-[var(--x)] arbitrary values. `@theme inline` references the :root tokens
+   ABOVE (single source of truth) and — crucially — does NOT re-emit --color-*
+   to :root, so it never clobbers the legacy --color-* palette in index.css
+   (A04 re-points that block onto these tokens). */
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-inset: var(--inset);
+  --color-dark: var(--dark);
+  --color-dark-2: var(--dark-2);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-tint: var(--accent-tint);
+  --color-accent-line: var(--accent-line);
+  --color-ok: var(--ok);
+  --color-ok-tint: var(--ok-tint);
+  --color-warn: var(--warn);
+  --color-warn-tint: var(--warn-tint);
+  --color-err: var(--err);
+  --color-err-tint: var(--err-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+  --color-beige: var(--beige);
+  --color-taupe: var(--taupe);
+  --radius-card: var(--r-card);
+  --radius-btn: var(--r-btn);
+  --radius-badge: var(--r-badge);
+}
+
+/* ============================================================================
+   SCENE LAYER — plate (photo, frozen) · scrim (legibility) · fore (scrolling UI).
+   Only .scene-fore scrolls; the plate is position:absolute and never repaints on
+   scroll. Reproduces the prototype applyScene() DOM contract (app.js:230).
+   ============================================================================ */
+.screen[data-scene] { position: relative; overflow: hidden; isolation: isolate; }
+.scene-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; background: var(--taupe); }
+/* warm golden-hour photo — keep its WARMTH (light desaturation only) so the glass
+   sheen reads warm-cream, never cold grey; already bright so brightness stays modest */
+.scene-bg > img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.9) contrast(1.02) brightness(1.06); }
+.scene-fore { position: relative; z-index: 1; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.scene-bg::after {
+  content: ""; position: absolute; inset: 0; background:
+    linear-gradient(180deg, rgba(var(--scrim-ink), .5) 0, rgba(var(--scrim-ink), .24) 110px, rgba(var(--scrim-ink), 0) 300px),
+    radial-gradient(130% 100% at 50% 20%, rgba(var(--scrim-ink), 0) 50%, rgba(var(--scrim-ink), .2) 100%),
+    linear-gradient(180deg, rgba(var(--scrim-ink), .26) 0%, rgba(var(--scrim-ink), .2) 55%, rgba(var(--scrim-ink), .34) 100%);
+}
+.scene-bg.well-left::after {
+  background: linear-gradient(90deg, rgba(var(--scrim-ink), .72) 0%, rgba(var(--scrim-ink), .5) 45%, rgba(var(--scrim-ink), .28) 100%);
+}

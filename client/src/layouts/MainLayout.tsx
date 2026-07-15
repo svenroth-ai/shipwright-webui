@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { Menu } from 'lucide-react';
 import { SidebarNav } from '../components/sidebar/SidebarNav';
 import { DiagnosticsBanner } from '../components/common/DiagnosticsBanner';
+import { SceneBackdrop } from '../components/common/SceneBackdrop';
 import { useExternalInbox } from '../hooks/useExternalInbox';
 import { useTriageCounts } from '../hooks/useTriage';
 import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
@@ -77,16 +78,16 @@ export function MainLayout() {
           </div>
         ) : null}
         <DiagnosticsBanner />
-        {/* padding-bottom env(safe-area-inset-bottom): the page was clipped at
+        {/* Weather-Deck scene layer (A03, FR-01.48): one signature backdrop on
+            every route. The photo plate is frozen; `.scene-fore` is the scroller
+            and keeps the `main-scroll-container` contract.
+            padding-bottom env(safe-area-inset-bottom): the page was clipped at
             the bottom on devices with a bottom inset (iPad home-indicator /
             Safari bottom bar) because only the phone path reserved it. Applied
             app-wide here; a no-op (0px) on desktop. (tablet-view-polish AC-3) */}
-        <div
-          data-testid="main-scroll-container"
-          className="flex-1 min-h-0 overflow-auto [scrollbar-gutter:stable] [overscroll-behavior:contain] [padding-bottom:env(safe-area-inset-bottom)]"
-        >
+        <SceneBackdrop className="[scrollbar-gutter:stable] [overscroll-behavior:contain] [padding-bottom:env(safe-area-inset-bottom)]">
           <Outlet />
-        </div>
+        </SceneBackdrop>
       </main>
     </div>
     </MobileTopBarSlotProvider>

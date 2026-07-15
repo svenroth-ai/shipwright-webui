@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "highlight.js/styles/github-dark.css";
+@import "./styles/weather-deck.css"; /* Weather-Deck tokens + @theme + scene (A03) */
+@import "./styles/on-photo.css";     /* glass surfaces + .on-photo flip/reset (A03) */
 
 /* Markdown body — GitHub-style rendering conventions (iterate-20260423-chat-livetest-2
  * AC-C). Adapted from github-markdown-light.css tokens, re-skinned onto
@@ -100,7 +102,7 @@
   font-size: 85%;
   background-color: rgba(175, 184, 193, 0.2);
   border-radius: 6px;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 }
 
 /* Fenced code — anthracite block (dark grey) with light text so syntax
@@ -245,7 +247,6 @@
   --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.28), 0 6px 18px rgba(0, 0, 0, 0.15);
   --radius-card: 12px;               /* alias for --radius (card surfaces) */
 }
-
 body {
   font-family: var(--font-family);
   background: var(--color-background);
@@ -305,7 +306,6 @@ body {
 *::-webkit-scrollbar-thumb:hover {
   background: var(--color-accent);
 }
-
 /* Explicit opt-in utility — usable when a component wants the theme
    inside a nested scroller whose ancestor overrode scrollbar rules. */
 .scroll-themed {
