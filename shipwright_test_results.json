@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-14",
+  "last_updated": "2026-07-15",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-14-modal-scroll-body-invariant",
-    "date": "2026-07-14",
+    "run_id": "iterate-2026-07-15-e2e-pty-spawn-cwd-267",
+    "date": "2026-07-15",
     "unit": {
       "status": "passed",
-      "passed": 4110,
-      "total": 4111,
-      "note": "client vitest 208 files / 2025 passed (206/2017 on main: +2 files = ModalScrollBody.test.tsx + the modal-scroll-body-invariant meta-test, +8 tests). server vitest 178 files / 2085 passed + 1 skipped (untouched). tsc --noEmit clean; oxlint clean on all touched files. doc-sync.test.ts green, so the new CLAUDE.md DO-NOT #24 is consistent."
+      "passed": 2092,
+      "total": 2093,
+      "note": "server vitest 179 files / 2092 passed + 1 skipped (+7 vs main: the new terminal-spawn-failure.test.ts). Server-only diff; client suite untouched (2025 passed on main). tsc --noEmit clean (server + client); oxlint clean on all touched files."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No integration surface: presentational refactor + a source-scanning meta-test. No route, store, contract, or cross-component machinery touched."
+      "note": "No integration surface: a robustness fix to the existing pty spawn boundary (typed error + caller handling). No new route/store/contract/cross-component machinery."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,112 +22,88 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 24,
-      "total": 24,
-      "note": "F0.5 gate, 24 tests, exit 0. The load-bearing one is triage-fix-now-more-options-clip.spec.ts: it proves the PR #250 clip fix SURVIVES this refactor (0px clipped, modal body scrolls). Plus triage-fix-now (both dialog bodies) + 80-tablet-responsive 21/21. campaign-status-filter fails in the isolated stack, but fails IDENTICALLY with my CampaignsLane change reverted (verified) — the lane element never mounts (no campaign fixtures under the temp USERPROFILE), so it is a fixture gap, not a regression."
+      "passed": 11,
+      "total": 11,
+      "note": "F0.5 web: 73-embedded-terminal.spec.ts on an isolated single-process stack (:3947, temp USERPROFILE, 127.0.0.1), exit 0. Proves the try/catch wrappers on the WS-upgrade + prewarm spawn seams do NOT regress the happy path — test #3 (WS upgrade emits ready) + #4/#5 (paste-image via prewarm spawn) all pass. The vanished-cwd ERROR path is covered deterministically by the server unit tests (a real cwd race is not reliably reproducible in one browser E2E)."
     },
     "design_fidelity": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "Behavior-preserving refactor — no visual change by construction; the class sets are identical (ModalShell) or gain only a verified no-op guard."
+      "note": "No UI change — server-only robustness fix; the only client-visible effect is that a WS upgrade against a vanished cwd now closes cleanly instead of an opaque failure."
     },
     "smoke": {
       "status": "passed",
       "passed": 1,
       "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3902, temp USERPROFILE, 127.0.0.1): /api/health 200."
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3947, temp USERPROFILE, 127.0.0.1): GET /api/external/tasks 200."
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node C:/01_Development/shipwright-webui/client/node_modules/@playwright/test/cli.js test --config client/playwright.config.ts client/e2e/flows/triage-fix-now-more-options-clip.spec.ts client/e2e/flows/triage-fix-now.spec.ts client/e2e/flows/80-tablet-responsive.spec.ts --project=chromium",
+      "runner": "BASE_URL=http://127.0.0.1:3947 npx playwright test client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
       "exit_code": 0,
-      "tests_run": 24,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\modal-scroll-body-invariant\\.shipwright\\runs\\iterate-2026-07-14-modal-scroll-body-invariant\\surface_verification.log",
-      "timestamp": "2026-07-14T16:08:02.496Z",
+      "tests_run": 11,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-spawn-cwd-267/surface_verification.log",
+      "timestamp": "2026-07-15T16:38:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behavior the diff introduces or changes: the carrier's contract (2), behavior-PRESERVATION for each of the 3 dialog bodies it now backs (3), the 2 lanes newly guarded (2), the ratchet's own two guarantees (2), the end-to-end proof that the PR #250 fix survives (1), non-regression (1), and the bloat-baseline hold (1) = 12 behaviors.",
+      "enumeration_basis": "Every behavior the diff introduces or changes, enumerated from the 3 spec ACs (AC-1 typed error + no-leak, AC-2 WS clean rejection, AC-3 prewarm status split) plus the sub-behaviors those ACs decompose into (code parsing, isLikelyCwdError predicate, whitelist-vs-cwd-vs-other status mapping) and the happy-path non-regression. 8 behaviors; all tested; 0 untested-testable. The root-cause claim (267 = ERROR_DIRECTORY, NOT resource exhaustion) was proven empirically by 3 node-pty probes before the fix — diagnostic, not a committed test.",
       "counts": {
-        "total": 12,
-        "tested": 12,
+        "total": 8,
+        "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
       "behaviors": [
         {
-          "behavior": "ModalScrollBody always emits the invariant half (flex-col + overflow-y-auto + [&>*]:shrink-0)",
+          "behavior": "spawn() wraps a node-pty CreateProcess throw in PtySpawnFailedError and leaves NO pty entry registered (no leak)",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "components/common/ModalScrollBody.test.tsx"
+          "evidence": "terminal-spawn-failure.test.ts AC-1 (instanceof + mgr.get(taskId) undefined)"
         },
         {
-          "behavior": "ModalScrollBody merges the caller's variable half (height budget + gap) without dropping the guard",
+          "behavior": "PtySpawnFailedError.code parses the native code (267) from the message; null when absent",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "ModalScrollBody.test.tsx (asserts max-h-[calc(100vh-260px)] + gap-3.5 + the guard coexist)"
+          "evidence": "terminal-spawn-failure.test.ts AC-1 (code===267) + AC-1b (code===null for EPERM)"
         },
         {
-          "behavior": "ModalShell's body keeps its EXACT pre-refactor class set (behavior preservation)",
+          "behavior": "isLikelyCwdError is true for 267/ENOENT/ENOTDIR, false for EMFILE/EPERM",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "The pre-existing ModalShell.test.tsx fence from PR #250 (asserts overflow-y-auto + max-h-[calc(100vh-280px)] + [&>*]:shrink-0) still passes unchanged."
+          "evidence": "terminal-spawn-failure.test.ts AC-1c"
         },
         {
-          "behavior": "ContinuePipelineModal's body now inherits the guard (it had none)",
+          "behavior": "WS upgrade converts a spawn failure into a deterministic task_cwd_unusable rejection instead of an uncaught node-pty throw",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "ContinuePipelineModal.test.tsx 'scroll body inherits the bounded-scroll-container guard'"
+          "evidence": "terminal-spawn-failure.test.ts AC-2 (fake upgradeWebSocket captures the rejection reason)"
         },
         {
-          "behavior": "EditTaskModal's body now inherits the guard, with its DIFFERENT budget (260px/gap-3.5) preserved",
+          "behavior": "Prewarm POST /spawn returns 409 task_cwd_unusable on a vanished-cwd (267) spawn failure",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "EditTaskModal.test.tsx 'scroll body inherits the bounded-scroll-container guard'"
+          "evidence": "terminal-spawn-failure.test.ts AC-3"
         },
         {
-          "behavior": "The TaskBoard column lane is guarded (its apparent child-layer guard was a no-op: TaskCard's shrink-0 sits on a grandchild behind DraggableCard's wrapper div)",
+          "behavior": "Prewarm keeps 400 pty_spawn_rejected for a whitelist rejection (unchanged)",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts structural scan (falsified: removing the class makes it FAIL and name the file)"
+          "evidence": "terminal-spawn-failure.test.ts AC-3b"
         },
         {
-          "behavior": "The Campaigns lane is guarded (bounded via max-h-[40vh]; invisible to the first draft of the ratchet)",
+          "behavior": "Prewarm returns 500 pty_spawn_failed for a NON-cwd spawn failure (EMFILE), not mislabelled as task_cwd_unusable",
           "category": "unit",
           "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts structural scan"
+          "evidence": "terminal-spawn-failure.test.ts AC-3c"
         },
         {
-          "behavior": "RATCHET: any NEW self-scrolling column-flex container without the guard fails the build",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts — falsified against 5 evasions (max-h-[85vh], overflow-auto, max-h-[calc(100dvh-..)], flex-1-bounded, guard-only-in-a-comment): ALL caught. vitest gates CI; Playwright does not."
-        },
-        {
-          "behavior": "RATCHET: a ModalScrollBody caller cannot smuggle a class beyond max-h-*/gap-* (no tailwind-merge, so a stray overflow-visible would silently win/lose by source order)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "modal-scroll-body-invariant.test.ts 'callers pass only the variable half'"
-        },
-        {
-          "behavior": "The PR #250 clip fix still holds THROUGH the refactor (the whole point of behavior preservation)",
+          "behavior": "The terminal WS-upgrade + spawn + ready happy path (and prewarm-backed paste-image) is unregressed by the try/catch wrappers",
           "category": "e2e",
           "disposition": "tested",
-          "evidence": "e2e/flows/triage-fix-now-more-options-clip.spec.ts GREEN in real Chromium against the refactored build (0px clipped, body scrolls)."
-        },
-        {
-          "behavior": "No regression to the create-dialog bodies or the responsive bands",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "triage-fix-now.spec.ts (new-task + new-iterate bodies) + 80-tablet-responsive 21/21. F0.5: 24 tests, exit 0."
-        },
-        {
-          "behavior": "Both grandfathered bloat-baseline files stay AT baseline (the anti-ratchet hook blocks any growth)",
-          "category": "unit",
-          "disposition": "tested",
-          "evidence": "ContinuePipelineModal 321/321, EditTaskModal 439/439; pre-commit anti_ratchet_check passes."
+          "evidence": "73-embedded-terminal.spec.ts 11/11 on isolated stack, exit 0 (F0.5)"
         }
       ]
     },

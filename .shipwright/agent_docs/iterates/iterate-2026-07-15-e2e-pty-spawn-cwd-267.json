@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-15-e2e-pty-spawn-cwd-267",
+  "date": "2026-07-15T14:44:20.995213Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/e2e-pty-spawn-cwd-267",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-15-e2e-pty-spawn-cwd-267/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-15-e2e-pty-spawn-cwd-267"
+}

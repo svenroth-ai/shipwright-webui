@@ -114,6 +114,34 @@ export class PtySpawnRejectedError extends Error {
   }
 }
 
+/**
+ * iterate-2026-07-15-e2e-pty-spawn-cwd-267 — the injected `spawnFn`
+ * (node-pty's `CreateProcess`) threw. Dominant cause on Windows: a spawn
+ * `cwd` that was removed / is delete-pending → `error code: 267`
+ * (ERROR_DIRECTORY). Distinct from `PtySpawnRejectedError` (whitelist);
+ * callers convert it to a clean rejection, not an uncaught throw. Full
+ * root-cause (267 ≠ resource exhaustion) is in the run's decision drop.
+ */
+export class PtySpawnFailedError extends Error {
+  /** Parsed native code when present (267 = ERROR_DIRECTORY on win32), else null. */
+  readonly code: number | null;
+  constructor(cwd: string, cause: unknown) {
+    const causeMsg = cause instanceof Error ? cause.message : String(cause);
+    super(`pty-manager: failed to spawn a shell in cwd '${cwd}': ${causeMsg}`);
+    this.name = "PtySpawnFailedError";
+    const m = /error code:\s*(\d+)/i.exec(causeMsg);
+    this.code = m ? Number(m[1]) : null;
+    (this as { cause?: unknown }).cause = cause;
+  }
+
+  /** True when the failure is an unusable cwd (win32 267 / POSIX ENOENT /
+   *  ENOTDIR) — the user-actionable case; other failures (EMFILE/EPERM) are
+   *  NOT labelled as a cwd problem, so callers stay accurate (code-review N1). */
+  get isLikelyCwdError(): boolean {
+    return this.code === 267 || /\b(ENOENT|ENOTDIR)\b/.test(this.message);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Whitelist + shell-kind inference
 // ---------------------------------------------------------------------------
@@ -405,11 +433,19 @@ export class PtyManager {
       shell: opts.shell,
       shellKind: inferShellKind(opts.shell),
     };
-    const pty = this.spawnFn(opts.shell, [], {
-      cwd: opts.cwd,
-      cols: opts.cols ?? 120,
-      rows: opts.rows ?? 30,
-    });
+    // iterate-2026-07-15 — node-pty's CreateProcess throws synchronously on an
+    // unusable cwd (267). Type it so WS-upgrade + prewarm callers degrade
+    // cleanly; no entry is registered yet, so a failed spawn leaks nothing.
+    let pty: PtyHandleApi;
+    try {
+      pty = this.spawnFn(opts.shell, [], {
+        cwd: opts.cwd,
+        cols: opts.cols ?? 120,
+        rows: opts.rows ?? 30,
+      });
+    } catch (err) {
+      throw new PtySpawnFailedError(opts.cwd, err);
+    }
     // ADR-088: optional headless mirror — lifetime co-extensive with the
     // entry (disposed in cleanup()); dims match the pty-spawn defaults.
     const mirror = this.headlessMirrorEnabled
