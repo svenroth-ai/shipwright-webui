@@ -86,7 +86,14 @@ case "${MODE}" in
   smoke)  npx playwright test --project=chromium --grep @smoke || STATUS=$? ;;
   visual) npx playwright test --project=visual || STATUS=$? ;;
   full)   npx playwright test --project=chromium --project=mobile-chromium || STATUS=$? ;;
-  *) echo "unknown mode: ${MODE} (expected smoke|visual|full)"; exit 2 ;;
+  # visual-update REGENERATES the committed baselines in the pinned container — the
+  # only place they can be produced (no local Docker on the dev box; a Windows
+  # baseline would never match the Linux runner). Triggered by workflow_dispatch
+  # (visual-baselines.yml), NOT by the PR gate. `--update-snapshots` never fails on a
+  # mismatch (it rewrites the baseline), so STATUS stays 0 and the fresh
+  # __screenshots__ are uploaded for the branch to commit.
+  visual-update) npx playwright test --project=visual --update-snapshots || STATUS=$? ;;
+  *) echo "unknown mode: ${MODE} (expected smoke|visual|full|visual-update)"; exit 2 ;;
 esac
 
 if [[ "${STATUS}" -ne 0 ]]; then
