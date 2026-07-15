@@ -47,6 +47,7 @@ import { SdkSessionsStore } from "../core/sdk-sessions-store.js";
 import { createRunConfigRouter } from "./run-config/routes.js";
 import { createComplianceRouter } from "./compliance/routes.js";
 import { createEventsRouter } from "./events/routes.js";
+import { createRunsRouter } from "./runs/routes.js";
 import { createPreviewRouter } from "./preview/routes.js";
 import { createActionsRouter } from "./actions/routes.js";
 import { createTreeRouter } from "./tree/routes.js";
@@ -242,6 +243,9 @@ export function createExternalRoutes(args: {
   // FR-01.46 — tracked event-log is a READ-ONLY observer of
   // shipwright_events.jsonl (per-run facts for Mission Control / Ship's-Log).
   app.route("/", createEventsRouter({ getProjectById }));
+  // FR-01.47 — per-run data join (READ-ONLY): runId → FRs/tests/derived-gates/
+  // phase-timings + grade-trend series, over the same shipwright_events.jsonl.
+  app.route("/", createRunsRouter({ getProjectById }));
   // FR-01.45 — single-session design-gate mockup review: gate observer + viewer
   // host + the transient round-feedback write (the sole new write surface).
   app.route(
