@@ -1,18 +1,18 @@
 # Commit Change Log
 
-Generated: 2026-07-08T08:42:03.071892+00:00
-Total commits: 638
+Generated: 2026-07-15T14:43:22.135609+00:00
+Total commits: 680
 
 ## Commit Distribution
 
 ```mermaid
 pie title Commit Types
-    "fix" : 232
-    "feat" : 150
-    "chore" : 129
-    "docs" : 64
-    "refactor" : 28
-    "test" : 23
+    "fix" : 261
+    "feat" : 155
+    "chore" : 131
+    "docs" : 66
+    "refactor" : 29
+    "test" : 26
     "ci" : 7
     "other" : 4
     "build" : 1
@@ -20,11 +20,40 @@ pie title Commit Types
 
 ## Changes by Type
 
-### Fixes (fix) — 232 commits
+### Fixes (fix) — 261 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
-| 2026-07-08 | compliance | reconcile detective-audit B7/D3/G2/H1/H2 post-v0.21.0 (data-only) | a149e312a551 |
+| 2026-07-15 | terminal | handle pty spawn on a vanished cwd, not an uncaught 267 (FR-01.28) | 198ea324bed2 |
+| 2026-07-15 | e2e | align v0-9-5-task-type-matrix snapshot header to v2/6.0.0 (#253) | 1d57901f76b4 |
+| 2026-07-14 | create-dialog | stop the modal body squeezing "More options" shut (flex clip) (#250) | 6279f75bb0a4 |
+| 2026-07-14 | deploy | delegate kill+start to a detached swapper so the deploy can't kill itself (#249) | 4265a4333d55 |
+| 2026-07-14 | terminal | heal the WebGL glyph atlas on a re-show, not just repaint it (FR-01.28) (#248) | e007c434f35a |
+| 2026-07-12 | terminal | preserve richer snapshot on last-detach flush (ADR-096 shared gate) (#246) | 175f586cc103 |
+| 2026-07-12 | preview | treat empty stack.frontend {} as backend-only in boot coherence check (D23/F32) (#245) | f5c0025dc545 |
+| 2026-07-12 | tasks | validate title at create + fork like PATCH — reject newlines/over-length, no orphan fork (D22/F27) (#244) | 7246e6f6dca9 |
+| 2026-07-11 | preview | host-pin the returned preview URL + reject an invalid dev_server.port (D21/F10,F30) (#243) | 50c2d40eaaab |
+| 2026-07-11 | preview | manage dev-server child lifecycle — drain, dedup, tree-kill (D20/F11,F12,F13) (#242) | 89ddc976acf3 |
+| 2026-07-11 | terminal | sweep orphaned snapshot tmp staging files (D19/F26) (#241) | 857fef834a3b |
+| 2026-07-11 | launch | emit --resume when the JSONL already exists (D18/F14,F28) (#240) | cf5cffec5f64 |
+| 2026-07-11 | errors | central 409 (ELOCKED) + 400 (bad JSON body) mapping in the global error handler (D17/F29,F33) (#239) | d9308296f45f |
+| 2026-07-11 | scrollback | group a task's files before TTL-deleting so a fresh .log vetoes its expired .log.1 (D16/F25) (#238) | f64d830d9eac |
+| 2026-07-11 | transcript | stop the poller on terminal state + one poller per page (D15/F21,F22) (#237) | ae23866ee0b0 |
+| 2026-07-11 | scripts | PS1 prod start/stop honor $PORT like their .sh twins (D14/F35) (#236) | 71da1e82ee61 |
+| 2026-07-11 | installer | write the autostart VBS as UTF-16LE so non-ASCII repo paths survive (D13/F18) (#235) | 78c1b150f584 |
+| 2026-07-11 | terminal | strip webui PORT/VITE_PORT/HONO_HOST from the embedded-pty env (D12/F17) (#234) | 59918355c50e |
+| 2026-07-11 | dev-restart | kill only the real listener PID — LISTENING + exact-port + IPv6 (D11/F16) (#233) | c3ebf52e1eee |
+| 2026-07-11 | run-config | stat-probe retry + last-good TTL above poll cadence + client no-latch on transient invalid (D10/F15) (#232) | 68f89d4b7ff0 |
+| 2026-07-11 | file-write | reject a .md-named symlink escape on PUT /file (D09/F09) (#231) | 545637955b53 |
+| 2026-07-11 | projects | tolerate a corrupt projects.json on boot + atomic persist (D08/F07) (#230) | b4f7b8268130 |
+| 2026-07-11 | launch | project-scope master-shadow reuse + stamp guard identity (D07/F06,F34) (#229) | c66dc7f51ea8 |
+| 2026-07-11 | transcript | terminal states immutable on poll + dirty-checked persist + findByUuid retry (D06/F04,F23,F24) (#228) | 432a581c4a98 |
+| 2026-07-11 | store | merge sdk-sessions under lock + atomic write, no cross-instance data loss (D04/F08) (#226) | e456023ef5a3 |
+| 2026-07-11 | preview | win32 dev-server spawn via PATHEXT + cmd.exe wrapper (D03/F03,F31) (#225) | 2bd6ac2b05f1 |
+| 2026-07-11 | terminal | WS re-attach replays disk snapshot after pty death (D02/F02) (#224) | 8f8f43b72825 |
+| 2026-07-11 | delete-cascade | tear down live pty + fence snapshot clear on task/project delete (D01) (#223) | 6f49ae089961 |
+| 2026-07-08 | create-dialog | make More-options panel readable (grey header, lighter body, white fields) (#214) | f19c3648dbc8 |
+| 2026-07-08 | compliance | reconcile detective-audit B7/D3/G2/H1/H2 post-v0.21.0 (#213) | aff7d47fddf0 |
 | 2026-07-07 | terminal | don't forward right-click to the pty — kills the right-click double-paste (FR-01.28) (#211) | f935606768bf |
 | 2026-07-07 | terminal | honor Claude's OSC 52 clipboard copy over http; drop the WebUI's own copy machinery (FR-01.28) (#207) | cedfdc7497f2 |
 | 2026-07-07 | terminal | clear the WebGL glyph atlas (not just refresh) to heal wrong-letter corruption (FR-01.28) (#206) | 8a516188e541 |
@@ -257,10 +286,15 @@ pie title Commit Types
 | 2026-04-11 | webui | resolve visual mockup deviations and 10 dead-write persistence gaps | 2fb62940177a |
 | 2026-04-11 | server | replace __dirname with ESM-compatible import.meta.url | db137a78054b |
 
-### Features (feat) — 150 commits
+### Features (feat) — 155 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-10 | design-gate | host emitted mockup viewer + write round feedback (FR-01.45) (#221) | 4fd7f10e2d62 |
+| 2026-07-09 | board | campaign-like single-session pipeline card (campaign W3) (#219) | 525bca8b2d8f |
+| 2026-07-09 | pipeline | single-session master-launch mechanism (campaign W2) (#218) | 8d69b7b94d4d |
+| 2026-07-09 | run-config | mode-aware config + SHIPWRIGHT_WEBUI marker (campaign W1) (#217) | 2ff8b65fc299 |
+| 2026-07-08 | board | default Task Board + List to Last Modified (newest first) (#216) | 9cb9b248f15e |
 | 2026-07-06 | terminal | light/dark appearance mirroring Claude Code + truecolor (FR-01.44) (#201) | 190582200464 |
 | 2026-07-06 | external | collapse create-dialog area below Description into a gray "More options" section (#198) | 80ab31fb48b4 |
 | 2026-07-06 | scripts | add macOS/Linux production rebuild+restart scripts (#197) | f3d2e3dbf59f |
@@ -412,12 +446,14 @@ pie title Commit Types
 | 2026-04-11 | types | add shared TypeScript type definitions | 111b1ee75c90 |
 | 2026-04-10 | server | scaffold Hono server with health endpoint, CORS, and error handling | b002cd6e5a40 |
 
-### Chores (chore) — 129 commits
+### Chores (chore) — 131 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-15 | triage | sweep 3 outbox append(s) into branch | c470fd4e716a |
+| 2026-07-12 | release | v0.23.0 (#247) | ac845a1eb7cf |
+| 2026-07-08 | ci | flip the diff-coverage gate to hard-block + SHA-pin the composite action (#215) | b0e24d11d325 |
 | 2026-07-08 | release | v0.22.0 (#212) | 69d7e83ff89b |
-| 2026-07-08 | triage | sweep 1 outbox append(s) into branch | 98a935d6ec75 |
 | 2026-07-07 | triage | dismiss gh-security:webui false alarm (accepted-risk GH-owned action-tags) (#209) | 6f9abf5cfc51 |
 | 2026-07-07 | triage | opt into accepted-risk GH-owned action-tag tailoring (#208) | 6e77a3ef66d4 |
 | 2026-07-01 | compliance | re-grade with the composition-neutral Control Grade (B to A) (#193) | 738c35ea029a |
@@ -546,10 +582,12 @@ pie title Commit Types
 | 2026-04-11 | test | add missing test prerequisites and design artifacts | eb43882cf8e8 |
 | 2026-04-11 | client | scaffold Vite 6 + React 19 project with TailwindCSS 4 | 5e114b881034 |
 
-### Documentation (docs) — 64 commits
+### Documentation (docs) — 66 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-10 | claude-md | condense DO-NOT guards + architecture rules to one-line index (#222) | 5e4f9580e3ab |
+| 2026-07-09 | claude-md | guide plain-language phrasing for questions to the user | 3bc474110b69 |
 | 2026-07-06 | conventions | record create-dialog "More options" collapse convention (#199) | 79b475a5b7ef |
 | 2026-06-24 | images | update command-center board screenshot (#173) | d9be7e7f8eb1 |
 | 2026-06-24 | — | drop "or VS Code" from the parallel-projects tagline | 3f266f7469dc |
@@ -615,10 +653,11 @@ pie title Commit Types
 | 2026-04-13 | — | refresh README, guide, CLAUDE.md for Early Access first impression | fd9efff02ce4 |
 | 2026-04-11 | — | track agent_docs, planning, designs, and configs in git | 07b04211b083 |
 
-### Refactoring (refactor) — 28 commits
+### Refactoring (refactor) — 29 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-14 | modals | give the bounded-scroll-container invariant one carrier + a ratchet (#251) | 95f005877705 |
 | 2026-07-07 | ci | consume the diff-coverage gate from the shipwright composite action (#210) | 1364e8290f1e |
 | 2026-07-06 | wizard | remove Add-Project Paste button; guide manual path paste (#196) | 00bc3ab81f37 |
 | 2026-06-23 | terminal | extract safeFit into safe-fit.ts to keep useTerminalResize under 300 LOC (#168) | dd7f74681f0b |
@@ -648,10 +687,13 @@ pie title Commit Types
 | 2026-04-18 | webui/chat | sub-iterate A — assistant-ui renderer foundation | f7b64b4ef893 |
 | 2026-04-14 | webui | remove effort/thinking-depth UI and wire-through entirely | 43e8fc8a51ee |
 
-### Tests (test) — 23 commits
+### Tests (test) — 26 commits
 
 | Date | Scope | Description | Commit |
 |------|-------|-------------|--------|
+| 2026-07-15 | e2e | harness hardening — isolated suite, CI gate, visual regression, terminal byte-path guard (A00) (#252) | ed624369543a |
+| 2026-07-11 | e2e | repair the two ADR-038 schema E2E guards on an isolated store (D05/F19,F20) (#227) | 2bf31c211664 |
+| 2026-07-09 | e2e | single-session pipeline cross-surface capstone (campaign W4) (#220) | 032f170c0b65 |
 | 2026-07-06 | e2e | project-delete cascade regression guard (#200 follow-up) (#202) | 8f538bc071d8 |
 | 2026-06-30 | compliance | empirical E2E coverage for both Grade render sites + graceful absence (FR-01.43) (#185) | 738dddc58e34 |
 | 2026-06-23 | terminal | real-browser E2E proving the renderer override switches WebGL<->DOM (#172) | 37a39ae8ef3c |
@@ -707,7 +749,7 @@ pie title Commit Types
 
 | Metric | Value |
 |--------|-------|
-| Total commits | 638 |
+| Total commits | 680 |
 | AI-assisted commits | 0 |
-| Human-authored commits | 638 |
+| Human-authored commits | 680 |
 
