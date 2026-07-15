@@ -543,7 +543,7 @@
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1217,
+      "current": 1230,
       "state": "exception",
       "adr": "ADR-101"
     },
@@ -557,7 +557,7 @@
     {
       "path": "server/src/terminal/routes.ts",
       "limit": 300,
-      "current": 516,
+      "current": 543,
       "state": "exception",
       "adr": "ADR-103"
     },

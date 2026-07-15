@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-07-15",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-15-task-type-matrix-snapshot-v2",
+    "run_id": "iterate-2026-07-15-e2e-pty-spawn-cwd-267",
     "date": "2026-07-15",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "Diff touches ONLY an E2E spec (client/e2e/flows/v0-9-5-task-type-matrix.spec.ts) — no vitest-covered code changed. tsc --noEmit clean (client); oxlint clean on the touched spec."
+      "status": "passed",
+      "passed": 2092,
+      "total": 2093,
+      "note": "server vitest 179 files / 2092 passed + 1 skipped (+7 vs main: the new terminal-spawn-failure.test.ts). Server-only diff; client suite untouched (2025 passed on main). tsc --noEmit clean (server + client); oxlint clean on all touched files."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No integration surface — a test-fixture version-constant correction, no route/store/contract/cross-component machinery touched."
+      "note": "No integration surface: a robustness fix to the existing pty spawn boundary (typed error + caller handling). No new route/store/contract/cross-component machinery."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,64 +22,88 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 12,
-      "total": 16,
-      "note": "F0.5 isolated-stack run (temp USERPROFILE, :3848, 127.0.0.1), config playwright.iterate.config.ts, exit 0. 12 passed (axis A/B/D x 4 task types), 4 conditionally skipped (axis C cursor — the spec's documented test.skip when the replay-only path renders no focus-visible cursor), 0 failed. RED->GREEN proven: reverting the header to v1/5.5.0 makes axis A fail at toContainText(MARKER) (marker never renders); restoring v2/6.0.0 makes envs=[[ready,replay_snapshot]] and all 12 pass."
+      "passed": 11,
+      "total": 11,
+      "note": "F0.5 web: 73-embedded-terminal.spec.ts on an isolated single-process stack (:3947, temp USERPROFILE, 127.0.0.1), exit 0. Proves the try/catch wrappers on the WS-upgrade + prewarm spawn seams do NOT regress the happy path — test #3 (WS upgrade emits ready) + #4/#5 (paste-image via prewarm spawn) all pass. The vanished-cwd ERROR path is covered deterministically by the server unit tests (a real cwd race is not reliably reproducible in one browser E2E)."
     },
     "design_fidelity": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "Test-only change; no visual/UI surface touched."
+      "note": "No UI change — server-only robustness fix; the only client-visible effect is that a WS upgrade against a vanished cwd now closes cleanly instead of an opaque failure."
     },
     "smoke": {
       "status": "passed",
       "passed": 1,
       "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3848, temp USERPROFILE, 127.0.0.1, SHIPWRIGHT_NETWORK_PROFILE=local) booted loopback-only with headless-mirror enabled; served the full 16-test E2E run."
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3947, temp USERPROFILE, 127.0.0.1): GET /api/external/tasks 200."
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test --config client/playwright.iterate.config.ts client/e2e/flows/v0-9-5-task-type-matrix.spec.ts (BASE_URL=http://127.0.0.1:3848, USERPROFILE=<temp>, PLAYWRIGHT_BROWSERS_PATH=<real ms-playwright>)",
+      "runner": "BASE_URL=http://127.0.0.1:3947 npx playwright test client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
       "exit_code": 0,
-      "tests_run": 16,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\task-type-matrix-snapshot-v2\\.shipwright\\runs\\iterate-2026-07-15-task-type-matrix-snapshot-v2\\surface_verification.log",
-      "timestamp": "2026-07-15T14:38:54Z",
+      "tests_run": 11,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-spawn-cwd-267/surface_verification.log",
+      "timestamp": "2026-07-15T16:38:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": [
-        "The diff changes exactly one thing — the snapshot-envelope version the E2E fixture writer emits (v1/xterm@5.5.0 -> v2/xterm@6.0.0). Its full behavioral surface: (1) the server replay version-gate accepts the header and emits replay_snapshot; (2) the marker renders in the DOM after replay; (3) the single-pty/no-chunked-envelope contract (axis D) holds on the replay-only path. All three proven across the 4 task types. Axis C (cursor) is a pre-existing conditional skip, NOT a behavior this diff introduces. ACs=3, covered_acs=3."
-      ],
+      "enumeration_basis": "Every behavior the diff introduces or changes, enumerated from the 3 spec ACs (AC-1 typed error + no-leak, AC-2 WS clean rejection, AC-3 prewarm status split) plus the sub-behaviors those ACs decompose into (code parsing, isLikelyCwdError predicate, whitelist-vs-cwd-vs-other status mapping) and the happy-path non-regression. 8 behaviors; all tested; 0 untested-testable. The root-cause claim (267 = ERROR_DIRECTORY, NOT resource exhaustion) was proven empirically by 3 node-pty probes before the fix — diagnostic, not a committed test.",
       "counts": {
-        "total": 3,
-        "tested": 3,
+        "total": 8,
+        "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
-      "enumeration_basis_counts": {
-        "acs": 3,
-        "covered_acs": 3
-      },
       "behaviors": [
         {
-          "behavior": "A v2/xterm@6.0.0 snapshot header written by the E2E is accepted by the server replay version-gate (replay-snapshot.ts tryReadSnapshot + snapshot-store.ts SUPPORTED_VERSIONS={v2}) -> replay_snapshot emitted on WS attach for all 4 task types",
-          "category": "e2e",
+          "behavior": "spawn() wraps a node-pty CreateProcess throw in PtySpawnFailedError and leaves NO pty entry registered (no leak)",
+          "category": "unit",
           "disposition": "tested",
-          "evidence": "v0-9-5-task-type-matrix.spec.ts axis A (4 pass): envs=[[ready,replay_snapshot],[ready,replay_snapshot]]. RED proof: v1/5.5.0 header emits NO replay_snapshot and axis A fails at toContainText(MARKER)."
+          "evidence": "terminal-spawn-failure.test.ts AC-1 (instanceof + mgr.get(taskId) undefined)"
         },
         {
-          "behavior": "The snapshot marker renders in .xterm-rows under the forced DOM renderer after replay, and pre-leave rows are a subset of post-return rows (rendering correctness)",
-          "category": "e2e",
+          "behavior": "PtySpawnFailedError.code parses the native code (267) from the message; null when absent",
+          "category": "unit",
           "disposition": "tested",
-          "evidence": "v0-9-5-task-type-matrix.spec.ts axis A + axis B (8 pass across 4 task types)."
+          "evidence": "terminal-spawn-failure.test.ts AC-1 (code===267) + AC-1b (code===null for EPERM)"
         },
         {
-          "behavior": "Replay-only path (done state) yields replayOnly:true, exactly one replay_snapshot per attach, ZERO chunked-replay envelopes, no pty spawned, and state stays done across N navigate-away/back cycles",
+          "behavior": "isLikelyCwdError is true for 267/ENOENT/ENOTDIR, false for EMFILE/EPERM",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "terminal-spawn-failure.test.ts AC-1c"
+        },
+        {
+          "behavior": "WS upgrade converts a spawn failure into a deterministic task_cwd_unusable rejection instead of an uncaught node-pty throw",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "terminal-spawn-failure.test.ts AC-2 (fake upgradeWebSocket captures the rejection reason)"
+        },
+        {
+          "behavior": "Prewarm POST /spawn returns 409 task_cwd_unusable on a vanished-cwd (267) spawn failure",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "terminal-spawn-failure.test.ts AC-3"
+        },
+        {
+          "behavior": "Prewarm keeps 400 pty_spawn_rejected for a whitelist rejection (unchanged)",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "terminal-spawn-failure.test.ts AC-3b"
+        },
+        {
+          "behavior": "Prewarm returns 500 pty_spawn_failed for a NON-cwd spawn failure (EMFILE), not mislabelled as task_cwd_unusable",
+          "category": "unit",
+          "disposition": "tested",
+          "evidence": "terminal-spawn-failure.test.ts AC-3c"
+        },
+        {
+          "behavior": "The terminal WS-upgrade + spawn + ready happy path (and prewarm-backed paste-image) is unregressed by the try/catch wrappers",
           "category": "e2e",
           "disposition": "tested",
-          "evidence": "v0-9-5-task-type-matrix.spec.ts axis D (4 pass across 4 task types)."
+          "evidence": "73-embedded-terminal.spec.ts 11/11 on isolated stack, exit 0 (F0.5)"
         }
       ]
     },

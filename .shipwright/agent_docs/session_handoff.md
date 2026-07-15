@@ -1,36 +1,36 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
+run_id: "iterate-2026-07-15-e2e-pty-spawn-cwd-267"
 phase: "iterate"
-reason: "F11 pre-merge refresh: iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
-timestamp: "2026-07-08T08:42:03.071892+00:00"
+reason: "F11 pre-merge refresh: iterate-2026-07-15-e2e-pty-spawn-cwd-267"
+timestamp: "2026-07-15T14:43:27.584673+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-07-08 08:42:03 UTC
+> Auto-generated 2026-07-15 14:43:27 UTC
 
 ## Session Info
 
-- **Session ID**: 0bc53807-0255-4ef8-8716-57f226e846db
-- **Timestamp**: 2026-07-08 08:42:03 UTC
-- **Reason**: F11 pre-merge refresh: iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile
+- **Session ID**: d386e062-1883-40e6-895b-325f69a68118
+- **Timestamp**: 2026-07-15 14:43:27 UTC
+- **Reason**: F11 pre-merge refresh: iterate-2026-07-15-e2e-pty-spawn-cwd-267
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile
-- **Date**: 2026-07-08T08:43:21.900263Z
-- **Type**: change
-- **Complexity**: small
-- **Branch**: iterate/compliance-b7-d3-g2-h1-h2-reconcile
-- **ADR**: iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile
+- **Run ID**: iterate-2026-07-15-e2e-pty-spawn-cwd-267
+- **Date**: 2026-07-15T14:44:20.995213Z
+- **Type**: bug
+- **Complexity**: medium
+- **Branch**: iterate/e2e-pty-spawn-cwd-267
+- **ADR**: iterate-2026-07-15-e2e-pty-spawn-cwd-267
 - **Tests passed**: True
-- **Spec**: n/a (data-only compliance reconcile; spec_impact none)
+- **Spec**: .shipwright/planning/iterate/iterate-2026-07-15-e2e-pty-spawn-cwd-267/spec.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/compliance-b7-d3-g2-h1-h2-reconcile
-- **External Review Marker**: completed (external_review_state.json @ 2026-06-03T14:56:50)
+- **Branch**: iterate/e2e-pty-spawn-cwd-267
+- **External Review Marker**: completed (external_review_state.json @ 2026-07-08T13:26:14)
 
 ### Mandatory replay on Resume
 
@@ -48,8 +48,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/compliance-b7-d3-g2-h1-h2-reconcile
-- **Last Commit**: e2c833a Merge remote-tracking branch 'origin/main' into iterate/compliance-b7-d3-g2-h1-h2-reconcile
+- **Branch**: iterate/e2e-pty-spawn-cwd-267
+- **Last Commit**: 23fe3396 Merge remote-tracking branch 'origin/main' into iterate/e2e-pty-spawn-cwd-267
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -65,23 +65,24 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-b110fbac | work_completed | iterate (Reconcile detective-audit B7/D3/G2/H1/H2 post-v0.21.0: backfill 3 work_completed events (SHAs for #210/#203/#186), amend evt-6482eb15 to reaffirm FR-01.44, register projects/conventions/external/launch scopes, add TriagePage.tsx+triage-store.ts to the bloat baseline, tighten 3 current LOC to on-disk.) | 2026-07-08 |
-| evt-95666bef | work_completed | iterate (refactor(ci): consume the diff-coverage gate from the shipwright composite action (PR #210, B7 backfill — CI-only, behavior-preserving)) | 2026-07-08 |
-| evt-04c11fc0 | event_amended | — | 2026-07-08 |
-| evt-dc1f11f5 | work_completed | iterate (fix(terminal): make copy-on-selection opt-in (default off) + single-send paste guards (PR #186, B7 backfill — Run-ID iterate-2026-06-30-terminal-paste-single-sink had no tracked event)) | 2026-07-08 |
-| evt-b6e09ce0 | work_completed | iterate (fix(triage): union delivered-origin state so dismissed items stop reappearing (PR #203, B7 backfill — triage-board read-only fix; squash commit carried no Run-ID footer)) | 2026-07-08 |
+| evt-e9c44c6b | grade_snapshot | — | 2026-07-15 |
+| evt-0bcf5fcb | work_completed | iterate (Fix v0-9-5-task-type-matrix E2E: write v2/xterm@6.0.0 snapshot header (was stale v1/5.5.0) so the server replay version-gate accepts it and the task-type x scenario matrix (16 tests) passes.) | 2026-07-15 |
+| evt-033e5a72 | grade_snapshot | — | 2026-07-15 |
+| evt-721ec7ab | work_completed | iterate (Pty spawn against a removed/delete-pending cwd now degrades cleanly (typed PtySpawnFailedError -> deterministic WS-upgrade rejection + 409 task_cwd_unusable / neutral 500 from prewarm) instead of an uncaught Windows error 267 at the spawn seam. Root cause: 267 = ERROR_DIRECTORY, not ConPTY resource exhaustion (empirically falsified).) | 2026-07-15 |
+| evt-cd69e16a | grade_snapshot | — | 2026-07-15 |
 
 ## Recovery
 
-- **Pipeline**: 3 phases completed
-- **Total work events**: 273
-- **Last iterate**: change — Reconcile detective-audit B7/D3/G2/H1/H2 post-v0.21.0: backfill 3 work_completed events (SHAs for #210/#203/#186), amend evt-6482eb15 to reaffirm FR-01.44, register projects/conventions/external/launch scopes, add TriagePage.tsx+triage-store.ts to the bloat baseline, tighten 3 current LOC to on-disk. (2026-07-08)
+- **Pipeline**: 2 phases completed
+- **Total work events**: 313
+- **Last iterate**: bug — Fix v0-9-5-task-type-matrix E2E: write v2/xterm@6.0.0 snapshot header (was stale v1/5.5.0) so the server replay version-gate accepts it and the task-type x scenario matrix (16 tests) passes. (2026-07-15)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
 
-### ADR-230: Don't forward right-click to the pty
-- **Date:** 2026-07-07
-- **Section:** Iterate — bug: terminal right-click double-paste
-- **Run-ID:** iterate-2026-07-07-terminal-rightclick-double-paste
-- **Context:** Claude Code treats a reported right-click as PASTE (from its own copy buffer). In mouse-tracking mode xterm reports the right button to Claude, so a right-click made Claude paste ON TOP OF the browser context-menu Paste that the WebUI relays (usePasteImage) = an intermittent double-paste. 
+### ADR-263: Share the ADR-096 preserve-gate across both snapshot write paths
+- **Date:** 2026-07-12
+- **Section:** Iterate — bug: mirror-flush snapshot preservation gate
+- **Run-ID:** iterate-2026-07-12-mirror-flush-preserve-gate
+- **Context:** flushMirrorSnapshot (ADR-092 last-detach) wrote unconditionally while finalizeMirrorSnapshot had the ADR-096 preserve gate; on the 2nd detach->reopen cycle a thin mirror clobbered the richer disk snapshot, blanking terminal scrollback.
+- **Decision:** Extract th

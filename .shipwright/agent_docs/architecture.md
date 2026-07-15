@@ -294,3 +294,4 @@ _**One line per change, ≤600 chars** — always-loaded Layer-1 context; detail
 - **ADR-226** (2026-07-06): Redraw-proof terminal copy cache
 - **ADR-229** (2026-07-07): OSC 52 as the sole terminal copy path
 - **ADR-230** (2026-07-07): Don't forward right-click to the pty
+- **iterate-2026-07-15-e2e-pty-spawn-cwd-267** (2026-07-15) — pty spawn-boundary hardening: `PtyManager.spawn` throws a typed `PtySpawnFailedError` on a node-pty CreateProcess failure; the WS-upgrade + prewarm callers degrade cleanly (`task_cwd_unusable` 409 / neutral `pty_spawn_failed` 500) instead of an uncaught Windows 267 (ERROR_DIRECTORY) — no new route or write surface (FR-01.28).

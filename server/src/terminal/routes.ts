@@ -46,7 +46,7 @@ import type {
   PtySpawnFn,
   ShellKind,
 } from "./pty-manager.js";
-import { quotePathForShell } from "./pty-manager.js";
+import { PtySpawnFailedError, quotePathForShell } from "./pty-manager.js";
 import {
   appendGitignoreLine,
   ImagePasteError,
@@ -220,6 +220,14 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           cwd: meta.cwd,
         });
       } catch (err) {
+        // iterate-2026-07-15 — a spawn failure is NOT a whitelist rejection: a
+        // vanished cwd (267/ENOENT/ENOTDIR) → 409 task_cwd_unusable; anything
+        // else (EMFILE/EPERM) → neutral 500 pty_spawn_failed.
+        if (err instanceof PtySpawnFailedError) {
+          return err.isLikelyCwdError
+            ? c.json({ error: "task_cwd_unusable", detail: err.message }, 409)
+            : c.json({ error: "pty_spawn_failed", detail: err.message }, 500);
+        }
         return c.json(
           { error: "pty_spawn_rejected", detail: String((err as Error).message) },
           400,
@@ -476,7 +484,26 @@ export function createTerminalRoutes(deps: TerminalRoutesDeps) {
           scrollbackDirHint,
           resolveShell,
         };
-        return buildWsHandlers(ctx);
+        // iterate-2026-07-15 — `buildWsHandlers` calls `ptyManager.spawn()`
+        // synchronously; if the cwd validated above but CreateProcess can't use
+        // it (removed / delete-pending), it throws PtySpawnFailedError. Reject
+        // the upgrade deterministically instead of an uncaught 267 log line.
+        try {
+          return buildWsHandlers(ctx);
+        } catch (err) {
+          if (err instanceof PtySpawnFailedError) {
+            const reason = err.isLikelyCwdError
+              ? "task_cwd_unusable"
+              : "pty_spawn_failed";
+            // eslint-disable-next-line no-console
+            console.warn(
+              `[terminal] pty spawn failed for ${taskId} (${reason}` +
+                `${err.code !== null ? `, code ${err.code}` : ""}); rejecting WS upgrade`,
+            );
+            throw new Error(reason);
+          }
+          throw err;
+        }
       }),
     );
 
