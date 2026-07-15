@@ -75,6 +75,15 @@ describe("LaunchCTA — happy path", () => {
     expect(btn.disabled).toBe(false);
   });
 
+  it("hover swaps the green background to the darker --ok token, restores on leave (A04 sweep)", () => {
+    renderCTA(makeTask());
+    const btn = screen.getByTestId("cta-launch-in-terminal") as HTMLButtonElement;
+    fireEvent.mouseEnter(btn);
+    expect(btn.style.background).toContain("--ok");
+    fireEvent.mouseLeave(btn);
+    expect(btn.style.background).toContain("--color-success");
+  });
+
   it("click → POST /launch (resume=false) + POST /spawn prewarm", async () => {
     const fetchInner = vi.fn(
       async (url: string | URL | Request, _init?: RequestInit) => {

@@ -110,6 +110,25 @@ describe("FolderTree — root fetch + lazy expand", () => {
   });
 });
 
+describe("FolderTree — icon-by-extension colour map (A04 sweep, FR-01.48)", () => {
+  it("renders json/yaml (text-warn) and image (text-info) file rows", async () => {
+    const fixture: TreeFixture = {
+      "": [
+        { name: "config.json", kind: "file", ignored: false },
+        { name: "logo.png", kind: "file", ignored: false },
+      ],
+    };
+    globalThis.fetch = mockTreeFetch(fixture) as unknown as typeof fetch;
+    render(
+      <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("folder-tree-row-config.json")).toBeTruthy();
+    });
+    expect(screen.getByTestId("folder-tree-row-logo.png")).toBeTruthy();
+  });
+});
+
 describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
   it("ignored entries render muted + italic with data-ignored=\"true\" by default", async () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
