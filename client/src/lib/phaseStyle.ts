@@ -18,7 +18,7 @@ export interface PhaseStyle {
 }
 
 const PHASE_STYLES: Record<string, PhaseStyle> = {
-  project: { cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]", dot: "bg-[var(--color-muted)]" },
+  project: { cls: "bg-inset text-[var(--color-text)]", dot: "bg-[var(--color-muted)]" },
   design: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   plan: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   build: { cls: "bg-warn-tint text-warn", dot: "bg-[var(--warn-solid)]" },
@@ -29,8 +29,8 @@ const PHASE_STYLES: Record<string, PhaseStyle> = {
   security: { cls: "bg-err-tint text-err", dot: "bg-[var(--err-solid)]" },
   adopt: { cls: "bg-inset text-[var(--color-text)]", dot: "bg-[var(--color-muted)]" },
   iterate: {
-    cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]",
-    dot: "bg-[var(--color-accent,#857568)]",
+    cls: "bg-inset text-[var(--color-text)]",
+    dot: "bg-[var(--color-accent)]",
   },
 };
 
