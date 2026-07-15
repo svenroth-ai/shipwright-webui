@@ -19,14 +19,14 @@ const SEVERITY_CLASSES: Record<TriageSeverity, string> = {
   critical: "bg-err-tint text-err border-[var(--err-line)]",
   high: "bg-warn-tint text-warn border-[var(--warn-line)]",
   medium: "bg-warn-tint text-warn border-[var(--warn-line)]",
-  low: "bg-inset text-body border-line-strong",
-  info: "bg-inset text-body border-line",
+  low: "bg-inset text-[var(--color-text)] border-[var(--color-border)]",
+  info: "bg-inset text-[var(--color-text)] border-[var(--color-border)]",
 };
 
 const STATUS_CLASSES: Record<TriageStatus, string> = {
   triage: "bg-warn-tint text-warn border-[var(--warn-line)]",
   promoted: "bg-ok-tint text-ok border-[var(--ok-line)]",
-  dismissed: "bg-inset text-body border-line-strong",
+  dismissed: "bg-inset text-[var(--color-text)] border-[var(--color-border)]",
   snoozed: "bg-info-tint text-info border-[var(--info-line)]",
 };
 
@@ -44,7 +44,7 @@ export function SeverityBadge({ severity }: { severity: TriageSeverity }) {
 export function SourceBadge({ source }: { source: string }) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-inset text-body border border-line"
+      className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-inset text-[var(--color-text)] border border-[var(--color-border)]"
       data-testid={`triage-source-${source}`}
     >
       {source}

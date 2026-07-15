@@ -18,16 +18,16 @@ export interface PhaseStyle {
 }
 
 const PHASE_STYLES: Record<string, PhaseStyle> = {
-  project: { cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]", dot: "bg-muted" },
+  project: { cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]", dot: "bg-[var(--color-muted)]" },
   design: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   plan: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   build: { cls: "bg-warn-tint text-warn", dot: "bg-[var(--warn-solid)]" },
   test: { cls: "bg-ok-tint text-ok", dot: "bg-[var(--ok-solid)]" },
-  deploy: { cls: "bg-accent-tint text-accent", dot: "bg-accent" },
+  deploy: { cls: "bg-accent-tint text-[var(--color-accent)]", dot: "bg-[var(--color-primary)]" },
   changelog: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   compliance: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   security: { cls: "bg-err-tint text-err", dot: "bg-[var(--err-solid)]" },
-  adopt: { cls: "bg-inset text-body", dot: "bg-muted" },
+  adopt: { cls: "bg-inset text-[var(--color-text)]", dot: "bg-[var(--color-muted)]" },
   iterate: {
     cls: "bg-[var(--color-muted-bg,#ede8e1)] text-[var(--color-muted,#6b7280)]",
     dot: "bg-[var(--color-accent,#857568)]",

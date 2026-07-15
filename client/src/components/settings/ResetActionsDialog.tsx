@@ -38,10 +38,10 @@ export function ResetActionsDialog({
             boxShadow: "var(--shadow-card-hover)",
           }}
         >
-          <Dialog.Title className="text-base font-semibold text-ink">
+          <Dialog.Title className="text-base font-semibold text-[var(--color-text)]">
             Reset actions.json?
           </Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm text-body">
+          <Dialog.Description className="mt-2 text-sm text-[var(--color-text)]">
             Remove <span className="font-mono text-xs">.shipwright-webui/actions.json</span>{" "}
             from <span className="font-medium">{projectName}</span>? The project
             will fall back to the bundled default. The file on disk will be
@@ -51,7 +51,7 @@ export function ResetActionsDialog({
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="bg-white px-3 py-1 text-sm text-ink hover:bg-inset"
+                className="bg-white px-3 py-1 text-sm text-[var(--color-text)] hover:bg-inset"
                 style={{
                   border: "1px solid var(--color-border)",
                   borderRadius: "var(--radius-button)",

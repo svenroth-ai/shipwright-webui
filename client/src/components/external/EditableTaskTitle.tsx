@@ -81,12 +81,12 @@ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="inline-flex items-center gap-2 text-left text-lg font-semibold text-ink hover:text-info"
+        className="inline-flex items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"
         aria-label="Edit task title"
         data-testid="task-title-display"
       >
         <span>{task.title}</span>
-        <Pencil size={14} className="text-muted" />
+        <Pencil size={14} className="text-[var(--color-muted)]" />
       </button>
     );
   }

@@ -13,7 +13,7 @@
 import { Loader2 } from "lucide-react";
 
 const PRIMARY_BTN =
-  "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5";
+  "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5";
 
 interface CampaignStartCtaProps {
   slug: string;
@@ -34,19 +34,19 @@ export function CampaignStartCta({
 }: CampaignStartCtaProps) {
   return (
     <div
-      className="border-t border-line pt-4 mt-4"
+      className="border-t border-[var(--color-border)] pt-4 mt-4"
       data-testid="triage-campaign-cta"
     >
-      <h4 className="text-xs font-semibold text-body uppercase mb-2">
+      <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
         Campaign
       </h4>
-      <p className="text-xs text-body mb-3">
+      <p className="text-xs text-[var(--color-text)] mb-3">
         This item is the umbrella for campaign{" "}
         <code className="text-[11px]">{slug}</code>
         {status ? ` (${status})` : ""}.
       </p>
       {status === "complete" ? (
-        <p className="text-xs text-muted" data-testid="triage-campaign-complete">
+        <p className="text-xs text-[var(--color-muted)]" data-testid="triage-campaign-complete">
           Campaign complete — nothing to start.
         </p>
       ) : status === "active" ? (

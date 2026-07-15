@@ -34,10 +34,10 @@ export function LaunchPayloadBlock({ item }: LaunchPayloadBlockProps) {
   if (decision.kind === "github-placeholder") {
     return (
       <div
-        className="border-t border-line pt-4 mt-4"
+        className="border-t border-[var(--color-border)] pt-4 mt-4"
         data-testid="triage-launch-payload-block"
       >
-        <h4 className="text-xs font-semibold text-body uppercase mb-2">
+        <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
           Launch payload
         </h4>
         <div
@@ -53,17 +53,17 @@ export function LaunchPayloadBlock({ item }: LaunchPayloadBlockProps) {
   // decision.kind === "render"
   return (
     <div
-      className="border-t border-line pt-4 mt-4"
+      className="border-t border-[var(--color-border)] pt-4 mt-4"
       data-testid="triage-launch-payload-block"
     >
-      <h4 className="text-xs font-semibold text-body uppercase mb-2">
+      <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
         Launch payload
       </h4>
-      <p className="text-[11px] text-muted mb-2">
+      <p className="text-[11px] text-[var(--color-muted)] mb-2">
         Copy into a new Claude Code session to start the matching run.
       </p>
       <pre
-        className="font-mono text-xs bg-inset border border-line rounded p-3 whitespace-pre-wrap overflow-x-auto max-h-64 overflow-y-auto"
+        className="font-mono text-xs bg-inset border border-[var(--color-border)] rounded p-3 whitespace-pre-wrap overflow-x-auto max-h-64 overflow-y-auto"
         data-testid="triage-launch-payload-content"
       >
         <code>{decision.cleaned}</code>

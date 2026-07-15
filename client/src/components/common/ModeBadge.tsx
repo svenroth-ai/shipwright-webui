@@ -12,7 +12,7 @@ import type { ProjectMode } from '../../types/project';
 const MODE_STYLES: Record<ProjectMode, { label: string; bg: string; text: string }> = {
   pipeline: { label: 'Pipeline', bg: 'bg-info-tint', text: 'text-info' },
   iterate: { label: 'Iterate', bg: 'bg-warn-tint', text: 'text-warn' },
-  standalone: { label: 'Standalone', bg: 'bg-inset', text: 'text-body' },
+  standalone: { label: 'Standalone', bg: 'bg-inset', text: 'text-[var(--color-text)]' },
 };
 
 export interface ModeBadgeProps {

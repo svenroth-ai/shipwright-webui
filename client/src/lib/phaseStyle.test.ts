@@ -9,7 +9,7 @@ describe("getPhaseStyle", () => {
     expect(getPhaseStyle("compliance").dot).toContain("var(--info-solid)");
     expect(getPhaseStyle("build").dot).toContain("var(--warn-solid)");
     expect(getPhaseStyle("security").dot).toContain("var(--err-solid)");
-    expect(getPhaseStyle("adopt").dot).toContain("bg-muted");
+    expect(getPhaseStyle("adopt").dot).toContain("bg-[var(--color-muted)]");
   });
 
   it("is case-insensitive on phase id", () => {

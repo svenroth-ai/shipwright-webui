@@ -1,13 +1,13 @@
 import type { ExternalTask } from "../../lib/externalApi";
 
 const STATE_STYLES: Record<ExternalTask["state"], string> = {
-  draft: "bg-inset text-body",
+  draft: "bg-inset text-[var(--color-text)]",
   awaiting_external_start: "bg-warn-tint text-warn",
   active: "bg-ok-tint text-ok",
-  idle: "bg-inset text-body",
+  idle: "bg-inset text-[var(--color-text)]",
   jsonl_missing: "bg-err-tint text-err",
   launch_failed: "bg-err-tint text-err",
-  done: "bg-inset text-body",
+  done: "bg-inset text-[var(--color-text)]",
 };
 
 interface Props {
@@ -39,28 +39,28 @@ export function SessionMetadata({ task }: Props) {
         )}
       </div>
       <div>
-        <span className="text-muted">Session UUID: </span>
+        <span className="text-[var(--color-muted)]">Session UUID: </span>
         <code className="font-mono text-xs">{task.sessionUuid}</code>
       </div>
       <div>
-        <span className="text-muted">Working dir: </span>
+        <span className="text-[var(--color-muted)]">Working dir: </span>
         <code className="font-mono text-xs">{task.cwd}</code>
       </div>
       {task.pluginDirs.length > 0 && (
         <div>
-          <span className="text-muted">Plugin dirs: </span>
+          <span className="text-[var(--color-muted)]">Plugin dirs: </span>
           <span className="font-mono text-xs">{task.pluginDirs.length} passed</span>
         </div>
       )}
       {task.launchedAt && (
         <div>
-          <span className="text-muted">Launched: </span>
+          <span className="text-[var(--color-muted)]">Launched: </span>
           <span className="text-xs">{new Date(task.launchedAt).toLocaleString()}</span>
         </div>
       )}
       {task.firstJsonlObservedAt && (
         <div>
-          <span className="text-muted">First JSONL: </span>
+          <span className="text-[var(--color-muted)]">First JSONL: </span>
           <span className="text-xs">{new Date(task.firstJsonlObservedAt).toLocaleString()}</span>
         </div>
       )}

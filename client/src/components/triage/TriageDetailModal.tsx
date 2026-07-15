@@ -199,7 +199,7 @@ export function TriageDetailModal({
                     <SeverityBadge severity={item.severity} />
                     <StatusBadge status={item.status} />
                     {item.pendingDelivery && <PendingDeliveryBadge />}
-                    <code className="text-[11px] text-muted">{item.id}</code>
+                    <code className="text-[11px] text-[var(--color-muted)]">{item.id}</code>
                   </div>
                 </div>
                 <Dialog.Close asChild>
@@ -215,24 +215,24 @@ export function TriageDetailModal({
 
               <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs mb-4">
                 <div>
-                  <dt className="text-muted">Suggested priority</dt>
+                  <dt className="text-[var(--color-muted)]">Suggested priority</dt>
                   <dd className="font-mono">{item.suggestedPriority}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Suggested domain</dt>
+                  <dt className="text-[var(--color-muted)]">Suggested domain</dt>
                   <dd>{item.suggestedDomain}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Kind</dt>
+                  <dt className="text-[var(--color-muted)]">Kind</dt>
                   <dd>{item.kind}</dd>
                 </div>
                 <div>
-                  <dt className="text-muted">Original ts</dt>
+                  <dt className="text-[var(--color-muted)]">Original ts</dt>
                   <dd className="font-mono text-[10px]">{item.originalTs}</dd>
                 </div>
                 {item.dedupKey && (
                   <div className="col-span-2">
-                    <dt className="text-muted">Dedup key</dt>
+                    <dt className="text-[var(--color-muted)]">Dedup key</dt>
                     <dd className="font-mono text-[10px] break-all">
                       {item.dedupKey}
                     </dd>
@@ -240,7 +240,7 @@ export function TriageDetailModal({
                 )}
                 {item.evidencePath && (
                   <div className="col-span-2">
-                    <dt className="text-muted">Evidence</dt>
+                    <dt className="text-[var(--color-muted)]">Evidence</dt>
                     <dd className="font-mono text-[10px] break-all">
                       {item.evidencePath}
                     </dd>
@@ -248,12 +248,12 @@ export function TriageDetailModal({
                 )}
               </dl>
 
-              <div className="border-t border-line pt-4">
-                <h4 className="text-xs font-semibold text-body uppercase mb-2">
+              <div className="border-t border-[var(--color-border)] pt-4">
+                <h4 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
                   Detail
                 </h4>
                 <p
-                  className="text-sm text-ink whitespace-pre-wrap"
+                  className="text-sm text-[var(--color-text)] whitespace-pre-wrap"
                   data-testid="triage-detail-body"
                 >
                   {item.detail}
@@ -274,16 +274,16 @@ export function TriageDetailModal({
               )}
 
               {item.status === "triage" && (
-                <div className="border-t border-line pt-4 mt-4">
+                <div className="border-t border-[var(--color-border)] pt-4 mt-4">
                   <label className="block">
-                    <span className="text-xs font-medium text-body">
+                    <span className="text-xs font-medium text-[var(--color-text)]">
                       Reason (optional, applies to Dismiss / Snooze)
                     </span>
                     <input
                       type="text"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
-                      className="mt-1 w-full px-2 py-1.5 text-sm border border-line-strong rounded"
+                      className="mt-1 w-full px-2 py-1.5 text-sm border border-[var(--color-border)] rounded"
                       placeholder="out of scope this sprint"
                       data-testid="triage-action-reason"
                     />
@@ -312,7 +312,7 @@ export function TriageDetailModal({
                       className={
                         showCampaignCta
                           ? "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:bg-[var(--color-muted-bg)] hover:border-[var(--color-accent)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-                          : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                          : "h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                       }
                       data-testid="triage-fix-now"
                     >
@@ -348,7 +348,7 @@ export function TriageDetailModal({
                     <button
                       type="button"
                       onClick={() => setPromoteOpen(true)}
-                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
+                      className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all inline-flex items-center justify-center gap-1.5"
                       data-testid="triage-promote"
                     >
                       Promote

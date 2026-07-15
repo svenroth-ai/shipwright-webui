@@ -236,7 +236,7 @@ export function MasterTaskCard({
                     ? "bg-warn-tint text-warn"
                     : masterShadow.priority === "P2"
                       ? "bg-warn-tint text-warn"
-                      : "bg-inset text-body")
+                      : "bg-inset text-[var(--color-text)]")
               }
             >
               {masterShadow.priority}

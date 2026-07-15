@@ -143,7 +143,7 @@ export function CreateMenuSplitButton({
             disabled={disabled}
             data-testid="create-menu-caret"
             aria-label="More create options"
-            className="inline-flex items-center justify-center bg-[var(--color-primary-hover)] px-2 text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center bg-[var(--color-primary-hover)] px-2 text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <ChevronDown size={12} />
           </button>

@@ -151,7 +151,7 @@ function FencedCodeBlock({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="block w-full bg-inset px-3 py-1 text-left text-xs text-body hover:bg-line"
+          className="block w-full bg-inset px-3 py-1 text-left text-xs text-[var(--color-text)] hover:bg-[var(--color-border)]"
           data-testid="show-more-code"
         >
           {expanded

@@ -283,7 +283,7 @@ export function TerminalLaunchButton({
         <Copy size={14} />
         {launchMut.isPending ? "Preparing…" : copied ? "Copied — paste into terminal" : "Copy launch command"}
       </button>
-      <span className="text-xs text-muted" data-testid="terminal-launch-platform">
+      <span className="text-xs text-[var(--color-muted)]" data-testid="terminal-launch-platform">
         {detectedPlatform === "windows" ? "PowerShell" : "POSIX shell (bash/zsh)"}
       </span>
       {error && (

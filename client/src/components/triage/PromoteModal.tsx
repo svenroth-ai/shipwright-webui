@@ -116,7 +116,7 @@ export function PromoteModal({
                 <Dialog.Title className="text-lg font-semibold">
                   Promote to backlog
                 </Dialog.Title>
-                <Dialog.Description className="text-sm text-muted mt-1">
+                <Dialog.Description className="text-sm text-[var(--color-muted)] mt-1">
                   Creates an ExternalTask carrying a back-ref and flips the
                   triage item to <code>promoted</code>.
                 </Dialog.Description>
@@ -132,37 +132,37 @@ export function PromoteModal({
               </Dialog.Close>
             </div>
 
-            <div className="border border-line rounded p-3 mb-4 space-y-2">
+            <div className="border border-[var(--color-border)] rounded p-3 mb-4 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <SourceBadge source={item.source} />
                 <SeverityBadge severity={item.severity} />
-                <code className="text-[11px] text-muted">{item.id}</code>
+                <code className="text-[11px] text-[var(--color-muted)]">{item.id}</code>
               </div>
-              <h3 className="text-sm font-medium text-ink">
+              <h3 className="text-sm font-medium text-[var(--color-text)]">
                 {item.title}
               </h3>
               {item.dedupKey && (
                 <p
-                  className="text-[10px] text-muted font-mono"
+                  className="text-[10px] text-[var(--color-muted)] font-mono"
                   data-testid="promote-dedupKey"
                 >
                   dedup: {item.dedupKey}
                 </p>
               )}
-              <p className="text-xs text-body whitespace-pre-wrap">
+              <p className="text-xs text-[var(--color-text)] whitespace-pre-wrap">
                 {item.detail}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
-                <span className="text-xs font-medium text-body">
+                <span className="text-xs font-medium text-[var(--color-text)]">
                   Priority *
                 </span>
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as TriagePriority)}
-                  className="mt-1 w-full px-2 py-1.5 text-sm border border-line-strong rounded"
+                  className="mt-1 w-full px-2 py-1.5 text-sm border border-[var(--color-border)] rounded"
                   data-testid="promote-priority"
                 >
                   {PRIORITY_OPTIONS.map((p) => (
@@ -173,20 +173,20 @@ export function PromoteModal({
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-body">
+                <span className="text-xs font-medium text-[var(--color-text)]">
                   Domain *
                 </span>
                 <input
                   type="text"
                   value={domain}
                   onChange={(e) => setDomain(e.target.value)}
-                  className="mt-1 w-full px-2 py-1.5 text-sm border border-line-strong rounded"
+                  className="mt-1 w-full px-2 py-1.5 text-sm border border-[var(--color-border)] rounded"
                   placeholder="engineering"
                   data-testid="promote-domain"
                 />
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-body">
+                <span className="text-xs font-medium text-[var(--color-text)]">
                   Complexity hint
                 </span>
                 <select
@@ -194,7 +194,7 @@ export function PromoteModal({
                   onChange={(e) =>
                     setComplexityHint(e.target.value as TriageComplexityHint | "")
                   }
-                  className="mt-1 w-full px-2 py-1.5 text-sm border border-line-strong rounded"
+                  className="mt-1 w-full px-2 py-1.5 text-sm border border-[var(--color-border)] rounded"
                   data-testid="promote-complexity"
                 >
                   <option value="">— unspecified —</option>
@@ -206,19 +206,19 @@ export function PromoteModal({
                 </select>
               </label>
               <label className="block">
-                <span className="text-xs font-medium text-body">Tags</span>
+                <span className="text-xs font-medium text-[var(--color-text)]">Tags</span>
                 <input
                   type="text"
                   value={tagsRaw}
                   onChange={(e) => setTagsRaw(e.target.value)}
-                  className="mt-1 w-full px-2 py-1.5 text-sm border border-line-strong rounded"
+                  className="mt-1 w-full px-2 py-1.5 text-sm border border-[var(--color-border)] rounded"
                   placeholder="auth, billing"
                   data-testid="promote-tags"
                 />
               </label>
             </div>
 
-            <p className="text-[11px] text-muted mt-2">
+            <p className="text-[11px] text-[var(--color-muted)] mt-2">
               Auto-tags <code>source:{item.source}</code>,{" "}
               <code>severity:{item.severity}</code>,{" "}
               <code>triage:{item.id}</code> are added automatically.
@@ -245,7 +245,7 @@ export function PromoteModal({
               <button
                 type="submit"
                 disabled={promote.isPending}
-                className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-accent text-white hover:bg-accent-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+                className="h-10 px-5 text-sm font-medium rounded-[var(--radius-button)] bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary-hover)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
                 data-testid="promote-submit"
               >
                 {promote.isPending && (

@@ -36,10 +36,10 @@ export function ConfirmDeleteDialog({ open, onOpenChange, task, onConfirm }: Pro
           }}
           data-testid="confirm-delete-dialog"
         >
-          <Dialog.Title className="text-base font-semibold text-ink">
+          <Dialog.Title className="text-base font-semibold text-[var(--color-text)]">
             Delete task?
           </Dialog.Title>
-          <Dialog.Description className="mt-2 text-sm text-body">
+          <Dialog.Description className="mt-2 text-sm text-[var(--color-text)]">
             <span className="font-medium">{task.title}</span> is currently{" "}
             <span className="font-mono text-xs">{task.state}</span>. The CLI may still be
             running in your terminal — webui stops tracking it, the terminal session
@@ -49,7 +49,7 @@ export function ConfirmDeleteDialog({ open, onOpenChange, task, onConfirm }: Pro
             <Dialog.Close asChild>
               <button
                 type="button"
-                className="bg-white px-3 py-1 text-sm text-ink hover:bg-inset"
+                className="bg-white px-3 py-1 text-sm text-[var(--color-text)] hover:bg-inset"
                 style={{
                   border: "1px solid var(--color-border)",
                   borderRadius: "var(--radius-button)",
