@@ -53,9 +53,8 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     id: "task-detail-mission-live",
     path: "/tasks/:taskId (Mission tab, LIVE state)",
     description:
-      "TaskDetail, Mission tab (mid-run) — the Record rail shows a `now` frontier and the Operation card renders its live layout (A12, AC6). Flipped to baselined once the CI container generates the PNG.",
-    status: "pending",
-    owner: "A12",
+      "TaskDetail, Mission tab (mid-run) — the Record rail shows a `now` frontier and the Operation card renders its live layout (A12, AC6). Baseline generated in the pinned CI container.",
+    status: "baselined",
   },
   {
     id: "task-detail-terminal",
