@@ -128,7 +128,7 @@ export function planPhases(answers: NewAnswers): Array<{ name: string; desc: str
 
 /** The scan/working steps. Remote grade adds a shallow-clone step (real cost). */
 export function scanSteps(door: WizardDoor, path: string | null): string[] {
-  const remote = /^https?:|github\.com|gitlab\./i.test(path ?? "");
+  const remote = isRemote(path);
   const grade = door === "grade";
   const steps: string[] = [];
   if (grade && remote) steps.push("Shallow-cloning to a temp folder (deleted afterwards)");
@@ -141,7 +141,11 @@ export function scanSteps(door: WizardDoor, path: string | null): string[] {
 }
 
 export function isRemote(path: string | null): boolean {
-  return /^https?:|github\.com|gitlab\./i.test(path ?? "");
+  const p = path ?? "";
+  // Three separate tests: a single `/^https?:|github\.com|.../` mixes an
+  // ANCHORED alternative with unanchored ones (misleading precedence — flagged
+  // by static analysis). Starts with a URL scheme, OR names a known host.
+  return /^https?:\/\//i.test(p) || /github\.com/i.test(p) || /gitlab\./i.test(p);
 }
 
 /** Recent-path chips for the repo picker. */

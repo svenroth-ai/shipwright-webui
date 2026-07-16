@@ -80,13 +80,13 @@ export type RunFn = (cmd: string, args?: string[]) => RunResult;
 export function defaultRun(cmd: string, args: string[] = ["--version"]): RunResult {
   try {
     const isWin = process.platform === "win32";
+    // cmd is a fixed literal (uv/python3/python/py/git) with a fixed `--version`
+    // arg and no user input; shell:true is the Windows-only `.cmd` resolution
+    // branch (PATHEXT ignored by shell:false). No injection surface — same
+    // pattern (single line + trailing nosemgrep) as bootstrapper/lib/preflight.mjs.
+    const joined = [cmd, ...args].join(" ");
     const r = isWin
-      ? // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
-        spawnSync([cmd, ...args].join(" "), {
-          encoding: "utf-8",
-          shell: true,
-          timeout: 8000,
-        })
+      ? spawnSync(joined, { encoding: "utf-8", shell: true, timeout: 8000 }) // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
       : spawnSync(cmd, args, { encoding: "utf-8", shell: false, timeout: 8000 });
     const stdout = String(r.stdout ?? "");
     const stderr = String(r.stderr ?? "");
