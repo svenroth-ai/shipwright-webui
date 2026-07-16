@@ -36,7 +36,10 @@ export function defaultRunClaude(args) {
     }
   }
   const isWin = process.platform === "win32";
-  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true -- every arg is charset-gated by SAFE_ARG (rejects all cmd.exe metachars incl. %) before this call; shell:true is Windows-only .cmd/PATHEXT resolution, so there is no injection surface.
+  // Every arg is charset-gated by SAFE_ARG (rejects all cmd.exe metacharacters
+  // incl. %) before this call; shell:true is Windows-only .cmd/PATHEXT
+  // resolution, so there is no injection surface. Semgrep false positive.
+  // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
   const r = spawnSync("claude", args, { encoding: "utf-8", shell: isWin, timeout: 120_000 });
   return {
     ok: r.status === 0 && !r.error,
