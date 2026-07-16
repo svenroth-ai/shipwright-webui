@@ -174,8 +174,7 @@ function defaultOpenBrowser(url) {
     // url is `http://localhost:${port}` with port validated to an integer
     // 1-65535 upstream; no shell metacharacter is expressible, shell:true is
     // only for the Windows `start` builtin. Semgrep false positive.
-    // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
-    spawn(cmd, args, { detached: true, stdio: "ignore", shell: plat === "win32" }).unref();
+    spawn(cmd, args, { detached: true, stdio: "ignore", shell: plat === "win32" }).unref(); // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
   } catch {
     /* headless / no browser — the URL is printed by the caller regardless */
   }

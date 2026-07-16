@@ -37,9 +37,8 @@ export function defaultRun(cmd, args = ["--version"]) {
     // cmd is a fixed literal (claude/uv/python3/python/py/git/gh) with a fixed
     // --version arg and no user input; shell:true is the Windows-only .cmd
     // resolution branch. Semgrep false positive.
-    // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
     const r = isWin
-      ? spawnSync([cmd, ...args].join(" "), { encoding: "utf-8", shell: true, timeout: 8000 })
+      ? spawnSync([cmd, ...args].join(" "), { encoding: "utf-8", shell: true, timeout: 8000 }) // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
       : spawnSync(cmd, args, { encoding: "utf-8", shell: false, timeout: 8000 });
     const stdout = (r.stdout ?? "").toString();
     const stderr = (r.stderr ?? "").toString();
