@@ -55,9 +55,17 @@ const EmbeddedTerminal = lazy(() =>
 );
 
 import type { EmbeddedTerminalHandle } from "../components/terminal/EmbeddedTerminal";
+import { PrivacyDisclosureFooter } from "../components/external/TerminalPrivacyFooter";
+import { MissionRecordView } from "../components/external/mission/MissionRecordView";
 
 type CenterTab = "transcript" | "terminal";
+type MissionTab = "mission" | "files";
 const TAB_STORAGE_KEY = "webui:embedded-terminal-default-tab";
+// Mission | Files & Terminal top switch. Default "files" preserves the current
+// terminal-default view + the CI smoke gate + the auto-launch flow byte-stable
+// (A11 introduces Mission non-default; A13's shell iterate flips the default and
+// migrates the terminal specs, with Sven's review pass).
+const MISSION_TAB_STORAGE_KEY = "webui:task-detail-mission-tab";
 
 export default function TaskDetailPage() {
   // Wrap the entire body in LaunchCoordinatorProvider so the auto-launch
@@ -67,88 +75,6 @@ export default function TaskDetailPage() {
     <LaunchCoordinatorProvider>
       <TaskDetailPageBody />
     </LaunchCoordinatorProvider>
-  );
-}
-
-/**
- * Compact privacy disclosure for the Terminal tab — ADR-068-A1 AC-15
- * (extended in iterate v0.8.2 AC-8 / AC-9).
- *
- * Renders as a 1-line dismissible note at the bottom of the embedded
- * terminal pane. The user toggles it off via the × button; preference
- * persists in localStorage. Copy includes:
- *   - retention period (interpolated from server config — AC-9)
- *   - resolved scrollback dir (interpolated from server config — AC-9)
- *   - "may contain secrets" warning
- *   - Windows-permission-best-effort note (when on Windows)
- *   - "Clear history" pointer (route through "..." menu)
- *
- * AC-8: footer renders only when the server reports scrollbackBytes > 0
- * for the current task. Fresh tasks with no persisted scrollback get
- * no footer at all.
- */
-function PrivacyDisclosureFooter({
-  scrollbackBytes,
-  retentionDays,
-  scrollbackDir,
-}: {
-  scrollbackBytes: number | null;
-  retentionDays: number | null;
-  scrollbackDir: string | null;
-}) {
-  const STORAGE_KEY = "webui:terminal-privacy-disclosure-dismissed";
-  const [dismissed, setDismissed] = useLocalStorage<boolean>(STORAGE_KEY, false);
-  // AC-8: hide entirely until the server has POSITIVELY reported a
-  // non-zero scrollback byte count. `null` means we have not received the
-  // ready / scrollback-meta envelope yet (or the WS is not open at all);
-  // we intentionally hide in that case so a fresh task with no scrollback
-  // does not flicker the footer in the gap between mount and ready.
-  if (scrollbackBytes === null || scrollbackBytes <= 0) return null;
-  if (dismissed) return null;
-  const isWindows = typeof navigator !== "undefined" &&
-    /windows/i.test(navigator.userAgent);
-  // AC-9: interpolate retention copy. Fall back to "1 day" + a generic
-  // env-var hint if the server hasn't reported the value yet — guards
-  // against a flicker before the ready envelope arrives. The plural is
-  // `day(s)` because i18n is out of scope for this iterate.
-  const days = typeof retentionDays === "number" && retentionDays > 0
-    ? retentionDays
-    : 1;
-  const dir = scrollbackDir && scrollbackDir.length > 0
-    ? scrollbackDir
-    : null;
-  return (
-    // Iterate v0.8.3 AC-2 — match the EmbeddedTerminal's outer p-2/rounded-md
-    // wrapper. With 8px padding around the xterm canvas, the previous
-    // `bottom-0 left-0 right-0` flush-edge footer would have read as
-    // belonging to the parent surface, not the terminal box. Inset to
-    // bottom-2/left-2/right-2 + rounded-md so the footer visually
-    // belongs to the padded box.
-    <div
-      className="absolute bottom-2 left-2 right-2 flex items-center gap-2 rounded-md border border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-1.5 text-[11px] text-[var(--color-muted,#6b7280)]"
-      data-testid="terminal-privacy-disclosure"
-    >
-      <span aria-hidden>ⓘ</span>
-      <span className="flex-1 truncate">
-        Terminal scrollback persists for {days} day(s){dir ? (
-          <> at <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">{dir}</code></>
-        ) : null}. May contain command output including secrets / env vars.{" "}
-        {isWindows ? (
-          <span>On Windows, file permissions rely on user-account ACLs.</span>
-        ) : null}
-        {" "}Use the <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">⋮ → Clear terminal history</code> menu to remove.{" "}
-        Image pastes inside Claude Code's TUI land in <code className="rounded bg-[var(--color-muted-bg,#ede8e1)] px-1">~/.claude/image-cache/&lt;sessionId&gt;/</code> (managed by Claude Code, not WebUI).
-      </span>
-      <button
-        type="button"
-        onClick={() => setDismissed(true)}
-        className="text-[var(--color-muted,#6b7280)] hover:text-[var(--color-text,#1a1a1a)]"
-        data-testid="terminal-privacy-disclosure-dismiss"
-        aria-label="Dismiss privacy notice"
-      >
-        ×
-      </button>
-    </div>
   );
 }
 
@@ -168,6 +94,13 @@ function TaskDetailPageBody() {
   const [centerTab, setCenterTab] = useLocalStorage<CenterTab>(
     TAB_STORAGE_KEY,
     "terminal",
+  );
+  // Top-level Mission | Files & Terminal switch (A11). Default "files" keeps
+  // the terminal the mount-default view (CI smoke gate + auto-launch stay
+  // byte-stable); the Mission tab hosts the Record rail + artifact.
+  const [missionTab, setMissionTab] = useLocalStorage<MissionTab>(
+    MISSION_TAB_STORAGE_KEY,
+    "files",
   );
   const terminalRef = useRef<EmbeddedTerminalHandle | null>(null);
 
@@ -195,9 +128,12 @@ function TaskDetailPageBody() {
   const [pendingFocus, setPendingFocus] = useState(false);
   useEffect(() => {
     if (!coord.pendingLaunch) return;
+    // A launch auto-executes in the embedded terminal — surface the Files &
+    // Terminal tab so the pty is visible (a no-op unless the user is on Mission).
+    setMissionTab("files");
     setCenterTab("terminal");
     setPendingFocus(true);
-  }, [coord.pendingLaunch, setCenterTab]);
+  }, [coord.pendingLaunch, setCenterTab, setMissionTab]);
 
   // iterate-2026-05-18-inbox-terminal-prompts — Inbox-origin navigation
   // carries `{ focusTerminal: true }` in React-Router nav state (set by
@@ -214,6 +150,7 @@ function TaskDetailPageBody() {
     const navState = location.state as { focusTerminal?: boolean } | null;
     if (navState?.focusTerminal !== true) return;
     inboxFocusConsumedRef.current = true;
+    setMissionTab("files");
     setCenterTab("terminal");
     setPendingFocus(true);
     navigate(`${location.pathname}${location.search}`, { replace: true });
@@ -223,6 +160,7 @@ function TaskDetailPageBody() {
     location.state,
     navigate,
     setCenterTab,
+    setMissionTab,
   ]);
 
   // Iterate v0.8.5 AC-6: the `webui:focus-terminal-tab` event listener
@@ -460,7 +398,44 @@ function TaskDetailPageBody() {
     >
       <TaskDetailHeader task={task} modelName={transcript.modelName} />
 
-      <div className="min-h-0 flex-1">
+      {/* Mission | Files & Terminal top switch (A11). Plain buttons (NOT
+          role=tab) so the existing getByRole("tab", {name:/terminal/i}) queries
+          keep resolving to the single center Terminal tab. */}
+      <div
+        className="mc-tabrow flex-shrink-0 px-4 py-2 md:px-8"
+        data-testid="mission-tabrow"
+      >
+        <div className="mc-tabs" role="group" aria-label="Task detail view">
+          <button
+            type="button"
+            className={`mc-tab${missionTab === "mission" ? " active" : ""}`}
+            aria-pressed={missionTab === "mission"}
+            onClick={() => setMissionTab("mission")}
+            data-testid="mission-tab-mission"
+          >
+            Mission
+          </button>
+          <button
+            type="button"
+            className={`mc-tab${missionTab === "files" ? " active" : ""}`}
+            aria-pressed={missionTab === "files"}
+            onClick={() => setMissionTab("files")}
+            data-testid="mission-tab-files"
+          >
+            Files &amp; Terminal
+          </button>
+        </div>
+      </div>
+
+      {/* Mission tab — "The Record" rail + the artifact card (A11). Mount-only
+          when selected (no persistent resource to preserve). */}
+      {missionTab === "mission" ? (
+        <MissionRecordView task={task} onOpenDocument={() => setMissionTab("files")} />
+      ) : null}
+
+      {/* Files & Terminal tab — the existing three-pane. Always mounted (just
+          hidden) so the embedded terminal's WS never tears down on a tab flip. */}
+      <div className={missionTab === "files" ? "min-h-0 flex-1" : "hidden"}>
         <TaskDetailThreePane
           left={
             <FolderTree
@@ -572,7 +547,7 @@ function TaskDetailPageBody() {
                       <EmbeddedTerminal
                         ref={terminalRef}
                         taskId={taskId}
-                        active={centerTab === "terminal"}
+                        active={missionTab === "files" && centerTab === "terminal"}
                         onReadyChange={handleTerminalReady}
                         onGitignoreSuggestion={handleGitignoreSuggestion}
                         onPasteImageError={handlePasteImageError}

@@ -44,13 +44,25 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   },
   {
     id: "task-detail-mission",
-    path: "/tasks/:taskId",
-    description: "TaskDetail, Mission pane — header CTA, title, description",
+    path: "/tasks/:taskId (Mission tab)",
+    description: "TaskDetail, Mission tab — 'The Record' rail (A11), default state",
+    status: "baselined",
+  },
+  {
+    id: "task-detail-mission-artifact",
+    path: "/tasks/:taskId (Mission tab, node open)",
+    description: "TaskDetail, Mission tab — a Record node open, the artifact card beside the rail (A11)",
+    status: "baselined",
+  },
+  {
+    id: "task-detail-mission-collapsed",
+    path: "/tasks/:taskId (Mission tab, rail collapsed)",
+    description: "TaskDetail, Mission tab — 'The Record' rail collapsed to the 60px dot strip (A11)",
     status: "baselined",
   },
   {
     id: "task-detail-terminal",
-    path: "/tasks/:taskId (Terminal tab)",
+    path: "/tasks/:taskId (Files & Terminal tab)",
     description: "TaskDetail, Files & Terminal — the pty surface is MASKED (not deterministic)",
     status: "baselined",
   },

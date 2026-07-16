@@ -34,6 +34,7 @@ import { LaunchCTA } from "./TaskDetailHeader/LaunchCTA";
 import { ResumeCTA } from "./TaskDetailHeader/ResumeCTA";
 import { TitleEdit } from "./TaskDetailHeader/TitleEdit";
 import { HeaderMenu } from "./TaskDetailHeader/HeaderMenu";
+import { Instruments } from "./mission/Instruments";
 
 type CtaMode = "launch" | "resume" | "none";
 
@@ -186,6 +187,9 @@ export function TaskDetailHeader({ task, modelName }: Props) {
       </div>
 
       <div className="flex items-center gap-2" data-testid="task-detail-actions">
+        {/* Mission instruments (A11): Grade · Tests · Serves — right-aligned,
+            before the Resume CTA + ⋯ menu. Hidden on phones (see Instruments). */}
+        <Instruments task={task} />
         {cta === "launch" && <LaunchCTA task={task} onError={setCtaError} />}
         {cta === "resume" && <ResumeCTA task={task} onError={setCtaError} />}
         <HeaderMenu
