@@ -13,9 +13,9 @@ vi.mock("../../../hooks/useRunData", () => ({
   useRunDetail: () => runDetailMock(),
 }));
 
-import { MissionRecordView } from "./MissionRecordView";
+import { MissionBody } from "./MissionBody";
 
-const TASK = { projectId: "p1", runId: "iterate-2026-07-15-x" } as unknown as ExternalTask;
+const TASK = { projectId: "p1", runId: "iterate-2026-07-16-x" } as unknown as ExternalTask;
 
 afterEach(() => {
   missionStateMock.mockReset();
@@ -23,17 +23,28 @@ afterEach(() => {
 });
 
 function setup(onOpenDocument = vi.fn()) {
-  render(<MissionRecordView task={TASK} onOpenDocument={onOpenDocument} />);
+  render(<MissionBody task={TASK} onOpenDocument={onOpenDocument} />);
   return { onOpenDocument };
 }
 
-describe("MissionRecordView", () => {
-  it("renders the Record rail; a node opens the artifact; re-click closes it", () => {
+describe("MissionBody", () => {
+  it("renders TWO cards (Record + Operation) with no active node; no scrim in the tree", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
     setup();
     expect(screen.getByTestId("record-rail")).toBeInTheDocument();
+    expect(screen.getByTestId("operation-card")).toBeInTheDocument();
+    // No active node → no artifact card, and therefore NO scrim/dimming element
+    // behind the row (AC1 — the scrim only exists as the artifact's compact
+    // slide-over overlay, never a panel behind the three cards).
+    expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("artifact-scrim")).not.toBeInTheDocument();
+  });
 
+  it("opening a node reveals the THIRD (Artifact) card; re-click closes it", () => {
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
+    setup();
     fireEvent.click(screen.getByTestId("record-node-req"));
     expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
     fireEvent.click(screen.getByTestId("record-node-req"));
@@ -44,17 +55,21 @@ describe("MissionRecordView", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
     setup();
-
     fireEvent.click(screen.getByTestId("record-node-tests"));
     expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
-    // collapse → clears the active node
     fireEvent.click(screen.getByTestId("record-collapse"));
     expect(screen.getByTestId("record-rail")).toHaveAttribute("data-collapsed", "true");
     expect(screen.queryByTestId("artifact-panel")).not.toBeInTheDocument();
-    // a dot click while collapsed re-expands AND opens
     fireEvent.click(screen.getByTestId("record-node-req"));
     expect(screen.getByTestId("record-rail")).not.toHaveAttribute("data-collapsed", "true");
     expect(screen.getByTestId("artifact-panel")).toBeInTheDocument();
+  });
+
+  it("the design-gate mode routes the Operation card to A14's design-gate surface", () => {
+    missionStateMock.mockReturnValue("designgate");
+    runDetailMock.mockReturnValue({ data: undefined });
+    setup();
+    expect(screen.getByTestId("operation-designgate-placeholder")).toBeInTheDocument();
   });
 
   it("'Open full document' fires the parent callback and closes the panel", () => {

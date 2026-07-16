@@ -26,6 +26,12 @@
 .mc-tab:hover:not(.active) { color: var(--ink); }
 .mc-tab:focus-visible { outline: none; box-shadow: var(--focus); }
 
+/* ── breadcrumb (Board › Project — both segments clickable, A13) ─────────── */
+.mc-crumb { min-width: 0; }
+.crumb-link { cursor: pointer; border-radius: 4px; }
+.crumb-link:hover { text-decoration: underline; }
+.crumb-link:focus-visible { outline: none; box-shadow: var(--focus); }
+
 /* ── Mission body — the flex row the cards float in ─────────────────────── */
 .mc-body { flex: 1; min-height: 0; display: flex; position: relative; }
 
