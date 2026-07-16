@@ -34,6 +34,7 @@ export function defaultRun(cmd, args = ["--version"]) {
     // internal literals (tool name + `--version`), so there is no injection
     // surface; a single joined string avoids the args-with-shell deprecation.
     const isWin = process.platform === "win32";
+    // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true -- cmd is a fixed literal (claude/uv/python3/python/py/git/gh) with a fixed --version arg and no user input; shell:true is the Windows-only .cmd resolution branch.
     const r = isWin
       ? spawnSync([cmd, ...args].join(" "), { encoding: "utf-8", shell: true, timeout: 8000 })
       : spawnSync(cmd, args, { encoding: "utf-8", shell: false, timeout: 8000 });

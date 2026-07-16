@@ -12,6 +12,7 @@
 # --- Test + E2E suites (Vitest unit/integration + Playwright) ---
 *.test.ts
 *.test.tsx
+*.test.mjs
 *.spec.ts
 *.spec.tsx
 client/e2e/
