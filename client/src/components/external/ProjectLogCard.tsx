@@ -6,17 +6,17 @@
  *   .lc-path  mono, truncated, full path in title=
  *   body      GRADED (A02 has runs) → sparkline + stats + last-proof quote
  *             UNGRADED               → the honest ".lc-empty" sentence
- *   .lc-foot  gear · trash · task count · "Open board ›"
+ *   .lc-foot  gear · trash · task count · "Open log ›"
  *
  * Data provenance (spec AC2/AC3): the body model is derived by
  * buildProjectLogModel() from A02's `RunsResponse` (passed in by the page so
  * the gallery fetches once and can sort graded-first) + the compliance score.
  * Nothing is fabricated — an ungraded project shows a sentence, never a chart.
  *
- * "Open board" routes through the single openProjectLog() seam (A16 re-points
- * it). "Grade it" navigates to the existing read-only Grade door
- * (/wizard/grade) — a REAL surface, no Claude spawn (rule 1), no hardcoded
- * slash-command (DO-NOT #11).
+ * "Open log" routes through the single openProjectLog() seam — A16 re-pointed
+ * it at the real Ship's-Log home (/projects/:id/log). "Grade it" navigates to
+ * the existing read-only Grade door (/wizard/grade) — a REAL surface, no Claude
+ * spawn (rule 1), no hardcoded slash-command (DO-NOT #11).
  */
 
 import { useNavigate } from "react-router-dom";
@@ -178,7 +178,7 @@ export function ProjectLogCard({
               openLog();
             }}
           >
-            Open board <ChevronRight size={14} />
+            Open log <ChevronRight size={14} />
           </button>
         )}
       </div>

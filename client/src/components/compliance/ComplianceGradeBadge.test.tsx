@@ -19,6 +19,7 @@ function ok(grade: string): ComplianceResponse {
     controlVerdictMarkdown:
       "## ✅ Control Verdict\n\n| Dimension | Signal |\n|---|---|\n| Requirement traceability | 41/41 |",
     ciSecurityMarkdown: "## 🛡️ CI Security\n\n| Severity | Count |\n|---|---|\n| Critical | 0 |",
+    dimensions: [],
   };
 }
 

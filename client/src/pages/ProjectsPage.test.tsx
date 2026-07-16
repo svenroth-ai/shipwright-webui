@@ -121,7 +121,7 @@ describe('ProjectsPage', () => {
   });
 
   // -------------------------------------------------------------------------
-  // Card click → the board filtered by that project, via the single
+  // Card click → the Ship's Log home for that project, via the single
   // openProjectLog() seam A16 re-points. Settings stays behind the gear.
   // -------------------------------------------------------------------------
 
@@ -139,6 +139,7 @@ describe('ProjectsPage', () => {
         <MemoryRouter initialEntries={['/projects']}>
           <Routes>
             <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/:projectId/log" element={<LocationEcho />} />
             <Route path="/" element={<LocationEcho />} />
           </Routes>
         </MemoryRouter>
@@ -146,12 +147,12 @@ describe('ProjectsPage', () => {
     );
   }
 
-  it('card click navigates to the board with projectId in the URL', async () => {
+  it("card click navigates to the project's Ship's Log (A16 re-point)", async () => {
     renderWithRouter();
     const card = await screen.findByTestId('projects-card-proj-1');
     await userEvent.click(card);
     const echo = await screen.findByTestId('loc');
-    expect(echo.textContent).toBe('/?projectId=proj-1');
+    expect(echo.textContent).toBe('/projects/proj-1/log');
   });
 
   it('clicking the gear icon does NOT navigate; it opens Settings instead', async () => {

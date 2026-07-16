@@ -23,6 +23,13 @@
 import { readFile as fsReadFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import {
+  parseDimensions,
+  type ComplianceDimension,
+} from "./compliance-dimensions.js";
+
+export type { ComplianceDimension } from "./compliance-dimensions.js";
+
 export interface ComplianceData {
   /** Control grade letter, e.g. "A", "B+", "C-". */
   grade: string;
@@ -36,6 +43,12 @@ export interface ComplianceData {
   controlVerdictMarkdown: string;
   /** Raw markdown of the "CI Security" section ("" if the section is absent). */
   ciSecurityMarkdown: string;
+  /**
+   * Structured Control-Verdict dimensions (A16). `[]` when the table is absent
+   * or unparseable — NEVER a throw. `controlVerdictMarkdown` is left untouched
+   * (the detail modal keeps rendering it verbatim).
+   */
+  dimensions: ComplianceDimension[];
 }
 
 export type ComplianceReadResult =
@@ -136,6 +149,10 @@ export function parseDashboard(raw: string): ComplianceReadResult {
       generatedAt: generated?.[1]?.trim() ?? "",
       controlVerdictMarkdown: controlSection.markdown,
       ciSecurityMarkdown: ciSection?.markdown ?? "",
+      // A16 (FR-01.60) — structured sub-scores for the Ship's-Log Captain's
+      // Drawer. Additive: `controlVerdictMarkdown` above is left untouched, so
+      // the detail modal keeps rendering the table verbatim. `[]` when absent.
+      dimensions: parseDimensions(controlSection.markdown),
     },
   };
 }

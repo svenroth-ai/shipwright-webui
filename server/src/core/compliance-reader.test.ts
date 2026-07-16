@@ -53,6 +53,38 @@ describe("parseDashboard — structured fields (AC-A)", () => {
   });
 });
 
+describe("parseDashboard — dimensions (A16, FR-01.60)", () => {
+  it("populates dimensions[] from the Control-Verdict table", () => {
+    const r = parseDashboard(FIXTURE_RAW);
+    if (r.status !== "ok") throw new Error("expected ok");
+    expect(r.data.dimensions.length).toBe(7);
+    expect(r.data.dimensions.map((d) => d.label)).toContain("Test health");
+    // ✅ rows → full bar.
+    expect(r.data.dimensions.every((d) => d.pct === 100)).toBe(true);
+  });
+
+  it("leaves controlVerdictMarkdown UNTOUCHED — the modal keeps working", () => {
+    const r = parseDashboard(FIXTURE_RAW);
+    if (r.status !== "ok") throw new Error("expected ok");
+    // The raw table slice still holds the full markdown table verbatim.
+    expect(r.data.controlVerdictMarkdown).toContain("| | Dimension | Signal | Anchor |");
+    expect(r.data.controlVerdictMarkdown).toContain("Requirement traceability");
+  });
+
+  it("dimensions is [] when the dashboard has a grade but no table", () => {
+    const md = [
+      "## ✅ Control Verdict",
+      "",
+      "### Control Grade: **B+** (88/100) — ok.",
+      "",
+      "no dimension table in this one",
+    ].join("\n");
+    const r = parseDashboard(md);
+    if (r.status !== "ok") throw new Error("expected ok");
+    expect(r.data.dimensions).toEqual([]);
+  });
+});
+
 describe("parseDashboard — section slices (AC-E)", () => {
   it("controlVerdictMarkdown spans Control Verdict only, excludes later sections", () => {
     const r = parseDashboard(FIXTURE_RAW);

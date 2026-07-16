@@ -113,10 +113,10 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   },
   {
     id: "ships-log",
-    path: "/(ship's log)",
-    description: "Ship's Log",
-    status: "pending",
-    owner: "A15",
+    path: "/projects/:projectId/log",
+    description:
+      "Ship's Log project home (A16, FR-01.60) — the Captain's Drawer grade strip (ring + inline sub-scores + 'Why an A?'), the scoped-iterate promptbox + graduation card, and the logbook sheet (one entry per run). Seeded with a graded project + a run so the drawer + a logbook row render; captured by e2e/visual/07-ships-log.spec.ts.",
+    status: "baselined",
   },
   {
     id: "first-contact",

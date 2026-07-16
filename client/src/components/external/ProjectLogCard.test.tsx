@@ -67,6 +67,7 @@ function renderCard(
             }
           />
           <Route path="/" element={<LocationEcho />} />
+          <Route path="/projects/:projectId/log" element={<LocationEcho />} />
           <Route path="/wizard/:door" element={<LocationEcho />} />
         </Routes>
       </MemoryRouter>
@@ -143,11 +144,12 @@ describe("ProjectLogCard", () => {
     expect(echo.textContent).toBe("/wizard/grade");
   });
 
-  it("clicking the card opens the project via the single seam (AC4)", async () => {
+  it("clicking the card opens the Ship's Log via the single seam (A16 re-point)", async () => {
     renderCard({ runs: undefined });
     await userEvent.click(screen.getByTestId("projects-card-proj-1"));
     const echo = await screen.findByTestId("loc");
-    expect(echo.textContent).toBe("/?projectId=proj-1");
+    // A16 (FR-01.60) re-pointed openProjectLog() at the real logbook home.
+    expect(echo.textContent).toBe("/projects/proj-1/log");
   });
 
   it("gear + trash stop propagation and fire their handlers, not navigation", async () => {

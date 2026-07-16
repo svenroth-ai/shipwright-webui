@@ -14,6 +14,20 @@
 
 import { EXTERNAL_API, httpJson } from "./externalApi";
 
+/**
+ * One structured Control-Verdict dimension (A16, FR-01.60). Verbatim mirror of
+ * server/src/core/compliance-dimensions.ts (ADR-080 — no cross-package import).
+ * `pct` is the dashboard's own ✅/⚠️/❌ verdict as a bar height; `null` = no bar
+ * (the reader NEVER scrapes a fraction out of the free-text signal).
+ */
+export interface ComplianceDimension {
+  key: string;
+  label: string;
+  value: string;
+  pct: number | null;
+  doc: string;
+}
+
 export interface ComplianceData {
   grade: string;
   score: number;
@@ -21,6 +35,8 @@ export interface ComplianceData {
   generatedAt: string;
   controlVerdictMarkdown: string;
   ciSecurityMarkdown: string;
+  /** Structured sub-scores (A16); `[]` when the table is absent/unparseable. */
+  dimensions: ComplianceDimension[];
 }
 
 export type ComplianceResponse =
