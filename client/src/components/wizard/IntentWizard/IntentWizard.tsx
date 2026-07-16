@@ -8,7 +8,7 @@
  * reaches the scan-step length the reducer flips to the result (step 3).
  */
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useState } from "react";
 
 import { DoorPicker } from "./DoorPicker";
 import { NewPathQuestions } from "./NewPathQuestions";
@@ -17,14 +17,17 @@ import { RepoPicker } from "./RepoPicker";
 import { WorkingScreen } from "./WorkingScreen";
 import { AdoptResult } from "./AdoptResult";
 import { GradeResult } from "./GradeResult";
+import { LaunchingScreen } from "./LaunchingScreen";
 import { FlightPlanRail } from "./FlightPlanRail";
 import { useReadiness } from "./useReadiness";
+import { useWizardLaunch } from "./useWizardLaunch";
 import {
   INITIAL_STATE,
   deriveDoorRows,
   deriveNewRows,
   wizardReducer,
 } from "./wizardState";
+import type { WizardLaunchRequest } from "./contract";
 import type { WizardDoor, WizardState } from "./types";
 
 function initState(initialDoor: WizardDoor | null): WizardState {
@@ -42,6 +45,15 @@ export function IntentWizard({
 }) {
   const [state, dispatch] = useReducer(wizardReducer, initialDoor, initState);
   const readiness = useReadiness();
+  const launch = useWizardLaunch();
+  // Launch is a transient, cross-door concern layered OVER the step reducer:
+  // `launching` renders the hand-off screen; on success the wizard navigates to
+  // Mission (this component unmounts), so only a failure lingers here.
+  const [launching, setLaunching] = useState(false);
+  const [launchError, setLaunchError] = useState<string | null>(null);
+  // Retained so "Try again" re-runs the SAME request rather than only clearing
+  // the error (external review — a retry button must actually retry).
+  const [lastRequest, setLastRequest] = useState<WizardLaunchRequest | null>(null);
 
   // Working-screen ticker: advance while on step 2. The reducer decides when the
   // count is reached and flips to the result; here we just keep the clock.
@@ -51,15 +63,48 @@ export function IntentWizard({
     return () => window.clearInterval(id);
   }, [state.step, state.workingTick === null, tickMs]);
 
+  async function handleLaunch(request: WizardLaunchRequest) {
+    if (launching) return; // in-flight guard (a fast double-click is a no-op)
+    setLastRequest(request);
+    setLaunchError(null);
+    setLaunching(true);
+    const result = await launch(request);
+    // On success the hook has already navigated to /tasks/:id; keep the
+    // launching screen mounted until the route change tears us down. On
+    // failure surface the reason and let the user retry the same request.
+    if (!result.ok) {
+      setLaunching(false);
+      setLaunchError(result.detail ?? result.reason);
+    }
+  }
+
   const isDoorFlow = state.door === "adopt" || state.door === "grade";
   const rows = isDoorFlow ? deriveDoorRows(state) : deriveNewRows(state);
+  // The failed-launch screen replaces the door body until the user retries or
+  // goes back; `door` here is always new|adopt (grade never launches).
+  const launchDoor = state.door === "adopt" ? "adopt" : "new";
 
   let body: React.ReactNode;
-  if (state.step === 0 || state.door === null) {
+  if (launching || launchError !== null) {
+    body = (
+      <LaunchingScreen
+        door={launchDoor}
+        failed={launchError !== null}
+        error={launchError ?? undefined}
+        onBack={() => {
+          setLaunchError(null);
+          dispatch({ t: "back" });
+        }}
+        onRetry={() => {
+          if (lastRequest) void handleLaunch(lastRequest);
+        }}
+      />
+    );
+  } else if (state.step === 0 || state.door === null) {
     body = <DoorPicker readiness={readiness} onPickDoor={(d) => dispatch({ t: "pickDoor", door: d })} />;
   } else if (state.door === "new") {
     body = state.step >= 5 ? (
-      <NewPathPlanCard answers={state.answers} dispatch={dispatch} />
+      <NewPathPlanCard answers={state.answers} dispatch={dispatch} onLaunch={handleLaunch} />
     ) : (
       <NewPathQuestions step={state.step} answers={state.answers} dispatch={dispatch} />
     );
@@ -72,7 +117,7 @@ export function IntentWizard({
       state.door === "grade" ? (
         <GradeResult path={state.path} dispatch={dispatch} />
       ) : (
-        <AdoptResult dispatch={dispatch} />
+        <AdoptResult path={state.path} dispatch={dispatch} onLaunch={handleLaunch} />
       );
   }
 

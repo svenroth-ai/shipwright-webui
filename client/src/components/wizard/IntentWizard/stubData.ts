@@ -11,6 +11,7 @@
  * exercises the real contract, not a convenient simplification.
  */
 
+import { resolveStackProfile } from "./contract";
 import type { AdoptSnapshot, NewAnswers, ReportModel, WizardDoor } from "./types";
 
 /** Every stubbed data source carries this so nothing is mistaken for live (AC3). */
@@ -99,13 +100,11 @@ export const QUESTIONS: QuestionDef[] = [
 ];
 
 export function profileFor(answers: NewAnswers): { name: string; note: string } {
-  if (answers.remember === "Yes") {
-    return { name: "supabase-nextjs", note: "needs a free Supabase account" };
-  }
-  return {
-    name: "vite-hono",
-    note: "runs fully local · zero-signup default · upgradeable later",
-  };
+  // Single source of truth for the StackProfile mapping lives in contract.ts
+  // (A09a) — the flight-plan/plan-card display and the launch payload can never
+  // disagree about which profile "remember=Yes" means.
+  const { profile, note } = resolveStackProfile(answers);
+  return { name: profile, note };
 }
 
 /** The 7 pipeline phases in plain language for the plan card. */
