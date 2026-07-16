@@ -45,19 +45,8 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   {
     id: "task-detail-mission",
     path: "/tasks/:taskId (Mission tab)",
-    description: "TaskDetail, Mission tab — 'The Record' rail (A11), default state",
-    status: "baselined",
-  },
-  {
-    id: "task-detail-mission-artifact",
-    path: "/tasks/:taskId (Mission tab, node open)",
-    description: "TaskDetail, Mission tab — a Record node open, the artifact card beside the rail (A11)",
-    status: "baselined",
-  },
-  {
-    id: "task-detail-mission-collapsed",
-    path: "/tasks/:taskId (Mission tab, rail collapsed)",
-    description: "TaskDetail, Mission tab — 'The Record' rail collapsed to the 60px dot strip (A11)",
+    description:
+      "TaskDetail, Mission tab — 'The Record' rail (A11). The collapsed-rail + artifact-open states are covered functionally in flows/A11-mission-record-rail.spec.ts (A13 pixel-baselines them with the full three-card shell).",
     status: "baselined",
   },
   {

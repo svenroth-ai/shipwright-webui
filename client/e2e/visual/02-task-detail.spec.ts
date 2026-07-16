@@ -48,8 +48,9 @@ test.describe("visual: task detail", () => {
   });
 
   // A11 introduces the Mission tab NON-default (default = Files & Terminal), so
-  // the Mission baselines click into it first. Three deliberate states per AC6:
-  // default rail, a node's artifact open, and the collapsed dot strip.
+  // the Mission baseline clicks into it first. The collapsed-rail + artifact-open
+  // states are covered functionally in flows/A11-mission-record-rail.spec.ts;
+  // A13 pixel-baselines them alongside the full three-card shell.
   test("task-detail-mission", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });
@@ -58,34 +59,6 @@ test.describe("visual: task detail", () => {
     await settle(page);
 
     await expect(page).toHaveScreenshot("task-detail-mission.png", {
-      fullPage: true,
-      mask: nonDeterministicRegions(page),
-    });
-  });
-
-  test("task-detail-mission-artifact", async ({ page }) => {
-    await page.goto(`/tasks/${taskId}`);
-    await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("mission-tab-mission").click();
-    await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("artifact-panel")).toBeVisible();
-    await settle(page);
-
-    await expect(page).toHaveScreenshot("task-detail-mission-artifact.png", {
-      fullPage: true,
-      mask: nonDeterministicRegions(page),
-    });
-  });
-
-  test("task-detail-mission-collapsed", async ({ page }) => {
-    await page.goto(`/tasks/${taskId}`);
-    await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("mission-tab-mission").click();
-    await page.getByTestId("record-collapse").click();
-    await expect(page.getByTestId("record-rail")).toHaveAttribute("data-collapsed", "true");
-    await settle(page);
-
-    await expect(page).toHaveScreenshot("task-detail-mission-collapsed.png", {
       fullPage: true,
       mask: nonDeterministicRegions(page),
     });
