@@ -335,7 +335,7 @@ body {
      gutter equality (bar-inner left edge == body content left edge). */
   max-width: 1360px;
   margin: 0 auto;
-  /* iterate 3.7l: L/R only so Tailwind pt-*/pb-* aren't clobbered by a shorthand. */
+  /* iterate 3.7l: L/R only so Tailwind pt/pb utilities are not clobbered by a shorthand. */
   padding-left: 32px;
   padding-right: 32px;
 }
