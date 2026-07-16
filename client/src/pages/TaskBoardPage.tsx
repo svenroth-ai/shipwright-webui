@@ -50,7 +50,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type {
@@ -103,6 +103,7 @@ function readStoredView(): TaskBoardView {
 
 export default function TaskBoardPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { activeProjectId } = useProjectFilter();
   // Phone (≤767px): the project dropdown moves up into the global top bar and
   // the status filter collapses to an icon menu (iterate-2026-06-15 AC-1/AC-2).
@@ -197,9 +198,6 @@ export default function TaskBoardPage() {
     } as ActionDefinition;
     return [...baseActionsList, synthetic];
   }, [baseActionsList, continuePipelineAvailable]);
-
-  // Board empty-state CTA opens ONLY the real new-task action, never an arbitrary fallback (external-review fold).
-  const newTaskAction = useMemo<ActionDefinition | null>(() => baseActionsList.find((a) => a.id === "new-task") ?? null, [baseActionsList]);
 
   // iterate 3.7h: client-side project filter against the single global
   // task list. ProjectFilterDropdown uses the same underlying cache entry,
@@ -417,8 +415,8 @@ export default function TaskBoardPage() {
           <TaskList tasks={filteredTasks} />
         </div>
       ) : projectFiltered.length === 0 ? (
-        // A07 teaching empty state — only when the project has zero tasks (a filter that only hides tasks falls through to the columns).
-        <TaskBoardEmptyState canCreate={Boolean(newTaskAction)} onCreate={() => newTaskAction && openModal(newTaskAction)} />
+        // A07 teaching empty state (zero tasks). A08 (FR-01.51): its CTA opens the guided Intent Wizard — direct/expert create stays in the header split button.
+        <TaskBoardEmptyState canCreate onCreate={() => navigate("/wizard")} />
       ) : (
         // iterate-2026-06-17 — grid + grouping + drag-and-drop extracted to
         // TaskBoardColumns; grouping is by boardColumn (decoupled from state).
