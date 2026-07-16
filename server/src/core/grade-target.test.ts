@@ -79,7 +79,21 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     expect(missing.reason).toMatch(/doesn't exist/i);
   });
 
-  it("SSRF guard: rejects loopback / private / link-local / CGNAT remote hosts", () => {
+  it("SSRF allowlist: ONLY public GitHub/GitLab/Bitbucket hosts pass", () => {
+    for (const url of [
+      "https://github.com/acme/checkout",
+      "http://gitlab.com/g/r",
+      "https://bitbucket.org/o/r",
+      "https://www.github.com/acme/checkout", // www. normalized
+      "https://github.com./acme/checkout", // trailing FQDN dot normalized
+      "git@github.com:acme/checkout.git",
+      "ssh://git@gitlab.com/g/r",
+    ]) {
+      expect(validateGradeTarget(url, no).ok, `${url} must be allowed`).toBe(true);
+    }
+  });
+
+  it("SSRF allowlist: rejects loopback/private/internal hosts AND every IP-literal encoding", () => {
     for (const url of [
       "https://169.254.169.254/a/b", // cloud metadata endpoint (link-local)
       "https://127.0.0.1/a/b",
@@ -87,21 +101,19 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
       "https://10.0.0.5/a/b",
       "https://192.168.1.9/a/b",
       "https://172.16.0.1/a/b",
-      "ssh://git@internal-host:22/a/b", // NOT blocked by name — but IP forms are
       "git://100.64.0.1/a/b", // CGNAT
+      "ssh://git@internal-host:22/a/b", // a private DNS name — NOT on the allowlist
+      "http://2130706433/a/b", // integer-encoded 127.0.0.1
+      "http://127.1/a/b", // short-form loopback
+      "http://0x7f.0.0.1/a/b", // hex-octet loopback
+      "https://[::ffff:127.0.0.1]/a/b", // IPv4-mapped IPv6 loopback
+      "https://github.com.evil.com/a/b", // lookalike suffix — exact match only
+      "https://github.com@169.254.169.254/a/b", // host-confusion (also credential-rejected)
     ]) {
       const r = validateGradeTarget(url, no);
-      if (url.includes("internal-host")) {
-        // A bare hostname (not an IP literal) is allowed — grade.py owns the
-        // network policy; we only block loopback/private/link-local IP literals.
-        expect(r.ok).toBe(true);
-      } else {
-        expect(r.ok, `${url} must be blocked`).toBe(false);
-        expect(r.reason).toMatch(/private or loopback/i);
-      }
+      expect(r.ok, `${url} must be rejected`).toBe(false);
+      expect(r.reason).toMatch(/public GitHub|credential/i);
     }
-    // A public host is unaffected.
-    expect(validateGradeTarget("https://github.com/acme/checkout", no).ok).toBe(true);
   });
 
   it("rejects credentials embedded in an http(s) URL (never echo a secret back)", () => {

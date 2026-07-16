@@ -51,6 +51,21 @@ describe("parseReportModel", () => {
     expect(parseReportModel({ ...GRADE_REPORT, dimensions: {} }).ok).toBe(false);
   });
 
+  it("rejects a payload missing `reasons` — GradeResult .map()s it, so an absent array would THROW (A09b)", () => {
+    const { reasons: _drop, ...noReasons } = GRADE_REPORT;
+    void _drop;
+    const r = parseReportModel(noReasons);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/reasons/i);
+    // The other consumed scalars are guarded too (drift → shape-unrecognised, not a crash).
+    for (const field of ["mode", "routing_reason", "verified_from", "network_note", "static_test_inventory"]) {
+      const { [field]: _o, ...missing } = GRADE_REPORT as unknown as Record<string, unknown>;
+      void _o;
+      expect(parseReportModel(missing).ok, `missing ${field} must be rejected`).toBe(false);
+    }
+    expect(parseReportModel({ ...GRADE_REPORT, network_enabled: "yes" }).ok).toBe(false);
+  });
+
   it("rejects a dimension missing its provenance object", () => {
     const bad = structuredClone(GRADE_REPORT) as unknown as {
       dimensions: Array<Record<string, unknown>>;

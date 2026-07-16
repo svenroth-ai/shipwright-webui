@@ -36,7 +36,7 @@ export const ENV_COMPLIANCE_ROOT = "SHIPWRIGHT_GRADE_COMPLIANCE_ROOT";
 
 const REMOTE_SCHEME_RE = /:\/\//;
 const GIT_SSH_RE = /^git@[^\s:]+:[^\s/]+\/.+/i;
-const HOST_SHORTHAND_RE = /^(?:www\.)?(?:github|gitlab)\.com[/:]/i;
+const HOST_SHORTHAND_RE = /^(?:www\.)?(?:(?:github|gitlab)\.com|bitbucket\.org)[/:]/i;
 
 /** Server-side remote detection — never trust the client's `isRemote` hint. */
 export function looksRemote(target: string): boolean {
@@ -49,6 +49,17 @@ export interface TargetValidation {
   reason?: string;
 }
 
+/**
+ * The feature is explicitly "a GitHub URL" — a bare read of a PUBLIC repo. So
+ * remote targets are gated by an ALLOWLIST of public git hosts, not a blocklist
+ * of private ranges. An allowlist eliminates the whole SSRF / IP-encoding-bypass
+ * class BY CONSTRUCTION: a lexical private-IP blocklist is bypassable (a hostname
+ * that DNS-resolves to a private address, integer/short/hex/octal IPv4 literals,
+ * IPv4-mapped IPv6, a trailing-dot FQDN) — every one of those simply isn't on the
+ * allowlist, so it never reaches `git clone`.
+ */
+export const ALLOWED_REMOTE_HOSTS = new Set(["github.com", "gitlab.com", "bitbucket.org"]);
+
 /** Extract the host from a remote target across all accepted forms, or null. */
 function extractRemoteHost(t: string): string | null {
   let m = /^(?:https?|ssh|git):\/\/([^/]+)/i.exec(t);
@@ -60,32 +71,17 @@ function extractRemoteHost(t: string): string | null {
   }
   m = /^git@([^:]+):/i.exec(t);
   if (m) return m[1].toLowerCase();
-  m = /^(?:www\.)?((?:github|gitlab)\.com)\//i.exec(t);
+  m = /^(?:www\.)?((?:github|gitlab)\.com|bitbucket\.org)\//i.exec(t);
   if (m) return m[1].toLowerCase();
   return null;
 }
 
-/** SSRF guard: block a remote host that is loopback / private / link-local /
- *  CGNAT — so an EXPOSED webui can't be turned into a metadata-endpoint or
- *  internal-network probe by a `git clone` of an attacker-chosen URL. Public
- *  hostnames (github.com, gitlab.com, self-hosted-by-name) are unaffected. */
-export function hostIsBlocked(host: string): boolean {
-  if (host === "localhost" || host.endsWith(".localhost")) return true;
-  if (host === "0.0.0.0" || host === "::1" || host === "::") return true;
-  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (v4) {
-    const a = Number(v4[1]);
-    const b = Number(v4[2]);
-    if (a === 127 || a === 10 || a === 0) return true; // loopback / private / this-host
-    if (a === 192 && b === 168) return true; // private
-    if (a === 172 && b >= 16 && b <= 31) return true; // private
-    if (a === 169 && b === 254) return true; // link-local / cloud metadata
-    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-  }
-  if (/^fe80:/i.test(host) || /^fc[0-9a-f]{2}:/i.test(host) || /^fd[0-9a-f]{2}:/i.test(host)) {
-    return true; // IPv6 link-local / ULA
-  }
-  return false;
+/** True iff `host` is an allowed PUBLIC git host. Normalizes a leading `www.`
+ *  and a single trailing FQDN dot before the exact-match check (so `github.com.`
+ *  / `www.github.com` still resolve to GitHub) — everything else is rejected. */
+export function hostIsAllowed(host: string): boolean {
+  const h = host.toLowerCase().replace(/\.$/, "").replace(/^www\./, "");
+  return ALLOWED_REMOTE_HOSTS.has(h);
 }
 
 const PLAUSIBLE_URL_RES = [
@@ -93,7 +89,7 @@ const PLAUSIBLE_URL_RES = [
   /^ssh:\/\/[^\s]+\/[^\s/]+\/[^\s]+/i, // ssh://host/owner/repo
   /^git:\/\/[^\s]+\/[^\s/]+\/[^\s]+/i, // git://host/owner/repo
   /^git@[^\s:]+:[^\s/]+\/[^\s]+/i, // git@host:owner/repo
-  /^(?:www\.)?(?:github|gitlab)\.com\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/i, // github.com/owner/repo
+  /^(?:www\.)?(?:(?:github|gitlab)\.com|bitbucket\.org)\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+/i, // host/owner/repo
 ];
 
 export function validateGradeTarget(
@@ -117,9 +113,15 @@ export function validateGradeTarget(
     if (!plausible) {
       return { ok: false, reason: "That doesn't look like a git or GitHub repository URL." };
     }
+    // ALLOWLIST gate (SSRF): only public GitHub / GitLab / Bitbucket hosts. Any
+    // other host — a private-IP literal in ANY encoding, a rebinding hostname, an
+    // internal name — is rejected here and never reaches `git clone`.
     const host = extractRemoteHost(t);
-    if (host && hostIsBlocked(host)) {
-      return { ok: false, reason: "That host isn't allowed — a grade can't reach a private or loopback address." };
+    if (!host || !hostIsAllowed(host)) {
+      return {
+        ok: false,
+        reason: "Only public GitHub, GitLab or Bitbucket repository URLs are supported.",
+      };
     }
     return { ok: true, kind: "remote" };
   }
