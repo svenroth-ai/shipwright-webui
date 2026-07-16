@@ -56,15 +56,19 @@ const EmbeddedTerminal = lazy(() =>
 
 import type { EmbeddedTerminalHandle } from "../components/terminal/EmbeddedTerminal";
 import { PrivacyDisclosureFooter } from "../components/external/TerminalPrivacyFooter";
-import { MissionRecordView } from "../components/external/mission/MissionRecordView";
+import { MissionBody } from "../components/external/mission/MissionBody";
+import {
+  MissionTabRow,
+  type MissionTab,
+} from "../components/external/mission/MissionTabRow";
 
 type CenterTab = "transcript" | "terminal";
-type MissionTab = "mission" | "files";
 const TAB_STORAGE_KEY = "webui:embedded-terminal-default-tab";
-// Mission | Files & Terminal top switch. Default "files" preserves the current
-// terminal-default view + the CI smoke gate + the auto-launch flow byte-stable
-// (A11 introduces Mission non-default; A13's shell iterate flips the default and
-// migrates the terminal specs, with Sven's review pass).
+// Mission | Files & Terminal top switch. Default "files" keeps the terminal the
+// mount-default view so the CI smoke gate + auto-launch + the ~50 terminal/replay
+// specs stay byte-stable. A13 restyled this into MissionTabRow but DELIBERATELY
+// did NOT flip the default (migrating that whole corpus is out of A13's budget);
+// Mission is opt-in via the tab.
 const MISSION_TAB_STORAGE_KEY = "webui:task-detail-mission-tab";
 
 export default function TaskDetailPage() {
@@ -95,9 +99,9 @@ function TaskDetailPageBody() {
     TAB_STORAGE_KEY,
     "terminal",
   );
-  // Top-level Mission | Files & Terminal switch (A11). Default "files" keeps
-  // the terminal the mount-default view (CI smoke gate + auto-launch stay
-  // byte-stable); the Mission tab hosts the Record rail + artifact.
+  // Top-level Mission | Files & Terminal switch (A13 MissionTabRow). Default
+  // "files" keeps the terminal the mount-default view (CI smoke gate + auto-launch
+  // stay byte-stable); the Mission tab hosts the three-card shell.
   const [missionTab, setMissionTab] = useLocalStorage<MissionTab>(
     MISSION_TAB_STORAGE_KEY,
     "files",
@@ -398,39 +402,15 @@ function TaskDetailPageBody() {
     >
       <TaskDetailHeader task={task} modelName={transcript.modelName} />
 
-      {/* Mission | Files & Terminal top switch (A11). Plain buttons (NOT
-          role=tab) so the existing getByRole("tab", {name:/terminal/i}) queries
-          keep resolving to the single center Terminal tab. */}
-      <div
-        className="mc-tabrow flex-shrink-0 px-4 py-2 md:px-8"
-        data-testid="mission-tabrow"
-      >
-        <div className="mc-tabs" role="group" aria-label="Task detail view">
-          <button
-            type="button"
-            className={`mc-tab${missionTab === "mission" ? " active" : ""}`}
-            aria-pressed={missionTab === "mission"}
-            onClick={() => setMissionTab("mission")}
-            data-testid="mission-tab-mission"
-          >
-            Mission
-          </button>
-          <button
-            type="button"
-            className={`mc-tab${missionTab === "files" ? " active" : ""}`}
-            aria-pressed={missionTab === "files"}
-            onClick={() => setMissionTab("files")}
-            data-testid="mission-tab-files"
-          >
-            Files &amp; Terminal
-          </button>
-        </div>
-      </div>
+      {/* Mission | Files & Terminal segmented switch + the glass "Open Ship's Log"
+          button (A13, MissionTabRow). Files & Terminal stays the mount-default so
+          the terminal / auto-launch / CI smoke gate stay byte-stable. */}
+      <MissionTabRow value={missionTab} onChange={setMissionTab} />
 
-      {/* Mission tab — "The Record" rail + the artifact card (A11). Mount-only
-          when selected (no persistent resource to preserve). */}
+      {/* Mission tab — the three equal-height glass cards (A13, MissionBody).
+          Mount-only when selected (no persistent resource to preserve). */}
       {missionTab === "mission" ? (
-        <MissionRecordView task={task} onOpenDocument={() => setMissionTab("files")} />
+        <MissionBody task={task} onOpenDocument={() => setMissionTab("files")} />
       ) : null}
 
       {/* Files & Terminal tab — the existing three-pane. Always mounted (just

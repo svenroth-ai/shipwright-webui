@@ -46,20 +46,21 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     id: "task-detail-mission",
     path: "/tasks/:taskId (Mission tab, DONE state)",
     description:
-      "TaskDetail, Mission tab (done) — 'The Record' rail (A11) + the Operation card (A12: verdict banner, mission line, curated proof summary). A seeded task joins to no run, so the verdict is the honest 'No run data yet', never a false ALL CLEAR. The collapsed-rail + artifact-open states are covered functionally in flows/A11-mission-record-rail.spec.ts (A13 pixel-baselines them with the full three-card shell).",
+      "TaskDetail, Mission tab (done) — A13's three equal-height glass cards on the photo (scrim removed): 'The Record' rail (A11) · the Operation card (A12) · the Artifact card. Restyled top row (Board › Project both-clickable breadcrumb) + the segmented Mission | Files & Terminal switch with the glass 'Open Ship's Log' button. A seeded task joins to no run, so the verdict is the honest 'No run data yet', never a false ALL CLEAR. The artifact-open + rail-collapsed states + the 1440 no-clip + equal-height are covered functionally (layout-measured) in flows/A13-mission-shell.spec.ts.",
     status: "baselined",
   },
   {
     id: "task-detail-mission-live",
     path: "/tasks/:taskId (Mission tab, LIVE state)",
     description:
-      "TaskDetail, Mission tab (mid-run) — the Record rail shows a `now` frontier and the Operation card renders its live layout (A12, AC6). Baseline generated in the pinned CI container.",
+      "TaskDetail, Mission tab (mid-run) — the Record rail shows a `now` frontier and the Operation card renders its live layout (A12, AC6), inside A13's three-card shell + restyled top row / tab row. Baseline generated in the pinned CI container.",
     status: "baselined",
   },
   {
     id: "task-detail-terminal",
     path: "/tasks/:taskId (Files & Terminal tab)",
-    description: "TaskDetail, Files & Terminal — the pty surface is MASKED (not deterministic)",
+    description:
+      "TaskDetail, Files & Terminal — the tab row changes (A13's segmented switch + Ship's Log button); the pty surface itself is MASKED (not deterministic).",
     status: "baselined",
   },
   {

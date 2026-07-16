@@ -47,14 +47,14 @@ test.describe("visual: task detail", () => {
     await cleanupProject(request, project);
   });
 
-  // A11 introduces the Mission tab NON-default (default = Files & Terminal), so
-  // the Mission baseline clicks into it first. A12 adds the Operation card (verdict
-  // + mission line + curated proof summary) beside the Record rail — so this
-  // baseline MOVES: it is the Mission tab in the DONE state (a seeded task joins to
-  // no run, so the verdict is the honest "No run data yet", never a false ALL
-  // CLEAR). The collapsed-rail + artifact-open states are covered functionally in
-  // flows/A11-mission-record-rail.spec.ts; A13 pixel-baselines them alongside the
-  // full three-card shell.
+  // Mission is NON-default (default = Files & Terminal), so the baseline clicks in
+  // first. A13 restyles this into the three equal-height glass-card shell (scrim
+  // removed) with the Board-crumb top row + segmented tab row + Ship's Log button,
+  // so this baseline MOVES. It captures the DONE state, artifact CLOSED (a seeded
+  // task joins to no run → the honest "No run data yet", never a false ALL CLEAR).
+  // The artifact-OPEN + rail-COLLAPSED states, the 1440 no-clip and the equal-height
+  // invariant are covered by real LAYOUT measurement in
+  // flows/A13-mission-shell.spec.ts (more rigorous for those than a pixel diff).
   test("task-detail-mission", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });

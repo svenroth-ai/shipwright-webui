@@ -54,7 +54,10 @@ test.describe("A11 — Mission 'The Record' rail", () => {
 
     const rail = page.getByTestId("record-rail");
     await expect(rail).toBeVisible();
-    await expect(page.getByText("The Record")).toBeVisible();
+    // Scope + exact-match the rail eyebrow: a loose page-wide getByText("The
+    // Record") also matches the seeded title ("Survey the record") and the
+    // collapse label ("Hide the record") — 3 hits, a strict-mode violation.
+    await expect(rail.getByText("The Record", { exact: true })).toBeVisible();
 
     // The five honest nodes render (pending, no fabricated receipts).
     for (const key of ["req", "spec", "tests", "review", "commit"] as const) {
@@ -102,7 +105,10 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     // The slide-over is bounded to the viewport, never wider than it.
     const box = await panel.boundingBox();
     expect(box!.width).toBeLessThanOrEqual(800);
-    await scrim.click();
+    // Click the EXPOSED dimmed area (top-left): the scrim spans the viewport but
+    // the artifact aside sits on top of its right ~420px, so a default centre
+    // click lands on the artifact (pointer-events intercept) and never closes.
+    await scrim.click({ position: { x: 8, y: 8 } });
     await expect(panel).toHaveCount(0);
   });
 

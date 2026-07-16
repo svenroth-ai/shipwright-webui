@@ -1,15 +1,23 @@
 /*
- * MissionRecordView — A11's interim Mission composer (FR-01.55).
+ * MissionBody — the `.mc-body` of Mission Control (A13, FR-01.57).
  *
- * Owns the Record's shared `{activeNode, collapsed}` state and the join to A02's
- * per-run facts, and lays out the .mc-body: the Record rail + (when a node is
- * active) the artifact card. Keeping this OUT of TaskDetailPage keeps that page
- * genuinely "wire-only" (it is grandfathered at its LOC ceiling).
+ * The three equal-height cards that FLOAT on the photo, with gaps and NO dark
+ * scrim behind them (`.on-photo .a-scrim { display:none }`, A11): the Record rail
+ * (A11, 248px / 60px collapsed) · the Operation card (A12, flex) · the Artifact
+ * card (A11, 400px `position:static`, mounted ONLY when a node is active). The
+ * cards are rounded glass with `--sh-photo`; each scrolls internally and — being
+ * flex children of a definite-height row — they render at IDENTICAL height.
  *
- * This is the stepping-stone A13's MissionBody supersedes — A13 lifts the same
- * controlled RecordRail + ArtifactPanel into the three-equal-height-card shell
- * (adding A12's Operation card in the middle). The state contract is identical,
- * so the swap is drop-in.
+ * This SUPERSEDES A11's interim `MissionRecordView`: same controlled
+ * `{activeNode, collapsed}` contract, same `useMissionState` + `useRunDetail`
+ * derivation (ONE derivation for the whole cluster — nothing re-derives). The
+ * only overlay element in the subtree is the Artifact's own compact slide-over
+ * scrim (`.a-scrim`, display:none on the photo); MissionBody adds no scrim,
+ * dimming layer or `rgba()` panel behind the row.
+ *
+ * Render modes come from `useMissionState()` — NO user-facing state switcher is
+ * shipped (the prototype's `stateToggle` was a demo affordance; AC5). The
+ * `designgate` mode routes through the Operation card to A14's design-gate surface.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -29,7 +37,7 @@ interface Props {
   onOpenDocument: () => void;
 }
 
-export function MissionRecordView({ task, onOpenDocument }: Props) {
+export function MissionBody({ task, onOpenDocument }: Props) {
   const [activeNode, setActiveNode] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
@@ -45,7 +53,7 @@ export function MissionRecordView({ task, onOpenDocument }: Props) {
     : null;
 
   const handleNodeClick = useCallback((key: string) => {
-    // Clicking a node while the rail is collapsed expands it first; clicking the
+    // Clicking a node while collapsed expands the rail first; clicking the
     // already-active node closes the artifact (prototype window.__node).
     setCollapsed(false);
     setActiveNode((curr) => (curr === key ? null : key));
@@ -65,7 +73,7 @@ export function MissionRecordView({ task, onOpenDocument }: Props) {
 
   return (
     <div className="min-h-0 flex-1" data-testid="task-detail-mission">
-      <div className="mc-body">
+      <div className="mc-body" data-testid="mission-body">
         <RecordRail
           nodes={nodes}
           activeNodeKey={activeNode}
@@ -73,10 +81,10 @@ export function MissionRecordView({ task, onOpenDocument }: Props) {
           onNodeClick={handleNodeClick}
           onToggleCollapse={handleToggleCollapse}
         />
-        {/* A12's Operation card — the flexible middle of .mc-body (verdict +
-            mission line + curated proof summary). Consumes the SAME useMissionState
-            + useRunDetail derivation as the Record, so the two can never disagree.
-            A13 lifts this trio into the three-equal-card shell. */}
+        {/* A12's Operation card — the flexible middle. `designgate` routes to A14's
+            surface (an honest placeholder until A14 lands). Consumes the SAME
+            useMissionState + useRunDetail derivation as the Record, so the two can
+            never disagree. */}
         <OperationCard task={task} />
         {activeRecordNode ? (
           <ArtifactPanel
