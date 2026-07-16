@@ -14,6 +14,12 @@ vi.mock("../../../hooks/useMissionState", () => ({
 vi.mock("../../../hooks/useRunData", () => ({
   useRunDetail: () => runDetailMock(),
 }));
+// A14 owns the design-gate body; A12 only ROUTES to it. Stub it so this test
+// stays about the routing decision, not the gate's internals (which carry their
+// own tests + need QueryClient / LaunchCoordinator providers).
+vi.mock("./DesignGateCard", () => ({
+  DesignGateCard: () => <div data-testid="design-gate-card-stub" />,
+}));
 
 import { OperationCard } from "./OperationCard";
 
@@ -68,12 +74,12 @@ describe("OperationCard — the three states render from real signals (AC1)", ()
     expect(screen.getByTestId("proof-summary")).toHaveTextContent("security gate held");
   });
 
-  it("designgate -> routes to an HONEST placeholder, never a fake verdict", () => {
+  it("designgate -> routes to A14's DesignGateCard, never a fake verdict", () => {
     missionStateMock.mockReturnValue("designgate");
     runDetailMock.mockReturnValue({ data: undefined });
     render(<OperationCard task={TASK} />);
 
-    expect(screen.getByTestId("operation-designgate-placeholder")).toBeInTheDocument();
+    expect(screen.getByTestId("design-gate-card-stub")).toBeInTheDocument();
     // No verdict banner at all — A12 only routes; A14 owns the gate body.
     expect(screen.queryByTestId("verdict-banner")).not.toBeInTheDocument();
     expect(screen.queryByText("ALL CLEAR")).not.toBeInTheDocument();

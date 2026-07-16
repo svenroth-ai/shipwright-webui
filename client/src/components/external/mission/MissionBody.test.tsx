@@ -12,6 +12,12 @@ vi.mock("../../../hooks/useMissionState", () => ({
 vi.mock("../../../hooks/useRunData", () => ({
   useRunDetail: () => runDetailMock(),
 }));
+// A14's gate body (rendered by OperationCard in designgate mode) carries its own
+// tests + needs QueryClient / LaunchCoordinator providers; stub it so this shell
+// test stays about the three-card routing.
+vi.mock("./DesignGateCard", () => ({
+  DesignGateCard: () => <div data-testid="design-gate-card-stub" />,
+}));
 
 import { MissionBody } from "./MissionBody";
 
@@ -69,7 +75,7 @@ describe("MissionBody", () => {
     missionStateMock.mockReturnValue("designgate");
     runDetailMock.mockReturnValue({ data: undefined });
     setup();
-    expect(screen.getByTestId("operation-designgate-placeholder")).toBeInTheDocument();
+    expect(screen.getByTestId("design-gate-card-stub")).toBeInTheDocument();
   });
 
   it("'Open full document' fires the parent callback and closes the panel", () => {

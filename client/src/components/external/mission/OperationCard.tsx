@@ -17,8 +17,6 @@
  * history, not a channel — no xterm, no pty, no WebSocket (asserted, AC2).
  */
 
-import { ShieldQuestion } from "lucide-react";
-
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useMissionState } from "../../../hooks/useMissionState";
 import { useRunDetail } from "../../../hooks/useRunData";
@@ -27,6 +25,7 @@ import { type MissionInput } from "../../../lib/narrator";
 import { VerdictBanner } from "./VerdictBanner";
 import { MissionLine } from "./MissionLine";
 import { ProofSummary } from "./ProofSummary";
+import { DesignGateCard } from "./DesignGateCard";
 
 interface Props {
   task: ExternalTask;
@@ -54,21 +53,10 @@ export function OperationCard({ task }: Props) {
     runDetail.data?.status === "ok" ? runDetail.data.run : null;
 
   if (missionState === "designgate") {
-    // A12 only ROUTES here — A14 owns the real design-gate body. Honest
-    // placeholder: the narrator's design line ONLY (no hand-written copy, no
-    // verdict). Every sentence on this card is narrator output.
-    return (
-      <section
-        className="mc-op"
-        data-testid="operation-card"
-        data-state="designgate"
-      >
-        <div className="mc-op-gate" data-testid="operation-designgate-placeholder">
-          <ShieldQuestion size={15} aria-hidden="true" />
-          <MissionLine input={{ state: "designgate", screenCount: null }} />
-        </div>
-      </section>
-    );
+    // A12 ROUTES the middle slot to A14's real design-gate body — the gallery of
+    // pending screens + the Approve / Request-changes decision bar, in this same
+    // `.mc-op` white-glass card (no new page/route/header/glass recipe, AC1).
+    return <DesignGateCard task={task} />;
   }
 
   const verdict = deriveVerdict({ facts });

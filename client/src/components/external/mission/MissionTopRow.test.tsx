@@ -111,6 +111,18 @@ describe("MissionTopRow — Resume CTA", () => {
     renderRow(makeTask({ state: "active" }));
     expect(screen.getByTestId("cta-copy-resume-command")).toBeInTheDocument();
   });
+
+  it("AC4 (A14): at the design gate the header CTA is SUPPRESSED (Approve is the sole primary)", () => {
+    // An active task at the gate would otherwise show Resume…
+    missionStateMock.mockReturnValue("designgate");
+    const { unmount } = renderRow(makeTask({ state: "active" }));
+    expect(screen.queryByTestId("cta-copy-resume-command")).toBeNull();
+    unmount();
+    // …and a draft-at-gate would otherwise show Launch — both are suppressed.
+    missionStateMock.mockReturnValue("designgate");
+    renderRow(makeTask({ state: "draft" }));
+    expect(screen.queryByTestId("cta-launch-in-terminal")).toBeNull();
+  });
 });
 
 describe("MissionTopRow — lossless HeaderMenu", () => {

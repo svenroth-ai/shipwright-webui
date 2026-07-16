@@ -1,33 +1,35 @@
 /*
- * Flow 100 — single-session design-gate mockup review hosting (FR-01.45,
- * iterate-2026-07-10-design-gate-review-host).
+ * Flow 100 — the design gate AS the Mission three-card view (FR-01.58, A14).
  *
- * Proves the whole chain against the REAL dev stack (real Hono design-gate /
- * designs-serve / design-feedback routes + real on-disk run_config +
- * run_loop_state + designs/index.html — no route interception, per the
- * Backend-affects-Frontend gate):
+ * A14 relocated the single-session design-gate review from a foreign board-card
+ * panel into the task's Mission view: the same three-card shell (A13) with the
+ * Record's Design node `now`, the gallery of pending screens in the middle
+ * `.mc-op` card, and the Approve / Request-changes decision bar pinned at its
+ * foot. This proves the whole chain against the REAL dev stack (real Hono
+ * design-gate / designs-serve / design-feedback routes + real on-disk run_config
+ * + run_loop_state + designs/ — no route interception):
  *
- *   1. paused-at-design run → the SingleSessionRunCard renders a DesignGatePanel
- *      with a "Review mockups" button.
- *   2. Click it → the full-bleed MockupReviewOverlay opens hosting the emitted
- *      viewer in a sandboxed iframe.
- *   3. Clicking the viewer's own Export (which calls window.showSaveFilePicker,
- *      overridden by the injected host bridge) writes
- *      .shipwright/designs/design-feedback-round1.md into the worktree and the
- *      overlay shows "Saved — Round 1".
- *   4. The written file re-reads to the contract shape (AC4) and the round is
- *      disk-derived (AC3).
+ *   1. paused-at-design run → open the task → Mission tab → the three-card gate
+ *      renders (Record Design node `now`, gallery cards with FR + name).
+ *   2. exactly ONE primary: Approve is present; the header Resume CTA is
+ *      suppressed at the gate (AC4).
+ *   3. a gallery card opens the REAL hosted preview (the sandboxed viewer iframe).
+ *   4. Request changes → the viewer's Export writes
+ *      .shipwright/designs/design-feedback-round1.md (disk-derived round, AC2).
+ *   5. clear the gate fixture → Mission returns to its normal render on the poll,
+ *      with no manual refresh (AC6).
  */
 
 import { seedLocalStorage } from "../helpers/fixtures";
 import { test, expect, type APIRequestContext, type Page } from "@playwright/test";
+import { apiUrl } from "../helpers/env";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 const RUN_ID = "run-a1b2c3d4";
 const DESIGN_PTK = "ptk-bbbb";
-const EM_DASH = String.fromCharCode(0x2014); // — (avoid escape-mangling)
+const EM_DASH = String.fromCharCode(0x2014);
 
 function runConfig(): string {
   return JSON.stringify({
@@ -44,30 +46,16 @@ function runConfig(): string {
     completed_phase_task_ids: ["ptk-aaaa"],
     phase_tasks: [
       {
-        phaseTaskId: "ptk-aaaa",
-        phase: "project",
-        splitId: null,
-        sessionUuid: "11111111-2222-4333-8444-555555555555",
-        version: 1,
-        status: "done",
-        title: "Run-a1b2 / project",
-        slashCommand: "/shipwright-project",
-        prerequisites: [],
-        executionCount: 1,
-        createdAt: "2026-07-10T08:00:00.000Z",
+        phaseTaskId: "ptk-aaaa", phase: "project", splitId: null,
+        sessionUuid: "11111111-2222-4333-8444-555555555555", version: 1,
+        status: "done", title: "Run / project", slashCommand: "/shipwright-project",
+        prerequisites: [], executionCount: 1, createdAt: "2026-07-10T08:00:00.000Z",
       },
       {
-        phaseTaskId: DESIGN_PTK,
-        phase: "design",
-        splitId: null,
-        sessionUuid: "22222222-3333-4444-8555-666666666666",
-        version: 1,
-        status: "in_progress",
-        title: "Run-a1b2 / design",
-        slashCommand: "/shipwright-design",
-        prerequisites: ["ptk-aaaa"],
-        executionCount: 1,
-        createdAt: "2026-07-10T09:00:00.000Z",
+        phaseTaskId: DESIGN_PTK, phase: "design", splitId: null,
+        sessionUuid: "22222222-3333-4444-8555-666666666666", version: 1,
+        status: "in_progress", title: "Run / design", slashCommand: "/shipwright-design",
+        prerequisites: ["ptk-aaaa"], executionCount: 1, createdAt: "2026-07-10T09:00:00.000Z",
       },
     ],
     created_at: "2026-07-10T08:00:00.000Z",
@@ -75,146 +63,146 @@ function runConfig(): string {
   });
 }
 
-/** A minimal viewer that reproduces the emitted viewer's EXPORT SEAM: an Export
- *  button whose click builds contract-shaped markdown and calls
- *  window.showSaveFilePicker (Strategy 1) exactly as the real viewer does. The
- *  server injects the host bridge that overrides showSaveFilePicker. */
+function loopState(status: string): string {
+  return JSON.stringify({
+    schemaVersion: 1, runId: RUN_ID, currentPhaseTaskId: DESIGN_PTK, status,
+  });
+}
+
+function manifest(): string {
+  return [
+    "# Design Manifest", "", "> Generated by shipwright-design | Profile: react-spa", "",
+    "## Screens", "",
+    "| # | Screen | File | Status | Linked FRs |",
+    "|---|--------|------|--------|-----------|",
+    "| 01 | dashboard | screens/01-dashboard.html | complete | FR-01.09 |",
+    "| 02 | settings | screens/02-settings.html | complete | FR-01.10 |",
+    "",
+  ].join("\n");
+}
+
+function screenHtml(name: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${name}</title></head>
+<body style="font-family:sans-serif"><h1 data-testid="screen-h1">${name}</h1></body></html>`;
+}
+
+/** The emitted viewer's EXPORT SEAM — an Export button that builds contract-shaped
+ *  markdown and calls window.showSaveFilePicker (overridden by the host bridge). */
 function viewerHtml(): string {
   const dash = "—";
   const md = [
-    "# Design Feedback " + dash + " Round 1",
-    "",
-    "## Summary",
-    "",
-    "| Status | Count |",
-    "|--------|-------|",
-    "| Approved | 1 |",
-    "| Changes Requested | 1 |",
-    "| Rejected | 0 |",
-    "| Total Reviewed | 2 / 2 |",
-    "",
-    "## Core",
-    "",
-    "### #01 Dashboard " + dash + " CHANGES",
-    "",
-    "**File:** screens/01-dashboard.html  ",
-    "**FRs:** FR-01.09",
-    "",
-    "Tighten the header spacing.",
-    "",
-    "---",
-    "",
-    "### #02 Settings " + dash + " APPROVED",
-    "",
-    "**File:** screens/02-settings.html  ",
-    "**FRs:** FR-01.10",
-    "",
-    "---",
-    "",
+    "# Design Feedback " + dash + " Round 1", "", "## Summary", "",
+    "| Status | Count |", "|--------|-------|", "| Changes Requested | 1 |",
+    "| Total Reviewed | 2 / 2 |", "", "## Core", "",
+    "### #01 Dashboard " + dash + " CHANGES", "",
+    "**File:** screens/01-dashboard.html  ", "**FRs:** FR-01.09", "",
+    "Tighten the header spacing.", "", "---", "",
   ].join("\n");
   const mdJson = JSON.stringify(md);
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Viewer</title></head>
-<body>
-<h1>Mock Review Viewer</h1>
+<body><h1>Mock Review Viewer</h1>
 <button data-testid="fixture-export" onclick="exportFeedback()">Export</button>
 <script>
-async function exportFeedback() {
-  var md = ${mdJson};
-  var blob = new Blob([md], { type: 'text/markdown' });
-  if (window.showSaveFilePicker) {
-    var handle = await window.showSaveFilePicker({ suggestedName: 'design-feedback-round1.md' });
-    var w = await handle.createWritable();
-    await w.write(blob);
-    await w.close();
-    return;
-  }
-}
-</script>
-</body></html>`;
+async function exportFeedback(){var md=${mdJson};var blob=new Blob([md],{type:'text/markdown'});
+if(window.showSaveFilePicker){var h=await window.showSaveFilePicker({suggestedName:'design-feedback-round1.md'});var w=await h.createWritable();await w.write(blob);await w.close();}}
+</script></body></html>`;
 }
 
-async function makeProjectDir(): Promise<string> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "designgate-e2e-"));
+async function makeGateProject(status = "paused_human_gate"): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "a14-gate-"));
   await fs.writeFile(path.join(dir, "shipwright_run_config.json"), runConfig(), "utf-8");
-  const shipwright = path.join(dir, ".shipwright");
-  const designs = path.join(shipwright, "designs");
-  await fs.mkdir(designs, { recursive: true });
-  await fs.writeFile(
-    path.join(shipwright, "run_loop_state.json"),
-    JSON.stringify({
-      schemaVersion: 1,
-      runId: RUN_ID,
-      currentPhaseTaskId: DESIGN_PTK,
-      status: "paused_human_gate",
-    }),
-    "utf-8",
-  );
+  const designs = path.join(dir, ".shipwright", "designs");
+  await fs.mkdir(path.join(designs, "screens"), { recursive: true });
+  await fs.writeFile(path.join(dir, ".shipwright", "run_loop_state.json"), loopState(status), "utf-8");
   await fs.writeFile(path.join(designs, "index.html"), viewerHtml(), "utf-8");
+  await fs.writeFile(path.join(designs, "design-manifest.md"), manifest(), "utf-8");
+  await fs.writeFile(path.join(designs, "screens", "01-dashboard.html"), screenHtml("dashboard"), "utf-8");
+  await fs.writeFile(path.join(designs, "screens", "02-settings.html"), screenHtml("settings"), "utf-8");
   return dir;
 }
 
 async function registerProject(request: APIRequestContext, dir: string): Promise<string> {
-  const res = await request.post("/api/projects", {
-    data: { name: `designgate-e2e-${path.basename(dir)}`, path: dir },
+  const res = await request.post(apiUrl("/api/projects"), {
+    data: { name: `a14-gate-${path.basename(dir)}`, path: dir, profile: "custom", status: "active" },
   });
   if (!res.ok()) throw new Error(`POST /api/projects: HTTP ${res.status()} — ${await res.text()}`);
-  const body = (await res.json()) as { data: { id: string } };
-  return body.data.id;
+  return ((await res.json()) as { data: { id: string } }).data.id;
 }
 
-async function openBoard(page: Page, projectId: string): Promise<void> {
+async function seedTaskFor(request: APIRequestContext, projectId: string, cwd: string): Promise<string> {
+  const res = await request.post(apiUrl("/api/external/tasks"), {
+    data: { title: "Design gate task", cwd, projectId },
+  });
+  if (!res.ok()) throw new Error(`POST /api/external/tasks: HTTP ${res.status()} — ${await res.text()}`);
+  return ((await res.json()) as { task: { taskId: string } }).task.taskId;
+}
+
+async function openTask(page: Page, projectId: string, taskId: string): Promise<void> {
   await seedLocalStorage(page, { "webui.activeProjectId": projectId });
-  await page.goto("/");
-  await expect(page.getByTestId("task-board-page")).toBeVisible();
+  await page.goto(`/tasks/${taskId}`);
+  await page.getByTestId("mission-tab-mission").click();
 }
 
-test.describe("Flow 100 — design-gate mockup review (FR-01.45)", () => {
+test.describe("Flow 100 — design gate as the Mission view (FR-01.58)", () => {
   const cleanups: Array<() => Promise<void>> = [];
   test.afterEach(async () => {
     for (const fn of cleanups.splice(0).reverse()) {
-      try {
-        await fn();
-      } catch {
-        /* best effort */
-      }
+      try { await fn(); } catch { /* best effort */ }
     }
   });
 
-  test("paused-at-design → Review mockups → Export writes the round file", async ({
+  test("paused-at-design → three-card gate → preview + request-changes → gate lifts", async ({
     page,
     request,
   }) => {
-    const dir = await makeProjectDir();
+    const dir = await makeGateProject();
     cleanups.push(() => fs.rm(dir, { recursive: true, force: true }));
     const projectId = await registerProject(request, dir);
-    cleanups.push(async () => void (await request.delete(`/api/projects/${encodeURIComponent(projectId)}`)));
+    cleanups.push(async () => void (await request.delete(apiUrl(`/api/projects/${encodeURIComponent(projectId)}`))));
+    const taskId = await seedTaskFor(request, projectId, dir);
+    cleanups.push(async () => void (await request.delete(apiUrl(`/api/external/tasks/${encodeURIComponent(taskId)}`))));
 
-    await openBoard(page, projectId);
+    await openTask(page, projectId, taskId);
 
-    // 1. The single-session card + the paused-design affordance.
-    await expect(page.getByTestId(`single-session-run-card-${RUN_ID}`)).toBeVisible();
-    await expect(page.getByTestId("design-gate-panel")).toBeVisible();
-    const reviewBtn = page.getByTestId("design-gate-review-button");
-    await expect(reviewBtn).toBeVisible();
+    // 1. The three-card gate: Record + the gallery card + decision bar.
+    await expect(page.getByTestId("design-gate-card")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("record-rail")).toBeVisible();
+    // The Record shows the Design node `now` and later nodes `pending` (AC1) —
+    // it does not skip ahead. The design node is the `spec` record key.
+    await expect(page.getByTestId("record-node-spec")).toHaveAttribute("data-state", "now");
+    await expect(page.getByTestId("record-node-tests")).toHaveAttribute("data-state", "pending");
+    await expect(page.getByTestId("mission-awaiting-approval")).toBeVisible();
+    const cards = page.getByTestId("design-gate-screen");
+    await expect(cards).toHaveCount(2);
+    await expect(page.getByText("FR-01.09")).toBeVisible();
+    await expect(page.getByText("dashboard")).toBeVisible();
 
-    // 2. Open the full-bleed overlay hosting the emitted viewer.
-    await reviewBtn.click();
+    // 2. Exactly one primary: Approve present, header Resume SUPPRESSED (AC4).
+    await expect(page.getByTestId("design-gate-approve")).toBeVisible();
+    await expect(page.getByTestId("cta-copy-resume-command")).toHaveCount(0);
+
+    // 3. A gallery card opens the REAL hosted preview (viewer iframe).
+    await page.getByTestId("design-gate-screen-open").first().click();
     await expect(page.getByTestId("mockup-review-overlay")).toBeVisible();
-    const frame = page.frameLocator('[data-testid="mockup-review-iframe"]');
-    await expect(frame.getByTestId("fixture-export")).toBeVisible();
+    await expect(
+      page.frameLocator('[data-testid="mockup-review-iframe"]').getByTestId("fixture-export"),
+    ).toBeVisible();
+    await page.getByTestId("mockup-review-close").click();
 
-    // 3. Click the viewer's own Export → injected bridge → host write.
-    await frame.getByTestId("fixture-export").click();
+    // 4. Request changes → the viewer Export writes the disk-derived round file.
+    await page.getByTestId("design-gate-request-changes").click();
+    await expect(page.getByTestId("mockup-review-overlay")).toBeVisible();
+    await page.frameLocator('[data-testid="mockup-review-iframe"]').getByTestId("fixture-export").click();
     await expect(page.getByTestId("mockup-review-saved")).toHaveText(/Saved\s*—\s*Round 1/);
-
-    // 4. The round file exists on disk with the contract shape (AC3/AC4).
     const roundFile = path.join(dir, ".shipwright", "designs", "design-feedback-round1.md");
     const written = await fs.readFile(roundFile, "utf-8");
     expect(written).toContain("# Design Feedback " + EM_DASH + " Round 1");
-    expect(written).toContain("## Summary");
-    expect(written).toContain("## Core");
-    expect(written).toContain("### #01 Dashboard " + EM_DASH + " CHANGES");
     expect(written).toContain("**File:** screens/01-dashboard.html");
-    expect(written).toContain("Tighten the header spacing.");
+    await page.getByTestId("mockup-review-close").click();
+
+    // 5. Clear the gate on disk → Mission returns to normal on the poll (AC6).
+    await fs.writeFile(path.join(dir, ".shipwright", "run_loop_state.json"), loopState("in_progress"), "utf-8");
+    await expect(page.getByTestId("operation-card")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("design-gate-card")).toHaveCount(0);
   });
 });

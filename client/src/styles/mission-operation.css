@@ -30,11 +30,9 @@
 .mc-verdict.neutral { background: var(--g100); border: 1px solid var(--line); color: var(--muted); }
 .mc-verdict .mcv-badge { background: var(--err); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .02em; flex-shrink: 0; }
 
-/* ── mission line + design-gate placeholder ─────────────────────────────── */
+/* ── mission line ───────────────────────────────────────────────────────── */
 .mc-missionline { font-size: 16px; font-weight: 500; color: var(--body); line-height: 1.5; margin: 0; }
 .mc-missionline b { color: var(--ink); font-weight: 600; }
-.mc-op-gate { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.mc-op-gate svg { flex-shrink: 0; }
 
 /* ── the curated proof summary (.mc-hero) — read-only, NOT the terminal ──── */
 .mc-hero { flex: 1; min-height: 0; background: var(--dark); border: 1px solid var(--dark-line); border-radius: 10px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; padding: 16px 18px; overflow-y: auto; color: #c9c7c1; }
@@ -51,3 +49,46 @@
 .on-photo .mc-op .mc-missionline, .on-photo .mc-op .mc-missionline b { color: var(--ink); }
 .on-photo .mc-hero { background: #131110; border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .5); color: #f2f0ec; }
 .on-photo .mc-hero-empty { color: #a8a29e; }
+
+/* ============================================================================
+   DESIGN GATE (A14, FR-01.58) — the gate AS the middle `.mc-op` card. No new
+   glass recipe: the card is A12's `.mc-op` white-glass shell (above); this block
+   only lays out the pending-screens grid + the pinned decision bar. Text colours
+   are the dark-on-glass tokens (--ink/--body/--accent) that already clear AA
+   4.5:1 on the white glass (weather-deck.css contrast ledger). Motion is A20.
+   ============================================================================ */
+.mc-gate-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -4px; padding: 2px 4px; }
+.mc-gate-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+
+.mc-gate-card { position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--g25); }
+.mc-gate-card:hover { border-color: var(--accent-line); }
+.mc-gate-thumb { position: relative; height: 110px; overflow: hidden; background: var(--g100); }
+.mc-gate-frame { position: absolute; top: 0; left: 0; width: 286%; height: 286%; border: 0; pointer-events: none; transform: scale(0.35); transform-origin: top left; background: #fff; }
+.mc-gate-thumb-empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--muted); font-size: 11.5px; }
+.mc-gate-cap { padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; }
+.mc-gate-fr { color: var(--accent); font-size: 11px; letter-spacing: .01em; }
+.mc-gate-name { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+/* Full-tile click target — keeps the whole card "alive" + keyboard-reachable. */
+.mc-gate-open { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; border-radius: 12px; }
+.mc-gate-open:focus-visible { outline: none; box-shadow: var(--focus); }
+
+.mc-gate-empty { height: 100%; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 13px; text-align: center; }
+.mc-gate-empty p { margin: 0; max-width: 32ch; }
+
+/* ── the pinned decision bar (border-top, at the card foot) ─────────────── */
+.mc-gate-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
+.on-photo .mc-op .mc-gate-bar { border-top-color: var(--glass-light-line); }
+.mc-gate-grow { flex: 1 1 auto; }
+.mc-gate-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-btn, 8px); padding: 8px 15px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: background .12s, border-color .12s; }
+.mc-gate-btn:disabled { opacity: .6; cursor: default; }
+.mc-gate-btn:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-gate-btn svg { flex-shrink: 0; }
+.mc-gate-btn-primary { background: var(--accent); color: #fff; }
+.mc-gate-btn-primary:not(:disabled):hover { background: var(--accent-hover); }
+.mc-gate-btn-outline { background: transparent; border-color: var(--line-strong); color: var(--body); }
+.mc-gate-btn-outline:not(:disabled):hover { border-color: var(--accent-line); color: var(--ink); }
+.mc-gate-btn-ghost { background: transparent; color: var(--muted); }
+.mc-gate-btn-ghost:not(:disabled):hover { color: var(--ink); }
+.mc-gate-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 11px; font-size: 12px; font-weight: 600; background: var(--warn-tint); color: var(--warn); border: 1px solid var(--warn-line); }
+.mc-gate-saved { font-size: 12px; font-weight: 600; color: var(--ok); }
+.mc-gate-error { font-size: 12px; font-weight: 500; color: var(--err); }
