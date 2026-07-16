@@ -52,6 +52,7 @@ import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
 import { createReadinessRoutes } from "./routes/readiness.js";
+import { createGradeRoutes } from "./routes/grade.js";
 import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
 import { createCampaignsRoutes } from "./routes/campaigns.js";
@@ -572,6 +573,10 @@ if (isMainModule) {
       // Wizard (A08) + First Contact (A14) both read this; it re-expresses the
       // bootstrapper preflight set server-side (the browser can't spawn probes).
       app.route("/", createReadinessRoutes({ versionInfo }));
+      // FR-01.53 — read-only Grade door route. Runs shipwright-grade's grade.py
+      // (shell:false, validated target) and renders the real ReportModel; no
+      // project registration, no writes (a bare grade is a pure observer).
+      app.route("/", createGradeRoutes());
       // FR-01.44 — Claude-theme mirror; literal path, before terminal routes.
       app.route("/", createTerminalAppearanceRoutes());
 

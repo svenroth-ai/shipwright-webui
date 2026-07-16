@@ -91,7 +91,8 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   {
     id: "wizard-grade",
     path: "/wizard/grade",
-    description: "Intent wizard — grade door, step 1 (repo pick)",
+    description:
+      "Intent wizard — grade door: the REAL Control-Grade result card, rendered from a deterministic /api/wizard/grade fixture (A09b)",
     status: "baselined",
   },
   {

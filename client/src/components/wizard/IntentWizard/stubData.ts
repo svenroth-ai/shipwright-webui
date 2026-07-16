@@ -6,9 +6,9 @@
  * your repo" placeholder. A09 replaces them with the real /shipwright-adopt +
  * /shipwright-grade output. Nothing here is presented as a live reading.
  *
- * The grade stub is shaped EXACTLY like the plugin's ReportModel (provenance is
- * a structured object, schema_version present, n/a ⇒ score null) so the renderer
- * exercises the real contract, not a convenient simplification.
+ * The grade stub is shaped EXACTLY like the plugin's ReportModel (structured
+ * provenance, schema_version, n/a ⇒ score null). A09b's round-trip probe
+ * confirmed dimension `score`/`weight` are 0..1 FRACTIONS; this fixture matches.
  */
 
 import { resolveStackProfile } from "./contract";
@@ -203,7 +203,7 @@ export const GRADE_REPORT: ReportModel = {
     {
       key: "requirement_traceability",
       label: "Requirement traceability",
-      weight: 30,
+      weight: 0.3,
       score: null,
       status: "n/a",
       anchor: "trace",
@@ -221,8 +221,8 @@ export const GRADE_REPORT: ReportModel = {
     {
       key: "test_health",
       label: "Test health",
-      weight: 30,
-      score: 71,
+      weight: 0.3,
+      score: 0.71,
       status: "gap",
       anchor: "tests",
       detail: "84 real tests run and pass — but nothing records what they are supposed to protect.",
@@ -239,8 +239,8 @@ export const GRADE_REPORT: ReportModel = {
     {
       key: "security",
       label: "Security",
-      weight: 20,
-      score: 100,
+      weight: 0.2,
+      score: 1.0,
       status: "ok",
       anchor: "sec",
       detail: "No high or critical findings today. But nothing re-checks on every change.",
@@ -263,7 +263,7 @@ export const GRADE_REPORT: ReportModel = {
       // (report_model.py) — so A09's real payload keeps the same testids/label.
       key: "change_traceability",
       label: "Change history",
-      weight: 20,
+      weight: 0.2,
       score: null,
       status: "n/a",
       anchor: "hist",

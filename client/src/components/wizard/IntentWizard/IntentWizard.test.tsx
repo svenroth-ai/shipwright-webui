@@ -1,11 +1,9 @@
 /*
- * IntentWizard end-to-end (A08, AC1/AC2/AC3/AC4/AC5).
- *
- * Drives EACH of the three doors forward and asserts the flight-plan
- * translations, the four dimensions (incl. the honest n/a), and both result
- * cards. Also asserts the readiness gate makes the doors inert when the
- * environment is not ready. This suite is RED on pre-A08 main (the component
- * does not exist) and green after.
+ * IntentWizard end-to-end — the door picker + NEW + ADOPT doors (A08,
+ * AC1/AC3/AC4). The GRADE door has its own suite in `IntentWizard.grade.test.tsx`
+ * (split in A09b so each file stays ≤300 LOC). Also asserts the readiness gate
+ * makes the doors inert when the environment is not ready. RED on pre-A08 main
+ * (the component does not exist) and green after.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -150,75 +148,6 @@ describe("IntentWizard — ADOPT door walks to the result card (AC1)", () => {
     expect(within(result).getByTestId("wizard-adopt-start")).toHaveTextContent("Adopt this repo");
     // Stub is tagged, not presented as live (AC3).
     expect(within(result).getByTestId("wizard-adopt-stub-note")).toHaveTextContent("not a live read");
-  });
-});
-
-describe("IntentWizard — GRADE door: ring, four dimensions, honest n/a (AC1/AC2)", () => {
-  beforeEach(() => mockReadiness(READY));
-
-  it("pick → grade → the underivable dimension renders n/a with NO numeric score", async () => {
-    renderWizard("grade");
-    expect(await screen.findByTestId("wizard-pick-grade")).toBeInTheDocument();
-
-    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[2]); // a github url
-    const result = await screen.findByTestId("wizard-grade-result");
-
-    expect(within(result).getByTestId("wizard-grade-ring")).toBeInTheDocument();
-    // Four dimensions.
-    expect(within(result).getByTestId("grade-dim-requirement_traceability")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-dim-test_health")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-dim-security")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-dim-change_traceability")).toBeInTheDocument();
-
-    // THE honest n/a: requirement traceability is n/a — dashed bar, literal "n/a",
-    // and NO number anywhere in the value.
-    const naValue = within(result).getByTestId("grade-value-requirement_traceability");
-    expect(naValue).toHaveTextContent("n/a");
-    expect(naValue.textContent ?? "").not.toMatch(/\d/);
-    expect(within(result).getByTestId("grade-bar-na-requirement_traceability")).toBeInTheDocument();
-    // A measurable dimension still shows a real number.
-    expect(within(result).getByTestId("grade-value-test_health")).toHaveTextContent("71/100");
-
-    // Ceiling note is present ABOVE the dimensions (DOM order), network receipt for a remote.
-    const ceiling = within(result).getByTestId("wizard-grade-ceiling");
-    const dims = within(result).getByTestId("wizard-grade-dimensions");
-    expect(ceiling).toHaveTextContent("finding about the record");
-    expect(ceiling.compareDocumentPosition(dims) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(within(result).getByTestId("wizard-grade-network")).toHaveTextContent("What left your machine");
-  });
-
-  it("would_light_up badges ONLY the dimensions that would light up — not the ones already scoring", async () => {
-    renderWizard("grade");
-    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[2]);
-    const result = await screen.findByTestId("wizard-grade-result");
-    // n/a trace + gap dims light up; the already-ok Security does NOT (dilution guard).
-    expect(within(result).getByTestId("grade-lightup-requirement_traceability")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-lightup-test_health")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-lightup-change_traceability")).toBeInTheDocument();
-    expect(within(result).queryByTestId("grade-lightup-security")).not.toBeInTheDocument();
-  });
-
-  it("each dimension can show its work — provenance is a per-row disclosure", async () => {
-    renderWizard("grade");
-    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[2]);
-    const result = await screen.findByTestId("wizard-grade-result");
-    // Collapsed by default; the "why?" toggle reveals the structured provenance.
-    expect(within(result).queryByTestId("grade-provenance-test_health")).not.toBeInTheDocument();
-    fireEvent.click(within(result).getByTestId("grade-why-test_health"));
-    expect(within(result).getByTestId("grade-provenance-test_health")).toHaveTextContent(
-      "package.json scripts",
-    );
-  });
-
-  it("Grade → “Adopt this repo →” converts to the adopt result WITHOUT re-asking the folder (AC4)", async () => {
-    renderWizard("grade");
-    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[2]);
-    await screen.findByTestId("wizard-grade-result");
-
-    fireEvent.click(screen.getByTestId("wizard-grade-to-adopt"));
-    // Re-scans, lands on the adopt result — no RepoPicker in between.
-    expect(await screen.findByTestId("wizard-adopt-result")).toBeInTheDocument();
-    expect(screen.queryByTestId("wizard-pick-adopt")).not.toBeInTheDocument();
   });
 });
 

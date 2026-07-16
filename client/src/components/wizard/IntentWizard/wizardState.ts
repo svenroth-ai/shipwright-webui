@@ -7,12 +7,7 @@
  * so the reducer knows when to advance to the result without the view telling it.
  */
 
-import {
-  GRADE_REPORT,
-  doorLabel,
-  profileFor,
-  scanSteps,
-} from "./stubData";
+import { doorLabel, profileFor, scanSteps } from "./stubData";
 import type { FlightRow, WizardDoor, WizardState } from "./types";
 
 export const INITIAL_STATE: WizardState = {
@@ -34,9 +29,6 @@ export type WizardAction =
   | { t: "startWork"; path?: string }
   | { t: "tick" }
   | { t: "toAdopt" };
-
-/** Rail summary shown for a finished grade (e.g. "C · 61/100"). */
-export const railGrade = `${GRADE_REPORT.grade} · ${GRADE_REPORT.score}/100`;
 
 export function wizardReducer(s: WizardState, a: WizardAction): WizardState {
   switch (a.t) {
@@ -124,10 +116,14 @@ export function deriveNewRows(s: WizardState): FlightRow[] {
   ];
 }
 
-/** Adopt/grade flight-plan rows. The result rows light only at step ≥ 3. */
-export function deriveDoorRows(s: WizardState): FlightRow[] {
+/** Adopt/grade flight-plan rows. The result rows light only at step ≥ 3. The
+ *  grade summary (e.g. "A · 97.4/100") is the REAL fetched grade (A09b) — null
+ *  until the report is ready, so the row stays a dim node rather than showing a
+ *  fabricated number. */
+export function deriveDoorRows(s: WizardState, gradeSummary?: string | null): FlightRow[] {
   const grade = s.door === "grade";
   const done = s.step >= 3;
+  const gradeReady = done && !!gradeSummary;
   return [
     {
       key: "Door",
@@ -147,13 +143,15 @@ export function deriveDoorRows(s: WizardState): FlightRow[] {
     },
     {
       key: grade ? "Grade" : "What I found",
-      answered: done,
-      value: done ? (grade ? railGrade : "Vite · Hono · TS · 84 tests") : "",
-      why: done
-        ? grade
-          ? "Two of four dimensions can’t be derived — that IS the finding."
-          : "Conventions learned from 412 commits."
-        : "",
+      answered: grade ? gradeReady : done,
+      value: grade ? (gradeSummary ?? "") : done ? "Vite · Hono · TS · 84 tests" : "",
+      why: grade
+        ? gradeReady
+          ? "Read-only — graded from what the repo can prove."
+          : ""
+        : done
+          ? "Conventions learned from 412 commits."
+          : "",
     },
     {
       key: grade ? "What you’d gain" : "What happens next",

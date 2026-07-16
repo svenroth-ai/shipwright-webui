@@ -126,13 +126,15 @@ export interface GradeRequest {
 
 export type WizardLaunchRequest = NewLaunchRequest | AdoptLaunchRequest;
 
-/** Grade's own report lifecycle (A09b), distinct from the launch lifecycle. */
+/** Grade's report lifecycle (A09b) — one state per honest server outcome
+ *  (grade-runner.GradeStatus); NO state fabricates a grade. */
 export type GradeReportState =
   | "idle"
   | "grading"
   | "report-ready"
   | "shape-unrecognised"
-  | "grade-failed";
+  | "grade-failed"
+  | "engine-unavailable";
 
 /* (b) CREATE response. */
 export interface WizardCreateResponse {

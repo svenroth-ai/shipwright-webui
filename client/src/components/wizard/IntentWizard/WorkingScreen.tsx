@@ -42,8 +42,9 @@ export function WorkingScreen({
         style={{ maxWidth: 620, marginBottom: 12, borderColor: "var(--warn-line)", background: "var(--warn-tint)" }}
       >
         <span style={{ fontSize: 12.5, color: "var(--ink)" }}>
-          Sample walk-through — not a live read of your repo yet. A09 wires the real{" "}
-          {grade ? "/shipwright-grade" : "/shipwright-adopt"} scan; these are the steps it will run.
+          {grade
+            ? "The real /shipwright-grade is running now — these are the steps it takes. It only reads; nothing is written."
+            : "Sample walk-through — not a live read of your repo yet. A09 wires the real /shipwright-adopt scan; these are the steps it will run."}
         </span>
       </div>
       <div className="iw-card pad" style={{ maxWidth: 620 }}>

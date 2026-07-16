@@ -57,12 +57,40 @@ export function parseReportModel(raw: unknown): ShapeResult {
     };
   }
 
-  // Top-level structural fields the card reads.
-  const requiredStrings = ["grade", "verdict", "band_label", "honest_ceiling_note"];
+  // Top-level structural fields the card reads. EVERY scalar the renderer
+  // consumes is asserted here — a field renamed/dropped in the monorepo while
+  // staying major-v1 (exactly the drift this guard exists to catch) must fall to
+  // the honest "shape-unrecognised" state, never crash the card with a TypeError
+  // (e.g. `reasons.map` on an absent array).
+  const requiredStrings = [
+    "grade",
+    "verdict",
+    "band_label",
+    "honest_ceiling_note",
+    "target_display",
+    "mode",
+    "routing_reason",
+    "verified_from",
+    "network_note",
+    "static_test_inventory",
+  ];
   for (const k of requiredStrings) {
     if (typeof raw[k] !== "string") return { ok: false, reason: `field "${k}" must be a string` };
   }
+  if (typeof raw.network_enabled !== "boolean") {
+    return { ok: false, reason: `"network_enabled" must be a boolean` };
+  }
+  if (typeof raw.gradeable !== "boolean") {
+    return { ok: false, reason: `"gradeable" must be a boolean` };
+  }
+  for (const k of ["measurable_count", "na_count"]) {
+    if (typeof raw[k] !== "number" || !Number.isFinite(raw[k])) {
+      return { ok: false, reason: `"${k}" must be a finite number` };
+    }
+  }
+  // The four consumed arrays (each read with .length / .map on the card).
   if (!Array.isArray(raw.dimensions)) return { ok: false, reason: `"dimensions" must be an array` };
+  if (!Array.isArray(raw.reasons)) return { ok: false, reason: `"reasons" must be an array` };
   if (!Array.isArray(raw.controls_shipwright_would_light)) {
     return { ok: false, reason: `"controls_shipwright_would_light" must be an array` };
   }
