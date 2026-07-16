@@ -1,0 +1,53 @@
+/* ============================================================================
+   MISSION — the "Operation" card (A12, FR-01.56): verdict banner + mission line
+   + curated proof summary. Ported VERBATIM in values from the clickable prototype
+   (Spec/prototype/styles.css .mc-op/.mc-verdict/.mc-missionline/.mc-hero ~316-324
+   + the .on-photo Mission overrides ~683-687). The token reset/darken for
+   .mc-op/.mc-verdict/.mc-hero already lives in on-photo.css (A03); this file adds
+   the LAYOUT + the glass/dark PAINT that block did not port.
+
+   Design fences honoured: NO data-scene-tier, NO second glass recipe (glass uses
+   A03's --glass-* tokens), NO text-shadow. On the photo, .mc-op is WHITE GLASS but
+   .mc-hero STAYS BLACK (#131110) with a keyline — it is NOT harmonised into the
+   glass (the prototype .on-photo rule keeps the terminal-summary surface dark).
+   Motion (proof lines sliding in, the GATE-HOLD -> ALL-CLEAR transition) is A20 —
+   this file paints the STATES, not the choreography.
+
+   .mc-hero span colours clear AA 4.5:1 on the dark ground (t 9.4 / p 8.2 / r 7.5 /
+   d 4.98) — the dim .d is lightened from the prototype's #78716c (3.9:1, a fail)
+   to #8a827a so every proof line is legible (AC7).
+   ============================================================================ */
+
+/* ── the Operation card shell ───────────────────────────────────────────── */
+.mc-op { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 16px 24px; gap: 12px; }
+
+/* ── verdict banner (derived — never decorative) ────────────────────────── */
+.mc-verdict { display: flex; align-items: center; gap: 10px; border-radius: 8px; padding: 11px 14px; font-size: 13.5px; font-weight: 500; }
+.mc-verdict svg { flex-shrink: 0; }
+.mc-verdict strong { font-weight: 700; }
+.mc-verdict.ok { background: var(--ok-tint); border: 1px solid var(--ok-line); color: var(--ok); }
+.mc-verdict.err { background: var(--err-tint); border: 1px solid var(--err-line); color: var(--err); }
+.mc-verdict.neutral { background: var(--g100); border: 1px solid var(--line); color: var(--muted); }
+.mc-verdict .mcv-badge { background: var(--err); color: #fff; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .02em; flex-shrink: 0; }
+
+/* ── mission line + design-gate placeholder ─────────────────────────────── */
+.mc-missionline { font-size: 16px; font-weight: 500; color: var(--body); line-height: 1.5; margin: 0; }
+.mc-missionline b { color: var(--ink); font-weight: 600; }
+.mc-op-gate { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.mc-op-gate svg { flex-shrink: 0; }
+
+/* ── the curated proof summary (.mc-hero) — read-only, NOT the terminal ──── */
+.mc-hero { flex: 1; min-height: 0; background: var(--dark); border: 1px solid var(--dark-line); border-radius: 10px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; padding: 16px 18px; overflow-y: auto; color: #c9c7c1; }
+.mc-hero:focus-visible { outline: none; box-shadow: var(--focus); }
+.mc-hero-line { white-space: pre-wrap; word-break: break-word; }
+.mc-hero .t { color: #5fc9b4; }
+.mc-hero .p { color: #3fbf9a; }
+.mc-hero .r { color: #f08772; }
+.mc-hero .d { color: #8a827a; }
+.mc-hero-empty { color: #8a827a; }
+
+/* ── on-photo: .mc-op = white glass; .mc-hero STAYS BLACK with a keyline ──── */
+.on-photo .mc-op { background: var(--glass-light); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); border: 1px solid var(--glass-light-line); border-radius: 16px; box-shadow: var(--sh-photo); }
+.on-photo .mc-op .mc-missionline, .on-photo .mc-op .mc-missionline b { color: var(--ink); }
+.on-photo .mc-hero { background: #131110; border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 14px 36px -14px rgba(0, 0, 0, .5); color: #f2f0ec; }
+.on-photo .mc-hero-empty { color: #a8a29e; }

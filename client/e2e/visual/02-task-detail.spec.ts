@@ -48,17 +48,52 @@ test.describe("visual: task detail", () => {
   });
 
   // A11 introduces the Mission tab NON-default (default = Files & Terminal), so
-  // the Mission baseline clicks into it first. The collapsed-rail + artifact-open
-  // states are covered functionally in flows/A11-mission-record-rail.spec.ts;
-  // A13 pixel-baselines them alongside the full three-card shell.
+  // the Mission baseline clicks into it first. A12 adds the Operation card (verdict
+  // + mission line + curated proof summary) beside the Record rail — so this
+  // baseline MOVES: it is the Mission tab in the DONE state (a seeded task joins to
+  // no run, so the verdict is the honest "No run data yet", never a false ALL
+  // CLEAR). The collapsed-rail + artifact-open states are covered functionally in
+  // flows/A11-mission-record-rail.spec.ts; A13 pixel-baselines them alongside the
+  // full three-card shell.
   test("task-detail-mission", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("mission-tab-mission").click();
     await expect(page.getByTestId("record-rail")).toBeVisible();
+    await expect(page.getByTestId("operation-card")).toBeVisible();
     await settle(page);
 
     await expect(page).toHaveScreenshot("task-detail-mission.png", {
+      fullPage: true,
+      mask: nonDeterministicRegions(page),
+    });
+  });
+
+  // A12, AC6 — the Mission tab in the LIVE (mid-run) state. The isolated harness
+  // has no live Claude to drive a task to `state: "active"`, so we override ONLY
+  // that projected field on the task GET (everything else is the real seeded task):
+  // the Record rail then shows a `now` frontier and the Operation card renders its
+  // live layout. With no run facts the verdict is still the honest neutral state —
+  // the live/done difference here is the rail frontier + the header, not a fake
+  // verdict. This is the ONLY additional route this iterate baselines.
+  test("task-detail-mission-live", async ({ page }) => {
+    await page.route(
+      (u) => u.pathname.endsWith(`/api/external/tasks/${taskId}`),
+      async (route) => {
+        const res = await route.fetch();
+        const body = await res.json();
+        if (body?.task) body.task.state = "active";
+        await route.fulfill({ response: res, json: body });
+      },
+    );
+
+    await page.goto(`/tasks/${taskId}`);
+    await page.getByTestId("mission-tab-mission").click();
+    await expect(page.getByTestId("record-rail")).toBeVisible();
+    await expect(page.getByTestId("operation-card")).toBeVisible();
+    await settle(page);
+
+    await expect(page).toHaveScreenshot("task-detail-mission-live.png", {
       fullPage: true,
       mask: nonDeterministicRegions(page),
     });

@@ -44,9 +44,16 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   },
   {
     id: "task-detail-mission",
-    path: "/tasks/:taskId (Mission tab)",
+    path: "/tasks/:taskId (Mission tab, DONE state)",
     description:
-      "TaskDetail, Mission tab — 'The Record' rail (A11). The collapsed-rail + artifact-open states are covered functionally in flows/A11-mission-record-rail.spec.ts (A13 pixel-baselines them with the full three-card shell).",
+      "TaskDetail, Mission tab (done) — 'The Record' rail (A11) + the Operation card (A12: verdict banner, mission line, curated proof summary). A seeded task joins to no run, so the verdict is the honest 'No run data yet', never a false ALL CLEAR. The collapsed-rail + artifact-open states are covered functionally in flows/A11-mission-record-rail.spec.ts (A13 pixel-baselines them with the full three-card shell).",
+    status: "baselined",
+  },
+  {
+    id: "task-detail-mission-live",
+    path: "/tasks/:taskId (Mission tab, LIVE state)",
+    description:
+      "TaskDetail, Mission tab (mid-run) — the Record rail shows a `now` frontier and the Operation card renders its live layout (A12, AC6). Baseline generated in the pinned CI container.",
     status: "baselined",
   },
   {
