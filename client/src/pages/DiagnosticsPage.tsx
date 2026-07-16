@@ -12,6 +12,7 @@
 
 import type { ReactNode } from "react";
 import { useDiagnostics } from "../hooks/useDiagnostics";
+import { PageHead } from "../components/common/PageHead";
 
 export default function DiagnosticsPage() {
   const { data, error, isLoading } = useDiagnostics();
@@ -21,29 +22,8 @@ export default function DiagnosticsPage() {
       className="flex h-full flex-col bg-[var(--color-bg)]"
       data-testid="diagnostics-page"
     >
-      {/* Header — full-bleed surface bar, matches ProjectsPage geometry. */}
-      <div
-        style={{
-          background: "var(--color-surface)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
-        <header
-          className="page-container flex items-center justify-between"
-          style={{ paddingTop: "20px", paddingBottom: "20px" }}
-        >
-          <h1
-            className="font-bold"
-            style={{
-              fontSize: "24px",
-              color: "var(--color-text)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Diagnostics
-          </h1>
-        </header>
-      </div>
+      {/* A05: shared <PageHead> — 92px anthracite bar, uniform across pages. */}
+      <PageHead title="Diagnostics" testId="diagnostics-header" />
 
       <div className="flex-1 overflow-y-auto">
         <div

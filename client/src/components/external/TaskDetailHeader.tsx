@@ -125,7 +125,14 @@ export function TaskDetailHeader({ task, modelName }: Props) {
 
   return (
     <header
-      className="relative flex w-full items-center gap-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-surface,#ffffff)] px-3 py-2 md:gap-4 md:px-6 md:py-3"
+      // A05: the Mission-Control title bar is `.mc-top` — anthracite ground +
+      // the scoped --color-* light flip (type-scale.css) so the breadcrumb /
+      // title / meta read white on taupe, consistent with the nav + page heads.
+      // Padding stays asymmetric on desktop (17px 28px 17px 22px): left is 22 so
+      // the back-arrow GLYPH lands on the shared 32px gutter once the Link's own
+      // padding is counted — do NOT "tidy" it to 28. Phone keeps the tighter
+      // px-3 py-2 that iterate-2026-06-20 introduced for terminal headroom.
+      className="mc-top relative flex w-full items-center gap-2 px-3 py-2 md:gap-4 md:py-[17px] md:pl-[22px] md:pr-[28px]"
       data-testid="task-detail-header"
     >
       <style>{STATE_BADGE_KEYFRAMES}</style>

@@ -220,3 +220,49 @@ describe('AC1 — grounds are honest', () => {
     expect(OP).toMatch(/--faint:\s*#6B645D/);
   });
 });
+
+// ── A05 anthracite chrome (AC5) — the pairs the uniform title bars + the active
+//    nav rail + the count badges newly introduce. Every ground is the solid
+//    anthracite --taupe or a translucent chrome colour composited over it, so the
+//    ratios below are the values actually rendered. "Anthracite is where a
+//    'sophisticated' low-contrast grey is most tempting and most wrong." ──
+const WHITE_RGB: RGB = [255, 255, 255];
+const ERR_SOLID = token(WD, 'err-solid');
+const WARN_SOLID = token(WD, 'warn-solid');
+const NAV_RAIL = token(WD, 'nav-active-rail'); // #41c9b0 — brighter than --accent
+
+/** Composite a translucent foreground over a solid ground → the effective RGB. */
+function over(alpha: number, fg: RGB, ground: RGB): RGB {
+  return ground.map((c, i) => Math.round(fg[i] * alpha + c * (1 - alpha))) as RGB;
+}
+const NAV_INACTIVE = over(0.66, WHITE_RGB, TAUPE);          // .nav-item text
+const NAV_ACTIVE_GROUND = over(0.18, [53, 184, 164], TAUPE); // rgba(53,184,164,.18)
+const PAGE_SUB_LIGHT = over(0.74, WHITE_RGB, TAUPE);        // .page-sub (--muted flip)
+
+const ANTHRACITE: Rung[] = [
+  { name: 'A05 nav white label / taupe', fg: WHITE_RGB, bg: TAUPE, min: BODY_MIN },
+  { name: 'A05 nav inactive .66-white / taupe', fg: NAV_INACTIVE, bg: TAUPE, min: BODY_MIN },
+  { name: 'A05 active-row white label / teal-tint-on-taupe', fg: WHITE_RGB, bg: NAV_ACTIVE_GROUND, min: BODY_MIN },
+  { name: 'A05 teal rail #41c9b0 / taupe (UI)', fg: NAV_RAIL, bg: TAUPE, min: LARGE_MIN },
+  { name: 'A05 page-title white / taupe', fg: WHITE_RGB, bg: TAUPE, min: BODY_MIN },
+  { name: 'A05 page-sub .74-white / taupe', fg: PAGE_SUB_LIGHT, bg: TAUPE, min: BODY_MIN },
+  // count badges — dark --ink label on the spec-§1 solid grounds (white would be
+  // 3.76 / 2.35, sub-AA; see the proof below).
+  { name: 'A05 count badge --ink / --err-solid', fg: INK, bg: ERR_SOLID, min: BODY_MIN },
+  { name: 'A05 count badge --ink / --warn-solid', fg: INK, bg: WARN_SOLID, min: BODY_MIN },
+];
+
+describe('AC5 — the anthracite chrome ladder (A05 title bars + nav + badges)', () => {
+  it.each(ANTHRACITE)('$name >= $min:1', ({ fg, bg, min }) => {
+    expect(contrast(fg, bg)).toBeGreaterThanOrEqual(min);
+  });
+});
+
+describe('AC5 — white-on-solid is the sub-AA badge failure that forces --ink', () => {
+  it('white on --warn-solid < 4.5 (2.35) → the count label uses --ink instead', () => {
+    expect(contrast(WHITE_RGB, WARN_SOLID)).toBeLessThan(BODY_MIN);
+  });
+  it('white on --err-solid < 4.5 (3.76) → same', () => {
+    expect(contrast(WHITE_RGB, ERR_SOLID)).toBeLessThan(BODY_MIN);
+  });
+});

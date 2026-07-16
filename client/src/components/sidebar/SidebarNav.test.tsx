@@ -52,16 +52,51 @@ describe('SidebarNav', () => {
     expect(screen.getByText('Settings')).toBeInTheDocument();
   });
 
-  it('highlights active item for root route', () => {
+  // ── AC2 (A05): anthracite brand — the real logo, the "COMMAND" tag gone. ──
+  it('renders the real ship logo at 25px, NOT a text wordmark', () => {
+    renderWithRouter();
+    const logo = screen.getByAltText('Shipwright') as HTMLImageElement;
+    expect(logo.tagName).toBe('IMG');
+    expect(logo.getAttribute('src')).toBe('/shipwright-logo-white.png');
+    // 25px height via the h-[25px] utility (Fable-B5 brand mark).
+    expect(logo.className).toContain('h-[25px]');
+  });
+
+  it('has NO "COMMAND" brand-tag element (Fable B5 2.90:1 fixed by deletion)', () => {
+    const { container } = renderWithRouter();
+    expect(screen.queryByTestId('brand-tag')).toBeNull();
+    // Belt-and-braces: the literal wordmark text must not resurface either.
+    expect(container.textContent).not.toMatch(/COMMAND/);
+  });
+
+  it('the drawer follows the same anthracite tokens as the rail (AC2 phone)', () => {
+    const Wrapper = makeWrapper();
+    render(
+      <Wrapper>
+        <MemoryRouter>
+          <SidebarNav inboxCount={0} triageCount={0} drawer />
+        </MemoryRouter>
+      </Wrapper>,
+    );
+    const drawer = screen.getByTestId('sidebar-drawer-body');
+    expect(drawer.className).toContain('bg-[var(--color-sidebar-bg)]');
+    // The real logo rides the drawer too — not a warm-beige fallback.
+    expect(screen.getByAltText('Shipwright')).toBeInTheDocument();
+  });
+
+  it('highlights active item for root route with the teal-tint ground + rail (A05)', () => {
     renderWithRouter(['/']);
     const taskBoardLink = screen.getByText('Task Board').closest('a');
-    expect(taskBoardLink?.className).toContain('bg-white');
+    // A05: active nav is teal-tint ground + a 3px teal `before:` rail, not the
+    // former neutral bg-white/[0.12].
+    expect(taskBoardLink?.className).toContain('bg-[var(--nav-active-bg)]');
+    expect(taskBoardLink?.className).toContain('before:bg-[var(--nav-active-rail)]');
   });
 
   it('highlights active item for inbox route', () => {
     renderWithRouter(['/inbox']);
     const inboxLink = screen.getByText('Inbox').closest('a');
-    expect(inboxLink?.className).toContain('bg-white');
+    expect(inboxLink?.className).toContain('bg-[var(--nav-active-bg)]');
   });
 
   it('shows inbox badge when count > 0', () => {
@@ -161,7 +196,8 @@ describe('SidebarNav', () => {
     // Starts railed → expand affordance present, brand label hidden.
     fireEvent.click(screen.getByRole('button', { name: /expand sidebar/i }));
     // Now expanded → brand visible AND a collapse affordance is present.
-    expect(screen.getByText('Shipwright')).toBeInTheDocument();
+    // A05: the brand is the real logo <img alt="Shipwright">, not a text node.
+    expect(screen.getByAltText('Shipwright')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /collapse sidebar/i }));
     // Back to the rail → expand affordance is shown again.
     expect(

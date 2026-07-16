@@ -11,12 +11,12 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Fonts are self-hosted (A05): @fontsource-variable/inter +
+         @fontsource-variable/geist-mono, imported in src/main.tsx. The former
+         Google-Fonts preconnect + stylesheet link was removed — a CDN font
+         breaks this local-first tool offline and makes A00's container-generated
+         visual baselines permanently unstable (fallback in the container, real
+         face on the dev box). AC4 asserts ZERO CDN font requests on load. -->
     <title>Shipwright Command Center</title>
   </head>
   <body>

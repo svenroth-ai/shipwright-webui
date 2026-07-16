@@ -45,6 +45,7 @@ import { useProjectFilter } from '../hooks/useProjectFilter';
 import { ProjectWizard } from '../components/wizard/ProjectWizard';
 import { ProjectSettingsDialog } from '../components/wizard/ProjectSettingsDialog';
 import { ComplianceGradeBadge } from '../components/compliance/ComplianceGradeBadge';
+import { PageHead } from '../components/common/PageHead';
 import { getProjectColor } from '../lib/projectColor';
 import type { Project } from '../types';
 
@@ -92,42 +93,17 @@ export default function ProjectsPage() {
       style={{ background: 'var(--color-bg)' }}
       data-testid="projects-page"
     >
-      {/* Header — full-bleed surface bar; inner row wrapped in .page-container
-          so the title aligns with the table body below (R1/R2 from 3.7e-a). */}
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          borderBottom: '1px solid var(--color-border)',
-        }}
-      >
-        <header
-          className="page-container flex items-center justify-between"
-          style={{ paddingTop: '20px', paddingBottom: '20px' }}
-        >
-          <div className="flex items-baseline gap-[10px]">
-            <h1
-              className="font-bold"
-              style={{
-                fontSize: '24px',
-                color: 'var(--color-text)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Projects
-            </h1>
-            {projects.length > 0 && (
-              <span
-                className="font-medium"
-                style={{
-                  fontSize: '14px',
-                  color: 'var(--color-muted)',
-                }}
-                data-testid="projects-header-count"
-              >
-                ({projects.length} total)
-              </span>
-            )}
-          </div>
+      {/* A05: shared <PageHead> — 92px anthracite bar. The count keeps its
+          real data source; the teal Create button reads on the taupe bar. */}
+      <PageHead
+        title="Projects"
+        small={
+          projects.length > 0 ? (
+            <span data-testid="projects-header-count">({projects.length} total)</span>
+          ) : undefined
+        }
+        testId="projects-header"
+        actions={
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
@@ -137,8 +113,8 @@ export default function ProjectsPage() {
           >
             <Plus size={16} /> Create Project
           </button>
-        </header>
-      </div>
+        }
+      />
 
       {/* Body — scrollable, content centered to .page-container (1280). */}
       <div className="flex-1 overflow-y-auto">

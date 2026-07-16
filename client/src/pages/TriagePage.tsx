@@ -30,6 +30,7 @@ import { useTriageCounts, useTriageDrift, useTriageItems } from "../hooks/useTri
 import { TriageItemCard } from "../components/triage/TriageItemCard";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
 import { NewIssueModal } from "../components/external/NewIssueModal";
+import { PageHead } from "../components/common/PageHead";
 import type { FixNowIntent } from "../components/triage/fixNowIntent";
 import type { TriageItem, TriageSeverity } from "../lib/triageApi";
 import { filterTriage } from "../lib/triageApi";
@@ -203,41 +204,13 @@ export default function TriagePage() {
       style={{ background: "var(--color-bg)" }}
       data-testid="triage-page"
     >
-      {/* Header — full-bleed surface bar, matches Inbox/Projects geometry
-          (iterate-2026-05-30-page-chrome-cleanup): dropped the muted 20px
-          title + "Pre-backlog intake…" subtitle paragraph in favour of the
-          shared 24px / 700 dark h1 + inline count badge. */}
-      <div
-        style={{
-          background: "var(--color-surface)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
-        <header
-          className="page-container flex items-center justify-between"
-          style={{ paddingTop: "20px", paddingBottom: "20px" }}
-        >
-          <div className="flex items-baseline gap-[10px]">
-            <h1
-              className="font-bold"
-              style={{
-                fontSize: "24px",
-                color: "var(--color-text)",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Triage
-            </h1>
-            <span
-              className="font-medium"
-              style={{ fontSize: "14px", color: "var(--color-muted)" }}
-              data-testid="triage-header-count"
-            >
-              ({totalTriage})
-            </span>
-          </div>
-        </header>
-      </div>
+      {/* A05: shared <PageHead> — 92px anthracite bar. The count keeps its
+          load-bearing testid and its real data source (totalTriage). */}
+      <PageHead
+        title="Triage"
+        small={<span data-testid="triage-header-count">({totalTriage})</span>}
+        testId="triage-header"
+      />
 
       {/* Body — wrapped in .page-container so Triage aligns with Inbox. */}
       <div

@@ -41,21 +41,6 @@ function useMediaCollapse() {
   return [collapsed, setCollapsed] as const;
 }
 
-const SHIPWRIGHT_LOGO = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white shrink-0">
-    <circle cx="12" cy="12" r="8" />
-    <circle cx="12" cy="12" r="2.5" />
-    <line x1="12" y1="2" x2="12" y2="9.5" />
-    <line x1="12" y1="14.5" x2="12" y2="22" />
-    <line x1="2" y1="12" x2="9.5" y2="12" />
-    <line x1="14.5" y1="12" x2="22" y2="12" />
-    <line x1="4.93" y1="4.93" x2="9.17" y2="9.17" />
-    <line x1="14.83" y1="14.83" x2="19.07" y2="19.07" />
-    <line x1="4.93" y1="19.07" x2="9.17" y2="14.83" />
-    <line x1="14.83" y1="9.17" x2="19.07" y2="4.93" />
-  </svg>
-);
-
 export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate }: SidebarNavProps) {
   const [collapsed, setCollapsed] = useMediaCollapse();
   // Read-only compact signal (does NOT track the user's expand/collapse like
@@ -80,8 +65,16 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
           </button>
         ) : (
           <>
-            {SHIPWRIGHT_LOGO}
-            <span className="text-base font-bold text-white">Shipwright</span>
+            {/* A05: the real ship's-wheel + wordmark logo (white-on-transparent)
+                at 25px height, replacing the hand-drawn SVG + "Shipwright" text.
+                There is no "COMMAND" brand-tag element (Fable B5's 2.90:1 failure
+                is fixed by the badge not existing) — brand-tag.test.tsx asserts it. */}
+            <img
+              src="/shipwright-logo-white.png"
+              alt="Shipwright"
+              className="h-[25px] w-auto shrink-0"
+              data-testid="sidebar-brand-logo"
+            />
             {/* AC-1 (tablet-view-polish): collapse-back affordance. Without it
                 the user could expand the rail but never collapse it again
                 (the reported "Menu kann man nicht collapsen" bug). Compact
@@ -152,8 +145,8 @@ export function SidebarNav({ inboxCount, triageCount, drawer = false, onNavigate
     <aside
       data-testid="sidebar-inline"
       className={`${
-        railed ? 'w-[60px] min-w-[60px]' : 'w-[200px] min-w-[200px]'
-      } h-screen bg-[var(--color-sidebar-bg)] flex flex-col transition-[width] duration-200`}
+        railed ? 'w-[60px] min-w-[60px]' : 'w-[224px] min-w-[224px]'
+      } h-screen bg-[var(--color-sidebar-bg)] flex flex-col border-r border-white/[0.07] transition-[width] duration-200`}
     >
       {body}
     </aside>

@@ -16,9 +16,12 @@ export function TriageBadge({ count }: TriageBadgeProps) {
 
   const display = safe > 99 ? "99+" : String(safe);
 
+  // A05/AC5: --warn-solid ground kept (spec §1), but the label is --ink (dark) —
+  // white-on-warn-solid is only 2.35:1 (sub-AA); dark-on-warn-solid is 7.5:1.
+  // Verified in tokens.contrast.test.ts.
   return (
     <span
-      className="min-w-[18px] h-[18px] rounded-full bg-[var(--warn-solid)] text-white text-[11px] font-semibold flex items-center justify-center px-1"
+      className="min-w-[18px] h-[18px] rounded-full bg-[var(--warn-solid)] text-ink text-[11px] font-semibold flex items-center justify-center px-1"
       data-testid="triage-badge"
     >
       {display}
