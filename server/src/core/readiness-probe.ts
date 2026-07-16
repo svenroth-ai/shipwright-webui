@@ -71,23 +71,18 @@ export interface RunResult {
 export type RunFn = (cmd: string, args?: string[]) => RunResult;
 
 /**
- * Default runner: `<cmd> --version` and report whether it actually RAN. On
- * Windows the tools are `.cmd`/`.bat` shims (git, uv) that shell:false cannot
- * resolve (PATHEXT ignored), so we go through the shell there — cmd + args are
- * fixed internal literals (tool name + `--version`), no injection surface.
- * Mirrors bootstrapper/lib/preflight.mjs `defaultRun`.
+ * Default runner: `<cmd> --version` and report whether it actually RAN.
+ *
+ * shell:false on EVERY platform — no shell process, no injection surface at all.
+ * The probed tools (`uv`, `python*`, `git`) are real executables, so Windows
+ * CreateProcess resolves them by bare name (appends `.exe`; verified empirically
+ * git/python/py/uv all run). This is deliberately NOT the bootstrapper
+ * preflight.mjs case, which shells out ONLY to resolve `.cmd` shims
+ * (claude/npm/gh) — none of those are probed here.
  */
 export function defaultRun(cmd: string, args: string[] = ["--version"]): RunResult {
   try {
-    const isWin = process.platform === "win32";
-    // cmd is a fixed literal (uv/python3/python/py/git) with a fixed `--version`
-    // arg and no user input; shell:true is the Windows-only `.cmd` resolution
-    // branch (PATHEXT ignored by shell:false). No injection surface — same
-    // pattern (single line + trailing nosemgrep) as bootstrapper/lib/preflight.mjs.
-    const joined = [cmd, ...args].join(" ");
-    const r = isWin
-      ? spawnSync(joined, { encoding: "utf-8", shell: true, timeout: 8000 }) // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
-      : spawnSync(cmd, args, { encoding: "utf-8", shell: false, timeout: 8000 });
+    const r = spawnSync(cmd, args, { encoding: "utf-8", shell: false, timeout: 8000 });
     const stdout = String(r.stdout ?? "");
     const stderr = String(r.stderr ?? "");
     // A real tool exits 0 AND prints a version. The MS-Store python3 stub exits
