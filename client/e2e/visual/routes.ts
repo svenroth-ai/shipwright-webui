@@ -72,10 +72,28 @@ export const VISUAL_ROUTES: VisualRoute[] = [
 
   // ── Pending: surfaces this campaign BUILDS. They do not exist yet; the owning
   //    sub-iterate must flip these to "baselined" in the same PR that ships them.
+  // A08 (FR-01.51) — the Intent Wizard's three entry screens. `pending` until CI
+  // writes the first baselines; the A08 PR commits the PNGs and flips these to
+  // `baselined`. The not-ready readiness gate is unit-tested, not screenshotted
+  // (it depends on the runner's toolchain); the picker shot pins readiness READY.
   {
-    id: "intent-wizard",
-    path: "/(wizard)",
-    description: "Intent wizard incl. the adopt + grade doors",
+    id: "wizard",
+    path: "/wizard",
+    description: "Intent wizard — the three-door picker (readiness pinned ready)",
+    status: "pending",
+    owner: "A08",
+  },
+  {
+    id: "wizard-adopt",
+    path: "/wizard/adopt",
+    description: "Intent wizard — adopt door, step 1 (repo pick)",
+    status: "pending",
+    owner: "A08",
+  },
+  {
+    id: "wizard-grade",
+    path: "/wizard/grade",
+    description: "Intent wizard — grade door, step 1 (repo pick)",
     status: "pending",
     owner: "A08",
   },

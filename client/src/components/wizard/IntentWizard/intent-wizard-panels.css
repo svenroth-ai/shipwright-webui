@@ -1,0 +1,265 @@
+/*
+ * Intent-Wizard panels (A08, FR-01.51) — split from intent-wizard.css to keep
+ * each file ≤300 LOC. The flight-plan rail, step dots, grade ring/bars, generic
+ * reading surfaces and the on-photo rail override. Values ported from
+ * Spec/prototype/styles.css onto the Weather-Deck tokens. Imported alongside
+ * intent-wizard.css by IntentWizardPage.
+ */
+
+/* ── the live flight-plan rail ── */
+.flightplan {
+  background: var(--dark);
+  color: #cbc9c6;
+  padding: 40px 30px;
+  overflow-y: auto;
+  border-left: 1px solid var(--dark-line);
+  position: relative;
+}
+.flightplan .fh {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 24px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.fp-spine {
+  position: relative;
+  padding-left: 26px;
+}
+.fp-spine .fp-line {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--dark-line);
+  border-radius: 2px;
+}
+.fp-item {
+  padding: 12px 0;
+  position: relative;
+}
+.fp-item .fp-dot {
+  position: absolute;
+  left: -24px;
+  top: 18px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-tint);
+}
+.fp-item .fk {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+.fp-item .fv {
+  font-size: 14px;
+  color: #fff;
+  line-height: 1.45;
+}
+.fp-item .fw {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.fp-node {
+  position: relative;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 9px 0;
+}
+.fp-node .fp-dot {
+  position: absolute;
+  left: -23px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--faint);
+  border: 2px solid var(--faint);
+}
+.fp-node .fk {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── step dots ── */
+.stepdots {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 24px;
+}
+.stepdots .sd {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: transparent;
+}
+.stepdots .sd.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-tint);
+}
+.stepdots .sd.done {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.stepdots .sc {
+  width: 22px;
+  height: 2px;
+  background: var(--line-strong);
+}
+.stepdots .sc.done {
+  background: var(--accent);
+}
+
+/* ── grade ring + dimension bar ── */
+.gring {
+  position: relative;
+  flex-shrink: 0;
+}
+.gring svg {
+  transform: rotate(-90deg);
+}
+.gring .g {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 28px;
+  color: var(--ink);
+}
+.bar {
+  height: 6px;
+  background: var(--g200);
+  border-radius: 3px;
+  overflow: hidden;
+  display: inline-block;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--ok-solid);
+  border-radius: 3px;
+}
+.bar-na {
+  height: 6px;
+  border-radius: 3px;
+  display: inline-block;
+  background: repeating-linear-gradient(90deg, var(--line) 0 5px, transparent 5px 10px);
+}
+
+/* ── generic reading surfaces (names on-photo.css already resets) ── */
+.iw-card {
+  background: var(--card);
+  border: 1px solid var(--line-card);
+  border-radius: 16px;
+  box-shadow: var(--sh-card);
+}
+.iw-card.pad {
+  padding: 22px;
+}
+.iw-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--ok-line);
+  border-radius: var(--r-badge);
+  background: var(--ok-tint);
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+.iw-more {
+  color: var(--faint);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+  display: inline-flex;
+  background: none;
+  border: none;
+}
+.iw-more:hover {
+  background: var(--g100);
+  color: var(--ink);
+}
+
+/* the current-step spinner — garnish only; the WEIGHT+COLOUR of `.iw-step.now`
+   carries the signal, so disabling this under reduced-motion loses nothing. */
+.iw-spin {
+  animation: iw-spin 0.9s linear infinite;
+}
+@keyframes iw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .iw-spin {
+    animation: none;
+  }
+}
+
+/* working-screen step rows */
+.iw-step {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.iw-step.now {
+  color: var(--ink);
+  font-weight: 600;
+}
+.iw-step.done {
+  color: var(--body);
+}
+.iw-step.todo {
+  color: var(--muted);
+}
+
+/* ── on-photo: the rail becomes light glass so its (dark-on-white reset)
+   text reads. The webui's on-photo.css resets .flightplan tokens dark but
+   leaves the base var(--dark) background — without this the rail is dark text
+   on a dark ground. Mirrors Spec/prototype/styles.css:675–679. ── */
+.on-photo .flightplan {
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  border-left: 1px solid var(--glass-light-line);
+}
+.on-photo .flightplan .fh,
+.on-photo .flightplan .fp-item .fk,
+.on-photo .flightplan .fp-node .fk {
+  color: var(--muted);
+}
+.on-photo .flightplan .fp-item .fv {
+  color: var(--ink);
+}
+.on-photo .flightplan .fp-item .fw {
+  color: var(--body);
+}
+.on-photo .flightplan .fp-line {
+  background: var(--line);
+}

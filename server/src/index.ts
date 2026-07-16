@@ -51,6 +51,7 @@ import { createSettingsRoutes } from "./routes/settings.js";
 import { createProfilesRoutes } from "./routes/profiles.js";
 import { createExternalRoutes } from "./external/routes.js";
 import { createDiagnosticsRoutes } from "./routes/diagnostics.js";
+import { createReadinessRoutes } from "./routes/readiness.js";
 import { createTerminalAppearanceRoutes } from "./routes/terminal-appearance.js";
 import { createTriageRoutes } from "./routes/triage.js";
 import { createCampaignsRoutes } from "./routes/campaigns.js";
@@ -567,6 +568,10 @@ if (isMainModule) {
         }),
       );
       app.route("/", createDiagnosticsRoutes({ store: sdkSessionsStore, versionInfo }));
+      // FR-01.51 — First-Contact readiness gate ("one truth"): the Intent
+      // Wizard (A08) + First Contact (A14) both read this; it re-expresses the
+      // bootstrapper preflight set server-side (the browser can't spawn probes).
+      app.route("/", createReadinessRoutes({ versionInfo }));
       // FR-01.44 — Claude-theme mirror; literal path, before terminal routes.
       app.route("/", createTerminalAppearanceRoutes());
 

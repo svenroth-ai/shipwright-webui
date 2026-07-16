@@ -1,0 +1,182 @@
+/*
+ * Intent-Wizard structural styles (A08, FR-01.51). Ported in VALUES from
+ * Spec/prototype/styles.css (.wz-*, .flightplan, .fp-item, .stepdots, .gring,
+ * .bar blocks) onto the webui Weather-Deck tokens.
+ *
+ * The class names .wz-opt / .wz-input / .flightplan / .card / .badge are the
+ * exact names on-photo.css's token-flip RESET list keys off (A03) — the wizard
+ * is the FIRST route to render them, so its reading surfaces need those names to
+ * flip dark-on-white over the photo backdrop. Co-located + JS-imported by
+ * IntentWizardPage so the whole surface stays inside the IntentWizard footprint.
+ *
+ * No hardcoded colours except white/black-on-glass literals that predate the
+ * token system (the no-hardcoded-colours guard scans .ts/.tsx only).
+ */
+
+.wz {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+}
+.wz-left {
+  padding: 48px 56px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.wz-left.wz-block {
+  display: block;
+  padding: 40px 56px;
+}
+.wz-q {
+  font-size: 28px;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+/* secondary heading size for result / working / plan screens (off the closed
+   inline type-scale on purpose: it is a CSS class, kept out of the .tsx). */
+.wz-q.wz-q-sub {
+  font-size: 25px;
+}
+.wz-hint {
+  font-size: 16px;
+  color: var(--body);
+  margin-bottom: 28px;
+  line-height: 1.55;
+}
+.wz-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+.wz-opt {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  box-shadow: var(--sh-xs);
+  text-align: left;
+  width: 100%;
+  font: inherit;
+}
+.wz-opt:hover {
+  border-color: var(--accent-line);
+  box-shadow: var(--sh-sm);
+}
+.wz-opt.sel {
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+.wz-opt:disabled,
+.wz-opt[aria-disabled="true"] {
+  opacity: 0.42;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.wz-opt .iw-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-tint);
+  color: var(--accent-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wz-opt .ol {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.wz-opt .od {
+  font-size: 14px;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.wz-input {
+  width: 100%;
+  max-width: 560px;
+  font-family: var(--sans);
+  font-size: 16px;
+  padding: 15px 17px;
+  min-height: 160px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  resize: vertical;
+}
+.wz-input.wz-line {
+  min-height: 0;
+  height: 52px;
+  resize: none;
+}
+.wz-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+.wz-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+.wz-chip {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--g700);
+  cursor: pointer;
+  border: 1px solid var(--line-strong);
+  font-family: inherit;
+}
+.wz-chip.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.wz-chip:hover {
+  border-color: var(--accent-line);
+  background: var(--g50);
+}
+.wz-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+/* Flight-plan rail, step dots, grade ring/bars, cards + on-photo overrides live
+   in intent-wizard-panels.css (split to keep each file ≤300 LOC). */
+
+/* ── narrow viewports: drop the rail below the flow ── */
+@media (max-width: 900px) {
+  .wz {
+    grid-template-columns: 1fr;
+  }
+  .wz-left {
+    padding: 28px 20px;
+  }
+  .wz-left.wz-block {
+    padding: 28px 20px;
+  }
+  .flightplan {
+    border-left: none;
+    border-top: 1px solid var(--dark-line);
+  }
+}
