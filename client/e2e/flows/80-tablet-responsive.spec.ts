@@ -156,20 +156,22 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
     await expect(page.getByTestId("column-done")).toBeInViewport({ ratio: 1 });
   });
 
-  test("projects table drops the Path column at tablet → no in-card horizontal scroll (AC-5)", async ({ page, request }) => {
-    // Seed a task so a (synthesized) project row exists for the table to render.
+  test("projects gallery reflows to fit the tablet band → no horizontal scroll (AC-5, A15)", async ({ page, request }) => {
+    // A15 replaced the table with a `.log-gallery` grid (auto-fill,
+    // minmax(330px, 1fr)) — it reflows to fewer columns rather than overflowing.
+    // Seed a task so a (synthesized) project card exists for the gallery to render.
     const cwd = await makeTaskCwd();
     const taskId = await createTask(request, cwd, "tablet-projects-ac5");
     try {
       await page.goto("/projects");
-      await expect(page.getByTestId("projects-table")).toBeVisible();
-      // The Path header is display:none below lg (hidden lg:table-cell).
-      await expect(page.getByRole("columnheader", { name: "Path" })).toBeHidden();
-      // The scroll wrapper around the table no longer overflows horizontally.
-      const wrapper = page
-        .getByTestId("projects-table")
-        .locator("xpath=ancestor::*[contains(@style,'overflow')][1]");
-      expect(await wrapper.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+      await expect(page.getByTestId("projects-gallery")).toBeVisible();
+      // The gallery itself never overflows its column horizontally.
+      const gallery = page.getByTestId("projects-gallery");
+      expect(
+        await gallery.evaluate((el) => el.scrollWidth - el.clientWidth),
+      ).toBeLessThanOrEqual(1);
+      // And the page as a whole has no horizontal overflow at tablet width.
+      expect(await pageOverflowPx(page)).toBeLessThanOrEqual(1);
     } finally {
       await cleanupTask(request, taskId);
       await cleanupCwd(cwd);

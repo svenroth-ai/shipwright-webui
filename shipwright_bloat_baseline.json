@@ -282,13 +282,6 @@
       "adr": null
     },
     {
-      "path": "client/src/pages/ProjectsPage.tsx",
-      "limit": 300,
-      "current": 452,
-      "state": "grandfathered",
-      "adr": "iterate-2026-06-30-compliance-grade-webui"
-    },
-    {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
       "current": 449,

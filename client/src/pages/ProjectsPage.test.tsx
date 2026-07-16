@@ -55,68 +55,79 @@ describe('ProjectsPage', () => {
     });
   });
 
-  // Iterate 14.8.2 — gear icon aria-label preserved in 3.7e-b3 table rebuild.
+  // Gear icon aria-label preserved through the A15 table→gallery rebuild.
   it('gear icon has aria-label "Project settings"', async () => {
     renderPage();
     await waitFor(() => {
-      const gearBtn = screen.getByLabelText('Project settings');
-      expect(gearBtn).toBeInTheDocument();
+      expect(screen.getByLabelText('Project settings')).toBeInTheDocument();
     });
   });
 
-  // Iterate 3.7e-b3 — table structure.
-  it('renders projects as a <table> with header row', async () => {
+  // A15 — the registry renders as a gallery of preview cards, not a <table>.
+  it('renders projects as a gallery of log cards (no table)', async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('projects-table')).toBeInTheDocument();
+      expect(screen.getByTestId('projects-gallery')).toBeInTheDocument();
     });
-    // Column headers (uppercase + displayed in the <th> cells).
-    expect(screen.getByText(/Name/i)).toBeInTheDocument();
-    expect(screen.getByText(/Path/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tasks/i)).toBeInTheDocument();
-    expect(screen.getByText(/Actions/i)).toBeInTheDocument();
+    expect(screen.getByTestId('projects-card-proj-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('projects-table')).toBeNull();
   });
 
-  // AC-5 (iterate-2026-06-15) — the Path column is hidden on the compact band
-  // (≤1023px) via `hidden lg:table-cell` so the table fits without a bottom
-  // horizontal scrollbar; it returns on desktop.
-  it("Path column header + cells carry hidden lg:table-cell (compact-band hide)", async () => {
+  // A15 — the card carries the colour dot + path + gear + trash (preserved ids).
+  it('card shows path + settings + delete affordances for each project', async () => {
     renderPage();
-    await waitFor(() => {
-      expect(screen.getByTestId("projects-cell-proj-1-path")).toBeInTheDocument();
-    });
-    const pathHeader = screen.getByText("Path");
-    expect(pathHeader.className).toContain("hidden");
-    expect(pathHeader.className).toContain("lg:table-cell");
-    const pathCell = screen.getByTestId("projects-cell-proj-1-path");
-    expect(pathCell.className).toContain("hidden");
-    expect(pathCell.className).toContain("lg:table-cell");
-  });
-
-  // Iterate 3.7e-b3 — the project row has color + path + delete affordances.
-  it('renders color swatch + path + delete button for each project', async () => {
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByTestId('projects-row-proj-1')).toBeInTheDocument();
-    });
-    expect(screen.getByTestId('projects-cell-proj-1-color')).toBeInTheDocument();
-    expect(screen.getByTestId('projects-cell-proj-1-path')).toBeInTheDocument();
+    const card = await screen.findByTestId('projects-card-proj-1');
+    expect(within(card).getByText('/tmp/test-project')).toBeInTheDocument();
     expect(screen.getByTestId('projects-settings-proj-1')).toBeInTheDocument();
     expect(screen.getByTestId('projects-delete-proj-1')).toBeInTheDocument();
   });
 
+  // A15 — graded projects (a real A02 logbook) lead the gallery.
+  it('sorts graded projects (runCount > 0) first', async () => {
+    server.use(
+      http.get('/api/projects', () =>
+        HttpResponse.json({
+          data: [
+            { id: 'proj-1', name: 'Alpha', path: '/a', profile: 'custom', status: 'active', lastActive: '2026-07-01T00:00:00Z', createdAt: '2026-06-01T00:00:00Z' },
+            { id: 'proj-2', name: 'Beta', path: '/b', profile: 'custom', status: 'active', lastActive: '2026-07-01T00:00:00Z', createdAt: '2026-06-01T00:00:00Z' },
+          ],
+        }),
+      ),
+      http.get('/api/external/projects/:id/runs', ({ params }) =>
+        HttpResponse.json(
+          params.id === 'proj-2'
+            ? {
+                status: 'ok',
+                runCount: 1,
+                runs: [
+                  { runId: 'iterate-2026-07-05-beta', ts: '2026-07-05T00:00:00Z', source: null, intent: null, changeType: null, summary: 'beta run', description: null, commit: null, specImpact: null, specImpactRaw: null, affectedFrs: [], newFrs: [], tests: { passed: 3, total: 3 }, gates: null, phaseDurations: null, campaign: null, subIterateId: null },
+                ],
+                gradeTrend: [],
+                pipelinePhaseDurations: [],
+                skippedLines: 0,
+              }
+            : { status: 'ok', runCount: 0, runs: [], gradeTrend: [], pipelinePhaseDurations: [], skippedLines: 0 },
+        ),
+      ),
+    );
+    renderPage();
+    const beta = await screen.findByTestId('projects-card-proj-2');
+    const alpha = await screen.findByTestId('projects-card-proj-1');
+    await waitFor(() => {
+      // Beta (graded) must precede Alpha (ungraded): alpha FOLLOWS beta in the DOM.
+      const rel = beta.compareDocumentPosition(alpha);
+      expect(rel & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
+
   // -------------------------------------------------------------------------
-  // iterate-20260501-projects-row-click-navigates — row click → TaskBoard
-  // with that project preselected. Previously opened the Settings dialog;
-  // settings now lives behind the gear icon only.
+  // Card click → the board filtered by that project, via the single
+  // openProjectLog() seam A16 re-points. Settings stays behind the gear.
   // -------------------------------------------------------------------------
 
-  /** Inline location echo so the assertion can read URL post-navigation. */
   function LocationEcho() {
     const loc = useLocation();
-    return (
-      <div data-testid="loc">{loc.pathname + loc.search}</div>
-    );
+    return <div data-testid="loc">{loc.pathname + loc.search}</div>;
   }
 
   function renderWithRouter() {
@@ -135,11 +146,10 @@ describe('ProjectsPage', () => {
     );
   }
 
-  it('row click navigates to TaskBoard with projectId in the URL', async () => {
+  it('card click navigates to the board with projectId in the URL', async () => {
     renderWithRouter();
-    const row = await screen.findByTestId('projects-row-proj-1');
-    // Click the name cell — the row's onClick handles it.
-    await userEvent.click(row);
+    const card = await screen.findByTestId('projects-card-proj-1');
+    await userEvent.click(card);
     const echo = await screen.findByTestId('loc');
     expect(echo.textContent).toBe('/?projectId=proj-1');
   });
@@ -148,18 +158,15 @@ describe('ProjectsPage', () => {
     renderWithRouter();
     const gear = await screen.findByTestId('projects-settings-proj-1');
     await userEvent.click(gear);
-    // Settings dialog opens — root testid present.
     expect(
       await screen.findByTestId('project-settings-dialog'),
     ).toBeInTheDocument();
-    // No location echo means we did NOT navigate to "/".
     expect(screen.queryByTestId('loc')).toBeNull();
   });
 
   // -------------------------------------------------------------------------
-  // iterate-2026-07-06-project-delete-cascades-tasks — deleting a project now
-  // cascade-removes its tasks, so the confirm dialog must warn how many are
-  // affected (and stay silent when there are none).
+  // iterate-2026-07-06-project-delete-cascades-tasks — the confirm must warn
+  // how many tasks the cascade removes (and stay silent when there are none).
   // -------------------------------------------------------------------------
 
   it('delete confirm warns how many tasks will be removed when the project has tasks', async () => {
@@ -175,12 +182,10 @@ describe('ProjectsPage', () => {
     );
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderPage();
-    // Wait until the task-count column reflects the 2 tasks so the memoized
-    // count is populated before we click delete.
     await waitFor(() => {
       expect(
-        screen.getByTestId('projects-cell-proj-1-tasks').textContent,
-      ).toBe('2');
+        screen.getByTestId('projects-card-proj-1-tasks'),
+      ).toHaveTextContent('2 tasks');
     });
     await userEvent.click(screen.getByTestId('projects-delete-proj-1'));
     expect(confirmSpy).toHaveBeenCalledTimes(1);
@@ -190,7 +195,6 @@ describe('ProjectsPage', () => {
   });
 
   it('delete confirm omits the task warning when the project has no tasks', async () => {
-    // Default handler returns { tasks: [] } → proj-1 has 0 tasks.
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderPage();
     await waitFor(() => {
