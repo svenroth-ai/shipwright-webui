@@ -19,6 +19,7 @@ import { useMissionState } from "../../../hooks/useMissionState";
 import { useRunDetail } from "../../../hooks/useRunData";
 import { deriveRecordNodes } from "../../../lib/recordNodes";
 import { RecordRail } from "./RecordRail";
+import { OperationCard } from "./OperationCard";
 import { ArtifactPanel } from "./ArtifactPanel";
 
 interface Props {
@@ -72,6 +73,11 @@ export function MissionRecordView({ task, onOpenDocument }: Props) {
           onNodeClick={handleNodeClick}
           onToggleCollapse={handleToggleCollapse}
         />
+        {/* A12's Operation card — the flexible middle of .mc-body (verdict +
+            mission line + curated proof summary). Consumes the SAME useMissionState
+            + useRunDetail derivation as the Record, so the two can never disagree.
+            A13 lifts this trio into the three-equal-card shell. */}
+        <OperationCard task={task} />
         {activeRecordNode ? (
           <ArtifactPanel
             node={activeRecordNode}
