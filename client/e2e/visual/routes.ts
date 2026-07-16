@@ -106,10 +106,11 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   },
   {
     id: "design-gate",
-    path: "/(design gate)",
-    description: "Design-gate review surface (FR-01.45)",
+    path: "/tasks/:taskId (Mission tab, DESIGNGATE state)",
+    description:
+      "Design gate AS the Mission view (A14, FR-01.58) — A13's three-card shell in `designgate` mode: the Record rail with the Design node `now`, the gallery of pending screens (real hosted-preview iframes + FR id + name) in the middle `.mc-op` card, and the Approve / Request-changes decision bar with the 'Waiting on you' badge at its foot. Baseline bootstrapped by the CI visual gate; the gate signal + manifest + screens are intercepted for determinism.",
     status: "pending",
-    owner: "A16",
+    owner: "A14",
   },
   {
     id: "ships-log",

@@ -33,6 +33,21 @@ export function designsViewerUrl(projectId: string): string {
   return `${EXTERNAL_API}/projects/${encodeURIComponent(projectId)}/designs/index.html`;
 }
 
+/**
+ * RELATIVE URL for a single hosted screen mockup (design-gate gallery, A14).
+ * `file` is the manifest's designs-relative POSIX path (e.g.
+ * `screens/01-dashboard.html`); each segment is encoded so screen names with
+ * spaces / non-ASCII resolve through `serve.ts` (which URL-decodes segments).
+ * Same-origin, so an iframe preview + the app's postMessage checks behave.
+ */
+export function designScreenUrl(projectId: string, file: string): string {
+  const rel = file
+    .split("/")
+    .map((seg) => encodeURIComponent(seg))
+    .join("/");
+  return `${EXTERNAL_API}/projects/${encodeURIComponent(projectId)}/designs/${rel}`;
+}
+
 export async function getDesignGate(projectId: string): Promise<DesignGate> {
   return await httpJson<DesignGate>(
     `${EXTERNAL_API}/projects/${encodeURIComponent(projectId)}/design-gate`,

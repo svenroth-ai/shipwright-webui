@@ -149,7 +149,13 @@ export function MissionTopRow({ task, modelName }: Props) {
         {/* Mission instruments (A11): Grade · Tests · Serves. Hidden on phones. */}
         <Instruments task={task} />
         {cta === "launch" && <LaunchCTA task={task} onError={setCtaError} />}
-        {cta === "resume" && <ResumeCTA task={task} onError={setCtaError} />}
+        {/* AC4 (A14): at the design gate the ONE primary action is the gate
+            card's "Approve — start building" (which IS the resume/CTA path). The
+            header Resume is SUPPRESSED here so two primaries never compete at the
+            highest-stakes moment; it returns the instant the gate lifts. */}
+        {cta === "resume" && missionState !== "designgate" && (
+          <ResumeCTA task={task} onError={setCtaError} />
+        )}
         <HeaderMenu
           task={task}
           onOpenEditTask={() => setEditOpen(true)}
