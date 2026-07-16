@@ -1,62 +1,142 @@
 /*
- * GradeResult — step 3 for the grade door (A08). A FAITHFUL rendering of the
- * shipwright-grade ReportModel (field-for-field, never a second hand-rolled
- * shape). Grade WRITES NOTHING, so it ends in a report, not a task.
+ * GradeResult — step 3 for the grade door. A FAITHFUL rendering of the REAL
+ * shipwright-grade ReportModel (A08 built the card against a stub; A09b wires
+ * the live server route, FR-01.53). Grade WRITES NOTHING, so it ends in a
+ * report, not a task.
  *
- * Order is load-bearing:
- *   1. shape-guard the payload; a bad shape → honest "report shape not
- *      recognised", never a half-empty card (cross-repo contract).
- *   2. honest_ceiling_note ABOVE the dimensions — reframes a low grade as a
+ * The card renders ONLY what /api/wizard/grade returned (AC5): the report is
+ * fetched + shape-guarded by useGradeReport, and every non-ready outcome is an
+ * HONEST state — grading, "couldn't grade that repo", "grade engine
+ * unavailable" (with the repair command), or "report shape not recognised".
+ * No client-side default, estimate or fallback ever fills a gap the plugin left
+ * empty; an underivable dimension stays n/a.
+ *
+ * Order is load-bearing on the ready card:
+ *   1. honest_ceiling_note ABOVE the dimensions — reframes a low grade as a
  *      finding about the RECORD, not a verdict on the code.
- *   3. the four dimensions (GradeDimensionRow owns the n/a invariant).
- *   4. controls_shipwright_would_light — what adopting lights up.
- *   5. network_enrichments — "exactly what left the machine", the receipt for
- *      "read-only, no account". Never omitted; sized to what happened (a local
- *      folder sends nothing, so it is one quiet line, not an invented card).
+ *   2. the dimensions (GradeDimensionRow owns the n/a invariant + the 0..1 scale).
+ *   3. controls_shipwright_would_light — what adopting lights up.
+ *   4. network_enrichments — "exactly what left the machine", the receipt for
+ *      "read-only, no account".
  */
 
-import { Check, Eye, FileText, Wrench, AlertTriangle } from "lucide-react";
+import { Check, Eye, FileText, Wrench, AlertTriangle, Loader2, PackageX } from "lucide-react";
 
-import { GRADE_REPORT } from "./stubData";
-import { parseReportModel } from "./reportShape";
 import { GradeRing } from "./GradeRing";
 import { GradeDimensionRow } from "./GradeDimensionRow";
 import { StepDots } from "./StepDots";
 import { WzPrimary, WzOutline } from "./buttons";
+import type { GradeReport } from "./useGradeReport";
 import type { WizardAction } from "./wizardState";
 
 const CARD_MAX = 820;
 
+/** A framed message state (grading / failed / unavailable / unrecognised). */
+function GradeMessage({
+  testid,
+  icon,
+  title,
+  children,
+  dispatch,
+}: {
+  testid: string;
+  icon: React.ReactNode;
+  title: string;
+  children: React.ReactNode;
+  dispatch: (a: WizardAction) => void;
+}) {
+  return (
+    <div className="wz-left wz-block" data-testid={testid}>
+      <StepDots total={3} current={2} />
+      <h2 className="wz-q wz-q-sub">
+        {icon} {title}
+      </h2>
+      <div className="wz-hint" style={{ maxWidth: CARD_MAX }}>
+        {children}
+      </div>
+      <div className="wz-foot">
+        <WzOutline data-testid="wizard-back" onClick={() => dispatch({ t: "back" })}>
+          Back
+        </WzOutline>
+      </div>
+    </div>
+  );
+}
+
 export function GradeResult({
   path,
+  report,
   dispatch,
 }: {
   path: string | null;
+  report: GradeReport;
   dispatch: (a: WizardAction) => void;
 }) {
-  const parsed = parseReportModel(GRADE_REPORT);
-
-  if (!parsed.ok) {
+  // Still reading the repo (the fetch is in flight) — a real loading state.
+  if (report.state === "idle" || report.state === "grading") {
     return (
-      <div className="wz-left wz-block" data-testid="wizard-grade-unrecognised">
-        <StepDots total={3} current={2} />
-        <h2 className="wz-q wz-q-sub">
-          <AlertTriangle size={22} style={{ color: "var(--warn)", verticalAlign: "-3px" }} /> Report shape not recognised
-        </h2>
-        <div className="wz-hint" style={{ maxWidth: CARD_MAX }}>
-          The grade report came back in a shape this build doesn’t know how to render safely, so nothing is shown rather
-          than a half-empty card. ({parsed.reason})
-        </div>
-        <div className="wz-foot">
-          <WzOutline data-testid="wizard-back" onClick={() => dispatch({ t: "back" })}>
-            Back
-          </WzOutline>
-        </div>
-      </div>
+      <GradeMessage
+        testid="wizard-grade-grading"
+        icon={<Loader2 className="iw-spin" size={20} style={{ verticalAlign: "-3px", color: "var(--accent)" }} />}
+        title="Grading…"
+        dispatch={dispatch}
+      >
+        Reading the whole history — that is what makes the grade honest rather than a guess. Nothing is written, nothing
+        is uploaded.
+      </GradeMessage>
     );
   }
 
-  const M = parsed.model;
+  // The engine isn't installed — reuse the readiness repair command (honest).
+  if (report.state === "engine-unavailable") {
+    return (
+      <GradeMessage
+        testid="wizard-grade-engine-unavailable"
+        icon={<PackageX size={22} style={{ color: "var(--warn)", verticalAlign: "-3px" }} />}
+        title="Grade engine unavailable"
+        dispatch={dispatch}
+      >
+        {report.reason ?? "The grade engine isn't installed on this machine."}
+        {report.repairCommand ? (
+          <>
+            {" "}
+            Run <span className="mono">{report.repairCommand}</span> to install it, then try again.
+          </>
+        ) : null}
+      </GradeMessage>
+    );
+  }
+
+  // grade.py couldn't grade this target (a bad path/URL, a non-zero exit).
+  if (report.state === "grade-failed") {
+    return (
+      <GradeMessage
+        testid="wizard-grade-failed"
+        icon={<AlertTriangle size={22} style={{ color: "var(--warn)", verticalAlign: "-3px" }} />}
+        title="Couldn't grade that repo"
+        dispatch={dispatch}
+      >
+        {report.reason ?? "The grade tool couldn't read that repository."}
+      </GradeMessage>
+    );
+  }
+
+  // The payload came back in a shape this build can't render safely.
+  if (report.state === "shape-unrecognised" || report.model === null) {
+    return (
+      <GradeMessage
+        testid="wizard-grade-unrecognised"
+        icon={<AlertTriangle size={22} style={{ color: "var(--warn)", verticalAlign: "-3px" }} />}
+        title="Report shape not recognised"
+        dispatch={dispatch}
+      >
+        The grade report came back in a shape this build doesn’t know how to render safely, so nothing is shown rather
+        than a half-empty card.{report.reason ? ` (${report.reason})` : ""}
+      </GradeMessage>
+    );
+  }
+
+  const M = report.model;
   const target = path || M.target_display;
   // The network receipt is driven by the MODEL's own `network_enabled`, not an
   // inference from the entered path — so the receipt cannot disagree with the
@@ -66,16 +146,6 @@ export function GradeResult({
   return (
     <div className="wz-left wz-block" data-testid="wizard-grade-result" style={{ overflow: "auto" }}>
       <StepDots total={3} current={2} />
-
-      <div
-        data-testid="wizard-grade-stub-note"
-        className="iw-card pad"
-        style={{ maxWidth: CARD_MAX, marginBottom: 12, borderColor: "var(--warn-line)", background: "var(--warn-tint)" }}
-      >
-        <span style={{ fontSize: 12.5, color: "var(--ink)" }}>
-          Sample grade — not a live read of your repo yet. A09 runs the real /shipwright-grade.
-        </span>
-      </div>
 
       {/* head */}
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -122,10 +192,10 @@ export function GradeResult({
         <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.6 }}>{M.honest_ceiling_note}</div>
       </div>
 
-      {/* the four dimensions */}
+      {/* the dimensions */}
       <div className="iw-card pad" data-testid="wizard-grade-dimensions" style={{ maxWidth: CARD_MAX, marginTop: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-          <span className="eyebrow">The four dimensions</span>
+          <span className="eyebrow">The dimensions</span>
           <span className="caption" style={{ marginLeft: "auto", fontSize: 12, color: "var(--muted)" }}>
             {M.static_test_inventory}
           </span>
@@ -150,21 +220,23 @@ export function GradeResult({
       ) : null}
 
       {/* what adopting would light up */}
-      <div
-        className="iw-card pad"
-        data-testid="wizard-grade-lightup"
-        style={{ maxWidth: CARD_MAX, marginTop: 12, background: "var(--accent-tint)", borderColor: "var(--accent-line)" }}
-      >
-        <div className="eyebrow" style={{ marginBottom: 7, color: "var(--accent-deep)" }}>
-          What adopting Shipwright would light up
-        </div>
-        {M.controls_shipwright_would_light.map((c) => (
-          <div key={c} style={{ display: "flex", gap: 8, alignItems: "baseline", padding: "3px 0", fontSize: 13, color: "var(--ink)" }}>
-            <Check size={13} style={{ color: "var(--accent-deep)", flexShrink: 0 }} />
-            {c}
+      {M.controls_shipwright_would_light.length > 0 ? (
+        <div
+          className="iw-card pad"
+          data-testid="wizard-grade-lightup"
+          style={{ maxWidth: CARD_MAX, marginTop: 12, background: "var(--accent-tint)", borderColor: "var(--accent-line)" }}
+        >
+          <div className="eyebrow" style={{ marginBottom: 7, color: "var(--accent-deep)" }}>
+            What adopting Shipwright would light up
           </div>
-        ))}
-      </div>
+          {M.controls_shipwright_would_light.map((c) => (
+            <div key={c} style={{ display: "flex", gap: 8, alignItems: "baseline", padding: "3px 0", fontSize: 13, color: "var(--ink)" }}>
+              <Check size={13} style={{ color: "var(--accent-deep)", flexShrink: 0 }} />
+              {c}
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {/* network receipt — sized to what actually happened */}
       {remote ? (

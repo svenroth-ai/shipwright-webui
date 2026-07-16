@@ -21,6 +21,8 @@ import { LaunchingScreen } from "./LaunchingScreen";
 import { FlightPlanRail } from "./FlightPlanRail";
 import { useReadiness } from "./useReadiness";
 import { useWizardLaunch } from "./useWizardLaunch";
+import { useGradeReport } from "./useGradeReport";
+import { isRemote } from "./stubData";
 import {
   INITIAL_STATE,
   deriveDoorRows,
@@ -46,6 +48,13 @@ export function IntentWizard({
   const [state, dispatch] = useReducer(wizardReducer, initialDoor, initState);
   const readiness = useReadiness();
   const launch = useWizardLaunch();
+  // Grade door: run the REAL read-only grade once the user commits a target
+  // (step ≥ 2). A bare /wizard/grade (step 1) fires nothing (A09b, FR-01.53).
+  const gradeTarget = state.door === "grade" ? state.path : null;
+  const gradeReport = useGradeReport(gradeTarget, {
+    isRemote: isRemote(gradeTarget),
+    enabled: state.door === "grade" && state.step >= 2 && gradeTarget !== null,
+  });
   // Launch is a transient, cross-door concern layered OVER the step reducer:
   // `launching` renders the hand-off screen; on success the wizard navigates to
   // Mission (this component unmounts), so only a failure lingers here.
@@ -79,7 +88,13 @@ export function IntentWizard({
   }
 
   const isDoorFlow = state.door === "adopt" || state.door === "grade";
-  const rows = isDoorFlow ? deriveDoorRows(state) : deriveNewRows(state);
+  // Real grade summary for the rail (e.g. "A · 97.4/100"); null until ready, so
+  // the rail never shows a fabricated grade.
+  const gradeSummary =
+    gradeReport.state === "report-ready" && gradeReport.model
+      ? `${gradeReport.model.grade}${typeof gradeReport.model.score === "number" ? ` · ${gradeReport.model.score}/100` : ""}`
+      : null;
+  const rows = isDoorFlow ? deriveDoorRows(state, gradeSummary) : deriveNewRows(state);
   // The failed-launch screen replaces the door body until the user retries or
   // goes back; `door` here is always new|adopt (grade never launches).
   const launchDoor = state.door === "adopt" ? "adopt" : "new";
@@ -115,7 +130,7 @@ export function IntentWizard({
   } else {
     body =
       state.door === "grade" ? (
-        <GradeResult path={state.path} dispatch={dispatch} />
+        <GradeResult path={state.path} report={gradeReport} dispatch={dispatch} />
       ) : (
         <AdoptResult path={state.path} dispatch={dispatch} onLaunch={handleLaunch} />
       );

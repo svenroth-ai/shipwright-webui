@@ -17,6 +17,7 @@ import { http, HttpResponse } from "msw";
 
 import { IntentWizard } from "./IntentWizard";
 import { server } from "../../../test/mocks/server";
+import { GRADE_REPORT } from "./stubData";
 import type { WizardDoor } from "./types";
 
 const READY = {
@@ -35,6 +36,14 @@ const READY = {
 function mockReadiness(report: Record<string, unknown>) {
   server.use(http.get("/api/readiness", () => HttpResponse.json(report)));
 }
+
+/** Mock the real read-only Grade route (A09b) — the flow now fetches the report
+ *  from POST /api/wizard/grade instead of reading a client stub. */
+function mockGrade(outcome: Record<string, unknown>) {
+  server.use(http.post("/api/wizard/grade", () => HttpResponse.json(outcome)));
+}
+
+const READY_GRADE = { status: "report-ready", model: GRADE_REPORT };
 
 function renderWizard(initialDoor: WizardDoor | null = null) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -154,7 +163,10 @@ describe("IntentWizard — ADOPT door walks to the result card (AC1)", () => {
 });
 
 describe("IntentWizard — GRADE door: ring, four dimensions, honest n/a (AC1/AC2)", () => {
-  beforeEach(() => mockReadiness(READY));
+  beforeEach(() => {
+    mockReadiness(READY);
+    mockGrade(READY_GRADE); // the real route returns the plugin's ReportModel
+  });
 
   it("pick → grade → the underivable dimension renders n/a with NO numeric score", async () => {
     renderWizard("grade");
@@ -219,6 +231,67 @@ describe("IntentWizard — GRADE door: ring, four dimensions, honest n/a (AC1/AC
     // Re-scans, lands on the adopt result — no RepoPicker in between.
     expect(await screen.findByTestId("wizard-adopt-result")).toBeInTheDocument();
     expect(screen.queryByTestId("wizard-pick-adopt")).not.toBeInTheDocument();
+  });
+});
+
+describe("IntentWizard — GRADE door renders REAL route output + honest states (A09b, AC5)", () => {
+  beforeEach(() => mockReadiness(READY));
+
+  it("renders ONLY what the route returned — a null-score dimension stays n/a (no client fill)", async () => {
+    mockGrade(READY_GRADE);
+    renderWizard("grade");
+    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[2]);
+    const result = await screen.findByTestId("wizard-grade-result");
+    // n/a dimension: literal "n/a", NO digit — the client never estimates it.
+    const naValue = within(result).getByTestId("grade-value-requirement_traceability");
+    expect(naValue).toHaveTextContent("n/a");
+    expect(naValue.textContent ?? "").not.toMatch(/\d/);
+    // A real 0..1 dimension score is scaled to the 0..100 idiom (0.71 → 71/100).
+    expect(within(result).getByTestId("grade-value-test_health")).toHaveTextContent("71/100");
+  });
+
+  it("a target grade.py couldn't grade → an honest 'couldn't grade' card, never a fake grade", async () => {
+    mockGrade({ status: "grade-failed", reason: "path does not exist: C:/x" });
+    renderWizard("grade");
+    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[0]);
+    const failed = await screen.findByTestId("wizard-grade-failed");
+    expect(failed).toHaveTextContent(/couldn.t grade/i);
+    expect(failed).toHaveTextContent("path does not exist");
+    // No fabricated grade card.
+    expect(screen.queryByTestId("wizard-grade-result")).not.toBeInTheDocument();
+  });
+
+  it("engine not installed → 'grade engine unavailable' with the repair command", async () => {
+    mockGrade({
+      status: "engine-unavailable",
+      reason: "The grade engine isn't installed.",
+      repairCommand: "npx @svenroth-ai/shipwright@latest",
+    });
+    renderWizard("grade");
+    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[0]);
+    const unavail = await screen.findByTestId("wizard-grade-engine-unavailable");
+    expect(unavail).toHaveTextContent(/engine unavailable/i);
+    expect(unavail).toHaveTextContent("npx @svenroth-ai/shipwright@latest");
+  });
+
+  it("a malformed report shape → 'report shape not recognised', not a half-empty card", async () => {
+    // report-ready but the model fails the cross-repo shape guard (missing fields).
+    mockGrade({ status: "report-ready", model: { schema_version: "1.0", grade: "A" } });
+    renderWizard("grade");
+    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[0]);
+    expect(await screen.findByTestId("wizard-grade-unrecognised")).toHaveTextContent(/shape not recognised/i);
+  });
+
+  it("a synthesized score for an n/a dimension is REJECTED at the client guard (AC5)", async () => {
+    const poisoned = structuredClone(GRADE_REPORT) as unknown as {
+      dimensions: Array<{ status: string; score: number | null }>;
+    };
+    poisoned.dimensions.find((d) => d.status === "n/a")!.score = 0.5; // a fabricated value
+    mockGrade({ status: "report-ready", model: poisoned });
+    renderWizard("grade");
+    fireEvent.click(screen.getAllByTestId("wizard-repo-chip")[0]);
+    // The guard refuses it → honest "shape not recognised", never a fake bar.
+    expect(await screen.findByTestId("wizard-grade-unrecognised")).toBeInTheDocument();
   });
 });
 
