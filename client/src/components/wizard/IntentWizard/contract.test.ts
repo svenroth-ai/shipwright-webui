@@ -137,6 +137,8 @@ describe("Adopt door request → payloads (AC2/AC3)", () => {
   it("derives a name from a github-url target (grade → adopt handoff path)", () => {
     expect(deriveAdoptProjectName("github.com/acme/checkout")).toBe("checkout");
     expect(deriveAdoptProjectName("C:\\work\\api-server\\")).toBe("api-server");
+    // Degenerate input falls back rather than yielding an empty project name.
+    expect(deriveAdoptProjectName("   ")).toBe("adopted-repo");
   });
 });
 
