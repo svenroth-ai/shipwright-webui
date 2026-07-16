@@ -142,10 +142,18 @@ export const RECORD_CAPTIONS: Record<Exclude<RecordNodeKey, "tests">, string> = 
 
 /* ---- Verdict + mission fragments (verbatim) --------------------------- */
 
+/** Verdict fragments. `head` is the badge text (styled — a check for ALL
+ *  CLEAR, a red pill for GATE HOLD); `body` is the descriptive text. The
+ *  composed banner is `${head} — ${body}` (VERDICT_JOIN), verbatim from the
+ *  prototype. Kept as pieces so consumers style the badge without re-splitting
+ *  a flat string. */
+export const VERDICT_JOIN = " — " as const;
 export const VERDICT = {
-  clearHead: "ALL CLEAR — security",
+  clearHead: "ALL CLEAR",
+  clearBodyLead: "security",
   clearReview: "review clean",
-  holdHead: "GATE HOLD — Security",
+  holdHead: "GATE HOLD",
+  holdBodyLead: "Security",
   holdTail: "fixing.",
 } as const;
 

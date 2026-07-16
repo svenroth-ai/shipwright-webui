@@ -21,6 +21,7 @@ import {
   MISSION,
   PIPELINE_PHASE_DEFS,
   VERDICT,
+  VERDICT_JOIN,
   type IterateGroupId,
   type PipelinePhaseId,
 } from "./narrator-strings";
@@ -91,11 +92,10 @@ export interface IterateRailNode {
   phases: string[];
 }
 
-function groupLabel(group: string): string {
-  return (
-    ITERATE_GROUP_LABELS[group as IterateGroupId] ??
-    (group ? group.charAt(0).toUpperCase() + group.slice(1) : group)
-  );
+/** Only canonical groups ever reach here (both callers gate on
+ *  ITERATE_GROUP_ORDER), so this is a pure lookup — no capitalize fallback. */
+function groupLabel(group: IterateGroupId): string {
+  return ITERATE_GROUP_LABELS[group];
 }
 
 /**
@@ -131,11 +131,16 @@ export function buildIterateRail(
   );
 }
 
-/** The display group a single iterate phase belongs to. */
+/** The display group a single iterate phase belongs to, or `null` for a
+ *  non-canonical group — matching `buildIterateRail`'s guarantee that only the
+ *  five Scope/Build/Review/Test/Finalize groups exist (a stray "secure" group
+ *  is never labelled, never surfaced). */
 export function narrateIteratePhase(
   phase: IteratePhaseInput,
-): { group: string; label: string } {
-  return { group: phase.group, label: groupLabel(phase.group) };
+): { group: IterateGroupId; label: string } | null {
+  if (!ITERATE_GROUP_ORDER.includes(phase.group as IterateGroupId)) return null;
+  const group = phase.group as IterateGroupId;
+  return { group, label: groupLabel(group) };
 }
 
 /* ---- Verdict banner --------------------------------------------------- */
@@ -149,20 +154,38 @@ export type VerdictInput =
   | { outcome: "clear"; tests?: VerdictTests | null }
   | { outcome: "hold"; detail?: string | null };
 
-/** The verdict banner line. Honest degradation: an unknown test count drops
- *  the tests clause; an unknown hold detail drops the detail clause. */
-export function narrateVerdict(input: VerdictInput): string {
+export interface Verdict {
+  outcome: "clear" | "hold";
+  /** Badge text — "ALL CLEAR" (styled ok) or "GATE HOLD" (styled red). */
+  head: string;
+  /** Descriptive body; the composed banner is `composeVerdict(v)`. */
+  body: string;
+}
+
+/** The verdict banner, split into the styled badge (`head`) and the
+ *  descriptive `body` so A11–A13 render the badge without re-splitting a flat
+ *  string. Honest degradation: an unknown test count drops the tests clause;
+ *  an unknown hold detail drops the detail clause. */
+export function narrateVerdict(input: VerdictInput): Verdict {
   if (input.outcome === "hold") {
     const detail = input.detail?.trim();
-    return detail
-      ? `${VERDICT.holdHead} · ${detail} — ${VERDICT.holdTail}`
-      : `${VERDICT.holdHead} — ${VERDICT.holdTail}`;
+    const body = detail
+      ? `${VERDICT.holdBodyLead} · ${detail} — ${VERDICT.holdTail}`
+      : `${VERDICT.holdBodyLead} — ${VERDICT.holdTail}`;
+    return { outcome: "hold", head: VERDICT.holdHead, body };
   }
   const t = input.tests;
   const known = t != null && t.passed != null && t.total != null;
-  return known
-    ? `${VERDICT.clearHead} · ${t!.passed}/${t!.total} tests · ${VERDICT.clearReview}`
-    : `${VERDICT.clearHead} · ${VERDICT.clearReview}`;
+  const body = known
+    ? `${VERDICT.clearBodyLead} · ${t!.passed}/${t!.total} tests · ${VERDICT.clearReview}`
+    : `${VERDICT.clearBodyLead} · ${VERDICT.clearReview}`;
+  return { outcome: "clear", head: VERDICT.clearHead, body };
+}
+
+/** The verbatim flat banner (`${head} — ${body}`) for an aria-label / plain
+ *  render; the styled surfaces use `head` + `body` directly. */
+export function composeVerdict(v: Verdict): string {
+  return `${v.head}${VERDICT_JOIN}${v.body}`;
 }
 
 /* ---- Mission lines ---------------------------------------------------- */
