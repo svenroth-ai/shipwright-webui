@@ -168,7 +168,7 @@ describe("IntentWizard — GRADE door: ring, four dimensions, honest n/a (AC1/AC
     expect(within(result).getByTestId("grade-dim-requirement_traceability")).toBeInTheDocument();
     expect(within(result).getByTestId("grade-dim-test_health")).toBeInTheDocument();
     expect(within(result).getByTestId("grade-dim-security")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-dim-change_history")).toBeInTheDocument();
+    expect(within(result).getByTestId("grade-dim-change_traceability")).toBeInTheDocument();
 
     // THE honest n/a: requirement traceability is n/a — dashed bar, literal "n/a",
     // and NO number anywhere in the value.
@@ -194,7 +194,7 @@ describe("IntentWizard — GRADE door: ring, four dimensions, honest n/a (AC1/AC
     // n/a trace + gap dims light up; the already-ok Security does NOT (dilution guard).
     expect(within(result).getByTestId("grade-lightup-requirement_traceability")).toBeInTheDocument();
     expect(within(result).getByTestId("grade-lightup-test_health")).toBeInTheDocument();
-    expect(within(result).getByTestId("grade-lightup-change_history")).toBeInTheDocument();
+    expect(within(result).getByTestId("grade-lightup-change_traceability")).toBeInTheDocument();
     expect(within(result).queryByTestId("grade-lightup-security")).not.toBeInTheDocument();
   });
 

@@ -25,16 +25,16 @@ function versionInfoStub() {
 }
 
 describe("GET /api/readiness", () => {
-  it("returns the probe report as JSON", async () => {
+  it("returns the (async) probe report as JSON", async () => {
     const app = new Hono();
-    app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe: () => REPORT }));
+    app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe: async () => REPORT }));
     const res = await app.request("/api/readiness");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(REPORT);
   });
 
   it("passes the live Claude verdict (supported + raw) into the probe", async () => {
-    const probe = vi.fn(() => REPORT);
+    const probe = vi.fn(async () => REPORT);
     const app = new Hono();
     app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe }));
     await app.request("/api/readiness");
@@ -46,7 +46,7 @@ describe("GET /api/readiness", () => {
   });
 
   it("memoises within the TTL — the probe is not re-run on every request", async () => {
-    const probe = vi.fn(() => REPORT);
+    const probe = vi.fn(async () => REPORT);
     const app = new Hono();
     app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe, ttlMs: 10_000 }));
     await app.request("/api/readiness");
@@ -55,8 +55,28 @@ describe("GET /api/readiness", () => {
     expect(probe).toHaveBeenCalledTimes(1);
   });
 
+  it("coalesces concurrent cold-cache requests onto ONE in-flight probe", async () => {
+    // The probe stays pending until we release it; three requests dispatched
+    // synchronously must all await the same in-flight probe, not fan out.
+    let release!: () => void;
+    const probe = vi.fn(
+      () => new Promise<ReadinessReport>((resolve) => (release = () => resolve(REPORT))),
+    );
+    const app = new Hono();
+    app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe, ttlMs: 10_000 }));
+    const reqs = [
+      app.request("/api/readiness"),
+      app.request("/api/readiness"),
+      app.request("/api/readiness"),
+    ];
+    release();
+    const bodies = await Promise.all((await Promise.all(reqs)).map((r) => r.json()));
+    expect(probe).toHaveBeenCalledTimes(1);
+    for (const b of bodies) expect(b).toEqual(REPORT);
+  });
+
   it("re-probes after the TTL expires", async () => {
-    const probe = vi.fn(() => REPORT);
+    const probe = vi.fn(async () => REPORT);
     const app = new Hono();
     app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe, ttlMs: 0 }));
     await app.request("/api/readiness");

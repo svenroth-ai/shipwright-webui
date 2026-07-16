@@ -1,6 +1,7 @@
 /*
  * Readiness-probe unit tests (FR-01.51). Fully deterministic — every toolchain
- * seam is injected, so nothing spawns and nothing touches the real filesystem.
+ * seam is injected (as an ASYNC `run`), so nothing spawns and nothing touches the
+ * real filesystem. The probe is async (execFile), so every call is awaited.
  */
 
 import path from "node:path";
@@ -29,8 +30,8 @@ function okRun(version: string): RunResult {
 }
 const NOT_FOUND: RunResult = { ok: false, stdout: "", stderr: "" };
 
-/** A run() where every tool reports a good version. */
-const allToolsRun: RunFn = (cmd) => {
+/** A run() where every tool reports a good version. Async, like the real seam. */
+const allToolsRun: RunFn = async (cmd) => {
   if (cmd === "python3") return okRun("3.13.1");
   return okRun("2.0.0");
 };
@@ -49,8 +50,8 @@ function healthyFs() {
 const CLAUDE_OK = { supported: true, raw: "2.1.9", minSupported: "2.0.0" };
 
 describe("probeReadiness", () => {
-  it("all-green → ready, all six checks pass, canonical repair command", () => {
-    const r = probeReadiness({
+  it("all-green → ready, all six checks pass, canonical repair command", async () => {
+    const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
       claude: CLAUDE_OK,
@@ -71,10 +72,10 @@ describe("probeReadiness", () => {
     expect(r.checks.find((c) => c.key === "plugins")?.detail).toBe("3 installed");
   });
 
-  it("uv missing → NOT ready, and names uv with its why", () => {
-    const run: RunFn = (cmd) =>
+  it("uv missing → NOT ready, and names uv with its why", async () => {
+    const run: RunFn = async (cmd) =>
       cmd === "uv" ? NOT_FOUND : cmd === "python3" ? okRun("3.12.0") : okRun("2.0.0");
-    const r = probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
+    const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
     expect(r.ready).toBe(false);
     const uv = r.checks.find((c) => c.key === "uv");
     expect(uv?.ok).toBe(false);
@@ -82,27 +83,28 @@ describe("probeReadiness", () => {
     expect(uv?.why).toMatch(/hook/i);
   });
 
-  it("Windows Store python stub (fails test-run) → python NOT ok even though on PATH", () => {
+  it("Windows Store python stub (fails test-run) → python NOT ok even though on PATH", async () => {
     // The stub is on PATH but every invocation fails run().ok — resolvePython skips it.
-    const run: RunFn = (cmd) => (cmd === "python3" || cmd === "python" || cmd === "py" ? NOT_FOUND : okRun("2.0.0"));
-    const r = probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
+    const run: RunFn = async (cmd) =>
+      cmd === "python3" || cmd === "python" || cmd === "py" ? NOT_FOUND : okRun("2.0.0");
+    const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
     expect(r.ready).toBe(false);
     const py = r.checks.find((c) => c.key === "python");
     expect(py?.ok).toBe(false);
     expect(py?.detail).toMatch(/not found/);
   });
 
-  it("python present but < 3.11 → NOT ok", () => {
-    const run: RunFn = (cmd) => (cmd === "python3" ? okRun("3.9.7") : okRun("2.0.0"));
-    const r = probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
+  it("python present but < 3.11 → NOT ok", async () => {
+    const run: RunFn = async (cmd) => (cmd === "python3" ? okRun("3.9.7") : okRun("2.0.0"));
+    const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
     const py = r.checks.find((c) => c.key === "python");
     expect(py?.ok).toBe(false);
     expect(py?.detail).toMatch(/need >= 3\.11/);
     expect(r.ready).toBe(false);
   });
 
-  it("no plugins installed → plugins check fails, doors closed", () => {
-    const r = probeReadiness({
+  it("no plugins installed → plugins check fails, doors closed", async () => {
+    const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
       claude: CLAUDE_OK,
@@ -115,8 +117,8 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
-  it("plugins present but a DOOR-critical plugin (grade) missing → not ready, named", () => {
-    const r = probeReadiness({
+  it("plugins present but a DOOR-critical plugin (grade) missing → not ready, named", async () => {
+    const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
       claude: CLAUDE_OK,
@@ -130,8 +132,8 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
-  it("shared/ canary missing → cache incoherent even with plugin dirs present", () => {
-    const r = probeReadiness({
+  it("shared/ canary missing → cache incoherent even with plugin dirs present", async () => {
+    const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
       claude: CLAUDE_OK,
@@ -144,8 +146,8 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
-  it("unsupported Claude CLI → claude check fails with a need->= detail", () => {
-    const r = probeReadiness({
+  it("unsupported Claude CLI → claude check fails with a need->= detail", async () => {
+    const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
       claude: { supported: false, raw: "1.2.0", minSupported: "2.0.0" },
@@ -157,8 +159,8 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
-  it("readdir throwing (cache root absent) is swallowed → plugins none installed", () => {
-    const r = probeReadiness({
+  it("readdir throwing (cache root absent) is swallowed → plugins none installed", async () => {
+    const r = await probeReadiness({
       run: allToolsRun,
       homeDir: HOME,
       claude: CLAUDE_OK,
@@ -169,6 +171,23 @@ describe("probeReadiness", () => {
     });
     expect(r.checks.find((c) => c.key === "plugins")?.ok).toBe(false);
     expect(r.ready).toBe(false);
+  });
+
+  it("the independent tool probes run in PARALLEL (not serially)", async () => {
+    // Each probe resolves after a short delay; a serial runner would take ~3×,
+    // a parallel one ~1×. Assert the wall-clock is closer to one delay.
+    const DELAY = 40;
+    const run: RunFn = (cmd) =>
+      new Promise((resolve) =>
+        setTimeout(() => resolve(cmd === "python3" ? okRun("3.13.1") : okRun("2.0.0")), DELAY),
+      );
+    const start = Date.now();
+    const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
+    const elapsed = Date.now() - start;
+    expect(r.ready).toBe(true);
+    // uv + git in parallel + python (python3 resolves first) → ~1 delay, well
+    // under the ~3 delays a serial runner would need.
+    expect(elapsed).toBeLessThan(DELAY * 2.5);
   });
 });
 
@@ -185,9 +204,9 @@ describe("probe helpers", () => {
     expect(compareVersions("3.9.7", "3.11.0")).toBe(-1);
   });
 
-  it("resolvePython returns the first working interpreter, skipping failing ones", () => {
-    const run: RunFn = (cmd) => (cmd === "python" ? okRun("3.12.4") : NOT_FOUND);
-    expect(resolvePython(run)).toEqual({ bin: "python", version: "3.12.4" });
-    expect(resolvePython(() => NOT_FOUND)).toBeNull();
+  it("resolvePython returns the first working interpreter, skipping failing ones", async () => {
+    const run: RunFn = async (cmd) => (cmd === "python" ? okRun("3.12.4") : NOT_FOUND);
+    expect(await resolvePython(run)).toEqual({ bin: "python", version: "3.12.4" });
+    expect(await resolvePython(async () => NOT_FOUND)).toBeNull();
   });
 });

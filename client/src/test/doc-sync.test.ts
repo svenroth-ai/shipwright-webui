@@ -161,6 +161,12 @@ const REQUIRED_TOKENS = [
   'useDesignGate',
   'DesignGatePanel',
   'MockupReviewOverlay',
+  // iterate-2026-07-10-intent-wizard — the guided three-door front entry
+  // (New/Adopt/Grade) + the real First-Contact readiness gate (FR-01.51)
+  'IntentWizard',
+  'useReadiness',
+  'readiness-probe',
+  'createReadinessRoutes',
 ] as const;
 
 let claudeMd = '';

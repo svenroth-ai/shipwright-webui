@@ -285,6 +285,17 @@ transient `design-feedback-round{N}.md` write (gitignored scratch). Resume = the
 - `InboxResumeButton.tsx`
 - `types.ts`
 
+## Intent Wizard (A08, FR-01.51)
+
+The guided three-door front entry (New · Adopt · Grade), placed before the expert `ProjectWizard`.
+
+| Name | Path | Notes |
+|------|------|-------|
+| `IntentWizard` | `client/src/components/wizard/IntentWizard/` | One state machine (`wizardState`), one `FlightPlanRail`, one `StepDots` — `DoorPicker` → New-path questions / `RepoPicker`+`WorkingScreen`+`AdoptResult` / `GradeResult` (renders the plugin `ReportModel` via the `reportShape` guard). Routes `/wizard`, `/wizard/adopt`, `/wizard/grade`; board empty-state opens it. |
+| `useReadiness` | `client/src/components/wizard/IntentWizard/useReadiness.ts` | Reads `GET /api/readiness`; doors stay inert until the probe proves ready. |
+| `readiness-probe` | `server/src/core/readiness-probe.ts` | Async (`execFile`, non-blocking) preflight probe: Claude CLI · door-critical plugins · cache/shared · uv · Python ≥ 3.11 · git. One truth shared with A14 First Contact. |
+| `createReadinessRoutes` | `server/src/routes/readiness.ts` | Mounts `GET /api/readiness`; TTL-memoised + in-flight-coalesced. |
+
 ## Screenshots
 
 6 screenshot(s) persisted to `.shipwright/agent_docs/visual/screenshots/`.

@@ -260,7 +260,9 @@ export const GRADE_REPORT: ReportModel = {
       // commits, no PR/issue links and no decision log, there is no evidence that
       // links a change to a reason — so change discipline can't be scored at all.
       // A genuine n/a (the second underivable dimension), never a faked number.
-      key: "change_history",
+      // Key is `change_traceability` — the plugin's canonical _DIM_META key
+      // (report_model.py) — so A09's real payload keeps the same testids/label.
+      key: "change_traceability",
       label: "Change history",
       weight: 20,
       score: null,
