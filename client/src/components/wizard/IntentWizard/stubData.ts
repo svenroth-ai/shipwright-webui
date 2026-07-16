@@ -142,10 +142,13 @@ export function scanSteps(door: WizardDoor, path: string | null): string[] {
 
 export function isRemote(path: string | null): boolean {
   const p = path ?? "";
-  // Three separate tests: a single `/^https?:|github\.com|.../` mixes an
-  // ANCHORED alternative with unanchored ones (misleading precedence — flagged
-  // by static analysis). Starts with a URL scheme, OR names a known host.
-  return /^https?:\/\//i.test(p) || /github\.com/i.test(p) || /gitlab\./i.test(p);
+  // A remote target either carries a URL scheme, or is a `host/owner/repo`
+  // shorthand ANCHORED at the start. The host tests are anchored (^) rather than
+  // "contains github.com" so an arbitrary local path with a host-like segment in
+  // the middle isn't misread as remote (this is a UI hint, but an unanchored
+  // host substring check is also a static-analysis footgun). Windows drive paths
+  // like `C:\repo` carry no `://`, so they read local.
+  return /:\/\//.test(p) || /^(?:www\.)?(?:github|gitlab)\.com\//i.test(p);
 }
 
 /** Recent-path chips for the repo picker. */
