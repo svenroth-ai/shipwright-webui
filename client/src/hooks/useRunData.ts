@@ -38,17 +38,28 @@ const runDetailKey = (
 const gradeTrendKey = (projectId: string | null | undefined) =>
   ["run-data", "grade-trend", projectId ?? "__none__"] as const;
 
-export function useProjectRuns(projectId: string | null | undefined) {
-  return useQuery<RunsResponse>({
+/**
+ * Shared query-options for the per-project run bundle. Exported so a consumer
+ * that fans out over N projects at once (the Projects gallery's `useQueries`,
+ * A15) reuses the EXACT same cache key + fetcher as `useProjectRuns` — one
+ * cache entry per project, no drift, no double fetch. `null`/`undefined`
+ * disables the query (synthesized rows never hit the endpoint).
+ */
+export function projectRunsQueryOptions(projectId: string | null | undefined) {
+  return {
     queryKey: runsKey(projectId),
     queryFn: () => getProjectRuns(projectId!),
     enabled: Boolean(projectId),
-    refetchInterval: RUN_DATA_POLL_MS,
+    refetchInterval: RUN_DATA_POLL_MS as number | false,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     staleTime: 5_000,
     retry: false,
-  });
+  };
+}
+
+export function useProjectRuns(projectId: string | null | undefined) {
+  return useQuery<RunsResponse>(projectRunsQueryOptions(projectId));
 }
 
 export function useRunDetail(

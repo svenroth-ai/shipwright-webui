@@ -56,14 +56,14 @@ test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)",
       });
       expect(mkTask.ok()).toBeTruthy();
 
-      // The projects page shows the project row with a task count of 1, and —
-      // because the task belongs to a REAL project — NO synthesized Unassigned row.
+      // The projects gallery shows the project card with a task count of 1, and —
+      // because the task belongs to a REAL project — NO synthesized Unassigned card.
       await page.goto("/projects");
-      await expect(page.getByTestId(`projects-row-${projectId}`)).toBeVisible();
+      await expect(page.getByTestId(`projects-card-${projectId}`)).toBeVisible();
       await expect(
-        page.getByTestId(`projects-cell-${projectId}-tasks`),
-      ).toHaveText("1");
-      await expect(page.getByTestId("projects-row-unassigned")).toHaveCount(0);
+        page.getByTestId(`projects-card-${projectId}-tasks`),
+      ).toContainText("1 task");
+      await expect(page.getByTestId("projects-card-unassigned")).toHaveCount(0);
 
       // The delete button raises a window.confirm — capture its text (it must
       // warn about the 1 task) and accept it.
@@ -75,10 +75,10 @@ test.describe("Project delete cascades to its tasks (iterate-2026-07-06, #200)",
       await page.getByTestId(`projects-delete-${projectId}`).click();
       expect(dialogMsg).toContain("1 task belonging to this project");
 
-      // Post-cascade: the project row is gone AND — the regression guard — NO
-      // phantom Unassigned row appears (pre-#200 the orphaned task synthesized one).
-      await expect(page.getByTestId(`projects-row-${projectId}`)).toHaveCount(0);
-      await expect(page.getByTestId("projects-row-unassigned")).toHaveCount(0);
+      // Post-cascade: the project card is gone AND — the regression guard — NO
+      // phantom Unassigned card appears (pre-#200 the orphaned task synthesized one).
+      await expect(page.getByTestId(`projects-card-${projectId}`)).toHaveCount(0);
+      await expect(page.getByTestId("projects-card-unassigned")).toHaveCount(0);
 
       // And the task is actually gone from the store (not merely re-homed).
       const list = await request.get("/api/external/tasks");

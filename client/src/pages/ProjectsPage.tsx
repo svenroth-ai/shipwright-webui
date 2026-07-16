@@ -1,53 +1,40 @@
 /*
- * Projects — list all projects registered in the WebUI.
+ * Projects — the registered projects rendered as a Ship's-Log GALLERY (A15,
+ * FR-01.59). Replaces the six-column table (iterate 3.7e-b3) with a grid of
+ * <ProjectLogCard>s: each project is a preview of its own logbook, and the log
+ * is the star. Graded projects (a real logbook — A02 returns runs) lead; a
+ * board of many mixed projects never becomes a wall of empty cards.
  *
- * Iterate 3.7e-b3 (2026-04-22) — Table rebuild + color picker + settings
- * dialog + fix "Create creates nothing" error surfacing.
+ * The page owns: the title bar (count + Create), the teaching empty state, the
+ * per-project task-count join, the wizard + settings dialog, and delete (with
+ * the task-cascade confirm). It fans out one A02 run query per project via
+ * `useQueries` so cards fetch once and the gallery can sort graded-first.
  *
- * Iterate iterate-20260501-projects-row-click-navigates — row click
- * now navigates to the TaskBoard (`/`) with that project preselected
- * via `useProjectFilter`. Settings remain reachable via the gear icon
- * in the Actions column, which already stops propagation. Sven UAT
- * 2026-05-01: the prior "row → settings dialog" behavior was unintuitive
- * because it duplicated the gear icon and made the larger click target
- * the secondary affordance.
+ * Load-bearing testids preserved: projects-page, projects-create-button,
+ * projects-empty(-sentence), projects-header-count, projects-settings-<id>,
+ * projects-delete-<id>, aria-label="Project settings". The old table testids
+ * (projects-table / projects-row-<id> / projects-cell-<id>-*) are REPLACED by
+ * projects-gallery / projects-card-<id> / projects-card-<id>-{tasks,stats,empty}.
  *
- * Columns (per plan §"S3 — Projects"):
- *   Color     — 10 px circle; uses getProjectColor(id, settings.color)
- *   Name      — click → navigate to TaskBoard filtered by this project
- *   Path      — monospace, truncated (max 400 px); full path in title="..."
- *   Tasks     — count of tasks with task.projectId === project.id
- *               (source: useExternalTasks with all-projects scope)
- *   Actions   — gear icon (Settings dialog) + trash icon (delete w/ confirm)
- *
- * Load-bearing testids (preserved + new):
- *   projects-page, projects-create-button, projects-empty
- *   projects-header-count, projects-table, projects-row-<id>
- *   projects-cell-<id>-{color,name,path,tasks,actions}
- *   projects-settings-<id>, projects-delete-<id>
- *   aria-label="Project settings" — ProjectsPage.test.tsx (gear button)
- *
- * Bug fix (Sven UAT 2026-04-22): previous "Create Project erstellt kein
- * Project" reports were caused by the wizard swallowing the POST error —
- * a 4xx/5xx response never surfaced in the UI, so the user clicked +
- * nothing happened. Fix landed in ProjectWizard.tsx: the confirmation
- * step now renders createProject.error via an inline red banner (role=
- * alert) and keeps the dialog open on failure. Root cause: wizard only
- * closed on `onSuccess`; useCreateProject error state was unrendered.
+ * DO-NOT #12 (never write run_config), rule 1 (never spawn Claude), rule 23
+ * (never touch state/boardColumn): this page is a pure read-only observer.
  */
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Plus, FolderOpen, Settings as SettingsIcon, Trash2 } from 'lucide-react';
-import { useProjects } from '../hooks/useProjects';
-import { useDeleteProject } from '../hooks/useDeleteProject';
-import { useExternalTasks } from '../hooks/useExternalTasks';
-import { useProjectFilter } from '../hooks/useProjectFilter';
-import { ProjectWizard } from '../components/wizard/ProjectWizard';
-import { ProjectSettingsDialog } from '../components/wizard/ProjectSettingsDialog';
-import { ComplianceGradeBadge } from '../components/compliance/ComplianceGradeBadge';
-import { PageHead } from '../components/common/PageHead';
-import { getProjectColor } from '../lib/projectColor';
-import type { Project } from '../types';
+import { useMemo, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
+import { Plus, FolderOpen } from "lucide-react";
+
+import { useProjects } from "../hooks/useProjects";
+import { useDeleteProject } from "../hooks/useDeleteProject";
+import { useExternalTasks } from "../hooks/useExternalTasks";
+import { projectRunsQueryOptions } from "../hooks/useRunData";
+import { ProjectWizard } from "../components/wizard/ProjectWizard";
+import { ProjectSettingsDialog } from "../components/wizard/ProjectSettingsDialog";
+import { PageHead } from "../components/common/PageHead";
+import { ProjectLogCard } from "../components/external/ProjectLogCard";
+import { getProjectColor } from "../lib/projectColor";
+import type { RunsResponse } from "../lib/runDataApi";
+import type { Project } from "../types";
+import "../styles/projects-gallery.css";
 
 export default function ProjectsPage() {
   const { data: projects = [], isLoading } = useProjects();
@@ -55,34 +42,69 @@ export default function ProjectsPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [settingsFor, setSettingsFor] = useState<Project | null>(null);
   const deleteProject = useDeleteProject();
-  const navigate = useNavigate();
-  const { setActiveProjectId } = useProjectFilter();
 
-  function handleRowOpen(project: Project) {
-    if (project.synthesized) return;
-    setActiveProjectId(project.id);
-    navigate(`/?projectId=${encodeURIComponent(project.id)}`);
-  }
+  // One A02 run bundle per project (synthesized rows disabled). useQueries is
+  // built for a dynamic-length fan-out; the shared options builder keeps the
+  // cache key identical to useProjectRuns so cards never double-fetch.
+  const runQueries = useQueries({
+    queries: projects.map((p) =>
+      projectRunsQueryOptions(p.synthesized ? null : p.id),
+    ),
+  });
+  const runsByProject = useMemo(() => {
+    const m = new Map<
+      string,
+      { data: RunsResponse | undefined; resolved: boolean; error: boolean }
+    >();
+    projects.forEach((p, i) => {
+      const q = runQueries[i];
+      m.set(p.id, {
+        data: q?.data,
+        resolved: q?.isSuccess ?? false,
+        error: q?.isError ?? false,
+      });
+    });
+    return m;
+  }, [projects, runQueries]);
 
-  // Per-project task count. Memoized so re-renders don't rehash on every
-  // row. `Map<projectId, count>`. Synthesized "Unassigned" row intentionally
-  // gets whatever count falls out of the join.
+  // Per-project task count. Memoized so re-renders don't rehash on every card.
   const taskCountByProject = useMemo(() => {
     const m = new Map<string, number>();
     for (const t of tasks) {
-      const pid = t.projectId ?? 'unassigned';
+      const pid = t.projectId ?? "unassigned";
       m.set(pid, (m.get(pid) ?? 0) + 1);
     }
     return m;
   }, [tasks]);
 
-  function handleDelete(e: React.MouseEvent, projectId: string, projectName: string) {
+  // Graded-first: a project with a real logbook (runCount > 0) leads. Stable —
+  // registry order is preserved within each group (decorate-sort-undecorate).
+  const ordered = useMemo(() => {
+    const graded = (p: Project) =>
+      (runsByProject.get(p.id)?.data?.runCount ?? 0) > 0 ? 1 : 0;
+    return projects
+      .map((p, i) => ({ p, i }))
+      .sort((a, b) => graded(b.p) - graded(a.p) || a.i - b.i)
+      .map((x) => x.p);
+  }, [projects, runsByProject]);
+
+  function handleDelete(
+    e: React.MouseEvent,
+    projectId: string,
+    projectName: string,
+  ) {
     e.stopPropagation();
-    // iterate-2026-07-06-project-delete-cascades-tasks — warn how many tasks the
-    // (server-side) cascade delete will remove alongside the project.
+    // iterate-2026-07-06 — warn how many tasks the server-side cascade removes.
     const n = taskCountByProject.get(projectId) ?? 0;
-    const note = n > 0 ? `\n\n${n} task${n === 1 ? '' : 's'} belonging to this project will also be removed from the board.` : '';
-    if (confirm(`Remove "${projectName}" from the WebUI?${note}\n\nProject files on disk (and Claude transcripts) are NOT deleted.`)) {
+    const note =
+      n > 0
+        ? `\n\n${n} task${n === 1 ? "" : "s"} belonging to this project will also be removed from the board.`
+        : "";
+    if (
+      confirm(
+        `Remove "${projectName}" from the WebUI?${note}\n\nProject files on disk (and Claude transcripts) are NOT deleted.`,
+      )
+    ) {
       deleteProject.mutate(projectId);
     }
   }
@@ -90,16 +112,16 @@ export default function ProjectsPage() {
   return (
     <div
       className="flex h-full flex-col"
-      style={{ background: 'var(--color-bg)' }}
+      style={{ background: "var(--color-bg)" }}
       data-testid="projects-page"
     >
-      {/* A05: shared <PageHead> — 92px anthracite bar. The count keeps its
-          real data source; the teal Create button reads on the taupe bar. */}
       <PageHead
         title="Projects"
         small={
           projects.length > 0 ? (
-            <span data-testid="projects-header-count">({projects.length} total)</span>
+            <span data-testid="projects-header-count">
+              ({projects.length} total)
+            </span>
           ) : undefined
         }
         testId="projects-header"
@@ -107,7 +129,7 @@ export default function ProjectsPage() {
           <button
             type="button"
             className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-            style={{ background: 'var(--color-primary)' }}
+            style={{ background: "var(--color-primary)" }}
             onClick={() => setShowWizard(true)}
             data-testid="projects-create-button"
           >
@@ -116,22 +138,21 @@ export default function ProjectsPage() {
         }
       />
 
-      {/* Body — scrollable, content centered to .page-container (1280). */}
       <div className="flex-1 overflow-y-auto">
         <div
           className="page-container"
-          style={{ paddingTop: '24px', paddingBottom: '24px' }}
+          style={{ paddingTop: "24px", paddingBottom: "24px" }}
         >
           {isLoading ? (
-            <div className="flex flex-col" style={{ gap: '12px' }}>
+            <div className="log-gallery">
               {[1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
                   className="animate-pulse"
                   style={{
-                    height: '48px',
-                    background: 'var(--color-muted-bg)',
-                    borderRadius: 'var(--radius-card)',
+                    height: "168px",
+                    background: "var(--color-muted-bg)",
+                    borderRadius: "16px",
                   }}
                 />
               ))}
@@ -139,254 +160,46 @@ export default function ProjectsPage() {
           ) : projects.length === 0 ? (
             <div
               className="flex flex-col items-center text-center"
-              style={{
-                padding: '64px 16px',
-                color: 'var(--color-muted)',
-              }}
+              style={{ padding: "64px 16px", color: "var(--color-muted)" }}
               data-testid="projects-empty"
             >
               <FolderOpen size={48} className="mb-3 opacity-50" />
-              <p className="text-lg" style={{ color: 'var(--color-text)' }}>
+              <p className="text-lg" style={{ color: "var(--color-text)" }}>
                 No projects yet
               </p>
-              {/* A07 teaching empty state — one sentence (lifted from the
-                  prototype's Projects subtitle) + exactly one action. */}
+              {/* A07 teaching empty state — one sentence + exactly one action. */}
               <p className="text-sm mb-4" data-testid="projects-empty-sentence">
                 Each project&rsquo;s logbook — the accumulated proof between runs.
               </p>
               <button
                 type="button"
                 className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-                style={{ background: 'var(--color-primary)' }}
+                style={{ background: "var(--color-primary)" }}
                 onClick={() => setShowWizard(true)}
               >
                 <Plus size={16} /> Create Project
               </button>
             </div>
           ) : (
-            <div
-              style={{
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-card)',
-                boxShadow: 'var(--shadow-sm)',
-                overflowX: 'auto',
-              }}
-            >
-              <table
-                data-testid="projects-table"
-                style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '13px',
-                  color: 'var(--color-text)',
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      background: 'var(--color-muted-bg)',
-                      borderBottom: '1px solid var(--color-border)',
-                    }}
-                  >
-                    <th style={thStyle('48px')} aria-label="Color" />
-                    <th style={thStyle('auto', 'left')}>Name</th>
-                    <th className="hidden lg:table-cell" style={thStyle('auto', 'left')}>Path</th>
-                    <th style={thStyle('80px', 'right')}>Tasks</th>
-                    <th style={thStyle('90px', 'right')}>Grade</th>
-                    <th style={thStyle('120px', 'right')}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projects.map((project, i) => {
-                    const color = getProjectColor(project.id, project.settings?.color);
-                    const taskCount = taskCountByProject.get(project.id) ?? 0;
-                    const isLast = i === projects.length - 1;
-                    return (
-                      <tr
-                        key={project.id}
-                        data-testid={`projects-row-${project.id}`}
-                        style={{
-                          borderBottom: isLast
-                            ? 'none'
-                            : '1px solid var(--color-border)',
-                          transition: 'background 120ms',
-                          cursor: project.synthesized ? 'default' : 'pointer',
-                        }}
-                        onClick={() => handleRowOpen(project)}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background =
-                            'var(--color-muted-bg)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                        }}
-                      >
-                        {/* Color */}
-                        <td
-                          data-testid={`projects-cell-${project.id}-color`}
-                          style={tdStyle()}
-                        >
-                          <div
-                            aria-hidden="true"
-                            style={{
-                              width: '10px',
-                              height: '10px',
-                              borderRadius: '9999px',
-                              background: color.hsl,
-                              margin: '0 auto',
-                            }}
-                          />
-                        </td>
-
-                        {/* Name */}
-                        <td
-                          data-testid={`projects-cell-${project.id}-name`}
-                          style={{ ...tdStyle(), fontWeight: 600 }}
-                        >
-                          <span
-                            style={{
-                              color: project.synthesized
-                                ? 'var(--color-muted)'
-                                : 'var(--color-text)',
-                            }}
-                          >
-                            {project.name}
-                          </span>
-                          {project.synthesized && (
-                            <span
-                              style={{
-                                marginLeft: '8px',
-                                fontSize: '11px',
-                                fontWeight: 500,
-                                color: 'var(--color-muted)',
-                              }}
-                            >
-                              (synthesized)
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Path — hidden ≤1023px, no scrollbar (AC-5) */}
-                        <td className="hidden lg:table-cell"
-                          data-testid={`projects-cell-${project.id}-path`}
-                          style={{
-                            ...tdStyle(),
-                            fontFamily:
-                              'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
-                            fontSize: '12px',
-                            color: 'var(--color-muted)',
-                            maxWidth: '400px',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={project.path || '(synthesized)'}
-                        >
-                          {project.path || '—'}
-                        </td>
-
-                        {/* Tasks */}
-                        <td
-                          data-testid={`projects-cell-${project.id}-tasks`}
-                          style={{
-                            ...tdStyle(),
-                            textAlign: 'right',
-                            fontVariantNumeric: 'tabular-nums',
-                            color:
-                              taskCount > 0
-                                ? 'var(--color-text)'
-                                : 'var(--color-muted)',
-                          }}
-                        >
-                          {taskCount}
-                        </td>
-
-                        {/* Grade — compliance Control-Grade badge (FR-01.43);
-                            renders nothing when the project has no dashboard. */}
-                        <td
-                          data-testid={`projects-cell-${project.id}-grade`}
-                          style={{ ...tdStyle(), textAlign: 'right' }}
-                        >
-                          {!project.synthesized && (
-                            <ComplianceGradeBadge projectId={project.id} />
-                          )}
-                        </td>
-
-                        {/* Actions */}
-                        <td
-                          data-testid={`projects-cell-${project.id}-actions`}
-                          style={{ ...tdStyle(), textAlign: 'right' }}
-                        >
-                          <div className="inline-flex items-center gap-1">
-                            {!project.synthesized && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSettingsFor(project);
-                                }}
-                                data-testid={`projects-settings-${project.id}`}
-                                aria-label="Project settings"
-                                className="rounded-[var(--radius-button)] transition-colors"
-                                style={{
-                                  padding: '6px',
-                                  color: 'var(--color-muted)',
-                                  background: 'transparent',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    'var(--color-muted-bg)';
-                                  e.currentTarget.style.color =
-                                    'var(--color-text)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background =
-                                    'transparent';
-                                  e.currentTarget.style.color =
-                                    'var(--color-muted)';
-                                }}
-                              >
-                                <SettingsIcon size={14} />
-                              </button>
-                            )}
-                            {!project.synthesized && (
-                              <button
-                                type="button"
-                                onClick={(e) =>
-                                  handleDelete(e, project.id, project.name)
-                                }
-                                data-testid={`projects-delete-${project.id}`}
-                                aria-label="Remove project"
-                                className="rounded-[var(--radius-button)] transition-colors"
-                                style={{
-                                  padding: '6px',
-                                  color: 'var(--color-muted)',
-                                  background: 'transparent',
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.background =
-                                    'var(--color-error-bg)';
-                                  e.currentTarget.style.color =
-                                    'var(--color-error)';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.background =
-                                    'transparent';
-                                  e.currentTarget.style.color =
-                                    'var(--color-muted)';
-                                }}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="log-gallery" data-testid="projects-gallery">
+              {ordered.map((project) => {
+                const rq = runsByProject.get(project.id);
+                return (
+                  <ProjectLogCard
+                    key={project.id}
+                    project={project}
+                    runs={rq?.data}
+                    runsResolved={rq?.resolved ?? false}
+                    runsError={rq?.error ?? false}
+                    taskCount={taskCountByProject.get(project.id) ?? 0}
+                    color={
+                      getProjectColor(project.id, project.settings?.color).hsl
+                    }
+                    onOpenSettings={setSettingsFor}
+                    onDelete={handleDelete}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
@@ -402,29 +215,4 @@ export default function ProjectsPage() {
       />
     </div>
   );
-}
-
-/** Shared <th> style — avoids Tailwind class thrash and keeps widths honest. */
-function thStyle(
-  width: string,
-  align: 'left' | 'right' = 'left',
-): React.CSSProperties {
-  return {
-    padding: '10px 16px',
-    textAlign: align,
-    fontSize: '11px',
-    fontWeight: 600,
-    letterSpacing: '0.04em',
-    textTransform: 'uppercase',
-    color: 'var(--color-muted)',
-    width,
-  };
-}
-
-/** Shared <td> style — vertical rhythm + border-bottom come from <tr>. */
-function tdStyle(): React.CSSProperties {
-  return {
-    padding: '12px 16px',
-    verticalAlign: 'middle',
-  };
 }

@@ -160,4 +160,23 @@ export const handlers: HttpHandler[] = [
   http.get('/api/external/tasks', () =>
     HttpResponse.json({ tasks: [] }),
   ),
+
+  // A15 — the Projects gallery fans out one A02 run bundle per project
+  // (useQueries) and each card reads compliance. Default to the honest empty
+  // states so unrelated suites don't log "unhandled request" and cards render
+  // as ungraded (no runs) with no grade pill. Tests override per-case.
+  http.get('/api/external/projects/:id/runs', () =>
+    HttpResponse.json({
+      status: 'ok',
+      runs: [],
+      runCount: 0,
+      gradeTrend: [],
+      pipelinePhaseDurations: [],
+      skippedLines: 0,
+    }),
+  ),
+
+  http.get('/api/external/projects/:id/compliance', () =>
+    HttpResponse.json({ status: 'missing' }),
+  ),
 ];
