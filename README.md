@@ -87,8 +87,28 @@ git --version
 claude --version     # 2.1.114 or higher
 ```
 
-Then build once and run a single server: it serves the dashboard
-itself, so there's only **one** address and **one** process to manage:
+**One command — install _and_ update the whole system** (the `/shipwright-*`
+plugins **and** the Command Center), first run and every run after:
+
+```bash
+npx @svenroth-ai/shipwright@latest
+```
+
+It verifies prerequisites, installs/updates every plugin from the marketplace
+manifest (and syncs the plugin cache so their hooks actually run), then boots
+the Command Center on **:3847** and opens it — or, if one is already running,
+attaches to it (an older one is swapped in place). The bundled server + client
+are **built**, so re-running the command **is** the update: no clone, no
+`make`, no `git pull`. Always include `@latest` (a bare `npx` can reuse a stale
+cached copy; the tool also warns you when a newer version is published).
+
+Open **http://localhost:3847** and register your first project. The
+wizard walks you through stack-profile selection.
+
+<details>
+<summary><strong>From source</strong> (contributors, or to run an unpublished checkout)</summary>
+
+The repo is two independent workspaces with no root `package.json`:
 
 ```bash
 # 1. Get the code
@@ -105,13 +125,12 @@ make build
 cd server && npm start
 ```
 
-Open **http://localhost:3847** and register your first project. The
-wizard walks you through stack-profile selection.
-
 > **No `make`?** (Common on Windows.) Run the npm scripts directly:
 > `cd server && npm install && npm run build`, then
 > `cd ../client && npm install && npm run build`, then
 > `cd ../server && npm start`.
+
+</details>
 
 > **Two independent workspaces, no root `package.json`.** `server/` and
 > `client/` each carry their own `package.json` + lockfile, so dependencies
@@ -125,6 +144,15 @@ first-project guide, network/Tailscale access, custom actions, and
 troubleshooting all live in [`docs/guide.md`](docs/guide.md).
 
 ## Updating
+
+Re-run the one command — it updates the plugins **and** swaps the running
+Command Center in place (safe to run from inside its own embedded terminal):
+
+```bash
+npx @svenroth-ai/shipwright@latest
+```
+
+From a source checkout instead:
 
 ```bash
 git pull

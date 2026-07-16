@@ -1,0 +1,18 @@
+# Staged tarball contents — produced by `npm run build` (scripts/build-package.mjs).
+# NEVER commit these; they are copies of the built server/client + vendored scripts.
+node_modules/
+coverage/
+*.tgz
+
+# Staged workspace builds (files whitelist ships them; git does not track them).
+/server/
+/client/
+
+# Vendored detached-swap runtime (copied from ../scripts at build time).
+/scripts/deploy-swap.mjs
+/scripts/deploy-procs.mjs
+/scripts/repair-claude-json.mjs
+/scripts/kill-targets.js
+
+# Staged root LICENSE copy (build-package.mjs copies ../LICENSE here).
+/LICENSE
