@@ -4,16 +4,26 @@
    each file <=300 LOC. Ported verbatim in values from Spec/prototype/styles.css
    (v3.1 block, lines 596–706).
 
-   Three rules make it work, IN THIS ORDER (the 2nd and 3rd are the ones people
-   forget):
-     1. .on-photo flips the BARE-CHROME tokens light + adds an inherited
-        legibility text-shadow for text riding directly on the photo.
-     2. .on-photo :is(.card,.tcard,…) RESETS those tokens back to dark-on-white
-        and CANCELS the text-shadow. Solid surfaces are reading surfaces.
+   Two rules make it work (the 2nd is the one people forget):
+     1. .on-photo flips the BARE-CHROME tokens light for text riding directly
+        on the photo (bare text only lives in scrim bands anyway).
+     2. .on-photo :is(.card,.tcard,…) RESETS those tokens back to dark-on-white.
+        Solid surfaces are reading surfaces.
      3. .on-photo :is(.record,.glass-card,…) darkens SECONDARY text further —
         a glass ground is see-through and therefore lower-contrast than solid
         white. This is the legibility engineering (see the ladder in
         weather-deck.css).
+
+   NO text-shadow anywhere (fix, 2026-07-15). The original port added an
+   INHERITED legibility text-shadow on the .on-photo root and cancelled it inside
+   the rule-2 :is() reset list. But the real webui components carry Tailwind
+   utilities (bg-[var(--color-surface)], className="page-head", …), NOT the
+   literal .card/.pane/.record tokens that reset targets — so the reset never
+   fired on a real surface and the inherited shadow LEAKED onto every card title,
+   the anthracite title bars, and body prose (solid surfaces are reading surfaces
+   → NO text-shadow). Legibility of text over the photo is carried by the scene
+   scrim (weather-deck.css .scene-bg::after) + the AA contrast ladder, never a
+   per-glyph shadow, so the shadow was pure leak with no load-bearing role.
    ============================================================================ */
 
 /* ── glass surfaces ── */
@@ -49,9 +59,6 @@
   --ink: #fff; --body: rgba(255, 255, 255, .9); --muted: rgba(255, 255, 255, .74); --faint: rgba(255, 255, 255, .52);
   --line: rgba(255, 255, 255, .16); --line-strong: rgba(255, 255, 255, .28);
   --accent: #35B8A4; --accent-line: rgba(53, 184, 164, .45); --focus: 0 0 0 4px rgba(94, 214, 193, .32);
-  /* bare text rides over bright warm photos → legibility shadow; inherited,
-     cancelled inside solid surfaces (rule 2) */
-  text-shadow: 0 1px 4px rgba(28, 22, 14, .55);
   /* A03→A04 seam: the legacy pages paint an opaque --color-bg / --color-background
      ground that would fully occlude the signature backdrop. Within the scene ONLY,
      flip those two page-ground tokens transparent so deck-golden shows through and
@@ -61,30 +68,25 @@
   --color-bg: transparent; --color-background: transparent;
 }
 
-/* ── rule 2: solid-surface RESET (cards stay dark-on-white, shadow cancelled) ──
+/* ── rule 2: solid-surface RESET (cards stay dark-on-white) ──
    `.glass-card` is included here (the prototype's SSoT lists it only in rule 3,
    but its own comment says glass-card text is "dark … via the reset list" — a
-   latent prototype inconsistency: without the reset, --ink stays #fff and the
-   photo text-shadow is uncancelled, so an ink/accent heading on a white glass
-   card renders near-white-on-white. A03's mandate is legibility engineering, so
-   we honor the documented intent and reset it. rule 3 below still darkens its
-   secondary text further. No baselined route renders a .glass-card today, so
-   this moves no visual baseline; it closes the trap before A07/A11–A18 add them. */
+   latent prototype inconsistency: without the reset, --ink stays #fff, so an
+   ink/accent heading on a white glass card renders near-white-on-white. A03's
+   mandate is legibility engineering, so we honor the documented intent and reset
+   it. rule 3 below still darkens its secondary text further. No baselined route
+   renders a .glass-card today, so this moves no visual baseline; it closes the
+   trap before A07/A11–A18 add them. */
 .on-photo :is(.card, .tcard, .orch-card, .table-wrap, .logentry, .promptbox, .recesspanel, .modal, .popover, .wz-opt, .wz-input, .sheet, .instr, .mc-hero, .termbig, .badge, .pill, .record, .artifact, .pane, .mc-verdict, .mc-tabs, .mc-op, .flightplan, .glass-card, .ft-card) {
   --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
-  --line: #E7E5E4; --line-strong: #D6D3D1; text-shadow: none;
+  --line: #E7E5E4; --line-strong: #D6D3D1;
   --accent: #0E7A6B; --accent-line: #9fd3ca; --focus: 0 0 0 4px rgba(14, 122, 107, .18);
 }
-/* buttons + suggestion chips are solid controls → no inherited photo text-shadow */
-.on-photo :is(.btn, .wz-chip) { text-shadow: none; }
 
 /* ── rule 3: darken SECONDARY text on glass grounds (see-through → lower contrast) ── */
 .on-photo :is(.record, .artifact, .mc-op, .flightplan, .glass-card, .ft-card) {
   --body: #1C1917; --muted: #4A443E; --faint: #6B645D;
 }
 
-/* bare section headings mid-canvas get a legibility shadow; card titles (inside
-   solid, reset above) are unaffected */
-.on-photo > *:not(.card):not(.sheet) h2:not(.card h2) { text-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
 /* title bars = solid taupe (like the nav), consistent across screens */
 .on-photo .page-head { background: var(--taupe); border-bottom: 1px solid var(--taupe-line); }

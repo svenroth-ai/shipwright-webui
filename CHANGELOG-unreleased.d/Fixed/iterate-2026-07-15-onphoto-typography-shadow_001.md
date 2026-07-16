@@ -1,0 +1,1 @@
+Weather-Deck title bars, cards and body text no longer carry the faint drop-shadow that leaked from the on-photo scene layer — solid reading surfaces are now shadow-free as designed, so text renders crisp everywhere.
