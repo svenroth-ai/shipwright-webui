@@ -78,7 +78,8 @@ describe('MainLayout', () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText('Shipwright')).toBeInTheDocument();
+    // A05: the sidebar brand is the real logo <img alt="Shipwright">.
+    expect(screen.getByAltText('Shipwright')).toBeInTheDocument();
     expect(screen.getByText('Page Content')).toBeInTheDocument();
   });
 

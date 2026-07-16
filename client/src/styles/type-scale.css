@@ -1,0 +1,126 @@
+/* ============================================================================
+   TYPE SCALE + CHROME — the frame the product sits in (A05, FR-01.48).
+
+   Ported in VALUES from the clickable prototype (Spec/prototype/styles.css:
+   type helpers 59–68, .page-head/.page-container/.page-title/.page-sub 121–129
+   incl. the "do-not-make-it-flex" warning, .mc-top 272–276). A03 shipped the
+   tokens + scene; A04 swept the colours; A05 adds the six type steps and the
+   uniform chrome (sidebar is already anthracite via A04's --color-sidebar-bg).
+
+   ── THE SIX STEPS (and ONLY six) ────────────────────────────────────────────
+   Fable counted ~20 inline font-sizes breaking the scale. These six classes are
+   the closed set; the guard type-scale.test.ts fails the build on a NEW inline
+   fontSize / off-scale text-[Npx] in client/src. A short documented allowlist in
+   that test carries the pre-existing dense-surface sizes (13/12.5/11.5/10/15px,
+   owned by A11–A18) + the xterm terminal's own metrics.
+
+     .display   30 / 38 / 600 / -.02em
+     .title     20 / 28 / 600 / -.01em   (== .page-title / .mc-title)
+     .heading   16 / 24 / 600
+     body       14 / 1.45                 (the document default, index.css body)
+     .caption   12 / 18 / 500
+     .eyebrow   11 / 600 / .06em / UPPERCASE / --muted
+
+   MONO IS FOR DATA. "Geist Mono only for data" (prototype header comment). --mono
+   is wired into Tailwind's --font-mono (weather-deck.css @theme), so every
+   `font-mono` utility + `var(--font-mono)` / `var(--mono)` reference on a data
+   surface (.pill.mono, .instr b, path/date/dd cells, grade pills, viewer tabs)
+   resolves to the self-hosted Geist Mono face.
+
+   OPEN QUESTION for Sven's review-pass (built as the SSoT realises it): the
+   campaign row says "mono eyebrows", but the prototype builds .eyebrow as SANS.
+   Should the small ALL-CAPS section labels use the typewriter font (like the
+   numbers do) or the normal font as the prototype has them? Flipping .eyebrow to
+   var(--mono) later is a one-line change; contradicting the SSoT silently is not.
+   ============================================================================ */
+
+/* ── the six type steps — element + class so a bare <h1>/<h2> also lands on the
+      scale (the prototype maps `h1,.title` / `h2,.heading`). `.markdown-body h1`
+      / `.page-title` out-specify these, so they are unaffected. ── */
+.display { font-size: 30px; line-height: 38px; font-weight: 600; letter-spacing: -.02em; color: var(--ink); }
+h1, .title { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+h2, .heading { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ink); }
+.caption { font-size: 12px; line-height: 18px; font-weight: 500; color: var(--muted); }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+/* body step (14/1.45) — the document default, so unclassed prose is on-scale, not
+   the browser's 16px. Explicit `text-*` utilities still win where set. */
+body { font-size: 14px; line-height: 1.45; }
+
+/* ============================================================================
+   PAGE HEAD — one bar, 92px, everywhere (rendered by components/common/PageHead).
+
+   Heed the prototype's own warning (styles.css:123): the OUTER .page-head is
+   BLOCK layout with min-height — NOT flex — or the inner's max-width + margin:auto
+   centring breaks. The ground is solid --taupe (anthracite), consistent with the
+   nav and "title bars = solid taupe (like the nav), consistent across screens"
+   (on-photo.css: `.on-photo .page-head`). Because every route renders inside
+   `.scene-fore.on-photo`, the direct --ink / --muted tokens used below FLIP light,
+   so .page-title / .page-sub read white-on-taupe by construction.
+   ============================================================================ */
+.page-head {
+  background: var(--taupe);
+  border-bottom: 1px solid var(--taupe-line);
+  flex-shrink: 0;
+  min-height: 92px;
+}
+/* Gutter equality (AC1): the inner uses the SAME 1360/32px box as .page-container
+   below the bar, so the bar's inner left edge and the body content's left edge sit
+   on the same 32px gutter. That alignment IS the polish. */
+.page-head .inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 20px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+/* Board wants the wider column budget (1600) — its bar tracks the same wider box
+   as .board-container so the bar-inner and the first column share a gutter. */
+.page-head .inner.wide { max-width: 1600px; }
+
+.page-title { font-size: 20px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+.page-title small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+.page-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+
+/* The board's header controls (project switcher, view toggle, status pills,
+   create button) are bespoke components styled for a WHITE bar via the legacy
+   --color-* alias layer (which is computed at :root and does NOT flip under
+   .on-photo). On the taupe bar they'd read dark-on-dark. One scoped override on
+   the control cluster flips those aliases to light glass values — the surgical
+   fix (a wrapper) rather than restyling five components. The semantic --color-*
+   families (success/warning/error) are deliberately NOT overridden so badges keep
+   their meaning. Dropdown menus are portaled OUTSIDE this scope → unaffected. */
+.chrome-dark-controls {
+  --color-surface: rgba(255, 255, 255, .10);
+  --color-bg: rgba(255, 255, 255, .08);
+  --color-muted-bg: rgba(255, 255, 255, .16);
+  --color-border: rgba(255, 255, 255, .28);
+  --color-text: #fff;
+  --color-muted: rgba(255, 255, 255, .70);
+  --color-primary: #35B8A4;
+  --color-primary-hover: #2ea595;
+  --color-accent: #35B8A4;
+}
+
+/* ============================================================================
+   MISSION CONTROL title bar — .mc-top (TaskDetailHeader). NOT PageHead: the
+   asymmetric left padding (22 vs 28) is deliberate — it lands the back-arrow
+   GLYPH on the same 32px gutter as the tabs + The Record card edge once the
+   button's own 6px padding is counted. Do NOT "tidy" it to 28. Same taupe ground
+   as the nav + page heads; the scoped alias flip makes the breadcrumb / title /
+   meta read light on taupe (they use --color-* like the board controls do).
+   ============================================================================ */
+.mc-top {
+  background: var(--taupe);
+  border-bottom: 1px solid var(--taupe-line);
+  --color-surface: rgba(255, 255, 255, .10);
+  --color-bg: rgba(255, 255, 255, .08);
+  --color-muted-bg: rgba(255, 255, 255, .16);
+  --color-border: rgba(255, 255, 255, .22);
+  --color-text: #fff;
+  --color-muted: rgba(255, 255, 255, .70);
+  --color-primary: #35B8A4;
+  --color-primary-hover: #2ea595;
+  --color-accent: #35B8A4;
+}

@@ -2,6 +2,7 @@
 @import "highlight.js/styles/github-dark.css";
 @import "./styles/weather-deck.css"; /* Weather-Deck tokens + @theme + scene (A03) */
 @import "./styles/on-photo.css";     /* glass surfaces + .on-photo flip/reset (A03) */
+@import "./styles/type-scale.css";   /* 6-step type scale + PageHead/.mc-top chrome (A05) */
 
 /* Markdown body — GitHub-style rendering conventions (iterate-20260423-chat-livetest-2
  * AC-C). Adapted from github-markdown-light.css tokens, re-skinned onto
@@ -235,7 +236,7 @@
   /* RETIRED, 0 consumers (verified): --color-sidebar-text, --color-phase-*
      (phase ramp is driven by lib/phaseStyle.ts, not these tokens). */
   /* non-colour tokens — unchanged (outside the colour sweep) */
-  --font-family: 'Inter', sans-serif;
+  --font-family: var(--sans); /* self-hosted 'Inter Variable' → Inter → system (A05) */
   --radius: 12px;
   --radius-button: 8px;
   --radius-card: 12px;
@@ -330,14 +331,13 @@ body {
    agents so layouts align to the same column without touching
    TaskBoard (which is intentionally full-bleed). */
 .page-container {
-  max-width: 1280px;
+  /* A05: 1360 / 32px gutter — matched to <PageHead>'s `.inner` box for AC1
+     gutter equality (bar-inner left edge == body content left edge). */
+  max-width: 1360px;
   margin: 0 auto;
-  /* iterate 3.7l (Sven UAT 2026-04-22): set L/R only. The shorthand
-     `padding: 0 24px` was overriding Tailwind `pt-*` / `pb-*` utilities
-     applied alongside .page-container (board-columns needed pt-10 for
-     breathing room; the shorthand was zeroing it to 0). */
-  padding-left: 24px;
-  padding-right: 24px;
+  /* iterate 3.7l: L/R only so Tailwind pt/pb utilities are not clobbered by a shorthand. */
+  padding-left: 32px;
+  padding-right: 32px;
 }
 
 /* Iterate 3.7e-a Foundation (R1/R2 — 2026-04-22):
@@ -351,9 +351,10 @@ body {
   max-width: 1600px;
   margin: 0 auto;
   /* See .page-container note (iterate 3.7l): keep L/R only so Tailwind
-     pt/pb utilities aren't clobbered by the shorthand. */
-  padding-left: 24px;
-  padding-right: 24px;
+     pt/pb utilities aren't clobbered by the shorthand. A05: 32px gutter to match
+     <PageHead .inner.wide> so the board bar-inner and the first column align. */
+  padding-left: 32px;
+  padding-right: 32px;
 }
 
 /* Iterate 3.7e-a R7 — "comfortable" bubble card sizing.

@@ -74,6 +74,7 @@ import {
   StatusFilterMenu,
 } from "../components/external/BoardStatusFilter";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
+import { PageHead } from "../components/common/PageHead";
 import { useIsPhoneViewport } from "../hooks/useIsCompactViewport";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { PipelineLaneCard } from "../components/external/PipelineLaneCard";
@@ -299,27 +300,18 @@ export default function TaskBoardPage() {
       className="flex h-full flex-col bg-[var(--color-bg)]"
       data-testid="task-board-page"
     >
-      {/* Header — full-bleed surface strip matching ProjectsPage (iterate 3.7g,
-          Sven UAT 2026-04-22). Inner .page-container has 20px top/bottom padding
-          + flex justify-between so title cluster (dropdown + view toggle) sits at
-          the left content edge and the `+ New task` button sits at the right
-          content edge, same geometry as `Projects` header. */}
-      {/* iterate 3.7j (Sven UAT 2026-04-22): merged header + filter row into
-          ONE surface strip with a single bottom border so the separation to
-          the beige columns body is unambiguous. Previously the two white
-          strips + double borders + small padding felt "zusammengewürgt". */}
-      <div
-        style={{
-          background: "var(--color-surface)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
-        <header
-          className="page-container flex flex-wrap items-center justify-between gap-y-2"
-          style={{ paddingTop: "20px", paddingBottom: "12px" }}
-          data-testid="task-board-header"
-        >
-          <div className="flex items-center gap-3">
+      {/* A05: shared <PageHead> — 92px anthracite toolbar, uniform with every
+          other page. The board's "title" is a project switcher + view toggle
+          rather than a text heading, so it rides PageHead's `left` slot. The
+          controls are styled for a WHITE bar via the legacy --color-* aliases;
+          `chrome-dark-controls` flips those to light glass so they read on taupe
+          (the surgical fix — one wrapper, not five component restyles). */}
+      <PageHead
+        testId="task-board-header"
+        leftClassName="chrome-dark-controls"
+        actionsClassName="chrome-dark-controls"
+        left={
+          <>
             {/* AC-1: on phones the project dropdown is portaled into the global
                 top bar (below), so the header keeps only the view toggle and
                 the AC-2 status-filter icon. */}
@@ -348,10 +340,9 @@ export default function TaskBoardPage() {
                 onReset={clearStatusFilter}
               />
             )}
-          </div>
-          {isPhone &&
-            topBarSlot?.slot &&
-            createPortal(<ProjectFilterDropdown fluid />, topBarSlot.slot)}
+          </>
+        }
+        actions={
           <CreateControls
             activeProjectId={activeProjectId}
             resolvedProjectId={resolvedProjectId}
@@ -364,18 +355,31 @@ export default function TaskBoardPage() {
             }
             onSelect={openModal}
           />
-        </header>
-        {/* Status pill row — ≥768px only. On phones the same filter is the
-            AC-2 icon menu in the header above. */}
-        {!isPhone && (
+        }
+      />
+      {isPhone &&
+        topBarSlot?.slot &&
+        createPortal(<ProjectFilterDropdown fluid />, topBarSlot.slot)}
+      {/* Status pill row — ≥768px only. Kept on a LIGHT surface sub-strip below
+          the taupe toolbar: the chips carry semantic tone colours (error/warn/
+          success) that would fall below AA on anthracite — "a low-contrast grey
+          is most tempting and most wrong" on dark chrome (AC5). On phones the
+          same filter is the AC-2 icon menu in the toolbar above. */}
+      {!isPhone && (
+        <div
+          style={{
+            background: "var(--color-surface)",
+            borderBottom: "1px solid var(--color-border)",
+          }}
+        >
           <StatusPillRow
             counts={statusCounts}
             active={statusFilter}
             onToggle={toggleStatus}
             onReset={clearStatusFilter}
           />
-        )}
         </div>
+      )}
 
       {/* Body — board (kanban) or list.
           R1 (iterate 3.7e-a Foundation): kanban body uses `.page-container`

@@ -19,10 +19,16 @@ export function SidebarNavItem({ icon: Icon, label, to, badge, collapsed, onSele
       end={to === '/'}
       onClick={onSelect}
       className={({ isActive }) =>
-        `relative flex items-center gap-[10px] px-3 py-[9px] pointer-coarse:min-h-[44px] rounded-lg text-sm transition-colors ${
+        // Active nav (A05): teal-tint ground, white label, teal icon, and a 3px
+        // teal left rail (the `before:` pseudo — inset 6px top/bottom, radius
+        // 0 3px 3px 0), exactly as the prototype's `.nav-item.active` /
+        // `.nav-item.active::before`. Colours come from tokens so the
+        // no-hardcoded-colors guard stays green.
+        // 14px/500 nav items (prototype .nav-item): text-sm + font-medium.
+        `relative flex items-center gap-[10px] px-3 py-[9px] pointer-coarse:min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-white/[0.12] text-white'
-            : 'text-white/70 hover:bg-white/[0.08] hover:text-white'
+            ? "bg-[var(--nav-active-bg)] text-white [&_svg]:text-[var(--nav-active-rail)] before:absolute before:left-0 before:top-[6px] before:bottom-[6px] before:w-[3px] before:rounded-[0_3px_3px_0] before:bg-[var(--nav-active-rail)] before:content-['']"
+            : 'text-white/[0.66] hover:bg-white/[0.06] hover:text-white'
         }`
       }
     >

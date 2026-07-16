@@ -26,6 +26,7 @@
 import { useProjects } from "../hooks/useProjects";
 import { ActionsConfigCard } from "../components/settings/ActionsConfigCard";
 import { TerminalSettingsCard } from "../components/settings/TerminalSettingsCard";
+import { PageHead } from "../components/common/PageHead";
 
 export default function SettingsPage() {
   const { data: projects = [] } = useProjects();
@@ -35,43 +36,13 @@ export default function SettingsPage() {
       style={{ background: "var(--color-bg)" }}
       data-testid="settings-page"
     >
-      {/* Header — mirrors InboxPage header for consistency across pages.
-          R1/R2 (iterate 3.7e-a Foundation, 2026-04-22): header content wrapped
-          inside `.page-container` so the title left-edge aligns with the
-          settings cards in the body (same 24 px L/R padding, 1280 max-width). */}
-      <div
-        style={{
-          background: "var(--color-surface)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
-        <header
-          className="page-container flex items-center justify-between"
-          style={{ paddingTop: "20px", paddingBottom: "20px" }}
-        >
-          <div className="flex flex-col gap-[2px]">
-            <h1
-              className="font-bold"
-              style={{
-                fontSize: "24px",
-                color: "var(--color-text)",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              Settings
-            </h1>
-            <p
-              className="font-medium"
-              style={{
-                fontSize: "13px",
-                color: "var(--color-muted)",
-              }}
-            >
-              Configure preferences in your own Claude client.
-            </p>
-          </div>
-        </header>
-      </div>
+      {/* A05: shared <PageHead> — 92px anthracite bar, uniform across pages. The
+          sub-line (13px --muted) reads light on taupe via the .on-photo flip. */}
+      <PageHead
+        title="Settings"
+        sub="Configure preferences in your own Claude client."
+        testId="settings-header"
+      />
 
       {/* Body — .page-container centers to 1280px and applies 24px
           horizontal padding. Top padding gives a little breathing room

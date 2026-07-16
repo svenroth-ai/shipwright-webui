@@ -44,7 +44,8 @@ describe('App', () => {
       </QueryClientProvider>,
     );
 
-    expect(screen.getByText('Shipwright')).toBeInTheDocument();
+    // A05: the brand is the real logo <img alt="Shipwright">, not a text node.
+    expect(screen.getAllByAltText('Shipwright').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Task Board').length).toBeGreaterThanOrEqual(1);
   });
 });
