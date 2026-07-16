@@ -11,8 +11,9 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Hono } from "hono";
 
@@ -36,6 +37,17 @@ export interface ClaudeCliDiagnostic {
 }
 
 export interface DiagnosticsSnapshot {
+  /**
+   * A06 (FR-01.49) — the WebUI's OWN identity + version, additive. The npx
+   * bootstrapper (`@svenroth-ai/shipwright`) reads this to decide
+   * attach-vs-swap when a server already holds :3847: matching `name` +
+   * same `version` → attach, older → detached swap, wrong/absent `name` →
+   * FOREIGN (left alive, never killed). The stable `name` is a wire-protocol
+   * identity so a coincidental `/api/diagnostics` on a foreign process is not
+   * mistaken for a Command Center. `/api/health` carries an unrelated
+   * hardcoded literal ("0.1.0") and is left untouched.
+   */
+  app: { name: string; version: string };
   claudeCli: {
     raw: string;
     parsed: ClaudeVersionInfo["parsed"];
@@ -63,6 +75,41 @@ export interface DiagnosticsSnapshot {
 }
 
 const PATH_SAMPLE_LIMIT = 8;
+
+/**
+ * Stable wire-protocol identity for the Command Center. The npx bootstrapper
+ * matches on this exact string before treating a listener on :3847 as a
+ * Shipwright server (a foreign process that happens to answer
+ * `/api/diagnostics` is otherwise indistinguishable by version alone).
+ */
+export const APP_NAME = "shipwright-command-center";
+
+/**
+ * Read the server's own version from `server/package.json`. Memoized —
+ * the value is fixed for the process lifetime. Resolves two levels up from
+ * this module (`dist/routes/…` → `server/`, `src/routes/…` → `server/`),
+ * which holds for both the built and the tsx-run layouts. Never throws:
+ * a missing/garbled package.json degrades to `"unknown"` rather than 500ing
+ * the diagnostics route the operator relies on to debug.
+ */
+let cachedAppVersion: string | undefined;
+export function readAppVersion(): string {
+  if (cachedAppVersion !== undefined) return cachedAppVersion;
+  try {
+    const pkgPath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../package.json",
+    );
+    const parsed = JSON.parse(readFileSync(pkgPath, "utf-8")) as { version?: unknown };
+    cachedAppVersion =
+      typeof parsed.version === "string" && parsed.version.length > 0
+        ? parsed.version
+        : "unknown";
+  } catch {
+    cachedAppVersion = "unknown";
+  }
+  return cachedAppVersion;
+}
 
 function buildClaudeCliDiagnostic(): ClaudeCliDiagnostic {
   const isWin = process.platform === "win32";
@@ -123,8 +170,11 @@ function buildClaudeCliDiagnostic(): ClaudeCliDiagnostic {
 export function createDiagnosticsRoutes(args: {
   store: SdkSessionsStore;
   versionInfo: () => ClaudeVersionInfo;
+  /** A06 — override the reported app version (test seam). Defaults to package.json. */
+  appVersion?: string;
 }) {
   const app = new Hono();
+  const appVersion = args.appVersion ?? readAppVersion();
 
   app.get("/api/diagnostics", (c) => {
     const v = args.versionInfo();
@@ -143,6 +193,7 @@ export function createDiagnosticsRoutes(args: {
       claudeCli.diagnostic = buildClaudeCliDiagnostic();
     }
     const snapshot: DiagnosticsSnapshot = {
+      app: { name: APP_NAME, version: appVersion },
       claudeCli,
       sessions: {
         total: tasks.length,
