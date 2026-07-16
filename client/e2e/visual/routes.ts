@@ -44,13 +44,14 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   },
   {
     id: "task-detail-mission",
-    path: "/tasks/:taskId",
-    description: "TaskDetail, Mission pane — header CTA, title, description",
+    path: "/tasks/:taskId (Mission tab)",
+    description:
+      "TaskDetail, Mission tab — 'The Record' rail (A11). The collapsed-rail + artifact-open states are covered functionally in flows/A11-mission-record-rail.spec.ts (A13 pixel-baselines them with the full three-card shell).",
     status: "baselined",
   },
   {
     id: "task-detail-terminal",
-    path: "/tasks/:taskId (Terminal tab)",
+    path: "/tasks/:taskId (Files & Terminal tab)",
     description: "TaskDetail, Files & Terminal — the pty surface is MASKED (not deterministic)",
     status: "baselined",
   },

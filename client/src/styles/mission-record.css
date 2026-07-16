@@ -1,0 +1,88 @@
+/* ============================================================================
+   MISSION — "The Record" rail + artifact panel + instruments + the Mission tab
+   segmented switch (A11, FR-01.55). Ported VERBATIM in values from the clickable
+   prototype (Spec/prototype/styles.css: the Mission block ~272-334 + the .on-photo
+   Mission overrides ~657-681). The .on-photo TOKEN reset/darken for
+   .record/.artifact/.instr/.mc-tabs already lives in on-photo.css (A03); this file
+   adds only the LAYOUT + the glass/position overrides that block did not port.
+
+   Design fences honoured: NO data-scene-tier, NO second glass recipe (glass uses
+   A03's --glass-* tokens), NO text-shadow. The app is always on-photo (MainLayout),
+   so the on-photo rules below are the ones that actually paint.
+   ============================================================================ */
+
+/* ── instrument chips (top row) ─────────────────────────────────────────── */
+.instr { display: inline-flex; align-items: center; gap: 7px; background: var(--card); border: 1px solid var(--line-strong); border-radius: 8px; padding: 5px 11px; font-size: 13px; color: var(--body); }
+.instr .il { font-size: 11px; color: var(--muted); font-weight: 500; }
+.instr b { font-family: var(--mono); font-size: 12.5px; color: var(--ink); font-weight: 600; }
+.instr.hl { border-color: var(--accent-line); background: var(--accent-tint); }
+.instr.hl b { color: var(--accent); }
+
+/* ── Mission tab segmented switch (Mission | Files & Terminal) ───────────── */
+.mc-tabrow { display: flex; align-items: center; flex-shrink: 0; }
+.mc-tabs { display: inline-flex; gap: 3px; padding: 3px; background: var(--g100); border: 1px solid var(--line); border-radius: 9px; flex-shrink: 0; align-self: flex-start; }
+.mc-tab { padding: 6px 14px; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; border-radius: 6px; background: transparent; border: none; font-family: inherit; }
+.mc-tab.active { color: var(--ink); background: var(--card); box-shadow: var(--sh-xs); }
+.mc-tab:hover:not(.active) { color: var(--ink); }
+.mc-tab:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* ── Mission body — the flex row the cards float in ─────────────────────── */
+.mc-body { flex: 1; min-height: 0; display: flex; position: relative; }
+
+/* ── The Record rail ────────────────────────────────────────────────────── */
+.record { width: 248px; flex-shrink: 0; border-right: 1px solid var(--line); background: var(--card); overflow-y: auto; padding: 16px 14px; transition: width .2s; }
+.record.collapsed { width: 60px; padding: 16px 6px; }
+.record .rec-h { display: flex; align-items: center; margin-bottom: 14px; }
+.record .rec-h .eyebrow { flex: 1; }
+.rec-node { position: relative; display: flex; gap: 11px; padding: 9px 8px; border-radius: 8px; cursor: pointer; margin-left: 5px; width: calc(100% - 5px); background: transparent; border: none; font-family: inherit; text-align: left; color: inherit; }
+.rec-node:hover { background: var(--g50); }
+.rec-node.active { background: var(--accent-tint); }
+.rec-node:focus-visible { outline: none; box-shadow: var(--focus); }
+.rec-node.active::before { content: ""; position: absolute; left: -5px; top: 8px; bottom: 8px; width: 2px; background: var(--accent); border-radius: 2px; }
+.rec-node .rn-dot { width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; border: 2px solid var(--g300); background: var(--card); position: relative; z-index: 1; }
+.rec-node.done .rn-dot { background: var(--ok-solid); border-color: var(--ok-solid); }
+.rec-node.now .rn-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
+.rec-node .rn-body { min-width: 0; flex: 1; }
+.rec-node .rn-k { font-size: 13px; font-weight: 600; color: var(--ink); }
+.rec-node.pending .rn-k { color: var(--faint); }
+.rec-node.now .rn-k { color: var(--accent); }
+.rec-node .rn-r { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.rec-node .rn-go { margin-left: auto; color: var(--faint); opacity: 0; flex-shrink: 0; }
+.rec-node:hover .rn-go { opacity: 1; }
+.rec-spine { position: absolute; left: 16px; top: 44px; bottom: 52px; width: 2px; background: var(--line); z-index: 0; }
+.record.collapsed .rn-body, .record.collapsed .rec-h .eyebrow, .record.collapsed .rec-collapse .rc-label { display: none; }
+.rec-collapse { margin-top: 12px; display: flex; align-items: center; gap: 7px; padding: 8px; border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--muted); background: transparent; border: none; font-family: inherit; width: 100%; }
+.rec-collapse:hover { background: var(--g50); color: var(--ink); }
+.rec-collapse:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* ── The artifact panel (slide-over base; on-photo makes it an inline card) ─ */
+.artifact { position: absolute; top: 0; right: 0; bottom: 0; width: 420px; background: var(--card); box-shadow: var(--sh-xl); border-left: 1px solid var(--line); border-radius: 12px 0 0 12px; overflow-y: auto; padding: 22px 24px; z-index: 20; animation: slidein .18s ease; }
+@keyframes slidein { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.artifact .eyebrow { display: block; }
+.artifact .a-close { position: absolute; top: 16px; right: 16px; cursor: pointer; color: var(--muted); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; }
+.artifact .a-close:hover { background: var(--g100); color: var(--ink); }
+.artifact .a-close:focus-visible, .artifact .a-open:focus-visible { outline: none; box-shadow: var(--focus); }
+.artifact h3 { font-size: 18px; font-weight: 600; color: var(--ink); margin: 4px 0 14px; word-break: break-word; }
+.artifact .a-body { font-size: 14px; color: var(--body); line-height: 1.6; }
+.artifact .a-open { margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: transparent; border: none; font-family: inherit; padding: 0; }
+.a-scrim { position: absolute; inset: 0; background: rgba(28, 25, 23, .12); z-index: 15; border: none; padding: 0; cursor: default; }
+
+/* ── on-photo: the three-card float (record + artifact = light glass) ────── */
+.on-photo .mc-body { padding: 16px 32px 22px; gap: 16px; }
+.on-photo .a-scrim { display: none; }
+.on-photo .record, .on-photo .artifact { background: var(--glass-light); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); border: 1px solid var(--glass-light-line); border-radius: 16px; box-shadow: var(--sh-photo); }
+.on-photo .record { border-right: 1px solid var(--glass-light-line); }
+.on-photo .artifact { position: static; width: 400px; flex-shrink: 0; box-shadow: var(--sh-photo); }
+.on-photo .rec-node:hover { background: rgba(0, 0, 0, .05); }
+.on-photo .rec-node.active { background: var(--accent-tint); }
+.on-photo .rec-spine { background: var(--line); }
+.on-photo .mc-tabs { background: var(--glass-light); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); border-color: var(--glass-light-line); }
+.on-photo .mc-tab { color: var(--muted); }
+.on-photo .mc-tab.active { background: #fff; color: var(--ink); }
+
+/* ── compact fallback: the inline card reverts to the 420px slide-over ───── */
+@media (max-width: 1023px) {
+  .on-photo .mc-body { padding: 12px; gap: 12px; }
+  .on-photo .a-scrim { display: block; }
+  .on-photo .artifact { position: absolute; top: 0; right: 0; bottom: 0; width: min(420px, 92vw); flex-shrink: 0; border-radius: 12px 0 0 12px; animation: slidein .18s ease; }
+}

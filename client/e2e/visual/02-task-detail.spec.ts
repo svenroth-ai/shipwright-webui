@@ -47,9 +47,15 @@ test.describe("visual: task detail", () => {
     await cleanupProject(request, project);
   });
 
+  // A11 introduces the Mission tab NON-default (default = Files & Terminal), so
+  // the Mission baseline clicks into it first. The collapsed-rail + artifact-open
+  // states are covered functionally in flows/A11-mission-record-rail.spec.ts;
+  // A13 pixel-baselines them alongside the full three-card shell.
   test("task-detail-mission", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("mission-tab-mission").click();
+    await expect(page.getByTestId("record-rail")).toBeVisible();
     await settle(page);
 
     await expect(page).toHaveScreenshot("task-detail-mission.png", {
