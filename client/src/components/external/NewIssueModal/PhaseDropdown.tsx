@@ -10,6 +10,7 @@ import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown } from "lucide-react";
 
 import type { PhaseDefinition } from "../../../lib/externalApi";
+import { glossaryLookup } from "../../../lib/glossary";
 
 interface PhaseDropdownProps {
   phases: PhaseDefinition[];
@@ -25,6 +26,9 @@ export function PhaseDropdown({ phases, value, onChange }: PhaseDropdownProps) {
         <button
           type="button"
           data-testid="new-issue-phase-select"
+          // A07 — JIT tooltip: the currently-selected phase's plain-language
+          // one-liner surfaces on hover, right where the jargon appears.
+          title={glossaryLookup(current?.id) ?? glossaryLookup(current?.label)}
           className="flex w-full items-center gap-2.5 rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-white px-3 py-2 text-[13px] text-[var(--color-text,#1a1a1a)] hover:border-[var(--color-primary,#6b5e56)]"
         >
           <span
@@ -55,6 +59,7 @@ export function PhaseDropdown({ phases, value, onChange }: PhaseDropdownProps) {
                 key={p.id}
                 data-testid={`new-issue-phase-option-${p.id}`}
                 onSelect={() => onChange(p.id)}
+                title={glossaryLookup(p.id) ?? glossaryLookup(p.label)}
                 className={`flex cursor-pointer items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13px] text-[var(--color-text,#1a1a1a)] outline-none hover:bg-[var(--color-muted-bg,#ede8e1)] focus:bg-[var(--color-muted-bg,#ede8e1)] ${
                   active ? "font-medium" : ""
                 }`}

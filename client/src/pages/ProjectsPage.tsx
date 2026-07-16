@@ -149,8 +149,10 @@ export default function ProjectsPage() {
               <p className="text-lg" style={{ color: 'var(--color-text)' }}>
                 No projects yet
               </p>
-              <p className="text-sm mb-4">
-                Create your first project to get started
+              {/* A07 teaching empty state — one sentence (lifted from the
+                  prototype's Projects subtitle) + exactly one action. */}
+              <p className="text-sm mb-4" data-testid="projects-empty-sentence">
+                Each project&rsquo;s logbook — the accumulated proof between runs.
               </p>
               <button
                 type="button"

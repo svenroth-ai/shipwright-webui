@@ -24,12 +24,15 @@
  *   inbox-group-color-<projectId>, inbox-card-<toolUseId>,
  *   inbox-resume-<toolUseId>, inbox-copy-resume-<toolUseId>.
  */
+import { useNavigate } from "react-router-dom";
 import { InboxProjectSection } from "./inbox/InboxProjectSection";
 import { useInboxData } from "./inbox/useInboxData";
 import { PageHead } from "../components/common/PageHead";
+import { glossaryLookup } from "../lib/glossary";
 
 export default function InboxPage() {
   const { projectGroups, openCount, isLoading, tasksById } = useInboxData();
+  const navigate = useNavigate();
 
   return (
     <div
@@ -55,17 +58,60 @@ export default function InboxPage() {
           )}
 
           {!isLoading && projectGroups.length === 0 && (
+            // A07 teaching empty state — copy lifted VERBATIM from the approved
+            // prototype (Spec/prototype/screens/inbox.js). One sentence + exactly
+            // one action (go to the board, where the running work lives). The
+            // "approval gate" jargon carries its glossary explanation right here.
             <div
-              className="p-4 text-sm"
+              className="flex max-w-[600px] flex-col items-start p-6 text-left"
               style={{
                 background: "var(--color-surface)",
                 border: "1px solid var(--color-border)",
-                borderRadius: "var(--radius-button)",
-                color: "var(--color-muted)",
+                borderRadius: "var(--radius-card)",
+                boxShadow: "var(--shadow-sm)",
               }}
               data-testid="inbox-empty"
             >
-              No pending interactions.
+              <p
+                className="text-lg font-semibold"
+                style={{ color: "var(--color-text)" }}
+              >
+                Your inbox is clear
+              </p>
+              <p
+                className="mt-2 text-sm"
+                style={{ color: "var(--color-muted)", lineHeight: 1.55 }}
+                data-testid="inbox-empty-sentence"
+              >
+                When Shipwright needs a decision from you mid-run — a question, or
+                an{" "}
+                <span
+                  data-testid="inbox-empty-gloss-approval-gate"
+                  title={glossaryLookup("approval gate")}
+                  style={{
+                    textDecorationLine: "underline",
+                    textDecorationStyle: "dotted",
+                    cursor: "help",
+                  }}
+                >
+                  approval gate
+                </span>{" "}
+                — it lands here so you never have to watch the terminal. Nothing is
+                waiting right now.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                data-testid="inbox-empty-cta"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold transition-colors"
+                style={{
+                  border: "1px solid var(--color-border)",
+                  color: "var(--color-text)",
+                  background: "var(--color-bg)",
+                }}
+              >
+                Go to the board
+              </button>
             </div>
           )}
 
