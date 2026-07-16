@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -32,6 +32,20 @@ describe('ProjectsPage', () => {
       expect(screen.getByText('Projects')).toBeInTheDocument();
       expect(screen.getByText('Create Project')).toBeInTheDocument();
     });
+  });
+
+  // A07 teaching empty state (FR-01.50) — when there are no projects, the empty
+  // block teaches in one sentence and offers exactly one action.
+  it('empty state shows the teaching sentence + exactly one CTA', async () => {
+    server.use(
+      http.get('/api/projects', () => HttpResponse.json({ data: [] })),
+    );
+    renderPage();
+    const empty = await screen.findByTestId('projects-empty');
+    expect(within(empty).getByTestId('projects-empty-sentence')).toHaveTextContent(
+      'Each project’s logbook — the accumulated proof between runs.',
+    );
+    expect(within(empty).getAllByRole('button')).toHaveLength(1);
   });
 
   it('renders project list from API', async () => {

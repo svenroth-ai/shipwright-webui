@@ -16,6 +16,7 @@ import {
 } from "@testing-library/react";
 
 import { PhaseDropdown } from "./PhaseDropdown";
+import { glossaryLookup } from "../../../lib/glossary";
 import type { PhaseDefinition } from "../../../lib/externalApi";
 
 const PHASES: PhaseDefinition[] = [
@@ -59,5 +60,15 @@ describe("PhaseDropdown", () => {
     // is detectable.
     const bg = square.style.background;
     expect(bg.toLowerCase()).toMatch(/a855f7|rgb\(168, 85, 247\)/);
+  });
+
+  // A07 — JIT tooltip: the trigger surfaces the selected phase's plain-language
+  // one-liner from the glossary, right where the jargon (the phase name) shows.
+  it("trigger carries the phase's glossary explanation as a title tooltip", () => {
+    render(<PhaseDropdown phases={PHASES} value="build" onChange={() => {}} />);
+    const trigger = screen.getByTestId("new-issue-phase-select");
+    const expected = glossaryLookup("build");
+    expect(expected).toBeTruthy();
+    expect(trigger).toHaveAttribute("title", expected);
   });
 });

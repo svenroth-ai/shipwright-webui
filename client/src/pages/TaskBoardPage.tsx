@@ -64,6 +64,7 @@ import { useProjectFilter } from "../hooks/useProjectFilter";
 import { useProjectActions } from "../hooks/useProjectActions";
 import { useRunConfig } from "../hooks/useRunConfig";
 import { TaskBoardColumns } from "../components/external/TaskBoardColumns";
+import { TaskBoardEmptyState } from "../components/external/TaskBoardEmptyState";
 import { TaskList } from "../components/external/TaskList";
 import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggle";
 import { CreateControls } from "../components/external/CreateControls";
@@ -196,6 +197,9 @@ export default function TaskBoardPage() {
     } as ActionDefinition;
     return [...baseActionsList, synthetic];
   }, [baseActionsList, continuePipelineAvailable]);
+
+  // Board empty-state CTA opens ONLY the real new-task action, never an arbitrary fallback (external-review fold).
+  const newTaskAction = useMemo<ActionDefinition | null>(() => baseActionsList.find((a) => a.id === "new-task") ?? null, [baseActionsList]);
 
   // iterate 3.7h: client-side project filter against the single global
   // task list. ProjectFilterDropdown uses the same underlying cache entry,
@@ -412,6 +416,9 @@ export default function TaskBoardPage() {
         <div className="page-container w-full pt-10 pb-8">
           <TaskList tasks={filteredTasks} />
         </div>
+      ) : projectFiltered.length === 0 ? (
+        // A07 teaching empty state — only when the project has zero tasks (a filter that only hides tasks falls through to the columns).
+        <TaskBoardEmptyState canCreate={Boolean(newTaskAction)} onCreate={() => newTaskAction && openModal(newTaskAction)} />
       ) : (
         // iterate-2026-06-17 — grid + grouping + drag-and-drop extracted to
         // TaskBoardColumns; grouping is by boardColumn (decoupled from state).

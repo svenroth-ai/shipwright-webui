@@ -1,0 +1,1 @@
+Plain-language glossary + teaching empty states on the Inbox, Task Board, and Projects surfaces, plus just-in-time tooltips on the create-dialog phase chips — one bank of the jargon (IREB / ADR / RTM / SBOM / FR / Spec / Canon / Gate, the pipeline phases, and the two mid-run prompt kinds), each with its one-line plain-language explanation shown right where it appears (FR-01.50).
