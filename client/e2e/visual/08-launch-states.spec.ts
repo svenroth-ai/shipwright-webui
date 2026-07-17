@@ -75,7 +75,17 @@ test.describe("visual: launch states", () => {
     await expect(page.getByTestId(`task-card-failure-${failed.taskId}`)).toBeVisible();
     await settle(page);
 
-    await expect(page).toHaveScreenshot("board-launch-failed.png", { fullPage: true });
+    // The task-card commit marker is `sessionUuid.slice(0,7)` (TaskCard.tsx) and
+    // the server mints a RANDOM sessionUuid per seed — an unmasked, unfrozen value
+    // whose ~100px glyph diff straddles the gate tolerance, so this baseline is a
+    // coin-flip run to run (it passed at #276, failed on the A19 gate). Mask the
+    // marker: its content is non-deterministic, its rendering is trivial, so no
+    // coverage is lost. (`board.png` carries the same latent flake — see the A19 PR
+    // note; masked here where it actually bit.)
+    await expect(page).toHaveScreenshot("board-launch-failed.png", {
+      fullPage: true,
+      mask: [page.locator('[data-testid^="task-card-commit-"]')],
+    });
   });
 
   test("task-detail-launch-failed", async ({ page, request }) => {

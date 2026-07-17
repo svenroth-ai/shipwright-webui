@@ -72,6 +72,15 @@ test.describe("visual: board", () => {
     await expect(page.getByTestId(`task-card-${second.taskId}`)).toBeVisible();
     await settle(page);
 
-    await expect(page).toHaveScreenshot("board.png", { fullPage: true });
+    // Mask the per-card commit markers: each is `sessionUuid.slice(0,7)` and the
+    // server mints a RANDOM sessionUuid per seed, so the marker text differs every
+    // run — an unmasked value whose glyph diff straddles the gate tolerance and
+    // makes this baseline a latent coin-flip (the same root cause that failed
+    // board-launch-failed on the A19 gate). Content non-deterministic, rendering
+    // trivial → no coverage lost.
+    await expect(page).toHaveScreenshot("board.png", {
+      fullPage: true,
+      mask: [page.locator('[data-testid^="task-card-commit-"]')],
+    });
   });
 });
