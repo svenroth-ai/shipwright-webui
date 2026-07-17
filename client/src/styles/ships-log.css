@@ -1,0 +1,300 @@
+/* SHIP'S LOG — project home (A16, FR-01.60). Ported in VALUES from the
+   prototype (Spec/prototype/styles.css .log-mast / .lm-* / .subs / .sheet /
+   .logentry / .promptbox) onto the Weather-Deck tokens. EVERY selector is
+   scoped under `.ships-log` so nothing here moves another route's visual
+   baseline (the board card-hygiene guard in particular). on-photo.css already
+   RESETS .sheet/.logentry/.promptbox/.glass-card text tokens to the AA ladder
+   inside the scene, so bare var(--ink|body|muted|accent) resolve legibly. */
+
+.ships-log {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── The Captain's Drawer — a 76px glass grade strip, not a hero band ── */
+.ships-log .log-mast {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 76px;
+  padding: 12px 18px;
+  border-radius: 16px;
+}
+.ships-log .lm-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  flex: 1;
+}
+.ships-log .lm-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.ships-log .subs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.ships-log .sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 240px;
+}
+.ships-log .sub .k {
+  font-size: 12px;
+  color: var(--body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.ships-log .mbar {
+  width: 52px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+.ships-log .mbar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+}
+.ships-log .sub .v {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 96px;
+}
+.ships-log .lm-why {
+  flex-shrink: 0;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ships-log .lm-why:hover {
+  background: var(--inset);
+}
+.ships-log .lm-why:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.ships-log .sl-lead {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: -6px;
+}
+
+.ships-log .promptbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 14px;
+}
+.ships-log .promptbox .pb-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.ships-log .promptbox input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+}
+.ships-log .promptbox input::placeholder {
+  color: var(--muted);
+}
+
+.ships-log .sl-grad {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+  margin: -4px 0 2px;
+}
+.ships-log .sl-grad .sl-grad-x {
+  margin-left: auto;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  background: none;
+  border: none;
+  padding: 2px;
+}
+.ships-log .sl-grad .sl-grad-x:hover {
+  color: var(--ink);
+}
+
+.ships-log .sheet-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ships-log .sheet-h .heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ships-log .sheet-h .caption {
+  font-size: 12px;
+  color: var(--muted);
+}
+.ships-log .sheet-h .grow {
+  flex: 1;
+}
+.ships-log .sheet-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.ships-log .logentry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--line);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.ships-log .sheet-body > .logentry:first-child {
+  border-top: none;
+}
+.ships-log button.logentry {
+  cursor: pointer;
+}
+.ships-log button.logentry:hover {
+  background: var(--inset);
+}
+.ships-log .logentry:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.ships-log .le-date {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 58px;
+  font-variant-numeric: tabular-nums;
+}
+.ships-log .le-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ships-log .le-badge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: lowercase;
+  background: var(--muted-tint, var(--inset));
+  color: var(--body);
+}
+.ships-log .le-badge[data-intent="feature"] { background: var(--ok-tint); color: var(--ok); }
+.ships-log .le-badge[data-intent="bug"] { background: var(--err-tint); color: var(--err); }
+.ships-log .le-badge[data-intent="change"] { background: var(--warn-tint); color: var(--warn); }
+.ships-log .le-pill {
+  flex-shrink: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--body);
+}
+.ships-log .gates {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.ships-log .gate-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.ships-log .gate-dot[data-state="pass"] { background: var(--ok); }
+.ships-log .gate-dot[data-state="fail"] { background: var(--err); }
+.ships-log .le-commit {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.ships-log .le-chev {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.ships-log .sl-empty {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 22px 16px;
+  text-align: center;
+}
+
+/* the grade ring, reused from the wizard's GradeRing (.gring) — same base rules
+   as the page-scoped intent-wizard-panels.css so it renders here too. */
+.ships-log .gring {
+  position: relative;
+  flex-shrink: 0;
+}
+.ships-log .gring svg {
+  transform: rotate(-90deg);
+}
+.ships-log .gring .g {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+}

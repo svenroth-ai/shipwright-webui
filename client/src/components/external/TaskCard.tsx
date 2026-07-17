@@ -243,13 +243,11 @@ export function TaskCard({ task }: Props) {
           </div>
         </div>
 
-        {/* Meta row — state pill + phase badge.
-            ADR-056 chat-livetest-2 AC-B: prefer server-persisted task.phase
-            when both phase + phaseLabel are present.
-            v0.3.1 (2026-04-25): legacy tasks (launched before the phase-
-            on-create wiring) fall back to title-keyword derivation, same
-            heuristic TaskDetailHeader uses, so the kanban card stays in
-            sync with TaskDetail. */}
+        {/* Meta row — project pill + state pill + phase badge. HYGIENE
+            INVARIANT (A16, FR-01.60): NO FR chips and NO gate dots on a board
+            card — that proof lives in the logbook / task detail; the standing
+            guard is TaskCard.hygiene.test.tsx. Phase: prefer server task.phase
+            (ADR-056); legacy tasks fall back to title-keyword derivation. */}
         <div
           className="flex flex-wrap items-center gap-1.5"
           data-testid={`task-card-meta-${task.taskId}`}

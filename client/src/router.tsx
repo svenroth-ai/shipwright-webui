@@ -3,6 +3,7 @@ import { MainLayout } from './layouts/MainLayout';
 import TaskBoardPage from './pages/TaskBoardPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import ProjectsPage from './pages/ProjectsPage';
+import ShipsLogPage from './pages/ShipsLogPage';
 import InboxPage from './pages/InboxPage';
 import TriagePage from './pages/TriagePage';
 import SettingsPage from './pages/SettingsPage';
@@ -23,6 +24,9 @@ export const router = createBrowserRouter([
       { path: 'wizard/:door', element: <IntentWizardPage /> },
       { path: 'tasks/:taskId', element: <TaskDetailPage /> },
       { path: 'projects', element: <ProjectsPage /> },
+      // A16 (FR-01.60) — a project's HOME is its Ship's Log. This is the single
+      // destination A15's openProjectLog() seam points at (client/src/lib/projectNav.ts).
+      { path: 'projects/:projectId/log', element: <ShipsLogPage /> },
       { path: 'inbox', element: <InboxPage /> },
       { path: 'triage', element: <TriagePage /> },
       { path: 'settings', element: <SettingsPage /> },
