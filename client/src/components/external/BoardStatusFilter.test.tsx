@@ -1,15 +1,17 @@
 /*
- * BoardStatusFilter — AC-2 (iterate-2026-06-15-mobile-tablet-layout-polish).
- * The phone status filter is an icon-triggered multi-select menu (no pills);
- * toggling a status must NOT close the menu (preventDefault) so several can be
- * picked in one open. The ≥768px pill row keeps its existing chip behavior.
+ * BoardStatusFilter — the compact status funnel (on-photo-legibility fix,
+ * 2026-07-17). <StatusFilterMenu> is now the SOLE filter affordance on every
+ * viewport (the retired <StatusPillRow> chip strip rode bare on the photo). The
+ * icon-triggered menu is multi-select (toggling must NOT close it, preventDefault)
+ * plus a prototype-style "All" row that clears the filter. Behaviour (states,
+ * counts, result set) is byte-for-byte unchanged from the pill row.
  */
 
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 
-import { StatusFilterMenu, StatusPillRow } from "./BoardStatusFilter";
+import { StatusFilterMenu } from "./BoardStatusFilter";
 import type { ExternalTaskState } from "../../lib/externalApi";
 
 beforeAll(() => {
@@ -34,7 +36,7 @@ const COUNTS: Record<ExternalTaskState, number> = {
 
 const set = (...s: ExternalTaskState[]) => new Set<ExternalTaskState>(s);
 
-describe("StatusFilterMenu (phone, AC-2)", () => {
+describe("StatusFilterMenu (compact funnel — sole affordance, all viewports)", () => {
   it("shows no active dot when the filter is empty", () => {
     render(
       <StatusFilterMenu counts={COUNTS} active={set()} onToggle={() => {}} onReset={() => {}} />,
@@ -65,16 +67,18 @@ describe("StatusFilterMenu (phone, AC-2)", () => {
     // preventDefault on the CheckboxItem keeps it open for multi-select.
     expect(screen.getByTestId("board-filter-menu")).toBeInTheDocument();
   });
-});
 
-describe("StatusPillRow (≥768px)", () => {
-  it("renders the Status chips with counts and a reset affordance when active", () => {
+  it("has an 'All' row (prototype __filterMenu) that clears the filter and shows the total", async () => {
+    const user = userEvent.setup();
     const onReset = vi.fn();
     render(
-      <StatusPillRow counts={COUNTS} active={set("done")} onToggle={() => {}} onReset={onReset} />,
+      <StatusFilterMenu counts={COUNTS} active={set("done")} onToggle={() => {}} onReset={onReset} />,
     );
-    expect(screen.getByTestId("board-filter-status")).toBeInTheDocument();
-    expect(screen.getByTestId("board-filter-status-done")).toHaveAttribute("data-active");
-    expect(screen.getByTestId("board-filter-status-reset")).toBeInTheDocument();
+    await user.click(screen.getByTestId("board-filter-menu-trigger"));
+    const all = await screen.findByTestId("board-filter-menu-all");
+    // total = sum of all per-state counts (1 draft + 2 active + 3 done = 6).
+    expect(all).toHaveTextContent("6");
+    await user.click(all);
+    expect(onReset).toHaveBeenCalledTimes(1);
   });
 });

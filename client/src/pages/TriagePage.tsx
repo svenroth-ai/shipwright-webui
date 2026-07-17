@@ -98,8 +98,8 @@ function PerProjectSection({
   if (isLoading) {
     return (
       <section className="mb-8" data-testid={`triage-project-${project.id}`}>
-        <h2 className="text-base font-semibold mb-2">{project.name}</h2>
-        <p className="text-sm text-[var(--color-muted)]">Loading…</p>
+        <h2 className="text-base font-semibold mb-2 text-[var(--ink)]">{project.name}</h2>
+        <p className="text-sm text-[var(--muted)]">Loading…</p>
       </section>
     );
   }
@@ -110,7 +110,12 @@ function PerProjectSection({
 
   return (
     <section className="mb-8" data-testid={`triage-project-${project.id}`}>
-      <h2 className="text-base font-semibold mb-3 flex items-center gap-2">
+      {/* on-photo-legibility fix: the project name + its (count) subtitle and
+          the per-source group headers (below) ride bare on the deck-golden
+          photo, so they use the flipping Weather-Deck `--ink` / `--muted`
+          tokens (white under `.on-photo`), NOT the legacy `--color-text` /
+          `--color-muted` aliases (computed at :root → stay dark, invisible). */}
+      <h2 className="text-base font-semibold mb-3 flex items-center gap-2 text-[var(--ink)]">
         <span
           className="inline-block w-2 h-2 rounded-full"
           style={{
@@ -118,7 +123,7 @@ function PerProjectSection({
           }}
         />
         <span>{project.name}</span>
-        <span className="text-xs text-[var(--color-muted)] font-normal">
+        <span className="text-xs text-[var(--muted)] font-normal">
           ({triageItems.length})
         </span>
       </h2>
@@ -137,7 +142,7 @@ function PerProjectSection({
       )}
       {sortedSources.map((source) => (
         <div key={source} className="mb-4">
-          <h3 className="text-xs font-semibold text-[var(--color-text)] uppercase mb-2">
+          <h3 className="text-xs font-semibold text-[var(--ink)] uppercase mb-2">
             {source} ({itemsBySource.get(source)!.length})
           </h3>
           <div className="space-y-2">
@@ -220,7 +225,7 @@ export default function TriagePage() {
         <div className="page-container">
           {realProjects.length === 0 ? (
             <p
-              className="text-sm text-[var(--color-muted)]"
+              className="text-sm text-[var(--muted)]"
               data-testid="triage-no-projects"
             >
               No projects registered. Add a project on the Projects page
@@ -238,7 +243,7 @@ export default function TriagePage() {
               ))}
               {counts !== undefined && totalTriage === 0 && (
                 <p
-                  className="text-center text-sm text-[var(--color-muted)] py-8"
+                  className="text-center text-sm text-[var(--muted)] py-8"
                   data-testid="triage-empty-state"
                 >
                   No triage items pending. ✓

@@ -30,9 +30,12 @@
  *
  * Iterate 3.7e-b1 (2026-04-22):
  *   - Columns widened 320 → 360 px; gutter 32 → 40 px (plan S1.1).
- *   - New filter row above the columns inside .page-container — Status
- *     chips (multi-select; all selected = no filter). Phase filter is
+ *   - Status filter (multi-select; all selected = no filter). Phase filter is
  *     hidden entirely while ADR-045 is deferred (task.phase not populated).
+ *
+ * iterate-2026-07-17-onphoto-legibility-fix: the status filter is now the
+ *   compact filter funnel (BoardStatusFilter), replacing the retired
+ *   bare-on-photo StatusPillRow strip. Filtering behaviour is unchanged.
  *
  * Preserved testids:
  *   task-board-page, task-board-header, task-board-columns,
@@ -44,8 +47,9 @@
  * Iterate 3.7d-b1: the kanban columns container also carries
  *   `data-page-container="true"` as a style hook (no new testid needed —
  *   the existing `task-board-columns` testid remains the board root).
- * Iterate 3.7e-b1:
- *   board-filter-status, board-filter-status-<value>.
+ * Status filter funnel testids (iterate-2026-07-17-onphoto-legibility-fix):
+ *   board-filter-menu-trigger, board-filter-menu, board-filter-menu-all,
+ *   board-filter-menu-item-<state>.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -70,10 +74,7 @@ import { ViewToggle, type TaskBoardView } from "../components/external/ViewToggl
 import { CreateControls } from "../components/external/CreateControls";
 import { ProjectFilterDropdown } from "../components/external/ProjectFilterDropdown";
 import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBadge";
-import {
-  StatusPillRow,
-  StatusFilterMenu,
-} from "../components/external/BoardStatusFilter";
+import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
 import { PageHead } from "../components/common/PageHead";
 import { useIsPhoneViewport } from "../hooks/useIsCompactViewport";
@@ -334,14 +335,16 @@ export default function TaskBoardPage() {
               </>
             )}
             <ViewToggle value={view} onChange={setView} />
-            {isPhone && (
-              <StatusFilterMenu
-                counts={statusCounts}
-                active={statusFilter}
-                onToggle={toggleStatus}
-                onReset={clearStatusFilter}
-              />
-            )}
+            {/* on-photo-legibility fix: the compact filter funnel is now the SOLE
+                status-filter affordance on EVERY viewport (replacing the bare-on-
+                photo StatusPillRow strip). It rides the taupe PageHead, so
+                `.chrome-dark-controls` flips it light. Behaviour is unchanged. */}
+            <StatusFilterMenu
+              counts={statusCounts}
+              active={statusFilter}
+              onToggle={toggleStatus}
+              onReset={clearStatusFilter}
+            />
           </>
         }
         actions={
@@ -362,26 +365,6 @@ export default function TaskBoardPage() {
       {isPhone &&
         topBarSlot?.slot &&
         createPortal(<ProjectFilterDropdown fluid />, topBarSlot.slot)}
-      {/* Status pill row — ≥768px only. Kept on a LIGHT surface sub-strip below
-          the taupe toolbar: the chips carry semantic tone colours (error/warn/
-          success) that would fall below AA on anthracite — "a low-contrast grey
-          is most tempting and most wrong" on dark chrome (AC5). On phones the
-          same filter is the AC-2 icon menu in the toolbar above. */}
-      {!isPhone && (
-        <div
-          style={{
-            background: "var(--color-surface)",
-            borderBottom: "1px solid var(--color-border)",
-          }}
-        >
-          <StatusPillRow
-            counts={statusCounts}
-            active={statusFilter}
-            onToggle={toggleStatus}
-            onReset={clearStatusFilter}
-          />
-        </div>
-      )}
 
       {/* Body — board (kanban) or list.
           R1 (iterate 3.7e-a Foundation): kanban body uses `.page-container`

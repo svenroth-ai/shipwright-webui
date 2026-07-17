@@ -59,28 +59,27 @@ const COLUMN_META: readonly ColumnMeta[] = [
 ];
 
 interface ColumnStyle {
-  bg: string;
+  /** 3px top-accent + panel-edge tint (per-column identity). */
   border: string;
   header: string;
   count: { bg: string; fg: string };
 }
 
-/** Per-column palette (moved verbatim from TaskBoardPage, mockup lines 532–543). */
+/** Per-column ACCENT palette (the panel GROUND is a shared `--g50` lane, below).
+ *  The `border` value is the 3px top accent + count-pill tone — the per-column
+ *  identity the on-photo-legibility fix must preserve (mockup lines 532–543). */
 const COLUMN_STYLES: Record<ColumnTone, ColumnStyle> = {
   draft: {
-    bg: "var(--color-muted-bg)",
     border: "var(--color-muted)",
     header: "var(--color-muted)",
     count: { bg: "rgba(107,114,128,0.18)", fg: "var(--color-muted)" },
   },
   inprogress: {
-    bg: "rgba(217,119,6,0.08)",
     border: "var(--color-warning)",
     header: "var(--color-warning-text)",
     count: { bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" },
   },
   done: {
-    bg: "rgba(59,130,246,0.08)",
     border: "var(--color-info)",
     header: "#2563eb",
     count: { bg: "var(--color-info-bg)", fg: "#2563eb" },
@@ -141,7 +140,16 @@ function DroppableColumn({ meta, items }: DroppableColumnProps) {
       ref={setNodeRef}
       className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)] md:w-auto md:min-w-[200px] md:shrink md:grow md:basis-0 lg:w-[360px] lg:min-w-[360px] lg:shrink-0 lg:grow-0 lg:basis-auto"
       style={{
-        background: s.bg,
+        // Visible lane panel ground (on-photo-legibility fix). An opaque light
+        // panel (prototype `.lane` `--g50`) + a stable ramp hairline + a modest
+        // neutral lift, so cards read ON the panel instead of floating bare on
+        // the deck-golden photo. Per-column identity stays the 3px top accent +
+        // count pill (below) — NOT the ground. `--g50`/`--g200` are ramp tokens
+        // (NOT flipped by `.on-photo`), so the panel is a deterministic light
+        // reading surface everywhere → AA-safe for the dark lane header.
+        background: "var(--g50)",
+        border: "1px solid var(--g200)",
+        boxShadow: "var(--sh-sm)",
         outline: isOver ? "2px dashed var(--color-primary)" : undefined,
         outlineOffset: isOver ? "-2px" : undefined,
       }}
