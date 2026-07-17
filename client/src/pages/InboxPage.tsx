@@ -116,15 +116,42 @@ export default function InboxPage() {
             </div>
           )}
 
-          <div className="flex flex-col" style={{ gap: "24px" }}>
-            {projectGroups.map((pg) => (
-              <InboxProjectSection
-                key={pg.projectId}
-                group={pg}
-                tasksById={tasksById}
-              />
-            ))}
-          </div>
+          {/* §5.2 contrast fix (A03 ladder): the populated list sits on a SOLID
+              neutral sub-panel so body text is never over the bright photo. The
+              group headers + session sub-labels use the .on-photo flipping
+              --ink/--muted (white on the photo) — reset here to the non-flipping
+              stone ramp (the same swap on-photo.css rule 2 does for .card, done
+              inline because real components don't carry the .card class), so on
+              this white ground every label reads dark-on-white >=4.5:1. Rendered
+              ONLY when populated — the empty-state baseline stays untouched. */}
+          {projectGroups.length > 0 && (
+            <div
+              data-testid="inbox-list-panel"
+              className="flex flex-col"
+              style={{
+                gap: "24px",
+                background: "var(--card)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--radius-card)",
+                padding: "18px 18px 22px",
+                boxShadow: "var(--sh-sm)",
+                ["--ink" as string]: "var(--g900)",
+                ["--body" as string]: "var(--g700)",
+                ["--muted" as string]: "var(--g500)",
+                ["--faint" as string]: "var(--g400)",
+                ["--line" as string]: "var(--g200)",
+                ["--line-strong" as string]: "var(--g300)",
+              }}
+            >
+              {projectGroups.map((pg) => (
+                <InboxProjectSection
+                  key={pg.projectId}
+                  group={pg}
+                  tasksById={tasksById}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -46,6 +46,7 @@ import {
   LaunchCoordinatorProvider,
   useLaunchCoordinator,
 } from "../contexts/LaunchCoordinatorContext";
+import { parseTerminalFocusIntent } from "../lib/taskDeepLink";
 
 // Lazy-load the xterm bundle so the ~120 KB gz only ships when a TaskDetail
 // actually opens (external review F6).
@@ -167,6 +168,23 @@ function TaskDetailPageBody() {
     setCenterTab,
     setMissionTab,
   ]);
+
+  // A19 (FR-01.63) — the Inbox terminal-fallback CTA navigates here via a deep
+  // link (`?pane=terminal&focus=terminal`, built in lib/taskDeepLink.ts). It is
+  // the same intent as the card-click nav-state above, but as a real URL so it
+  // survives a reload / is shareable. Consume it through the SAME pendingFocus
+  // path (no second attach path), then strip the query (replace:true) so an F5 /
+  // back-forward does not re-snap focus. Ref-guarded against re-renders.
+  const deepLinkFocusConsumedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkFocusConsumedRef.current) return;
+    if (!parseTerminalFocusIntent(location.search)) return;
+    deepLinkFocusConsumedRef.current = true;
+    setMissionTab("files");
+    setCenterTab("terminal");
+    setPendingFocus(true);
+    navigate(location.pathname, { replace: true });
+  }, [location.pathname, location.search, navigate, setCenterTab, setMissionTab]);
 
   // Iterate v0.8.5 AC-6: the `webui:focus-terminal-tab` event listener
   // was removed alongside the Terminal-CTA in TaskDetailHeader (the

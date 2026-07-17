@@ -69,6 +69,39 @@ export function inboxItemKey(item: InboxItem): string {
 }
 
 /**
+ * The honesty line (A19, FR-01.63, AC4). Every waiting card states plainly that
+ * the operator answers in the terminal and the WebUI does NOT answer for them —
+ * so nobody is left guessing whether a click "sent" their reply. The copy is a
+ * REQUIREMENT (asserted in a test), not decoration; kept as one canonical string
+ * so both card variants say the same thing.
+ */
+export const INBOX_TERMINAL_HONESTY =
+  "Claude is waiting for your answer. Type it in the task's terminal — the WebUI doesn't answer for you.";
+
+export function InboxTerminalHonesty({
+  itemKey,
+  align = "left",
+}: {
+  itemKey: string;
+  align?: "left" | "right";
+}) {
+  return (
+    <p
+      data-testid={`inbox-honesty-${itemKey}`}
+      style={{
+        fontSize: "11.5px",
+        color: "var(--color-muted)",
+        lineHeight: 1.5,
+        marginTop: "8px",
+        textAlign: align,
+      }}
+    >
+      {INBOX_TERMINAL_HONESTY}
+    </p>
+  );
+}
+
+/**
  * InboxCard — dispatches on `item.kind`:
  *  - `ask_tool`        → `AskToolCard`     (read-only Ask-bubble + Answer CTA)
  *  - `text_question`   → `WaitingReplyCard` (plain-text end-of-turn question)

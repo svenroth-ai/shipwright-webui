@@ -1,131 +1,67 @@
 /*
- * InboxResumeButton — single Resume/Answer CTA for an Inbox card.
+ * InboxResumeButton — the "Answer in the terminal" CTA for an Inbox card.
  *
- * Extracted from InboxPage.tsx during C7 (2026-05-26). Logic LIFTED
- * VERBATIM — pickPlatformCommand + writeClipboardModule + the try/catch
- * + setError branch + the two-testid back-compat pattern (per
- * external-plan-review medium #6 + low #12: byte-for-byte preservation).
+ * A19 (FR-01.63): this used to COPY a resume command to the clipboard (a
+ * leftover from the pre-embedded-terminal era). The task now HAS an embedded
+ * terminal, and that is where the answer gets typed — by the operator, not the
+ * WebUI. So the CTA now NAVIGATES to the task's terminal (deep link built in
+ * lib/taskDeepLink.ts), focused and ready. It writes NOTHING: no clipboard, no
+ * pty frame, no answer injection. The fence is proven by
+ * inbox-no-writepath.test.ts.
  *
- * Stops click propagation so the containing clickable card doesn't also
- * navigate to TaskDetail. Two testids for back-compat:
- * `inbox-resume-<toolUseId>` (new, 3.7d-b3) + `inbox-copy-resume-<toolUseId>`
- * (legacy, kept on a hidden inner node).
+ * Stops click/keydown propagation so the containing clickable card doesn't also
+ * navigate (the card carries its own in-app focusTerminal nav-state).
  */
-import { useState, type MouseEvent } from "react";
-import { Copy, Terminal } from "lucide-react";
+import { type KeyboardEvent, type MouseEvent } from "react";
+import { Terminal } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import { useLaunchTask } from "../../hooks/useLaunchTask";
-import type { CopyCommandForms, ExternalTask } from "../../lib/externalApi";
+import type { ExternalTask } from "../../lib/externalApi";
+import { buildTaskTerminalDeepLink } from "../../lib/taskDeepLink";
 
 export function InboxResumeButton({
   task,
-  toolUseId,
+  idKey,
 }: {
   task: ExternalTask;
-  toolUseId: string;
+  /** Stable item key — the ask_tool toolUseId, or the waiting-card itemKey. */
+  idKey: string;
 }) {
-  const launchMut = useLaunchTask();
-  const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const goToTerminal = () => navigate(buildTaskTerminalDeepLink(task.taskId));
 
-  const handleClick = async (e: MouseEvent<HTMLButtonElement>) => {
-    // Prevent the card-level onClick from also firing + navigating away
-    // before the clipboard write completes.
+  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
+    // Prevent the card-level onClick from also firing.
     e.stopPropagation();
-    setError(null);
-    try {
-      const { commands } = await launchMut.mutateAsync({
-        taskId: task.taskId,
-        resume: true,
-      });
-      const command = pickPlatformCommand(commands);
-      await writeClipboardModule(command);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
+    goToTerminal();
   };
 
-  // iterate 3.7f: Inbox CTA renamed "Resume" → "Answer" for consistency with
-  // the Ask-bubble button (same clipboard action: copies resume command so
-  // the user pastes + answers in their terminal). Terminal icon reflects the
-  // intent; Copy icon still flashes during the 1.5s "Copied" confirm.
-  const Icon = copied ? Copy : Terminal;
-  const label = launchMut.isPending
-    ? "Preparing…"
-    : copied
-      ? "Copied — paste into terminal"
-      : "Answer";
-
   return (
-    <>
-      <button
-        type="button"
-        onClick={(e) => void handleClick(e)}
-        onKeyDown={(e) => {
-          // Don't let Enter/Space on the button also trigger the card's
-          // keydown handler.
-          e.stopPropagation();
-        }}
-        disabled={launchMut.isPending}
-        data-testid={`inbox-resume-${toolUseId}`}
-        data-testid-legacy={`inbox-copy-resume-${toolUseId}`}
-        className="inline-flex items-center gap-2 rounded-[var(--radius-button)] font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-        style={{
-          background: "var(--color-primary)",
-          padding: "8px 16px",
-          fontSize: "13px",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--color-primary-hover)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "var(--color-primary)";
-        }}
-        aria-label={copied ? "Resume command copied" : "Copy resume command"}
-      >
-        <Icon size={14} />
-        {label}
-      </button>
-      {/* Legacy testid node — kept invisibly for pre-3.7d-b3 specs. */}
-      <span
-        data-testid={`inbox-copy-resume-${toolUseId}`}
-        style={{ display: "none" }}
-        aria-hidden="true"
-      />
-      {error && (
-        <span
-          role="alert"
-          className="ml-2 text-[11px]"
-          style={{ color: "var(--color-error)" }}
-        >
-          {error}
-        </span>
-      )}
-    </>
+    <button
+      type="button"
+      onClick={handleClick}
+      onKeyDown={(e: KeyboardEvent<HTMLButtonElement>) => {
+        // Don't let Enter/Space bubble to the card's keydown handler (native
+        // button activation still fires onClick, which navigates).
+        e.stopPropagation();
+      }}
+      data-testid={`inbox-resume-${idKey}`}
+      className="inline-flex items-center gap-2 rounded-[var(--radius-button)] font-semibold text-white shadow-sm transition-colors"
+      style={{
+        background: "var(--color-primary)",
+        padding: "8px 16px",
+        fontSize: "13px",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "var(--color-primary-hover)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "var(--color-primary)";
+      }}
+      aria-label="Open the task's terminal to answer"
+    >
+      <Terminal size={14} />
+      Answer in the terminal
+    </button>
   );
-}
-
-function pickPlatformCommand(commands: CopyCommandForms): string {
-  if (typeof navigator === "undefined") return commands.posix;
-  return /windows/i.test(navigator.userAgent) ? commands.powershell : commands.posix;
-}
-
-async function writeClipboardModule(text: string): Promise<void> {
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const ta = document.createElement("textarea");
-  ta.value = text;
-  ta.style.position = "fixed";
-  ta.style.opacity = "0";
-  document.body.appendChild(ta);
-  ta.select();
-  try {
-    document.execCommand("copy");
-  } finally {
-    document.body.removeChild(ta);
-  }
 }
