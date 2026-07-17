@@ -12,6 +12,12 @@
  *   - Gate dots appear ONLY when A02 actually reports gate outcomes for a run
  *     (`run.gates != null`); no outcomes → no dots. The lamps are DERIVED
  *     (`gates.derived: true`), shown as such by tone, never as a producer verdict.
+ *
+ * Non-Shipwright projects (Sven 2026-07-17): the log works for projects that run
+ * custom actions and never emit a Shipwright event log (e.g. Content Marketing).
+ * Precedence: has runs → the logbook · no runs but has sessions → the recent
+ * sessions list · nothing at all → the grade/adopt nudge. Sessions are the
+ * project's tasks (real observer data), never fabricated.
  */
 
 import { useMemo } from "react";
@@ -22,6 +28,7 @@ import { useProjectRuns } from "../../hooks/useRunData";
 import { useExternalTasks } from "../../hooks/useExternalTasks";
 import { staggerStyle } from "../../lib/motion";
 import type { RunDataJoin, RunGates } from "../../lib/runDataApi";
+import type { ExternalTask } from "../../lib/externalApi";
 
 const GATE_ORDER: Array<keyof Pick<RunGates, "review" | "test" | "security">> = [
   "review",
@@ -29,7 +36,7 @@ const GATE_ORDER: Array<keyof Pick<RunGates, "review" | "test" | "security">> = 
   "security",
 ];
 
-/** ISO ts → "Jul 12"; "" when absent/unparseable (rendered as a dash). */
+/** ISO ts → "Jul 12"; "—" when absent/unparseable. */
 function fmtDate(ts: string | null): string {
   if (!ts) return "—";
   const d = new Date(ts);
@@ -39,6 +46,11 @@ function fmtDate(ts: string | null): string {
 
 function intentOf(run: RunDataJoin): string {
   return run.intent || run.changeType || "change";
+}
+
+/** Best available timestamp for ordering a session most-recent-first. */
+function sessionTs(t: ExternalTask): string | null {
+  return t.launchedAt ?? t.firstJsonlObservedAt ?? t.createdAt ?? null;
 }
 
 export function LogEntryList({ projectId }: { projectId: string }) {
@@ -54,6 +66,37 @@ export function LogEntryList({ projectId }: { projectId: string }) {
   }, [tasks]);
 
   const runs = runsData?.status === "ok" ? runsData.runs : [];
+  const hasRuns = runs.length > 0;
+
+  // No Shipwright runs but the project has sessions → list the recent sessions
+  // (ISO ts sort lexically = chronologically; most-recent first, capped at 12).
+  const sessions = useMemo(() => {
+    if (hasRuns) return [] as ExternalTask[];
+    return [...tasks]
+      .sort((a, b) => (sessionTs(b) ?? "").localeCompare(sessionTs(a) ?? ""))
+      .slice(0, 12);
+  }, [hasRuns, tasks]);
+
+  if (!hasRuns && sessions.length > 0) {
+    return (
+      <div className="sheet" data-testid="shipslog-sessions">
+        <div className="sheet-h">
+          <span className="heading">Recent sessions</span>
+          <span className="caption">every session on this project</span>
+        </div>
+        <div className="sheet-body">
+          {sessions.map((t, i) => (
+            <SessionEntry
+              key={t.taskId}
+              index={i}
+              task={t}
+              onOpen={() => navigate(`/tasks/${t.taskId}`)}
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sheet" data-testid="shipslog-logbook">
@@ -64,9 +107,9 @@ export function LogEntryList({ projectId }: { projectId: string }) {
         <span className="caption">gates: review · tests · security</span>
       </div>
       <div className="sheet-body">
-        {runs.length === 0 ? (
+        {!hasRuns ? (
           <div className="sl-empty" data-testid="shipslog-logbook-empty">
-            No runs recorded yet — the logbook fills as Shipwright works this project.
+            No runs yet. Grade or adopt it to open the logbook.
           </div>
         ) : (
           runs.map((run, i) => {
@@ -83,6 +126,35 @@ export function LogEntryList({ projectId }: { projectId: string }) {
         )}
       </div>
     </div>
+  );
+}
+
+function SessionEntry({
+  task,
+  onOpen,
+  index,
+}: {
+  task: ExternalTask;
+  onOpen: () => void;
+  index: number;
+}) {
+  // A20: rows stagger-fade in from a visible resting state (reduced motion shows
+  // every entry, final, immediately).
+  const motion = staggerStyle(index);
+  return (
+    <button
+      type="button"
+      className="logentry motion-stagger-item"
+      style={motion}
+      data-testid={`shipslog-session-${task.taskId}`}
+      data-clickable="true"
+      onClick={onOpen}
+    >
+      <span className="le-date">{fmtDate(sessionTs(task))}</span>
+      <span className="le-badge">{task.state}</span>
+      <span className="le-title">{task.title || task.taskId}</span>
+      <ChevronRight className="le-chev" size={15} />
+    </button>
   );
 }
 

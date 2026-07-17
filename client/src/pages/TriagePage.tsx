@@ -219,10 +219,11 @@ export default function TriagePage() {
         actions={<DensityToggle />}
       />
 
-      {/* Body — wrapped in .page-container so Triage aligns with Inbox. */}
+      {/* Body — wrapped in .page-container so Triage aligns with Inbox/Projects.
+          Top gap matches Projects' 24px (Sven 2026-07-17: equal top padding). */}
       <div
         className="flex-1 overflow-y-auto"
-        style={{ paddingBlock: "12px 40px" }}
+        style={{ paddingBlock: "24px 40px" }}
       >
         <div className="page-container density-surface">
           {realProjects.length === 0 ? (

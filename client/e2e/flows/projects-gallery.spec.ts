@@ -112,14 +112,17 @@ test.describe("Projects → Ship's-Log gallery (A15)", () => {
     expect(gradedFirst).toBe(true);
   });
 
-  test("'Open board' routes through the single seam to /?projectId=… (interim A16 destination)", async ({
+  test("'Open log' routes through the single seam to the Ship's Log home (/projects/:id/log)", async ({
     page,
   }) => {
+    // A16 re-pointed openProjectLog() from the interim board destination
+    // (/?projectId=…) to the real Ship's Log home. This spec was stale — it
+    // still asserted the interim board URL (fixed 2026-07-17 alongside the
+    // ship-log iterate).
     await page.goto("/projects");
     await page.getByTestId(`projects-open-${graded.projectId}`).click();
     await expect
-      .poll(() => new URL(page.url()).searchParams.get("projectId"))
-      .toBe(graded.projectId);
-    expect(new URL(page.url()).pathname).toBe("/");
+      .poll(() => new URL(page.url()).pathname)
+      .toBe(`/projects/${graded.projectId}/log`);
   });
 });

@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-17-ui-polish-forms-shiplog",
+  "date": "2026-07-17T18:58:52.640765Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/ui-polish-forms-shiplog",
+  "spec": ".shipwright/planning/iterate/2026-07-17-ui-polish-forms-shiplog.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-17-ui-polish-forms-shiplog"
+}

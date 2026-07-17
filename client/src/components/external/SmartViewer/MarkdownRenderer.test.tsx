@@ -55,3 +55,25 @@ describe("MarkdownRenderer — Edit button (FR-01.34 AC1)", () => {
     expect(screen.queryByTestId("smart-viewer-edit")).toBeNull();
   });
 });
+
+describe("MarkdownRenderer — Edit / Pop out legibility (Sven 2026-07-17, AC7)", () => {
+  it("Edit + Pop out use BLACK text and a BLACK border (not muted grey)", () => {
+    render(
+      <MarkdownRenderer
+        text="# hi"
+        onPopOut={() => {}}
+        projectId="p1"
+        path="README.md"
+        onSaved={() => {}}
+      />,
+    );
+    for (const testid of ["smart-viewer-edit", "smart-viewer-popout"]) {
+      const btn = screen.getByTestId(testid);
+      // Inline styles carry the token; jsdom normalises var() to its raw string.
+      expect(btn.style.color).toContain("--color-text");
+      expect(btn.style.border).toContain("--color-text");
+      // The old muted-grey token must be gone.
+      expect(btn.style.color).not.toContain("--color-muted");
+    }
+  });
+});

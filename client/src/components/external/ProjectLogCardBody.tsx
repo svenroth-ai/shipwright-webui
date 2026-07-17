@@ -1,11 +1,14 @@
 /*
  * ProjectLogCardBody — the middle of a <ProjectLogCard> (A15, FR-01.59).
  *
- * The four HONEST states (spec AC2/AC3):
+ * The HONEST states (spec AC2/AC3):
  *   graded    → sparkline + stats + last-proof quote (real A02 data)
  *   error     → "Run history unavailable." (the read FAILED — we do NOT know
  *               the count, so we must never claim "no runs")
- *   known     → the ".lc-empty" sentence (a CONFIRMED zero-run read)
+ *   sessions  → a "N sessions" line (no Shipwright runs, but the project has
+ *               sessions — custom-action / non-Shipwright projects; Sven
+ *               2026-07-17). We never nudge these to grade/adopt.
+ *   known     → the ".lc-empty" nudge (a CONFIRMED zero-run, zero-session read)
  *   otherwise → a neutral loading placeholder (read still in flight)
  */
 
@@ -17,12 +20,15 @@ export function ProjectLogCardBody({
   model,
   runsError,
   runsKnown,
+  taskCount,
 }: {
   projectId: string;
   model: ProjectLogModel;
   runsError: boolean;
   /** A definitive answer for this project exists (resolved or synthesized). */
   runsKnown: boolean;
+  /** Session (task) count for this project — drives the non-Shipwright state. */
+  taskCount: number;
 }) {
   if (model.graded) {
     return (
@@ -48,9 +54,18 @@ export function ProjectLogCardBody({
     );
   }
   if (runsKnown) {
+    // No Shipwright runs, but the project has sessions → show them instead of
+    // the grade/adopt nudge (the log works for custom-action projects too).
+    if (taskCount > 0) {
+      return (
+        <div className="lc-empty" data-testid={`projects-card-${projectId}-sessions`}>
+          {taskCount} session{taskCount === 1 ? "" : "s"} — open the log to view them.
+        </div>
+      );
+    }
     return (
       <div className="lc-empty" data-testid={`projects-card-${projectId}-empty`}>
-        No runs yet — grade it to open the logbook.
+        No runs yet. Grade or adopt it to open the logbook.
       </div>
     );
   }

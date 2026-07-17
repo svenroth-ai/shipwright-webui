@@ -88,13 +88,21 @@ describe("ProjectLogCard", () => {
     expect(screen.getByText(/the last proof quote/)).toBeInTheDocument();
   });
 
-  it("ungraded body renders the empty sentence and NO sparkline (AC2)", async () => {
-    renderCard({ runs: undefined, runsResolved: true });
+  it("ungraded body with NO sessions renders the grade/adopt nudge and NO sparkline (AC2)", async () => {
+    renderCard({ runs: undefined, runsResolved: true, taskCount: 0 });
     expect(
       await screen.findByTestId("projects-card-proj-1-empty"),
-    ).toHaveTextContent("No runs yet — grade it to open the logbook.");
+    ).toHaveTextContent("No runs yet. Grade or adopt it to open the logbook.");
     expect(screen.queryByTestId("lc-spark")).toBeNull();
     expect(screen.queryByTestId("projects-card-proj-1-stats")).toBeNull();
+  });
+
+  it("no runs but sessions present → shows the session count, NOT the grade/adopt nudge (non-Shipwright projects)", async () => {
+    renderCard({ runs: undefined, runsResolved: true, taskCount: 4 });
+    expect(
+      await screen.findByTestId("projects-card-proj-1-sessions"),
+    ).toHaveTextContent("4 sessions — open the log to view them.");
+    expect(screen.queryByTestId("projects-card-proj-1-empty")).toBeNull();
   });
 
   it("a STILL-LOADING read shows a neutral placeholder, never a premature 'no runs' claim (AC3)", async () => {

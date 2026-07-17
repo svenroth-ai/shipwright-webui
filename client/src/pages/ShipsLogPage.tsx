@@ -101,9 +101,9 @@ export default function ShipsLogPage() {
             type="button"
             data-testid="ships-log-open-board"
             onClick={openBoard}
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] border border-[var(--color-border)] px-3 py-1.5 text-[13px] font-semibold text-[var(--color-text)] hover:bg-[var(--color-muted-bg)]"
+            className="btn-primary"
           >
-            <LayoutGrid size={14} /> Open board
+            <LayoutGrid size={16} /> Open board
           </button>
         }
       />

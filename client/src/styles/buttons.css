@@ -1,0 +1,39 @@
+/* ============================================================================
+   BUTTONS — the ONE canonical primary action button (Sven 2026-07-17).
+
+   Before this, "New task" (Board), "Create Project" (Projects) and the Ship's
+   Log header button each re-implemented a slightly different teal recipe — the
+   Board/Resume used the bright teal, Projects used the darker base teal — so
+   they read as different buttons. `.btn-primary` is the single standard used
+   everywhere: bright teal (--accent-bright, the same teal the dark-chrome
+   controls + the Resume CTA already show), white label, 8px radius, 13px/600.
+   It reads correctly on the dark header bands AND on the light glass surfaces.
+   ============================================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;              /* == px-4 py-2 */
+  border-radius: var(--r-btn);    /* 8px */
+  border: none;
+  background: var(--accent-bright);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, filter 0.12s;
+}
+.btn-primary:hover {
+  background: var(--accent-bright-hover);
+}
+.btn-primary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
