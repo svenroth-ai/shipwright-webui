@@ -5,9 +5,10 @@
  * REPLACES A11's "The Record" audit RAIL (the spine + collapse) with three
  * stacked parts:
  *   1. a business-language summary of what this change is about ("what this is"),
- *   2. WHERE IT STANDS NOW — the four fixed stage labels `Spec · Build · Test ·
- *      Finalize` (STAGE_LABELS, verbatim; an honest "—" when the stage cannot be
- *      derived), and
+ *   2. WHERE IT STANDS NOW — the six fixed stage labels `Analyze · Spec · Build ·
+ *      Test · Finalize · Merge` (STAGE_LABELS, verbatim; an honest "—" when the
+ *      stage cannot be derived), preceded (for a campaign session) by a
+ *      "Sub-iterate N of M · A<k>" progress line (FR-01.67), and
  *   3. the audit trail folded into clickable ARTIFACT LINKS — the same
  *      Req/Spec/Test/Review/Commit `RecordNode`s, each opening in the RIGHT
  *      ArtifactPanel (AC2: no audit information lost, only relocated to links).
@@ -17,11 +18,23 @@
  * `record-rail` test id — it is the same left slot, now the artifact-links panel.
  */
 
-import type { MissionLiveModel } from "../../../hooks/useMissionLive";
+import type { CampaignMissionInfo, MissionLiveModel } from "../../../hooks/useMissionLive";
 import { STAGE_LABELS, type LifecycleStage } from "../../../lib/narrator-transcript";
 import { RecordNode } from "./RecordNode";
 
 const EM_DASH = String.fromCodePoint(0x2014);
+const MIDDLE_DOT = String.fromCodePoint(0x00b7);
+
+/** The autonomous-campaign progress line — "Sub-iterate N of M · A<k>" — shown
+ *  ABOVE the stepper for a campaign session only (FR-01.67). */
+function CampaignProgress({ campaign }: { campaign: CampaignMissionInfo }) {
+  const suffix = campaign.activeSubIterate ? ` ${MIDDLE_DOT} ${campaign.activeSubIterate}` : "";
+  return (
+    <p className="ml-campaign-progress" data-testid="mission-campaign-progress">
+      {`Sub-iterate ${campaign.done} of ${campaign.total}${suffix}`}
+    </p>
+  );
+}
 
 type StepState = "done" | "current" | "todo";
 
@@ -72,7 +85,7 @@ interface Props {
 }
 
 export function MissionLeftPanel({ model, activeNodeKey, onNodeClick }: Props) {
-  const { businessSummary, stage, stageComplete, nodes } = model;
+  const { businessSummary, stage, stageComplete, nodes, campaign } = model;
   return (
     <nav
       className="record mc-left"
@@ -88,6 +101,7 @@ export function MissionLeftPanel({ model, activeNodeKey, onNodeClick }: Props) {
 
       <section className="ml-block">
         <span className="eyebrow">Where it stands</span>
+        {campaign ? <CampaignProgress campaign={campaign} /> : null}
         <StageStepper stage={stage} complete={stageComplete} />
       </section>
 

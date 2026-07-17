@@ -31,9 +31,9 @@ const slashCommand = (name: string) => ({
   },
 });
 
-describe("narrator-transcript — STAGE_LABELS (AC4)", () => {
-  it("pins the four stage labels verbatim, in order", () => {
-    expect(STAGE_LABELS).toEqual(["Spec", "Build", "Test", "Finalize"]);
+describe("narrator-transcript — STAGE_LABELS (FR-01.67 AC1)", () => {
+  it("pins the SIX stage labels verbatim, in order (Analyze…Merge)", () => {
+    expect(STAGE_LABELS).toEqual(["Analyze", "Spec", "Build", "Test", "Finalize", "Merge"]);
   });
 });
 
@@ -147,7 +147,7 @@ describe("summarizeTranscript — stage inference (AC2, honest)", () => {
     expect(stageOf(toolUse("Bash", { command: "npm run test" }))).toBe("Test");
   });
 
-  it("a commit / PR → Finalize (furthest-along wins over earlier edits)", () => {
+  it("a commit → Finalize (furthest-along wins over earlier edits)", () => {
     expect(
       stageOf(
         toolUse("Edit", { file_path: "/repo/src/thing.ts" }),
@@ -155,15 +155,50 @@ describe("summarizeTranscript — stage inference (AC2, honest)", () => {
         toolUse("Bash", { command: 'git commit -m "feat: x"' }),
       ),
     ).toBe("Finalize");
-    expect(
-      stageOf({ type: "pr-link", prNumber: 7, prUrl: "https://x/y", prRepository: "o/r" }),
-    ).toBe("Finalize");
   });
 
-  it("investigation-only (reads/searches, no edits/tests) → null (honest '—')", () => {
+  it("a push / PR link / gh pr merge / gh run → Merge, NOT Finalize (FR-01.67 AC1)", () => {
+    // Finalize NARROWED: it no longer swallows push/PR — those are the Merge stage.
+    expect(
+      stageOf(
+        toolUse("Bash", { command: 'git commit -m "feat: x"' }),
+        toolUse("Bash", { command: "git push origin HEAD" }),
+      ),
+    ).toBe("Merge");
+    expect(
+      stageOf({ type: "pr-link", prNumber: 7, prUrl: "https://x/y", prRepository: "o/r" }),
+    ).toBe("Merge");
+    expect(stageOf(toolUse("Bash", { command: "gh pr merge 7 --squash" }))).toBe("Merge");
+    expect(stageOf(toolUse("Bash", { command: "gh run watch" }))).toBe("Merge");
+  });
+
+  it("the leading scout cluster (reads/searches/todo, no edits) → Analyze (FR-01.67 AC1)", () => {
     expect(
       stageOf(toolUse("Read", { file_path: "/a.ts" }), toolUse("Grep", { pattern: "x" })),
-    ).toBeNull();
+    ).toBe("Analyze");
+    expect(stageOf(toolUse("TodoWrite", {}))).toBe("Analyze");
+    expect(stageOf(toolUse("Glob", { pattern: "**/*.ts" }))).toBe("Analyze");
+  });
+
+  it("the `/shipwright-iterate` kickoff (incl. --campaign --autonomous) → Analyze (FR-01.67 AC1)", () => {
+    expect(stageOf(slashCommand("shipwright-iterate"))).toBe("Analyze");
+    expect(
+      stageOf(slashCommand("shipwright-iterate --campaign wow-usability --autonomous")),
+    ).toBe("Analyze");
+  });
+
+  it("Analyze is the WEAKEST signal — any real edit/test moves past it", () => {
+    expect(
+      stageOf(
+        slashCommand("shipwright-iterate"),
+        toolUse("Read", { file_path: "/a.ts" }),
+        toolUse("Edit", { file_path: "/repo/src/thing.ts" }),
+      ),
+    ).toBe("Build");
+  });
+
+  it("nothing evidenced at all → null (honest '—')", () => {
+    expect(stageOf(assistantText("Hello, thinking about it."))).toBeNull();
   });
 
   it("a CHANGELOG edit → Finalize, not Spec", () => {

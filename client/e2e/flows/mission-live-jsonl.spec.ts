@@ -137,6 +137,89 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     });
   });
 
+  test("a campaign orchestrator session: windowed stage + progress line (FR-01.67 AC2/AC3)", async ({
+    page,
+  }) => {
+    const slug = `wow-usability-${Date.now()}`;
+    const task = await createTask(page, `campaign: ${slug}`);
+    taskId = task.taskId;
+
+    // Mock the pre-existing campaigns endpoint (NO new server surface): the
+    // orchestrator's campaign, 21/22 done, sub-iterate A21 in_progress.
+    await page.route("**/api/campaigns/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          campaigns: [
+            {
+              slug,
+              intent: "polish",
+              branchStrategy: null,
+              expandsTriage: null,
+              status: "active",
+              steps: [
+                { id: "A20", slug: "a20", title: "A20", status: "complete", specPath: null, commit: null, branch: null, planFirst: false },
+                { id: "A21", slug: "a21", title: "A21", status: "in_progress", specPath: null, commit: null, branch: null, planFirst: false },
+              ],
+              done: 21,
+              total: 22,
+              nextPending: { id: "A22", specPath: null },
+            },
+          ],
+        }),
+      });
+    });
+
+    // TWO serial sub-iterates in ONE log: the first fully merged, the second
+    // mid-Build. The stage must window to the SECOND (Build), not latch Merge.
+    const cmd = (name: string) => ({
+      type: "user",
+      message: {
+        role: "user",
+        content: `<command-message>${name}</command-message><command-name>/${name}</command-name>`,
+      },
+    });
+    const bash = (id: string, command: string) => ({
+      type: "assistant",
+      message: { role: "assistant", content: [{ type: "tool_use", id, name: "Bash", input: { command } }] },
+    });
+    const edit = (id: string, file_path: string) => ({
+      type: "assistant",
+      message: { role: "assistant", content: [{ type: "tool_use", id, name: "Edit", input: { file_path } }] },
+    });
+    seedClaudeJsonlEvents({
+      sessionUuid: task.sessionUuid,
+      cwd: task.cwd,
+      events: [
+        cmd("shipwright-iterate"),
+        edit("e1", "/repo/src/one.ts"),
+        bash("b1", "npm run test"),
+        bash("b2", 'git commit -m "feat: one"'),
+        bash("b3", "git push origin HEAD"),
+        { type: "pr-link", prNumber: 1, prUrl: "https://example.test/1", prRepository: "o/r" },
+        bash("b4", "gh pr merge 1 --squash"),
+        cmd("shipwright-iterate"),
+        edit("e2", "/repo/src/two.ts"),
+      ],
+    });
+
+    await page.goto(`/tasks/${taskId}`, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await page.getByTestId("mission-tab-mission").click();
+
+    // The progress line reads the mocked campaign payload.
+    await expect(page.getByTestId("mission-campaign-progress")).toContainText("Sub-iterate 21 of 22", {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("mission-campaign-progress")).toContainText("A21");
+    // The stepper shows the ACTIVE sub-iterate's windowed stage — Build, NOT Merge.
+    await expect(page.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Build", {
+      timeout: 15_000,
+    });
+    // The business summary is the readable slug, not the raw `campaign: <slug>`.
+    await expect(page.getByTestId("mission-summary")).toContainText(slug);
+  });
+
   test("no run AND no transcript → honest 'waiting', never fabricated activity (AC3)", async ({
     page,
   }) => {
