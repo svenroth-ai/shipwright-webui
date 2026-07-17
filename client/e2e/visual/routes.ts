@@ -151,6 +151,18 @@ export const VISUAL_ROUTES: VisualRoute[] = [
       "Task-detail header with the launch-failure notice mounted for a jsonl_missing task: the same words as the board surfaces (AC4), the watched JSONL path, and Resume recovery.",
     status: "baselined",
   },
+  // A21 (FR-01.65) — the command palette OPEN state, floating GLASS on the
+  // signature backdrop (AC2/AC8). Captured by e2e/visual/10-command-palette.spec.ts
+  // (Ctrl+K on the board). The A21 runner is on Windows, so the PNG is generated
+  // + committed by the orchestrator's pinned-container run — DO NOT commit a
+  // Windows-local PNG (it would never match the Linux gate).
+  {
+    id: "palette-open",
+    path: "/ (command palette open, Ctrl+K)",
+    description:
+      "The glass command palette open over the board — the A03 glass recipe (--glass-light + --glass-filter + --glass-light-line + --sh-photo) with the backdrop visible through it, the search input, and the grouped Open / Jump / Launch / Filter commands. Proves the palette is glass, not a flat opaque modal (AC2).",
+    status: "baselined",
+  },
 ];
 
 /** Routes with a committed baseline PNG — the ones the visual specs assert on. */

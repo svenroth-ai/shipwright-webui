@@ -1,0 +1,164 @@
+/* ============================================================================
+   COMMAND CENTER — command palette (glass) + keyboard nav ring + density
+   (A21, FR-01.65).
+
+   The palette is GLASS (AC2): it uses the A03 Weather-Deck glass recipe —
+   --glass-light + --glass-filter + --glass-light-line + --sh-photo — so the
+   signature backdrop stays visible through it. A flat opaque modal is off the
+   Weather-Deck system and fails AC2. The palette renders in a Radix portal
+   OUTSIDE the .on-photo subtree, so the four tokens are referenced directly
+   here (they live in :root, weather-deck.css) — not inherited through .on-photo.
+
+   NO magic numbers for density: the spacing is token-driven off `data-density`
+   (AC5). A surface only stamps `data-density` on its container.
+   ============================================================================ */
+
+/* ── overlay ── */
+.cmd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(24, 21, 19, 0.44);
+}
+
+/* ── the palette shell — GLASS on the Weather-Deck system (AC2) ── */
+.cmd-palette {
+  position: fixed;
+  left: 50%;
+  top: 14vh;
+  transform: translateX(-50%);
+  z-index: 91;
+  width: min(640px, calc(100vw - 32px));
+  max-height: 68vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--r-card, 12px);
+  /* the four A03 glass tokens — the load-bearing AC2 recipe */
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+  border: 1px solid var(--glass-light-line);
+  box-shadow: var(--sh-photo);
+  color: var(--ink, #1c1917);
+}
+
+/* opaque fallback where backdrop-filter is unsupported (mirrors on-photo.css) */
+@supports not (backdrop-filter: blur(1px)) {
+  .cmd-palette {
+    background: rgba(255, 255, 255, 0.94);
+  }
+}
+
+.cmd-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--glass-light-line);
+}
+.cmd-search input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: var(--ink, #1c1917);
+}
+.cmd-search input::placeholder {
+  color: var(--muted, #79716b);
+}
+
+.cmd-list {
+  overflow-y: auto;
+  padding: 6px;
+  min-height: 0;
+}
+.cmd-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #79716b);
+}
+.cmd-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: var(--r-btn, 8px);
+  font-size: 14px;
+  color: var(--ink, #1c1917);
+  cursor: pointer;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+.cmd-item .cmd-item-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted, #79716b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 45%;
+}
+.cmd-item[aria-selected="true"] {
+  background: rgba(14, 122, 107, 0.14);
+  box-shadow: inset 0 0 0 1px var(--accent-line, #9fd3ca);
+}
+.cmd-empty {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted, #79716b);
+}
+
+/* ── list-nav selection ring — visible everywhere (AC4/AC7) ── */
+[data-nav-selected="true"] {
+  outline: 2px solid var(--accent, #0e7a6b);
+  outline-offset: -2px;
+  border-radius: var(--r-btn, 8px);
+}
+
+/* ── density — token-driven off data-density (AC5) ── */
+[data-density] {
+  --density-row-py: 0.75rem;
+  --density-row-px: 1rem;
+  --density-font: 13px;
+}
+[data-density="compact"] {
+  --density-row-py: 0.3rem;
+  --density-row-px: 0.6rem;
+  --density-font: 12px;
+}
+/* Apply the tokens to the marked rows without touching component markup. The
+   attribute-scoped selector out-specifies the row's own padding utility. */
+[data-density="compact"] .density-surface {
+  font-size: var(--density-font);
+}
+[data-density="compact"] .density-surface [data-nav-item] {
+  padding-top: var(--density-row-py);
+  padding-bottom: var(--density-row-py);
+}
+[data-density="compact"] .density-surface tr[data-nav-item] > td {
+  padding-top: var(--density-row-py);
+  padding-bottom: var(--density-row-py);
+}
+
+/* ── cheat-sheet (ShortcutsSheet) — a solid reading sheet on photo ── */
+.cmd-sheet-kbd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 1.6rem;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: var(--r-badge, 6px);
+  border: 1px solid var(--line, #e7e5e4);
+  background: var(--inset, #f5f5f4);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink, #1c1917);
+}

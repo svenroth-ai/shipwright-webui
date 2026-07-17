@@ -7,6 +7,7 @@
 @import "./styles/mission-record.css"; /* Mission Record rail + artifact + instruments (A11) */
 @import "./styles/mission-operation.css"; /* Mission Operation card — verdict + mission line + proof summary (A12) */
 @import "./styles/files-terminal.css"; /* Files & Terminal three-card row — glass · beige · glass (A18) */
+@import "./styles/command-center.css"; /* command palette (glass) + keyboard nav ring + density (A21) */
 
 /* Markdown body — GitHub-style rendering conventions (iterate-20260423-chat-livetest-2
  * AC-C). Adapted from github-markdown-light.css tokens, re-skinned onto

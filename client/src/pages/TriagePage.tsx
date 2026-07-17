@@ -31,6 +31,7 @@ import { TriageItemCard } from "../components/triage/TriageItemCard";
 import { TriageDetailModal } from "../components/triage/TriageDetailModal";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { PageHead } from "../components/common/PageHead";
+import { DensityToggle } from "../components/command/DensityToggle";
 import type { FixNowIntent } from "../components/triage/fixNowIntent";
 import type { TriageItem, TriageSeverity } from "../lib/triageApi";
 import { filterTriage } from "../lib/triageApi";
@@ -215,6 +216,7 @@ export default function TriagePage() {
         title="Triage"
         small={<span data-testid="triage-header-count">({totalTriage})</span>}
         testId="triage-header"
+        actions={<DensityToggle />}
       />
 
       {/* Body — wrapped in .page-container so Triage aligns with Inbox. */}
@@ -222,7 +224,7 @@ export default function TriagePage() {
         className="flex-1 overflow-y-auto"
         style={{ paddingBlock: "12px 40px" }}
       >
-        <div className="page-container">
+        <div className="page-container density-surface">
           {realProjects.length === 0 ? (
             <p
               className="text-sm text-[var(--muted)]"

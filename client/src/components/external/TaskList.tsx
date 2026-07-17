@@ -111,7 +111,7 @@ export function TaskList({ tasks }: Props) {
       // iterate 3.7h (Sven UAT): drop the 1600-max inner container + outer
       // px-6 padding. Outer .page-container in TaskBoardPage now owns the
       // width + margins so the table aligns with the header + filter row.
-      className="flex flex-1 flex-col"
+      className="density-surface flex flex-1 flex-col"
     >
       <div
         className={
@@ -285,7 +285,7 @@ function TaskListRow({ task }: { task: ExternalTask }) {
           "focus:outline-none focus-visible:bg-[var(--color-muted-bg)]"
         }
         data-testid={`task-list-row-${task.taskId}`}
-        data-task-state={task.state}
+        data-task-state={task.state} data-nav-item
       >
         <td
           className="w-full max-w-0 px-4 py-3"
@@ -343,7 +343,10 @@ function TaskListRow({ task }: { task: ExternalTask }) {
         >
           <div className="flex shrink-0 items-center justify-end gap-1">
             {(isDraft || isInProgress) && (
-              <span data-testid={`task-list-launch-${task.taskId}`}>
+              <span
+                data-testid={`task-list-launch-${task.taskId}`}
+                data-nav-action="l"
+              >
                 <TerminalLaunchButton
                   task={task}
                   variant="compact"
