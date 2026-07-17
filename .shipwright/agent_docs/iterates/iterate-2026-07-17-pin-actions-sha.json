@@ -1,0 +1,15 @@
+{
+  "run_id": "iterate-2026-07-17-pin-actions-sha",
+  "date": "2026-07-17T19:07:13.965388Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/pin-actions-sha",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-17-pin-actions-sha",
+  "spec": "none",
+  "spec_impact": "none",
+  "change_type": "infra",
+  "none_reason": "CI/CD supply-chain hardening (action SHA-pinning + Dependabot); no product FR affected.",
+  "untested_testable": 0,
+  "enumeration_basis": "CI-config-only diff (first-party action SHA-pins across 6 workflows + .github/dependabot.yml). 7 behaviours: 5 tested locally (all YAML valid; every SHA resolves to its version tag; zero mutable uses: tags remain; 2 pre-existing pins intact; rationale comments uncorrupted); 2 untestable-locally (live CI execution + Dependabot pickup, external GitHub services). untested_testable=0."
+}

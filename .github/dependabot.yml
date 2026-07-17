@@ -1,0 +1,16 @@
+# Keeps the SHA-pinned GitHub Actions (see .github/workflows/*.yml) current.
+# Without this, pinned SHAs go stale and stop receiving the actions' own
+# security patches. Satisfies OpenSSF Scorecard DependencyUpdateToolID and
+# keeps github-actions-mutable-action-tag / PinnedDependencies resolved.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      github-actions:
+        patterns:
+          - "*"

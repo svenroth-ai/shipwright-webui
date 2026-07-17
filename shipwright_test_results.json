@@ -1,19 +1,18 @@
 {
-  "last_updated": "2026-07-15",
+  "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-15-e2e-pty-harness",
-    "date": "2026-07-15",
+    "run_id": "iterate-2026-07-17-pin-actions-sha",
+    "date": "2026-07-17",
     "unit": {
-      "status": "passed",
-      "passed": 2025,
-      "total": 2025,
-      "note": "client vitest 208 files / 2025 passed (unchanged — the fixtures.ts change is an additive helper). tsc --noEmit clean (client); oxlint clean on the two touched files (only a pre-existing seedProject warning). Server untouched (test-harness-only diff)."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "CI-config-only diff (.github/workflows/*.yml uses-line SHA pins + new .github/dependabot.yml). No TS/JS/Python source touched, so vitest/tsc/oxlint scope is unchanged. The verification layer for this change is YAML-parse validity + SHA resolution + grep (see test_completeness)."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "Test-harness-only change: E2E spec choreography + an additive fixture helper. No production/route/store/contract surface."
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -21,65 +20,82 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 13,
-      "total": 17,
-      "note": "F0.5 web on an isolated single-process stack (:3948, temp USERPROFILE, 127.0.0.1). v0-9-5-replay-snapshot: 2 passed (AC-1/AC-3 seed own valid-cwd target) + 4 skipped (AC-2/4/5/6 target done/launch_failed, none on a fresh stack — clean skip, never flaky-fail; previously AC-2/AC-4 FAILED on the live-task ConPTY ESC[2J). 73-embedded-terminal: 11/11 (no regression). Store=0 after v0-9-5 (ordered cleanupTaskCwd left no dead-cwd task). All exit 0."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "No product surface (web/cli/api) exercised; F0.5 surface=none, justified. The PR's own CI run (ci/security/pr-review/codeql) is the live end-to-end proof of the pinned actions."
     },
     "design_fidelity": {
       "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "No UI change — test-harness fix only."
+      "total": 0
     },
     "smoke": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3948): GET /api/external/tasks 200."
+      "status": "not_run"
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3948 npx playwright test client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-harness/surface_verification.log",
-      "timestamp": "2026-07-15T17:45:00.000Z",
+      "tests_run": 0,
+      "justification": "CI-config-only change; no product runtime surface. Real end-to-end proof is the PR's own CI run executing the pinned actions live.",
+      "evidence_path": ".shipwright/runs/iterate-2026-07-17-pin-actions-sha/surface_verification.json",
+      "timestamp": "2026-07-17T00:00:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behaviour the diff changes, from the 3 spec ACs: AC-1 (envelope-only specs seed a valid-cwd target and pass deterministically), AC-2 (DOM-render specs target done/launch_failed and skip cleanly, never flaky-fail), AC-3 (ordered cleanupTaskCwd leaves no dead-cwd task), plus a regression guard. 4 behaviours; all tested; 0 untested-testable. The ConPTY ESC[2J root cause was proven by a node-pty probe before the fix (diagnostic, not a committed test).",
+      "enumeration_basis": "Every behaviour this diff introduces, from the change's informal ACs: (a) workflows remain valid YAML after pinning, (b) each SHA maps to its declared version tag so the change is behavior-preserving, (c) the Semgrep mutable-action-tag surface is cleared, (d) the two pre-existing pins and (e) the permission-rationale comments are untouched, plus (f) live workflow execution and (g) Dependabot pickup which are only observable on GitHub. 7 behaviours; 5 tested locally; 2 untestable-locally (external GitHub service); 0 untested-testable.",
       "counts": {
-        "total": 4,
-        "tested": 4,
-        "untestable": 0,
+        "total": 7,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 2,
         "untested_testable": 0
       },
       "behaviors": [
         {
-          "behavior": "v0-9-5 AC-1/AC-3 seed their own valid-cwd target and pass deterministically (no dependency on accumulated dead-cwd session state)",
-          "category": "e2e",
+          "behavior": "All 6 workflow YAMLs + the new dependabot.yml remain syntactically valid after the SHA-pin pass",
+          "category": "config",
           "disposition": "tested",
-          "evidence": "isolated stack: AC-1 envelopes contain replay_snapshot (no chunked); AC-3 no chunked envelopes; both PASS, exit 0"
+          "evidence": "uv run --with pyyaml yaml.safe_load parsed all 7 files: ALL VALID"
         },
         {
-          "behavior": "v0-9-5 AC-2/AC-4 target done||launch_failed and skip cleanly when none exists — never flaky-fail against a live task (whose ConPTY ESC[2J wipes the replay)",
-          "category": "e2e",
+          "behavior": "Every pinned SHA resolves to its declared version tag (behavior-preserving: identical to the commit CI already ran)",
+          "category": "config",
           "disposition": "tested",
-          "evidence": "isolated stack: AC-2/AC-4 SKIP (no done task), matching AC-5/AC-6; exit 0. Previously FAILED on the live-task ESC[2J."
+          "evidence": "gh api repos/<action>/commits/<major-tag> -> pinned 40-hex SHA for all 7 refs: checkout v4.3.1, setup-node v4.4.0, setup-python v5.6.0, github-script v7.1.0, upload-artifact v4.6.2, codeql-action v3.37.1 (init/analyze) + v4.37.1 (upload-sarif)"
         },
         {
-          "behavior": "cleanupTaskCwd deletes the task (cascade kills+awaits the pty) BEFORE removing the cwd, leaving no dead-cwd task in the store",
-          "category": "e2e",
+          "behavior": "No mutable-tag uses: references remain — the Semgrep github-actions-mutable-action-tag surface (20 alerts) is cleared",
+          "category": "config",
           "disposition": "tested",
-          "evidence": "GET /api/external/tasks after the v0-9-5 run returned 0 tasks"
+          "evidence": "grep -rnE 'uses:.*@v[0-9]' .github/workflows returns zero matches"
         },
         {
-          "behavior": "The additive fixtures.ts helper does not regress other pty-heavy specs",
-          "category": "e2e",
+          "behavior": "The two pre-existing SHA-pins (svenroth-ai diff-coverage-gate, peter-evans create-or-update-comment) are unchanged",
+          "category": "config",
           "disposition": "tested",
-          "evidence": "73-embedded-terminal 11/11 on the isolated stack; client vitest 2025 pass"
+          "evidence": "grep confirmed both intact; diff is 27 uses-line changes, neither line touched"
+        },
+        {
+          "behavior": "The permission-rationale comments in security.yml (which mention actions by name) were not corrupted by the string-replace pass",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "restored 2 mangled comment lines; grep for double-## mangled comments (#.*@<40hex> #) returns zero"
+        },
+        {
+          "behavior": "Workflows still trigger and the pinned actions execute successfully in CI",
+          "category": "e2e",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "GitHub Actions runner is an external service; the PR's own ci/security/pr-review/codeql runs exercise the pinned actions live — observed post-push, the real end-to-end proof"
+        },
+        {
+          "behavior": "Dependabot detects the github-actions ecosystem and opens grouped weekly bump PRs",
+          "category": "e2e",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "Dependabot is a GitHub-hosted service; config validity is checked via YAML parse, runtime pickup is observable only on GitHub after merge"
         }
       ]
     },
