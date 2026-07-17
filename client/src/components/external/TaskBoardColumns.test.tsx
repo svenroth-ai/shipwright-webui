@@ -120,12 +120,42 @@ describe("TaskBoardColumns — grouping", () => {
     expect(within(screen.getByTestId("column-draft")).getByText("0")).toBeTruthy();
   });
 
-  it("gives every column a visible lane panel ground + the per-column top accent (AC2)", () => {
-    // on-photo-legibility fix: each column is an opaque light panel (prototype
-    // `.lane` `--g50`) + a stable ramp hairline (`--g200`), so cards read on the
-    // panel instead of bare on the photo — applied CONSISTENTLY to all three.
-    // The per-column identity is the 3px top-accent bar, whose colours are
-    // preserved (draft=muted, in-progress=warning, done=info).
+  it("renders each column as a per-tone COLORED GLASS panel (dark tint + backdrop blur), not the opaque --g50 (AC1)", () => {
+    // Sven feedback 2026-07-17 (mockup Spec/prototype/_shots/board.png): each
+    // column PANEL is a translucent glass tinted in ITS OWN column colour
+    // (draft=neutral grey, in-progress=amber, done=blue) with a backdrop blur —
+    // the shared opaque near-white `--g50` ground is gone. Per-column tint is
+    // distinct so the three columns read as their own colour.
+    renderBoard([t("a", { state: "active" })]);
+    const tintByColumn: Record<string, string> = {
+      "column-draft": "var(--g500)",
+      "column-in-progress": "var(--color-warning)",
+      "column-done": "var(--color-info)",
+    };
+    for (const [testId, tint] of Object.entries(tintByColumn)) {
+      const col = screen.getByTestId(testId) as HTMLElement;
+      // Assert on the panel BACKGROUND specifically (not the whole serialized
+      // style) — the same tint token also rides the panel border + top accent,
+      // so a background-only regression must be caught here (external-review
+      // fold, OpenAI). The panel is the dark colored glass = tint over the warm
+      // near-black base, and is NOT the old opaque `--g50` ground.
+      const bg = col.style.background;
+      expect(bg, `${testId} panel background tint`).toContain(tint);
+      expect(bg, `${testId} dark glass base`).toContain("rgba(35, 31, 24");
+      expect(bg, `${testId} panel is not the old --g50 ground`).not.toContain(
+        "var(--g50)",
+      );
+      // glass: a backdrop blur. jsdom exposes backdrop-filter on the style
+      // PROPERTY, not the serialized `style` attribute string.
+      expect(col.style.backdropFilter, `${testId} backdrop-filter`).toContain(
+        "blur",
+      );
+    }
+  });
+
+  it("keeps the per-column 3px top accent (draft=muted, in-progress=warning, done=info) (AC1)", () => {
+    // Column identity: the 3px top-accent bar colours are UNCHANGED by the glass
+    // restyle (the hue never re-hues — mockup blue/green stays a follow-up).
     renderBoard([t("a", { state: "active" })]);
     const accentByColumn: Record<string, string> = {
       "column-draft": "var(--color-muted)",
@@ -134,14 +164,33 @@ describe("TaskBoardColumns — grouping", () => {
     };
     for (const [testId, accent] of Object.entries(accentByColumn)) {
       const col = screen.getByTestId(testId);
-      const style = col.getAttribute("style") ?? "";
-      expect(style).toContain("var(--g50)"); // opaque light panel ground
-      expect(style).toContain("var(--g200)"); // hairline border
-      // the 3px top-accent bar (direct child) keeps its per-column colour
       const bar = col.querySelector(':scope > [aria-hidden="true"]');
       expect(bar, `${testId} top accent`).toBeTruthy();
       expect(bar!.getAttribute("style") ?? "").toContain(accent);
     }
+  });
+
+  it("renders WHITE column headers, legible on the dark colored glass (AC3)", () => {
+    // The dark glass forces the lane header LIGHT (white on dark tint over the
+    // photo is comfortably AA; a dark header on the same glass is AA-impossible
+    // over the deck photo's dark mast/sail — see the iterate ADR calibration).
+    renderBoard([t("a", { state: "active" })]);
+    for (const title of ["Backlog", "In Progress", "Done"]) {
+      const header = screen.getByText(title).parentElement as HTMLElement;
+      expect(
+        header.getAttribute("style") ?? "",
+        `${title} header colour`,
+      ).toContain("rgba(255, 255, 255");
+    }
+  });
+
+  it("leaves the task cards WHITE — the draggable wrapper adds no background (AC2)", () => {
+    // This iterate touches ONLY the column PANEL ground; DraggableCard/TaskCard
+    // backgrounds are untouched (the cards stay `var(--card)` white and pop on
+    // the dark glass).
+    renderBoard([t("a", { state: "active" })]);
+    const wrapper = screen.getByTestId("task-card-draggable-a");
+    expect(wrapper.getAttribute("style") ?? "").not.toContain("background");
   });
 
   it("exposes a keyboard-focusable draggable with a11y semantics (AC-7 affordance)", () => {
