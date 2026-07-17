@@ -108,6 +108,7 @@ export function WaitingReplyCard({
       aria-label={task ? `Open task ${task.title}` : undefined}
       onClick={task ? handleCardClick : undefined}
       onKeyDown={task ? handleCardKeyDown : undefined}
+      data-nav-item={task ? "" : undefined}
       data-testid={`inbox-card-${itemKey}`}
     >
       <div className="mb-[6px] flex items-center justify-between gap-3">

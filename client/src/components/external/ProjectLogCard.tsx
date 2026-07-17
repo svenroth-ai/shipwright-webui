@@ -85,6 +85,7 @@ export function ProjectLogCard({
     <div
       className="card log-card glass-card"
       data-testid={`projects-card-${project.id}`}
+      data-nav-item
       role="button"
       tabIndex={0}
       onClick={openLog}

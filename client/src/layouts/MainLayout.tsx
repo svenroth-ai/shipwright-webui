@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Menu } from 'lucide-react';
 import { SidebarNav } from '../components/sidebar/SidebarNav';
 import { DiagnosticsBanner } from '../components/common/DiagnosticsBanner';
 import { SceneBackdrop } from '../components/common/SceneBackdrop';
+import { CommandCenter } from '../components/command/CommandCenter';
 import { useExternalInbox } from '../hooks/useExternalInbox';
 import { useTriageCounts } from '../hooks/useTriage';
 import { useIsPhoneViewport } from '../hooks/useIsCompactViewport';
+import { useDensity } from '../hooks/useDensity';
+import { useListKeyboardNav } from '../hooks/useListKeyboardNav';
 import {
   MobileTopBarSlotProvider,
   MobileTopBarSlotTarget,
@@ -19,6 +22,13 @@ export function MainLayout() {
   const isPhone = useIsPhoneViewport();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
+  // A21 (FR-01.65): density applies app-wide (data-density) — the list
+  // surfaces opt in via `.density-surface`. ONE global j/k list-nav (scoped to
+  // the content region, fence-guarded) drives whichever list surface is
+  // mounted; rows opt in with `data-nav-item`. No per-page binder needed.
+  const { density } = useDensity();
+  const contentRef = useRef<HTMLElement | null>(null);
+  useListKeyboardNav({ containerRef: contentRef, itemSelector: '[data-nav-item]' });
 
   // Close the drawer on route change (AC-2). Radix handles Escape / scrim /
   // focus-trap / scroll-lock / focus-restore via Dialog.
@@ -31,6 +41,10 @@ export function MainLayout() {
 
   return (
     <MobileTopBarSlotProvider>
+    {/* A21 (FR-01.65): the keyboard layer — command palette (Ctrl/⌘+K) + the
+        `?` cheat-sheet, mounted ONCE. Renders only portalled dialogs (invisible
+        when closed) so it moves no existing route's visual baseline. */}
+    <CommandCenter />
     <div className="flex h-[100dvh] overflow-hidden">
       {isPhone ? (
         <Dialog.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
@@ -54,7 +68,11 @@ export function MainLayout() {
       ) : (
         <SidebarNav inboxCount={inboxCount} triageCount={triageCount} />
       )}
-      <main className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--color-background)]">
+      <main
+        ref={contentRef}
+        data-density={density}
+        className="flex-1 min-w-0 flex flex-col overflow-hidden bg-[var(--color-background)]"
+      >
         {isPhone ? (
           <div
             data-testid="mobile-topbar"

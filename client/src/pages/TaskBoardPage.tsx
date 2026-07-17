@@ -77,6 +77,8 @@ import { ComplianceGradeBadge } from "../components/compliance/ComplianceGradeBa
 import { StatusFilterMenu } from "../components/external/BoardStatusFilter";
 import { useMobileTopBarSlot } from "../components/external/MobileTopBarSlot";
 import { PageHead } from "../components/common/PageHead";
+import { DensityToggle } from "../components/command/DensityToggle";
+import { useCreateActionParam } from "../hooks/useCreateActionParam";
 import { useIsPhoneViewport } from "../hooks/useIsCompactViewport";
 import { NewIssueModal } from "../components/external/NewIssueModal";
 import { PipelineLaneCard } from "../components/external/PipelineLaneCard";
@@ -273,6 +275,10 @@ export default function TaskBoardPage() {
   // the cascade's own fetch) when set; else the resolved/active project.
   const modalActionsQuery = useProjectActions(modalProjectId ?? resolvedProjectId);
 
+  // A21 (FR-01.65): the palette's "Launch" entries deep-link here as
+  // `?create=<actionId>`; open the REAL create modal for that action.
+  useCreateActionParam(actionsList, openModal);
+
   // Global `i` shortcut — open the New Iterate modal (FR-03.14).
   useEffect(() => {
     const listener = (ev: KeyboardEvent) => {
@@ -345,6 +351,7 @@ export default function TaskBoardPage() {
               onToggle={toggleStatus}
               onReset={clearStatusFilter}
             />
+            <DensityToggle />
           </>
         }
         actions={

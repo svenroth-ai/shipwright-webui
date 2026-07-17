@@ -47,6 +47,7 @@ import {
   useLaunchCoordinator,
 } from "../contexts/LaunchCoordinatorContext";
 import { parseTerminalFocusIntent } from "../lib/taskDeepLink";
+import { useTerminalFocusHotkey } from "../hooks/useTerminalFocusHotkey";
 
 // Lazy-load the xterm bundle so the ~120 KB gz only ships when a TaskDetail
 // actually opens (external review F6).
@@ -357,6 +358,16 @@ function TaskDetailPageBody() {
       setGitignoreAppending(false);
     }
   }, [taskId]);
+
+  // A21 (FR-01.65): `t` focuses the terminal + enters focus mode; Esc leaves.
+  // Fence-guarded — inert while the terminal itself has focus (bytes reach the
+  // pty). Focus mode is the EXISTING A18 maximize toggle (no parallel hide path).
+  const focusTerminal = useCallback(() => {
+    setMissionTab("files");
+    setCenterTab("terminal");
+    terminalRef.current?.focus();
+  }, [setMissionTab, setCenterTab]);
+  useTerminalFocusHotkey({ focusTerminal });
 
   const handleSelect = useCallback((path: string) => {
     setSelectedPaths((prev) => (prev.includes(path) ? prev : [...prev, path]));

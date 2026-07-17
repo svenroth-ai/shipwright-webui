@@ -177,7 +177,7 @@ export function TaskCard({ task }: Props) {
         }
         style={{ borderRadius: "10px" }}
         data-testid={`task-card-${task.taskId}`}
-        data-task-state={task.state}
+        data-task-state={task.state} data-nav-item
         data-project-id={task.projectId}
         title={`UUID ${task.sessionUuid.slice(0, 8)} · cwd ${cwdBase}`}
       >

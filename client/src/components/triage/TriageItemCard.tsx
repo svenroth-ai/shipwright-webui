@@ -34,6 +34,7 @@ export function TriageItemCard({ item, onClick }: TriageItemCardProps) {
       type="button"
       onClick={onClick}
       className="w-full text-left bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-card)] p-3 shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-card-hover)] transition-shadow"
+      data-nav-item
       data-testid={`triage-item-${item.id}`}
     >
       <div className="flex items-center gap-2 mb-1.5 flex-wrap">

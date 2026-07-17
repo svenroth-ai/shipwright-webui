@@ -30,6 +30,7 @@ import { projectRunsQueryOptions } from "../hooks/useRunData";
 import { ProjectWizard } from "../components/wizard/ProjectWizard";
 import { ProjectSettingsDialog } from "../components/wizard/ProjectSettingsDialog";
 import { PageHead } from "../components/common/PageHead";
+import { DensityToggle } from "../components/command/DensityToggle";
 import { ProjectLogCard } from "../components/external/ProjectLogCard";
 import { getProjectColor } from "../lib/projectColor";
 import type { RunsResponse } from "../lib/runDataApi";
@@ -126,15 +127,18 @@ export default function ProjectsPage() {
         }
         testId="projects-header"
         actions={
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-            style={{ background: "var(--color-primary)" }}
-            onClick={() => setShowWizard(true)}
-            data-testid="projects-create-button"
-          >
-            <Plus size={16} /> Create Project
-          </button>
+          <>
+            <DensityToggle />
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
+              style={{ background: "var(--color-primary)" }}
+              onClick={() => setShowWizard(true)}
+              data-testid="projects-create-button"
+            >
+              <Plus size={16} /> Create Project
+            </button>
+          </>
         }
       />
 
@@ -181,7 +185,7 @@ export default function ProjectsPage() {
               </button>
             </div>
           ) : (
-            <div className="log-gallery" data-testid="projects-gallery">
+            <div className="log-gallery density-surface" data-testid="projects-gallery">
               {ordered.map((project) => {
                 const rq = runsByProject.get(project.id);
                 return (

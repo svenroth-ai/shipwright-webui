@@ -80,6 +80,7 @@ export function AskToolCard({
       aria-label={task ? `Open task ${task.title}` : undefined}
       onClick={task ? handleCardClick : undefined}
       onKeyDown={task ? handleCardKeyDown : undefined}
+      data-nav-item={task ? "" : undefined}
       data-testid={`inbox-card-${item.toolUseId}`}
       data-testid-legacy={`inbox-item-${item.toolUseId}`}
     >
