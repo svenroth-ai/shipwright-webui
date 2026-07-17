@@ -14,7 +14,9 @@ const EMPTY_TRANSCRIPT: TranscriptSummary = {
   hasActivity: false,
 };
 
-function liveModel(stage: "Spec" | "Build" | "Test" | "Finalize" | null): MissionLiveModel {
+function liveModel(
+  stage: "Analyze" | "Spec" | "Build" | "Test" | "Finalize" | "Merge" | null,
+): MissionLiveModel {
   return deriveMissionLive({
     missionState: "live",
     run: null,
@@ -41,14 +43,14 @@ function completedModel(): MissionLiveModel {
   });
 }
 
-describe("MissionLeftPanel — stage labels (AC4)", () => {
-  it("renders the four stage labels EXACTLY, in order", () => {
+describe("MissionLeftPanel — stage labels (FR-01.67 AC1)", () => {
+  it("renders the SIX stage labels EXACTLY, in order (Analyze…Merge)", () => {
     render(<MissionLeftPanel model={liveModel("Build")} activeNodeKey={null} onNodeClick={vi.fn()} />);
     const stage = screen.getByTestId("mission-stage");
     const labels = within(stage)
-      .getAllByText(/Spec|Build|Test|Finalize/)
+      .getAllByText(/Analyze|Spec|Build|Test|Finalize|Merge/)
       .map((el) => el.textContent);
-    expect(labels).toEqual(["Spec", "Build", "Test", "Finalize"]);
+    expect(labels).toEqual(["Analyze", "Spec", "Build", "Test", "Finalize", "Merge"]);
   });
 
   it("highlights the current stage and marks the earlier ones done", () => {
@@ -56,10 +58,12 @@ describe("MissionLeftPanel — stage labels (AC4)", () => {
     const stage = screen.getByTestId("mission-stage");
     expect(stage).toHaveAttribute("data-stage", "Test");
     const steps = stage.querySelectorAll("li.ml-step");
-    expect(steps[0].getAttribute("data-state")).toBe("done"); // Spec
-    expect(steps[1].getAttribute("data-state")).toBe("done"); // Build
-    expect(steps[2].getAttribute("data-state")).toBe("current"); // Test
-    expect(steps[3].getAttribute("data-state")).toBe("todo"); // Finalize
+    expect(steps[0].getAttribute("data-state")).toBe("done"); // Analyze
+    expect(steps[1].getAttribute("data-state")).toBe("done"); // Spec
+    expect(steps[2].getAttribute("data-state")).toBe("done"); // Build
+    expect(steps[3].getAttribute("data-state")).toBe("current"); // Test
+    expect(steps[4].getAttribute("data-state")).toBe("todo"); // Finalize
+    expect(steps[5].getAttribute("data-state")).toBe("todo"); // Merge
   });
 
   it("shows an honest '—' when the stage cannot be derived (AC3)", () => {
@@ -68,14 +72,44 @@ describe("MissionLeftPanel — stage labels (AC4)", () => {
     expect(screen.getByTestId("mission-stage-none")).toBeInTheDocument();
   });
 
-  it("a completed run marks every stage done and shows no '—'", () => {
+  it("a completed (merged) run marks every stage done and shows no '—'", () => {
     render(<MissionLeftPanel model={completedModel()} activeNodeKey={null} onNodeClick={vi.fn()} />);
     const stage = screen.getByTestId("mission-stage");
-    expect(stage).toHaveAttribute("data-stage", "Finalize");
+    expect(stage).toHaveAttribute("data-stage", "Merge");
     expect(screen.queryByTestId("mission-stage-none")).not.toBeInTheDocument();
-    for (const step of stage.querySelectorAll("li.ml-step")) {
+    const steps = stage.querySelectorAll("li.ml-step");
+    expect(steps.length).toBe(6);
+    for (const step of steps) {
       expect(step.getAttribute("data-state")).toBe("done");
     }
+  });
+});
+
+describe("MissionLeftPanel — campaign progress line (FR-01.67 AC3)", () => {
+  function campaignModel(): MissionLiveModel {
+    return deriveMissionLive({
+      missionState: "live",
+      run: null,
+      transcript: { ...EMPTY_TRANSCRIPT, stage: "Build", hasActivity: true, summary: "x" },
+      taskTitle: "campaign: wow-usability",
+      campaign: { slug: "wow-usability", done: 21, total: 22, activeSubIterate: "A21" },
+    });
+  }
+
+  it("renders 'Sub-iterate N of M · A<k>' above the stepper for a campaign session", () => {
+    render(<MissionLeftPanel model={campaignModel()} activeNodeKey={null} onNodeClick={vi.fn()} />);
+    const line = screen.getByTestId("mission-campaign-progress");
+    expect(line).toHaveTextContent("Sub-iterate 21 of 22");
+    expect(line).toHaveTextContent("A21");
+    // The stepper still renders the active sub-iterate's stage.
+    expect(screen.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Build");
+    // The business summary is the readable slug, not the raw title.
+    expect(screen.getByTestId("mission-summary")).toHaveTextContent("wow-usability");
+  });
+
+  it("no campaign line for a normal (non-campaign) session", () => {
+    render(<MissionLeftPanel model={liveModel("Build")} activeNodeKey={null} onNodeClick={vi.fn()} />);
+    expect(screen.queryByTestId("mission-campaign-progress")).not.toBeInTheDocument();
   });
 });
 

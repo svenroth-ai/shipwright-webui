@@ -17,11 +17,23 @@
  * `record-rail` test id — it is the same left slot, now the artifact-links panel.
  */
 
-import type { MissionLiveModel } from "../../../hooks/useMissionLive";
+import type { CampaignMissionInfo, MissionLiveModel } from "../../../hooks/useMissionLive";
 import { STAGE_LABELS, type LifecycleStage } from "../../../lib/narrator-transcript";
 import { RecordNode } from "./RecordNode";
 
 const EM_DASH = String.fromCodePoint(0x2014);
+const MIDDLE_DOT = String.fromCodePoint(0x00b7);
+
+/** The autonomous-campaign progress line — "Sub-iterate N of M · A<k>" — shown
+ *  ABOVE the stepper for a campaign session only (FR-01.67). */
+function CampaignProgress({ campaign }: { campaign: CampaignMissionInfo }) {
+  const suffix = campaign.activeSubIterate ? ` ${MIDDLE_DOT} ${campaign.activeSubIterate}` : "";
+  return (
+    <p className="ml-campaign-progress" data-testid="mission-campaign-progress">
+      {`Sub-iterate ${campaign.done} of ${campaign.total}${suffix}`}
+    </p>
+  );
+}
 
 type StepState = "done" | "current" | "todo";
 
@@ -72,7 +84,7 @@ interface Props {
 }
 
 export function MissionLeftPanel({ model, activeNodeKey, onNodeClick }: Props) {
-  const { businessSummary, stage, stageComplete, nodes } = model;
+  const { businessSummary, stage, stageComplete, nodes, campaign } = model;
   return (
     <nav
       className="record mc-left"
@@ -88,6 +100,7 @@ export function MissionLeftPanel({ model, activeNodeKey, onNodeClick }: Props) {
 
       <section className="ml-block">
         <span className="eyebrow">Where it stands</span>
+        {campaign ? <CampaignProgress campaign={campaign} /> : null}
         <StageStepper stage={stage} complete={stageComplete} />
       </section>
 

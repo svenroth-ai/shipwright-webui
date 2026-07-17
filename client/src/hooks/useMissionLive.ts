@@ -25,6 +25,8 @@ import { useMemo } from "react";
 
 import type { ExternalTask } from "../lib/externalApi";
 import type { RunDataJoin } from "../lib/runDataApi";
+import type { Campaign } from "../lib/campaignsApi";
+import { parseCampaignSlug } from "../lib/campaignSlug";
 import {
   summarizeTranscript,
   type LifecycleStage,
@@ -32,10 +34,22 @@ import {
   type TranscriptSummary,
 } from "../lib/narrator-transcript";
 import { deriveRecordNodes, type MissionState, type RecordNodeView } from "../lib/recordNodes";
+import { useCampaigns } from "./useCampaigns";
 import { useMissionState } from "./useMissionState";
 import { useRunDetail } from "./useRunData";
 
 export type MissionMode = "completed" | "live" | "adhoc" | "empty";
+
+/** Autonomous-campaign progress for a `campaign: <slug>` orchestrator session
+ *  (FR-01.67). Populated ONLY when the task title parses to a slug AND that
+ *  campaign is present in the `useCampaigns` payload — else null (dormant). */
+export interface CampaignMissionInfo {
+  slug: string;
+  done: number;
+  total: number;
+  /** The active sub-iterate id (an `in_progress` step, else `nextPending`), or null. */
+  activeSubIterate: string | null;
+}
 
 export interface MissionLiveModel {
   missionState: MissionState;
@@ -45,12 +59,32 @@ export interface MissionLiveModel {
   businessSummary: string | null;
   /** Inferred lifecycle stage, or null (rendered as "—"). */
   stage: LifecycleStage | null;
-  /** True only when the run reached a done `Finalize` (a completed run). */
+  /** True only when the run reached a done, terminal `Merge` (a completed run). */
   stageComplete: boolean;
   /** The live JSONL narration for the middle panel. */
   narration: { summary: string | null; activity: TranscriptActivity[] };
   /** The Req/Spec/Test/Review/Commit nodes rendered AS artifact links. */
   nodes: RecordNodeView[];
+  /** Autonomous-campaign progress, or null for a normal session (FR-01.67). */
+  campaign: CampaignMissionInfo | null;
+}
+
+/**
+ * Pure lookup: match the parsed slug against the `useCampaigns` payload and read
+ * its progress. Exported for isolated testing; honest by construction (a missing
+ * slug / payload / match yields null — never a fabricated progress). The active
+ * sub-iterate is the `in_progress` step, falling back to `nextPending`.
+ */
+export function deriveCampaignInfo(
+  slug: string | null,
+  campaigns: Campaign[] | null | undefined,
+): CampaignMissionInfo | null {
+  if (!slug || !campaigns) return null;
+  const c = campaigns.find((x) => x.slug === slug);
+  if (!c) return null;
+  const activeStep = c.steps.find((s) => s.status === "in_progress");
+  const activeSubIterate = activeStep?.id ?? c.nextPending?.id ?? null;
+  return { slug, done: c.done, total: c.total, activeSubIterate };
 }
 
 function firstNonEmpty(...vals: (string | null | undefined)[]): string | null {
@@ -71,8 +105,12 @@ export function deriveMissionLive(input: {
   run: RunDataJoin | null;
   transcript: TranscriptSummary;
   taskTitle: string | null;
+  /** Autonomous-campaign progress, threaded in like `transcript` (keeps this
+   *  derivation pure). Null/undefined for a normal session (FR-01.67). */
+  campaign?: CampaignMissionInfo | null;
 }): MissionLiveModel {
   const { missionState, run, transcript, taskTitle } = input;
+  const campaign = input.campaign ?? null;
   const title = firstNonEmpty(taskTitle);
 
   const mode: MissionMode =
@@ -84,12 +122,18 @@ export function deriveMissionLive(input: {
           ? "adhoc"
           : "empty";
 
-  const businessSummary =
-    mode === "completed"
+  // A campaign session shows the human-readable slug, not the raw
+  // `campaign: <slug>` title (FR-01.67).
+  const businessSummary = campaign
+    ? campaign.slug
+    : mode === "completed"
       ? firstNonEmpty(run?.summary, run?.intent, title)
       : firstNonEmpty(title, transcript.topic);
 
-  const stage: LifecycleStage | null = mode === "completed" ? "Finalize" : transcript.stage;
+  // A completed (merged) run is the terminal Merge stage, all done (FR-01.67);
+  // otherwise the windowed transcript stage (the active sub-iterate's, for a
+  // campaign) or an honest null.
+  const stage: LifecycleStage | null = mode === "completed" ? "Merge" : transcript.stage;
 
   return {
     missionState,
@@ -99,6 +143,7 @@ export function deriveMissionLive(input: {
     stageComplete: mode === "completed",
     narration: { summary: transcript.summary, activity: transcript.activity },
     nodes: deriveRecordNodes({ missionState, facts: run }),
+    campaign,
   };
 }
 
@@ -116,8 +161,25 @@ export function useMissionLive(
   const run = runDetail.data?.status === "ok" ? runDetail.data.run : null;
   const transcript = useMemo(() => summarizeTranscript(transcriptContent), [transcriptContent]);
 
+  // Campaign awareness (FR-01.67): the existing 3 s campaign poll, enabled ONLY
+  // when the title is a `campaign: <slug>` breadcrumb — dormant otherwise (NOT a
+  // second transcript poller; reuses the pre-existing campaigns endpoint).
+  const slug = parseCampaignSlug(task?.title ?? null);
+  const campaignsQuery = useCampaigns(task?.projectId ?? null, { enabled: slug != null });
+  const campaign = useMemo(
+    () => deriveCampaignInfo(slug, campaignsQuery.data),
+    [slug, campaignsQuery.data],
+  );
+
   return useMemo(
-    () => deriveMissionLive({ missionState, run, transcript, taskTitle: task?.title ?? null }),
-    [missionState, run, transcript, task?.title],
+    () =>
+      deriveMissionLive({
+        missionState,
+        run,
+        transcript,
+        taskTitle: task?.title ?? null,
+        campaign,
+      }),
+    [missionState, run, transcript, task?.title, campaign],
   );
 }

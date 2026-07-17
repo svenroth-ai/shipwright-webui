@@ -26,9 +26,11 @@ import {
 } from "../external/session-parser";
 import { sanitizeProofText } from "./proofLines";
 
-/** The four fixed lifecycle-stage labels (FR-01.66 AC4 — verbatim, Sven's call:
- *  Shipwright phase nouns, NOT gerunds). A test pins these four strings. */
-export const STAGE_LABELS = ["Spec", "Build", "Test", "Finalize"] as const;
+/** The six fixed lifecycle-stage labels (FR-01.67 AC1 — verbatim, Sven's call:
+ *  Shipwright phase nouns, NOT gerunds). Analyze (the repo-scout/kickoff bookend)
+ *  and Merge (pushed · CI · awaiting the squash) join the original four. A test
+ *  pins these six strings. */
+export const STAGE_LABELS = ["Analyze", "Spec", "Build", "Test", "Finalize", "Merge"] as const;
 export type LifecycleStage = (typeof STAGE_LABELS)[number];
 
 export interface TranscriptActivity {
@@ -156,32 +158,91 @@ function topicFor(ev: ParsedEvent): string | null {
   return t || null;
 }
 
+/** True for a `/shipwright-iterate` kickoff (incl. `--campaign … --autonomous`) —
+ *  the start of a (sub-)iterate, used both as an Analyze marker and as the
+ *  windowing boundary (`currentIterateEvents`). */
+function isIterateStart(commandName: string): boolean {
+  return /shipwright-iterate/i.test(commandName);
+}
+
 /**
- * Infer the lifecycle stage from REAL markers only, picking the furthest-along
- * evidenced stage (Finalize > Test > Build > Spec). A run advances
- * Spec→Build→Test→Finalize, so the furthest-along evidence is "where it stands
- * now". No evidence → null (rendered as an honest "—", never a guessed stage).
+ * The events belonging to the CURRENT (sub-)iterate (FR-01.67 AC2). `inferStage`
+ * OR-latches forward and never resets, which is correct for a single iterate but
+ * WRONG for a campaign: once sub-iterate #1 opens a PR, Merge would latch for the
+ * whole multi-hour session and the stepper would read "Merge" while sub-iterate
+ * #21 is still in Build.
+ *
+ * The current iterate begins at the LATEST boundary — its `/shipwright-iterate`
+ * kickoff (inclusive), OR the event right AFTER a prior sub-iterate's terminal
+ * `pr-link`. A forward scan keeps the last such boundary; a plain single iterate
+ * has none, so the slice is the whole transcript (unchanged behaviour). A pr-link
+ * with NOTHING after it is the CURRENT iterate's own Merge (its PR just opened),
+ * so the boundary is clamped to keep it in view (never an empty window).
+ *
+ * NOTE: the spec also names `work_completed`, but that lives in
+ * `shipwright_events.jsonl`, NOT the Claude `<uuid>.jsonl` this reads
+ * (`session-parser` has no such kind) — don't add a phantom branch for it.
  */
-function inferStage(events: readonly ParsedEvent[]): LifecycleStage | null {
+export function currentIterateEvents(
+  events: readonly ParsedEvent[],
+): readonly ParsedEvent[] {
+  let start = 0;
+  for (let i = 0; i < events.length; i++) {
+    const ev = events[i];
+    if (ev.kind === "slash-command" && isIterateStart(ev.commandName)) {
+      start = i; // a (sub-)iterate begins AT its kickoff (inclusive)
+    } else if (ev.kind === "pr-link") {
+      start = i + 1; // a prior sub-iterate ended; the next begins after it
+    }
+  }
+  // A trailing pr-link pushed `start` past the end — back off to keep it in view.
+  if (start >= events.length) start = events.length - 1;
+  return start > 0 ? events.slice(start) : events;
+}
+
+/**
+ * Infer the lifecycle stage from REAL markers only — the furthest-along evidenced
+ * stage (Merge > Finalize > Test > Build > Spec > Analyze), else null (honest "—",
+ * never guessed). Analyze is the WEAKEST signal (leading scout/kickoff cluster),
+ * overridden by any real edit/test. Callers run it over `currentIterateEvents` (AC2).
+ */
+export function inferStage(events: readonly ParsedEvent[]): LifecycleStage | null {
+  let analyze = false;
   let spec = false;
   let build = false;
   let test = false;
   let finalize = false;
+  let merge = false;
   for (const ev of events) {
     if (ev.kind === "pr-link") {
-      finalize = true;
+      merge = true; // a PR link is the strongest "pushed, awaiting merge" marker
       continue;
     }
     if (ev.kind === "slash-command") {
-      if (/spec|plan/.test(ev.commandName.toLowerCase())) spec = true;
+      const name = ev.commandName.toLowerCase();
+      if (isIterateStart(name) || /\banalyze\b|\bscout\b/.test(name)) analyze = true;
+      else if (/spec|plan/.test(name)) spec = true;
       continue;
     }
     if (ev.kind !== "assistant") continue;
     for (const tu of toolUses(ev)) {
       const cmd = tu.name === "Bash" ? toolCommand(tu.input).toLowerCase() : "";
-      if (/git commit|git push|\bgh pr\b|changelog|finalize|decision_log/.test(cmd)) finalize = true;
+      // Merge (SPLIT out of Finalize): push, any `gh pr …`, `gh run …`.
+      if (/git push|\bgh pr\b|\bgh run\b/.test(cmd)) merge = true;
+      // Finalize NARROWED: commit + compliance edits, but NOT push/PR.
+      if (/git commit|changelog|finalize|decision_log/.test(cmd)) finalize = true;
       if (/\b(npm (run )?test|vitest|playwright|pytest|jest)\b/.test(cmd)) test = true;
       if (/npm run build|vite build|\btsc\b|typecheck/.test(cmd)) build = true;
+      // The leading scout cluster (Analyze): reads/searches/todo/delegation.
+      if (
+        tu.name === "Read" ||
+        tu.name === "Grep" ||
+        tu.name === "Glob" ||
+        tu.name === "Task" ||
+        tu.name === "TodoWrite"
+      ) {
+        analyze = true;
+      }
       if (tu.name === "Edit" || tu.name === "Write" || tu.name === "MultiEdit") {
         const path = (toolPath(tu.input) ?? "").toLowerCase();
         // Path-SEGMENT / filename anchors, not bare substrings: `specification.ts`
@@ -193,10 +254,12 @@ function inferStage(events: readonly ParsedEvent[]): LifecycleStage | null {
       }
     }
   }
+  if (merge) return "Merge";
   if (finalize) return "Finalize";
   if (test) return "Test";
   if (build) return "Build";
   if (spec) return "Spec";
+  if (analyze) return "Analyze";
   return null;
 }
 
@@ -218,7 +281,9 @@ export function summarizeTranscript(content: string): TranscriptSummary {
     if (topic == null) topic = topicFor(ev);
   }
 
-  const stage = inferStage(events);
+  // The stage is windowed to the CURRENT (sub-)iterate (FR-01.67 AC2); the
+  // activity list stays over the whole transcript (its tail is the current work).
+  const stage = inferStage(currentIterateEvents(events));
   if (lines.length === 0) {
     return { topic, summary: null, activity: [], stage, hasActivity: false };
   }

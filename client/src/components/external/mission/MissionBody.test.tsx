@@ -12,6 +12,11 @@ vi.mock("../../../hooks/useMissionState", () => ({
 vi.mock("../../../hooks/useRunData", () => ({
   useRunDetail: () => runDetailMock(),
 }));
+// FR-01.67: useMissionLive now consults useCampaigns (dormant for non-campaign
+// titles). Stub it so this shell test needs no QueryClient provider.
+vi.mock("../../../hooks/useCampaigns", () => ({
+  useCampaigns: () => ({ data: [] }),
+}));
 // A14's gate body (rendered by OperationCard in designgate mode) carries its own
 // tests + needs QueryClient / LaunchCoordinator providers; stub it so this shell
 // test stays about the three-card routing.
@@ -100,8 +105,8 @@ describe("MissionBody — the redesigned left panel + live/verdict middle", () =
     for (const key of ["req", "spec", "tests", "review", "commit"] as const) {
       expect(screen.getByTestId(`record-node-${key}`)).toBeInTheDocument();
     }
-    // Stage is a done Finalize.
-    expect(screen.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Finalize");
+    // Stage is a done, terminal Merge (FR-01.67).
+    expect(screen.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Merge");
   });
 
   it("clicking an artifact link opens the RIGHT panel; re-click closes it", () => {
