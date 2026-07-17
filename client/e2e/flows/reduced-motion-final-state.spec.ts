@@ -65,8 +65,12 @@ test.describe("reduced motion renders the complete final state (AC1)", () => {
         })),
       );
       for (const ring of rings) {
-        // A drawn arc: offset < dasharray (an empty ring would have offset == arr).
-        expect(ring.off).toBeLessThan(ring.arr);
+        // The point is the ring rests at its FINAL state under reduce, not mid-
+        // animation — a drawn arc (offset < dasharray) OR a legitimately empty
+        // 0/100 arc (offset == dasharray). Both are valid final states; only a
+        // partial mid-draw would be a bug. `<=` so a genuine score of 0 is not a
+        // false-fail (delegated-review finding).
+        expect(ring.off).toBeLessThanOrEqual(ring.arr);
       }
     });
   }

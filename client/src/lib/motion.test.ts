@@ -75,7 +75,6 @@ describe("motion stagger — capped index → delay", () => {
 
 describe("motion tokens — TS constants MIRROR the CSS custom properties (AC2)", () => {
   // Read the CSS token layer at test time and prove the two sources agree.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let css = "";
   it("styles/motion.css declares each --motion-* / --ease-* / --stagger-step token", async () => {
     const fs = await import("node:fs" as string);
