@@ -33,14 +33,14 @@ jobs:
         language: [javascript-typescript]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Initialize CodeQL
         # build-mode: none — a pure JS/TS repo needs no compilation for
         # extraction, so CodeQL reads source directly (no autobuild step).
         # The monorepo's codeql.yml uses autobuild because it also analyzes
         # Python.
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@b7351df727350dca84cb9d725d57dcf5bc82ba26 # v3.37.1
         with:
           languages: ${{ matrix.language }}
           build-mode: none
@@ -58,7 +58,7 @@ jobs:
         # must be enabled for this repository". The QL analysis still runs;
         # once Code Scanning is enabled (public repos: free) this succeeds
         # normally. Mirrors the guard on security.yml's upload-sarif step.
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@b7351df727350dca84cb9d725d57dcf5bc82ba26 # v3.37.1
         continue-on-error: true
         with:
           category: "/language:${{ matrix.language }}"

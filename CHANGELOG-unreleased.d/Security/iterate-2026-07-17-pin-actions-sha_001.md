@@ -1,0 +1,1 @@
+Pinned all first-party GitHub Actions in CI workflows to full commit SHAs and added a grouped weekly Dependabot config (github-actions) so they stay current — supply-chain hardening that clears the Semgrep mutable-action-tag and OpenSSF Scorecard pinned-dependencies findings.

@@ -1,19 +1,18 @@
 {
   "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-17-ui-polish-forms-shiplog",
+    "run_id": "iterate-2026-07-17-pin-actions-sha",
     "date": "2026-07-17",
     "unit": {
-      "status": "passed",
-      "passed": 2695,
-      "total": 2695,
-      "note": "client vitest 295 files / 2695 passed (was 2690; +5 fences: MarkdownRenderer AC7, ShipsLogPage AC8, ProjectsPage AC3, SimpleFields AC1, LogEntryList sessions). tsc --noEmit clean; oxlint clean (only pre-existing warnings). Server untouched (client-only UI change)."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "CI-config-only diff (.github/workflows/*.yml uses-line SHA pins + new .github/dependabot.yml). No TS/JS/Python source touched, so vitest/tsc/oxlint scope is unchanged. The verification layer for this change is YAML-parse validity + SHA resolution + grep (see test_completeness)."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "Client-only UI/token change; no server route/store/contract touched."
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -21,83 +20,86 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 5,
-      "total": 5,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE, :3900). Ran projects-gallery (2), smartviewer-crossfile-nav (1, updated for the removed path strip), A16-ships-log (1), 81-project-actions-config (1) — all passed. The stale projects-gallery 'Open board' nav assertion (pre-existing; A16 moved openProjectLog to /projects/:id/log) was corrected in this diff. Visual project rendered every route; each changed screen verified by eye (actuals viewed) — baselines NOT regenerated on Windows (Linux-only per playwright.config)."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "No product surface (web/cli/api) exercised; F0.5 surface=none, justified. The PR's own CI run (ci/security/pr-review/codeql) is the live end-to-end proof of the pinned actions."
     },
     "design_fidelity": {
-      "status": "passed",
-      "note": "Item-by-item screenshot verification against the committed baselines + ad-hoc captures: beige form, aligned Files pane, light-grey settings rows, standardized bright-teal buttons, removed path strip, black Edit/Pop out, solid Ship's Log button, Recent-sessions list."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run",
+      "note": "CI-config-only change; no server/app is started, so there is no smoke surface. This is not a test regression."
     },
-    "degraded": [],
+    "surface_verification": {
+      "surface": "none",
+      "exit_code": 0,
+      "tests_run": 0,
+      "justification": "CI-config-only change; no product runtime surface. Real end-to-end proof is the PR's own CI run executing the pinned actions live.",
+      "evidence_path": ".shipwright/runs/iterate-2026-07-17-pin-actions-sha/surface_verification.json",
+      "timestamp": "2026-07-17T00:00:00.000Z",
+      "attempts": 1
+    },
     "test_completeness": {
       "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "AC1 task form renders beige sheet + white fields with visible frames",
-          "disposition": "tested",
-          "evidence": "SimpleFields.test.tsx (bg-white + border-[var(--line-strong]) PASSED + verify-new-issue-modal.png"
-        },
-        {
-          "behavior": "AC2 Inbox/Triage/Board top padding equals Projects' 24px",
-          "disposition": "tested",
-          "evidence": "deterministic paddingBlock 24px / pt-6 change; inbox-actual.png render confirms the 24px top gap matches Projects"
-        },
-        {
-          "behavior": "AC3 Projects 'Create Project' uses the standard .btn-primary",
-          "disposition": "tested",
-          "evidence": "ProjectsPage.test.tsx (projects-create-button hasClass btn-primary) PASSED + projects-actual.png"
-        },
-        {
-          "behavior": "AC4 Settings action rows render light grey (not white-on-white)",
-          "disposition": "tested",
-          "evidence": "ActionsConfigRow background var(--inset); settings-actual.png confirms the distinct light-grey row"
-        },
-        {
-          "behavior": "AC5 Files three-pane left-aligns with the tab control",
-          "disposition": "tested",
-          "evidence": "verify-three-pane.png confirms the Files pane left edge aligns with the Mission|Files&Terminal tab control (was full-bleed)"
-        },
-        {
-          "behavior": "AC6 Smart-Viewer filename/size path strip removed",
-          "disposition": "tested",
-          "evidence": "smartviewer-crossfile-nav.spec.ts (re-anchored to document content) PASSED + grep-clean (no path-strip refs) + verify-smartviewer.png"
-        },
-        {
-          "behavior": "AC7 Smart-Viewer Edit/Pop out use black text + black border",
-          "disposition": "tested",
-          "evidence": "MarkdownRenderer.test.tsx (color+border var(--color-text)) PASSED + verify-smartviewer.png"
-        },
-        {
-          "behavior": "AC8 Ship's Log header button is the standard solid .btn-primary",
-          "disposition": "tested",
-          "evidence": "ShipsLogPage.test.tsx (ships-log-open-board hasClass btn-primary) PASSED + ships-log-actual.png"
-        },
-        {
-          "behavior": "AC9 no-runs empty wording = 'No runs yet. Grade or adopt it to open the logbook.'",
-          "disposition": "tested",
-          "evidence": "LogEntryList.test.tsx + ProjectLogCard.test.tsx PASSED (assert the exact wording)"
-        },
-        {
-          "behavior": "AC10 non-Shipwright projects (no runs + sessions) list recent sessions instead of the nudge",
-          "disposition": "tested",
-          "evidence": "LogEntryList.test.tsx (sessions branch, precedence, click→/tasks/:id) + ProjectLogCard.test.tsx (session count) PASSED + verify-shipslog-sessions.png"
-        }
-      ],
+      "enumeration_basis": "Every behaviour this diff introduces, from the change's informal ACs: (a) workflows remain valid YAML after pinning, (b) each SHA maps to its declared version tag so the change is behavior-preserving, (c) the Semgrep mutable-action-tag surface is cleared, (d) the two pre-existing pins and (e) the permission-rationale comments are untouched, plus (f) live workflow execution and (g) Dependabot pickup which are only observable on GitHub. 7 behaviours; 5 tested locally; 2 untestable-locally (external GitHub service); 0 untested-testable.",
       "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 0,
+        "total": 7,
+        "testable": 5,
+        "tested": 5,
+        "untestable": 2,
         "untested_testable": 0
       },
-      "enumeration_basis": {
-        "acs": 10,
-        "covered_acs": 10
-      }
-    }
+      "behaviors": [
+        {
+          "behavior": "All 6 workflow YAMLs + the new dependabot.yml remain syntactically valid after the SHA-pin pass",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "uv run --with pyyaml yaml.safe_load parsed all 7 files: ALL VALID"
+        },
+        {
+          "behavior": "Every pinned SHA resolves to its declared version tag (behavior-preserving: identical to the commit CI already ran)",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "gh api repos/<action>/commits/<major-tag> -> pinned 40-hex SHA for all 7 refs: checkout v4.3.1, setup-node v4.4.0, setup-python v5.6.0, github-script v7.1.0, upload-artifact v4.6.2, codeql-action v3.37.1 (init/analyze) + v4.37.1 (upload-sarif)"
+        },
+        {
+          "behavior": "No mutable-tag uses: references remain — the Semgrep github-actions-mutable-action-tag surface (20 alerts) is cleared",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "grep -rnE 'uses:.*@v[0-9]' .github/workflows returns zero matches"
+        },
+        {
+          "behavior": "The two pre-existing SHA-pins (svenroth-ai diff-coverage-gate, peter-evans create-or-update-comment) are unchanged",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "grep confirmed both intact; diff is 27 uses-line changes, neither line touched"
+        },
+        {
+          "behavior": "The permission-rationale comments in security.yml (which mention actions by name) were not corrupted by the string-replace pass",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "restored 2 mangled comment lines; grep for double-## mangled comments (#.*@<40hex> #) returns zero"
+        },
+        {
+          "behavior": "Workflows still trigger and the pinned actions execute successfully in CI",
+          "category": "e2e",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "GitHub Actions runner is an external service; the PR's own ci/security/pr-review/codeql runs exercise the pinned actions live — observed post-push, the real end-to-end proof"
+        },
+        {
+          "behavior": "Dependabot detects the github-actions ecosystem and opens grouped weekly bump PRs",
+          "category": "e2e",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "Dependabot is a GitHub-hosted service; config validity is checked via YAML parse, runtime pickup is observable only on GitHub after merge"
+        }
+      ]
+    },
+    "degraded": []
   }
 }
