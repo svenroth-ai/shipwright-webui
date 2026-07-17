@@ -170,3 +170,47 @@ describe("useThreePaneLayout — mutations", () => {
     expect(localStorage.getItem(STORAGE_KEYS.rightCollapsed)).toBe("true");
   });
 });
+
+describe("useThreePaneLayout — maximize (A18 focus mode)", () => {
+  it("defaults to not maximized", () => {
+    const { result } = renderHook(() => useThreePaneLayout());
+    expect(result.current.maximized).toBe(false);
+  });
+
+  it("toggleMaximized flips the transient flag", () => {
+    const { result } = renderHook(() => useThreePaneLayout());
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    expect(result.current.maximized).toBe(true);
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    expect(result.current.maximized).toBe(false);
+  });
+
+  it("does NOT persist to localStorage (a view mode, not a preference)", () => {
+    const { result } = renderHook(() => useThreePaneLayout());
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    flushDebounce();
+    // No maximize key exists; the four persisted keys are unaffected.
+    const keys = Object.keys(localStorage);
+    expect(keys.some((k) => k.toLowerCase().includes("maxim"))).toBe(false);
+  });
+
+  it("maximize does not clobber the persisted collapse preferences", () => {
+    localStorage.setItem(STORAGE_KEYS.leftCollapsed, "true");
+    const { result } = renderHook(() => useThreePaneLayout());
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    // The user's real collapse pref survives focus mode.
+    expect(result.current.leftCollapsed).toBe(true);
+    act(() => {
+      result.current.toggleMaximized();
+    });
+    expect(result.current.leftCollapsed).toBe(true);
+  });
+});

@@ -112,6 +112,9 @@
 
   /* promoted from A18's inline values — the Terminal/Transcript reading surface */
   --beige: #ECE4D5; --beige-line: #D8CFBD;
+  /* A18 semantic name for the SOLID middle Files-&-Terminal card (the reading
+     surface the terminal's own dark canvas sits inside). Single source: --beige. */
+  --surface-reading: var(--beige); --surface-reading-line: var(--beige-line);
 
   /* derived composite grounds — computed once from deck-golden.jpg (see the ladder
      header above for the derivation). Documented constants so the ladder tests a

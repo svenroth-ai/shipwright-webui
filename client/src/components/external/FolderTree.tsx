@@ -248,16 +248,12 @@ export function FolderTree({ projectId, selectedPath, onSelect }: Props) {
 
   return (
     <div
-      className="flex h-full flex-col border-r border-[var(--color-border,#e0dbd4)]"
-      style={{ background: "var(--color-surface, #ffffff)" }}
+      className="ft-card ft-files flex h-full flex-col"
       data-testid="folder-tree"
     >
-      <div
-        className="flex items-center gap-1 border-b border-[var(--color-border,#e0dbd4)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.08em]"
-        style={{ color: "var(--color-muted, #6b7280)", background: "var(--color-bg, #f5f0eb)" }}
-        data-testid="folder-tree-header"
-      >
-        <span className="flex-1">Files</span>
+      {/* Greyed .ft-head band — Files title + refresh (A18 three-card skin). */}
+      <div className="ft-head" data-testid="folder-tree-header">
+        <span className="ft-title flex-1">Files</span>
         {rootState?.loading && (
           <Loader2 size={12} className="animate-spin" aria-label="Loading" />
         )}
