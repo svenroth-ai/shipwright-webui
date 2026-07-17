@@ -19,6 +19,7 @@ describe("launchCampaignStep", () => {
     window.sessionStorage.clear();
   });
 
+  // @covers FR-01.36
   it("creates a step task titled '<slug> · <stepId>', launches it, hands off, returns ok", async () => {
     const d = deps();
     const res = await launchCampaignStep(
@@ -33,6 +34,7 @@ describe("launchCampaignStep", () => {
     expect(d.handoff).toHaveBeenCalledWith("t-1", COMMANDS);
   });
 
+  // @covers FR-01.36
   it("default handoff writes the pending-auto-launch sessionStorage key (resume:false)", async () => {
     const d = deps({ handoff: undefined });
     await launchCampaignStep(
@@ -46,6 +48,7 @@ describe("launchCampaignStep", () => {
     expect(parsed.resume).toBe(false);
   });
 
+  // @covers FR-01.36
   it("returns create_failed and never launches when createTask throws", async () => {
     const d = deps({
       create: vi.fn(async () => {
@@ -60,6 +63,7 @@ describe("launchCampaignStep", () => {
     expect(d.launch).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.36
   it("returns launch_failed when the step launch is rejected (e.g. spec missing)", async () => {
     const d = deps({
       launch: vi.fn(async () => {

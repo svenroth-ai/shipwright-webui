@@ -51,6 +51,7 @@ function spawnReturning(result: Partial<SpawnResult>): SpawnGradeFn {
 }
 
 describe("runGrade — the spawn is injection-safe (fixed argv, shell:false)", () => {
+  // @covers FR-01.53
   it("passes the target as a FIXED argv position, never a shell string", async () => {
     const spawn = vi.fn<SpawnGradeFn>(async () => ({
       code: 0,
@@ -76,6 +77,7 @@ describe("runGrade — the spawn is injection-safe (fixed argv, shell:false)", (
 });
 
 describe("runGrade — honest outcome mapping for every grade.py exit", () => {
+  // @covers FR-01.53
   it("exit 0 + valid JSON → report-ready with the RAW model (no reshape)", async () => {
     const spawn = spawnReturning({ stdout: JSON.stringify(AUTH_MODEL) });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
@@ -83,6 +85,7 @@ describe("runGrade — honest outcome mapping for every grade.py exit", () => {
     expect(out.model).toEqual(AUTH_MODEL); // byte-for-byte, never fabricated
   });
 
+  // @covers FR-01.53
   it("exit 2 (TargetError) → grade-failed with the plugin's plain reason", async () => {
     const spawn = spawnReturning({ code: 2, stderr: "shipwright-grade: path does not exist: C:/x" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
@@ -90,6 +93,7 @@ describe("runGrade — honest outcome mapping for every grade.py exit", () => {
     expect(out.reason).toBe("path does not exist: C:/x"); // prefix stripped
   });
 
+  // @covers FR-01.53
   it("exit 3 (EngineUnavailable) → engine-unavailable + the repair command", async () => {
     const spawn = spawnReturning({ code: 3, stderr: "shipwright-grade: engine unavailable: ..." });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
@@ -97,12 +101,14 @@ describe("runGrade — honest outcome mapping for every grade.py exit", () => {
     expect(out.repairCommand).toMatch(/npx @svenroth-ai\/shipwright/);
   });
 
+  // @covers FR-01.53
   it("a spawn failure (python vanished, code -1) → engine-unavailable", async () => {
     const spawn = spawnReturning({ code: -1, spawnError: "ENOENT" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
     expect(out.status).toBe("engine-unavailable");
   });
 
+  // @covers FR-01.53
   it("a timeout kill (code 124) → grade-failed with a 'took too long' reason", async () => {
     const spawn = spawnReturning({ code: 124, spawnError: "timeout" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
@@ -110,18 +116,21 @@ describe("runGrade — honest outcome mapping for every grade.py exit", () => {
     expect(out.reason).toMatch(/too long/i);
   });
 
+  // @covers FR-01.53
   it("any other non-zero exit → grade-failed", async () => {
     const spawn = spawnReturning({ code: 1, stderr: "boom" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
     expect(out.status).toBe("grade-failed");
   });
 
+  // @covers FR-01.53
   it("exit 0 but non-JSON stdout → shape-unrecognised (never a fabricated card)", async () => {
     const spawn = spawnReturning({ stdout: "not json at all" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
     expect(out.status).toBe("shape-unrecognised");
   });
 
+  // @covers FR-01.53
   it("exit 0 but a JSON array (not an object) → shape-unrecognised", async () => {
     const spawn = spawnReturning({ stdout: "[1,2,3]" });
     const out = await runGrade({ target: "C:/repo" }, engineDeps(spawn));
@@ -130,6 +139,7 @@ describe("runGrade — honest outcome mapping for every grade.py exit", () => {
 });
 
 describe("runGrade — pre-spawn gates (no subprocess when they fail)", () => {
+  // @covers FR-01.53
   it("an invalid target → grade-failed WITHOUT spawning", async () => {
     const spawn = spawnReturning({});
     const out = await runGrade({ target: "   " }, engineDeps(spawn));
@@ -137,6 +147,7 @@ describe("runGrade — pre-spawn gates (no subprocess when they fail)", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.53
   it("a non-existent local dir → grade-failed WITHOUT spawning", async () => {
     const spawn = spawnReturning({});
     const out = await runGrade(
@@ -147,6 +158,7 @@ describe("runGrade — pre-spawn gates (no subprocess when they fail)", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.53
   it("no grade.py on disk → engine-unavailable WITHOUT spawning", async () => {
     const spawn = spawnReturning({});
     const out = await runGrade(
@@ -157,6 +169,7 @@ describe("runGrade — pre-spawn gates (no subprocess when they fail)", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.53
   it("no working python → engine-unavailable WITHOUT spawning", async () => {
     const spawn = spawnReturning({});
     const out = await runGrade({ target: "C:/repo" }, { ...engineDeps(spawn), run: noPython });

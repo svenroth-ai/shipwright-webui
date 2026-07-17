@@ -58,6 +58,7 @@ describe("deriveDesignGate (AC1 — paused-at-design + viewer present)", () => {
     phaseTask({ phaseTaskId: "ptk-plan", phase: "plan", slashCommand: "/shipwright-plan" }),
   ]);
 
+  // @covers FR-01.45
   it("active when paused_human_gate at the design phase task AND the viewer exists", () => {
     const gate = deriveDesignGate(
       { status: PAUSED_HUMAN_GATE, currentPhaseTaskId: "ptk-design" },
@@ -67,6 +68,7 @@ describe("deriveDesignGate (AC1 — paused-at-design + viewer present)", () => {
     expect(gate).toEqual({ active: true, phaseTaskId: "ptk-design", phase: "design" });
   });
 
+  // @covers FR-01.45
   it("INACTIVE when the viewer has not been emitted yet", () => {
     const gate = deriveDesignGate(
       { status: PAUSED_HUMAN_GATE, currentPhaseTaskId: "ptk-design" },
@@ -76,6 +78,7 @@ describe("deriveDesignGate (AC1 — paused-at-design + viewer present)", () => {
     expect(gate.active).toBe(false);
   });
 
+  // @covers FR-01.45
   it("INACTIVE when paused at a NON-design phase (e.g. plan)", () => {
     expect(
       deriveDesignGate(
@@ -86,16 +89,19 @@ describe("deriveDesignGate (AC1 — paused-at-design + viewer present)", () => {
     ).toEqual(INACTIVE_DESIGN_GATE);
   });
 
+  // @covers FR-01.45
   it("INACTIVE when the loop is running (gate cleared / not paused)", () => {
     expect(
       deriveDesignGate({ status: "running", currentPhaseTaskId: "ptk-design" }, cfg, true),
     ).toEqual(INACTIVE_DESIGN_GATE);
   });
 
+  // @covers FR-01.45
   it("INACTIVE when there is no loop-state at all", () => {
     expect(deriveDesignGate(null, cfg, true)).toEqual(INACTIVE_DESIGN_GATE);
   });
 
+  // @covers FR-01.45
   it("INACTIVE when currentPhaseTaskId does not resolve in the config", () => {
     expect(
       deriveDesignGate(
@@ -106,12 +112,14 @@ describe("deriveDesignGate (AC1 — paused-at-design + viewer present)", () => {
     ).toEqual(INACTIVE_DESIGN_GATE);
   });
 
+  // @covers FR-01.45
   it("INACTIVE when the config is unavailable", () => {
     expect(
       deriveDesignGate({ status: PAUSED_HUMAN_GATE, currentPhaseTaskId: "ptk-design" }, null, true),
     ).toEqual(INACTIVE_DESIGN_GATE);
   });
 
+  // @covers FR-01.45
   it("INACTIVE when the design phase task is already terminal (R8 anti-staleness)", () => {
     const doneCfg = config([
       phaseTask({ phaseTaskId: "ptk-design", phase: "design", status: "done" }),
@@ -134,15 +142,18 @@ describe("readLoopState (torn / absent safety)", () => {
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
+  // @covers FR-01.45
   it("returns null when the file is absent", () => {
     expect(readLoopState(dir)).toBeNull();
   });
 
+  // @covers FR-01.45
   it("returns null on malformed JSON (torn write)", () => {
     writeFileSync(loopStatePath(dir), '{"status": "paused_hum', "utf-8");
     expect(readLoopState(dir)).toBeNull();
   });
 
+  // @covers FR-01.45
   it("parses a well-formed loop-state", () => {
     writeFileSync(
       loopStatePath(dir),

@@ -24,6 +24,7 @@ const MANIFEST = [
 ].join("\n");
 
 describe("parseDesignManifest — the Screens table (A14, FR-01.58)", () => {
+  // @covers FR-01.58
   it("parses each screen row: number, name, file, status, FRs", () => {
     const screens = parseDesignManifest(MANIFEST);
     expect(screens).toHaveLength(3);
@@ -36,37 +37,44 @@ describe("parseDesignManifest — the Screens table (A14, FR-01.58)", () => {
     });
   });
 
+  // @covers FR-01.58
   it("parses multiple linked FRs in one cell, in order", () => {
     const screens = parseDesignManifest(MANIFEST);
     expect(screens[1].frs).toEqual(["FR-01.10", "FR-01.11"]);
   });
 
+  // @covers FR-01.58
   it("keeps a screen whose FR cell is blank (FR dropped, never invented)", () => {
     const screens = parseDesignManifest(MANIFEST);
     expect(screens[2].name).toBe("login");
     expect(screens[2].frs).toEqual([]);
   });
 
+  // @covers FR-01.58
   it("does NOT admit the User Flows rows as screens (only screens/*.html)", () => {
     const screens = parseDesignManifest(MANIFEST);
     expect(screens.every((s) => s.file.startsWith("screens/"))).toBe(true);
   });
 
+  // @covers FR-01.58
   it("returns [] for the 'No screens generated yet.' placeholder", () => {
     const md = ["## Screens", "", "No screens generated yet.", ""].join("\n");
     expect(parseDesignManifest(md)).toEqual([]);
   });
 
+  // @covers FR-01.58
   it("returns [] when there is no Screens section at all", () => {
     expect(parseDesignManifest("# Design Manifest\n\nnothing here")).toEqual([]);
   });
 
+  // @covers FR-01.58
   it("returns [] for empty / non-string input (honest empty, never a throw)", () => {
     expect(parseDesignManifest("")).toEqual([]);
     // @ts-expect-error — defends the runtime guard against a non-string
     expect(parseDesignManifest(undefined)).toEqual([]);
   });
 
+  // @covers FR-01.58
   it("keeps a numbered screen row with no servable file as a placeholder (file empty)", () => {
     const md = [
       "## Screens",
@@ -83,6 +91,7 @@ describe("parseDesignManifest — the Screens table (A14, FR-01.58)", () => {
     expect(screens[1]).toMatchObject({ name: "real", file: "screens/02-real.html" });
   });
 
+  // @covers FR-01.58
   it("tolerates CRLF line endings", () => {
     const screens = parseDesignManifest(MANIFEST.replace(/\n/g, "\r\n"));
     expect(screens).toHaveLength(3);

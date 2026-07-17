@@ -29,6 +29,7 @@ afterEach(() => {
 });
 
 describe("PhaseDropdown", () => {
+  // @covers FR-01.50
   it("trigger label reflects the current value", () => {
     render(<PhaseDropdown phases={PHASES} value="design" onChange={() => {}} />);
     const trigger = screen.getByTestId("new-issue-phase-select");
@@ -36,6 +37,7 @@ describe("PhaseDropdown", () => {
     expect(trigger.textContent).not.toContain("Build");
   });
 
+  // @covers FR-01.50
   it("trigger falls back to phases[0] when value doesn't match any id", () => {
     render(
       <PhaseDropdown phases={PHASES} value="nonsense" onChange={() => {}} />,
@@ -44,12 +46,14 @@ describe("PhaseDropdown", () => {
     expect(trigger.textContent).toContain("Build");
   });
 
+  // @covers FR-01.50
   it("trigger handles empty phases array (renders Select… placeholder)", () => {
     render(<PhaseDropdown phases={[]} value="" onChange={() => {}} />);
     const trigger = screen.getByTestId("new-issue-phase-select");
     expect(trigger.textContent).toContain("Select…");
   });
 
+  // @covers FR-01.50
   it("color square reflects the current phase color", () => {
     render(<PhaseDropdown phases={PHASES} value="design" onChange={() => {}} />);
     const trigger = screen.getByTestId("new-issue-phase-select");
@@ -64,6 +68,7 @@ describe("PhaseDropdown", () => {
 
   // A07 — JIT tooltip: the trigger surfaces the selected phase's plain-language
   // one-liner from the glossary, right where the jargon (the phase name) shows.
+  // @covers FR-01.50
   it("trigger carries the phase's glossary explanation as a title tooltip", () => {
     render(<PhaseDropdown phases={PHASES} value="build" onChange={() => {}} />);
     const trigger = screen.getByTestId("new-issue-phase-select");

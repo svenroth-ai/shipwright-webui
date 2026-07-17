@@ -43,6 +43,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("MockupReviewOverlay postMessage validation", () => {
+  // @covers FR-01.45
   it("writes + shows 'Saved — Round N' for a valid same-origin message from the iframe", async () => {
     const iframe = renderOverlay();
     window.dispatchEvent(feedbackEvent(iframe.contentWindow, window.location.origin));
@@ -53,6 +54,7 @@ describe("MockupReviewOverlay postMessage validation", () => {
     );
   });
 
+  // @covers FR-01.45
   it("IGNORES a message from a different origin", async () => {
     const iframe = renderOverlay();
     window.dispatchEvent(feedbackEvent(iframe.contentWindow, "https://evil.example"));
@@ -60,6 +62,7 @@ describe("MockupReviewOverlay postMessage validation", () => {
     expect(writeDesignFeedback).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.45
   it("IGNORES a same-origin message whose source is NOT the hosted iframe", async () => {
     renderOverlay();
     window.dispatchEvent(feedbackEvent(window, window.location.origin));

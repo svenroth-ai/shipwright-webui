@@ -214,9 +214,9 @@
     {
       "path": "client/src/components/triage/TriageDetailModal.test.tsx",
       "limit": 300,
-      "current": 416,
+      "current": 432,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-03-start-campaign-action"
+      "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
     {
       "path": "client/src/components/wizard/ProjectWizard.tsx",
@@ -256,9 +256,9 @@
     {
       "path": "client/src/hooks/useTerminalSocket.test.ts",
       "limit": 300,
-      "current": 513,
+      "current": 530,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
     {
       "path": "client/src/hooks/useTerminalSocket.ts",
@@ -326,9 +326,9 @@
     {
       "path": "server/src/core/actions-substitute.test.ts",
       "limit": 300,
-      "current": 973,
+      "current": 1051,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
     {
       "path": "server/src/core/actions-substitute.ts",
@@ -529,9 +529,9 @@
     {
       "path": "server/src/terminal/pty-manager.test.ts",
       "limit": 300,
-      "current": 565,
+      "current": 600,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
     {
       "path": "server/src/terminal/pty-manager.ts",
@@ -557,9 +557,9 @@
     {
       "path": "server/src/terminal/scrollback-store.test.ts",
       "limit": 300,
-      "current": 636,
+      "current": 678,
       "state": "grandfathered",
-      "adr": null
+      "adr": "iterate-2026-07-17-test-traceability-retrofit"
     },
     {
       "path": "server/src/terminal/scrollback-store.ts",

@@ -34,12 +34,14 @@ function renderDialog(project: Project | null = TEST_PROJECT) {
 }
 
 describe('ProjectSettingsDialog', () => {
+  // @covers FR-01.40
   it('renders name field seeded from project', () => {
     renderDialog();
     const nameInput = screen.getByTestId('project-settings-name') as HTMLInputElement;
     expect(nameInput.value).toBe('Test Project');
   });
 
+  // @covers FR-01.40
   it('displays path read-only', () => {
     renderDialog();
     const pathDisplay = screen.getByTestId('project-settings-path');
@@ -48,12 +50,14 @@ describe('ProjectSettingsDialog', () => {
     expect(pathDisplay.tagName.toLowerCase()).toBe('div');
   });
 
+  // @covers FR-01.40
   it('color picker reflects current color selection', () => {
     renderDialog();
     const selectedSwatch = screen.getByTestId('project-settings-color-b8a590');
     expect(selectedSwatch).toHaveAttribute('data-selected', 'true');
   });
 
+  // @covers FR-01.40
   it('renders the Actions configuration section in COMPACT mode for a project with a path', () => {
     // iterate-2026-06-14-actions-config-ux — the edit modal hosts the same
     // per-project actions surface as the Settings page, but in compact mode
@@ -73,11 +77,13 @@ describe('ProjectSettingsDialog', () => {
     expect(row.queryByText('/tmp/test-project')).toBeNull();
   });
 
+  // @covers FR-01.40
   it('hides the Actions section when the project has no path', () => {
     renderDialog({ ...TEST_PROJECT, path: '' });
     expect(screen.queryByTestId('project-settings-actions')).toBeNull();
   });
 
+  // @covers FR-01.40
   it('shows error banner on PATCH failure and keeps dialog open', async () => {
     server.use(
       http.patch('/api/projects/:id', () =>

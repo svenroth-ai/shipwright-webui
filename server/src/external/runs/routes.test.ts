@@ -78,6 +78,7 @@ function makeApp(args: {
 }
 
 describe("GET /api/external/projects/:projectId/runs", () => {
+  // @covers FR-01.47
   it("404 when the project is unknown", async () => {
     const res = await makeApp({ project: null }).request(
       "/api/external/projects/p-test/runs",
@@ -86,6 +87,7 @@ describe("GET /api/external/projects/:projectId/runs", () => {
     expect(((await res.json()) as { error: string }).error).toBe("project_not_found");
   });
 
+  // @covers FR-01.47
   it("400 when the project has no path", async () => {
     const res = await makeApp({ project: { id: "p-test", name: "t", path: "" } }).request(
       "/api/external/projects/p-test/runs",
@@ -94,6 +96,7 @@ describe("GET /api/external/projects/:projectId/runs", () => {
     expect(((await res.json()) as { error: string }).error).toBe("project_path_unavailable");
   });
 
+  // @covers FR-01.47
   it("200 + ok payload with the bundle spread in", async () => {
     const res = await makeApp({ reader: () => FULL }).request(
       "/api/external/projects/p-test/runs",
@@ -106,6 +109,7 @@ describe("GET /api/external/projects/:projectId/runs", () => {
     expect(body.gradeTrend).toHaveLength(1);
   });
 
+  // @covers FR-01.47
   it("graceful empty ok payload when the log is absent", async () => {
     const res = await makeApp({ reader: () => EMPTY }).request(
       "/api/external/projects/p-test/runs",
@@ -114,6 +118,7 @@ describe("GET /api/external/projects/:projectId/runs", () => {
     expect(((await res.json()) as { runCount: number }).runCount).toBe(0);
   });
 
+  // @covers FR-01.47
   it("passes the resolved project.path into the reader", async () => {
     let seen: string | null = null;
     await makeApp({
@@ -127,6 +132,7 @@ describe("GET /api/external/projects/:projectId/runs", () => {
 });
 
 describe("GET /api/external/projects/:projectId/runs/:runId", () => {
+  // @covers FR-01.47
   it("threads :runId into the reader opts and returns the run", async () => {
     let seenOpts: { runId?: string } | undefined;
     const res = await makeApp({
@@ -141,6 +147,7 @@ describe("GET /api/external/projects/:projectId/runs/:runId", () => {
     expect(body.run?.runId).toBe(HEX_ADR);
   });
 
+  // @covers FR-01.47
   it("unknown runId → 200 { run: null } (graceful, never a 404/500)", async () => {
     const res = await makeApp({ reader: () => EMPTY }).request(
       "/api/external/projects/p-test/runs/iterate-2026-07-14-nomatch0",
@@ -153,6 +160,7 @@ describe("GET /api/external/projects/:projectId/runs/:runId", () => {
 });
 
 describe("GET /api/external/projects/:projectId/grade-trend", () => {
+  // @covers FR-01.47
   it("returns the grade trend series", async () => {
     const res = await makeApp({ reader: () => FULL }).request(
       "/api/external/projects/p-test/grade-trend",
@@ -163,6 +171,7 @@ describe("GET /api/external/projects/:projectId/grade-trend", () => {
     expect(body.gradeTrend).toHaveLength(1);
   });
 
+  // @covers FR-01.47
   it("404 on unknown project", async () => {
     const res = await makeApp({ project: null }).request(
       "/api/external/projects/p-test/grade-trend",
@@ -193,6 +202,7 @@ describe("runs routes — default reader integration", () => {
     return app;
   };
 
+  // @covers FR-01.47
   it("reads a real on-disk log through /runs", async () => {
     const root = tmp();
     writeFileSync(
@@ -211,6 +221,7 @@ describe("runs routes — default reader integration", () => {
     expect(body.gradeTrend).toHaveLength(1);
   });
 
+  // @covers FR-01.47
   it("graceful empty ok payload when the log is absent", async () => {
     const res = await appFor(tmp()).request("/api/external/projects/p/runs");
     expect(res.status).toBe(200);

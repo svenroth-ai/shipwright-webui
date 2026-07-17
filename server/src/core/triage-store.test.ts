@@ -35,15 +35,18 @@ describe("triage-store: readAllItems", () => {
     rmSync(workDir, { recursive: true, force: true });
   });
 
+  // @covers FR-01.30
   it("returns [] when file is missing", () => {
     expect(readAllItems(jsonlPath)).toEqual([]);
   });
 
+  // @covers FR-01.30
   it("returns [] when file is empty", () => {
     writeFileSync(jsonlPath, "");
     expect(readAllItems(jsonlPath)).toEqual([]);
   });
 
+  // @covers FR-01.30
   it("returns [] when file has only the schema header", () => {
     writeFileSync(
       jsonlPath,
@@ -52,6 +55,7 @@ describe("triage-store: readAllItems", () => {
     expect(readAllItems(jsonlPath)).toEqual([]);
   });
 
+  // @covers FR-01.30
   it("matches Python read_all_items() byte-for-byte on the canonical fixture (drift-protection)", () => {
     // PARITY GATE — the TS implementation must produce the exact same
     // resolved view as `shared/scripts/triage.py read_all_items`.
@@ -66,6 +70,7 @@ describe("triage-store: readAllItems", () => {
     expect(tsItems).toEqual(expected.items);
   });
 
+  // @covers FR-01.30
   it("tolerates corrupt JSON lines without throwing", () => {
     writeFileSync(
       jsonlPath,
@@ -81,6 +86,7 @@ describe("triage-store: readAllItems", () => {
     expect(items.map((i) => i.id)).toEqual(["trg-aaaa1111", "trg-bbbb2222"]);
   });
 
+  // @covers FR-01.30
   it("status events overlay status / ts / statusBy / statusReason", () => {
     writeFileSync(
       jsonlPath,
@@ -98,6 +104,7 @@ describe("triage-store: readAllItems", () => {
     expect(item.promotedTaskId).toBeNull();
   });
 
+  // @covers FR-01.30
   it("status event with promotedTaskId overrides null", () => {
     writeFileSync(
       jsonlPath,
@@ -112,6 +119,7 @@ describe("triage-store: readAllItems", () => {
     expect(item.promotedTaskId).toBe("EXT:abc-123");
   });
 
+  // @covers FR-01.30
   it("status event for unknown id is skipped (out-of-order corruption)", () => {
     writeFileSync(
       jsonlPath,
@@ -127,6 +135,7 @@ describe("triage-store: readAllItems", () => {
     expect(items[0].status).toBe("triage");
   });
 
+  // @covers FR-01.30
   it("mtime-keyed cache returns the same array reference within TTL", () => {
     writeFileSync(
       jsonlPath,
@@ -142,6 +151,7 @@ describe("triage-store: readAllItems", () => {
 });
 
 describe("triage-store: filterTriage + findItemById", () => {
+  // @covers FR-01.30
   it("filters to status===triage", () => {
     const items: any[] = [
       { id: "a", status: "triage" },
@@ -153,6 +163,7 @@ describe("triage-store: filterTriage + findItemById", () => {
     expect(filtered.map((i) => i.id)).toEqual(["a", "d"]);
   });
 
+  // @covers FR-01.30
   it("findItemById returns the matching item", () => {
     const items: any[] = [
       { id: "a", status: "triage" },

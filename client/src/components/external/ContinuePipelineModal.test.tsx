@@ -91,6 +91,7 @@ describe("ContinuePipelineModal", () => {
   /* This dialog had copied the scroll-body class string WITHOUT the guard; it
    * now inherits it from <ModalScrollBody>. Fence proves the class reaches the
    * DOM (jsdom cannot assert the layout). Why: components/common/ModalScrollBody.tsx. */
+  // @covers FR-01.61
   it("scroll body inherits the bounded-scroll-container guard from ModalScrollBody", () => {
     renderModal({ runConfig: okConfig([PHASE_TASK_BUILD]) });
     const body = screen.getByTestId("continue-pipeline-body");
@@ -99,11 +100,13 @@ describe("ContinuePipelineModal", () => {
     expect(body.className).toContain("max-h-[calc(100vh-280px)]");
   });
 
+  // @covers FR-01.61
   it("renders an empty state when run-config is missing/v1/invalid", () => {
     renderModal({ runConfig: { status: "missing" } });
     expect(screen.getByTestId("continue-pipeline-empty")).toBeInTheDocument();
   });
 
+  // @covers FR-01.61
   it("renders 'nothing to continue' when readyToLaunchTasks is empty", () => {
     renderModal({ runConfig: okConfig([]) });
     expect(screen.getByTestId("continue-pipeline-empty")).toBeInTheDocument();
@@ -113,6 +116,7 @@ describe("ContinuePipelineModal", () => {
     expect(launch.disabled).toBe(true);
   });
 
+  // @covers FR-01.61
   it("auto-selects the single ready task and shows its slashCommand + uuid suffix", () => {
     renderModal({ runConfig: okConfig([PHASE_TASK_BUILD]) });
     const single = screen.getByTestId(
@@ -127,6 +131,7 @@ describe("ContinuePipelineModal", () => {
     expect(launch.disabled).toBe(false);
   });
 
+  // @covers FR-01.61
   it("renders a radio list when multiple awaiting_launch tasks are ready", () => {
     renderModal({
       runConfig: okConfig([PHASE_TASK_BUILD, PHASE_TASK_PLAN_2]),
@@ -139,6 +144,7 @@ describe("ContinuePipelineModal", () => {
     ).toBeInTheDocument();
   });
 
+  // @covers FR-01.61
   it("shows 'Launching…' label state via the button while submitting (smoke render)", () => {
     // Just verify the static initial state — submitting is exercised by
     // useContinuePipeline.test.ts's launch_failed branch. Here we just

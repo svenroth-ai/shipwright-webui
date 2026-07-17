@@ -39,6 +39,7 @@ function bundle(partial: Partial<RunsResponse>): RunsResponse {
 }
 
 describe("buildProjectLogModel — provenance honesty (AC3)", () => {
+  // @covers FR-01.59
   it("returns { graded: false } for undefined (no A02 payload)", () => {
     const m = buildProjectLogModel(undefined, 92);
     expect(m.graded).toBe(false);
@@ -47,6 +48,7 @@ describe("buildProjectLogModel — provenance honesty (AC3)", () => {
     expect(m.lastProof).toBeNull();
   });
 
+  // @covers FR-01.59
   it("returns { graded: false } for an EMPTY payload (runCount 0) — the honest-degradation case", () => {
     const m = buildProjectLogModel(bundle({ runCount: 0, runs: [] }), 88);
     // Zero runs must NOT synthesize a score/sparkline even if compliance exists.
@@ -60,6 +62,7 @@ describe("buildProjectLogModel — provenance honesty (AC3)", () => {
     });
   });
 
+  // @covers FR-01.59
   it("a positive runCount with an EMPTY runs array is NOT graded (no body to render)", () => {
     // Defensive: the server keeps runCount === runs.length, but a graded card
     // must never claim runs it cannot show.
@@ -68,6 +71,7 @@ describe("buildProjectLogModel — provenance honesty (AC3)", () => {
     expect(m.spark).toEqual([]);
   });
 
+  // @covers FR-01.59
   it("never emits the prototype's demo literals (the fixed count / FR string / 16-value spark)", () => {
     const m = buildProjectLogModel(
       bundle({
@@ -87,6 +91,7 @@ describe("buildProjectLogModel — provenance honesty (AC3)", () => {
 });
 
 describe("buildProjectLogModel — graded derivation (AC2)", () => {
+  // @covers FR-01.59
   it("derives runs/frCount/score and the last-proof quote from real data", () => {
     const m = buildProjectLogModel(
       bundle({
@@ -110,6 +115,7 @@ describe("buildProjectLogModel — graded derivation (AC2)", () => {
     expect(m.lastProof).toBe("latest proof"); // most-recent by ts
   });
 
+  // @covers FR-01.59
   it("falls back to a unit bar per run when no trend/test metric is derivable", () => {
     const m = buildProjectLogModel(
       bundle({ runCount: 2, runs: [run({ runId: "a" }), run({ runId: "b" })] }),
@@ -123,12 +129,14 @@ describe("buildProjectLogModel — graded derivation (AC2)", () => {
 });
 
 describe("statsLine", () => {
+  // @covers FR-01.59
   it("omits FRs and score when absent", () => {
     expect(
       statsLine({ graded: true, runs: 1, frCount: 0, score: null, spark: [1], lastProof: null }),
     ).toBe("1 run");
   });
 
+  // @covers FR-01.59
   it("renders the full line with pluralisation", () => {
     expect(
       statsLine({ graded: true, runs: 4, frCount: 2, score: 90, spark: [], lastProof: null }),

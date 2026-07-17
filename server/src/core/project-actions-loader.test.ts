@@ -47,6 +47,7 @@ beforeEach(() => {
 });
 
 describe("project-actions-loader — bundled default fallback", () => {
+  // @covers FR-01.37
   it("loads bundled default when .shipwright-webui/actions.json is missing", () => {
     const fs: FakeFs = { files: new Map() };
     const r = loadActionsForProject("/fake/project", fakeDeps(fs));
@@ -57,6 +58,7 @@ describe("project-actions-loader — bundled default fallback", () => {
     expect(r.actions.actions.length).toBeGreaterThanOrEqual(3);
   });
 
+  // @covers FR-01.37
   it("bundled default has the four Shipwright actions with external_launch kind", () => {
     const fs: FakeFs = { files: new Map() };
     const r = loadActionsForProject("/fake", fakeDeps(fs));
@@ -75,6 +77,7 @@ describe("project-actions-loader — bundled default fallback", () => {
     }
   });
 
+  // @covers FR-01.37
   it("bundled default.preview is `auto` (ADR-036 — profile is the gate)", () => {
     const fs: FakeFs = { files: new Map() };
     const r = loadActionsForProject("/fake", fakeDeps(fs));
@@ -83,6 +86,7 @@ describe("project-actions-loader — bundled default fallback", () => {
 });
 
 describe("project-actions-loader — user file path", () => {
+  // @covers FR-01.37
   it("returns parsed user-side actions when present", () => {
     const custom: ResolvedActions = {
       schemaVersion: 1,
@@ -116,6 +120,7 @@ describe("project-actions-loader — user file path", () => {
     expect(r.actions.phases.map((p) => p.id)).toEqual(["implement", "verify"]);
   });
 
+  // @covers FR-01.37
   it("preserves non-Shipwright phase ids (loader does not reject unknown ids)", () => {
     const custom: ResolvedActions = {
       schemaVersion: 1,
@@ -145,6 +150,7 @@ describe("project-actions-loader — user file path", () => {
 });
 
 describe("project-actions-loader — malformed file handling", () => {
+  // @covers FR-01.37
   it("falls through to bundled default + diagnostics side-channel when JSON is invalid", () => {
     const fs: FakeFs = {
       files: new Map([
@@ -167,6 +173,7 @@ describe("project-actions-loader — malformed file handling", () => {
 });
 
 describe("project-actions-loader — mtime cache", () => {
+  // @covers FR-01.37
   it("reads once, then returns cached within same mtime", () => {
     const custom: ResolvedActions = {
       schemaVersion: 1,
@@ -199,6 +206,7 @@ describe("project-actions-loader — mtime cache", () => {
     expect(readSpy).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.37
   it("invalidates cache when mtime changes", () => {
     const customV1: ResolvedActions = {
       schemaVersion: 1,
@@ -234,6 +242,7 @@ describe("project-actions-loader — mtime cache", () => {
 });
 
 describe("project-actions-loader — loadBundledDefault (pure)", () => {
+  // @covers FR-01.37
   it("parses the shipped default-actions.json without throwing", () => {
     const d = loadBundledDefault();
     expect(d.defaults.autonomy).toBe("guided");
@@ -250,6 +259,7 @@ describe("project-actions-loader — loadBundledDefault (pure)", () => {
   // the cwd, which the bundled actions don't need. Regression guard
   // ensures we don't accidentally re-introduce --project-root (which
   // never existed as a real CLI flag) or --add-dir (now redundant).
+  // @covers FR-01.37
   it("command_templates do not use --project-root or --add-dir", () => {
     const d = loadBundledDefault();
     for (const action of d.actions) {
@@ -269,6 +279,7 @@ describe("project-actions-loader — loadBundledDefault (pure)", () => {
   // invoking `claude`. Without this, `--add-dir` only grants tool access
   // and the skill runs with `pwd === $HOME`, immediately failing to find
   // shipwright_run_config.json.
+  // @covers FR-01.37
   it("command_templates start with {cd.prefix}", () => {
     const d = loadBundledDefault();
     for (const action of d.actions) {

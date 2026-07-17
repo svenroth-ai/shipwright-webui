@@ -20,18 +20,21 @@ function cmds(runs: Record<string, () => void> = {}): Command[] {
 afterEach(() => cleanup());
 
 describe("CommandPalette", () => {
+  // @covers FR-01.65
   it("renders the GLASS shell when open (AC2)", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={cmds()} />);
     const palette = screen.getByTestId("command-palette");
     expect(palette).toHaveClass("cmd-palette");
   });
 
+  // @covers FR-01.65
   it("lists grouped commands", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={cmds()} />);
     expect(screen.getByTestId("command-item-open:board")).toBeInTheDocument();
     expect(screen.getByTestId("command-item-launch:new-iterate")).toBeInTheDocument();
   });
 
+  // @covers FR-01.65
   it("filters on query", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={cmds()} />);
     fireEvent.change(screen.getByTestId("command-palette-input"), {
@@ -41,6 +44,7 @@ describe("CommandPalette", () => {
     expect(screen.queryByTestId("command-item-launch:new-iterate")).toBeNull();
   });
 
+  // @covers FR-01.65
   it("shows an honest empty result for a non-match", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={cmds()} />);
     fireEvent.change(screen.getByTestId("command-palette-input"), {
@@ -49,6 +53,7 @@ describe("CommandPalette", () => {
     expect(screen.getByTestId("command-palette-empty")).toBeInTheDocument();
   });
 
+  // @covers FR-01.65
   it("runs the selected command on Enter (AC4)", () => {
     vi.useFakeTimers();
     const run = vi.fn();
@@ -71,6 +76,7 @@ describe("CommandPalette", () => {
     vi.useRealTimers();
   });
 
+  // @covers FR-01.65
   it("moves the selection with ArrowDown", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={cmds()} />);
     const input = screen.getByTestId("command-palette-input");
@@ -87,6 +93,7 @@ describe("CommandPalette", () => {
     );
   });
 
+  // @covers FR-01.65
   it("runs a command on click (AC7 — clickable equivalent)", () => {
     vi.useFakeTimers();
     const run = vi.fn();
@@ -103,6 +110,7 @@ describe("CommandPalette", () => {
     vi.useRealTimers();
   });
 
+  // @covers FR-01.65
   it("floats recent commands into a Recent section first", () => {
     render(
       <CommandPalette
@@ -118,6 +126,7 @@ describe("CommandPalette", () => {
     expect(firstOption).toHaveAttribute("data-testid", "command-item-launch:new-iterate");
   });
 
+  // @covers FR-01.65
   it("has an accessible dialog label and combobox input (AC7)", () => {
     render(<CommandPalette open onOpenChange={vi.fn()} commands={cmds()} />);
     expect(screen.getByRole("dialog", { name: /command palette/i })).toBeInTheDocument();

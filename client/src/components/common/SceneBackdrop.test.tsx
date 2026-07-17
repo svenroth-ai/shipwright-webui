@@ -25,6 +25,7 @@ function renderAt(pathname: string) {
 }
 
 describe('SceneBackdrop — applyScene() DOM contract', () => {
+  // @covers FR-01.48
   it('emits the frozen plate + scrolling fore with the signature backdrop', () => {
     const { getByTestId, container } = renderAt('/');
     const screen = getByTestId('scene-backdrop');
@@ -44,6 +45,7 @@ describe('SceneBackdrop — applyScene() DOM contract', () => {
     expect(fore).toContainElement(getByTestId('page'));
   });
 
+  // @covers FR-01.48
   it('the wizard route carries well-left; other routes do not', () => {
     const wizard = renderAt('/wizard');
     expect(wizard.container.querySelector('.scene-bg')?.className).toContain('well-left');
@@ -53,12 +55,14 @@ describe('SceneBackdrop — applyScene() DOM contract', () => {
 });
 
 describe('AC3 — the RETRACTED imagery tier/band model is absent', () => {
+  // @covers FR-01.48
   it('the rendered scene emits NO data-scene-tier and NO data-depth="band"', () => {
     const { container } = renderAt('/');
     expect(container.querySelector('[data-scene-tier]')).toBeNull();
     expect(container.querySelector('[data-depth="band"]')).toBeNull();
   });
 
+  // @covers FR-01.48
   it('no data-scene-tier / data-depth="band" anywhere in client/src (source guard)', () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
     const offenders: string[] = [];

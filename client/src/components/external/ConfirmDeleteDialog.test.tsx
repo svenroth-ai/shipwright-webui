@@ -12,6 +12,7 @@ const TASK = {
 } as unknown as ExternalTask;
 
 describe("ConfirmDeleteDialog", () => {
+  // @covers FR-01.38
   it("clamps width to the viewport (max-w-[95vw]) so the modal fits narrow screens", () => {
     // iterate-2026-06-14-tablet-responsive-view AC-5 (defensive; the clamp bites
     // below ~463px → primarily an iterate-2/phone safeguard).

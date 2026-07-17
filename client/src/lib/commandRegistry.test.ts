@@ -35,6 +35,7 @@ function deps(over: Partial<CommandDeps> = {}): CommandDeps {
 }
 
 describe("buildCommands", () => {
+  // @covers FR-01.65
   it("builds Open commands from the router-derived destinations", () => {
     const d = deps();
     const cmds = buildCommands(d);
@@ -44,6 +45,7 @@ describe("buildCommands", () => {
     expect(d.navigate).toHaveBeenCalledWith("/triage");
   });
 
+  // @covers FR-01.65
   it("builds Launch commands ONLY from the real /actions payload (AC9)", () => {
     const d = deps();
     const cmds = buildCommands(d);
@@ -57,11 +59,13 @@ describe("buildCommands", () => {
     }
   });
 
+  // @covers FR-01.65
   it("yields an empty Launch group when no actions exist (honest empty result)", () => {
     const cmds = buildCommands(deps({ actions: [] }));
     expect(cmds.filter((c) => c.group === "launch")).toHaveLength(0);
   });
 
+  // @covers FR-01.65
   it("jump commands open the project home", () => {
     const d = deps();
     const jump = buildCommands(d).filter((c) => c.group === "jump");
@@ -70,6 +74,7 @@ describe("buildCommands", () => {
     expect(d.openProject).toHaveBeenCalledWith("p1");
   });
 
+  // @covers FR-01.65
   it("exposes a density toggle whose label reflects the current mode", () => {
     expect(
       buildCommands(deps({ density: "comfortable" })).find(
@@ -86,23 +91,28 @@ describe("buildCommands", () => {
 
 describe("filterCommands — fuzzy", () => {
   const cmds = buildCommands(deps());
+  // @covers FR-01.65
   it("returns all commands for an empty query", () => {
     expect(filterCommands(cmds, "")).toHaveLength(cmds.length);
   });
+  // @covers FR-01.65
   it("matches a contiguous substring", () => {
     const r = filterCommands(cmds, "iterate");
     expect(r[0].label).toBe("New Iterate");
   });
+  // @covers FR-01.65
   it("matches a subsequence", () => {
     const r = filterCommands(cmds, "trg");
     expect(r.some((c) => c.label.includes("Triage"))).toBe(true);
   });
+  // @covers FR-01.65
   it("returns nothing for a non-match", () => {
     expect(filterCommands(cmds, "zzzq")).toHaveLength(0);
   });
 });
 
 describe("KEYBOARD_SHORTCUTS — the bindings registry", () => {
+  // @covers FR-01.65
   it("has unique ids and a chord + label for every entry", () => {
     const ids = new Set(KEYBOARD_SHORTCUTS.map((s) => s.id));
     expect(ids.size).toBe(KEYBOARD_SHORTCUTS.length);
@@ -111,6 +121,7 @@ describe("KEYBOARD_SHORTCUTS — the bindings registry", () => {
       expect(s.label.length).toBeGreaterThan(0);
     }
   });
+  // @covers FR-01.65
   it("includes the load-bearing bindings", () => {
     const ids = KEYBOARD_SHORTCUTS.map((s) => s.id);
     for (const id of [

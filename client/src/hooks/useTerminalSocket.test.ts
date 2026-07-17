@@ -91,6 +91,7 @@ describe("useTerminalSocket", () => {
     FakeWebSocket.reset();
   });
 
+  // @covers FR-01.28
   it("infers ws:// for http: page protocol and wss:// for https:", () => {
     // http
     Object.defineProperty(window, "location", {
@@ -110,6 +111,7 @@ describe("useTerminalSocket", () => {
     expect(FakeWebSocket.instances[0].url).toMatch(/^wss:\/\/example\.com/);
   });
 
+  // @covers FR-01.28
   it("fires onData for inbound data envelopes", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -127,6 +129,7 @@ describe("useTerminalSocket", () => {
     expect(seen).toEqual(["hello\n"]);
   });
 
+  // @covers FR-01.28
   it("flips ready to true and exposes role on inbound ready envelope", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -145,6 +148,7 @@ describe("useTerminalSocket", () => {
     expect(result.current.role).toBe("writer");
   });
 
+  // @covers FR-01.28
   it("send() emits a typed envelope JSON-stringified", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -159,6 +163,7 @@ describe("useTerminalSocket", () => {
     expect(ws.sent).toEqual([JSON.stringify({ type: "data", payload: "ls\n" })]);
   });
 
+  // @covers FR-01.28
   it("notifies onReadOnly when server sends a read_only envelope", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -176,6 +181,7 @@ describe("useTerminalSocket", () => {
     expect(readOnlyHits).toBe(1);
   });
 
+  // @covers FR-01.28
   it("notifies onBackpressure with droppedBytes", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -196,6 +202,7 @@ describe("useTerminalSocket", () => {
     expect(drops).toEqual([4096]);
   });
 
+  // @covers FR-01.28
   it("does not connect when enabled=false or taskId=null", () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -208,6 +215,7 @@ describe("useTerminalSocket", () => {
     expect(FakeWebSocket.instances).toHaveLength(0);
   });
 
+  // @covers FR-01.28
   it("closes the socket on unmount", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -222,6 +230,7 @@ describe("useTerminalSocket", () => {
   });
 
   // ADR-089 (Iterate B) — replay_snapshot envelope routing.
+  // @covers FR-01.28
   it("routes replay_snapshot envelope to onReplaySnapshot callback once", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -261,6 +270,7 @@ describe("useTerminalSocket", () => {
     });
   });
 
+  // @covers FR-01.28
   it("ignores malformed replay_snapshot envelopes (missing fields)", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -298,6 +308,7 @@ describe("useTerminalSocket", () => {
     expect(calls).toEqual([]);
   });
 
+  // @covers FR-01.28
   it("Iterate C (ADR-087) — legacy chunked-replay envelopes are IGNORED", async () => {
     // The server no longer emits replay_start / replay_chunk /
     // replay_separator / replay_end. If a stale server (mid-deploy
@@ -339,6 +350,7 @@ describe("useTerminalSocket", () => {
   // envelope carries a `terminalReset` boolean. True = this WS attach
   // freshly re-created the pty after a prior Claude session was lost
   // (server restart / crash). Drives the EmbeddedTerminal reset banner.
+  // @covers FR-01.28
   it("ADR-104: exposes terminalReset=true from the ready envelope", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -361,6 +373,7 @@ describe("useTerminalSocket", () => {
     expect(result.current.terminalReset).toBe(true);
   });
 
+  // @covers FR-01.28
   it("ADR-104: terminalReset defaults to false when the field is absent (old-server back-compat)", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -383,6 +396,7 @@ describe("useTerminalSocket", () => {
   // navigate-away-and-back) rather than spawning a fresh one. Drives the
   // EmbeddedTerminal one-shot inject guard so a post-reload launch does
   // not auto-inject `claude --resume …` into a still-live Claude session.
+  // @covers FR-01.28
   it("exposes ptyReused=true from the ready envelope", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -411,6 +425,7 @@ describe("useTerminalSocket", () => {
   // unconditionally reconnects every ~200 ms (attemptsRef resets to 0 on
   // every successful open), each reconnect replays the snapshot, and the
   // user sees a perpetual blank-then-repaint flicker.
+  // @covers FR-01.28
   it("does NOT reconnect after a clean close on a replay-only attach", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -467,6 +482,7 @@ describe("useTerminalSocket", () => {
   });
 
   // Symmetric guard: live attaches still reconnect after abnormal close.
+  // @covers FR-01.28
   it("DOES reconnect after an abnormal close on a live attach", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
@@ -495,6 +511,7 @@ describe("useTerminalSocket", () => {
     expect(FakeWebSocket.instances.length).toBeGreaterThan(1);
   });
 
+  // @covers FR-01.28
   it("ptyReused defaults to false when the field is absent (old-server back-compat)", async () => {
     Object.defineProperty(window, "location", {
       writable: true,

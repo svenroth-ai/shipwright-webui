@@ -1,18 +1,19 @@
 {
-  "last_updated": "2026-07-17",
+  "last_updated": "2026-07-18",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-17-pin-actions-sha",
-    "date": "2026-07-17",
+    "run_id": "iterate-2026-07-17-test-traceability-retrofit",
+    "date": "2026-07-18",
     "unit": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "CI-config-only diff (.github/workflows/*.yml uses-line SHA pins + new .github/dependabot.yml). No TS/JS/Python source touched, so vitest/tsc/oxlint scope is unchanged. The verification layer for this change is YAML-parse validity + SHA resolution + grep (see test_completeness)."
+      "status": "pass",
+      "passed": 4940,
+      "total": 4941,
+      "note": "Full vitest suites re-run after the 1039 additive `// @covers` comment insertions. server: 192 files, 2245 passed + 1 skipped. client: 295 files, 2695 passed. 0 failures; tsc --noEmit clean for both workspaces. Tags are comments (behavior-neutral) — counts match the pre-change baseline."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
-      "total": 0
+      "total": 0,
+      "note": "webui vitest does not separate an integration layer; covered within the unit suites."
     },
     "pgtap": {
       "status": "not_run",
@@ -23,7 +24,7 @@
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No product surface (web/cli/api) exercised; F0.5 surface=none, justified. The PR's own CI run (ci/security/pr-review/codeql) is the live end-to-end proof of the pinned actions."
+      "note": "No product UI/API surface changed (data/tags + docs). The end-to-end verification for THIS change is the traceability pipeline itself: config -> test_links collector -> test-traceability.json (1038 bindings, was 0 without the config) -> strict D-orphan detector (live proof: MEDIUM on an absent-FR tag, pass after revert). Captured in .shipwright/compliance/test-traceability-coverage-delta.md."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,74 +33,83 @@
     },
     "smoke": {
       "status": "not_run",
-      "note": "CI-config-only change; no server/app is started, so there is no smoke surface. This is not a test regression."
+      "note": "No server/app started; data/tags + docs change has no smoke surface."
     },
     "surface_verification": {
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "CI-config-only change; no product runtime surface. Real end-to-end proof is the PR's own CI run executing the pinned actions live.",
-      "evidence_path": ".shipwright/runs/iterate-2026-07-17-pin-actions-sha/surface_verification.json",
-      "timestamp": "2026-07-17T00:00:00.000Z",
+      "justification": "Data/tags + docs only; product source (server/src, client/src app code) is byte-stable and no product UI/API/store/SSE surface changed. The real end-to-end proof is the traceability pipeline executed live: the manifest round-trip (collector bound 1038 tests WITH the config, 0 without) and the strict D-orphan detector firing MEDIUM on a synthetic absent-FR tag then passing after revert. Both captured in .shipwright/compliance/test-traceability-coverage-delta.md.",
+      "evidence_path": ".shipwright/compliance/test-traceability-coverage-delta.md",
+      "timestamp": "2026-07-18T00:00:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behaviour this diff introduces, from the change's informal ACs: (a) workflows remain valid YAML after pinning, (b) each SHA maps to its declared version tag so the change is behavior-preserving, (c) the Semgrep mutable-action-tag surface is cleared, (d) the two pre-existing pins and (e) the permission-rationale comments are untouched, plus (f) live workflow execution and (g) Dependabot pickup which are only observable on GitHub. 7 behaviours; 5 tested locally; 2 untestable-locally (external GitHub service); 0 untested-testable.",
+      "enumeration_basis": "Behaviours this diff introduces: (1) the traceability config makes the collector scan webui's roots; (2-4) each of the three signals (unique_commit, co-location, self-listing) attributes tests to the correct FR; (5) the manifest binds tags with a layer-aware RTM; (6) strict D-orphan fires on a tag -> absent FR; (7) tags are behaviour-neutral and product source is byte-stable; (8) the signal-e discovery logic produces only correct tags. 8 behaviours; all tested; 0 untested-testable.",
       "counts": {
-        "total": 7,
-        "testable": 5,
-        "tested": 5,
-        "untestable": 2,
+        "total": 8,
+        "testable": 8,
+        "tested": 8,
+        "untestable": 0,
         "untested_testable": 0
       },
       "behaviors": [
         {
-          "behavior": "All 6 workflow YAMLs + the new dependabot.yml remain syntactically valid after the SHA-pin pass",
+          "behavior": "traceability.test_roots makes the test_links collector scan webui's non-conventional roots",
           "category": "config",
           "disposition": "tested",
-          "evidence": "uv run --with pyyaml yaml.safe_load parsed all 7 files: ALL VALID"
+          "evidence": "manifest regen bound 1038 tests WITH the config block; 0 without it (the collector defaults to conventional root dirs webui lacks) — round-trip probe"
         },
         {
-          "behavior": "Every pinned SHA resolves to its declared version tag (behavior-preserving: identical to the commit CI already ran)",
-          "category": "config",
+          "behavior": "unique_commit tags (47) attribute to the correct FR",
+          "category": "correctness",
           "disposition": "tested",
-          "evidence": "gh api repos/<action>/commits/<major-tag> -> pinned 40-hex SHA for all 7 refs: checkout v4.3.1, setup-node v4.4.0, setup-python v5.6.0, github-script v7.1.0, upload-artifact v4.6.2, codeql-action v3.37.1 (init/analyze) + v4.37.1 (upload-sarif)"
+          "evidence": "all 47 -> FR-01.30 ('Triage Tab + Promote bridge'); introducing commit 290263e9 feat(triage); spot-check 0 wrong"
         },
         {
-          "behavior": "No mutable-tag uses: references remain — the Semgrep github-actions-mutable-action-tag surface (20 alerts) is cleared",
-          "category": "config",
+          "behavior": "co-location tags (972) attribute to the correct FR",
+          "category": "correctness",
           "disposition": "tested",
-          "evidence": "grep -rnE 'uses:.*@v[0-9]' .github/workflows returns zero matches"
+          "evidence": "972/972 passed 3 hard gates (exclusive-owner + source-exists + import-verified); 8-FR spot-check (FR-01.35 SmartViewer, FR-01.44 terminal, FR-01.65 command palette, FR-01.64 motion, ...) all correct"
         },
         {
-          "behavior": "The two pre-existing SHA-pins (svenroth-ai diff-coverage-gate, peter-evans create-or-update-comment) are unchanged",
-          "category": "config",
+          "behavior": "self-listing tags (20) attribute to the correct FR",
+          "category": "correctness",
           "disposition": "tested",
-          "evidence": "grep confirmed both intact; diff is 27 uses-line changes, neither line touched"
+          "evidence": "exclusive spec-listing of the test file; raised e2e-layer coverage 2 -> 8; spot-check reduced-motion-final-state.spec.ts -> FR-01.64"
         },
         {
-          "behavior": "The permission-rationale comments in security.yml (which mention actions by name) were not corrupted by the string-replace pass",
-          "category": "config",
+          "behavior": "the manifest binds the tags with a layer-aware RTM",
+          "category": "integration",
           "disposition": "tested",
-          "evidence": "restored 2 mangled comment lines; grep for double-## mangled comments (#.*@<40hex> #) returns zero"
+          "evidence": "test-traceability.json schema v2: 1038 bindings, 40/66 FRs, by-layer unit 1030 / e2e 8; total reconciles to 47+972+20-1 enumeration delta"
         },
         {
-          "behavior": "Workflows still trigger and the pinned actions execute successfully in CI",
-          "category": "e2e",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "GitHub Actions runner is an external service; the PR's own ci/security/pr-review/codeql runs exercise the pinned actions live — observed post-push, the real end-to-end proof"
+          "behavior": "strict D-orphan fires on a tag pointing at a removed/absent FR",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "live proof on webui: synthetic @covers FR-01.99 -> D-orphan status=fail severity=MEDIUM (fr_absent); after deleting the temp file -> status=pass, orphans=0"
         },
         {
-          "behavior": "Dependabot detects the github-actions ecosystem and opens grouped weekly bump PRs",
-          "category": "e2e",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "Dependabot is a GitHub-hosted service; config validity is checked via YAML parse, runtime pickup is observable only on GitHub after merge"
+          "behavior": "tags are behaviour-neutral and product source is byte-stable",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "git diff origin/main touches only *.test/*.spec + config + .shipwright/*; tsc --noEmit clean (both workspaces); full suite 4940 passed / 0 failed (same counts as baseline)"
+        },
+        {
+          "behavior": "the signal-e discovery logic produces only correct tags (no wrong/fabricated attribution)",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "every one of the 992 signal-e outputs is gated (exclusive-owner + exists + import) and the written total reconciles exactly to the manifest binding count; independent code-review over the prototype + a sample of tagged files"
         }
       ]
     },
-    "degraded": []
+    "degraded": [
+      {
+        "condition": "worktree_relocated_out_of_dot_worktrees",
+        "detail": "The shared backfill writer prunes any '.worktrees/' path (ancestor path.parts match), so the mandated iterate worktree was relocated to C:/01_Development/wt-traceability-retrofit to run the tag writer. Pointer in .shipwright/iterate_active/ records the relocation. Framework follow-on filed (prune by descent)."
+      }
+    ]
   }
 }

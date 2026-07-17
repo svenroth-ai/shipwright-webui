@@ -56,11 +56,13 @@ function renderMenu(projects: Project[], onSelect = vi.fn()) {
 }
 
 describe("ProjectCreatePhoneMenu (phone #1)", () => {
+  // @covers FR-01.41
   it("trigger is disabled when there are no projects", () => {
     renderMenu([]);
     expect((screen.getByTestId("create-menu-cascade-trigger") as HTMLButtonElement).disabled).toBe(true);
   });
 
+  // @covers FR-01.41
   it("drills project → actions in the SAME downward popup (no side submenu), then back", async () => {
     const user = userEvent.setup();
     renderMenu(PROJECTS);
@@ -81,6 +83,7 @@ describe("ProjectCreatePhoneMenu (phone #1)", () => {
     expect(await screen.findByTestId("create-menu-cascade-project-p2")).toBeTruthy();
   });
 
+  // @covers FR-01.41
   it("selecting an action calls onSelect(action, projectId)", async () => {
     const user = userEvent.setup();
     const { onSelect } = renderMenu(PROJECTS);

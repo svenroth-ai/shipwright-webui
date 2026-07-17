@@ -39,21 +39,25 @@ function okResponse(mode?: RunMode): RunConfigResponse {
 }
 
 describe("PipelineLaneCard — mode selection", () => {
+  // @covers FR-01.01
   it("renders nothing when there is no run-config", () => {
     const { container } = render(<PipelineLaneCard runConfig={undefined} project={PROJECT} />);
     expect(container.firstChild).toBeNull();
   });
 
+  // @covers FR-01.01
   it("renders nothing for a non-ok run-config (missing / v1 / invalid)", () => {
     const { container } = render(<PipelineLaneCard runConfig={{ status: "missing" }} project={PROJECT} />);
     expect(container.firstChild).toBeNull();
   });
 
+  // @covers FR-01.01
   it("renders nothing when no project is resolved", () => {
     const { container } = render(<PipelineLaneCard runConfig={okResponse("single_session")} project={null} />);
     expect(container.firstChild).toBeNull();
   });
 
+  // @covers FR-01.01
   it("renders the SingleSessionRunCard for a single_session run (not MasterTaskCard)", () => {
     render(<PipelineLaneCard runConfig={okResponse("single_session")} project={PROJECT} />);
     expect(screen.getByTestId("task-board-pipelines-lane")).toBeInTheDocument();
@@ -62,12 +66,14 @@ describe("PipelineLaneCard — mode selection", () => {
     expect(screen.queryByTestId("stub-master-task")).toBeNull();
   });
 
+  // @covers FR-01.01
   it("renders the MasterTaskCard for a multi_session run (not SingleSessionRunCard)", () => {
     render(<PipelineLaneCard runConfig={okResponse("multi_session")} project={PROJECT} />);
     expect(screen.getByTestId("stub-master-task")).toBeInTheDocument();
     expect(screen.queryByTestId("stub-single-session")).toBeNull();
   });
 
+  // @covers FR-01.01
   it("renders the MasterTaskCard for a mode-less legacy run (defaults to multi_session)", () => {
     render(<PipelineLaneCard runConfig={okResponse(undefined)} project={PROJECT} />);
     expect(screen.getByTestId("stub-master-task")).toBeInTheDocument();

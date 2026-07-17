@@ -61,16 +61,19 @@ describe("resolveKind — extension dispatch matrix", () => {
 });
 
 describe("SmartViewer — empty + unsupported states", () => {
+  // @covers FR-01.35
   it("null path → empty state", () => {
     render(<SmartViewer projectId="proj-a" path={null} />);
     expect(screen.getByTestId("smart-viewer-empty")).toBeTruthy();
   });
 
+  // @covers FR-01.35
   it("unknown extension → 'Unsupported file type' chip", () => {
     render(<SmartViewer projectId="proj-a" path="mystery.xyz" />);
     expect(screen.getByTestId("smart-viewer-unknown")).toBeTruthy();
   });
 
+  // @covers FR-01.35
   it("video extension → <video> renderer (AC6, no fetch)", () => {
     const fetchMock = vi.fn();
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -87,6 +90,7 @@ describe("SmartViewer — empty + unsupported states", () => {
 });
 
 describe("SmartViewer — 1 MB client cap", () => {
+  // @covers FR-01.35
   it("server-side 413 (file_too_large) → 'File too large' chip, no renderer call", async () => {
     const fetchMock = vi.fn(
       async () =>
@@ -105,6 +109,7 @@ describe("SmartViewer — 1 MB client cap", () => {
     expect(screen.queryByTestId("smart-viewer-markdown")).toBeNull();
   });
 
+  // @covers FR-01.35
   it("client-side 1 MB cap (server returns big text) → chip, no markdown call", async () => {
     // Over the 1 MB client cap, under the 5 MB server cap — server emits
     // the full body, client refuses to hand it to react-markdown.
@@ -137,6 +142,7 @@ describe("SmartViewer — markdown + text + code happy paths", () => {
     );
   }
 
+  // @covers FR-01.35
   it("markdown path dispatches to MarkdownRenderer", async () => {
     globalThis.fetch = mockFetchOk("# hi", "text/markdown; charset=utf-8") as unknown as typeof fetch;
     render(<SmartViewer projectId="proj-a" path="README.md" />);
@@ -145,6 +151,7 @@ describe("SmartViewer — markdown + text + code happy paths", () => {
     });
   });
 
+  // @covers FR-01.35
   it("code path dispatches to CodeRenderer with correct extension", async () => {
     globalThis.fetch = mockFetchOk("const x = 1;") as unknown as typeof fetch;
     render(<SmartViewer projectId="proj-a" path="src/demo.ts" />);
@@ -156,6 +163,7 @@ describe("SmartViewer — markdown + text + code happy paths", () => {
     expect(node.getAttribute("data-language")).toBe("typescript");
   });
 
+  // @covers FR-01.35
   it("text path dispatches to TextRenderer", async () => {
     globalThis.fetch = mockFetchOk("line 1\nline 2\n") as unknown as typeof fetch;
     render(<SmartViewer projectId="proj-a" path="notes.txt" />);
@@ -176,6 +184,7 @@ describe("SmartViewer — pop-out modal (popOut prop)", () => {
     ) as unknown as typeof fetch;
   }
 
+  // @covers FR-01.35
   it("popOut={false} suppresses the pop-out button (modal-nested instance)", async () => {
     mockMarkdown();
     render(<SmartViewer projectId="proj-a" path="README.md" popOut={false} />);
@@ -185,6 +194,7 @@ describe("SmartViewer — pop-out modal (popOut prop)", () => {
     expect(screen.queryByTestId("smart-viewer-popout")).toBeNull();
   });
 
+  // @covers FR-01.35
   it("clicking pop-out opens the centered in-app modal and never calls window.open", async () => {
     mockMarkdown();
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
@@ -207,6 +217,7 @@ describe("SmartViewer — pop-out modal (popOut prop)", () => {
 });
 
 describe("SmartViewer — image dispatch", () => {
+  // @covers FR-01.35
   it("image path renders an <img> with the file-URL and no fetch()", () => {
     const fetchMock = vi.fn();
     globalThis.fetch = fetchMock as unknown as typeof fetch;

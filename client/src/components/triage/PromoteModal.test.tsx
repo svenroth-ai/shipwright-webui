@@ -66,6 +66,7 @@ describe("PromoteModal", () => {
     mockMutate.mockReset();
   });
 
+  // @covers FR-01.30
   it("pre-fills priority + domain from item.suggested* fields", () => {
     renderModal();
     const priority = screen.getByTestId("promote-priority") as HTMLSelectElement;
@@ -74,6 +75,7 @@ describe("PromoteModal", () => {
     expect(domain.value).toBe("engineering");
   });
 
+  // @covers FR-01.30
   it("submit: comma-splits + trims + filters empty tags", async () => {
     mockMutate.mockResolvedValue({
       kind: "ok",
@@ -97,6 +99,7 @@ describe("PromoteModal", () => {
     });
   });
 
+  // @covers FR-01.30
   it("calls onPromoted with the new taskId on success", async () => {
     mockMutate.mockResolvedValue({
       kind: "ok",
@@ -116,6 +119,7 @@ describe("PromoteModal", () => {
     });
   });
 
+  // @covers FR-01.30
   it("renders a 'partially completed' message on 207", async () => {
     mockMutate.mockResolvedValue({
       kind: "partial",
@@ -135,6 +139,7 @@ describe("PromoteModal", () => {
     );
   });
 
+  // @covers FR-01.30
   it("shows error toast on 409 already-promoted", async () => {
     mockMutate.mockResolvedValue({
       kind: "error",
@@ -152,6 +157,7 @@ describe("PromoteModal", () => {
     );
   });
 
+  // @covers FR-01.30
   it("blocks submit when domain is empty after trim", async () => {
     renderModal();
     const user = userEvent.setup();
@@ -167,6 +173,7 @@ describe("PromoteModal", () => {
 
   // iterate-20260515-triage-card-styling — dialog shell matches the
   // Project Creation wizard (white --color-surface + card radius/shadow).
+  // @covers FR-01.30
   it("dialog surface matches the Project Creation wizard tokens", () => {
     renderModal();
     const content = screen.getByTestId("triage-promote-modal");

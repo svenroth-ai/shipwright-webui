@@ -59,6 +59,7 @@ const BASE: TreeFixture = {
 };
 
 describe("FolderTree — root fetch + lazy expand", () => {
+  // @covers FR-01.62
   it("fetches the project root on mount", async () => {
     const fetchMock = mockTreeFetch(BASE);
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -75,6 +76,7 @@ describe("FolderTree — root fetch + lazy expand", () => {
     expect(String(fetchMock.mock.calls[0][0])).not.toContain("path=");
   });
 
+  // @covers FR-01.62
   it("clicking a dir triggers one lazy-expand fetch; collapse + re-expand does NOT refetch", async () => {
     const fetchMock = mockTreeFetch(BASE);
     globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -111,6 +113,7 @@ describe("FolderTree — root fetch + lazy expand", () => {
 });
 
 describe("FolderTree — icon-by-extension colour map (A04 sweep, FR-01.48)", () => {
+  // @covers FR-01.62
   it("renders json/yaml (text-warn) and image (text-info) file rows", async () => {
     const fixture: TreeFixture = {
       "": [
@@ -130,6 +133,7 @@ describe("FolderTree — icon-by-extension colour map (A04 sweep, FR-01.48)", ()
 });
 
 describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
+  // @covers FR-01.62
   it("ignored entries render muted + italic with data-ignored=\"true\" by default", async () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
     render(
@@ -142,6 +146,7 @@ describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
     expect(ignoredRow.className).toContain("italic");
   });
 
+  // @covers FR-01.62
   it("default checkbox state is checked (Show ignored entries → ON)", async () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
     render(
@@ -154,6 +159,7 @@ describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
     expect(checkbox.checked).toBe(true);
   });
 
+  // @covers FR-01.62
   it("uncheck Show ignored entries → ignored entries hidden entirely; persists per-project", async () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
     render(
@@ -176,6 +182,7 @@ describe("FolderTree — show-ignored toggle (iterate v0.8.2 AC-6)", () => {
 });
 
 describe("FolderTree — error surfacing", () => {
+  // @covers FR-01.62
   it("400 traversal error surfaces inline without crash", async () => {
     const fetchMock = mockTreeFetch(BASE, {
       path: "evil",
@@ -208,6 +215,7 @@ describe("FolderTree — error surfacing", () => {
 });
 
 describe("FolderTree — A18 left card (glass Files card + greyed head)", () => {
+  // @covers FR-01.62
   it("outer is the .ft-card.ft-files glass surface; header is the .ft-head band", () => {
     globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
     render(

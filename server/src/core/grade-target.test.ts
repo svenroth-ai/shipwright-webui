@@ -38,6 +38,7 @@ describe("looksRemote — server re-derives remote-ness (never trusts the client
 });
 
 describe("validateGradeTarget — honest rejection at the io boundary", () => {
+  // @covers FR-01.53
   it("rejects a non-string / empty / whitespace target", () => {
     expect(validateGradeTarget(undefined, yes).ok).toBe(false);
     expect(validateGradeTarget(42, yes).ok).toBe(false);
@@ -45,11 +46,13 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     expect(validateGradeTarget("   ", yes).ok).toBe(false);
   });
 
+  // @covers FR-01.53
   it("rejects an over-long target and a NUL byte", () => {
     expect(validateGradeTarget("x".repeat(401), yes).ok).toBe(false);
     expect(validateGradeTarget("C:/repo\0/evil", yes).ok).toBe(false);
   });
 
+  // @covers FR-01.53
   it("accepts a plausible remote URL, rejects an implausible one", () => {
     expect(validateGradeTarget("https://github.com/acme/checkout", no)).toMatchObject({
       ok: true,
@@ -69,6 +72,7 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     expect(bad.reason).toMatch(/repository URL/i);
   });
 
+  // @covers FR-01.53
   it("accepts a local path only when it resolves to a real directory", () => {
     expect(validateGradeTarget("C:/work/api-server", yes)).toMatchObject({
       ok: true,
@@ -79,6 +83,7 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     expect(missing.reason).toMatch(/doesn't exist/i);
   });
 
+  // @covers FR-01.53
   it("SSRF allowlist: ONLY public GitHub/GitLab/Bitbucket hosts pass", () => {
     for (const url of [
       "https://github.com/acme/checkout",
@@ -93,6 +98,7 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     }
   });
 
+  // @covers FR-01.53
   it("SSRF allowlist: rejects loopback/private/internal hosts AND every IP-literal encoding", () => {
     for (const url of [
       "https://169.254.169.254/a/b", // cloud metadata endpoint (link-local)
@@ -116,6 +122,7 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     }
   });
 
+  // @covers FR-01.53
   it("rejects credentials embedded in an http(s) URL (never echo a secret back)", () => {
     const r = validateGradeTarget("https://user:pass@github.com/acme/checkout", no);
     expect(r.ok).toBe(false);
@@ -124,6 +131,7 @@ describe("validateGradeTarget — honest rejection at the io boundary", () => {
     expect(validateGradeTarget("git@github.com:acme/checkout.git", no).ok).toBe(true);
   });
 
+  // @covers FR-01.53
   it("a shell-metachar local path is NOT special-cased — it is just a non-existent dir", () => {
     // shell:false means metachars can't inject; here the honest failure is
     // simply "that folder doesn't exist" (statDir false), never a crash.
@@ -149,15 +157,18 @@ describe("resolveGradeScript / resolveComplianceRoot — versioned cache layout"
   const complianceFile = path.join(complianceRoot, "scripts", "lib", "control_grade.py");
   const existsFn = (p: string): boolean => p === gradeScript || p === complianceFile;
 
+  // @covers FR-01.53
   it("resolves the HIGHEST semver dir that actually carries grade.py", () => {
     // 0.29.1 > 0.9.0 numerically (not lexically) — the compare must be semver-ish.
     expect(resolveGradeScript({ homeDir, existsFn, readdirFn })).toBe(gradeScript);
   });
 
+  // @covers FR-01.53
   it("resolves the compliance PLUGIN ROOT (three dirs up from control_grade.py)", () => {
     expect(resolveComplianceRoot({ homeDir, existsFn, readdirFn })).toBe(complianceRoot);
   });
 
+  // @covers FR-01.53
   it("returns null when the plugin dir is absent", () => {
     expect(
       resolveGradeScript({ homeDir, existsFn: no, readdirFn: () => [] }),
@@ -167,11 +178,13 @@ describe("resolveGradeScript / resolveComplianceRoot — versioned cache layout"
     ).toBeNull();
   });
 
+  // @covers FR-01.53
   it("honours an explicit scriptOverride only when the file exists", () => {
     expect(resolveGradeScript({ scriptOverride: "/x/grade.py", existsFn: yes })).toBe("/x/grade.py");
     expect(resolveGradeScript({ scriptOverride: "/x/grade.py", existsFn: no })).toBeNull();
   });
 
+  // @covers FR-01.53
   it("exports the env var grade.py's engine_bridge reads", () => {
     expect(ENV_COMPLIANCE_ROOT).toBe("SHIPWRIGHT_GRADE_COMPLIANCE_ROOT");
   });

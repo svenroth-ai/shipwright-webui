@@ -105,6 +105,7 @@ describe("TriageDetailModal styling", () => {
     useProjectActionsSpy.mockReturnValue(catalogReady);
   });
 
+  // @covers FR-01.30
   it("dialog surface matches the Project Creation wizard tokens", () => {
     const Wrapper = makeWrapper();
     render(
@@ -158,16 +159,19 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     return { ...utils, onOpenChange, onFixNow };
   }
 
+  // @covers FR-01.30
   it("AC-7: renders Fix-now on every status=triage item — even with no launchPayload", () => {
     renderModal({ launchPayload: null, source: "phaseQuality" });
     expect(screen.getByTestId("triage-fix-now")).toBeTruthy();
   });
 
+  // @covers FR-01.30
   it("AC-7: renders Fix-now on a github item with empty launchPayload (was hidden previously)", () => {
     renderModal({ source: "github", launchPayload: null });
     expect(screen.getByTestId("triage-fix-now")).toBeTruthy();
   });
 
+  // @covers FR-01.30
   it("AC-8: github source → onFixNow called with new-task + security intent + closes modal", () => {
     const { onOpenChange, onFixNow } = renderModal({
       source: "github",
@@ -195,6 +199,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // @covers FR-01.30
   it("AC-9: iterate-source item → onFixNow called with new-iterate intent (no phase pre-fill)", () => {
     const { onOpenChange, onFixNow } = renderModal({
       source: "iterate",
@@ -221,6 +226,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // @covers FR-01.30
   it("iterate-2026-05-22: intent.projectId is the prop projectId so TriagePage can pre-select the modal's project", () => {
     // Bug 2026-05-22: TriagePage's NewIssueModal opened with everything
     // pre-filled EXCEPT the project, because the intent didn't carry it
@@ -234,6 +240,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(onFixNow.mock.calls[0][0].projectId).toBe("proj-a");
   });
 
+  // @covers FR-01.30
   it("AC-9 regression: kind=compliance still routes to new-iterate (source-only discriminator)", () => {
     // I originally proposed kind=compliance → security. Sven UAT
     // 2026-05-21 overrode: compliance items in this repo are refactor
@@ -251,6 +258,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(onFixNow.mock.calls[0][0].initialPhaseId).toBeUndefined();
   });
 
+  // @covers FR-01.30
   it("Defensive: button disabled while catalog still loading", () => {
     useProjectActionsSpy.mockReturnValue({ data: undefined, isLoading: true });
     const { onOpenChange, onFixNow } = renderModal({ source: "github" });
@@ -262,6 +270,7 @@ describe("TriageDetailModal — Fix-now emits FixNowIntent (iterate-2026-05-21)"
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.30
   it("Defensive: permanent-failure catalog (isLoading:false, data:undefined) surfaces inline failure", () => {
     useProjectActionsSpy.mockReturnValue({ data: undefined, isLoading: false });
     const { onOpenChange, onFixNow } = renderModal({ source: "github" });
@@ -307,6 +316,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     return { ...utils, onOpenChange, onNavigateToBoard };
   }
 
+  // @covers FR-01.30
   it("non-campaign item shows no campaign CTA and keeps Fix-now primary", () => {
     renderCampaign({}); // baseItem has no campaignSlug
     expect(screen.queryByTestId("triage-campaign-cta")).toBeNull();
@@ -315,6 +325,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     );
   });
 
+  // @covers FR-01.30
   it("draft campaign → renders Start Campaign and demotes Fix-now to secondary", () => {
     renderCampaign({
       campaignSlug: "2026-06-03-cleanup",
@@ -328,6 +339,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(fixNow.className).toContain("border-[var(--color-border)]");
   });
 
+  // @covers FR-01.30
   it("Start Campaign success → calls mutateAsync(slug), navigates, closes", async () => {
     startCampaignSpy.mockResolvedValue({
       ok: true,
@@ -346,6 +358,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(screen.queryByTestId("triage-start-campaign-error")).toBeNull();
   });
 
+  // @covers FR-01.30
   it("Start Campaign failure (409 already complete) → inline error, no navigate, stays open", async () => {
     startCampaignSpy.mockResolvedValue({
       ok: false,
@@ -370,6 +383,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.30
   it("Start Campaign transport failure (rejected mutateAsync) → inline error, no navigate, stays open", async () => {
     startCampaignSpy.mockRejectedValue(new Error("network down"));
     const { onOpenChange, onNavigateToBoard } = renderCampaign({
@@ -386,6 +400,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(onOpenChange).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.30
   it("active campaign → Go to board navigates + closes WITHOUT a status write", () => {
     const { onOpenChange, onNavigateToBoard } = renderCampaign({
       campaignSlug: "2026-06-03-cleanup",
@@ -400,6 +415,7 @@ describe("TriageDetailModal — Start Campaign CTA (FR-01.33)", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // @covers FR-01.30
   it("complete campaign → shows complete note, no Start / Go button, Fix-now stays primary", () => {
     renderCampaign({
       campaignSlug: "2026-06-03-cleanup",

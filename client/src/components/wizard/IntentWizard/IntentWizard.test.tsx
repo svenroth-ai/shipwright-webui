@@ -54,6 +54,7 @@ afterEach(() => cleanup());
 describe("IntentWizard — door picker + readiness gate", () => {
   beforeEach(() => mockReadiness(READY));
 
+  // @covers FR-01.52
   it("renders the three canonical First-Contact doors + the add-existing line", async () => {
     renderWizard();
     await doorsReady();
@@ -63,6 +64,7 @@ describe("IntentWizard — door picker + readiness gate", () => {
     expect(screen.getByTestId("wizard-add-existing")).toHaveTextContent("Add the existing project");
   });
 
+  // @covers FR-01.52
   it("when NOT ready the doors are inert and the gate names what's missing + the repair command", async () => {
     mockReadiness({
       ready: false,
@@ -84,6 +86,7 @@ describe("IntentWizard — door picker + readiness gate", () => {
     );
   });
 
+  // @covers FR-01.52
   it("a probe error is treated as NOT ready — never assume success", async () => {
     server.use(http.get("/api/readiness", () => HttpResponse.error()));
     renderWizard();
@@ -95,6 +98,7 @@ describe("IntentWizard — door picker + readiness gate", () => {
 describe("IntentWizard — NEW door walks to the plan card (AC1)", () => {
   beforeEach(() => mockReadiness(READY));
 
+  // @covers FR-01.52
   it("4 questions → plan card, with live flight-plan translations", async () => {
     renderWizard();
     await doorsReady();
@@ -133,6 +137,7 @@ describe("IntentWizard — NEW door walks to the plan card (AC1)", () => {
 describe("IntentWizard — ADOPT door walks to the result card (AC1)", () => {
   beforeEach(() => mockReadiness(READY));
 
+  // @covers FR-01.52
   it("pick → scan → two-column result + mission CTA", async () => {
     renderWizard("adopt");
     // Deep-link lands INSIDE the flow at step 1 (AC4), not the picker.
@@ -154,6 +159,7 @@ describe("IntentWizard — ADOPT door walks to the result card (AC1)", () => {
 describe("IntentWizard — deep links (AC4)", () => {
   beforeEach(() => mockReadiness(READY));
 
+  // @covers FR-01.52
   it("/wizard (picker), /wizard/adopt, /wizard/grade land on the right entry", async () => {
     const { unmount } = renderWizard(null);
     await doorsReady();

@@ -28,23 +28,27 @@ describe("ComplianceGradeBadge", () => {
     mockResult = undefined;
   });
 
+  // @covers FR-01.43
   it("renders nothing while loading / no data", () => {
     const { container } = render(<ComplianceGradeBadge projectId="p1" />);
     expect(container).toBeEmptyDOMElement();
   });
 
+  // @covers FR-01.43
   it("renders nothing when the dashboard is missing (AC-B)", () => {
     mockResult = { status: "missing" };
     const { container } = render(<ComplianceGradeBadge projectId="p1" />);
     expect(container).toBeEmptyDOMElement();
   });
 
+  // @covers FR-01.43
   it("renders nothing when the dashboard is invalid (AC-C)", () => {
     mockResult = { status: "invalid", reason: "no grade" };
     const { container } = render(<ComplianceGradeBadge projectId="p1" />);
     expect(container).toBeEmptyDOMElement();
   });
 
+  // @covers FR-01.43
   it("renders an A pill (emerald) with the verdict + generated date in the tooltip (AC-F)", () => {
     mockResult = ok("A");
     render(<ComplianceGradeBadge projectId="p1" />);
@@ -56,6 +60,7 @@ describe("ComplianceGradeBadge", () => {
     expect(title).toMatch(/Generated: 2026-06-28/);
   });
 
+  // @covers FR-01.43
   it("maps B → amber and C → red (AC-F)", () => {
     mockResult = ok("B");
     const { rerender } = render(<ComplianceGradeBadge projectId="p1" />);
@@ -65,6 +70,7 @@ describe("ComplianceGradeBadge", () => {
     expect(screen.getByTestId("compliance-grade-p1").className).toMatch(/bg-err-tint/);
   });
 
+  // @covers FR-01.43
   it("opens the detail modal on click and renders the dimension table (AC-G)", () => {
     mockResult = ok("A");
     render(<ComplianceGradeBadge projectId="p1" />);
@@ -80,6 +86,7 @@ describe("ComplianceGradeBadge", () => {
     expect(modal).toHaveTextContent("CI Security");
   });
 
+  // @covers FR-01.43
   it("stops click propagation so a clickable parent row is not also triggered", () => {
     mockResult = ok("A");
     const onParent = vi.fn();

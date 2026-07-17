@@ -25,6 +25,7 @@ function versionInfoStub() {
 }
 
 describe("GET /api/readiness", () => {
+  // @covers FR-01.51
   it("returns the (async) probe report as JSON", async () => {
     const app = new Hono();
     app.route("/", createReadinessRoutes({ versionInfo: versionInfoStub(), probe: async () => REPORT }));
@@ -33,6 +34,7 @@ describe("GET /api/readiness", () => {
     expect(await res.json()).toEqual(REPORT);
   });
 
+  // @covers FR-01.51
   it("passes the live Claude verdict (supported + raw) into the probe", async () => {
     const probe = vi.fn(async () => REPORT);
     const app = new Hono();
@@ -45,6 +47,7 @@ describe("GET /api/readiness", () => {
     );
   });
 
+  // @covers FR-01.51
   it("memoises within the TTL — the probe is not re-run on every request", async () => {
     const probe = vi.fn(async () => REPORT);
     const app = new Hono();
@@ -55,6 +58,7 @@ describe("GET /api/readiness", () => {
     expect(probe).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.51
   it("coalesces concurrent cold-cache requests onto ONE in-flight probe", async () => {
     // The probe stays pending until we release it; three requests dispatched
     // synchronously must all await the same in-flight probe, not fan out.
@@ -75,6 +79,7 @@ describe("GET /api/readiness", () => {
     for (const b of bodies) expect(b).toEqual(REPORT);
   });
 
+  // @covers FR-01.51
   it("re-probes after the TTL expires", async () => {
     const probe = vi.fn(async () => REPORT);
     const app = new Hono();

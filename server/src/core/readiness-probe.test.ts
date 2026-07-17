@@ -50,6 +50,7 @@ function healthyFs() {
 const CLAUDE_OK = { supported: true, raw: "2.1.9", minSupported: "2.0.0" };
 
 describe("probeReadiness", () => {
+  // @covers FR-01.51
   it("all-green → ready, all six checks pass, canonical repair command", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
@@ -72,6 +73,7 @@ describe("probeReadiness", () => {
     expect(r.checks.find((c) => c.key === "plugins")?.detail).toBe("3 installed");
   });
 
+  // @covers FR-01.51
   it("uv missing → NOT ready, and names uv with its why", async () => {
     const run: RunFn = async (cmd) =>
       cmd === "uv" ? NOT_FOUND : cmd === "python3" ? okRun("3.12.0") : okRun("2.0.0");
@@ -83,6 +85,7 @@ describe("probeReadiness", () => {
     expect(uv?.why).toMatch(/hook/i);
   });
 
+  // @covers FR-01.51
   it("Windows Store python stub (fails test-run) → python NOT ok even though on PATH", async () => {
     // The stub is on PATH but every invocation fails run().ok — resolvePython skips it.
     const run: RunFn = async (cmd) =>
@@ -94,6 +97,7 @@ describe("probeReadiness", () => {
     expect(py?.detail).toMatch(/not found/);
   });
 
+  // @covers FR-01.51
   it("python present but < 3.11 → NOT ok", async () => {
     const run: RunFn = async (cmd) => (cmd === "python3" ? okRun("3.9.7") : okRun("2.0.0"));
     const r = await probeReadiness({ run, homeDir: HOME, claude: CLAUDE_OK, ...healthyFs() });
@@ -103,6 +107,7 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
+  // @covers FR-01.51
   it("no plugins installed → plugins check fails, doors closed", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
@@ -117,6 +122,7 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
+  // @covers FR-01.51
   it("plugins present but a DOOR-critical plugin (grade) missing → not ready, named", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
@@ -132,6 +138,7 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
+  // @covers FR-01.51
   it("shared/ canary missing → cache incoherent even with plugin dirs present", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
@@ -146,6 +153,7 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
+  // @covers FR-01.51
   it("unsupported Claude CLI → claude check fails with a need->= detail", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
@@ -159,6 +167,7 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
+  // @covers FR-01.51
   it("readdir throwing (cache root absent) is swallowed → plugins none installed", async () => {
     const r = await probeReadiness({
       run: allToolsRun,
@@ -173,6 +182,7 @@ describe("probeReadiness", () => {
     expect(r.ready).toBe(false);
   });
 
+  // @covers FR-01.51
   it("the independent tool probes run in PARALLEL (not serially)", async () => {
     // Each probe resolves after a short delay; a serial runner would take ~3×,
     // a parallel one ~1×. Assert the wall-clock is closer to one delay.
@@ -192,18 +202,21 @@ describe("probeReadiness", () => {
 });
 
 describe("probe helpers", () => {
+  // @covers FR-01.51
   it("extractVersion pulls the first x.y(.z) token", () => {
     expect(extractVersion("uv 0.5.11 (abc)")).toBe("0.5.11");
     expect(extractVersion("git version 2.47.1.windows.1")).toBe("2.47.1");
     expect(extractVersion("no digits")).toBe("");
   });
 
+  // @covers FR-01.51
   it("compareVersions handles missing segments", () => {
     expect(compareVersions("3.13", "3.11.0")).toBe(1);
     expect(compareVersions("3.11", "3.11.0")).toBe(0);
     expect(compareVersions("3.9.7", "3.11.0")).toBe(-1);
   });
 
+  // @covers FR-01.51
   it("resolvePython returns the first working interpreter, skipping failing ones", async () => {
     const run: RunFn = async (cmd) => (cmd === "python" ? okRun("3.12.4") : NOT_FOUND);
     expect(await resolvePython(run)).toEqual({ bin: "python", version: "3.12.4" });

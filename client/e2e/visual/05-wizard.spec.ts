@@ -187,6 +187,7 @@ test.describe("visual: intent wizard", () => {
 
   // Grade: drive through to the REAL Control-Grade result card, fed by a fixed
   // /api/wizard/grade fixture so the card is deterministic (A09b, AC7).
+  // @covers FR-01.53
   test("wizard-grade", async ({ page }) => {
     await page.route("**/api/wizard/grade", (route) => route.fulfill({ json: GRADE_FIXTURE }));
     await page.goto("/wizard/grade");

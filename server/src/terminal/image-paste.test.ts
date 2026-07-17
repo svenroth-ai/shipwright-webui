@@ -41,25 +41,30 @@ afterEach(async () => {
 });
 
 describe("sniffImageKind — magic-byte detection", () => {
+  // @covers FR-01.29
   it("accepts png/jpeg/webp/gif", () => {
     expect(sniffImageKind(PNG)).toBe("png");
     expect(sniffImageKind(JPEG)).toBe("jpeg");
     expect(sniffImageKind(WEBP)).toBe("webp");
     expect(sniffImageKind(GIF)).toBe("gif");
   });
+  // @covers FR-01.29
   it("rejects plain text", () => {
     expect(sniffImageKind(PLAIN_TEXT)).toBe(null);
   });
+  // @covers FR-01.29
   it("rejects too-short buffers", () => {
     expect(sniffImageKind(new Uint8Array([0x89]))).toBe(null);
   });
 });
 
 describe("parseFilenameTimestamp", () => {
+  // @covers FR-01.29
   it("returns the ms part for img-<ms>-<hex>.<ext>", () => {
     expect(parseFilenameTimestamp("img-1714776000000-deadbeef.png")).toBe(1714776000000);
     expect(parseFilenameTimestamp("img-42-aaaaaaaa.jpg")).toBe(42);
   });
+  // @covers FR-01.29
   it("returns NaN for unrelated filenames", () => {
     expect(Number.isNaN(parseFilenameTimestamp("readme.md"))).toBe(true);
     expect(Number.isNaN(parseFilenameTimestamp("img-no-rand.png"))).toBe(true);
@@ -67,6 +72,7 @@ describe("parseFilenameTimestamp", () => {
 });
 
 describe("savePastedImage", () => {
+  // @covers FR-01.29
   it("writes a png with the expected filename pattern under .shipwright-webui/pastes/", async () => {
     const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
     expect(r.kind).toBe("png");
@@ -77,6 +83,7 @@ describe("savePastedImage", () => {
     expect(r.absolutePath.startsWith(dir)).toBe(true);
   });
 
+  // @covers FR-01.29
   it("rejects unsupported types (no magic-byte match)", async () => {
     await expect(savePastedImage({ cwd: tmpDir, bytes: PLAIN_TEXT, keepLast: 20 })).rejects.toMatchObject({
       code: "unsupported_image_type",
@@ -85,6 +92,7 @@ describe("savePastedImage", () => {
     await expect(fs.readdir(path.join(tmpDir, PASTES_DIR)).catch(() => [])).resolves.toEqual([]);
   });
 
+  // @covers FR-01.29
   it("rejects oversize blobs (> MAX_IMAGE_BYTES)", async () => {
     const tooBig = new Uint8Array(MAX_IMAGE_BYTES + 1);
     tooBig.set(PNG, 0);
@@ -93,6 +101,7 @@ describe("savePastedImage", () => {
     });
   });
 
+  // @covers FR-01.29
   it("after the (N+1)th save, only N files remain (keep-last-N prune)", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
     for (let i = 0; i < 5; i++) {
@@ -104,6 +113,7 @@ describe("savePastedImage", () => {
     expect(entries.length).toBe(3);
   });
 
+  // @covers FR-01.29
   it("filenames are unique even when called rapidly within the same millisecond", async () => {
     // Force same Date.now() by stubbing.
     const origNow = Date.now;
@@ -123,12 +133,14 @@ describe("savePastedImage", () => {
     }
   });
 
+  // @covers FR-01.29
   it("gitignoreSuggestion=true when .gitignore exists but mentions neither pastes path", async () => {
     await fs.writeFile(path.join(tmpDir, ".gitignore"), "node_modules/\n");
     const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
     expect(r.gitignoreSuggestion).toBe(true);
   });
 
+  // @covers FR-01.29
   it("gitignoreSuggestion=false when .gitignore already contains the new .shipwright-webui/ line (AC-6)", async () => {
     await fs.writeFile(
       path.join(tmpDir, ".gitignore"),
@@ -138,6 +150,7 @@ describe("savePastedImage", () => {
     expect(r.gitignoreSuggestion).toBe(false);
   });
 
+  // @covers FR-01.29
   it("gitignoreSuggestion=false when .gitignore still has the legacy .claude-pastes/ line (AC-6 backwards-compat)", async () => {
     await fs.writeFile(
       path.join(tmpDir, ".gitignore"),
@@ -147,6 +160,7 @@ describe("savePastedImage", () => {
     expect(r.gitignoreSuggestion).toBe(false);
   });
 
+  // @covers FR-01.29
   it("gitignoreSuggestion=false when .gitignore does not exist (we don't propose creating one)", async () => {
     const r = await savePastedImage({ cwd: tmpDir, bytes: PNG, keepLast: 20 });
     expect(r.gitignoreSuggestion).toBe(false);
@@ -154,6 +168,7 @@ describe("savePastedImage", () => {
 });
 
 describe("pruneKeepLastN", () => {
+  // @covers FR-01.29
   it("is a no-op when count <= n", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
     await fs.mkdir(dir, { recursive: true });
@@ -165,6 +180,7 @@ describe("pruneKeepLastN", () => {
     expect(r.kept.length).toBe(3);
   });
 
+  // @covers FR-01.29
   it("ignores non-img files in the same dir", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
     await fs.mkdir(dir, { recursive: true });
@@ -175,6 +191,7 @@ describe("pruneKeepLastN", () => {
     expect(r.kept).toEqual(["img-1-aaaaaaaa.png"]);
   });
 
+  // @covers FR-01.29
   it("deletes the oldest by parsed-timestamp primary order", async () => {
     const dir = path.join(tmpDir, PASTES_DIR);
     await fs.mkdir(dir, { recursive: true });
@@ -188,6 +205,7 @@ describe("pruneKeepLastN", () => {
 });
 
 describe("appendGitignoreLine", () => {
+  // @covers FR-01.29
   it("appends .shipwright-webui/ when missing (AC-6)", async () => {
     const gi = path.join(tmpDir, ".gitignore");
     await fs.writeFile(gi, "node_modules/\n");
@@ -197,6 +215,7 @@ describe("appendGitignoreLine", () => {
     expect(after).toMatch(/\.shipwright-webui\//);
   });
 
+  // @covers FR-01.29
   it("is idempotent — second call is a no-op", async () => {
     const gi = path.join(tmpDir, ".gitignore");
     await fs.writeFile(gi, "node_modules/\n.shipwright-webui/\n");
@@ -204,6 +223,7 @@ describe("appendGitignoreLine", () => {
     expect(did).toBe(false);
   });
 
+  // @covers FR-01.29
   it("treats a legacy .claude-pastes/ line as already-covered (AC-6 backwards-compat)", async () => {
     const gi = path.join(tmpDir, ".gitignore");
     await fs.writeFile(gi, "node_modules/\n.claude-pastes/\n");
@@ -211,11 +231,13 @@ describe("appendGitignoreLine", () => {
     expect(did).toBe(false);
   });
 
+  // @covers FR-01.29
   it("returns false when the file is missing (caller decides 404 vs no-op)", async () => {
     const did = await appendGitignoreLine(path.join(tmpDir, "does-not-exist"));
     expect(did).toBe(false);
   });
 
+  // @covers FR-01.29
   it("ensures a leading newline before the appended line when the file lacks a trailing \\n", async () => {
     const gi = path.join(tmpDir, ".gitignore");
     await fs.writeFile(gi, "node_modules/");

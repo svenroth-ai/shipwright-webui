@@ -30,6 +30,7 @@ function baseCtx(overrides: Partial<SubstitutionContext["task"]> = {}): Substitu
 const SHELL_FORMS: ShellForm[] = ["powershell", "cmd", "posix"];
 
 describe("actions-substitute — positive placeholders across shells", () => {
+  // @covers FR-01.37
   it("substitutes project.path with embedded spaces (single quotes / double quotes)", () => {
     const ctx = baseCtx();
     ctx.project.path = "/home/sven/my app";
@@ -44,6 +45,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     );
   });
 
+  // @covers FR-01.37
   it("substitutes project.path containing single quotes (shell-escaped correctly)", () => {
     const ctx = baseCtx();
     ctx.project.path = "/home/sven/o'malley/app";
@@ -59,6 +61,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     );
   });
 
+  // @covers FR-01.37
   it("substitutes project.path containing double quotes", () => {
     const ctx = baseCtx();
     ctx.project.path = `/home/sven/He said "hi"/app`;
@@ -71,6 +74,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     );
   });
 
+  // @covers FR-01.37
   it("substitutes Windows trailing-backslash path", () => {
     const ctx = baseCtx();
     ctx.project.path = "C:\\dev\\app\\";
@@ -83,6 +87,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     );
   });
 
+  // @covers FR-01.37
   it("substitutes Unicode path", () => {
     const ctx = baseCtx();
     ctx.project.path = "/home/sven/äpp";
@@ -92,6 +97,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     }
   });
 
+  // @covers FR-01.37
   it("project.id passes through UNQUOTED (server-generated UUID, safe literal)", () => {
     const ctx = baseCtx();
     for (const form of SHELL_FORMS) {
@@ -99,6 +105,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     }
   });
 
+  // @covers FR-01.37
   it("task.uuid passes through UNQUOTED", () => {
     const ctx = baseCtx();
     for (const form of SHELL_FORMS) {
@@ -106,6 +113,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     }
   });
 
+  // @covers FR-01.37
   it("task.title with shell-metacharacters is escaped (not executed)", () => {
     const ctx = baseCtx({ title: "oops $(whoami) `ls` ; rm -rf /" });
     const posix = substitutePlaceholders("{task.title}", ctx, "posix");
@@ -115,6 +123,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     expect(posix.endsWith("'")).toBe(true);
   });
 
+  // @covers FR-01.37
   it("task.description? empty produces empty substitution (no leading prefix)", () => {
     const ctx = baseCtx();
     expect(substitutePlaceholders("{task.description?}", ctx, "posix")).toBe("");
@@ -122,6 +131,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
       .toBe("beforeafter");
   });
 
+  // @covers FR-01.37
   it("task.description? non-empty produces space-prefixed escaped value", () => {
     // 2026-04-23 — post-processing in substitutePlaceholders now flattens
     // the continuation-prefix `\<newline>    ` to a single space so the
@@ -132,6 +142,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     expect(out).toBe(` 'Please fix the bug'`);
   });
 
+  // @covers FR-01.37
   it("task.description? flattens embedded newlines to single spaces", () => {
     const ctx = baseCtx();
     // \n, \r\n and blank-line runs all collapse to one space; the launch
@@ -141,6 +152,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     expect(out).toBe(` 'first line second line third'`);
   });
 
+  // @covers FR-01.37
   it("task.phase validates against allowedPhaseIds", () => {
     const ctx = baseCtx();
     expect(substitutePlaceholders("{task.phase}", ctx, "posix")).toBe("build");
@@ -150,12 +162,14 @@ describe("actions-substitute — positive placeholders across shells", () => {
     ).toThrow(UnknownPhaseError);
   });
 
+  // @covers FR-01.37
   it("task.phase_label is user-editable so it IS escaped", () => {
     const ctx = baseCtx({ phase_label: "my custom label with 'quotes'" });
     const posix = substitutePlaceholders("{task.phase_label}", ctx, "posix");
     expect(posix).toBe(`'my custom label with '\\''quotes'\\'''`);
   });
 
+  // @covers FR-01.37
   it("task.autonomy_flag? renders --autonomous with prefix when autonomous", () => {
     // 2026-04-23 — post-processing flattens the continuation-prefix
     // `\<newline>    ` to a single space.
@@ -166,6 +180,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
     );
   });
 
+  // @covers FR-01.37
   it("task.autonomy_flag? empty when guided / unset", () => {
     const ctx = baseCtx();
     expect(substitutePlaceholders("{task.autonomy_flag?}", ctx, "posix")).toBe("");
@@ -173,11 +188,13 @@ describe("actions-substitute — positive placeholders across shells", () => {
     expect(substitutePlaceholders("{task.autonomy_flag?}", ctx, "posix")).toBe("");
   });
 
+  // @covers FR-01.37
   it("plugin.dirs empty produces empty string", () => {
     const ctx = baseCtx();
     expect(substitutePlaceholders("{plugin.dirs}", ctx, "posix")).toBe("");
   });
 
+  // @covers FR-01.37
   it("plugin.dirs expands to space-joined --plugin-dir chunks, each escaped", () => {
     const ctx = baseCtx();
     ctx.pluginDirs = ["/home/sven/plugin a", "/home/sven/plugin b"];
@@ -189,6 +206,7 @@ describe("actions-substitute — positive placeholders across shells", () => {
 });
 
 describe("actions-substitute — negative cases", () => {
+  // @covers FR-01.37
   it("unknown placeholder throws InvalidPlaceholderError with actionId + template", () => {
     const ctx = baseCtx();
     try {
@@ -203,6 +221,7 @@ describe("actions-substitute — negative cases", () => {
     }
   });
 
+  // @covers FR-01.37
   it("unsupported shell form throws UnsupportedShellError", () => {
     const ctx = baseCtx();
     expect(() =>
@@ -210,6 +229,7 @@ describe("actions-substitute — negative cases", () => {
     ).toThrow(UnsupportedShellError);
   });
 
+  // @covers FR-01.37
   it("a multi-line description no longer fails a template that omits it", () => {
     // Pre-flight description-newline rejection was removed: a multi-line
     // description is flattened only by the description placeholders, and
@@ -223,6 +243,7 @@ describe("actions-substitute — negative cases", () => {
 });
 
 describe("actions-substitute — substituteAllForms", () => {
+  // @covers FR-01.37
   it("returns three parallel shell forms for the Shipwright new-task template", () => {
     // 2026-04-23 — `--project-root` is NOT a Claude CLI flag; replaced with
     // `--add-dir` (the standard flag for additional-directory scoping).
@@ -247,6 +268,7 @@ describe("actions-substitute — substituteAllForms", () => {
     expect(out.cmd).toContain("claude /shipwright-build");
   });
 
+  // @covers FR-01.37
   it("autonomous flag appears space-separated (flattened), not on a continuation line", () => {
     // 2026-04-23 — was `\<newline>    --autonomous`, now a single space
     // delimiter so PowerShell + cmd.exe parse the command correctly.
@@ -261,6 +283,7 @@ describe("actions-substitute — substituteAllForms", () => {
 });
 
 describe("actions-substitute — validateTemplate dry-run", () => {
+  // @covers FR-01.37
   it("returns null for a well-formed template", () => {
     const result = validateTemplate(
       "claude /shipwright-{task.phase} --session-id {task.uuid} --name {task.title}",
@@ -270,6 +293,7 @@ describe("actions-substitute — validateTemplate dry-run", () => {
     expect(result).toBeNull();
   });
 
+  // @covers FR-01.37
   it("returns InvalidPlaceholderError for a typo", () => {
     const result = validateTemplate(
       "claude --project {project.paht}",
@@ -304,6 +328,7 @@ describe("actions-substitute — single-line output (2026-04-23)", () => {
     expect(output.split("\n")).toHaveLength(1);
   }
 
+  // @covers FR-01.37
   it("flattens multi-line template to one line in powershell", () => {
     const ctx = baseCtx({ description: "fix login" });
     const out = substitutePlaceholders(MULTILINE, ctx, "powershell");
@@ -316,6 +341,7 @@ describe("actions-substitute — single-line output (2026-04-23)", () => {
     expect(out).toContain("fix login");
   });
 
+  // @covers FR-01.37
   it("flattens multi-line template to one line in cmd", () => {
     const ctx = baseCtx({ description: "fix login" });
     const out = substitutePlaceholders(MULTILINE, ctx, "cmd");
@@ -323,6 +349,7 @@ describe("actions-substitute — single-line output (2026-04-23)", () => {
     expect(out).toContain("/shipwright-build");
   });
 
+  // @covers FR-01.37
   it("flattens multi-line template to one line in posix", () => {
     const ctx = baseCtx({ description: "fix login" });
     const out = substitutePlaceholders(MULTILINE, ctx, "posix");
@@ -330,6 +357,7 @@ describe("actions-substitute — single-line output (2026-04-23)", () => {
     expect(out).toContain("/shipwright-build");
   });
 
+  // @covers FR-01.37
   it("collapses the empty-plugin-dirs gap without leaving a dangling continuation", () => {
     // `{plugin.dirs}` expands to "" when pluginDirs is empty. Without
     // flattening, the prior ` \\\n    ` from the preceding `--name` line
@@ -342,6 +370,7 @@ describe("actions-substitute — single-line output (2026-04-23)", () => {
     }
   });
 
+  // @covers FR-01.37
   it("collapses when description is absent (optional suffix empty)", () => {
     const ctx = baseCtx(); // no description
     for (const shell of SHELL_FORMS) {
@@ -363,6 +392,7 @@ describe("actions-substitute — single-line output (2026-04-23)", () => {
 // command runs with the project as cwd regardless of where the terminal
 // happened to be.
 describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
+  // @covers FR-01.37
   it("expands to PowerShell Set-Location with single-quote escaping + -ErrorAction Stop", () => {
     // -ErrorAction Stop upgrades Set-Location's non-terminating error to
     // terminating so a wrong path surfaces as a clean cd failure rather
@@ -375,6 +405,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     );
   });
 
+  // @covers FR-01.37
   it("expands to cmd.exe `cd /d` with double-quote escaping", () => {
     const ctx = baseCtx();
     ctx.project.path = "/home/sven/my app";
@@ -382,6 +413,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     expect(out).toBe(`cd /d "/home/sven/my app" && claude --version`);
   });
 
+  // @covers FR-01.37
   it("expands to POSIX `cd && ` with single-quote escaping", () => {
     const ctx = baseCtx();
     ctx.project.path = "/home/sven/my app";
@@ -389,6 +421,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     expect(out).toBe(`cd '/home/sven/my app' && claude --version`);
   });
 
+  // @covers FR-01.37
   it("converts Windows backslashes to forward slashes for POSIX form (matches {project.path})", () => {
     const ctx = baseCtx();
     ctx.project.path = "C:\\dev\\app";
@@ -396,6 +429,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     expect(out).toBe(`cd 'C:/dev/app' && claude`);
   });
 
+  // @covers FR-01.37
   it("preserves Windows backslashes for PowerShell + cmd forms", () => {
     const ctx = baseCtx();
     ctx.project.path = "C:\\dev\\app";
@@ -407,6 +441,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     );
   });
 
+  // @covers FR-01.37
   it("escapes embedded single quotes (PowerShell + POSIX) and double quotes (cmd) in path", () => {
     const ctx = baseCtx();
     ctx.project.path = "/home/sven/o'malley/app";
@@ -418,6 +453,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     );
   });
 
+  // @covers FR-01.37
   it("expands to empty string when project.path is empty (graceful fallback)", () => {
     const ctx = baseCtx();
     ctx.project.path = "";
@@ -427,6 +463,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     }
   });
 
+  // @covers FR-01.37
   it("survives line-continuation flattening (cd prefix is one logical token)", () => {
     // The post-processing flattener collapses ` \\\n    ` to a single
     // space. The cd prefix must not be split or dangling-backslashed by
@@ -441,6 +478,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     );
   });
 
+  // @covers FR-01.37
   it("appears at the start of the output (precedes the slash command in real templates)", () => {
     // Live shape from default-actions.json after the fix is applied.
     const ctx = baseCtx();
@@ -453,6 +491,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     }
   });
 
+  // @covers FR-01.37
   it("is rejected when used outside the allowlist as `cd.foo`", () => {
     const ctx = baseCtx();
     expect(() =>
@@ -460,6 +499,7 @@ describe("actions-substitute — {cd.prefix} placeholder (2026-04-23)", () => {
     ).toThrow(InvalidPlaceholderError);
   });
 
+  // @covers FR-01.37
   it("validateTemplate accepts a template containing {cd.prefix}", () => {
     const result = validateTemplate(
       "{cd.prefix}claude /shipwright-{task.phase} --add-dir {project.path}",
@@ -482,6 +522,7 @@ function ctxWithParams(parameters: ResolvedParam[]): SubstitutionContext {
 }
 
 describe("actions-substitute — {task.parameters?} substitution", () => {
+  // @covers FR-01.37
   it("renders empty string when parameters is undefined or empty (#1)", () => {
     const ctx = baseCtx();
     for (const shell of SHELL_FORMS) {
@@ -493,6 +534,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     }
   });
 
+  // @covers FR-01.37
   it("renders a single boolean flag with leading space (#1)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--dry-run", separator: "none" },
@@ -504,6 +546,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     }
   });
 
+  // @covers FR-01.37
   it("renders multiple flags joined by single spaces (#1)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--dry-run", separator: "none" },
@@ -516,6 +559,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     );
   });
 
+  // @covers FR-01.37
   it("escapes string values with shell-specific quoting (#2)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--note", value: 'has "quote" and space', separator: "space" },
@@ -534,6 +578,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     );
   });
 
+  // @covers FR-01.37
   it("escapes single quotes in string values (#2)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--note", value: "it's me", separator: "space" },
@@ -546,6 +591,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     );
   });
 
+  // @covers FR-01.37
   it("rejects a parameter value containing a newline (#3)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--note", value: "line1\nline2", separator: "space" },
@@ -555,6 +601,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     ).toThrow(InvalidParameterError);
   });
 
+  // @covers FR-01.37
   it("rejects a parameter value containing a carriage return (#3)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--note", value: "line1\rline2", separator: "space" },
@@ -564,6 +611,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     ).toThrow(InvalidParameterError);
   });
 
+  // @covers FR-01.37
   it("equals separator escapes only the value, not the flag=value composite (#4)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "--key", value: "the value", separator: "equals" },
@@ -580,6 +628,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     );
   });
 
+  // @covers FR-01.37
   it("none separator emits cli_flag<value> with no space — `@<file>` form (#5)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "@", value: "planning/03-section.md", separator: "none" },
@@ -595,6 +644,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     );
   });
 
+  // @covers FR-01.37
   it("preserves schema order: [section, from] renders @file before --from (#7)", () => {
     const ctx = ctxWithParams([
       { cli_flag: "@", value: "planning/03.md", separator: "none" },
@@ -605,6 +655,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     );
   });
 
+  // @covers FR-01.37
   it("adjacency: {plugin.dirs}{task.parameters?}{task.description?} all populated (#6)", () => {
     const ctx: SubstitutionContext = {
       ...baseCtx({
@@ -629,6 +680,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
     expect(out).toContain(`'do the thing'`);
   });
 
+  // @covers FR-01.37
   it("adjacency: all three optional suffixes empty produces no extra spaces (#6)", () => {
     const ctx = baseCtx(); // no parameters, no description
     const out = substitutePlaceholders(
@@ -641,6 +693,7 @@ describe("actions-substitute — {task.parameters?} substitution", () => {
 });
 
 describe("actions-substitute — validateTemplate dry-run with parameters", () => {
+  // @covers FR-01.37
   it("accepts a template containing {task.parameters?} (synthetic dry-run)", () => {
     const result = validateTemplate(
       "claude /shipwright-{task.phase} {task.parameters?}",
@@ -680,6 +733,7 @@ function ctxFor(actionId: string, overrides: Partial<SubstitutionContext["task"]
 }
 
 describe("actions-substitute — {task.initial_prompt} basic shape", () => {
+  // @covers FR-01.37
   it("renders /shipwright-{phase} for new-task wrapped in shell quotes (POSIX)", () => {
     const ctx = ctxFor("new-task", { phase: "build" });
     expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
@@ -687,6 +741,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-iterate for new-iterate (POSIX)", () => {
     const ctx = ctxFor("new-iterate");
     expect(substitutePlaceholders("{task.initial_prompt}", ctx, "posix")).toBe(
@@ -694,6 +749,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-run:run for new-pipeline (POSIX)", () => {
     // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-4 — new-pipeline
     // emits the namespaced `:run` form so Claude Code skill resolution lands
@@ -704,6 +760,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-plan:plan for new-task + phase=plan (AC-1, all shell forms)", () => {
     // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-1.
     const ctx = ctxFor("new-task", { phase: "plan" });
@@ -718,6 +775,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-test:test for new-task + phase=test (AC-2)", () => {
     // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-2.
     const ctx = ctxFor("new-task", { phase: "test" });
@@ -726,6 +784,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-security:security for new-task + phase=security (AC-3, all shell forms)", () => {
     // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-3.
     const ctx = ctxFor("new-task", { phase: "security" });
@@ -740,6 +799,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-build (bare) for new-task + phase=build — regression guard (AC-5)", () => {
     // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-5: phases NOT
     // flagged by the user as broken (build / design / deploy / changelog /
@@ -751,6 +811,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("renders /shipwright-iterate (bare) for new-iterate — regression guard (AC-6)", () => {
     // iterate-2026-05-21-triage-fix-now-and-phase-slash AC-6: iterate skill
     // resolves correctly bare; user did NOT flag it.
@@ -760,6 +821,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     );
   });
 
+  // @covers FR-01.37
   it("throws UnknownActionError for unknown actionId", () => {
     const ctx = ctxFor("custom-action");
     expect(() =>
@@ -767,6 +829,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
     ).toThrow(UnknownActionError);
   });
 
+  // @covers FR-01.37
   it("uses correct shell quote per form", () => {
     const ctx = ctxFor("new-iterate");
     expect(substitutePlaceholders("{task.initial_prompt}", ctx, "powershell")).toBe(
@@ -782,6 +845,7 @@ describe("actions-substitute — {task.initial_prompt} basic shape", () => {
 });
 
 describe("actions-substitute — {task.initial_prompt} composition", () => {
+  // @covers FR-01.37
   it("appends --autonomous when autonomy=autonomous", () => {
     // iterate-2026-05-21 — slash now emits the namespaced `:run` form.
     const ctx = ctxFor("new-pipeline", { autonomy: "autonomous" });
@@ -790,6 +854,7 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
     );
   });
 
+  // @covers FR-01.37
   it("omits --autonomous when autonomy=guided or undefined", () => {
     // iterate-2026-05-21 — slash now emits the namespaced `:run` form.
     const ctxGuided = ctxFor("new-pipeline", { autonomy: "guided" });
@@ -798,6 +863,7 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
     );
   });
 
+  // @covers FR-01.37
   it("appends parameters in declared order", () => {
     const ctx = ctxFor("new-task", {
       phase: "adopt",
@@ -811,6 +877,7 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
     );
   });
 
+  // @covers FR-01.37
   it("appends description as raw trailing text", () => {
     // iterate-2026-05-21 — phase=test now emits the namespaced `:test` form.
     const ctx = ctxFor("new-task", {
@@ -822,6 +889,7 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
     );
   });
 
+  // @covers FR-01.37
   it("composes slash + autonomy + params + description in that order", () => {
     const ctx = ctxFor("new-iterate", {
       autonomy: "autonomous",
@@ -835,6 +903,7 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
     );
   });
 
+  // @covers FR-01.37
   it("matches the user-provided adopt schema", () => {
     const ctx = ctxFor("new-task", {
       phase: "adopt",
@@ -851,6 +920,7 @@ describe("actions-substitute — {task.initial_prompt} composition", () => {
 });
 
 describe("actions-substitute — {task.initial_prompt} cross-shell special chars", () => {
+  // @covers FR-01.37
   it("POSIX: $, `, \\\\, !, ^, &, |, <, >, (, ) in description are inhibited by single-quote wrap", () => {
     const ctx = ctxFor("new-task", {
       phase: "build",
@@ -864,6 +934,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     expect(out).toContain("`cmd`");
   });
 
+  // @covers FR-01.37
   it("POSIX: single quote in description gets standard '\\'' escape", () => {
     const ctx = ctxFor("new-task", {
       phase: "build",
@@ -874,6 +945,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     );
   });
 
+  // @covers FR-01.37
   it("PowerShell: single quote in description gets PS doubling escape", () => {
     const ctx = ctxFor("new-task", {
       phase: "build",
@@ -884,6 +956,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     );
   });
 
+  // @covers FR-01.37
   it("cmd: double quote in description gets backslash escape", () => {
     const ctx = ctxFor("new-task", {
       phase: "build",
@@ -894,6 +967,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     );
   });
 
+  // @covers FR-01.37
   it("POSIX: special chars in param value are inside the outer single-quote", () => {
     const ctx = ctxFor("new-task", {
       phase: "adopt",
@@ -905,6 +979,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     expect(out).toBe("'/shipwright-adopt --note $HOME and `pwd`'");
   });
 
+  // @covers FR-01.37
   it("flattens newlines (LF, CRLF, blank-line runs) in the initial prompt", () => {
     // {task.initial_prompt} is the branch the triage→launch chain hits
     // (new-iterate/new-task templates). The whole prompt is one
@@ -919,6 +994,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
     ).toBe("'/shipwright-build line1 line2 line3 line4'");
   });
 
+  // @covers FR-01.37
   it("rejects newline in any param value", () => {
     const ctx = ctxFor("new-task", {
       phase: "adopt",
@@ -931,6 +1007,7 @@ describe("actions-substitute — {task.initial_prompt} cross-shell special chars
 });
 
 describe("actions-substitute — {task.initial_prompt} integration with full template", () => {
+  // @covers FR-01.37
   it("renders the full bundled new-task command shape", () => {
     const ctx = ctxFor("new-task", {
       phase: "adopt",
@@ -962,6 +1039,7 @@ describe("actions-substitute — {task.initial_prompt} integration with full tem
 });
 
 describe("validateTemplate with {task.initial_prompt}", () => {
+  // @covers FR-01.37
   it("accepts a template using the new placeholder", () => {
     const result = validateTemplate(
       `{cd.prefix}claude --session-id {task.uuid} --name "{task.phase_label}: {task.title}" {plugin.dirs} {task.initial_prompt}`,

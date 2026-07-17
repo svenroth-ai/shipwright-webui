@@ -33,6 +33,7 @@ const REPORT_READY: GradeOutcome = {
 };
 
 describe("POST /api/wizard/grade", () => {
+  // @covers FR-01.53
   it("passes the target to the runner and returns report-ready (200)", async () => {
     const runGrade = vi.fn(async () => REPORT_READY);
     const app = mount(runGrade);
@@ -42,6 +43,7 @@ describe("POST /api/wizard/grade", () => {
     expect(runGrade).toHaveBeenCalledWith({ target: "C:/repo" }, expect.anything());
   });
 
+  // @covers FR-01.53
   it("returns 200 for a grade-failed outcome (an honest state, not an HTTP error)", async () => {
     const app = mount(async () => ({ status: "grade-failed", reason: "Couldn't grade that repo." }));
     const res = await post(app, { target: "C:/repo" });
@@ -49,6 +51,7 @@ describe("POST /api/wizard/grade", () => {
     expect(await res.json()).toMatchObject({ status: "grade-failed" });
   });
 
+  // @covers FR-01.53
   it("returns 200 for engine-unavailable, carrying the repair command", async () => {
     const app = mount(async () => ({
       status: "engine-unavailable",
@@ -63,6 +66,7 @@ describe("POST /api/wizard/grade", () => {
     });
   });
 
+  // @covers FR-01.53
   it("returns 200 for shape-unrecognised", async () => {
     const app = mount(async () => ({ status: "shape-unrecognised", reason: "not JSON" }));
     const res = await post(app, { target: "C:/repo" });
@@ -70,6 +74,7 @@ describe("POST /api/wizard/grade", () => {
     expect(await res.json()).toMatchObject({ status: "shape-unrecognised" });
   });
 
+  // @covers FR-01.53
   it("rejects a request with no target (400) WITHOUT invoking the runner", async () => {
     const runGrade = vi.fn(async () => REPORT_READY);
     const app = mount(runGrade);
@@ -78,6 +83,7 @@ describe("POST /api/wizard/grade", () => {
     expect(runGrade).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.53
   it("rejects an empty-string target (400)", async () => {
     const runGrade = vi.fn(async () => REPORT_READY);
     const app = mount(runGrade);

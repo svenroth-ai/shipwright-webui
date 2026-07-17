@@ -14,11 +14,13 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 
 describe("MarkdownRenderer — pop-out trigger", () => {
+  // @covers FR-01.35
   it("renders the pop-out button when onPopOut is provided", () => {
     render(<MarkdownRenderer text="# hi" onPopOut={() => {}} />);
     expect(screen.getByTestId("smart-viewer-popout")).toBeTruthy();
   });
 
+  // @covers FR-01.35
   it("invokes onPopOut on click and never calls window.open", () => {
     const onPopOut = vi.fn();
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
@@ -31,6 +33,7 @@ describe("MarkdownRenderer — pop-out trigger", () => {
     openSpy.mockRestore();
   });
 
+  // @covers FR-01.35
   it("hides the pop-out button when onPopOut is omitted (modal-nested instance)", () => {
     render(<MarkdownRenderer text="# hi" />);
     expect(screen.queryByTestId("smart-viewer-popout")).toBeNull();
@@ -38,6 +41,7 @@ describe("MarkdownRenderer — pop-out trigger", () => {
 });
 
 describe("MarkdownRenderer — Edit button (FR-01.34 AC1)", () => {
+  // @covers FR-01.35
   it("renders the Edit button when projectId + path + onSaved are all provided", () => {
     render(
       <MarkdownRenderer text="# hi" projectId="p1" path="README.md" onSaved={() => {}} />,
@@ -45,11 +49,13 @@ describe("MarkdownRenderer — Edit button (FR-01.34 AC1)", () => {
     expect(screen.getByTestId("smart-viewer-edit")).toBeTruthy();
   });
 
+  // @covers FR-01.35
   it("hides the Edit button in the nested instance (onSaved omitted)", () => {
     render(<MarkdownRenderer text="# hi" projectId="p1" path="README.md" />);
     expect(screen.queryByTestId("smart-viewer-edit")).toBeNull();
   });
 
+  // @covers FR-01.35
   it("hides the Edit button when projectId/path are missing", () => {
     render(<MarkdownRenderer text="# hi" onSaved={() => {}} />);
     expect(screen.queryByTestId("smart-viewer-edit")).toBeNull();
@@ -57,6 +63,7 @@ describe("MarkdownRenderer — Edit button (FR-01.34 AC1)", () => {
 });
 
 describe("MarkdownRenderer — Edit / Pop out legibility (Sven 2026-07-17, AC7)", () => {
+  // @covers FR-01.35
   it("Edit + Pop out use BLACK text and a BLACK border (not muted grey)", () => {
     render(
       <MarkdownRenderer

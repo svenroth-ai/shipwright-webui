@@ -54,6 +54,7 @@ describe("ScrollbackStore — construction + disabled mode", () => {
     await rmrf(dir);
   });
 
+  // @covers FR-01.28
   it("disabled when maxBytesPerTask=0", async () => {
     const store = new ScrollbackStore(dir, { maxBytesPerTask: 0 });
     expect(store.disabled).toBe(true);
@@ -62,6 +63,7 @@ describe("ScrollbackStore — construction + disabled mode", () => {
     expect(await store.bytes(VALID_TASK_ID)).toBe(0);
   });
 
+  // @covers FR-01.28
   it("enabled when maxBytesPerTask>0", () => {
     const store = new ScrollbackStore(dir, { maxBytesPerTask: 1024 });
     expect(store.disabled).toBe(false);
@@ -80,34 +82,41 @@ describe("ScrollbackStore — UUID validation", () => {
     await rmrf(dir);
   });
 
+  // @covers FR-01.28
   it("rejects path-traversal taskId on append", () => {
     expect(() =>
       store.append("../../etc/passwd", Buffer.from("x")),
     ).toThrow(ScrollbackStoreError);
   });
+  // @covers FR-01.28
   it("rejects empty taskId", () => {
     expect(() => store.append("", Buffer.from("x"))).toThrow(
       ScrollbackStoreError,
     );
   });
+  // @covers FR-01.28
   it("rejects taskId with null byte", () => {
     expect(() => store.append("aaaaa\x00", Buffer.from("x"))).toThrow(
       ScrollbackStoreError,
     );
   });
+  // @covers FR-01.28
   it("rejects on read with invalid taskId", async () => {
     await expect(store.read("not-a-uuid")).rejects.toBeInstanceOf(
       ScrollbackStoreError,
     );
   });
+  // @covers FR-01.28
   it("rejects on clear with invalid taskId", async () => {
     await expect(store.clear("not-a-uuid")).rejects.toBeInstanceOf(
       ScrollbackStoreError,
     );
   });
+  // @covers FR-01.28
   it("clearBestEffort silently ignores invalid taskId", async () => {
     await expect(store.clearBestEffort("not-a-uuid")).resolves.toBeUndefined();
   });
+  // @covers FR-01.28
   it("closeStream silently ignores invalid taskId", async () => {
     await expect(
       store.closeStream("not-a-uuid"),
@@ -128,22 +137,26 @@ describe("ScrollbackStore — append + read", () => {
     await rmrf(dir);
   });
 
+  // @covers FR-01.28
   it("append + read round-trip basic ASCII", async () => {
     store.append(VALID_TASK_ID, Buffer.from("hello world"));
     await flushMicrotasks();
     expect(await store.read(VALID_TASK_ID)).toBe("hello world");
   });
 
+  // @covers FR-01.28
   it("zero-byte append is no-op (no file created)", async () => {
     store.append(VALID_TASK_ID, Buffer.from(""));
     await flushMicrotasks();
     expect(await store.bytes(VALID_TASK_ID)).toBe(0);
   });
 
+  // @covers FR-01.28
   it("read of missing file returns empty string", async () => {
     expect(await store.read(VALID_TASK_ID)).toBe("");
   });
 
+  // @covers FR-01.28
   it("multi-byte UTF-8 round-trips faithfully", async () => {
     const text = "Hellö Wörld 🚀 ünicödé"; // 3 multi-byte sequences
     store.append(VALID_TASK_ID, Buffer.from(text, "utf8"));
@@ -151,6 +164,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(await store.read(VALID_TASK_ID)).toBe(text);
   });
 
+  // @covers FR-01.28
   it("multiple appends concatenate", async () => {
     store.append(VALID_TASK_ID, Buffer.from("a"));
     store.append(VALID_TASK_ID, Buffer.from("b"));
@@ -159,6 +173,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(await store.read(VALID_TASK_ID)).toBe("abc");
   });
 
+  // @covers FR-01.28
   it("ANSI escape sequences round-trip without corruption", async () => {
     // Raw bytes (including SGR) are persisted verbatim — see Iterate-C ADR-087.
     const ansi = "\x1b[31mred\x1b[0m \x1b[1mbold\x1b[0m";
@@ -167,6 +182,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(await store.read(VALID_TASK_ID)).toBe(ansi);
   });
 
+  // @covers FR-01.28
   it("Iterate C (ADR-087): raw pty bytes are persisted VERBATIM — sanitizer retired", async () => {
     // The ADR-069 sanitizer has been retired in Iterate C. The disk
     // file now mirrors the pty's raw byte stream — cursor controls,
@@ -183,6 +199,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(out).toBe(raw);
   });
 
+  // @covers FR-01.28
   it("Iterate C: chunk-boundary CSI sequences round-trip verbatim", async () => {
     // Two append calls — the raw bytes are concatenated as-is.
     store.append(VALID_TASK_ID, Buffer.from("hello \x1b[3", "utf8"));
@@ -192,6 +209,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(out).toBe("hello \x1b[31mred\x1b[0m world");
   });
 
+  // @covers FR-01.28
   it("Iterate C: 50-redraw repaint fixture — full byte sequence persisted verbatim", async () => {
     // Sanity check that no sanitizer is silently stripping anything.
     // The cell-state snapshot path consumes the LIVE byte stream from
@@ -207,6 +225,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(out).toBe(redraw.repeat(50));
   });
 
+  // @covers FR-01.28
   it("size cache reflects appended bytes", async () => {
     store.append(VALID_TASK_ID, Buffer.from("12345"));
     expect(await store.bytes(VALID_TASK_ID)).toBe(5);
@@ -214,6 +233,7 @@ describe("ScrollbackStore — append + read", () => {
     expect(await store.bytes(VALID_TASK_ID)).toBe(7);
   });
 
+  // @covers FR-01.28
   it("bytes() cold-cache from disk after restart-style state loss", async () => {
     store.append(VALID_TASK_ID, Buffer.from("persistent"));
     await flushMicrotasks();
@@ -225,6 +245,7 @@ describe("ScrollbackStore — append + read", () => {
     await fresh.shutdown();
   });
 
+  // @covers FR-01.28
   it("bytes() returns 0 for missing file", async () => {
     expect(await store.bytes(VALID_TASK_ID)).toBe(0);
   });
@@ -243,6 +264,7 @@ describe("ScrollbackStore — clear", () => {
     await rmrf(dir);
   });
 
+  // @covers FR-01.28
   it("loud clear deletes file + resets size cache", async () => {
     store.append(VALID_TASK_ID, Buffer.from("data"));
     await flushMicrotasks();
@@ -253,10 +275,12 @@ describe("ScrollbackStore — clear", () => {
     expect(await store.bytes(VALID_TASK_ID)).toBe(0);
   });
 
+  // @covers FR-01.28
   it("loud clear is idempotent on missing file", async () => {
     await expect(store.clear(VALID_TASK_ID)).resolves.toBeUndefined();
   });
 
+  // @covers FR-01.28
   it("clearBestEffort survives unlink errors silently", async () => {
     // Even with no file present, must not throw.
     await expect(
@@ -264,6 +288,7 @@ describe("ScrollbackStore — clear", () => {
     ).resolves.toBeUndefined();
   });
 
+  // @covers FR-01.28
   it("clear closes the live stream first (no FD leak)", async () => {
     store.append(VALID_TASK_ID, Buffer.from("buffered"));
     await store.clear(VALID_TASK_ID);
@@ -288,12 +313,14 @@ describe("ScrollbackStore — closeStream lifecycle", () => {
     await rmrf(dir);
   });
 
+  // @covers FR-01.28
   it("closeStream is idempotent on no-stream", async () => {
     await expect(
       store.closeStream(VALID_TASK_ID),
     ).resolves.toBeUndefined();
   });
 
+  // @covers FR-01.28
   it("closeStream + re-append re-opens stream", async () => {
     store.append(VALID_TASK_ID, Buffer.from("first"));
     await flushMicrotasks();
@@ -303,6 +330,7 @@ describe("ScrollbackStore — closeStream lifecycle", () => {
     expect(await store.read(VALID_TASK_ID)).toBe("first second");
   });
 
+  // @covers FR-01.28
   it("FD-leak smoke — 50 open/close cycles do not accumulate handles", async () => {
     for (let i = 0; i < 50; i++) {
       const tid = `${VALID_TASK_ID.slice(0, 8)}-${i.toString(16).padStart(4, "0")}-3333-4444-555555555555`;
@@ -329,6 +357,7 @@ describe("ScrollbackStore — rotation", () => {
     await rmrf(dir);
   });
 
+  // @covers FR-01.28
   it("rotation triggered at threshold + .log.1 created", async () => {
     // Append 250 bytes to trip rotation.
     store.append(VALID_TASK_ID, Buffer.from("a".repeat(150)));
@@ -347,6 +376,7 @@ describe("ScrollbackStore — rotation", () => {
     expect(fsSync.existsSync(live)).toBe(true);
   });
 
+  // @covers FR-01.28
   it("rotation preserves all bytes (read combines .log + .log.1)", async () => {
     const part1 = "X".repeat(150);
     const part2 = "Y".repeat(100);
@@ -368,6 +398,7 @@ describe("ScrollbackStore — rotation", () => {
     expect(out.startsWith("X".repeat(100))).toBe(true);
   });
 
+  // @covers FR-01.28
   it("rapid appends during rotation land in rotationBuffer + flush correctly", async () => {
     // Trip rotation first.
     store.append(VALID_TASK_ID, Buffer.from("0".repeat(210)));
@@ -387,6 +418,7 @@ describe("ScrollbackStore — rotation", () => {
     }
   });
 
+  // @covers FR-01.28
   it("rotation buffer overflow throws ScrollbackStoreError (deterministic)", async () => {
     // Phase-3 review fix (MEDIUM): use a hanging renameFn so rotation
     // never completes; appends queue into the rotationBuffer until it
@@ -429,6 +461,7 @@ describe("ScrollbackStore — rotation", () => {
     await small.shutdown(200);
   });
 
+  // @covers FR-01.28
   it("rotation Windows-EBUSY retry: succeeds within renameMaxAttempts", async () => {
     let calls = 0;
     const flakeyRename = async (from: string, to: string) => {
@@ -457,6 +490,7 @@ describe("ScrollbackStore — rotation", () => {
     await retryStore.shutdown();
   });
 
+  // @covers FR-01.28
   it("rotation Windows-EBUSY exhausted retries logs warn (does not crash)", async () => {
     const alwaysEbusy = async () => {
       const err = new Error("EBUSY") as NodeJS.ErrnoException;
@@ -506,6 +540,7 @@ describe("ScrollbackStore — sweepExpired", () => {
     await fs.utimes(filePath, t, t);
   }
 
+  // @covers FR-01.28
   it("deletes files older than TTL", async () => {
     await writeStaleFile(VALID_TASK_ID, 2 * 24 * 60 * 60 * 1000); // 2 days old
     const r = await store.sweepExpired(1, { activeTaskIds: new Set() });
@@ -515,6 +550,7 @@ describe("ScrollbackStore — sweepExpired", () => {
     ).toBe(false);
   });
 
+  // @covers FR-01.28
   it("skips files for active tasks", async () => {
     await writeStaleFile(VALID_TASK_ID, 2 * 24 * 60 * 60 * 1000);
     const r = await store.sweepExpired(1, {
@@ -526,6 +562,7 @@ describe("ScrollbackStore — sweepExpired", () => {
     ).toBe(true);
   });
 
+  // @covers FR-01.28
   it("bounded per-pass + oldest-first", async () => {
     await writeStaleFile(VALID_TASK_ID, 5 * 24 * 60 * 60 * 1000); // 5 days
     await writeStaleFile(VALID_TASK_ID_2, 3 * 24 * 60 * 60 * 1000); // 3 days
@@ -546,12 +583,14 @@ describe("ScrollbackStore — sweepExpired", () => {
     ).toBe(true);
   });
 
+  // @covers FR-01.28
   it("ignores fresh files (under TTL)", async () => {
     await writeStaleFile(VALID_TASK_ID, 1 * 60 * 60 * 1000); // 1 hour
     const r = await store.sweepExpired(1, { activeTaskIds: new Set() });
     expect(r.deleted).toBe(0);
   });
 
+  // @covers FR-01.28
   it("ignores non-UUID-named files in the dir", async () => {
     await fs.writeFile(path.join(dir, "random-junk.txt"), "x");
     const r = await store.sweepExpired(1, { activeTaskIds: new Set() });
@@ -561,6 +600,7 @@ describe("ScrollbackStore — sweepExpired", () => {
 });
 
 describe("ScrollbackStore — shutdown", () => {
+  // @covers FR-01.28
   it("drains streams within timeout", async () => {
     const dir = makeTmpDir();
     const store = new ScrollbackStore(dir, { maxBytesPerTask: 4096 });
@@ -583,6 +623,7 @@ describe("ScrollbackStore — shutdown", () => {
 });
 
 describe("ScrollbackStore — symlink-swap mid-runtime", () => {
+  // @covers FR-01.28
   it("clear() detects symlink escape via realpath-at-op-time", async () => {
     // Skip on Windows where symlink creation requires admin privileges.
     if (process.platform === "win32") return;
@@ -616,6 +657,7 @@ describe("ScrollbackStore — symlink-swap mid-runtime", () => {
 });
 
 describe("ScrollbackStore — read() respects maxBytesPerTask tail", () => {
+  // @covers FR-01.28
   it("returns only the last maxBytesPerTask bytes when more exist", async () => {
     const dir = makeTmpDir();
     const store = new ScrollbackStore(dir, { maxBytesPerTask: 50 });

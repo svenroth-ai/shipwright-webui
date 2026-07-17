@@ -11,6 +11,7 @@ import { KEYBOARD_SHORTCUTS } from "../../lib/commandRegistry";
 afterEach(() => cleanup());
 
 describe("ShortcutsSheet", () => {
+  // @covers FR-01.65
   it("renders every KEYBOARD_SHORTCUTS entry (no secret shortcut — AC4)", () => {
     render(<ShortcutsSheet open onOpenChange={vi.fn()} />);
     for (const s of KEYBOARD_SHORTCUTS) {
@@ -19,6 +20,7 @@ describe("ShortcutsSheet", () => {
     }
   });
 
+  // @covers FR-01.65
   it("shows BOTH a Windows column and a Mac column (AC3)", () => {
     render(<ShortcutsSheet open onOpenChange={vi.fn()} />);
     expect(screen.getByText("Windows / Linux")).toBeInTheDocument();
@@ -28,6 +30,7 @@ describe("ShortcutsSheet", () => {
     expect(screen.getByTestId("shortcut-mac-palette")).toHaveTextContent("⌘K");
   });
 
+  // @covers FR-01.65
   it("has an accessible dialog label", () => {
     render(<ShortcutsSheet open onOpenChange={vi.fn()} />);
     expect(

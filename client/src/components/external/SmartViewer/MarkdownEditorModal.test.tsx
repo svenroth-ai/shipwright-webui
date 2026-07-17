@@ -44,6 +44,7 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("MarkdownEditorModal", () => {
+  // @covers FR-01.35
   it("loads the file and reaches the editing state (no warn for clean prose)", async () => {
     loadMock.mockResolvedValue({ text: "# Hi\n\nbody\n", fingerprint: "sha256:fp1" });
     renderModal();
@@ -52,6 +53,7 @@ describe("MarkdownEditorModal", () => {
     expect(screen.queryByTestId("md-editor-warn")).toBeNull();
   });
 
+  // @covers FR-01.35
   it("shows the frontmatter-preserved note (not a lossy warn) for frontmatter files", async () => {
     // Frontmatter is now preserved verbatim via splitMarkdownEnvelope, so it is
     // no longer a lossy warning — a neutral "preserved" note is shown instead.
@@ -61,6 +63,7 @@ describe("MarkdownEditorModal", () => {
     expect(screen.queryByTestId("md-editor-warn")).toBeNull();
   });
 
+  // @covers FR-01.35
   it("Review → diff → Save writes with the captured fingerprint, fires onSaved + close", async () => {
     // Non-canonical bullet markers (`*`) so the serializer legitimately rewrites
     // the body (to `-`) — this enables Save (an unedited canonical file now
@@ -88,6 +91,7 @@ describe("MarkdownEditorModal", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // @covers FR-01.35
   it("on a 409 conflict shows the conflict banner and KEEPS the editor (review #11)", async () => {
     // Non-canonical bullets enable Save (see the Save test above).
     loadMock.mockResolvedValue({ text: "# Hi\n\n* a\n* b\n", fingerprint: "sha256:fp1" });
@@ -105,6 +109,7 @@ describe("MarkdownEditorModal", () => {
     expect(screen.getByTestId("md-editor-reload")).toBeTruthy();
   });
 
+  // @covers FR-01.35
   it("shows a non-crashing load-error state when the file can't be opened (review #4)", async () => {
     loadMock.mockRejectedValue(new ApiError("not_found", 404, { error: "not_found" }));
     renderModal();

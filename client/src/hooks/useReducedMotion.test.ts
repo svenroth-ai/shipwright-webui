@@ -44,24 +44,28 @@ describe("useReducedMotion", () => {
     vi.restoreAllMocks();
   });
 
+  // @covers FR-01.64
   it("queries the prefers-reduced-motion: reduce media feature", () => {
     mockMatchMedia(false);
     renderHook(() => useReducedMotion());
     expect(window.matchMedia).toHaveBeenCalledWith("(prefers-reduced-motion: reduce)");
   });
 
+  // @covers FR-01.64
   it("returns true when the user asked to reduce motion (Sven's everyday state)", () => {
     mockMatchMedia(true);
     const { result } = renderHook(() => useReducedMotion());
     expect(result.current).toBe(true);
   });
 
+  // @covers FR-01.64
   it("returns false under no-preference (motion is welcome)", () => {
     mockMatchMedia(false);
     const { result } = renderHook(() => useReducedMotion());
     expect(result.current).toBe(false);
   });
 
+  // @covers FR-01.64
   it("reacts to a live change (no-preference -> reduce -> no-preference)", () => {
     const h = mockMatchMedia(false);
     const { result } = renderHook(() => useReducedMotion());
@@ -72,6 +76,7 @@ describe("useReducedMotion", () => {
     expect(result.current).toBe(false);
   });
 
+  // @covers FR-01.64
   it("subscribes via addEventListener and cleans up on unmount", () => {
     const h = mockMatchMedia(false);
     const { unmount } = renderHook(() => useReducedMotion());
@@ -80,6 +85,7 @@ describe("useReducedMotion", () => {
     expect(h.mql.removeEventListener).toHaveBeenCalledWith("change", expect.any(Function));
   });
 
+  // @covers FR-01.64
   it("FAILS TOWARD reduce (true) when matchMedia is unavailable — never toward hidden content", () => {
     const original = window.matchMedia;
     // @ts-expect-error — simulate an environment without matchMedia (SSR / jsdom)

@@ -52,6 +52,7 @@ function config(
 const SEVEN: RunPhase[] = ["project", "design", "plan", "build", "test", "changelog", "deploy"];
 
 describe("derivePhaseProgress — steady high-water frontier bar", () => {
+  // @covers FR-01.01
   it("counts phases strictly BEFORE the active (started) frontier", () => {
     const p = derivePhaseProgress(
       config(SEVEN, [pt("project", "done"), pt("design", "in_progress")]),
@@ -61,12 +62,14 @@ describe("derivePhaseProgress — steady high-water frontier bar", () => {
     expect(p.pct).toBe(Math.round((1 / 7) * 100));
   });
 
+  // @covers FR-01.01
   it("the first phase in flight → 0 done, 0% (like a campaign at 0/N)", () => {
     const p = derivePhaseProgress(config(SEVEN, [pt("project", "in_progress")]));
     expect(p.donePhases).toBe(0);
     expect(p.pct).toBe(0);
   });
 
+  // @covers FR-01.01
   it("a pre-seeded BACKLOG future phase does NOT jump the frontier", () => {
     const p = derivePhaseProgress(
       config(SEVEN, [pt("project", "in_progress"), pt("deploy", "backlog")]),
@@ -74,6 +77,7 @@ describe("derivePhaseProgress — steady high-water frontier bar", () => {
     expect(p.donePhases).toBe(0); // deploy is only backlog → not started
   });
 
+  // @covers FR-01.01
   it("is monotonic across the build fan-out (never recalibrates backward)", () => {
     // A: project+design done, plan/split-0 done, build/split-0 in flight.
     const a = derivePhaseProgress(
@@ -103,6 +107,7 @@ describe("derivePhaseProgress — steady high-water frontier bar", () => {
     expect(b.donePhases).toBeGreaterThanOrEqual(a.donePhases);
   });
 
+  // @covers FR-01.01
   it("a complete run pins the bar to full regardless of task bookkeeping", () => {
     const p = derivePhaseProgress(
       config(SEVEN, [pt("project", "done")], "complete"),
@@ -111,6 +116,7 @@ describe("derivePhaseProgress — steady high-water frontier bar", () => {
     expect(p.pct).toBe(100);
   });
 
+  // @covers FR-01.01
   it("a failed run leaves the bar at the frontier (no phantom fill)", () => {
     const p = derivePhaseProgress(
       config(SEVEN, [pt("project", "done"), pt("design", "failed")], "failed"),
@@ -118,6 +124,7 @@ describe("derivePhaseProgress — steady high-water frontier bar", () => {
     expect(p.donePhases).toBe(1); // project done; design (failed) is the frontier
   });
 
+  // @covers FR-01.01
   it("phases not in config.pipeline (e.g. conditional security) are ignored", () => {
     const p = derivePhaseProgress(
       config(SEVEN, [
@@ -130,6 +137,7 @@ describe("derivePhaseProgress — steady high-water frontier bar", () => {
     expect(p.donePhases).toBe(1);
   });
 
+  // @covers FR-01.01
   it("empty pipeline → 0/0, 0% (no divide-by-zero)", () => {
     const p = derivePhaseProgress(config([], []));
     expect(p).toEqual({ donePhases: 0, totalPhases: 0, pct: 0 });

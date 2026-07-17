@@ -53,6 +53,7 @@ const isKnown = (name: string) =>
   defined.has(name) || KNOWN_PREFIXES.some((p) => name.startsWith(p));
 
 describe('AC4 — no dead tokens (Fable B1)', () => {
+  // @covers FR-01.48
   it('every fallback-less var(--x) reference resolves to a definition', () => {
     const orphans = new Map<string, string[]>();
     for (const [file, text] of texts) {
@@ -69,12 +70,14 @@ describe('AC4 — no dead tokens (Fable B1)', () => {
     expect(report, `fallback-less var() with no definition:\n  ${report.join('\n  ')}`).toEqual([]);
   });
 
+  // @covers FR-01.48
   it('the pre-existing --font-mono orphan (index.css) is gone', () => {
     let indexCss = '';
     for (const [file, text] of texts) if (file.endsWith('index.css')) indexCss = text;
     expect(indexCss).not.toMatch(/var\(--font-mono\b/);
   });
 
+  // @covers FR-01.48
   it('the Weather-Deck v2 compatibility aliases are all defined (no un-styled UI)', () => {
     for (const alias of [
       '--line-card', '--lead', '--hero', '--recess', '--line-meaning', '--accent-deep',

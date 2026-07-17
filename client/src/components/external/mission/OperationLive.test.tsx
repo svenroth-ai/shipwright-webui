@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { OperationLive } from "./OperationLive";
 
 describe("OperationLive — plain-language live narration (AC1)", () => {
+  // @covers FR-01.66
   it("renders the rolling summary line + the recent-activity list", () => {
     render(
       <OperationLive
@@ -23,6 +24,7 @@ describe("OperationLive — plain-language live narration (AC1)", () => {
     expect(hero).not.toHaveAttribute("data-empty");
   });
 
+  // @covers FR-01.66
   it("no activity → honest waiting, never fabricated (AC3)", () => {
     render(<OperationLive narration={{ summary: null, activity: [] }} />);
     expect(screen.getByTestId("mission-narration-summary")).toHaveTextContent(/waiting/i);
@@ -33,6 +35,7 @@ describe("OperationLive — plain-language live narration (AC1)", () => {
 });
 
 describe("OperationLive — is NOT the terminal (AC5, rule 1)", () => {
+  // @covers FR-01.66
   it("has no xterm/canvas/textarea and constructs no WebSocket", () => {
     const wsSpy = vi.spyOn(globalThis, "WebSocket");
     const { container } = render(

@@ -15,6 +15,7 @@ function renderNotice(props: Partial<Parameters<typeof LaunchFailureNotice>[0]> 
 }
 
 describe("LaunchFailureNotice", () => {
+  // @covers FR-01.61
   it("renders the code-specific title + sentence + machine code (persistent, role=alert)", () => {
     renderNotice({ actions: { retry: { onClick: () => {} } } });
     const notice = screen.getByTestId("lfn");
@@ -24,6 +25,7 @@ describe("LaunchFailureNotice", () => {
     expect(screen.getByTestId("lfn-code")).toHaveTextContent("launch_failed");
   });
 
+  // @covers FR-01.61
   it("renders ONLY the actions the surface wires (of those the mapping declares)", () => {
     renderNotice({
       actions: { retry: { onClick: () => {} }, "open-terminal": { onClick: () => {} } },
@@ -35,6 +37,7 @@ describe("LaunchFailureNotice", () => {
     expect(screen.queryByTestId("lfn-copy-command")).toBeNull();
   });
 
+  // @covers FR-01.61
   it("fires the wired handler on click", () => {
     const onRetry = vi.fn();
     renderNotice({ actions: { retry: { onClick: onRetry } } });
@@ -42,6 +45,7 @@ describe("LaunchFailureNotice", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.61
   it("busy disables Retry and relabels it", () => {
     renderNotice({ busy: true, actions: { retry: { onClick: () => {} } } });
     const retry = screen.getByTestId("lfn-retry");
@@ -49,6 +53,7 @@ describe("LaunchFailureNotice", () => {
     expect(retry).toHaveTextContent(/Retrying/i);
   });
 
+  // @covers FR-01.61
   it("a 403 (no retry) renders no Retry button even if a handler is passed", () => {
     const failure = resolveLaunchFailure({ source: "server", code: "path_traversal_rejected" })!;
     renderNotice({ failure, path: "/evil/../x", actions: { retry: { onClick: () => {} } } });
@@ -56,6 +61,7 @@ describe("LaunchFailureNotice", () => {
     expect(screen.getByTestId("lfn-path")).toHaveTextContent("/evil/../x");
   });
 
+  // @covers FR-01.61
   it("renders open-project-settings as a Link (href), not a button", () => {
     const failure = resolveLaunchFailure({ source: "server", code: "campaign_not_found" })!;
     renderNotice({ failure, actions: { "open-project-settings": { href: "/projects" } } });
@@ -64,12 +70,14 @@ describe("LaunchFailureNotice", () => {
     expect(link).toHaveAttribute("href", "/projects");
   });
 
+  // @covers FR-01.61
   it("resume-recovery uses recovery tone and offers Resume", () => {
     const failure = resolveLaunchFailure({ source: "resume-recovery" })!;
     renderNotice({ failure, actions: { resume: { onClick: () => {} } } });
     expect(screen.getByTestId("lfn-resume")).toHaveTextContent("Resume");
   });
 
+  // @covers FR-01.61
   it("renders the optional attempted line", () => {
     renderNotice({ attempted: "Launch B1 — glossary-empty-states", actions: { retry: { onClick: () => {} } } });
     expect(screen.getByTestId("lfn-attempted")).toHaveTextContent("Launch B1 — glossary-empty-states");

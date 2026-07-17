@@ -35,6 +35,7 @@ function userWithToolResult(toolUseId: string): Record<string, unknown> {
 }
 
 describe("deriveInbox — allowlist filter", () => {
+  // @covers FR-01.13
   it("surfaces AskUserQuestion tool_use without tool_result", () => {
     const content = build([assistantWithToolUse("t1", "AskUserQuestion")]);
     const { events } = parseSessionJsonl(content);
@@ -44,6 +45,7 @@ describe("deriveInbox — allowlist filter", () => {
     expect(r.pending[0].toolName).toBe("AskUserQuestion");
   });
 
+  // @covers FR-01.13
   it("clears pending entry once matching tool_result appears", () => {
     const content = build([
       assistantWithToolUse("t1", "AskUserQuestion"),
@@ -55,6 +57,7 @@ describe("deriveInbox — allowlist filter", () => {
     expect(r.resolvedToolUseIds).toContain("t1");
   });
 
+  // @covers FR-01.13
   it("ignores Bash tool_use (not user-blocking by default)", () => {
     const content = build([assistantWithToolUse("t1", "Bash")]);
     const { events } = parseSessionJsonl(content);
@@ -63,6 +66,7 @@ describe("deriveInbox — allowlist filter", () => {
     expect(r.allToolUseIds).toContain("t1");
   });
 
+  // @covers FR-01.13
   it("respects custom allowlist (plugin-registered tool names)", () => {
     const content = build([assistantWithToolUse("t1", "PluginAsk_MyProjectV1")]);
     const { events } = parseSessionJsonl(content);
@@ -73,6 +77,7 @@ describe("deriveInbox — allowlist filter", () => {
     expect(r.pending).toHaveLength(1);
   });
 
+  // @covers FR-01.13
   it("respects dismissed set — never surfaces dismissed ids", () => {
     const content = build([assistantWithToolUse("t1", "AskUserQuestion")]);
     const { events } = parseSessionJsonl(content);
@@ -80,6 +85,7 @@ describe("deriveInbox — allowlist filter", () => {
     expect(r.pending).toHaveLength(0);
   });
 
+  // @covers FR-01.13
   it("surfaces multiple pending entries when present", () => {
     const content = build([
       assistantWithToolUse("t1", "AskUserQuestion"),
@@ -114,6 +120,7 @@ function meta(type: string): Record<string, unknown> {
 }
 
 describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () => {
+  // @covers FR-01.13
   it("AC-1: detects an assistant turn whose text ends with a question mark", () => {
     const { events } = parseSessionJsonl(
       build([userMsg("go"), assistantText("Shall I proceed to build?", "q1")]),
@@ -124,6 +131,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(q?.questionText).toContain("Shall I proceed");
   });
 
+  // @covers FR-01.13
   it("AC-2: detects a numbered option list with no trailing '?'", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -137,6 +145,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).not.toBeNull();
   });
 
+  // @covers FR-01.13
   it("detects a lettered + bold-numbered option list", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -151,6 +160,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(e2)).not.toBeNull();
   });
 
+  // @covers FR-01.13
   it("AC-3: returns null once a real user reply follows the question", () => {
     const { events } = parseSessionJsonl(
       build([assistantText("Shall I proceed?", "q4"), userMsg("yes, go")]),
@@ -158,6 +168,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("AC-4: returns null when the last assistant event carries a tool_use", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -169,11 +180,13 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("returns null when the last conversational event is a user message", () => {
     const { events } = parseSessionJsonl(build([userMsg("do the thing")]));
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("returns null when the last conversational event is a tool_result", () => {
     const { events } = parseSessionJsonl(
       build([assistantWithToolUse("t1", "Bash"), userWithToolResult("t1")]),
@@ -181,6 +194,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("returns null for a plain statement turn (no question shape)", () => {
     const { events } = parseSessionJsonl(
       build([userMsg("go"), assistantText("Done. All tests pass and the branch is merged.", "q6")]),
@@ -188,6 +202,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("returns null when a list is mid-report and substantial prose follows it", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -201,6 +216,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("detects a question/list followed only by a short closing line", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -211,6 +227,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).not.toBeNull();
   });
 
+  // @covers FR-01.13
   it("ignores a '?' that only appears inside a fenced code block", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -224,6 +241,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).toBeNull();
   });
 
+  // @covers FR-01.13
   it("tolerates trailing markdown / quotes after the question mark", () => {
     const { events } = parseSessionJsonl(
       build([userMsg("x"), assistantText("**Shall I proceed?**", "q10")]),
@@ -231,6 +249,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(detectAwaitingUserQuestion(events)).not.toBeNull();
   });
 
+  // @covers FR-01.13
   it("skips interleaved non-conversational events when locating the turn", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -245,6 +264,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(q?.questionId).toBe("q11");
   });
 
+  // @covers FR-01.13
   it("uses the LAST assistant event uuid as questionId across a multi-event turn", () => {
     const { events } = parseSessionJsonl(
       build([
@@ -259,6 +279,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
     expect(q?.questionText).toContain("Here are the options.");
   });
 
+  // @covers FR-01.13
   it("caps questionText at MAX_QUESTION_TEXT_LEN", () => {
     const huge = "x".repeat(MAX_QUESTION_TEXT_LEN + 5000) + "\nProceed?";
     const { events } = parseSessionJsonl(build([userMsg("go"), assistantText(huge, "q12")]));
@@ -269,6 +290,7 @@ describe("detectAwaitingUserQuestion — plain-text end-of-turn questions", () =
 });
 
 describe("deriveSessionInbox — AUQ precedence over text questions", () => {
+  // @covers FR-01.13
   it("a pending AskUserQuestion suppresses the text-question path", () => {
     const { events } = parseSessionJsonl(
       build([userMsg("go"), assistantWithToolUse("t1", "AskUserQuestion")]),
@@ -278,6 +300,7 @@ describe("deriveSessionInbox — AUQ precedence over text questions", () => {
     expect(r.textQuestion).toBeNull();
   });
 
+  // @covers FR-01.13
   it("surfaces a text question when no tool_use is pending", () => {
     const { events } = parseSessionJsonl(
       build([userMsg("go"), assistantText("Shall I proceed?", "q1")]),

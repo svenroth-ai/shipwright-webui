@@ -55,6 +55,7 @@ test.describe("visual: task detail", () => {
   // The artifact-OPEN + rail-COLLAPSED states, the 1440 no-clip and the equal-height
   // invariant are covered by real LAYOUT measurement in
   // flows/A13-mission-shell.spec.ts (more rigorous for those than a pixel diff).
+  // @covers FR-01.66
   test("task-detail-mission", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await expect(page.getByTestId("cta-launch-in-terminal")).toBeVisible({ timeout: 15_000 });
@@ -76,6 +77,7 @@ test.describe("visual: task detail", () => {
   // live layout. With no run facts the verdict is still the honest neutral state —
   // the live/done difference here is the rail frontier + the header, not a fake
   // verdict. This is the ONLY additional route this iterate baselines.
+  // @covers FR-01.66
   test("task-detail-mission-live", async ({ page }) => {
     await page.route(
       (u) => u.pathname.endsWith(`/api/external/tasks/${taskId}`),
@@ -99,6 +101,7 @@ test.describe("visual: task detail", () => {
     });
   });
 
+  // @covers FR-01.66
   test("task-detail-terminal", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
 
