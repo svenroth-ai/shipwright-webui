@@ -59,30 +59,62 @@ const COLUMN_META: readonly ColumnMeta[] = [
 ];
 
 interface ColumnStyle {
-  /** 3px top-accent + panel-edge tint (per-column identity). */
+  /** 3px top-accent bar colour — the per-column hue identity (unchanged). */
   border: string;
+  /** Lane header text colour — WHITE on the dark colored glass (see panel). */
   header: string;
   count: { bg: string; fg: string };
+  /** The colored-glass PANEL ground (Sven feedback 2026-07-17): a translucent
+   *  dark tint in the column's own colour + a translucent accent edge. Paired
+   *  with a backdrop blur in DroppableColumn. */
+  panel: { bg: string; border: string };
 }
 
-/** Per-column ACCENT palette (the panel GROUND is a shared `--g50` lane, below).
- *  The `border` value is the 3px top accent + count-pill tone — the per-column
- *  identity the on-photo-legibility fix must preserve (mockup lines 532–543). */
+/** Per-column palette. The PANEL is now a dark translucent GLASS tinted in each
+ *  column's own colour (draft=neutral grey, in-progress=amber, done=blue) — the
+ *  mockup (Spec/prototype/_shots/board.png) treatment — replacing the shared
+ *  opaque `--g50` ground. White cards inside pop on the dark glass.
+ *
+ *  Colour engineering (calibrated, see the iterate ADR): a dark glass keeps the
+ *  header AA over the deck-golden photo — white on the dark tint clears 5.7:1
+ *  even over the photo's brightest region, whereas a DARK header on a light tint
+ *  is AA-IMPOSSIBLE over the photo's dark mast/sail (the `--color-muted` draft
+ *  header is barely AA even on opaque `--g50`). So the header goes WHITE.
+ *
+ *  Stable tokens only: `--g500` / `--color-warning` / `--color-info` do NOT flip
+ *  under `.on-photo` (unlike `--color-muted`/`--color-text`), so the tint is
+ *  deterministic inside the scene. The 3px top accent (`border`) keeps the
+ *  current hue — mockup blue/green is a deliberate follow-up, not this iterate. */
+const DARK_GLASS = "rgba(35, 31, 24, 0.58)"; // warm near-black glass base
+const GLASS_EDGE = "rgba(255, 255, 255, 0.18)"; // light rim the accent tints
+const WHITE_HEADER = "rgba(255, 255, 255, 0.96)";
 const COLUMN_STYLES: Record<ColumnTone, ColumnStyle> = {
   draft: {
     border: "var(--color-muted)",
-    header: "var(--color-muted)",
-    count: { bg: "rgba(107,114,128,0.18)", fg: "var(--color-muted)" },
+    header: WHITE_HEADER,
+    count: { bg: "rgba(255, 255, 255, 0.9)", fg: "var(--g700)" },
+    panel: {
+      bg: `color-mix(in srgb, var(--g500) 16%, ${DARK_GLASS})`,
+      border: `color-mix(in srgb, var(--g500) 28%, ${GLASS_EDGE})`,
+    },
   },
   inprogress: {
     border: "var(--color-warning)",
-    header: "var(--color-warning-text)",
+    header: WHITE_HEADER,
     count: { bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" },
+    panel: {
+      bg: `color-mix(in srgb, var(--color-warning) 20%, ${DARK_GLASS})`,
+      border: `color-mix(in srgb, var(--color-warning) 34%, ${GLASS_EDGE})`,
+    },
   },
   done: {
     border: "var(--color-info)",
-    header: "#2563eb",
+    header: WHITE_HEADER,
     count: { bg: "var(--color-info-bg)", fg: "#2563eb" },
+    panel: {
+      bg: `color-mix(in srgb, var(--color-info) 20%, ${DARK_GLASS})`,
+      border: `color-mix(in srgb, var(--color-info) 34%, ${GLASS_EDGE})`,
+    },
   },
 };
 
@@ -140,16 +172,15 @@ function DroppableColumn({ meta, items }: DroppableColumnProps) {
       ref={setNodeRef}
       className="flex max-h-full w-[360px] min-w-[360px] shrink-0 snap-start flex-col overflow-hidden rounded-[var(--radius-card)] md:w-auto md:min-w-[200px] md:shrink md:grow md:basis-0 lg:w-[360px] lg:min-w-[360px] lg:shrink-0 lg:grow-0 lg:basis-auto"
       style={{
-        // Visible lane panel ground (on-photo-legibility fix). An opaque light
-        // panel (prototype `.lane` `--g50`) + a stable ramp hairline + a modest
-        // neutral lift, so cards read ON the panel instead of floating bare on
-        // the deck-golden photo. Per-column identity stays the 3px top accent +
-        // count pill (below) — NOT the ground. `--g50`/`--g200` are ramp tokens
-        // (NOT flipped by `.on-photo`), so the panel is a deterministic light
-        // reading surface everywhere → AA-safe for the dark lane header.
-        background: "var(--g50)",
-        border: "1px solid var(--g200)",
-        boxShadow: "var(--sh-sm)",
+        // Colored-GLASS lane panel (Sven feedback 2026-07-17): a translucent
+        // dark tint in the column's own colour + a backdrop blur, so the deck
+        // photo shimmers through softly and the white cards pop. The dark glass
+        // is what keeps the WHITE lane header AA over the photo (see COLUMN_STYLES).
+        background: s.panel.bg,
+        border: `1px solid ${s.panel.border}`,
+        backdropFilter: "blur(14px) saturate(1.1)",
+        WebkitBackdropFilter: "blur(14px) saturate(1.1)",
+        boxShadow: "var(--sh-photo)",
         outline: isOver ? "2px dashed var(--color-primary)" : undefined,
         outlineOffset: isOver ? "-2px" : undefined,
       }}
