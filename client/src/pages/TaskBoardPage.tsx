@@ -30,9 +30,12 @@
  *
  * Iterate 3.7e-b1 (2026-04-22):
  *   - Columns widened 320 → 360 px; gutter 32 → 40 px (plan S1.1).
- *   - New filter row above the columns inside .page-container — Status
- *     chips (multi-select; all selected = no filter). Phase filter is
+ *   - Status filter (multi-select; all selected = no filter). Phase filter is
  *     hidden entirely while ADR-045 is deferred (task.phase not populated).
+ *
+ * iterate-2026-07-17-onphoto-legibility-fix: the status filter is now the
+ *   compact filter funnel (BoardStatusFilter), replacing the retired
+ *   bare-on-photo StatusPillRow strip. Filtering behaviour is unchanged.
  *
  * Preserved testids:
  *   task-board-page, task-board-header, task-board-columns,
@@ -44,8 +47,9 @@
  * Iterate 3.7d-b1: the kanban columns container also carries
  *   `data-page-container="true"` as a style hook (no new testid needed —
  *   the existing `task-board-columns` testid remains the board root).
- * Iterate 3.7e-b1:
- *   board-filter-status, board-filter-status-<value>.
+ * Status filter funnel testids (iterate-2026-07-17-onphoto-legibility-fix):
+ *   board-filter-menu-trigger, board-filter-menu, board-filter-menu-all,
+ *   board-filter-menu-item-<state>.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
