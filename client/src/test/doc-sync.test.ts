@@ -167,6 +167,14 @@ const REQUIRED_TOKENS = [
   'useReadiness',
   'readiness-probe',
   'createReadinessRoutes',
+  // iterate-2026-07-10-board-campaign-launch (A17, FR-01.61) — the launch
+  // state machine: one failure-words map, three surfaces, visible + recoverable.
+  'launchFailure',
+  'LaunchFailureNotice',
+  'CampaignLaunchDialog',
+  'CampaignStartButton',
+  'LaunchFailureRecovery',
+  'taskCardState',
 ] as const;
 
 let claudeMd = '';

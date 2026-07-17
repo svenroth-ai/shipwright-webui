@@ -22,12 +22,35 @@
 import { Link } from "react-router-dom";
 import { Check, ChevronDown, ChevronRight, Circle, Play, Loader2, ExternalLink } from "lucide-react";
 
-import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
+import type { Campaign, CampaignStep, CampaignLifecycleStatus } from "../../lib/campaignsApi";
+import { campaignLifecycleLabel } from "../../lib/campaignsApi";
 import type { Project } from "../../types";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
+import { CampaignStartButton } from "./CampaignStartButton";
 import { CampaignDismissButton } from "./CampaignDismissButton";
+
+/** Lifecycle status pill (FR-01.61) — draft / active / complete, so a draft is
+ *  no longer visually identical to a running campaign. Legacy `null` resolves
+ *  via the done/total heuristic (`campaignLifecycleLabel`). */
+function LifecycleBadge({ slug, status }: { slug: string; status: CampaignLifecycleStatus }) {
+  const tone: Record<CampaignLifecycleStatus, { bg: string; fg: string }> = {
+    draft: { bg: "var(--color-muted-bg)", fg: "var(--color-muted)" },
+    active: { bg: "var(--info-tint, #eef4ff)", fg: "var(--info, #2563eb)" },
+    complete: { bg: "var(--color-success-bg, #e7f6ec)", fg: "var(--color-success-text, #16a34a)" },
+  };
+  return (
+    <span
+      data-testid={`campaign-status-${slug}`}
+      data-status={status}
+      className="shrink-0 rounded-[6px] px-1.5 py-[1px] text-[10px] font-semibold uppercase tracking-wide"
+      style={{ background: tone[status].bg, color: tone[status].fg }}
+    >
+      {status}
+    </span>
+  );
+}
 
 function StepIcon({ kind }: { kind: "complete" | "in_progress" | "next" | "other" }) {
   if (kind === "complete") {
@@ -69,6 +92,8 @@ export function CampaignLaneCard({
 
   const pct = campaign.total > 0 ? Math.round((campaign.done / campaign.total) * 100) : 0;
   const next = campaign.nextPending;
+  const lifecycle = campaignLifecycleLabel(campaign);
+  const isDraft = lifecycle === "draft";
 
   const stepKind = (s: CampaignStep): "complete" | "in_progress" | "next" | "other" => {
     if (s.status === "complete") return "complete";
@@ -103,6 +128,7 @@ export function CampaignLaneCard({
             {campaign.slug}
           </span>
         </button>
+        <LifecycleBadge slug={campaign.slug} status={lifecycle} />
         {campaign.derivedFromEvents && (
           <span
             className="shrink-0 rounded-[6px] bg-[var(--color-muted-bg)] px-1.5 py-[1px] text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]"
@@ -219,9 +245,18 @@ export function CampaignLaneCard({
               step is risky. Right: autonomous run of every remaining step
               (FR-01.34). The old "Copy launch" clipboard button was replaced by
               the left action. */}
+          {/* Draft → the board's Start-Campaign CTA (FR-01.61): flip draft →
+              active through the EXISTING useStartCampaign hook, which enables
+              the launch CTAs. Active/legacy → the launch affordances. */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <CampaignStepLaunchButton campaign={campaign} project={project} />
-            <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
+            {isDraft ? (
+              <CampaignStartButton campaign={campaign} project={project} />
+            ) : (
+              <>
+                <CampaignStepLaunchButton campaign={campaign} project={project} />
+                <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
+              </>
+            )}
           </div>
         </>
       )}

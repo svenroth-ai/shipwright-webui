@@ -221,6 +221,23 @@ export function selectDismissedCampaigns(campaigns: Campaign[]): Campaign[] {
   return selectActiveCampaigns(campaigns).filter((c) => Boolean(c.dismissed));
 }
 
+/** Draft campaigns startable from the board (FR-01.61) — before A17 a `draft`
+ *  lived only in Triage. Not-dismissed, never an events-only ghost. Kept apart
+ *  from `selectVisibleCampaigns` so the active-lane semantics stay unchanged. */
+export function selectDraftCampaigns(campaigns: Campaign[]): Campaign[] {
+  return campaigns.filter(
+    (c) => c.status === "draft" && !c.dismissed && !c.derivedFromEvents,
+  );
+}
+
+/** The lifecycle a badge shows: producer status wins; a legacy `null` campaign
+ *  falls back to the done/total heuristic (`complete` when finished, else
+ *  `active`) — never invents `draft` for a legacy campaign. */
+export function campaignLifecycleLabel(c: Campaign): CampaignLifecycleStatus {
+  if (c.status) return c.status;
+  return isCampaignDone(c) ? "complete" : "active";
+}
+
 /**
  * The not-yet-complete steps that an autonomous campaign run should NOT execute
  * unattended without an explicit acknowledgment: a step that previously `failed`

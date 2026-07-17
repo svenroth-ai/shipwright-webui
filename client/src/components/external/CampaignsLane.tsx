@@ -14,7 +14,11 @@
 import { useMemo, useState } from "react";
 
 import { useCampaigns } from "../../hooks/useCampaigns";
-import { selectVisibleCampaigns, selectDismissedCampaigns } from "../../lib/campaignsApi";
+import {
+  selectVisibleCampaigns,
+  selectDismissedCampaigns,
+  selectDraftCampaigns,
+} from "../../lib/campaignsApi";
 import type { Project } from "../../types";
 import { CampaignLaneCard } from "./CampaignLaneCard";
 
@@ -29,11 +33,12 @@ export function CampaignsLane({
 }) {
   const campaignsQuery = useCampaigns(projectId);
   const data = campaignsQuery.data ?? [];
+  const drafts = useMemo(() => selectDraftCampaigns(data), [data]);
   const visible = useMemo(() => selectVisibleCampaigns(data), [data]);
   const dismissed = useMemo(() => selectDismissedCampaigns(data), [data]);
   const [showDismissed, setShowDismissed] = useState(false);
 
-  if (visible.length === 0 && dismissed.length === 0) return null;
+  if (drafts.length === 0 && visible.length === 0 && dismissed.length === 0) return null;
 
   return (
     <div
@@ -47,6 +52,9 @@ export function CampaignsLane({
         className="flex max-h-[40vh] flex-col gap-3 overflow-y-auto [&>*]:shrink-0"
         data-testid="task-board-campaigns-scroll"
       >
+        {drafts.map((c) => (
+          <CampaignLaneCard key={c.slug} campaign={c} project={project} />
+        ))}
         {visible.map((c) => (
           <CampaignLaneCard key={c.slug} campaign={c} project={project} />
         ))}

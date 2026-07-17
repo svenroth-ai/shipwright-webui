@@ -31,6 +31,7 @@ import { TaskDescriptionDisclosure } from "../TaskDescriptionDisclosure";
 import { StateBadge, STATE_BADGE_KEYFRAMES } from "../TaskDetailHeader/StateBadge";
 import { LaunchCTA } from "../TaskDetailHeader/LaunchCTA";
 import { ResumeCTA } from "../TaskDetailHeader/ResumeCTA";
+import { LaunchFailureRecovery } from "../TaskDetailHeader/LaunchFailureRecovery";
 import { TitleEdit } from "../TaskDetailHeader/TitleEdit";
 import { HeaderMenu } from "../TaskDetailHeader/HeaderMenu";
 import { Instruments } from "./Instruments";
@@ -70,6 +71,7 @@ export function MissionTopRow({ task, modelName }: Props) {
   const titleRef = useRef<EditableTaskTitleHandle | null>(null);
 
   const cta = ctaFor(task);
+  const isLaunchFailure = task.state === "launch_failed" || task.state === "jsonl_missing";
 
   // Clear stale ctaError on CTA-mode flip (guarded so initial mount is a no-op).
   useEffect(() => {
@@ -105,6 +107,7 @@ export function MissionTopRow({ task, modelName }: Props) {
   }, [deleteMut, navigate, task.state, task.taskId]);
 
   return (
+    <>
     <header
       // A05: `.mc-top` = anthracite ground + the scoped light --color-* flip so the
       // breadcrumb / title / meta read white on taupe. Asymmetric desktop padding
@@ -194,5 +197,14 @@ export function MissionTopRow({ task, modelName }: Props) {
 
       <EditTaskModal open={editOpen} onOpenChange={setEditOpen} task={task} />
     </header>
+    {/* Launch failure (FR-01.61, A17): a launch_failed / jsonl_missing task is
+        no longer silent in the header — the SAME words as the board surfaces,
+        plus Retry / Resume recovery. */}
+    {isLaunchFailure && (
+      <div className="w-full px-3 pb-2 md:px-[22px]" data-testid="task-detail-failure-row">
+        <LaunchFailureRecovery task={task} onError={setCtaError} />
+      </div>
+    )}
+    </>
   );
 }

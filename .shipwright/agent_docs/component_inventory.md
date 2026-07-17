@@ -296,6 +296,20 @@ The guided three-door front entry (New · Adopt · Grade), placed before the exp
 | `readiness-probe` | `server/src/core/readiness-probe.ts` | Async (`execFile`, non-blocking) preflight probe: Claude CLI · door-critical plugins · cache/shared · uv · Python ≥ 3.11 · git. One truth shared with A14 First Contact. |
 | `createReadinessRoutes` | `server/src/routes/readiness.ts` | Mounts `GET /api/readiness`; TTL-memoised + in-flight-coalesced. |
 
+## Launch state machine (A17, FR-01.61)
+
+Every terminal launch state made visible + recoverable (campaign
+`webui-wow-usability-2026-07-10`, A17). One mapping, three surfaces.
+
+| Name | Path | Notes |
+|------|------|-------|
+| `launchFailure` | `client/src/lib/launchFailure.ts` | The SINGLE source of failure words: maps `(server error code \| task.state \| useContinuePipeline reason)` → `{ title, sentence, actions[] }`. Retry only where a retry can succeed (403/422 → none). `parseServerErrorCode` recovers the code from a thrown `httpJson` message; `watchedJsonlPath` names the `<uuid>.jsonl` path. No slash-command literal (DO-NOT #11). |
+| `LaunchFailureNotice` | `client/src/components/external/LaunchFailureNotice.tsx` | The ONE persistent inline notice (never a toast) rendered identically by the campaign card, task card, and task-detail header (AC4). |
+| `CampaignLaunchDialog` | `client/src/components/external/CampaignLaunchDialog.tsx` | The shared confirmation dialog both launch buttons route through (AC2): what · where · the verbatim command; autonomous lists the remaining sub-iterates + won't-ask-again. |
+| `CampaignStartButton` | `client/src/components/external/CampaignStartButton.tsx` | The board's draft → active Start-Campaign CTA (existing `useStartCampaign`); surfaces 403/404/409/422/503 as an inline notice. |
+| `LaunchFailureRecovery` | `client/src/components/external/TaskDetailHeader/LaunchFailureRecovery.tsx` | The task-detail header's launch-failure notice + Retry/Resume (funnel-re-entering, rule 14). |
+| `taskCardState` | `client/src/components/external/taskCardState.tsx` | The board card's state-visual helpers (StatePill/icon), extracted so `TaskCard` mounts the notice without its LOC rising. `selectDraftCampaigns` + `campaignLifecycleLabel` in `campaignsApi.ts` surface drafts on the board. |
+
 ## Screenshots
 
 6 screenshot(s) persisted to `.shipwright/agent_docs/visual/screenshots/`.

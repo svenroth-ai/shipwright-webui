@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 import { CampaignStepLaunchButton } from "./CampaignStepLaunchButton";
 import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
@@ -40,7 +41,11 @@ function makeCampaign(o: Partial<Campaign> = {}): Campaign {
 }
 
 function renderBtn(campaign: Campaign, project: Project | null = PROJECT) {
-  return render(<CampaignStepLaunchButton campaign={campaign} project={project} />);
+  return render(
+    <MemoryRouter>
+      <CampaignStepLaunchButton campaign={campaign} project={project} />
+    </MemoryRouter>,
+  );
 }
 
 describe("CampaignStepLaunchButton", () => {
@@ -102,11 +107,32 @@ describe("CampaignStepLaunchButton", () => {
     expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toHaveTextContent("Launch (B1)");
   });
 
-  // ---- AC5: direct launch for an ordinary (non-risky) step ----
+  // ---- AC2 (A17): EVERY launch confirms first ----
 
-  it("AC5: clicking an ordinary next step launches directly (no dialog) and navigates", async () => {
+  it("AC2: clicking an ordinary next step opens the confirm dialog (no direct launch)", () => {
     renderBtn(makeCampaign());
     fireEvent.click(screen.getByTestId(`campaign-step-launch-${SLUG}`));
+    expect(screen.getByTestId(`campaign-step-dialog-${SLUG}`)).toBeInTheDocument();
+    // the verbatim command is shown, not paraphrased
+    expect(screen.getByTestId(`campaign-step-command-${SLUG}`)).toHaveTextContent(
+      '/shipwright-iterate ".s/B1-x.md"',
+    );
+    expect(launchStepMock).not.toHaveBeenCalled();
+  });
+
+  it("AC2: Cancel creates nothing", async () => {
+    renderBtn(makeCampaign());
+    fireEvent.click(screen.getByTestId(`campaign-step-launch-${SLUG}`));
+    fireEvent.click(screen.getByTestId(`campaign-step-cancel-${SLUG}`));
+    await waitFor(() => expect(screen.queryByTestId(`campaign-step-dialog-${SLUG}`)).toBeNull());
+    expect(launchStepMock).not.toHaveBeenCalled();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("AC2: confirming launches the next step and navigates", async () => {
+    renderBtn(makeCampaign());
+    fireEvent.click(screen.getByTestId(`campaign-step-launch-${SLUG}`));
+    fireEvent.click(screen.getByTestId(`campaign-step-confirm-${SLUG}`));
     await waitFor(() =>
       expect(launchStepMock).toHaveBeenCalledWith({
         project: { id: "p1", path: "/proj" },
@@ -115,19 +141,25 @@ describe("CampaignStepLaunchButton", () => {
       }),
     );
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/tasks/t-9"));
-    // no confirm dialog was opened
-    expect(screen.queryByTestId(`campaign-step-dialog-${SLUG}`)).toBeNull();
   });
 
-  it("AC5: surfaces an inline error when the launch fails", async () => {
-    launchStepMock.mockResolvedValue({ ok: false, reason: "launch_failed", detail: "campaign_step_spec_missing" });
+  it("AC3: a rejected launch surfaces a code-specific failure notice (stays open, no navigate)", async () => {
+    launchStepMock.mockResolvedValue({
+      ok: false,
+      reason: "launch_failed",
+      detail: 'HTTP 404 /api/external/tasks/t/launch: {"error":"campaign_step_spec_missing"}',
+    });
     renderBtn(makeCampaign());
     fireEvent.click(screen.getByTestId(`campaign-step-launch-${SLUG}`));
-    expect(await screen.findByTestId(`campaign-step-error-${SLUG}`)).toHaveTextContent("campaign_step_spec_missing");
+    fireEvent.click(screen.getByTestId(`campaign-step-confirm-${SLUG}`));
+    const notice = await screen.findByTestId(`campaign-step-failure-${SLUG}`);
+    expect(notice).toHaveAttribute("data-launch-failure-code", "campaign_step_spec_missing");
+    // Retry re-runs the SAME funnel (rule 14) — a launch command is never hand-rolled.
+    expect(screen.getByTestId(`campaign-step-failure-${SLUG}-retry`)).toBeInTheDocument();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  // ---- AC6: confirm dialog only for a risky next step ----
+  // ---- AC6: risky next step still opens the confirm dialog ----
 
   it("AC6: a risky (failed) next step opens a confirm dialog instead of launching", () => {
     renderBtn(makeCampaign({

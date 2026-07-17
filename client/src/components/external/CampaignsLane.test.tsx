@@ -64,4 +64,16 @@ describe("CampaignsLane", () => {
     expect(screen.getByTestId("task-board-campaigns-lane")).toBeInTheDocument();
     expect(screen.getByTestId("campaigns-show-dismissed-toggle")).toHaveTextContent("1 erledigt");
   });
+
+  it("AC1: a draft campaign now appears on the board (was Triage-only before A17)", () => {
+    campaignsData = [makeCampaign({ slug: "planned", status: "draft", done: 0, total: 2 })];
+    render(<CampaignsLane projectId="p1" />);
+    expect(screen.getByTestId("card-planned")).toBeInTheDocument();
+  });
+
+  it("AC1: a dismissed draft is NOT surfaced (dismiss quittance still wins)", () => {
+    campaignsData = [makeCampaign({ slug: "planned", status: "draft", dismissed: true })];
+    const { container } = render(<CampaignsLane projectId="p1" />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });
