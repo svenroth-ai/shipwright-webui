@@ -273,7 +273,7 @@ export function TaskBoardColumns({ tasks }: { tasks: ExternalTask[] }) {
       onDragCancel={() => setActiveTask(null)}
     >
       <div
-        className="density-surface page-container flex w-full flex-1 items-start justify-start gap-6 overflow-x-auto overflow-y-hidden pt-10 pb-8 snap-x snap-mandatory scroll-pl-6 md:snap-none md:scroll-pl-0 lg:justify-between lg:snap-none lg:scroll-pl-0"
+        className="density-surface page-container flex w-full flex-1 items-start justify-start gap-6 overflow-x-auto overflow-y-hidden pt-6 pb-8 snap-x snap-mandatory scroll-pl-6 md:snap-none md:scroll-pl-0 lg:justify-between lg:snap-none lg:scroll-pl-0"
         data-testid="task-board-columns"
         data-page-container="true"
       >

@@ -131,6 +131,7 @@ export function ProjectLogCard({
         model={model}
         runsError={runsError && !project.synthesized}
         runsKnown={runsKnown}
+        taskCount={taskCount}
       />
 
       <div className="lc-foot">

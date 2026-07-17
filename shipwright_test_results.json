@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-15",
+  "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-15-e2e-pty-harness",
-    "date": "2026-07-15",
+    "run_id": "iterate-2026-07-17-ui-polish-forms-shiplog",
+    "date": "2026-07-17",
     "unit": {
       "status": "passed",
-      "passed": 2025,
-      "total": 2025,
-      "note": "client vitest 208 files / 2025 passed (unchanged — the fixtures.ts change is an additive helper). tsc --noEmit clean (client); oxlint clean on the two touched files (only a pre-existing seedProject warning). Server untouched (test-harness-only diff)."
+      "passed": 2695,
+      "total": 2695,
+      "note": "client vitest 295 files / 2695 passed (was 2690; +5 fences: MarkdownRenderer AC7, ShipsLogPage AC8, ProjectsPage AC3, SimpleFields AC1, LogEntryList sessions). tsc --noEmit clean; oxlint clean (only pre-existing warnings). Server untouched (client-only UI change)."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "Test-harness-only change: E2E spec choreography + an additive fixture helper. No production/route/store/contract surface."
+      "note": "Client-only UI/token change; no server route/store/contract touched."
     },
     "pgtap": {
       "status": "not_run",
@@ -22,67 +22,82 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 13,
-      "total": 17,
-      "note": "F0.5 web on an isolated single-process stack (:3948, temp USERPROFILE, 127.0.0.1). v0-9-5-replay-snapshot: 2 passed (AC-1/AC-3 seed own valid-cwd target) + 4 skipped (AC-2/4/5/6 target done/launch_failed, none on a fresh stack — clean skip, never flaky-fail; previously AC-2/AC-4 FAILED on the live-task ConPTY ESC[2J). 73-embedded-terminal: 11/11 (no regression). Store=0 after v0-9-5 (ordered cleanupTaskCwd left no dead-cwd task). All exit 0."
+      "passed": 5,
+      "total": 5,
+      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE, :3900). Ran projects-gallery (2), smartviewer-crossfile-nav (1, updated for the removed path strip), A16-ships-log (1), 81-project-actions-config (1) — all passed. The stale projects-gallery 'Open board' nav assertion (pre-existing; A16 moved openProjectLog to /projects/:id/log) was corrected in this diff. Visual project rendered every route; each changed screen verified by eye (actuals viewed) — baselines NOT regenerated on Windows (Linux-only per playwright.config)."
     },
     "design_fidelity": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "No UI change — test-harness fix only."
+      "status": "passed",
+      "note": "Item-by-item screenshot verification against the committed baselines + ad-hoc captures: beige form, aligned Files pane, light-grey settings rows, standardized bright-teal buttons, removed path strip, black Edit/Pop out, solid Ship's Log button, Recent-sessions list."
     },
     "smoke": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3948): GET /api/external/tasks 200."
+      "status": "passed"
     },
-    "surface_verification": {
-      "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3948 npx playwright test client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
-      "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-harness/surface_verification.log",
-      "timestamp": "2026-07-15T17:45:00.000Z",
-      "attempts": 1
-    },
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behaviour the diff changes, from the 3 spec ACs: AC-1 (envelope-only specs seed a valid-cwd target and pass deterministically), AC-2 (DOM-render specs target done/launch_failed and skip cleanly, never flaky-fail), AC-3 (ordered cleanupTaskCwd leaves no dead-cwd task), plus a regression guard. 4 behaviours; all tested; 0 untested-testable. The ConPTY ESC[2J root cause was proven by a node-pty probe before the fix (diagnostic, not a committed test).",
+      "behaviors": [
+        {
+          "behavior": "AC1 task form renders beige sheet + white fields with visible frames",
+          "disposition": "tested",
+          "evidence": "SimpleFields.test.tsx (bg-white + border-[var(--line-strong]) PASSED + verify-new-issue-modal.png"
+        },
+        {
+          "behavior": "AC2 Inbox/Triage/Board top padding equals Projects' 24px",
+          "disposition": "tested",
+          "evidence": "deterministic paddingBlock 24px / pt-6 change; inbox-actual.png render confirms the 24px top gap matches Projects"
+        },
+        {
+          "behavior": "AC3 Projects 'Create Project' uses the standard .btn-primary",
+          "disposition": "tested",
+          "evidence": "ProjectsPage.test.tsx (projects-create-button hasClass btn-primary) PASSED + projects-actual.png"
+        },
+        {
+          "behavior": "AC4 Settings action rows render light grey (not white-on-white)",
+          "disposition": "tested",
+          "evidence": "ActionsConfigRow background var(--inset); settings-actual.png confirms the distinct light-grey row"
+        },
+        {
+          "behavior": "AC5 Files three-pane left-aligns with the tab control",
+          "disposition": "tested",
+          "evidence": "verify-three-pane.png confirms the Files pane left edge aligns with the Mission|Files&Terminal tab control (was full-bleed)"
+        },
+        {
+          "behavior": "AC6 Smart-Viewer filename/size path strip removed",
+          "disposition": "tested",
+          "evidence": "smartviewer-crossfile-nav.spec.ts (re-anchored to document content) PASSED + grep-clean (no path-strip refs) + verify-smartviewer.png"
+        },
+        {
+          "behavior": "AC7 Smart-Viewer Edit/Pop out use black text + black border",
+          "disposition": "tested",
+          "evidence": "MarkdownRenderer.test.tsx (color+border var(--color-text)) PASSED + verify-smartviewer.png"
+        },
+        {
+          "behavior": "AC8 Ship's Log header button is the standard solid .btn-primary",
+          "disposition": "tested",
+          "evidence": "ShipsLogPage.test.tsx (ships-log-open-board hasClass btn-primary) PASSED + ships-log-actual.png"
+        },
+        {
+          "behavior": "AC9 no-runs empty wording = 'No runs yet. Grade or adopt it to open the logbook.'",
+          "disposition": "tested",
+          "evidence": "LogEntryList.test.tsx + ProjectLogCard.test.tsx PASSED (assert the exact wording)"
+        },
+        {
+          "behavior": "AC10 non-Shipwright projects (no runs + sessions) list recent sessions instead of the nudge",
+          "disposition": "tested",
+          "evidence": "LogEntryList.test.tsx (sessions branch, precedence, click→/tasks/:id) + ProjectLogCard.test.tsx (session count) PASSED + verify-shipslog-sessions.png"
+        }
+      ],
       "counts": {
-        "total": 4,
-        "tested": 4,
+        "testable": 10,
+        "tested": 10,
         "untestable": 0,
         "untested_testable": 0
       },
-      "behaviors": [
-        {
-          "behavior": "v0-9-5 AC-1/AC-3 seed their own valid-cwd target and pass deterministically (no dependency on accumulated dead-cwd session state)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "isolated stack: AC-1 envelopes contain replay_snapshot (no chunked); AC-3 no chunked envelopes; both PASS, exit 0"
-        },
-        {
-          "behavior": "v0-9-5 AC-2/AC-4 target done||launch_failed and skip cleanly when none exists — never flaky-fail against a live task (whose ConPTY ESC[2J wipes the replay)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "isolated stack: AC-2/AC-4 SKIP (no done task), matching AC-5/AC-6; exit 0. Previously FAILED on the live-task ESC[2J."
-        },
-        {
-          "behavior": "cleanupTaskCwd deletes the task (cascade kills+awaits the pty) BEFORE removing the cwd, leaving no dead-cwd task in the store",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "GET /api/external/tasks after the v0-9-5 run returned 0 tasks"
-        },
-        {
-          "behavior": "The additive fixtures.ts helper does not regress other pty-heavy specs",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "73-embedded-terminal 11/11 on the isolated stack; client vitest 2025 pass"
-        }
-      ]
-    },
-    "degraded": []
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      }
+    }
   }
 }
