@@ -136,7 +136,6 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     description:
       "Board with a DRAFT campaign card (lifecycle badge + Start-Campaign CTA) and a launch_failed task card mounting the persistent LaunchFailureNotice — the two states that were invisible on the board before A17.",
     status: "baselined",
-    owner: "A17",
   },
   {
     id: "task-detail-launch-failed",
@@ -144,7 +143,6 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     description:
       "Task-detail header with the launch-failure notice mounted for a jsonl_missing task: the same words as the board surfaces (AC4), the watched JSONL path, and Resume recovery.",
     status: "baselined",
-    owner: "A17",
   },
 ];
 
