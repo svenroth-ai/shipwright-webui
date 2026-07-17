@@ -118,7 +118,9 @@ jobs:
         #   gate downstream — none of which require GHAS. So a Private-
         #   no-GHAS repo still gets the value of the scan; only the
         #   Security-tab integration is missing.
-        # - v4 of the action (v3 deprecation lands 2026-12).
+        # - v4 of the action (v3 deprecation lands 2026-12). codeql.yml's
+        #   init/analyze steps are still on v3.37.1 pending a separate
+        #   upgrade; Dependabot will propose bumping both to align.
         uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
         continue-on-error: true
         with:

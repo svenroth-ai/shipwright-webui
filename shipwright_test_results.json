@@ -31,7 +31,8 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "not_run",
+      "note": "CI-config-only change; no server/app is started, so there is no smoke surface. This is not a test regression."
     },
     "surface_verification": {
       "surface": "none",

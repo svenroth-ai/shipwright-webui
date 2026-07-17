@@ -8,6 +8,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Zurich"
     commit-message:
       prefix: "chore(ci)"
     groups:
