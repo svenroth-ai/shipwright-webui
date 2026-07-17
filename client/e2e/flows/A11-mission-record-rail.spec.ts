@@ -54,10 +54,10 @@ test.describe("A11 — Mission 'The Record' rail", () => {
 
     const rail = page.getByTestId("record-rail");
     await expect(rail).toBeVisible();
-    // Scope + exact-match the rail eyebrow: a loose page-wide getByText("The
-    // Record") also matches the seeded title ("Survey the record") and the
-    // collapse label ("Hide the record") — 3 hits, a strict-mode violation.
-    await expect(rail.getByText("The Record", { exact: true })).toBeVisible();
+    // FR-01.66 redesigned the left panel: the business summary + the stage stepper
+    // lead, and the Req/Spec/Test/Review/Commit trail is folded into artifact links.
+    await expect(page.getByTestId("mission-summary")).toBeVisible();
+    await expect(page.getByTestId("mission-stage")).toBeVisible();
 
     // The five honest nodes render (pending, no fabricated receipts).
     for (const key of ["req", "spec", "tests", "review", "commit"] as const) {
@@ -111,21 +111,6 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     await scrim.click({ position: { x: 8, y: 8 } });
     await expect(panel).toHaveCount(0);
   });
-
-  test("collapse hides the labels and clears the active node; a collapsed dot re-expands", async ({ page }) => {
-    await page.goto(`/tasks/${taskId}`);
-    await page.getByTestId("mission-tab-mission").click();
-
-    // Open a node, then collapse — collapsing clears the active node.
-    await page.getByTestId("record-node-tests").click();
-    await expect(page.getByTestId("artifact-panel")).toBeVisible();
-    await page.getByTestId("record-collapse").click();
-    await expect(page.getByTestId("record-rail")).toHaveAttribute("data-collapsed", "true");
-    await expect(page.getByTestId("artifact-panel")).toHaveCount(0);
-
-    // Clicking a dot while collapsed expands the rail AND opens the artifact.
-    await page.getByTestId("record-node-req").click();
-    await expect(page.getByTestId("record-rail")).not.toHaveAttribute("data-collapsed", "true");
-    await expect(page.getByTestId("artifact-panel")).toBeVisible();
-  });
+  // (FR-01.66) The collapse-to-60px spine was retired with the audit RAIL — the
+  // redesigned left panel is a static summary + stage + artifact-links card.
 });

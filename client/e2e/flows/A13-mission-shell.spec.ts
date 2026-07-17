@@ -80,20 +80,9 @@ test.describe("A13 — Mission three-card shell", () => {
     expect(op!.width).toBeGreaterThanOrEqual(360);
   });
 
-  test("the rail collapses; the shell stays clip-free collapsed", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto(`/tasks/${taskId}`);
-    await page.getByTestId("mission-tab-mission").click();
-
-    await page.getByTestId("record-collapse").click();
-    await expect(page.getByTestId("record-rail")).toHaveAttribute("data-collapsed", "true");
-
-    const body = page.getByTestId("mission-body");
-    const overflow = await body.evaluate(
-      (el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }),
-    );
-    expect(overflow.scrollWidth).toBeLessThanOrEqual(overflow.clientWidth + 1);
-  });
+  // (FR-01.66) The collapse-to-60px spine was retired with the audit RAIL; the
+  // redesigned left panel is a static summary + stage + artifact-links card. The
+  // no-horizontal-clip contract is still covered by the equal-height test above.
 
   test("Files & Terminal still mounts the REAL terminal (byte-path untouched)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

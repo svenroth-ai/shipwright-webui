@@ -44,26 +44,23 @@ test.describe("A12 — Mission 'Operation' card", () => {
     await cleanupProject(request, project);
   });
 
-  test("no run data -> the HONEST neutral verdict, never a false ALL CLEAR (AC3)", async ({
+  test("no run AND no transcript -> the HONEST waiting narration, never a false ALL CLEAR (AC3, FR-01.66)", async ({
     page,
   }) => {
+    // A seeded task has no JSONL and no run row → the middle is the live narration
+    // in its honest EMPTY state ("waiting"), never a fabricated verdict.
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
 
     const card = page.getByTestId("operation-card");
     await expect(card).toBeVisible();
 
-    const banner = page.getByTestId("verdict-banner");
-    await expect(banner).toBeVisible();
-    await expect(banner).toHaveAttribute("data-outcome", "neutral");
-    await expect(banner).toContainText("No run data yet");
-    // The worst bug this card can ship: a green ALL CLEAR over an unknown run.
-    await expect(banner).not.toContainText("ALL CLEAR");
-
-    // Honest empty proof summary — never an invented line.
-    const proof = page.getByTestId("proof-summary");
-    await expect(proof).toBeVisible();
-    await expect(proof).toHaveAttribute("data-empty", "true");
+    const narration = page.getByTestId("mission-narration");
+    await expect(narration).toBeVisible();
+    await expect(narration).toHaveAttribute("data-empty", "true");
+    await expect(page.getByTestId("mission-narration-summary")).toContainText(/waiting/i);
+    // Never a green ALL CLEAR over an unknown run.
+    await expect(card).not.toContainText("ALL CLEAR");
   });
 
   test("the proof summary is NOT the terminal; the REAL terminal is in Files & Terminal (AC2)", async ({
@@ -75,8 +72,8 @@ test.describe("A12 — Mission 'Operation' card", () => {
     // present without any navigation.
     await expect(page.getByTestId("embedded-terminal")).toBeVisible({ timeout: 15_000 });
 
-    // Switch to Mission — the Operation card renders its proof summary, which is
-    // NOT a terminal: no embedded terminal, no xterm canvas, no input inside it.
+    // Switch to Mission — the Operation card renders its live JSONL narration, which
+    // is NOT a terminal: no embedded terminal, no xterm canvas, no input inside it.
     await page.getByTestId("mission-tab-mission").click();
     const card = page.getByTestId("operation-card");
     await expect(card).toBeVisible();
@@ -97,14 +94,14 @@ test.describe("A12 — Mission 'Operation' card", () => {
     await expect(page.getByRole("tab", { name: /terminal/i })).toHaveCount(1);
   });
 
-  test("the Operation card sits BESIDE the Record rail in the Mission body", async ({ page }) => {
+  test("the Operation card sits BESIDE the left panel in the Mission body", async ({ page }) => {
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
 
-    // Both cards of the Mission body are present: A11's Record rail + A12's Operation.
+    // Both cards of the Mission body are present: the left panel + the Operation card.
     await expect(page.getByTestId("record-rail")).toBeVisible();
     await expect(page.getByTestId("operation-card")).toBeVisible();
-    // The proof summary is keyboard-reachable (a labelled scroll region, AC7).
-    await expect(page.getByTestId("proof-summary")).toHaveAttribute("tabindex", "0");
+    // The live narration is keyboard-reachable (a labelled scroll region, AC7).
+    await expect(page.getByTestId("mission-narration")).toHaveAttribute("tabindex", "0");
   });
 });

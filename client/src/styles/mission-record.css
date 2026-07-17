@@ -61,6 +61,24 @@
 .rec-collapse:hover { background: var(--g50); color: var(--ink); }
 .rec-collapse:focus-visible { outline: none; box-shadow: var(--focus); }
 
+/* ── The redesigned LEFT panel (FR-01.66): summary + stage + artifact links ── */
+/* Reuses the `.record` card shell (width/glass/overflow) so the three cards stay
+   equal-height flex siblings; `.mc-left` swaps the spine layout for stacked blocks. */
+.mc-left { display: flex; flex-direction: column; gap: 18px; }
+.ml-block { display: flex; flex-direction: column; gap: 8px; }
+.ml-summary { font-size: 13.5px; line-height: 1.5; color: var(--body); margin: 0; word-break: break-word; }
+.ml-stage { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ml-step { display: flex; align-items: center; gap: 9px; padding: 4px 2px; font-size: 13px; color: var(--faint); }
+.ml-step-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--g300); background: var(--card); }
+.ml-step.done .ml-step-dot { background: var(--ok-solid); border-color: var(--ok-solid); }
+.ml-step.current .ml-step-dot { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
+.ml-step-label { font-weight: 600; }
+.ml-step.done .ml-step-label { color: var(--ink); }
+.ml-step.current .ml-step-label { color: var(--accent); }
+.ml-step-none { margin-left: 20px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.ml-artifacts { gap: 4px; }
+.ml-artifacts .rec-node { margin-left: 0; width: 100%; }
+
 /* ── The artifact panel (slide-over base; on-photo makes it an inline card) ─ */
 /* Artifact BASE rests on-screen, fully opaque (position set by layout) — its
    final state. The slide-in is an ENHANCEMENT gated behind no-preference (A20

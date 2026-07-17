@@ -126,6 +126,27 @@ export function seedClaudeJsonl(
 }
 
 /**
+ * Write a synthetic `<sessionUuid>.jsonl` from ARBITRARY event objects (each is
+ * stamped with the sessionId + a timestamp, then JSON-encoded one per line). Lets a
+ * spec seed richer transcripts than the plain user/assistant-text pair above — e.g.
+ * an assistant `tool_use` turn so the Mission narrator infers a lifecycle stage
+ * (FR-01.66). Same self-lock as `seedClaudeJsonl`. Returns the file path.
+ */
+export function seedClaudeJsonlEvents(
+  opts: { sessionUuid: string; cwd: string; events: Record<string, unknown>[] },
+): string {
+  const home = assertIsolatedHome();
+  const dir = path.join(home, ".claude", "projects", encodeCwd(opts.cwd));
+  fs.mkdirSync(dir, { recursive: true });
+  const rows = opts.events.map((e) =>
+    JSON.stringify({ sessionId: opts.sessionUuid, timestamp: new Date().toISOString(), ...e }),
+  );
+  const file = path.join(dir, `${opts.sessionUuid}.jsonl`);
+  fs.writeFileSync(file, rows.join("\n") + "\n", "utf-8");
+  return file;
+}
+
+/**
  * Age a seeded transcript by backdating its mtime, so the server's idle
  * threshold (`ACTIVE_IDLE_THRESHOLD_MS`) trips without the spec having to sleep.
  */
