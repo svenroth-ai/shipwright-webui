@@ -5,9 +5,10 @@
  * REPLACES A11's "The Record" audit RAIL (the spine + collapse) with three
  * stacked parts:
  *   1. a business-language summary of what this change is about ("what this is"),
- *   2. WHERE IT STANDS NOW — the four fixed stage labels `Spec · Build · Test ·
- *      Finalize` (STAGE_LABELS, verbatim; an honest "—" when the stage cannot be
- *      derived), and
+ *   2. WHERE IT STANDS NOW — the six fixed stage labels `Analyze · Spec · Build ·
+ *      Test · Finalize · Merge` (STAGE_LABELS, verbatim; an honest "—" when the
+ *      stage cannot be derived), preceded (for a campaign session) by a
+ *      "Sub-iterate N of M · A<k>" progress line (FR-01.67), and
  *   3. the audit trail folded into clickable ARTIFACT LINKS — the same
  *      Req/Spec/Test/Review/Commit `RecordNode`s, each opening in the RIGHT
  *      ArtifactPanel (AC2: no audit information lost, only relocated to links).
