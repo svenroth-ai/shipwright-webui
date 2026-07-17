@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Mission Control's task view has a new frame. The top row now shows a **"Board › Project" breadcrumb with both parts clickable**, keeps the title, rename, status badge (plus an "Awaiting approval" pill when a run is paused at its design gate), the Grade/Tests/Serves instruments, the Resume button, and the full "⋯" menu. The **Mission | Files & Terminal switch is now a segmented control** (fully keyboard-operable) with a glass **"Open Ship's Log"** button beside it. On the Mission tab, the Record, Operation, and Artifact panels render as **three equal-height cards floating on the backdrop — the old dark panel behind them is gone** — and nothing gets clipped at common window widths (the Artifact drops to a slide-over on narrow screens). Files & Terminal stays the view you land on; Mission is one click away.
 
+### Changed
+
+- When Claude pauses mid-run to ask you something, the Inbox now **hands you off to the task's terminal to answer** instead of copying a command to the clipboard. Each waiting card shows the question (with its options as **read-only text**) and an **"Answer in the terminal"** button that opens the task's terminal focused and ready — **you type the reply yourself**. Every card says so plainly: the Command Center does not answer for you. The populated Inbox now sits on a solid panel so the text stays readable over the backdrop.
+
 ## [v0.23.0] - 2026-07-12
 
 ### Added

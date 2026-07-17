@@ -178,6 +178,7 @@ function TaskDetailStub() {
       data-testid="task-detail-stub"
       data-task-id={params.id ?? ""}
       data-focus-terminal={String(st?.focusTerminal === true)}
+      data-search={loc.search}
     />
   );
 }
@@ -323,7 +324,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     expect(screen.queryByText(/best-effort/i)).not.toBeInTheDocument();
   });
 
-  it("renders a single Resume button per card (no Launch, no textarea)", () => {
+  it("renders a single Answer-in-terminal CTA per card (no Launch, no textarea)", () => {
     wireHooks({
       items: [ITEM_A],
       tasks: [TASK_A],
@@ -331,10 +332,10 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     });
     renderPage();
 
-    // Primary Resume button (new 3.7d-b3 testid + legacy v2 testid both
-    // render — back-compat wrapper).
+    // The single navigation CTA (A19: clipboard copy → terminal fallback). The
+    // misleading legacy `inbox-copy-resume` testid is GONE — it no longer copies.
     expect(screen.getByTestId("inbox-resume-tu-A")).toBeInTheDocument();
-    expect(screen.getByTestId("inbox-copy-resume-tu-A")).toBeInTheDocument();
+    expect(screen.queryByTestId("inbox-copy-resume-tu-A")).not.toBeInTheDocument();
 
     // Launch-in-Terminal button from v2 is GONE.
     expect(screen.queryByTestId("inbox-launch-tu-A")).not.toBeInTheDocument();
@@ -415,7 +416,7 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     expect(screen.getByTestId("task-detail-stub")).toBeInTheDocument();
   });
 
-  it("clicking the Resume button does NOT navigate (stops propagation)", () => {
+  it("clicking the CTA navigates to the task's terminal deep link (A19)", () => {
     wireHooks({
       items: [ITEM_A],
       tasks: [TASK_A],
@@ -423,12 +424,11 @@ describe("InboxPage project grouping (iterate 3 remediation v2 / S4)", () => {
     });
     renderPage();
 
-    const resumeBtn = screen.getByTestId("inbox-resume-tu-A");
-    fireEvent.click(resumeBtn);
-    // Navigation should NOT have fired — we're still on /inbox.
-    expect(screen.queryByTestId("task-detail-stub")).not.toBeInTheDocument();
-    // Page marker still present.
-    expect(screen.getByTestId("inbox-page")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
+    const stub = screen.getByTestId("task-detail-stub");
+    expect(stub).toHaveAttribute("data-task-id", "task-A");
+    expect(stub.getAttribute("data-search")).toContain("pane=terminal");
+    expect(stub.getAttribute("data-search")).toContain("focus=terminal");
   });
 });
 
@@ -458,7 +458,7 @@ describe("InboxPage — text_question cards", () => {
     expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
   });
 
-  it("text_question cards show NO option chips and NO Answer/dismiss button", () => {
+  it("text_question cards show the terminal CTA + NO option chips / freetext", () => {
     const item = makeTextItem({
       taskId: "task-A",
       sessionUuid: "sess-A",
@@ -467,13 +467,13 @@ describe("InboxPage — text_question cards", () => {
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
     const { container } = renderPage();
 
-    // Auto-clear semantics: no dismiss, no Answer/Resume CTA.
-    expect(screen.queryByTestId("inbox-resume-q-A")).not.toBeInTheDocument();
+    // A19: the honest terminal CTA is present (navigation, not a write).
+    expect(screen.getByTestId("inbox-resume-q-A")).toBeInTheDocument();
     expect(screen.queryByTestId("inbox-copy-resume-q-A")).not.toBeInTheDocument();
     expect(screen.queryByTestId("inbox-option-chip-0")).not.toBeInTheDocument();
-    // No interactive button anywhere inside the card.
+    // No freetext input anywhere inside the card (the fence).
     expect(
-      container.querySelector('[data-testid="inbox-card-q-A"] button'),
+      container.querySelector('[data-testid="inbox-card-q-A"] textarea'),
     ).toBeNull();
   });
 
@@ -596,16 +596,16 @@ describe("InboxPage — terminal_prompt cards", () => {
     expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
   });
 
-  it("terminal_prompt card is read-only — no buttons", () => {
+  it("terminal_prompt card shows the terminal CTA, no freetext input", () => {
     const item = makeTerminalPromptItem({
       taskId: "task-A",
       sessionUuid: "sess-A",
     });
     wireHooks({ items: [item], tasks: [TASK_A], projects: [PROJECT_A] });
-    const { container } = renderPage();
-    expect(
-      container.querySelector('[data-testid="inbox-card-tp-task-A"] button'),
-    ).toBeNull();
+    renderPage();
+    // The freetext-fence (no textarea anywhere) is proven globally by
+    // inbox-no-writepath.test.ts; here we assert the CTA is present.
+    expect(screen.getByTestId("inbox-resume-tp-task-A")).toBeInTheDocument();
   });
 
   it("renders promptText as escaped plain-text — no HTML injection", () => {

@@ -9,6 +9,8 @@ import type {
   AskToolInboxItem,
   ExternalTask,
   InboxItem,
+  TerminalPromptInboxItem,
+  TextQuestionInboxItem,
 } from "../../../lib/externalApi";
 import type { Project } from "../../../types";
 
@@ -23,6 +25,35 @@ export function makeAskItem(
     toolUseId: "tu-1",
     toolName: "AskUserQuestion",
     input: { parts: [{ question: "proceed?" }] },
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
+export function makeTextItem(
+  overrides: Partial<TextQuestionInboxItem> = {},
+): TextQuestionInboxItem {
+  return {
+    kind: "text_question",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    questionId: "q-1",
+    questionText: "How should I proceed?",
+    bestEffort: true,
+    ...overrides,
+  };
+}
+
+export function makeTerminalPromptItem(
+  overrides: Partial<TerminalPromptInboxItem> = {},
+): TerminalPromptInboxItem {
+  return {
+    kind: "terminal_prompt",
+    taskId: "task-1",
+    sessionUuid: "sess-1",
+    taskTitle: "task-1",
+    promptText: "❯ Overwrite existing migration? (y/N)",
     bestEffort: true,
     ...overrides,
   };

@@ -1,27 +1,20 @@
 /*
- * InboxResumeButton — extraction contract test (C7 — 2026-05-26).
+ * InboxResumeButton — navigation CTA contract (A19, FR-01.63).
  *
- * Covers external-plan-review MEDIUM finding #6 (error-path preservation):
- *  - mutateAsync({ taskId, resume: true }) shape preserved.
- *  - Platform-appropriate command selected (powershell on Windows UA).
- *  - clipboard write_failure path renders error span.
- *  - mutateAsync reject path renders error span.
- *  - e.stopPropagation called so card-level nav does NOT fire.
+ * The CTA used to COPY a resume command to the clipboard. It now NAVIGATES to
+ * the task's embedded terminal (the honest fallback — the operator types the
+ * reply themselves). This test pins the new contract:
+ *   - clicking navigates to the terminal deep link;
+ *   - it writes NOTHING (no clipboard, no launch mutation);
+ *   - it stops propagation so the containing card doesn't double-navigate.
  */
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation, useParams } from "react-router-dom";
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-vi.mock("../../hooks/useLaunchTask", () => ({
-  useLaunchTask: vi.fn(),
-}));
-
-import { useLaunchTask } from "../../hooks/useLaunchTask";
 import { InboxResumeButton } from "./InboxResumeButton";
+import { buildTaskTerminalDeepLink } from "../../lib/taskDeepLink";
 import type { ExternalTask } from "../../lib/externalApi";
-
-const mockedLaunch = vi.mocked(useLaunchTask);
 
 function makeTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
   return {
@@ -42,167 +35,80 @@ function makeTask(overrides: Partial<ExternalTask> = {}): ExternalTask {
   };
 }
 
-function renderBtn(task: ExternalTask, toolUseId = "tu-A") {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(
-    <QueryClientProvider client={qc}>
-      <InboxResumeButton task={task} toolUseId={toolUseId} />
-    </QueryClientProvider>,
+function Probe() {
+  const loc = useLocation();
+  const params = useParams();
+  return (
+    <div
+      data-testid="task-detail-probe"
+      data-task-id={params.id ?? ""}
+      data-search={loc.search}
+    />
   );
 }
 
-describe("InboxResumeButton — extraction contract", () => {
+function renderBtn(task: ExternalTask, toolUseId = "tu-A", onCardClick?: () => void) {
+  return render(
+    <MemoryRouter initialEntries={["/inbox"]}>
+      <Routes>
+        <Route
+          path="/inbox"
+          element={
+            <div onClick={onCardClick} data-testid="card">
+              <InboxResumeButton task={task} idKey={toolUseId} />
+            </div>
+          }
+        />
+        <Route path="/tasks/:id" element={<Probe />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe("InboxResumeButton — navigation CTA", () => {
   beforeEach(() => {
-    mockedLaunch.mockReset();
-    // Reset the userAgent mock between tests.
     Object.defineProperty(navigator, "userAgent", {
       value: "Mozilla/5.0",
       configurable: true,
     });
   });
 
-  it("click calls useLaunchTask.mutateAsync with { taskId, resume: true }", async () => {
-    const mutateAsync = vi.fn().mockResolvedValue({
-      commands: { posix: "claude --resume xyz", powershell: "claude --resume xyz" },
-    });
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync,
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
-    });
+  it("renders an 'Answer in the terminal' button (not a copy button)", () => {
+    renderBtn(makeTask());
+    const btn = screen.getByTestId("inbox-resume-tu-A");
+    expect(btn.textContent).toMatch(/answer in the terminal/i);
+    expect(btn.textContent ?? "").not.toMatch(/copy/i);
+  });
+
+  it("click navigates to the task's terminal deep link", () => {
     renderBtn(makeTask());
     fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
-    await waitFor(() =>
-      expect(mutateAsync).toHaveBeenCalledWith({
-        taskId: "task-A",
-        resume: true,
-      }),
+    const probe = screen.getByTestId("task-detail-probe");
+    expect(probe).toHaveAttribute("data-task-id", "task-A");
+    const expected = buildTaskTerminalDeepLink("task-A");
+    expect(probe.getAttribute("data-search")).toBe(
+      expected.slice(expected.indexOf("?")),
     );
   });
 
-  it("selects posix command on non-Windows UA", async () => {
-    const mutateAsync = vi.fn().mockResolvedValue({
-      commands: { posix: "POSIX_CMD", powershell: "PS_CMD" },
-    });
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync,
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-    const writeText = vi.fn().mockResolvedValue(undefined);
+  it("writes NOTHING — no clipboard, no launch mutation", () => {
+    const writeText = vi.fn();
     Object.assign(navigator, { clipboard: { writeText } });
-
     renderBtn(makeTask());
     fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith("POSIX_CMD"));
+    expect(writeText).not.toHaveBeenCalled();
   });
 
-  it("selects powershell command on Windows UA", async () => {
-    Object.defineProperty(navigator, "userAgent", {
-      value: "Mozilla/5.0 (Windows NT 10.0)",
-      configurable: true,
-    });
-    const mutateAsync = vi.fn().mockResolvedValue({
-      commands: { posix: "POSIX_CMD", powershell: "PS_CMD" },
-    });
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync,
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-
-    renderBtn(makeTask());
-    fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith("PS_CMD"));
-  });
-
-  it("clipboard.writeText rejection surfaces an error span (code-review MED)", async () => {
-    const mutateAsync = vi.fn().mockResolvedValue({
-      commands: { posix: "POSIX_CMD", powershell: "PS_CMD" },
-    });
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync,
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-    // Clipboard exists but rejects — exercises the writeClipboardModule
-    // success path's await rejection, NOT the fallback textarea path.
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockRejectedValue(new Error("clipboard blocked")),
-      },
-    });
-
-    renderBtn(makeTask());
-    fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
-    const err = await screen.findByRole("alert");
-    expect(err.textContent).toContain("clipboard blocked");
-  });
-
-  it("mutateAsync rejection surfaces an error span", async () => {
-    const mutateAsync = vi.fn().mockRejectedValue(new Error("backend exploded"));
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync,
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-
-    renderBtn(makeTask());
-    fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
-    const err = await screen.findByRole("alert");
-    expect(err.textContent).toContain("backend exploded");
-  });
-
-  it("e.stopPropagation prevents card-level click propagation", () => {
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn().mockResolvedValue({
-        commands: { posix: "x", powershell: "x" },
-      }),
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-
+  it("stops propagation so the card doesn't also fire its onClick", () => {
     const cardClick = vi.fn();
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-    render(
-      <QueryClientProvider client={qc}>
-        <div onClick={cardClick} data-testid="card">
-          <InboxResumeButton task={makeTask()} toolUseId="tu-A" />
-        </div>
-      </QueryClientProvider>,
-    );
+    renderBtn(makeTask(), "tu-A", cardClick);
     fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
-    // The card's onClick must NOT have fired (stopPropagation).
     expect(cardClick).not.toHaveBeenCalled();
   });
 
-  it("legacy testid inbox-copy-resume-<toolUseId> retained for back-compat", () => {
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn(),
-      isPending: false,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-
+  it("carries NO misleading legacy copy testid", () => {
     renderBtn(makeTask());
-    expect(screen.getByTestId("inbox-copy-resume-tu-A")).toBeInTheDocument();
+    expect(screen.queryByTestId("inbox-copy-resume-tu-A")).not.toBeInTheDocument();
     expect(screen.getByTestId("inbox-resume-tu-A")).toBeInTheDocument();
-  });
-
-  it("isPending=true disables the button and shows Preparing…", () => {
-    mockedLaunch.mockReturnValue({
-      mutate: vi.fn(),
-      mutateAsync: vi.fn(),
-      isPending: true,
-    } as unknown as ReturnType<typeof useLaunchTask>);
-
-    renderBtn(makeTask());
-    const btn = screen.getByTestId("inbox-resume-tu-A");
-    expect(btn).toBeDisabled();
-    expect(btn.textContent).toContain("Preparing");
   });
 });

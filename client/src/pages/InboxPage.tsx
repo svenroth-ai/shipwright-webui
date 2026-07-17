@@ -7,7 +7,8 @@
  *   - InboxProjectSection — collapsible per-project <details> group.
  *   - InboxCard           — polymorphic dispatcher (with sub-modules
  *                           InboxCard.AskTool + InboxCard.Waiting).
- *   - InboxResumeButton   — Answer/Resume CTA + clipboard copy.
+ *   - InboxResumeButton   — "Answer in the terminal" navigation CTA (A19:
+ *                           replaced the clipboard-copy path — writes nothing).
  *
  * Iterate 3.7d-b3 (2026-04-22) contract preserved:
  *   - Each card is a LARGER read-only Ask-bubble; option chips display-only.
@@ -22,7 +23,7 @@
  *   inbox-group-project-label-<sessionUuid>,
  *   inbox-project-group-<projectId>, inbox-project-group-toggle-<projectId>,
  *   inbox-group-color-<projectId>, inbox-card-<toolUseId>,
- *   inbox-resume-<toolUseId>, inbox-copy-resume-<toolUseId>.
+ *   inbox-resume-<toolUseId>.
  */
 import { useNavigate } from "react-router-dom";
 import { InboxProjectSection } from "./inbox/InboxProjectSection";
@@ -116,15 +117,42 @@ export default function InboxPage() {
             </div>
           )}
 
-          <div className="flex flex-col" style={{ gap: "24px" }}>
-            {projectGroups.map((pg) => (
-              <InboxProjectSection
-                key={pg.projectId}
-                group={pg}
-                tasksById={tasksById}
-              />
-            ))}
-          </div>
+          {/* §5.2 contrast fix (A03 ladder): the populated list sits on a SOLID
+              neutral sub-panel so body text is never over the bright photo. The
+              group headers + session sub-labels use the .on-photo flipping
+              --ink/--muted (white on the photo) — reset here to the non-flipping
+              stone ramp (the same swap on-photo.css rule 2 does for .card, done
+              inline because real components don't carry the .card class), so on
+              this white ground every label reads dark-on-white >=4.5:1. Rendered
+              ONLY when populated — the empty-state baseline stays untouched. */}
+          {projectGroups.length > 0 && (
+            <div
+              data-testid="inbox-list-panel"
+              className="flex flex-col"
+              style={{
+                gap: "24px",
+                background: "var(--card)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--radius-card)",
+                padding: "18px 18px 22px",
+                boxShadow: "var(--sh-sm)",
+                ["--ink" as string]: "var(--g900)",
+                ["--body" as string]: "var(--g700)",
+                ["--muted" as string]: "var(--g500)",
+                ["--faint" as string]: "var(--g400)",
+                ["--line" as string]: "var(--g200)",
+                ["--line-strong" as string]: "var(--g300)",
+              }}
+            >
+              {projectGroups.map((pg) => (
+                <InboxProjectSection
+                  key={pg.projectId}
+                  group={pg}
+                  tasksById={tasksById}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

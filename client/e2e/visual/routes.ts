@@ -70,6 +70,13 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     status: "baselined",
   },
   { id: "inbox", path: "/inbox", description: "Inbox — empty state", status: "baselined" },
+  {
+    id: "inbox-populated",
+    path: "/inbox (populated — mid-run questions on the neutral sub-panel)",
+    description:
+      "Inbox with pending mid-run questions (A19, FR-01.63): the repainted card anatomy (amber strip · context pill · time-ago · glossed eyebrow · question · rationale · read-only Options: line) on the §5.2 SOLID neutral sub-panel, each card carrying the 'Answer in the terminal' navigation CTA + the honesty line (the WebUI does not answer for you). Captured by e2e/visual/09-inbox-populated.spec.ts. Baseline rendered in the pinned CI container (A00 bootstrap path).",
+    status: "baselined",
+  },
   { id: "triage", path: "/triage", description: "Triage list", status: "baselined" },
   { id: "settings", path: "/settings", description: "Settings", status: "baselined" },
   {

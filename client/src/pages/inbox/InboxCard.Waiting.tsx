@@ -29,7 +29,13 @@ import type {
   TerminalPromptInboxItem,
   TextQuestionInboxItem,
 } from "../../lib/externalApi";
-import { KNOWN_PHASES, MAX_BODY_PREVIEW_PX, PHASE_ICON } from "./InboxCard";
+import { InboxResumeButton } from "./InboxResumeButton";
+import {
+  InboxTerminalHonesty,
+  KNOWN_PHASES,
+  MAX_BODY_PREVIEW_PX,
+  PHASE_ICON,
+} from "./InboxCard";
 
 export function WaitingReplyCard({
   item,
@@ -159,12 +165,20 @@ export function WaitingReplyCard({
         {isMarkdown ? (
           <MarkdownText text={bodyText} />
         ) : (
+          // terminal_prompt: a live xterm picker → keep it in a recessed MONO
+          // panel (prototype promptCard anatomy). Frozen --color-* tokens so the
+          // panel stays dark-on-inset regardless of the .on-photo flip.
           <div
+            className="font-mono"
             style={{
-              fontSize: "14px",
+              fontSize: "12.5px",
               color: "var(--color-text)",
-              lineHeight: 1.5,
+              lineHeight: 1.6,
               whiteSpace: "pre-wrap",
+              background: "var(--color-muted-bg)",
+              border: "1px solid var(--color-border)",
+              borderRadius: "8px",
+              padding: "10px 13px",
             }}
           >
             {bodyText}
@@ -185,6 +199,13 @@ export function WaitingReplyCard({
           />
         )}
       </div>
+
+      {task && (
+        <div className="flex items-center justify-end" style={{ marginTop: "12px" }}>
+          <InboxResumeButton task={task} idKey={itemKey} />
+        </div>
+      )}
+      <InboxTerminalHonesty itemKey={itemKey} align={task ? "right" : "left"} />
     </div>
   );
 }

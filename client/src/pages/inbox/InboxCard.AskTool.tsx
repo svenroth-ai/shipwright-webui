@@ -23,7 +23,7 @@ import { classifyPhase } from "../../lib/classifyPhase";
 import { formatRelativeTime } from "../../lib/formatTime";
 import type { AskToolInboxItem, ExternalTask } from "../../lib/externalApi";
 import { InboxResumeButton } from "./InboxResumeButton";
-import { KNOWN_PHASES, PHASE_ICON } from "./InboxCard";
+import { InboxTerminalHonesty, KNOWN_PHASES, PHASE_ICON } from "./InboxCard";
 
 export function AskToolCard({
   item,
@@ -189,9 +189,10 @@ export function AskToolCard({
 
           {task && (
             <div className="flex items-center justify-end" style={{ marginTop: "4px" }}>
-              <InboxResumeButton task={task} toolUseId={item.toolUseId} />
+              <InboxResumeButton task={task} idKey={item.toolUseId} />
             </div>
           )}
+          <InboxTerminalHonesty itemKey={item.toolUseId} align="right" />
         </div>
       ) : (
         <div>
@@ -208,9 +209,10 @@ export function AskToolCard({
           </div>
           {task && (
             <div className="flex items-center justify-end" style={{ marginTop: "4px" }}>
-              <InboxResumeButton task={task} toolUseId={item.toolUseId} />
+              <InboxResumeButton task={task} idKey={item.toolUseId} />
             </div>
           )}
+          <InboxTerminalHonesty itemKey={item.toolUseId} align="right" />
         </div>
       )}
     </div>
