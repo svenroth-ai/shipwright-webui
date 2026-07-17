@@ -58,19 +58,19 @@ test.describe("SmartViewer cross-file nav (FR-01.02, real RTM)", () => {
 
     const doc = page.getByTestId("document-markdown");
     await expect(doc).toBeVisible({ timeout: 8000 });
-    // The RTM renders before we navigate.
-    await expect(page.getByTestId("smart-viewer-path-strip")).toContainText(
-      "traceability-matrix.md",
-    );
+    // The RTM renders before we navigate. The filename path strip was removed
+    // (iterate-2026-07-17 — the tab already names the file), so we assert on the
+    // rendered document content instead of the strip.
+    await expect(doc).toContainText("Traceability Matrix");
 
     // Click the first FR cross-file link (`[FR-01.01](…/spec.md#fr-0101)`).
     const frLink = page.getByRole("link", { name: /^FR-01\.01$/ }).first();
     await expect(frLink).toBeVisible();
     await frLink.click();
 
-    // The pane navigated IN-PLACE to spec.md (PathStrip reflects the override),
+    // The pane navigated IN-PLACE to spec.md (the rendered content is now spec.md's),
     // without leaving /preview.
-    await expect(page.getByTestId("smart-viewer-path-strip")).toContainText("spec.md", {
+    await expect(doc).toContainText("The board renders its columns.", {
       timeout: 8000,
     });
     expect(page.url()).toContain("/preview");

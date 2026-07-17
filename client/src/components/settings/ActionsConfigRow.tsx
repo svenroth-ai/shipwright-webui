@@ -115,10 +115,13 @@ export function ActionsConfigRow({
     <div
       data-testid={`actions-config-row-${project.id}`}
       style={{
-        border: "1px solid var(--color-border)",
+        // Sven 2026-07-17: the per-project rows were white-on-white inside the
+        // white "Configure actions" card. --inset (#F5F5F4) is a solid light grey
+        // (never flipped by .on-photo), so the row reads as a distinct card.
+        border: "1px solid var(--line-strong)",
         borderRadius: "var(--radius-button)",
         padding: "12px",
-        background: "var(--color-bg)",
+        background: "var(--inset)",
       }}
     >
       <div className="flex items-center justify-between" style={{ gap: "12px" }}>

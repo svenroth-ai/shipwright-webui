@@ -401,7 +401,7 @@ export default function TaskBoardPage() {
         // it the page-container shrunk to the inner content width (was
         // 889px instead of the expected 1280) because TaskList's child
         // wrapper didn't force horizontal stretch.
-        <div className="page-container w-full pt-10 pb-8">
+        <div className="page-container w-full pt-6 pb-8">
           <TaskList tasks={filteredTasks} />
         </div>
       ) : projectFiltered.length === 0 ? (

@@ -112,6 +112,11 @@ describe("ShipsLogPage", () => {
     expect(screen.getByTestId("loc")).toHaveTextContent("/?projectId=p1");
   });
 
+  it("'Open board' uses the standard .btn-primary button (Sven 2026-07-17, AC8)", () => {
+    renderPage();
+    expect(screen.getByTestId("ships-log-open-board")).toHaveClass("btn-primary");
+  });
+
   it("unknown project → honest not-found, no fabricated logbook", () => {
     projectsMock.mockReturnValue({ data: [], isLoading: false });
     renderPage("ghost");
