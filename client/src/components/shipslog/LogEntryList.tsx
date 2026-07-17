@@ -20,6 +20,7 @@ import { ChevronRight } from "lucide-react";
 
 import { useProjectRuns } from "../../hooks/useRunData";
 import { useExternalTasks } from "../../hooks/useExternalTasks";
+import { staggerStyle } from "../../lib/motion";
 import type { RunDataJoin, RunGates } from "../../lib/runDataApi";
 
 const GATE_ORDER: Array<keyof Pick<RunGates, "review" | "test" | "security">> = [
@@ -68,11 +69,12 @@ export function LogEntryList({ projectId }: { projectId: string }) {
             No runs recorded yet — the logbook fills as Shipwright works this project.
           </div>
         ) : (
-          runs.map((run) => {
+          runs.map((run, i) => {
             const taskId = taskByRunId.get(run.runId);
             return (
               <LogEntry
                 key={run.runId}
+                index={i}
                 run={run}
                 onOpen={taskId ? () => navigate(`/tasks/${taskId}`) : undefined}
               />
@@ -84,11 +86,15 @@ export function LogEntryList({ projectId }: { projectId: string }) {
   );
 }
 
-function LogEntry({ run, onOpen }: { run: RunDataJoin; onOpen?: () => void }) {
+function LogEntry({ run, onOpen, index }: { run: RunDataJoin; onOpen?: () => void; index: number }) {
   const frs = run.affectedFrs ?? [];
   const fr = frs[0];
   const commit = (run.commit ?? "").slice(0, 7);
   const clickable = Boolean(onOpen);
+  // A20: entries stagger-fade in (the earned Ship's-Log moment). The row rests
+  // visible; staggerStyle only delays the layered entrance, so reduced motion
+  // shows every entry, final, immediately.
+  const motion = staggerStyle(index);
 
   const body = (
     <>
@@ -118,14 +124,14 @@ function LogEntry({ run, onOpen }: { run: RunDataJoin; onOpen?: () => void }) {
   const testid = `shipslog-entry-${run.runId}`;
   if (clickable) {
     return (
-      <button type="button" className="logentry" data-testid={testid} data-clickable="true" onClick={onOpen}>
+      <button type="button" className="logentry motion-stagger-item" style={motion} data-testid={testid} data-clickable="true" onClick={onOpen}>
         {body}
       </button>
     );
   }
   // AC3 — a run with no joined task is NOT a dead click.
   return (
-    <div className="logentry" data-testid={testid} data-clickable="false" title="No Mission linked to this run yet">
+    <div className="logentry motion-stagger-item" style={motion} data-testid={testid} data-clickable="false" title="No Mission linked to this run yet">
       {body}
     </div>
   );

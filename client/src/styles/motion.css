@@ -1,0 +1,76 @@
+/* ============================================================================
+   MOTION SYSTEM (A20, FR-01.64) — duration / easing / stagger TOKENS, the shared
+   earned-moment KEYFRAMES, the staggered-entrance UTILITY, and the global
+   prefers-reduced-motion FLOOR.
+
+   TS mirror: client/src/lib/motion.ts (change both together; motion.test.ts
+   pins the mirror).
+
+   ── THE AUTHORING RULE ───────────────────────────────────────────────────────
+   Content is NEVER hidden by default and revealed by an animation. Animate FROM
+   a visible-safe resting state; the keyframe/transition is an enhancement layered
+   under @media (prefers-reduced-motion: no-preference) — or neutralised by the
+   floor below. Reduced motion renders the COMPLETE FINAL state (Sven's everyday
+   machine), never a hidden one.
+   ============================================================================ */
+:root {
+  /* duration ladder — four steps you can hold in your head */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --motion-slower: 600ms; /* draws / count-ups */
+  /* ambient LOOP (live-dot / active Record node) — NOT part of the ladder */
+  --motion-pulse: 1600ms;
+  /* named easings — no per-component bespoke cubic-beziers */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-entrance: cubic-bezier(0, 0, 0, 1); /* decelerate (arriving) */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* accelerate (leaving) */
+  --ease-emphasis: cubic-bezier(0.2, 0, 0, 1.4); /* a landed decision */
+  /* stagger */
+  --stagger-step: 40ms;
+}
+
+/* Shared earned keyframes. Each RESTS at the visible/final state so the floor
+   (below) AND Playwright's animations:'disabled' both land on the FINAL frame. */
+@keyframes motion-slide-in {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes motion-fade-up {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes motion-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Staggered-entrance utility. The ITEM rests at its final opacity:1 (its base
+   style is never opacity:0), so a reduced-motion / no-JS render shows every item
+   immediately (AC1). The entrance is layered ONLY when motion is welcome; the
+   per-item delay is carried by --stagger-delay (lib/motion.ts staggerStyle(),
+   already capped). */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-stagger-item {
+    animation: motion-fade-up var(--motion-base) var(--ease-entrance) both;
+    animation-delay: var(--stagger-delay, 0ms);
+  }
+}
+
+/* ── THE GLOBAL REDUCED-MOTION FLOOR ─────────────────────────────────────────
+   Stops motion app-wide. This is a FLOOR, NOT the contract: it neutralises
+   animations/transitions and collapses infinite loops to a single settled
+   frame — it does NOT make hidden content appear (the authoring rule above is
+   what guarantees content is never hidden by default). scroll-behavior is
+   forced to auto (never smooth) — this respects the CSS-first auto-scroll
+   (DO-NOT #2) and never introduces smooth scrolling. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
