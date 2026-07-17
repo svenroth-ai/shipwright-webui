@@ -45,7 +45,12 @@ export function CampaignsLane({
       className="page-container flex w-full flex-col gap-2 pt-6 pb-2"
       data-testid="task-board-campaigns-lane"
     >
-      <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--color-muted,#6b7280)]">
+      {/* on-photo-legibility fix: the CAMPAIGNS rail label rides bare on the
+          deck-golden photo (below the 300px scrim band), so it must use the
+          Weather-Deck `--muted` token that flips WHITE under `.on-photo`
+          (prototype `.orch .sec-h{color:var(--muted)}`), NOT the legacy
+          `--color-muted` alias (computed at :root, stays dark → invisible). */}
+      <div className="text-[11px] font-bold uppercase tracking-wide text-[var(--muted)]">
         Campaigns
       </div>
       <div
@@ -66,7 +71,7 @@ export function CampaignsLane({
               onClick={() => setShowDismissed((v) => !v)}
               aria-expanded={showDismissed}
               data-testid="campaigns-show-dismissed-toggle"
-              className="self-start text-[11px] font-medium text-[var(--color-muted)] transition hover:text-[var(--color-text,#111827)] hover:underline"
+              className="self-start text-[11px] font-medium text-[var(--muted)] transition hover:text-[var(--ink)] hover:underline"
             >
               {showDismissed
                 ? "Erledigte ausblenden"

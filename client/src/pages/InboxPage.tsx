@@ -52,7 +52,8 @@ export default function InboxPage() {
       <div className="flex-1 overflow-y-auto" style={{ paddingBlock: "12px 40px" }}>
         <div className="page-container">
           {isLoading && (
-            <div className="text-sm" style={{ color: "var(--color-muted)" }}>
+            // on-photo-legibility: rides bare on the photo → flipping `--muted`.
+            <div className="text-sm" style={{ color: "var(--muted)" }}>
               Loading…
             </div>
           )}

@@ -41,13 +41,20 @@ export function InboxProjectSection({
         borderRadius: "var(--radius-card)",
       }}
     >
+      {/* on-photo-legibility fix: this project group header + its "(N open)"
+          subtitle ride bare on the deck-golden photo (below the 300px scrim
+          band). They must use the Weather-Deck ink tokens that flip WHITE under
+          `.on-photo` (`--ink` / `--muted`), NOT the legacy `--color-text` /
+          `--color-muted` aliases (computed at :root, stay dark → invisible on
+          the rigging, low-contrast on the sky). If this same label ever mounts
+          inside a card, on-photo.css rule 2 resets these tokens to dark-on-white. */}
       <summary
         data-testid={`inbox-project-group-toggle-${group.projectId}`}
         className="flex cursor-pointer select-none items-center gap-2 outline-none"
         style={{
           listStyle: "none",
           padding: "2px 4px 10px",
-          color: "var(--color-muted)",
+          color: "var(--muted)",
         }}
       >
         <span
@@ -66,7 +73,7 @@ export function InboxProjectSection({
           style={{
             fontSize: "12px",
             letterSpacing: "0.6px",
-            color: "var(--color-text)",
+            color: "var(--ink)",
           }}
         >
           {group.projectName}
@@ -74,7 +81,7 @@ export function InboxProjectSection({
         <span
           style={{
             fontSize: "11px",
-            color: "var(--color-muted)",
+            color: "var(--muted)",
             fontWeight: 500,
           }}
         >
@@ -99,7 +106,7 @@ export function InboxProjectSection({
                   className="font-mono"
                   style={{
                     fontSize: "10px",
-                    color: "var(--color-muted)",
+                    color: "var(--muted)",
                     opacity: 0.7,
                   }}
                   data-testid={`inbox-group-project-label-${sg.sessionUuid}`}

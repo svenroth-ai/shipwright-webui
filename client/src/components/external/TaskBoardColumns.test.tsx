@@ -120,6 +120,30 @@ describe("TaskBoardColumns — grouping", () => {
     expect(within(screen.getByTestId("column-draft")).getByText("0")).toBeTruthy();
   });
 
+  it("gives every column a visible lane panel ground + the per-column top accent (AC2)", () => {
+    // on-photo-legibility fix: each column is an opaque light panel (prototype
+    // `.lane` `--g50`) + a stable ramp hairline (`--g200`), so cards read on the
+    // panel instead of bare on the photo — applied CONSISTENTLY to all three.
+    // The per-column identity is the 3px top-accent bar, whose colours are
+    // preserved (draft=muted, in-progress=warning, done=info).
+    renderBoard([t("a", { state: "active" })]);
+    const accentByColumn: Record<string, string> = {
+      "column-draft": "var(--color-muted)",
+      "column-in-progress": "var(--color-warning)",
+      "column-done": "var(--color-info)",
+    };
+    for (const [testId, accent] of Object.entries(accentByColumn)) {
+      const col = screen.getByTestId(testId);
+      const style = col.getAttribute("style") ?? "";
+      expect(style).toContain("var(--g50)"); // opaque light panel ground
+      expect(style).toContain("var(--g200)"); // hairline border
+      // the 3px top-accent bar (direct child) keeps its per-column colour
+      const bar = col.querySelector(':scope > [aria-hidden="true"]');
+      expect(bar, `${testId} top accent`).toBeTruthy();
+      expect(bar!.getAttribute("style") ?? "").toContain(accent);
+    }
+  });
+
   it("exposes a keyboard-focusable draggable with a11y semantics (AC-7 affordance)", () => {
     // @dnd-kit's useDraggable attributes make the card keyboard-reachable +
     // announce it to screen readers. This is the deterministic evidence that
