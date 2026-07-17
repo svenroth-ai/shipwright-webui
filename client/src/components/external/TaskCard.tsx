@@ -53,16 +53,11 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  Circle,
-  Loader,
-  PauseCircle,
-  Zap,
-} from "lucide-react";
 
 import type { ExternalTask, ExternalTaskState } from "../../lib/externalApi";
+import { resolveLaunchFailure, watchedJsonlPath } from "../../lib/launchFailure";
+import { LaunchFailureNotice } from "./LaunchFailureNotice";
+import { StatePill, stateIcon, iconClass } from "./taskCardState";
 import {
   useCloseExternalTask,
   useDeleteExternalTask,
@@ -291,6 +286,23 @@ export function TaskCard({ task }: Props) {
           })()}
         </div>
 
+        {/* Launch failure notice (FR-01.61, A17) — a launch_failed / jsonl_missing
+            card is no longer silent: the SAME words as the task-detail header +
+            campaign card, with recovery. Not a toast (it persists). */}
+        {(task.state === "launch_failed" || task.state === "jsonl_missing") && (
+          <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+            <LaunchFailureNotice
+              testId={`task-card-failure-${task.taskId}`}
+              failure={resolveLaunchFailure({ source: "task", state: task.state })!}
+              path={watchedJsonlPath(task.sessionUuid)}
+              actions={{
+                "open-terminal": { onClick: navigateToDetail, label: "Open" },
+                resume: { onClick: navigateToDetail },
+              }}
+            />
+          </div>
+        )}
+
         {/* Footer: timestamp + commit marker LEFT, action buttons RIGHT.
             Layout uses flex-wrap so on narrow cards the action buttons
             stack below the timestamp instead of overflowing. Each action
@@ -438,77 +450,6 @@ function ProjectPill({
       <span className="truncate">{name}</span>
     </span>
   );
-}
-
-/** Small muted pill showing the ExternalTaskState verbatim. Cheap stand-in
- *  for the mockup's richer `.tag-*` palette until ADR-045's phase + status
- *  projection lands in Phase C. */
-function StatePill({ state }: { state: ExternalTaskState }) {
-  const tone = statePillTone(state);
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-[10px] px-2 py-[2px] text-[11px] font-semibold"
-      style={{ background: tone.bg, color: tone.fg }}
-    >
-      {state}
-    </span>
-  );
-}
-
-function statePillTone(state: ExternalTaskState): { bg: string; fg: string } {
-  switch (state) {
-    case "active":
-      return { bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" };
-    case "awaiting_external_start":
-      return { bg: "var(--color-warning-bg)", fg: "var(--color-warning-text)" };
-    case "idle":
-      return { bg: "var(--color-muted-bg)", fg: "var(--color-muted)" };
-    case "jsonl_missing":
-    case "launch_failed":
-      return { bg: "var(--color-error-bg)", fg: "var(--color-error)" };
-    case "done":
-      return { bg: "var(--color-info-bg)", fg: "#2563eb" };
-    case "draft":
-    default:
-      return { bg: "var(--color-muted-bg)", fg: "var(--color-muted)" };
-  }
-}
-
-function stateIcon(state: ExternalTaskState) {
-  switch (state) {
-    case "draft":
-      return Circle;
-    case "awaiting_external_start":
-      return Loader;
-    case "active":
-      return Zap;
-    case "idle":
-      return PauseCircle;
-    case "jsonl_missing":
-    case "launch_failed":
-      return AlertTriangle;
-    case "done":
-      return CheckCircle2;
-  }
-}
-
-function iconClass(state: ExternalTaskState): string {
-  switch (state) {
-    case "active":
-      return "text-[var(--color-success)]";
-    case "idle":
-      return "text-[var(--color-muted)]";
-    case "awaiting_external_start":
-      return "text-[var(--color-warning)]";
-    case "jsonl_missing":
-    case "launch_failed":
-      return "text-[var(--color-error)]";
-    case "done":
-      return "text-[var(--color-success)]";
-    case "draft":
-    default:
-      return "text-[var(--color-muted)]";
-  }
 }
 
 function lastActivity(task: ExternalTask): { short: string; full: string } | null {

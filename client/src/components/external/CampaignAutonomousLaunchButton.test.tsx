@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 
 import { CampaignAutonomousLaunchButton } from "./CampaignAutonomousLaunchButton";
 import type { Campaign, CampaignStep } from "../../lib/campaignsApi";
@@ -38,7 +39,11 @@ function makeCampaign(o: Partial<Campaign> = {}): Campaign {
 }
 
 function renderBtn(campaign: Campaign, project: Project | null = PROJECT) {
-  return render(<CampaignAutonomousLaunchButton campaign={campaign} project={project} />);
+  return render(
+    <MemoryRouter>
+      <CampaignAutonomousLaunchButton campaign={campaign} project={project} />
+    </MemoryRouter>,
+  );
 }
 
 const SLUG = "2026-06-02-x";
@@ -79,7 +84,7 @@ describe("CampaignAutonomousLaunchButton", () => {
     expect(btn).toHaveTextContent("Launch autonomous");
   });
 
-  it("AC-7: opens a confirm dialog showing the exact command + no-gate warning; does not launch on open", () => {
+  it("AC2: opens a confirm dialog showing the exact command + remaining steps + won't-ask-again; no launch on open", () => {
     renderBtn(makeCampaign());
     fireEvent.click(screen.getByTestId(`campaign-autonomous-launch-${SLUG}`));
     const dialog = screen.getByTestId(`campaign-autonomous-dialog-${SLUG}`);
@@ -87,9 +92,10 @@ describe("CampaignAutonomousLaunchButton", () => {
     expect(screen.getByTestId(`campaign-autonomous-command-${SLUG}`)).toHaveTextContent(
       `/shipwright-iterate --campaign ${SLUG} --autonomous`,
     );
-    // The "autonomous = no per-step gate" warning must be present (a regression
-    // that drops it would otherwise pass).
-    expect(dialog).toHaveTextContent(/no per-step gate/i);
+    // AC2: lists the remaining sub-iterates by name AND says it won't ask again.
+    const remaining = screen.getByTestId(`campaign-autonomous-remaining-${SLUG}`);
+    expect(remaining).toHaveTextContent("B1");
+    expect(dialog).toHaveTextContent(/will not ask again/i);
     expect(launchMock).not.toHaveBeenCalled();
   });
 
@@ -151,13 +157,17 @@ describe("CampaignAutonomousLaunchButton", () => {
     expect(screen.getByTestId(`campaign-autonomous-confirm-${SLUG}`)).toBeDisabled();
   });
 
-  it("shows an error and stays open when the launch fails", async () => {
-    launchMock.mockResolvedValue({ ok: false, reason: "launch_failed", detail: "invalid_campaign_slug" });
+  it("AC3: a rejected launch surfaces a persistent failure notice and stays open", async () => {
+    launchMock.mockResolvedValue({
+      ok: false,
+      reason: "launch_failed",
+      detail: 'HTTP 400 /api/external/tasks/t/launch: {"error":"invalid_campaign_slug"}',
+    });
     renderBtn(makeCampaign());
     fireEvent.click(screen.getByTestId(`campaign-autonomous-launch-${SLUG}`));
     fireEvent.click(screen.getByTestId(`campaign-autonomous-confirm-${SLUG}`));
     await waitFor(() => {
-      expect(screen.getByTestId(`campaign-autonomous-error-${SLUG}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`campaign-autonomous-failure-${SLUG}`)).toBeInTheDocument();
     });
     expect(navigateMock).not.toHaveBeenCalled();
   });

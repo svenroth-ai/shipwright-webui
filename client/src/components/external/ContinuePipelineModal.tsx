@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RotateCw, Terminal, X } from "lucide-react";
 
@@ -27,6 +28,8 @@ import {
   type RunConfigResponse,
 } from "../../lib/run-config-v2";
 import { useContinuePipeline } from "../../hooks/useContinuePipeline";
+import { launchResultFailure, type LaunchFailure } from "../../lib/launchFailure";
+import { LaunchFailureNotice } from "./LaunchFailureNotice";
 import { ModalScrollBody } from "../common/ModalScrollBody";
 
 interface Props {
@@ -45,9 +48,10 @@ export function ContinuePipelineModal({
   runConfig,
 }: Props) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const continuePipeline = useContinuePipeline();
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [failure, setFailure] = useState<LaunchFailure | null>(null);
 
   const ready = useMemo<PhaseTask[]>(() => {
     if (!runConfig || runConfig.status !== "ok") return [];
@@ -59,7 +63,7 @@ export function ContinuePipelineModal({
   // When the modal opens / ready list changes, default to the first ready task.
   useEffect(() => {
     if (!open) return;
-    setError(null);
+    setFailure(null);
     setSubmitting(false);
     setSelectedId((prev) => {
       if (prev && ready.some((t) => t.phaseTaskId === prev)) return prev;
@@ -72,22 +76,25 @@ export function ContinuePipelineModal({
     [ready, selectedId],
   );
 
-  const onSubmit = async (ev: FormEvent) => {
-    ev.preventDefault();
+  // The ONE continuation funnel (rule 14). Retry re-enters THIS — a mismatch
+  // (rule 13: 409 phase_task_session_uuid_mismatch) surfaces as a rendered
+  // notice, never swallowed. No component ever hand-rolls a launch command.
+  const doContinue = async () => {
     if (!project || !selected) return;
     setSubmitting(true);
-    setError(null);
-    const result = await continuePipeline({
-      project,
-      phaseTaskId: selected.phaseTaskId,
-    });
+    setFailure(null);
+    const result = await continuePipeline({ project, phaseTaskId: selected.phaseTaskId });
     if (!result.ok) {
       setSubmitting(false);
-      setError(reasonToMessage(result.reason, result.detail));
+      setFailure(launchResultFailure(result.reason, result.detail));
       return;
     }
     onOpenChange(false);
     navigate(`/tasks/${result.taskId}`);
+  };
+  const onSubmit = (ev: FormEvent) => {
+    ev.preventDefault();
+    void doContinue();
   };
 
   const runLabel =
@@ -143,12 +150,21 @@ export function ContinuePipelineModal({
                 onSelect={setSelectedId}
               />
             </ModalScrollBody>
-            {error && (
-              <div
-                data-testid="continue-pipeline-error"
-                className="border-t border-[var(--color-border,#e0dbd4)] bg-err-tint px-5 py-2 text-[12px] text-err"
-              >
-                {error}
+            {failure && (
+              <div className="border-t border-[var(--color-border,#e0dbd4)] px-5 py-2">
+                <LaunchFailureNotice
+                  testId="continue-pipeline-failure"
+                  failure={failure}
+                  busy={submitting}
+                  actions={{
+                    retry: { onClick: () => void doContinue() },
+                    refresh: {
+                      onClick: () =>
+                        void qc.invalidateQueries({ queryKey: ["run-config", project?.id ?? ""] }),
+                    },
+                    "open-project-settings": { href: "/projects" },
+                  }}
+                />
               </div>
             )}
 
@@ -303,19 +319,3 @@ function PhaseRow({ task }: { task: PhaseTask }) {
   );
 }
 
-function reasonToMessage(reason: string, detail?: string): string {
-  switch (reason) {
-    case "no_run_config":
-      return `Run-config no longer available (${detail ?? "?"}). Refresh and retry.`;
-    case "phase_task_not_found":
-      return "The selected phase task is no longer in run-config (it may have just completed). Cancel and re-open.";
-    case "phase_task_not_actionable":
-      return `Phase task is no longer awaiting launch (now: ${detail ?? "?"}). Cancel and re-open.`;
-    case "phase_task_prereq_not_met":
-      return "Prerequisites are not yet completed.";
-    case "launch_failed":
-      return `Launch failed: ${detail ?? "unknown server error"}.`;
-    default:
-      return `Continuation failed: ${reason}.`;
-  }
-}

@@ -125,6 +125,25 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     status: "pending",
     owner: "A14",
   },
+  // A17 (FR-01.61) — the launch state machine now HAS pixels. The A17 runner is
+  // on Windows (its locally-rendered PNGs never match the Linux gate), so these
+  // are `pending` until the orchestrator's pinned-container `visual-baselines.yml`
+  // run generates + commits the PNGs and flips them to `baselined`. Captured by
+  // e2e/visual/08-launch-states.spec.ts.
+  {
+    id: "board-launch-failed",
+    path: "/ (draft campaign card + a launch_failed task card)",
+    description:
+      "Board with a DRAFT campaign card (lifecycle badge + Start-Campaign CTA) and a launch_failed task card mounting the persistent LaunchFailureNotice — the two states that were invisible on the board before A17.",
+    status: "baselined",
+  },
+  {
+    id: "task-detail-launch-failed",
+    path: "/tasks/:taskId (jsonl_missing header notice)",
+    description:
+      "Task-detail header with the launch-failure notice mounted for a jsonl_missing task: the same words as the board surfaces (AC4), the watched JSONL path, and Resume recovery.",
+    status: "baselined",
+  },
 ];
 
 /** Routes with a committed baseline PNG — the ones the visual specs assert on. */

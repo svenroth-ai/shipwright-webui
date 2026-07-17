@@ -204,6 +204,37 @@ describe("CampaignLaneCard", () => {
     expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeDisabled();
   });
 
+  // ---- AC1 (A17): lifecycle status badge + board Start-Campaign CTA ----
+
+  it("AC1: renders the lifecycle status badge (active) — a draft is no longer visually identical", () => {
+    renderCard({ ...BASE, status: "active" });
+    const badge = screen.getByTestId(`campaign-status-${SLUG}`);
+    expect(badge).toHaveAttribute("data-status", "active");
+    expect(badge).toHaveTextContent("active");
+  });
+
+  it("AC1: a legacy (null) campaign with work remaining reads 'active' via the heuristic", () => {
+    renderCard({ ...BASE, status: null }); // done 1 / total 3
+    expect(screen.getByTestId(`campaign-status-${SLUG}`)).toHaveAttribute("data-status", "active");
+  });
+
+  it("AC1: a draft campaign shows the Start CTA (not the launch buttons) when expanded", () => {
+    renderCard({ ...BASE, status: "draft", steps: BASE.steps.map((s) => ({ ...s, status: "pending" as const })), done: 0, nextPending: { id: "B0", specPath: ".s/B0.md" } });
+    expand(SLUG);
+    expect(screen.getByTestId(`campaign-status-${SLUG}`)).toHaveAttribute("data-status", "draft");
+    expect(screen.getByTestId(`campaign-start-${SLUG}`)).toBeInTheDocument();
+    // launch CTAs are NOT offered until the campaign is active
+    expect(screen.queryByTestId(`campaign-step-launch-${SLUG}`)).toBeNull();
+    expect(screen.queryByTestId(`campaign-autonomous-launch-${SLUG}`)).toBeNull();
+  });
+
+  it("AC1: an active campaign shows the launch buttons, NOT the Start CTA", () => {
+    renderCard({ ...BASE, status: "active" });
+    expand(SLUG);
+    expect(screen.queryByTestId(`campaign-start-${SLUG}`)).toBeNull();
+    expect(screen.getByTestId(`campaign-step-launch-${SLUG}`)).toBeInTheDocument();
+  });
+
   it("renders a triage cross-link only when expandsTriage is set (expanded)", () => {
     renderCard(BASE);
     expand(SLUG);
