@@ -440,7 +440,7 @@ function TaskDetailPageBody() {
       {/* Mission tab — the three equal-height glass cards (A13, MissionBody).
           Mount-only when selected (no persistent resource to preserve). */}
       {missionTab === "mission" ? (
-        <MissionBody task={task} onOpenDocument={() => setMissionTab("files")} />
+        <MissionBody task={task} transcriptContent={transcript.content} onOpenDocument={() => setMissionTab("files")} />
       ) : null}
 
       {/* Files & Terminal tab — the existing three-pane. Always mounted (just
