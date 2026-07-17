@@ -74,9 +74,8 @@ export const VISUAL_ROUTES: VisualRoute[] = [
     id: "inbox-populated",
     path: "/inbox (populated — mid-run questions on the neutral sub-panel)",
     description:
-      "Inbox with pending mid-run questions (A19, FR-01.63): the repainted card anatomy (amber strip · context pill · time-ago · glossed eyebrow · question · rationale · read-only Options: line) on the §5.2 SOLID neutral sub-panel, each card carrying the 'Answer in the terminal' navigation CTA + the honesty line (the WebUI does not answer for you). Captured by e2e/visual/09-inbox-populated.spec.ts. The A19 runner is on Windows (its locally-rendered PNG never matches the Linux gate), so this is `pending` until the orchestrator's pinned-container `visual-baselines.yml` run generates + commits the PNG and flips it to `baselined`.",
-    status: "pending",
-    owner: "A19",
+      "Inbox with pending mid-run questions (A19, FR-01.63): the repainted card anatomy (amber strip · context pill · time-ago · glossed eyebrow · question · rationale · read-only Options: line) on the §5.2 SOLID neutral sub-panel, each card carrying the 'Answer in the terminal' navigation CTA + the honesty line (the WebUI does not answer for you). Captured by e2e/visual/09-inbox-populated.spec.ts. Baseline rendered in the pinned CI container (A00 bootstrap path).",
+    status: "baselined",
   },
   { id: "triage", path: "/triage", description: "Triage list", status: "baselined" },
   { id: "settings", path: "/settings", description: "Settings", status: "baselined" },

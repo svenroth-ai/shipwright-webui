@@ -7,7 +7,8 @@
  *   - InboxProjectSection — collapsible per-project <details> group.
  *   - InboxCard           — polymorphic dispatcher (with sub-modules
  *                           InboxCard.AskTool + InboxCard.Waiting).
- *   - InboxResumeButton   — Answer/Resume CTA + clipboard copy.
+ *   - InboxResumeButton   — "Answer in the terminal" navigation CTA (A19:
+ *                           replaced the clipboard-copy path — writes nothing).
  *
  * Iterate 3.7d-b3 (2026-04-22) contract preserved:
  *   - Each card is a LARGER read-only Ask-bubble; option chips display-only.
@@ -22,7 +23,7 @@
  *   inbox-group-project-label-<sessionUuid>,
  *   inbox-project-group-<projectId>, inbox-project-group-toggle-<projectId>,
  *   inbox-group-color-<projectId>, inbox-card-<toolUseId>,
- *   inbox-resume-<toolUseId>, inbox-copy-resume-<toolUseId>.
+ *   inbox-resume-<toolUseId>.
  */
 import { useNavigate } from "react-router-dom";
 import { InboxProjectSection } from "./inbox/InboxProjectSection";
