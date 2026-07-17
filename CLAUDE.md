@@ -93,6 +93,7 @@ Bundled stack profiles ship at `server/profiles/` (a snapshot of `shipwright/sha
 - TailwindCSS 4 for styling, Radix UI for accessible primitives.
 - Files under 300 lines — split if larger.
 - Conventional Commits (feat:, fix:, refactor:, test:, docs:, chore:).
+- **Motion uses the tokens, never magic numbers** (A20, FR-01.64): durations/easings/stagger live in `client/src/lib/motion.ts` (TS constants) mirrored by `client/src/styles/motion.css` (CSS custom props + the earned keyframes + the global reduced-motion FLOOR). **`prefers-reduced-motion: reduce` is the PRIMARY user's everyday state** — under it every screen renders its COMPLETE FINAL state (all content present, opaque, in position, immediately). Content is NEVER hidden by default and revealed by an animation; animate FROM a visible-safe resting state, or gate the animation not the content. JS-driven moments (count-up, ring/sparkline draw) read `useReducedMotion` / `useCountUp` and render the final value immediately under reduce (and when `matchMedia` is absent — fail toward no motion, never toward hidden content). Motion only where it means something (arrived / running / decided / counting); decorative motion is out of scope.
 
 ### Architecture rules
 

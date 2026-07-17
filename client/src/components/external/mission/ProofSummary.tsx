@@ -20,6 +20,7 @@
  * clear 4.5:1.
  */
 
+import { staggerStyle } from "../../../lib/motion";
 import type { ProofKind, ProofLine } from "../../../lib/proofLines";
 
 /** The prototype's coloured span classes; `plain` inherits the hero's default
@@ -48,8 +49,11 @@ export function ProofSummary({ lines }: Props) {
           No run data yet {String.fromCodePoint(0x2014)} nothing to prove.
         </div>
       ) : (
-        lines.map((line) => (
-          <div className="mc-hero-line" key={line.id}>
+        lines.map((line, lineIndex) => (
+          // A20: proof lines slide in as they arrive (the earned "live telemetry"
+          // moment). The line rests visible (staggerStyle only delays the layered
+          // entrance) so reduced motion shows every line, final, immediately.
+          <div className="mc-hero-line motion-stagger-item" style={staggerStyle(lineIndex)} key={line.id}>
             {line.spans.map((span, i) => (
               <span key={i} className={spanClass(span.kind)}>
                 {span.text}

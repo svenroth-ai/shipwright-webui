@@ -175,6 +175,12 @@ const REQUIRED_TOKENS = [
   'CampaignStartButton',
   'LaunchFailureRecovery',
   'taskCardState',
+  // iterate-2026-07-10-motion-system (A20, FR-01.64) — motion tokens +
+  // prefers-reduced-motion final-state contract: the token module, the CSS
+  // token/floor layer, and the two JS-driven-moment hooks.
+  'motion.ts',
+  'useReducedMotion',
+  'useCountUp',
 ] as const;
 
 let claudeMd = '';

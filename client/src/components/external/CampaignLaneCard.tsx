@@ -196,11 +196,18 @@ export function CampaignLaneCard({
             </div>
           )}
 
-          {/* Progress bar */}
+          {/* Progress bar — the board "segment-bar fills" moment (A20). The bar
+              rests at its final width; the token transition eases only when the
+              value CHANGES, and the reduced-motion floor neutralises it. */}
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-muted-bg)]">
             <div
-              className="h-full rounded-full bg-[var(--color-primary)] transition-[width]"
-              style={{ width: `${pct}%` }}
+              className="h-full rounded-full bg-[var(--color-primary)]"
+              style={{
+                width: `${pct}%`,
+                transitionProperty: "width",
+                transitionDuration: "var(--motion-slow)",
+                transitionTimingFunction: "var(--ease-standard)",
+              }}
             />
           </div>
 

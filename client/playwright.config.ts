@@ -113,6 +113,18 @@ export default defineConfig({
         // there is no dark block in index.css — so forcing `dark` only changed
         // user-agent defaults (scrollbars, form controls) and made the baselines
         // look like a theme the product does not have.
+        //
+        // A20 (FR-01.64) — capture the PRIMARY user state. Sven runs Windows with
+        // animations off, so `prefers-reduced-motion: reduce` is his everyday
+        // state, not an edge case. Emulating it here (a) makes the baselines the
+        // reduced-motion FINAL state the motion iterate is contracted to render,
+        // and (b) makes JS-driven earned moments (the grade-ring count-up) settle
+        // to their final value deterministically — `animations: 'disabled'` only
+        // fast-forwards CSS motion, not requestAnimationFrame. Expected baseline
+        // delta from this line: zero (no shipped element rendered differently
+        // under reduce before A20 — the only reduced-motion CSS was an off-route
+        // spinner). The final states are identical to the animations-off capture.
+        reducedMotion: 'reduce',
       },
       expect: {
         toHaveScreenshot: {
