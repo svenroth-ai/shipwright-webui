@@ -206,3 +206,19 @@ describe("FolderTree — error surfacing", () => {
     expect(screen.getByTestId("folder-tree-row-src")).toBeTruthy();
   });
 });
+
+describe("FolderTree — A18 left card (glass Files card + greyed head)", () => {
+  it("outer is the .ft-card.ft-files glass surface; header is the .ft-head band", () => {
+    globalThis.fetch = mockTreeFetch(BASE) as unknown as typeof fetch;
+    render(
+      <FolderTree projectId="proj-a" selectedPath={null} onSelect={() => {}} />,
+    );
+    const card = screen.getByTestId("folder-tree");
+    expect(card.className).toContain("ft-card");
+    expect(card.className).toContain("ft-files");
+    const head = screen.getByTestId("folder-tree-header");
+    expect(head.className).toContain("ft-head");
+    // "Files" title carries the uppercase .ft-title style; refresh still present.
+    expect(screen.getByTestId("folder-tree-refresh")).toBeTruthy();
+  });
+});

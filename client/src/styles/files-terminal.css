@@ -1,0 +1,84 @@
+/* ============================================================================
+   FILES & TERMINAL — the three-card instrument row (A18, FR-01.62). Ported in
+   values from the clickable prototype (Spec/prototype/screens/taskDetail.js
+   filesBody() + styles.css .ft-* ~364-375 and the .on-photo overrides ~689-693,
+   comment "nur die mitte beige, links und rechts wie vorher").
+
+   The three cards float on the SAME signature backdrop as every route:
+     Files (left, glass) · Terminal/Transcript (middle, SOLID beige) · Smart
+     Preview (right, glass). The .ft-head is a clearly-greyed band the segmented
+     tabs sit INSIDE — the device that makes the three cards read as one row.
+
+   Fences honoured: the terminal keeps its OWN dark canvas (useTerminalAppearance
+   / xterm-theme-options.ts, FR-01.44) — the beige is the CARD, not the terminal.
+   The .on-photo TOKEN reset/darken for .ft-card already lives in on-photo.css
+   (A03); this file adds only the LAYOUT + the glass/beige/head paint.
+   ============================================================================ */
+
+/* ── base card chrome (off-photo / solid fallback) ─────────────────────────── */
+.ft-card {
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  border-radius: 16px; background: var(--card); border: 1px solid var(--line);
+}
+.ft-files { flex-shrink: 0; }
+.ft-term { flex: 1; min-width: 0; }
+.ft-view { flex-shrink: 0; }
+
+/* ── the greyed head band the tabs sit inside ──────────────────────────────── */
+.ft-head {
+  display: flex; align-items: center; gap: 8px; padding: 0 12px; min-height: 46px;
+  background: var(--inset); border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.ft-title {
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); font-weight: 700;
+}
+
+/* ── the segmented-tab variant (build-once in MissionSegmented; here the
+      .ft-seg overrides that make the pills sit inside the head band) ────────── */
+.mc-tabs.ft-seg {
+  margin: 0; background: transparent; border: none; padding: 0; gap: 3px;
+  box-shadow: none; align-self: center;
+}
+.ft-seg .mc-tab { padding: 6px 12px; }
+/* Radix Tabs.Trigger drives active state via data-state, not a class — mirror
+   the .mc-tab.active pill onto it so the Transcript/Terminal segment reads the
+   same as the Mission Control switch (client: "gleicher stil wie oben"). */
+.ft-seg .mc-tab[data-state="active"] {
+  color: var(--ink); background: var(--card); box-shadow: var(--sh-xs);
+}
+
+/* ── the focus-mode (maximize terminal) control in the middle head ─────────── */
+.ft-maximize {
+  margin-left: auto; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px; cursor: pointer;
+  color: var(--faint); background: transparent; border: none;
+}
+.ft-maximize:hover { color: var(--ink); background: rgba(0, 0, 0, .05); }
+.ft-maximize:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* ── on-photo: Files + Smart Preview = glass; ONLY the middle card is SOLID beige
+      (client: "nur die mitte beige, links und rechts wie vorher") ───────────── */
+.on-photo .ft-card {
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+  border: 1px solid var(--glass-light-line); box-shadow: var(--sh-photo);
+}
+.on-photo .ft-term {
+  background: var(--surface-reading);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  border-color: var(--surface-reading-line);
+}
+.on-photo .ft-head {
+  background: rgba(41, 37, 34, .17); border-bottom-color: rgba(41, 37, 34, .16);
+}
+.on-photo .mc-tabs.ft-seg {
+  background: transparent; border-color: transparent;
+  -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+}
+
+/* opaque fallback where backdrop-filter is unsupported (mirror on-photo.css) */
+@supports not (backdrop-filter: blur(1px)) {
+  .on-photo .ft-card { background: rgba(255, 255, 255, .92); }
+  .on-photo .ft-term { background: var(--surface-reading); }
+}

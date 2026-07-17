@@ -37,6 +37,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { BubbleTranscript } from "../components/external/BubbleTranscript";
 import { TaskDetailHeader } from "../components/external/TaskDetailHeader";
 import { TaskDetailThreePane } from "../components/external/TaskDetailThreePane";
+import { FocusModeToggle } from "../components/external/FocusModeToggle";
 import { FolderTree } from "../components/external/FolderTree";
 import { SmartViewer } from "../components/external/SmartViewer";
 import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
@@ -426,8 +427,7 @@ function TaskDetailPageBody() {
           }
           center={
             <section
-              className="flex h-full min-h-0 flex-col"
-              style={{ background: "var(--color-bg, #f5f0eb)" }}
+              className="ft-card ft-term flex h-full min-h-0 flex-col"
               data-testid="task-detail-center"
             >
               <Tabs.Root
@@ -436,34 +436,34 @@ function TaskDetailPageBody() {
                 className="flex h-full min-h-0 flex-col"
               >
                 <div
-                  className="flex min-h-[40px] items-center justify-between gap-3 border-b border-[var(--color-border,#e0dbd4)] px-4 py-2 text-[11px]"
-                  style={{
-                    background: "var(--color-surface, #ffffff)",
-                    color: "var(--color-muted, #6b7280)",
-                  }}
+                  className="ft-head text-[11px]"
                   data-testid="task-detail-center-header"
                 >
+                  {/* Segmented Transcript/Terminal tabs, greyed .ft-head band —
+                      same style as Mission Control (A18 .mc-tabs.ft-seg). Radix
+                      role="tab" is preserved: the terminal E2E corpus pins
+                      getByRole("tab",{name:/terminal/i}) to exactly one match. */}
                   <Tabs.List
-                    className="inline-flex items-center gap-1"
+                    className="mc-tabs ft-seg"
                     data-testid="task-detail-tabs"
                   >
                     <Tabs.Trigger
                       value="transcript"
-                      className="rounded px-2 py-1 text-[11px] font-medium text-[var(--color-muted,#6b7280)] data-[state=active]:bg-[var(--color-bg,#f5f0eb)] data-[state=active]:text-[var(--color-text,#171717)]"
+                      className="mc-tab"
                       data-testid="task-detail-tab-transcript"
                     >
                       Transcript
                     </Tabs.Trigger>
                     <Tabs.Trigger
                       value="terminal"
-                      className="rounded px-2 py-1 text-[11px] font-medium text-[var(--color-muted,#6b7280)] data-[state=active]:bg-[var(--color-bg,#f5f0eb)] data-[state=active]:text-[var(--color-text,#171717)]"
+                      className="mc-tab"
                       data-testid="task-detail-tab-terminal"
                     >
                       Terminal
                     </Tabs.Trigger>
                   </Tabs.List>
                   {centerTab === "transcript" ? (
-                    <div className="flex items-center gap-3" data-testid="task-detail-transcript-header">
+                    <div className="ml-auto flex items-center gap-3 text-[var(--color-muted,#6b7280)]" data-testid="task-detail-transcript-header">
                       <span className="inline-flex items-center gap-1.5">
                         <span
                           aria-hidden="true"
@@ -495,6 +495,9 @@ function TaskDetailPageBody() {
                       </span>
                     </div>
                   ) : null}
+                  {/* Maximize terminal (A18): collapses both side cards via the
+                      existing useThreePaneLayout collapse→resize path. */}
+                  <FocusModeToggle />
                 </div>
                 {/*
                  * forceMount on BOTH tabs — Radix's default unmounts inactive
@@ -609,16 +612,26 @@ function TaskDetailPageBody() {
           }
           right={
             <aside
-              className="flex h-full min-h-0 flex-col border-l border-[var(--color-border,#e0dbd4)]"
-              style={{ background: "var(--color-surface, #ffffff)" }}
+              className="ft-card ft-view flex h-full min-h-0 flex-col"
               data-testid="task-detail-viewer"
             >
-              <ViewerTabBar
-                paths={selectedPaths}
-                activePath={activePath}
-                onActivate={setActivePath}
-                onClose={handleCloseTab}
-              />
+              {/* Smart-Preview head: file tabs in the greyed .ft-head band (A18);
+                  honest "Preview" placeholder until a file is opened — never the
+                  prototype's canned .ft-crumb / .ft-code demo strings (AC7). */}
+              <div className="ft-head" data-testid="task-detail-viewer-head">
+                {selectedPaths.length > 0 ? (
+                  <div className="min-w-0 flex-1">
+                    <ViewerTabBar
+                      paths={selectedPaths}
+                      activePath={activePath}
+                      onActivate={setActivePath}
+                      onClose={handleCloseTab}
+                    />
+                  </div>
+                ) : (
+                  <span className="ft-title">Preview</span>
+                )}
+              </div>
               <div className="min-h-0 flex-1">
                 <SmartViewer projectId={task.projectId} path={activePath} />
               </div>

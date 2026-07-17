@@ -79,6 +79,14 @@ export interface ThreePaneLayoutState {
   rightWidth: number;
   leftCollapsed: boolean;
   rightCollapsed: boolean;
+  /**
+   * Focus mode (A18 "maximize terminal"): both side cards collapse to a
+   * full-width middle. TRANSIENT on purpose — a view mode, not a saved
+   * preference, so a user is never stuck maximized on the next task-detail
+   * open. It rides the SAME collapse→resize path the persisted collapse uses
+   * (which is what fires the pty resize), so no new hide path skips it.
+   */
+  maximized: boolean;
 }
 
 export interface ThreePaneLayoutApi extends ThreePaneLayoutState {
@@ -88,6 +96,7 @@ export interface ThreePaneLayoutApi extends ThreePaneLayoutState {
   toggleRightCollapsed: () => void;
   nudgeLeft: (deltaPx: number) => void;
   nudgeRight: (deltaPx: number) => void;
+  toggleMaximized: () => void;
 }
 
 export function useThreePaneLayout(): ThreePaneLayoutApi {
@@ -103,6 +112,8 @@ export function useThreePaneLayout(): ThreePaneLayoutApi {
   const [rightCollapsed, setRightCollapsed] = useState<boolean>(() =>
     readBoolean(STORAGE_KEYS.rightCollapsed, false),
   );
+  // Transient — deliberately NOT persisted (see ThreePaneLayoutState.maximized).
+  const [maximized, setMaximized] = useState<boolean>(false);
 
   // Debounced writes.
   const leftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -178,17 +189,20 @@ export function useThreePaneLayout(): ThreePaneLayoutApi {
   const nudgeRight = useCallback((deltaPx: number) => {
     setRightWidthState((prev) => clamp(prev + deltaPx, RIGHT_MIN, RIGHT_MAX));
   }, []);
+  const toggleMaximized = useCallback(() => setMaximized((v) => !v), []);
 
   return {
     leftWidth,
     rightWidth,
     leftCollapsed,
     rightCollapsed,
+    maximized,
     setLeftWidth,
     setRightWidth,
     toggleLeftCollapsed,
     toggleRightCollapsed,
     nudgeLeft,
     nudgeRight,
+    toggleMaximized,
   };
 }

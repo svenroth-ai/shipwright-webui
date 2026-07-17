@@ -17,7 +17,6 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Panel,
   PanelGroup,
-  PanelResizeHandle,
   type ImperativePanelHandle,
 } from "react-resizable-panels";
 
@@ -32,6 +31,8 @@ import {
 } from "../../hooks/useThreePaneLayout";
 import { useIsCompactViewport } from "../../hooks/useIsCompactViewport";
 import { PaneTabBar, type PaneId } from "./PaneTabBar";
+import { PaneSplitter } from "./PaneSplitter";
+import { FocusModeContext } from "./focus-mode-context";
 
 interface Props {
   left: ReactNode;
@@ -80,11 +81,20 @@ export function TaskDetailThreePane({
     };
   }, [containerWidth]);
 
-  // Translate px layout into % sizes for react-resizable-panels.
+  // Translate px layout into % sizes for react-resizable-panels. Focus mode
+  // (A18 maximize) FULLY hides both sides (floor 0, not the 48px collapse rail)
+  // and rides the same resize path the persisted collapse uses.
   const total = Math.max(measuredWidth, 600);
-  const leftPx = layout.leftCollapsed ? COLLAPSED_LEFT_PX : layout.leftWidth;
-  const rightPx = layout.rightCollapsed ? 0 : layout.rightWidth;
-  const leftPct = clampPct((leftPx / total) * 100, 3, 50);
+  const maxed = layout.maximized;
+  const effLeftCollapsed = maxed || layout.leftCollapsed;
+  const effRightCollapsed = maxed || layout.rightCollapsed;
+  const leftPx = maxed
+    ? 0
+    : layout.leftCollapsed
+      ? COLLAPSED_LEFT_PX
+      : layout.leftWidth;
+  const rightPx = effRightCollapsed ? 0 : layout.rightWidth;
+  const leftPct = maxed ? 0 : clampPct((leftPx / total) * 100, 3, 50);
   const rightPct = clampPct((rightPx / total) * 100, 0, 50);
   const centerPct = Math.max(10, 100 - leftPct - rightPct);
 
@@ -102,12 +112,10 @@ export function TaskDetailThreePane({
   const centerRef = useRef<ImperativePanelHandle | null>(null);
   const rightRef = useRef<ImperativePanelHandle | null>(null);
 
-  // Keep the panels in sync when the hook's values change (e.g. keyboard
-  // resize). react-resizable-panels doesn't auto-sync when controlled
-  // externally, so we invoke the imperative handle. Swallow the first
-  // call when the panel registry is still warming up (test-only edge
-  // case: resize() throws "Panel size not found" until the group has
-  // committed at least once).
+  // Keep the panels in sync when the hook's values change (keyboard resize,
+  // collapse, or A18 maximize). react-resizable-panels doesn't auto-sync when
+  // controlled externally, so we invoke the imperative handle; swallow the
+  // registry-warmup throw ("Panel size not found" before the first commit).
   useEffect(() => {
     if (compact) return; // compact sizing is owned by the tab effect below
     try {
@@ -122,9 +130,8 @@ export function TaskDetailThreePane({
     }
   }, [compact, leftPct, rightPct]);
 
-  // Compact tab sizing: collapse inactive panes to 0% and grow the active one.
-  // Resizing (not unmounting) keeps every pane's children alive; the embedded
-  // terminal refits via its ResizeObserver when its pane grows from 0 → full.
+  // Compact tab sizing: resize (never unmount) inactive panes to 0% so the
+  // embedded terminal survives — it refits via ResizeObserver on 0 → full.
   useEffect(() => {
     if (!compact) return;
     try {
@@ -145,18 +152,21 @@ export function TaskDetailThreePane({
   }, [compact, sizes.left, sizes.center, sizes.right]);
 
   const handleLeftDrag = (sizePct: number) => {
-    // compact tab-sizing must NOT persist (would clobber saved desktop widths).
-    if (compact || layout.leftCollapsed) return;
+    // compact tab-sizing must NOT persist (would clobber saved desktop widths);
+    // maximize is a transient view, likewise non-persisting.
+    if (compact || layout.leftCollapsed || maxed) return;
     layout.setLeftWidth((sizePct / 100) * total);
   };
   const handleRightDrag = (sizePct: number) => {
-    if (compact || layout.rightCollapsed) return;
+    if (compact || layout.rightCollapsed || maxed) return;
     layout.setRightWidth((sizePct / 100) * total);
   };
 
   const leftSplitterKeydown = useMemo(
     () =>
       (e: React.KeyboardEvent) => {
+        // Focus mode owns the widths transiently — never mutate/persist them.
+        if (layout.maximized) return;
         if (layout.leftCollapsed) {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -181,6 +191,7 @@ export function TaskDetailThreePane({
   const rightSplitterKeydown = useMemo(
     () =>
       (e: React.KeyboardEvent) => {
+        if (layout.maximized) return; // see leftSplitterKeydown
         if (layout.rightCollapsed) {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -202,7 +213,14 @@ export function TaskDetailThreePane({
     [layout],
   );
 
+  // Bridge maximize to the middle head's control (rendered here as a descendant).
+  const focus = useMemo(
+    () => ({ maximized: maxed, toggle: layout.toggleMaximized }),
+    [maxed, layout.toggleMaximized],
+  );
+
   return (
+    <FocusModeContext.Provider value={focus}>
     <div
       ref={containerRef}
       className={
@@ -212,6 +230,7 @@ export function TaskDetailThreePane({
       }
       data-testid="three-pane-root"
       data-compact={compact || undefined}
+      data-maximized={maxed || undefined}
     >
       {compact && <PaneTabBar active={activeTab} onChange={setActiveTab} />}
       <PanelGroup
@@ -221,35 +240,23 @@ export function TaskDetailThreePane({
         <Panel
           ref={leftRef}
           defaultSize={sizes.left}
-          minSize={compact ? 0 : 3}
+          minSize={compact || maxed ? 0 : 3}
           maxSize={compact ? 100 : 50}
           onResize={handleLeftDrag}
           data-testid="pane-left"
-          data-collapsed={layout.leftCollapsed || undefined}
+          data-collapsed={effLeftCollapsed || undefined}
           className="h-full min-h-0 overflow-hidden"
         >
           {left}
         </Panel>
-        <PanelResizeHandle
-          className={
-            (compact ? "hidden " : "") +
-            "group relative w-[5px] shrink-0 cursor-col-resize bg-transparent transition hover:bg-[var(--color-primary,#6b5e56)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary,#6b5e56)]"
-          }
-          data-testid="splitter-left"
-          role="separator"
-          aria-orientation="vertical"
-          aria-valuemin={LEFT_MIN}
-          aria-valuemax={LEFT_MAX}
-          aria-valuenow={layout.leftWidth}
-          aria-label="Resize folder tree pane"
-          tabIndex={0}
-          // react-resizable-panels' HTMLAttributes alias uses
-          // `keyof HTMLElementTagNameMap` for the element generic, which
-          // types onKeyDown as `KeyboardEventHandler<string>`. This is a
-          // library typing quirk; our handler is structurally compatible
-          // so we cast via `as any` locally (single-prop scope).
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onKeyDown={leftSplitterKeydown as any}
+        <PaneSplitter
+          hidden={compact || maxed}
+          testId="splitter-left"
+          ariaValueMin={LEFT_MIN}
+          ariaValueMax={LEFT_MAX}
+          ariaValueNow={layout.leftWidth}
+          ariaLabel="Resize folder tree pane"
+          onKeyDown={leftSplitterKeydown}
         />
         <Panel
           ref={centerRef}
@@ -260,22 +267,14 @@ export function TaskDetailThreePane({
         >
           {center}
         </Panel>
-        <PanelResizeHandle
-          className={
-            (compact ? "hidden " : "") +
-            "group relative w-[5px] shrink-0 cursor-col-resize bg-transparent transition hover:bg-[var(--color-primary,#6b5e56)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary,#6b5e56)]"
-          }
-          data-testid="splitter-right"
-          role="separator"
-          aria-orientation="vertical"
-          aria-valuemin={RIGHT_MIN}
-          aria-valuemax={RIGHT_MAX}
-          aria-valuenow={layout.rightWidth}
-          aria-label="Resize smart viewer pane"
-          tabIndex={0}
-          // See note on the left splitter — identical library typing quirk.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          onKeyDown={rightSplitterKeydown as any}
+        <PaneSplitter
+          hidden={compact || maxed}
+          testId="splitter-right"
+          ariaValueMin={RIGHT_MIN}
+          ariaValueMax={RIGHT_MAX}
+          ariaValueNow={layout.rightWidth}
+          ariaLabel="Resize smart viewer pane"
+          onKeyDown={rightSplitterKeydown}
         />
         <Panel
           ref={rightRef}
@@ -284,13 +283,14 @@ export function TaskDetailThreePane({
           maxSize={compact ? 100 : 50}
           onResize={handleRightDrag}
           data-testid="pane-right"
-          data-collapsed={layout.rightCollapsed || undefined}
+          data-collapsed={effRightCollapsed || undefined}
           className="h-full min-h-0 overflow-hidden"
         >
           {right}
         </Panel>
       </PanelGroup>
     </div>
+    </FocusModeContext.Provider>
   );
 }
 
