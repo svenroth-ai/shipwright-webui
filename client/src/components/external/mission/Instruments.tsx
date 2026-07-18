@@ -4,14 +4,23 @@
  * component (do NOT rebuild the rest of the top row here).
  *
  * Provenance honesty (AC5): Grade is `real` (compliance-reader / FR-01.43).
- * The prototype tags Tests + Serves `derivable`, but they are `reader` data
- * from A01/A02 (useRunDetail, FR-01.47): with run data they show live values;
- * WITHOUT it they render "—" / "no run data yet" — NEVER a fabricated number.
+ * The prototype tags Tests + Serves `derivable`, but they are `reader` data:
+ * with run data they show live values; WITHOUT it they render "—" /
+ * "no run data yet" — NEVER a fabricated number.
+ *
+ * S1 (campaign 2026-07-18-mission-artifacts, AC8) — Tests + Serves previously
+ * read `useRunDetail(task.runId)`, which is EMPTY on every standalone iterate
+ * (an iterate has no `task.runId`; that field is pipeline-shaped). That is why
+ * both chips always showed "—" on an iterate. They now prefer the
+ * mission-context resolver — which joins by the iterate's own `run_id` — and
+ * fall back to the run-detail join for pipeline runs. Grade is unchanged.
  */
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useProjectCompliance } from "../../../hooks/useProjectCompliance";
 import { useRunDetail } from "../../../hooks/useRunData";
+import { useMissionContext } from "../../../hooks/useMissionContext";
+import { servesChipValue, testsChipValue } from "../../../lib/missionArtifacts";
 
 const EMPTY = "—";
 
@@ -22,16 +31,21 @@ interface Props {
 export function Instruments({ task }: Props) {
   const compliance = useProjectCompliance(task.projectId);
   const runDetail = useRunDetail(task.projectId, task.runId ?? null);
+  const context = useMissionContext(task.taskId);
 
   const grade = compliance.data?.status === "ok" ? compliance.data.grade : null;
 
   const run = runDetail.data?.status === "ok" ? runDetail.data.run : null;
-  const tests = run?.tests;
-  const testsValue =
-    tests && tests.passed != null && tests.total != null
-      ? `${tests.passed}/${tests.total}`
+  const runTests = run?.tests;
+  const runTestsValue =
+    runTests && runTests.passed != null && runTests.total != null
+      ? `${runTests.passed}/${runTests.total}`
       : null;
-  const serves = run?.affectedFrs?.[0] ?? null;
+
+  // Resolver first (the iterate path), run-detail second (the pipeline path).
+  // Both are honest-or-null, so the chip still shows "—" when neither has data.
+  const testsValue = testsChipValue(context.data) ?? runTestsValue;
+  const serves = servesChipValue(context.data) ?? run?.affectedFrs?.[0] ?? null;
 
   return (
     <div

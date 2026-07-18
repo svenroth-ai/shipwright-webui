@@ -11,7 +11,8 @@
  * runtime, which means there is no runtime import cycle between the two files.
  */
 
-import { type BoardColumn, isBoardColumn } from "./board-column.js";
+import { isBoardColumn } from "./board-column.js";
+import { isMissionContextAssociation } from "./mission-context/types.js";
 import type {
   ExternalTask,
   ExternalTaskInboxState,
@@ -258,6 +259,9 @@ export function validateExternalTask(
     ...(runId ? { runId } : {}),
     ...(parentRunMaster !== undefined ? { parentRunMaster } : {}),
     ...(boardColumn !== undefined ? { boardColumn } : {}),
+    // S1 — atomic: a malformed association drops the field entirely, so a
+    // corrupt value can never be read back as a real run.
+    ...(isMissionContextAssociation(r.missionContext) ? { missionContext: r.missionContext } : {}),
     // iterate-2026-05-14 lead-foundation — spread only when defined so
     // the on-disk JSON stays quiet for legacy / non-lead tasks.
     ...(domain !== undefined ? { domain } : {}),

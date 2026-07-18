@@ -727,6 +727,59 @@ write surface; gated, path-guarded, and concurrency-safe.
 - Read-only: this iterate adds NO write surface under `.shipwright/`. Added by
   `iterate-2026-06-30-compliance-grade-webui`.
 
+### FR-01.66 Mission view — context-aware artifacts (Spec · Requirement · Commit)
+
+- (A) **(iterate-2026-07-18-mission-s1-resolver-core-artifacts)** Given a task whose
+  session is a standalone **iterate** — evidenced by a VALID
+  `.shipwright/iterate_active/<sessionUuid>.json` pointer (its `session_id` equals the
+  requested session and its `main_root` equals the configured project root) — when
+  `GET /api/external/tasks/:taskId/mission-context` is requested, then it returns a
+  versioned `{schemaVersion, scenario, missionTabVisible, runId, artifacts[], tests,
+  servesFrId, sourceRev}` resolved **by the pointer's own `run_id`**, and the Mission
+  tab renders **Spec · Requirement · Commit** instead of "No run data yet". The generic
+  `task.runId` (pipeline-shaped `run-xxxxxxxx`) is NEVER written with an iterate run_id.
+- (B) Scenario detection is server-side and **ordered, first-match**: a validated
+  custom-actions project (explicit parsed config, no builtin SDLC action, no valid
+  run-config) HIDES the Mission tab; else a validated iterate pointer; else a durable
+  association (below); else a pipeline phase task; else a `campaign:<slug>` title
+  **with a matching campaign record**; else plain. A malformed or dual-mode actions
+  file falls back to SHOWING Mission, and a `campaign:` title without a record is not
+  a campaign.
+- (C) Each artifact carries one of five states — `available · not_applicable ·
+  not_yet_created · unavailable · error`. Hide-empty hides ONLY the two absent states;
+  an expected-but-unresolvable artifact renders a compact, non-clickable "currently
+  unavailable" so a data-integrity fault never reads as "nothing exists".
+- (D) **Requirement** is fold-resolved through `spec.md` + `## FR-Fold-Map` and keeps
+  BOTH ids (`FR-01.28` shown as "mapped from FR-01.44"), with
+  `confidence: planned|finalized|unresolved`. Mid-run it is **planned impact** derived
+  from the spec and is never labelled new/changed/technical before Finalize.
+- (E) **Commit** reports a real merge state: the PR number is taken from the
+  server-read transcript, validated as a bounded integer (`/^\d+$/`), and checked
+  **squash-aware** against `origin/main` by matching a commit SUBJECT ending in
+  `(#NNN)` — git is invoked as an argument array with `shell:false`, never a shell
+  string. A resolved "merged" caches indefinitely; "pending" re-checks on a TTL. A
+  `pr-link` alone never renders "merged".
+- (F) **Durable association:** on the FIRST valid resolve of a **live** iterate the
+  server writes `task.missionContext = {kind, runId, observedAt, source}` exactly once
+  — an idempotent, `proper-lockfile`-guarded compare-and-set, never a per-GET write.
+  After the worktree is pruned that association is what still resolves the run; a
+  session never observed live and already pruned reports `unavailable`, never a
+  fabricated run.
+- (G) Read-roots are the configured project root ∪ the worktrees `git worktree list`
+  reports for THIS repo (a relocated worktree lives outside the project root, so
+  membership — not filesystem containment — is the test). Document sub-paths are built
+  from the known layout, every read passes `pathGuard` + `realPathGuard` against the
+  chosen root, and document bodies are fetched on click through an **opaque, signed
+  artifact-detail id** — the client never constructs a `/file?path=`. A document that
+  vanished since the context response returns a typed `stale`, never an unrelated file.
+- (H) The top-right **Tests** and **Serves** chips read the resolver (which joins by
+  the iterate's `run_id`) and fall back to the run-detail join for pipeline runs, so
+  they show live values on a standalone iterate instead of a permanent "—"; a partial
+  record still renders "—" rather than a fabricated denominator. Grade is unchanged.
+- Scenarios 1/3/4/5 keep today's behaviour verbatim (this is additive for the iterate
+  scenario); the embedded terminal is byte-identical. Added by
+  `iterate-2026-07-18-mission-s1-resolver-core-artifacts`.
+
 ## Quality Requirements
 
 - **QR-01**: CI pipeline (github-actions) must pass on pull requests.

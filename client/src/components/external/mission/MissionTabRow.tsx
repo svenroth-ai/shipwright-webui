@@ -13,10 +13,12 @@
  * gate + auto-launch, so this iterate keeps the default and does NOT re-point it.
  */
 
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 
 import { MissionSegmented, type SegmentOption } from "./MissionSegmented";
+import { useMissionContext } from "../../../hooks/useMissionContext";
 
 export type MissionTab = "mission" | "files";
 
@@ -31,16 +33,35 @@ const TABS: SegmentOption<MissionTab>[] = [
 interface Props {
   value: MissionTab;
   onChange: (value: MissionTab) => void;
+  /**
+   * S1 (AC4) — used to ask the resolver whether this project should have a
+   * Mission tab at all. A VALIDATED custom-actions project gets only Files &
+   * Terminal. Optional so existing callers/tests render unchanged.
+   */
+  taskId?: string | null;
 }
 
-export function MissionTabRow({ value, onChange }: Props) {
+export function MissionTabRow({ value, onChange, taskId }: Props) {
+  const context = useMissionContext(taskId);
+
+  // Hide ONLY on an explicit `false` from the resolver: while the query is
+  // loading, or if it fails, the tab stays — hiding a useful tab on an unknown
+  // or ambiguous answer is the worse failure (CONTRACT §4, Review-2 GPT #12).
+  const hideMission = context.data?.missionTabVisible === false;
+
+  // If the tab is hidden while it happens to be the active view, fall back to
+  // Files & Terminal rather than rendering an empty pane.
+  useEffect(() => {
+    if (hideMission && value === "mission") onChange("files");
+  }, [hideMission, value, onChange]);
+
   return (
     <div
       className="mc-tabrow flex-shrink-0 gap-3 px-4 py-2 md:px-8"
       data-testid="mission-tabrow"
     >
       <MissionSegmented
-        options={TABS}
+        options={hideMission ? TABS.filter((t) => t.value !== "mission") : TABS}
         value={value}
         onChange={onChange}
         ariaLabel="Task detail view"

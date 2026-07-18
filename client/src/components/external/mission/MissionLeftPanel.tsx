@@ -20,6 +20,8 @@
 
 import type { CampaignMissionInfo, MissionLiveModel } from "../../../hooks/useMissionLive";
 import { STAGE_LABELS, type LifecycleStage } from "../../../lib/narrator-transcript";
+import type { ArtifactDescriptor } from "../../../lib/missionContextApi";
+import { ArtifactLink } from "./ArtifactLink";
 import { RecordNode } from "./RecordNode";
 
 const EM_DASH = String.fromCodePoint(0x2014);
@@ -82,9 +84,16 @@ interface Props {
   model: MissionLiveModel;
   activeNodeKey: string | null;
   onNodeClick: (key: string) => void;
+  /**
+   * campaign 2026-07-18-mission-artifacts S1 — the context-resolved artifact
+   * rail for a standalone ITERATE. When supplied it REPLACES the legacy
+   * `model.nodes` rail; when absent (scenarios 1/3/4/5) the legacy rail renders
+   * exactly as before, so this slice cannot regress them.
+   */
+  artifacts?: ArtifactDescriptor[] | null;
 }
 
-export function MissionLeftPanel({ model, activeNodeKey, onNodeClick }: Props) {
+export function MissionLeftPanel({ model, activeNodeKey, onNodeClick, artifacts }: Props) {
   const { businessSummary, stage, stageComplete, nodes, campaign } = model;
   return (
     <nav
@@ -107,15 +116,24 @@ export function MissionLeftPanel({ model, activeNodeKey, onNodeClick }: Props) {
 
       <section className="ml-block ml-artifacts">
         <span className="eyebrow">Artifacts</span>
-        {nodes.map((node) => (
-          <RecordNode
-            key={node.key}
-            node={node}
-            active={activeNodeKey === node.key}
-            collapsed={false}
-            onClick={() => onNodeClick(node.key)}
-          />
-        ))}
+        {artifacts
+          ? artifacts.map((a) => (
+              <ArtifactLink
+                key={a.kind}
+                artifact={a}
+                active={activeNodeKey === a.kind}
+                onClick={() => onNodeClick(a.kind)}
+              />
+            ))
+          : nodes.map((node) => (
+              <RecordNode
+                key={node.key}
+                node={node}
+                active={activeNodeKey === node.key}
+                collapsed={false}
+                onClick={() => onNodeClick(node.key)}
+              />
+            ))}
       </section>
     </nav>
   );

@@ -30,6 +30,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { BoardColumn } from "./board-column.js";
+import type { MissionContextAssociation } from "./mission-context/types.js";
 import { atomicWriteFile, cloneSessions, mergeSessions, reReadDisk } from "./sdk-sessions-merge.js";
 import { UNASSIGNED_PROJECT_ID, validateExternalTask } from "./sdk-sessions-validate.js";
 // Re-exported for the many callers that historically imported it from here.
@@ -175,6 +176,8 @@ export interface ExternalTask {
   promotedFromTriageId?: string;
   /** v4 — sticky user-owned board-column override (write-on-touch). */
   boardColumn?: BoardColumn;
+  /** S1 — durable iterate association (see mission-context/association.ts); NOT `runId`. */
+  missionContext?: MissionContextAssociation;
   createdAt: string;
   launchedAt?: string;
   firstJsonlObservedAt?: string;

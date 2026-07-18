@@ -48,6 +48,7 @@ import { createRunConfigRouter } from "./run-config/routes.js";
 import { createComplianceRouter } from "./compliance/routes.js";
 import { createEventsRouter } from "./events/routes.js";
 import { createRunsRouter } from "./runs/routes.js";
+import { createWiredMissionContextRouter } from "./mission-context/wire.js";
 import { createPreviewRouter } from "./preview/routes.js";
 import { createActionsRouter } from "./actions/routes.js";
 import { createTreeRouter } from "./tree/routes.js";
@@ -246,6 +247,21 @@ export function createExternalRoutes(args: {
   // FR-01.47 — per-run data join (READ-ONLY): runId → FRs/tests/derived-gates/
   // phase-timings + grade-trend series, over the same shipwright_events.jsonl.
   app.route("/", createRunsRouter({ getProjectById }));
+
+  // campaign 2026-07-18-mission-artifacts S1 — the Mission-context resolver.
+  // Project-scoped, so it mounts only when a project lookup is wired. All
+  // wiring (server-side transcript tail + scenario facts) lives in wire.ts.
+  if (getProjectById) {
+    app.route(
+      "/",
+      createWiredMissionContextRouter({
+        store,
+        watcher,
+        getProjectById,
+        readRunConfig: runConfigReader,
+      }),
+    );
+  }
   // FR-01.45 — single-session design-gate mockup review: gate observer + viewer
   // host + the transient round-feedback write (the sole new write surface).
   app.route(
