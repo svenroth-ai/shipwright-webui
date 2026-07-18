@@ -13,7 +13,12 @@
  * pre-GC) collapses to one item.
  *
  * Tolerance contract (matches Python):
- *   - skips lines that fail JSON.parse (not thrown)
+ *   - RECOVERS concatenated records — a line holding several records (an
+ *     unterminated predecessor) yields ALL of them, not none. Skipping such a
+ *     line whole discarded every record on it; on an append-only log corruption
+ *     must never read as absence. Rules: `jsonl-records.ts`.
+ *   - undecodable text goes to the optional `onCorrupt` side channel — never
+ *     thrown, never logged here (reporting belongs at the command boundary)
  *   - skips non-object lines + lines without an "event" key (header)
  *   - status events with unknown id (out-of-order corruption) skipped
  *
@@ -39,6 +44,7 @@ import {
 } from "node:fs";
 
 import type { TriageItem, TriageStatus } from "../types/triage.js";
+import { type CorruptFragment, parseJsonlRecords } from "./jsonl-records.js";
 import { outboxPathFor } from "./triage-paths.js";
 
 const STATUSES: ReadonlySet<TriageStatus> = new Set([
@@ -70,18 +76,6 @@ export function _clearCache_TEST_ONLY(): void {
   cache.clear();
 }
 
-function tryParseLine(line: string): unknown | undefined {
-  try {
-    return JSON.parse(line);
-  } catch {
-    return undefined;
-  }
-}
-
-function isPlainObject(v: unknown): v is Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
-}
-
 /** mtime in ms, or null when the file is absent / unstat-able. */
 function mtimeOrNull(p: string): number | null {
   try {
@@ -92,40 +86,43 @@ function mtimeOrNull(p: string): number | null {
 }
 
 /**
- * Tolerant string→objects parser — splits a raw JSONL blob into plain
- * objects, skipping blank + corrupt + non-object lines (mirrors Python
- * `_iter_raw_lines_at`). `line.trim()` absorbs a trailing `\r` (CRLF), so a
- * Windows-written or human-edited line round-trips unchanged.
+ * Tolerant string→objects parser — splits a raw JSONL blob into plain objects,
+ * RECOVERING concatenated records and skipping blank lines (mirrors Python
+ * `_iter_raw_lines_at`). Boundary rules live in `jsonl-records.ts`.
+ *
+ * `onCorrupt` is the optional side channel for undecodable text. The array
+ * return type is load-bearing: it flows through `readRawLines` to five call
+ * sites, one (`appendIdsInFile`) on the WRITE hot path driving residence
+ * routing — a shape change here would alter WRITES, not just reads. Python's
+ * reader likewise returns a plain list and reports corruption separately.
  *
  * Exported so the delivered-origin composer (`triage-compose.ts`) can parse a
- * `git show origin/…:…` blob through the SAME tolerant contract as on-disk
- * reads, without re-implementing it. `readAllItems` behavior is unchanged.
+ * `git show origin/…:…` blob through the SAME contract as on-disk reads.
  */
-export function parseRawLines(raw: string): Record<string, unknown>[] {
-  const out: Record<string, unknown>[] = [];
-  for (const rawLine of raw.split("\n")) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    const parsed = tryParseLine(line);
-    if (parsed === undefined) continue; // corrupt — skip
-    if (!isPlainObject(parsed)) continue;
-    out.push(parsed);
-  }
-  return out;
+export function parseRawLines(
+  raw: string,
+  onCorrupt?: (fragment: CorruptFragment) => void,
+): Record<string, unknown>[] {
+  const { records, corrupt } = parseJsonlRecords(raw);
+  if (onCorrupt) for (const fragment of corrupt) onCorrupt(fragment);
+  return records;
 }
 
 /**
  * Tolerant per-file reader — parses one JSONL file into plain objects.
  * Returns [] when the file is missing/unreadable.
  */
-function readRawLines(p: string): Record<string, unknown>[] {
+function readRawLines(
+  p: string,
+  onCorrupt?: (fragment: CorruptFragment) => void,
+): Record<string, unknown>[] {
   let raw: string;
   try {
     raw = readFileSync(p, "utf-8");
   } catch {
     return [];
   }
-  return parseRawLines(raw);
+  return parseRawLines(raw, onCorrupt);
 }
 
 /**
@@ -136,14 +133,17 @@ function readRawLines(p: string): Record<string, unknown>[] {
  * outbox stays LAST — preserving the existing "freshest local intent wins an
  * equal-ts tie" file-order contract. `readAllItems` itself is unchanged.
  */
-export function readLocalRawLinesSplit(trackedPath: string): {
+export function readLocalRawLinesSplit(
+  trackedPath: string,
+  onCorrupt?: (fragment: CorruptFragment, source: "tracked" | "outbox") => void,
+): {
   tracked: Record<string, unknown>[];
   outbox: Record<string, unknown>[];
 } {
   const outboxPath = outboxPathFor(trackedPath);
   return {
-    tracked: readRawLines(trackedPath),
-    outbox: readRawLines(outboxPath),
+    tracked: readRawLines(trackedPath, onCorrupt && ((f) => onCorrupt(f, "tracked"))),
+    outbox: readRawLines(outboxPath, onCorrupt && ((f) => onCorrupt(f, "outbox"))),
   };
 }
 

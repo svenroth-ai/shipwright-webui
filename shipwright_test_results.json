@@ -1,19 +1,19 @@
 {
   "last_updated": "2026-07-18",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-18-unpin-actions-no-dependabot",
+    "run_id": "iterate-2026-07-18-triage-jsonl-record-boundary",
     "date": "2026-07-18",
     "unit": {
       "status": "pass",
-      "passed": 4948,
-      "total": 4949,
-      "note": "Full suites re-run in the iterate worktree. server: 193 files, 2253 passed + 1 skipped (includes the new ci-action-pinning-posture.test.ts, 8 cases — 6 original plus 2 added after the Tier-3 reviewer found the quoted-ref hole). client: 295 files, 2695 passed. 0 failures; tsc --noEmit clean both workspaces; oxlint exit 0 with no new warnings."
+      "passed": 5014,
+      "total": 5015,
+      "note": "Full suites re-run in the iterate worktree AFTER the internal code-review fixes. server: 198 files, 2319 passed + 1 skipped (adds jsonl-records.test.ts, jsonl-records.faults.test.ts, triage-write.newline.test.ts, triage-store.recovery.test.ts, triage.recovery-api.test.ts). client: 295 files, 2695 passed (untouched - zero client source changed). 0 failures; tsc --noEmit clean; oxlint reports no new warnings for any added file."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "webui vitest does not separate an integration layer; covered within the unit suites."
+      "note": "webui vitest does not separate an integration layer; the cross-module composition (writer guard + reader recovery, and recovery through the real Hono route) is covered inside the unit suites."
     },
     "pgtap": {
       "status": "not_run",
@@ -21,10 +21,10 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "No product UI/API surface changed — the diff is CI workflow definitions, a deleted Dependabot config, a compliance register and one vitest. The end-to-end proof for THIS change is this PR's own CI run executing the restored mutable action tags (GitHub refuses to run invalid workflow YAML, so a green run proves they resolve and execute)."
+      "status": "pass",
+      "passed": 1,
+      "total": 1,
+      "note": "client/e2e/flows/triage-record-boundary-recovery.spec.ts executed (not merely authored) against an isolated single-process stack: temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono on PORT=3901 bound 127.0.0.1, BASE_URL pinned to 127.0.0.1. Seeds a real project via POST /api/projects whose triage.jsonl holds a concatenated record pair plus a partially-unrecoverable line, then asserts both halves AND the partial-line survivor render in the Triage tab and open in the detail modal."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -32,101 +32,140 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run",
-      "note": "No server/app started; a CI-configuration change has no smoke surface."
+      "status": "pass",
+      "note": "Isolated Hono booted clean on :3901 with the temp profile (health 200) for the E2E run, then torn down."
     },
     "surface_verification": {
-      "surface": "none",
+      "surface": "web",
       "exit_code": 0,
-      "tests_run": 0,
-      "justification": "No startable application surface: the diff changes GitHub Actions workflow definitions, deletes a Dependabot config, adds a compliance register file and one vitest. No route, component, CLI entry point or server behavior is touched. The two surfaces that DO exist were driven directly: (1) the workflow definitions are executed by this PR's own CI run; (2) the .trivyignore.yaml register was verified against the SHIPPED consumer parse_accepted_risks() imported by path from the compliance plugin, asserting expired=False today and expired=True at now=2027-07-19 - the re-review alarm is proven to ring by injecting a future date rather than waiting for one.",
-      "evidence_path": ".shipwright/runs/iterate-2026-07-18-unpin-actions-no-dependabot/surface_verification.json",
-      "timestamp": "2026-07-18T00:00:00.000Z",
-      "attempts": 1
+      "tests_run": 1,
+      "justification": "Backend-affects-Frontend: the diff changes core/triage-board-read.ts, which feeds GET /api/triage/:projectId and therefore the Inbox, so surface=api would under-claim. The failure mode is only observable at the UI - before the fix a concatenated line made findings silently vanish from the Inbox with no error anywhere - so the web surface is where the regression is genuinely pinned. Route-level coverage also exists (triage.recovery-api.test.ts, 5 cases through the real Hono app incl. a dismiss round-trip).",
+      "command": "BASE_URL=http://127.0.0.1:3901 npx playwright test --project=chromium e2e/flows/triage-record-boundary-recovery.spec.ts"
     },
     "test_completeness": {
       "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "endsWithoutNewline: missing / zero-byte / LF / CRLF / unterminated / directory",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts endsWithoutNewline (6 cases) PASSED"
+        },
+        {
+          "behavior": "splitRecords: concatenated line yields ALL records in wire order",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts recovers BOTH records PASSED"
+        },
+        {
+          "behavior": "splitRecords: PARTIAL recovery - valid record AND verbatim remainder",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts partial recovery + verbatim remainder PASSED"
+        },
+        {
+          "behavior": "splitRecords: no resync past a malformed record (raw_decode parity)",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts does NOT resync PASSED"
+        },
+        {
+          "behavior": "splitRecords: only JSON objects are records (scalar/array are fragments)",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts it.each 5 cases PASSED"
+        },
+        {
+          "behavior": "splitRecords lexical safety: braces in strings, escaped quote, backslash run, nesting, unterminated string",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts lexical edge cases (5 cases) PASSED"
+        },
+        {
+          "behavior": "splitRecords: NBSP / U+000B / U+000C are NOT JSON whitespace",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts unicode whitespace it.each (3 cases) PASSED"
+        },
+        {
+          "behavior": "splitRecords: non-finite numeric literal degrades to fragment, never throws",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts NaN degradation PASSED"
+        },
+        {
+          "behavior": "slow-path work budgets: attempt ceiling and line-length ceiling degrade to fragment; a long VALID record still takes the fast path",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts work budgets (3 cases) PASSED"
+        },
+        {
+          "behavior": "endsWithoutNewline fault injection: short read, live-end fstat sizing, fd closed on throw, no close when open fails, zero-byte short-circuit",
+          "disposition": "tested",
+          "evidence": "jsonl-records.faults.test.ts (5 cases, vi.mock node:fs) PASSED"
+        },
+        {
+          "behavior": "parseJsonlRecords: order preserved, 1-based lineNo, blank-line numbering, CRLF absorbed, per-line fragments",
+          "disposition": "tested",
+          "evidence": "jsonl-records.test.ts parseJsonlRecords (6 cases) PASSED"
+        },
+        {
+          "behavior": "writer: no concatenation onto an unterminated predecessor",
+          "disposition": "tested",
+          "evidence": "triage-write.newline.test.ts does not concatenate PASSED (was RED before the fix)"
+        },
+        {
+          "behavior": "writer: no blank line injected for LF / CRLF / missing / zero-byte targets",
+          "disposition": "tested",
+          "evidence": "triage-write.newline.test.ts (4 cases) PASSED"
+        },
+        {
+          "behavior": "writer+reader COMPOSE: a lost TOCTOU race still loses no record",
+          "disposition": "tested",
+          "evidence": "triage-write.newline.test.ts loses no record when a lost race PASSED"
+        },
+        {
+          "behavior": "store: recovery at readAllItems, across the tracked-outbox union, and composing with two-pass status resolution",
+          "disposition": "tested",
+          "evidence": "triage-store.recovery.test.ts (6 cases) PASSED"
+        },
+        {
+          "behavior": "store: recovery on the WRITE hot path (appendIdsInFile residence probe)",
+          "disposition": "tested",
+          "evidence": "triage-store.recovery.test.ts sees a concatenated append PASSED"
+        },
+        {
+          "behavior": "reporting: silent when clean or fully recovered; exactly one structured warn with bounded metadata and NO fragment text; true total vs capped sample",
+          "disposition": "tested",
+          "evidence": "triage-store.recovery.test.ts corruption reporting (4 cases) PASSED"
+        },
+        {
+          "behavior": "cross-language parity over a DELIBERATELY corrupted fixture resolved by the REAL Python reader, incl. the lexical class (brace-in-string, escaped quote, backslash run) and the by-contract unrecoverable cases",
+          "disposition": "tested",
+          "evidence": "triage-store.recovery.test.ts deep-equals real Python (8 items) PASSED"
+        },
+        {
+          "behavior": "parity fixture round-trips byte-exact through git (no EOL normalization)",
+          "disposition": "tested",
+          "evidence": ".gitattributes -text; triage-store.recovery.test.ts CR-byte assertion PASSED"
+        },
+        {
+          "behavior": "HTTP consumer chain: list returns both records, partial keeps its valid record, counts no longer under-count, wholly-corrupt still 200, dismiss lands on a recovered file",
+          "disposition": "tested",
+          "evidence": "triage.recovery-api.test.ts (5 cases, real Hono app) PASSED"
+        },
+        {
+          "behavior": "web surface: both halves of a concatenated line reach the Inbox and open in the detail modal",
+          "disposition": "tested",
+          "evidence": "client/e2e/flows/triage-record-boundary-recovery.spec.ts executed against an isolated stack, 1 passed"
+        },
+        {
+          "behavior": "bloat: triage-store.ts stays at or under its 305-line grandfathered baseline",
+          "disposition": "tested",
+          "evidence": "measured 305; scripts/hooks/anti_ratchet_check.py exit 0"
+        }
+      ],
+      "counts": {
+        "testable": 22,
+        "tested": 22,
+        "untestable": 0,
+        "untested_testable": 0
+      },
       "enumeration_basis": {
         "acs": 10,
         "covered_acs": 10
-      },
-      "counts": {
-        "total": 13,
-        "testable": 10,
-        "tested": 10,
-        "untestable": 3,
-        "untested_testable": 0
-      },
-      "behaviors": [
-        {
-          "behavior": "The posture guard itself cannot silently pass on a QUOTED ref (regression found in Tier-3 review of this file's first version)",
-          "disposition": "tested",
-          "evidence": "ci-action-pinning-posture.test.ts 'returns refs without surrounding quotes' + 'classifies a QUOTED SHA-pinned github-owned ref as a violation' PASSED. With the quote attached, `uses: 'actions/checkout@<sha>'` fails BOTH the owner-prefix and the trailing-SHA check, so a quoted pin would sail through every assertion while looking guarded. Exercised against a synthetic fixture, not only the real files, so the hole stays closed even though no workflow quotes its refs today"
-        },
-        {
-          "behavior": "8 first-party actions/* + github/* refs restored to mutable tags (AC-1)",
-          "disposition": "tested",
-          "evidence": "ci-action-pinning-posture.test.ts 'pins no actions/* or github/* reference to a commit SHA' PASSED; independently, git diff 789dbec2~1 -- .github/workflows is empty (byte-exact pre-#285 state)"
-        },
-        {
-          "behavior": "2 third-party actions remain SHA-pinned (AC-2)",
-          "disposition": "tested",
-          "evidence": "ci-action-pinning-posture.test.ts 'pins EVERY third-party reference to a full 40-char commit SHA' PASSED (asserted positively, so a too-greedy unpin fails loudly)"
-        },
-        {
-          "behavior": ".github/dependabot.yml is absent (AC-3)",
-          "disposition": "tested",
-          "evidence": "ci-action-pinning-posture.test.ts 'has no .github/dependabot.yml' — RED before the change, PASSED after"
-        },
-        {
-          "behavior": "SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS stays enabled (AC-4)",
-          "disposition": "tested",
-          "evidence": "ci-action-pinning-posture.test.ts 'keeps SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS enabled' PASSED"
-        },
-        {
-          "behavior": "All 6 restored workflows remain valid YAML",
-          "disposition": "tested",
-          "evidence": "yaml.safe_load pre-flight over .github/workflows/*.yml -> ALL VALID, 12 jobs. No committed regression test: neither workspace has a YAML parser and GitHub rejects invalid workflow YAML anyway (see behavior 6)"
-        },
-        {
-          "behavior": "Workflows still execute correctly under mutable tags",
-          "disposition": "tested",
-          "evidence": "this PR's own CI run — all jobs green except the expected 'PR Review' policy failure on any .github/workflows/* change"
-        },
-        {
-          "behavior": ".trivyignore.yaml entry parses and registers (AC-6)",
-          "disposition": "tested",
-          "evidence": "probe against the SHIPPED consumer: parse_accepted_risks(root, now=2026-07-18) -> 1 row, id semgrep:github-actions-mutable-action-tag, expired_at parsed as a date, expired=False"
-        },
-        {
-          "behavior": "The re-review alarm actually fires once past expired_at",
-          "disposition": "tested",
-          "evidence": "same consumer with now=2027-07-19 -> expired=True; boundary probe confirms it expires strictly AFTER the date. Verified by injecting a future now, not by waiting"
-        },
-        {
-          "behavior": "ADR records the posture, asymmetry and supersession (AC-5)",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "prose adequacy is a review judgment; presence and field structure are covered by the F11 ADR checks"
-        },
-        {
-          "behavior": "Returning mutable-tag code-scanning alerts dismissed (AC-8)",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "GitHub alert state, and the alerts cannot exist until main carries the revert — post-merge API read-back is the evidence. Pre-merge inventory already measured: Semgrep 1 (self-resolving), Scorecard 35 (orphaned, out of scope)"
-        },
-        {
-          "behavior": "PR #286 closed as obsolete (AC-9)",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "GitHub PR state; post-merge API read-back. Dependabot may close it itself once its config is gone"
-        },
-        {
-          "behavior": "Monorepo triage item filed for the framework follow-up (AC-10)",
-          "disposition": "tested",
-          "evidence": "PASS — triage.read_all_items(C:/01_Development/shipwright) returns exactly 1 item with dedupKey=ci-supplychain-guardrails-and-acceptance-surfacing: trg-9509c2e8, status=triage, severity=medium, kind=improvement, launchPayload present. The read-back earned its place: the first attempt reported FAIL because the append API takes dedup_key (snake_case) while read_all_items normalizes to dedupKey (camelCase) — a bug in the assertion, not the write. It also revealed the item routes to the TRACKED triage.jsonl here, not the gitignored outbox"
-        }
-      ]
+      }
     },
     "degraded": []
   }

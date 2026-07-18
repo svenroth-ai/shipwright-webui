@@ -40,6 +40,43 @@ export function originUnionEnabled(): boolean {
 const DEGRADED: BoardOrigin = { available: false, behind: null };
 
 /**
+ * Cap on fragments carried into one log line, so a badly damaged file cannot
+ * emit an unbounded log event. The COUNT is still reported in full.
+ */
+const CORRUPT_LOG_CAP = 5;
+
+/**
+ * Report unrecoverable fragments at the command boundary — the leaf
+ * (`jsonl-records.ts`) never logs, so background callers, tests and routes all
+ * behave predictably (iterate-2026-07-18-triage-jsonl-record-boundary).
+ *
+ * Records recovered from the same physical line are ALREADY in `items`; this
+ * only surfaces what could not be decoded, so corruption never reads as
+ * absence silently. Server log only — deliberately no API field, no client
+ * type and no UI banner: the repair tooling lives in the shipwright monorepo,
+ * not the WebUI, so a banner would report a problem the operator cannot act on
+ * from here.
+ */
+function reportCorruption(
+  projectId: string,
+  total: number,
+  sample: { source: string; lineNo: number; bytes: number }[],
+): void {
+  if (total === 0) return;
+  console.warn(
+    JSON.stringify({
+      level: "warn",
+      message: "triage log corruption recovered",
+      projectId,
+      // `total` is the true count; `sample` is capped, so the two differ on a
+      // badly damaged file. Reporting only the sample length would under-report.
+      fragments: total,
+      sample,
+    }),
+  );
+}
+
+/**
  * Resolve the board items for a tracked `triage.jsonl` path, unioning the
  * delivered-origin snapshot. Degrades to the pure local union (identical to
  * `readAllItems`) when the flag is off or any git step fails. A read failure
@@ -51,9 +88,25 @@ export function readBoardItems(trackedAbsolute: string, projectId: string): Boar
   try {
     const projectRoot = path.dirname(path.dirname(trackedAbsolute));
     const delivered = loadDeliveredOrigin(projectRoot, { enabled: originUnionEnabled() });
+    const corrupt: { source: string; lineNo: number; bytes: number }[] = [];
+    let corruptTotal = 0;
     const items = readAllItemsWithDeliveredOrigin(trackedAbsolute, {
       originRawLines: delivered.originRawLines,
+      // Bounded METADATA only — never the fragment text. A damaged tail can
+      // hold arbitrary log contents and control characters, and this is a
+      // user-facing read path. Mirrors the Python warning, which reports
+      // "<n> bytes unrecoverable".
+      onCorrupt: (fragment, source) => {
+        corruptTotal += 1;
+        if (corrupt.length >= CORRUPT_LOG_CAP) return;
+        corrupt.push({
+          source,
+          lineNo: fragment.lineNo,
+          bytes: Buffer.byteLength(fragment.text, "utf-8"),
+        });
+      },
     }).map((it) => ({ ...it }));
+    reportCorruption(projectId, corruptTotal, corrupt);
     return {
       items,
       origin: { available: delivered.originAvailable, behind: delivered.localBehind },
