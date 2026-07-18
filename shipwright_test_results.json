@@ -1,13 +1,13 @@
 {
   "last_updated": "2026-07-18",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-17-test-traceability-retrofit",
+    "run_id": "iterate-2026-07-18-unpin-actions-no-dependabot",
     "date": "2026-07-18",
     "unit": {
       "status": "pass",
-      "passed": 4940,
-      "total": 4941,
-      "note": "Full vitest suites re-run after the 1039 additive `// @covers` comment insertions. server: 192 files, 2245 passed + 1 skipped. client: 295 files, 2695 passed. 0 failures; tsc --noEmit clean for both workspaces. Tags are comments (behavior-neutral) — counts match the pre-change baseline."
+      "passed": 4948,
+      "total": 4949,
+      "note": "Full suites re-run in the iterate worktree. server: 193 files, 2253 passed + 1 skipped (includes the new ci-action-pinning-posture.test.ts, 8 cases — 6 original plus 2 added after the Tier-3 reviewer found the quoted-ref hole). client: 295 files, 2695 passed. 0 failures; tsc --noEmit clean both workspaces; oxlint exit 0 with no new warnings."
     },
     "integration": {
       "status": "not_run",
@@ -24,7 +24,7 @@
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No product UI/API surface changed (data/tags + docs). The end-to-end verification for THIS change is the traceability pipeline itself: config -> test_links collector -> test-traceability.json (1038 bindings, was 0 without the config) -> strict D-orphan detector (live proof: MEDIUM on an absent-FR tag, pass after revert). Captured in .shipwright/compliance/test-traceability-coverage-delta.md."
+      "note": "No product UI/API surface changed — the diff is CI workflow definitions, a deleted Dependabot config, a compliance register and one vitest. The end-to-end proof for THIS change is this PR's own CI run executing the restored mutable action tags (GitHub refuses to run invalid workflow YAML, so a green run proves they resolve and execute)."
     },
     "design_fidelity": {
       "status": "not_run",
@@ -33,89 +33,101 @@
     },
     "smoke": {
       "status": "not_run",
-      "note": "No server/app started; data/tags + docs change has no smoke surface."
+      "note": "No server/app started; a CI-configuration change has no smoke surface."
     },
     "surface_verification": {
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Data/tags + docs only; product source (server/src, client/src app code) is byte-stable and no product UI/API/store/SSE surface changed. The real end-to-end proof is the traceability pipeline executed live: the manifest round-trip (collector bound 1038 tests WITH the config, 0 without) and the strict D-orphan detector firing MEDIUM on a synthetic absent-FR tag then passing after revert. Both captured in .shipwright/compliance/test-traceability-coverage-delta.md.",
-      "evidence_path": ".shipwright/compliance/test-traceability-coverage-delta.md",
+      "justification": "No startable application surface: the diff changes GitHub Actions workflow definitions, deletes a Dependabot config, adds a compliance register file and one vitest. No route, component, CLI entry point or server behavior is touched. The two surfaces that DO exist were driven directly: (1) the workflow definitions are executed by this PR's own CI run; (2) the .trivyignore.yaml register was verified against the SHIPPED consumer parse_accepted_risks() imported by path from the compliance plugin, asserting expired=False today and expired=True at now=2027-07-19 - the re-review alarm is proven to ring by injecting a future date rather than waiting for one.",
+      "evidence_path": ".shipwright/runs/iterate-2026-07-18-unpin-actions-no-dependabot/surface_verification.json",
       "timestamp": "2026-07-18T00:00:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Behaviours this diff introduces: (1) the traceability config makes the collector scan webui's roots; (2-4) each of the three signals (unique_commit, co-location, self-listing) attributes tests to the correct FR; (5) the manifest binds tags with a layer-aware RTM; (6) strict D-orphan fires on a tag -> absent FR; (7) tags are behaviour-neutral and product source is byte-stable; (8) the signal-e discovery logic produces only correct tags; (9) tags reconcile to the post-#287 survivor taxonomy. 9 behaviours; all tested; 0 untested-testable.",
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
+      },
       "counts": {
-        "total": 9,
-        "testable": 9,
-        "tested": 9,
-        "untestable": 0,
+        "total": 13,
+        "testable": 10,
+        "tested": 10,
+        "untestable": 3,
         "untested_testable": 0
       },
       "behaviors": [
         {
-          "behavior": "traceability.test_roots makes the test_links collector scan webui's non-conventional roots",
-          "category": "config",
+          "behavior": "The posture guard itself cannot silently pass on a QUOTED ref (regression found in Tier-3 review of this file's first version)",
           "disposition": "tested",
-          "evidence": "manifest regen bound 1038 tests WITH the config block; 0 without it (the collector defaults to conventional root dirs webui lacks) — round-trip probe"
+          "evidence": "ci-action-pinning-posture.test.ts 'returns refs without surrounding quotes' + 'classifies a QUOTED SHA-pinned github-owned ref as a violation' PASSED. With the quote attached, `uses: 'actions/checkout@<sha>'` fails BOTH the owner-prefix and the trailing-SHA check, so a quoted pin would sail through every assertion while looking guarded. Exercised against a synthetic fixture, not only the real files, so the hole stays closed even though no workflow quotes its refs today"
         },
         {
-          "behavior": "unique_commit tags (47) attribute to the correct FR",
-          "category": "correctness",
+          "behavior": "8 first-party actions/* + github/* refs restored to mutable tags (AC-1)",
           "disposition": "tested",
-          "evidence": "all 47 -> FR-01.30 ('Triage Tab + Promote bridge'); introducing commit 290263e9 feat(triage); spot-check 0 wrong"
+          "evidence": "ci-action-pinning-posture.test.ts 'pins no actions/* or github/* reference to a commit SHA' PASSED; independently, git diff 789dbec2~1 -- .github/workflows is empty (byte-exact pre-#285 state)"
         },
         {
-          "behavior": "co-location tags (972) attribute to the correct FR",
-          "category": "correctness",
+          "behavior": "2 third-party actions remain SHA-pinned (AC-2)",
           "disposition": "tested",
-          "evidence": "972/972 passed 3 hard gates (exclusive-owner + source-exists + import-verified); 8-FR spot-check (FR-01.35 SmartViewer, FR-01.44 terminal, FR-01.65 command palette, FR-01.64 motion, ...) all correct"
+          "evidence": "ci-action-pinning-posture.test.ts 'pins EVERY third-party reference to a full 40-char commit SHA' PASSED (asserted positively, so a too-greedy unpin fails loudly)"
         },
         {
-          "behavior": "self-listing tags (20) attribute to the correct FR",
-          "category": "correctness",
+          "behavior": ".github/dependabot.yml is absent (AC-3)",
           "disposition": "tested",
-          "evidence": "exclusive spec-listing of the test file; raised e2e-layer coverage 2 -> 8; spot-check reduced-motion-final-state.spec.ts -> FR-01.64"
+          "evidence": "ci-action-pinning-posture.test.ts 'has no .github/dependabot.yml' — RED before the change, PASSED after"
         },
         {
-          "behavior": "the manifest binds the tags with a layer-aware RTM",
-          "category": "integration",
+          "behavior": "SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS stays enabled (AC-4)",
           "disposition": "tested",
-          "evidence": "test-traceability.json schema v2: 1038 bindings, 24/29 survivor FRs (post-#287 remap), by-layer unit 1030 / e2e 8; total reconciles to 47+972+20-1 enumeration delta"
+          "evidence": "ci-action-pinning-posture.test.ts 'keeps SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS enabled' PASSED"
         },
         {
-          "behavior": "strict D-orphan fires on a tag pointing at a removed/absent FR",
-          "category": "correctness",
+          "behavior": "All 6 restored workflows remain valid YAML",
           "disposition": "tested",
-          "evidence": "live proof on webui: synthetic @covers FR-01.99 -> D-orphan status=fail severity=MEDIUM (fr_absent); after deleting the temp file -> status=pass, orphans=0"
+          "evidence": "yaml.safe_load pre-flight over .github/workflows/*.yml -> ALL VALID, 12 jobs. No committed regression test: neither workspace has a YAML parser and GitHub rejects invalid workflow YAML anyway (see behavior 6)"
         },
         {
-          "behavior": "tags are behaviour-neutral and product source is byte-stable",
-          "category": "correctness",
+          "behavior": "Workflows still execute correctly under mutable tags",
           "disposition": "tested",
-          "evidence": "git diff origin/main touches only *.test/*.spec + config + .shipwright/*; tsc --noEmit clean (both workspaces); full suite 4940 passed / 0 failed (same counts as baseline)"
+          "evidence": "this PR's own CI run — all jobs green except the expected 'PR Review' policy failure on any .github/workflows/* change"
         },
         {
-          "behavior": "the signal-e discovery logic produces only correct tags (no wrong/fabricated attribution)",
-          "category": "correctness",
+          "behavior": ".trivyignore.yaml entry parses and registers (AC-6)",
           "disposition": "tested",
-          "evidence": "every one of the 992 signal-e outputs is gated (exclusive-owner + exists + import) and the written total reconciles exactly to the manifest binding count; independent code-review over the prototype + a sample of tagged files"
+          "evidence": "probe against the SHIPPED consumer: parse_accepted_risks(root, now=2026-07-18) -> 1 row, id semgrep:github-actions-mutable-action-tag, expired_at parsed as a date, expired=False"
         },
         {
-          "behavior": "tags reconcile to the post-#287 survivor taxonomy (no orphans after the FR-taxonomy-regroup fold)",
-          "category": "correctness",
+          "behavior": "The re-review alarm actually fires once past expired_at",
           "disposition": "tested",
-          "evidence": "after merging #287 the manifest showed 419 fr_absent orphans on 22 folded IDs (D-orphan FAIL, empirically observed); remapped every @covers FR-<folded> -> its survivor via the spec's own FR-Fold-Map (419 remaps / 57 files); re-regen -> orphans=0, D-orphan PASS, 1038 bindings preserved, 24/29 survivor capabilities; server 2245+1skip / client 2695 green post-remap; tsc clean"
+          "evidence": "same consumer with now=2027-07-19 -> expired=True; boundary probe confirms it expires strictly AFTER the date. Verified by injecting a future now, not by waiting"
+        },
+        {
+          "behavior": "ADR records the posture, asymmetry and supersession (AC-5)",
+          "disposition": "untestable",
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "prose adequacy is a review judgment; presence and field structure are covered by the F11 ADR checks"
+        },
+        {
+          "behavior": "Returning mutable-tag code-scanning alerts dismissed (AC-8)",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "GitHub alert state, and the alerts cannot exist until main carries the revert — post-merge API read-back is the evidence. Pre-merge inventory already measured: Semgrep 1 (self-resolving), Scorecard 35 (orphaned, out of scope)"
+        },
+        {
+          "behavior": "PR #286 closed as obsolete (AC-9)",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "GitHub PR state; post-merge API read-back. Dependabot may close it itself once its config is gone"
+        },
+        {
+          "behavior": "Monorepo triage item filed for the framework follow-up (AC-10)",
+          "disposition": "tested",
+          "evidence": "PASS — triage.read_all_items(C:/01_Development/shipwright) returns exactly 1 item with dedupKey=ci-supplychain-guardrails-and-acceptance-surfacing: trg-9509c2e8, status=triage, severity=medium, kind=improvement, launchPayload present. The read-back earned its place: the first attempt reported FAIL because the append API takes dedup_key (snake_case) while read_all_items normalizes to dedupKey (camelCase) — a bug in the assertion, not the write. It also revealed the item routes to the TRACKED triage.jsonl here, not the gitignored outbox"
         }
       ]
     },
-    "degraded": [
-      {
-        "condition": "worktree_relocated_out_of_dot_worktrees",
-        "detail": "The shared backfill writer prunes any '.worktrees/' path (ancestor path.parts match), so the mandated iterate worktree was relocated to C:/01_Development/wt-traceability-retrofit to run the tag writer. Pointer in .shipwright/iterate_active/ records the relocation. Framework follow-on filed (prune by descent)."
-      }
-    ]
+    "degraded": []
   }
 }
