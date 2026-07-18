@@ -53,7 +53,7 @@ beforeEach(() => {
 });
 
 describe("ActionsConfigRow", () => {
-  // @covers FR-01.40
+  // @covers FR-01.27
   it("renders the project name + path by default (Settings page layout)", async () => {
     renderRow({});
     expect(await screen.findByTestId("actions-config-row-p1")).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe("ActionsConfigRow", () => {
     expect(screen.getByTestId("actions-config-reset-p1")).toBeInTheDocument();
   });
 
-  // @covers FR-01.40
+  // @covers FR-01.27
   it("hideProjectHeader omits the name + path but keeps badge + controls", async () => {
     renderRow({ hideProjectHeader: true });
     expect(await screen.findByTestId("actions-config-row-p1")).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe("ActionsConfigRow", () => {
     expect(screen.getByTestId("actions-config-reset-p1")).toBeInTheDocument();
   });
 
-  // @covers FR-01.40
+  // @covers FR-01.27
   it("shows the Custom badge once the actions query resolves with fromUser", async () => {
     renderRow({ hideProjectHeader: true });
     await waitFor(() =>

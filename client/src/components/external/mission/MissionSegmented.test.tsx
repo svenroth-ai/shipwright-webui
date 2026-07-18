@@ -19,7 +19,7 @@ function setup(value: V = "a") {
 }
 
 describe("MissionSegmented", () => {
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("is a radiogroup (NOT a tablist) so it never collides with getByRole('tab')", () => {
     setup();
     expect(screen.getByRole("radiogroup", { name: "Pick one" })).toBeInTheDocument();
@@ -29,7 +29,7 @@ describe("MissionSegmented", () => {
     expect(screen.queryAllByRole("tab")).toHaveLength(0);
   });
 
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("marks only the selected option checked, with roving tabindex", () => {
     setup("b");
     const a = screen.getByTestId("seg-a");
@@ -40,14 +40,14 @@ describe("MissionSegmented", () => {
     expect(a).toHaveAttribute("tabindex", "-1");
   });
 
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("clicking an option selects it", () => {
     const { onChange } = setup("a");
     fireEvent.click(screen.getByTestId("seg-c"));
     expect(onChange).toHaveBeenCalledWith("c");
   });
 
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("ArrowRight/ArrowDown move to the next option (wrapping)", () => {
     const { onChange } = setup("c");
     const group = screen.getByRole("radiogroup");
@@ -55,7 +55,7 @@ describe("MissionSegmented", () => {
     expect(onChange).toHaveBeenCalledWith("a"); // wraps c → a
   });
 
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("ArrowLeft/ArrowUp move to the previous option (wrapping)", () => {
     const { onChange } = setup("a");
     const group = screen.getByRole("radiogroup");
@@ -63,7 +63,7 @@ describe("MissionSegmented", () => {
     expect(onChange).toHaveBeenCalledWith("c"); // wraps a → c
   });
 
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("Home/End jump to the first/last option", () => {
     const { onChange } = setup("b");
     const group = screen.getByRole("radiogroup");
@@ -73,7 +73,7 @@ describe("MissionSegmented", () => {
     expect(onChange).toHaveBeenCalledWith("c");
   });
 
-  // @covers FR-01.57
+  // @covers FR-01.66
   it("the ft-seg variant adds the .ft-seg class A18 reuses", () => {
     render(
       <MissionSegmented

@@ -28,7 +28,7 @@ function setup(node: RecordNodeView = SPEC_NODE) {
 }
 
 describe("ArtifactPanel", () => {
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("renders the node kind, artifact name and honest caption", () => {
     setup();
     const panel = screen.getByTestId("artifact-panel");
@@ -38,41 +38,41 @@ describe("ArtifactPanel", () => {
     expect(screen.getByText(/definition of done/i)).toBeInTheDocument();
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("a node with no evidence shows an honest empty title, not a fabricated value", () => {
     setup(EMPTY_COMMIT);
     expect(screen.getByRole("heading", { name: "No run data yet" })).toBeInTheDocument();
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("the close button fires onClose", () => {
     const { onClose } = setup();
     fireEvent.click(screen.getByTestId("artifact-close"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("Escape closes the panel", () => {
     const { onClose } = setup();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("the scrim closes the panel (compact slide-over fallback)", () => {
     const { onClose } = setup();
     fireEvent.click(screen.getByTestId("artifact-scrim"));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("'Open full document' routes to the existing viewer", () => {
     const { onOpenDocument } = setup();
     fireEvent.click(screen.getByTestId("artifact-open-document"));
     expect(onOpenDocument).toHaveBeenCalledTimes(1);
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("focuses the close control on open and restores focus to the trigger on unmount", () => {
     const trigger = document.createElement("button");
     document.body.appendChild(trigger);
@@ -91,7 +91,7 @@ describe("ArtifactPanel", () => {
     trigger.remove();
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("switching nodes updates the focus-return target (A→B closes back to B, not A)", () => {
     const triggerA = document.createElement("button");
     const triggerB = document.createElement("button");

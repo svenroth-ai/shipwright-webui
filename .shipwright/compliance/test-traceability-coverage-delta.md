@@ -13,13 +13,35 @@
 | Test cases scanned (`server/src` + `client/src` + `client/e2e`) | 4815 |
 | **Test cases tagged → FR (manifest bindings)** | **1038** (≈ 21.6 %) |
 | Test **files** tagged | 116 |
-| **FRs with ≥1 tagged test** | **40 / 66** (61 %) |
+| **FRs with ≥1 tagged test** | **24 / 29** survivor capabilities (post-#287 remap — see *Reconciliation*) |
 | Bindings by layer | unit 1030 · e2e 8 · integration 0 |
 | Real orphans (tag → removed/absent FR) | **0** |
-| Untagged residue | 506 files / 3776 cases (see *Residue*) |
+| Untagged residue | see *Residue* (derived pre-#287) |
 
 The tags were produced by **three deterministic, zero-human-review signals** (no LLM guessing,
 no "review-later" backlog). Every tag is correct by construction — see *Signals*.
+
+## Reconciliation with #287 (FR taxonomy regroup)
+
+**This retrofit was built against the pre-#287 spec (66 granular FRs, with a per-FR source-file
+column). While it was in flight, the planned iterate `iterate-2026-07-17-fr-taxonomy-regroup`
+merged to `main` (#287)**, folding those 66 FRs into **29 capability rows** and moving the 37
+folded IDs into a `## FR-Fold-Map` alias table (and dropping the per-FR file-list column the
+co-location signal had used).
+
+Empirically confirmed after merging #287: **22 of the 40 tagged FRs are folded**, and the
+`test_links` collector is **not fold-aware**, so those tags produced **419 `fr_absent` orphans**
+and `D-orphan` FAILED. Resolution (this run): every `@covers FR-<folded>` was rewritten to its
+survivor via the spec's own fold-map — **419 remaps across 57 files**, deterministic, e.g.
+`FR-01.44`(terminal-appearance)`→FR-01.28`(Embedded terminal), the five Mission FRs
+`FR-01.54/55/56/57/67 → FR-01.66`. After the remap + manifest regen: **orphans = 0**, `D-orphan`
+PASS, **1038 bindings preserved**, **24 / 29 survivor capabilities covered**. The granularity that
+collapsed is exactly the granularity #287 deliberately folded — the tags now speak the current
+taxonomy. Product source stayed byte-stable throughout.
+
+**The detailed derivation below (signal counts, per-FR spot-checks, residue) is recorded as
+originally computed against the pre-#287 spec** (the co-location prototype cannot re-run against
+the current spec — it has no per-FR file lists); the reconciled totals above are authoritative.
 
 ## Provenance (reproducible)
 
@@ -164,3 +186,9 @@ above (synthetic `FR-01.99`) is the current demonstration that it fires.
    `scrollback-store.test.ts`); their `current` was bumped, referencing this run_id (the
    existing-exception convention). The shared anti-ratchet hook should not count
    `// @covers FR` metadata lines toward the LOC ceiling, so future retrofits don't trip it.
+5. **Fold-aware traceability tooling** (monorepo — the #287 collision root cause). The
+   `test_links` collector + `D-orphan` read only the survivor FR-table rows, so a `@covers`
+   tag on a folded ID is flagged `fr_absent` (this run: 419 such orphans until remapped). The
+   collector/detector should resolve a tagged ID through `## FR-Fold-Map` to its survivor
+   (identity for a survivor) before deciding orphanhood — so a retrofit's granular tags survive
+   a later taxonomy fold instead of hard-breaking. Until then, tags MUST use survivor IDs.

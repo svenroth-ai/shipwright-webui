@@ -35,7 +35,7 @@ function flushDebounce() {
 }
 
 describe("useThreePaneLayout — defaults + seeding", () => {
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("initialises to defaults when no keys set", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     expect(result.current.leftWidth).toBe(DEFAULT_LEFT);
@@ -44,7 +44,7 @@ describe("useThreePaneLayout — defaults + seeding", () => {
     expect(result.current.rightCollapsed).toBe(false);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("reads seeded values from localStorage on mount", () => {
     localStorage.setItem(STORAGE_KEYS.leftWidth, JSON.stringify(300));
     localStorage.setItem(STORAGE_KEYS.rightWidth, JSON.stringify(520));
@@ -58,7 +58,7 @@ describe("useThreePaneLayout — defaults + seeding", () => {
     expect(result.current.rightCollapsed).toBe(false);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("falls back to defaults when localStorage has invalid JSON", () => {
     localStorage.setItem(STORAGE_KEYS.leftWidth, "not-json");
     localStorage.setItem(STORAGE_KEYS.rightWidth, "{broken");
@@ -72,7 +72,7 @@ describe("useThreePaneLayout — defaults + seeding", () => {
     expect(result.current.rightCollapsed).toBe(false);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("clamps out-of-range localStorage values", () => {
     localStorage.setItem(STORAGE_KEYS.leftWidth, JSON.stringify(9999));
     localStorage.setItem(STORAGE_KEYS.rightWidth, JSON.stringify(50));
@@ -83,7 +83,7 @@ describe("useThreePaneLayout — defaults + seeding", () => {
 });
 
 describe("useThreePaneLayout — mutations", () => {
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("setLeftWidth clamps + debounces the localStorage write", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -96,7 +96,7 @@ describe("useThreePaneLayout — mutations", () => {
     expect(localStorage.getItem(STORAGE_KEYS.leftWidth)).toBe("320");
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("setLeftWidth clamps values above max", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -105,7 +105,7 @@ describe("useThreePaneLayout — mutations", () => {
     expect(result.current.leftWidth).toBe(LEFT_MAX);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("setLeftWidth clamps values below min", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -114,7 +114,7 @@ describe("useThreePaneLayout — mutations", () => {
     expect(result.current.leftWidth).toBe(LEFT_MIN);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("setRightWidth clamps + persists", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -127,7 +127,7 @@ describe("useThreePaneLayout — mutations", () => {
     );
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("nudgeLeft steps 10px and clamps", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     const start = result.current.leftWidth;
@@ -141,7 +141,7 @@ describe("useThreePaneLayout — mutations", () => {
     expect(result.current.leftWidth).toBe(LEFT_MIN);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("nudgeRight steps 10px and clamps", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     const start = result.current.rightWidth;
@@ -155,7 +155,7 @@ describe("useThreePaneLayout — mutations", () => {
     expect(result.current.rightWidth).toBe(RIGHT_MAX);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("toggleLeftCollapsed flips + persists immediately", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     expect(result.current.leftCollapsed).toBe(false);
@@ -172,7 +172,7 @@ describe("useThreePaneLayout — mutations", () => {
     expect(localStorage.getItem(STORAGE_KEYS.leftCollapsed)).toBe("false");
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("toggleRightCollapsed flips + persists immediately", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -184,13 +184,13 @@ describe("useThreePaneLayout — mutations", () => {
 });
 
 describe("useThreePaneLayout — maximize (A18 focus mode)", () => {
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("defaults to not maximized", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     expect(result.current.maximized).toBe(false);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("toggleMaximized flips the transient flag", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -203,7 +203,7 @@ describe("useThreePaneLayout — maximize (A18 focus mode)", () => {
     expect(result.current.maximized).toBe(false);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("does NOT persist to localStorage (a view mode, not a preference)", () => {
     const { result } = renderHook(() => useThreePaneLayout());
     act(() => {
@@ -215,7 +215,7 @@ describe("useThreePaneLayout — maximize (A18 focus mode)", () => {
     expect(keys.some((k) => k.toLowerCase().includes("maxim"))).toBe(false);
   });
 
-  // @covers FR-01.62
+  // @covers FR-01.02
   it("maximize does not clobber the persisted collapse preferences", () => {
     localStorage.setItem(STORAGE_KEYS.leftCollapsed, "true");
     const { result } = renderHook(() => useThreePaneLayout());

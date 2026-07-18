@@ -20,11 +20,16 @@ FRs they cover, build `test-traceability.json`, and prove the orphan detector fi
    (pointer updated). Framework follow-on filed (prune by descent, not ancestor).
 3. **Tags (1039 written / 1038 bound)** via three deterministic, zero-review signals:
    `unique_commit` (47), co-location import-verified (972), self-listing (20).
-4. **Manifest** regenerated — 1038 bindings, 40/66 FRs, layer-aware (unit 1030 / e2e 8).
+4. **Manifest** regenerated — 1038 bindings, 24/29 survivor FRs, layer-aware (unit 1030 / e2e 8).
 5. **Live D-orphan proof** — synthetic `@covers FR-01.99` → detector fired MEDIUM → reverted.
 6. **Docs** — `.shipwright/compliance/test-traceability-coverage-delta.md` (durable record +
    residue flag + five-target accounting + follow-on handoffs); signal-e prototype preserved at
    `.shipwright/compliance/tools/signal_e_colocation.py`.
+7. **#287 reconciliation** — the FR-taxonomy-regroup iterate (#287) merged to `main` mid-flight,
+   folding 66 FRs → 29 capabilities. Empirically, 22 tagged FRs were folded → 419 `fr_absent`
+   orphans (collector not fold-aware). Remapped every `@covers FR-<folded>` → its survivor via
+   the spec's own fold-map (419 remaps / 57 files, deterministic) → orphans 0, D-orphan PASS,
+   1038 bindings preserved, 24/29 survivor capabilities. Fold-aware-tooling follow-on filed.
 
 Residue (506 files / 3776 cases untagged) is **flagged, not can-kicked**: 483 files are ambiguous
 (shared-across-FR dirs — a spec-granularity limit), 23 have no structural signal. Not filed as

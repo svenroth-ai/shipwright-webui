@@ -22,7 +22,7 @@ function PortalConsumer() {
 }
 
 describe("MobileTopBarSlot (AC-1)", () => {
-  // @covers FR-01.41
+  // @covers FR-01.38
   it("publishes the slot element so a portal consumer renders INTO it", async () => {
     render(
       <MobileTopBarSlotProvider>
@@ -34,7 +34,7 @@ describe("MobileTopBarSlot (AC-1)", () => {
     expect(screen.getByTestId("mobile-topbar-slot")).toContainElement(injected);
   });
 
-  // @covers FR-01.41
+  // @covers FR-01.38
   it("returns null outside a provider (no crash)", () => {
     function Bare() {
       const ctx = useMobileTopBarSlot();

@@ -17,7 +17,7 @@ function byKey(nodes: ReturnType<typeof deriveRecordNodes>) {
 }
 
 describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("a full run, done → all five nodes done with honest receipts", () => {
     const nodes = deriveRecordNodes({ missionState: "done", facts: FULL });
     expect(nodes.map((n) => n.key)).toEqual(["req", "spec", "tests", "review", "commit"]);
@@ -30,7 +30,7 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
     expect(k.commit.receipt).toBe("abc1234"); // 7-char sha, never the literal "feat"
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("mid-run with a FAILING gate → Review is NOT done and shows no 'clean' receipt", () => {
     const nodes = deriveRecordNodes({
       missionState: "live",
@@ -43,7 +43,7 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
     expect(k.review.receipt).toBe("held");
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("a run with NO commit → Commit is pending with no receipt (never the literal 'feat')", () => {
     const nodes = deriveRecordNodes({
       missionState: "done",
@@ -55,7 +55,7 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
     expect(nodes.some((n) => n.receipt === "feat")).toBe(false);
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("design-gate state → still five nodes; the Design step is 'now', nothing downstream done", () => {
     const nodes = deriveRecordNodes({
       missionState: "designgate",
@@ -75,7 +75,7 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
     expect(k.review.receipt).toBeNull();
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("NO run data at all → every node pending, no fabricated receipts", () => {
     const nodes = deriveRecordNodes({ missionState: "done", facts: null });
     expect(nodes).toHaveLength(5);
@@ -83,7 +83,7 @@ describe("deriveRecordNodes — honest, state-derived (Fable B3)", () => {
     expect(nodes.every((n) => n.receipt === null)).toBe(true);
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("tests present but RED → the tests node is not done (stays the live frontier)", () => {
     const nodes = deriveRecordNodes({
       missionState: "live",

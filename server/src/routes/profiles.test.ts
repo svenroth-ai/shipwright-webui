@@ -20,7 +20,7 @@ function setup(opts: {
 }
 
 describe("Profiles routes", () => {
-  // @covers FR-01.23
+  // @covers FR-01.03
   it("GET /api/profiles lists profile JSON files", async () => {
     const { app } = setup({
       files: ["a.json", "b.json"],
@@ -37,7 +37,7 @@ describe("Profiles routes", () => {
     expect(body.data[1].name).toBe("b");
   });
 
-  // @covers FR-01.23
+  // @covers FR-01.03
   it("returns profiles sorted alphabetically", async () => {
     const { app } = setup({
       files: ["zebra.json", "alpha.json", "mike.json"],
@@ -53,7 +53,7 @@ describe("Profiles routes", () => {
     expect(names).toEqual(["alpha", "mike", "zebra"]);
   });
 
-  // @covers FR-01.23
+  // @covers FR-01.03
   it("ignores files starting with _", async () => {
     const { app } = setup({
       files: ["good.json", "_internal.json", "_disabled.json"],
@@ -69,7 +69,7 @@ describe("Profiles routes", () => {
     expect(body.data[0].name).toBe("good");
   });
 
-  // @covers FR-01.23
+  // @covers FR-01.03
   it("skips malformed JSON without 500ing", async () => {
     const { app } = setup({
       files: ["good.json", "broken.json"],

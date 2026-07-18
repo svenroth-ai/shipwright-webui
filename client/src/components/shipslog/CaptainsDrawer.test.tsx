@@ -30,7 +30,7 @@ const OK = (dimensions: ComplianceDimension[]): ComplianceResponse => ({
 beforeEach(() => complianceMock.mockReset());
 
 describe("CaptainsDrawer", () => {
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("renders sub-scores WHEN the reader parsed the dimension table", () => {
     complianceMock.mockReturnValue({
       data: OK([
@@ -47,7 +47,7 @@ describe("CaptainsDrawer", () => {
     expect(screen.getByTestId("captains-drawer-eyebrow").textContent).toContain("98/100");
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("renders NO bars at all when the table was NOT parsed (dimensions empty)", () => {
     complianceMock.mockReturnValue({ data: OK([]) });
     render(<CaptainsDrawer projectId="p1" />);
@@ -55,7 +55,7 @@ describe("CaptainsDrawer", () => {
     expect(screen.queryByTestId("captains-drawer-subs")).toBeNull();
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("ungraded (missing dashboard) → honest strip, no ring, data-graded=false", () => {
     complianceMock.mockReturnValue({ data: { status: "missing" } });
     render(<CaptainsDrawer projectId="p1" />);
@@ -64,7 +64,7 @@ describe("CaptainsDrawer", () => {
     expect(screen.queryByTestId("captains-drawer-why")).toBeNull();
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("'Why an A?' opens the real control record modal", async () => {
     complianceMock.mockReturnValue({ data: OK([]) });
     render(<CaptainsDrawer projectId="p1" />);

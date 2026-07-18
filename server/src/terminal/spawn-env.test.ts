@@ -31,7 +31,7 @@ import { describe, expect, it } from "vitest";
 import { buildSpawnEnv } from "./spawn-env.js";
 
 describe("buildSpawnEnv — strip webui operational network vars (F17, D12)", () => {
-  // @covers FR-01.44
+  // @covers FR-01.28
   it("strips PORT inherited from the webui server's own env (the collision trigger)", () => {
     // The production launchers stamp PORT=3847; without the strip a
     // PORT-honouring dev server started in the embedded terminal would
@@ -44,7 +44,7 @@ describe("buildSpawnEnv — strip webui operational network vars (F17, D12)", ()
     expect("PORT" in env).toBe(false);
   });
 
-  // @covers FR-01.44
+  // @covers FR-01.28
   it("strips VITE_PORT and HONO_HOST too (sibling network vars)", () => {
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin",
@@ -58,7 +58,7 @@ describe("buildSpawnEnv — strip webui operational network vars (F17, D12)", ()
     expect("HONO_HOST" in env).toBe(false);
   });
 
-  // @covers FR-01.44
+  // @covers FR-01.28
   it("a caller-supplied env cannot re-leak the network vars", () => {
     // Symmetric to the parent-session-marker strip: the delete runs AFTER
     // the caller merge, so neither the base env nor the caller can seed a
@@ -78,7 +78,7 @@ describe("buildSpawnEnv — strip webui operational network vars (F17, D12)", ()
     expect(env.KEEP_ME).toBe("yes");
   });
 
-  // @covers FR-01.44
+  // @covers FR-01.28
   it("leaves unrelated vars untouched (surgical strip, not a blanket sweep)", () => {
     const baseEnv: Record<string, string | undefined> = {
       PATH: "/usr/bin:/bin",
@@ -96,7 +96,7 @@ describe("buildSpawnEnv — strip webui operational network vars (F17, D12)", ()
     expect("PORT" in env).toBe(false);
   });
 
-  // @covers FR-01.44
+  // @covers FR-01.28
   it("keeps the other spawn-env contracts intact while stripping ports", () => {
     // Regression fence: the network-var strip must not disturb the
     // SHIPWRIGHT_WEBUI marker, the CLAUDE_CODE_NO_FLICKER default-ON, or
@@ -122,7 +122,7 @@ describe("buildSpawnEnv — strip webui operational network vars (F17, D12)", ()
     expect("CLAUDECODE" in env).toBe(false);
   });
 
-  // @covers FR-01.44
+  // @covers FR-01.28
   it("leaves the webui's OWN config knobs (non-network SHIPWRIGHT_*) inheritable", () => {
     // Audit disposition (external review medium, plan + code): the finding is
     // a NETWORK-bind collision. config.ts's other SHIPWRIGHT_* consumers are

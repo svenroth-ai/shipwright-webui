@@ -29,7 +29,7 @@ function chipValue(testid: string): string {
 }
 
 describe("Instruments", () => {
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("renders live values when A01/A02 + compliance data are present", () => {
     complianceMock.mockReturnValue({
       data: { status: "ok", grade: "A", score: 92 } as ComplianceResponse,
@@ -46,7 +46,7 @@ describe("Instruments", () => {
     expect(chipValue("instr-serves")).toBe("FR-01.55");
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("renders an honest empty state (never a fabricated number) without run data", () => {
     complianceMock.mockReturnValue({ data: { status: "missing" } });
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } });
@@ -57,7 +57,7 @@ describe("Instruments", () => {
     expect(screen.getByTestId("instr-tests")).toHaveAttribute("data-empty", "true");
   });
 
-  // @covers FR-01.55
+  // @covers FR-01.66
   it("degrades each chip independently — grade can be real while the run is absent", () => {
     complianceMock.mockReturnValue({
       data: { status: "ok", grade: "B", score: 80 } as ComplianceResponse,

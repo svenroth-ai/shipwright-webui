@@ -50,7 +50,7 @@ async function makeStore() {
 }
 
 describe("cascadeDeleteProjectTasks", () => {
-  // @covers FR-01.25
+  // @covers FR-01.03
   it("removes exactly the matching tasks, keeps the rest, returns the count", async () => {
     const { store } = await makeStore();
     const a = store.create({ title: "a", cwd: "/c", projectId: "p-doomed" });
@@ -79,7 +79,7 @@ describe("cascadeDeleteProjectTasks", () => {
     expect(snapshot.sort()).toEqual([a.taskId, b.taskId].sort());
   });
 
-  // @covers FR-01.25
+  // @covers FR-01.03
   it("returns 0 and performs no cleanup when nothing matches", async () => {
     const { store } = await makeStore();
     store.create({ title: "c", cwd: "/c", projectId: "p-keep" });
@@ -95,7 +95,7 @@ describe("cascadeDeleteProjectTasks", () => {
     expect(store.list()).toHaveLength(1);
   });
 
-  // @covers FR-01.25
+  // @covers FR-01.03
   it("persists the removal so it survives a reload", async () => {
     const { store, deps } = await makeStore();
     store.create({ title: "a", cwd: "/c", projectId: "p-doomed" });
@@ -107,7 +107,7 @@ describe("cascadeDeleteProjectTasks", () => {
     expect(reloaded.list().map((t) => t.taskId)).toEqual([keep.taskId]);
   });
 
-  // @covers FR-01.25
+  // @covers FR-01.03
   it("is best-effort: a throwing cleanup callback neither rejects nor aborts the delete", async () => {
     const { store } = await makeStore();
     store.create({ title: "a", cwd: "/c", projectId: "p-doomed" });
@@ -144,7 +144,7 @@ describe("cascadeDeleteProjectTasks", () => {
 // ---------------------------------------------------------------------------
 
 describe("cascadeDeleteProjectTasks — kills each pty before clears (D01/F01 Guard 2 RED)", () => {
-  // @covers FR-01.25
+  // @covers FR-01.03
   it("invokes ptyKillBestEffort BEFORE scrollback + snapshot clears for a doomed task", async () => {
     const { store } = await makeStore();
     const a = store.create({ title: "a", cwd: "/c", projectId: "p-doomed" });

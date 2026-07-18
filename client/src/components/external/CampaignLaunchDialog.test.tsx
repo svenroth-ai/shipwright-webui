@@ -35,7 +35,7 @@ function renderDialog(props: Partial<CampaignLaunchDialogProps> = {}) {
 }
 
 describe("CampaignLaunchDialog (AC2)", () => {
-  // @covers FR-01.61
+  // @covers FR-01.10
   it("shows WHAT (step · title · spec path), WHERE (project · cwd), and the verbatim command", () => {
     renderDialog();
     expect(screen.getByTestId("campaign-step-what-camp")).toHaveTextContent("B1");
@@ -45,14 +45,14 @@ describe("CampaignLaunchDialog (AC2)", () => {
     expect(screen.getByTestId("campaign-step-command-camp")).toHaveTextContent('/shipwright-iterate ".s/B1.md"');
   });
 
-  // @covers FR-01.61
+  // @covers FR-01.10
   it("confirm fires onConfirm; the dialog itself creates nothing", () => {
     const { onConfirm } = renderDialog();
     fireEvent.click(screen.getByTestId("campaign-step-confirm-camp"));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  // @covers FR-01.61
+  // @covers FR-01.10
   it("autonomous variant lists the remaining sub-iterates by name + says it won't ask again", () => {
     renderDialog({
       variant: "autonomous",
@@ -67,7 +67,7 @@ describe("CampaignLaunchDialog (AC2)", () => {
     expect(remaining).toHaveTextContent(/will not ask again/i);
   });
 
-  // @covers FR-01.61
+  // @covers FR-01.10
   it("a risky pending step gates confirm behind the ack (confirmDisabled)", () => {
     renderDialog({
       variant: "autonomous",
@@ -79,7 +79,7 @@ describe("CampaignLaunchDialog (AC2)", () => {
     expect(screen.getByTestId("campaign-autonomous-confirm-camp")).toBeDisabled();
   });
 
-  // @covers FR-01.61
+  // @covers FR-01.10
   it("renders a failure notice (with retry) when a launch was rejected", () => {
     const onRetry = vi.fn();
     renderDialog({

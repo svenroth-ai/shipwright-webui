@@ -23,7 +23,7 @@ function result(over: Partial<DesignScreensResult>): DesignScreensResult {
 afterEach(() => screensMock.mockReset());
 
 describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () => {
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("renders one card per pending screen, with FR id + name", () => {
     screensMock.mockReturnValue(result({ screens: SCREENS }));
     render(<DesignGateGallery projectId="p1" onOpenPreview={() => {}} />);
@@ -35,7 +35,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     expect(screen.getByText("settings")).toBeInTheDocument();
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("each card is a REAL hosted preview iframe (not a dead thumbnail)", () => {
     screensMock.mockReturnValue(result({ screens: SCREENS }));
     render(<DesignGateGallery projectId="p1" onOpenPreview={() => {}} />);
@@ -47,7 +47,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     );
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("clicking a card opens the real preview (onOpenPreview)", () => {
     const onOpen = vi.fn();
     screensMock.mockReturnValue(result({ screens: SCREENS }));
@@ -57,7 +57,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("gate open + zero screens → honest empty state, NEVER a fabricated grid", () => {
     screensMock.mockReturnValue(result({ screens: [], isResolved: true }));
     render(<DesignGateGallery projectId="p1" onOpenPreview={() => {}} />);
@@ -67,7 +67,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     expect(screen.getByTestId("design-gate-empty")).toHaveTextContent(/no previews were emitted/i);
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("a REAL load failure → an honest 'couldn't load' state, NOT 'no previews'", () => {
     screensMock.mockReturnValue(result({ screens: [], isResolved: true, isError: true }));
     render(<DesignGateGallery projectId="p1" onOpenPreview={() => {}} />);
@@ -79,7 +79,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     expect(screen.getByTestId("mission-line")).toHaveTextContent("Screens are ready for your eyes.");
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("a screen row with no file → an honest per-card placeholder, not a fake thumb", () => {
     screensMock.mockReturnValue(
       result({
@@ -92,7 +92,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     expect(screen.queryByTestId("design-gate-screen-frame")).not.toBeInTheDocument();
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("mission-line count comes from the narrator (2 screens → the plural line)", () => {
     screensMock.mockReturnValue(result({ screens: SCREENS }));
     render(<DesignGateGallery projectId="p1" onOpenPreview={() => {}} />);
@@ -104,7 +104,7 @@ describe("DesignGateGallery — real previews, honest empty (A14, AC5/AC7)", () 
     );
   });
 
-  // @covers FR-01.58
+  // @covers FR-01.45
   it("while the manifest is still loading, the count is DROPPED (never guessed)", () => {
     screensMock.mockReturnValue(result({ screens: [], isResolved: false, isLoading: true }));
     render(<DesignGateGallery projectId="p1" onOpenPreview={() => {}} />);

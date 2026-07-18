@@ -88,7 +88,7 @@ beforeEach(() => {
 });
 
 describe("ShipsLogPage", () => {
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("composes the drawer + promptbox + graduation + logbook with a Ship's-Log header", () => {
     renderPage();
     expect(screen.getByTestId("ships-log-page")).toBeInTheDocument();
@@ -100,14 +100,14 @@ describe("ShipsLogPage", () => {
     expect(screen.getByTestId("stub-logbook")).toBeInTheDocument();
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("passes the EARLIEST run date as the graduation baseline", () => {
     renderPage();
     // runs are ts-desc [r2=Jul12, r1=Jul5]; the baseline is the earliest (Jul 5).
     expect(screen.getByTestId("stub-graduation")).toHaveAttribute("data-date", "2026-07-05T00:00:00Z");
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("'Open board' escapes to the board filtered by this project", async () => {
     renderPage();
     await userEvent.click(screen.getByTestId("ships-log-open-board"));
@@ -115,13 +115,13 @@ describe("ShipsLogPage", () => {
     expect(screen.getByTestId("loc")).toHaveTextContent("/?projectId=p1");
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("'Open board' uses the standard .btn-primary button (Sven 2026-07-17, AC8)", () => {
     renderPage();
     expect(screen.getByTestId("ships-log-open-board")).toHaveClass("btn-primary");
   });
 
-  // @covers FR-01.60
+  // @covers FR-01.59
   it("unknown project → honest not-found, no fabricated logbook", () => {
     projectsMock.mockReturnValue({ data: [], isLoading: false });
     renderPage("ghost");

@@ -17,7 +17,7 @@ function setup(existing?: string) {
 }
 
 describe("Settings Routes", () => {
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("GET /api/settings returns defaults when no file", async () => {
     const { app } = setup();
     const res = await app.request("/api/settings");
@@ -27,7 +27,7 @@ describe("Settings Routes", () => {
     expect(body.data.maxConcurrent).toBe(3);
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings persists and returns updated", async () => {
     const { app } = setup();
     const res = await app.request("/api/settings", {
@@ -41,7 +41,7 @@ describe("Settings Routes", () => {
     expect(body.data.port).toBe(3847); // default preserved
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings merges with existing", async () => {
     const { app } = setup(JSON.stringify({ maxConcurrent: 5, defaultAutonomy: "autonomous" }));
     const res = await app.request("/api/settings", {
@@ -55,7 +55,7 @@ describe("Settings Routes", () => {
     expect(body.data.defaultAutonomy).toBe("autonomous"); // preserved from existing
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("GET /api/settings reads existing file", async () => {
     const { app } = setup(JSON.stringify({ maxConcurrent: 7, defaultProfile: "supabase-nextjs" }));
     const res = await app.request("/api/settings");
@@ -65,7 +65,7 @@ describe("Settings Routes", () => {
     expect(body.data.defaultProfile).toBe("supabase-nextjs");
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings with phaseToStatusMapping persists it", async () => {
     const { app, storage } = setup();
     const mapping = { project: "backlog", build: "in_progress", test: "in_review", deploy: "done" };
@@ -82,7 +82,7 @@ describe("Settings Routes", () => {
     expect(written.phaseToStatusMapping).toEqual(mapping);
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings with defaultAutonomy persists it", async () => {
     const { app } = setup();
     const res = await app.request("/api/settings", {
@@ -96,7 +96,7 @@ describe("Settings Routes", () => {
   });
 
   // Iterate 14.8.2 — defaultModel + defaultMode
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("GET /api/settings returns defaultModel when persisted", async () => {
     const { app } = setup(JSON.stringify({ defaultModel: "claude-opus-4-6" }));
     const res = await app.request("/api/settings");
@@ -105,7 +105,7 @@ describe("Settings Routes", () => {
     expect(body.data.defaultModel).toBe("claude-opus-4-6");
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("GET /api/settings returns defaultMode when persisted", async () => {
     const { app } = setup(JSON.stringify({ defaultMode: "acceptEdits" }));
     const res = await app.request("/api/settings");
@@ -114,7 +114,7 @@ describe("Settings Routes", () => {
     expect(body.data.defaultMode).toBe("acceptEdits");
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings with defaultModel persists and returns it", async () => {
     const { app, storage } = setup();
     const res = await app.request("/api/settings", {
@@ -129,7 +129,7 @@ describe("Settings Routes", () => {
     expect(written.defaultModel).toBe("claude-sonnet-4-6");
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings with defaultMode persists and returns it", async () => {
     const { app, storage } = setup();
     const res = await app.request("/api/settings", {
@@ -144,7 +144,7 @@ describe("Settings Routes", () => {
     expect(written.defaultMode).toBe("plan");
   });
 
-  // @covers FR-01.26
+  // @covers FR-01.06
   it("PUT /api/settings with both defaultModel and defaultMode together", async () => {
     const { app } = setup();
     const res = await app.request("/api/settings", {

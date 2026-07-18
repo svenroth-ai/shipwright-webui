@@ -34,7 +34,7 @@ function renderDropdown(props: { fluid?: boolean } = {}) {
 }
 
 describe("ProjectFilterDropdown width (#3)", () => {
-  // @covers FR-01.41
+  // @covers FR-01.38
   it("fluid: content-width capped at 60vw + min-w-0, not full-width", () => {
     const btn = renderDropdown({ fluid: true });
     expect(btn.className).toContain("max-w-[60vw]");
@@ -43,7 +43,7 @@ describe("ProjectFilterDropdown width (#3)", () => {
     expect(btn.className).not.toContain("min-w-[220px]");
   });
 
-  // @covers FR-01.41
+  // @covers FR-01.38
   it("default (non-fluid): keeps the 220px min-width floor", () => {
     const btn = renderDropdown();
     expect(btn.className).toContain("min-w-[220px]");

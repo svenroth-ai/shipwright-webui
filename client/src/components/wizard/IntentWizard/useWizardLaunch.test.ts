@@ -33,7 +33,7 @@ const NEW_REQ = buildNewLaunchRequest(
 describe("launchWizardDoor — New door", () => {
   beforeEach(() => window.sessionStorage.clear());
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("creates project → task → launches with actionId + brief, hands off, navigates (AC3)", async () => {
     const d = deps();
     const res = await launchWizardDoor(NEW_REQ, d);
@@ -71,7 +71,7 @@ describe("launchWizardDoor — New door", () => {
 describe("launchWizardDoor — Adopt door", () => {
   beforeEach(() => window.sessionStorage.clear());
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("launches new-task + adopt phase (→ /shipwright-adopt) with a non-empty brief (AC2/AC3)", async () => {
     const d = deps({
       createProject: vi.fn(async () => ({ id: "proj-2", path: "C:\\work\\api-server" })),
@@ -101,7 +101,7 @@ describe("launchWizardDoor — Adopt door", () => {
 describe("launchWizardDoor — fails CLOSED (never a half-launch)", () => {
   beforeEach(() => window.sessionStorage.clear());
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("create_project_failed → never creates a task or navigates", async () => {
     const d = deps({
       createProject: vi.fn(async () => {
@@ -114,7 +114,7 @@ describe("launchWizardDoor — fails CLOSED (never a half-launch)", () => {
     expect(d.navigate).not.toHaveBeenCalled();
   });
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("create_task_failed → never launches or navigates", async () => {
     const d = deps({
       createTask: vi.fn(async () => {
@@ -127,7 +127,7 @@ describe("launchWizardDoor — fails CLOSED (never a half-launch)", () => {
     expect(d.navigate).not.toHaveBeenCalled();
   });
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("launch_failed (e.g. unknown_action_id) → never navigates", async () => {
     const d = deps({
       launch: vi.fn(async () => {
@@ -144,7 +144,7 @@ describe("launchWizardDoor — fails CLOSED (never a half-launch)", () => {
 describe("sessionStorage handoff — round-trip with the TaskDetailPage consumer", () => {
   beforeEach(() => window.sessionStorage.clear());
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("default handoff writes the exact key + envelope TaskDetailPage reads", async () => {
     const d = deps({ handoff: undefined });
     await launchWizardDoor(NEW_REQ, d);
@@ -158,7 +158,7 @@ describe("sessionStorage handoff — round-trip with the TaskDetailPage consumer
     expect(typeof parsed.ts).toBe("number");
   });
 
-  // @covers FR-01.52
+  // @covers FR-01.51
   it("writePendingAutoLaunch is a no-op-safe producer (privacy mode swallows errors)", () => {
     // The producer must never throw even if sessionStorage is unavailable.
     expect(() => writePendingAutoLaunch("tX", COMMANDS)).not.toThrow();

@@ -46,11 +46,11 @@
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Behaviours this diff introduces: (1) the traceability config makes the collector scan webui's roots; (2-4) each of the three signals (unique_commit, co-location, self-listing) attributes tests to the correct FR; (5) the manifest binds tags with a layer-aware RTM; (6) strict D-orphan fires on a tag -> absent FR; (7) tags are behaviour-neutral and product source is byte-stable; (8) the signal-e discovery logic produces only correct tags. 8 behaviours; all tested; 0 untested-testable.",
+      "enumeration_basis": "Behaviours this diff introduces: (1) the traceability config makes the collector scan webui's roots; (2-4) each of the three signals (unique_commit, co-location, self-listing) attributes tests to the correct FR; (5) the manifest binds tags with a layer-aware RTM; (6) strict D-orphan fires on a tag -> absent FR; (7) tags are behaviour-neutral and product source is byte-stable; (8) the signal-e discovery logic produces only correct tags; (9) tags reconcile to the post-#287 survivor taxonomy. 9 behaviours; all tested; 0 untested-testable.",
       "counts": {
-        "total": 8,
-        "testable": 8,
-        "tested": 8,
+        "total": 9,
+        "testable": 9,
+        "tested": 9,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -83,7 +83,7 @@
           "behavior": "the manifest binds the tags with a layer-aware RTM",
           "category": "integration",
           "disposition": "tested",
-          "evidence": "test-traceability.json schema v2: 1038 bindings, 40/66 FRs, by-layer unit 1030 / e2e 8; total reconciles to 47+972+20-1 enumeration delta"
+          "evidence": "test-traceability.json schema v2: 1038 bindings, 24/29 survivor FRs (post-#287 remap), by-layer unit 1030 / e2e 8; total reconciles to 47+972+20-1 enumeration delta"
         },
         {
           "behavior": "strict D-orphan fires on a tag pointing at a removed/absent FR",
@@ -102,6 +102,12 @@
           "category": "correctness",
           "disposition": "tested",
           "evidence": "every one of the 992 signal-e outputs is gated (exclusive-owner + exists + import) and the written total reconciles exactly to the manifest binding count; independent code-review over the prototype + a sample of tagged files"
+        },
+        {
+          "behavior": "tags reconcile to the post-#287 survivor taxonomy (no orphans after the FR-taxonomy-regroup fold)",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "after merging #287 the manifest showed 419 fr_absent orphans on 22 folded IDs (D-orphan FAIL, empirically observed); remapped every @covers FR-<folded> -> its survivor via the spec's own FR-Fold-Map (419 remaps / 57 files); re-regen -> orphans=0, D-orphan PASS, 1038 bindings preserved, 24/29 survivor capabilities; server 2245+1skip / client 2695 green post-remap; tsc clean"
         }
       ]
     },

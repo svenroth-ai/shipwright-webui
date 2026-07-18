@@ -78,7 +78,7 @@ function makeApp(args: {
 }
 
 describe("GET /api/external/projects/:projectId/events", () => {
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("404 when the project is unknown", async () => {
     const app = makeApp({ project: null });
     const res = await app.request("/api/external/projects/p-test/events");
@@ -87,7 +87,7 @@ describe("GET /api/external/projects/:projectId/events", () => {
     expect(body.error).toBe("project_not_found");
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("400 when the project has no path", async () => {
     const app = makeApp({ project: { id: "p-test", name: "t", path: "" } });
     const res = await app.request("/api/external/projects/p-test/events");
@@ -96,7 +96,7 @@ describe("GET /api/external/projects/:projectId/events", () => {
     expect(body.error).toBe("project_path_unavailable");
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("passes the resolved project.path into the reader", async () => {
     let seenPath: string | null = null;
     const app = makeApp({
@@ -109,7 +109,7 @@ describe("GET /api/external/projects/:projectId/events", () => {
     expect(seenPath).toBe("/projects/test");
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("returns 200 + ok payload with the projection spread in", async () => {
     const app = makeApp({ reader: () => OK });
     const res = await app.request("/api/external/projects/p-test/events");
@@ -120,7 +120,7 @@ describe("GET /api/external/projects/:projectId/events", () => {
     expect(body.runs[0].runId).toBe("iterate-2026-07-10-aa11");
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("returns an ok payload with empty runs when the log is absent (graceful)", async () => {
     const app = makeApp({ reader: () => EMPTY });
     const res = await app.request("/api/external/projects/p-test/events");
@@ -130,7 +130,7 @@ describe("GET /api/external/projects/:projectId/events", () => {
     expect(body.runCount).toBe(0);
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("threads ?runId through to the reader opts", async () => {
     let seenOpts: { runId?: string } | undefined;
     const app = makeApp({
@@ -145,7 +145,7 @@ describe("GET /api/external/projects/:projectId/events", () => {
     expect(seenOpts).toEqual({ runId: "iterate-2026-07-10-aa11" });
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("omits opts when no runId query is present", async () => {
     let seenOpts: { runId?: string } | undefined = { runId: "sentinel" };
     const app = makeApp({
@@ -183,7 +183,7 @@ describe("GET .../events — default reader integration", () => {
     return app;
   };
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("reads a real on-disk event log through the endpoint", async () => {
     const root = tmp();
     writeFileSync(
@@ -205,7 +205,7 @@ describe("GET .../events — default reader integration", () => {
     expect(body.runs[0].commit).toBe("deadbeef");
   });
 
-  // @covers FR-01.46
+  // @covers FR-01.47
   it("returns a graceful empty ok payload when the log is absent", async () => {
     const res = await appFor(tmp()).request("/api/external/projects/p/events");
     expect(res.status).toBe(200);
