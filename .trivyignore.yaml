@@ -1,0 +1,41 @@
+# Accepted-risk register.
+#
+# READ THIS BEFORE EDITING — the entry below is NOT a Trivy suppression.
+#
+# Trivy owns this filename, but the shipwright-compliance dashboard is the
+# consumer that matters here: `parse_accepted_risks()` (ci_security.py) reads
+# `vulnerabilities[].{id, expired_at}` and renders each row in the dashboard's
+# "Accepted risks" table, flipping it to "EXPIRED — re-review" once `expired_at`
+# has passed. That table is currently the ONLY mechanism in the toolchain that
+# surfaces an expiring decision — ADR `Re-Review-Date` fields are written but
+# read by nothing (verified 2026-07-18).
+#
+# So a posture decision is registered here to get a due date that actually
+# reaches a human. The id below matches no real CVE, so Trivy ignores it — the
+# entry is inert to the scanner and meaningful to the dashboard.
+#
+# This is an acknowledged semantic stretch, filed as framework follow-up
+# (monorepo triage `ci-supplychain-guardrails-and-acceptance-surfacing`): the
+# register should be generalized so scanner-agnostic acceptances get a
+# first-class home instead of borrowing Trivy's file.
+
+vulnerabilities:
+  # synthetic id — NOT a CVE/GHSA. Inert to Trivy (matches no real advisory);
+  # consumed only by the dashboard's parse_accepted_risks(). Entries here carry
+  # dual semantics, which is the stretch the header describes.
+  - id: semgrep:github-actions-mutable-action-tag
+    expired_at: 2027-07-18
+    statement: >-
+      GitHub-owned actions (actions/*, github/*) deliberately use mutable version
+      tags. SHA-pinning them is only coherent alongside an updater that keeps the
+      pins patched, and this project takes no GitHub-hosted proprietary service
+      (portability — adopters must not inherit one). An unmaintained pin rots
+      silently, which is worse than the mutable tag; and this vendor already
+      executes the entire CI run. THIRD-PARTY actions stay SHA-pinned — that is
+      where the real supply-chain risk sits, and the Semgrep tailoring is
+      owner-scoped so they remain flagged. Enforced by
+      server/src/test/ci-action-pinning-posture.test.ts. See the ADR in
+      .shipwright/agent_docs/decision_log.md; reverted PR #285 for the history.
+      RE-REVIEW TRIGGER: revisit if an open-source, self-hostable updater makes
+      SHA-pinning viable without a hosted dependency. The date above is the
+      backstop so the decision cannot rot unnoticed while waiting for that event.

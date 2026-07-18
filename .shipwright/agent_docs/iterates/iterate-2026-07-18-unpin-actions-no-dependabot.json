@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-18-unpin-actions-no-dependabot",
+  "date": "2026-07-18T11:48:28.241018Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/unpin-actions-no-dependabot",
+  "spec": ".shipwright/planning/iterate/2026-07-18-unpin-actions-no-dependabot.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-18-unpin-actions-no-dependabot"
+}

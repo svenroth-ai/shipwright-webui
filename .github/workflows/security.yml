@@ -42,7 +42,7 @@ jobs:
     name: Shipwright Security Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/checkout@v4
         with:
           # Working-tree checkout only. No scanner in this workflow reads git
           # history: Gitleaks runs `--no-git` (filesystem), Semgrep scans `.`
@@ -118,10 +118,8 @@ jobs:
         #   gate downstream — none of which require GHAS. So a Private-
         #   no-GHAS repo still gets the value of the scan; only the
         #   Security-tab integration is missing.
-        # - v4 of the action (v3 deprecation lands 2026-12). codeql.yml's
-        #   init/analyze steps are still on v3.37.1 pending a separate
-        #   upgrade; Dependabot will propose bumping both to align.
-        uses: github/codeql-action/upload-sarif@7188fc363630916deb702c7fdcf4e481b751f97a # v4.37.1
+        # - v4 of the action (v3 deprecation lands 2026-12).
+        uses: github/codeql-action/upload-sarif@v4
         continue-on-error: true
         with:
           sarif_file: sarif
@@ -228,7 +226,7 @@ jobs:
 
       - name: Upload scan artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@v4
         with:
           name: security-scan-results
           path: |
