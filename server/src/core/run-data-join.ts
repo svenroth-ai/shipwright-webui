@@ -19,6 +19,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 
+import { recordsFromLines } from "./jsonl-records.js";
 import { pathGuard } from "./path-guard.js";
 import {
   EVENT_FILE,
@@ -206,17 +207,12 @@ export function aggregatePhaseTransitions(
 export function projectGradeTrend(lines: Iterable<string>): GradeSnapshot[] {
   const rows: { idx: number; key: number; snap: GradeSnapshot }[] = [];
   let idx = 0;
-  for (const line of lines) {
-    if (!line || !line.trim()) continue;
+  // Shares the record-boundary contract with `projectEventLog` so BOTH passes
+  // over the same bytes agree on how many records a damaged line holds — they
+  // are two independent scans of one file, and disagreeing would be worse than
+  // either behaviour alone (iterate-2026-07-19-events-reader-recovery).
+  for (const o of recordsFromLines(lines)) {
     const i = idx++;
-    let ev: unknown;
-    try {
-      ev = JSON.parse(line);
-    } catch {
-      continue; // torn/corrupt — skip, never fatal
-    }
-    if (typeof ev !== "object" || ev === null || Array.isArray(ev)) continue;
-    const o = ev as Record<string, unknown>;
     if (o.type !== "grade_snapshot") continue;
     const grade = asString(o.grade);
     if (grade === null) continue; // a snapshot with no grade is unusable
