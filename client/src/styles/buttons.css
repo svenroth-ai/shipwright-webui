@@ -1,39 +1,107 @@
 /* ============================================================================
-   BUTTONS — the ONE canonical primary action button (Sven 2026-07-17).
+   BUTTONS — the ONE canonical primary action button.
 
-   Before this, "New task" (Board), "Create Project" (Projects) and the Ship's
-   Log header button each re-implemented a slightly different teal recipe — the
-   Board/Resume used the bright teal, Projects used the darker base teal — so
-   they read as different buttons. `.btn-primary` is the single standard used
-   everywhere: bright teal (--accent-bright, the same teal the dark-chrome
-   controls + the Resume CTA already show), white label, 8px radius, 13px/600.
-   It reads correctly on the dark header bands AND on the light glass surfaces.
+   Sven 2026-07-17 (round 1): "New task" (Board), "Create Project" (Projects) and
+   the Ship's Log button each re-implemented a different teal, so they read as
+   different buttons.
+   Sven 2026-07-17 (round 2): the standard was (a) TOO LIGHT — the reference is the
+   Resume CTA / the modal Launch button, i.e. --accent #0E7A6B, not the brighter
+   #35B8A4 — and (b) inconsistent in SIZE and POSITION.
+
+   So the contract for a title-bar primary button is now FIXED GEOMETRY, not just a
+   colour: same height, same minimum width, same padding, same radius. A longer
+   label may grow the button past --btn-min-w (Sven: "ausser der Text passt nicht,
+   dann darf er länger werden") but it may never change its height or its baseline.
+   PageHead already right-aligns the actions cluster, so equal geometry ⇒ equal
+   position.
    ============================================================================ */
+:root {
+  --btn-h: 36px;
+  --btn-min-w: 132px;
+}
+
 .btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 16px;              /* == px-4 py-2 */
-  border-radius: var(--r-btn);    /* 8px */
+  height: var(--btn-h);
+  min-width: var(--btn-min-w);
+  padding: 0 16px;
+  border-radius: var(--r-btn); /* 8px */
   border: none;
-  background: var(--accent-bright);
+  background: var(--btn-primary-bg);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.12s, filter 0.12s;
+  transition: background 0.12s;
 }
 .btn-primary:hover {
-  background: var(--accent-bright-hover);
+  background: var(--btn-primary-bg-hover);
 }
 .btn-primary:focus-visible {
   outline: none;
   box-shadow: var(--focus);
 }
 .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Split variant (Board "New task" = primary + a create-menu caret) ────────
+   The WRAPPER carries the standard box so the split button occupies exactly the
+   same height/width as a plain `.btn-primary`; the two halves fill it. */
+.btn-primary-split {
+  display: inline-flex;
+  height: var(--btn-h);
+  min-width: var(--btn-min-w);
+  border-radius: var(--r-btn);
+  overflow: hidden;
+}
+.btn-primary-split .bps-main {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: none;
+  background: var(--btn-primary-bg);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.btn-primary-split .bps-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  flex-shrink: 0;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--btn-primary-bg);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.btn-primary-split .bps-main:hover,
+.btn-primary-split .bps-caret:hover {
+  background: var(--btn-primary-bg-hover);
+}
+.btn-primary-split .bps-main:focus-visible,
+.btn-primary-split .bps-caret:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+.btn-primary-split .bps-main:disabled,
+.btn-primary-split .bps-caret:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

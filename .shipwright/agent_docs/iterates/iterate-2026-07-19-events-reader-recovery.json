@@ -1,0 +1,9 @@
+{
+  "run_id": "iterate-2026-07-19-events-reader-recovery",
+  "date": "2026-07-18T22:36:42.029529Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/events-reader-recovery",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-19-events-reader-recovery"
+}

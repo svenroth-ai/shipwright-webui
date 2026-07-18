@@ -63,13 +63,36 @@
   --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
   /* borders */
   --line: #E7E5E4; --line-strong: #D6D3D1;
-  /* accent — teal, demoted to signature */
+  /* accent — teal, demoted to signature. This is ALSO the canonical primary-button
+     fill: the Resume CTA + the modal Launch button already render it, and Sven
+     2026-07-17 called it the reference ("the New buttons are too light"). The
+     brighter #35B8A4 that `.btn-primary` briefly used was RETIRED for that reason;
+     the dark-chrome scopes still set their own literal for non-button chrome. */
   --accent: #0E7A6B; --accent-hover: #0B6355; --accent-tint: #E6F3F0; --accent-line: #9fd3ca;
-  /* the BRIGHTER teal the dark-chrome controls (.chrome-dark-controls / .mc-top)
-     + the Resume CTA use — tokenised so the ONE canonical `.btn-primary`
-     (styles/buttons.css) renders the same teal on every surface (Sven 2026-07-17). */
-  --accent-bright: #35B8A4; --accent-bright-hover: #2ea595;
   --focus: 0 0 0 4px rgba(14, 122, 107, .18);
+  /* PRIMARY-BUTTON FILL — deliberately NOT --accent. `.on-photo` flips --accent to
+     the brighter #35B8A4 for on-scene chrome, and every route is inside .on-photo,
+     while the modal Launch CTA is PORTALED OUTSIDE it and keeps the base teal. That
+     is exactly why the title-bar buttons rendered lighter than the Launch/Resume
+     reference (Sven 2026-07-17: "sie sind zu hell"). These two tokens are scope-
+     proof — no rule may override them — so a primary button is the SAME teal on
+     every surface. Change the button colour HERE, nowhere else. */
+  --btn-primary-bg: #0E7A6B; --btn-primary-bg-hover: #0B6355;
+
+  /* ── FORM SURFACES (Sven 2026-07-17) ────────────────────────────────────────
+     The task-form sheet was --beige #ECE4D5 — too YELLOW. These are the GREY-beige
+     ramp taken from svenroth.ai (--light-beige-background #EDEAE7, --borders--
+     dividers #C3B8AE, --primary-50 #847A75). Deliberately SEPARATE from --beige,
+     which stays the warm Files-&-Terminal reading surface (A18, "nur die mitte
+     beige") — do not collapse them.
+     --surface-form-line is dark enough to clear WCAG 1.4.11 non-text contrast
+     (3:1) against BOTH the white field fill and the sheet: a white field on a
+     #EDEAE7 sheet is only 1.13:1, so the frame is the sole affordance. */
+  --surface-form: #EDEAE7;
+  --surface-form-sunken: #E4DFDA;
+  --surface-form-sunken-strong: #D9D3CC;
+  --surface-form-line: #847A75;
+  --surface-form-divider: #C3B8AE;
   /* semantic */
   --ok: #067647; --ok-tint: #ECFDF3; --ok-line: #ABEFC6; --ok-solid: #17B26A;
   --warn: #B54708; --warn-tint: #FFFAEB; --warn-line: #FEDF89; --warn-solid: #F79009;

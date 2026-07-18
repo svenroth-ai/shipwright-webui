@@ -104,7 +104,7 @@ export function NewGenericModal({ form }: { form: UseNewIssueFormReturn }) {
         >
           <div
             data-testid="command-preview-generic"
-            className="rounded-[var(--radius-button,8px)] border-[1.5px] border-dashed border-[var(--color-border,#e0dbd4)] bg-white px-3 py-3 text-[12px] leading-[1.55] text-[var(--color-muted,#6b7280)]"
+            className="rounded-[var(--radius-button,8px)] border-[1.5px] border-dashed border-[var(--surface-form-line,#847a75)] bg-white px-3 py-3 text-[12px] leading-[1.55] text-[var(--body,#44403c)]"
           >
             The exact command is generated server-side from this action's{" "}
             <code className="rounded-[3px] bg-white px-1 py-0.5 font-mono text-[11px]">

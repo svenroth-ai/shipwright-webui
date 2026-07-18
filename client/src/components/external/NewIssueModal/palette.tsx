@@ -49,8 +49,8 @@ export const PALETTE: Record<Mode, ModePalette> = {
   // distinguishes it from the three Shipwright modes without competing
   // visually.
   "new-plain": {
-    bg: "var(--color-muted-bg, #ede8e1)",
-    text: "var(--color-muted, #6b7280)",
+    bg: "var(--surface-form-sunken, #e4dfda)",
+    text: "var(--body, #44403c)",
     textStrong: "#374151",
     stripe: "var(--color-accent, #857568)",
   },
@@ -58,8 +58,8 @@ export const PALETTE: Record<Mode, ModePalette> = {
   // family as Plain Claude but slightly cooler so a custom action is
   // visually distinct from the bundled "no-skill" mode.
   generic: {
-    bg: "var(--color-muted-bg, #ede8e1)",
-    text: "var(--color-muted, #6b7280)",
+    bg: "var(--surface-form-sunken, #e4dfda)",
+    text: "var(--body, #44403c)",
     textStrong: "#1f2937",
     stripe: "var(--color-primary, #6b5e56)",
   },

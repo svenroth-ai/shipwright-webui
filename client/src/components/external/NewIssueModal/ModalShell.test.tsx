@@ -102,6 +102,33 @@ describe("ModalShell", () => {
   });
 
   // @covers FR-01.38
+  // Sven 2026-07-17: the sheet was --beige #ECE4D5 — too YELLOW. Every task form
+  // (New Task / Plain "pure Claude" / Iterate / Pipeline / Generic) renders through
+  // THIS shell, so pinning the surface here is what covers all of them. The
+  // secondary copy must be --body (>=4.5:1), never the old --color-muted (~4.0:1).
+  it("renders the grey-beige form surface and dark secondary copy (not the yellow beige)", () => {
+    render(
+      <ModalShell
+        open
+        onOpenChange={() => {}}
+        mode="new-task"
+        action={TASK_ACTION}
+        palette={PALETTE["new-task"]}
+        canSubmit={true}
+        submitting={false}
+        error={null}
+        onSubmit={() => {}}
+      >
+        <div />
+      </ModalShell>,
+    );
+    const sheet = screen.getByTestId("new-issue-modal-new-task");
+    expect(sheet.className).toContain("bg-[var(--surface-form");
+    expect(sheet.className).not.toContain("bg-[var(--beige");
+    expect(screen.getByTestId("new-issue-footer-hint").className).toContain("text-[var(--body");
+  });
+
+  // @covers FR-01.38
   it("Save + Launch buttons disabled when canSubmit=false", () => {
     render(
       <ModalShell
