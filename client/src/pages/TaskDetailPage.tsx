@@ -443,9 +443,9 @@ function TaskDetailPageBody() {
         <MissionBody task={task} transcriptContent={transcript.content} onOpenDocument={() => setMissionTab("files")} />
       ) : null}
 
-      {/* Files & Terminal tab — the existing three-pane. Always mounted (just
-          hidden) so the embedded terminal's WS never tears down on a tab flip. */}
-      <div className={missionTab === "files" ? "min-h-0 flex-1" : "hidden"}>
+      {/* Files & Terminal — always mounted (hidden) so the terminal WS survives a
+          tab flip. Inset to line up with the tab control + Mission body (2026-07-17). */}
+      <div className={missionTab === "files" ? "min-h-0 flex-1 px-4 pt-3 pb-4 md:px-8 md:pt-4 md:pb-[22px]" : "hidden"}>
         <TaskDetailThreePane
           left={
             <FolderTree

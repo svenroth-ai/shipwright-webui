@@ -1,86 +1,49 @@
 {
-  "last_updated": "2026-07-15",
+  "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-15-e2e-pty-harness",
-    "date": "2026-07-15",
+    "run_id": "iterate-2026-07-17-fr-taxonomy-regroup",
+    "date": "2026-07-17",
     "unit": {
       "status": "passed",
-      "passed": 2025,
-      "total": 2025,
-      "note": "client vitest 208 files / 2025 passed (unchanged — the fixtures.ts change is an additive helper). tsc --noEmit clean (client); oxlint clean on the two touched files (only a pre-existing seedProject warning). Server untouched (test-harness-only diff)."
+      "passed": 2695,
+      "total": 2695,
+      "note": "Behavior-neutral spec/docs-only diff (spec.md + design doc + 2 planning files; zero product code touched). Full client vitest re-run as a regression guard: 2695/2695 across 295 files. client + server tsc --noEmit clean."
     },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "Test-harness-only change: E2E spec choreography + an additive fixture helper. No production/route/store/contract surface."
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
+    "integration": { "status": "not_run", "passed": 0, "total": 0 },
+    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
     "e2e": {
-      "status": "passed",
-      "passed": 13,
-      "total": 17,
-      "note": "F0.5 web on an isolated single-process stack (:3948, temp USERPROFILE, 127.0.0.1). v0-9-5-replay-snapshot: 2 passed (AC-1/AC-3 seed own valid-cwd target) + 4 skipped (AC-2/4/5/6 target done/launch_failed, none on a fresh stack — clean skip, never flaky-fail; previously AC-2/AC-4 FAILED on the live-task ConPTY ESC[2J). 73-embedded-terminal: 11/11 (no regression). Store=0 after v0-9-5 (ordered cleanupTaskCwd left no dead-cwd task). All exit 0."
-    },
-    "design_fidelity": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No UI change — test-harness fix only."
+      "note": "No product runtime surface changed; F0.5 surface=none, justified. No test reads spec.md's FR table (the doc-link tests use the survivor anchor #fr-0101, which is preserved)."
     },
+    "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
     "smoke": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1,
-      "note": "Isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + tsx on :3948): GET /api/external/tasks 200."
+      "status": "not_run",
+      "note": "Spec/docs-only change; no server/app started, no smoke surface."
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "BASE_URL=http://127.0.0.1:3948 npx playwright test client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts client/e2e/flows/73-embedded-terminal.spec.ts --project=chromium",
+      "surface": "none",
       "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-15-e2e-pty-harness/surface_verification.log",
-      "timestamp": "2026-07-15T17:45:00.000Z",
+      "tests_run": 0,
+      "justification": "Behavior-neutral requirements-documentation restructure — edits only spec.md + planning/design docs; no API route, store, UI, or runtime code path changes, so there is no user-facing surface to drive. Verification is the meta-test suite (compliance parser-simulation + doc-consumer vitest + full client suite + git-scope check).",
+      "evidence_path": ".shipwright/runs/iterate-2026-07-17-fr-taxonomy-regroup/surface_verification.json",
+      "timestamp": "2026-07-17T00:00:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behaviour the diff changes, from the 3 spec ACs: AC-1 (envelope-only specs seed a valid-cwd target and pass deterministically), AC-2 (DOM-render specs target done/launch_failed and skip cleanly, never flaky-fail), AC-3 (ordered cleanupTaskCwd leaves no dead-cwd task), plus a regression guard. 4 behaviours; all tested; 0 untested-testable. The ConPTY ESC[2J root cause was proven by a node-pty probe before the fix (diagnostic, not a committed test).",
-      "counts": {
-        "total": 4,
-        "tested": 4,
-        "untestable": 0,
-        "untested_testable": 0
-      },
+      "enumeration_basis": "Every behaviour this behavior-neutral spec-restructure introduces, from the iterate ACs: (1) 29 survivor rows + Area column + 14 area headers; (2) 37 folded IDs in FR-Fold-Map with 0 seen as active FR rows; (3) 0 orphan-causing folded-ID references; (4) Fold-Map completeness + provenance preserved; (5) doc-consumer tests green; (6) compliance parser sees exactly the 29 survivors; (7) historical files byte-untouched + zero code; (8) full client suite + typecheck green. 8 behaviours; all 8 tested locally; 0 untestable; 0 untested-testable.",
+      "counts": { "total": 8, "testable": 8, "tested": 8, "untestable": 0, "untested_testable": 0 },
       "behaviors": [
-        {
-          "behavior": "v0-9-5 AC-1/AC-3 seed their own valid-cwd target and pass deterministically (no dependency on accumulated dead-cwd session state)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "isolated stack: AC-1 envelopes contain replay_snapshot (no chunked); AC-3 no chunked envelopes; both PASS, exit 0"
-        },
-        {
-          "behavior": "v0-9-5 AC-2/AC-4 target done||launch_failed and skip cleanly when none exists — never flaky-fail against a live task (whose ConPTY ESC[2J wipes the replay)",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "isolated stack: AC-2/AC-4 SKIP (no done task), matching AC-5/AC-6; exit 0. Previously FAILED on the live-task ESC[2J."
-        },
-        {
-          "behavior": "cleanupTaskCwd deletes the task (cascade kills+awaits the pty) BEFORE removing the cwd, leaving no dead-cwd task in the store",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "GET /api/external/tasks after the v0-9-5 run returned 0 tasks"
-        },
-        {
-          "behavior": "The additive fixtures.ts helper does not regress other pty-heavy specs",
-          "category": "e2e",
-          "disposition": "tested",
-          "evidence": "73-embedded-terminal 11/11 on the isolated stack; client vitest 2025 pass"
-        }
+        { "behavior": "29 survivor rows + Area column + 14 area section-headers", "category": "config", "disposition": "tested", "evidence": "grep: 29 rows matching | FR-01.NN | <AREA> | ; 29 distinct IDs; 14 '### Area' headers" },
+        { "behavior": "37 folded IDs recorded in FR-Fold-Map; 0 folded IDs parsed as an active FR row", "category": "config", "disposition": "tested", "evidence": "faithful compliance-parser simulation over the whole new spec.md: 29 active FRs, 0 folded-active, 0 duplicates; 37 backticked fold-map rows" },
+        { "behavior": "Folding causes 0 traceability orphans", "category": "config", "disposition": "tested", "evidence": "grep for @FR-.. / @covers FR-.. across client+server returns ZERO tags repo-wide -> no tags to orphan" },
+        { "behavior": "Every folded ID has exactly one Fold-Map row; original name (provenance) preserved per row", "category": "config", "disposition": "tested", "evidence": "fold-map count == 37; each row carries the 'Was (original name)' cell" },
+        { "behavior": "Doc-consumer tests (spec.md doc-link / #fr-0101 anchor, doc-sync) still pass", "category": "unit", "disposition": "tested", "evidence": "vitest: DocumentMarkdown + useDocNavigation + doc-sync + ArtifactPanel + AttachmentCard = 133 tests PASSED" },
+        { "behavior": "Compliance parser sees exactly the 29 survivors (no folded-ID resurrection via the alias table)", "category": "config", "disposition": "tested", "evidence": "parser-sim active==29; Fold-Map ID cells backticked so ^FR-\\d{2}\\.\\d{2}$ skips them" },
+        { "behavior": "Historical/immutable files byte-untouched; zero product code changed", "category": "config", "disposition": "tested", "evidence": "git diff --cached: 4 files (spec.md + design doc + 2 planning), 0 code, events.jsonl/CHANGELOG/prototype absent from the diff" },
+        { "behavior": "Full client unit suite + typecheck remain green after the change", "category": "unit", "disposition": "tested", "evidence": "client vitest 2695/2695 (295 files) PASSED; client + server tsc --noEmit clean" }
       ]
     },
     "degraded": []

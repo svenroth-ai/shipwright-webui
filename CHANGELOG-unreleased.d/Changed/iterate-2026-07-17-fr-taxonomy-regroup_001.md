@@ -1,0 +1,1 @@
+Requirements spec (01-adopted) restructured into 14 plainly-named capability areas with plain-language descriptions: stable FR IDs kept, 37 low-level or duplicate entries folded into the feature they belong to (with a lookup table so older references still resolve), and the Abstract refreshed to the current launch model. Behaviour-neutral - no app behaviour changed.

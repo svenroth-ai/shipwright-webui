@@ -49,8 +49,9 @@ export default function InboxPage() {
         testId="inbox-header"
       />
 
-      {/* Body — wrapped in .page-container so Inbox aligns with Projects */}
-      <div className="flex-1 overflow-y-auto" style={{ paddingBlock: "12px 40px" }}>
+      {/* Body — wrapped in .page-container so Inbox aligns with Projects.
+          Top gap matches Projects' 24px (Sven 2026-07-17: equal top padding). */}
+      <div className="flex-1 overflow-y-auto" style={{ paddingBlock: "24px 40px" }}>
         <div className="page-container">
           {isLoading && (
             // on-photo-legibility: rides bare on the photo → flipping `--muted`.

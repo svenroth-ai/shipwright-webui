@@ -64,6 +64,22 @@ function task(runId: string): ExternalTask {
   };
 }
 
+/** A session (task) with NO joined run — the non-Shipwright / no-runs case. */
+function sessionTask(taskId: string, title: string): ExternalTask {
+  return {
+    taskId,
+    sessionUuid: "33333333-3333-3333-3333-333333333333",
+    title,
+    cwd: "/tmp",
+    pluginDirs: [],
+    projectId: "p1",
+    state: "draft",
+    createdAt: "2026-07-15T09:00:00Z",
+    launchedAt: "2026-07-15T10:00:00Z",
+    inbox: { pendingToolUseIds: [], dismissedToolUseIds: [], lastProcessedByteOffset: 0 },
+  };
+}
+
 function Loc() {
   const l = useLocation();
   return <div data-testid="loc">{l.pathname}</div>;
@@ -98,6 +114,35 @@ describe("LogEntryList", () => {
     runsMock.mockReturnValue({ data: undefined });
     renderList();
     expect(screen.getByTestId("shipslog-logbook-empty")).toBeInTheDocument();
+  });
+
+  it("empty run set uses the grade/adopt nudge wording", () => {
+    runsMock.mockReturnValue({ data: okRuns([]) });
+    renderList();
+    expect(screen.getByTestId("shipslog-logbook-empty")).toHaveTextContent(
+      "No runs yet. Grade or adopt it to open the logbook.",
+    );
+  });
+
+  it("no runs but sessions present → recent sessions list (non-Shipwright projects)", async () => {
+    runsMock.mockReturnValue({ data: okRuns([]) });
+    tasksMock.mockReturnValue({ data: [sessionTask("task-a", "Draft the newsletter")] });
+    renderList();
+    expect(screen.getByTestId("shipslog-sessions")).toBeInTheDocument();
+    // NOT the grade/adopt nudge — the log works for custom-action projects.
+    expect(screen.queryByTestId("shipslog-logbook-empty")).toBeNull();
+    const entry = screen.getByTestId("shipslog-session-task-a");
+    expect(entry).toHaveTextContent("Draft the newsletter");
+    await userEvent.click(entry);
+    expect(screen.getByTestId("loc").textContent).toBe("/tasks/task-a");
+  });
+
+  it("runs present → the logbook wins over sessions", () => {
+    runsMock.mockReturnValue({ data: okRuns([run()]) });
+    tasksMock.mockReturnValue({ data: [task("run-1")] });
+    renderList();
+    expect(screen.getByTestId("shipslog-logbook")).toBeInTheDocument();
+    expect(screen.queryByTestId("shipslog-sessions")).toBeNull();
   });
 
   it("a run WITH a joined task is a clickable entry → /tasks/:taskId", async () => {

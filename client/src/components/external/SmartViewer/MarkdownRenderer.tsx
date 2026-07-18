@@ -44,7 +44,7 @@ interface Props {
 }
 
 const TOOLBAR_BTN =
-  "inline-flex items-center gap-1 rounded-[6px] px-2 py-1 text-[11px]";
+  "inline-flex items-center gap-1 rounded-[6px] px-2 py-1 text-[11px] font-medium";
 
 export function MarkdownRenderer({
   text,
@@ -58,10 +58,13 @@ export function MarkdownRenderer({
   const [editorOpen, setEditorOpen] = useState(false);
   const canEdit = Boolean(projectId && path && onSaved);
 
+  // Sven feedback (2026-07-17): the Edit / Pop out controls were muted-grey on a
+  // near-invisible light border. Black text + black border makes them legible on
+  // the white reading surface. Tokens keep the no-hardcoded-colors guard green.
   const btnStyle = {
     background: "var(--color-surface, #ffffff)",
-    border: "1px solid var(--color-border, #e0dbd4)",
-    color: "var(--color-muted, #6b7280)",
+    border: "1px solid var(--color-text, #1a1a1a)",
+    color: "var(--color-text, #1a1a1a)",
   };
 
   return (

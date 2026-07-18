@@ -131,8 +131,7 @@ export default function ProjectsPage() {
             <DensityToggle />
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-              style={{ background: "var(--color-primary)" }}
+              className="btn-primary"
               onClick={() => setShowWizard(true)}
               data-testid="projects-create-button"
             >
@@ -177,8 +176,7 @@ export default function ProjectsPage() {
               </p>
               <button
                 type="button"
-                className="inline-flex items-center gap-1.5 rounded-[var(--radius-button)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)]"
-                style={{ background: "var(--color-primary)" }}
+                className="btn-primary"
                 onClick={() => setShowWizard(true)}
               >
                 <Plus size={16} /> Create Project

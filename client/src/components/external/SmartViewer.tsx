@@ -32,7 +32,6 @@ import { ImageRenderer } from "./SmartViewer/ImageRenderer";
 import { VideoRenderer } from "./SmartViewer/VideoRenderer";
 import { MermaidRenderer } from "./SmartViewer/MermaidRenderer";
 import { useDocNavigation } from "./SmartViewer/useDocNavigation";
-import { PathStrip } from "./SmartViewer/PathStrip";
 
 export type SmartViewerKind = "markdown" | "code" | "text" | "image" | "video" | "mermaid" | "unknown";
 
@@ -120,7 +119,6 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
         className="flex h-full flex-col"
         data-testid="smart-viewer"
       >
-        <PathStrip path={path} size={null} />
         <div className="min-h-0 flex-1">
           <MediaRenderer projectId={projectId} path={path} />
         </div>
@@ -134,7 +132,6 @@ export function SmartViewer({ projectId, path, popOut = true }: Props) {
         className="flex h-full flex-col"
         data-testid="smart-viewer"
       >
-        <PathStrip path={path} size={null} />
         <div
           className="flex flex-1 items-center justify-center p-6 text-[12px]"
           style={{ color: "var(--color-muted, #6b7280)" }}
@@ -206,8 +203,6 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
     // guard above discards any overlapping in-flight response (review #10).
   }, [projectId, nav.effectivePath, reloadNonce]);
 
-  const size = state.status === "ok" ? state.size : null;
-
   const inner = (() => {
     if (state.status === "loading") {
       return (
@@ -273,7 +268,6 @@ function TextFileViewer({ projectId, path, kind, ext, popOut }: TextProps) {
 
   return (
     <div className="flex h-full flex-col" data-testid="smart-viewer">
-      <PathStrip path={nav.effectivePath} size={size} />
       <div className="min-h-0 flex-1 overflow-hidden">{inner}</div>
       {popOut && kind === "markdown" && (
         <SmartViewerModal

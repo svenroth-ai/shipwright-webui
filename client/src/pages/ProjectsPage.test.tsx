@@ -34,6 +34,15 @@ describe('ProjectsPage', () => {
     });
   });
 
+  // Sven 2026-07-17 (AC3): "Create Project" uses the ONE standard .btn-primary,
+  // the same treatment as the Board "New task" + the Ship's Log button.
+  it('the Create Project button uses the standard .btn-primary', async () => {
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('projects-create-button')).toHaveClass('btn-primary');
+    });
+  });
+
   // A07 teaching empty state (FR-01.50) — when there are no projects, the empty
   // block teaches in one sentence and offers exactly one action.
   it('empty state shows the teaching sentence + exactly one CTA', async () => {

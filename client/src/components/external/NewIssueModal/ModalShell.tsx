@@ -60,7 +60,10 @@ export function ModalShell({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
         <Dialog.Content
-          className={`fixed left-1/2 top-[10%] z-50 ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-white shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
+          // Sven 2026-07-17: the task form was white fields on a white sheet with
+          // near-invisible borders. A beige sheet (--beige, never flipped) lets the
+          // white fields + stronger frames (SimpleFields) read as distinct fields.
+          className={`fixed left-1/2 top-[10%] z-50 ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--beige,#ece4d5)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
           data-testid={`new-issue-modal-${mode}`}
         >
           {/* Header: icon tile + title/subtitle + close */}
