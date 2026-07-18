@@ -341,7 +341,7 @@ describe("TaskDetailPage — Toggle-Tab + Launch-Flow", () => {
     });
     await user.click(screen.getByTestId("gitignore-suggestion-dismiss"));
     expect(screen.queryByTestId("gitignore-suggestion-toast")).toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls.some((c: unknown[]) => String(c[0]).includes("/append-gitignore"))).toBe(false);
   });
 
   it("transcript stats only render when transcript tab is active (avoids stale numbers in terminal-mode header)", async () => {

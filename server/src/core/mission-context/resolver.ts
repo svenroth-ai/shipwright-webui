@@ -1,0 +1,299 @@
+/*
+ * core/mission-context/resolver.ts — orchestration (CONTRACT §5 / §5.2).
+ *
+ * Stateless read (Architecture rule 4) with ONE deliberate exception: the
+ * durable `task.missionContext` association (see association.ts). `task.runId`
+ * is deliberately NOT touched — it means a PIPELINE run and overloading it
+ * would corrupt that join (external-review GPT #4).
+ *
+ * Caching is keyed `{projectRoot, sessionUuid, runId}` and validated by a
+ * source-mtime `rev` (resolver-parts.ts); merge is refreshed per call
+ * (merge-refresh.ts) because it is the one field no source file tracks.
+ */
+
+import { existsSync } from "node:fs";
+
+import {
+  cache,
+  CACHE_CAP,
+  computeSourceRev,
+  docFingerprint,
+  emptyContext,
+  readBounded,
+  unavailableArtifacts,
+} from "./resolver-parts.js";
+export { _clearResolverCache } from "./resolver-parts.js";
+import { loadFoldMap, specPath } from "./fold-map.js";
+import {
+  checkSquashMerged,
+  extractPrMarker,
+  readOriginSlug,
+  type MergeCheckDeps,
+} from "./merge-check.js";
+import { refreshMerge } from "./merge-refresh.js";
+import { mintDocId } from "./doc-ids.js";
+import { readIteratePointer } from "./pointer.js";
+import { detectScenario, type ScenarioInputs } from "./scenario.js";
+import { buildRequirementArtifact, buildSpecArtifact } from "./artifacts.js";
+import { buildCommitArtifact } from "./artifacts-commit.js";
+import {
+  eventsPath,
+  findWorkCompleted,
+  iterateDocPath,
+  readIterateDoc,
+  specCandidates,
+  specHintCandidate,
+} from "./iterate-record.js";
+import {
+  chooseRoot,
+  isRegisteredWorktree,
+  readAllowedRoots,
+  resolveFirstDoc,
+  MAX_DOC_BYTES,
+  type GitRunner,
+} from "./worktree-roots.js";
+import {
+  MISSION_CONTEXT_SCHEMA_VERSION,
+  type ArtifactDescriptor,
+  type MissionContext,
+  type MissionContextAssociation,
+} from "./types.js";
+
+export interface ResolveRequest {
+  taskId: string;
+  sessionUuid: string;
+  projectId: string;
+  projectRoot: string;
+  /** Server-read transcript (bounded tail) — never client-supplied (§5.1). */
+  transcript: string;
+  /** Task facts the server owns (from its own store, not the client). */
+  phaseTaskId: string | null;
+  taskRunId: string | null;
+  campaignSlug: string | null;
+  hasCampaignRecord: boolean;
+  actions: ScenarioInputs["actions"];
+  hasValidRunConfig: boolean;
+  /**
+   * The task's persisted association. Read from the server's own store; it is
+   * how a FINALIZED iterate still resolves after its pointer was pruned.
+   */
+  association?: MissionContextAssociation | null;
+}
+
+export interface ResolveDeps {
+  git?: GitRunner;
+  merge?: MergeCheckDeps;
+}
+
+/**
+ * A typed-`unavailable` response for the two integrity cases (AC5): a pointer
+ * that failed validation, and one naming an unregistered worktree. Both must
+ * SHOW as unavailable and must NOT be persisted — never a quiet fall-through
+ * to "No run data yet" or to the project root (external review, openai HIGH).
+ */
+function integrityResult(
+  scenario: MissionContext["scenario"],
+  missionTabVisible: boolean,
+  rev: string,
+  note: string,
+  runId: string | null,
+): { context: MissionContext; associateRunId: null } {
+  return {
+    context: {
+      ...emptyContext(scenario, missionTabVisible, rev),
+      runId,
+      artifacts: unavailableArtifacts(note),
+    },
+    associateRunId: null,
+  };
+}
+
+/**
+ * Resolve the Mission context. Pure read — the caller performs the association
+ * write, because persistence needs the store's lock and this module stays
+ * side-effect-free (making the "one write" auditable in exactly one place).
+ */
+export function resolveMissionContext(
+  req: ResolveRequest,
+  deps: ResolveDeps = {},
+): { context: MissionContext; associateRunId: string | null } {
+  const { projectRoot, sessionUuid } = req;
+
+  const pointer = readIteratePointer(projectRoot, sessionUuid);
+  const decision = detectScenario({
+    pointer,
+    association: req.association ?? null,
+    actions: req.actions,
+    hasValidRunConfig: req.hasValidRunConfig,
+    phaseTaskId: req.phaseTaskId,
+    taskRunId: req.taskRunId,
+    campaignSlug: req.campaignSlug,
+    hasCampaignRecord: req.hasCampaignRecord,
+  });
+
+  const baseRevPaths = [specPath(projectRoot), eventsPath(projectRoot)];
+
+  // A pointer that failed validation is an integrity signal, not an absence.
+  if (decision.pointerInvalidReason) {
+    return integrityResult(
+      decision.scenario,
+      decision.missionTabVisible,
+      computeSourceRev(baseRevPaths, [decision.pointerInvalidReason]),
+      "This session's run record could not be verified, so its artifacts are unavailable.",
+      null,
+    );
+  }
+
+  // Scenarios 1/3/4/5 keep today's behavior verbatim — Slice 1 is ADDITIVE for
+  // scenario 2 only. No artifacts are emitted here, so the existing rail and
+  // campaign progress render exactly as before (no-regression AC).
+  if (decision.scenario !== "iterate" || !decision.runId) {
+    const rev = computeSourceRev(baseRevPaths, [decision.scenario]);
+    return {
+      context: emptyContext(decision.scenario, decision.missionTabVisible, rev),
+      associateRunId: null,
+    };
+  }
+
+  const runId = decision.runId;
+  const slug = pointer.status === "ok" ? pointer.pointer.slug : null;
+  const worktreePath = pointer.status === "ok" ? pointer.pointer.worktreePath : null;
+
+  const roots = readAllowedRoots(projectRoot, deps.git);
+
+  // A worktree git does not know is a tree we cannot vouch for.
+  if (worktreePath && !isRegisteredWorktree(roots, worktreePath)) {
+    return integrityResult(
+      "iterate",
+      true,
+      computeSourceRev(baseRevPaths, [runId, "unregistered_worktree"]),
+      "This run's working copy is not a registered worktree of this project.",
+      runId,
+    );
+  }
+
+  const chosen = chooseRoot(roots, worktreePath);
+
+  // --- Records (first: the spec hint below comes from the agent-doc) ---
+  const iterateDoc = readIterateDoc(projectRoot, runId);
+
+  // --- Spec -----------------------------------------------------------------
+  // Known layout first; the validated hint covers campaign sub-iterate specs.
+  const hint = specHintCandidate(iterateDoc?.specHint);
+  const candidates = hint ? [...specCandidates(runId, slug), hint] : specCandidates(runId, slug);
+  const doc = resolveFirstDoc(chosen.root, candidates);
+
+  // The rev covers EVERY source used, incl. the iterate + agent docs.
+  const rev = computeSourceRev(
+    [...baseRevPaths, iterateDocPath(projectRoot, runId), ...(doc.ok ? [doc.absolute] : [])],
+    [runId, chosen.root, req.taskId],
+  );
+  const cacheKey = `${projectRoot}::${sessionUuid}::${runId}`;
+  const associate = pointer.status === "ok" ? runId : null;
+
+  const hit = cache.get(cacheKey);
+  if (hit && hit.rev === rev) {
+    // NOT returned verbatim — merge is the one time-varying field and must be
+    // re-derived, or it freezes at "pending" forever. See merge-refresh.ts.
+    return {
+      context: refreshMerge(hit.context, projectRoot, req.transcript, deps),
+      associateRunId: associate,
+    };
+  }
+
+  let documentId: string | null = null, title: string | null = null, specText: string | null = null;
+  if (doc.ok) {
+    const matched = candidates.find((parts) =>
+      doc.absolute.replace(/\\/g, "/").endsWith(parts.join("/")),
+    );
+    const rel = (matched ?? candidates[0]).join("/");
+    title = rel.slice(rel.lastIndexOf("/") + 1);
+    documentId = mintDocId({
+      t: req.taskId,
+      s: sessionUuid,
+      p: projectRoot,
+      r: runId,
+      root: chosen.root,
+      rel,
+      rev,
+      f: docFingerprint(doc.absolute),
+    });
+    specText = readBounded(doc.absolute);
+  }
+
+  // --- Records --------------------------------------------------------------
+  const events = findWorkCompleted(projectRoot, runId);
+  const foldMap = loadFoldMap(projectRoot);
+  const run = events.status === "found" ? events.run : null;
+
+  // --- Commit + merge -------------------------------------------------------
+  // The marker must belong to THIS project's own origin repo (a sibling repo's
+  // PR number would grep our origin/main), and merge is only checked once the
+  // run completed — a per-poll git call mid-run is waste (§5.3).
+  const marker = extractPrMarker(req.transcript, readOriginSlug(projectRoot, deps.git));
+  const merge =
+    run && marker
+      ? checkSquashMerged(projectRoot, marker.number, { git: deps.git, ...deps.merge })
+      : "unknown";
+
+  const artifacts: ArtifactDescriptor[] = [
+    buildSpecArtifact({
+      documentId,
+      title,
+      denied: !doc.ok && doc.reason === "denied",
+      fromWorktree: chosen.isWorktree,
+      intent: run?.intent ?? null,
+    }),
+    buildRequirementArtifact({ foldMap, doc: iterateDoc, events, specText }),
+    buildCommitArtifact({ events, prNumber: marker?.number ?? null, prUrl: marker?.url ?? null, merge }),
+  ];
+
+  const requirement = artifacts[1];
+  const servesFrId =
+    requirement.kind === "requirement" && requirement.detail?.rows.length
+      ? requirement.detail.rows[0].displayFrId
+      : null;
+
+  const context: MissionContext = {
+    schemaVersion: MISSION_CONTEXT_SCHEMA_VERSION,
+    scenario: "iterate",
+    missionTabVisible: true,
+    runId,
+    artifacts,
+    tests: run?.tests ?? null,
+    servesFrId,
+    sourceRev: rev,
+  };
+
+  if (cache.size >= CACHE_CAP) cache.clear();
+  cache.set(cacheKey, { rev, context });
+
+  // `associate` is set by the POINTER validating — never by the task's `state`,
+  // which decays to `idle` on a parked design gate. See association.ts.
+  return { context, associateRunId: associate };
+}
+
+/**
+ * Re-resolve a document for the detail endpoint. `expectFingerprint` implements
+ * AC3's "changed → stale": the descriptor promised a specific revision, so a
+ * rewritten file reports `changed` rather than serving different content under
+ * an id the client believes points at what it was shown.
+ */
+export function readDocumentBody(
+  root: string,
+  relParts: string[],
+  expectFingerprint?: string,
+):
+  | { ok: true; body: string }
+  | { ok: false; reason: "denied" | "not_found" | "too_large" | "changed" } {
+  const r = resolveFirstDoc(root, [relParts]);
+  if (!r.ok) return { ok: false, reason: r.reason === "denied" ? "denied" : "not_found" };
+  if (r.sizeBytes > MAX_DOC_BYTES) return { ok: false, reason: "too_large" };
+  if (!existsSync(r.absolute)) return { ok: false, reason: "not_found" };
+  if (expectFingerprint && docFingerprint(r.absolute) !== expectFingerprint) {
+    return { ok: false, reason: "changed" };
+  }
+  const body = readBounded(r.absolute);
+  if (body == null) return { ok: false, reason: "not_found" };
+  return { ok: true, body };
+}

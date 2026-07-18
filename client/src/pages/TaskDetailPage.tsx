@@ -435,7 +435,7 @@ function TaskDetailPageBody() {
       {/* Mission | Files & Terminal segmented switch + the glass "Open Ship's Log"
           button (A13, MissionTabRow). Files & Terminal stays the mount-default so
           the terminal / auto-launch / CI smoke gate stay byte-stable. */}
-      <MissionTabRow value={missionTab} onChange={setMissionTab} />
+      <MissionTabRow value={missionTab} onChange={setMissionTab} taskId={task?.taskId} />
 
       {/* Mission tab — the three equal-height glass cards (A13, MissionBody).
           Mount-only when selected (no persistent resource to preserve). */}
