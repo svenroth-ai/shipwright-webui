@@ -8,7 +8,9 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { statSync } from "node:fs";
+
+import { readBoundedFile } from "./fs-read.js";
 
 import { MAX_DOC_BYTES } from "./worktree-roots.js";
 import {
@@ -109,15 +111,14 @@ export function _clearResolverCache(): void {
   cache.clear();
 }
 
-/** Bounded read of a document body (mid-run planned impact + the detail endpoint). */
+/**
+ * Bounded read of a document body (mid-run planned impact + the detail
+ * endpoint). Atomic: the size cap is enforced against the SAME descriptor the
+ * bytes come from, so a swapped path cannot slip past it (CodeQL
+ * js/file-system-race).
+ */
 export function readBounded(absolute: string): string | null {
-  try {
-    const st = statSync(absolute);
-    if (st.size > MAX_DOC_BYTES) return null;
-    return readFileSync(absolute, "utf-8");
-  } catch {
-    return null;
-  }
+  return readBoundedFile(absolute, MAX_DOC_BYTES)?.text ?? null;
 }
 
 /** A context with no artifacts — the shape every non-iterate scenario returns. */

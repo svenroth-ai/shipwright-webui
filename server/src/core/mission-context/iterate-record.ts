@@ -19,14 +19,20 @@
  * silently reports emptiness would fake absence (§5.2, Review-2 GPT #7).
  */
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
+
+import { readBoundedFile } from "./fs-read.js";
 
 import { readEventLog, type RunProjection } from "../event-log-reader.js";
 import { pathGuard } from "../path-guard.js";
 import { isSafeRunId } from "./pointer.js";
 
 export const EVENTS_FILE = "shipwright_events.jsonl";
+
+/** Caps that bound a corrupt/huge source (CONTRACT §11 "bounded, not OOM"). */
+const MAX_RECORD_BYTES = 1024 * 1024;
+const MAX_EVENT_LOG_BYTES = 64 * 1024 * 1024;
 
 /** Facts from `iterates/<run_id>.json`. Every field is optional in the wild. */
 export interface IterateDoc {
@@ -55,17 +61,15 @@ export function readIterateDoc(projectRoot: string, runId: string): IterateDoc |
   const guard = pathGuard(projectRoot, rel);
   if (!guard.ok || !existsSync(guard.absolute)) return null;
 
-  let raw: string;
-  let mtimeMs: number;
-  try {
-    mtimeMs = statSync(guard.absolute).mtimeMs;
-    raw = readFileSync(guard.absolute, "utf-8");
-  } catch {
-    return null;
-  }
+  // ONE atomic read — the mtime describes exactly the bytes parsed below
+  // (CodeQL js/file-system-race).
+  const read = readBoundedFile(guard.absolute, MAX_RECORD_BYTES);
+  if (!read) return null;
+  const mtimeMs = read.mtimeMs;
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(read.text);
   } catch {
     return null;
   }
@@ -102,15 +106,12 @@ export function findWorkCompleted(projectRoot: string, runId: string): EventLook
   if (!guard.ok) return { status: "unavailable" };
   if (!existsSync(guard.absolute)) return { status: "absent", mtimeMs: 0 };
 
-  let mtimeMs: number;
-  try {
-    mtimeMs = statSync(guard.absolute).mtimeMs;
-    // Probe readability explicitly: readEventLog swallows an I/O fault into an
-    // empty projection, which here would be indistinguishable from "no run".
-    readFileSync(guard.absolute, { encoding: "utf-8", flag: "r" });
-  } catch {
-    return { status: "unavailable" };
-  }
+  // Probe readability explicitly — readEventLog swallows an I/O fault into an
+  // empty projection, which here would be indistinguishable from "no run". One
+  // atomic read also keeps the mtime honest (CodeQL js/file-system-race).
+  const probe = readBoundedFile(guard.absolute, MAX_EVENT_LOG_BYTES);
+  if (!probe) return { status: "unavailable" };
+  const mtimeMs = probe.mtimeMs;
 
   const projection = readEventLog(projectRoot, { runId });
   const run = projection.runs.find((r) => r.runId === runId) ?? null;

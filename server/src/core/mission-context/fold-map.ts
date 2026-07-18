@@ -17,14 +17,19 @@
  * say "FR-01.28 — mapped from FR-01.44" instead of quietly rewriting history.
  */
 
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
+
+import { readBoundedFile } from "./fs-read.js";
 
 import { pathGuard } from "../path-guard.js";
 import type { FrRow } from "./types.js";
 
 /** The adopted spec, relative to the project root. Constant — no user segment. */
 export const SPEC_REL_PARTS = [".shipwright", "planning", "01-adopted", "spec.md"];
+
+/** Hard cap on spec.md — bounds a corrupt/huge file (CONTRACT §11). */
+const MAX_SPEC_BYTES = 4 * 1024 * 1024;
 
 /** `FR-01.66` — the immutable id grammar. */
 const FR_ID_RE = /^FR-\d{2}\.\d{2,3}$/;
@@ -107,22 +112,17 @@ export function loadFoldMap(projectRoot: string): FoldMap {
   const guard = pathGuard(projectRoot, SPEC_REL_PARTS.join("/"));
   if (!guard.ok || !existsSync(guard.absolute)) return EMPTY_MAP;
 
-  let mtimeMs: number;
-  try {
-    mtimeMs = statSync(guard.absolute).mtimeMs;
-  } catch {
-    return EMPTY_MAP;
-  }
-  const hit = cache.get(guard.absolute);
-  if (hit && hit.mtimeMs === mtimeMs) return hit.map;
+  // ONE atomic read: the mtime used as the cache key describes exactly the
+  // bytes parsed below, so the cache can never key a different revision than
+  // the map it holds (CodeQL js/file-system-race).
+  const read = readBoundedFile(guard.absolute, MAX_SPEC_BYTES);
+  if (!read) return EMPTY_MAP;
 
-  let text: string;
-  try {
-    text = readFileSync(guard.absolute, "utf-8");
-  } catch {
-    return EMPTY_MAP;
-  }
-  const map = parseFoldMap(text);
+  const hit = cache.get(guard.absolute);
+  if (hit && hit.mtimeMs === read.mtimeMs) return hit.map;
+
+  const map = parseFoldMap(read.text);
+  const mtimeMs = read.mtimeMs;
   if (cache.size > 32) cache.clear();
   cache.set(guard.absolute, { map, mtimeMs });
   return map;
