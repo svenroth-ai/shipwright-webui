@@ -36,7 +36,7 @@ export interface GitRunner {
  * Default git invocation: an ARGUMENT ARRAY with `shell: false`. No caller
  * string is ever concatenated into a command line (ADR-044 #9 discipline).
  */
-const defaultGit: GitRunner = (args, cwd) =>
+export const defaultGit: GitRunner = (args, cwd) =>
   execFileSync("git", args, {
     cwd,
     encoding: "utf-8",

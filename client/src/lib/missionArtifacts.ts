@@ -24,8 +24,15 @@ import type {
   MissionContext,
 } from "./missionContextApi";
 
-/** The rail order — Spec · Requirement · Commit (Slice 1 of §6's six). */
-export const ARTIFACT_ORDER: ArtifactDescriptor["kind"][] = ["spec", "requirement", "commit"];
+/** The rail order — all six of CONTRACT §6, in the decided order. */
+export const ARTIFACT_ORDER: ArtifactDescriptor["kind"][] = [
+  "spec",
+  "requirement",
+  "tests",
+  "review",
+  "decisions",
+  "commit",
+];
 
 /** The two "absent" states, hidden by hide-empty. Everything else renders. */
 const HIDDEN_STATES: ReadonlySet<ArtifactState> = new Set<ArtifactState>([
@@ -115,4 +122,60 @@ export function frRowLabel(row: {
 }): string {
   const base = row.name ? `${row.displayFrId} — ${row.name}` : row.displayFrId;
   return row.mappedFrom ? `${base} (mapped from ${row.mappedFrom})` : base;
+}
+
+/**
+ * "FR-01.28 (mapped from FR-01.44)" for a TEST's requirement link (Slice-2 AC2).
+ *
+ * Same phrasing as `frRowLabel` on purpose — the fold provenance must read
+ * identically wherever it appears, or the two surfaces teach different things.
+ */
+export function testFrLabel(fr: { frId: string; mappedFrom: string | null }): string {
+  return fr.mappedFrom ? `${fr.frId} (mapped from ${fr.mappedFrom})` : fr.frId;
+}
+
+/** Past-tense verb for a test change — plain words, not git status letters. */
+export function testChangeWord(kind: "added" | "modified" | "removed"): string {
+  return kind === "added" ? "added" : kind === "removed" ? "removed" : "changed";
+}
+
+/** `e2e` is jargon; the panel says what the layer MEANS. */
+export function layerWord(layer: string | null): string {
+  if (!layer) return "unknown layer";
+  if (layer === "e2e") return "end-to-end";
+  if (layer === "unit") return "unit";
+  if (layer === "integration") return "integration";
+  return layer;
+}
+
+/** Plain-language name for each of the four review passes. */
+export function reviewTypeLabel(t: "plan" | "code" | "doubt" | "external_code"): string {
+  switch (t) {
+    case "plan":
+      return "Plan review";
+    case "code":
+      return "Code review";
+    case "doubt":
+      return "Doubt review";
+    case "external_code":
+      return "External code review";
+  }
+}
+
+/**
+ * The review status, in words.
+ *
+ * `unavailable` deliberately reads as "no record" and NEVER as "passed" or
+ * "none" — an unreadable pass presented as a clean one is the single worst
+ * failure this artifact could produce (CONTRACT §9.1).
+ */
+export function reviewStatusWord(status: "completed" | "not_run" | "unavailable"): string {
+  switch (status) {
+    case "completed":
+      return "ran";
+    case "not_run":
+      return "not run";
+    case "unavailable":
+      return "no record";
+  }
 }

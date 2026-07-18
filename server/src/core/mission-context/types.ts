@@ -16,6 +16,11 @@
  */
 
 import { isSafeRunId } from "./pointer.js";
+import type {
+  DecisionsArtifact,
+  ReviewArtifact,
+  TestsArtifact,
+} from "./types-slice2.js";
 
 /** Bump when a field is removed or re-typed; additive fields do not bump. */
 export const MISSION_CONTEXT_SCHEMA_VERSION = 1 as const;
@@ -40,10 +45,16 @@ export type ArtifactState =
   | "unavailable"
   | "error";
 
-/** Slice 1 ships three of the six artifacts; Tests/Review/Decisions land in Slice 2. */
-export type ArtifactKind = "spec" | "requirement" | "commit";
+/** All six §6 artifacts — Slice 1 shipped spec/requirement/commit, Slice 2 the rest. */
+export type ArtifactKind =
+  | "spec"
+  | "requirement"
+  | "tests"
+  | "review"
+  | "decisions"
+  | "commit";
 
-interface ArtifactBase {
+export interface ArtifactBase {
   kind: ArtifactKind;
   /** Rail label — plain language, never a filename. */
   label: string;
@@ -131,7 +142,27 @@ export interface CommitArtifact extends ArtifactBase {
   } | null;
 }
 
-export type ArtifactDescriptor = SpecArtifact | RequirementArtifact | CommitArtifact;
+export type ArtifactDescriptor =
+  | SpecArtifact
+  | RequirementArtifact
+  | TestsArtifact
+  | ReviewArtifact
+  | DecisionsArtifact
+  | CommitArtifact;
+
+export type {
+  DecisionEntryView,
+  DecisionsArtifact,
+  ReviewArtifact,
+  ReviewFinding,
+  ReviewRow,
+  ReviewStatus,
+  ReviewType,
+  TestChangeKind,
+  TestFrRef,
+  TestRow,
+  TestsArtifact,
+} from "./types-slice2.js";
 
 export interface MissionTests {
   passed: number | null;
