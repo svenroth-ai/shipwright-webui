@@ -24,7 +24,7 @@ import path from "node:path";
 
 import { readBoundedFile } from "./fs-read.js";
 
-import { readEventLog, type RunProjection } from "../event-log-reader.js";
+import { projectEventLog, type RunProjection } from "../event-log-reader.js";
 import { pathGuard } from "../path-guard.js";
 import { isSafeRunId } from "./pointer.js";
 
@@ -113,7 +113,10 @@ export function findWorkCompleted(projectRoot: string, runId: string): EventLook
   if (!probe) return { status: "unavailable" };
   const mtimeMs = probe.mtimeMs;
 
-  const projection = readEventLog(projectRoot, { runId });
+  // Reuse the probe's bytes rather than letting readEventLog re-read the whole
+  // file: this handler ran TWO full linear scans of a log that may be tens of
+  // MB, on every poll (internal code review, perf note).
+  const projection = projectEventLog(probe.text.split(/\r?\n/), { runId });
   const run = projection.runs.find((r) => r.runId === runId) ?? null;
   return run ? { status: "found", run, mtimeMs } : { status: "absent", mtimeMs };
 }

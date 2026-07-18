@@ -20,16 +20,14 @@
  */
 
 import type {
-  ArtifactState,
-  CommitArtifact,
   FrRow,
-  MergeState,
   RequirementArtifact,
   RequirementConfidence,
   SpecArtifact,
 } from "./types.js";
 import type { FoldMap } from "./fold-map.js";
 import { resolveFrList } from "./fold-map.js";
+import { plannedImpactFromSpec } from "./planned-impact.js";
 import type { IterateDoc, EventLookup } from "./iterate-record.js";
 import type { RunProjection } from "../event-log-reader.js";
 
@@ -106,34 +104,6 @@ function requirementSummary(rows: FrRow[], confidence: RequirementConfidence): s
     : `Changed ${lead} (${plural(rows.length, "requirement", "requirements")}).`;
 }
 
-/**
- * Mid-run PLANNED impact: the FR ids the spec document itself names.
- *
- * AC1 requires a live iterate to show a NON-EMPTY Requirement, and before
- * Finalize no record exists — the spec is the only evidence of intent. These
- * rows are labelled `planned` and are never presented as new/changed/technical.
- *
- * Bounded scan: only the first slice of the document is read, so a large spec
- * cannot turn this into an unbounded regex walk.
- */
-const PLANNED_SCAN_BYTES = 200_000;
-const FR_IN_TEXT = /\bFR-\d{2}\.\d{2,3}\b/g;
-
-export function plannedFrsFromSpec(specText: string | null): string[] {
-  if (!specText) return [];
-  const slice = specText.length > PLANNED_SCAN_BYTES ? specText.slice(0, PLANNED_SCAN_BYTES) : specText;
-  const out: string[] = [];
-  const seen = new Set<string>();
-  FR_IN_TEXT.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = FR_IN_TEXT.exec(slice)) !== null) {
-    if (seen.has(m[0])) continue;
-    seen.add(m[0]);
-    out.push(m[0]);
-  }
-  return out;
-}
-
 export interface RequirementInput {
   foldMap: FoldMap;
   /** Post-Finalize record, when present. */
@@ -162,12 +132,14 @@ export function buildRequirementArtifact(input: RequirementInput): RequirementAr
 
   // Mid-run there is no record — fall back to what the spec PLANS to touch, so
   // a live iterate still shows a real Requirement (AC1) instead of a blank.
+  // The scan is SCOPED to the spec's affected-boundaries section; a
+  // document-wide scrape reported References and citations as impact.
   const recorded = [...rawAffected, ...rawNew];
   const usingPlanned = !finalized && recorded.length === 0;
-  const rows = resolveFrList(
-    foldMap,
-    usingPlanned ? plannedFrsFromSpec(input.specText ?? null) : recorded,
-  );
+  const planned = usingPlanned
+    ? plannedImpactFromSpec(input.specText)
+    : { frIds: [], prose: null };
+  const rows = resolveFrList(foldMap, usingPlanned ? planned.frIds : recorded);
 
   const confidence: RequirementConfidence =
     rows.length === 0 ? "unresolved" : usingPlanned ? "planned" : "finalized";
@@ -180,6 +152,21 @@ export function buildRequirementArtifact(input: RequirementInput): RequirementAr
       summary: requirementSummary(rows, confidence),
       receipt: rows.map((r) => r.displayFrId).join(", "),
       detail: { type: "requirements", confidence, rows, specImpact },
+    };
+  }
+
+  // Mid-run with no resolvable FR id: carry the spec's own PLANNED-IMPACT prose
+  // rather than falling into a hidden state. AC1 requires a live iterate to
+  // show a non-empty Requirement, and an id-only model failed it SILENTLY for
+  // every spec that describes its impact in words (internal review, MEDIUM).
+  if (usingPlanned && planned.prose) {
+    return {
+      kind: "requirement",
+      label: "Requirement",
+      state: "available",
+      summary: `Planned impact — ${planned.prose}`,
+      receipt: "planned impact",
+      detail: { type: "requirements", confidence: "planned", rows: [], specImpact },
     };
   }
 
@@ -219,74 +206,5 @@ export function buildRequirementArtifact(input: RequirementInput): RequirementAr
     summary: null,
     receipt: null,
     detail: null,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Commit
-// ---------------------------------------------------------------------------
-
-function mergeSentence(merge: MergeState, prNumber: number | null): string {
-  if (merge === "merged") return "Delivered — merged into the main line.";
-  if (merge === "pending" && prNumber != null) return `Waiting to be merged (PR #${prNumber}).`;
-  return "Committed; delivery not confirmed yet.";
-}
-
-export interface CommitInput {
-  events: EventLookup;
-  prNumber: number | null;
-  prUrl: string | null;
-  merge: MergeState;
-}
-
-export function buildCommitArtifact(input: CommitInput): CommitArtifact {
-  const { events, prNumber, prUrl, merge } = input;
-
-  if (events.status === "unavailable") {
-    return {
-      kind: "commit",
-      label: "Commit",
-      state: "unavailable",
-      summary: null,
-      receipt: null,
-      note: "The run record could not be read.",
-      detail: null,
-    };
-  }
-
-  const run = events.status === "found" ? events.run : null;
-  // MEASURED: only 49 of 210 iterate rows carry a non-empty `commit`. An empty
-  // string is NOT a commit — treat it as absent rather than rendering a blank sha.
-  const commit = run?.commit && run.commit.trim().length > 0 ? run.commit.trim() : null;
-
-  if (!run) {
-    return {
-      kind: "commit",
-      label: "Commit",
-      state: "not_yet_created",
-      summary: null,
-      receipt: null,
-      detail: null,
-    };
-  }
-
-  const message = run.summary ?? run.description ?? null;
-  const shortSha = commit ? commit.slice(0, 7) : null;
-  const receipt = shortSha ?? (prNumber != null ? `PR #${prNumber}` : null);
-
-  // The run completed, so this artifact EXISTS even when the sha was not
-  // recorded — the delivery story is still real (a PR link, a merge state).
-  const state: ArtifactState = commit || prNumber != null ? "available" : "not_yet_created";
-  if (state === "not_yet_created") {
-    return { kind: "commit", label: "Commit", state, summary: null, receipt: null, detail: null };
-  }
-
-  return {
-    kind: "commit",
-    label: "Commit",
-    state: "available",
-    summary: message ? `${message} ${mergeSentence(merge, prNumber)}` : mergeSentence(merge, prNumber),
-    receipt,
-    detail: { type: "commit", commit, message, prNumber, prUrl, merge },
   };
 }

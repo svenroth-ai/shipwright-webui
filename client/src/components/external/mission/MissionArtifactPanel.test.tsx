@@ -195,3 +195,29 @@ describe("commit detail (metadata + PR link)", () => {
     expect(screen.getByTestId("artifact-commit-merge")).toHaveTextContent("unknown");
   });
 });
+
+/*
+ * Internal code review (MEDIUM) — `stale` and `unavailable` must stay
+ * DISTINGUISHABLE at the last mile. Collapsing them into one message would let
+ * a guard rejection or an over-cap document read as a benign edit, undoing the
+ * §6 state model exactly where the user sees it.
+ */
+describe("stale vs unavailable (the §6 distinction, at the last mile)", () => {
+  it("says CHANGED for a stale document", () => {
+    docMock.mockReturnValue({ data: { status: "stale" }, isPending: false, isError: false });
+    setup(SPEC);
+    expect(screen.getByTestId("artifact-doc-stale")).toBeInTheDocument();
+    expect(screen.queryByTestId("artifact-doc-unavailable")).not.toBeInTheDocument();
+  });
+
+  it("says UNAVAILABLE for a guard rejection — not 'this has changed'", () => {
+    docMock.mockReturnValue({
+      data: { status: "unavailable", reason: "denied" },
+      isPending: false,
+      isError: false,
+    });
+    setup(SPEC);
+    expect(screen.getByTestId("artifact-doc-unavailable")).toBeInTheDocument();
+    expect(screen.queryByTestId("artifact-doc-stale")).not.toBeInTheDocument();
+  });
+});

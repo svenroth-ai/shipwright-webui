@@ -11,6 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -203,6 +204,56 @@ describe("resolveFirstDoc", () => {
       if (!r.ok) expect(r.reason).toBe("denied");
     } finally {
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+/*
+ * Internal code review (test gap) — `readAllowedRoots` was covered only by
+ * hand-written mock strings. This parses the output of a REAL
+ * `git worktree list --porcelain` from a real repo with a real linked
+ * worktree, so a future porcelain format change is caught here rather than by
+ * silently shrinking the allowed-root set in production.
+ */
+describe("readAllowedRoots against REAL git --porcelain output", () => {
+  let gitAvailable = true;
+  try {
+    execFileSync("git", ["--version"], { stdio: "ignore" });
+  } catch {
+    gitAvailable = false;
+  }
+
+  it.runIf(gitAvailable)("discovers a real linked worktree", () => {
+    const parent = tmp("mc-realwt-");
+    const repo = join(parent, "repo");
+    const linked = join(parent, "wt-linked");
+    const g = (cwd: string, args: string[]) =>
+      execFileSync("git", args, { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] });
+    try {
+      mkdirSync(repo, { recursive: true });
+      g(repo, ["init", "-q", "-b", "main"]);
+      g(repo, ["config", "user.email", "t@example.com"]);
+      g(repo, ["config", "user.name", "Test"]);
+      writeFileSync(join(repo, "a.txt"), "one");
+      g(repo, ["add", "."]);
+      g(repo, ["commit", "-q", "-m", "chore: init"]);
+      // A real linked worktree OUTSIDE the project root — the case membership
+      // exists for.
+      g(repo, ["worktree", "add", "-q", "-b", "iterate/x", linked]);
+
+      const roots = readAllowedRoots(repo);
+      expect(roots.length).toBe(2);
+      expect(isRegisteredWorktree(roots, linked)).toBe(true);
+      expect(chooseRoot(roots, linked).isWorktree).toBe(true);
+      // …and a sibling git does NOT report is still rejected.
+      expect(isRegisteredWorktree(roots, join(parent, "wt-hostile"))).toBe(false);
+    } finally {
+      try {
+        g(repo, ["worktree", "remove", "--force", linked]);
+      } catch {
+        /* best effort */
+      }
+      rmSync(parent, { recursive: true, force: true });
     }
   });
 });

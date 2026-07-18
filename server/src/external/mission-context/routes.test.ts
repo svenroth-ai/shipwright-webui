@@ -67,10 +67,53 @@ describe("GET mission-context", () => {
     }
   });
 
-  it("does NOT associate a session that is not live (no post-hoc stamping)", async () => {
+  /*
+   * Internal code review (MEDIUM-HIGH). This case previously asserted the
+   * OPPOSITE — that an `idle` task is not associated — which locked in the bug.
+   *
+   * `state` decays to `idle` after 120 s of JSONL silence, and this repo's own
+   * design-gate feature (FR-01.45) parks an iterate at a human gate emitting
+   * ZERO I/O: perfectly alive, worktree and pointer intact, but `idle`. Gating
+   * the write on `state === "active"` meant opening Mission only during such a
+   * park persisted nothing — and once the run finalized and the pointer was
+   * pruned, the iterate resolved `plain` and showed "No run data yet". That is
+   * AC2 broken by the exact mechanism the association exists to prevent.
+   *
+   * The correct evidence of "live" is the POINTER validating.
+   */
+  it("associates an IDLE task whose pointer is valid (a parked gate is still live)", async () => {
     const root = makeProject();
     try {
       const { app, persist, tasks } = harness(root, makeTask({ state: "idle" }));
+      await getContext(app);
+      expect(persist).toHaveBeenCalledTimes(1);
+      expect(tasks.get("task-1")?.missionContext).toMatchObject({
+        kind: "iterate",
+        runId: "iterate-2026-07-18-demo",
+      });
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("associates a DONE task while its pointer still exists (worktree not yet pruned)", async () => {
+    const root = makeProject();
+    try {
+      const { app, tasks } = harness(root, makeTask({ state: "done" }));
+      await getContext(app);
+      expect(tasks.get("task-1")?.missionContext?.runId).toBe("iterate-2026-07-18-demo");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does NOT associate when there is no valid pointer (never fabricated)", async () => {
+    const root = makeProject();
+    try {
+      // Pointer pruned: the only remaining evidence would be an association,
+      // and there is none — so nothing may be invented.
+      rmSync(join(root, ".shipwright", "iterate_active"), { recursive: true, force: true });
+      const { app, persist, tasks } = harness(root, makeTask());
       await getContext(app);
       expect(persist).not.toHaveBeenCalled();
       expect(tasks.get("task-1")?.missionContext).toBeUndefined();

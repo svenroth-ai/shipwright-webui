@@ -107,6 +107,11 @@ export type ResolveDocResult =
   | { ok: true; absolute: string; mtimeMs: number; sizeBytes: number }
   | { ok: false; reason: "not_found" | "denied" | "not_a_file" };
 
+/** `resolveFirstDoc` additionally reports WHICH candidate matched. */
+export type ResolveFirstDocResult =
+  | { ok: true; absolute: string; mtimeMs: number; sizeBytes: number; index: number }
+  | { ok: false; reason: "not_found" | "denied" | "not_a_file" };
+
 /** Hard cap on a rendered document — bounds a pathological/corrupt file (§11). */
 export const MAX_DOC_BYTES = 2 * 1024 * 1024;
 
@@ -145,11 +150,17 @@ export function resolveDocIn(root: string, relParts: string[]): ResolveDocResult
 export function resolveFirstDoc(
   root: string,
   candidates: string[][],
-): ResolveDocResult {
+): ResolveFirstDocResult {
   let sawDenied = false;
-  for (const parts of candidates) {
-    const r = resolveDocIn(root, parts);
-    if (r.ok) return r;
+  for (let i = 0; i < candidates.length; i++) {
+    const r = resolveDocIn(root, candidates[i]);
+    // The INDEX is returned so the caller never has to re-infer which candidate
+    // matched by suffix-comparing a realpath against a pre-canonical path — a
+    // leaf-casing normalisation would silently pick candidates[0] and pair it
+    // with the OTHER file's fingerprint, leaving the node permanently
+    // unopenable behind a misleading "this document has changed"
+    // (internal code review, MEDIUM).
+    if (r.ok) return { ...r, index: i };
     if (r.reason === "denied") sawDenied = true;
   }
   return { ok: false, reason: sawDenied ? "denied" : "not_found" };

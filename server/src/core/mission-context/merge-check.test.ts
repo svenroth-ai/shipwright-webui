@@ -94,33 +94,40 @@ describe("validatePrNumber (the bounded-int gate)", () => {
   });
 });
 
+const WEBUI = { owner: "svenroth-ai", repo: "shipwright-webui" };
+
 describe("extractPrMarker", () => {
   it("finds the PR number from a github pull url in the transcript", () => {
-    const m = extractPrMarker('{"text":"opened https://github.com/svenroth-ai/shipwright-webui/pull/290 ok"}');
+    const m = extractPrMarker(
+      '{"text":"opened https://github.com/svenroth-ai/shipwright-webui/pull/290 ok"}',
+      WEBUI,
+    );
     expect(m).toEqual({
       number: 290,
       url: "https://github.com/svenroth-ai/shipwright-webui/pull/290",
+      owner: "svenroth-ai",
+      repo: "shipwright-webui",
     });
   });
 
-  it("keeps the LAST marker when a session opened several PRs", () => {
+  it("keeps the LAST marker when a session opened several PRs of THIS repo", () => {
     const t = [
       "https://github.com/o/r/pull/1",
       "https://github.com/o/r/pull/2",
     ].join(" ... ");
-    expect(extractPrMarker(t)?.number).toBe(2);
+    expect(extractPrMarker(t, { owner: "o", repo: "r" })?.number).toBe(2);
   });
 
   it("ignores a bare #123 in prose (not a delivery marker)", () => {
-    expect(extractPrMarker("fixes #123 as discussed")).toBeNull();
+    expect(extractPrMarker("fixes #123 as discussed", WEBUI)).toBeNull();
   });
 
   it("ignores a lookalike host (no marker from evil.com)", () => {
-    expect(extractPrMarker("https://github.com.evil.com/o/r/pull/9")).toBeNull();
+    expect(extractPrMarker("https://github.com.evil.com/o/r/pull/9", WEBUI)).toBeNull();
   });
 
   it("returns null for an empty transcript", () => {
-    expect(extractPrMarker("")).toBeNull();
+    expect(extractPrMarker("", WEBUI)).toBeNull();
   });
 });
 

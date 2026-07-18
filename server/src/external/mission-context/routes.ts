@@ -29,6 +29,7 @@ import {
 import {
   resolveMissionContext,
   readDocumentBody,
+  type ResolveDeps,
   type ResolveRequest,
 } from "../../core/mission-context/resolver.js";
 import type { MissionContextAssociation } from "../../core/mission-context/types.js";
@@ -55,16 +56,18 @@ export interface MissionContextRouterDeps {
     campaignSlug: string | null;
     hasCampaignRecord: boolean;
   }>;
-  /** Live = the session is actively working (gates the association write). */
-  isLive?: (task: ExternalTask) => boolean;
   now?: () => Date;
+  /**
+   * Injected git / merge-check doubles. Production leaves this undefined (real
+   * git); tests use it to drive the merge state deterministically.
+   */
+  resolveDeps?: ResolveDeps;
 }
 
 export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono {
   const app = new Hono();
   const { store, getProjectById, readTranscriptTail, getScenarioFacts } = deps;
   const now = deps.now ?? (() => new Date());
-  const isLive = deps.isLive ?? ((t: ExternalTask) => t.state === "active");
 
   /**
    * Resolve task + project together, enforcing the binding. Returns null on any
@@ -97,12 +100,11 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
       transcript,
       phaseTaskId: task.phaseTaskId ?? null,
       taskRunId: task.runId ?? null,
-      live: isLive(task),
       // Server-held, server-written — this is what keeps a FINALIZED iterate
       // resolvable after its `iterate_active` pointer was pruned.
       association: task.missionContext ?? null,
       ...facts,
-    });
+    }, deps.resolveDeps);
 
     // THE one guarded association write (CONTRACT §5). Idempotent: the store
     // no-ops when an association already exists, so repeated polls perform

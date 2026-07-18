@@ -26,9 +26,25 @@ export function makeProject(): string {
   const root = mkdtempSync(join(tmpdir(), "mc-route-"));
   mkdirSync(join(root, ".shipwright", "iterate_active"), { recursive: true });
   mkdirSync(join(root, ".shipwright", "planning", "iterate", RUN_ID), { recursive: true });
+  // A realistic spec shape: the planned-impact scan is SCOPED to the
+  // affected-boundaries section, so an FR id cited elsewhere (the References
+  // line below) must NOT be reported as impact.
   writeFileSync(
     join(root, ".shipwright", "planning", "iterate", RUN_ID, "mini-plan.md"),
-    "# Demo plan\n\nTouches FR-01.66.\n",
+    [
+      "# Demo plan",
+      "",
+      "Wire the Mission tab to the iterate resolver.",
+      "",
+      "## Affected Boundaries",
+      "",
+      "The mission-context response shape (FR-01.66).",
+      "",
+      "## References",
+      "",
+      "Prior art: FR-01.28 (embedded terminal) — unchanged by this run.",
+      "",
+    ].join("\n"),
   );
   writeFileSync(
     join(root, ".shipwright", "iterate_active", `${UUID}.json`),

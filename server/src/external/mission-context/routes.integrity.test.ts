@@ -116,3 +116,129 @@ describe("GET mission-context — code-review regressions", () => {
     }
   });
 });
+
+/*
+ * AC1 must not fail SILENTLY (internal code review, MEDIUM).
+ *
+ * The Requirement artifact previously depended on a literal FR id appearing in
+ * the spec. With none, rows were empty -> `not_yet_created` -> the client's
+ * hide-empty rule removed the node, and "a live standalone iterate shows a
+ * non-empty Spec + Requirement" failed with no signal at all. The earlier route
+ * test only passed because its fixture happened to contain `FR-01.66`.
+ */
+describe("AC1 — a live iterate always shows a Requirement", () => {
+  beforeEach(() => _clearResolverCache());
+
+  function writeSpec(root: string, body: string): void {
+    writeFileSync(
+      join(root, ".shipwright", "planning", "iterate", RUN_ID, "mini-plan.md"),
+      body,
+      "utf-8",
+    );
+  }
+
+  it("renders PLANNED PROSE when the spec names no FR id (the silent-failure case)", async () => {
+    const root = makeProject();
+    try {
+      writeSpec(
+        root,
+        [
+          "# Fix the replay flake",
+          "",
+          "## Affected Boundaries",
+          "",
+          "The snapshot envelope written by the server and read by the E2E harness.",
+          "",
+        ].join("\n"),
+      );
+      const { app } = harness(root, makeTask());
+      const ctx = await getContext(app);
+      const req = ctx.artifacts.find((a) => a.kind === "requirement") as
+        | { state: string; summary?: string | null; detail?: { confidence?: string } }
+        | undefined;
+      // Visible (not hidden), honest, and labelled as PLANNED — never finalized.
+      expect(req?.state).toBe("available");
+      expect(req?.summary).toContain("snapshot envelope");
+      expect(req?.detail?.confidence).toBe("planned");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("does NOT report an FR cited only under References as impact", async () => {
+    const root = makeProject();
+    try {
+      writeSpec(
+        root,
+        [
+          "# Demo",
+          "",
+          "## Affected Boundaries",
+          "",
+          "The resolver response shape.",
+          "",
+          "## References",
+          "",
+          "Prior art: FR-01.28 — unchanged by this run.",
+          "",
+        ].join("\n"),
+      );
+      const { app } = harness(root, makeTask());
+      const ctx = await getContext(app);
+      // FR-01.28 is a citation, not impact: it must not reach the chip.
+      expect(ctx.servesFrId).toBeNull();
+      const req = ctx.artifacts.find((a) => a.kind === "requirement") as
+        | { summary?: string | null }
+        | undefined;
+      expect(req?.summary).not.toContain("FR-01.28");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+/*
+ * Internal code review (test gap) — the spec asked for the idempotent write
+ * under CONCURRENT polls; the existing case runs five SEQUENTIAL ones.
+ *
+ * The interleaving is safe today only because the compare-and-set in
+ * `setMissionContextOnce` is synchronous (no await between the read of
+ * `task.missionContext` and the patch). Nothing pinned that, so a refactor
+ * moving the check outside the CAS — or making it async — would still pass the
+ * sequential test while double-writing in production. This pins the property.
+ */
+describe("association write under CONCURRENT polls", () => {
+  beforeEach(() => _clearResolverCache());
+
+  it("writes EXACTLY ONCE when five polls are in flight simultaneously", async () => {
+    const root = makeProject();
+    try {
+      const { app, persist, tasks } = harness(root, makeTask());
+      // No awaits between the requests: all five enter the handler before any
+      // of them completes its persist.
+      await Promise.all(Array.from({ length: 5 }, () => getContext(app)));
+      expect(persist).toHaveBeenCalledTimes(1);
+      expect(tasks.get("task-1")?.missionContext?.runId).toBe(RUN_ID);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("still writes exactly once when a concurrent burst follows a failed persist", async () => {
+    const root = makeProject();
+    try {
+      // First burst fails to persist and rolls back; the second must retry and
+      // then settle on a single durable write.
+      const failing = harness(root, makeTask(), { persistThrows: true });
+      await Promise.all(Array.from({ length: 3 }, () => getContext(failing.app)));
+      expect(failing.tasks.get("task-1")?.missionContext).toBeUndefined();
+
+      const ok = harness(root, makeTask());
+      await Promise.all(Array.from({ length: 3 }, () => getContext(ok.app)));
+      expect(ok.persist).toHaveBeenCalledTimes(1);
+      expect(ok.tasks.get("task-1")?.missionContext?.runId).toBe(RUN_ID);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

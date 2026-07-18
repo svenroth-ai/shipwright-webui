@@ -15,6 +15,8 @@
  *     table or commit metadata from the type, never from a guess (§7).
  */
 
+import { isSafeRunId } from "./pointer.js";
+
 /** Bump when a field is removed or re-typed; additive fields do not bump. */
 export const MISSION_CONTEXT_SCHEMA_VERSION = 1 as const;
 
@@ -179,14 +181,21 @@ export interface MissionContextAssociation {
   source: "iterate_active_pointer";
 }
 
-/** Type-guard used by the store loader to soft-drop a malformed persisted value. */
+/**
+ * Type-guard used by the store loader to soft-drop a malformed persisted value.
+ *
+ * `runId` is held to the SAME strict grammar as a pointer-supplied one
+ * (`isSafeRunId`): a persisted association is read back from disk, where it can
+ * be edited by hand or corrupted, and it feeds the same path-building code.
+ * Defense in depth — the downstream guards hold regardless — but this is the
+ * natural place to enforce it (internal code review, MEDIUM).
+ */
 export function isMissionContextAssociation(v: unknown): v is MissionContextAssociation {
   if (!v || typeof v !== "object" || Array.isArray(v)) return false;
   const o = v as Record<string, unknown>;
   return (
     o.kind === "iterate" &&
-    typeof o.runId === "string" &&
-    o.runId.length > 0 &&
+    isSafeRunId(o.runId) &&
     typeof o.observedAt === "string" &&
     o.observedAt.length > 0 &&
     o.source === "iterate_active_pointer"

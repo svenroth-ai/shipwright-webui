@@ -121,12 +121,21 @@ function SpecDetail({ taskId, documentId }: { taskId: string; documentId: string
   if (doc.isPending) return <p className="a-note" data-testid="artifact-doc-loading">Loading the document…</p>;
   if (doc.isError) return <p className="a-note" data-testid="artifact-doc-error">The document could not be loaded.</p>;
 
-  // A doc that moved or vanished since the context response — typed, never a
-  // silently-substituted different file.
-  if (doc.data?.status !== "ok") {
+  // `stale` and `unavailable` are DIFFERENT facts and the §6 state model exists
+  // to keep them apart — collapsing them here would reintroduce at the last
+  // mile the exact confusion the model prevents everywhere else: a guard
+  // rejection or an over-cap document would read as a benign edit.
+  if (doc.data?.status === "stale") {
     return (
       <p className="a-note" data-testid="artifact-doc-stale">
         This document has changed since it was listed. Reopen the tab to see the current version.
+      </p>
+    );
+  }
+  if (doc.data?.status !== "ok") {
+    return (
+      <p className="a-note" data-testid="artifact-doc-unavailable">
+        This document is currently unavailable — it could not be read safely.
       </p>
     );
   }

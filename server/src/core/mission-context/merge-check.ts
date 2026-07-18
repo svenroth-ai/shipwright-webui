@@ -151,23 +151,95 @@ export function _clearMergeCache(): void {
  *
  * Matches the github PR url shape rather than a bare number so an arbitrary
  * `#123` in prose cannot be mistaken for a delivery marker.
+ *
+ * REPO BINDING (internal code review, MEDIUM): matching any `owner/repo` and
+ * keeping the LAST hit is not safe here. A shipwright session routinely cites a
+ * SIBLING repo's PR (`svenroth-ai/shipwright#290`) after its own webui link,
+ * and PR numbers across those two repos overlap almost completely — webui has
+ * its own #290. Grepping webui's `origin/main` for a shipwright PR number would
+ * render a false "Delivered". So a marker counts ONLY when its owner/repo
+ * matches the project's own `origin` remote; if the remote cannot be
+ * determined we return null and the merge state stays `unknown`, because
+ * "delivered" must be a real observation.
  */
 const PR_URL_IN_TEXT =
-  /https:\/\/github\.com\/[A-Za-z0-9._-]{1,64}\/[A-Za-z0-9._-]{1,64}\/pull\/(\d{1,8})\b/g;
+  /https:\/\/github\.com\/([A-Za-z0-9._-]{1,64})\/([A-Za-z0-9._-]{1,64})\/pull\/(\d{1,8})\b/g;
 
 export interface PrMarker {
   number: number;
   url: string;
+  owner: string;
+  repo: string;
 }
 
-export function extractPrMarker(transcript: string): PrMarker | null {
-  if (!transcript) return null;
+export interface RepoSlug {
+  owner: string;
+  repo: string;
+}
+
+/**
+ * Parse `owner/repo` out of a git remote URL. Handles the https and scp-like
+ * SSH forms, with or without a trailing `.git`. Returns null for anything that
+ * is not a github remote — the caller then declines to verify.
+ */
+export function parseOriginSlug(remoteUrl: unknown): RepoSlug | null {
+  if (typeof remoteUrl !== "string" || remoteUrl.length === 0 || remoteUrl.length > 512) return null;
+  const url = remoteUrl.trim();
+  const m =
+    /^https?:\/\/(?:[^@/]+@)?github\.com\/([A-Za-z0-9._-]{1,64})\/([A-Za-z0-9._-]{1,64}?)(?:\.git)?\/?$/.exec(url) ??
+    /^(?:ssh:\/\/)?git@github\.com[:/]([A-Za-z0-9._-]{1,64})\/([A-Za-z0-9._-]{1,64}?)(?:\.git)?\/?$/.exec(url);
+  if (!m) return null;
+  return { owner: m[1], repo: m[2] };
+}
+
+const slugCache = new Map<string, RepoSlug | null>();
+
+/** Read (and memoize) the project's own `origin` slug. Arg-array git, shell:false. */
+export function readOriginSlug(projectRoot: string, git: GitRunner = defaultGit): RepoSlug | null {
+  if (slugCache.has(projectRoot)) return slugCache.get(projectRoot) ?? null;
+  let slug: RepoSlug | null = null;
+  try {
+    slug = parseOriginSlug(git(["remote", "get-url", "origin"], projectRoot));
+  } catch {
+    slug = null;
+  }
+  if (slugCache.size > 128) slugCache.clear();
+  slugCache.set(projectRoot, slug);
+  return slug;
+}
+
+/** Test-only: reset the memoized origin slugs. */
+export function _clearOriginSlugCache(): void {
+  slugCache.clear();
+}
+
+function sameSlug(a: RepoSlug, b: RepoSlug): boolean {
+  // GitHub owner/repo are case-insensitive.
+  return (
+    a.owner.toLowerCase() === b.owner.toLowerCase() && a.repo.toLowerCase() === b.repo.toLowerCase()
+  );
+}
+
+/**
+ * The last PR marker in `transcript` that belongs to `expected`.
+ *
+ * `expected == null` (origin unknown / not github) → null: we cannot prove the
+ * marker is ours, so we decline rather than check a possibly-foreign number.
+ */
+export function extractPrMarker(
+  transcript: string,
+  expected: RepoSlug | null,
+): PrMarker | null {
+  if (!transcript || !expected) return null;
   let last: PrMarker | null = null;
   PR_URL_IN_TEXT.lastIndex = 0;
   let m: RegExpExecArray | null;
   while ((m = PR_URL_IN_TEXT.exec(transcript)) !== null) {
-    const n = validatePrNumber(m[1]);
-    if (n != null) last = { number: n, url: m[0] };
+    const n = validatePrNumber(m[3]);
+    if (n == null) continue;
+    const found = { owner: m[1], repo: m[2] };
+    if (!sameSlug(found, expected)) continue; // a sibling repo's PR is not ours
+    last = { number: n, url: m[0], owner: found.owner, repo: found.repo };
   }
   return last;
 }

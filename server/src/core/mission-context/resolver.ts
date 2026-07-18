@@ -2,19 +2,13 @@
  * core/mission-context/resolver.ts — orchestration (CONTRACT §5 / §5.2).
  *
  * Stateless read (Architecture rule 4) with ONE deliberate exception: the
- * durable `task.missionContext` association is written ONCE, on the first valid
- * LIVE resolve, as an idempotent compare-and-set — not a cache, not a per-GET
- * side-effect. Without it the pruned-pointer window is a guaranteed data loss
- * (`prune_stale_run_pointers` removes the pointer when the worktree goes away).
- * See association.ts.
- *
- * `task.runId` is deliberately NOT touched — it means a PIPELINE run
- * (`run-xxxxxxxx`) and overloading it with an iterate id would corrupt the
- * pipeline join (external-review GPT #4).
+ * durable `task.missionContext` association (see association.ts). `task.runId`
+ * is deliberately NOT touched — it means a PIPELINE run and overloading it
+ * would corrupt that join (external-review GPT #4).
  *
  * Caching is keyed `{projectRoot, sessionUuid, runId}` and validated by a
- * source-mtime `rev` (see resolver-parts.ts) — a byte-offset cache would
- * violate rule 4; an mtime-keyed read-through cache merely avoids re-reads.
+ * source-mtime `rev` (resolver-parts.ts); merge is refreshed per call
+ * (merge-refresh.ts) because it is the one field no source file tracks.
  */
 
 import { existsSync } from "node:fs";
@@ -30,15 +24,18 @@ import {
 } from "./resolver-parts.js";
 export { _clearResolverCache } from "./resolver-parts.js";
 import { loadFoldMap, specPath } from "./fold-map.js";
-import { checkSquashMerged, extractPrMarker, type MergeCheckDeps } from "./merge-check.js";
+import {
+  checkSquashMerged,
+  extractPrMarker,
+  readOriginSlug,
+  type MergeCheckDeps,
+} from "./merge-check.js";
+import { refreshMerge } from "./merge-refresh.js";
 import { mintDocId } from "./doc-ids.js";
 import { readIteratePointer } from "./pointer.js";
 import { detectScenario, type ScenarioInputs } from "./scenario.js";
-import {
-  buildCommitArtifact,
-  buildRequirementArtifact,
-  buildSpecArtifact,
-} from "./artifacts.js";
+import { buildRequirementArtifact, buildSpecArtifact } from "./artifacts.js";
+import { buildCommitArtifact } from "./artifacts-commit.js";
 import {
   eventsPath,
   findWorkCompleted,
@@ -74,8 +71,6 @@ export interface ResolveRequest {
   taskRunId: string | null;
   campaignSlug: string | null;
   hasCampaignRecord: boolean;
-  /** True when the session is actively working — gates the association write. */
-  live: boolean;
   actions: ScenarioInputs["actions"];
   hasValidRunConfig: boolean;
   /**
@@ -88,6 +83,29 @@ export interface ResolveRequest {
 export interface ResolveDeps {
   git?: GitRunner;
   merge?: MergeCheckDeps;
+}
+
+/**
+ * A typed-`unavailable` response for the two integrity cases (AC5): a pointer
+ * that failed validation, and one naming an unregistered worktree. Both must
+ * SHOW as unavailable and must NOT be persisted — never a quiet fall-through
+ * to "No run data yet" or to the project root (external review, openai HIGH).
+ */
+function integrityResult(
+  scenario: MissionContext["scenario"],
+  missionTabVisible: boolean,
+  rev: string,
+  note: string,
+  runId: string | null,
+): { context: MissionContext; associateRunId: null } {
+  return {
+    context: {
+      ...emptyContext(scenario, missionTabVisible, rev),
+      runId,
+      artifacts: unavailableArtifacts(note),
+    },
+    associateRunId: null,
+  };
 }
 
 /**
@@ -115,23 +133,15 @@ export function resolveMissionContext(
 
   const baseRevPaths = [specPath(projectRoot), eventsPath(projectRoot)];
 
-  // A pointer that EXISTS for this session but failed validation is an
-  // integrity signal, not an absence: AC5 requires typed `unavailable` (and no
-  // association), never a fall-through to "No run data yet" (openai HIGH).
+  // A pointer that failed validation is an integrity signal, not an absence.
   if (decision.pointerInvalidReason) {
-    return {
-      context: {
-        ...emptyContext(
-          decision.scenario,
-          decision.missionTabVisible,
-          computeSourceRev(baseRevPaths, [decision.pointerInvalidReason]),
-        ),
-        artifacts: unavailableArtifacts(
-          "This session's run record could not be verified, so its artifacts are unavailable.",
-        ),
-      },
-      associateRunId: null,
-    };
+    return integrityResult(
+      decision.scenario,
+      decision.missionTabVisible,
+      computeSourceRev(baseRevPaths, [decision.pointerInvalidReason]),
+      "This session's run record could not be verified, so its artifacts are unavailable.",
+      null,
+    );
   }
 
   // Scenarios 1/3/4/5 keep today's behavior verbatim — Slice 1 is ADDITIVE for
@@ -151,48 +161,44 @@ export function resolveMissionContext(
 
   const roots = readAllowedRoots(projectRoot, deps.git);
 
-  // A pointer naming a worktree git does not know describes a tree we cannot
-  // vouch for. AC5: typed `unavailable` + NO persistence, never a quiet fall
-  // back to the project root (external code review, openai HIGH).
+  // A worktree git does not know is a tree we cannot vouch for.
   if (worktreePath && !isRegisteredWorktree(roots, worktreePath)) {
-    return {
-      context: {
-        ...emptyContext(
-          "iterate",
-          true,
-          computeSourceRev(baseRevPaths, [runId, "unregistered_worktree"]),
-        ),
-        runId,
-        artifacts: unavailableArtifacts(
-          "This run's working copy is not a registered worktree of this project.",
-        ),
-      },
-      associateRunId: null,
-    };
+    return integrityResult(
+      "iterate",
+      true,
+      computeSourceRev(baseRevPaths, [runId, "unregistered_worktree"]),
+      "This run's working copy is not a registered worktree of this project.",
+      runId,
+    );
   }
 
   const chosen = chooseRoot(roots, worktreePath);
 
-  // --- Records (read first: the spec hint below comes from the agent-doc) ---
+  // --- Records (first: the spec hint below comes from the agent-doc) ---
   const iterateDoc = readIterateDoc(projectRoot, runId);
 
   // --- Spec -----------------------------------------------------------------
-  // Known layout first; the framework-recorded (validated) hint is the
-  // fallback that covers campaign sub-iterate specs — see specHintCandidate.
+  // Known layout first; the validated hint covers campaign sub-iterate specs.
   const hint = specHintCandidate(iterateDoc?.specHint);
   const candidates = hint ? [...specCandidates(runId, slug), hint] : specCandidates(runId, slug);
   const doc = resolveFirstDoc(chosen.root, candidates);
 
-  // The rev covers EVERY source used — including the iterate document and the
-  // agent-doc, so editing either invalidates the cache (openai MEDIUM).
+  // The rev covers EVERY source used, incl. the iterate + agent docs.
   const rev = computeSourceRev(
     [...baseRevPaths, iterateDocPath(projectRoot, runId), ...(doc.ok ? [doc.absolute] : [])],
     [runId, chosen.root, req.taskId],
   );
   const cacheKey = `${projectRoot}::${sessionUuid}::${runId}`;
+  const associate = pointer.status === "ok" ? runId : null;
+
   const hit = cache.get(cacheKey);
   if (hit && hit.rev === rev) {
-    return { context: hit.context, associateRunId: req.live ? runId : null };
+    // NOT returned verbatim — merge is the one time-varying field and must be
+    // re-derived, or it freezes at "pending" forever. See merge-refresh.ts.
+    return {
+      context: refreshMerge(hit.context, projectRoot, req.transcript, deps),
+      associateRunId: associate,
+    };
   }
 
   let documentId: string | null = null, title: string | null = null, specText: string | null = null;
@@ -221,9 +227,10 @@ export function resolveMissionContext(
   const run = events.status === "found" ? events.run : null;
 
   // --- Commit + merge -------------------------------------------------------
-  const marker = extractPrMarker(req.transcript);
-  // Only check merge once the run has actually completed — a per-poll git call
-  // for a still-running iterate would be pure waste (§5.3 "never per-poll").
+  // The marker must belong to THIS project's own origin repo (a sibling repo's
+  // PR number would grep our origin/main), and merge is only checked once the
+  // run completed — a per-poll git call mid-run is waste (§5.3).
+  const marker = extractPrMarker(req.transcript, readOriginSlug(projectRoot, deps.git));
   const merge =
     run && marker
       ? checkSquashMerged(projectRoot, marker.number, { git: deps.git, ...deps.merge })
@@ -238,12 +245,7 @@ export function resolveMissionContext(
       intent: run?.intent ?? null,
     }),
     buildRequirementArtifact({ foldMap, doc: iterateDoc, events, specText }),
-    buildCommitArtifact({
-      events,
-      prNumber: marker?.number ?? null,
-      prUrl: marker?.url ?? null,
-      merge,
-    }),
+    buildCommitArtifact({ events, prNumber: marker?.number ?? null, prUrl: marker?.url ?? null, merge }),
   ];
 
   const requirement = artifacts[1];
@@ -266,18 +268,16 @@ export function resolveMissionContext(
   if (cache.size >= CACHE_CAP) cache.clear();
   cache.set(cacheKey, { rev, context });
 
-  // The association is offered ONLY for a live resolve — a post-hoc read must
-  // not stamp a run onto a task that was never observed running (§5).
-  return { context, associateRunId: req.live ? runId : null };
+  // `associate` is set by the POINTER validating — never by the task's `state`,
+  // which decays to `idle` on a parked design gate. See association.ts.
+  return { context, associateRunId: associate };
 }
 
 /**
- * Re-resolve a document for the detail endpoint. Exported for the route + tests.
- *
- * `expectFingerprint` implements AC3's "changed → stale": the descriptor
- * promised a specific revision of this document, so if the file has since been
- * rewritten we report `stale` rather than quietly serving different content
- * under an id the client believes points at what it was shown.
+ * Re-resolve a document for the detail endpoint. `expectFingerprint` implements
+ * AC3's "changed → stale": the descriptor promised a specific revision, so a
+ * rewritten file reports `changed` rather than serving different content under
+ * an id the client believes points at what it was shown.
  */
 export function readDocumentBody(
   root: string,
