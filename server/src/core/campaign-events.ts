@@ -24,6 +24,7 @@
  * Read-only: webui never writes events.jsonl (Architecture rule 1).
  */
 
+import { recordsFromLines } from "./jsonl-records.js";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -68,17 +69,14 @@ export function projectCampaignEvents(
 ): CampaignEventsProjection {
   const best = new Map<string, Map<string, Best>>();
   let idx = 0;
-  for (const line of lines) {
+  // RECOVERS concatenated records (iterate-2026-07-19-events-reader-recovery).
+  // This projection had NO corruption side channel at all, and the consequence
+  // was visible product behaviour: `applyEventsProjection` never downgrades, so
+  // a dropped `work_completed` leaves a finished sub-iterate rendering as
+  // `pending` forever. Recovery is the fix; the silence is left as-is on purpose
+  // (the reporting boundary for events is `event-log-reader`, not here).
+  for (const o of recordsFromLines(lines)) {
     const i = idx++;
-    if (!line || !line.trim()) continue;
-    let ev: unknown;
-    try {
-      ev = JSON.parse(line);
-    } catch {
-      continue; // corrupt line → skip
-    }
-    if (typeof ev !== "object" || ev === null || Array.isArray(ev)) continue;
-    const o = ev as Record<string, unknown>;
     if (o.type !== "work_completed") continue;
     if (typeof o.campaign !== "string" || !o.campaign) continue;
     if (typeof o.sub_iterate_id !== "string" || !o.sub_iterate_id) continue;

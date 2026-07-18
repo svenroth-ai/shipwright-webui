@@ -1,52 +1,41 @@
 /*
  * jsonl-records.ts — record-boundary + newline-termination primitives for the
- * append-only triage log.
+ * append-only logs (triage store + outbox, and the events log on the read side).
  *
- * A NEUTRAL LEAF, deliberately: the reader (`triage-store.ts`) and the writer
- * (`triage-write.ts`) both need one agreed answer to "where does a record
- * end?", and parking that in either module would create an import cycle
- * between them.
+ * A NEUTRAL LEAF, deliberately: reader and writer both need one agreed answer to
+ * "where does a record end?", and parking that in either would cycle them.
  *
  * WHY THIS EXISTS (iterate-2026-07-18-triage-jsonl-record-boundary)
  * ----------------------------------------------------------------
- * TS port of `shared/scripts/lib/jsonl_records.py` (monorepo PR #399). The
- * "every record is newline-terminated" invariant was a convention each writer
- * held independently, unenforced at the append boundary: `appendStatusEvent`
- * appended a terminated line without checking the file it appended TO was
- * terminated. One unterminated predecessor put two records on one physical
+ * TS port of `shared/scripts/lib/jsonl_records.py` (monorepo PR #399). Writers
+ * appended a terminated line without checking the file they appended TO was
+ * terminated, so an unterminated predecessor put two records on one physical
  * line; the reader then failed `JSON.parse` on the whole line and skipped it,
- * discarding BOTH. On an append-only log, corruption must never read as
- * absence. Python shipped this fix first, so until this port landed the TS side
- * was the divergent implementation of a byte-parity-tested contract.
+ * discarding BOTH. On an append-only log, corruption must never read as absence.
  *
  * The two halves:
  *   - `endsWithoutNewline` — the writer-side probe (prevention).
- *   - `splitRecords` / `parseJsonlRecords` — record-boundary recovery, which is
+ *   - `splitRecords` / `parseJsonlRecords` / `recordsFromLines` — recovery,
  *     PARTIAL by design: a valid record followed by an unrecoverable fragment
  *     yields the valid record AND the fragment. All-or-nothing recovery would
  *     reproduce the very bug it is meant to fix.
  *
- * This module NEVER logs. Corruption is returned as data on `RecordRead`;
- * reporting belongs at the command boundary (`triage-board-read.ts`) so
- * background callers, tests and routes all behave predictably.
+ * This module NEVER logs. Corruption is returned as data; reporting belongs at
+ * the command boundary, so background callers, tests and routes all agree.
  *
  * PORT DEVIATIONS from the Python leaf, all deliberate:
- *   1. Python exposes `read_jsonl_records(path)`. This reader is STRING-based —
- *      it must also serve the `git show origin/…:triage.jsonl` blob path in
- *      `triage-origin.ts` — so the path-based variant would be dead code.
- *      Ported as `parseJsonlRecords(raw)`. `endsWithoutNewline` stays
- *      path-based because the writer probes a file.
- *   2. Python uses `JSONDecoder.raw_decode`, which has no `JSON.parse`
- *      equivalent, so the splitter is NEW code rather than a translation. See
- *      `splitRecords` for the fast-path / slow-path strategy.
+ *   1. Python's `read_jsonl_records(path)` is path-based; this reader is
+ *      STRING-based (it also serves the `git show` blob path in
+ *      `triage-origin.ts`), so it is ported as `parseJsonlRecords(raw)`.
+ *      `endsWithoutNewline` stays path-based — the writer probes a file.
+ *   2. Python's `JSONDecoder.raw_decode` has no `JSON.parse` equivalent, so the
+ *      splitter is NEW code — see `splitRecords` for fast-path / slow-path.
  *   3. Python reads with `errors="surrogateescape"`, round-tripping invalid
- *      UTF-8 unchanged so the monorepo repair CLI can quarantine a fragment
- *      byte-for-byte. The TS reader goes through `readFileSync(p, "utf-8")`,
- *      which substitutes U+FFFD and is therefore LOSSY on a truncated
- *      multi-byte sequence — one of this bug's documented causes. Safe here
- *      ONLY because the WebUI never writes a recovered record back; it appends
- *      new records and reads. If a WebUI-side repair/rewrite path is ever
- *      added, this deviation becomes a correctness bug and must be revisited.
+ *      UTF-8 so the monorepo repair CLI can quarantine a fragment byte-exact.
+ *      TS uses `readFileSync(p, "utf-8")`, which substitutes U+FFFD and is
+ *      LOSSY on a truncated multi-byte sequence. Safe ONLY because the WebUI
+ *      never writes a recovered record back. If a WebUI repair path is ever
+ *      added, this becomes a correctness bug and must be revisited.
  *
  * KNOWN CROSS-LANGUAGE BOUNDARY: Python's default `JSONDecoder` accepts `NaN` /
  * `Infinity` / `-Infinity`; `JSON.parse` rejects them. Verified by probe. The
@@ -251,6 +240,35 @@ export function parseJsonlRecords(raw: string): RecordRead {
     }
   }
   return { records, corrupt };
+}
+
+/**
+ * Record-by-record view over ALREADY-SPLIT physical lines, recovering
+ * concatenated records (iterate-2026-07-19-events-reader-recovery).
+ *
+ * The events-log readers get `Iterable<string>` lines, not a raw blob, and each
+ * keeps its own running index for ordering. Yielding per RECORD lets them keep
+ * `idx++` unchanged: two records on one line take two consecutive indices,
+ * preserving the wire order last-wins projections depend on.
+ *
+ * `onLine` fires once per NON-BLANK PHYSICAL LINE, so a caller can keep
+ * line-based counters (`totalLines` / `skippedLines`) meaning what they always
+ * meant while record-based counters move to the yielded values. Blank lines are
+ * formatting and are reported to neither.
+ */
+export function* recordsFromLines(
+  lines: Iterable<string>,
+  onLine?: (info: { lineNo: number; corrupt: boolean }) => void,
+): Generator<Record<string, unknown>> {
+  let lineNo = 0;
+  for (const rawLine of lines) {
+    lineNo += 1;
+    const line = rawLine.trim();
+    if (!line) continue;
+    const split = splitRecords(line);
+    if (onLine) onLine({ lineNo, corrupt: split.remainder.length > 0 });
+    for (const record of split.records) yield record;
+  }
 }
 
 /**

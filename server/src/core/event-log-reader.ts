@@ -35,6 +35,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 
+import { recordsFromLines } from "./jsonl-records.js";
 import { pathGuard } from "./path-guard.js";
 import {
   EVENT_FILE,
@@ -149,23 +150,23 @@ export function projectEventLog(
   let parsedLines = 0;
   let skippedLines = 0;
 
-  for (const line of lines) {
-    if (!line || !line.trim()) continue;
-    const i = idx++;
+  // RECOVERS concatenated records (iterate-2026-07-19-events-reader-recovery):
+  // a line holding several records yields ALL of them instead of none. That is
+  // reachable without any crash — `shipwright_events.jsonl` carries `merge=union`,
+  // and union merge joins an unterminated blob's last line to the other side's
+  // first. Dropping the line discarded real `work_completed` events, making a
+  // step that happened read as one that never did.
+  //
+  // `totalLines` / `skippedLines` still count PHYSICAL LINES (the shape the API
+  // has always returned); `parsedLines` counts RECOVERED RECORDS, so parsed can
+  // now exceed total on a concatenated line — which is precisely the signal that
+  // recovery did something.
+  for (const o of recordsFromLines(lines, (info) => {
     totalLines++;
-    let ev: unknown;
-    try {
-      ev = JSON.parse(line);
-    } catch {
-      skippedLines++; // torn / corrupt line → skip, never fatal
-      continue;
-    }
-    if (typeof ev !== "object" || ev === null || Array.isArray(ev)) {
-      skippedLines++;
-      continue;
-    }
+    if (info.corrupt) skippedLines++; // torn / corrupt line → skip, never fatal
+  })) {
+    const i = idx++;
     parsedLines++;
-    const o = ev as Record<string, unknown>;
     const type = o.type;
 
     if (type === "work_completed") {
