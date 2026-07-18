@@ -77,12 +77,12 @@ export function AdvancedParamsFragment(props: ParamSectionsProps) {
         data-testid="new-issue-advanced-toggle"
         onClick={() => setAdvancedOpen((p) => !p)}
         aria-expanded={advancedOpen}
-        className="flex w-full items-center justify-between bg-[var(--color-muted-bg,#ede8e1)] px-3 py-2 text-[12px] font-semibold text-[var(--color-text,#1a1a1a)] hover:bg-[var(--color-border,#e0dbd4)]"
+        className="flex w-full items-center justify-between bg-[var(--surface-form-sunken,#e4dfda)] px-3 py-2 text-[12px] font-semibold text-[var(--ink,#1c1917)] hover:bg-[var(--surface-form-sunken-strong,#d9d3cc)]"
       >
         <span>Advanced parameters ({advancedFields.length})</span>
         <ChevronDown
           size={12}
-          className={`flex-shrink-0 text-[var(--color-muted,#6b7280)] transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+          className={`flex-shrink-0 text-[var(--body,#44403c)] transition-transform ${advancedOpen ? "rotate-180" : ""}`}
         />
       </button>
       {advancedOpen && (

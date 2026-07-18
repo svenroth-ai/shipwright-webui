@@ -123,7 +123,7 @@ export function CreateMenuSplitButton({
 
   return (
     <div
-      className="inline-flex overflow-hidden rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-primary)] shadow-sm"
+      className="btn-primary-split shadow-sm"
       data-testid="create-menu-split-button"
     >
       <button
@@ -131,7 +131,7 @@ export function CreateMenuSplitButton({
         onClick={() => primary && onSelect(primary)}
         disabled={disabled}
         data-testid="create-menu-primary"
-        className="inline-flex items-center gap-1.5 border-r-[1.5px] border-[var(--color-primary-hover)] bg-[var(--color-primary)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="bps-main"
       >
         {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
         <span>{primary?.label ?? "New"}</span>
@@ -143,7 +143,7 @@ export function CreateMenuSplitButton({
             disabled={disabled}
             data-testid="create-menu-caret"
             aria-label="More create options"
-            className="inline-flex items-center justify-center bg-[var(--color-primary-hover)] px-2 text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="bps-caret"
           >
             <ChevronDown size={12} />
           </button>

@@ -74,6 +74,16 @@ body { font-size: 14px; line-height: 1.45; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  /* Sven 2026-07-17: a title-bar action button must sit at the SAME position on
+     every route. The row is centered on its tallest child, so a head WITHOUT a
+     `.page-sub` used to be ~21px shorter than one with — parking the button ~8px
+     higher on Board/Projects than on the Ship's Log. The fix is to make .inner FILL
+     the bar so the row centers against the whole 92px instead of just its own
+     content — WITHOUT making .page-head a flex container (see the do-not-make-it-
+     flex warning above). 91px, not 92: `.page-head`'s 92px min-height is a
+     border-box that INCLUDES its 1px bottom border, so .inner owns 91 of it —
+     92 here would make the bar 93px and break the A05 "92px title bar" guard. */
+  min-height: 91px;
 }
 /* Board wants the wider column budget (1600) — its bar tracks the same wider box
    as .board-container so the bar-inner and the first column share a gutter. */

@@ -41,7 +41,7 @@ export function PhaseDropdown({ phases, value, onChange }: PhaseDropdownProps) {
           </span>
           <ChevronDown
             size={12}
-            className="text-[var(--color-muted,#6b7280)]"
+            className="text-[var(--body,#44403c)]"
           />
         </button>
       </DropdownMenu.Trigger>

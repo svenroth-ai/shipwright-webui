@@ -42,22 +42,34 @@ export function MoreOptionsDisclosure({
   children,
   label = "More options",
 }: MoreOptionsDisclosureProps) {
+  /*
+   * Sven 2026-07-17: the disclosure "had no border" — it did, but in
+   * --color-border (#E7E5E4), invisible next to the fields' stronger frames. It
+   * now shares the fields' --surface-form-line. And the bar must read as darker
+   * when EXPANDED, not only on hover, so the open state carries the darker tone
+   * persistently and hover steps one shade darker again (never a no-op).
+   */
+  const barTone = open
+    ? "bg-[var(--surface-form-sunken-strong,#d9d3cc)] hover:bg-[var(--surface-form-divider,#c3b8ae)]"
+    : "hover:bg-[var(--surface-form-sunken-strong,#d9d3cc)]";
+
   return (
     <div
       data-testid="new-issue-more-options"
-      className="overflow-hidden rounded-[var(--radius-button,8px)] border border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)]"
+      data-open={open || undefined}
+      className="overflow-hidden rounded-[var(--radius-button,8px)] border border-[var(--surface-form-line,#847a75)] bg-[var(--surface-form-sunken,#e4dfda)]"
     >
       <button
         type="button"
         data-testid="new-issue-more-options-toggle"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-2 rounded-[var(--radius-button,8px)] px-3 py-2.5 pointer-coarse:min-h-[44px] text-left text-[12px] font-semibold text-[var(--color-text,#1a1a1a)] hover:bg-[var(--color-border,#e0dbd4)]"
+        className={`flex w-full items-center justify-between gap-2 rounded-[var(--radius-button,8px)] px-3 py-2.5 pointer-coarse:min-h-[44px] text-left text-[12px] font-semibold text-[var(--ink,#1c1917)] transition-colors ${barTone}`}
       >
         <span className="flex flex-wrap items-baseline gap-x-1.5">
           <span>{label}</span>
           {!open && (
-            <span className="font-normal text-[var(--color-muted,#6b7280)]">
+            <span className="font-normal text-[var(--body,#44403c)]">
               options, parameters &amp; command preview
             </span>
           )}
@@ -65,7 +77,7 @@ export function MoreOptionsDisclosure({
         <ChevronDown
           size={14}
           aria-hidden
-          className={`flex-shrink-0 text-[var(--color-muted,#6b7280)] transition-transform ${
+          className={`flex-shrink-0 text-[var(--body,#44403c)] transition-transform ${
             open ? "rotate-180" : ""
           }`}
         />
@@ -73,7 +85,7 @@ export function MoreOptionsDisclosure({
       {open && (
         <div
           data-testid="new-issue-more-options-content"
-          className="flex flex-col gap-4 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-3 py-3"
+          className="flex flex-col gap-4 border-t border-[var(--surface-form-divider,#c3b8ae)] bg-[var(--surface-form,#edeae7)] px-3 py-3"
         >
           {children}
         </div>

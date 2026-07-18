@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-18",
+  "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-19-events-reader-recovery",
-    "date": "2026-07-19",
+    "run_id": "iterate-2026-07-17-form-greybeige-button-standard",
+    "date": "2026-07-17",
     "unit": {
-      "status": "pass",
-      "passed": 5216,
-      "total": 5217,
-      "note": "server: 211 files, 2467 passed + 1 skipped (adds event-log-recovery.test.ts). client: 299 files, 2749 passed (untouched — zero client source changed). tsc --noEmit clean; oxlint reports no warnings for any changed file. Critically, ALL 66 pre-existing tests across event-log-reader/run-data-join/campaign-events pass UNCHANGED, including the ones pinning exact skippedLines counts — the counters keep their line-based meaning."
+      "status": "passed",
+      "passed": 2697,
+      "total": 2697,
+      "note": "client vitest 295 files / 2697 passed (+2 fences: ModalShell grey-beige surface + MoreOptionsDisclosure expanded tone/frame; SimpleFields re-pinned to --surface-form-line). tsc clean; oxlint 0 errors. Server untouched (client-only restyle)."
     },
     "integration": {
-      "status": "pass",
-      "passed": 10,
-      "total": 10,
-      "note": "event-log-recovery.test.ts drives all THREE independent projections over the same bytes and asserts they agree on how many records a damaged line holds — the invariant that two separate scans of one file must not disagree."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "Client-only CSS/token change."
     },
     "pgtap": {
       "status": "not_run",
@@ -21,94 +21,73 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "No API shape or client file changed: the endpoints return the same envelope, only with records that were previously dropped now present. The observable surface is covered at the projection level, where the defect lives. The prior iterate (#291) ran a web-surface E2E because the triage fix changed what the Inbox renders; here no client code is touched."
+      "status": "passed",
+      "passed": 3,
+      "total": 3,
+      "note": "Isolated stack on :3901 (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE). QA runs MEASURED rather than eyeballed: (1) computed backgroundColor of board/projects/ships-log/modal-Launch buttons all rgb(14,122,107); (2) bounding boxes h=36 + right edge 1233 + baseline within 1px; (3) form screenshots collapsed/expanded/hovered. Full visual+smoke gates run in CI."
     },
     "design_fidelity": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "note": "Grey-beige #EDEAE7 sourced from svenroth.ai's own --light-beige-background; contrast targets checked against WCAG AA (4.5:1 text) and 1.4.11 (3:1 control boundary)."
     },
     "smoke": {
-      "status": "not_run",
-      "note": "No server started; pure read-path projection change."
+      "status": "passed"
     },
-    "surface_verification": {
-      "surface": "api",
-      "runner": "npx vitest run src/core/event-log-recovery.test.ts (+ full server suite)",
-      "exit_code": 0,
-      "tests_run": 10,
-      "timestamp": "2026-07-19",
-      "justification": "The changed surface is the projection layer behind GET /api/external/events, /runs and /campaigns. It is driven through the exported projections (projectEventLog, projectGradeTrend, projectCampaignEvents) with the concatenated-line shape a git union merge produces. surface=web was NOT claimed: no client file changed and the response envelope is byte-identical, so a browser run would exercise nothing this does not."
-    },
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "projectEventLog recovers BOTH runs from a concatenated line",
+          "behavior": "AC1 form sheet uses the grey-beige --surface-form, not the yellow --beige",
           "disposition": "tested",
-          "evidence": "event-log-recovery.test.ts recovers BOTH runs PASSED"
+          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface…' PASSED + qa-form-newtask.png"
         },
         {
-          "behavior": "counters keep line-based meaning: total/skipped count physical lines, parsed counts records",
+          "behavior": "AC2 labels/hints/helper copy use --body (>=4.5:1), not --color-muted",
           "disposition": "tested",
-          "evidence": "::counts physical LINES in total/skipped and RECORDS in parsed PASSED"
+          "evidence": "ModalShell.test.tsx (footer hint --body) + FieldLabel/palette/ParamSections token sweep; qa screenshots"
         },
         {
-          "behavior": "partial damage keeps the valid record AND still counts the line skipped",
+          "behavior": "AC3 field frames use --surface-form-line (>=3:1, WCAG 1.4.11)",
           "disposition": "tested",
-          "evidence": "::keeps a valid record and still counts the line as skipped PASSED"
+          "evidence": "SimpleFields.test.tsx (border-[var(--surface-form-line) + not --color-border) PASSED"
         },
         {
-          "behavior": "recovered records take consecutive indices, so last-wins tiebreak is not inverted",
+          "behavior": "AC4 More options: visible frame + darker tone persistently when expanded, hover steps darker",
           "disposition": "tested",
-          "evidence": "::preserves wire order, so the later of two same-key runs still wins PASSED"
+          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded…' PASSED + qa-form-hover-moreoptions.png"
         },
         {
-          "behavior": "a wholly undecodable line is still skipped, not fatal (no regression)",
+          "behavior": "AC5 every task form variant (incl. Plain/pure-Claude) inherits AC1-AC4",
           "disposition": "tested",
-          "evidence": "::still skips a wholly undecodable line PASSED; 66 pre-existing reader tests unchanged"
+          "evidence": "all five bodies render through ModalShell + SimpleFields (NewPlainModal imports Title/DescriptionFieldFragment); NewIssueModal suite 97 tests PASSED"
         },
         {
-          "behavior": "projectGradeTrend recovers snapshots from a concatenated line",
+          "behavior": "AC6 title-bar buttons render the Launch/Resume teal rgb(14,122,107)",
           "disposition": "tested",
-          "evidence": "::recovers both snapshots from a concatenated line PASSED"
+          "evidence": "QA assertion: computed backgroundColor of board/projects/ships-log/modal-Launch all equal rgb(14,122,107)"
         },
         {
-          "behavior": "the two passes over the same bytes AGREE on record count",
+          "behavior": "AC7 buttons share height 36px + right edge; label may widen only",
           "disposition": "tested",
-          "evidence": "::agrees with projectEventLog about how many records a damaged line holds PASSED",
-          "category": "integration"
+          "evidence": "QA assertion: unique heights=[36], unique right edges=[1233]"
         },
         {
-          "behavior": "projectCampaignEvents recovers a sub-iterate completion (prevents a done step rendering as pending)",
+          "behavior": "AC8 buttons share a baseline regardless of a page subtitle",
           "disposition": "tested",
-          "evidence": "::recovers a sub-iterate completion from a concatenated line PASSED"
-        },
-        {
-          "behavior": "recordsFromLines reports every non-blank physical line once, blanks never",
-          "disposition": "tested",
-          "evidence": "::reports every non-blank physical line exactly once PASSED"
-        },
-        {
-          "behavior": "recordsFromLines is safe without a callback",
-          "disposition": "tested",
-          "evidence": "::is safe to consume without a callback PASSED"
+          "evidence": "QA assertion: max-min y <= 2 (28/28/29) after .page-head .inner min-height:92px"
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
+        "testable": 8,
+        "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3
+        "acs": 8,
+        "covered_acs": 8
       }
-    },
-    "degraded": []
+    }
   }
 }

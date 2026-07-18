@@ -60,14 +60,14 @@ export function ModalShell({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
         <Dialog.Content
-          // Sven 2026-07-17: the task form was white fields on a white sheet with
-          // near-invisible borders. A beige sheet (--beige, never flipped) lets the
-          // white fields + stronger frames (SimpleFields) read as distinct fields.
-          className={`fixed left-1/2 top-[10%] z-50 ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--beige,#ece4d5)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
+          // Sven 2026-07-17: white fields on a white sheet with near-invisible
+          // borders → a beige sheet. Round 2: that beige was too YELLOW, so the
+          // sheet is now --surface-form (#EDEAE7, the grey-beige from svenroth.ai).
+          className={`fixed left-1/2 top-[10%] z-50 ${widthClass} max-w-[95vw] -translate-x-1/2 overflow-hidden rounded-[var(--radius-card,12px)] bg-[var(--surface-form,#edeae7)] shadow-[var(--shadow-modal,0_20px_60px_rgba(0,0,0,0.28))]`}
           data-testid={`new-issue-modal-${mode}`}
         >
           {/* Header: icon tile + title/subtitle + close */}
-          <div className="flex items-center gap-3 border-b border-[var(--color-border,#e0dbd4)] px-5 py-4">
+          <div className="flex items-center gap-3 border-b border-[var(--surface-form-divider,#c3b8ae)] px-5 py-4">
             <div
               data-testid="new-issue-header-icon"
               className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[8px]"
@@ -83,7 +83,7 @@ export function ModalShell({
               >
                 {modeHeading(mode, action)}
               </Dialog.Title>
-              <Dialog.Description className="mt-0.5 text-[12px] leading-[1.4] text-[var(--color-muted,#6b7280)]">
+              <Dialog.Description className="mt-0.5 text-[12px] leading-[1.4] text-[var(--body,#44403c)]">
                 {modeSubheading(mode, action)}
               </Dialog.Description>
             </div>
@@ -92,7 +92,7 @@ export function ModalShell({
                 type="button"
                 aria-label="Close"
                 data-testid="new-issue-modal-close"
-                className="rounded-[6px] p-1 text-[var(--color-muted,#6b7280)] hover:bg-[var(--color-muted-bg,#ede8e1)] hover:text-[var(--color-text,#1a1a1a)]"
+                className="rounded-[6px] p-1 text-[var(--body,#44403c)] hover:bg-[var(--surface-form-sunken-strong,#d9d3cc)] hover:text-[var(--ink,#1c1917)]"
               >
                 <X size={14} />
               </button>
@@ -162,12 +162,12 @@ export function ModalShell({
               )}
             </ModalScrollBody>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--color-border,#e0dbd4)] bg-[var(--color-bg,#f5f0eb)] px-5 py-3">
+            <div className="flex flex-wrap items-center gap-2 border-t border-[var(--surface-form-divider,#c3b8ae)] bg-[var(--surface-form-sunken,#e4dfda)] px-5 py-3">
               <div
-                className="flex-1 text-[11px] text-[var(--color-muted,#6b7280)]"
+                className="flex-1 text-[11px] text-[var(--body,#44403c)]"
                 data-testid="new-issue-footer-hint"
               >
-                <kbd className="rounded-[3px] border border-[var(--color-border,#e0dbd4)] bg-white px-1.5 py-0.5 font-mono text-[10px]">
+                <kbd className="rounded-[3px] border border-[var(--surface-form-line,#847a75)] bg-white px-1.5 py-0.5 font-mono text-[10px]">
                   Esc
                 </kbd>{" "}
                 to cancel
@@ -177,11 +177,11 @@ export function ModalShell({
                 data-testid="new-issue-save-btn"
                 onClick={(e) => void onSubmit(e, "save")}
                 disabled={!canSubmit}
-                className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--color-border,#e0dbd4)] bg-[var(--color-muted-bg,#ede8e1)] px-4 py-1.5 pointer-coarse:min-h-[44px] text-[13px] font-medium text-[var(--color-text,#1a1a1a)] hover:bg-[var(--color-border,#e0dbd4)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#847a75)] bg-white px-4 py-1.5 pointer-coarse:min-h-[44px] text-[13px] font-medium text-[var(--ink,#1c1917)] hover:bg-[var(--surface-form-sunken-strong,#d9d3cc)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Bookmark
                   size={14}
-                  className="text-[var(--color-accent,#857568)]"
+                  className="text-[var(--body,#44403c)]"
                   strokeWidth={1.6}
                 />
                 Save to Backlog
