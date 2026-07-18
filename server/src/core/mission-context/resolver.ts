@@ -11,8 +11,6 @@
  * (merge-refresh.ts) because it is the one field no source file tracks.
  */
 
-import { existsSync } from "node:fs";
-
 import {
   cache,
   CACHE_CAP,
@@ -23,6 +21,8 @@ import {
   unavailableArtifacts,
 } from "./resolver-parts.js";
 export { _clearResolverCache } from "./resolver-parts.js";
+// Re-exported so the detail endpoint keeps its single import site (§5.2).
+export { readDocumentBody } from "./document-read.js";
 import { loadFoldMap, specPath } from "./fold-map.js";
 import {
   checkSquashMerged,
@@ -36,6 +36,7 @@ import { readIteratePointer } from "./pointer.js";
 import { detectScenario, type ScenarioInputs } from "./scenario.js";
 import { buildRequirementArtifact, buildSpecArtifact } from "./artifacts.js";
 import { buildCommitArtifact } from "./artifacts-commit.js";
+import { buildSlice2Artifacts, slice2RevPaths } from "./slice2-sources.js";
 import {
   eventsPath,
   findWorkCompleted,
@@ -49,7 +50,6 @@ import {
   isRegisteredWorktree,
   readAllowedRoots,
   resolveFirstDoc,
-  MAX_DOC_BYTES,
   type GitRunner,
 } from "./worktree-roots.js";
 import {
@@ -183,9 +183,15 @@ export function resolveMissionContext(
   const candidates = hint ? [...specCandidates(runId, slug), hint] : specCandidates(runId, slug);
   const doc = resolveFirstDoc(chosen.root, candidates);
 
-  // The rev covers EVERY source used, incl. the iterate + agent docs.
+  // The rev covers EVERY source used, incl. the iterate + agent docs AND the
+  // Slice-2 sources. An input missing from here is an input FROZEN by the cache.
   const rev = computeSourceRev(
-    [...baseRevPaths, iterateDocPath(projectRoot, runId), ...(doc.ok ? [doc.absolute] : [])],
+    [
+      ...baseRevPaths,
+      iterateDocPath(projectRoot, runId),
+      ...slice2RevPaths(projectRoot, runId),
+      ...(doc.ok ? [doc.absolute] : []),
+    ],
     [runId, chosen.root, req.taskId],
   );
   const cacheKey = `${projectRoot}::${sessionUuid}::${runId}`;
@@ -236,6 +242,15 @@ export function resolveMissionContext(
       ? checkSquashMerged(projectRoot, marker.number, { git: deps.git, ...deps.merge })
       : "unknown";
 
+  const slice2 = buildSlice2Artifacts({
+    projectRoot,
+    runId,
+    events,
+    commit: run?.commit?.trim() || null,
+    git: deps.git,
+  });
+
+  // CONTRACT §6 order: Spec · Requirement · Tests · Review · Decisions · Commit.
   const artifacts: ArtifactDescriptor[] = [
     buildSpecArtifact({
       documentId,
@@ -245,6 +260,7 @@ export function resolveMissionContext(
       intent: run?.intent ?? null,
     }),
     buildRequirementArtifact({ foldMap, doc: iterateDoc, events, specText }),
+    ...slice2.artifacts,
     buildCommitArtifact({ events, prNumber: marker?.number ?? null, prUrl: marker?.url ?? null, merge }),
   ];
 
@@ -265,35 +281,15 @@ export function resolveMissionContext(
     sourceRev: rev,
   };
 
-  if (cache.size >= CACHE_CAP) cache.clear();
-  cache.set(cacheKey, { rev, context });
+  // A TRANSIENT git failure is not cached: git's answer is not a statted file,
+  // so it cannot participate in `rev`, and caching it would pin Tests at
+  // "currently unavailable" until an unrelated source file changed.
+  if (slice2.cacheable) {
+    if (cache.size >= CACHE_CAP) cache.clear();
+    cache.set(cacheKey, { rev, context });
+  }
 
   // `associate` is set by the POINTER validating — never by the task's `state`,
   // which decays to `idle` on a parked design gate. See association.ts.
   return { context, associateRunId: associate };
-}
-
-/**
- * Re-resolve a document for the detail endpoint. `expectFingerprint` implements
- * AC3's "changed → stale": the descriptor promised a specific revision, so a
- * rewritten file reports `changed` rather than serving different content under
- * an id the client believes points at what it was shown.
- */
-export function readDocumentBody(
-  root: string,
-  relParts: string[],
-  expectFingerprint?: string,
-):
-  | { ok: true; body: string }
-  | { ok: false; reason: "denied" | "not_found" | "too_large" | "changed" } {
-  const r = resolveFirstDoc(root, [relParts]);
-  if (!r.ok) return { ok: false, reason: r.reason === "denied" ? "denied" : "not_found" };
-  if (r.sizeBytes > MAX_DOC_BYTES) return { ok: false, reason: "too_large" };
-  if (!existsSync(r.absolute)) return { ok: false, reason: "not_found" };
-  if (expectFingerprint && docFingerprint(r.absolute) !== expectFingerprint) {
-    return { ok: false, reason: "changed" };
-  }
-  const body = readBounded(r.absolute);
-  if (body == null) return { ok: false, reason: "not_found" };
-  return { ok: true, body };
 }

@@ -122,3 +122,18 @@
     .on-photo .artifact { animation: motion-slide-in var(--motion-base) var(--ease-entrance); }
   }
 }
+
+/* ── Slice-2 detail bodies: Tests RTM table + Review list ─────────────────
+   MINIMUM legibility only. S1 deliberately shipped its detail hooks
+   (.a-rows/.a-meta/.a-note) unstyled because CONTRACT §10 Slice 3 owns visual
+   refinement; a <table>, unlike a <ul>, is unreadable without cell metrics, so
+   these rules stop at spacing/alignment and add no visual language. */
+.artifact .a-rtm { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+.artifact .a-rtm th, .artifact .a-rtm td { text-align: left; vertical-align: top; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); }
+.artifact .a-rtm th { font-weight: 600; color: var(--muted); white-space: nowrap; }
+.artifact .a-rtm code { word-break: break-all; }
+.artifact .a-fr-links, .artifact .a-review-findings { list-style: none; margin: 0; padding: 0; }
+.artifact .a-muted { color: var(--muted); }
+.artifact .a-reviews { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.artifact .a-review-name { font-weight: 600; color: var(--ink); }
+.artifact .a-review-status { color: var(--muted); }

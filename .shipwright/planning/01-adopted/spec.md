@@ -779,6 +779,28 @@ write surface; gated, path-guarded, and concurrency-safe.
 - Scenarios 1/3/4/5 keep today's behaviour verbatim (this is additive for the iterate
   scenario); the embedded terminal is byte-identical. Added by
   `iterate-2026-07-18-mission-s1-resolver-core-artifacts`.
+- (I) **(iterate-2026-07-19-mission-s2-tests-review-decisions)** The rail carries all
+  six artifacts in order — **Spec · Requirement · Tests · Review · Decisions · Commit**
+  — each rendering only when it has content and opening its own discriminated detail
+  type. **Tests** is a baseline-diff of the run's own commit
+  (`git show --name-status --no-renames --first-parent -z`, argument array,
+  `shell:false`, sha hex-validated first): each changed test file is classified
+  `added|modified|removed` and enriched from `.shipwright/compliance/test-traceability.json`
+  with layer and requirement links, where a fold-resolved link renders
+  "mapped from `<folded id>`". A **removed** test is classified from the diff alone,
+  because its manifest entry no longer exists. **Review** normalizes the four passes
+  `plan|code|doubt|external_code` from the per-iterate `external_*review_state.json`
+  markers; a pass with no machine-readable record is reported as unreadable — never as
+  clean, and never silently hidden — and a findings COUNT without per-finding detail
+  says so rather than rendering an empty list. **Decisions** filters
+  `.shipwright/agent_docs/decision_log.md` on **exact** `Run-ID` equality and renders
+  only the matched ADR blocks, so a concurrent iterate's decisions can never leak in.
+  Every source is size-bounded and every read failure is distinguished from a genuine
+  absence: git failing, no commit recorded, or an unreadable log renders "currently
+  unavailable" and NEVER "no tests" / "no findings" / "no decisions". A partial
+  traceability index likewise reports its requirement links as unresolved rather than
+  as empty. All new sources join `sourceRev`, so a review marker written after the run
+  finished still refreshes. No new endpoint and no second write surface.
 
 ## Quality Requirements
 

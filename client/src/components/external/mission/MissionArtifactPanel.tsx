@@ -26,6 +26,7 @@ import type { ArtifactDescriptor } from "../../../lib/missionContextApi";
 import { frRowLabel } from "../../../lib/missionArtifacts";
 import { useArtifactDocument } from "../../../hooks/useMissionContext";
 import { DocumentMarkdown } from "../SmartViewer/DocumentMarkdown";
+import { DecisionsDetail, ReviewDetail, TestsDetail } from "./MissionSlice2Details";
 
 interface Props {
   taskId: string;
@@ -105,13 +106,20 @@ export function MissionArtifactPanel({ taskId, artifact, onClose }: Props) {
 
 /** Discriminated on `kind` — each artifact type renders its own detail shape. */
 function ArtifactDetail({ taskId, artifact }: { taskId: string; artifact: ArtifactDescriptor }) {
-  if (artifact.kind === "spec") {
-    return <SpecDetail taskId={taskId} documentId={artifact.detail?.documentId ?? null} />;
+  switch (artifact.kind) {
+    case "spec":
+      return <SpecDetail taskId={taskId} documentId={artifact.detail?.documentId ?? null} />;
+    case "requirement":
+      return <RequirementDetail artifact={artifact} />;
+    case "tests":
+      return <TestsDetail artifact={artifact} />;
+    case "review":
+      return <ReviewDetail artifact={artifact} />;
+    case "decisions":
+      return <DecisionsDetail artifact={artifact} />;
+    case "commit":
+      return <CommitDetail artifact={artifact} />;
   }
-  if (artifact.kind === "requirement") {
-    return <RequirementDetail artifact={artifact} />;
-  }
-  return <CommitDetail artifact={artifact} />;
 }
 
 function SpecDetail({ taskId, documentId }: { taskId: string; documentId: string | null }) {

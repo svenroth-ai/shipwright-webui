@@ -59,42 +59,36 @@ export function docFingerprint(absolute: string): string {
 }
 
 /**
- * The three Slice-1 artifacts, all typed `unavailable` with one honest note.
+ * ALL SIX §6 artifacts, typed `unavailable` with one honest note.
  *
  * Used for the integrity cases (a pointer that failed validation, a worktree
  * git does not recognise): AC5 requires those to SHOW as unavailable rather
- * than fall through to a silent "nothing here".
+ * than fall through to a silent "nothing here". Every artifact kind must be
+ * covered — omitting one would HIDE it on exactly the code path where the
+ * integrity problem is worst.
  */
+const UNAVAILABLE_KINDS: { kind: ArtifactDescriptor["kind"]; label: string }[] = [
+  { kind: "spec", label: "Spec" },
+  { kind: "requirement", label: "Requirement" },
+  { kind: "tests", label: "Tests" },
+  { kind: "review", label: "Review" },
+  { kind: "decisions", label: "Decisions" },
+  { kind: "commit", label: "Commit" },
+];
+
 export function unavailableArtifacts(note: string): ArtifactDescriptor[] {
-  return [
-    {
-      kind: "spec",
-      label: "Spec",
-      state: "unavailable",
-      summary: null,
-      receipt: null,
-      note,
-      detail: null,
-    },
-    {
-      kind: "requirement",
-      label: "Requirement",
-      state: "unavailable",
-      summary: null,
-      receipt: null,
-      note,
-      detail: null,
-    },
-    {
-      kind: "commit",
-      label: "Commit",
-      state: "unavailable",
-      summary: null,
-      receipt: null,
-      note,
-      detail: null,
-    },
-  ];
+  return UNAVAILABLE_KINDS.map(
+    ({ kind, label }) =>
+      ({
+        kind,
+        label,
+        state: "unavailable",
+        summary: null,
+        receipt: null,
+        note,
+        detail: null,
+      }) as ArtifactDescriptor,
+  );
 }
 
 interface CacheEntry {

@@ -35,7 +35,13 @@ export type ArtifactState =
   | "unavailable"
   | "error";
 
-export type ArtifactKind = "spec" | "requirement" | "commit";
+export type ArtifactKind =
+  | "spec"
+  | "requirement"
+  | "tests"
+  | "review"
+  | "decisions"
+  | "commit";
 
 export type RequirementConfidence = "planned" | "finalized" | "unresolved";
 export type MergeState = "merged" | "pending" | "unknown";
@@ -85,7 +91,88 @@ export interface CommitArtifact extends ArtifactBase {
   } | null;
 }
 
-export type ArtifactDescriptor = SpecArtifact | RequirementArtifact | CommitArtifact;
+// ---------------------------------------------------------------------------
+// Slice 2 — Tests · Review · Decisions (SoT: `types-slice2.ts`)
+// ---------------------------------------------------------------------------
+
+export type TestChangeKind = "added" | "modified" | "removed";
+
+/** `mappedFrom` set only when a fold moved the id — renders "mapped from …". */
+export interface TestFrRef {
+  frId: string;
+  mappedFrom: string | null;
+}
+
+export interface TestRow {
+  path: string;
+  kind: TestChangeKind;
+  layer: string | null;
+  frs: TestFrRef[];
+  caseCount: number | null;
+}
+
+export interface TestsArtifact extends ArtifactBase {
+  kind: "tests";
+  detail: {
+    type: "tests";
+    rows: TestRow[];
+    counts: { added: number; modified: number; removed: number };
+    byLayer: { layer: string; count: number }[];
+    truncated: boolean;
+    /** `unavailable` → the FR links are MISSING, not empty. */
+    manifestStatus: "ok" | "unavailable";
+  } | null;
+}
+
+export type ReviewType = "plan" | "code" | "doubt" | "external_code";
+
+/**
+ * `not_run`     — a record says the pass did not run.
+ * `unavailable` — no readable record either way. NOT the same as "clean".
+ */
+export type ReviewStatus = "completed" | "not_run" | "unavailable";
+
+export interface ReviewFinding {
+  severity: string | null;
+  title: string;
+}
+
+export interface ReviewRow {
+  reviewType: ReviewType;
+  status: ReviewStatus;
+  findingsCount: number | null;
+  /** Always empty today — never render `[]` as "no findings were found". */
+  findings: ReviewFinding[];
+  provider: string | null;
+  completedAt: string | null;
+  disposition: string | null;
+  note: string | null;
+}
+
+export interface ReviewArtifact extends ArtifactBase {
+  kind: "review";
+  detail: { type: "reviews"; rows: ReviewRow[] } | null;
+}
+
+export interface DecisionEntryView {
+  adrId: string;
+  title: string;
+  /** The ADR block's own Markdown — the SECTION, never the whole log. */
+  markdown: string;
+}
+
+export interface DecisionsArtifact extends ArtifactBase {
+  kind: "decisions";
+  detail: { type: "decisions"; entries: DecisionEntryView[]; truncated: boolean } | null;
+}
+
+export type ArtifactDescriptor =
+  | SpecArtifact
+  | RequirementArtifact
+  | TestsArtifact
+  | ReviewArtifact
+  | DecisionsArtifact
+  | CommitArtifact;
 
 export interface MissionTests {
   passed: number | null;

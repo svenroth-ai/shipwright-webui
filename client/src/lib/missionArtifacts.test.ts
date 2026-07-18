@@ -21,6 +21,10 @@ import {
   testsChipValue,
   usesContextRail,
   visibleArtifacts,
+  reviewStatusWord,
+  testFrLabel,
+  layerWord,
+  testChangeWord,
 } from "./missionArtifacts";
 import type { ArtifactDescriptor, ArtifactState, MissionContext } from "./missionContextApi";
 
@@ -71,14 +75,25 @@ describe("hide-empty (the 5-state rule)", () => {
 
 describe("visibleArtifacts", () => {
   it("returns the canonical order regardless of server order", () => {
+    // Fed in REVERSE of §6 order, so a pass-through implementation fails.
+    const reversed = [...ARTIFACT_ORDER].reverse();
     const c = ctx({
-      artifacts: [
-        { ...spec("available"), kind: "commit", label: "Commit", detail: null } as ArtifactDescriptor,
-        spec("available"),
-        { ...spec("available"), kind: "requirement", label: "Requirement", detail: null } as ArtifactDescriptor,
-      ],
+      artifacts: reversed.map(
+        (kind) => ({ ...spec("available"), kind, detail: null }) as ArtifactDescriptor,
+      ),
     });
     expect(visibleArtifacts(c).map((a) => a.kind)).toEqual(ARTIFACT_ORDER);
+  });
+
+  it("carries all six §6 artifacts, in the decided order", () => {
+    expect(ARTIFACT_ORDER).toEqual([
+      "spec",
+      "requirement",
+      "tests",
+      "review",
+      "decisions",
+      "commit",
+    ]);
   });
 
   it("filters hidden states out of the rail", () => {
@@ -96,8 +111,10 @@ describe("visibleArtifacts", () => {
   });
 
   it("drops an unknown kind from a newer server rather than mis-slotting it", () => {
+    // Slice 2 made `decisions` real, so the stand-in for "a kind this client
+    // has never heard of" has to be one that is genuinely not in §6.
     const c = ctx({
-      artifacts: [{ ...spec("available"), kind: "decisions" } as unknown as ArtifactDescriptor],
+      artifacts: [{ ...spec("available"), kind: "deployment" } as unknown as ArtifactDescriptor],
     });
     expect(visibleArtifacts(c)).toEqual([]);
   });
@@ -170,5 +187,31 @@ describe("artifactStateWord", () => {
       "not_yet_created",
     ];
     for (const s of states) expect(artifactStateWord(s).length).toBeGreaterThan(0);
+  });
+});
+
+describe("Slice-2 wording (the honesty rules)", () => {
+  it("never lets an unreadable review read as a passed one (§9.1)", () => {
+    expect(reviewStatusWord("unavailable")).toBe("no record");
+    expect(reviewStatusWord("not_run")).toBe("not run");
+    expect(reviewStatusWord("completed")).toBe("ran");
+    // The words that would turn a data gap into a false assurance.
+    for (const s of ["completed", "not_run", "unavailable"] as const) {
+      expect(reviewStatusWord(s)).not.toMatch(/pass|clean|ok|none/i);
+    }
+  });
+
+  it("renders fold provenance identically to the requirement rows (AC2)", () => {
+    expect(testFrLabel({ frId: "FR-01.28", mappedFrom: "FR-01.44" })).toBe(
+      "FR-01.28 (mapped from FR-01.44)",
+    );
+    expect(testFrLabel({ frId: "FR-01.28", mappedFrom: null })).toBe("FR-01.28");
+  });
+
+  it("translates layer + change jargon into plain words", () => {
+    expect(layerWord("e2e")).toBe("end-to-end");
+    expect(layerWord(null)).toBe("unknown layer");
+    expect(testChangeWord("modified")).toBe("changed");
+    expect(testChangeWord("removed")).toBe("removed");
   });
 });

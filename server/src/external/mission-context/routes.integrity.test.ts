@@ -65,9 +65,18 @@ describe("GET mission-context — code-review regressions", () => {
       );
       const { app, persist } = harness(root, makeTask());
       const ctx = await getContext(app);
-      // All three artifacts show as unavailable — a data-integrity problem must
-      // never read as "nothing exists".
-      expect(ctx.artifacts).toHaveLength(3);
+      // EVERY artifact shows as unavailable — a data-integrity problem must
+      // never read as "nothing exists". Pinned by KIND, not by count: omitting
+      // a kind here would HIDE it on exactly the path where the integrity
+      // problem is worst, and a count alone would not catch that.
+      expect(ctx.artifacts.map((a: { kind: string }) => a.kind)).toEqual([
+        "spec",
+        "requirement",
+        "tests",
+        "review",
+        "decisions",
+        "commit",
+      ]);
       for (const a of ctx.artifacts) expect(a.state).toBe("unavailable");
       expect(persist).not.toHaveBeenCalled();
     } finally {
