@@ -34,6 +34,7 @@
  */
 
 import type { TriageItem } from "../types/triage.js";
+import type { CorruptFragment } from "./jsonl-records.js";
 import {
   readLocalRawLinesSplit,
   resolveUnion,
@@ -46,6 +47,22 @@ export interface DeliveredOriginOptions {
    * local-only resolution (identical to `readAllItems`).
    */
   originRawLines: Record<string, unknown>[] | null;
+  /**
+   * Optional side channel for text on a LOCAL file that could not be decoded
+   * (iterate-2026-07-18-triage-jsonl-record-boundary). Records recovered from
+   * the same line are still returned — corruption must never read as absence.
+   * Purely observational: omitting it leaves resolution byte-identical, which
+   * keeps the "degrade == readAllItems" equivalence intact.
+   *
+   * Scoped to LOCAL files ON PURPOSE. `originRawLines` arrives already parsed
+   * from `triage-origin.ts`, whose `originSnapshot` is SHA-keyed and has no
+   * channel to carry fragments; more importantly an origin blob is COMMITTED
+   * content read via `git show`, so corruption there is a repository defect to
+   * fix at the source, not transient local damage an operator can act on from
+   * a server log. Origin still gets full record-boundary RECOVERY (it shares
+   * `parseRawLines`) — only the reporting stops here.
+   */
+  onCorrupt?: (fragment: CorruptFragment, source: "tracked" | "outbox") => void;
 }
 
 /**
@@ -57,7 +74,7 @@ export function readAllItemsWithDeliveredOrigin(
   trackedPath: string,
   opts: DeliveredOriginOptions,
 ): TriageItem[] {
-  const { tracked, outbox } = readLocalRawLinesSplit(trackedPath);
+  const { tracked, outbox } = readLocalRawLinesSplit(trackedPath, opts.onCorrupt);
   const origin = opts.originRawLines ?? [];
   // [tracked, origin, outbox] — outbox last (freshest local intent wins ties);
   // origin between (beats stale tracked, loses to pending outbox). When origin

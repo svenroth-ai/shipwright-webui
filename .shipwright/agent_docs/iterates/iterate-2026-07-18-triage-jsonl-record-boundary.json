@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-18-triage-jsonl-record-boundary",
+  "date": "2026-07-18T20:07:51.556270Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/triage-jsonl-record-boundary",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-07-18-triage-jsonl-record-boundary.md",
+  "adr": "iterate-2026-07-18-triage-jsonl-record-boundary"
+}

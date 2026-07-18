@@ -1,0 +1,283 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  copyFileSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
+
+import {
+  readAllItems,
+  appendIdsInFile,
+  _clearCache_TEST_ONLY,
+} from "./triage-store.js";
+import { readBoardItems } from "./triage-board-read.js";
+import { outboxPathFor } from "./triage-paths.js";
+
+const LF = String.fromCharCode(10);
+
+function appendLine(id: string): string {
+  return JSON.stringify({
+    event: "append",
+    id,
+    ts: "2026-07-18T08:00:00Z",
+    source: "phaseQuality",
+    severity: "high",
+    title: `title ${id}`,
+    detail: `detail ${id}`,
+    dedupKey: `dedup:${id}`,
+    status: "triage",
+    suggestedPriority: "P1",
+    suggestedDomain: "engineering",
+  });
+}
+
+const HEADER = JSON.stringify({ v: 1, schema: "triage", created: "2026-07-18T07:00:00Z" });
+
+describe("triage-store: record-boundary recovery", () => {
+  let workDir: string;
+  let jsonlPath: string;
+
+  beforeEach(() => {
+    _clearCache_TEST_ONLY();
+    workDir = mkdtempSync(path.join(tmpdir(), "triage-recovery-"));
+    jsonlPath = path.join(workDir, ".shipwright", "triage.jsonl");
+    mkdirSync(path.dirname(jsonlPath), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(workDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  const ids = () => readAllItems(jsonlPath).map((it) => it.id).sort();
+
+  // AC3 — the headline reader fix.
+  it("recovers BOTH records when two share one physical line", () => {
+    writeFileSync(
+      jsonlPath,
+      HEADER + LF + appendLine("trg-1111aaaa") + appendLine("trg-2222bbbb") + LF,
+    );
+    expect(ids()).toEqual(["trg-1111aaaa", "trg-2222bbbb"]);
+  });
+
+  it("recovers a record concatenated onto the schema header", () => {
+    // The header itself is a record-shaped line; an unterminated header is the
+    // very first thing a torn bootstrap can produce.
+    writeFileSync(jsonlPath, HEADER + appendLine("trg-3333cccc") + LF);
+    expect(ids()).toEqual(["trg-3333cccc"]);
+  });
+
+  // AC4 — partial recovery. All-or-nothing would reproduce the original bug.
+  it("returns the valid record even when the rest of the line is unrecoverable", () => {
+    writeFileSync(
+      jsonlPath,
+      HEADER + LF + appendLine("trg-4444dddd") + '{"event":"append","id":' + LF,
+    );
+    expect(ids()).toEqual(["trg-4444dddd"]);
+  });
+
+  it("still skips a wholly undecodable line without throwing", () => {
+    writeFileSync(
+      jsonlPath,
+      [HEADER, "this is not json at all", appendLine("trg-5555eeee")].join(LF) + LF,
+    );
+    expect(() => readAllItems(jsonlPath)).not.toThrow();
+    expect(ids()).toEqual(["trg-5555eeee"]);
+  });
+
+  it("recovers a status flip concatenated onto its own append record", () => {
+    // Proves recovery composes with the two-pass status resolution: the
+    // recovered status event must still overlay the recovered append.
+    const status = JSON.stringify({
+      event: "status",
+      id: "trg-6666ffff",
+      ts: "2026-07-18T09:00:00Z",
+      newStatus: "dismissed",
+      by: "webui",
+      reason: null,
+      promotedTaskId: null,
+    });
+    writeFileSync(jsonlPath, HEADER + LF + appendLine("trg-6666ffff") + status + LF);
+    const items = readAllItems(jsonlPath);
+    expect(items).toHaveLength(1);
+    expect(items[0].status).toBe("dismissed");
+  });
+
+  it("recovers across the tracked-outbox union", () => {
+    writeFileSync(jsonlPath, HEADER + LF + appendLine("trg-7777aaaa") + LF);
+    writeFileSync(
+      outboxPathFor(jsonlPath),
+      appendLine("trg-8888bbbb") + appendLine("trg-9999cccc") + LF,
+    );
+    expect(ids()).toEqual(["trg-7777aaaa", "trg-8888bbbb", "trg-9999cccc"]);
+  });
+
+  // appendIdsInFile is on the WRITE hot path (residence routing for every
+  // status flip), so recovery there is not merely cosmetic.
+  it("sees a concatenated append when probing residence for a write", () => {
+    writeFileSync(
+      jsonlPath,
+      HEADER + LF + appendLine("trg-aaaa0001") + appendLine("trg-bbbb0002") + LF,
+    );
+    const found = appendIdsInFile(jsonlPath);
+    expect(found.has("trg-aaaa0001")).toBe(true);
+    expect(found.has("trg-bbbb0002")).toBe(true);
+  });
+});
+
+// AC7 — the Boundary Probe for the `touches_io_boundary` risk flag.
+//
+// `triage.jsonl` is a cross-language wire-format contract: Python producers
+// (`shared/scripts/triage.py`, which delegates record boundaries to
+// `lib/jsonl_records.py`) write it, this TS reader reads it. Python shipped
+// record-boundary recovery FIRST, so until this port landed TS was the
+// divergent implementation. This gate proves the two splitters agree on where
+// a record ends.
+//
+// The fixture is DELIBERATELY corrupted and the expected output is generated by
+// the REAL Python reader (server/scripts/regen-triage-fixtures.py), not
+// hand-authored — so it cannot drift into agreeing with a TS bug.
+//
+// Note what is ABSENT by CONTRACT, not by accident: a leading bare scalar and a
+// non-JSON-whitespace separator (NBSP) each make the rest of their physical
+// line unrecoverable, dropping the record that follows — in BOTH languages.
+// That agreement is exactly what is being asserted.
+describe("triage-store: cross-language recovery parity (Boundary Probe)", () => {
+  const fixturesDir = path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
+    "test",
+    "fixtures",
+  );
+  let workDir: string;
+
+  beforeEach(() => {
+    _clearCache_TEST_ONLY();
+    workDir = mkdtempSync(path.join(tmpdir(), "triage-parity-"));
+  });
+
+  afterEach(() => {
+    rmSync(workDir, { recursive: true, force: true });
+  });
+
+  it("deep-equals the real Python read_all_items over a corrupted fixture", () => {
+    const jsonlPath = path.join(workDir, ".shipwright", "triage.jsonl");
+    mkdirSync(path.dirname(jsonlPath), { recursive: true });
+    // Byte-for-byte copy: the fixture contains a CRLF line on purpose, and any
+    // newline translation would defeat the point of the comparison.
+    copyFileSync(path.join(fixturesDir, "triage-recovery.jsonl"), jsonlPath);
+
+    const expected = JSON.parse(
+      readFileSync(path.join(fixturesDir, "triage-recovery-resolved.json"), "utf-8"),
+    ) as { items: Record<string, unknown>[] };
+
+    expect(readAllItems(jsonlPath)).toEqual(expected.items);
+  });
+
+  it("keeps the fixture's deliberate CRLF byte through git checkout", () => {
+    // `core.autocrlf=true` silently stripped this CR before `.gitattributes`
+    // marked the fixture `-text` (verified: staged blob held 0 CR bytes for a
+    // worktree file with 1). Without the CR, the CRLF case in the fixture
+    // stops testing anything AND the committed expected-output JSON no longer
+    // corresponds to the bytes on disk. This fails loudly if EOL
+    // normalization ever comes back.
+    const bytes = readFileSync(path.join(fixturesDir, "triage-recovery.jsonl"));
+    let cr = 0;
+    for (const b of bytes) if (b === 13) cr += 1;
+    expect(cr).toBe(1);
+  });
+});
+
+// AC8 — reporting is server-log only, at the command boundary, bounded.
+describe("triage-board-read: corruption reporting", () => {
+  let workDir: string;
+  let jsonlPath: string;
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    _clearCache_TEST_ONLY();
+    // Origin union off: keeps the test deterministic and offline, and still
+    // exercises the local onCorrupt path.
+    process.env.SHIPWRIGHT_WEBUI_TRIAGE_ORIGIN_UNION = "0";
+    workDir = mkdtempSync(path.join(tmpdir(), "triage-report-"));
+    jsonlPath = path.join(workDir, ".shipwright", "triage.jsonl");
+    mkdirSync(path.dirname(jsonlPath), { recursive: true });
+    warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    delete process.env.SHIPWRIGHT_WEBUI_TRIAGE_ORIGIN_UNION;
+    rmSync(workDir, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it("emits no warning for a clean log", () => {
+    writeFileSync(jsonlPath, HEADER + LF + appendLine("trg-clean001") + LF);
+    const board = readBoardItems(jsonlPath, "proj-1");
+    expect(board.items).toHaveLength(1);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("emits no warning when a concatenation is fully recovered", () => {
+    // Nothing was lost, so there is nothing to report.
+    writeFileSync(
+      jsonlPath,
+      HEADER + LF + appendLine("trg-cat00001") + appendLine("trg-cat00002") + LF,
+    );
+    const board = readBoardItems(jsonlPath, "proj-1");
+    expect(board.items).toHaveLength(2);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("emits exactly one structured warning carrying bounded metadata only", () => {
+    const sentinel = "UNRECOVERABLE-SENTINEL-VALUE";
+    writeFileSync(
+      jsonlPath,
+      HEADER + LF + appendLine("trg-part0001") + sentinel + LF,
+    );
+
+    const board = readBoardItems(jsonlPath, "proj-42");
+
+    // Partial recovery still happened.
+    expect(board.items.map((it) => it.id)).toEqual(["trg-part0001"]);
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    const payload = JSON.parse(warn.mock.calls[0][0] as string);
+    expect(payload).toMatchObject({
+      level: "warn",
+      message: "triage log corruption recovered",
+      projectId: "proj-42",
+      fragments: 1,
+    });
+    expect(payload.sample[0]).toEqual({
+      source: "tracked",
+      lineNo: 2,
+      bytes: sentinel.length,
+    });
+    // The fragment TEXT must never reach the log — a damaged tail can hold
+    // arbitrary content and control characters.
+    expect(warn.mock.calls[0][0]).not.toContain(sentinel);
+  });
+
+  it("reports the true fragment count while capping the sample", () => {
+    const lines = [HEADER];
+    for (let i = 0; i < 9; i += 1) {
+      lines.push(appendLine(`trg-many000${i}`) + "garbage");
+    }
+    writeFileSync(jsonlPath, lines.join(LF) + LF);
+
+    readBoardItems(jsonlPath, "proj-7");
+
+    const payload = JSON.parse(warn.mock.calls[0][0] as string);
+    // True total is reported in full; the sample is bounded so one log event
+    // cannot grow without limit.
+    expect(payload.fragments).toBe(9);
+    expect(payload.sample).toHaveLength(5);
+  });
+});

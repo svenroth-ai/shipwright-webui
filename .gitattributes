@@ -4,6 +4,14 @@
 # POSIX and Windows checkouts.
 server/src/terminal/fixtures/*.log binary
 
+# Record-boundary parity fixture (iterate-2026-07-18-triage-jsonl-record-
+# boundary). DELIBERATELY mixes LF and CRLF line endings and carries
+# intra-line corruption; the committed expected-output JSON is generated from
+# these exact bytes by the real Python reader. EOL normalization erases the
+# CRLF case the cross-language parity gate asserts — verified: without this
+# rule `core.autocrlf=true` stored 0 CR bytes for a file with 1.
+server/src/test/fixtures/triage-recovery.jsonl binary
+
 # Shipwright append-log union merge driver (managed block — do not hand-edit).
 shipwright_events.jsonl merge=union
 .shipwright/triage.jsonl merge=union

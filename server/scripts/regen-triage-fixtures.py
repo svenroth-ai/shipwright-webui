@@ -54,6 +54,8 @@ UNION_TRACKED = FIXTURES / "triage-union.tracked.jsonl"
 UNION_OUTBOX = FIXTURES / "triage-union.outbox.jsonl"
 UNION_RESOLVED = FIXTURES / "triage-union-resolved.json"
 UNION_CLI_LIST = FIXTURES / "triage-union-cli-list.json"
+RECOVERY_JSONL = FIXTURES / "triage-recovery.jsonl"
+RECOVERY_RESOLVED = FIXTURES / "triage-recovery-resolved.json"
 
 
 def find_triage_py() -> Path | None:
@@ -128,6 +130,54 @@ def main() -> int:
         encoding="utf-8",
     )
     sys.stderr.write(f"wrote {RESOLVED} ({len(items)} items)\n")
+
+    # --- Recovery gate (record-boundary parity) ---------------------------
+    # iterate-2026-07-18-triage-jsonl-record-boundary. The input fixture is
+    # DELIBERATELY corrupted: concatenated records, a valid record followed by
+    # an unrecoverable tail, a leading scalar, a CRLF line, NBSP between
+    # records, and an append+status pair sharing one physical line.
+    #
+    # This is the Boundary Probe for the `touches_io_boundary` risk flag: it
+    # proves the TS record splitter and the Python `lib/jsonl_records.py`
+    # splitter agree on WHERE A RECORD ENDS — including which records are
+    # legitimately UNRECOVERABLE (the scalar-first and NBSP cases drop the
+    # record that follows in BOTH languages; that agreement is the point).
+    if not RECOVERY_JSONL.exists():
+        sys.stderr.write(f"error: recovery fixture missing at {RECOVERY_JSONL}\n")
+        return 1
+    with tempfile.TemporaryDirectory() as tmp:
+        proj = Path(tmp)
+        (proj / ".shipwright").mkdir()
+        # Byte-for-byte copy so the fixture's CRLF line survives verbatim — the
+        # whole point is to compare byte-level record framing. (read_text's
+        # `newline` kwarg is 3.13+, and universal-newline translation would
+        # silently rewrite the CR we are trying to test.)
+        (proj / ".shipwright" / "triage.jsonl").write_bytes(RECOVERY_JSONL.read_bytes())
+        recovery_items = read_all_items(proj)
+
+    RECOVERY_RESOLVED.write_text(
+        json.dumps(
+            {
+                "_comment": (
+                    "Generated from triage-recovery.jsonl by Python "
+                    "read_all_items() (shared/scripts/triage.py, which delegates "
+                    "record boundaries to lib/jsonl_records.py). The input is "
+                    "DELIBERATELY corrupted. The TS port readAllItems() must "
+                    "match this byte-for-byte (deep-equal) per the recovery "
+                    "parity test in src/core/triage-store.recovery.test.ts. "
+                    "Records absent here are absent by CONTRACT (a scalar or a "
+                    "non-JSON-whitespace separator makes the rest of the line "
+                    "unrecoverable in both languages), not by accident."
+                ),
+                "items": recovery_items,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sys.stderr.write(f"wrote {RECOVERY_RESOLVED} ({len(recovery_items)} items)\n")
 
     # --- Union gate (tracked union outbox) -------------------------------
     # Stage BOTH the tracked store and the headerless outbox buffer so the

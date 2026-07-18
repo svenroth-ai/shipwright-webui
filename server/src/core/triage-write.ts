@@ -47,6 +47,7 @@ import {
 import path from "node:path";
 
 import type { TriageStatus, TriageStatusEvent } from "../types/triage.js";
+import { endsWithoutNewline } from "./jsonl-records.js";
 import { appendIdsInFile, invalidateCacheForPath } from "./triage-store.js";
 import { outboxPathFor } from "./triage-paths.js";
 
@@ -145,7 +146,20 @@ export function appendStatusEvent(args: AppendStatusEventArgs): void {
       });
       writeFileSync(targetPath, header + "\n");
     }
-    appendFileSync(targetPath, line);
+    // Termination guard (iterate-2026-07-18-triage-jsonl-record-boundary,
+    // mirroring `triage.py _append_line`): never assume the PREVIOUS writer
+    // left a trailing newline, or two records land on one physical line and a
+    // reader without record-boundary recovery discards BOTH.
+    //
+    // Probed immediately before the append to keep the TOCTOU window minimal.
+    // This is deliberately BEST-EFFORT, not a guarantee: `proper-lockfile`
+    // serialises only TS callers, while the Python producers use a disjoint
+    // primitive (ADR-101 / ADR-106), so a foreign write can still land between
+    // this probe and the append below. The guard repairs a PRE-EXISTING
+    // unterminated tail; `jsonl-records.splitRecords` on the read side is what
+    // actually guarantees no record is lost. Both halves are required.
+    const separator = endsWithoutNewline(targetPath) ? "\n" : "";
+    appendFileSync(targetPath, separator + line);
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {
