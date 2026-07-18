@@ -56,6 +56,37 @@ describe("MoreOptionsDisclosure", () => {
     expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
+  // Sven 2026-07-17: the bar must read darker when EXPANDED, not only on hover —
+  // and it must still have a visible frame (the old --color-border was invisible
+  // next to the fields' frames).
+  it("carries the darker tone persistently when expanded, and a visible frame", () => {
+    const { rerender } = render(
+      <MoreOptionsDisclosure open={false} onToggle={() => {}}>
+        <div />
+      </MoreOptionsDisclosure>,
+    );
+    const collapsed = screen.getByTestId("new-issue-more-options-toggle");
+    // collapsed: the darker tone is a HOVER affordance only
+    expect(collapsed.className).toContain("hover:bg-[var(--surface-form-sunken-strong");
+    expect(collapsed.className).not.toContain(" bg-[var(--surface-form-sunken-strong");
+    expect(screen.getByTestId("new-issue-more-options")).not.toHaveAttribute("data-open");
+
+    rerender(
+      <MoreOptionsDisclosure open onToggle={() => {}}>
+        <div />
+      </MoreOptionsDisclosure>,
+    );
+    const expanded = screen.getByTestId("new-issue-more-options-toggle");
+    // expanded: the darker tone is PERSISTENT, and hover still steps darker again
+    expect(expanded.className).toContain("bg-[var(--surface-form-sunken-strong");
+    expect(expanded.className).toContain("hover:bg-[var(--surface-form-divider");
+    expect(screen.getByTestId("new-issue-more-options")).toHaveAttribute("data-open");
+    // the frame is the fields' visible one, never the invisible --color-border
+    expect(screen.getByTestId("new-issue-more-options").className).toContain(
+      "border-[var(--surface-form-line",
+    );
+  });
+
   it("honours a custom label", () => {
     render(
       <MoreOptionsDisclosure open={false} onToggle={() => {}} label="Advanced">

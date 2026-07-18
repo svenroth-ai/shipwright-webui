@@ -74,6 +74,14 @@ body { font-size: 14px; line-height: 1.45; }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  /* Sven 2026-07-17: a title-bar action button must sit at the SAME position on
+     every route. The row is centered on its tallest child, so a head WITHOUT a
+     `.page-sub` used to be ~21px shorter than one with — parking the button ~8px
+     higher on Board/Projects than on the Ship's Log. Pinning the row to the head's
+     own 92px (border-box, so this INCLUDES the 20px padding — a 52px content min
+     would be a no-op) gives every head a 52px content row, so every action button
+     lands on the same baseline whether or not the head carries a subtitle. */
+  min-height: 92px;
 }
 /* Board wants the wider column budget (1600) — its bar tracks the same wider box
    as .board-container so the bar-inner and the first column share a gutter. */

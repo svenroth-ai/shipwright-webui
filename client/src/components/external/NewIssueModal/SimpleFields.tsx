@@ -42,7 +42,7 @@ export function ProjectFieldFragment({
         value={selectedProjectId}
         onChange={(e) => setSelectedProjectId(e.target.value)}
         data-testid="new-issue-project-select"
-        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--line-strong,#d6d3d1)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px]"
+        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#847a75)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px]"
         required
       >
         <option value="">Select project…</option>
@@ -77,7 +77,7 @@ export function TitleFieldFragment({
         onChange={(e) => setTitle(e.target.value)}
         data-testid="new-issue-title-input"
         placeholder="e.g. Fix login redirect bug"
-        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--line-strong,#d6d3d1)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+        className="w-full rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#847a75)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
         autoFocus
         required
       />
@@ -102,7 +102,7 @@ export function DescriptionFieldFragment({
         onChange={(e) => setDescription(e.target.value)}
         data-testid="new-issue-description-input"
         placeholder="What needs to be done? Link files, paste errors, reference FRs…"
-        className="min-h-[108px] w-full resize-y rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--line-strong,#d6d3d1)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
+        className="min-h-[108px] w-full resize-y rounded-[var(--radius-button,8px)] border-[1.5px] border-[var(--surface-form-line,#847a75)] bg-white px-3 py-2 text-[13px] pointer-coarse:text-[16px] outline-none focus:border-[var(--color-primary,#6b5e56)]"
       />
     </FieldLabel>
   );

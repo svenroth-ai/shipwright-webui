@@ -56,7 +56,7 @@ export function NewTaskModal({ form }: { form: UseNewIssueFormReturn }) {
           />
           {!form.phaseOverridden && form.currentPhase && (
             <div
-              className="flex items-center gap-1.5 pl-0.5 text-[11px] text-[var(--color-muted,#6b7280)]"
+              className="flex items-center gap-1.5 pl-0.5 text-[11px] text-[var(--body,#44403c)]"
               data-testid="new-issue-phase-autohint"
             >
               <span>Auto-detected from title:</span>

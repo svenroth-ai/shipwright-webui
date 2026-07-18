@@ -1,19 +1,19 @@
 {
-  "last_updated": "2026-07-18",
+  "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-18-triage-jsonl-record-boundary",
-    "date": "2026-07-18",
+    "run_id": "iterate-2026-07-17-form-greybeige-button-standard",
+    "date": "2026-07-17",
     "unit": {
-      "status": "pass",
-      "passed": 5014,
-      "total": 5015,
-      "note": "Full suites re-run in the iterate worktree AFTER the internal code-review fixes. server: 198 files, 2319 passed + 1 skipped (adds jsonl-records.test.ts, jsonl-records.faults.test.ts, triage-write.newline.test.ts, triage-store.recovery.test.ts, triage.recovery-api.test.ts). client: 295 files, 2695 passed (untouched - zero client source changed). 0 failures; tsc --noEmit clean; oxlint reports no new warnings for any added file."
+      "status": "passed",
+      "passed": 2697,
+      "total": 2697,
+      "note": "client vitest 295 files / 2697 passed (+2 fences: ModalShell grey-beige surface + MoreOptionsDisclosure expanded tone/frame; SimpleFields re-pinned to --surface-form-line). tsc clean; oxlint 0 errors. Server untouched (client-only restyle)."
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "webui vitest does not separate an integration layer; the cross-module composition (writer guard + reader recovery, and recovery through the real Hono route) is covered inside the unit suites."
+      "note": "Client-only CSS/token change."
     },
     "pgtap": {
       "status": "not_run",
@@ -21,152 +21,73 @@
       "total": 0
     },
     "e2e": {
-      "status": "pass",
-      "passed": 1,
-      "total": 1,
-      "note": "client/e2e/flows/triage-record-boundary-recovery.spec.ts executed (not merely authored) against an isolated single-process stack: temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono on PORT=3901 bound 127.0.0.1, BASE_URL pinned to 127.0.0.1. Seeds a real project via POST /api/projects whose triage.jsonl holds a concatenated record pair plus a partially-unrecoverable line, then asserts both halves AND the partial-line survivor render in the Triage tab and open in the detail modal."
+      "status": "passed",
+      "passed": 3,
+      "total": 3,
+      "note": "Isolated stack on :3901 (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE). QA runs MEASURED rather than eyeballed: (1) computed backgroundColor of board/projects/ships-log/modal-Launch buttons all rgb(14,122,107); (2) bounding boxes h=36 + right edge 1233 + baseline within 1px; (3) form screenshots collapsed/expanded/hovered. Full visual+smoke gates run in CI."
     },
     "design_fidelity": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "note": "Grey-beige #EDEAE7 sourced from svenroth.ai's own --light-beige-background; contrast targets checked against WCAG AA (4.5:1 text) and 1.4.11 (3:1 control boundary)."
     },
     "smoke": {
-      "status": "pass",
-      "note": "Isolated Hono booted clean on :3901 with the temp profile (health 200) for the E2E run, then torn down."
+      "status": "passed"
     },
-    "surface_verification": {
-      "surface": "web",
-      "exit_code": 0,
-      "tests_run": 1,
-      "justification": "Backend-affects-Frontend: the diff changes core/triage-board-read.ts, which feeds GET /api/triage/:projectId and therefore the Inbox, so surface=api would under-claim. The failure mode is only observable at the UI - before the fix a concatenated line made findings silently vanish from the Inbox with no error anywhere - so the web surface is where the regression is genuinely pinned. Route-level coverage also exists (triage.recovery-api.test.ts, 5 cases through the real Hono app incl. a dismiss round-trip).",
-      "command": "BASE_URL=http://127.0.0.1:3901 npx playwright test --project=chromium e2e/flows/triage-record-boundary-recovery.spec.ts"
-    },
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "endsWithoutNewline: missing / zero-byte / LF / CRLF / unterminated / directory",
+          "behavior": "AC1 form sheet uses the grey-beige --surface-form, not the yellow --beige",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts endsWithoutNewline (6 cases) PASSED"
+          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface…' PASSED + qa-form-newtask.png"
         },
         {
-          "behavior": "splitRecords: concatenated line yields ALL records in wire order",
+          "behavior": "AC2 labels/hints/helper copy use --body (>=4.5:1), not --color-muted",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts recovers BOTH records PASSED"
+          "evidence": "ModalShell.test.tsx (footer hint --body) + FieldLabel/palette/ParamSections token sweep; qa screenshots"
         },
         {
-          "behavior": "splitRecords: PARTIAL recovery - valid record AND verbatim remainder",
+          "behavior": "AC3 field frames use --surface-form-line (>=3:1, WCAG 1.4.11)",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts partial recovery + verbatim remainder PASSED"
+          "evidence": "SimpleFields.test.tsx (border-[var(--surface-form-line) + not --color-border) PASSED"
         },
         {
-          "behavior": "splitRecords: no resync past a malformed record (raw_decode parity)",
+          "behavior": "AC4 More options: visible frame + darker tone persistently when expanded, hover steps darker",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts does NOT resync PASSED"
+          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded…' PASSED + qa-form-hover-moreoptions.png"
         },
         {
-          "behavior": "splitRecords: only JSON objects are records (scalar/array are fragments)",
+          "behavior": "AC5 every task form variant (incl. Plain/pure-Claude) inherits AC1-AC4",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts it.each 5 cases PASSED"
+          "evidence": "all five bodies render through ModalShell + SimpleFields (NewPlainModal imports Title/DescriptionFieldFragment); NewIssueModal suite 97 tests PASSED"
         },
         {
-          "behavior": "splitRecords lexical safety: braces in strings, escaped quote, backslash run, nesting, unterminated string",
+          "behavior": "AC6 title-bar buttons render the Launch/Resume teal rgb(14,122,107)",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts lexical edge cases (5 cases) PASSED"
+          "evidence": "QA assertion: computed backgroundColor of board/projects/ships-log/modal-Launch all equal rgb(14,122,107)"
         },
         {
-          "behavior": "splitRecords: NBSP / U+000B / U+000C are NOT JSON whitespace",
+          "behavior": "AC7 buttons share height 36px + right edge; label may widen only",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts unicode whitespace it.each (3 cases) PASSED"
+          "evidence": "QA assertion: unique heights=[36], unique right edges=[1233]"
         },
         {
-          "behavior": "splitRecords: non-finite numeric literal degrades to fragment, never throws",
+          "behavior": "AC8 buttons share a baseline regardless of a page subtitle",
           "disposition": "tested",
-          "evidence": "jsonl-records.test.ts NaN degradation PASSED"
-        },
-        {
-          "behavior": "slow-path work budgets: attempt ceiling and line-length ceiling degrade to fragment; a long VALID record still takes the fast path",
-          "disposition": "tested",
-          "evidence": "jsonl-records.test.ts work budgets (3 cases) PASSED"
-        },
-        {
-          "behavior": "endsWithoutNewline fault injection: short read, live-end fstat sizing, fd closed on throw, no close when open fails, zero-byte short-circuit",
-          "disposition": "tested",
-          "evidence": "jsonl-records.faults.test.ts (5 cases, vi.mock node:fs) PASSED"
-        },
-        {
-          "behavior": "parseJsonlRecords: order preserved, 1-based lineNo, blank-line numbering, CRLF absorbed, per-line fragments",
-          "disposition": "tested",
-          "evidence": "jsonl-records.test.ts parseJsonlRecords (6 cases) PASSED"
-        },
-        {
-          "behavior": "writer: no concatenation onto an unterminated predecessor",
-          "disposition": "tested",
-          "evidence": "triage-write.newline.test.ts does not concatenate PASSED (was RED before the fix)"
-        },
-        {
-          "behavior": "writer: no blank line injected for LF / CRLF / missing / zero-byte targets",
-          "disposition": "tested",
-          "evidence": "triage-write.newline.test.ts (4 cases) PASSED"
-        },
-        {
-          "behavior": "writer+reader COMPOSE: a lost TOCTOU race still loses no record",
-          "disposition": "tested",
-          "evidence": "triage-write.newline.test.ts loses no record when a lost race PASSED"
-        },
-        {
-          "behavior": "store: recovery at readAllItems, across the tracked-outbox union, and composing with two-pass status resolution",
-          "disposition": "tested",
-          "evidence": "triage-store.recovery.test.ts (6 cases) PASSED"
-        },
-        {
-          "behavior": "store: recovery on the WRITE hot path (appendIdsInFile residence probe)",
-          "disposition": "tested",
-          "evidence": "triage-store.recovery.test.ts sees a concatenated append PASSED"
-        },
-        {
-          "behavior": "reporting: silent when clean or fully recovered; exactly one structured warn with bounded metadata and NO fragment text; true total vs capped sample",
-          "disposition": "tested",
-          "evidence": "triage-store.recovery.test.ts corruption reporting (4 cases) PASSED"
-        },
-        {
-          "behavior": "cross-language parity over a DELIBERATELY corrupted fixture resolved by the REAL Python reader, incl. the lexical class (brace-in-string, escaped quote, backslash run) and the by-contract unrecoverable cases",
-          "disposition": "tested",
-          "evidence": "triage-store.recovery.test.ts deep-equals real Python (8 items) PASSED"
-        },
-        {
-          "behavior": "parity fixture round-trips byte-exact through git (no EOL normalization)",
-          "disposition": "tested",
-          "evidence": ".gitattributes -text; triage-store.recovery.test.ts CR-byte assertion PASSED"
-        },
-        {
-          "behavior": "HTTP consumer chain: list returns both records, partial keeps its valid record, counts no longer under-count, wholly-corrupt still 200, dismiss lands on a recovered file",
-          "disposition": "tested",
-          "evidence": "triage.recovery-api.test.ts (5 cases, real Hono app) PASSED"
-        },
-        {
-          "behavior": "web surface: both halves of a concatenated line reach the Inbox and open in the detail modal",
-          "disposition": "tested",
-          "evidence": "client/e2e/flows/triage-record-boundary-recovery.spec.ts executed against an isolated stack, 1 passed"
-        },
-        {
-          "behavior": "bloat: triage-store.ts stays at or under its 305-line grandfathered baseline",
-          "disposition": "tested",
-          "evidence": "measured 305; scripts/hooks/anti_ratchet_check.py exit 0"
+          "evidence": "QA assertion: max-min y <= 2 (28/28/29) after .page-head .inner min-height:92px"
         }
       ],
       "counts": {
-        "testable": 22,
-        "tested": 22,
+        "testable": 8,
+        "tested": 8,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 10,
-        "covered_acs": 10
+        "acs": 8,
+        "covered_acs": 8
       }
-    },
-    "degraded": []
+    }
   }
 }
