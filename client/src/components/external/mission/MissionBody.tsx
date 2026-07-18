@@ -21,10 +21,13 @@ import { useCallback, useState } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useMissionLive } from "../../../hooks/useMissionLive";
+import { useMissionContext } from "../../../hooks/useMissionContext";
+import { isSupportedSchema, usesContextRail, visibleArtifacts } from "../../../lib/missionArtifacts";
 import { MissionLeftPanel } from "./MissionLeftPanel";
 import { OperationCard } from "./OperationCard";
 import { OperationLive } from "./OperationLive";
 import { ArtifactPanel } from "./ArtifactPanel";
+import { MissionArtifactPanel } from "./MissionArtifactPanel";
 
 interface Props {
   task: ExternalTask;
@@ -39,9 +42,20 @@ interface Props {
 export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) {
   const [activeNode, setActiveNode] = useState<string | null>(null);
   const model = useMissionLive(task, transcriptContent);
-  const activeRecordNode = activeNode
-    ? model.nodes.find((n) => n.key === activeNode) ?? null
-    : null;
+
+  // S1 — the context-resolved artifact rail. Additive: it engages ONLY for a
+  // resolved standalone iterate on a schema this build understands. Every other
+  // scenario (and any resolver failure) falls through to the legacy rail below,
+  // so the Mission tab can never end up worse than it was.
+  const contextQuery = useMissionContext(task?.taskId);
+  const context = isSupportedSchema(contextQuery.data) ? contextQuery.data : null;
+  const artifacts = usesContextRail(context) ? visibleArtifacts(context) : null;
+  const activeArtifact = artifacts?.find((a) => a.kind === activeNode) ?? null;
+
+  const activeRecordNode =
+    activeNode && !artifacts
+      ? model.nodes.find((n) => n.key === activeNode) ?? null
+      : null;
 
   const handleNodeClick = useCallback((key: string) => {
     // Clicking the already-active link closes the artifact (prototype window.__node).
@@ -65,13 +79,20 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           model={model}
           activeNodeKey={activeNode}
           onNodeClick={handleNodeClick}
+          artifacts={artifacts}
         />
         {showOperationCard ? (
           <OperationCard task={task} />
         ) : (
           <OperationLive narration={model.narration} />
         )}
-        {activeRecordNode ? (
+        {activeArtifact ? (
+          <MissionArtifactPanel
+            taskId={task.taskId}
+            artifact={activeArtifact}
+            onClose={handleClose}
+          />
+        ) : activeRecordNode ? (
           <ArtifactPanel
             node={activeRecordNode}
             onClose={handleClose}

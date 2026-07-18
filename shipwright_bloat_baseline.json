@@ -410,7 +410,7 @@
     {
       "path": "server/src/core/sdk-sessions-store.ts",
       "limit": 300,
-      "current": 791,
+      "current": 543,
       "state": "grandfathered",
       "adr": null
     },

@@ -23,6 +23,14 @@ vi.mock("../../../hooks/useCampaigns", () => ({
 vi.mock("./DesignGateCard", () => ({
   DesignGateCard: () => <div data-testid="design-gate-card-stub" />,
 }));
+// S1 — MissionBody now consults the mission-context resolver. Stubbed to
+// "resolved nothing" here so these cases keep asserting the LEGACY rail
+// (scenarios 1/3/4/5), which is exactly the no-regression contract. The
+// context-driven rail has its own cases in MissionBody.context.test.tsx.
+vi.mock("../../../hooks/useMissionContext", () => ({
+  useMissionContext: () => ({ data: undefined }),
+  useArtifactDocument: () => ({ data: undefined, isPending: false, isError: false }),
+}));
 
 import { MissionBody } from "./MissionBody";
 
