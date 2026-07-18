@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { readReviewState, reviewStatePaths } from "./review-state.js";
+import { buildReviewArtifact } from "./artifacts-slice2.js";
 import type { ReviewRow, ReviewType } from "./types-slice2.js";
 
 const RUN_ID = "iterate-2026-07-19-demo";
@@ -155,6 +156,37 @@ describe("readReviewState", () => {
     const { rows, hasRecord } = readReviewState("/root", "../../etc");
     expect(hasRecord).toBe(false);
     expect(rows.every((r) => r.status === "unavailable")).toBe(true);
+  });
+
+  it("REPORTS an unidentifiable run as an integrity fault, so it cannot hide", () => {
+    // The bug this pins: the branch built four "could not be identified" rows
+    // and then returned `sawUnreadable: false`, erasing the fault it had just
+    // detected. `buildReviewArtifact` matches `!hasRecord && !sawUnreadable` and
+    // HID the artifact — so Spec/Requirement/Commit rendered while Review
+    // silently vanished, and the rows above were thrown away.
+    //
+    // Asserting the rows alone (as the case above does) cannot catch that: the
+    // rows were always correct. The ARTIFACT is what regressed, so that is what
+    // this asserts (internal code review, MEDIUM).
+    const lookup = readReviewState("/root", "../../etc");
+    expect(lookup.sawUnreadable).toBe(true);
+    expect(buildReviewArtifact(lookup).state).toBe("unavailable");
+  });
+
+  it("notes a completed review whose findings count could not be read", () => {
+    const root = projectWithMarkers({
+      "external_review_state.json": JSON.stringify({ status: "completed" }),
+    });
+    try {
+      const plan = row(readReviewState(root, RUN_ID).rows, "plan");
+      expect(plan.status).toBe("completed");
+      expect(plan.findingsCount).toBeNull();
+      // Without this note the row renders a bare "ran", which a reader
+      // completes as "…and found nothing".
+      expect(plan.note).toMatch(/findings count was not recorded/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("ignores a non-numeric findings_count instead of trusting it", () => {

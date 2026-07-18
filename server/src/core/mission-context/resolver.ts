@@ -242,6 +242,14 @@ export function resolveMissionContext(
       ? checkSquashMerged(projectRoot, marker.number, { git: deps.git, ...deps.merge })
       : "unknown";
 
+  const slice2 = buildSlice2Artifacts({
+    projectRoot,
+    runId,
+    events,
+    commit: run?.commit?.trim() || null,
+    git: deps.git,
+  });
+
   // CONTRACT §6 order: Spec · Requirement · Tests · Review · Decisions · Commit.
   const artifacts: ArtifactDescriptor[] = [
     buildSpecArtifact({
@@ -252,13 +260,7 @@ export function resolveMissionContext(
       intent: run?.intent ?? null,
     }),
     buildRequirementArtifact({ foldMap, doc: iterateDoc, events, specText }),
-    ...buildSlice2Artifacts({
-      projectRoot,
-      runId,
-      events,
-      commit: run?.commit?.trim() || null,
-      git: deps.git,
-    }),
+    ...slice2.artifacts,
     buildCommitArtifact({ events, prNumber: marker?.number ?? null, prUrl: marker?.url ?? null, merge }),
   ];
 
@@ -279,8 +281,13 @@ export function resolveMissionContext(
     sourceRev: rev,
   };
 
-  if (cache.size >= CACHE_CAP) cache.clear();
-  cache.set(cacheKey, { rev, context });
+  // A TRANSIENT git failure is not cached: git's answer is not a statted file,
+  // so it cannot participate in `rev`, and caching it would pin Tests at
+  // "currently unavailable" until an unrelated source file changed.
+  if (slice2.cacheable) {
+    if (cache.size >= CACHE_CAP) cache.clear();
+    cache.set(cacheKey, { rev, context });
+  }
 
   // `associate` is set by the POINTER validating — never by the task's `state`,
   // which decays to `idle` on a parked design gate. See association.ts.

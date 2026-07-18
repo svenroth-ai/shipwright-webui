@@ -90,6 +90,32 @@ dispositioned above, plus the `spec.md`/changelog deliverables that are Finaliza
 | C7 | medium | Review descriptors not immutable after completion. | **rejected-with-reason (duplicate of plan #5).** Needs a second lifecycle write, forbidden by campaign guardrails. |
 | C8 | medium | Missing `spec.md` FR-01.66 dated AC line and `CHANGELOG-unreleased.d/` fragment. | **accepted** — both delivered at Finalization. |
 
+## Internal-Code-Review-Cascade-Findings
+
+Run by the campaign orchestrator over `66e275ae..d7ebeee1`. Verdict: **no blocking bug**;
+three of the four S1 failure shapes independently confirmed closed. The fourth —
+*absent data silently hides an artifact* — survived in one branch nobody had re-checked.
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| I1 | medium | `review-state.ts` built four "could not be identified" rows for an unsafe `runId` and then returned `sawUnreadable: false`, erasing the fault it had just detected. `buildReviewArtifact` matched `!hasRecord && !sawUnreadable` → `not_yet_created` → **hidden**, so Spec/Requirement/Commit rendered while Review and Decisions vanished with no signal. | **accepted-and-fixed.** One word: `sawUnreadable: true`. The existing test asserted only that the ROWS were unavailable and never that the ARTIFACT stayed visible — self-confirming at miniature scale — so the new case asserts `buildReviewArtifact(...).state === "unavailable"`. |
+| I2 | medium | A marker parsing as `completed` with an absent/non-numeric `findings_count` produced `findingsCount: null`, which `completed.reduce((n, r) => n + (r.findingsCount ?? 0))` folded into **zero** → "1 review ran and raised no issues". The `unknown` tally counted only `unavailable` rows, so the disclosure tail did not fire either. The status was honest; the count was fabricated. | **accepted-and-fixed.** Completed-with-unreadable-count is now its own fact: excluded from the findings basis, added to `unknown`, and given the row note "This review ran; its findings count was not recorded." The summary gains a dedicated sentence and every "no issues" claim is scoped to passes whose count was actually read. |
+| I3 | cheap | A transient git failure was cached. git's answer is not a statted file, so it cannot join `sourceRev`; the failure would pin Tests at `unavailable` until an unrelated source file changed. | **accepted-and-fixed.** `buildSlice2Artifacts` returns `{artifacts, cacheable}`; the resolver skips the cache write when `git_failed`. `bad_commit` stays cacheable — "this run recorded no commit" is a stable fact, not a fault. |
+| I4 | cheap | `tokens[i+1]?.replace(/\\/g,"/").trim()` partly undid the `-z` hardening: git reports POSIX paths, so a backslash is a literal filename character and surrounding whitespace is part of the name. | **accepted-and-fixed.** The token is used verbatim. The backslash fold belongs to manifest ids and already lives in `traceability.ts`. |
+| I5 | cheap | The `MAX_TEST_ENTRIES` truncation *producer* had no direct test — the downstream case hand-builds `{truncated: true}` and would pass even if the producer never set the flag. | **accepted-and-fixed.** The cap is injectable so the branch is driven for real with a 3-entry fixture; the same manifest under the real cap asserts `truncated === false`. |
+| I6 | note | `slice2-test-fixtures.ts` is a test-only module without `.test.ts`, so it compiles into the production build. Follows the `test-harness.ts` precedent. | **recorded, not changed** — but noted as a pattern now duplicated twice, which is how something becomes convention by accident. |
+
+**Reachability correction.** The review located the load-time gap at
+`sdk-sessions-store.ts:180`; that line is only the type declaration. The guard does exist,
+at `sdk-sessions-validate.ts:264`, and it applies `isSafeRunId` on the load path — so a
+corrupt store cannot in fact reach I1 today. What was genuinely missing was a **test**: the
+guard was unverified and could have been deleted silently. Added
+`sdk-sessions-validate.missioncontext.test.ts` (traversal run ids, structurally malformed
+values, absent field), so the source is closed *and* pinned while I1 handles the symptom.
+
+**Falsification.** Every one of the six new tests was confirmed to FAIL with its fix
+reverted, then the fix restored — so none is self-confirming.
+
 ## Self-Review
 
 1. **Spec Compliance** — pass. AC1–AC5 covered by server unit, client unit and 4 RUN E2E flows; the one contract deviation (pagination) is recorded above with an empirical basis.

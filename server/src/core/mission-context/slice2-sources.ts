@@ -49,10 +49,28 @@ export interface Slice2Input {
   git?: GitRunner;
 }
 
+export interface Slice2Result {
+  /** Tests · Review · Decisions, in CONTRACT §6 order. */
+  artifacts: [TestsArtifact, ReviewArtifact, DecisionsArtifact];
+  /**
+   * False when the response must NOT be cached.
+   *
+   * git's answer is not a statted file, so it cannot participate in
+   * `sourceRev`. A TRANSIENT git failure (index.lock, a GC race, a briefly
+   * unreachable object) would therefore pin Tests at `unavailable` until some
+   * unrelated source file happened to change. It degrades toward a visible
+   * "currently unavailable" rather than a false "no tests", so this is
+   * staleness and not a safety break — but it is trivially avoidable
+   * (internal code review, FIX-IF-CHEAP).
+   *
+   * `bad_commit` deliberately stays CACHEABLE: "this run recorded no commit" is
+   * a stable fact about the run, not a transient fault.
+   */
+  cacheable: boolean;
+}
+
 /** Tests · Review · Decisions, in CONTRACT §6 order. */
-export function buildSlice2Artifacts(
-  input: Slice2Input,
-): [TestsArtifact, ReviewArtifact, DecisionsArtifact] {
+export function buildSlice2Artifacts(input: Slice2Input): Slice2Result {
   const { projectRoot, runId, events, commit } = input;
   const git = input.git ?? defaultGit;
 
@@ -70,9 +88,12 @@ export function buildSlice2Artifacts(
     ? readTraceabilityIndex(projectRoot)
     : ({ status: "unavailable", reason: "missing" } as const);
 
-  return [
-    buildTestsArtifact({ events, diff, index }),
-    buildReviewArtifact(readReviewState(projectRoot, runId)),
-    buildDecisionsArtifact(readRunDecisions(projectRoot, runId), events),
-  ];
+  return {
+    artifacts: [
+      buildTestsArtifact({ events, diff, index }),
+      buildReviewArtifact(readReviewState(projectRoot, runId)),
+      buildDecisionsArtifact(readRunDecisions(projectRoot, runId), events),
+    ],
+    cacheable: !(diff.status === "unavailable" && diff.reason === "git_failed"),
+  };
 }

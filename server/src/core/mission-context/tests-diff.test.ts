@@ -69,6 +69,23 @@ describe("parseNameStatus", () => {
     expect(files).toEqual([{ path: "client/src/lib/grüße.test.ts", kind: "added" }]);
   });
 
+  it("passes the path through VERBATIM — no backslash fold, no trim", () => {
+    // Both edits partially undid the `-z` hardening: git always reports POSIX
+    // paths, so a backslash is a literal character in the filename and
+    // surrounding whitespace is part of the name. Either one silently breaks
+    // the manifest join (internal code review, FIX-IF-CHEAP).
+    const { files } = parseNameStatus(
+      z(["A", "client/src/back\\slash.test.ts"], ["M", " client/src/ spaced .test.ts"]),
+    );
+    expect(files.map((f) => f.path)).toEqual([
+      // A backslash is a literal character here, NOT a separator — folding it
+      // to "/" invents a directory and breaks the manifest join.
+      "client/src/back\\slash.test.ts",
+      // Leading whitespace is part of the name and survives.
+      " client/src/ spaced .test.ts",
+    ]);
+  });
+
   it("caps the row list and REPORTS the truncation instead of silently clipping", () => {
     const pairs: [string, string][] = [];
     for (let i = 0; i < MAX_TEST_FILES + 10; i++) pairs.push(["A", `client/src/f${i}.test.ts`]);

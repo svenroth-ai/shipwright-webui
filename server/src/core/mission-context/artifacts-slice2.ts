@@ -180,18 +180,33 @@ export function buildReviewArtifact(lookup: ReviewLookup): ReviewArtifact {
     };
   }
 
+  // A review that RAN but whose findings count could not be read is its own
+  // fact, and it must not be folded into zero. `completed.reduce(n + (count ??
+  // 0))` treated "unknown" as "none", so a marker with a missing or non-numeric
+  // `findings_count` produced "1 review ran and raised no issues" — the status
+  // honest, the count fabricated. That is the same unreadable→clean collapse the
+  // state enum prevents one level up (internal code review, MEDIUM).
   const completed = lookup.rows.filter((r) => r.status === "completed");
-  const findings = completed.reduce((n, r) => n + (r.findingsCount ?? 0), 0);
-  const unknown = lookup.rows.filter((r) => r.status === "unavailable").length;
+  const counted = completed.filter((r) => r.findingsCount != null);
+  const uncounted = completed.length - counted.length;
+  const findings = counted.reduce((n, r) => n + (r.findingsCount ?? 0), 0);
+  // Anything whose RESULT we cannot state: unreadable passes, plus completed
+  // passes with an unreadable count.
+  const unknown = lookup.rows.filter((r) => r.status === "unavailable").length + uncounted;
 
-  // "0 reviews ran and raised no issues" would read as a clean sweep when in
-  // fact NOTHING ran — the exact false assurance §9.1 forbids. A run with no
-  // completed pass gets its own sentence.
-  const lead = completed.length === 0
-    ? "No review was recorded as having run."
-    : findings
-      ? `${plural(findings, "issue", "issues")} raised across ${plural(completed.length, "review", "reviews")}.`
-      : `${plural(completed.length, "review", "reviews")} ran and raised no issues.`;
+  // Every "no issues" claim below is made ONLY about passes whose count we
+  // actually read (`counted`). "0 reviews ran and raised no issues" would read
+  // as a clean sweep when nothing ran; "1 review ran and raised no issues"
+  // would do the same when the count was simply unreadable. Both are the
+  // false assurance §9.1 forbids, so each gets its own honest sentence.
+  const lead =
+    completed.length === 0
+      ? "No review was recorded as having run."
+      : counted.length === 0
+        ? `${plural(completed.length, "review", "reviews")} ran, but the findings were not recorded.`
+        : findings
+          ? `${plural(findings, "issue", "issues")} raised across ${plural(counted.length, "review", "reviews")}.`
+          : `${plural(counted.length, "review", "reviews")} ran and raised no issues.`;
   // Never let the sentence stop at the good news while passes are unreadable.
   const tail = unknown
     ? ` ${plural(unknown, "further review is", "further reviews are")} not recorded, so ${unknown === 1 ? "its" : "their"} result is unknown.`

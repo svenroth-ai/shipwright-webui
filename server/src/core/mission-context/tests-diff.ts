@@ -120,7 +120,14 @@ export function parseNameStatus(out: string): { files: ChangedTestFile[]; trunca
       continue;
     }
     const kind = classify(status);
-    const p = tokens[i + 1]?.replace(/\\/g, "/").trim();
+    // The token is used VERBATIM. Folding `\` to `/` or trimming would partly
+    // undo the `-z` hardening two lines up: git always reports POSIX paths, so
+    // a backslash here is a literal character in a legitimate filename, and
+    // leading/trailing whitespace is likewise part of the name. Either edit
+    // silently breaks the manifest join. (The backslash fold belongs to
+    // manifest ids, which may be Windows-shaped — `traceability.ts` does it
+    // there, where it is correct.)
+    const p = tokens[i + 1];
     if (!kind || !p || !isTestFile(p) || seen.has(p)) continue;
     if (files.length >= MAX_TEST_FILES) {
       truncated = true;

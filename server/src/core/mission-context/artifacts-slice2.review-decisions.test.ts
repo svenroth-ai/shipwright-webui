@@ -104,6 +104,46 @@ describe("buildReviewArtifact", () => {
     expect(a.summary).toMatch(/not recorded/i);
   });
 
+  it("never reports 'raised no issues' when a completed pass's COUNT is unreadable", () => {
+    // The bug this pins: `completed.reduce((n, r) => n + (r.findingsCount ?? 0))`
+    // folded unknown into ZERO, so a marker that parsed as `completed` with a
+    // missing/non-numeric `findings_count` produced "1 review ran and raised no
+    // issues" — status honest, count fabricated. The `unknown` tally only
+    // counted `unavailable` rows, so the disclosure tail did not fire either
+    // (internal code review, MEDIUM).
+    const lookup: ReviewLookup = {
+      rows: [
+        reviewRow({ reviewType: "plan", status: "completed", findingsCount: null }),
+        reviewRow({ reviewType: "code" }),
+        reviewRow({ reviewType: "doubt" }),
+        reviewRow({ reviewType: "external_code", status: "not_run" }),
+      ],
+      hasRecord: true,
+      sawUnreadable: false,
+    };
+    const a = buildReviewArtifact(lookup);
+    expect(a.state).toBe("available");
+    expect(a.summary).not.toMatch(/no issues/i);
+    expect(a.summary).toContain("the findings were not recorded");
+    // …and the unreadable count joins the disclosure tail (2 internal + 1 here).
+    expect(a.summary).toMatch(/3 further reviews are not recorded/i);
+  });
+
+  it("counts issues only from passes whose count was READ, and discloses the rest", () => {
+    const lookup: ReviewLookup = {
+      rows: [
+        reviewRow({ reviewType: "plan", status: "completed", findingsCount: 4 }),
+        // Ran, count unreadable — must not silently contribute 0.
+        reviewRow({ reviewType: "external_code", status: "completed", findingsCount: null }),
+      ],
+      hasRecord: true,
+      sawUnreadable: false,
+    };
+    const a = buildReviewArtifact(lookup);
+    expect(a.summary).toContain("4 issues raised across 1 review");
+    expect(a.summary).toMatch(/1 further review is not recorded/i);
+  });
+
   it("counts findings ONLY from passes that actually ran", () => {
     const lookup: ReviewLookup = {
       rows: [

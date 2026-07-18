@@ -148,7 +148,14 @@ function readMarker(projectRoot: string, runId: string, marker: (typeof MARKERS)
       provider: asStr(o.provider, 120),
       completedAt: asStr(o.timestamp, 64),
       disposition: asStr(o.reason, MAX_DISPOSITION_CHARS),
-      note: completed ? null : notRunNote(raw),
+      // A completed review whose count we could NOT read needs a note of its
+      // own. Leaving it null let the row render as a bare "ran", which a
+      // reader completes as "…and found nothing" (internal code review).
+      note: completed
+        ? count == null
+          ? "This review ran; its findings count was not recorded."
+          : null
+        : notRunNote(raw),
     },
   };
 }
@@ -189,7 +196,15 @@ export function readReviewState(projectRoot: string, runId: string): ReviewLooku
         unreadableRow("external_code", "This run could not be identified."),
       ],
       hasRecord: false,
-      sawUnreadable: false,
+      // `true`, NOT false: a run id we cannot validate is a detected INTEGRITY
+      // FAULT, not an absence. Reporting `false` here would erase the fault
+      // this branch just found — `buildReviewArtifact` matches
+      // `!hasRecord && !sawUnreadable` and would HIDE the artifact, throwing
+      // away the four rows constructed directly above and leaving the user with
+      // Spec/Requirement/Commit rendering normally while Review silently
+      // vanished. That is exactly the absent-data-hides-an-artifact shape this
+      // slice exists to prevent (internal code review, MEDIUM).
+      sawUnreadable: true,
     };
   }
 

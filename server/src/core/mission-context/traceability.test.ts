@@ -173,6 +173,45 @@ describe("readTraceabilityIndex — bounded degradation", () => {
     }
   });
 
+  it("SETS truncated when the entry cap is hit — tested on the PRODUCER", () => {
+    // The downstream mapping case in artifacts-slice2.test.ts hand-builds
+    // `{truncated: true}`, so it would still pass if this early return never
+    // set the flag. The cap is injectable purely so this branch can be driven
+    // for real without a 50k-entry fixture (internal code review, FIX-IF-CHEAP).
+    const root = projectWithManifest(
+      manifest({
+        a: {
+          id: "FR-01.01",
+          tests: {
+            unit: [
+              { id: "first.test.ts::x", layer: "unit" },
+              { id: "second.test.ts::x", layer: "unit" },
+              { id: "third.test.ts::x", layer: "unit" },
+            ],
+          },
+        },
+      }),
+    );
+    try {
+      const capped = readTraceabilityIndex(root, 2);
+      expect(capped.status).toBe("ok");
+      if (capped.status !== "ok") return;
+      expect(capped.truncated).toBe(true);
+      // A partial index is still returned — better than none, and the flag is
+      // what stops the caller reading the gaps as "covers nothing".
+      expect(capped.byFile.size).toBeGreaterThan(0);
+      expect(capped.byFile.size).toBeLessThan(3);
+
+      // …and the same manifest under the real cap is NOT truncated.
+      const full = readTraceabilityIndex(root);
+      if (full.status !== "ok") throw new Error("expected ok");
+      expect(full.truncated).toBe(false);
+      expect(full.byFile.size).toBe(3);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("reports `missing` when the manifest does not exist", () => {
     const root = mkdtempSync(join(tmpdir(), "mc-trace-none-"));
     try {

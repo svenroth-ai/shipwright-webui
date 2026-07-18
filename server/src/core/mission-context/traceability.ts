@@ -39,7 +39,7 @@ const MAX_MANIFEST_BYTES = 8 * 1024 * 1024;
  * Cap on indexed test entries. A pathological manifest cannot make this loop
  * (or the resulting Map) unbounded. Real: 1038.
  */
-const MAX_TEST_ENTRIES = 50_000;
+export const MAX_TEST_ENTRIES = 50_000;
 
 export interface TraceabilityFileEntry {
   /** Distinct layers this file's tests are recorded under (`unit`, `e2e`, …). */
@@ -106,7 +106,16 @@ function addLink(entry: TraceabilityFileEntry, link: TestFrRef): void {
  * Read + invert the manifest. Never throws: every defect becomes a typed
  * `unavailable` the caller renders honestly.
  */
-export function readTraceabilityIndex(projectRoot: string): TraceabilityIndex {
+export function readTraceabilityIndex(
+  projectRoot: string,
+  /**
+   * Entry cap. Overridable ONLY so the truncation branch below has a direct
+   * test: a 50k-entry fixture would be absurd, and asserting the cap through a
+   * hand-built `{truncated: true}` downstream would still pass if this producer
+   * never set the flag (internal code review, FIX-IF-CHEAP).
+   */
+  maxEntries: number = MAX_TEST_ENTRIES,
+): TraceabilityIndex {
   const guard = pathGuard(projectRoot, TRACEABILITY_REL);
   if (!guard.ok) return { status: "unavailable", reason: "denied" };
   if (!existsSync(guard.absolute)) return { status: "unavailable", reason: "missing" };
@@ -145,7 +154,7 @@ export function readTraceabilityIndex(projectRoot: string): TraceabilityIndex {
     for (const [layer, cases] of Object.entries(tests as Record<string, unknown>)) {
       if (!Array.isArray(cases)) continue;
       for (const raw of cases) {
-        if (seen >= MAX_TEST_ENTRIES) {
+        if (seen >= maxEntries) {
           // Truncated rather than aborted: a partial index is strictly better
           // than none, and the cap is far above any real manifest — but the
           // caller MUST be told, or the missing links read as "covers nothing".
