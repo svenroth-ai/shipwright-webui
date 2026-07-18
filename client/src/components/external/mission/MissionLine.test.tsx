@@ -14,6 +14,7 @@ import { MissionLine } from "./MissionLine";
 afterEach(() => narrateMissionMock.mockReset());
 
 describe("MissionLine", () => {
+  // @covers FR-01.66
   it("renders the narrator's text + bolds its emphasis clause", () => {
     narrateMissionMock.mockReturnValue({
       text: "Sentence from the narrator.",
@@ -26,12 +27,14 @@ describe("MissionLine", () => {
     expect(line.querySelector("b")).toHaveTextContent("the bolded consequence.");
   });
 
+  // @covers FR-01.66
   it("passes its input straight to the narrator (no second phrase book here)", () => {
     narrateMissionMock.mockReturnValue({ text: "x", emphasis: "" });
     render(<MissionLine input={{ state: "designgate", screenCount: 5 }} />);
     expect(narrateMissionMock).toHaveBeenCalledWith({ state: "designgate", screenCount: 5 });
   });
 
+  // @covers FR-01.66
   it("an empty emphasis renders no <b> (honest degradation)", () => {
     narrateMissionMock.mockReturnValue({ text: "Just the lead.", emphasis: "" });
     render(<MissionLine input={{ state: "complete", changeCount: null, fileCount: null }} />);

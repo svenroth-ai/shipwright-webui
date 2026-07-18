@@ -16,12 +16,14 @@ const okDeps = (body: string) => ({
 });
 
 describe("readClaudeTheme", () => {
+  // @covers FR-01.28
   it("returns the theme string from ~/.claude/settings.json", async () => {
     expect(await readClaudeTheme(okDeps(JSON.stringify({ theme: "light" })))).toBe(
       "light",
     );
   });
 
+  // @covers FR-01.28
   it("returns compound theme identifiers verbatim (e.g. light-daltonized, custom:x)", async () => {
     expect(
       await readClaudeTheme(okDeps(JSON.stringify({ theme: "dark-ansi" }))),
@@ -31,28 +33,34 @@ describe("readClaudeTheme", () => {
     ).toBe("custom:dracula");
   });
 
+  // @covers FR-01.28
   it("trims surrounding whitespace", async () => {
     expect(await readClaudeTheme(okDeps(JSON.stringify({ theme: "  auto " })))).toBe(
       "auto",
     );
   });
 
+  // @covers FR-01.28
   it("returns null when the theme key is absent", async () => {
     expect(await readClaudeTheme(okDeps(JSON.stringify({ other: 1 })))).toBeNull();
   });
 
+  // @covers FR-01.28
   it("returns null when theme is not a string", async () => {
     expect(await readClaudeTheme(okDeps(JSON.stringify({ theme: 42 })))).toBeNull();
   });
 
+  // @covers FR-01.28
   it("returns null for an empty theme string", async () => {
     expect(await readClaudeTheme(okDeps(JSON.stringify({ theme: "  " })))).toBeNull();
   });
 
+  // @covers FR-01.28
   it("returns null on malformed JSON (never throws)", async () => {
     expect(await readClaudeTheme(okDeps("{ not json"))).toBeNull();
   });
 
+  // @covers FR-01.28
   it("returns null when the file is missing (ENOENT swallowed)", async () => {
     const enoent = {
       homedir: () => HOME,
@@ -63,6 +71,7 @@ describe("readClaudeTheme", () => {
     expect(await readClaudeTheme(enoent)).toBeNull();
   });
 
+  // @covers FR-01.28
   it("builds the path under the injected home dir", () => {
     expect(claudeSettingsPath("/x")).toContain(".claude");
     expect(claudeSettingsPath("/x")).toContain("settings.json");

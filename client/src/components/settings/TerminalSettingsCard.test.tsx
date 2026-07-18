@@ -18,6 +18,7 @@ afterEach(() => {
 });
 
 describe("TerminalSettingsCard — appearance selector", () => {
+  // @covers FR-01.28
   it("defaults to 'auto' (mirror Claude Code) when nothing is stored", () => {
     const { getByTestId } = render(<TerminalSettingsCard />);
     const select = getByTestId(
@@ -26,6 +27,7 @@ describe("TerminalSettingsCard — appearance selector", () => {
     expect(select.value).toBe("auto");
   });
 
+  // @covers FR-01.28
   it("reflects a persisted preference", () => {
     localStorage.setItem(TERMINAL_APPEARANCE_KEY, "light");
     const { getByTestId } = render(<TerminalSettingsCard />);
@@ -35,6 +37,7 @@ describe("TerminalSettingsCard — appearance selector", () => {
     ).toBe("light");
   });
 
+  // @covers FR-01.28
   it("persists + emits the same-tab change event on selection", () => {
     const onChanged = vi.fn();
     window.addEventListener(TERMINAL_PREFS_CHANGED_EVENT, onChanged);
@@ -49,6 +52,7 @@ describe("TerminalSettingsCard — appearance selector", () => {
     window.removeEventListener(TERMINAL_PREFS_CHANGED_EVENT, onChanged);
   });
 
+  // @covers FR-01.28
   it("offers all four appearance options", () => {
     const { getByTestId } = render(<TerminalSettingsCard />);
     const select = getByTestId(

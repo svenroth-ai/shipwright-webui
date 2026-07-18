@@ -35,11 +35,13 @@ function renderBtn(project: Project | null = PROJECT) {
 describe("CampaignStartButton (AC1 / AC3)", () => {
   beforeEach(() => vi.restoreAllMocks());
 
+  // @covers FR-01.10
   it("disabled when no project is resolved", () => {
     renderBtn(null);
     expect(screen.getByTestId(`campaign-start-${SLUG}`)).toBeDisabled();
   });
 
+  // @covers FR-01.10
   it("AC1: clicking Start calls the EXISTING startCampaign hook path with the slug", async () => {
     const spy = vi.spyOn(api, "startCampaign").mockResolvedValue({ ok: true, data: { slug: SLUG, status: "active" } });
     renderBtn();
@@ -47,6 +49,7 @@ describe("CampaignStartButton (AC1 / AC3)", () => {
     await waitFor(() => expect(spy).toHaveBeenCalledWith("p1", SLUG));
   });
 
+  // @covers FR-01.10
   it("AC3: a 409 already-complete start surfaces a persistent Refresh notice (no Retry)", async () => {
     vi.spyOn(api, "startCampaign").mockResolvedValue({
       ok: false, status: 409, error: "campaign_already_complete",
@@ -59,6 +62,7 @@ describe("CampaignStartButton (AC1 / AC3)", () => {
     expect(screen.queryByTestId(`campaign-start-failure-${SLUG}-retry`)).toBeNull();
   });
 
+  // @covers FR-01.10
   it("AC3: a 503 lock start surfaces a Retry (genuinely transient)", async () => {
     vi.spyOn(api, "startCampaign").mockResolvedValue({
       ok: false, status: 503, error: "lock_unavailable",
@@ -68,6 +72,7 @@ describe("CampaignStartButton (AC1 / AC3)", () => {
     expect(await screen.findByTestId(`campaign-start-failure-${SLUG}-retry`)).toBeInTheDocument();
   });
 
+  // @covers FR-01.10
   it("AC3: a 422 no-writable-target start shows the fix, NO Retry", async () => {
     vi.spyOn(api, "startCampaign").mockResolvedValue({
       ok: false, status: 422, error: "no_writable_status_target",

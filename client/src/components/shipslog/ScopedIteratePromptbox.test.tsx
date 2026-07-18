@@ -79,11 +79,13 @@ beforeEach(() => {
 });
 
 describe("ScopedIteratePromptbox", () => {
+  // @covers FR-01.59
   it("auto-focuses the input on load", () => {
     renderBox();
     expect(screen.getByTestId("shipslog-promptbox-input")).toBe(document.activeElement);
   });
 
+  // @covers FR-01.59
   it("brief → Plan it opens a plan card whose unknown fields render '—'", async () => {
     renderBox();
     await userEvent.type(screen.getByTestId("shipslog-promptbox-input"), "add rate-limit headers");
@@ -96,6 +98,7 @@ describe("ScopedIteratePromptbox", () => {
     expect(within(card).getByTestId("shipslog-plan-est-tests").textContent).toBe("—");
   });
 
+  // @covers FR-01.59
   it("Go creates + launches ONCE through the existing path, then navigates to Mission", async () => {
     renderBox();
     await userEvent.type(screen.getByTestId("shipslog-promptbox-input"), "add rate-limit headers");
@@ -113,6 +116,7 @@ describe("ScopedIteratePromptbox", () => {
     expect(await screen.findByTestId("loc")).toHaveTextContent("/tasks/task-77");
   });
 
+  // @covers FR-01.59
   it("Cancel closes the plan card and creates NOTHING", async () => {
     renderBox();
     await userEvent.type(screen.getByTestId("shipslog-promptbox-input"), "add rate-limit headers");
@@ -122,6 +126,7 @@ describe("ScopedIteratePromptbox", () => {
     expect(launchMock).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.59
   it("disables Go when the project has no iterate action (never hardcodes one)", async () => {
     actionsMock.mockReturnValue({ data: { ...ACTIONS, actions: [] } });
     renderBox();

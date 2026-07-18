@@ -1,51 +1,121 @@
 {
-  "last_updated": "2026-07-17",
+  "last_updated": "2026-07-18",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-17-fr-taxonomy-regroup",
-    "date": "2026-07-17",
+    "run_id": "iterate-2026-07-17-test-traceability-retrofit",
+    "date": "2026-07-18",
     "unit": {
-      "status": "passed",
-      "passed": 2695,
-      "total": 2695,
-      "note": "Behavior-neutral spec/docs-only diff (spec.md + design doc + 2 planning files; zero product code touched). Full client vitest re-run as a regression guard: 2695/2695 across 295 files. client + server tsc --noEmit clean."
+      "status": "pass",
+      "passed": 4940,
+      "total": 4941,
+      "note": "Full vitest suites re-run after the 1039 additive `// @covers` comment insertions. server: 192 files, 2245 passed + 1 skipped. client: 295 files, 2695 passed. 0 failures; tsc --noEmit clean for both workspaces. Tags are comments (behavior-neutral) — counts match the pre-change baseline."
     },
-    "integration": { "status": "not_run", "passed": 0, "total": 0 },
-    "pgtap": { "status": "not_run", "passed": 0, "total": 0 },
+    "integration": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0,
+      "note": "webui vitest does not separate an integration layer; covered within the unit suites."
+    },
+    "pgtap": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
     "e2e": {
       "status": "not_run",
       "passed": 0,
       "total": 0,
-      "note": "No product runtime surface changed; F0.5 surface=none, justified. No test reads spec.md's FR table (the doc-link tests use the survivor anchor #fr-0101, which is preserved)."
+      "note": "No product UI/API surface changed (data/tags + docs). The end-to-end verification for THIS change is the traceability pipeline itself: config -> test_links collector -> test-traceability.json (1038 bindings, was 0 without the config) -> strict D-orphan detector (live proof: MEDIUM on an absent-FR tag, pass after revert). Captured in .shipwright/compliance/test-traceability-coverage-delta.md."
     },
-    "design_fidelity": { "status": "not_run", "passed": 0, "total": 0 },
+    "design_fidelity": {
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
+    },
     "smoke": {
       "status": "not_run",
-      "note": "Spec/docs-only change; no server/app started, no smoke surface."
+      "note": "No server/app started; data/tags + docs change has no smoke surface."
     },
     "surface_verification": {
       "surface": "none",
       "exit_code": 0,
       "tests_run": 0,
-      "justification": "Behavior-neutral requirements-documentation restructure — edits only spec.md + planning/design docs; no API route, store, UI, or runtime code path changes, so there is no user-facing surface to drive. Verification is the meta-test suite (compliance parser-simulation + doc-consumer vitest + full client suite + git-scope check).",
-      "evidence_path": ".shipwright/runs/iterate-2026-07-17-fr-taxonomy-regroup/surface_verification.json",
-      "timestamp": "2026-07-17T00:00:00.000Z",
+      "justification": "Data/tags + docs only; product source (server/src, client/src app code) is byte-stable and no product UI/API/store/SSE surface changed. The real end-to-end proof is the traceability pipeline executed live: the manifest round-trip (collector bound 1038 tests WITH the config, 0 without) and the strict D-orphan detector firing MEDIUM on a synthetic absent-FR tag then passing after revert. Both captured in .shipwright/compliance/test-traceability-coverage-delta.md.",
+      "evidence_path": ".shipwright/compliance/test-traceability-coverage-delta.md",
+      "timestamp": "2026-07-18T00:00:00.000Z",
       "attempts": 1
     },
     "test_completeness": {
       "status": "complete",
-      "enumeration_basis": "Every behaviour this behavior-neutral spec-restructure introduces, from the iterate ACs: (1) 29 survivor rows + Area column + 14 area headers; (2) 37 folded IDs in FR-Fold-Map with 0 seen as active FR rows; (3) 0 orphan-causing folded-ID references; (4) Fold-Map completeness + provenance preserved; (5) doc-consumer tests green; (6) compliance parser sees exactly the 29 survivors; (7) historical files byte-untouched + zero code; (8) full client suite + typecheck green. 8 behaviours; all 8 tested locally; 0 untestable; 0 untested-testable.",
-      "counts": { "total": 8, "testable": 8, "tested": 8, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": "Behaviours this diff introduces: (1) the traceability config makes the collector scan webui's roots; (2-4) each of the three signals (unique_commit, co-location, self-listing) attributes tests to the correct FR; (5) the manifest binds tags with a layer-aware RTM; (6) strict D-orphan fires on a tag -> absent FR; (7) tags are behaviour-neutral and product source is byte-stable; (8) the signal-e discovery logic produces only correct tags; (9) tags reconcile to the post-#287 survivor taxonomy. 9 behaviours; all tested; 0 untested-testable.",
+      "counts": {
+        "total": 9,
+        "testable": 9,
+        "tested": 9,
+        "untestable": 0,
+        "untested_testable": 0
+      },
       "behaviors": [
-        { "behavior": "29 survivor rows + Area column + 14 area section-headers", "category": "config", "disposition": "tested", "evidence": "grep: 29 rows matching | FR-01.NN | <AREA> | ; 29 distinct IDs; 14 '### Area' headers" },
-        { "behavior": "37 folded IDs recorded in FR-Fold-Map; 0 folded IDs parsed as an active FR row", "category": "config", "disposition": "tested", "evidence": "faithful compliance-parser simulation over the whole new spec.md: 29 active FRs, 0 folded-active, 0 duplicates; 37 backticked fold-map rows" },
-        { "behavior": "Folding causes 0 traceability orphans", "category": "config", "disposition": "tested", "evidence": "grep for @FR-.. / @covers FR-.. across client+server returns ZERO tags repo-wide -> no tags to orphan" },
-        { "behavior": "Every folded ID has exactly one Fold-Map row; original name (provenance) preserved per row", "category": "config", "disposition": "tested", "evidence": "fold-map count == 37; each row carries the 'Was (original name)' cell" },
-        { "behavior": "Doc-consumer tests (spec.md doc-link / #fr-0101 anchor, doc-sync) still pass", "category": "unit", "disposition": "tested", "evidence": "vitest: DocumentMarkdown + useDocNavigation + doc-sync + ArtifactPanel + AttachmentCard = 133 tests PASSED" },
-        { "behavior": "Compliance parser sees exactly the 29 survivors (no folded-ID resurrection via the alias table)", "category": "config", "disposition": "tested", "evidence": "parser-sim active==29; Fold-Map ID cells backticked so ^FR-\\d{2}\\.\\d{2}$ skips them" },
-        { "behavior": "Historical/immutable files byte-untouched; zero product code changed", "category": "config", "disposition": "tested", "evidence": "git diff --cached: 4 files (spec.md + design doc + 2 planning), 0 code, events.jsonl/CHANGELOG/prototype absent from the diff" },
-        { "behavior": "Full client unit suite + typecheck remain green after the change", "category": "unit", "disposition": "tested", "evidence": "client vitest 2695/2695 (295 files) PASSED; client + server tsc --noEmit clean" }
+        {
+          "behavior": "traceability.test_roots makes the test_links collector scan webui's non-conventional roots",
+          "category": "config",
+          "disposition": "tested",
+          "evidence": "manifest regen bound 1038 tests WITH the config block; 0 without it (the collector defaults to conventional root dirs webui lacks) — round-trip probe"
+        },
+        {
+          "behavior": "unique_commit tags (47) attribute to the correct FR",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "all 47 -> FR-01.30 ('Triage Tab + Promote bridge'); introducing commit 290263e9 feat(triage); spot-check 0 wrong"
+        },
+        {
+          "behavior": "co-location tags (972) attribute to the correct FR",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "972/972 passed 3 hard gates (exclusive-owner + source-exists + import-verified); 8-FR spot-check (FR-01.35 SmartViewer, FR-01.44 terminal, FR-01.65 command palette, FR-01.64 motion, ...) all correct"
+        },
+        {
+          "behavior": "self-listing tags (20) attribute to the correct FR",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "exclusive spec-listing of the test file; raised e2e-layer coverage 2 -> 8; spot-check reduced-motion-final-state.spec.ts -> FR-01.64"
+        },
+        {
+          "behavior": "the manifest binds the tags with a layer-aware RTM",
+          "category": "integration",
+          "disposition": "tested",
+          "evidence": "test-traceability.json schema v2: 1038 bindings, 24/29 survivor FRs (post-#287 remap), by-layer unit 1030 / e2e 8; total reconciles to 47+972+20-1 enumeration delta"
+        },
+        {
+          "behavior": "strict D-orphan fires on a tag pointing at a removed/absent FR",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "live proof on webui: synthetic @covers FR-01.99 -> D-orphan status=fail severity=MEDIUM (fr_absent); after deleting the temp file -> status=pass, orphans=0"
+        },
+        {
+          "behavior": "tags are behaviour-neutral and product source is byte-stable",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "git diff origin/main touches only *.test/*.spec + config + .shipwright/*; tsc --noEmit clean (both workspaces); full suite 4940 passed / 0 failed (same counts as baseline)"
+        },
+        {
+          "behavior": "the signal-e discovery logic produces only correct tags (no wrong/fabricated attribution)",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "every one of the 992 signal-e outputs is gated (exclusive-owner + exists + import) and the written total reconciles exactly to the manifest binding count; independent code-review over the prototype + a sample of tagged files"
+        },
+        {
+          "behavior": "tags reconcile to the post-#287 survivor taxonomy (no orphans after the FR-taxonomy-regroup fold)",
+          "category": "correctness",
+          "disposition": "tested",
+          "evidence": "after merging #287 the manifest showed 419 fr_absent orphans on 22 folded IDs (D-orphan FAIL, empirically observed); remapped every @covers FR-<folded> -> its survivor via the spec's own FR-Fold-Map (419 remaps / 57 files); re-regen -> orphans=0, D-orphan PASS, 1038 bindings preserved, 24/29 survivor capabilities; server 2245+1skip / client 2695 green post-remap; tsc clean"
+        }
       ]
     },
-    "degraded": []
+    "degraded": [
+      {
+        "condition": "worktree_relocated_out_of_dot_worktrees",
+        "detail": "The shared backfill writer prunes any '.worktrees/' path (ancestor path.parts match), so the mandated iterate worktree was relocated to C:/01_Development/wt-traceability-retrofit to run the tag writer. Pointer in .shipwright/iterate_active/ records the relocation. Framework follow-on filed (prune by descent)."
+      }
+    ]
   }
 }

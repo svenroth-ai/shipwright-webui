@@ -34,6 +34,7 @@ afterEach(() => {
 });
 
 describe("ModalShell", () => {
+  // @covers FR-01.38
   it("renders the header icon + title + subtitle + close button", () => {
     render(
       <ModalShell
@@ -57,6 +58,7 @@ describe("ModalShell", () => {
     expect(screen.getByTestId("body-marker")).toBeTruthy();
   });
 
+  // @covers FR-01.38
   it("close button fires onOpenChange(false)", () => {
     const onOpenChange = vi.fn();
     render(
@@ -78,6 +80,7 @@ describe("ModalShell", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // @covers FR-01.38
   it("footer hint is exactly 'Esc to cancel'", () => {
     render(
       <ModalShell
@@ -98,6 +101,7 @@ describe("ModalShell", () => {
     expect(hint.textContent?.replace(/\s+/g, " ").trim()).toBe("Esc to cancel");
   });
 
+  // @covers FR-01.38
   it("Save + Launch buttons disabled when canSubmit=false", () => {
     render(
       <ModalShell
@@ -122,6 +126,7 @@ describe("ModalShell", () => {
     ).toBe(true);
   });
 
+  // @covers FR-01.38
   it("error string renders inside the error bar; otherwise hidden", () => {
     const { rerender } = render(
       <ModalShell
@@ -174,6 +179,7 @@ describe("ModalShell", () => {
    * ProjectContextStrip.test.tsx does the same for its layout-critical
    * classes. See ModalShell.tsx for why the class is load-bearing.
    */
+  // @covers FR-01.38
   it("modal body pins [&>*]:shrink-0 so an overflow-hidden child cannot be squeezed + clipped", () => {
     render(
       <ModalShell
@@ -198,6 +204,7 @@ describe("ModalShell", () => {
     expect(body.className).toContain("[&>*]:shrink-0");
   });
 
+  // @covers FR-01.38
   it("Launch button is type=submit (form triggers onSubmit(launch))", () => {
     const onSubmit = vi.fn();
     render(
@@ -222,6 +229,7 @@ describe("ModalShell", () => {
     expect(onSubmit.mock.calls[0][1]).toBe("launch");
   });
 
+  // @covers FR-01.38
   it("Escape key fires onOpenChange(false) via Radix Dialog (Step 3.7 OpenAI #5)", () => {
     const onOpenChange = vi.fn();
     render(
@@ -245,6 +253,7 @@ describe("ModalShell", () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  // @covers FR-01.38
   it("Save button triggers onSubmit(save)", () => {
     const onSubmit = vi.fn();
     render(

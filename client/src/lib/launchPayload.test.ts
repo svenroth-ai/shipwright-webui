@@ -59,6 +59,7 @@ describe("stripControlChars — Python parity", () => {
   const fixture = stripFixture as StripFixture;
 
   for (const c of fixture.cases) {
+    // @covers FR-01.30
     it(`case "${c.description}" matches the canonical Python output`, () => {
       expect(stripControlChars(c.input)).toBe(c.expected);
     });
@@ -66,6 +67,7 @@ describe("stripControlChars — Python parity", () => {
 });
 
 describe("prepareLaunchPayload — decision rule", () => {
+  // @covers FR-01.30
   it("returns kind=render with cleaned payload for a non-empty string", () => {
     const item = makeItem({
       source: "phaseQuality",
@@ -78,6 +80,7 @@ describe("prepareLaunchPayload — decision rule", () => {
     }
   });
 
+  // @covers FR-01.30
   it("strips control chars from the payload before deciding renderability", () => {
     const item = makeItem({
       source: "phaseQuality",
@@ -93,17 +96,20 @@ describe("prepareLaunchPayload — decision rule", () => {
     }
   });
 
+  // @covers FR-01.30
   it("returns kind=github-placeholder when launchPayload is null and source is github", () => {
     const item = makeItem({ source: "github", launchPayload: null });
     expect(prepareLaunchPayload(item).kind).toBe("github-placeholder");
   });
 
+  // @covers FR-01.30
   it("returns kind=github-placeholder when launchPayload key is missing and source is github", () => {
     const item = makeItem({ source: "github" });
     // launchPayload not set on partial → undefined on item
     expect(prepareLaunchPayload(item).kind).toBe("github-placeholder");
   });
 
+  // @covers FR-01.30
   it("returns kind=github-placeholder when payload contains only control chars (MED #4)", () => {
     const item = makeItem({ source: "github", launchPayload: "\x07\x1b\x7f" });
     // After strip, payload is empty → not renderable → falls to placeholder
@@ -112,21 +118,25 @@ describe("prepareLaunchPayload — decision rule", () => {
     expect(prepareLaunchPayload(item).kind).toBe("github-placeholder");
   });
 
+  // @covers FR-01.30
   it("returns kind=github-placeholder when payload is whitespace-only and source is github", () => {
     const item = makeItem({ source: "github", launchPayload: "   \n\t   " });
     expect(prepareLaunchPayload(item).kind).toBe("github-placeholder");
   });
 
+  // @covers FR-01.30
   it("returns kind=none for legacy non-github items with no payload", () => {
     const item = makeItem({ source: "phaseQuality", launchPayload: null });
     expect(prepareLaunchPayload(item).kind).toBe("none");
   });
 
+  // @covers FR-01.30
   it("returns kind=none when payload key is missing and source is non-github", () => {
     const item = makeItem({ source: "compliance" });
     expect(prepareLaunchPayload(item).kind).toBe("none");
   });
 
+  // @covers FR-01.30
   it("returns kind=none when non-github payload is whitespace-only", () => {
     // Whitespace IS technically renderable text on the wire; treating it
     // as none avoids a blank fence for a legacy producer that emitted
@@ -136,6 +146,7 @@ describe("prepareLaunchPayload — decision rule", () => {
     expect(prepareLaunchPayload(item).kind).toBe("none");
   });
 
+  // @covers FR-01.30
   it("exposes the github placeholder text as a constant (verbatim from aggregator)", () => {
     expect(GITHUB_PLACEHOLDER_TEXT).toBe(
       "[no launch payload — producer bug; please report]",

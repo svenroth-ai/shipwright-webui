@@ -74,6 +74,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     }
   }
 
+  // @covers FR-01.33
   it("404s an unknown project id", async () => {
     const app = appFor({});
     const res = await app.request("/api/campaigns/nope");
@@ -81,12 +82,14 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "project_not_found" });
   });
 
+  // @covers FR-01.33
   it("404s a synthesized project (getProjectById returns undefined)", async () => {
     const app = appFor({ unassigned: undefined });
     const res = await app.request("/api/campaigns/unassigned");
     expect(res.status).toBe(404);
   });
 
+  // @covers FR-01.33
   it("404s when getProjectById returns a synthesized:true row", async () => {
     const app = appFor({
       unassigned: { id: "unassigned", path: projectRoot, synthesized: true },
@@ -96,6 +99,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "project_not_found" });
   });
 
+  // @covers FR-01.33
   it("403s when the campaigns dir is a symlink escaping the project root", async () => {
     const escapeDir = path.join(workDir, "escape");
     mkdirSync(path.join(escapeDir, "planning", "iterate", "campaigns"), {
@@ -121,6 +125,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "path_traversal_rejected" });
   });
 
+  // @covers FR-01.33
   it("200 + {campaigns:[]} for a registered project with no campaigns dir", async () => {
     const app = appFor({ p1: { id: "p1", path: projectRoot } });
     const res = await app.request("/api/campaigns/p1");
@@ -128,6 +133,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toEqual({ campaigns: [] });
   });
 
+  // @covers FR-01.33
   it("200 + the resolved campaign shape for a project with a campaign", async () => {
     const dir = path.join(projectRoot, ...SEGMENTS, "2026-06-02-hook");
     const subDir = path.join(dir, "sub-iterates");
@@ -164,6 +170,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
 
   // ---- POST /api/campaigns/:projectId/:slug/start (FR-01.33) ----
 
+  // @covers FR-01.33
   it("starts a draft campaign (status.json) → 200 active, reflected by GET", async () => {
     seedCampaign("2026-06-03-x", {
       statusJson: { status: "draft", sub_iterates: [{ id: "B0", slug: "a", status: "pending" }] },
@@ -178,6 +185,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(get.campaigns.find((c) => c.slug === "2026-06-03-x")?.status).toBe("active");
   });
 
+  // @covers FR-01.33
   it("starts a frontmatter-only draft campaign (no status.json) → 200 active", async () => {
     seedCampaign("2026-06-03-fm", { md: "---\ncampaign: c\nstatus: draft\n---\n\n# c\n" });
     const app = appFor({ p1: { id: "p1", path: projectRoot } });
@@ -185,6 +193,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(res.status).toBe(200);
   });
 
+  // @covers FR-01.33
   it("is idempotent when already active (200)", async () => {
     seedCampaign("2026-06-03-act", { statusJson: { status: "active", sub_iterates: [] } });
     const app = appFor({ p1: { id: "p1", path: projectRoot } });
@@ -192,6 +201,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(res.status).toBe(200);
   });
 
+  // @covers FR-01.33
   it("rejects starting a complete campaign with 409 (no revert)", async () => {
     seedCampaign("2026-06-03-done", {
       statusJson: { status: "complete", sub_iterates: [{ id: "B0", slug: "a", status: "complete" }] },
@@ -202,12 +212,14 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "campaign_already_complete" });
   });
 
+  // @covers FR-01.33
   it("404s starting under an unknown project", async () => {
     const app = appFor({});
     const res = await app.request("/api/campaigns/nope/whatever/start", { method: "POST" });
     expect(res.status).toBe(404);
   });
 
+  // @covers FR-01.33
   it("404s starting an unknown slug", async () => {
     const app = appFor({ p1: { id: "p1", path: projectRoot } });
     const res = await app.request("/api/campaigns/p1/does-not-exist/start", { method: "POST" });
@@ -215,6 +227,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "campaign_not_found" });
   });
 
+  // @covers FR-01.33
   it("403s starting a slug dir that symlinks outside the campaigns root", async () => {
     const outside = path.join(workDir, "outside-campaign");
     mkdirSync(outside, { recursive: true });
@@ -242,6 +255,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "path_traversal_rejected" });
   });
 
+  // @covers FR-01.33
   it("422s when the campaign has no writable status target", async () => {
     seedCampaign("2026-06-03-bare", { md: "# c\n\nno frontmatter\n" });
     const app = appFor({ p1: { id: "p1", path: projectRoot } });
@@ -250,6 +264,7 @@ describe("routes/campaigns: GET /api/campaigns/:projectId", () => {
     expect(await res.json()).toMatchObject({ error: "no_writable_status_target" });
   });
 
+  // @covers FR-01.33
   it("503s when the campaign lock is contended (ELOCKED)", async () => {
     seedCampaign("2026-06-03-busy", {
       statusJson: { status: "draft", sub_iterates: [] },

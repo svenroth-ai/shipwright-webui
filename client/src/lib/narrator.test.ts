@@ -18,6 +18,7 @@ import {
 
 /* ---- Verdict banner (AC1 verbatim) ------------------------------------ */
 describe("verdict banner", () => {
+  // @covers FR-01.66
   it("renders ALL CLEAR and GATE HOLD verbatim with slots filled", () => {
     const clear = narrateVerdict({ outcome: "clear", tests: { passed: 12, total: 12 } });
     expect(clear.outcome).toBe("clear");
@@ -35,6 +36,7 @@ describe("verdict banner", () => {
 
 /* ---- Mission lines (AC1 verbatim) ------------------------------------- */
 describe("mission lines", () => {
+  // @covers FR-01.66
   it("emits the complete / hold / designgate lines verbatim", () => {
     expect(
       narrateMission({ state: "complete", changeCount: 1, fileCount: 4, allGreen: true }),
@@ -49,6 +51,7 @@ describe("mission lines", () => {
     });
   });
 
+  // @covers FR-01.66
   it("narrates a real zero (strict null check, not falsiness)", () => {
     // 0 is a read value, not "absent" — it must appear, not be dropped.
     expect(
@@ -70,6 +73,7 @@ describe("The Record node captions", () => {
     commit: "ac845a1f9c",
   };
 
+  // @covers FR-01.66
   it("emits the 5 nodes with verbatim captions", () => {
     const byKey = Object.fromEntries(narrateRecord(facts).map((n) => [n.key, n]));
     expect(byKey.req.label).toBe("Requirement");
@@ -115,12 +119,14 @@ describe("honest degradation (no fabricated numbers/counts/outcomes)", () => {
     return out;
   }
 
+  // @covers FR-01.66
   it("never emits a digit it did not read", () => {
     for (const s of strippedStrings()) {
       expect(s).not.toMatch(/[0-9]/);
     }
   });
 
+  // @covers FR-01.66
   it("degrades unknown receipts to an explicit n/a", () => {
     const byKey = Object.fromEntries(narrateRecord(stripped).map((n) => [n.key, n]));
     expect(byKey.req.receipt).toBe("n/a");
@@ -130,18 +136,21 @@ describe("honest degradation (no fabricated numbers/counts/outcomes)", () => {
     expect(byKey.commit.receipt).toBe("n/a");
   });
 
+  // @covers FR-01.66
   it("drops the test clause from a clear verdict when tests are unknown", () => {
     expect(composeVerdict(narrateVerdict({ outcome: "clear", tests: null }))).toBe(
       "ALL CLEAR — security · review clean",
     );
   });
 
+  // @covers FR-01.66
   it("drops the security-detail clause from a hold verdict when unknown", () => {
     expect(composeVerdict(narrateVerdict({ outcome: "hold", detail: null }))).toBe(
       "GATE HOLD — Security — fixing.",
     );
   });
 
+  // @covers FR-01.66
   it("complete mission without counts is just Done.", () => {
     expect(narrateMission({ state: "complete" })).toEqual({
       text: "Done.",
@@ -149,6 +158,7 @@ describe("honest degradation (no fabricated numbers/counts/outcomes)", () => {
     });
   });
 
+  // @covers FR-01.66
   it("designgate without a count omits the number", () => {
     expect(narrateMission({ state: "designgate", screenCount: null })).toEqual({
       text: "Screens are ready for your eyes.",

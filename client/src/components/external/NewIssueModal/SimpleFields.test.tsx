@@ -10,6 +10,7 @@ import { render, screen } from "@testing-library/react";
 import { TitleFieldFragment, DescriptionFieldFragment } from "./SimpleFields";
 
 describe("SimpleFields — visible frames on the beige sheet (AC1)", () => {
+  // @covers FR-01.38
   it("the Title input has a white fill and the strong-line border", () => {
     render(<TitleFieldFragment title="" setTitle={() => {}} />);
     const input = screen.getByTestId("new-issue-title-input");
@@ -19,6 +20,7 @@ describe("SimpleFields — visible frames on the beige sheet (AC1)", () => {
     expect(input.className).not.toContain("border-[var(--color-border");
   });
 
+  // @covers FR-01.38
   it("the Description textarea has a white fill and the strong-line border", () => {
     render(<DescriptionFieldFragment description="" setDescription={() => {}} />);
     const ta = screen.getByTestId("new-issue-description-input");

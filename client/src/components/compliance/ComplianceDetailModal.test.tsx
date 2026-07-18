@@ -23,6 +23,7 @@ function renderModal(over: Partial<Parameters<typeof ComplianceDetailModal>[0]> 
 }
 
 describe("ComplianceDetailModal", () => {
+  // @covers FR-01.43
   it("shows the grade + generated date in the header (AC-G)", () => {
     renderModal();
     const modal = screen.getByTestId("compliance-detail-modal");
@@ -30,6 +31,7 @@ describe("ComplianceDetailModal", () => {
     expect(modal).toHaveTextContent("Generated: 2026-06-28");
   });
 
+  // @covers FR-01.43
   it("renders the control-verdict dimension table as GFM (AC-G)", () => {
     renderModal();
     const modal = screen.getByTestId("compliance-detail-modal");
@@ -38,6 +40,7 @@ describe("ComplianceDetailModal", () => {
     expect(modal).toHaveTextContent("Requirement traceability");
   });
 
+  // @covers FR-01.43
   it("renders the CI-Security section too (AC-G)", () => {
     renderModal();
     expect(screen.getByTestId("compliance-detail-modal")).toHaveTextContent(
@@ -45,6 +48,7 @@ describe("ComplianceDetailModal", () => {
     );
   });
 
+  // @covers FR-01.43
   it("does not crash when the CI-Security slice is empty (graceful)", () => {
     renderModal({ ciSecurityMarkdown: "" });
     const modal = screen.getByTestId("compliance-detail-modal");

@@ -64,14 +64,17 @@ beforeEach(() => {
 });
 
 describe("resolveUpstream", () => {
+  // @covers FR-01.30
   it("parses refs/remotes/<remote>/<branch>", () => {
     routeGit({ upstream: "refs/remotes/origin/main" });
     expect(resolveUpstream(ROOT)).toEqual(UP);
   });
+  // @covers FR-01.30
   it("returns null when there is no upstream (detached / unset / non-repo)", () => {
     routeGit({ upstream: null });
     expect(resolveUpstream(ROOT)).toBeNull();
   });
+  // @covers FR-01.30
   it("returns null for a non-remote-tracking ref shape", () => {
     routeGit({ upstream: "refs/heads/main" });
     expect(resolveUpstream(ROOT)).toBeNull();
@@ -79,12 +82,14 @@ describe("resolveUpstream", () => {
 });
 
 describe("originSnapshot", () => {
+  // @covers FR-01.30
   it("parses the git-show blob into raw lines", () => {
     routeGit({ sha: "abc123", show: '{"event":"append","id":"trg-x"}\n' });
     const lines = originSnapshot(ROOT, UP);
     expect(lines).toEqual([{ event: "append", id: "trg-x" }]);
   });
 
+  // @covers FR-01.30
   it("caches by ref SHA — git show runs once while the SHA is unchanged", () => {
     routeGit({ sha: "abc123", show: '{"event":"append","id":"trg-x"}\n' });
     originSnapshot(ROOT, UP);
@@ -93,6 +98,7 @@ describe("originSnapshot", () => {
     expect(showCalls).toHaveLength(1);
   });
 
+  // @covers FR-01.30
   it("re-runs git show when the SHA moves", () => {
     routeGit({ sha: "sha-1", show: '{"event":"append","id":"trg-x"}\n' });
     originSnapshot(ROOT, UP);
@@ -101,11 +107,13 @@ describe("originSnapshot", () => {
     expect(lines).toEqual([{ event: "append", id: "trg-y" }]);
   });
 
+  // @covers FR-01.30
   it("returns [] (available, empty) when the path is absent at that ref", () => {
     routeGit({ sha: "abc123", show: null });
     expect(originSnapshot(ROOT, UP)).toEqual([]);
   });
 
+  // @covers FR-01.30
   it("returns null (degrade) when the ref SHA cannot be resolved", () => {
     routeGit({ sha: null });
     expect(originSnapshot(ROOT, UP)).toBeNull();
@@ -113,10 +121,12 @@ describe("originSnapshot", () => {
 });
 
 describe("localBehindCount", () => {
+  // @covers FR-01.30
   it("returns the right side of HEAD...@{u}", () => {
     routeGit({ behind: "1\t4" });
     expect(localBehindCount(ROOT)).toBe(4);
   });
+  // @covers FR-01.30
   it("returns null on failure", () => {
     routeGit({ behind: null });
     expect(localBehindCount(ROOT)).toBeNull();
@@ -124,12 +134,14 @@ describe("localBehindCount", () => {
 });
 
 describe("scheduleFetch", () => {
+  // @covers FR-01.30
   it("is singleflight — only one fetch in flight per repo", () => {
     scheduleFetch(ROOT, UP);
     scheduleFetch(ROOT, UP); // in-flight → suppressed
     expect(spawn).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.30
   it("honors the cooldown after a fetch completes", () => {
     const child = fakeChild();
     spawn.mockImplementationOnce(() => child);
@@ -139,6 +151,7 @@ describe("scheduleFetch", () => {
     expect(spawn).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.30
   it("passes the resolved remote + branch as argv (no shell)", () => {
     scheduleFetch(ROOT, UP);
     const args = spawn.mock.calls[0][1] as string[];
@@ -148,6 +161,7 @@ describe("scheduleFetch", () => {
 });
 
 describe("loadDeliveredOrigin", () => {
+  // @covers FR-01.30
   it("feature flag off → pure degrade, no git invoked", () => {
     const r = loadDeliveredOrigin(ROOT, { enabled: false });
     expect(r).toEqual({ originRawLines: null, originAvailable: false, localBehind: null });
@@ -155,6 +169,7 @@ describe("loadDeliveredOrigin", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.30
   it("no upstream → degrade (originAvailable false), no fetch", () => {
     routeGit({ upstream: null });
     const r = loadDeliveredOrigin(ROOT, { enabled: true });
@@ -163,6 +178,7 @@ describe("loadDeliveredOrigin", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.30
   it("upstream present → origin lines + availability + schedules a fetch", () => {
     routeGit({
       upstream: "refs/remotes/origin/main",

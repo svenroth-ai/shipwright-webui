@@ -12,5 +12,16 @@
     "test",
     "iterate",
     "changelog"
-  ]
+  ],
+  "traceability": {
+    "test_roots": [
+      "server/src",
+      "client/src",
+      "client/e2e"
+    ],
+    "exclude_dirs": [
+      "fixtures",
+      "__fixtures__"
+    ]
+  }
 }

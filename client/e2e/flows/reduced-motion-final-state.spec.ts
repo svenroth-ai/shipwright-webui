@@ -44,6 +44,7 @@ async function staggerOpacities(page: import("@playwright/test").Page): Promise<
 
 test.describe("reduced motion renders the complete final state (AC1)", () => {
   for (const route of NAVIGABLE) {
+    // @covers FR-01.64
     test(`${route.id} (${route.path}) — full content, nothing hidden by animation`, async ({
       page,
     }) => {
@@ -78,6 +79,7 @@ test.describe("reduced motion renders the complete final state (AC1)", () => {
 
 test.describe("no-preference walk — the same routes still render, nothing lost", () => {
   for (const route of NAVIGABLE) {
+    // @covers FR-01.64
     test(`${route.id} (${route.path}) — renders under motion`, async ({ page }) => {
       await page.emulateMedia({ reducedMotion: "no-preference" });
       await page.goto(route.path);

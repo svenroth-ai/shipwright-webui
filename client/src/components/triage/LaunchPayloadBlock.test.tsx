@@ -42,6 +42,7 @@ function makeItem(partial: Partial<TriageItem> = {}): TriageItem {
 }
 
 describe("LaunchPayloadBlock", () => {
+  // @covers FR-01.30
   it("renders the cleaned payload inside <pre><code>", () => {
     const payload = "/iterate fix something\n\nhttps://example.test";
     const item = makeItem({ source: "phaseQuality", launchPayload: payload });
@@ -52,6 +53,7 @@ describe("LaunchPayloadBlock", () => {
     expect(block.textContent).toBe(payload);
   });
 
+  // @covers FR-01.30
   it("strips control chars from the payload before rendering", () => {
     // ESC + DEL must not leak into the DOM (they are stripped by the
     // helper's allow-list). The rendered text MUST equal what the
@@ -67,6 +69,7 @@ describe("LaunchPayloadBlock", () => {
     expect(block.textContent?.includes("\x7f")).toBe(false);
   });
 
+  // @covers FR-01.30
   it("renders the github loud-failure placeholder when source=github and payload is null", () => {
     const item = makeItem({ source: "github", launchPayload: null });
     render(<LaunchPayloadBlock item={item} />);
@@ -77,6 +80,7 @@ describe("LaunchPayloadBlock", () => {
     expect(screen.queryByTestId("triage-launch-payload-content")).toBeNull();
   });
 
+  // @covers FR-01.30
   it("renders the github placeholder when source=github and payload collapses to empty after strip", () => {
     // Raw payload is non-empty (control-only); after strip it becomes
     // "". A naive renderer that branches on raw-emptiness would show an
@@ -93,18 +97,21 @@ describe("LaunchPayloadBlock", () => {
     expect(screen.queryByTestId("triage-launch-payload-content")).toBeNull();
   });
 
+  // @covers FR-01.30
   it("renders nothing for legacy items (non-github, no payload)", () => {
     const item = makeItem({ source: "phaseQuality", launchPayload: null });
     const { container } = render(<LaunchPayloadBlock item={item} />);
     expect(container.firstChild).toBeNull();
   });
 
+  // @covers FR-01.30
   it("renders nothing when the payload key is absent (undefined) on a non-github item", () => {
     const item = makeItem({ source: "compliance" });
     const { container } = render(<LaunchPayloadBlock item={item} />);
     expect(container.firstChild).toBeNull();
   });
 
+  // @covers FR-01.30
   it("non-github + non-empty payload still renders the payload (not just github)", () => {
     const payload = "/iterate non-github producer";
     const item = makeItem({ source: "phaseQuality", launchPayload: payload });

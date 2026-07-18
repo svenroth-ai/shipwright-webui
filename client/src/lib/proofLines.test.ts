@@ -33,24 +33,29 @@ const HOLD: ProofFacts = {
 };
 
 describe("deriveVerdict", () => {
+  // @covers FR-01.66
   it("no facts -> neutral, NEVER a false ALL CLEAR (AC3)", () => {
     expect(deriveVerdict({ facts: null })).toEqual({ outcome: "neutral", heldGate: null });
   });
 
+  // @covers FR-01.66
   it("empty event log (facts present but no evidence) -> NOT clear (AC3)", () => {
     const v = deriveVerdict({ facts: { tests: null, gates: null } });
     expect(v.outcome).toBe("neutral");
     expect(v.outcome).not.toBe("clear");
   });
 
+  // @covers FR-01.66
   it("suite green + review clean + no failing gate -> clear", () => {
     expect(deriveVerdict({ facts: GREEN })).toEqual({ outcome: "clear", heldGate: null });
   });
 
+  // @covers FR-01.66
   it("a real failing security gate -> hold (names the held gate)", () => {
     expect(deriveVerdict({ facts: HOLD })).toEqual({ outcome: "hold", heldGate: "security" });
   });
 
+  // @covers FR-01.66
   it("a hold WINS even when the suite happens to be green (never a false clear)", () => {
     const v = deriveVerdict({
       facts: { tests: { passed: 5, total: 5 }, gates: { review: "pass", security: "fail" } },
@@ -58,6 +63,7 @@ describe("deriveVerdict", () => {
     expect(v.outcome).toBe("hold");
   });
 
+  // @covers FR-01.66
   it("suite still red (passed < total) -> neutral, not clear", () => {
     const v = deriveVerdict({
       facts: { tests: { passed: 8, total: 12 }, gates: { review: "pass", security: "pass" } },
@@ -65,6 +71,7 @@ describe("deriveVerdict", () => {
     expect(v.outcome).toBe("neutral");
   });
 
+  // @covers FR-01.66
   it("review not yet clean -> neutral, not clear", () => {
     const v = deriveVerdict({
       facts: { tests: { passed: 12, total: 12 }, gates: { review: "unknown", security: "pass" } },
@@ -72,6 +79,7 @@ describe("deriveVerdict", () => {
     expect(v.outcome).toBe("neutral");
   });
 
+  // @covers FR-01.66
   it("an UNKNOWN security gate is not clear — ALL CLEAR needs affirmative evidence (AC5)", () => {
     // Today's real state: the server never emits a review/security signal, so both
     // are `unknown`. A green suite with unwired gates must NOT read ALL CLEAR.
@@ -81,6 +89,7 @@ describe("deriveVerdict", () => {
     expect(v.outcome).toBe("neutral");
   });
 
+  // @covers FR-01.66
   it("review pass but security unknown -> still neutral (both gates must be pass)", () => {
     const v = deriveVerdict({
       facts: { tests: { passed: 12, total: 12 }, gates: { review: "pass", security: "unknown" } },
@@ -88,6 +97,7 @@ describe("deriveVerdict", () => {
     expect(v.outcome).toBe("neutral");
   });
 
+  // @covers FR-01.66
   it("zero-total suite is not 'green' (guards a vacuous ALL CLEAR)", () => {
     const v = deriveVerdict({
       facts: { tests: { passed: 0, total: 0 }, gates: { review: "pass", security: "pass" } },
@@ -97,6 +107,7 @@ describe("deriveVerdict", () => {
 });
 
 describe("deriveProofLines", () => {
+  // @covers FR-01.66
   it("green run -> prompt + suite pass + checks + commit with its FR", () => {
     const verdict = deriveVerdict({ facts: GREEN });
     const lines = deriveProofLines({ facts: GREEN, verdict });
@@ -111,6 +122,7 @@ describe("deriveProofLines", () => {
     expect(lines.length).toBeLessThanOrEqual(8);
   });
 
+  // @covers FR-01.66
   it("a red suite is SURFACED honestly (not hidden) on a neutral run", () => {
     const facts: ProofFacts = {
       runId: "iterate-2026-07-10-x",
@@ -125,6 +137,7 @@ describe("deriveProofLines", () => {
     expect(text).not.toContain("suite green");
   });
 
+  // @covers FR-01.66
   it("gate-hold run -> the failing gate named, and NO ✓ pass line beside it", () => {
     const verdict = deriveVerdict({ facts: HOLD });
     const lines = deriveProofLines({ facts: HOLD, verdict });
@@ -136,11 +149,13 @@ describe("deriveProofLines", () => {
     expect(text).not.toContain("suite green");
   });
 
+  // @covers FR-01.66
   it("empty log -> empty summary (never an invented line, AC5)", () => {
     const verdict = deriveVerdict({ facts: null });
     expect(deriveProofLines({ facts: null, verdict })).toEqual([]);
   });
 
+  // @covers FR-01.66
   it("durations ALWAYS render n/a — never synthesized (AC4)", () => {
     const verdict = deriveVerdict({ facts: GREEN });
     const lines = deriveProofLines({ facts: GREEN, verdict });
@@ -153,6 +168,7 @@ describe("deriveProofLines", () => {
     expect(durationSpan.text).not.toMatch(/\d/);
   });
 
+  // @covers FR-01.66
   it("neutral run with only a runId -> just the honest prompt line", () => {
     const facts: ProofFacts = { runId: "iterate-2026-07-10-y", tests: null, gates: null };
     const verdict = deriveVerdict({ facts });
@@ -160,6 +176,7 @@ describe("deriveProofLines", () => {
     expect(lines.map((l) => l.id)).toEqual(["prompt"]);
   });
 
+  // @covers FR-01.66
   it("commit without an FR still renders (no fabricated bracket)", () => {
     const facts: ProofFacts = { ...GREEN, affectedFrs: [] };
     const verdict = deriveVerdict({ facts });
@@ -168,6 +185,7 @@ describe("deriveProofLines", () => {
     expect(lineText(commit)).not.toContain("[");
   });
 
+  // @covers FR-01.66
   it("strips control + bidi characters from event-log-derived text (touches_io_boundary)", () => {
     const facts: ProofFacts = {
       // a runId carrying a CR, a NUL, and a bidi override — all must be stripped.
@@ -188,17 +206,20 @@ describe("deriveProofLines", () => {
 });
 
 describe("sanitizeProofText", () => {
+  // @covers FR-01.66
   it("removes C0/C1 controls, DEL and bidi overrides; collapses whitespace", () => {
     const dirty = `a${String.fromCodePoint(0x09)}b${String.fromCodePoint(0x0d)}${String.fromCodePoint(0x0a)}  c${String.fromCodePoint(0x202e)}d`;
     expect(sanitizeProofText(dirty)).toBe("ab cd");
   });
 
+  // @covers FR-01.66
   it("caps length with an ellipsis", () => {
     const out = sanitizeProofText("x".repeat(200), 10);
     expect(out.length).toBe(10);
     expect(out.endsWith(String.fromCodePoint(0x2026))).toBe(true);
   });
 
+  // @covers FR-01.66
   it("leaves ordinary run ids untouched", () => {
     expect(sanitizeProofText("iterate-2026-07-10-missionview-operation")).toBe(
       "iterate-2026-07-10-missionview-operation",

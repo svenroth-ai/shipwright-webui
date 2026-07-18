@@ -37,6 +37,7 @@ const COUNTS: Record<ExternalTaskState, number> = {
 const set = (...s: ExternalTaskState[]) => new Set<ExternalTaskState>(s);
 
 describe("StatusFilterMenu (compact funnel — sole affordance, all viewports)", () => {
+  // @covers FR-01.38
   it("shows no active dot when the filter is empty", () => {
     render(
       <StatusFilterMenu counts={COUNTS} active={set()} onToggle={() => {}} onReset={() => {}} />,
@@ -45,6 +46,7 @@ describe("StatusFilterMenu (compact funnel — sole affordance, all viewports)",
     expect(screen.queryByTestId("board-filter-menu-dot")).toBeNull();
   });
 
+  // @covers FR-01.38
   it("shows the active dot when at least one status is selected", () => {
     render(
       <StatusFilterMenu counts={COUNTS} active={set("active")} onToggle={() => {}} onReset={() => {}} />,
@@ -52,6 +54,7 @@ describe("StatusFilterMenu (compact funnel — sole affordance, all viewports)",
     expect(screen.getByTestId("board-filter-menu-dot")).toBeInTheDocument();
   });
 
+  // @covers FR-01.38
   it("opens a menu (not pills); toggling a status calls onToggle and keeps the menu OPEN", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
@@ -68,6 +71,7 @@ describe("StatusFilterMenu (compact funnel — sole affordance, all viewports)",
     expect(screen.getByTestId("board-filter-menu")).toBeInTheDocument();
   });
 
+  // @covers FR-01.38
   it("has an 'All' row (prototype __filterMenu) that clears the filter and shows the total", async () => {
     const user = userEvent.setup();
     const onReset = vi.fn();

@@ -18,6 +18,7 @@ function controlSlice(): string {
 }
 
 describe("parseDimensions — table present (A16 AC2)", () => {
+  // @covers FR-01.59
   it("parses every dimension row into { key, label, value, pct, doc }", () => {
     const dims = parseDimensions(controlSlice());
     expect(dims).toHaveLength(7);
@@ -31,6 +32,7 @@ describe("parseDimensions — table present (A16 AC2)", () => {
     expect(test!.doc).toContain("OpenSSF Scorecard");
   });
 
+  // @covers FR-01.59
   it("keys are unique and stable slugs of the label", () => {
     const dims = parseDimensions(controlSlice());
     const keys = dims.map((d) => d.key);
@@ -39,6 +41,7 @@ describe("parseDimensions — table present (A16 AC2)", () => {
     expect(keys).toContain("security");
   });
 
+  // @covers FR-01.59
   it("reads the value verbatim — never a scraped fraction (honesty)", () => {
     const dims = parseDimensions(controlSlice());
     // "Change reconciliation" signal is bad-over-total ("0/22 not re-verified");
@@ -51,19 +54,23 @@ describe("parseDimensions — table present (A16 AC2)", () => {
 });
 
 describe("parseDimensions — absent / malformed → [] (never throw)", () => {
+  // @covers FR-01.59
   it("returns [] when there is no dimension table", () => {
     expect(parseDimensions("### Control Grade: **A** (99/100)\n\nno table here\n")).toEqual([]);
   });
 
+  // @covers FR-01.59
   it("returns [] for an empty slice", () => {
     expect(parseDimensions("")).toEqual([]);
   });
 
+  // @covers FR-01.59
   it("returns [] (no throw) for a header with no data rows", () => {
     const md = ["| | Dimension | Signal | Anchor |", "|---|---|---|---|"].join("\n");
     expect(parseDimensions(md)).toEqual([]);
   });
 
+  // @covers FR-01.59
   it("returns [] (no throw) for a torn table — a header but ragged/absent cells", () => {
     const md = ["| | Dimension |", "garbage line", "| ✅ |"].join("\n");
     expect(() => parseDimensions(md)).not.toThrow();
@@ -72,6 +79,7 @@ describe("parseDimensions — absent / malformed → [] (never throw)", () => {
 });
 
 describe("parseDimensions — column-driven + status mapping", () => {
+  // @covers FR-01.59
   it("resolves columns by header name even when reordered", () => {
     const md = [
       "| Signal | Dimension | Anchor | |",
@@ -86,6 +94,7 @@ describe("parseDimensions — column-driven + status mapping", () => {
     expect(dims[0]!.pct).toBe(100);
   });
 
+  // @covers FR-01.59
   it("maps ✅ → 100, ⚠️ → 60, ❌ → 25, unknown glyph → null", () => {
     const md = [
       "| | Dimension | Signal | Anchor |",

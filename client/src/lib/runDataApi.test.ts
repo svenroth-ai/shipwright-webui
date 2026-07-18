@@ -22,6 +22,7 @@ function stubFetch(payload: unknown) {
 describe("runDataApi", () => {
   afterEach(() => vi.restoreAllMocks());
 
+  // @covers FR-01.47
   it("getProjectRuns GETs /runs and returns the bundle shape", async () => {
     const run: RunDataJoin = {
       runId: HEX_ADR,
@@ -59,6 +60,7 @@ describe("runDataApi", () => {
     expect(fetchMock).toHaveBeenCalledWith("/api/external/projects/p1/runs", undefined);
   });
 
+  // @covers FR-01.47
   it("getProjectRun encodes the runId and returns run:null for a miss", async () => {
     const fetchMock = stubFetch({ status: "ok", run: null });
     const out = await getProjectRun("p1", HEX_ADR);
@@ -69,6 +71,7 @@ describe("runDataApi", () => {
     );
   });
 
+  // @covers FR-01.47
   it("getGradeTrend GETs /grade-trend and returns the series", async () => {
     const fetchMock = stubFetch({
       status: "ok",
@@ -82,6 +85,7 @@ describe("runDataApi", () => {
     );
   });
 
+  // @covers FR-01.47
   it("throws on a non-ok HTTP response (httpJson surfaces the status)", async () => {
     vi.stubGlobal(
       "fetch",

@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { VerdictBanner } from "./VerdictBanner";
 
 describe("VerdictBanner", () => {
+  // @covers FR-01.66
   it("clear -> the .ok banner with ALL CLEAR + the real test count, icon + text", () => {
     render(<VerdictBanner outcome="clear" tests={{ passed: 1882, total: 1882 }} />);
     const banner = screen.getByTestId("verdict-banner");
@@ -16,11 +17,13 @@ describe("VerdictBanner", () => {
     expect(banner).toHaveAttribute("aria-label", expect.stringContaining("ALL CLEAR"));
   });
 
+  // @covers FR-01.66
   it("clear with unknown tests drops the count (honest degradation)", () => {
     render(<VerdictBanner outcome="clear" tests={null} />);
     expect(screen.getByTestId("verdict-banner")).not.toHaveTextContent("/");
   });
 
+  // @covers FR-01.66
   it("hold -> the .err banner with a GATE HOLD badge, icon + text", () => {
     render(<VerdictBanner outcome="hold" />);
     const banner = screen.getByTestId("verdict-banner");
@@ -31,6 +34,7 @@ describe("VerdictBanner", () => {
     expect(banner).toHaveAttribute("aria-label", expect.stringContaining("GATE HOLD"));
   });
 
+  // @covers FR-01.66
   it("neutral/no-data -> an honest muted 'No run data yet', NOT ALL CLEAR", () => {
     render(<VerdictBanner outcome="neutral" reason="no-data" />);
     const banner = screen.getByTestId("verdict-banner");
@@ -40,11 +44,13 @@ describe("VerdictBanner", () => {
     expect(banner.querySelector("svg")).toBeTruthy();
   });
 
+  // @covers FR-01.66
   it("neutral/in-progress -> 'In progress'", () => {
     render(<VerdictBanner outcome="neutral" reason="in-progress" />);
     expect(screen.getByTestId("verdict-banner")).toHaveTextContent("In progress");
   });
 
+  // @covers FR-01.66
   it("neutral/unverified -> 'Not fully verified', NOT a false ALL CLEAR", () => {
     render(<VerdictBanner outcome="neutral" reason="unverified" />);
     const banner = screen.getByTestId("verdict-banner");

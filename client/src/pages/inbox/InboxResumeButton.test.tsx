@@ -73,6 +73,7 @@ describe("InboxResumeButton — navigation CTA", () => {
     });
   });
 
+  // @covers FR-01.04
   it("renders an 'Answer in the terminal' button (not a copy button)", () => {
     renderBtn(makeTask());
     const btn = screen.getByTestId("inbox-resume-tu-A");
@@ -80,6 +81,7 @@ describe("InboxResumeButton — navigation CTA", () => {
     expect(btn.textContent ?? "").not.toMatch(/copy/i);
   });
 
+  // @covers FR-01.04
   it("click navigates to the task's terminal deep link", () => {
     renderBtn(makeTask());
     fireEvent.click(screen.getByTestId("inbox-resume-tu-A"));
@@ -91,6 +93,7 @@ describe("InboxResumeButton — navigation CTA", () => {
     );
   });
 
+  // @covers FR-01.04
   it("writes NOTHING — no clipboard, no launch mutation", () => {
     const writeText = vi.fn();
     Object.assign(navigator, { clipboard: { writeText } });
@@ -99,6 +102,7 @@ describe("InboxResumeButton — navigation CTA", () => {
     expect(writeText).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.04
   it("stops propagation so the card doesn't also fire its onClick", () => {
     const cardClick = vi.fn();
     renderBtn(makeTask(), "tu-A", cardClick);
@@ -106,6 +110,7 @@ describe("InboxResumeButton — navigation CTA", () => {
     expect(cardClick).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.04
   it("carries NO misleading legacy copy testid", () => {
     renderBtn(makeTask());
     expect(screen.queryByTestId("inbox-copy-resume-tu-A")).not.toBeInTheDocument();

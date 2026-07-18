@@ -83,16 +83,19 @@ describe("MasterRunLaunchButton", () => {
     });
   });
 
+  // @covers FR-01.01
   it("renders NOTHING for a terminal (complete) run", () => {
     const { container } = renderBtn(makeConfig("complete"));
     expect(container.querySelector(`[data-testid="${TESTID}"]`)).toBeNull();
   });
 
+  // @covers FR-01.01
   it("renders NOTHING for a terminal (failed) run", () => {
     const { container } = renderBtn(makeConfig("failed"));
     expect(container.querySelector(`[data-testid="${TESTID}"]`)).toBeNull();
   });
 
+  // @covers FR-01.01
   it("labels the button 'Launch' when there is no master shadow yet", () => {
     renderBtn(makeConfig());
     const btn = screen.getByTestId(TESTID);
@@ -100,12 +103,14 @@ describe("MasterRunLaunchButton", () => {
     expect(btn).toHaveAttribute("data-mode", "launch");
   });
 
+  // @covers FR-01.01
   it("labels the button 'Launch' when a master shadow exists but its JSONL is not yet observed", () => {
     taskList = [masterShadow({ firstJsonlObservedAt: undefined })];
     renderBtn(makeConfig());
     expect(screen.getByTestId(TESTID)).toHaveTextContent("Launch");
   });
 
+  // @covers FR-01.01
   it("labels the button 'Resume' when the master shadow has an observed JSONL", () => {
     taskList = [masterShadow({ firstJsonlObservedAt: "2026-07-09T00:00:00Z" })];
     renderBtn(makeConfig());
@@ -114,6 +119,7 @@ describe("MasterRunLaunchButton", () => {
     expect(btn).toHaveAttribute("data-mode", "resume");
   });
 
+  // @covers FR-01.01
   it("D18/F14: labels 'Resume' when the JSONL is LIVE-observed (lastJsonlSeenMtimeMs) before the stamp lands", () => {
     // GET /tasks overlays a live lastJsonlSeenMtimeMs the instant the transcript
     // hits disk — before firstJsonlObservedAt is stamped. The label must track
@@ -125,12 +131,14 @@ describe("MasterRunLaunchButton", () => {
     expect(btn).toHaveAttribute("data-mode", "resume");
   });
 
+  // @covers FR-01.01
   it("ignores a shadow for a DIFFERENT run when picking the label", () => {
     taskList = [masterShadow({ runId: "run-99999999", firstJsonlObservedAt: "2026-07-09T00:00:00Z" })];
     renderBtn(makeConfig());
     expect(screen.getByTestId(TESTID)).toHaveTextContent("Launch");
   });
 
+  // @covers FR-01.01
   it("launches with { project, config, tasks } and navigates on success", async () => {
     taskList = [masterShadow({ firstJsonlObservedAt: undefined })];
     renderBtn(makeConfig());
@@ -145,6 +153,7 @@ describe("MasterRunLaunchButton", () => {
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith("/tasks/t-9"));
   });
 
+  // @covers FR-01.01
   it("is disabled and never launches when no project resolves", () => {
     renderBtn(makeConfig(), null);
     const btn = screen.getByTestId(TESTID);
@@ -153,6 +162,7 @@ describe("MasterRunLaunchButton", () => {
     expect(launchMasterRunMock).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.01
   it("surfaces an inline error when the launch fails", async () => {
     launchMasterRunMock.mockResolvedValue({ ok: false, reason: "launch_failed", detail: "master_run_already_attached" });
     renderBtn(makeConfig());

@@ -40,6 +40,7 @@ const FULL_WC = {
 const j = (o: unknown): string => JSON.stringify(o);
 
 describe("projectEventLog — present fields", () => {
+  // @covers FR-01.47
   it("projects the full work_completed record", () => {
     const proj = projectEventLog([j(FULL_WC)]);
     expect(proj.runCount).toBe(1);
@@ -65,11 +66,13 @@ describe("projectEventLog — present fields", () => {
 });
 
 describe("projectEventLog — honest degradation (AC2)", () => {
+  // @covers FR-01.47
   it("returns phaseTimings null when absent — never fabricated", () => {
     const proj = projectEventLog([j(FULL_WC)]); // FULL_WC carries no phase_timings
     expect(proj.runs[0].phaseTimings).toBeNull();
   });
 
+  // @covers FR-01.47
   it("reads phase_timings THROUGH untouched when present", () => {
     const timings = [
       { mark: "start", ts: "2026-07-10T10:00:00Z" },
@@ -79,6 +82,7 @@ describe("projectEventLog — honest degradation (AC2)", () => {
     expect(proj.runs[0].phaseTimings).toEqual(timings);
   });
 
+  // @covers FR-01.47
   it("degrades every optional field to null/[] when the record is bare", () => {
     const bare = {
       type: "work_completed",
@@ -95,16 +99,19 @@ describe("projectEventLog — honest degradation (AC2)", () => {
     expect(run.newFrs).toEqual([]);
   });
 
+  // @covers FR-01.47
   it("preserves a present-but-empty commit (worktree F5b emits commit: '')", () => {
     const proj = projectEventLog([j({ ...FULL_WC, commit: "" })]);
     expect(proj.runs[0].commit).toBe(""); // present-empty, NOT coerced to null
   });
 
+  // @covers FR-01.47
   it("tolerates a partial tests object (one mark absent)", () => {
     const proj = projectEventLog([j({ ...FULL_WC, tests: { passed: 5 } })]);
     expect(proj.runs[0].tests).toEqual({ passed: 5, total: null });
   });
 
+  // @covers FR-01.47
   it("degrades malformed nested field types to null/[]; keeps string frs only", () => {
     const proj = projectEventLog([
       j({
@@ -126,6 +133,7 @@ describe("projectEventLog — honest degradation (AC2)", () => {
 });
 
 describe("projectEventLog — tolerance (AC3)", () => {
+  // @covers FR-01.47
   it("skips a torn/corrupt line and counts it, never throws", () => {
     const lines = [
       j(FULL_WC),
@@ -143,12 +151,14 @@ describe("projectEventLog — tolerance (AC3)", () => {
     expect(proj.totalLines).toBe(3);
   });
 
+  // @covers FR-01.47
   it("skips a non-object JSON line (array/number)", () => {
     const proj = projectEventLog([j([1, 2, 3]), j(42), j(FULL_WC)]);
     expect(proj.runCount).toBe(1);
     expect(proj.skippedLines).toBe(2);
   });
 
+  // @covers FR-01.47
   it("does not project a work_completed without adr_id (no join key)", () => {
     const proj = projectEventLog([j({ type: "work_completed", commit: "x" })]);
     expect(proj.runCount).toBe(0);
@@ -157,6 +167,7 @@ describe("projectEventLog — tolerance (AC3)", () => {
 });
 
 describe("projectEventLog — dedupe by adr_id (latest wins)", () => {
+  // @covers FR-01.47
   it("keeps the latest work_completed per adr_id by ts", () => {
     const older = {
       ...FULL_WC,
@@ -176,6 +187,7 @@ describe("projectEventLog — dedupe by adr_id (latest wins)", () => {
     expect(proj.runs[0].summary).toBe("newer");
   });
 
+  // @covers FR-01.47
   it("breaks a ts tie by file order (last line wins)", () => {
     const a = { ...FULL_WC, summary: "first" };
     const b = { ...FULL_WC, summary: "second" };
@@ -183,6 +195,7 @@ describe("projectEventLog — dedupe by adr_id (latest wins)", () => {
     expect(proj.runs[0].summary).toBe("second");
   });
 
+  // @covers FR-01.47
   it("sorts multiple runs newest-first", () => {
     const r1 = { ...FULL_WC, adr_id: "run-1", ts: "2026-07-10T08:00:00Z" };
     const r2 = { ...FULL_WC, adr_id: "run-2", ts: "2026-07-10T12:00:00Z" };
@@ -193,6 +206,7 @@ describe("projectEventLog — dedupe by adr_id (latest wins)", () => {
 });
 
 describe("projectEventLog — phase transitions read-through", () => {
+  // @covers FR-01.47
   it("projects every transition in file order, never collapsed", () => {
     const lines = [
       j({ id: "e1", type: "phase_started", phase: "build", splitId: "s1" }),
@@ -215,6 +229,7 @@ describe("projectEventLog — phase transitions read-through", () => {
     expect(proj.phaseTransitions[3].detail).toBe("boom");
   });
 
+  // @covers FR-01.47
   it("reads a snake_case split_id through untouched", () => {
     const proj = projectEventLog([
       j({ type: "phase_completed", phase: "build", split_id: "snake" }),
@@ -222,6 +237,7 @@ describe("projectEventLog — phase transitions read-through", () => {
     expect(proj.phaseTransitions[0].splitId).toBe("snake");
   });
 
+  // @covers FR-01.47
   it("does not project event_amended / grade_snapshot as runs or phases", () => {
     const proj = projectEventLog([
       j({ type: "event_amended", amends: "evt-x", fields: {} }),
@@ -234,6 +250,7 @@ describe("projectEventLog — phase transitions read-through", () => {
 });
 
 describe("projectEventLog — runId filter", () => {
+  // @covers FR-01.47
   it("filters runs to the requested adr_id", () => {
     const a = { ...FULL_WC, adr_id: "run-a" };
     const b = { ...FULL_WC, adr_id: "run-b" };
@@ -244,6 +261,7 @@ describe("projectEventLog — runId filter", () => {
     // phaseTransitions are global (not runId-keyed) — always returned in full.
   });
 
+  // @covers FR-01.47
   it("returns zero runs for an unknown runId", () => {
     const proj = projectEventLog([j(FULL_WC)], { runId: "nope" });
     expect(proj.runCount).toBe(0);
@@ -262,6 +280,7 @@ describe("readEventLog — file wrapper (AC1)", () => {
     return d;
   };
 
+  // @covers FR-01.47
   it("returns an empty projection when the log is absent (no throw)", () => {
     const proj = readEventLog(tmp());
     expect(proj.runs).toEqual([]);
@@ -269,11 +288,13 @@ describe("readEventLog — file wrapper (AC1)", () => {
     expect(proj.totalLines).toBe(0);
   });
 
+  // @covers FR-01.47
   it("returns an empty projection when the projectRoot does not exist", () => {
     const proj = readEventLog(path.join(os.tmpdir(), "does-not-exist-xyz"));
     expect(proj.runCount).toBe(0);
   });
 
+  // @covers FR-01.47
   it("reads a real on-disk log; trailing newline is not a torn line", () => {
     const root = tmp();
     // Trailing "\n" (the JSONL norm) must NOT be counted as a torn line.
@@ -287,6 +308,7 @@ describe("readEventLog — file wrapper (AC1)", () => {
     expect(proj.skippedLines).toBe(1); // only "torn{" — not the trailing newline
   });
 
+  // @covers FR-01.47
   it("threads the runId filter through the file wrapper", () => {
     const root = tmp();
     writeFileSync(

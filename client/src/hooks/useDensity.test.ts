@@ -14,11 +14,13 @@ beforeEach(() => {
 afterEach(() => localStorage.clear());
 
 describe("useDensity", () => {
+  // @covers FR-01.65
   it("defaults to comfortable", () => {
     const { result } = renderHook(() => useDensity());
     expect(result.current.density).toBe("comfortable");
   });
 
+  // @covers FR-01.65
   it("persists a set value to localStorage", () => {
     const { result } = renderHook(() => useDensity());
     act(() => result.current.setDensity("compact"));
@@ -26,6 +28,7 @@ describe("useDensity", () => {
     expect(localStorage.getItem(DENSITY_STORAGE_KEY)).toBe("compact");
   });
 
+  // @covers FR-01.65
   it("toggles between comfortable and compact", () => {
     const { result } = renderHook(() => useDensity());
     act(() => result.current.toggleDensity());
@@ -34,6 +37,7 @@ describe("useDensity", () => {
     expect(result.current.density).toBe("comfortable");
   });
 
+  // @covers FR-01.65
   it("shares ONE cell across two hook instances (no drift)", () => {
     const a = renderHook(() => useDensity());
     const b = renderHook(() => useDensity());

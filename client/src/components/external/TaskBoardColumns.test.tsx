@@ -43,6 +43,7 @@ function renderBoard(tasks: ExternalTask[]) {
 }
 
 describe("TaskBoardColumns — grouping", () => {
+  // @covers FR-01.65
   it("places cards in the state-derived column when there is no override (parity)", () => {
     renderBoard([
       t("d", { state: "draft" }),
@@ -60,6 +61,7 @@ describe("TaskBoardColumns — grouping", () => {
     expect(within(screen.getByTestId("column-done")).getByTestId("task-card-f")).toBeTruthy();
   });
 
+  // @covers FR-01.65
   it("boardColumn override wins over the state-derived column (AC-5 decoupling)", () => {
     renderBoard([
       t("liveInDone", { state: "active", boardColumn: "done" }),
@@ -81,6 +83,7 @@ describe("TaskBoardColumns — grouping", () => {
     expect(inProg.getByTestId("task-card-launch-draftInProg")).toBeTruthy();
   });
 
+  // @covers FR-01.65
   it("orders cards within a column newest-modified first (AC-1)", () => {
     // Same column (all active → in-progress), deliberately fed out of order.
     renderBoard([
@@ -99,6 +102,7 @@ describe("TaskBoardColumns — grouping", () => {
     ]);
   });
 
+  // @covers FR-01.65
   it("breaks equal-timestamp ties deterministically by taskId (AC-4)", () => {
     renderBoard([
       t("zebra", { state: "active", lastJsonlSeenMtimeMs: 1_000 }),
@@ -114,12 +118,14 @@ describe("TaskBoardColumns — grouping", () => {
     ]);
   });
 
+  // @covers FR-01.65
   it("renders a per-column count", () => {
     renderBoard([t("a", { state: "active" }), t("b", { state: "idle" })]);
     expect(within(screen.getByTestId("column-in-progress")).getByText("2")).toBeTruthy();
     expect(within(screen.getByTestId("column-draft")).getByText("0")).toBeTruthy();
   });
 
+  // @covers FR-01.65
   it("renders each column as a per-tone COLORED GLASS panel (dark tint + backdrop blur), not the opaque --g50 (AC1)", () => {
     // Sven feedback 2026-07-17 (mockup Spec/prototype/_shots/board.png): each
     // column PANEL is a translucent glass tinted in ITS OWN column colour
@@ -153,6 +159,7 @@ describe("TaskBoardColumns — grouping", () => {
     }
   });
 
+  // @covers FR-01.65
   it("keeps the per-column 3px top accent (draft=muted, in-progress=warning, done=info) (AC1)", () => {
     // Column identity: the 3px top-accent bar colours are UNCHANGED by the glass
     // restyle (the hue never re-hues — mockup blue/green stays a follow-up).
@@ -170,6 +177,7 @@ describe("TaskBoardColumns — grouping", () => {
     }
   });
 
+  // @covers FR-01.65
   it("renders WHITE column headers, legible on the dark colored glass (AC3)", () => {
     // The dark glass forces the lane header LIGHT (white on dark tint over the
     // photo is comfortably AA; a dark header on the same glass is AA-impossible
@@ -184,6 +192,7 @@ describe("TaskBoardColumns — grouping", () => {
     }
   });
 
+  // @covers FR-01.65
   it("leaves the task cards WHITE — the draggable wrapper adds no background (AC2)", () => {
     // This iterate touches ONLY the column PANEL ground; DraggableCard/TaskCard
     // backgrounds are untouched (the cards stay `var(--card)` white and pop on
@@ -193,6 +202,7 @@ describe("TaskBoardColumns — grouping", () => {
     expect(wrapper.getAttribute("style") ?? "").not.toContain("background");
   });
 
+  // @covers FR-01.65
   it("exposes a keyboard-focusable draggable with a11y semantics (AC-7 affordance)", () => {
     // @dnd-kit's useDraggable attributes make the card keyboard-reachable +
     // announce it to screen readers. This is the deterministic evidence that

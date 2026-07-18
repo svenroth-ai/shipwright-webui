@@ -11,17 +11,20 @@ import { describe, it, expect } from "vitest";
 import { GLOSSARY, glossaryLookup } from "./glossary";
 
 describe("glossary lookup", () => {
+  // @covers FR-01.50
   it("returns the explanation for a known term", () => {
     expect(glossaryLookup("ADR")).toBe(
       "Log of architectural decisions with rationale (why this database, why this pattern)",
     );
   });
 
+  // @covers FR-01.50
   it("is case-insensitive (adr === ADR)", () => {
     expect(glossaryLookup("adr")).toBe(glossaryLookup("ADR"));
     expect(glossaryLookup("Build")).toBe(glossaryLookup("build"));
   });
 
+  // @covers FR-01.50
   it("covers the named requirement/process terms (FR, Spec, Canon)", () => {
     // The spec names these explicitly (IREB, ADR, RTM, SBOM, FR, Spec, Canon, Gate);
     // FR/Spec/Canon are not in the framework plain-language index, so they get
@@ -31,6 +34,7 @@ describe("glossary lookup", () => {
     }
   });
 
+  // @covers FR-01.50
   it("returns undefined for an unknown term (so title renders no attribute)", () => {
     expect(glossaryLookup("not-a-real-term")).toBeUndefined();
     expect(glossaryLookup("")).toBeUndefined();
@@ -56,6 +60,7 @@ describe("glossary: framework terms are VERBATIM from guide.md Appendix A", () =
   };
 
   for (const [term, text] of Object.entries(BANK)) {
+    // @covers FR-01.50
     it(`"${term}" matches the bank`, () => {
       expect(GLOSSARY[term]).toBe(text);
     });
@@ -63,12 +68,14 @@ describe("glossary: framework terms are VERBATIM from guide.md Appendix A", () =
 });
 
 describe("glossary: prompt glosses are VERBATIM from the prototype", () => {
+  // @covers FR-01.50
   it("AskUserQuestion matches inbox.js", () => {
     expect(glossaryLookup("AskUserQuestion")).toBe(
       "A mid-run prompt where the pipeline pauses to ask you a multiple-choice question before continuing.",
     );
   });
 
+  // @covers FR-01.50
   it("approval gate matches inbox.js", () => {
     expect(glossaryLookup("approval gate")).toBe(
       "A checkpoint where the pipeline pauses for your approval before it continues.",
@@ -92,6 +99,7 @@ describe("glossary: every pipeline phase chip has an explanation", () => {
     "security",
   ];
   for (const phase of PHASES) {
+    // @covers FR-01.50
     it(`phase "${phase}" resolves to a non-empty one-liner`, () => {
       const text = glossaryLookup(phase);
       expect(text).toBeTruthy();

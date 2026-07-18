@@ -75,6 +75,7 @@ function statusOf(items: { id: string; status: string }[], id: string): string |
 describe("readAllItemsWithDeliveredOrigin", () => {
   beforeEach(() => _clearCache_TEST_ONLY());
 
+  // @covers FR-01.30
   it("shows an origin-delivered dismiss the local files lack (the ghost fix)", () => {
     const trackedPath = setupLocal([append("trg-a", "2026-07-01T10:00:00Z")]);
     const originRawLines = [
@@ -85,6 +86,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-a")).toBe("dismissed");
   });
 
+  // @covers FR-01.30
   it("keeps a not-yet-delivered local outbox dismiss (origin lacks it)", () => {
     const trackedPath = setupLocal(
       [append("trg-b", "2026-07-01T10:00:00Z")],
@@ -95,12 +97,14 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-b")).toBe("dismissed");
   });
 
+  // @covers FR-01.30
   it("still shows an item appended locally but absent on origin", () => {
     const trackedPath = setupLocal([append("trg-c", "2026-07-01T10:00:00Z")]);
     const items = readAllItemsWithDeliveredOrigin(trackedPath, { originRawLines: [] });
     expect(statusOf(items, "trg-c")).toBe("triage");
   });
 
+  // @covers FR-01.30
   it("origin reopen AFTER a local dismiss wins by newer ts (item stays open)", () => {
     const trackedPath = setupLocal([append("trg-d", "2026-07-01T10:00:00Z")]);
     const originRawLines = [
@@ -112,6 +116,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-d")).toBe("triage");
   });
 
+  // @covers FR-01.30
   it("local re-dismiss AFTER an origin reopen wins by newer ts (dismissed)", () => {
     const trackedPath = setupLocal(
       [append("trg-e", "2026-07-01T10:00:00Z")],
@@ -126,6 +131,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-e")).toBe("dismissed");
   });
 
+  // @covers FR-01.30
   it("equal-ts tie: local outbox wins over origin (outbox is ordered last)", () => {
     const T = "2026-07-02T09:00:00Z";
     const trackedPath = setupLocal(
@@ -137,6 +143,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-f")).toBe("snoozed");
   });
 
+  // @covers FR-01.30
   it("equal-ts tie: origin wins over local tracked (origin ordered after tracked)", () => {
     const T = "2026-07-02T09:00:00Z";
     const trackedPath = setupLocal([
@@ -148,6 +155,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-g")).toBe("snoozed");
   });
 
+  // @covers FR-01.30
   it("collapses a duplicate append across local+origin to one resolved item", () => {
     const trackedPath = setupLocal([append("trg-h", "2026-07-01T10:00:00Z")]);
     const originRawLines = [
@@ -159,6 +167,7 @@ describe("readAllItemsWithDeliveredOrigin", () => {
     expect(statusOf(items, "trg-h")).toBe("dismissed");
   });
 
+  // @covers FR-01.30
   it("degrade (origin=null) is identical to readAllItems", () => {
     const trackedPath = setupLocal(
       [append("trg-i", "2026-07-01T10:00:00Z"), append("trg-j", "2026-07-01T10:05:00Z")],

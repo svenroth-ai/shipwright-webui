@@ -35,6 +35,7 @@ function mk(over: Partial<ExternalTask> & { taskId: string }): ExternalTask {
 }
 
 describe("taskLastModifiedMs — precedence chain", () => {
+  // @covers FR-01.01
   it("prefers lastJsonlSeenMtimeMs over launchedAt and createdAt", () => {
     const task = mk({
       taskId: "a",
@@ -45,6 +46,7 @@ describe("taskLastModifiedMs — precedence chain", () => {
     expect(taskLastModifiedMs(task)).toBe(5_000);
   });
 
+  // @covers FR-01.01
   it("falls back to launchedAt when mtime is absent", () => {
     const task = mk({
       taskId: "a",
@@ -54,11 +56,13 @@ describe("taskLastModifiedMs — precedence chain", () => {
     expect(taskLastModifiedMs(task)).toBe(Date.parse("2026-01-01T00:00:02Z"));
   });
 
+  // @covers FR-01.01
   it("falls back to createdAt when mtime + launchedAt are absent", () => {
     const task = mk({ taskId: "a", createdAt: "2026-01-01T00:00:01Z" });
     expect(taskLastModifiedMs(task)).toBe(Date.parse("2026-01-01T00:00:01Z"));
   });
 
+  // @covers FR-01.01
   it("returns 0 when no timestamp resolves", () => {
     const task = mk({ taskId: "a", createdAt: "" });
     expect(taskLastModifiedMs(task)).toBe(0);
@@ -66,6 +70,7 @@ describe("taskLastModifiedMs — precedence chain", () => {
 });
 
 describe("taskLastModifiedMs — defensive against malformed timestamps", () => {
+  // @covers FR-01.01
   it("skips a non-finite mtime and uses the next source (never poisons the sort)", () => {
     const task = mk({
       taskId: "a",
@@ -75,6 +80,7 @@ describe("taskLastModifiedMs — defensive against malformed timestamps", () => 
     expect(taskLastModifiedMs(task)).toBe(Date.parse("2026-01-01T00:00:02Z"));
   });
 
+  // @covers FR-01.01
   it("skips an unparseable launchedAt and uses createdAt", () => {
     const task = mk({
       taskId: "a",
@@ -84,6 +90,7 @@ describe("taskLastModifiedMs — defensive against malformed timestamps", () => 
     expect(taskLastModifiedMs(task)).toBe(Date.parse("2026-01-01T00:00:01Z"));
   });
 
+  // @covers FR-01.01
   it("returns a finite number even when every source is malformed", () => {
     const task = mk({
       taskId: "a",
@@ -97,6 +104,7 @@ describe("taskLastModifiedMs — defensive against malformed timestamps", () => 
 });
 
 describe("compareTasksByLastModifiedDesc — order + determinism", () => {
+  // @covers FR-01.01
   it("orders newest-first", () => {
     const older = mk({ taskId: "older", lastJsonlSeenMtimeMs: 1_000 });
     const newer = mk({ taskId: "newer", lastJsonlSeenMtimeMs: 9_000 });
@@ -104,6 +112,7 @@ describe("compareTasksByLastModifiedDesc — order + determinism", () => {
     expect(compareTasksByLastModifiedDesc(older, newer)).toBeGreaterThan(0);
   });
 
+  // @covers FR-01.01
   it("breaks ties by taskId ascending (string compare, not numeric)", () => {
     const a = mk({ taskId: "aaa", lastJsonlSeenMtimeMs: 1_000 });
     const b = mk({ taskId: "bbb", lastJsonlSeenMtimeMs: 1_000 });
@@ -111,6 +120,7 @@ describe("compareTasksByLastModifiedDesc — order + determinism", () => {
     expect(compareTasksByLastModifiedDesc(b, a)).toBeGreaterThan(0);
   });
 
+  // @covers FR-01.01
   it("is deterministic: same input in any order yields the same sorted order", () => {
     const t1 = mk({ taskId: "t1", lastJsonlSeenMtimeMs: 1_000 });
     const t2 = mk({ taskId: "t2", lastJsonlSeenMtimeMs: 1_000 });
@@ -123,6 +133,7 @@ describe("compareTasksByLastModifiedDesc — order + determinism", () => {
 });
 
 describe("sortTasksByLastModifiedDesc — immutability + full order", () => {
+  // @covers FR-01.01
   it("returns a NEW array without mutating the input", () => {
     const input = [
       mk({ taskId: "old", lastJsonlSeenMtimeMs: 1_000 }),
@@ -135,6 +146,7 @@ describe("sortTasksByLastModifiedDesc — immutability + full order", () => {
     expect(out.map((t) => t.taskId)).toEqual(["new", "old"]);
   });
 
+  // @covers FR-01.01
   it("mixes mtime / launchedAt / createdAt sources into one newest-first order", () => {
     const byMtime = mk({ taskId: "m", lastJsonlSeenMtimeMs: 3_000 });
     const byLaunched = mk({ taskId: "l", launchedAt: new Date(2_000).toISOString() });

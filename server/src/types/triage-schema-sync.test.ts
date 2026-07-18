@@ -62,6 +62,7 @@ function fileNames(filePath: string, interfaceName: string): Set<string> {
 }
 
 describe("triage-schema sync — server canonical vs client mirror", () => {
+  // @covers FR-01.30
   it("server TriageItem and client TriageItem declare the same field set", () => {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);
@@ -97,6 +98,7 @@ describe("triage-schema sync — server canonical vs client mirror", () => {
     ).toEqual([]);
   });
 
+  // @covers FR-01.30
   it("launchPayload is declared on both halves (regression fence for iterate-2026-05-20)", () => {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = dirname(__filename);

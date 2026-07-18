@@ -114,6 +114,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     vi.clearAllMocks();
   });
 
+  // @covers FR-01.04
   it("ask_tool routes to AskToolCard variant — inbox-card-<toolUseId> testid", () => {
     renderCard(<InboxCard item={ASK} task={makeTask()} />);
     expect(screen.getByTestId("inbox-card-tu-A")).toBeInTheDocument();
@@ -123,6 +124,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     expect(screen.getByTestId("inbox-option-chip-0")).toBeInTheDocument();
   });
 
+  // @covers FR-01.04
   it("text_question routes to WaitingReplyCard with markdown rendering (MED #7)", () => {
     renderCard(<InboxCard item={TEXT} task={makeTask()} />);
     const card = screen.getByTestId("inbox-card-q-A");
@@ -132,6 +134,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     expect(screen.getByText(/awaiting your reply/i)).toBeInTheDocument();
   });
 
+  // @covers FR-01.04
   it("terminal_prompt routes to WaitingReplyCard with PLAIN text (markdown NOT applied)", () => {
     renderCard(<InboxCard item={TERM} task={makeTask()} />);
     const body = screen.getByTestId("inbox-question-text-tp-task-A");
@@ -139,6 +142,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     expect(body.textContent ?? "").toContain("**Pick one**");
   });
 
+  // @covers FR-01.04
   it("ask_tool without task — no nav/keyboard role, no Resume button", () => {
     const { container } = renderCard(<InboxCard item={ASK} task={undefined} />);
     const card = screen.getByTestId("inbox-card-tu-A");
@@ -149,6 +153,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     ).toBeNull();
   });
 
+  // @covers FR-01.04
   it("unknown phase (task title with no phase keyword) — no phase pill rendered (MED #5)", () => {
     renderCard(
       <InboxCard
@@ -161,6 +166,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     ).not.toBeInTheDocument();
   });
 
+  // @covers FR-01.04
   it("ask_tool card click navigates to /tasks/<taskId> with focusTerminal", () => {
     renderCard(<InboxCard item={ASK} task={makeTask()} />);
     fireEvent.click(screen.getByTestId("inbox-card-tu-A"));
@@ -169,6 +175,7 @@ describe("InboxCard — polymorphic dispatcher", () => {
     expect(stub).toHaveAttribute("data-focus-terminal", "true");
   });
 
+  // @covers FR-01.04
   it("text_question card with empty body renders without crash (MED #5 defensive)", () => {
     renderCard(
       <InboxCard

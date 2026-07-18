@@ -13,12 +13,14 @@ async function get(readClaudeTheme: () => Promise<string | null>) {
 }
 
 describe("GET /api/terminal/claude-theme", () => {
+  // @covers FR-01.28
   it("returns the mirrored theme string", async () => {
     const { status, body } = await get(async () => "light-daltonized");
     expect(status).toBe(200);
     expect(body.theme).toBe("light-daltonized");
   });
 
+  // @covers FR-01.28
   it("returns { theme: null } when no theme is resolvable", async () => {
     const { status, body } = await get(async () => null);
     expect(status).toBe(200);

@@ -94,6 +94,7 @@ describe("PtyManager — whitelist", () => {
     spawn = makeSpawn();
   });
 
+  // @covers FR-01.28
   it("rejects 'claude' as spawn target", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     expect(() => mgr.spawn("t1", { cwd: "/tmp", shell: "claude" })).toThrow(
@@ -101,6 +102,7 @@ describe("PtyManager — whitelist", () => {
     );
   });
 
+  // @covers FR-01.28
   it("rejects an absolute claude path via basename normalization", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     expect(() =>
@@ -108,6 +110,7 @@ describe("PtyManager — whitelist", () => {
     ).toThrow(PtySpawnRejectedError);
   });
 
+  // @covers FR-01.28
   it("rejects an arbitrary binary like 'rm'", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     expect(() => mgr.spawn("t1", { cwd: "/tmp", shell: "rm" })).toThrow(
@@ -115,6 +118,7 @@ describe("PtyManager — whitelist", () => {
     );
   });
 
+  // @covers FR-01.28
   it("accepts whitelisted basenames pwsh, powershell, cmd, bash, zsh, sh, fish (case-insensitive)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     const accepted = [
@@ -144,6 +148,7 @@ describe("PtyManager — spawn / write / resize / kill", () => {
     spawn = makeSpawn();
   });
 
+  // @covers FR-01.28
   it("spawn returns a handle and records cwd + shell", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     const h = mgr.spawn("t1", { cwd: "/tmp/work", shell: "bash" });
@@ -153,6 +158,7 @@ describe("PtyManager — spawn / write / resize / kill", () => {
     expect(spawn.calls[0].cwd).toBe("/tmp/work");
   });
 
+  // @covers FR-01.28
   it("spawn is idempotent for the same taskId — second call returns the existing handle", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     const a = mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -161,6 +167,7 @@ describe("PtyManager — spawn / write / resize / kill", () => {
     expect(spawn.calls).toHaveLength(1);
   });
 
+  // @covers FR-01.28
   it("write forwards into the pty", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -168,11 +175,13 @@ describe("PtyManager — spawn / write / resize / kill", () => {
     expect(spawn.lastPty().__writes).toEqual(["ls\n"]);
   });
 
+  // @covers FR-01.28
   it("write to unknown taskId is a no-op (does not throw)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     expect(() => mgr.write("nope", "x")).not.toThrow();
   });
 
+  // @covers FR-01.28
   it("resize forwards cols/rows", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -180,6 +189,7 @@ describe("PtyManager — spawn / write / resize / kill", () => {
     expect(spawn.lastPty().__resizes).toEqual([{ cols: 120, rows: 40 }]);
   });
 
+  // @covers FR-01.28
   it("kill removes the handle and calls pty.kill", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -191,6 +201,7 @@ describe("PtyManager — spawn / write / resize / kill", () => {
     expect(spawn.calls).toHaveLength(2);
   });
 
+  // @covers FR-01.28
   it("killAll iterates all live ptys", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/a", shell: "bash" });
@@ -210,6 +221,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     spawn = makeSpawn();
   });
 
+  // @covers FR-01.28
   it("subscribers receive incoming pty data and unsubscribe stops further deliveries", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -222,6 +234,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(seen).toEqual(["hello", " world"]);
   });
 
+  // @covers FR-01.28
   it("first attach is writer, second attach is reader; detaching the writer auto-promotes a reader (StrictMode race fence)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -247,6 +260,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(c.role).toBe("reader");
   });
 
+  // @covers FR-01.28
   it("detaching the LAST connection KEEPS the pty alive (ADR-068-A1 Replay-on-Attach)", () => {
     // 2026-05-05 — last-detach no longer kills the pty. The previous
     // policy collided with the Replay-on-Attach contract: any
@@ -265,6 +279,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.get("t1")).toBeDefined();
   });
 
+  // @covers FR-01.28
   it("attach() is idempotent for the same conn — re-attach keeps writer role (external review F6 regression fence)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -280,6 +295,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
   // hadPriorWriter — iterate-2026-05-27-fix-pty-reused-prewarm-race.
   // Atomic snapshot inside attach() (race-fence + 5 transitions).
 
+  // @covers FR-01.28
   it("first attach immediately after spawn returns hadPriorWriter: false (prewarm-race fix)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -289,6 +305,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(a.hadPriorWriter).toBe(false);
   });
 
+  // @covers FR-01.28
   it("second attach (different conn) returns hadPriorWriter: true while the first is still writer", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -301,6 +318,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(b.hadPriorWriter).toBe(true);
   });
 
+  // @covers FR-01.28
   it("re-attach by the same conn returns hadPriorWriter: true (this conn IS a prior writer)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -312,6 +330,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(second.hadPriorWriter).toBe(true);
   });
 
+  // @covers FR-01.28
   it("after writer detaches, the NEXT new-conn attach returns hadPriorWriter: true (the reload regression fence)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -327,6 +346,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(b.hadPriorWriter).toBe(true);
   });
 
+  // @covers FR-01.28
   it("reader-promotion to writer does NOT decrease the flag (defensive — flag was already true from the original writer)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -343,6 +363,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(c.hadPriorWriter).toBe(true);
   });
 
+  // @covers FR-01.28
   it("two back-to-back attaches resolve sequentially: second always sees hadPriorWriter: true (race fence — atomic API)", () => {
     // External review HIGH: a separate read-then-mutate API would let
     // two near-simultaneous attaches both observe `false`. The
@@ -355,6 +376,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(b.hadPriorWriter).toBe(true);
   });
 
+  // @covers FR-01.28
   it("getRole() is non-mutating and returns the right role for known/unknown conns", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -371,6 +393,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.getRole("t1", wsA)).toBe("writer");
   });
 
+  // @covers FR-01.28
   it("writer-promoted callback fires SYNCHRONOUSLY inside detach() — required by client banner-grace (ADR-084 AC-1)", () => {
     // The client's 1500ms read-only banner grace (EmbeddedTerminal.tsx)
     // assumes that when StrictMode mount-1 detaches, the server promotes
@@ -398,6 +421,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.getRole("t1", wsB)).toBe("writer");
   });
 
+  // @covers FR-01.28
   it("hasActiveWriter reflects writer-slot occupancy (used by /paste-image gate)", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -410,6 +434,7 @@ describe("PtyManager — subscribe + attach (writer/reader roles)", () => {
     expect(mgr.hasActiveWriter("unknown-task")).toBe(false);
   });
 
+  // @covers FR-01.28
   it("explicit kill() terminates the pty (Stop / Close / DELETE entry points)", () => {
     // 2026-05-05 — pty teardown is now driven by explicit user actions or
     // the 30-min idle ceiling, not by last-detach. This test pins down
@@ -436,6 +461,7 @@ describe("PtyManager — backpressure (per-conn outbound buffer drop-oldest)", (
     spawn = makeSpawn();
   });
 
+  // @covers FR-01.28
   it("oldest chunks are dropped when bufferedAmount exceeds the cap; backpressure callback is fired once per saturation", () => {
     const mgr = new PtyManager({ spawn: spawn.fn, wsBufferBytes: 10 });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -475,6 +501,7 @@ describe("PtyManager — idle timeout safety ceiling", () => {
     vi.useRealTimers();
   });
 
+  // @covers FR-01.28
   it("no read+write activity for terminalIdleTimeoutMs forces a kill", () => {
     const mgr = new PtyManager({ spawn: spawn.fn, idleTimeoutMs: 1000 });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -486,6 +513,7 @@ describe("PtyManager — idle timeout safety ceiling", () => {
     expect(fake.__killed).toBe(true);
   });
 
+  // @covers FR-01.28
   it("activity (write) resets the idle timer", () => {
     const mgr = new PtyManager({ spawn: spawn.fn, idleTimeoutMs: 1000 });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -498,6 +526,7 @@ describe("PtyManager — idle timeout safety ceiling", () => {
     expect(fake.__killed).toBe(true);
   });
 
+  // @covers FR-01.28
   it("activity (incoming pty data) resets the idle timer", () => {
     const mgr = new PtyManager({ spawn: spawn.fn, idleTimeoutMs: 1000 });
     mgr.spawn("t1", { cwd: "/tmp", shell: "bash" });
@@ -510,6 +539,7 @@ describe("PtyManager — idle timeout safety ceiling", () => {
 });
 
 describe("quotePathForShell", () => {
+  // @covers FR-01.28
   it("pwsh — single-quotes with internal '' doubling", () => {
     expect(quotePathForShell("C:\\My Project\\img.png", "pwsh")).toBe(
       "'C:\\My Project\\img.png'",
@@ -517,6 +547,7 @@ describe("quotePathForShell", () => {
     expect(quotePathForShell("a'b", "pwsh")).toBe("'a''b'");
   });
 
+  // @covers FR-01.28
   it("cmd — double-quotes; embedded \" is escaped to \"\"", () => {
     expect(quotePathForShell("C:\\My Project\\img.png", "cmd")).toBe(
       '"C:\\My Project\\img.png"',
@@ -524,6 +555,7 @@ describe("quotePathForShell", () => {
     expect(quotePathForShell('a"b', "cmd")).toBe('"a""b"');
   });
 
+  // @covers FR-01.28
   it("posix — single-quotes with internal ' escaped via '\\''", () => {
     expect(quotePathForShell("/tmp/My Project/img.png", "posix")).toBe(
       "'/tmp/My Project/img.png'",
@@ -539,6 +571,7 @@ describe("PtyManager — shellKind inference", () => {
     spawn = makeSpawn();
   });
 
+  // @covers FR-01.28
   it("pwsh / powershell.exe → 'pwsh'", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     const a = mgr.spawn("t1", { cwd: "/tmp", shell: "pwsh" });
@@ -548,12 +581,14 @@ describe("PtyManager — shellKind inference", () => {
     expect(b.shellKind).toBe("pwsh");
   });
 
+  // @covers FR-01.28
   it("cmd / cmd.exe → 'cmd'", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     const a = mgr.spawn("t1", { cwd: "/tmp", shell: "cmd.exe" });
     expect(a.shellKind).toBe("cmd");
   });
 
+  // @covers FR-01.28
   it("bash / zsh / sh / fish → 'posix'", () => {
     const mgr = new PtyManager({ spawn: spawn.fn });
     for (const s of ["bash", "/bin/zsh", "sh", "/usr/bin/fish"]) {

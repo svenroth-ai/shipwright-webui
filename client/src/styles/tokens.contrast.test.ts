@@ -166,24 +166,28 @@ describe('AA contrast ladder (AC1) — every declared token×ground pair clears 
 });
 
 describe('AC1 — the four Fable-B5 failures are FIXED or explicitly RE-ROLED', () => {
+  // @covers FR-01.48
   it('brand tag 2.90 — teal-on-dark MUST be #35B8A4, not #0E7A6B (A05 also removes the badge)', () => {
     // The measured failure: --accent #0E7A6B on anthracite #23262C.
     expect(r2(contrast(ACCENT, TAUPE))).toBeLessThan(BODY_MIN); // ~2.90 — the old tag fails
     expect(contrast(ACCENT_ON_DARK, TAUPE)).toBeGreaterThanOrEqual(LARGE_MIN); // fixed
   });
 
+  // @covers FR-01.48
   it('terminal dim 3.65–3.92 — old #78716C fails body; the fix is #f2f0ec on #131110', () => {
     const OLD_DIM: RGB = [0x78, 0x71, 0x6c];
     expect(contrast(OLD_DIM, TERMINAL)).toBeLessThan(BODY_MIN); // ~3.92 — fails as body
     expect(contrast(TERM_TEXT, TERMINAL)).toBeGreaterThanOrEqual(BODY_MIN); // ~16.5 — fixed
   });
 
+  // @covers FR-01.48
   it('--faint 2.52 — RE-ROLED to NON-TEXT (excluded from the ladder body matrix)', () => {
     expect(contrast(FAINT, CARD)).toBeLessThan(BODY_MIN); // 2.52 — proves it is not a text token
     const inLadder = LADDER.some((r) => r.fg === FAINT);
     expect(inLadder, '--faint must NOT appear as a text rung').toBe(false);
   });
 
+  // @covers FR-01.48
   it('dismissed-triage opacity:.6 — replaced by a DEFINED muted token on a SOLID ground', () => {
     // opacity over a photo is not a contrast strategy; --muted on a solid card is.
     expect(contrast(MUTED, CARD)).toBeGreaterThanOrEqual(BODY_MIN); // ~4.79
@@ -196,25 +200,30 @@ describe('AC1/A04 — --faint on a DARK ground is a legit light-on-dark text pai
   // affordance) --faint is a LIGHT colour on a DARK ground and clears AA — a
   // categorically different relationship, asserted here (not in LADDER, so the
   // "--faint not a text rung" light-ground invariant above stays intact).
+  // @covers FR-01.48
   it('--faint copy-button label on --dark-2 >= 4.5:1', () => {
     expect(contrast(FAINT, DARK_2)).toBeGreaterThanOrEqual(BODY_MIN);
   });
 });
 
 describe('AC1 — grounds are honest', () => {
+  // @covers FR-01.48
   it('#35B8A4 (light teal) is NEVER small text on a light ground', () => {
     expect(contrast(ACCENT_ON_DARK, CARD)).toBeLessThan(BODY_MIN); // ~2.46
   });
 
+  // @covers FR-01.48
   it('--ground-photo-worst is a NON-TEXT ground: bare light text fails on the bright photo', () => {
     expect(contrast(INK_LIGHT, PHOTO_WORST)).toBeLessThan(BODY_MIN); // ~1.5 → text must ride chrome
   });
 
+  // @covers FR-01.48
   it('the composite grounds are DERIVED constants committed in weather-deck.css', () => {
     expect(WD).toMatch(/--ground-glass-worst:\s*#[0-9A-Fa-f]{6}/);
     expect(WD).toMatch(/--ground-photo-worst:\s*#[0-9A-Fa-f]{6}/);
   });
 
+  // @covers FR-01.48
   it('the .on-photo flip carries the light chrome + darkened-glass-secondary tokens', () => {
     expect(OP).toMatch(/--ink:\s*#fff/);
     expect(OP).toMatch(/--faint:\s*#6B645D/);
@@ -259,9 +268,11 @@ describe('AC5 — the anthracite chrome ladder (A05 title bars + nav + badges)',
 });
 
 describe('AC5 — white-on-solid is the sub-AA badge failure that forces --ink', () => {
+  // @covers FR-01.48
   it('white on --warn-solid < 4.5 (2.35) → the count label uses --ink instead', () => {
     expect(contrast(WHITE_RGB, WARN_SOLID)).toBeLessThan(BODY_MIN);
   });
+  // @covers FR-01.48
   it('white on --err-solid < 4.5 (3.76) → same', () => {
     expect(contrast(WHITE_RGB, ERR_SOLID)).toBeLessThan(BODY_MIN);
   });

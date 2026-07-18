@@ -119,6 +119,7 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
     }
   });
 
+  // @covers FR-01.30
   test("github source: Fix-now opens new-task modal pre-filled with phase=security", async ({
     page,
   }) => {
@@ -179,6 +180,7 @@ test.describe("Triage tab — Fix-now opens NewIssueModal (iterate-2026-05-21)",
     ).toHaveValue(projectId);
   });
 
+  // @covers FR-01.30
   test("iterate source: Fix-now opens new-iterate modal (no phase picker)", async ({
     page,
   }) => {

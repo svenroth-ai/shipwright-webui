@@ -34,6 +34,7 @@ function Harness({ content = "" }: { content?: string }) {
 }
 
 describe("MarkdownEditorToolbar", () => {
+  // @covers FR-01.35
   it("renders the core formatting buttons", async () => {
     render(<Harness content="hello world" />);
     expect(await screen.findByTestId("md-editor-toolbar")).toBeTruthy();
@@ -56,6 +57,7 @@ describe("MarkdownEditorToolbar", () => {
     }
   });
 
+  // @covers FR-01.35
   it("toggles bold and reflects the active state via aria-pressed", async () => {
     const user = userEvent.setup();
     render(<Harness content="hello world" />);
@@ -67,6 +69,7 @@ describe("MarkdownEditorToolbar", () => {
     await waitFor(() => expect(bold.getAttribute("aria-pressed")).toBe("false"));
   });
 
+  // @covers FR-01.35
   it("toggles a heading level and reflects the active state", async () => {
     const user = userEvent.setup();
     render(<Harness content="hello" />);
@@ -76,11 +79,13 @@ describe("MarkdownEditorToolbar", () => {
     await waitFor(() => expect(h1.getAttribute("aria-pressed")).toBe("true"));
   });
 
+  // @covers FR-01.35
   it("disables undo when the history is empty", async () => {
     render(<Harness content="" />);
     expect(await screen.findByTestId("md-tb-undo")).toBeDisabled();
   });
 
+  // @covers FR-01.35
   it("opens a URL prompt when the link button is clicked (cancel is a safe no-op)", async () => {
     // The link button is the one bespoke command (prompt → setLink); the
     // setLink↔markdown serialization itself is covered by markdownTiptap.test.ts.
@@ -92,6 +97,7 @@ describe("MarkdownEditorToolbar", () => {
     promptSpy.mockRestore();
   });
 
+  // @covers FR-01.35
   it("renders nothing when the editor is null (loading guard)", () => {
     render(<MarkdownEditorToolbar editor={null} />);
     expect(screen.queryByTestId("md-editor-toolbar")).toBeNull();

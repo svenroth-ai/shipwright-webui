@@ -55,12 +55,15 @@ function baseRun(over: Partial<RunProjection> = {}): RunProjection {
 // deriveTestGate / deriveGates — honest, flagged derived
 // ---------------------------------------------------------------------------
 describe("deriveTestGate", () => {
+  // @covers FR-01.47
   it("pass when total>0 and passed===total", () => {
     expect(deriveTestGate({ passed: 10, total: 10 })).toBe("pass");
   });
+  // @covers FR-01.47
   it("fail when passed<total", () => {
     expect(deriveTestGate({ passed: 9, total: 10 })).toBe("fail");
   });
+  // @covers FR-01.47
   it("unknown when tests are null / total 0 / a mark absent", () => {
     expect(deriveTestGate(null)).toBe("unknown");
     expect(deriveTestGate({ passed: 0, total: 0 })).toBe("unknown");
@@ -69,13 +72,16 @@ describe("deriveTestGate", () => {
 });
 
 describe("deriveGates", () => {
+  // @covers FR-01.47
   it("returns a derived-flagged object when tests are present", () => {
     const g = deriveGates(baseRun({ tests: { passed: 10, total: 10 } }));
     expect(g).toEqual({ derived: true, test: "pass", review: "unknown", security: "unknown" });
   });
+  // @covers FR-01.47
   it("is null (nothing derivable) when the run carried no tests", () => {
     expect(deriveGates(baseRun({ tests: null }))).toBeNull();
   });
+  // @covers FR-01.47
   it("never claims review/security pass — they stay unknown (honest)", () => {
     const g = deriveGates(baseRun({ tests: { passed: 3, total: 4 } }));
     expect(g?.review).toBe("unknown");
@@ -88,11 +94,13 @@ describe("deriveGates", () => {
 // projectPhaseDurations — iterate flat mark-list, honest null
 // ---------------------------------------------------------------------------
 describe("projectPhaseDurations", () => {
+  // @covers FR-01.47
   it("returns null when phase_timings is absent (the common n/a case)", () => {
     expect(projectPhaseDurations(null)).toBeNull();
     expect(projectPhaseDurations(undefined)).toBeNull();
     expect(projectPhaseDurations([])).toBeNull();
   });
+  // @covers FR-01.47
   it("projects a present iterate mark-list, reading duration_ms + started through", () => {
     const marks = [
       { phase: "scope", started: "2026-07-14T10:00:00Z", duration_ms: 1200 },
@@ -103,11 +111,13 @@ describe("projectPhaseDurations", () => {
       { phase: "build", startedAt: "2026-07-14T10:01:00Z", durationMs: 5400 },
     ]);
   });
+  // @covers FR-01.47
   it("preserves a missing duration as null — never back-filled", () => {
     expect(projectPhaseDurations([{ phase: "review" }])).toEqual([
       { phase: "review", startedAt: null, durationMs: null },
     ]);
   });
+  // @covers FR-01.47
   it("skips marks with no phase name; null when all unusable", () => {
     expect(projectPhaseDurations([{ duration_ms: 10 }])).toBeNull();
   });
@@ -117,6 +127,7 @@ describe("projectPhaseDurations", () => {
 // joinRunData — full shape + spec_impact normalization
 // ---------------------------------------------------------------------------
 describe("joinRunData", () => {
+  // @covers FR-01.47
   it("joins the full run shape and lowercases spec_impact (raw preserved)", () => {
     const out = joinRunData(baseRun());
     expect(out.runId).toBe(HEX_RUN);
@@ -127,6 +138,7 @@ describe("joinRunData", () => {
     expect(out.gates).toEqual({ derived: true, test: "pass", review: "unknown", security: "unknown" });
     expect(out.phaseDurations).toBeNull();
   });
+  // @covers FR-01.47
   it("partial run: absent fields degrade to null/[] and gates null", () => {
     const out = joinRunData(
       baseRun({ tests: null, specImpact: null, affectedFrs: [], summary: null }),
@@ -146,9 +158,11 @@ function phase(over: Partial<PhaseTransition>): PhaseTransition {
 }
 
 describe("aggregatePhaseTransitions", () => {
+  // @covers FR-01.47
   it("empty in → empty out", () => {
     expect(aggregatePhaseTransitions([])).toEqual([]);
   });
+  // @covers FR-01.47
   it("pairs a single split's start+end into a duration", () => {
     const out = aggregatePhaseTransitions([
       phase({ type: "phase_started", phase: "build", splitId: "s1", ts: "2026-07-14T10:00:00Z" }),
@@ -160,6 +174,7 @@ describe("aggregatePhaseTransitions", () => {
     expect(out[0].totalMs).toBe(10_000);
     expect(out[0].complete).toBe(true);
   });
+  // @covers FR-01.47
   it("aggregates MULTIPLE splits of one phase — N ends, summed, never one-end-per-phase", () => {
     const out = aggregatePhaseTransitions([
       phase({ type: "phase_started", phase: "build", splitId: "s1", ts: "2026-07-14T10:00:00Z" }),
@@ -172,6 +187,7 @@ describe("aggregatePhaseTransitions", () => {
     expect(out[0].totalMs).toBe(12_000);
     expect(out[0].complete).toBe(true);
   });
+  // @covers FR-01.47
   it("a started-only split has null duration and marks the phase incomplete", () => {
     const out = aggregatePhaseTransitions([
       phase({ type: "phase_started", phase: "test", splitId: "s1", ts: "2026-07-14T10:00:00Z" }),
@@ -180,6 +196,7 @@ describe("aggregatePhaseTransitions", () => {
     expect(out[0].totalMs).toBeNull();
     expect(out[0].complete).toBe(false);
   });
+  // @covers FR-01.47
   it("phase_failed closes a split like phase_completed", () => {
     const out = aggregatePhaseTransitions([
       phase({ type: "phase_started", phase: "review", splitId: "s1", ts: "2026-07-14T10:00:00Z" }),
@@ -187,6 +204,7 @@ describe("aggregatePhaseTransitions", () => {
     ]);
     expect(out[0].splits[0].durationMs).toBe(3_000);
   });
+  // @covers FR-01.47
   it("rejects a negative interval (end before start) as null — never a negative duration", () => {
     const out = aggregatePhaseTransitions([
       phase({ type: "phase_started", phase: "build", splitId: "s1", ts: "2026-07-14T10:00:10Z" }),
@@ -202,6 +220,7 @@ describe("aggregatePhaseTransitions", () => {
 // projectGradeTrend — grade_snapshot fold, chronological
 // ---------------------------------------------------------------------------
 describe("projectGradeTrend", () => {
+  // @covers FR-01.47
   it("folds grade_snapshot events into an ascending {ts,grade,score} series", () => {
     const lines = [
       j({ type: "grade_snapshot", ts: "2026-07-14T12:00:00Z", grade: "A", score: 98.2 }),
@@ -213,9 +232,11 @@ describe("projectGradeTrend", () => {
       { ts: "2026-07-14T12:00:00Z", grade: "A", score: 98.2 },
     ]);
   });
+  // @covers FR-01.47
   it("returns [] when there are no grade_snapshot events", () => {
     expect(projectGradeTrend([j({ type: "work_completed", adr_id: HEX_ADR })])).toEqual([]);
   });
+  // @covers FR-01.47
   it("skips a torn line and a snapshot with no grade; score→null when absent", () => {
     const lines = [
       "{ this is torn",
@@ -232,6 +253,7 @@ describe("projectGradeTrend", () => {
 // projectRunData — bundle wiring
 // ---------------------------------------------------------------------------
 describe("projectRunData", () => {
+  // @covers FR-01.47
   it("bundles runs + gradeTrend + pipeline aggregate from one line pass", () => {
     const lines = [
       j({ type: "work_completed", adr_id: HEX_ADR, tests: { passed: 5, total: 5 }, spec_impact: "none" }),
@@ -245,6 +267,7 @@ describe("projectRunData", () => {
     expect(b.gradeTrend).toHaveLength(1);
     expect(b.pipelinePhaseDurations[0].totalMs).toBe(4_000);
   });
+  // @covers FR-01.47
   it("runId filter narrows runs to that single adr_id", () => {
     const lines = [
       j({ type: "work_completed", adr_id: HEX_ADR, tests: { passed: 1, total: 1 } }),

@@ -12,6 +12,7 @@ import { TaskBoardEmptyState } from "./TaskBoardEmptyState";
 afterEach(() => cleanup());
 
 describe("TaskBoardEmptyState", () => {
+  // @covers FR-01.50
   it("renders the teaching sentence", () => {
     render(<TaskBoardEmptyState onCreate={() => {}} canCreate />);
     expect(screen.getByTestId("task-board-empty-sentence")).toHaveTextContent(
@@ -19,12 +20,14 @@ describe("TaskBoardEmptyState", () => {
     );
   });
 
+  // @covers FR-01.50
   it("offers EXACTLY one call to action", () => {
     render(<TaskBoardEmptyState onCreate={() => {}} canCreate />);
     const block = screen.getByTestId("task-board-empty");
     expect(within(block).getAllByRole("button")).toHaveLength(1);
   });
 
+  // @covers FR-01.50
   it("the CTA opens the create flow", async () => {
     const onCreate = vi.fn();
     render(<TaskBoardEmptyState onCreate={onCreate} canCreate />);
@@ -32,6 +35,7 @@ describe("TaskBoardEmptyState", () => {
     expect(onCreate).toHaveBeenCalledTimes(1);
   });
 
+  // @covers FR-01.50
   it("disables the CTA while the action catalog is still loading", () => {
     render(<TaskBoardEmptyState onCreate={() => {}} canCreate={false} />);
     expect(screen.getByTestId("task-board-empty-cta")).toBeDisabled();

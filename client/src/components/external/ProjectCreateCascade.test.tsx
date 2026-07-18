@@ -110,6 +110,7 @@ describe("ProjectActionsLoader", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
   });
 
+  // @covers FR-01.38
   it("renders the project's actions, applying the filter", () => {
     const qc = makeQc();
     seed(qc, "p1", [TASK, ITERATE, PLAIN]);
@@ -132,6 +133,7 @@ describe("ProjectActionsLoader", () => {
     expect(screen.queryByTestId("a-new-plain")).toBeNull();
   });
 
+  // @covers FR-01.38
   it("shows a loading placeholder before data arrives", () => {
     const qc = makeQc(); // not seeded → isLoading
     wrap(
@@ -144,6 +146,7 @@ describe("ProjectActionsLoader", () => {
     expect(screen.queryByTestId("should-not-render")).toBeNull();
   });
 
+  // @covers FR-01.38
   it("renders the empty placeholder when no actions match (create submenu)", () => {
     const qc = makeQc();
     seed(qc, "p1", [PLAIN]); // only new-plain; the create filter excludes it
@@ -166,6 +169,7 @@ describe("ProjectActionsLoader", () => {
     expect(screen.getByTestId("project-actions-empty-p1")).toBeTruthy();
   });
 
+  // @covers FR-01.38
   it("hides entirely (renders nothing) when empty and hideWhenEmpty is set", () => {
     const qc = makeQc();
     seed(qc, "p2", [TASK, ITERATE]); // no new-plain
@@ -190,6 +194,7 @@ describe("ProjectCreateMenu / ProjectPlainPicker triggers", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
   });
 
+  // @covers FR-01.38
   it("create-menu cascade renders a trigger, disabled when there are no projects", () => {
     const qc = makeQc();
     wrap(qc, <ProjectCreateMenu projects={[]} onSelect={vi.fn()} />);
@@ -200,6 +205,7 @@ describe("ProjectCreateMenu / ProjectPlainPicker triggers", () => {
     expect(trigger.disabled).toBe(true);
   });
 
+  // @covers FR-01.38
   it("create-menu cascade trigger is enabled when projects exist", () => {
     const qc = makeQc();
     wrap(qc, <ProjectCreateMenu projects={PROJECTS} onSelect={vi.fn()} />);
@@ -209,6 +215,7 @@ describe("ProjectCreateMenu / ProjectPlainPicker triggers", () => {
     expect(trigger.disabled).toBe(false);
   });
 
+  // @covers FR-01.38
   it("plain picker renders a trigger when projects exist", () => {
     const qc = makeQc();
     wrap(qc, <ProjectPlainPicker projects={PROJECTS} onSelect={vi.fn()} />);

@@ -15,6 +15,7 @@ import { ApiError } from "./externalApi";
 afterEach(() => vi.unstubAllGlobals());
 
 describe("loadMarkdownForEdit", () => {
+  // @covers FR-01.35
   it("returns text + fingerprint with the ETag quotes stripped", async () => {
     vi.stubGlobal(
       "fetch",
@@ -31,6 +32,7 @@ describe("loadMarkdownForEdit", () => {
     expect(r.fingerprint).toBe("sha256:abc123");
   });
 
+  // @covers FR-01.35
   it("throws ApiError on a non-2xx response", async () => {
     vi.stubGlobal(
       "fetch",
@@ -46,6 +48,7 @@ describe("loadMarkdownForEdit", () => {
 });
 
 describe("saveMarkdown", () => {
+  // @covers FR-01.35
   it("PUTs with a quoted If-Match + body and returns the new fingerprint", async () => {
     const fetchMock = vi.fn(
       async () =>
@@ -66,6 +69,7 @@ describe("saveMarkdown", () => {
     expect(init.body).toBe("# new\n");
   });
 
+  // @covers FR-01.35
   it("throws MarkdownConflictError on 409 with the on-disk fingerprint", async () => {
     vi.stubGlobal(
       "fetch",
@@ -87,6 +91,7 @@ describe("saveMarkdown", () => {
     expect((err as MarkdownConflictError).currentFingerprint).toBe("sha256:disk");
   });
 
+  // @covers FR-01.35
   it("throws ApiError on other failures (e.g. 415)", async () => {
     vi.stubGlobal(
       "fetch",

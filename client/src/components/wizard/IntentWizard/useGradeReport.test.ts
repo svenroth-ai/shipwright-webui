@@ -29,6 +29,7 @@ function mockGrade(outcome: unknown, status = 200) {
 }
 
 describe("useGradeReport — enablement gate", () => {
+  // @covers FR-01.51
   it("is idle and fetches NOTHING when disabled or target is null", async () => {
     let hit = false;
     server.use(http.post("/api/wizard/grade", () => {
@@ -50,6 +51,7 @@ describe("useGradeReport — enablement gate", () => {
 });
 
 describe("useGradeReport — outcome → state mapping", () => {
+  // @covers FR-01.51
   it("report-ready + a valid model → report-ready with the shape-guarded model", async () => {
     mockGrade({ status: "report-ready", model: GRADE_REPORT });
     const { result } = renderHook(
@@ -60,6 +62,7 @@ describe("useGradeReport — outcome → state mapping", () => {
     expect(result.current.model?.grade).toBe(GRADE_REPORT.grade);
   });
 
+  // @covers FR-01.51
   it("report-ready but a bad shape → shape-unrecognised (the guard refuses it)", async () => {
     mockGrade({ status: "report-ready", model: { schema_version: "1.0", grade: "A" } });
     const { result } = renderHook(
@@ -70,6 +73,7 @@ describe("useGradeReport — outcome → state mapping", () => {
     expect(result.current.model).toBeNull();
   });
 
+  // @covers FR-01.51
   it("engine-unavailable → carries the reason + repair command", async () => {
     mockGrade({
       status: "engine-unavailable",
@@ -84,6 +88,7 @@ describe("useGradeReport — outcome → state mapping", () => {
     expect(result.current.repairCommand).toContain("npx");
   });
 
+  // @covers FR-01.51
   it("grade-failed → carries the honest reason, no model", async () => {
     mockGrade({ status: "grade-failed", reason: "path does not exist" });
     const { result } = renderHook(
@@ -95,6 +100,7 @@ describe("useGradeReport — outcome → state mapping", () => {
     expect(result.current.model).toBeNull();
   });
 
+  // @covers FR-01.51
   it("a network failure → grade-failed (an honest failure, never a fabricated card)", async () => {
     server.use(http.post("/api/wizard/grade", () => HttpResponse.error()));
     const { result } = renderHook(

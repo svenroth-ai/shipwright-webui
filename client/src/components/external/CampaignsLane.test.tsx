@@ -29,12 +29,14 @@ describe("CampaignsLane", () => {
     campaignsData = [];
   });
 
+  // @covers FR-01.10
   it("renders nothing when there are no visible and no dismissed campaigns", () => {
     campaignsData = [makeCampaign({ slug: "done", status: "complete", done: 3, total: 3 })];
     const { container } = render(<CampaignsLane projectId="p1" />);
     expect(container).toBeEmptyDOMElement();
   });
 
+  // @covers FR-01.10
   it("shows visible cards and hides dismissed ones behind a counted toggle", () => {
     campaignsData = [
       makeCampaign({ slug: "live" }),
@@ -47,6 +49,7 @@ describe("CampaignsLane", () => {
     expect(toggle).toHaveTextContent("1 erledigt");
   });
 
+  // @covers FR-01.10
   it("reveals the dismissed list when the toggle is clicked", () => {
     campaignsData = [
       makeCampaign({ slug: "live" }),
@@ -58,6 +61,7 @@ describe("CampaignsLane", () => {
     expect(screen.getByTestId("card-ghost")).toHaveAttribute("data-dismissed", "true");
   });
 
+  // @covers FR-01.10
   it("still renders the lane (with the toggle) when only dismissed campaigns remain", () => {
     campaignsData = [makeCampaign({ slug: "ghost", dismissed: true })];
     render(<CampaignsLane projectId="p1" />);
@@ -65,12 +69,14 @@ describe("CampaignsLane", () => {
     expect(screen.getByTestId("campaigns-show-dismissed-toggle")).toHaveTextContent("1 erledigt");
   });
 
+  // @covers FR-01.10
   it("AC1: a draft campaign now appears on the board (was Triage-only before A17)", () => {
     campaignsData = [makeCampaign({ slug: "planned", status: "draft", done: 0, total: 2 })];
     render(<CampaignsLane projectId="p1" />);
     expect(screen.getByTestId("card-planned")).toBeInTheDocument();
   });
 
+  // @covers FR-01.10
   it("AC1: a dismissed draft is NOT surfaced (dismiss quittance still wins)", () => {
     campaignsData = [makeCampaign({ slug: "planned", status: "draft", dismissed: true })];
     const { container } = render(<CampaignsLane projectId="p1" />);

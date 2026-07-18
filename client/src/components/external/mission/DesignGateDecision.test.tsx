@@ -41,6 +41,7 @@ beforeEach(() => {
 });
 
 describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)", () => {
+  // @covers FR-01.45
   it("renders Approve (primary) + Request changes + the 'Waiting on you' badge", () => {
     renderBar();
     expect(screen.getByTestId("design-gate-approve")).toBeInTheDocument();
@@ -48,6 +49,7 @@ describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)",
     expect(screen.getByTestId("design-gate-waiting-badge")).toHaveTextContent("Waiting on you");
   });
 
+  // @covers FR-01.45
   it("Approve is DELIBERATE: the first click only ARMS a confirm/cancel step", () => {
     renderBar();
     fireEvent.click(screen.getByTestId("design-gate-approve"));
@@ -57,6 +59,7 @@ describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)",
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.45
   it("Cancel returns to the un-armed Approve without launching", () => {
     renderBar();
     fireEvent.click(screen.getByTestId("design-gate-approve"));
@@ -65,6 +68,7 @@ describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)",
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.45
   it("Confirm dispatches THAT path: launch mutate(resume:true) + coordinator auto-launch", async () => {
     renderBar();
     fireEvent.click(screen.getByTestId("design-gate-approve"));
@@ -80,6 +84,7 @@ describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)",
     });
   });
 
+  // @covers FR-01.45
   it("a FAILED resume surfaces the failure, does NOT flip the badge", async () => {
     mutateAsync.mockRejectedValueOnce(new Error("Session ID already in use"));
     renderBar();
@@ -97,6 +102,7 @@ describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)",
     expect(screen.getByTestId("design-gate-waiting-badge")).toBeInTheDocument();
   });
 
+  // @covers FR-01.45
   it("Request changes opens the feedback flow (onRequestChanges), NOT a launch", () => {
     const onReq = vi.fn();
     renderBar({ onRequestChanges: onReq });
@@ -105,6 +111,7 @@ describe("DesignGateDecision — one primary, existing CTA path (A14, AC3/AC4)",
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
+  // @covers FR-01.45
   it("shows the disk-derived saved-round hint when a round was written", () => {
     renderBar({ savedRound: 2 });
     expect(screen.getByTestId("design-gate-saved-hint")).toHaveTextContent("Round 2 feedback saved");

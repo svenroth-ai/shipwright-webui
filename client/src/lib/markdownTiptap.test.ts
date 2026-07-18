@@ -56,12 +56,14 @@ describe("markdownTiptap round-trip (spike)", () => {
     "",
   ].join("\n");
 
+  // @covers FR-01.35
   it("mounts a headless editor and serializes back to markdown", () => {
     const out = roundTrip(fixture);
     expect(typeof out).toBe("string");
     expect(out.length).toBeGreaterThan(0);
   });
 
+  // @covers FR-01.35
   it("preserves StarterKit prose constructs through the round-trip", () => {
     const out = roundTrip(fixture);
     expect(out).toContain("# Heading 1");
@@ -73,12 +75,14 @@ describe("markdownTiptap round-trip (spike)", () => {
     expect(out).toContain("[a link](https://example.com)");
   });
 
+  // @covers FR-01.35
   it("is idempotent (serialize∘parse is a fixed point)", () => {
     const once = roundTrip(fixture);
     const twice = roundTrip(once);
     expect(twice).toBe(once);
   });
 
+  // @covers FR-01.35
   it("parses markdown via editor.commands.setContent — the modal's actual load path (review #9)", () => {
     // The modal pre-populates with `editor.commands.setContent(text)`, NOT
     // init-time `content`. Prove tiptap-markdown parses markdown on that path
@@ -101,6 +105,7 @@ describe("markdownTiptap round-trip (spike)", () => {
     }
   });
 
+  // @covers FR-01.35
   it("handles empty / whitespace-only / single-newline input without crashing (review #14)", () => {
     expect(() => roundTrip("")).not.toThrow();
     expect(() => roundTrip("\n")).not.toThrow();
@@ -118,6 +123,7 @@ describe("raw inline HTML links survive the round-trip", () => {
   // so the link silently stopped being a link. html:true now parses the anchor
   // into the Link mark and re-serializes it as an equivalent markdown link.
 
+  // @covers FR-01.35
   it("preserves an inline <a href> link instead of escaping it to &lt;a&gt; text", () => {
     const out = roundTrip(
       'Built with <a href="https://github.com/svenroth-ai/shipwright">Shipwright</a>.',
@@ -131,6 +137,7 @@ describe("raw inline HTML links survive the round-trip", () => {
     );
   });
 
+  // @covers FR-01.35
   it("keeps the href intact when the anchor carries target/rel attributes", () => {
     const out = roundTrip(
       'Powered by <a href="https://shipwright.dev" target="_blank" rel="noopener">Shipwright</a> today.',
@@ -139,6 +146,7 @@ describe("raw inline HTML links survive the round-trip", () => {
     expect(out).toContain("[Shipwright](https://shipwright.dev)");
   });
 
+  // @covers FR-01.35
   it("round-trips the recovered link idempotently", () => {
     const once = roundTrip(
       'See <a href="https://shipwright.dev">Shipwright</a> here.',
@@ -146,6 +154,7 @@ describe("raw inline HTML links survive the round-trip", () => {
     expect(roundTrip(once)).toBe(once);
   });
 
+  // @covers FR-01.35
   it("does NOT smuggle a javascript: scheme link back to disk (SAFE_LINK_PROTOCOLS)", () => {
     const out = roundTrip('Danger <a href="javascript:alert(1)">x</a> end.');
     expect(out.toLowerCase()).not.toContain("javascript:");
@@ -156,11 +165,13 @@ describe("raw inline HTML links survive the round-trip", () => {
 });
 
 describe("detectLossyConstructs", () => {
+  // @covers FR-01.35
   it("returns [] for a clean StarterKit-only document", () => {
     const clean = "# Title\n\nParagraph with **bold**.\n\n- a\n- b\n";
     expect(detectLossyConstructs(clean)).toEqual([]);
   });
 
+  // @covers FR-01.35
   it("does NOT flag YAML frontmatter (preserved verbatim via splitMarkdownEnvelope)", () => {
     // Frontmatter is no longer lossy: the editor never sees it, so it round-trips
     // byte-for-byte. See markdownTiptap.envelope.test.ts for the round-trip proof.
@@ -168,21 +179,25 @@ describe("detectLossyConstructs", () => {
     expect(detectLossyConstructs(md)).not.toContain("YAML frontmatter");
   });
 
+  // @covers FR-01.35
   it("flags raw HTML and HTML comments", () => {
     expect(detectLossyConstructs('<a id="trg-1"></a>\n\ntext')).toContain("raw HTML");
     expect(detectLossyConstructs("text\n<!-- a comment -->\n")).toContain("HTML comments");
   });
 
+  // @covers FR-01.35
   it("flags footnotes", () => {
     expect(detectLossyConstructs("text[^1]\n\n[^1]: note\n")).toContain("footnotes");
   });
 
+  // @covers FR-01.35
   it("flags GFM tables and task lists", () => {
     const table = "| a | b |\n| --- | --- |\n| 1 | 2 |\n";
     expect(detectLossyConstructs(table)).toContain("GFM tables");
     expect(detectLossyConstructs("- [ ] todo\n- [x] done\n")).toContain("task lists");
   });
 
+  // @covers FR-01.35
   it("does NOT flag `<` inside a fenced code block as raw HTML", () => {
     const code = "```html\n<div>not real html in prose</div>\n```\n";
     expect(detectLossyConstructs(code)).not.toContain("raw HTML");
