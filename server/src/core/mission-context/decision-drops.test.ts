@@ -108,7 +108,7 @@ describe("readRunDrops — the unnumbered half of the Decisions source", () => {
     }
   });
 
-  it("believes the CONTENT over the FILENAME — a drop naming another run is rejected", () => {
+  it("believes the CONTENT over the FILENAME — a drop naming another run is not ours", () => {
     const root = makeProject();
     try {
       // Filename claims this run; the record inside belongs to a different one.
@@ -117,7 +117,10 @@ describe("readRunDrops — the unnumbered half of the Decisions source", () => {
       expect(r.status).toBe("ok");
       if (r.status !== "ok") return;
       expect(r.entries).toHaveLength(0);
-      expect(r.malformed).toBe(1);
+      // NOT malformed: it read fine and parsed fine, it is simply another run's
+      // record. Counting it would produce "1 further record could not be read",
+      // which is untrue of a file that read perfectly.
+      expect(r.malformed).toBe(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

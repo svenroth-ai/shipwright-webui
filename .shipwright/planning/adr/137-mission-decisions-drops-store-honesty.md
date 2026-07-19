@@ -167,3 +167,40 @@ now would surface unrelated errors mid-iterate.
 3. **A bounded `opendir` iterator** — complexity for a scenario the operator would have to construct.
 4. **Extracting a shared mirror-parser utility** — the two parsers have materially different requirements today.
 5. **Making `provenance` optional for deploy-skew** — it is server-internal, so the type system should enforce it; `provenanceNote` still degrades honestly rather than throwing if an untyped path reaches it.
+
+## Internal-Code-Review-Cascade-Findings
+
+Run by the operator over `421dcdbe..146930cf`, plus a focused adversarial pass on
+the B2 drift guard against a real checkout. Cache invalidation, the absent-vs-fault
+distinction, the five-state model, the no-fabricated-ADR rule and the per-unit
+`statusSource` design were all independently confirmed. Nine findings remain, and
+every one is the same family this iterate exists to eliminate — which is the point:
+the defect kept regenerating inside the code written to prevent it.
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| R1 | high | `readRunDecisionRecord` returned early whenever the log held ANY entry for the run — never reading the drops, and hardcoding `malformedCount: 0, sawUnreadable: false`. The dedupe granularity was the RUN; the record's true granularity is run + `_NNN`. **(a)** A partially folded run rendered the published decision and the still-pending one vanished silently. **(b)** An unreadable drops directory was masked entirely by a readable log — a source that failed to read, asserted as fully read, by a literal `false` written without looking. | **accepted-and-fixed.** Both sources are now read unconditionally and merged PER ENTRY, joined on the drop `title` that `format_entry` renders into the ADR heading. `sawUnreadable` is OR-ed in ONE place so no branch can hardcode it. Falsified with a compiling mutation that restores the short-circuit: both scenarios fail. |
+| R2 | high | `provenanceNote` tested `statusJsonState === "unreadable"` BEFORE consulting `from`, so it won for `from === "default"` too — rendering "…so this comes from its plan document and may be out of date" for a unit **the plan document never mentioned**. `pending` is this reader's own default. The correct sentence existed twenty lines below and was unreachable. | **accepted-and-fixed.** Origin-of-value (`default` / `events`) resolves first; the two facts COMPOSE when a source also failed, rather than one silencing the other. A reader's default laundered into a cited source — inside the disclosure written to prevent that. |
+| R3 | high | **GAP 1 —** the guard compared field NAMES and discarded everything right of the colon. `string` → `string \| null`, `note?` → `note`, two sibling types swapped, and a narrowed inline literal union were all green. On a wire where nearly every field is `X \| null`, "the client drops `\| null`" is precisely the quiet, data-shaped misread the guard claims to prevent. | **accepted-and-fixed.** The scanner now captures type text (nested bodies elided to `{…}`, compared separately by dotted path) and compares `name → type` maps, optionality folded into the key. `resolveType` expands a NAMED union and an INLINED literal list to the same sorted form, so the live `Slice3ArtifactBase.state` divergence is reconciled *and* a sixth `ArtifactState` would be caught going stale. One documented exception (`MissionContext.schemaVersion`). All five drift shapes falsified. |
+| R4 | high | **GAP 2 —** `SHARED_INTERFACES` / `SHARED_UNIONS` were hand-written with no completeness check. A seventh detail shape added server-side and forgotten would be invisible. Explicit listing catches "listed but missing on one side" and nothing for "never listed". | **accepted-and-fixed.** Every `export interface\|type` in `SERVER_FILES` must appear in `SHARED_INTERFACES ∪ SHARED_UNIONS ∪ NOT_MIRRORED ∪ CHECKED_SEPARATELY`, the last two carrying a written reason each. It immediately found `ArtifactDescriptor` unregistered. Falsified by adding a new export. |
+| R5 | med | The `malformedCount` / `sawUnreadable` ternary was exclusive, so one malformed drop plus an entirely unreadable log rendered only "1 further record could not be read." — a countable claim absorbing an unread source. | **accepted-and-fixed.** New `logOrScanLoss` separates the countable loss from the uncountable one; both clauses are emitted. |
+| R6 | med | `ArtifactDescriptor` compared with no non-empty guard (`[] === []` passes) and a member regex recognising only names ending in `Artifact`. | **accepted-and-fixed.** Non-empty assertion added; any capitalised member is now recognised. |
+| R7 | med | The `extends` clause was never compared, so a client artifact that dropped `extends ArtifactBase` was invisible to this guard. | **accepted-and-fixed.** Base name compared per interface, with the intentional `ArtifactBase` → `Slice3ArtifactBase` rename encoded explicitly. Falsified. |
+| R8 | cheap | `stripBom` removed exactly one `U+FEFF`; a stacked BOM would still throw. | **accepted-and-fixed.** Loop. |
+| R9 | cheap | A `realPathGuard` denial, an over-cap file, a parse failure and a FOREIGN-`run_id` drop all incremented `malformed` and surfaced as "could not be read" — untrue of the last, which read perfectly and is simply another run's record. | **accepted-and-fixed.** A foreign-`run_id` drop is no longer counted; it is passed over exactly like a non-matching filename. Its content is still never surfaced. |
+
+**Recorded, not fixed:** `MissionContextResponse` / `ArtifactDocumentResponse` in
+the client mirror an envelope built INLINE in
+`server/src/external/mission-context/routes.ts` with no server-side type. There is
+nothing to mirror, so this guard cannot cover them by construction — an unguarded
+wire surface, named here rather than left implied by the guard's silence.
+
+**Also recorded:** `decisions.ts` reports `reason: "too_large"` for EACCES, a
+non-regular file and a mid-read deletion alike. Diagnostic fidelity only — `reason`
+never reaches the UI (`buildDecisionsArtifact` emits fixed prose), so the five-state
+outcome is unaffected.
+
+**Process note:** the first cascade pass ran against `server/dist/`, a compiled
+build, because the branch was checked out nowhere — so it could not see the tests,
+the guard, the ADR or the changelog. Its clean verdict never covered them, and the
+second pass against a real checkout found four further gaps in the guard alone.

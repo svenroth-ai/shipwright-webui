@@ -121,9 +121,13 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await writeFiles(project.path, {
       [`.shipwright/iterate_active/${sessionUuid}.json`]: pointer(sessionUuid, project.path),
       [MINI_PLAN]: "# Decisions-drops fixture — the plan.",
-      // Aggregation ran (the log has the ADR) but the drop's unlink failed.
+      // Aggregation ran (the log has the ADR) but the drop's unlink failed, so
+      // the SAME decision is on disk twice. The drop carries the title the
+      // aggregator rendered into the ADR heading — that title is the join.
       ".shipwright/agent_docs/decision_log.md": decisionLog(),
-      [`${DROPS}/${RUN_ID}_001.json`]: drop(RUN_ID, { title: "The stale drop copy" }),
+      [`${DROPS}/${RUN_ID}_001.json`]: drop(RUN_ID, {
+        title: "Read the review state from the external markers",
+      }),
       "shipwright_events.jsonl": eventsJsonl(commit),
     });
 
@@ -137,6 +141,35 @@ test.describe("Mission Decisions — the unnumbered half of the source", () => {
     await expect(entries.first()).toHaveAttribute("data-adr", "ADR-900");
     await expect(entries.first()).toHaveAttribute("data-source", "decision_log");
     await expect(page.getByTestId("artifact-decision-unnumbered")).toHaveCount(0);
+  });
+
+  test("a PARTIALLY folded run shows the published AND the still-pending decision", async ({
+    page,
+    request,
+  }) => {
+    const { sessionUuid, commit } = await seed(request, "MissionPartialFold", "sw-drop-partial");
+
+    await writeFiles(project.path, {
+      [`.shipwright/iterate_active/${sessionUuid}.json`]: pointer(sessionUuid, project.path),
+      [MINI_PLAN]: "# Decisions-drops fixture — the plan.",
+      // The log holds ADR-900 ("Read the review state from the external
+      // markers"); this drop is a DIFFERENT decision that no release folded in.
+      ".shipwright/agent_docs/decision_log.md": decisionLog(),
+      [`${DROPS}/${RUN_ID}_002.json`]: drop(RUN_ID, { title: "Still pending decision" }),
+      "shipwright_events.jsonl": eventsJsonl(commit),
+    });
+
+    await openDecisions(page);
+    await page.getByTestId("artifact-link-decisions").click();
+
+    // The run-level short-circuit rendered ONLY the numbered entry here, and
+    // the second decision disappeared with no disclosure at all.
+    await expect(page.getByTestId("artifact-decision-entry")).toHaveCount(2);
+    await expect(page.getByTestId("artifact-decision-unnumbered")).toHaveCount(1);
+
+    const panel = page.getByTestId("mission-artifact-panel");
+    await expect(panel).toContainText("Read the review state from the external markers");
+    await expect(panel).toContainText("Still pending decision");
   });
 
   test("another run's drop never leaks into this run's Decisions", async ({ page, request }) => {

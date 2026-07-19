@@ -11,16 +11,15 @@
  * Mission surface was the one that had no guard, and the campaign then added
  * four artifact kinds and five detail shapes to it.
  *
- * Both directions are checked, because the two failures are different:
- *   - a field only the SERVER has  → the mirror is STALE; the client silently
- *     drops data the server is already sending.
- *   - a field only the CLIENT has  → the mirror is FABRICATED; components read
- *     a property nothing ever populates, and `undefined` renders as absence.
+ * Both directions are checked: a field only the SERVER has means the mirror is
+ * STALE (the client drops data already being sent); a field only the CLIENT has
+ * means it is FABRICATED (a property nothing populates, rendering as absence).
+ * Field TYPES are compared too, not only names — see `memberMap`.
  *
- * Same approach as `action-schema-sync.test.ts`: parse the file TEXT rather than
- * the types, because node:fs is natural in `server/` and the client tsconfig has
- * no @types/node. Comparing text is also what catches a mirror that compiles
- * fine on its own while describing a different shape.
+ * Same approach as `action-schema-sync.test.ts`: parse the file TEXT, not the
+ * types — node:fs is natural in `server/`, the client tsconfig has no
+ * @types/node, and text is what catches a mirror that compiles fine alone while
+ * describing a different shape.
  *
  * @covers FR-01.66
  */
@@ -30,9 +29,17 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+// The scanner + its own direct tests live next door (300-LOC rule).
+import {
+  interfaceBody,
+  memberMap,
+  resolveType,
+  stripComments,
+  unionMembers,
+} from "./mission-context-types-parser.test.js";
+
 // server/src/test/ → repo root
-const ROOT = resolve(HERE, "..", "..", "..");
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 
 const SERVER_FILES = [
   "server/src/core/mission-context/types.ts",
@@ -48,122 +55,12 @@ function readAll(rel: string[]): string {
   return rel.map((r) => readFileSync(resolve(ROOT, r), "utf-8")).join("\n");
 }
 
-/** Strip block + line comments so a doc-comment can never look like a member. */
-function stripComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
-}
-
-/** Body of `interface <name> { … }`, by brace matching. Null when absent. */
-function interfaceBody(src: string, name: string): string | null {
-  const m = new RegExp(`interface\\s+${name}\\b`).exec(src);
-  if (!m) return null;
-  const open = src.indexOf("{", m.index);
-  if (open === -1) return null;
-  let depth = 0;
-  for (let i = open; i < src.length; i++) {
-    if (src[i] === "{") depth++;
-    else if (src[i] === "}") {
-      depth--;
-      if (depth === 0) return src.slice(open + 1, i);
-    }
-  }
-  return null;
-}
-
 /**
- * EVERY property name in an interface body, including nested ones, as dotted
- * paths (`detail.malformedCount`).
+ * Every shared shape, listed explicitly.
  *
- * Nesting is not an implementation detail here — it is where the risk lives.
- * The artifact descriptors are all `{ kind, label, …, detail: { … } | null }`,
- * so a version of this collector that only walked the top level would compare
- * `kind` and `detail` and call two structurally different `detail` shapes
- * identical. That version was written first, and the falsification pass caught
- * it: deleting `malformedCount` from the client mirror left the guard green.
- * The five detail shapes this campaign added are exactly the surface it missed.
- */
-function fieldNames(body: string): Set<string> {
-  const names = new Set<string>();
-  const stack: string[] = [];
-  let lastKey: string | null = null;
-  // A member may begin after `{`, `;`, `,` or a newline — the scan must be
-  // character-driven, not line-driven: the client writes its detail shapes
-  // inline (`detail: { type: "reviews"; rows: ReviewRow[] } | null;`) while the
-  // server writes them across lines. A per-line parser sees only the first key
-  // of each line and silently reports the rest as drift.
-  let atMemberStart = true;
-  let i = 0;
-
-  while (i < body.length) {
-    const ch = body[i];
-
-    // Skip string literals whole — a brace or semicolon inside one is text.
-    if (ch === '"' || ch === "'" || ch === "`") {
-      const quote = ch;
-      i++;
-      while (i < body.length && body[i] !== quote) i += body[i] === "\\" ? 2 : 1;
-      i++;
-      atMemberStart = false;
-      continue;
-    }
-
-    if (ch === "{") {
-      stack.push(lastKey ?? "");
-      lastKey = null;
-      atMemberStart = true;
-      i++;
-      continue;
-    }
-    if (ch === "}") {
-      stack.pop();
-      lastKey = null;
-      atMemberStart = true;
-      i++;
-      continue;
-    }
-    if (ch === ";" || ch === "," || ch === "\n") {
-      atMemberStart = true;
-      i++;
-      continue;
-    }
-    if (/\s/.test(ch)) {
-      i++;
-      continue;
-    }
-
-    if (atMemberStart) {
-      const m = /^([A-Za-z_][A-Za-z0-9_]*)\??\s*:/.exec(body.slice(i));
-      if (m) {
-        names.add([...stack, m[1]].join("."));
-        lastKey = m[1];
-        i += m[0].length;
-        atMemberStart = false;
-        continue;
-      }
-    }
-    atMemberStart = false;
-    i++;
-  }
-  return names;
-}
-
-/** String-literal members of `type <name> = "a" | "b" …`, up to the `;`. */
-function unionMembers(src: string, name: string): Set<string> | null {
-  const m = new RegExp(`type\\s+${name}\\s*=`).exec(src);
-  if (!m) return null;
-  const start = m.index + m[0].length;
-  const end = src.indexOf(";", start);
-  const body = src.slice(start, end === -1 ? undefined : end);
-  const members = new Set<string>();
-  for (const lit of body.matchAll(/"([^"]+)"/g)) members.add(lit[1]);
-  return members.size > 0 ? members : null;
-}
-
-/**
- * Every shared shape. Listing them EXPLICITLY rather than discovering them is
- * the point: a new type added to one side and forgotten on the other would be
- * invisible to a "compare what both happen to declare" scan — which is exactly
- * the drift this test exists to catch.
+ * Explicit listing catches "listed but missing on one side". It does NOT catch
+ * "never listed" — that is what the completeness test below is for, because a
+ * hand-written list rots silently otherwise (adversarial review, GAP 2).
  */
 const SHARED_INTERFACES = [
   // EVERY artifact interface `extends` this, so a drift in `label` / `state` /
@@ -196,6 +93,45 @@ const SHARED_INTERFACES = [
   "MissionContext",
 ];
 
+/**
+ * Server exports the client deliberately does NOT mirror — each with its reason.
+ *
+ * This is an ALLOWLIST, not a skip list: the completeness test below fails on
+ * any exported type that is in neither this nor the two lists above, so
+ * "forgot to register a new shape" is loud instead of silent.
+ */
+const NOT_MIRRORED: Record<string, string> = {
+  // A PERSISTENCE type (the guarded `task.missionContext` association write).
+  // It never crosses the wire, so the client has nothing to mirror.
+  MissionContextAssociation: "server-side persistence shape; never sent to the client",
+};
+
+/**
+ * Mirrored, but verified by a DEDICATED test rather than field-by-field — so
+ * still accounted for, and named here so the completeness check stays exact
+ * instead of being loosened.
+ */
+const CHECKED_SEPARATELY: Record<string, string> = {
+  ArtifactDescriptor: "a union of the artifact interfaces; membership is compared by its own test below",
+};
+
+/**
+ * Type differences that are correct rather than drift, each with its reason.
+ *
+ * Kept deliberately tiny and keyed by `interface.field`: a broad exemption would
+ * re-open the hole this comparison exists to close.
+ */
+const ALLOWED_TYPE_DIFFERENCES: Record<string, string> = {
+  // The server pins the literal so a mismatched build cannot typecheck against
+  // it; the client only needs to READ a number and must stay forward-compatible
+  // with a server that bumps it.
+  "MissionContext.schemaVersion": "server pins `typeof MISSION_CONTEXT_SCHEMA_VERSION`; the client reads a plain number",
+};
+
+function isAllowedTypeDifference(iface: string, field: string): boolean {
+  return `${iface}.${field}` in ALLOWED_TYPE_DIFFERENCES;
+}
+
 const SHARED_UNIONS = [
   "MissionScenario",
   "ArtifactState",
@@ -220,11 +156,13 @@ describe("mission-context types — server SoT vs client verbatim mirror", () =>
     expect(s, `interface ${name} not found in the SERVER types`).not.toBeNull();
     expect(c, `interface ${name} not found in the CLIENT mirror`).not.toBeNull();
 
-    const sf = [...fieldNames(s!)].sort();
-    const cf = [...fieldNames(c!)].sort();
+    const sm = memberMap(s!);
+    const cm = memberMap(c!);
+    const sf = [...sm.keys()].sort();
+    const cf = [...cm.keys()].sort();
 
-    const missingInClient = sf.filter((f) => !cf.includes(f));
-    const extraInClient = cf.filter((f) => !sf.includes(f));
+    const missingInClient = sf.filter((f) => !cm.has(f));
+    const extraInClient = cf.filter((f) => !sm.has(f));
 
     expect(
       missingInClient,
@@ -233,6 +171,23 @@ describe("mission-context types — server SoT vs client verbatim mirror", () =>
     expect(
       extraInClient,
       `${name}: the client mirror is FABRICATED — it declares ${extraInClient.join(", ")}, which no server type populates`,
+    ).toEqual([]);
+
+    // …and the SHAPE, not only the topology. A field that exists on both sides
+    // with a different type is the quiet, data-shaped misread this guard is for.
+    const shapeDrift = sf
+      .filter((f) => cm.has(f))
+      .map((f) => ({
+        field: f,
+        server: resolveType(sm.get(f)!, server),
+        client: resolveType(cm.get(f)!, client),
+      }))
+      .filter((d) => d.server !== d.client && !isAllowedTypeDifference(name, d.field))
+      .map((d) => `${d.field}: server \`${d.server}\` vs client \`${d.client}\``);
+
+    expect(
+      shapeDrift,
+      `${name}: field TYPES drifted — ${shapeDrift.join("; ")}. A client that drops \`| null\` (or widens a literal) misreads server data silently.`,
     ).toEqual([]);
   });
 
@@ -263,8 +218,17 @@ describe("mission-context types — server SoT vs client verbatim mirror", () =>
     expect(s).not.toBeNull();
     expect(c, "Slice3ArtifactBase not found in the CLIENT mirror").not.toBeNull();
 
-    const expected = [...fieldNames(s!)].filter((f) => f !== "kind").sort();
-    expect([...fieldNames(c!)].sort()).toEqual(expected);
+    const sm = memberMap(s!);
+    const cm = memberMap(c!);
+    const expected = [...sm.keys()].filter((f) => f !== "kind").sort();
+    expect([...cm.keys()].sort()).toEqual(expected);
+
+    // Types too — this base is where `state` is INLINED client-side, so it is
+    // the one most likely to go stale when a literal is added server-side.
+    const drift = expected
+      .filter((f) => cm.has(f))
+      .filter((f) => resolveType(sm.get(f)!, server) !== resolveType(cm.get(f)!, client));
+    expect(drift, `Slice3ArtifactBase field types drifted: ${drift.join(", ")}`).toEqual([]);
   });
 
   it("the ArtifactDescriptor union names the same members on both sides", () => {
@@ -272,8 +236,65 @@ describe("mission-context types — server SoT vs client verbatim mirror", () =>
     const c = new RegExp("type\\s+ArtifactDescriptor\\s*=([\\s\\S]*?);").exec(client);
     expect(s).not.toBeNull();
     expect(c).not.toBeNull();
+    // Any capitalised member, not only names ending in `Artifact` — the suffix
+    // is a convention, and a guard that only sees conventional names goes blind
+    // the moment one is broken (adversarial review, LOWER).
     const names = (body: string) =>
-      [...body.matchAll(/\b([A-Z][A-Za-z0-9_]*Artifact)\b/g)].map((m) => m[1]).sort();
-    expect(names(c![1])).toEqual(names(s![1]));
+      [...body.matchAll(/\b([A-Z][A-Za-z0-9_]*)\b/g)].map((m) => m[1]).sort();
+    const sNames = names(s![1]);
+    // Non-empty guard: `[] === []` would pass vacuously if the union were ever
+    // reduced to nothing on both sides. `unionMembers` already guards this way.
+    expect(sNames.length, "ArtifactDescriptor names no members").toBeGreaterThan(0);
+    expect(names(c![1])).toEqual(sNames);
+  });
+
+  it("every exported server wire type is REGISTERED — the lists cannot rot silently", () => {
+    // The lists above are hand-written, and explicit listing only catches
+    // "listed but missing on one side". It does nothing for "never listed":
+    // a seventh detail shape added server-side and forgotten is invisible to
+    // every other test in this file. That is a rot that grows quietly, which is
+    // the one failure mode this whole iterate is about (adversarial review,
+    // GAP 2). So: enumerate the source and require each export to be accounted
+    // for — mirrored, or explicitly and reasonedly not.
+    const exported = [
+      ...readAll(SERVER_FILES).matchAll(/^export\s+(?:interface|type)\s+([A-Za-z0-9_]+)/gm),
+    ].map((m) => m[1]);
+
+    expect(exported.length, "no exported types found — did SERVER_FILES move?").toBeGreaterThan(20);
+
+    const registered = new Set([
+      ...SHARED_INTERFACES,
+      ...SHARED_UNIONS,
+      ...Object.keys(NOT_MIRRORED),
+      ...Object.keys(CHECKED_SEPARATELY),
+    ]);
+    const unregistered = [...new Set(exported)].filter((n) => !registered.has(n)).sort();
+
+    expect(
+      unregistered,
+      `unregistered server wire type(s): ${unregistered.join(", ")}. Add each to SHARED_INTERFACES / SHARED_UNIONS, or to NOT_MIRRORED with the reason it is not mirrored.`,
+    ).toEqual([]);
+  });
+
+  it("each artifact interface extends the SAME base on both sides", () => {
+    // A client artifact that dropped `extends ArtifactBase`, or extended the
+    // wrong base, is invisible to a body-only comparison: the inherited fields
+    // simply stop being part of the shape without any body changing.
+    const baseOf = (src: string, name: string): string | null => {
+      const m = new RegExp(`interface\\s+${name}\\s+extends\\s+([A-Za-z0-9_]+)`).exec(src);
+      return m ? m[1] : null;
+    };
+    // The client mirrors the shared base under a second name in Slice 3; that
+    // rename is intentional and is verified field-by-field by the test above.
+    const equivalent = (a: string | null, b: string | null): boolean =>
+      a === b || (a === "ArtifactBase" && b === "Slice3ArtifactBase");
+
+    const drift = SHARED_INTERFACES.filter((n) => n !== "ArtifactBase").filter(
+      (n) => !equivalent(baseOf(server, n), baseOf(client, n)),
+    );
+    expect(
+      drift,
+      `these interfaces extend a different base on each side: ${drift.join(", ")}`,
+    ).toEqual([]);
   });
 });

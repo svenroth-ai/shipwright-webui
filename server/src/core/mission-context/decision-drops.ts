@@ -125,7 +125,13 @@ function matchesRun(fileName: string, runId: string): boolean {
  * next person to touch this line would not be able to see what it matches.
  */
 function stripBom(text: string): string {
-  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  // A LOOP, not a single slice: an editor round-trip can stack more than one
+  // (each save prepending its own), and stripping exactly the first would leave
+  // `JSON.parse` throwing on the second — the valid-record-reported-as-malformed
+  // outcome the single-BOM fix already existed to prevent (cascade, cheap).
+  let i = 0;
+  while (i < text.length && text.charCodeAt(i) === 0xfeff) i++;
+  return i === 0 ? text : text.slice(i);
 }
 
 function field(raw: unknown): string | null {
@@ -258,8 +264,13 @@ export function readRunDrops(projectRoot: string, runId: string): DropsLookup {
     const o = parsed as Record<string, unknown>;
     // The FILENAME claims a run; the CONTENT is what we believe. A drop whose
     // `run_id` disagrees with its name is not this run's decision.
+    //
+    // NOT counted as malformed: this file read fine and parsed fine, so
+    // "N further records could not be read" would be simply untrue of it. It is
+    // in exactly the same category as a file whose NAME does not match, which we
+    // also pass over in silence — it is another run's record, not a damaged one
+    // (cascade, cheap). The content is still never surfaced.
     if (field(o.run_id) !== runId) {
-      malformed++;
       continue;
     }
     const rendered = renderDrop(o);

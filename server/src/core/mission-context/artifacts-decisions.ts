@@ -29,6 +29,14 @@ function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
+/**
+ * True when `malformedCount` already accounts for everything that was lost, so
+ * the uncountable clause would be redundant rather than additive.
+ */
+function hasOnlyCountedLoss(record: DecisionRecord): boolean {
+  return record.malformedCount > 0 && !record.logOrScanLoss;
+}
+
 export function buildDecisionsArtifact(
   record: DecisionRecord,
   events: EventLookup,
@@ -82,11 +90,22 @@ export function buildDecisionsArtifact(
   // covers an unreadable decision LOG and a scan cut short by a cap, which have
   // no count — those used to disappear entirely once a drop rendered
   // successfully (external code review, gemini #1).
-  const lost = record.malformedCount
+  // Two DIFFERENT losses, and they are additive rather than alternative. A
+  // ternary made them exclusive, so one malformed drop plus an entirely
+  // unreadable log rendered only "1 further record could not be read." — a
+  // countable claim quietly absorbing an unread log and dropping the
+  // "may be incomplete" clause that was the one still true (cascade, cheap).
+  const counted = record.malformedCount
     ? ` ${plural(record.malformedCount, "further record", "further records")} could not be read.`
-    : record.sawUnreadable
+    : "";
+  // `sawUnreadable` also covers losses with NO count: an unreadable log, a scan
+  // cut short. Emit that clause whenever such a loss exists beyond the counted
+  // ones — never let a number stand in for "and also, something uncountable".
+  const uncounted =
+    record.sawUnreadable && !hasOnlyCountedLoss(record)
       ? " Some of this run's decision records could not be read, so this list may be incomplete."
       : "";
+  const lost = `${counted}${uncounted}`;
 
   // The receipt is the ADR numbers when there are any, else a plain count —
   // never an invented identifier for an unnumbered decision.

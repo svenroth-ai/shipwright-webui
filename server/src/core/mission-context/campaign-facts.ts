@@ -135,6 +135,33 @@ export function provenanceNote(
   }
   const from = source ?? c.provenance.statusSource;
 
+  // WHERE THE VALUE CAME FROM IS RESOLVED FIRST, and `default` means it came
+  // from nowhere: neither source named this unit, so `pending` is THIS READER's
+  // own assumption. Attributing it to a document is a claim about a document
+  // that never mentioned it.
+  //
+  // This branch used to sit BELOW the file-level ones, so whenever `status.json`
+  // was unreadable — which is one of the two ways to reach `default` — the
+  // sentence became "…so this comes from its plan document and may be out of
+  // date." The plan document said nothing either. A reader's default, laundered
+  // into a cited source, by the disclosure written to prevent exactly that
+  // (internal code-review cascade, FIX 2).
+  //
+  // The two facts are both true when a source also failed, so they COMPOSE
+  // rather than one silencing the other.
+  if (from === "default") {
+    const because =
+      c.provenance.statusJsonState === "unreadable"
+        ? " Its live status file could not be read, so that may say otherwise."
+        : c.provenance.campaignMdUnreadable
+          ? " Its plan document could not be read, so that may say otherwise."
+          : "";
+    return ` No record of this unit's progress was found, so this is an assumption rather than a reported state.${because}`;
+  }
+  if (from === "events") {
+    return " This was reconstructed from the completed-work record, because the campaign's own files are not in this copy of the project.";
+  }
+
   // NAME THE RIGHT FILE. A single `degraded` boolean cannot: `campaign.md` can
   // be the one that failed while `status.json` read perfectly, and saying "the
   // live status file could not be read" there is a false statement — the exact
@@ -153,14 +180,6 @@ export function provenanceNote(
     return c.provenance.statusJsonState === "ok"
       ? " The live status file does not record this unit, so this comes from the campaign's plan document."
       : " This campaign has no live status file, so this comes from its plan document.";
-  }
-  if (from === "events") {
-    return " This was reconstructed from the completed-work record, because the campaign's own files are not in this copy of the project.";
-  }
-  if (from === "default") {
-    // Neither source named this unit at all, so "has not started yet" is this
-    // reader's default rather than anybody's record.
-    return " No record of this unit's progress was found, so this is an assumption rather than a reported state.";
   }
   return "";
 }

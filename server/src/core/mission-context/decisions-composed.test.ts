@@ -73,28 +73,94 @@ describe("readRunDecisionRecord — drops ∪ decision_log, deduplicated by run_
     }
   });
 
-  it("the LOG wins when the same run appears in both sources", () => {
+  it("the LOG wins for a decision that WAS published — the drop is suppressed", () => {
     const root = makeProject();
     try {
-      writeDrop(root, `${RUN}_001.json`, drop({ title: "The drop copy" }));
-      writeLog(
-        root,
-        `### ADR-500: The numbered copy\n\n- **Run-ID:** ${RUN}\n\nbody\n`,
-      );
+      // `aggregate_decisions.py` renders the drop's own `title` as the ADR
+      // heading, so a matching title means "this drop became that entry".
+      writeDrop(root, `${RUN}_001.json`, drop({ title: "A decision recorded at F3" }));
+      writeLog(root, `### ADR-500: A decision recorded at F3\n\n- **Run-ID:** ${RUN}\n\nbody\n`);
       const rec = readRunDecisionRecord(root, RUN);
 
       expect(rec.entries).toHaveLength(1);
       expect(rec.entries[0].source).toBe("decision_log");
       expect(rec.entries[0].adrId).toBe("ADR-500");
-      expect(rec.entries[0].title).toBe("The numbered copy");
-      // The drop copy must not ALSO appear — the same decision twice, under two
-      // identities, is worse than either alone.
-      expect(rec.entries.some((e) => e.title === "The drop copy")).toBe(false);
+      // The same decision twice, under two identities, is worse than either.
+      expect(rec.entries.filter((e) => e.source === "drop")).toHaveLength(0);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
 
+  it("a PARTIALLY folded run still shows the drop that was never published", () => {
+    const root = makeProject();
+    try {
+      // The real partial-fold path: `aggregate_decisions.py` snapshots the drops
+      // it will fold, so a drop written DURING aggregation is never snapshotted
+      // and simply stays on disk. `_001` is published; `_002` is not.
+      writeDrop(root, `${RUN}_001.json`, drop({ title: "Published decision" }));
+      writeDrop(root, `${RUN}_002.json`, drop({ title: "Still pending decision" }));
+      writeLog(root, `### ADR-500: Published decision\n\n- **Run-ID:** ${RUN}\n\nbody\n`);
+      const rec = readRunDecisionRecord(root, RUN);
+
+      // The run-level short-circuit rendered ONLY the log entry here and
+      // reported sawUnreadable:false — the second decision vanished silently.
+      expect(rec.entries).toHaveLength(2);
+      expect(rec.entries[0].adrId).toBe("ADR-500");
+      expect(rec.entries[0].source).toBe("decision_log");
+      expect(rec.entries[1].title).toBe("Still pending decision");
+      expect(rec.entries[1].source).toBe("drop");
+      expect(rec.entries[1].adrId).toBeNull();
+
+      const a = buildDecisionsArtifact(rec, FOUND);
+      expect(a.state).toBe("available");
+      expect(a.summary).toContain("not yet published in a release");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("an unreadable drops directory is NOT masked by a readable log", () => {
+    const root = makeProject();
+    try {
+      writeLog(root, `### ADR-500: Published decision\n\n- **Run-ID:** ${RUN}\n\nbody\n`);
+      // A FILE where the drops directory belongs — readdir fails with ENOTDIR.
+      writeFileSync(path.join(root, ...DROPS), "not a directory", "utf-8");
+
+      const rec = readRunDecisionRecord(root, RUN);
+      expect(rec.entries).toHaveLength(1);
+      // The log answered, but a source we did not read cannot be asserted empty.
+      // The old short-circuit hardcoded `false` here without ever looking.
+      expect(rec.sawUnreadable).toBe(true);
+      expect(rec.logOrScanLoss).toBe(true);
+
+      const a = buildDecisionsArtifact(rec, FOUND);
+      expect(a.state).toBe("available");
+      expect(a.summary).toContain("may be incomplete");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("states a countable loss AND an uncountable one — they are additive", () => {
+    const root = makeProject();
+    try {
+      writeDrop(root, `${RUN}_001.json`, drop({ title: "Survives" }));
+      writeFileSync(path.join(root, ...DROPS, `${RUN}_002.json`), "{{{", "utf-8");
+      // ...plus a log that exists and cannot be read, which has no count at all.
+      const logPath = path.join(root, ...LOG);
+      mkdirSync(path.dirname(logPath), { recursive: true });
+      mkdirSync(logPath, { recursive: true }); // a DIRECTORY where the log belongs
+
+      const rec = readRunDecisionRecord(root, RUN);
+      const a = buildDecisionsArtifact(rec, FOUND);
+      // A ternary made these exclusive, so the number silently absorbed the log.
+      expect(a.summary).toContain("could not be read.");
+      expect(a.summary).toContain("may be incomplete");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
   it("a drops directory that cannot be READ is unavailable, never 'no decisions'", () => {
     const root = makeProject();
     try {

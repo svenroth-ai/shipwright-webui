@@ -194,36 +194,50 @@ export interface DecisionRecord {
   truncated: boolean;
   malformedCount: number;
   sawUnreadable: boolean;
+  /**
+   * A loss that `malformedCount` does NOT account for: an unreadable log, an
+   * unreadable drops directory, or a scan cut short by a cap.
+   *
+   * Separate from `sawUnreadable` because the two drive different sentences. A
+   * count can be stated ("2 further records could not be read"); these cannot,
+   * and folding them into the count would let a number silently stand in for
+   * "and also, an entire source we never read".
+   */
+  logOrScanLoss: boolean;
+}
+
+/** Join key between a drop and the log entry it became. */
+function titleKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 /**
- * The run's decisions from **drops ∪ decision_log**, deduplicated by `run_id`.
+ * The run's decisions from **drops ∪ decision_log**, merged PER ENTRY.
  *
- * THE LOG WINS when both carry this run. It is numbered and authoritative —
- * aggregation has already happened. Because `aggregate_decisions.py` DELETES
- * each drop it folds in, an overlap means a failed unlink, not a normal state
- * (measured on this repo: 18 drops, 166 logged run_ids, zero overlap). So this
- * is a defensive rule, and it resolves the fault toward the numbered record
- * rather than showing the same decision twice under two different identities.
+ * The dedupe granularity is the load-bearing detail, and an earlier version got
+ * it wrong: it keyed on the RUN, returning early whenever the log held any entry
+ * for this run and never reading the drops at all. The record's true granularity
+ * is run + `_NNN`, and those coincide only if aggregation were all-or-nothing.
+ * It is not — `aggregate_decisions.py` snapshots the drops it will fold, writes
+ * them, then unlinks them ONE AT A TIME, so a drop written mid-aggregation is
+ * never snapshotted and simply stays on disk. A run could therefore have `_001`
+ * published and `_002` still pending, and the run-level short-circuit rendered
+ * the first while the second vanished with `sawUnreadable: false` — a decision
+ * lost silently, by the function written to stop decisions being lost silently.
+ *
+ * So: read BOTH, always. A drop whose TITLE matches a published entry has been
+ * folded and is suppressed as the duplicate it is (`format_entry` renders the
+ * drop's own `title` as the ADR heading, and a drop with no title never becomes
+ * an entry here, so the join holds for exactly the drops we would render). Every
+ * other drop is still pending and renders unnumbered. The log wins on conflict;
+ * it no longer wins on mere presence.
  */
 export function readRunDecisionRecord(projectRoot: string, runId: string): DecisionRecord {
   const log = readRunDecisions(projectRoot, runId);
-
-  if (log.status === "ok" && log.entries.length > 0) {
-    return {
-      entries: log.entries.map((e) => ({
-        adrId: e.adrId,
-        title: e.title,
-        markdown: e.markdown,
-        source: "decision_log" as const,
-      })),
-      truncated: log.truncated,
-      malformedCount: 0,
-      sawUnreadable: false,
-    };
-  }
-
+  // Read unconditionally. A readable log must never be allowed to assert that
+  // an unread drops directory held nothing — the second half of the same bug.
   const drops = readRunDrops(projectRoot, runId);
+
   // An ABSENT decision_log.md is not a fault — it is a project that has never
   // had a release aggregation, which is most of them. Only a log that is there
   // and unusable (denied, over the cap) is. Treating `missing` as a fault would
@@ -234,39 +248,43 @@ export function readRunDecisionRecord(projectRoot: string, runId: string): Decis
   // An empty/invalid runId also reports `missing` here, but it independently
   // fails `isSafeRunId` in the drops reader → `denied` → still surfaced below.
   const logUnreadable = log.status === "unavailable" && log.reason !== "missing";
+  const logEntries = log.status === "ok" ? log.entries : [];
+  const logTruncated = log.status === "ok" && log.truncated;
 
-  if (drops.status === "unavailable") {
-    return { entries: [], truncated: false, malformedCount: 0, sawUnreadable: true };
-  }
+  const dropsUnreadable = drops.status === "unavailable";
+  const dropEntries = drops.status === "ok" ? drops.entries : [];
+  const dropsTruncated = drops.status === "ok" && drops.truncated;
+  const malformedCount = drops.status === "ok" ? drops.malformed : 0;
+
+  // Published titles suppress their own drop; everything else is still pending.
+  const published = new Set(logEntries.map((e) => titleKey(e.title)).filter((k) => k.length > 0));
+  const pending = dropEntries.filter((d) => !published.has(titleKey(d.title)));
 
   return {
-    entries: drops.entries.map((d) => ({
-      adrId: null,
-      title: d.title,
-      markdown: d.markdown,
-      source: "drop" as const,
-    })),
-    // BOTH sources' truncation, not just the drops'. A bounded log scan that
-    // was cut short has not established that this run has no ADR either
-    // (external code review, openai #3).
-    truncated: drops.truncated || (log.status === "ok" && log.truncated),
-    malformedCount: drops.malformed,
-    // A malformed drop is itself something that existed and could not be read.
-    // It does not hide the artifact (the valid entries still render), but it
-    // must not be silently dropped either.
-    //
-    // `drops.truncated` joins it for a reason that is easy to miss: a scan cut
-    // short has not established that nothing matched, so an EMPTY truncated
-    // result must not be allowed to hide as a clean absence. Today the caps make
-    // empty-and-truncated unreachable (truncation only trips after at least one
-    // entry or one malformed file), but that is an argument about the current
-    // constants, and "not found" silently meaning "not fully searched" is the
-    // exact defect this iterate exists to remove (external plan review, openai
-    // HIGH #1). Pinning it here costs nothing and survives the constants changing.
+    entries: [
+      ...logEntries.map((e) => ({
+        adrId: e.adrId,
+        title: e.title,
+        markdown: e.markdown,
+        source: "decision_log" as const,
+      })),
+      ...pending.map((d) => ({
+        adrId: null,
+        title: d.title,
+        markdown: d.markdown,
+        source: "drop" as const,
+      })),
+    ],
+    // BOTH sources' truncation, not just the drops'. A bounded scan that was cut
+    // short has not established that this run has no further decision.
+    truncated: logTruncated || dropsTruncated,
+    malformedCount,
+    // Every way either source could have lost something, OR-ed in ONE place so
+    // no branch can hardcode `false` without looking — which is exactly what the
+    // run-level short-circuit used to do.
     sawUnreadable:
-      logUnreadable ||
-      drops.malformed > 0 ||
-      drops.truncated ||
-      (log.status === "ok" && log.truncated),
+      logUnreadable || dropsUnreadable || malformedCount > 0 || logTruncated || dropsTruncated,
+    // The uncountable subset, for the sentence that cannot cite a number.
+    logOrScanLoss: logUnreadable || dropsUnreadable || logTruncated || dropsTruncated,
   };
 }
