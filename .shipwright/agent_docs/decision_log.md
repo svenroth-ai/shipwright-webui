@@ -3906,3 +3906,16 @@ Add `POST /api/projects/:id/actions-upload` (replace) and `DELETE /api/projects/
 - **Rationale:** Two real call sites justify the extract; the 60% threshold + read-failure-falls-through-to-write are preserved verbatim; RED-first proven on the pre-fix flush path.
 - **Consequences:** pty-manager.ts shrank 1214->1186 (no baseline ratchet); one extra read per flush (the same read finalize already did); snapshot envelope format unchanged so the replay consumer is unaffected.
 - **Rejected:** Adding locking/atomicity to the read-then-write (pre-existing non-atomicity, shared with finalize) and changing the 60% threshold - both explicitly out of scope.
+
+---
+
+### ADR-264: Mission stage derived from real phase markers; TodoWrite premise falsified empirically
+- **Date:** 2026-07-19
+- **Section:** Iterate - change: mission lifecycle stage
+- **Run-ID:** iterate-2026-07-19-mission-s4-honest-lifecycle-stage
+- **Context:** The 'Where it stands' stepper left Analyze far too early: inferStage was furthest-along-wins over coarse tool signals, so the first Edit/Write to any non-spec file set Build, and Build outranks Analyze. A scratchpad probe or memory note written during scouting claimed Build. Measured over 114 real iterate transcripts: 15% opened exactly that way.
+- **Decision:** Derive the stage from real phase markers, distinguishing an incidental edit (scratch/plan/bookkeeping/notes - never advances, so Analyze holds through scope) from a product edit (still advances). Spec requires an actual spec write. Evidence is structural (tool_use only). Scenario-gated per ADR-136.
+- **Commit:** f7cf2b3540f530cde68c0cde942fa7934a710c0b
+- **Consequences:** A plain session no longer shows a lifecycle stage (supersedes one shipped E2E assertion, updated deliberately). Pure client-side: no server change, no new endpoint, no second write surface, terminal byte-identical. inferStage/summarizeTranscript delegate to ONE implementation so the rules cannot drift.
+- **Rejected:** TodoWrite as PRIMARY signal (the brief's premise): measured at 9% of real transcripts, free-form text, so it would fabricate a phase. Build gated on a build command only (external review HIGH): 31% vs 76% for product edits. Inlining into narrator-transcript.ts: breaches the 300-LOC ceiling. Full detail in ADR-136.
+- **Details:** [136-mission-honest-lifecycle-stage.md](.shipwright/planning/adr/136-mission-honest-lifecycle-stage.md) - serves FR-01.66
