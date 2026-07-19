@@ -104,6 +104,42 @@ export function usesContextRail(context: MissionContext | null | undefined): boo
   );
 }
 
+/**
+ * The scenario the S4 stage derivation is gated on.
+ *
+ * `custom_actions` maps to `plain`, NOT to the `null` unresolved sentinel: those
+ * mean opposite things. `null` is "the resolver has not answered" and takes the
+ * lifecycle branch; `custom_actions` is a POSITIVE finding that this card is not
+ * an iterate. Routing it through `null` ran that asymmetry backwards. Mostly
+ * unreachable (the scenario hides the tab) — but the same AC keeps the tab
+ * SHOWING for every *ambiguous* actions file, so it was never fully mitigated.
+ */
+export function stageScenario(
+  context: MissionContext | null | undefined,
+): "iterate" | "pipeline" | "campaign" | "plain" | null {
+  const s = context?.scenario;
+  if (!s) return null;
+  return s === "custom_actions" ? "plain" : s;
+}
+
+/**
+ * The pipeline task's AUTHORITATIVE run-config phase, for the S4 stage
+ * derivation — or null when this is not a pipeline context / the phase was not
+ * resolved.
+ *
+ * Lives here, next to the other context→view readers, so no COMPONENT ever
+ * handles a raw phase string (DO-NOT #11). Returning null on an unreadable phase
+ * is load-bearing: the caller renders an honest "—" rather than falling back to
+ * the tool-signal guess the run-config phase exists to replace.
+ */
+export function pipelinePhase(context: MissionContext | null | undefined): string | null {
+  if (!context || context.scenario !== "pipeline") return null;
+  const phase = context.artifacts.find((a) => a.kind === "phase");
+  if (!phase || phase.kind !== "phase") return null;
+  const value = phase.detail?.phase;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 /** A newer/unknown schema is refused rather than misread (external-review GPT #15). */
 export function isSupportedSchema(context: MissionContext | null | undefined): boolean {
   return Boolean(context && context.schemaVersion === 1);

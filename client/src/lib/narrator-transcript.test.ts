@@ -45,6 +45,7 @@ describe("summarizeTranscript — honest empty (AC3)", () => {
       summary: null,
       activity: [],
       stage: null,
+      stageActivity: null,
       hasActivity: false,
     });
   });
@@ -187,7 +188,11 @@ describe("summarizeTranscript — stage inference (AC2, honest)", () => {
     ).toBe("Analyze");
   });
 
-  it("Analyze is the WEAKEST signal — any real edit/test moves past it", () => {
+  // S4 narrowed this: a PRODUCT edit still moves past Analyze (it is genuine
+  // build work), but an INCIDENTAL scratch/bookkeeping write no longer does.
+  // The incidental half lives in `stage-derivation.test.ts` (AC1) — these two
+  // are a deliberate discriminator PAIR, not one rule stated twice.
+  it("a real PRODUCT edit moves past Analyze even inside an iterate", () => {
     expect(
       stageOf(
         slashCommand("shipwright-iterate"),

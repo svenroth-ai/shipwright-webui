@@ -96,9 +96,14 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     });
     await expect(page.getByText("No run data yet")).toHaveCount(0);
 
-    // The left panel shows the business summary + the inferred stage.
+    // The left panel shows the business summary. The STAGE is deliberately NOT
+    // claimed here: this is a plain session, and campaign 2026-07-18 S4 (AC5)
+    // stopped the six-stage ITERATE lifecycle being asserted for a card that is
+    // not running one. It shows a coarse "what it's doing" read instead — the
+    // information is kept, the false lifecycle claim is not.
     await expect(page.getByTestId("mission-summary")).toContainText(title);
-    await expect(page.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Build");
+    await expect(page.getByTestId("mission-stage")).toHaveAttribute("data-stage", "none");
+    await expect(page.getByTestId("mission-stage-none")).toContainText("Editing files");
 
     // The artifact links open the RIGHT panel.
     await page.getByTestId("record-node-spec").click();
@@ -132,7 +137,9 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     await expect(page.getByTestId("mission-narration-summary")).toContainText("Running tests", {
       timeout: 15_000,
     });
-    await expect(page.getByTestId("mission-stage")).toHaveAttribute("data-stage", "Test", {
+    // Still a plain session — the coarse read rolls forward, the lifecycle claim
+    // stays withheld (S4 AC5).
+    await expect(page.getByTestId("mission-stage-none")).toContainText("Running tests", {
       timeout: 15_000,
     });
   });

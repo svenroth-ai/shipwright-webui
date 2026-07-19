@@ -1,0 +1,263 @@
+/*
+ * stage-markers.ts — the REAL phase markers a transcript can evidence
+ * (FR-01.66, campaign 2026-07-18-mission-artifacts S4).
+ *
+ * The classification half of the honest stage derivation: it turns a parsed
+ * transcript window into a flat set of booleans ("a test ran", "a product file
+ * was edited"). `stage-derivation.ts` owns the scenario branches that read them.
+ * Split out because the two concerns move for different reasons — the marker
+ * vocabulary changes when Shipwright's tooling changes, the branches change when
+ * the scenario model does.
+ *
+ * ONE definition per concept, used everywhere. The recurring review finding in
+ * this campaign was reasoning applied in one place but not the parallel one, so
+ * `classifyEditPath` is the single edit-path authority: no caller re-implements
+ * "is this a spec file".
+ */
+
+import { toolUses, type ParsedEvent } from "../external/session-parser";
+
+export type EditKind = "spec" | "finalize" | "incidental" | "product";
+
+/**
+ * What KIND of thing an `Edit`/`Write`/`MultiEdit` touched.
+ *
+ * Path-SEGMENT / filename anchors, never bare substrings: `specification.ts` and
+ * `login.spec.ts` (a test file) must NOT read as the Spec stage — a false
+ * positive an earlier substring match actually made.
+ *
+ * `incidental` is the S4 addition and the whole fix: scratch space, plan/todo
+ * state, `.shipwright` bookkeeping and memory notes are things an iterate writes
+ * WHILE it is still scouting. They are not product work and must not claim Build.
+ */
+export function classifyEditPath(rawPath: string): EditKind {
+  const p = rawPath.toLowerCase().replace(/\\/g, "/");
+  // SEGMENT-exact, like every other rule here. A bare `/changelog/` substring
+  // classified `components/ChangelogPanel.tsx` — an ordinary product component —
+  // as Finalize, so editing it during Build claimed the Finalize stage. The
+  // trailing `([-.][^/]*)?` admits `CHANGELOG.md` and the `CHANGELOG-unreleased.d/`
+  // fragment directory while refusing `changelogpanel.tsx` (which continues with
+  // a word character, not a separator).
+  if (/(^|\/)changelog([-.][^/]*)?(\/|$)/.test(p)) return "finalize";
+  if (/(^|\/)decision_log(\.[^/]*)?(\/|$)/.test(p)) return "finalize";
+  if (/(^|\/)spec\.md$|\/planning\/|\/adr\//.test(p)) return "spec";
+  if (
+    /\/scratchpad\//.test(p) ||
+    /\/(tmp|temp)\//.test(p) ||
+    /\/memory\//.test(p) ||
+    /\/\.claude\//.test(p) ||
+    /\/\.shipwright\//.test(p) ||
+    /(^|\/)plan\.json$/.test(p) ||
+    /(^|\/)todos?\.(json|md)$/.test(p) ||
+    p.endsWith(".log")
+  ) {
+    return "incidental";
+  }
+  return "product";
+}
+
+/** True for a `/shipwright-iterate` kickoff (incl. `--campaign … --autonomous`) —
+ *  both an Analyze marker and the `currentIterateEvents` windowing boundary. */
+export function isIterateStart(commandName: string): boolean {
+  return /shipwright-iterate/i.test(commandName);
+}
+
+/*
+ * Shell commands are split into two marker families, because a command can
+ * MENTION a phase without DOING it — the same name-vs-evidence confusion that
+ * let a command merely NAMED "…-plan" claim the Spec stage.
+ *
+ *   VERB markers must sit at a command position. `gh pr view 297` (polling a
+ *   predecessor PR — routine mid-iterate here) must NOT read as Merge, and
+ *   `cat vitest.config.ts` must not read as Test.
+ *
+ *   SCRIPT markers are matched anywhere, because they are ARGUMENTS by nature:
+ *   the evidence is `uv run ".../classify_complexity.py"`, where the script name
+ *   never occupies the command position.
+ */
+
+/** Anchored at a command head. `gh run watch` is deliberately kept — a shipped
+ *  FR-01.67 assertion pins it — while `gh run list` is not evidence of a merge. */
+const RE_MERGE_CMD = /^git push\b|^gh pr (create|merge)\b|^gh run watch\b/;
+const RE_FINALIZE_CMD = /^git commit\b/;
+const RE_TEST_CMD = /^(npm (run )?test|vitest|playwright|pytest|jest)\b/;
+const RE_BUILD_CMD = /^(npm run build|vite build|tsc|npm run typecheck)\b/;
+
+/** The iterate's OWN scope/calibration tooling — the real Analyze phase. Measured
+ *  frequency over 114 real iterate transcripts: `setup_iterate_worktree` 89%,
+ *  `classify_complexity` 66%, `external_review.py` 46%. */
+const RE_SCOPE_SCRIPT =
+  /setup_iterate_worktree|classify_complexity|check-external-review-keys|external_review\.py|mark-review-state/;
+const RE_FINALIZE_SCRIPT = /finalize_iterate|write_decision_log|artifact_sync|verify_iterate/;
+
+/** Shell separators that begin a new command. */
+const SEGMENT_SPLIT = /\n|;|&&|\|\||[|&]/;
+/** Leading noise before the real command: env assignments and runner wrappers. */
+const COMMAND_PREFIX = /^(\S+=\S+|npx|pnpm|yarn|bun|sudo|time|command)\s+/;
+
+/**
+ * The command heads of a shell string — one per `;`/`&&`/`||`/`|` segment, with
+ * env assignments and runner wrappers stripped, so `npx vitest run` and
+ * `shipwright_network_profile=local npx vitest run` both expose `vitest run`
+ * while `cat vitest.config.ts` exposes `cat …`.
+ */
+function commandHeads(cmd: string): string[] {
+  return cmd.split(SEGMENT_SPLIT).map((segment) => {
+    let s = segment.trim();
+    for (;;) {
+      const m = COMMAND_PREFIX.exec(s);
+      if (!m) return s;
+      s = s.slice(m[0].length);
+    }
+  });
+}
+
+/** Did this shell string actually RUN the pattern, rather than mention it? */
+function runsCommand(cmd: string, pattern: RegExp): boolean {
+  return commandHeads(cmd).some((head) => pattern.test(head));
+}
+
+/**
+ * The plain phrase for the LAST thing the session actually did, or null.
+ *
+ * Deliberately a tail scan, not a `Markers` read. `Markers` is order-independent
+ * by construction, so a priority scan over it yields the FURTHEST-ALONG thing
+ * anywhere in the window — which, rendered as "what it's doing now", is a
+ * confident present-tense claim about the past. A session that ran the tests
+ * once and then read code for twenty minutes would say "Running tests" while the
+ * narration panel beside it said "Reading foo.ts": two panels on the same card
+ * contradicting each other, with the confident one wrong.
+ */
+export function lastActivity(events: readonly ParsedEvent[]): string | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const ev = events[i];
+    if (ev.kind === "pr-link") return "Pushing and opening the pull request";
+    if (ev.kind !== "assistant") continue;
+    const uses = toolUses(ev);
+    for (let j = uses.length - 1; j >= 0; j--) {
+      const phrase = activityPhrase(uses[j]);
+      if (phrase) return phrase;
+    }
+  }
+  return null;
+}
+
+function activityPhrase(tu: { name: string; input: unknown }): string | null {
+  if (tu.name === "Bash") {
+    const cmd = readString(tu.input, "command").toLowerCase();
+    if (runsCommand(cmd, RE_MERGE_CMD)) return "Pushing and opening the pull request";
+    if (runsCommand(cmd, RE_FINALIZE_CMD) || RE_FINALIZE_SCRIPT.test(cmd)) {
+      return "Committing the change";
+    }
+    if (runsCommand(cmd, RE_TEST_CMD)) return "Running tests";
+    if (runsCommand(cmd, RE_BUILD_CMD)) return "Building the project";
+    if (RE_SCOPE_SCRIPT.test(cmd)) return "Setting up the work";
+    return "Running a command";
+  }
+  if (EDIT_TOOLS.has(tu.name)) {
+    switch (classifyEditPath(readString(tu.input, "file_path"))) {
+      case "spec":
+        return "Writing planning notes";
+      case "finalize":
+        return "Updating the changelog";
+      default:
+        return "Editing files";
+    }
+  }
+  if (tu.name === "TodoWrite") return "Planning the work";
+  if (tu.name === "Read") return "Reading the code";
+  if (tu.name === "Grep" || tu.name === "Glob") return "Searching the code";
+  if (tu.name === "Task") return "Delegating a sub-task";
+  return null;
+}
+
+/** The tools that evidence scouting rather than producing. */
+const SCOPE_TOOLS: ReadonlySet<string> = new Set(["Read", "Grep", "Glob", "Task", "TodoWrite"]);
+const EDIT_TOOLS: ReadonlySet<string> = new Set(["Edit", "Write", "MultiEdit"]);
+
+export interface Markers {
+  scope: boolean;
+  spec: boolean;
+  build: boolean;
+  test: boolean;
+  finalize: boolean;
+  merge: boolean;
+  /** A real product-source edit — genuine build work. */
+  productEdit: boolean;
+  /** Scratch / bookkeeping / notes — scope activity, NOT build work. */
+  incidentalEdit: boolean;
+  /** A `/shipwright-iterate` kickoff is present in this window. */
+  iterateKickoff: boolean;
+}
+
+function readString(input: unknown, key: "command" | "file_path"): string {
+  const v = (input as Record<string, unknown> | undefined)?.[key];
+  return typeof v === "string" ? v : "";
+}
+
+/** Flatten a transcript window into the marker set. Pure; order-independent. */
+export function collectMarkers(events: readonly ParsedEvent[]): Markers {
+  const m: Markers = {
+    scope: false,
+    spec: false,
+    build: false,
+    test: false,
+    finalize: false,
+    merge: false,
+    productEdit: false,
+    incidentalEdit: false,
+    iterateKickoff: false,
+  };
+  for (const ev of events) {
+    if (ev.kind === "pr-link") {
+      m.merge = true; // the strongest "pushed, awaiting merge" marker
+      continue;
+    }
+    if (ev.kind === "slash-command") {
+      const name = ev.commandName.toLowerCase();
+      if (isIterateStart(name)) {
+        m.iterateKickoff = true;
+        m.scope = true;
+      } else if (/\banalyze\b|\bscout\b/.test(name)) m.scope = true;
+      // NOTE (external code review, GPT finding 1 — HIGH): invoking a command
+      // whose NAME contains "spec"/"plan" used to set the Spec marker. That is
+      // exactly the class of claim AC2 forbids — Spec means the iterate spec was
+      // actually WRITTEN, and running `/…-plan` writes nothing. Spec is now
+      // evidenced only by a real spec/planning/ADR write (`classifyEditPath`).
+      continue;
+    }
+    if (ev.kind !== "assistant") continue;
+    for (const tu of toolUses(ev)) {
+      if (tu.name === "Bash") {
+        const cmd = readString(tu.input, "command").toLowerCase();
+        if (runsCommand(cmd, RE_MERGE_CMD)) m.merge = true;
+        if (runsCommand(cmd, RE_FINALIZE_CMD) || RE_FINALIZE_SCRIPT.test(cmd)) m.finalize = true;
+        if (runsCommand(cmd, RE_TEST_CMD)) m.test = true;
+        if (runsCommand(cmd, RE_BUILD_CMD)) m.build = true;
+        if (RE_SCOPE_SCRIPT.test(cmd)) m.scope = true;
+        continue;
+      }
+      if (SCOPE_TOOLS.has(tu.name)) {
+        m.scope = true;
+        continue;
+      }
+      if (EDIT_TOOLS.has(tu.name)) {
+        switch (classifyEditPath(readString(tu.input, "file_path"))) {
+          case "finalize":
+            m.finalize = true;
+            break;
+          case "spec":
+            m.spec = true;
+            break;
+          case "incidental":
+            m.incidentalEdit = true;
+            m.scope = true; // writing a probe/note IS scope work
+            break;
+          default:
+            m.productEdit = true;
+        }
+      }
+    }
+  }
+  return m;
+}

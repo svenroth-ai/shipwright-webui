@@ -30,6 +30,7 @@ import { parseCampaignSlug } from "../lib/campaignSlug";
 import {
   summarizeTranscript,
   type LifecycleStage,
+  type StageOptions,
   type TranscriptActivity,
   type TranscriptSummary,
 } from "../lib/narrator-transcript";
@@ -57,8 +58,11 @@ export interface MissionLiveModel {
   /** Plain "what this is" — the run summary/intent, the task title, or a topic
    *  read from the JSONL; null → the panel shows an honest waiting line. */
   businessSummary: string | null;
-  /** Inferred lifecycle stage, or null (rendered as "—"). */
+  /** Derived lifecycle stage, or null (rendered as "—"). */
   stage: LifecycleStage | null;
+  /** The coarse "what it's doing now" read shown INSTEAD of a stage when the
+   *  session has no iterate lifecycle (S4 AC5). Null whenever `stage` is set. */
+  stageActivity: string | null;
   /** True only when the run reached a done, terminal `Merge` (a completed run). */
   stageComplete: boolean;
   /** The live JSONL narration for the middle panel. */
@@ -133,14 +137,19 @@ export function deriveMissionLive(input: {
   // A completed (merged) run is the terminal Merge stage, all done (FR-01.67);
   // otherwise the windowed transcript stage (the active sub-iterate's, for a
   // campaign) or an honest null.
-  const stage: LifecycleStage | null = mode === "completed" ? "Merge" : transcript.stage;
+  const completed = mode === "completed";
+  const stage: LifecycleStage | null = completed ? "Merge" : transcript.stage;
+  // A completed run states its terminal stage, so the coarse read is suppressed —
+  // the two are alternatives, never shown together.
+  const stageActivity = completed ? null : transcript.stageActivity;
 
   return {
     missionState,
     mode,
     businessSummary,
     stage,
-    stageComplete: mode === "completed",
+    stageActivity,
+    stageComplete: completed,
     narration: { summary: transcript.summary, activity: transcript.activity },
     nodes: deriveRecordNodes({ missionState, facts: run }),
     campaign,
@@ -151,15 +160,25 @@ export function deriveMissionLive(input: {
  * The Mission LIVE view model for a task. `transcriptContent` is the raw JSONL
  * from TaskDetailPage's single `useTaskTranscript` poll — do NOT open a second
  * poller here.
+ *
+ * `stageOptions` carries the resolver's scenario (S4): the caller already holds
+ * the `MissionContext`, so it is threaded IN rather than re-fetched here — this
+ * hook stays free of a second server round-trip.
  */
 export function useMissionLive(
   task: ExternalTask | null | undefined,
   transcriptContent: string,
+  stageOptions?: StageOptions,
 ): MissionLiveModel {
   const missionState = useMissionState(task ?? null);
   const runDetail = useRunDetail(task?.projectId ?? null, task?.runId ?? null);
   const run = runDetail.data?.status === "ok" ? runDetail.data.run : null;
-  const transcript = useMemo(() => summarizeTranscript(transcriptContent), [transcriptContent]);
+  const scenario = stageOptions?.scenario ?? null;
+  const phase = stageOptions?.phase ?? null;
+  const transcript = useMemo(
+    () => summarizeTranscript(transcriptContent, { scenario, phase }),
+    [transcriptContent, scenario, phase],
+  );
 
   // Campaign awareness (FR-01.67): the existing 3 s campaign poll, enabled ONLY
   // when the title is a `campaign: <slug>` breadcrumb — dormant otherwise (NOT a

@@ -22,7 +22,13 @@ import { useCallback, useState } from "react";
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useMissionLive } from "../../../hooks/useMissionLive";
 import { useMissionContext } from "../../../hooks/useMissionContext";
-import { isSupportedSchema, usesContextRail, visibleArtifacts } from "../../../lib/missionArtifacts";
+import {
+  isSupportedSchema,
+  pipelinePhase,
+  stageScenario,
+  usesContextRail,
+  visibleArtifacts,
+} from "../../../lib/missionArtifacts";
 import { MissionLeftPanel } from "./MissionLeftPanel";
 import { OperationCard } from "./OperationCard";
 import { OperationLive } from "./OperationLive";
@@ -41,7 +47,6 @@ interface Props {
 
 export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) {
   const [activeNode, setActiveNode] = useState<string | null>(null);
-  const model = useMissionLive(task, transcriptContent);
 
   // S1 — the context-resolved artifact rail. Additive: it engages ONLY for a
   // resolved standalone iterate on a schema this build understands. Every other
@@ -50,6 +55,15 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   const contextQuery = useMissionContext(task?.taskId);
   const context = isSupportedSchema(contextQuery.data) ? contextQuery.data : null;
   const artifacts = usesContextRail(context) ? visibleArtifacts(context) : null;
+
+  // S4 — the SAME resolved context gates the stage derivation, so the
+  // iterate-only sticky-Analyze rule never runs on a card with no iterate
+  // lifecycle. Deliberately read from `context` and NOT from `artifacts`: a
+  // `plain` scenario drives no rail but still must gate the stage (AC5).
+  const model = useMissionLive(task, transcriptContent, {
+    scenario: stageScenario(context),
+    phase: pipelinePhase(context),
+  });
   const activeArtifact = artifacts?.find((a) => a.kind === activeNode) ?? null;
 
   const activeRecordNode =

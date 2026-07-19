@@ -181,6 +181,11 @@ const REQUIRED_TOKENS = [
   'motion.ts',
   'useReducedMotion',
   'useCountUp',
+  // iterate-2026-07-19-mission-s4-honest-lifecycle-stage (FR-01.66) — the
+  // honest lifecycle-stage derivation: the marker/edit-path authority and
+  // the scenario-gated derivation that reads it.
+  'stage-markers',
+  'stage-derivation',
 ] as const;
 
 let claudeMd = '';

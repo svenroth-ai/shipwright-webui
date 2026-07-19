@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import {
   currentIterateEvents,
-  inferStage,
+  deriveStage,
   summarizeTranscript,
 } from "./narrator-transcript";
 import { parseSessionJsonl } from "../external/session-parser";
@@ -29,7 +29,7 @@ const prLink = (n: number) => ({
   prRepository: "o/r",
 });
 
-describe("currentIterateEvents + windowed inferStage — campaign case (FR-01.67 AC2)", () => {
+describe("currentIterateEvents + windowed deriveStage — campaign case (FR-01.67 AC2)", () => {
   // TWO serial sub-iterates in ONE session log: the first fully merged
   // (edit→test→commit→push→PR→gh pr merge), the second mid-Build (an edit only).
   const twoSubIterates = jsonl(
@@ -49,9 +49,9 @@ describe("currentIterateEvents + windowed inferStage — campaign case (FR-01.67
   it("windows to the CURRENT sub-iterate — stage reads Build, NOT the first's Merge", () => {
     const { events } = parseSessionJsonl(twoSubIterates);
     // The un-windowed whole transcript would latch Merge (the load-bearing bug).
-    expect(inferStage(events)).toBe("Merge");
+    expect(deriveStage(events, { scenario: "campaign" }).stage).toBe("Merge");
     // Windowed to the current sub-iterate, it correctly reads Build.
-    expect(inferStage(currentIterateEvents(events))).toBe("Build");
+    expect(deriveStage(currentIterateEvents(events), { scenario: "campaign" }).stage).toBe("Build");
     // End-to-end through the public summarizer.
     expect(summarizeTranscript(twoSubIterates).stage).toBe("Build");
   });

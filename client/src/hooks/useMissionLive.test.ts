@@ -10,6 +10,7 @@ const EMPTY_TRANSCRIPT: TranscriptSummary = {
   summary: null,
   activity: [],
   stage: null,
+  stageActivity: null,
   hasActivity: false,
 };
 
@@ -21,6 +22,7 @@ const LIVE_TRANSCRIPT: TranscriptSummary = {
     { id: "a1", text: "Editing login.tsx" },
   ],
   stage: "Build",
+  stageActivity: null,
   hasActivity: true,
 };
 

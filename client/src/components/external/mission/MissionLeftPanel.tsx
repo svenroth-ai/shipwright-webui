@@ -48,9 +48,45 @@ function stepStateFor(index: number, currentIndex: number, complete: boolean): S
   return "todo";
 }
 
-function StageStepper({ stage, complete }: { stage: LifecycleStage | null; complete: boolean }) {
+interface StepperProps {
+  stage: LifecycleStage | null;
+  complete: boolean;
+  /**
+   * The coarse "what it's doing now" read for a session with no iterate
+   * lifecycle (S4 AC5). It replaces the bare em-dash in the same slot — a plain
+   * session gets a plain sentence, NOT a claimed position in a lifecycle it is
+   * not running. Absent → the honest em-dash, exactly as before.
+   */
+  activity?: string | null;
+}
+
+function StageStepper({ stage, complete, activity }: StepperProps) {
   const currentIndex = stage ? STAGE_LABELS.indexOf(stage) : -1;
   const unknown = currentIndex < 0 && !complete;
+
+  // S4 AC5 (external plan review, GPT finding 8): when the session has NO
+  // lifecycle but we do know what it is doing, the six formal step labels are
+  // NOT rendered at all. Keeping them — even greyed out — would still frame the
+  // work as a position in a lifecycle the session is not running, which is the
+  // claim AC5 exists to prevent. Only the plain activity line shows.
+  //
+  // Note this is strictly narrower than "no stage": with no activity either, the
+  // stepper renders exactly as before with the honest em-dash, so a task that
+  // has produced nothing yet is visually unchanged.
+  if (unknown && activity) {
+    return (
+      <ol className="ml-stage" data-testid="mission-stage" data-stage="none">
+        <li
+          className="ml-step-none"
+          data-testid="mission-stage-none"
+          aria-label={`current activity: ${activity}`}
+        >
+          {activity}
+        </li>
+      </ol>
+    );
+  }
+
   return (
     <ol className="ml-stage" data-testid="mission-stage" data-stage={stage ?? "none"}>
       {STAGE_LABELS.map((label, i) => {
@@ -94,7 +130,7 @@ interface Props {
 }
 
 export function MissionLeftPanel({ model, activeNodeKey, onNodeClick, artifacts }: Props) {
-  const { businessSummary, stage, stageComplete, nodes, campaign } = model;
+  const { businessSummary, stage, stageActivity, stageComplete, nodes, campaign } = model;
   return (
     <nav
       className="record mc-left"
@@ -111,7 +147,7 @@ export function MissionLeftPanel({ model, activeNodeKey, onNodeClick, artifacts 
       <section className="ml-block">
         <span className="eyebrow">Where it stands</span>
         {campaign ? <CampaignProgress campaign={campaign} /> : null}
-        <StageStepper stage={stage} complete={stageComplete} />
+        <StageStepper stage={stage} complete={stageComplete} activity={stageActivity} />
       </section>
 
       <section className="ml-block ml-artifacts">
