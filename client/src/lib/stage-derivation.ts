@@ -43,7 +43,7 @@
  */
 
 import type { ParsedEvent } from "../external/session-parser";
-import { collectMarkers, type Markers } from "./stage-markers";
+import { collectMarkers, lastActivity, type Markers } from "./stage-markers";
 
 export { classifyEditPath, isIterateStart, type EditKind } from "./stage-markers";
 
@@ -115,30 +115,21 @@ const PIPELINE_PHASE_STAGE: Record<string, LifecycleStage> = {
   deploy: "Merge",
 };
 
-/**
- * A plain / pure session's coarse "what it's doing now". Read from the SAME
- * strong markers, but deliberately NOT a stage: a plain session has no iterate
- * lifecycle, so claiming a position in one would be fabricated. Returns null
- * when the transcript evidences nothing.
- */
-function coarseActivity(m: Markers): string | null {
-  if (m.merge) return "Pushing and opening the pull request";
-  if (m.finalize) return "Committing the change";
-  if (m.test) return "Running tests";
-  if (m.build) return "Building the project";
-  if (m.productEdit || m.incidentalEdit) return "Editing files";
-  if (m.spec) return "Writing planning notes";
-  if (m.scope) return "Reading the code";
-  return null;
-}
-
 function fromIterate(m: Markers): StageDerivation | null {
   const stage = iterateStage(m);
   return stage ? { stage, activity: null, basis: "iterate_phase_markers" } : null;
 }
 
-function fromCoarse(m: Markers): StageDerivation {
-  return { stage: null, activity: coarseActivity(m), basis: "coarse_activity" };
+/**
+ * The no-lifecycle answer: what the session is doing RIGHT NOW, in plain words.
+ *
+ * `lastActivity` is a tail scan rather than a priority scan over `Markers` —
+ * see its doc. A window with events but nothing recognisable evidences nothing,
+ * so it collapses to `NOTHING` rather than an empty `coarse_activity` claim.
+ */
+function fromCoarse(events: readonly ParsedEvent[]): StageDerivation {
+  const activity = lastActivity(events);
+  return activity ? { stage: null, activity, basis: "coarse_activity" } : NOTHING;
 }
 
 /**
@@ -160,7 +151,7 @@ export function deriveStage(
     const stage = phase ? PIPELINE_PHASE_STAGE[phase] ?? null : null;
     // No readable phase is an honest "—", NEVER a fallback to the tool-signal
     // guess the phase was supposed to replace (AC4).
-    return stage ? { stage, activity: null, basis: "pipeline_phase" } : fromCoarse(m);
+    return stage ? { stage, activity: null, basis: "pipeline_phase" } : fromCoarse(events);
   }
 
   // A CONFIRMED plain session: the resolver looked and found no iterate,
@@ -174,7 +165,7 @@ export function deriveStage(
   // kickoff sits plainly in the transcript. Withholding the stage there would
   // be a fabrication in the other direction — denying a position the transcript
   // genuinely evidences.
-  if (scenario === "plain" && !m.iterateKickoff) return fromCoarse(m);
+  if (scenario === "plain" && !m.iterateKickoff) return fromCoarse(events);
 
   // Everything else — `iterate`, `campaign`, a `plain` card with real kickoff
   // evidence, and the UNRESOLVED case — reads the lifecycle from the markers.
@@ -185,5 +176,5 @@ export function deriveStage(
   // would collapse missing information into a definite claim — the exact shape
   // of the S2/S3 findings this campaign keeps turning up — and would silently
   // strip the stage from every session whenever the resolver is merely slow.
-  return fromIterate(m) ?? fromCoarse(m);
+  return fromIterate(m) ?? fromCoarse(events);
 }

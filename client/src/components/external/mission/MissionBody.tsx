@@ -25,6 +25,7 @@ import { useMissionContext } from "../../../hooks/useMissionContext";
 import {
   isSupportedSchema,
   pipelinePhase,
+  stageScenario,
   usesContextRail,
   visibleArtifacts,
 } from "../../../lib/missionArtifacts";
@@ -60,7 +61,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   // lifecycle. Deliberately read from `context` and NOT from `artifacts`: a
   // `plain` scenario drives no rail but still must gate the stage (AC5).
   const model = useMissionLive(task, transcriptContent, {
-    scenario: context?.scenario === "custom_actions" ? null : context?.scenario ?? null,
+    scenario: stageScenario(context),
     phase: pipelinePhase(context),
   });
   const activeArtifact = artifacts?.find((a) => a.kind === activeNode) ?? null;

@@ -105,6 +105,24 @@ export function usesContextRail(context: MissionContext | null | undefined): boo
 }
 
 /**
+ * The scenario the S4 stage derivation is gated on.
+ *
+ * `custom_actions` maps to `plain`, NOT to the `null` unresolved sentinel: those
+ * mean opposite things. `null` is "the resolver has not answered" and takes the
+ * lifecycle branch; `custom_actions` is a POSITIVE finding that this card is not
+ * an iterate. Routing it through `null` ran that asymmetry backwards. Mostly
+ * unreachable (the scenario hides the tab) — but the same AC keeps the tab
+ * SHOWING for every *ambiguous* actions file, so it was never fully mitigated.
+ */
+export function stageScenario(
+  context: MissionContext | null | undefined,
+): "iterate" | "pipeline" | "campaign" | "plain" | null {
+  const s = context?.scenario;
+  if (!s) return null;
+  return s === "custom_actions" ? "plain" : s;
+}
+
+/**
  * The pipeline task's AUTHORITATIVE run-config phase, for the S4 stage
  * derivation — or null when this is not a pipeline context / the phase was not
  * resolved.

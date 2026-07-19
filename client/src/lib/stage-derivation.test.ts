@@ -1,21 +1,22 @@
 /*
  * stage-derivation.test.ts — the honest "Where it stands" derivation, part 1:
- * the edit-path authority + the ITERATE lifecycle rules
+ * the ITERATE lifecycle rules
  * (FR-01.66, campaign 2026-07-18-mission-artifacts S4, AC1-AC3).
  *
  * Every assertion here was verified to FAIL against the pre-S4 derivation
  * (revert-and-rerun, the campaign's standing rule after three rounds in which a
  * test asserted the bug back to itself). Where a test passes both before and
- * after — the AC3 windowing guard — that is stated explicitly rather than left
+ * after — the AC3 windowing guards — that is stated explicitly rather than left
  * to look like new coverage.
  *
- * The scenario-gating half (AC4/AC5) lives in
- * `stage-derivation.scenarios.test.ts` — split to hold the 300-LOC ceiling.
+ * Siblings, split to hold the 300-LOC ceiling:
+ *   `stage-markers.test.ts`             — the marker/edit-path authority
+ *   `stage-derivation.scenarios.test.ts` — scenario gating (AC4/AC5)
  */
 
 import { describe, it, expect } from "vitest";
 
-import { classifyEditPath, deriveStage } from "./stage-derivation";
+import { deriveStage } from "./stage-derivation";
 import { currentIterateEvents, summarizeTranscript } from "./narrator-transcript";
 import { parseSessionJsonl } from "../external/session-parser";
 
@@ -40,78 +41,6 @@ const prLink = (n: number) => ({
 });
 
 const parse = (...e: Record<string, unknown>[]) => parseSessionJsonl(jsonl(...e)).events;
-
-describe("classifyEditPath — one authority for what an edit touched", () => {
-  it("separates product work from scope bookkeeping", () => {
-    expect(classifyEditPath("/repo/src/thing.ts")).toBe("product");
-    expect(classifyEditPath("/repo/client/src/lib/x.tsx")).toBe("product");
-    expect(classifyEditPath("/repo/.shipwright/planning/iterate/x/spec.md")).toBe("spec");
-    expect(classifyEditPath("/repo/CHANGELOG.md")).toBe("finalize");
-    // The measured real-world offenders (S4 probe over 114 iterate transcripts).
-    expect(classifyEditPath("/tmp/claude/xyz/scratchpad/probe.mjs")).toBe("incidental");
-    expect(classifyEditPath("C:/Users/x/.claude/projects/p/memory/note.md")).toBe("incidental");
-    expect(classifyEditPath("/repo/.shipwright/agent_docs/architecture.md")).toBe("incidental");
-    expect(classifyEditPath("/repo/plan.json")).toBe("incidental");
-    expect(classifyEditPath("/repo/todo.md")).toBe("incidental");
-  });
-
-  it("keeps the pre-existing anchoring — 'spec' as a substring is NOT the Spec stage", () => {
-    expect(classifyEditPath("/repo/src/specification.ts")).toBe("product");
-    expect(classifyEditPath("/repo/src/login.spec.ts")).toBe("product");
-    expect(classifyEditPath("/repo/src/inspect.ts")).toBe("product");
-  });
-
-  it("normalises Windows separators (io-boundary probe)", () => {
-    expect(classifyEditPath("C:\\repo\\.shipwright\\planning\\spec.md")).toBe("spec");
-    expect(classifyEditPath("C:\\repo\\scratchpad\\probe.py")).toBe("incidental");
-  });
-
-  // External plan review, Gemini finding 2 / GPT finding 6: a LOOSE substring
-  // match on "plan" / "todo" / "scratch" would misclassify ordinary application
-  // files as incidental and silently suppress a real Build. The anchors are
-  // filename- and segment-exact; these lock that in.
-  it("does NOT swallow application files whose names merely contain plan/todo/scratch", () => {
-    for (const p of [
-      "/repo/src/features/subscription-plan.ts",
-      "/repo/src/components/todo-list.tsx",
-      "/repo/src/lib/planner.ts",
-      "/repo/src/scratchpad-view.tsx",
-      "/repo/src/memory-cache.ts",
-      "/repo/src/utils/plan.json.ts",
-      "/repo/src/logger.ts",
-    ]) {
-      expect(classifyEditPath(p)).toBe("product");
-    }
-  });
-
-  it("an empty / missing path is product, not silently incidental", () => {
-    // A malformed tool_use with no file_path must not be treated as scope work —
-    // that would be an unreadable value folding into a benign one.
-    expect(classifyEditPath("")).toBe("product");
-  });
-});
-
-describe("evidence is STRUCTURAL — prose cannot spoof a stage", () => {
-  // External plan review, GPT findings 5 + 11: markers are read from `tool_use`
-  // blocks only. A message that merely MENTIONS a command must not move the
-  // stepper — transcript prose is untrusted third-party input.
-  it("a user or assistant message naming commands evidences nothing", () => {
-    const prose = parse(
-      { type: "user", message: { content: "run npm run build then git push and gh pr create" } },
-      {
-        type: "assistant",
-        message: { content: [{ type: "text", text: "I will npm run test and git commit next." }] },
-      },
-    );
-    expect(deriveStage(prose, { scenario: "iterate" }).stage).toBeNull();
-    expect(deriveStage(prose, { scenario: "plain" }).activity).toBeNull();
-  });
-
-  it("only a real tool_use moves it", () => {
-    const real = parse(toolUse("Bash", { command: "npm run test" }));
-    expect(deriveStage(real, { scenario: "iterate" }).stage).toBe("Test");
-  });
-});
 
 describe("AC1 — Analyze holds through scope + calibration", () => {
   // THE REGRESSION. Pre-S4 this returned "Build": the scratchpad write set the
@@ -246,6 +175,40 @@ describe("AC3 — currentIterateEvents windowing preserved", () => {
     expect(deriveStage(events, { scenario: "campaign" }).stage).toBe("Merge"); // un-windowed
     expect(deriveStage(currentIterateEvents(events), { scenario: "campaign" }).stage).toBe("Build");
     expect(summarizeTranscript(twoSubIterates, { scenario: "campaign" }).stage).toBe("Build");
+  });
+
+  // FIX 1 (internal code review). `pr-link` set `start = i + 1`, dropping the
+  // Merge evidence out of the window; the clamp only rescued a `pr-link` that
+  // was the LAST event. One housekeeping write after it and the window became
+  // just that write — incidental, therefore scope — so the stepper travelled
+  // BACKWARDS to Analyze on a session that had already opened its PR.
+  it("does NOT walk backwards to Analyze when housekeeping follows the PR", () => {
+    for (const tail of [
+      toolUse("Write", { file_path: "/home/u/.claude/projects/p/memory/note.md" }),
+      toolUse("Write", { file_path: "/repo/scratchpad/probe.mjs" }),
+      toolUse("Read", { file_path: "/repo/README.md" }),
+      toolUse("TodoWrite", {}),
+    ]) {
+      const content = jsonl(
+        slashCommand("shipwright-iterate"),
+        toolUse("Edit", { file_path: "/repo/src/one.ts" }),
+        toolUse("Bash", { command: "git push origin HEAD" }),
+        prLink(1),
+        tail,
+      );
+      expect(summarizeTranscript(content, { scenario: "iterate" }).stage).toBe("Merge");
+    }
+  });
+
+  it("but REAL work after the PR does start the next unit", () => {
+    // The boundary still holds where it was designed to: a product edit after
+    // the PR is the next sub-iterate beginning, not this one's tail.
+    const content = jsonl(
+      toolUse("Edit", { file_path: "/repo/src/one.ts" }),
+      prLink(1),
+      toolUse("Edit", { file_path: "/repo/src/two.ts" }),
+    );
+    expect(summarizeTranscript(content, { scenario: "campaign" }).stage).toBe("Build");
   });
 
   it("a campaign whose current sub-iterate is still scouting reads Analyze, not the prior Merge", () => {

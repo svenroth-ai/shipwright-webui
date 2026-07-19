@@ -168,13 +168,44 @@ Probes were empirical, not assertions of confidence.
 - **Probe 4** — audited every session whose FINAL stage changed. **No findings:**
   each was a post-PR window containing only memory/scratch writes. Honest.
 
-**Asymptote:** probes 3 and 4 are two consecutive passes with no defect found.
-Boundary declared calibrated.
+**Asymptote:** probes 3 and 4 were two consecutive passes with no defect found,
+so the boundary was declared calibrated. **That declaration was wrong**, and the
+next section says why.
 
 **Not probed, and why acceptable:** transcripts from other Claude Code major
 versions (the parser layer already normalises event shapes and is separately
 tested); non-Shipwright repositories (the markers are Shipwright-specific by
 design, and an unrecognised session correctly degrades to the coarse read).
+
+### Probe blind spot (internal code review, post-hoc)
+
+**Probe 3 is a differential probe: it compares before-vs-after on the same
+inputs. It is therefore structurally incapable of surfacing a defect present in
+BOTH versions.** Probes 1 and 2 measured the world; probe 4 audited only the
+sessions probe 3 had already flagged as changed. So the whole battery inherited
+probe 3's blind spot, and three defects walked straight through it:
+
+- **The backwards-to-Analyze bug (FIX 1).** Probe 4 looked *directly* at these
+  windows — post-`pr-link` tails containing only memory/scratch writes — and
+  recorded "each was a post-PR window containing only memory/scratch writes.
+  Honest." It confirmed the window's *contents* and never asked whether the
+  *stage* those contents produced was right. Pre-S4 that window read Build,
+  post-S4 Analyze; both wrong, so the diff was silent and the audit rationalised
+  its own hit. **An audit that explains a finding instead of testing it is not an
+  audit.**
+- **The furthest-along `activity` (FIX 2)** and **the loose `changelog`
+  substring (FIX 3)** were likewise unchanged-and-wrong in both versions.
+
+What the probes did establish stands: probe 3's byte-identical
+Merge/Test/Finalize distributions are a real falsifier that an over-sticky fix
+would have tripped. The lesson is about **coverage, not validity**: a
+differential probe needs an absolute companion — assert the stage a known window
+*should* yield, not merely that it changed. The FIX 1–4 tests are that
+companion, which is why they are written as absolute expectations.
+
+**Revised asymptote claim:** the incidental-edit boundary is calibrated; the
+*window-boundary* and *activity-tail* boundaries were not probed at all until
+the code review found them by reading.
 
 ## External-Plan-Review-Findings
 
@@ -212,3 +243,21 @@ design, and an unrecognised session correctly degrades to the coarse read).
 Gemini's code-review response returned malformed (it emitted partial reasoning
 about a `toolPath` helper rather than findings). Checked its concern anyway:
 `toolPath`/`toolCommand` both remain in use by the narration path — no dead code.
+
+## Internal-Code-Review-Findings (cascade, post-PR)
+
+All four fixes are behaviour bugs the external reviewers and my own probes
+missed. Each is pinned by an absolute-expectation test, and each was verified to
+FAIL against its own reverted fix (five separate reverts, 9 tests).
+
+| # | Sev | Finding | Disposition |
+|---|---|---|---|
+| I1 | High | Stepper walks BACKWARDS to Analyze once housekeeping follows the `pr-link`: the boundary dropped the Merge evidence and the clamp only rescued a trailing `pr-link` | **accepted-and-fixed** — the `pr-link` boundary is withdrawn unless REAL work follows it |
+| I2 | High | `activity` was a furthest-along maximum over an order-INDEPENDENT marker set, rendered as `aria-label="current activity: …"` — contradicting the narration panel beside it | **accepted-and-fixed** — `lastActivity` is a tail scan |
+| I3 | Med | `classifyEditPath`'s first rule was a bare substring, contradicting the file's own doc: `ChangelogPanel.tsx` classified as `finalize` | **accepted-and-fixed** — segment-anchored; guard loop extended |
+| I4 | Med | `gh pr view` / `gh run list` / `cat CHANGELOG.md` / `cat vitest.config.ts` claimed their phases — the same name-vs-evidence class as C1, left unswept | **accepted-and-fixed** — verb markers require a command position; script markers stay unanchored because they are arguments by nature |
+| I5 | Low | `custom_actions` mapped onto the `null` unresolved sentinel — Asymmetry A running backwards | **accepted-and-fixed** — `stageScenario()` maps it to `plain` |
+| I6 | Low | A window with events but zero markers returned `basis: "coarse_activity"` with null values | **accepted-and-fixed** — collapses to `NOTHING` |
+| I7 | Low | `inferStage` had no production callers; its "kept for existing callers" comment was stale | **accepted-and-fixed** — removed; the two windowing tests call `deriveStage` |
+| I8 | Low | `doc-sync` `REQUIRED_TOKENS` not extended | **accepted-and-fixed** — added `stage-markers` + `stage-derivation`. NOTE: S1–S3 share this omission; campaign-wide follow-up, not S4's to close |
+| I9 | Info | `schemaVersion !== 1` nulls the context, so one server schema bump silently disables the AC4/AC5 gate for every card, with no signal | **recorded, not fixed** — inherited from the S1 compat design (`isSupportedSchema`); changing it here would alter S1's deliberate version-skew contract. Worth a campaign-level follow-up: the gate should degrade to "unresolved" loudly rather than silently |

@@ -25,6 +25,7 @@ import {
   type ParsedEvent,
 } from "../external/session-parser";
 import { sanitizeProofText } from "./proofLines";
+import { collectMarkers } from "./stage-markers";
 import {
   deriveStage,
   isIterateStart,
@@ -179,7 +180,7 @@ function topicFor(ev: ParsedEvent): string | null {
 }
 
 /**
- * The events belonging to the CURRENT (sub-)iterate (FR-01.67 AC2). `inferStage`
+ * The events belonging to the CURRENT (sub-)iterate (FR-01.67 AC2). `deriveStage`
  * OR-latches forward and never resets, which is correct for a single iterate but
  * WRONG for a campaign: once sub-iterate #1 opens a PR, Merge would latch for the
  * whole multi-hour session and the stepper would read "Merge" while sub-iterate
@@ -188,9 +189,16 @@ function topicFor(ev: ParsedEvent): string | null {
  * The current iterate begins at the LATEST boundary — its `/shipwright-iterate`
  * kickoff (inclusive), OR the event right AFTER a prior sub-iterate's terminal
  * `pr-link`. A forward scan keeps the last such boundary; a plain single iterate
- * has none, so the slice is the whole transcript (unchanged behaviour). A pr-link
- * with NOTHING after it is the CURRENT iterate's own Merge (its PR just opened),
- * so the boundary is clamped to keep it in view (never an empty window).
+ * has none, so the slice is the whole transcript (unchanged behaviour).
+ *
+ * A `pr-link` boundary only holds when REAL new work follows it. Otherwise the
+ * PR belongs to the CURRENT iterate and the boundary is withdrawn so its Merge
+ * stays in view. Without that, a tail of `[pr-link, Write memory/note.md]` cut
+ * the window to the note alone — an incidental write, which reads as scope — and
+ * the stepper travelled BACKWARDS to Analyze after the PR had already opened.
+ * The old clamp only rescued a `pr-link` that was the very last event, so any
+ * housekeeping write after it re-opened the hole. (Pre-S4 the same window read
+ * "Build", also wrong; S4 made it land on the first stage, which reads worse.)
  *
  * NOTE: the spec also names `work_completed`, but that lives in
  * `shipwright_events.jsonl`, NOT the Claude `<uuid>.jsonl` this reads
@@ -200,32 +208,32 @@ export function currentIterateEvents(
   events: readonly ParsedEvent[],
 ): readonly ParsedEvent[] {
   let start = 0;
+  let boundaryWasPrLink = false;
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
     if (ev.kind === "slash-command" && isIterateStart(ev.commandName)) {
       start = i; // a (sub-)iterate begins AT its kickoff (inclusive)
+      boundaryWasPrLink = false;
     } else if (ev.kind === "pr-link") {
       start = i + 1; // a prior sub-iterate ended; the next begins after it
+      boundaryWasPrLink = true;
     }
   }
-  // A trailing pr-link pushed `start` past the end — back off to keep it in view.
-  if (start >= events.length) start = events.length - 1;
+  // A pr-link boundary with no REAL work after it was not a boundary at all —
+  // withdraw it so this iterate keeps its own Merge. Scope reads and incidental
+  // housekeeping writes do not start a new iterate; a kickoff or real work does.
+  if (boundaryWasPrLink && !startsRealWork(events.slice(start))) {
+    start -= 1;
+  }
   return start > 0 ? events.slice(start) : events;
 }
 
-/**
- * The lifecycle stage for a transcript window — a thin wrapper over the S4
- * derivation (`stage-derivation.ts`), kept for the existing callers.
- *
- * There is exactly ONE implementation: this delegates rather than mirroring the
- * rules, so the sticky-Analyze fix cannot be applied here and missed there.
- * Callers run it over `currentIterateEvents` (AC2).
- */
-export function inferStage(
-  events: readonly ParsedEvent[],
-  options?: StageOptions,
-): LifecycleStage | null {
-  return deriveStage(events, options).stage;
+/** Does this tail contain evidence of a NEW iterate's work, as opposed to
+ *  post-PR housekeeping (scope reads, scratch/memory writes, prose)? */
+function startsRealWork(tail: readonly ParsedEvent[]): boolean {
+  if (tail.length === 0) return false;
+  const m = collectMarkers(tail);
+  return m.spec || m.build || m.test || m.finalize || m.merge || m.productEdit;
 }
 
 /**

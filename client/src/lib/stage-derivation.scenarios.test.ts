@@ -107,6 +107,37 @@ describe("AC5 — a plain / pure session gets a coarse read, never a fabricated 
     expect(d.basis).toBe("coarse_activity");
   });
 
+  // FIX 2 (internal code review). `coarseActivity` was a fixed-priority scan
+  // over an explicitly order-INDEPENDENT marker set, i.e. the furthest-along
+  // thing ANYWHERE in the window — then rendered as `aria-label="current
+  // activity: …"`. A session that ran the tests once and then read code for
+  // twenty minutes claimed "Running tests" while the narration panel beside it
+  // said "Reading foo.ts": two panels on the same card, the confident one wrong.
+  it("reports what it is doing NOW, not the furthest-along thing it ever did", () => {
+    const ranThenRead = parse(
+      toolUse("Bash", { command: "npm run test" }),
+      toolUse("Read", { file_path: "/repo/src/foo.ts" }),
+      toolUse("Read", { file_path: "/repo/src/bar.ts" }),
+    );
+    expect(deriveStage(ranThenRead, { scenario: "plain" }).activity).toBe("Reading the code");
+
+    // ...and the reverse order genuinely reports the tests.
+    const readThenRan = parse(
+      toolUse("Read", { file_path: "/repo/src/foo.ts" }),
+      toolUse("Bash", { command: "npm run test" }),
+    );
+    expect(deriveStage(readThenRan, { scenario: "plain" }).activity).toBe("Running tests");
+  });
+
+  it("a window with events but nothing recognisable evidences NOTHING", () => {
+    const prose = parse({ type: "assistant", message: { content: [{ type: "text", text: "hm" }] } });
+    expect(deriveStage(prose, { scenario: "plain" })).toEqual({
+      stage: null,
+      activity: null,
+      basis: "none",
+    });
+  });
+
   it("reads the coarse activity off the same strong markers", () => {
     const of = (...e: Record<string, unknown>[]) =>
       deriveStage(parse(...e), { scenario: "plain" }).activity;

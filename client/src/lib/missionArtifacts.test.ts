@@ -25,6 +25,7 @@ import {
   testFrLabel,
   layerWord,
   testChangeWord,
+  stageScenario,
 } from "./missionArtifacts";
 import type { ArtifactDescriptor, ArtifactState, MissionContext } from "./missionContextApi";
 
@@ -228,5 +229,28 @@ describe("Slice-2 wording (the honesty rules)", () => {
     expect(layerWord(null)).toBe("unknown layer");
     expect(testChangeWord("modified")).toBe("changed");
     expect(testChangeWord("removed")).toBe("removed");
+  });
+});
+
+describe("stageScenario — the S4 stage gate's view of the scenario", () => {
+  const ctx = (scenario: string) =>
+    ({ schemaVersion: 1, scenario, artifacts: [] } as unknown as Parameters<typeof stageScenario>[0]);
+
+  it("passes the four lifecycle-bearing scenarios through unchanged", () => {
+    for (const s of ["iterate", "pipeline", "campaign", "plain"] as const) {
+      expect(stageScenario(ctx(s))).toBe(s);
+    }
+  });
+
+  it("maps custom_actions to `plain`, NOT to the unresolved sentinel", () => {
+    // Internal code review: routing a POSITIVELY resolved non-iterate through
+    // `null` ran the unresolved asymmetry backwards — a card the server said is
+    // not an iterate would take the iterate branch, sticky-Analyze included.
+    expect(stageScenario(ctx("custom_actions"))).toBe("plain");
+  });
+
+  it("an absent context stays unresolved — `null`, which is a different claim", () => {
+    expect(stageScenario(null)).toBeNull();
+    expect(stageScenario(undefined)).toBeNull();
   });
 });
