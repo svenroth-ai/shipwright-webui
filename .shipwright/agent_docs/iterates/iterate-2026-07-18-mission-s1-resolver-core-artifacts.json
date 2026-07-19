@@ -1,0 +1,21 @@
+{
+  "run_id": "iterate-2026-07-18-mission-s1-resolver-core-artifacts",
+  "date": "2026-07-19T06:15:59.340274Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/campaign-S1-mission-resolver-core-artifacts",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-18-mission-s1-resolver-core-artifacts",
+  "spec": ".shipwright/planning/iterate/campaigns/2026-07-18-mission-artifacts/sub-iterates/S1-resolver-core-artifacts.md",
+  "spec_impact": "modify",
+  "affected_frs": [
+    "FR-01.66"
+  ],
+  "new_frs": [],
+  "architecture_impact": [
+    "component"
+  ],
+  "campaign": "2026-07-18-mission-artifacts",
+  "sub_iterate_id": "S1",
+  "untested_testable": 0
+}
