@@ -74,7 +74,7 @@ function mergeHarness(root: string, task: ExternalTask) {
     readTranscriptTail: async () => `opened ${PR_URL}`,
     getScenarioFacts: async () => ({
       actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
-      hasValidRunConfig: false,
+      runConfigStatus: "missing",
       campaignSlug: null,
       hasCampaignRecord: false,
     }),
@@ -190,7 +190,7 @@ describe("merge state across resolver cache hits", () => {
           "see https://github.com/svenroth-ai/shipwright/pull/290 for context",
         getScenarioFacts: async () => ({
           actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
-          hasValidRunConfig: false,
+          runConfigStatus: "missing",
           campaignSlug: null,
           hasCampaignRecord: false,
         }),

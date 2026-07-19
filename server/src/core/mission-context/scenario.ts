@@ -32,6 +32,26 @@ export const BUILTIN_ACTION_IDS: ReadonlySet<string> = new Set([
   "new-plain",
 ]);
 
+/**
+ * What we know about the project's SDLC run-config — THREE states, not a boolean.
+ *
+ * `RunConfigReadResult` has four (`ok` / `missing` / `v1_legacy` / `invalid`) and
+ * only ONE of them, `missing`, is evidence that the project does not run the
+ * pipeline. A config that is present but corrupt, legacy, or written to a schema
+ * this build does not know is a config we COULD NOT READ — which says nothing
+ * about whether the project is an SDLC project.
+ *
+ * Collapsing the other three into "no run-config" is how an unreadable file
+ * silently deletes the Mission tab (internal code review, BLOCKING).
+ */
+export type RunConfigPresence =
+  /** Parsed as a valid v2 config — the project demonstrably runs the pipeline. */
+  | "ok"
+  /** No run-config file at all — the ONLY state that permits a hide. */
+  | "missing"
+  /** Present but unparseable / legacy / unknown schema / unreadable. We do not know. */
+  | "unreadable";
+
 export interface ScenarioInputs {
   /** Result of reading `.shipwright/iterate_active/<uuid>.json`. */
   pointer: ReadPointerResult;
@@ -55,8 +75,8 @@ export interface ScenarioInputs {
     /** Every resolved action id. */
     actionIds: readonly string[];
   } | null;
-  /** True when the project has a VALID SDLC run-config (status === "ok"). */
-  hasValidRunConfig: boolean;
+  /** What we know about the project's SDLC run-config. See `RunConfigPresence`. */
+  runConfigStatus: RunConfigPresence;
   /** The task's phase-task linkage (scenario 3). */
   phaseTaskId: string | null;
   taskRunId: string | null;
@@ -68,19 +88,43 @@ export interface ScenarioInputs {
 /**
  * Is this project VALIDLY in custom-actions mode?
  *
- * All four must hold — the conjunction is the point. Presence of an
+ * Every clause must hold — the conjunction is the point. Presence of an
  * actions.json is explicitly NOT sufficient (§4 precedence 1).
+ *
+ * S3 — the `actionIds: readonly string[]` type is a CLAIM, not a guarantee: the
+ * values cross a JSON boundary (`.shipwright-webui/actions.json`) where nothing
+ * enforces it. MEASURED on the real loader + a real temp project (S3 probe):
+ * `{"schemaVersion":1,"actions":[{"foo":"bar"}]}` parses fine, the loader reports
+ * `fromUser: true` with ZERO diagnostics because `JSON.parse` succeeded and
+ * `checkContractVersion` only WARNS, and `facts.ts` maps `a.id` to `undefined`.
+ * That produced a one-element id list matching no builtin — and this function
+ * returned true, HIDING the Mission tab for a project whose actions file is
+ * simply the wrong shape. Malformed and truncated files were already safe (they
+ * throw, so the loader falls back to the bundled default); valid-JSON-wrong-shape
+ * was the hole between "parses" and "means anything".
+ *
+ * The asymmetry is deliberate and load-bearing: hiding a whole tab is
+ * irreversible from the user's side and gives no error and no cause, so EVERY
+ * ambiguous input must resolve to SHOWING (CONTRACT §4.1, Review-2 GPT #12).
  */
 export function isValidatedCustomActions(inputs: ScenarioInputs): boolean {
   const a = inputs.actions;
   if (!a) return false;
   if (!a.fromUser) return false; // bundled default → an ordinary SDLC project
   if (a.hasDiagnostics) return false; // malformed / partially parsed → ambiguous
+  if (!Array.isArray(a.actionIds)) return false; // not even a list → ambiguous
   if (a.actionIds.length === 0) return false; // nothing resolved → ambiguous
+  // A file whose entries carry no usable id is the wrong SHAPE, not a catalog of
+  // custom actions. We cannot tell what it declares, so we must not act on it.
+  if (!a.actionIds.every((id) => typeof id === "string" && id.length > 0)) return false;
   // Dual-mode: a builtin SDLC action survives alongside the custom ones.
   if (a.actionIds.some((id) => BUILTIN_ACTION_IDS.has(id))) return false;
-  // A valid SDLC run-config means the project genuinely runs the pipeline too.
-  if (inputs.hasValidRunConfig) return false;
+  // ONLY a definitively ABSENT run-config permits the hide. `ok` means the
+  // project runs the pipeline too (dual mode); `unreadable` means we could not
+  // find out, and "we could not read it" is not "it is not there" — the same
+  // rule the actions catalog above already follows, where every read failure
+  // short-circuits to false.
+  if (inputs.runConfigStatus !== "missing") return false;
   return true;
 }
 

@@ -27,6 +27,11 @@ import { frRowLabel } from "../../../lib/missionArtifacts";
 import { useArtifactDocument } from "../../../hooks/useMissionContext";
 import { DocumentMarkdown } from "../SmartViewer/DocumentMarkdown";
 import { DecisionsDetail, ReviewDetail, TestsDetail } from "./MissionSlice2Details";
+import {
+  CampaignProgressDetail,
+  PhaseDetail,
+  SubIterateDetail,
+} from "./MissionSlice3Details";
 
 interface Props {
   taskId: string;
@@ -119,6 +124,22 @@ function ArtifactDetail({ taskId, artifact }: { taskId: string; artifact: Artifa
       return <DecisionsDetail artifact={artifact} />;
     case "commit":
       return <CommitDetail artifact={artifact} />;
+    // S3 — pipeline
+    case "phase":
+      return <PhaseDetail artifact={artifact} />;
+    // S3 — campaign. The RUNBOOK is a Markdown document like the spec, so it
+    // reuses the same fetch-on-click renderer rather than a second one.
+    case "campaign_runbook":
+      return <SpecDetail taskId={taskId} documentId={artifact.detail?.documentId ?? null} />;
+    case "campaign_progress":
+      return <CampaignProgressDetail artifact={artifact} />;
+    case "sub_iterate":
+      return (
+        <SubIterateDetail
+          artifact={artifact}
+          renderDocument={(id) => <SpecDetail taskId={taskId} documentId={id} />}
+        />
+      );
   }
 }
 

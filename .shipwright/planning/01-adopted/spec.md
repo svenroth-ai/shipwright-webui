@@ -801,6 +801,33 @@ write surface; gated, path-guarded, and concurrency-safe.
   traceability index likewise reports its requirement links as unresolved rather than
   as empty. All new sources join `sourceRev`, so a review marker written after the run
   finished still refreshes. No new endpoint and no second write surface.
+- (J) **(iterate-2026-07-19-mission-s3-pipeline-campaign-polish)** A **pipeline phase
+  task** and a **campaign** now resolve their own artifacts natively instead of falling
+  back to the finished-run rail. A phase task is matched on its **exact
+  `phaseTaskId`** in run-config v2 `phase_tasks[]` — never on the phase name or the
+  session, because a run holds several tasks per phase once splits exist and a looser
+  match would attribute one split's work to another; it renders a **Phase** card (step,
+  part, plain-language state, timings, re-run count, recorded errors and outputs) plus
+  the project's adopted specification, which is also where its requirements table
+  lives. Recorded output paths are shown as text, never as links: the producer writes
+  them with no documented root, so a link built from one would be a guess. A **campaign**
+  renders campaign-level artifacts (**brief · runbook · progress**) and the single
+  **current unit** as separate, clearly-labelled things, so one unit's commit or test
+  count can never read as the campaign's; the current unit is chosen by a stated rule
+  (running → first unfinished, which includes a failed or escalated unit → otherwise the
+  last), and the basis travels with the answer. Its documents are pinned to that
+  campaign's **own** slug and its `sub-iterates` directory, so another campaign's
+  document can never appear as this unit's brief. Unrecorded test counts read "not
+  recorded" and never "0 of 0". A run-config or campaign store that cannot be READ
+  renders "currently unavailable"; only a genuinely empty record hides. Neither scenario
+  is cached, so a live `status.json` or run-config change is picked up immediately.
+  The **Mission tab is hidden entirely** only for a project in a **validated**
+  custom-actions mode with no valid SDLC run-config; every ambiguous file — malformed,
+  truncated, empty, a valid JSON document of the wrong shape, unreadable, or dual-mode —
+  falls back to **showing** the tab, and a tab hidden while it was the active view falls
+  back to Files & Terminal rather than an empty pane. Left-panel typography completes the
+  label-versus-value hierarchy with no motion added. No new endpoint, no second write
+  surface, terminal byte-identical.
 
 ## Quality Requirements
 

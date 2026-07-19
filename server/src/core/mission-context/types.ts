@@ -21,6 +21,12 @@ import type {
   ReviewArtifact,
   TestsArtifact,
 } from "./types-slice2.js";
+import type {
+  CampaignProgressArtifact,
+  CampaignRunbookArtifact,
+  PhaseArtifact,
+  SubIterateArtifact,
+} from "./types-slice3.js";
 
 /** Bump when a field is removed or re-typed; additive fields do not bump. */
 export const MISSION_CONTEXT_SCHEMA_VERSION = 1 as const;
@@ -45,14 +51,29 @@ export type ArtifactState =
   | "unavailable"
   | "error";
 
-/** All six §6 artifacts — Slice 1 shipped spec/requirement/commit, Slice 2 the rest. */
+/**
+ * Every artifact kind on the rail.
+ *
+ * The §6 SIX (spec · requirement · tests · review · decisions · commit) describe
+ * an ITERATE and are unchanged. S3 adds four kinds that belong to the other two
+ * scenarios and are never emitted for an iterate: `phase` (a pipeline phase
+ * task) and the three campaign kinds. They are separate kinds rather than
+ * reused ones precisely because a campaign's progress is not an iterate's
+ * "tests", and pretending otherwise is how a rail starts lying.
+ */
 export type ArtifactKind =
   | "spec"
   | "requirement"
   | "tests"
   | "review"
   | "decisions"
-  | "commit";
+  | "commit"
+  // S3 — pipeline (scenario 3)
+  | "phase"
+  // S3 — campaign (scenario 5). `spec` doubles as the campaign BRIEF.
+  | "campaign_runbook"
+  | "campaign_progress"
+  | "sub_iterate";
 
 export interface ArtifactBase {
   kind: ArtifactKind;
@@ -148,7 +169,11 @@ export type ArtifactDescriptor =
   | TestsArtifact
   | ReviewArtifact
   | DecisionsArtifact
-  | CommitArtifact;
+  | CommitArtifact
+  | PhaseArtifact
+  | CampaignRunbookArtifact
+  | CampaignProgressArtifact
+  | SubIterateArtifact;
 
 export type {
   DecisionEntryView,
@@ -163,6 +188,18 @@ export type {
   TestRow,
   TestsArtifact,
 } from "./types-slice2.js";
+
+export type {
+  CampaignProgressArtifact,
+  CampaignProgressDetail,
+  CampaignRunbookArtifact,
+  CampaignSubIterateRow,
+  PhaseArtifact,
+  PhaseDetail,
+  SubIterateArtifact,
+  SubIterateDetail,
+  SubIterateSelection,
+} from "./types-slice3.js";
 
 export interface MissionTests {
   passed: number | null;

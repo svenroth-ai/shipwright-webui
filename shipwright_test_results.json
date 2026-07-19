@@ -1,13 +1,11 @@
 {
   "last_updated": "2026-07-17",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-17-form-greybeige-button-standard",
-    "date": "2026-07-17",
+    "run_id": "iterate-2026-07-19-mission-s3-pipeline-campaign-polish",
+    "date": "2026-07-19T00:40:59.059Z",
     "unit": {
-      "status": "passed",
-      "passed": 2697,
-      "total": 2697,
-      "note": "client vitest 295 files / 2697 passed (+2 fences: ModalShell grey-beige surface + MoreOptionsDisclosure expanded tone/frame; SimpleFields re-pinned to --surface-form-line). tsc clean; oxlint 0 errors. Server untouched (client-only restyle)."
+      "passed": 5461,
+      "total": 5462
     },
     "integration": {
       "status": "not_run",
@@ -21,10 +19,8 @@
       "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 3,
-      "total": 3,
-      "note": "Isolated stack on :3901 (built client + SHIPWRIGHT_STATIC_DIR + tsx, temp USERPROFILE). QA runs MEASURED rather than eyeballed: (1) computed backgroundColor of board/projects/ships-log/modal-Launch buttons all rgb(14,122,107); (2) bounding boxes h=36 + right edge 1233 + baseline within 1px; (3) form screenshots collapsed/expanded/hovered. Full visual+smoke gates run in CI."
+      "passed": 13,
+      "total": 13
     },
     "design_fidelity": {
       "status": "passed",
@@ -40,7 +36,7 @@
         {
           "behavior": "AC1 form sheet uses the grey-beige --surface-form, not the yellow --beige",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface…' PASSED + qa-form-newtask.png"
+          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface\u2026' PASSED + qa-form-newtask.png"
         },
         {
           "behavior": "AC2 labels/hints/helper copy use --body (>=4.5:1), not --color-muted",
@@ -55,7 +51,7 @@
         {
           "behavior": "AC4 More options: visible frame + darker tone persistently when expanded, hover steps darker",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded…' PASSED + qa-form-hover-moreoptions.png"
+          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded\u2026' PASSED + qa-form-hover-moreoptions.png"
         },
         {
           "behavior": "AC5 every task form variant (incl. Plain/pure-Claude) inherits AC1-AC4",
@@ -88,6 +84,15 @@
         "acs": 8,
         "covered_acs": 8
       }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/2e14a629-3752-417f-bd64-554586a44f93/scratchpad/s3-e2e-runner.mjs",
+      "exit_code": 0,
+      "tests_run": 13,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.shipwright\\runs\\iterate-2026-07-19-mission-s3-pipeline-campaign-polish\\surface_verification.log",
+      "timestamp": "2026-07-19T00:40:59.059Z",
+      "attempts": 1
     }
   }
 }

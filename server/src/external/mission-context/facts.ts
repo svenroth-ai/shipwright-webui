@@ -12,7 +12,9 @@
 import { loadActionsForProject } from "../../core/project-actions-loader.js";
 import { readCampaigns } from "../../core/campaign-store.js";
 import { resolveCampaignsDir } from "../../core/campaign-paths.js";
+import { buildPipelineFact, getCampaignFact } from "./facts-slice3.js";
 import type { RunConfigReadResult } from "../../core/run-config-reader.js";
+import type { RunConfigPresence } from "../../core/mission-context/scenario.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 import type { ResolveRequest } from "../../core/mission-context/resolver.js";
@@ -32,11 +34,31 @@ export function parseCampaignSlug(title: string | null | undefined): string | nu
   return slug.length > 0 ? slug : null;
 }
 
+/**
+ * `RunConfigReadResult` (4 states) → the 3 states the scenario gate needs.
+ *
+ * The mapping is the whole point: `missing` is the ONLY state that is evidence
+ * the project has no SDLC pipeline. `v1_legacy` and `invalid` both mean a config
+ * IS there and we could not read it as v2 — which is not the same claim at all.
+ * Sibling `facts-slice3.buildPipelineFact` already reasons this way for the
+ * pipeline fact; this is the same rule on the path where getting it wrong makes
+ * a whole tab disappear.
+ */
+export function runConfigPresence(result: RunConfigReadResult): RunConfigPresence {
+  if (result.status === "ok") return "ok";
+  if (result.status === "missing") return "missing";
+  return "unreadable";
+}
+
 export interface ScenarioFacts {
   actions: ResolveRequest["actions"];
-  hasValidRunConfig: boolean;
+  runConfigStatus: RunConfigPresence;
   campaignSlug: string | null;
   hasCampaignRecord: boolean;
+  /** S3 — the native pipeline fact (scenario 3). */
+  pipeline: ResolveRequest["pipeline"];
+  /** S3 — the native campaign fact (scenario 5). */
+  campaign: ResolveRequest["campaign"];
 }
 
 export interface FactsDeps {
@@ -65,12 +87,22 @@ export async function getScenarioFacts(
     actions = null; // unreadable catalog → ambiguous → never hide the tab
   }
 
-  let hasValidRunConfig = false;
+  // ONE run-config read serves both the custom-actions gate and the S3 pipeline
+  // fact — a second read could observe a different file mid-write and let the
+  // two disagree about the same run.
+  //
+  // A THROWN read (permissions, a locked file, a transient FS fault) degrades to
+  // `unreadable`, NEVER to `missing`. `missing` is the one state that permits
+  // hiding the Mission tab, so mapping an I/O failure onto it would let a
+  // transient fault delete a working surface — the same line the actions
+  // catalog above holds by degrading every failure to `actions = null`.
+  let runConfig: RunConfigReadResult;
   try {
-    hasValidRunConfig = (await deps.readRunConfig(project.path)).status === "ok";
+    runConfig = await deps.readRunConfig(project.path);
   } catch {
-    hasValidRunConfig = false;
+    runConfig = { status: "invalid", reason: "read_failed" };
   }
+  const runConfigStatus = runConfigPresence(runConfig);
 
   const campaignSlug = parseCampaignSlug(task.title);
   let hasCampaignRecord = false;
@@ -88,5 +120,15 @@ export async function getScenarioFacts(
     }
   }
 
-  return { actions, hasValidRunConfig, campaignSlug, hasCampaignRecord };
+  return {
+    actions,
+    runConfigStatus,
+    campaignSlug,
+    hasCampaignRecord,
+    pipeline: buildPipelineFact(runConfig, task.phaseTaskId ?? null, task.runId ?? null),
+    // Resolved only for a scenario that will actually use it; a `campaign:`
+    // title with no record stays `hasCampaignRecord: false` and never becomes
+    // a campaign, so there is nothing to read.
+    campaign: hasCampaignRecord ? getCampaignFact(project, campaignSlug) : null,
+  };
 }

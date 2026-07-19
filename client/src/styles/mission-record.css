@@ -123,11 +123,69 @@
   }
 }
 
+/* ── S3 typography refinement (CONTRACT §8, Slice 3) ──────────────────────
+   S1 shipped the MINIMUM hierarchy and deferred visual refinement to here.
+   This block is type + spacing ONLY: no colour token is invented, no glass
+   recipe is added, and NO animation is introduced — so the reduced-motion
+   floor is untouched and every rule below paints the same complete final
+   state under `prefers-reduced-motion: reduce` as without it. */
+
+/* The rail node was built as `<span class=rn-k>` + `<span class=rn-r>` inside a
+   span body, so both were INLINE: the receipt ran on after the label on one
+   line and `.rn-r { margin-top }` silently did nothing (margin-block has no
+   effect on a non-replaced inline box). Making them block is the actual
+   label-vs-value hierarchy §8 asks for, and it fixes BOTH rails at once —
+   `RecordNode` has the same markup. */
+.rec-node .rn-k, .rec-node .rn-r { display: block; }
+.rec-node .rn-r { line-height: 1.4; overflow-wrap: anywhere; }
+/* An inert node carries a NOTE rather than a receipt; it is prose, not a value,
+   so it gets prose leading and never truncates to a misleading fragment. */
+.rec-node.is-inert { cursor: default; }
+.rec-node.is-inert .rn-k { color: var(--muted); font-weight: 600; }
+.rec-node.is-inert .rn-r { color: var(--faint); }
+
+/* Left panel: separate the SECTION HEADS from their values more decisively —
+   the eyebrow is a label for the block, not a peer of the content under it. */
+.mc-left .eyebrow { margin-bottom: 2px; }
+/* DO-NOT #24 — `.record` scrolls and `.mc-left` makes it a column flex
+   container, so every direct child must keep its automatic minimum size or it
+   gets squeezed below its content, clipped, and the panel stops scrolling. */
+.mc-left > * { flex-shrink: 0; }
+.ml-summary { max-width: 46ch; }
+.ml-artifacts { gap: 2px; }
+
+/* ── Artifact panel detail bodies (the hooks S1 left unstyled) ───────────── */
+/* A definition list of small facts. Two columns so the labels form a scannable
+   left edge instead of interleaving with their values. */
+.artifact .a-meta { display: grid; grid-template-columns: minmax(88px, auto) 1fr; gap: 6px 14px; margin: 12px 0 0; font-size: 13px; }
+.artifact .a-meta dt { color: var(--muted); font-weight: 600; font-size: 12px; line-height: 1.5; }
+.artifact .a-meta dd { margin: 0; color: var(--body); line-height: 1.5; overflow-wrap: anywhere; }
+.artifact .a-meta code { font-family: var(--mono); font-size: 12px; }
+
+.artifact .a-rows { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--body); }
+.artifact .a-rows li { line-height: 1.45; overflow-wrap: anywhere; }
+/* The ONE current row in a campaign list. Marked by weight + an explicit word
+   ("current"), never by colour alone — the same a11y rule the stage stepper
+   follows. */
+.artifact .a-rows li[data-active="true"] { font-weight: 600; color: var(--ink); }
+.artifact .a-tag { font-weight: 600; color: var(--accent); font-size: 12px; }
+
+.artifact .a-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 10px 0 0; }
+.artifact .a-detail:empty { display: none; }
+
+/* Narrow screens: the rail and the panel both need to stay readable rather than
+   keeping a fixed width they no longer have room for. */
+@media (max-width: 1023px) {
+  .artifact .a-meta { grid-template-columns: 1fr; gap: 2px 0; }
+  .artifact .a-meta dd { margin-bottom: 8px; }
+}
+
 /* ── Slice-2 detail bodies: Tests RTM table + Review list ─────────────────
    MINIMUM legibility only. S1 deliberately shipped its detail hooks
    (.a-rows/.a-meta/.a-note) unstyled because CONTRACT §10 Slice 3 owns visual
    refinement; a <table>, unlike a <ul>, is unreadable without cell metrics, so
-   these rules stop at spacing/alignment and add no visual language. */
+   these rules stop at spacing/alignment and add no visual language.
+   S3 has now supplied that refinement in the block ABOVE. */
 .artifact .a-rtm { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
 .artifact .a-rtm th, .artifact .a-rtm td { text-align: left; vertical-align: top; padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); }
 .artifact .a-rtm th { font-weight: 600; color: var(--muted); white-space: nowrap; }
