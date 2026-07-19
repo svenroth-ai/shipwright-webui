@@ -151,22 +151,35 @@ describe("readRunDrops — the unnumbered half of the Decisions source", () => {
     }
   });
 
-  it("refuses a drop that symlinks out of the project root", () => {
+  it("never surfaces the content of a drop that symlinks out of the project root", () => {
     const root = makeProject();
     const outside = mkdtempSync(path.join(tmpdir(), "sw-outside-"));
     try {
       const target = path.join(outside, "secret.json");
+      // A file that would parse PERFECTLY as this run's drop if it were read.
       writeFileSync(target, JSON.stringify(validDrop({ title: "Exfiltrated" })), "utf-8");
       try {
         symlinkSync(target, path.join(root, ...DROPS, `${RUN}_001.json`));
       } catch {
         return; // no symlink privilege on this machine — skip, do not fake a pass
       }
+
       const r = readRunDrops(root, RUN);
       expect(r.status).toBe("ok");
       if (r.status !== "ok") return;
+
+      // The PROPERTY that matters is that the outside content never reaches the
+      // response — NOT which of the two guards stopped it. Two independent ones
+      // do, at different depths: `readdirSync(..., {withFileTypes:true})` reports
+      // a symlink as `isSymbolicLink()`, so `isFile()` filters it out before any
+      // path is built; and `realPathGuard` would refuse it afterwards anyway.
+      // An earlier version of this test asserted `malformed === 1`, i.e. that the
+      // SECOND guard was the one that fired — which is an implementation detail,
+      // and it was wrong: CI (Linux, where symlinks actually get created) proved
+      // the first guard fires first. Asserting the mechanism instead of the
+      // property made a passing test on Windows and a red one on Linux.
       expect(r.entries).toHaveLength(0);
-      expect(r.malformed).toBe(1);
+      expect(JSON.stringify(r.entries)).not.toContain("Exfiltrated");
     } finally {
       rmSync(root, { recursive: true, force: true });
       rmSync(outside, { recursive: true, force: true });
