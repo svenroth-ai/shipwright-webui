@@ -168,16 +168,31 @@ export interface ReviewArtifact extends ArtifactBase {
   detail: { type: "reviews"; rows: ReviewRow[] } | null;
 }
 
+/**
+ * `decision_log` — aggregated at release time, so it HAS an ADR number.
+ * `drop`         — recorded at the iterate's F3 and not yet published in a
+ *                  release, so it has no number. Real, just not numbered.
+ */
+export type DecisionSource = "decision_log" | "drop";
+
 export interface DecisionEntryView {
-  adrId: string;
+  /** null while the decision lives only as a drop. Never fabricated. */
+  adrId: string | null;
   title: string;
   /** The ADR block's own Markdown — the SECTION, never the whole log. */
   markdown: string;
+  source: DecisionSource;
 }
 
 export interface DecisionsArtifact extends ArtifactBase {
   kind: "decisions";
-  detail: { type: "decisions"; entries: DecisionEntryView[]; truncated: boolean } | null;
+  detail: {
+    type: "decisions";
+    entries: DecisionEntryView[];
+    truncated: boolean;
+    /** Drop files that matched this run but could not be read. */
+    malformedCount: number;
+  } | null;
 }
 
 export type ArtifactDescriptor =

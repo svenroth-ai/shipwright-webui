@@ -1,6 +1,9 @@
 /*
- * core/mission-context/artifacts-slice2.ts — the Tests · Review · Decisions
- * descriptors (CONTRACT §6 rows 3–5, campaign 2026-07-18-mission-artifacts).
+ * core/mission-context/artifacts-slice2.ts — the Tests · Review descriptors
+ * (CONTRACT §6 rows 3–4, campaign 2026-07-18-mission-artifacts).
+ *
+ * Decisions (row 5) moved to `artifacts-decisions.ts` when it grew a second
+ * source; the state discipline described below governs all three alike.
  *
  * Same register as artifacts.ts: Mission is FOR NON-EXPERTS, so every `summary`
  * says what the thing MEANS ("this change added three tests and removed one"),
@@ -25,9 +28,7 @@ import type { TestsDiff } from "./tests-diff.js";
 import { inferLayer } from "./tests-diff.js";
 import type { TraceabilityIndex } from "./traceability.js";
 import type { ReviewLookup } from "./review-state.js";
-import type { DecisionsLookup } from "./decisions.js";
 import type {
-  DecisionsArtifact,
   ReviewArtifact,
   ReviewRow,
   TestRow,
@@ -225,53 +226,4 @@ export function buildReviewArtifact(lookup: ReviewLookup): ReviewArtifact {
 /** Plain-language name for a review type — used by the client too (mirrored). */
 export function reviewWord(t: ReviewRow["reviewType"]): string {
   return REVIEW_WORD[t];
-}
-
-// ---------------------------------------------------------------------------
-// Decisions
-// ---------------------------------------------------------------------------
-
-export function buildDecisionsArtifact(
-  lookup: DecisionsLookup,
-  events: EventLookup,
-): DecisionsArtifact {
-  if (lookup.status === "unavailable") {
-    return {
-      kind: "decisions",
-      label: "Decisions",
-      state: "unavailable",
-      summary: null,
-      receipt: null,
-      note: "The decision record could not be read.",
-      detail: null,
-    };
-  }
-
-  if (lookup.entries.length === 0) {
-    // The log WAS read. Whether this is "not yet" or "never" depends only on
-    // whether the run has finished — both hide, but the state stays truthful.
-    return {
-      kind: "decisions",
-      label: "Decisions",
-      state: events.status === "found" ? "not_applicable" : "not_yet_created",
-      summary: null,
-      receipt: null,
-      detail: null,
-    };
-  }
-
-  const titles = lookup.entries.map((e) => e.title || e.adrId);
-  const lead =
-    titles.length === 1
-      ? titles[0]
-      : `${titles[0]} and ${plural(titles.length - 1, "other decision", "other decisions")}`;
-
-  return {
-    kind: "decisions",
-    label: "Decisions",
-    state: "available",
-    summary: `${lead}.`,
-    receipt: lookup.entries.map((e) => e.adrId).join(", ").slice(0, 80),
-    detail: { type: "decisions", entries: lookup.entries, truncated: lookup.truncated },
-  };
 }

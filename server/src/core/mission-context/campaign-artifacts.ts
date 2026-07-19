@@ -20,6 +20,14 @@
  * unreadable count folded into "raised no issues".
  */
 
+import {
+  provenanceNote,
+  selectActiveStep,
+  type CampaignFact,
+  type CampaignFacts,
+  type CampaignStepFacts,
+  type ResolvedDoc,
+} from "./campaign-facts.js";
 import type {
   CampaignProgressArtifact,
   CampaignRunbookArtifact,
@@ -29,69 +37,16 @@ import type {
   SubIterateSelection,
 } from "./types.js";
 
-/** One sub-iterate as the campaign's own records describe it. */
-export interface CampaignStepFacts {
-  id: string;
-  title: string;
-  status: string;
-  /** Project-root-relative POSIX path to this unit's spec; null when absent. */
-  specPath: string | null;
-  commit: string | null;
-  branch: string | null;
-  testsPassed: number | null;
-  testsTotal: number | null;
-}
-
-export interface CampaignFacts {
-  slug: string;
-  intent: string | null;
-  lifecycle: string | null;
-  branchStrategy: string | null;
-  done: number;
-  total: number;
-  steps: CampaignStepFacts[];
-}
-
-/**
- * `unavailable` means the campaign store could not be read — NOT that the
- * campaign is empty. The distinction is the whole point of the state model.
- */
-export type CampaignFact =
-  | { status: "ok"; campaign: CampaignFacts }
-  | { status: "unavailable" };
-
-/** A resolved, existence-checked document the resolver has minted an id for. */
-export interface ResolvedDoc {
-  documentId: string;
-  title: string;
-}
-
-/**
- * Pick the ACTIVE sub-iterate, and record WHY.
- *
- * The basis travels on the wire (`selectedBy`) because "which one is running" is
- * a claim, and a claim whose basis is invisible drifts without anyone noticing.
- *
- *   1. a unit explicitly `in_progress`               → that one
- *   2. else the first unit that is not `complete`    → the one the campaign is
- *      blocked on. `failed` and `escalated` land here on purpose: a stuck unit
- *      IS the active one, and skipping past it would hide the problem.
- *   3. else (everything complete) the LAST unit      → a finished campaign shows
- *      where it ended rather than nothing at all.
- */
-export function selectActiveStep(
-  steps: readonly CampaignStepFacts[],
-): { step: CampaignStepFacts; selectedBy: SubIterateSelection } | null {
-  if (steps.length === 0) return null;
-
-  const running = steps.find((s) => s.status === "in_progress");
-  if (running) return { step: running, selectedBy: "in_progress" };
-
-  const incomplete = steps.find((s) => s.status !== "complete");
-  if (incomplete) return { step: incomplete, selectedBy: "first_incomplete" };
-
-  return { step: steps[steps.length - 1], selectedBy: "last_complete" };
-}
+// The vocabulary + the selection rule now live in `campaign-facts.ts`;
+// re-exported so no consumer's import site moved.
+export {
+  selectActiveStep,
+  type CampaignFact,
+  type CampaignFacts,
+  type CampaignProvenanceFacts,
+  type CampaignStepFacts,
+  type ResolvedDoc,
+} from "./campaign-facts.js";
 
 function unavailable<K extends string>(
   kind: K,
@@ -167,9 +122,9 @@ export function buildRunbookArtifact(
 
 function progressSummary(c: CampaignFacts, activeId: string | null): string {
   if (c.total === 0) return "This campaign has no units recorded yet.";
-  if (c.done >= c.total) return `All ${c.total} units are complete.`;
+  if (c.done >= c.total) return `All ${c.total} units are complete.${provenanceNote(c)}`;
   const tail = activeId ? ` Currently on ${activeId}.` : "";
-  return `${c.done} of ${c.total} units complete.${tail}`;
+  return `${c.done} of ${c.total} units complete.${tail}${provenanceNote(c)}`;
 }
 
 export function buildCampaignProgressArtifact(
@@ -185,6 +140,19 @@ export function buildCampaignProgressArtifact(
   }
 
   const c = fact.campaign;
+
+  // ZERO units AND a read that failed is not an empty campaign — it is a
+  // campaign we could not count. "This campaign has no units recorded yet."
+  // is a fact, and we do not have it. (Reachable when campaign.md parses to no
+  // table AND status.json is torn: the store still returns a campaign object,
+  // so `unavailable` never fired and the empty phrasing did.)
+  if (c.total === 0 && c.provenance.degraded) {
+    return unavailable(
+      "campaign_progress",
+      "Campaign progress",
+      "This campaign's records could not be read, so how far along it is could not be established.",
+    );
+  }
   const rows: CampaignSubIterateRow[] = c.steps.map((s) => ({
     id: s.id,
     title: s.title,
@@ -214,24 +182,37 @@ export function buildCampaignProgressArtifact(
 // Sub-iterate level
 // ---------------------------------------------------------------------------
 
+/**
+ * The status sentence, with its basis attached.
+ *
+ * "It is running now." is a claim about the present, and it was being made from
+ * whatever source happened to answer. The claim is still made — the fallback is
+ * useful — but it now carries where it came from.
+ */
 function subIterateSummary(
   step: CampaignStepFacts,
   selectedBy: SubIterateSelection,
+  c: CampaignFacts,
 ): string {
   const name = `${step.id} — ${step.title}`;
+  // THIS unit's own source, not the campaign's. A campaign whose status.json
+  // names S1 but not S2 reports `status_json` overall, and qualifying S2's
+  // claim with that would vouch for a row the live file never mentioned
+  // (external plan review, openai HIGH #5).
+  const basis = provenanceNote(c, step.statusSource);
   switch (step.status) {
     case "in_progress":
-      return `${name} is running now.`;
+      return `${name} is running now.${basis}`;
     case "complete":
       return selectedBy === "last_complete"
-        ? `${name} was the last unit, and it is complete.`
-        : `${name} is complete.`;
+        ? `${name} was the last unit, and it is complete.${basis}`
+        : `${name} is complete.${basis}`;
     case "failed":
-      return `${name} failed and is what the campaign is waiting on.`;
+      return `${name} failed and is what the campaign is waiting on.${basis}`;
     case "escalated":
-      return `${name} was escalated for a human decision.`;
+      return `${name} was escalated for a human decision.${basis}`;
     default:
-      return `${name} has not started yet.`;
+      return `${name} has not started yet.${basis}`;
   }
 }
 
@@ -267,7 +248,7 @@ export function buildSubIterateArtifact(
     kind: "sub_iterate",
     label,
     state: "available",
-    summary: subIterateSummary(step, selectedBy),
+    summary: subIterateSummary(step, selectedBy, fact.campaign),
     receipt: step.id,
     detail: {
       type: "sub_iterate",

@@ -828,6 +828,30 @@ write surface; gated, path-guarded, and concurrency-safe.
   back to Files & Terminal rather than an empty pane. Left-panel typography completes the
   label-versus-value hierarchy with no motion added. No new endpoint, no second write
   surface, terminal byte-identical.
+- (K) **(iterate-2026-07-19-mission-decisions-drops-store-honesty)** **Decisions** now
+  resolves from **decision-drops ∪ `decision_log.md`**, deduplicated by `run_id`. An
+  iterate records its decision at F3 as
+  `.shipwright/agent_docs/decision-drops/<run_id>_NNN.json`; the sequential `ADR-NNN`
+  and the log entry are assigned later, at release time, so between those two moments
+  the log is empty **by design** and the previous log-only reader showed nothing —
+  measured on this repository, that was the state of all 18 unreleased runs. The
+  **numbered log entry wins** when a run appears in both. A drop-sourced decision
+  renders as real and recorded but **"not yet published in a release"**, visibly
+  distinct from a numbered ADR, and its `adrId` stays **null** rather than being given
+  an invented number. A drops directory that cannot be READ renders "currently
+  unavailable" and never "no decisions"; a directory that is merely absent, and a
+  `decision_log.md` that is merely absent, are ordinary absences and not faults. A
+  single malformed drop never takes the artifact down — what parsed renders and the
+  rest is disclosed by count. The drops directory joins `sourceRev` **including while
+  it does not yet exist**, together with each matching drop file, so a drop written
+  mid-run appears without a restart and an edited drop is not served stale. Separately,
+  the campaign store now carries **where a status claim came from**: `status.json`
+  absent and `status.json` torn are no longer one answer, a fallback to the
+  `campaign.md` table is disclosed in plain language instead of being presented as
+  live fact, and zero units from a degraded read renders "currently unavailable"
+  rather than "this campaign has no units recorded yet". A drift meta-test pins the
+  server mission types against their client mirror in both directions (DO-NOT #7).
+  Reads only — no new endpoint and no second write surface; terminal byte-identical.
 - (K) **(iterate-2026-07-19-mission-s4-honest-lifecycle-stage)** "Where it stands" is
   derived from the session's **real phase**, not from coarse tool signals. Previously
   the FIRST edit to any non-spec file claimed **Build**, so the stepper left Analyze

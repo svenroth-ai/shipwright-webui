@@ -23,8 +23,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+import { readRunDrops } from "./decision-drops.js";
 import { readBoundedFile } from "./fs-read.js";
 import { pathGuard } from "../path-guard.js";
+import type { DecisionEntryView } from "./types-slice2.js";
 
 export const DECISION_LOG_REL = ".shipwright/agent_docs/decision_log.md";
 
@@ -172,4 +174,99 @@ export function readRunDecisions(projectRoot: string, runId: string): DecisionsL
   }
 
   return { status: "ok", entries, truncated };
+}
+
+// ---------------------------------------------------------------------------
+// drops ∪ log — the composed record
+// ---------------------------------------------------------------------------
+
+/**
+ * What the DECISIONS artifact is built from, after both sources are consulted.
+ *
+ * `sawUnreadable` is the field that keeps the S1/S2 failure shape out of this
+ * module: a source that EXISTED and could not be read is a fault, and the
+ * builder must be able to tell that apart from "both sources read fine and this
+ * run decided nothing". Collapsing the two is exactly how a read failure ends up
+ * rendered as an absence.
+ */
+export interface DecisionRecord {
+  entries: DecisionEntryView[];
+  truncated: boolean;
+  malformedCount: number;
+  sawUnreadable: boolean;
+}
+
+/**
+ * The run's decisions from **drops ∪ decision_log**, deduplicated by `run_id`.
+ *
+ * THE LOG WINS when both carry this run. It is numbered and authoritative —
+ * aggregation has already happened. Because `aggregate_decisions.py` DELETES
+ * each drop it folds in, an overlap means a failed unlink, not a normal state
+ * (measured on this repo: 18 drops, 166 logged run_ids, zero overlap). So this
+ * is a defensive rule, and it resolves the fault toward the numbered record
+ * rather than showing the same decision twice under two different identities.
+ */
+export function readRunDecisionRecord(projectRoot: string, runId: string): DecisionRecord {
+  const log = readRunDecisions(projectRoot, runId);
+
+  if (log.status === "ok" && log.entries.length > 0) {
+    return {
+      entries: log.entries.map((e) => ({
+        adrId: e.adrId,
+        title: e.title,
+        markdown: e.markdown,
+        source: "decision_log" as const,
+      })),
+      truncated: log.truncated,
+      malformedCount: 0,
+      sawUnreadable: false,
+    };
+  }
+
+  const drops = readRunDrops(projectRoot, runId);
+  // An ABSENT decision_log.md is not a fault — it is a project that has never
+  // had a release aggregation, which is most of them. Only a log that is there
+  // and unusable (denied, over the cap) is. Treating `missing` as a fault would
+  // pin Decisions at "records could not be read" for every such project even
+  // when the drops answered perfectly well: the very confusion this iterate is
+  // about, rebuilt one level up. (Caught by its own test, not by review.)
+  //
+  // An empty/invalid runId also reports `missing` here, but it independently
+  // fails `isSafeRunId` in the drops reader → `denied` → still surfaced below.
+  const logUnreadable = log.status === "unavailable" && log.reason !== "missing";
+
+  if (drops.status === "unavailable") {
+    return { entries: [], truncated: false, malformedCount: 0, sawUnreadable: true };
+  }
+
+  return {
+    entries: drops.entries.map((d) => ({
+      adrId: null,
+      title: d.title,
+      markdown: d.markdown,
+      source: "drop" as const,
+    })),
+    // BOTH sources' truncation, not just the drops'. A bounded log scan that
+    // was cut short has not established that this run has no ADR either
+    // (external code review, openai #3).
+    truncated: drops.truncated || (log.status === "ok" && log.truncated),
+    malformedCount: drops.malformed,
+    // A malformed drop is itself something that existed and could not be read.
+    // It does not hide the artifact (the valid entries still render), but it
+    // must not be silently dropped either.
+    //
+    // `drops.truncated` joins it for a reason that is easy to miss: a scan cut
+    // short has not established that nothing matched, so an EMPTY truncated
+    // result must not be allowed to hide as a clean absence. Today the caps make
+    // empty-and-truncated unreachable (truncation only trips after at least one
+    // entry or one malformed file), but that is an argument about the current
+    // constants, and "not found" silently meaning "not fully searched" is the
+    // exact defect this iterate exists to remove (external plan review, openai
+    // HIGH #1). Pinning it here costs nothing and survives the constants changing.
+    sawUnreadable:
+      logUnreadable ||
+      drops.malformed > 0 ||
+      drops.truncated ||
+      (log.status === "ok" && log.truncated),
+  };
 }

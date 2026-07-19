@@ -21,6 +21,7 @@ import {
   buildSubIterateArtifact,
   selectActiveStep,
   type CampaignFact,
+  type CampaignProvenanceFacts,
   type CampaignStepFacts,
 } from "./campaign-artifacts.js";
 
@@ -29,6 +30,7 @@ function step(over: Partial<CampaignStepFacts> = {}): CampaignStepFacts {
     id: "S1",
     title: "resolver core",
     status: "complete",
+    statusSource: "status_json",
     specPath: ".shipwright/planning/iterate/campaigns/c/sub-iterates/S1-resolver.md",
     commit: "66e275ae",
     branch: "iterate/campaign-S1",
@@ -38,7 +40,17 @@ function step(over: Partial<CampaignStepFacts> = {}): CampaignStepFacts {
   };
 }
 
-function ok(steps: CampaignStepFacts[], over: Partial<CampaignFact & { x: never }> = {}): CampaignFact {
+/**
+ * A healthy campaign: facts read straight from the live `status.json`, nothing
+ * degraded. That default matters — it is the ONLY provenance that adds no
+ * disclosure sentence, so every pre-existing assertion about a summary string
+ * still describes the un-degraded wording.
+ */
+function ok(
+  steps: CampaignStepFacts[],
+  over: Partial<CampaignFact & { x: never }> = {},
+  provenance: CampaignProvenanceFacts = { statusSource: "status_json", degraded: false },
+): CampaignFact {
   return {
     status: "ok",
     campaign: {
@@ -49,6 +61,7 @@ function ok(steps: CampaignStepFacts[], over: Partial<CampaignFact & { x: never 
       done: steps.filter((s) => s.status === "complete").length,
       total: steps.length,
       steps,
+      provenance,
     },
     ...(over as object),
   };
