@@ -1,0 +1,21 @@
+{
+  "run_id": "iterate-2026-07-19-mission-s2-tests-review-decisions",
+  "date": "2026-07-19T06:16:11.605759Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/2026-07-19-mission-s2-tests-review-decisions",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-19-mission-s2-tests-review-decisions",
+  "spec": ".shipwright/planning/iterate/campaigns/2026-07-18-mission-artifacts/sub-iterates/S2-tests-review-decisions.md",
+  "spec_impact": "modify",
+  "affected_frs": [
+    "FR-01.66"
+  ],
+  "new_frs": [],
+  "architecture_impact": [
+    "component"
+  ],
+  "campaign": "2026-07-18-mission-artifacts",
+  "sub_iterate_id": "S2",
+  "untested_testable": 0
+}
