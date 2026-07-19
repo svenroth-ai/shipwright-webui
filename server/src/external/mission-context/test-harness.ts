@@ -107,7 +107,7 @@ export function harness(root: string, task: ExternalTask, opts: HarnessOptions =
     readTranscriptTail: async () => opts.transcript ?? "",
     getScenarioFacts: async () => ({
       actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
-      hasValidRunConfig: false,
+      runConfigStatus: "missing",
       campaignSlug: null,
       hasCampaignRecord: false,
     }),

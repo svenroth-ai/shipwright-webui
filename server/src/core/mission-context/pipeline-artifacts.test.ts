@@ -113,6 +113,32 @@ describe("buildPipelineFact — exact-id resolution, never conflation", () => {
     expect(buildPipelineFact(config(AMBIGUOUS_TASKS), null).status).toBe("unavailable");
   });
 
+  /*
+   * Cross-RUN misattribution. The config on disk is whatever run the project is
+   * on NOW, which need not be the run this task belongs to. Without the runId
+   * comparison a phaseTaskId that happens to exist in the newer run resolves and
+   * renders under the WRONG runId — silently (internal code review).
+   */
+  it("refuses to resolve when the task belongs to a DIFFERENT run", () => {
+    const fact = buildPipelineFact(config(AMBIGUOUS_TASKS), "ptk-bbbb", "run-99999999");
+    expect(fact.status).toBe("unavailable");
+  });
+
+  it("resolves normally when the task's run matches the config on disk", () => {
+    const fact = buildPipelineFact(config(AMBIGUOUS_TASKS), "ptk-bbbb", "run-a1b2c3d4");
+    expect(fact.status).toBe("ok");
+  });
+
+  it("still resolves when the caller supplies no run id (back-compat)", () => {
+    expect(buildPipelineFact(config(AMBIGUOUS_TASKS), "ptk-bbbb", null).status).toBe("ok");
+  });
+
+  it("reports `unavailable`, NOT `task_not_found`, on a run mismatch", () => {
+    // "its run no longer lists this step" would be a claim about the WRONG run.
+    const fact = buildPipelineFact(config(AMBIGUOUS_TASKS), "ptk-zzzz", "run-99999999");
+    expect(fact.status).toBe("unavailable");
+  });
+
   it("keeps `result.artifacts` as strings and tolerates non-string entries", () => {
     const t = phaseTask({
       phaseTaskId: "ptk-dddd",

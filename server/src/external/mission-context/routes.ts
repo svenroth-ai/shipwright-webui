@@ -52,7 +52,7 @@ export interface MissionContextRouterDeps {
     task: ExternalTask,
   ) => Promise<{
     actions: ResolveRequest["actions"];
-    hasValidRunConfig: boolean;
+    runConfigStatus: ResolveRequest["runConfigStatus"];
     campaignSlug: string | null;
     hasCampaignRecord: boolean;
     /** S3 — optional so a pre-S3 test double still satisfies the contract. */

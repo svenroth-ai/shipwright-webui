@@ -40,6 +40,7 @@ function count(v: unknown): number | null {
 export function buildPipelineFact(
   runConfig: RunConfigReadResult,
   phaseTaskId: string | null,
+  taskRunId?: string | null,
 ): PipelineFact {
   if (!phaseTaskId) return { status: "unavailable" };
 
@@ -49,6 +50,15 @@ export function buildPipelineFact(
   if (runConfig.status !== "ok") return { status: "unavailable" };
 
   const runId = runConfig.config.runId;
+
+  // The config on disk is whatever run the project is on NOW, which need not be
+  // the run this TASK belongs to. Without this check a phaseTaskId that happens
+  // to exist in the newer run resolves and renders under the WRONG runId, and
+  // one that does not reports "its run no longer lists this step" when the truth
+  // is "we compared against a different run" (internal code review). We hold
+  // `taskRunId` already, so the comparison is free.
+  if (taskRunId && taskRunId !== runId) return { status: "unavailable" };
+
   const task = runConfig.config.phase_tasks.find((t) => t.phaseTaskId === phaseTaskId);
   if (!task) return { status: "task_not_found", runId };
 

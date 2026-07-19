@@ -31,7 +31,7 @@ function inputs(over: Partial<ScenarioInputs> = {}): ScenarioInputs {
   return {
     pointer: { status: "absent" },
     actions: { fromUser: true, hasDiagnostics: false, actionIds: ["publish-post"] },
-    hasValidRunConfig: false,
+    runConfigStatus: "missing",
     phaseTaskId: null,
     taskRunId: null,
     campaignSlug: null,
@@ -111,7 +111,27 @@ describe("scenario 6 — every ambiguous actions catalog falls back to SHOWING",
   });
 
   it("SHOWS in DUAL mode — custom actions AND a valid SDLC run-config", () => {
-    expect(isValidatedCustomActions(inputs({ hasValidRunConfig: true }))).toBe(false);
+    expect(isValidatedCustomActions(inputs({ runConfigStatus: "ok" }))).toBe(false);
+  });
+
+  /*
+   * The run-config leg. `RunConfigReadResult` has FOUR states and only `missing`
+   * is evidence the project has no pipeline; the other three mean "a config is
+   * there and we could not read it as v2". Collapsing them into "no run-config"
+   * let an unreadable file delete the Mission tab (internal code review,
+   * BLOCKING) — the same shape as the actions-file bug this file was written
+   * for, on the other conjunct.
+   */
+  it("SHOWS when the run-config is present but UNREADABLE (corrupt / legacy / unknown schema)", () => {
+    expect(isValidatedCustomActions(inputs({ runConfigStatus: "unreadable" }))).toBe(false);
+  });
+
+  it("hides ONLY when the run-config is definitively MISSING", () => {
+    const hides = (s: "ok" | "missing" | "unreadable") =>
+      isValidatedCustomActions(inputs({ runConfigStatus: s }));
+    expect(hides("missing")).toBe(true);
+    expect(hides("ok")).toBe(false);
+    expect(hides("unreadable")).toBe(false);
   });
 
   it("SHOWS in DUAL mode — a builtin action id survives alongside the customs", () => {
@@ -245,7 +265,7 @@ describe("scenario 6 — round-trip over REAL files through the REAL loader", ()
 
   it("SHOWS when the project ALSO has a valid SDLC run-config (dual mode)", () => {
     const root = projectWith('{"schemaVersion":1,"actions":[{"id":"publish-post"}],"phases":[]}');
-    const d = detectScenario(inputs({ actions: factsFor(root), hasValidRunConfig: true }));
+    const d = detectScenario(inputs({ actions: factsFor(root), runConfigStatus: "ok" }));
     expect(d.missionTabVisible).toBe(true);
   });
 

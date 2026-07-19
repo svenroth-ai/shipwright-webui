@@ -74,7 +74,7 @@ export interface ResolveRequest {
   campaignSlug: string | null;
   hasCampaignRecord: boolean;
   actions: ScenarioInputs["actions"];
-  hasValidRunConfig: boolean;
+  runConfigStatus: ScenarioInputs["runConfigStatus"];
   /**
    * S3 — native scenario facts, gathered server-side (external/facts-slice3.ts).
    * Optional so existing callers/tests compile; absent behaves as `unavailable`,
@@ -110,7 +110,7 @@ export function resolveMissionContext(
     pointer,
     association: req.association ?? null,
     actions: req.actions,
-    hasValidRunConfig: req.hasValidRunConfig,
+    runConfigStatus: req.runConfigStatus,
     phaseTaskId: req.phaseTaskId,
     taskRunId: req.taskRunId,
     campaignSlug: req.campaignSlug,

@@ -32,6 +32,26 @@ export const BUILTIN_ACTION_IDS: ReadonlySet<string> = new Set([
   "new-plain",
 ]);
 
+/**
+ * What we know about the project's SDLC run-config — THREE states, not a boolean.
+ *
+ * `RunConfigReadResult` has four (`ok` / `missing` / `v1_legacy` / `invalid`) and
+ * only ONE of them, `missing`, is evidence that the project does not run the
+ * pipeline. A config that is present but corrupt, legacy, or written to a schema
+ * this build does not know is a config we COULD NOT READ — which says nothing
+ * about whether the project is an SDLC project.
+ *
+ * Collapsing the other three into "no run-config" is how an unreadable file
+ * silently deletes the Mission tab (internal code review, BLOCKING).
+ */
+export type RunConfigPresence =
+  /** Parsed as a valid v2 config — the project demonstrably runs the pipeline. */
+  | "ok"
+  /** No run-config file at all — the ONLY state that permits a hide. */
+  | "missing"
+  /** Present but unparseable / legacy / unknown schema / unreadable. We do not know. */
+  | "unreadable";
+
 export interface ScenarioInputs {
   /** Result of reading `.shipwright/iterate_active/<uuid>.json`. */
   pointer: ReadPointerResult;
@@ -55,8 +75,8 @@ export interface ScenarioInputs {
     /** Every resolved action id. */
     actionIds: readonly string[];
   } | null;
-  /** True when the project has a VALID SDLC run-config (status === "ok"). */
-  hasValidRunConfig: boolean;
+  /** What we know about the project's SDLC run-config. See `RunConfigPresence`. */
+  runConfigStatus: RunConfigPresence;
   /** The task's phase-task linkage (scenario 3). */
   phaseTaskId: string | null;
   taskRunId: string | null;
@@ -99,8 +119,12 @@ export function isValidatedCustomActions(inputs: ScenarioInputs): boolean {
   if (!a.actionIds.every((id) => typeof id === "string" && id.length > 0)) return false;
   // Dual-mode: a builtin SDLC action survives alongside the custom ones.
   if (a.actionIds.some((id) => BUILTIN_ACTION_IDS.has(id))) return false;
-  // A valid SDLC run-config means the project genuinely runs the pipeline too.
-  if (inputs.hasValidRunConfig) return false;
+  // ONLY a definitively ABSENT run-config permits the hide. `ok` means the
+  // project runs the pipeline too (dual mode); `unreadable` means we could not
+  // find out, and "we could not read it" is not "it is not there" — the same
+  // rule the actions catalog above already follows, where every read failure
+  // short-circuits to false.
+  if (inputs.runConfigStatus !== "missing") return false;
   return true;
 }
 

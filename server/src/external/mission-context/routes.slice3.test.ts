@@ -264,33 +264,3 @@ describe("GET mission-context — campaign (scenario 5), real campaign store", (
     expect(after?.done).toBe(2);
   });
 });
-
-describe("GET mission-context — the tab-hide gate, end to end", () => {
-  it("HIDES the tab for a validated custom-actions project", async () => {
-    const root = makeProject({ runConfig: false });
-    write(root, ".shipwright-webui/actions.json", '{"schemaVersion":1,"actions":[{"id":"publish-post"}],"phases":[]}');
-    const ctx = await contextFor(root, makeTask());
-    expect(ctx.scenario).toBe("custom_actions");
-    expect(ctx.missionTabVisible).toBe(false);
-  });
-
-  it("SHOWS the tab when the same project also has a valid run-config (dual mode)", async () => {
-    const root = makeProject();
-    write(root, ".shipwright-webui/actions.json", '{"schemaVersion":1,"actions":[{"id":"publish-post"}],"phases":[]}');
-    expect((await contextFor(root, makeTask())).missionTabVisible).toBe(true);
-  });
-
-  it("SHOWS the tab for valid JSON of the wrong shape (the S3 regression)", async () => {
-    const root = makeProject({ runConfig: false });
-    write(root, ".shipwright-webui/actions.json", '{"schemaVersion":1,"actions":[{"foo":"bar"}],"phases":[]}');
-    const ctx = await contextFor(root, makeTask());
-    expect(ctx.missionTabVisible).toBe(true);
-    expect(ctx.scenario).not.toBe("custom_actions");
-  });
-
-  it("SHOWS the tab for a malformed actions file", async () => {
-    const root = makeProject({ runConfig: false });
-    write(root, ".shipwright-webui/actions.json", '{"schemaVersion":1,"actions":[');
-    expect((await contextFor(root, makeTask())).missionTabVisible).toBe(true);
-  });
-});

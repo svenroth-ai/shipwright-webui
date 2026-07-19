@@ -31,7 +31,7 @@ function inputs(over: Partial<ScenarioInputs> = {}): ScenarioInputs {
   return {
     pointer: { status: "absent" },
     actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-task", "new-iterate"] },
-    hasValidRunConfig: false,
+    runConfigStatus: "missing",
     phaseTaskId: null,
     taskRunId: null,
     campaignSlug: null,
@@ -68,7 +68,7 @@ describe("isValidatedCustomActions", () => {
   });
 
   it("is FALSE when the project has a valid SDLC run-config", () => {
-    expect(isValidatedCustomActions(inputs({ actions: custom, hasValidRunConfig: true }))).toBe(false);
+    expect(isValidatedCustomActions(inputs({ actions: custom, runConfigStatus: "ok" }))).toBe(false);
   });
 
   it("is FALSE when nothing resolved at all", () => {
