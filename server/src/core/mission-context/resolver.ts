@@ -16,9 +16,8 @@ import {
   CACHE_CAP,
   computeSourceRev,
   docFingerprint,
-  emptyContext,
+  integrityResult,
   readBounded,
-  unavailableArtifacts,
 } from "./resolver-parts.js";
 export { _clearResolverCache } from "./resolver-parts.js";
 // Re-exported so the detail endpoint keeps its single import site (§5.2).
@@ -37,6 +36,9 @@ import { detectScenario, type ScenarioInputs } from "./scenario.js";
 import { buildRequirementArtifact, buildSpecArtifact } from "./artifacts.js";
 import { buildCommitArtifact } from "./artifacts-commit.js";
 import { buildSlice2Artifacts, slice2RevPaths } from "./slice2-sources.js";
+import { buildNonIterateContext } from "./slice3-sources.js";
+import type { CampaignFact } from "./campaign-artifacts.js";
+import type { PipelineFact } from "./pipeline-artifacts.js";
 import {
   eventsPath,
   findWorkCompleted,
@@ -74,6 +76,13 @@ export interface ResolveRequest {
   actions: ScenarioInputs["actions"];
   hasValidRunConfig: boolean;
   /**
+   * S3 — native scenario facts, gathered server-side (external/facts-slice3.ts).
+   * Optional so existing callers/tests compile; absent behaves as `unavailable`,
+   * which SHOWS the artifacts rather than hiding them.
+   */
+  pipeline?: PipelineFact | null;
+  campaign?: CampaignFact | null;
+  /**
    * The task's persisted association. Read from the server's own store; it is
    * how a FINALIZED iterate still resolves after its pointer was pruned.
    */
@@ -83,29 +92,6 @@ export interface ResolveRequest {
 export interface ResolveDeps {
   git?: GitRunner;
   merge?: MergeCheckDeps;
-}
-
-/**
- * A typed-`unavailable` response for the two integrity cases (AC5): a pointer
- * that failed validation, and one naming an unregistered worktree. Both must
- * SHOW as unavailable and must NOT be persisted — never a quiet fall-through
- * to "No run data yet" or to the project root (external review, openai HIGH).
- */
-function integrityResult(
-  scenario: MissionContext["scenario"],
-  missionTabVisible: boolean,
-  rev: string,
-  note: string,
-  runId: string | null,
-): { context: MissionContext; associateRunId: null } {
-  return {
-    context: {
-      ...emptyContext(scenario, missionTabVisible, rev),
-      runId,
-      artifacts: unavailableArtifacts(note),
-    },
-    associateRunId: null,
-  };
 }
 
 /**
@@ -144,13 +130,22 @@ export function resolveMissionContext(
     );
   }
 
-  // Scenarios 1/3/4/5 keep today's behavior verbatim — Slice 1 is ADDITIVE for
-  // scenario 2 only. No artifacts are emitted here, so the existing rail and
-  // campaign progress render exactly as before (no-regression AC).
+  // Everything that is not a resolved iterate. S1 left scenarios 3 and 5 on
+  // "today's behavior"; S3 gives them native artifacts (slice3-sources.ts).
+  // Scenarios 1/4 and a hidden custom-actions tab still carry no rail.
   if (decision.scenario !== "iterate" || !decision.runId) {
-    const rev = computeSourceRev(baseRevPaths, [decision.scenario]);
     return {
-      context: emptyContext(decision.scenario, decision.missionTabVisible, rev),
+      context: buildNonIterateContext({
+        taskId: req.taskId,
+        sessionUuid,
+        projectRoot,
+        scenario: decision.scenario,
+        missionTabVisible: decision.missionTabVisible,
+        baseRevPaths,
+        pipeline: req.pipeline,
+        campaign: req.campaign,
+        campaignSlug: req.campaignSlug,
+      }),
       associateRunId: null,
     };
   }

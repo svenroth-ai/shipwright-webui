@@ -55,6 +55,9 @@ export interface MissionContextRouterDeps {
     hasValidRunConfig: boolean;
     campaignSlug: string | null;
     hasCampaignRecord: boolean;
+    /** S3 — optional so a pre-S3 test double still satisfies the contract. */
+    pipeline?: ResolveRequest["pipeline"];
+    campaign?: ResolveRequest["campaign"];
   }>;
   now?: () => Date;
   /**

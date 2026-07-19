@@ -24,9 +24,26 @@ import type {
   MissionContext,
 } from "./missionContextApi";
 
-/** The rail order — all six of CONTRACT §6, in the decided order. */
+/**
+ * The rail order.
+ *
+ * CONTRACT §6's six iterate artifacts keep their decided order EXACTLY — S3 only
+ * interleaves kinds that belong to other scenarios, and the kind sets are
+ * disjoint, so a rail never mixes them. `phase` leads because for a pipeline
+ * task it is the identity of the thing being looked at; the campaign kinds run
+ * campaign-level first, then the single sub-iterate.
+ */
 export const ARTIFACT_ORDER: ArtifactDescriptor["kind"][] = [
+  // pipeline (scenario 3)
+  "phase",
+  // `spec` serves three scenarios: the iterate spec, the pipeline's adopted
+  // spec, and the campaign BRIEF. Each supplies its own label.
   "spec",
+  // campaign (scenario 5) — campaign level, then the active unit
+  "campaign_runbook",
+  "campaign_progress",
+  "sub_iterate",
+  // iterate (scenario 2)
   "requirement",
   "tests",
   "review",
@@ -67,12 +84,24 @@ export function visibleArtifacts(context: MissionContext | null | undefined): Ar
 /**
  * Does this context drive the artifact rail at all?
  *
- * ONLY a resolved iterate does. Scenarios 1/3/4/5 keep today's behaviour
- * verbatim (the existing `work_completed` rail + campaign progress), so Slice 1
- * is additive and cannot regress them.
+ * S1 admitted only `iterate`; S3 adds `pipeline` and `campaign` now that both
+ * resolve natively (CONTRACT §10 Slice 3) rather than borrowing today's
+ * `work_completed` rail.
+ *
+ * `plain` / `pure` are deliberately still excluded — those sessions have no
+ * artifacts by definition, and the legacy rail is what they render (§4.5).
+ * `custom_actions` never reaches here: its tab does not exist.
+ *
+ * The `artifacts.length > 0` guard is what makes this safe on a version skew —
+ * a server that returns a scenario with an empty rail falls back to the legacy
+ * one instead of rendering an empty panel.
  */
+const CONTEXT_RAIL_SCENARIOS: ReadonlySet<string> = new Set(["iterate", "pipeline", "campaign"]);
+
 export function usesContextRail(context: MissionContext | null | undefined): boolean {
-  return Boolean(context && context.scenario === "iterate" && context.artifacts.length > 0);
+  return Boolean(
+    context && CONTEXT_RAIL_SCENARIOS.has(context.scenario) && context.artifacts.length > 0,
+  );
 }
 
 /** A newer/unknown schema is refused rather than misread (external-review GPT #15). */
@@ -160,6 +189,58 @@ export function reviewTypeLabel(t: "plan" | "code" | "doubt" | "external_code"):
     case "external_code":
       return "External code review";
   }
+}
+
+// ---------------------------------------------------------------------------
+// S3 — pipeline + campaign wording
+// ---------------------------------------------------------------------------
+
+/** Plain-language unit/phase status. The raw enum is never shown. */
+export function unitStatusWord(status: string): string {
+  switch (status) {
+    case "complete":
+    case "done":
+      return "complete";
+    case "in_progress":
+      return "running now";
+    case "failed":
+      return "failed";
+    case "escalated":
+      return "needs a decision";
+    case "skipped":
+      return "skipped";
+    case "awaiting_launch":
+      return "waiting to start";
+    case "pending":
+    case "backlog":
+      return "not started";
+    default:
+      return status;
+  }
+}
+
+/** Why this unit is the current one — the basis, stated rather than implied. */
+export function selectionWord(selectedBy: "in_progress" | "first_incomplete" | "last_complete"): string {
+  switch (selectedBy) {
+    case "in_progress":
+      return "It is running now.";
+    case "first_incomplete":
+      return "It is the first unit that has not finished.";
+    case "last_complete":
+      return "Every unit is complete; this was the last one.";
+  }
+}
+
+/**
+ * "5107 of 5108 passed", or an honest "not recorded".
+ *
+ * A null count NEVER becomes 0. Rendering an unrecorded result as "0 of 0
+ * passed" would manufacture a pass out of missing data — the same shape as the
+ * S2 finding where an unreadable findings count folded into "no issues".
+ */
+export function testCountLabel(passed: number | null, total: number | null): string {
+  if (passed == null || total == null) return "not recorded";
+  return `${passed} of ${total} passed`;
 }
 
 /**

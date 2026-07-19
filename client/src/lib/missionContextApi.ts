@@ -18,6 +18,14 @@
  */
 
 import { EXTERNAL_API, httpJson } from "./externalApi";
+import type {
+  CampaignProgressArtifact,
+  CampaignRunbookArtifact,
+  PhaseArtifact,
+  SubIterateArtifact,
+} from "./missionSlice3Types";
+
+export type * from "./missionSlice3Types";
 
 export const MISSION_CONTEXT_SCHEMA_VERSION = 1;
 
@@ -41,7 +49,13 @@ export type ArtifactKind =
   | "tests"
   | "review"
   | "decisions"
-  | "commit";
+  | "commit"
+  // S3 — pipeline (scenario 3). `spec` doubles as the campaign BRIEF.
+  | "phase"
+  // S3 — campaign (scenario 5).
+  | "campaign_runbook"
+  | "campaign_progress"
+  | "sub_iterate";
 
 export type RequirementConfidence = "planned" | "finalized" | "unresolved";
 export type MergeState = "merged" | "pending" | "unknown";
@@ -172,7 +186,11 @@ export type ArtifactDescriptor =
   | TestsArtifact
   | ReviewArtifact
   | DecisionsArtifact
-  | CommitArtifact;
+  | CommitArtifact
+  | PhaseArtifact
+  | CampaignRunbookArtifact
+  | CampaignProgressArtifact
+  | SubIterateArtifact;
 
 export interface MissionTests {
   passed: number | null;

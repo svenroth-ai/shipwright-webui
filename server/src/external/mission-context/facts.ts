@@ -12,6 +12,7 @@
 import { loadActionsForProject } from "../../core/project-actions-loader.js";
 import { readCampaigns } from "../../core/campaign-store.js";
 import { resolveCampaignsDir } from "../../core/campaign-paths.js";
+import { buildPipelineFact, getCampaignFact } from "./facts-slice3.js";
 import type { RunConfigReadResult } from "../../core/run-config-reader.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
 import type { ExternalRouteProjectView } from "../_shared/helpers.js";
@@ -37,6 +38,10 @@ export interface ScenarioFacts {
   hasValidRunConfig: boolean;
   campaignSlug: string | null;
   hasCampaignRecord: boolean;
+  /** S3 — the native pipeline fact (scenario 3). */
+  pipeline: ResolveRequest["pipeline"];
+  /** S3 — the native campaign fact (scenario 5). */
+  campaign: ResolveRequest["campaign"];
 }
 
 export interface FactsDeps {
@@ -65,12 +70,16 @@ export async function getScenarioFacts(
     actions = null; // unreadable catalog → ambiguous → never hide the tab
   }
 
-  let hasValidRunConfig = false;
+  // ONE run-config read serves both the custom-actions gate and the S3 pipeline
+  // fact — a second read could observe a different file mid-write and let the
+  // two disagree about the same run.
+  let runConfig: RunConfigReadResult = { status: "missing" };
   try {
-    hasValidRunConfig = (await deps.readRunConfig(project.path)).status === "ok";
+    runConfig = await deps.readRunConfig(project.path);
   } catch {
-    hasValidRunConfig = false;
+    runConfig = { status: "invalid", reason: "read_failed" };
   }
+  const hasValidRunConfig = runConfig.status === "ok";
 
   const campaignSlug = parseCampaignSlug(task.title);
   let hasCampaignRecord = false;
@@ -88,5 +97,15 @@ export async function getScenarioFacts(
     }
   }
 
-  return { actions, hasValidRunConfig, campaignSlug, hasCampaignRecord };
+  return {
+    actions,
+    hasValidRunConfig,
+    campaignSlug,
+    hasCampaignRecord,
+    pipeline: buildPipelineFact(runConfig, task.phaseTaskId ?? null),
+    // Resolved only for a scenario that will actually use it; a `campaign:`
+    // title with no record stays `hasCampaignRecord: false` and never becomes
+    // a campaign, so there is nothing to read.
+    campaign: hasCampaignRecord ? getCampaignFact(project, campaignSlug) : null,
+  };
 }

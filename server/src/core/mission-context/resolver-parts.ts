@@ -115,6 +115,29 @@ export function readBounded(absolute: string): string | null {
   return readBoundedFile(absolute, MAX_DOC_BYTES)?.text ?? null;
 }
 
+/**
+ * A typed-`unavailable` response for the two integrity cases (AC5): a pointer
+ * that failed validation, and one naming an unregistered worktree. Both must
+ * SHOW as unavailable and must NOT be persisted — never a quiet fall-through to
+ * "No run data yet" or to the project root (external review, openai HIGH).
+ */
+export function integrityResult(
+  scenario: MissionContext["scenario"],
+  missionTabVisible: boolean,
+  rev: string,
+  note: string,
+  runId: string | null,
+): { context: MissionContext; associateRunId: null } {
+  return {
+    context: {
+      ...emptyContext(scenario, missionTabVisible, rev),
+      runId,
+      artifacts: unavailableArtifacts(note),
+    },
+    associateRunId: null,
+  };
+}
+
 /** A context with no artifacts — the shape every non-iterate scenario returns. */
 export function emptyContext(
   scenario: MissionContext["scenario"],

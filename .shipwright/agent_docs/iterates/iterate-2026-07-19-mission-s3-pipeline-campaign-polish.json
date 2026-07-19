@@ -1,0 +1,21 @@
+{
+  "run_id": "iterate-2026-07-19-mission-s3-pipeline-campaign-polish",
+  "date": "2026-07-19T00:36:46.557953Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/campaign-S3-pipeline-campaign-polish",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-19-mission-s3-pipeline-campaign-polish",
+  "spec": ".shipwright/planning/iterate/campaigns/2026-07-18-mission-artifacts/sub-iterates/S3-pipeline-campaign-polish.md",
+  "spec_impact": "modify",
+  "affected_frs": [
+    "FR-01.66"
+  ],
+  "new_frs": [],
+  "architecture_impact": [
+    "component"
+  ],
+  "campaign": "2026-07-18-mission-artifacts",
+  "sub_iterate_id": "S3",
+  "untested_testable": 0
+}

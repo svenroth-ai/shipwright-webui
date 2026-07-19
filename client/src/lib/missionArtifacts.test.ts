@@ -86,14 +86,20 @@ describe("visibleArtifacts", () => {
   });
 
   it("carries all six §6 artifacts, in the decided order", () => {
-    expect(ARTIFACT_ORDER).toEqual([
-      "spec",
-      "requirement",
-      "tests",
-      "review",
-      "decisions",
-      "commit",
-    ]);
+    // S3 added four kinds for the pipeline and campaign scenarios. The kind sets
+    // are DISJOINT — no rail ever mixes them — so what has to hold is that the
+    // six iterate artifacts keep their §6 relative order untouched.
+    const iterateSix = ["spec", "requirement", "tests", "review", "decisions", "commit"];
+    expect(ARTIFACT_ORDER.filter((k) => iterateSix.includes(k))).toEqual(iterateSix);
+  });
+
+  it("orders the campaign rail campaign-level first, then the active unit", () => {
+    const campaignKinds = ["spec", "campaign_runbook", "campaign_progress", "sub_iterate"];
+    expect(ARTIFACT_ORDER.filter((k) => campaignKinds.includes(k))).toEqual(campaignKinds);
+  });
+
+  it("leads the pipeline rail with the phase itself", () => {
+    expect(ARTIFACT_ORDER.indexOf("phase")).toBeLessThan(ARTIFACT_ORDER.indexOf("spec"));
   });
 
   it("filters hidden states out of the rail", () => {
@@ -120,19 +126,28 @@ describe("visibleArtifacts", () => {
   });
 });
 
-describe("usesContextRail (no-regression gate for scenarios 1/3/4/5)", () => {
-  it("is true only for a resolved iterate with artifacts", () => {
+describe("usesContextRail (scenario gate)", () => {
+  it("is true for a resolved iterate with artifacts", () => {
     expect(usesContextRail(ctx())).toBe(true);
   });
 
-  it("is FALSE for pipeline, campaign and plain — they keep today's rail", () => {
-    for (const scenario of ["pipeline", "campaign", "plain", "custom_actions"] as const) {
+  it("S3 — is now TRUE for pipeline and campaign, which resolve natively", () => {
+    for (const scenario of ["pipeline", "campaign"] as const) {
+      expect(usesContextRail(ctx({ scenario })), scenario).toBe(true);
+    }
+  });
+
+  it("stays FALSE for plain / pure — those sessions have no artifacts by definition", () => {
+    for (const scenario of ["plain", "custom_actions"] as const) {
       expect(usesContextRail(ctx({ scenario })), scenario).toBe(false);
     }
   });
 
-  it("is false for an iterate that resolved no artifacts at all", () => {
-    expect(usesContextRail(ctx({ artifacts: [] }))).toBe(false);
+  it("falls back to the legacy rail when a scenario resolved NO artifacts", () => {
+    // Version-skew safety: an empty rail must never render as an empty panel.
+    for (const scenario of ["iterate", "pipeline", "campaign"] as const) {
+      expect(usesContextRail(ctx({ scenario, artifacts: [] })), scenario).toBe(false);
+    }
   });
 });
 
