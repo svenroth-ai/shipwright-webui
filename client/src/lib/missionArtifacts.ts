@@ -104,6 +104,24 @@ export function usesContextRail(context: MissionContext | null | undefined): boo
   );
 }
 
+/**
+ * The pipeline task's AUTHORITATIVE run-config phase, for the S4 stage
+ * derivation — or null when this is not a pipeline context / the phase was not
+ * resolved.
+ *
+ * Lives here, next to the other context→view readers, so no COMPONENT ever
+ * handles a raw phase string (DO-NOT #11). Returning null on an unreadable phase
+ * is load-bearing: the caller renders an honest "—" rather than falling back to
+ * the tool-signal guess the run-config phase exists to replace.
+ */
+export function pipelinePhase(context: MissionContext | null | undefined): string | null {
+  if (!context || context.scenario !== "pipeline") return null;
+  const phase = context.artifacts.find((a) => a.kind === "phase");
+  if (!phase || phase.kind !== "phase") return null;
+  const value = phase.detail?.phase;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 /** A newer/unknown schema is refused rather than misread (external-review GPT #15). */
 export function isSupportedSchema(context: MissionContext | null | undefined): boolean {
   return Boolean(context && context.schemaVersion === 1);

@@ -31,7 +31,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 |----|------|------|----------|-------------|--------|
 | FR-01.02 | TSK | Task detail — 3-pane viewer | Must | The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout. | enrichment |
 | FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. It warns before saving files with tricky content (tables, raw HTML, footnotes).<br>**Updates:** Gained a formatting toolbar. | iterate-2026-06-03, toolbar iterate-2026-06-04 |
-| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript. | iterate-2026-07-17-mission-live-jsonl |
+| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. | iterate-2026-07-17-mission-live-jsonl |
 
 ### Area TRM — Embedded Terminal
 
@@ -828,6 +828,29 @@ write surface; gated, path-guarded, and concurrency-safe.
   back to Files & Terminal rather than an empty pane. Left-panel typography completes the
   label-versus-value hierarchy with no motion added. No new endpoint, no second write
   surface, terminal byte-identical.
+- (K) **(iterate-2026-07-19-mission-s4-honest-lifecycle-stage)** "Where it stands" is
+  derived from the session's **real phase**, not from coarse tool signals. Previously
+  the FIRST edit to any non-spec file claimed **Build**, so the stepper left Analyze
+  while the iterate was still scouting; measured over 114 real iterate transcripts, 15%
+  opened with a scratch or bookkeeping write and mis-read as Build. An **incidental**
+  write — scratch space, plan/todo state, `.shipwright` bookkeeping, memory notes — is
+  now scope activity and **Analyze holds through scope and calibration**; a real
+  **product** edit still advances, because claiming Analyze while product code is being
+  edited would be the opposite error. **Spec** requires the iterate spec to have been
+  actually WRITTEN — invoking a command merely NAMED "…-plan"/"…-spec" writes nothing
+  and no longer counts. Evidence is read only from structured tool records, so prose
+  that merely mentions a command cannot move the stepper. The derivation is
+  **scenario-gated**: an iterate or campaign reads its phase from the transcript window
+  (campaign windowing preserved, so a merged earlier sub-iterate never latches the
+  current one's stage); a **pipeline** task takes the authoritative run-config phase and
+  an unreadable phase reads "—" rather than falling back to the guess the phase
+  replaced; a **plain** session claims **no lifecycle position at all** — it shows a
+  plain "what it's doing now" line and the six stage labels are not rendered, because
+  presenting a lifecycle a session is not running is the fabrication this AC exists to
+  prevent. An **unresolved** scenario is deliberately NOT treated as plain: "not yet
+  known" must not collapse into a positive finding. An absent or unparseable transcript
+  yields "—", never a default Analyze. Pure client-side derivation — no new endpoint, no
+  server change, no second write surface, terminal byte-identical.
 
 ## Quality Requirements
 

@@ -11,6 +11,7 @@ const EMPTY_TRANSCRIPT: TranscriptSummary = {
   summary: null,
   activity: [],
   stage: null,
+  stageActivity: null,
   hasActivity: false,
 };
 
@@ -82,6 +83,41 @@ describe("MissionLeftPanel — stage labels (FR-01.67 AC1)", () => {
     for (const step of steps) {
       expect(step.getAttribute("data-state")).toBe("done");
     }
+  });
+});
+
+describe("MissionLeftPanel — no lifecycle claim for a plain session (S4 AC5)", () => {
+  function plainModel(stageActivity: string | null): MissionLiveModel {
+    return deriveMissionLive({
+      missionState: "live",
+      run: null,
+      transcript: { ...EMPTY_TRANSCRIPT, stage: null, stageActivity, hasActivity: true, summary: "x" },
+      taskTitle: "Have a look at the config",
+    });
+  }
+
+  it("shows the plain activity and NO formal step labels", () => {
+    render(
+      <MissionLeftPanel model={plainModel("Editing files")} activeNodeKey={null} onNodeClick={vi.fn()} />,
+    );
+    const stage = screen.getByTestId("mission-stage");
+    expect(stage).toHaveAttribute("data-stage", "none");
+    expect(screen.getByTestId("mission-stage-none")).toHaveTextContent("Editing files");
+    // The six lifecycle labels are absent entirely: rendering them, even greyed
+    // out, would still frame this as a position in a lifecycle it is not running
+    // (external plan review, GPT finding 8).
+    for (const label of ["Analyze", "Spec", "Build", "Test", "Finalize", "Merge"]) {
+      expect(within(stage).queryByText(label)).not.toBeInTheDocument();
+    }
+    // And nothing claims to be "in progress".
+    expect(stage.querySelector('[aria-current="step"]')).toBeNull();
+  });
+
+  it("with NO activity either, the stepper is unchanged — the honest em-dash", () => {
+    render(<MissionLeftPanel model={plainModel(null)} activeNodeKey={null} onNodeClick={vi.fn()} />);
+    const stage = screen.getByTestId("mission-stage");
+    expect(within(stage).getByText("Analyze")).toBeInTheDocument();
+    expect(screen.getByTestId("mission-stage-none")).toBeInTheDocument();
   });
 });
 
