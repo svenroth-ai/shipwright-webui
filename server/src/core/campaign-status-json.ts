@@ -41,20 +41,48 @@ export interface StatusJson {
   sub_iterates?: unknown;
 }
 
-/** Read + JSON-parse `<campaignDir>/status.json`, or null when absent/torn. */
-export function readStatusJson(campaignDir: string): StatusJson | null {
+/**
+ * The three genuinely different outcomes of reading `status.json`.
+ *
+ * `readStatusJson` collapses `absent` and `unreadable` into one `null`, and that
+ * collapse is a defect the consumer cannot recover from: falling back to the
+ * `campaign.md` table is CORRECT in both cases, but only one of them is a fault.
+ * "This campaign has no live status file" and "this campaign's live status file
+ * could not be read" support very different claims, and a caller that cannot
+ * tell them apart ends up presenting a stale table row as current fact.
+ */
+export type StatusJsonRead =
+  | { state: "ok"; json: StatusJson }
+  | { state: "absent" }
+  | { state: "unreadable" };
+
+/** Read + JSON-parse `<campaignDir>/status.json`, keeping WHY it failed. */
+export function readStatusJsonRead(campaignDir: string): StatusJsonRead {
   const p = path.join(campaignDir, "status.json");
-  if (!existsSync(p)) return null;
+  if (!existsSync(p)) return { state: "absent" };
   try {
     const parsed = JSON.parse(readFileSync(p, "utf-8"));
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return null;
+      // A file that IS there and holds a non-object is malformed, not absent.
+      return { state: "unreadable" };
     }
-    return parsed as StatusJson;
+    return { state: "ok", json: parsed as StatusJson };
   } catch {
-    // torn read / malformed → treat as absent, fall back to campaign.md
-    return null;
+    // torn read / malformed / permission → the file exists and we cannot use it
+    return { state: "unreadable" };
   }
+}
+
+/**
+ * Read + JSON-parse `<campaignDir>/status.json`, or null when absent/torn.
+ *
+ * Back-compat wrapper over `readStatusJsonRead` for callers that only need the
+ * payload. Anything RENDERING a claim derived from this should use the
+ * discriminated form instead — see the type doc above.
+ */
+export function readStatusJson(campaignDir: string): StatusJson | null {
+  const r = readStatusJsonRead(campaignDir);
+  return r.state === "ok" ? r.json : null;
 }
 
 /**

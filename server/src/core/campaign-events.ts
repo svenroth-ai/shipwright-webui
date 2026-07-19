@@ -143,6 +143,8 @@ function synthesizeCampaign(
       slug: "",
       title: id, // no skeleton → the id is the only label we have
       status: "complete",
+      // Reconstructed from the event log, which records only COMPLETED units.
+      statusSource: "events",
       specPath: null, // no skeleton file on a clone → launch CTAs disable
       commit: p.commit || null,
       branch: null,
@@ -156,6 +158,15 @@ function synthesizeCampaign(
     branchStrategy: null,
     expandsTriage: null,
     status: null,
+    // Reconstructed from the event log, not read from a campaign directory.
+    // Not `degraded`: nothing failed — the records simply are not on this clone.
+    provenance: {
+      statusSource: "events",
+      degraded: false,
+      // No campaign directory was consulted, so neither file has a state.
+      statusJsonState: "absent",
+      campaignMdUnreadable: false,
+    },
     steps,
     done: steps.length,
     total: steps.length,

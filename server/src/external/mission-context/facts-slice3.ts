@@ -128,6 +128,9 @@ export function getCampaignFact(
         id: s.id,
         title: s.title,
         status: s.status,
+        // Per-unit basis, carried through so the artifact can qualify the
+        // claim it makes about THIS unit rather than the campaign as a whole.
+        statusSource: s.statusSource,
         specPath: s.specPath,
         commit: s.commit,
         branch: s.branch,
@@ -146,6 +149,10 @@ export function getCampaignFact(
         done: record.done,
         total: record.total,
         steps,
+        // Carried, not dropped: `status: "ok"` says the STORE answered, not that
+        // it answered from the live status file. The artifacts need the second
+        // fact to avoid presenting a plan-document row as current.
+        provenance: record.provenance,
       },
     };
   } catch {

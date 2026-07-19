@@ -31,71 +31,26 @@ import {
   parseSubIteratesTable,
   parseSpecFrontmatter,
 } from "./campaign-parse.js";
-import { readStatusJson, pickLifecycle } from "./campaign-status-json.js";
+import { readStatusJsonRead, pickLifecycle } from "./campaign-status-json.js";
 import type {
   CampaignLifecycleStatus,
   StatusSubIterate,
 } from "./campaign-status-json.js";
+import type {
+  Campaign,
+  CampaignProvenance,
+  CampaignStep,
+  CampaignStepStatus,
+} from "./campaign-types.js";
 
-export type CampaignStepStatus =
-  | "pending"
-  | "in_progress"
-  | "complete"
-  | "failed"
-  | "escalated";
-
-// CampaignLifecycleStatus + status.json reading live in campaign-status-json.ts
-// (the JSON-side input-reader, sibling of campaign-parse.ts). Re-exported so
-// consumers importing the Campaign shape from here keep one import site.
-export type { CampaignLifecycleStatus };
-
-export interface CampaignStep {
-  id: string;
-  slug: string;
-  title: string;
-  status: CampaignStepStatus;
-  /** Project-root-relative, POSIX-separated path to the sub-iterate spec.
-   *  Null when the file is missing, escapes the root, or holds shell-hostile
-   *  chars (so the copy-launch command is never malformed). */
-  specPath: string | null;
-  commit: string | null;
-  branch: string | null;
-  /** Forward-compat plan-first/risk marker read from the sub-iterate spec's
-   *  optional frontmatter (`plan_first`/`risk`). False for every campaign that
-   *  exists today (the producer writes no frontmatter); the autonomous-launch
-   *  guardrail surfaces it the day a producer emits one. See
-   *  `campaign-parse.ts parseSpecFrontmatter`. */
-  planFirst: boolean;
-}
-
-export interface Campaign {
-  slug: string;
-  intent: string;
-  branchStrategy: string | null;
-  expandsTriage: string | null;
-  /** Producer-owned lifecycle status; null when the producer hasn't written
-   *  one yet (legacy → consumers fall back to done/total). */
-  status: CampaignLifecycleStatus | null;
-  steps: CampaignStep[];
-  done: number;
-  total: number;
-  /** First step whose status is not complete (the step the campaign is blocked
-   *  on, incl. a failed/escalated step that needs a re-run). Null when all
-   *  complete. */
-  nextPending: { id: string; specPath: string | null } | null;
-  /**
-   * True when an autonomous run is currently attached to this campaign — a live
-   * `loop_state.json` `in_progress` unit, OR a `status.json` step `in_progress`.
-   * Populated by `routes/campaigns.ts` (this reader leaves it undefined). The
-   * launch CTAs disable/relabel on it to prevent spawning a SECOND orchestrator
-   * on the same campaign. Optional for deploy-skew safety. See `core/campaign-loop-state.ts`.
-   */
-  attachedRun?: boolean;
-  /** Reconstructed purely from tracked events.jsonl when the campaign dir is absent (a clone): completed subs only, total==done, specPath null. Set by `core/campaign-events.ts`. */
-  derivedFromEvents?: boolean;
-  /** True when an operator manually dismissed this campaign from the board (a webui-owned quittance, NOT a producer status). Set by `routes/campaigns.ts` from `core/dismissed-campaigns-store.ts`; optional for deploy-skew. */
-  dismissed?: boolean;
-}
+// The shapes live in `campaign-types.ts` (split at the 300-LOC rule); re-exported
+// so every existing consumer's import site keeps working unchanged.
+export type {
+  Campaign,
+  CampaignProvenance,
+  CampaignStep,
+  CampaignStepStatus,
+} from "./campaign-types.js";
 
 const VALID_STATUSES: ReadonlySet<string> = new Set([
   "pending",
@@ -167,16 +122,24 @@ function buildCampaign(
 ): Campaign | null {
   const mdPath = path.join(campaignDir, "campaign.md");
   let md = "";
+  // A campaign.md that is THERE and unreadable is a fault; one that is simply
+  // absent is not. The two used to be one empty string.
+  let mdUnreadable = false;
   if (existsSync(mdPath)) {
     try {
       md = readFileSync(mdPath, "utf-8");
     } catch {
       md = "";
+      mdUnreadable = true;
     }
   }
-  const status = readStatusJson(campaignDir);
+  const statusRead = readStatusJsonRead(campaignDir);
+  const status = statusRead.state === "ok" ? statusRead.json : null;
 
   // Neither source present → not a campaign (empty/garbage dir) → skip.
+  // Unchanged on purpose: a dir with NOTHING usable already resolves to a
+  // typed `unavailable` downstream (no record found), which is honest. The
+  // degradation this iterate fixes is the one that produces a campaign object.
   if (!md && !status) return null;
 
   const fm = parseFrontmatter(md);
@@ -212,19 +175,29 @@ function buildCampaign(
     const sj = statusById.get(b.id);
     const stepSlug =
       b.slug || (sj && typeof sj.slug === "string" ? sj.slug : "");
-    // status.json wins; else the table column; else pending.
-    const resolvedStatus =
-      sj && typeof sj.status === "string" && VALID_STATUSES.has(sj.status)
-        ? (sj.status as CampaignStepStatus)
-        : VALID_STATUSES.has(b.tableStatus)
-          ? (b.tableStatus as CampaignStepStatus)
-          : "pending";
+    // status.json wins; else the table column; else pending. The SOURCE is
+    // recorded alongside the value — a status is a claim, and this is its basis.
+    const fromJson = sj && typeof sj.status === "string" && VALID_STATUSES.has(sj.status);
+    const fromTable = VALID_STATUSES.has(b.tableStatus);
+    const resolvedStatus = fromJson
+      ? (sj!.status as CampaignStepStatus)
+      : fromTable
+        ? (b.tableStatus as CampaignStepStatus)
+        : "pending";
+    const statusSource: CampaignStep["statusSource"] = fromJson
+      ? "status_json"
+      : fromTable
+        ? "campaign_md"
+        // Neither source named this unit: `pending` is this reader's default,
+        // not anybody's record of the unit.
+        : "default";
     const specMeta = deriveSpecMeta(projectRoot, campaignDir, b.id, stepSlug);
     return {
       id: b.id,
       slug: stepSlug,
       title: b.title || stepSlug || b.id,
       status: resolvedStatus,
+      statusSource,
       specPath: specMeta.specPath,
       planFirst: specMeta.planFirst,
       commit: sj && typeof sj.commit === "string" ? sj.commit : null,
@@ -234,6 +207,26 @@ function buildCampaign(
 
   const done = steps.filter((s) => s.status === "complete").length;
   const nextStep = steps.find((s) => s.status !== "complete") ?? null;
+
+  // Where the STATUS claims came from. `status.json` only counts when it
+  // actually supplied a usable status for at least one step — a file that
+  // parsed but lists nobody has told us nothing about these units.
+  const anyFromStatusJson = bases.some((b) => {
+    const sj = statusById.get(b.id);
+    return !!sj && typeof sj.status === "string" && VALID_STATUSES.has(sj.status);
+  });
+  const provenance: CampaignProvenance = {
+    statusSource: anyFromStatusJson
+      ? "status_json"
+      : steps.length > 0
+        ? "campaign_md"
+        : "none",
+    // Only a source that EXISTED and failed. An absent status.json is an
+    // ordinary legacy campaign, not a degradation.
+    degraded: statusRead.state === "unreadable" || mdUnreadable,
+    statusJsonState: statusRead.state,
+    campaignMdUnreadable: mdUnreadable,
+  };
 
   const branchStrategy =
     fm.branch_strategy ||
@@ -249,6 +242,7 @@ function buildCampaign(
     branchStrategy,
     expandsTriage,
     status: pickLifecycle(status, fm),
+    provenance,
     steps,
     done,
     total: steps.length,

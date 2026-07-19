@@ -151,7 +151,14 @@ export function ReviewDetail({ artifact }: { artifact: ReviewArtifact }) {
   );
 }
 
-/** The ADR Markdown (§6 row 5 right-detail type), via the SmartViewer renderer. */
+/**
+ * The ADR Markdown (§6 row 5 right-detail type), via the SmartViewer renderer.
+ *
+ * An entry with no `adrId` is NOT an error and must not look like one. It is a
+ * decision recorded at the iterate's F3 whose ADR number is assigned later, when
+ * a release aggregates it — the ordinary state of every unmerged run. It gets a
+ * plain-language badge saying exactly that, and no number is invented for it.
+ */
 export function DecisionsDetail({ artifact }: { artifact: DecisionsArtifact }) {
   const detail = artifact.detail;
   if (!detail || detail.entries.length === 0) {
@@ -160,14 +167,32 @@ export function DecisionsDetail({ artifact }: { artifact: DecisionsArtifact }) {
 
   return (
     <>
-      {detail.entries.map((entry) => (
-        <section key={entry.adrId} data-testid="artifact-decision-entry" data-adr={entry.adrId}>
+      {detail.entries.map((entry, i) => (
+        <section
+          // `adrId` is null for an unnumbered decision, so it cannot be the key.
+          key={`${entry.source}:${entry.adrId ?? i}`}
+          data-testid="artifact-decision-entry"
+          data-adr={entry.adrId ?? ""}
+          data-source={entry.source}
+        >
+          {entry.source === "drop" ? (
+            <p className="a-note" data-testid="artifact-decision-unnumbered">
+              Decided — not yet published in a release.
+            </p>
+          ) : null}
           <DocumentMarkdown text={entry.markdown} />
         </section>
       ))}
       {detail.truncated ? (
         <p className="a-note" data-testid="artifact-decisions-truncated">
           This run recorded more decisions than are shown here.
+        </p>
+      ) : null}
+      {detail.malformedCount > 0 ? (
+        <p className="a-note" data-testid="artifact-decisions-malformed">
+          {detail.malformedCount === 1
+            ? "One further decision record could not be read."
+            : `${detail.malformedCount} further decision records could not be read.`}
         </p>
       ) : null}
     </>

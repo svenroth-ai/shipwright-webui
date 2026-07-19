@@ -117,11 +117,29 @@ export interface ReviewArtifact extends ArtifactBase {
 // Decisions
 // ---------------------------------------------------------------------------
 
+/**
+ * Where a decision was read from — and therefore how far along it is.
+ *
+ * `decision_log` — aggregated at release time, so it HAS a sequential ADR number.
+ * `drop`         — written at the iterate's F3 as
+ *                  `decision-drops/<run_id>_NNN.json`. Real, recorded, and NOT
+ *                  yet numbered: `/shipwright-changelog` assigns the number when
+ *                  it folds the drop into the log. Measured 2026-07-19, this is
+ *                  the state of EVERY unreleased run in this repo (18 of 18).
+ */
+export type DecisionSource = "decision_log" | "drop";
+
 export interface DecisionEntryView {
-  adrId: string;
+  /**
+   * `ADR-070` once a release aggregation numbered it; **null** while the
+   * decision lives only as a drop. Never fabricated — a plausible
+   * next-in-sequence number is one a reader could cite.
+   */
+  adrId: string | null;
   title: string;
   /** The ADR block's own Markdown — the SECTION, never the whole 639 KB log. */
   markdown: string;
+  source: DecisionSource;
 }
 
 export interface DecisionsArtifact extends ArtifactBase {
@@ -130,5 +148,11 @@ export interface DecisionsArtifact extends ArtifactBase {
     type: "decisions";
     entries: DecisionEntryView[];
     truncated: boolean;
+    /**
+     * Drop files that matched this run but could not be read or validated. A
+     * half-written drop must not take the artifact down, but it must not vanish
+     * either — the UI states the count.
+     */
+    malformedCount: number;
   } | null;
 }

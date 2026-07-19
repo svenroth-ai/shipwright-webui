@@ -51,9 +51,10 @@ function campaignFact(): CampaignFact {
       done: 1,
       total: 2,
       steps: [
-        { id: "S1", title: "resolver", status: "complete", specPath: null, commit: "66e275ae", branch: "iterate/S1", testsPassed: 5107, testsTotal: 5108 },
-        { id: "S2", title: "tests", status: "in_progress", specPath: SUB_SPEC_REL, commit: null, branch: null, testsPassed: null, testsTotal: null },
+        { id: "S1", title: "resolver", status: "complete", statusSource: "status_json", specPath: null, commit: "66e275ae", branch: "iterate/S1", testsPassed: 5107, testsTotal: 5108 },
+        { id: "S2", title: "tests", status: "in_progress", statusSource: "status_json", specPath: SUB_SPEC_REL, commit: null, branch: null, testsPassed: null, testsTotal: null },
       ],
+      provenance: { statusSource: "status_json", degraded: false },
     },
   };
 }

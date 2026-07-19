@@ -17,8 +17,10 @@
  * their later CREATION changes the rev and invalidates the entry).
  */
 
-import { buildDecisionsArtifact, buildReviewArtifact, buildTestsArtifact } from "./artifacts-slice2.js";
-import { readRunDecisions, decisionLogPath } from "./decisions.js";
+import { buildDecisionsArtifact } from "./artifacts-decisions.js";
+import { buildReviewArtifact, buildTestsArtifact } from "./artifacts-slice2.js";
+import { decisionDropsDir, dropFilePaths } from "./decision-drops.js";
+import { readRunDecisionRecord, decisionLogPath } from "./decisions.js";
 import type { EventLookup } from "./iterate-record.js";
 import { readReviewState, reviewStatePaths } from "./review-state.js";
 import { readChangedTestFiles } from "./tests-diff.js";
@@ -36,6 +38,16 @@ export function slice2RevPaths(projectRoot: string, runId: string): string[] {
   return [
     traceabilityPath(projectRoot),
     decisionLogPath(projectRoot),
+    // The drops DIRECTORY, present or not. Registering it while it does not yet
+    // exist is the load-bearing half: it fingerprints `absent`, so the moment an
+    // iterate's F3 CREATES it the rev changes and the cache lets go. Omitting it
+    // would rebuild the exact bug S1 shipped — a cache that could never refresh
+    // because its input was outside the rev.
+    decisionDropsDir(projectRoot),
+    // …and each matching drop FILE. A directory's mtime moves when an entry is
+    // added or removed, but NOT when a file's content is rewritten, so the
+    // directory alone would freeze an edited drop.
+    ...dropFilePaths(projectRoot, runId),
     ...reviewStatePaths(projectRoot, runId),
   ];
 }
@@ -92,7 +104,10 @@ export function buildSlice2Artifacts(input: Slice2Input): Slice2Result {
     artifacts: [
       buildTestsArtifact({ events, diff, index }),
       buildReviewArtifact(readReviewState(projectRoot, runId)),
-      buildDecisionsArtifact(readRunDecisions(projectRoot, runId), events),
+      // drops ∪ decision_log, deduplicated by run_id (the log wins). A run's ADR
+      // exists ONLY as a drop between its F3 and the next release aggregation,
+      // which on this repo is the state of every unreleased run.
+      buildDecisionsArtifact(readRunDecisionRecord(projectRoot, runId), events),
     ],
     cacheable: !(diff.status === "unavailable" && diff.reason === "git_failed"),
   };

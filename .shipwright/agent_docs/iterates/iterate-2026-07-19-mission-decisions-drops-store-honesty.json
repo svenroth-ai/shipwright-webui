@@ -1,0 +1,19 @@
+{
+  "run_id": "iterate-2026-07-19-mission-decisions-drops-store-honesty",
+  "date": "2026-07-19T07:35:18.862084Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/2026-07-19-mission-decisions-drops-store-honesty",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-19-mission-decisions-drops-store-honesty",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-19-mission-decisions-drops-store-honesty/iterate-spec.md",
+  "spec_impact": "modify",
+  "affected_frs": [
+    "FR-01.66"
+  ],
+  "new_frs": [],
+  "architecture_impact": [
+    "component"
+  ],
+  "untested_testable": 0
+}

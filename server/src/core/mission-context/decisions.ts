@@ -23,8 +23,10 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
+import { readRunDrops } from "./decision-drops.js";
 import { readBoundedFile } from "./fs-read.js";
 import { pathGuard } from "../path-guard.js";
+import type { DecisionEntryView } from "./types-slice2.js";
 
 export const DECISION_LOG_REL = ".shipwright/agent_docs/decision_log.md";
 
@@ -172,4 +174,117 @@ export function readRunDecisions(projectRoot: string, runId: string): DecisionsL
   }
 
   return { status: "ok", entries, truncated };
+}
+
+// ---------------------------------------------------------------------------
+// drops ∪ log — the composed record
+// ---------------------------------------------------------------------------
+
+/**
+ * What the DECISIONS artifact is built from, after both sources are consulted.
+ *
+ * `sawUnreadable` is the field that keeps the S1/S2 failure shape out of this
+ * module: a source that EXISTED and could not be read is a fault, and the
+ * builder must be able to tell that apart from "both sources read fine and this
+ * run decided nothing". Collapsing the two is exactly how a read failure ends up
+ * rendered as an absence.
+ */
+export interface DecisionRecord {
+  entries: DecisionEntryView[];
+  truncated: boolean;
+  malformedCount: number;
+  sawUnreadable: boolean;
+  /**
+   * A loss that `malformedCount` does NOT account for: an unreadable log, an
+   * unreadable drops directory, or a scan cut short by a cap.
+   *
+   * Separate from `sawUnreadable` because the two drive different sentences. A
+   * count can be stated ("2 further records could not be read"); these cannot,
+   * and folding them into the count would let a number silently stand in for
+   * "and also, an entire source we never read".
+   */
+  logOrScanLoss: boolean;
+}
+
+/** Join key between a drop and the log entry it became. */
+function titleKey(title: string): string {
+  return title.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/**
+ * The run's decisions from **drops ∪ decision_log**, merged PER ENTRY.
+ *
+ * The dedupe granularity is the load-bearing detail, and an earlier version got
+ * it wrong: it keyed on the RUN, returning early whenever the log held any entry
+ * for this run and never reading the drops at all. The record's true granularity
+ * is run + `_NNN`, and those coincide only if aggregation were all-or-nothing.
+ * It is not — `aggregate_decisions.py` snapshots the drops it will fold, writes
+ * them, then unlinks them ONE AT A TIME, so a drop written mid-aggregation is
+ * never snapshotted and simply stays on disk. A run could therefore have `_001`
+ * published and `_002` still pending, and the run-level short-circuit rendered
+ * the first while the second vanished with `sawUnreadable: false` — a decision
+ * lost silently, by the function written to stop decisions being lost silently.
+ *
+ * So: read BOTH, always. A drop whose TITLE matches a published entry has been
+ * folded and is suppressed as the duplicate it is (`format_entry` renders the
+ * drop's own `title` as the ADR heading, and a drop with no title never becomes
+ * an entry here, so the join holds for exactly the drops we would render). Every
+ * other drop is still pending and renders unnumbered. The log wins on conflict;
+ * it no longer wins on mere presence.
+ */
+export function readRunDecisionRecord(projectRoot: string, runId: string): DecisionRecord {
+  const log = readRunDecisions(projectRoot, runId);
+  // Read unconditionally. A readable log must never be allowed to assert that
+  // an unread drops directory held nothing — the second half of the same bug.
+  const drops = readRunDrops(projectRoot, runId);
+
+  // An ABSENT decision_log.md is not a fault — it is a project that has never
+  // had a release aggregation, which is most of them. Only a log that is there
+  // and unusable (denied, over the cap) is. Treating `missing` as a fault would
+  // pin Decisions at "records could not be read" for every such project even
+  // when the drops answered perfectly well: the very confusion this iterate is
+  // about, rebuilt one level up. (Caught by its own test, not by review.)
+  //
+  // An empty/invalid runId also reports `missing` here, but it independently
+  // fails `isSafeRunId` in the drops reader → `denied` → still surfaced below.
+  const logUnreadable = log.status === "unavailable" && log.reason !== "missing";
+  const logEntries = log.status === "ok" ? log.entries : [];
+  const logTruncated = log.status === "ok" && log.truncated;
+
+  const dropsUnreadable = drops.status === "unavailable";
+  const dropEntries = drops.status === "ok" ? drops.entries : [];
+  const dropsTruncated = drops.status === "ok" && drops.truncated;
+  const malformedCount = drops.status === "ok" ? drops.malformed : 0;
+
+  // Published titles suppress their own drop; everything else is still pending.
+  const published = new Set(logEntries.map((e) => titleKey(e.title)).filter((k) => k.length > 0));
+  const pending = dropEntries.filter((d) => !published.has(titleKey(d.title)));
+
+  return {
+    entries: [
+      ...logEntries.map((e) => ({
+        adrId: e.adrId,
+        title: e.title,
+        markdown: e.markdown,
+        source: "decision_log" as const,
+      })),
+      ...pending.map((d) => ({
+        adrId: null,
+        title: d.title,
+        markdown: d.markdown,
+        source: "drop" as const,
+      })),
+    ],
+    // BOTH sources' truncation, not just the drops'. A bounded scan that was cut
+    // short has not established that this run has no further decision.
+    truncated: logTruncated || dropsTruncated,
+    malformedCount,
+    // Every way either source could have lost something, OR-ed in ONE place so
+    // no branch can hardcode `false` without looking — which is exactly what the
+    // run-level short-circuit used to do.
+    sawUnreadable:
+      logUnreadable || dropsUnreadable || malformedCount > 0 || logTruncated || dropsTruncated,
+    // The uncountable subset, for the sentence that cannot cite a number.
+    logOrScanLoss: logUnreadable || dropsUnreadable || logTruncated || dropsTruncated,
+  };
 }

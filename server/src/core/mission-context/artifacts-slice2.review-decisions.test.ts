@@ -12,8 +12,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { buildDecisionsArtifact, buildReviewArtifact } from "./artifacts-slice2.js";
-import type { DecisionsLookup } from "./decisions.js";
+import { buildDecisionsArtifact } from "./artifacts-decisions.js";
+import { buildReviewArtifact } from "./artifacts-slice2.js";
+import type { DecisionRecord } from "./decisions.js";
 import type { ReviewLookup } from "./review-state.js";
 import type { ReviewRow } from "./types-slice2.js";
 import { ABSENT, FOUND, reviewRow } from "./slice2-test-fixtures.js";
@@ -160,32 +161,46 @@ describe("buildReviewArtifact", () => {
   });
 });
 
+/** Both sources read cleanly and neither holds anything for this run. */
+const EMPTY: DecisionRecord = {
+  entries: [],
+  truncated: false,
+  malformedCount: 0,
+  sawUnreadable: false,
+};
+
 describe("buildDecisionsArtifact", () => {
-  it("SHOWS `unavailable` when the decision log could not be read", () => {
-    const lookup: DecisionsLookup = { status: "unavailable", reason: "missing" };
-    const a = buildDecisionsArtifact(lookup, FOUND);
+  it("SHOWS `unavailable` when the decision records could not be read", () => {
+    const record: DecisionRecord = {
+      entries: [],
+      truncated: false,
+      malformedCount: 0,
+      sawUnreadable: true,
+    };
+    const a = buildDecisionsArtifact(record, FOUND);
     expect(a.state).toBe("unavailable");
     expect(a.note).toBeTruthy();
   });
 
   it("hides a finalized run that genuinely recorded no ADR", () => {
-    const a = buildDecisionsArtifact({ status: "ok", entries: [], truncated: false }, FOUND);
+    const a = buildDecisionsArtifact(EMPTY, FOUND);
     expect(a.state).toBe("not_applicable");
   });
 
   it("hides a mid-run session as not-yet rather than not-applicable", () => {
-    const a = buildDecisionsArtifact({ status: "ok", entries: [], truncated: false }, ABSENT);
+    const a = buildDecisionsArtifact(EMPTY, ABSENT);
     expect(a.state).toBe("not_yet_created");
   });
 
   it("renders the run's ADRs with their own Markdown", () => {
     const a = buildDecisionsArtifact(
       {
-        status: "ok",
         truncated: false,
+        malformedCount: 0,
+        sawUnreadable: false,
         entries: [
-          { adrId: "ADR-300", title: "Pick the review source", markdown: "### ADR-300\nbody" },
-          { adrId: "ADR-301", title: "Bound the manifest", markdown: "### ADR-301\nbody" },
+          { adrId: "ADR-300", title: "Pick the review source", markdown: "### ADR-300\nbody", source: "decision_log" },
+          { adrId: "ADR-301", title: "Bound the manifest", markdown: "### ADR-301\nbody", source: "decision_log" },
         ],
       },
       FOUND,

@@ -11,6 +11,8 @@
  *     pass, and a findings COUNT with no per-finding detail must say so rather
  *     than render an empty list.
  *
+ * Decisions moved to `MissionDecisionsDetail.test.tsx` at the 300-LOC rule.
+ *
  * @covers FR-01.66
  */
 
@@ -18,7 +20,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
 import type {
-  DecisionsArtifact,
   ReviewArtifact,
   ReviewRow,
   TestsArtifact,
@@ -30,7 +31,7 @@ vi.mock("../SmartViewer/DocumentMarkdown", () => ({
   DocumentMarkdown: ({ text }: { text: string }) => <div data-testid="doc-markdown">{text}</div>,
 }));
 
-import { DecisionsDetail, ReviewDetail, TestsDetail } from "./MissionSlice2Details";
+import { ReviewDetail, TestsDetail } from "./MissionSlice2Details";
 
 function testsArtifact(over: Partial<NonNullable<TestsArtifact["detail"]>> = {}): TestsArtifact {
   return {
@@ -223,40 +224,5 @@ describe("ReviewDetail", () => {
     );
     expect(screen.getByText("HIGH — Unbounded read")).toBeInTheDocument();
     expect(screen.queryByTestId("artifact-review-no-detail")).not.toBeInTheDocument();
-  });
-});
-
-describe("DecisionsDetail", () => {
-  const artifact: DecisionsArtifact = {
-    kind: "decisions",
-    label: "Decisions",
-    state: "available",
-    summary: "Pick the review source.",
-    receipt: "ADR-300",
-    detail: {
-      type: "decisions",
-      truncated: false,
-      entries: [{ adrId: "ADR-300", title: "Pick the review source", markdown: "### ADR-300\nbody" }],
-    },
-  };
-
-  it("renders each ADR's own Markdown through the shared document renderer", () => {
-    render(<DecisionsDetail artifact={artifact} />);
-    expect(screen.getByTestId("artifact-decision-entry")).toHaveAttribute("data-adr", "ADR-300");
-    expect(screen.getByTestId("doc-markdown")).toHaveTextContent("### ADR-300");
-  });
-
-  it("discloses truncation", () => {
-    render(
-      <DecisionsDetail artifact={{ ...artifact, detail: { ...artifact.detail!, truncated: true } }} />,
-    );
-    expect(screen.getByTestId("artifact-decisions-truncated")).toBeInTheDocument();
-  });
-
-  it("says so plainly when the run recorded no decisions", () => {
-    render(
-      <DecisionsDetail artifact={{ ...artifact, detail: { ...artifact.detail!, entries: [] } }} />,
-    );
-    expect(screen.getByText("This run recorded no decisions.")).toBeInTheDocument();
   });
 });
