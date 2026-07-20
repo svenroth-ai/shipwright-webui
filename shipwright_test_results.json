@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-07-17",
+  "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-19-mission-s3-pipeline-campaign-polish",
-    "date": "2026-07-19T00:40:59.059Z",
+    "run_id": "iterate-2026-07-20-task-form-border-polish",
+    "date": "2026-07-20",
     "unit": {
-      "passed": 5461,
-      "total": 5462
+      "status": "passed",
+      "passed": 2859,
+      "total": 2859
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "Client-only CSS/token change."
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -19,80 +19,43 @@
       "total": 0
     },
     "e2e": {
-      "passed": 13,
-      "total": 13
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
-      "status": "passed",
-      "note": "Grey-beige #EDEAE7 sourced from svenroth.ai's own --light-beige-background; contrast targets checked against WCAG AA (4.5:1 text) and 1.4.11 (3:1 control boundary)."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "skipped"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 form sheet uses the grey-beige --surface-form, not the yellow --beige",
+          "behavior": "Expanded More-options header rounds only its TOP corners so its square bottom meets the content divider (divider no longer collides with the header's rounded corners)",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface\u2026' PASSED + qa-form-newtask.png"
+          "evidence": "MoreOptionsDisclosure.test.tsx::'rounds only its top corners when expanded (square bottom meets the divider)' PASSED — open => rounded-t only, closed => full pill"
         },
         {
-          "behavior": "AC2 labels/hints/helper copy use --body (>=4.5:1), not --color-muted",
+          "behavior": "Every task-form field frame + the More-options bar resolve --surface-form-line, so lightening that one token lightens all task forms including plain Claude",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx (footer hint --body) + FieldLabel/palette/ParamSections token sweep; qa screenshots"
-        },
-        {
-          "behavior": "AC3 field frames use --surface-form-line (>=3:1, WCAG 1.4.11)",
-          "disposition": "tested",
-          "evidence": "SimpleFields.test.tsx (border-[var(--surface-form-line) + not --color-border) PASSED"
-        },
-        {
-          "behavior": "AC4 More options: visible frame + darker tone persistently when expanded, hover steps darker",
-          "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded\u2026' PASSED + qa-form-hover-moreoptions.png"
-        },
-        {
-          "behavior": "AC5 every task form variant (incl. Plain/pure-Claude) inherits AC1-AC4",
-          "disposition": "tested",
-          "evidence": "all five bodies render through ModalShell + SimpleFields (NewPlainModal imports Title/DescriptionFieldFragment); NewIssueModal suite 97 tests PASSED"
-        },
-        {
-          "behavior": "AC6 title-bar buttons render the Launch/Resume teal rgb(14,122,107)",
-          "disposition": "tested",
-          "evidence": "QA assertion: computed backgroundColor of board/projects/ships-log/modal-Launch all equal rgb(14,122,107)"
-        },
-        {
-          "behavior": "AC7 buttons share height 36px + right edge; label may widen only",
-          "disposition": "tested",
-          "evidence": "QA assertion: unique heights=[36], unique right edges=[1233]"
-        },
-        {
-          "behavior": "AC8 buttons share a baseline regardless of a page subtitle",
-          "disposition": "tested",
-          "evidence": "QA assertion: max-min y <= 2 (28/28/29) after .page-head .inner min-height:92px"
+          "evidence": "SimpleFields.test.tsx + MoreOptionsDisclosure.test.tsx assert border-[var(--surface-form-line; production build emits --surface-form-line:#8e847e in dist/assets/*.css (grep-confirmed), contrast 3.05:1 vs sheet / 3.65:1 vs field-fill, both >=WCAG 3:1"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 2,
+        "tested": 2,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 8,
-        "covered_acs": 8
+        "acs": 2,
+        "covered_acs": 2
       }
-    },
-    "surface_verification": {
-      "surface": "web",
-      "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/2e14a629-3752-417f-bd64-554586a44f93/scratchpad/s3-e2e-runner.mjs",
-      "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.shipwright\\runs\\iterate-2026-07-19-mission-s3-pipeline-campaign-polish\\surface_verification.log",
-      "timestamp": "2026-07-19T00:40:59.059Z",
-      "attempts": 1
     }
   }
 }

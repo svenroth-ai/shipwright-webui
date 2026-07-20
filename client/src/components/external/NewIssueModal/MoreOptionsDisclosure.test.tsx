@@ -87,6 +87,33 @@ describe("MoreOptionsDisclosure", () => {
     );
   });
 
+  // Sven 2026-07-20: when expanded, the header's rounded BOTTOM corners used to
+  // curve inward while the content's straight `border-t` divider ran edge-to-edge
+  // — the divider collided with the header's rounded corners. Fix: round only the
+  // TOP corners when open, so the header's square bottom meets the divider flush.
+  it("rounds only its top corners when expanded (square bottom meets the divider)", () => {
+    const { rerender } = render(
+      <MoreOptionsDisclosure open={false} onToggle={() => {}}>
+        <div />
+      </MoreOptionsDisclosure>,
+    );
+    // collapsed: the whole bar is a rounded pill — all four corners.
+    const collapsed = screen.getByTestId("new-issue-more-options-toggle");
+    expect(collapsed.className).toContain("rounded-[var(--radius-button");
+    expect(collapsed.className).not.toContain("rounded-t-[var(--radius-button");
+
+    rerender(
+      <MoreOptionsDisclosure open onToggle={() => {}}>
+        <div />
+      </MoreOptionsDisclosure>,
+    );
+    // expanded: only the top corners round; the bottom stays square so the
+    // content divider does not collide with a curve.
+    const expanded = screen.getByTestId("new-issue-more-options-toggle");
+    expect(expanded.className).toContain("rounded-t-[var(--radius-button");
+    expect(expanded.className).not.toContain("rounded-[var(--radius-button");
+  });
+
   it("honours a custom label", () => {
     render(
       <MoreOptionsDisclosure open={false} onToggle={() => {}} label="Advanced">

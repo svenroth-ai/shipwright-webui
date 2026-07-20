@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-20-task-form-border-polish",
+  "date": "2026-07-20T21:12:19.404091Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/task-form-border-polish",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-20-task-form-border-polish",
+  "spec_impact": "none"
+}
