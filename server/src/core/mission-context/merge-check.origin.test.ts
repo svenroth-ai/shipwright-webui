@@ -95,25 +95,25 @@ describe("parseOriginSlug", () => {
 describe("readOriginSlug", () => {
   beforeEach(() => _clearOriginSlugCache());
 
-  it("reads + memoizes the slug via an arg-array git call", () => {
+  it("reads + memoizes the slug via an arg-array git call", async () => {
     let calls = 0;
     const git = (args: string[]) => {
       calls++;
       expect(args).toEqual(["remote", "get-url", "origin"]);
       return "https://github.com/svenroth-ai/shipwright-webui.git\n";
     };
-    expect(readOriginSlug("/p", git)).toEqual({
+    expect(await readOriginSlug("/p", git)).toEqual({
       owner: "svenroth-ai",
       repo: "shipwright-webui",
     });
-    expect(readOriginSlug("/p", git)).not.toBeNull();
+    expect(await readOriginSlug("/p", git)).not.toBeNull();
     expect(calls).toBe(1);
   });
 
-  it("returns null (and caches it) when there is no origin remote", () => {
+  it("returns null (and caches it) when there is no origin remote", async () => {
     const git = () => {
       throw new Error("no such remote");
     };
-    expect(readOriginSlug("/no-remote", git)).toBeNull();
+    expect(await readOriginSlug("/no-remote", git)).toBeNull();
   });
 });

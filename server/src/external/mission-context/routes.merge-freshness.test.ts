@@ -18,6 +18,8 @@ import { join } from "node:path";
 
 import { _clearResolverCache } from "../../core/mission-context/resolver.js";
 import { _clearMergeCache, _clearOriginSlugCache } from "../../core/mission-context/merge-check.js";
+import { _clearRootsCache } from "../../core/mission-context/worktree-roots.js";
+import { _clearEventIndexCache } from "../../core/mission-context/iterate-record.js";
 import { createMissionContextRouter } from "./routes.js";
 import { makeProject, makeTask, RUN_ID, type ContextLike } from "./test-harness.js";
 import type { ExternalTask, SdkSessionsStore } from "../../core/sdk-sessions-store.js";
@@ -106,6 +108,11 @@ describe("merge state across resolver cache hits", () => {
     _clearResolverCache();
     _clearMergeCache();
     _clearOriginSlugCache();
+    // The resolver now populates two more module-level caches (worktree root set,
+    // event-log run_id index) keyed on real time / real paths; clear them too so
+    // this same-root repeated-poll suite stays isolated per case.
+    _clearRootsCache();
+    _clearEventIndexCache();
     vi.restoreAllMocks();
   });
 

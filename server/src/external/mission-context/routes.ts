@@ -95,7 +95,7 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
     const facts = await getScenarioFacts(project, task);
     const transcript = await readTranscriptTail(task.sessionUuid);
 
-    const { context, associateRunId } = resolveMissionContext({
+    const { context, associateRunId } = await resolveMissionContext({
       taskId: task.taskId,
       sessionUuid: task.sessionUuid,
       projectId: task.projectId,
@@ -135,7 +135,7 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
     return c.json({ status: "ok", context });
   });
 
-  app.get("/api/external/tasks/:taskId/mission-context/documents/:documentId", (c) => {
+  app.get("/api/external/tasks/:taskId/mission-context/documents/:documentId", async (c) => {
     const bound = bind(c.req.param("taskId"));
     if (!bound) return c.json({ error: "not_found" }, 404);
     const { task, project } = bound;
@@ -168,7 +168,7 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
     // capability minted for a worktree that has since been removed (or whose
     // path was reused) must not still read below it (external code review,
     // openai MEDIUM).
-    const roots = readAllowedRoots(project.path);
+    const roots = await readAllowedRoots(project.path);
     if (!roots.some((r) => samePath(r, payload.root))) {
       return c.json({ status: "stale", reason: "root_no_longer_registered" }, 200);
     }

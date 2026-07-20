@@ -42,12 +42,12 @@ export interface MergeRefreshDeps {
  * nothing could change (no commit artifact, not yet available, or already
  * terminal) so callers pay nothing on the common path.
  */
-export function refreshMerge(
+export async function refreshMerge(
   context: MissionContext,
   projectRoot: string,
   transcript: string,
   deps: MergeRefreshDeps = {},
-): MissionContext {
+): Promise<MissionContext> {
   const commit = context.artifacts.find(
     (a): a is CommitArtifact => a.kind === "commit",
   );
@@ -55,10 +55,10 @@ export function refreshMerge(
   // `merged` is terminal — never re-ask, never regress it to pending.
   if (commit.detail.merge === "merged") return context;
 
-  const marker = extractPrMarker(transcript, readOriginSlug(projectRoot, deps.git));
+  const marker = extractPrMarker(transcript, await readOriginSlug(projectRoot, deps.git));
   if (!marker) return context;
 
-  const merge = checkSquashMerged(projectRoot, marker.number, {
+  const merge = await checkSquashMerged(projectRoot, marker.number, {
     git: deps.git,
     ...deps.merge,
   });

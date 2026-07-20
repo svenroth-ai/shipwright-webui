@@ -21,30 +21,46 @@
  * still cannot escape.
  */
 
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
 import path from "node:path";
+import { promisify } from "node:util";
 
 import { pathGuard, realPathGuard } from "../path-guard.js";
 import { samePath } from "./pointer.js";
 
+/**
+ * A git invocation returning the process stdout.
+ *
+ * The union return type is deliberate: it lets a SYNC test double
+ * (`(args) => "…"`) satisfy the very same signature the ASYNC production runner
+ * implements, so no injection site had to change when git went async — every
+ * CALLER simply `await`s the result (awaiting a plain string is a no-op).
+ */
 export interface GitRunner {
-  (args: string[], cwd: string): string;
+  (args: string[], cwd: string): string | Promise<string>;
 }
 
+const execFileP = promisify(execFile);
+
 /**
- * Default git invocation: an ARGUMENT ARRAY with `shell: false`. No caller
- * string is ever concatenated into a command line (ADR-044 #9 discipline).
+ * Default git invocation: an ARGUMENT ARRAY with `shell: false`, run
+ * ASYNCHRONOUSLY (`execFile`, not `execFileSync`). The sync form blocked the
+ * single-threaded Hono event loop for the entire git call — up to the timeout —
+ * which stalled the embedded-terminal WS frames and the 1 s transcript poll, not
+ * merely the Mission tab that triggered it. No caller string is ever
+ * concatenated into a command line (ADR-044 #9 discipline).
  */
-export const defaultGit: GitRunner = (args, cwd) =>
-  execFileSync("git", args, {
+export const defaultGit: GitRunner = async (args, cwd) => {
+  const { stdout } = await execFileP("git", args, {
     cwd,
     encoding: "utf-8",
     timeout: 5000,
     windowsHide: true,
     maxBuffer: 4 * 1024 * 1024,
-    stdio: ["ignore", "pipe", "ignore"],
   });
+  return stdout;
+};
 
 /**
  * Every root this project may read from: the configured project root plus each
@@ -52,11 +68,14 @@ export const defaultGit: GitRunner = (args, cwd) =>
  * unavailable or the directory is not a repo — failing CLOSED (a smaller root
  * set), never open.
  */
-export function readAllowedRoots(projectRoot: string, git: GitRunner = defaultGit): string[] {
+export async function readAllowedRoots(
+  projectRoot: string,
+  git: GitRunner = defaultGit,
+): Promise<string[]> {
   const roots = [path.resolve(projectRoot)];
   let out: string;
   try {
-    out = git(["worktree", "list", "--porcelain"], projectRoot);
+    out = await git(["worktree", "list", "--porcelain"], projectRoot);
   } catch {
     return roots;
   }
@@ -68,6 +87,69 @@ export function readAllowedRoots(projectRoot: string, git: GitRunner = defaultGi
     if (!roots.some((r) => samePath(r, resolved))) roots.push(resolved);
   }
   return roots;
+}
+
+interface RootsCacheEntry {
+  /** The in-flight OR resolved root-set promise, shared by concurrent callers. */
+  roots: Promise<string[]>;
+  expiresAt: number;
+}
+
+const rootsCache = new Map<string, RootsCacheEntry>();
+/**
+ * A few seconds. Worktrees are created/removed only at iterate start/finalize,
+ * so this is far shorter than any real churn interval — a stale entry
+ * self-corrects on the very next poll and never escapes a guard (every read
+ * still re-runs pathGuard + realPathGuard + the doc fingerprint).
+ */
+const ROOTS_TTL_MS = 5_000;
+const ROOTS_CACHE_CAP = 128;
+
+export interface AllowedRootsCacheDeps {
+  git?: GitRunner;
+  /** Injectable clock — real time in production, a fake in the TTL tests. */
+  now?: () => number;
+  ttlMs?: number;
+}
+
+/**
+ * `readAllowedRoots` behind a short per-projectRoot TTL cache.
+ *
+ * WHY (internal code review, perf). The resolver polls once a second, and
+ * `chosen.root` feeds the `rev` that keys the resolver's own response cache — so
+ * the root set must be computed BEFORE that cache-hit check, and the naive call
+ * spawned `git worktree list --porcelain` on every poll, cache hit or not. Here
+ * a cache hit is a `Map` lookup, not a process spawn.
+ *
+ * The DETAIL endpoint deliberately does NOT use this — its git re-validation of
+ * a minted capability must be point-in-time fresh, and it is a rare user click,
+ * not a 1 s poll, so the spawn there is not worth caching away.
+ */
+export function readAllowedRootsCached(
+  projectRoot: string,
+  deps: AllowedRootsCacheDeps = {},
+): Promise<string[]> {
+  const now = deps.now ?? Date.now;
+  const ttl = deps.ttlMs ?? ROOTS_TTL_MS;
+  const key = path.resolve(projectRoot);
+
+  const hit = rootsCache.get(key);
+  if (hit && hit.expiresAt > now()) return hit.roots;
+
+  // Cache the PROMISE, not just the resolved value: concurrent polls (or open
+  // tabs) that all miss during one spawn window then share ONE
+  // `git worktree list --porcelain` instead of each spawning their own
+  // (external code review, openai MEDIUM). `readAllowedRoots` never rejects — it
+  // catches internally and fails closed — so a rejected promise is never cached.
+  const pending = readAllowedRoots(projectRoot, deps.git);
+  if (rootsCache.size >= ROOTS_CACHE_CAP) rootsCache.clear();
+  rootsCache.set(key, { roots: pending, expiresAt: now() + ttl });
+  return pending;
+}
+
+/** Test-only: drop the module-level root-set TTL cache between cases. */
+export function _clearRootsCache(): void {
+  rootsCache.clear();
 }
 
 /**

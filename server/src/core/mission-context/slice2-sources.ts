@@ -82,7 +82,7 @@ export interface Slice2Result {
 }
 
 /** Tests · Review · Decisions, in CONTRACT §6 order. */
-export function buildSlice2Artifacts(input: Slice2Input): Slice2Result {
+export async function buildSlice2Artifacts(input: Slice2Input): Promise<Slice2Result> {
   const { projectRoot, runId, events, commit } = input;
   const git = input.git ?? defaultGit;
 
@@ -90,7 +90,7 @@ export function buildSlice2Artifacts(input: Slice2Input): Slice2Result {
   // and `buildTestsArtifact` reports `not_yet_created` for that case anyway.
   const diff =
     events.status === "found"
-      ? readChangedTestFiles(projectRoot, commit, git)
+      ? await readChangedTestFiles(projectRoot, commit, git)
       : ({ status: "unavailable", reason: "bad_commit" } as const);
 
   // The manifest is only needed to ENRICH real diff rows, so skip the 0.9 MB

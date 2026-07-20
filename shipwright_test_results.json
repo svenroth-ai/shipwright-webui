@@ -1,70 +1,107 @@
 {
   "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-20-traceability-schema-version-guard",
-    "date": "2026-07-20",
+    "run_id": "iterate-2026-07-20-mission-context-async-git",
+    "date": "2026-07-20T21:52:00.000Z",
     "unit": {
       "status": "passed",
-      "passed": 2794,
-      "total": 2795
+      "passed": 2798,
+      "total": 2799,
+      "note": "Full server vitest suite (1 pre-existing skip). Mission-context slice: 33 files / 391 tests."
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 391,
+      "total": 391,
+      "note": "Mission-context route + resolver exercised through the real Hono request pipeline (app.request) — HTTP contract proven byte-identical across the async refactor."
     },
     "pgtap": {
       "status": "not_run",
       "passed": 0,
-      "total": 0
+      "total": 0,
+      "note": "No database surface."
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 7,
+      "total": 7,
+      "note": "F0.5 web smoke (core surfaces) against the modified server on an isolated stack. The embedded-terminal WebSocket-ready smoke was excluded (--grep-invert=WebSocket): it exercises node-pty/terminal, which this diff does not touch, and it is a known isolated-stack pty artifact."
     },
     "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "not_run",
+      "note": "No UI change — server-internal refactor."
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "manifest schema_version ahead of TRACEABILITY_SCHEMA_VERSION -> one contract_version_ahead warning (drift made visible)",
+          "behavior": "Async GitRunner is awaited — a Promise-returning git double resolves correctly through the whole chain",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts::'WARNS (once) when schema_version is ahead ...' PASSED"
+          "evidence": "worktree-roots.cache.test.ts 'awaits an ASYNC git runner' PASSED + merge-check.test.ts real-repo cases run through async execFile"
         },
         {
-          "behavior": "version-ahead manifest still inverts to a usable index incl. mappedFrom fold provenance (fail-soft, no throw, not unavailable-due-to-version) [round-trip boundary probe]",
+          "behavior": "Sync git doubles still satisfy the widened GitRunner type (no injection-site churn)",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "traceability.schema-version.test.ts::'warns but does NOT lose the index when a version-ahead manifest carries fold provenance' PASSED"
+          "evidence": "full mission-context suite compiles under `(args,cwd)=>string|Promise<string>` and is green (33 files / 391)"
         },
         {
-          "behavior": "schema_version == knownMax -> no warn (no false positive)",
+          "behavior": "readAllowedRootsCached spawns git ONCE within the TTL (no per-poll spawn)",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version equals the known max' PASSED"
+          "evidence": "worktree-roots.cache.test.ts 'spawns git ONCE within the TTL' PASSED (calls===1 across three polls)"
         },
         {
-          "behavior": "schema_version absent (older manifest) -> no warn, still reads clean",
+          "behavior": "readAllowedRootsCached re-spawns after the TTL expires",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version is ABSENT ...' PASSED"
+          "evidence": "worktree-roots.cache.test.ts 're-spawns once the TTL expires' PASSED (calls===2)"
         },
         {
-          "behavior": "guard changes no existing return value for any prior input (corrupt/missing/truncated/real-repo unchanged)",
+          "behavior": "readAllowedRootsCached dedups concurrent in-flight callers (caches the promise)",
           "disposition": "tested",
-          "evidence": "full server suite green (235 files, 2794 passed, 1 skipped) incl. traceability.test.ts real-repo calibration probe"
+          "evidence": "worktree-roots.cache.test.ts same-promise identity (expect(b).toBe(a)) with a single spawn"
+        },
+        {
+          "behavior": "checkSquashMerged never regresses a terminal `merged` under the async cache race",
+          "disposition": "tested",
+          "evidence": "merge-check.race.test.ts 'a racing `pending` never regresses…' PASSED; verified RED when the guard is neutralized"
+        },
+        {
+          "behavior": "findWorkCompleted serves the cached index without re-projecting an unchanged log",
+          "disposition": "tested",
+          "evidence": "iterate-record.test.ts 'serves the run from the cached index…' PASSED (same RunProjection object identity)"
+        },
+        {
+          "behavior": "findWorkCompleted does NOT re-read the log while its (mtime,size) fingerprint is unchanged",
+          "disposition": "tested",
+          "evidence": "iterate-record.test.ts 'does NOT re-read the log while its (mtime,size) fingerprint is unchanged' PASSED (same-length overwrite + re-pinned mtime stays unseen)"
+        },
+        {
+          "behavior": "findWorkCompleted rebuilds the index when the log changes (appended run becomes visible)",
+          "disposition": "tested",
+          "evidence": "iterate-record.test.ts 'rebuilds the index when the log changes' PASSED"
+        },
+        {
+          "behavior": "found / absent / unavailable trichotomy preserved exactly vs the prior scan",
+          "disposition": "tested",
+          "evidence": "iterate-record.test.ts absent/absent-when-missing cases + routes.merge-freshness.test.ts (unchanged) green"
+        },
+        {
+          "behavior": "Detail endpoint still re-validates roots point-in-time fresh (uncached)",
+          "disposition": "tested",
+          "evidence": "routes.documents.test.ts stale/root-no-longer-registered paths unchanged and green"
+        },
+        {
+          "behavior": "Mission-context response byte-identical for identical inputs across the refactor",
+          "disposition": "tested",
+          "evidence": "full mission-context suite (route + resolver, 33 files / 391) green pre- and post-refactor; F0.5 web smoke green"
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 12,
+        "tested": 12,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -74,10 +111,13 @@
       }
     },
     "surface_verification": {
-      "surface": "none",
-      "tests_run": 2794,
+      "surface": "web",
+      "runner": "node .../client/node_modules/@playwright/test/cli.js test --config .../client/playwright.iterate.config.ts --grep-invert=WebSocket 00-core-surfaces",
       "exit_code": 0,
-      "justification": "Server-internal observability only: readTraceabilityIndex now emits a fail-soft console.warn when the manifest schema_version is ahead of TRACEABILITY_SCHEMA_VERSION; the TraceabilityIndex return contract is byte-identical for every input, so there is no UI-observable delta and no browser surface to exercise. The touches_io_boundary enforcement is met by a round-trip boundary probe (a version-ahead manifest still inverts to a valid index) in traceability.schema-version.test.ts, and the full server suite (2794 passed) exercises the mission-context consumer chain (resolver -> routes) confirming unchanged output."
+      "tests_run": 7,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-20-mission-context-async-git/surface_verification.json",
+      "timestamp": "2026-07-20T21:50:57.007Z",
+      "attempts": 1
     }
   }
 }

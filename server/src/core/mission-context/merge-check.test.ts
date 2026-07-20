@@ -143,17 +143,17 @@ describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
     repo = null;
   });
 
-  it("detects the squash commit by its (#NNN) message on origin/main", () => {
+  it("detects the squash commit by its (#NNN) message on origin/main", async () => {
     repo = makeRepoWithSquash(4242);
-    expect(checkSquashMerged(repo, 4242)).toBe("merged");
+    expect(await checkSquashMerged(repo, 4242)).toBe("merged");
   });
 
-  it("reports `pending` when no squash commit carries that PR number", () => {
+  it("reports `pending` when no squash commit carries that PR number", async () => {
     repo = makeRepoWithSquash(4242);
-    expect(checkSquashMerged(repo, 999)).toBe("pending");
+    expect(await checkSquashMerged(repo, 999)).toBe("pending");
   });
 
-  it("is SQUASH-aware: the branch SHA is not an ancestor, yet the merge is found", () => {
+  it("is SQUASH-aware: the branch SHA is not an ancestor, yet the merge is found", async () => {
     repo = makeRepoWithSquash(4242);
     // Build a side branch whose commits are genuinely NOT on origin/main —
     // `--is-ancestor` would say "not merged" here; the (#NNN) grep says merged.
@@ -169,10 +169,10 @@ describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
       isAncestor = false;
     }
     expect(isAncestor).toBe(false); // the wrong check would fail here
-    expect(checkSquashMerged(repo, 4242)).toBe("merged"); // the right one holds
+    expect(await checkSquashMerged(repo, 4242)).toBe("merged"); // the right one holds
   });
 
-  it("returns `unknown` (not pending) when origin/main does not exist", () => {
+  it("returns `unknown` (not pending) when origin/main does not exist", async () => {
     repo = mkdtempSync(join(tmpdir(), "mc-merge-bare-"));
     git(repo, ["init", "-q", "-b", "main"]);
     git(repo, ["config", "user.email", "t@example.com"]);
@@ -180,13 +180,13 @@ describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
     writeFileSync(join(repo, "a.txt"), "one");
     git(repo, ["add", "."]);
     git(repo, ["commit", "-q", "-m", "chore: init"]);
-    expect(checkSquashMerged(repo, 1)).toBe("unknown");
+    expect(await checkSquashMerged(repo, 1)).toBe("unknown");
   });
 
-  it("returns `unknown` for an unvalidatable PR number without invoking git", () => {
+  it("returns `unknown` for an unvalidatable PR number without invoking git", async () => {
     repo = makeRepoWithSquash(4242);
     let called = false;
-    const state = checkSquashMerged(repo, "4242; rm -rf /", {
+    const state = await checkSquashMerged(repo, "4242; rm -rf /", {
       git: () => {
         called = true;
         return "";
@@ -196,10 +196,10 @@ describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
     expect(called).toBe(false); // the gate short-circuits BEFORE git
   });
 
-  it("passes the PR number as a separate argv member, never a command string", () => {
+  it("passes the PR number as a separate argv member, never a command string", async () => {
     repo = makeRepoWithSquash(4242);
     let seen: string[] = [];
-    checkSquashMerged(repo, 4242, {
+    await checkSquashMerged(repo, 4242, {
       git: (args) => {
         seen = args;
         return "";
@@ -216,7 +216,7 @@ describe.runIf(gitAvailable)("checkSquashMerged (real repo)", () => {
 describe("merge cache asymmetry", () => {
   beforeEach(() => _clearMergeCache());
 
-  it("caches `merged` indefinitely (a merge is terminal)", () => {
+  it("caches `merged` indefinitely (a merge is terminal)", async () => {
     let calls = 0;
     // The stub returns SUBJECT lines (`--format=%s`), matching the real query.
     const git = () => {
@@ -225,13 +225,13 @@ describe("merge cache asymmetry", () => {
     };
     let clock = 1000;
     const now = () => clock;
-    expect(checkSquashMerged("/p", 7, { git, now })).toBe("merged");
+    expect(await checkSquashMerged("/p", 7, { git, now })).toBe("merged");
     clock += 10 * 60 * 60 * 1000; // 10 hours later
-    expect(checkSquashMerged("/p", 7, { git, now })).toBe("merged");
+    expect(await checkSquashMerged("/p", 7, { git, now })).toBe("merged");
     expect(calls).toBe(1);
   });
 
-  it("RE-CHECKS `pending` after the TTL (never cache pending forever)", () => {
+  it("RE-CHECKS `pending` after the TTL (never cache pending forever)", async () => {
     let calls = 0;
     let out = "";
     const git = () => {
@@ -240,13 +240,13 @@ describe("merge cache asymmetry", () => {
     };
     let clock = 1000;
     const now = () => clock;
-    expect(checkSquashMerged("/p", 8, { git, now, pendingTtlMs: 60_000 })).toBe("pending");
+    expect(await checkSquashMerged("/p", 8, { git, now, pendingTtlMs: 60_000 })).toBe("pending");
     clock += 30_000;
-    expect(checkSquashMerged("/p", 8, { git, now, pendingTtlMs: 60_000 })).toBe("pending");
+    expect(await checkSquashMerged("/p", 8, { git, now, pendingTtlMs: 60_000 })).toBe("pending");
     expect(calls).toBe(1); // still inside the TTL
     clock += 40_000;
     out = "fix: later squash (#8)\n"; // the PR got merged in the meantime
-    expect(checkSquashMerged("/p", 8, { git, now, pendingTtlMs: 60_000 })).toBe("merged");
+    expect(await checkSquashMerged("/p", 8, { git, now, pendingTtlMs: 60_000 })).toBe("merged");
     expect(calls).toBe(2);
   });
 });
@@ -265,7 +265,7 @@ describe.runIf(gitAvailable)("merge false-positive guard", () => {
     repo = null;
   });
 
-  it("does NOT report merged when another PR's squash merely mentions the number", () => {
+  it("does NOT report merged when another PR's squash merely mentions the number", async () => {
     repo = mkdtempSync(join(tmpdir(), "mc-merge-fp-"));
     git(repo, ["init", "-q", "-b", "main"]);
     git(repo, ["config", "user.email", "t@example.com"]);
@@ -276,12 +276,12 @@ describe.runIf(gitAvailable)("merge false-positive guard", () => {
     git(repo, ["commit", "-q", "-m", "fix: follow-up to (#500) after review (#501)"]);
     git(repo, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
 
-    expect(checkSquashMerged(repo, 501)).toBe("merged"); // the real delivery
+    expect(await checkSquashMerged(repo, 501)).toBe("merged"); // the real delivery
     _clearMergeCache();
-    expect(checkSquashMerged(repo, 500)).toBe("pending"); // the mere mention
+    expect(await checkSquashMerged(repo, 500)).toBe("pending"); // the mere mention
   });
 
-  it("matches a multi-line body without being fooled by a body mention", () => {
+  it("matches a multi-line body without being fooled by a body mention", async () => {
     repo = mkdtempSync(join(tmpdir(), "mc-merge-body-"));
     git(repo, ["init", "-q", "-b", "main"]);
     git(repo, ["config", "user.email", "t@example.com"]);
@@ -291,8 +291,8 @@ describe.runIf(gitAvailable)("merge false-positive guard", () => {
     git(repo, ["commit", "-q", "-m", "feat: thing (#777)\n\nSupersedes (#776).\n"]);
     git(repo, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
 
-    expect(checkSquashMerged(repo, 777)).toBe("merged");
+    expect(await checkSquashMerged(repo, 777)).toBe("merged");
     _clearMergeCache();
-    expect(checkSquashMerged(repo, 776)).toBe("pending");
+    expect(await checkSquashMerged(repo, 776)).toBe("pending");
   });
 });

@@ -22,7 +22,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-import { readBoundedFile } from "./fs-read.js";
+import { readBoundedFile, readBoundedFileIfChanged } from "./fs-read.js";
 
 import { projectEventLog, type RunProjection } from "../event-log-reader.js";
 import { pathGuard } from "../path-guard.js";
@@ -93,6 +93,17 @@ export type EventLookup =
   | { status: "absent"; mtimeMs: number }
   | { status: "unavailable" };
 
+interface EventIndexEntry {
+  mtimeMs: number;
+  sizeBytes: number;
+  /** run_id → its winning `work_completed` projection. Built once per change. */
+  index: Map<string, RunProjection>;
+}
+
+/** Per-log run_id index, keyed by the log's absolute path. */
+const eventIndexCache = new Map<string, EventIndexEntry>();
+const EVENT_INDEX_CAP = 32;
+
 /**
  * Find the `work_completed` row for `runId`.
  *
@@ -100,25 +111,61 @@ export type EventLookup =
  * `absent` ("the log is fine, this run simply is not in it yet", the normal
  * mid-run state). The UI renders those two very differently and conflating them
  * would turn an I/O fault into a confident "nothing exists".
+ *
+ * INDEXED (CONTRACT §5.2). The Mission tab polls once a second, and the log went
+ * quiescent the moment the run finalized — so re-reading and re-projecting all
+ * of `shipwright_events.jsonl` every poll was pure waste. Instead the full
+ * run_id → projection index is cached and rebuilt ONLY when the log's
+ * `(mtime, size)` fingerprint moves; an unchanged log costs one fstat and an
+ * O(1) `Map` lookup.
  */
 export function findWorkCompleted(projectRoot: string, runId: string): EventLookup {
   const guard = pathGuard(projectRoot, EVENTS_FILE);
   if (!guard.ok) return { status: "unavailable" };
   if (!existsSync(guard.absolute)) return { status: "absent", mtimeMs: 0 };
 
-  // Probe readability explicitly — readEventLog swallows an I/O fault into an
-  // empty projection, which here would be indistinguishable from "no run". One
-  // atomic read also keeps the mtime honest (CodeQL js/file-system-race).
-  const probe = readBoundedFile(guard.absolute, MAX_EVENT_LOG_BYTES);
-  if (!probe) return { status: "unavailable" };
-  const mtimeMs = probe.mtimeMs;
+  // Read the bytes ONLY when the fingerprint changed. Still one atomic
+  // descriptor (open→fstat→maybe-read), so the mtime that keys the index
+  // describes exactly the bytes it was built from (CodeQL js/file-system-race).
+  const cached = eventIndexCache.get(guard.absolute) ?? null;
+  const read = readBoundedFileIfChanged(
+    guard.absolute,
+    MAX_EVENT_LOG_BYTES,
+    cached ? { mtimeMs: cached.mtimeMs, sizeBytes: cached.sizeBytes } : null,
+  );
+  if (!read) return { status: "unavailable" };
 
-  // Reuse the probe's bytes rather than letting readEventLog re-read the whole
-  // file: this handler ran TWO full linear scans of a log that may be tens of
-  // MB, on every poll (internal code review, perf note).
-  const projection = projectEventLog(probe.text.split(/\r?\n/), { runId });
-  const run = projection.runs.find((r) => r.runId === runId) ?? null;
-  return run ? { status: "found", run, mtimeMs } : { status: "absent", mtimeMs };
+  let entry: EventIndexEntry;
+  if (read.changed) {
+    // (Re)build the FULL run_id index in ONE scan. `projectEventLog` already
+    // keeps only the winning `work_completed` per adr_id, so indexing its `runs`
+    // yields exactly what the old per-call `{ runId }` filter returned — for
+    // every run at once, so any later poll for the same log is a map lookup.
+    const index = new Map<string, RunProjection>();
+    for (const r of projectEventLog(read.text.split(/\r?\n/)).runs) {
+      index.set(r.runId, r);
+    }
+    entry = { mtimeMs: read.mtimeMs, sizeBytes: read.sizeBytes, index };
+    if (eventIndexCache.size >= EVENT_INDEX_CAP) eventIndexCache.clear();
+    eventIndexCache.set(guard.absolute, entry);
+  } else if (cached) {
+    entry = cached; // fingerprint unchanged — serve the cached index verbatim
+  } else {
+    // Unreachable: `changed: false` is only returned when a prior fingerprint
+    // was supplied, which happens only when `cached` exists. Kept total and
+    // fail-safe rather than assert.
+    return { status: "unavailable" };
+  }
+
+  const run = entry.index.get(runId) ?? null;
+  return run
+    ? { status: "found", run, mtimeMs: entry.mtimeMs }
+    : { status: "absent", mtimeMs: entry.mtimeMs };
+}
+
+/** Test-only: drop the module-level event-log index cache between cases. */
+export function _clearEventIndexCache(): void {
+  eventIndexCache.clear();
 }
 
 /**
