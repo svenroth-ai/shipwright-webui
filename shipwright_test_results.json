@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-21",
+  "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-traceability-regen-schema3",
-    "date": "2026-07-21",
+    "run_id": "iterate-2026-07-20-triage-write-fs-race",
+    "date": "2026-07-20",
     "unit": {
       "status": "passed",
-      "passed": 5664,
-      "total": 5665
+      "passed": 2796,
+      "total": 2797
     },
     "integration": {
       "status": "not_run",
@@ -36,25 +36,24 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Committed manifest regenerated to campaign schema 3 with id-derived keys (NN::FR-XX.YY); all 29 FRs preserved, no data loss, inner shape intact",
+          "behavior": "header bootstrap does NOT clobber a tracked store a concurrent producer created+populated in the window between the existence probe and the write (CodeQL js/file-system-race #292 root cause)",
           "disposition": "tested",
-          "evidence": "regen verified: schema_version==3, 29 FRs (0 lost/added), 1038->1047 test entries; traceability.test.ts real-repo calibration probe PASSED against the schema-3 manifest"
+          "evidence": "triage-write.fs-race.test.ts::'does not clobber a tracked store a concurrent producer wrote after the existence check' PASSED (RED before fix: producer append record truncated; GREEN after)"
         },
         {
-          "behavior": "Reader recognises schema 3 without a contract_version_ahead warning (TRACEABILITY_SCHEMA_VERSION 2->3)",
+          "behavior": "fresh-file bootstrap still writes the schema header + the status event when the tracked store is genuinely absent (regression guard)",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts 'equals the known max' (now 3) no-warn PASSED; real-repo probe emits no warn"
+          "evidence": "triage-write.fs-race.test.ts::'still bootstraps the schema header when the tracked store is genuinely absent' PASSED"
         },
         {
-          "behavior": "A regenerated-RTM requirement deep link (#rtm-fr-XXXX) resolves through the sanitizer user-content- prefix and SCROLLS to its explicit anchor in the WebUI renderer (CP-2 silent-failure guard)",
+          "behavior": "termination-guard / newline / zero-byte / CRLF / outbox-routing behavior of appendStatusEvent is unchanged",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "DocumentMarkdown.test.tsx CP-2 render+click test: #rtm-fr-0166 -> user-content-rtm-fr-0166 scrollIntoView PASSED"
+          "evidence": "triage-write.newline.test.ts (6) + triage-write.test.ts + triage-store{,.recovery,.union}.test.ts all PASSED (full server suite 2796)"
         },
         {
-          "behavior": "Reader logic unchanged for every prior input (data-only regen + constant acknowledgement)",
+          "behavior": "parent-dir creation made unconditional mkdir -p (idempotent) produces the same result as the prior existsSync-guarded mkdir",
           "disposition": "tested",
-          "evidence": "full server suite (237 files, 2804 passed) + full client suite (306 files, 2860 passed) green"
+          "evidence": "triage-write.test.ts::'creates parent directory + header when triage.jsonl does not exist' PASSED (full suite green)"
         }
       ],
       "counts": {
@@ -64,17 +63,15 @@
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "surface_verification": {
-      "surface": "web",
-      "method": "component",
-      "status": "pass",
-      "tests_run": 2860,
+      "surface": "none",
+      "tests_run": 2796,
       "exit_code": 0,
-      "justification": "Web surfaces touched are the SmartViewer markdown renderer (RTM deep-link navigation) and the Mission traceability read. The RTM deep-link resolution — the silent-failure risk CP-2 guards — is verified by a jsdom render+click component test (DocumentMarkdown CP-2) asserting #rtm-fr-0166 resolves to the sanitizer-prefixed user-content-rtm-fr-0166 anchor and calls scrollIntoView; full client suite (2860) green. No new server surface or contract shape; the manifest/RTM change is data regeneration (schema 2->3 key form), reader logic byte-identical (full server suite 2804 green)."
+      "justification": "Server-internal write-path hardening: appendStatusEvent's schema-header bootstrap now uses atomic exclusive-create (writeFileSync flag 'wx') instead of an existsSync check-then-write, closing a first-write TOCTOU (CodeQL js/file-system-race #292) that could truncate a tracked triage.jsonl a Python producer wrote in the race window. The function's observable output (the JSONL the Triage board reads) is byte-identical for every non-race input; the race outcome is data-loss PREVENTION, deterministically covered by a unit test that reproduces the lost race via a steered existsSync. No UI/API/message-contract change and no client/** touched, so there is no browser surface to exercise; the full server suite (2796 passed) exercises the triage reader + route consumer chain confirming unchanged output."
     }
   }
 }
