@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-20-traceability-schema-version-guard",
+  "date": "2026-07-20T21:26:19.880197Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/traceability-schema-version-guard",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-07-20-traceability-schema-version-guard"
+}
