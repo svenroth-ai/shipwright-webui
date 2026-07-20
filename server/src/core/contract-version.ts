@@ -41,14 +41,19 @@ export const PROFILE_SCHEMA_VERSION = 1;
  * produced by the shipwright plugins. Bump in lockstep with the manifest
  * collector when its shape changes in a way the WebUI relies on.
  *
+ * **v3** — the manifest namespace now derives from the requirement id, so the
+ * composite outer key moved from `01-adopted::FR-01.01` to `01::FR-01.01`
+ * (shipwright monorepo: "derive the traceability namespace from the FR id").
+ * Every INNER field is unchanged, and this reader never reads the outer key
+ * (it consumes `Object.values(requirements)` then inner `.id`/`.tests`), so v3
+ * is a pure data-shape acknowledgement — no reader-logic change.
+ *
  * A manifest declaring a HIGHER version is warned once (via
- * `checkContractVersion`) and still read best-effort — the reader consumes
- * `requirements[*].id` and `requirements[*].tests`, both stable across the
- * schema bumps seen so far, so an ahead-of-us manifest still yields a useful
- * index. The composite outer key is never read, so a key-form change alone
- * does not change behaviour here.
+ * `checkContractVersion`) and still read best-effort — the inner shape the
+ * reader consumes has been stable across the bumps seen so far, so an
+ * ahead-of-us manifest still yields a useful index.
  */
-export const TRACEABILITY_SCHEMA_VERSION = 2;
+export const TRACEABILITY_SCHEMA_VERSION = 3;
 
 interface WarnOnceKey {
   artefact: string;

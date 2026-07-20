@@ -137,4 +137,26 @@ describe("DocumentMarkdown rendering", () => {
     expect(onDocLinkClick).toHaveBeenCalledWith("../spec.md#fr-0101");
     expect(ev.defaultPrevented).toBe(true);
   });
+
+  // @covers FR-01.35
+  it("traceability RTM — a requirement deep link SCROLLS to its explicit `rtm-fr-` anchor (CP-2)", () => {
+    // The regenerated schema-3 RTM links Verification-Timeline rows to
+    // requirement rows via `[FR-01.66](#rtm-fr-0166)` against an explicit inline
+    // `<a id="rtm-fr-0166"></a>` anchor. The sanitizer clobber-prefixes that id
+    // to `user-content-rtm-fr-0166`; the SHORT `#rtm-fr-0166` link must still
+    // resolve to it and scroll, or the deep link silently scrolls NOWHERE — the
+    // exact failure mode CP-2 guards. This exercises the real anchor convention.
+    const scrolled: HTMLElement[] = [];
+    Element.prototype.scrollIntoView = function scroll(this: HTMLElement) {
+      scrolled.push(this);
+    } as never;
+    const { getByText } = render(
+      <DocumentMarkdown text={'<a id="rtm-fr-0166"></a>\n\n[FR-01.66](#rtm-fr-0166)\n'} />,
+    );
+    const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+    getByText("FR-01.66").dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(scrolled).toHaveLength(1);
+    expect(scrolled[0].id).toBe("user-content-rtm-fr-0166");
+  });
 });
