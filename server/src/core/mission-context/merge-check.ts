@@ -22,10 +22,13 @@
  * forever — that would freeze the UI on a stale answer forever).
  */
 
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import type { MergeState } from "./types.js";
 import type { GitRunner } from "./worktree-roots.js";
+
+const execFileP = promisify(execFile);
 
 /** Upper bound on a plausible PR number — bounds the input, not just its shape. */
 const MAX_PR_NUMBER = 10_000_000;
@@ -45,15 +48,16 @@ export function validatePrNumber(v: unknown): number | null {
   return n;
 }
 
-const defaultGit: GitRunner = (args, cwd) =>
-  execFileSync("git", args, {
+const defaultGit: GitRunner = async (args, cwd) => {
+  const { stdout } = await execFileP("git", args, {
     cwd,
     encoding: "utf-8",
     timeout: 8000,
     windowsHide: true,
     maxBuffer: 1024 * 1024,
-    stdio: ["ignore", "pipe", "ignore"],
   });
+  return stdout;
+};
 
 interface CacheEntry {
   state: MergeState;
@@ -86,11 +90,11 @@ export interface MergeCheckDeps {
  * checked and it is not there" are different facts and the UI shows them
  * differently.
  */
-export function checkSquashMerged(
+export async function checkSquashMerged(
   projectRoot: string,
   prNumber: unknown,
   deps: MergeCheckDeps = {},
-): MergeState {
+): Promise<MergeState> {
   const pr = validatePrNumber(prNumber);
   if (pr == null) return "unknown";
 
@@ -111,7 +115,7 @@ export function checkSquashMerged(
     // only a cheap prefilter: we ask for SUBJECT lines (%s) and then require
     // one to END with the marker, which is where the squash suffix actually
     // lives. `-n 20` bounds the candidate set.
-    const out = git(
+    const out = await git(
       ["log", ref, `--grep=(#${pr})`, "--fixed-strings", "-n", "20", "--format=%s"],
       projectRoot,
     );
@@ -126,6 +130,14 @@ export function checkSquashMerged(
     // genuinely do not know. Do NOT claim "pending": that reads as "checked".
     state = "unknown";
   }
+
+  // ASYNC RACE GUARD (external code review, openai MEDIUM). Now that this
+  // function `await`s git, two concurrent misses for the same PR can spawn and
+  // resolve out of order. `merged` is TERMINAL and must never regress, so if a
+  // concurrent check already recorded it during our await, keep it — a later
+  // `pending` from our own spawn must not clobber it back to non-terminal.
+  const prior = cache.get(key);
+  if (prior?.state === "merged") return "merged";
 
   if (cache.size >= CACHE_CAP) cache.clear();
   cache.set(key, {
@@ -192,20 +204,29 @@ export function parseOriginSlug(remoteUrl: unknown): RepoSlug | null {
   return { owner: m[1], repo: m[2] };
 }
 
-const slugCache = new Map<string, RepoSlug | null>();
+// The PROMISE is cached, not just the resolved value: two overlapping resolves
+// (e.g. two open tabs polling the same project) then share ONE `git remote`
+// spawn instead of racing two. `origin` is effectively immutable per project, so
+// a resolved slug is memoized for the process lifetime exactly as before.
+const slugCache = new Map<string, Promise<RepoSlug | null>>();
 
 /** Read (and memoize) the project's own `origin` slug. Arg-array git, shell:false. */
-export function readOriginSlug(projectRoot: string, git: GitRunner = defaultGit): RepoSlug | null {
-  if (slugCache.has(projectRoot)) return slugCache.get(projectRoot) ?? null;
-  let slug: RepoSlug | null = null;
-  try {
-    slug = parseOriginSlug(git(["remote", "get-url", "origin"], projectRoot));
-  } catch {
-    slug = null;
-  }
+export function readOriginSlug(
+  projectRoot: string,
+  git: GitRunner = defaultGit,
+): Promise<RepoSlug | null> {
+  const cached = slugCache.get(projectRoot);
+  if (cached) return cached;
+  const pending = (async (): Promise<RepoSlug | null> => {
+    try {
+      return parseOriginSlug(await git(["remote", "get-url", "origin"], projectRoot));
+    } catch {
+      return null;
+    }
+  })();
   if (slugCache.size > 128) slugCache.clear();
-  slugCache.set(projectRoot, slug);
-  return slug;
+  slugCache.set(projectRoot, pending);
+  return pending;
 }
 
 /** Test-only: reset the memoized origin slugs. */

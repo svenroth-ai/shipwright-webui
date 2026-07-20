@@ -152,9 +152,9 @@ describe("readChangedTestFiles", () => {
     throw new Error("git must not be invoked");
   };
 
-  it("REJECTS a non-hex commit before it can become a git argument", () => {
+  it("REJECTS a non-hex commit before it can become a git argument", async () => {
     for (const bad of ["--upload-pack=evil", "HEAD", "main", "../etc", "abc", "", "zz11223"]) {
-      const r = readChangedTestFiles("/root", bad, neverCalled);
+      const r = await readChangedTestFiles("/root", bad, neverCalled);
       expect(r, `${JSON.stringify(bad)} must be rejected`).toEqual({
         status: "unavailable",
         reason: "bad_commit",
@@ -162,23 +162,23 @@ describe("readChangedTestFiles", () => {
     }
   });
 
-  it("reports `unavailable` — NOT an empty ok — when the run recorded no commit", () => {
-    expect(readChangedTestFiles("/root", null, neverCalled)).toEqual({
+  it("reports `unavailable` — NOT an empty ok — when the run recorded no commit", async () => {
+    expect(await readChangedTestFiles("/root", null, neverCalled)).toEqual({
       status: "unavailable",
       reason: "bad_commit",
     });
   });
 
-  it("reports `unavailable` when git throws, so a failure never reads as 'no tests'", () => {
-    const r = readChangedTestFiles("/root", "66e275ae", () => {
+  it("reports `unavailable` when git throws, so a failure never reads as 'no tests'", async () => {
+    const r = await readChangedTestFiles("/root", "66e275ae", () => {
       throw new Error("not a git repository");
     });
     expect(r).toEqual({ status: "unavailable", reason: "git_failed" });
   });
 
-  it("passes the sha as an ARGUMENT ARRAY with rename detection off", () => {
+  it("passes the sha as an ARGUMENT ARRAY with rename detection off", async () => {
     let seen: string[] = [];
-    readChangedTestFiles("/root", "66e275ae", (args) => {
+    await readChangedTestFiles("/root", "66e275ae", (args) => {
       seen = args;
       return "";
     });
@@ -192,8 +192,8 @@ describe("readChangedTestFiles", () => {
     expect(seen.some((a) => a.includes(" "))).toBe(false);
   });
 
-  it("returns an ok-but-empty result when git answered and no test file moved", () => {
-    const r = readChangedTestFiles("/root", "66e275ae", () => z(["M", "README.md"]));
+  it("returns an ok-but-empty result when git answered and no test file moved", async () => {
+    const r = await readChangedTestFiles("/root", "66e275ae", () => z(["M", "README.md"]));
     expect(r).toEqual({ status: "ok", files: [], truncated: false });
   });
 });

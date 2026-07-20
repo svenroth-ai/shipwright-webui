@@ -28,7 +28,7 @@ function tmp(prefix: string): string {
 }
 
 describe("readAllowedRoots", () => {
-  it("parses git worktree list --porcelain into the root set", () => {
+  it("parses git worktree list --porcelain into the root set", async () => {
     const root = tmp("mc-roots-");
     try {
       const relocated = join(root, "..", "wt-relocated");
@@ -45,7 +45,7 @@ describe("readAllowedRoots", () => {
           "",
         ].join("\n");
       };
-      const roots = readAllowedRoots(root, git);
+      const roots = await readAllowedRoots(root, git);
       expect(roots).toHaveLength(2);
       expect(roots[0]).toBe(join(root));
     } finally {
@@ -53,13 +53,13 @@ describe("readAllowedRoots", () => {
     }
   });
 
-  it("fails CLOSED to just the project root when git is unavailable", () => {
+  it("fails CLOSED to just the project root when git is unavailable", async () => {
     const root = tmp("mc-roots-");
     try {
       const git = () => {
         throw new Error("git not found");
       };
-      expect(readAllowedRoots(root, git)).toEqual([join(root)]);
+      expect(await readAllowedRoots(root, git)).toEqual([join(root)]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -67,7 +67,7 @@ describe("readAllowedRoots", () => {
 });
 
 describe("worktree membership (the relocated-worktree case)", () => {
-  it("ACCEPTS a git-registered worktree that lives OUTSIDE the project root", () => {
+  it("ACCEPTS a git-registered worktree that lives OUTSIDE the project root", async () => {
     const parent = tmp("mc-parent-");
     const root = join(parent, "repo");
     const relocated = join(parent, "wt-traceability-retrofit");
@@ -75,7 +75,7 @@ describe("worktree membership (the relocated-worktree case)", () => {
     mkdirSync(relocated, { recursive: true });
     try {
       const git = () => [`worktree ${root}`, "", `worktree ${relocated}`, ""].join("\n");
-      const roots = readAllowedRoots(root, git);
+      const roots = await readAllowedRoots(root, git);
       expect(isRegisteredWorktree(roots, relocated)).toBe(true);
       const chosen = chooseRoot(roots, relocated);
       expect(chosen.isWorktree).toBe(true);
@@ -85,7 +85,7 @@ describe("worktree membership (the relocated-worktree case)", () => {
     }
   });
 
-  it("REJECTS a sibling directory git does not report, even next to a real worktree", () => {
+  it("REJECTS a sibling directory git does not report, even next to a real worktree", async () => {
     const parent = tmp("mc-parent-");
     const root = join(parent, "repo");
     const hostile = join(parent, "wt-hostile");
@@ -93,7 +93,7 @@ describe("worktree membership (the relocated-worktree case)", () => {
     mkdirSync(hostile, { recursive: true });
     try {
       const git = () => `worktree ${root}\n\n`;
-      const roots = readAllowedRoots(root, git);
+      const roots = await readAllowedRoots(root, git);
       expect(isRegisteredWorktree(roots, hostile)).toBe(false);
       // …and the resolver falls back to the project root rather than reading it.
       expect(chooseRoot(roots, hostile).root).toBe(root);
@@ -102,14 +102,14 @@ describe("worktree membership (the relocated-worktree case)", () => {
     }
   });
 
-  it("falls back to the project root when the registered worktree is gone (post-Finalize)", () => {
+  it("falls back to the project root when the registered worktree is gone (post-Finalize)", async () => {
     const parent = tmp("mc-parent-");
     const root = join(parent, "repo");
     const pruned = join(parent, "wt-pruned");
     mkdirSync(root, { recursive: true });
     try {
       const git = () => [`worktree ${root}`, "", `worktree ${pruned}`, ""].join("\n");
-      const roots = readAllowedRoots(root, git);
+      const roots = await readAllowedRoots(root, git);
       const chosen = chooseRoot(roots, pruned);
       expect(chosen.root).toBe(root);
       expect(chosen.isWorktree).toBe(false);
@@ -223,7 +223,7 @@ describe("readAllowedRoots against REAL git --porcelain output", () => {
     gitAvailable = false;
   }
 
-  it.runIf(gitAvailable)("discovers a real linked worktree", () => {
+  it.runIf(gitAvailable)("discovers a real linked worktree", async () => {
     const parent = tmp("mc-realwt-");
     const repo = join(parent, "repo");
     const linked = join(parent, "wt-linked");
@@ -241,7 +241,7 @@ describe("readAllowedRoots against REAL git --porcelain output", () => {
       // exists for.
       g(repo, ["worktree", "add", "-q", "-b", "iterate/x", linked]);
 
-      const roots = readAllowedRoots(repo);
+      const roots = await readAllowedRoots(repo);
       expect(roots.length).toBe(2);
       expect(isRegisteredWorktree(roots, linked)).toBe(true);
       expect(chooseRoot(roots, linked).isWorktree).toBe(true);

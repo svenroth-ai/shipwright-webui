@@ -50,7 +50,7 @@ import {
 import {
   chooseRoot,
   isRegisteredWorktree,
-  readAllowedRoots,
+  readAllowedRootsCached,
   resolveFirstDoc,
   type GitRunner,
 } from "./worktree-roots.js";
@@ -99,10 +99,10 @@ export interface ResolveDeps {
  * write, because persistence needs the store's lock and this module stays
  * side-effect-free (making the "one write" auditable in exactly one place).
  */
-export function resolveMissionContext(
+export async function resolveMissionContext(
   req: ResolveRequest,
   deps: ResolveDeps = {},
-): { context: MissionContext; associateRunId: string | null } {
+): Promise<{ context: MissionContext; associateRunId: string | null }> {
   const { projectRoot, sessionUuid } = req;
 
   const pointer = readIteratePointer(projectRoot, sessionUuid);
@@ -154,7 +154,7 @@ export function resolveMissionContext(
   const slug = pointer.status === "ok" ? pointer.pointer.slug : null;
   const worktreePath = pointer.status === "ok" ? pointer.pointer.worktreePath : null;
 
-  const roots = readAllowedRoots(projectRoot, deps.git);
+  const roots = await readAllowedRootsCached(projectRoot, { git: deps.git });
 
   // A worktree git does not know is a tree we cannot vouch for.
   if (worktreePath && !isRegisteredWorktree(roots, worktreePath)) {
@@ -197,7 +197,7 @@ export function resolveMissionContext(
     // NOT returned verbatim — merge is the one time-varying field and must be
     // re-derived, or it freezes at "pending" forever. See merge-refresh.ts.
     return {
-      context: refreshMerge(hit.context, projectRoot, req.transcript, deps),
+      context: await refreshMerge(hit.context, projectRoot, req.transcript, deps),
       associateRunId: associate,
     };
   }
@@ -231,13 +231,13 @@ export function resolveMissionContext(
   // The marker must belong to THIS project's own origin repo (a sibling repo's
   // PR number would grep our origin/main), and merge is only checked once the
   // run completed — a per-poll git call mid-run is waste (§5.3).
-  const marker = extractPrMarker(req.transcript, readOriginSlug(projectRoot, deps.git));
+  const marker = extractPrMarker(req.transcript, await readOriginSlug(projectRoot, deps.git));
   const merge =
     run && marker
-      ? checkSquashMerged(projectRoot, marker.number, { git: deps.git, ...deps.merge })
+      ? await checkSquashMerged(projectRoot, marker.number, { git: deps.git, ...deps.merge })
       : "unknown";
 
-  const slice2 = buildSlice2Artifacts({
+  const slice2 = await buildSlice2Artifacts({
     projectRoot,
     runId,
     events,

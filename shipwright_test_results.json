@@ -1,30 +1,35 @@
 {
-  "last_updated": "2026-07-17",
+  "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-19-mission-s3-pipeline-campaign-polish",
-    "date": "2026-07-19T00:40:59.059Z",
+    "run_id": "iterate-2026-07-20-mission-context-async-git",
+    "date": "2026-07-20T21:52:00.000Z",
     "unit": {
-      "passed": 5461,
-      "total": 5462
+      "status": "passed",
+      "passed": 2798,
+      "total": 2799,
+      "note": "Full server vitest suite (1 pre-existing skip). Mission-context slice: 33 files / 391 tests."
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0,
-      "note": "Client-only CSS/token change."
+      "status": "passed",
+      "passed": 391,
+      "total": 391,
+      "note": "Mission-context route + resolver exercised through the real Hono request pipeline (app.request) — HTTP contract proven byte-identical across the async refactor."
     },
     "pgtap": {
       "status": "not_run",
       "passed": 0,
-      "total": 0
+      "total": 0,
+      "note": "No database surface."
     },
     "e2e": {
-      "passed": 13,
-      "total": 13
+      "status": "passed",
+      "passed": 7,
+      "total": 7,
+      "note": "F0.5 web smoke (core surfaces) against the modified server on an isolated stack. The embedded-terminal WebSocket-ready smoke was excluded (--grep-invert=WebSocket): it exercises node-pty/terminal, which this diff does not touch, and it is a known isolated-stack pty artifact."
     },
     "design_fidelity": {
-      "status": "passed",
-      "note": "Grey-beige #EDEAE7 sourced from svenroth.ai's own --light-beige-background; contrast targets checked against WCAG AA (4.5:1 text) and 1.4.11 (3:1 control boundary)."
+      "status": "not_run",
+      "note": "No UI change — server-internal refactor."
     },
     "smoke": {
       "status": "passed"
@@ -34,64 +39,84 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 form sheet uses the grey-beige --surface-form, not the yellow --beige",
+          "behavior": "Async GitRunner is awaited — a Promise-returning git double resolves correctly through the whole chain",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface\u2026' PASSED + qa-form-newtask.png"
+          "evidence": "worktree-roots.cache.test.ts 'awaits an ASYNC git runner' PASSED + merge-check.test.ts real-repo cases run through async execFile"
         },
         {
-          "behavior": "AC2 labels/hints/helper copy use --body (>=4.5:1), not --color-muted",
+          "behavior": "Sync git doubles still satisfy the widened GitRunner type (no injection-site churn)",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx (footer hint --body) + FieldLabel/palette/ParamSections token sweep; qa screenshots"
+          "evidence": "full mission-context suite compiles under `(args,cwd)=>string|Promise<string>` and is green (33 files / 391)"
         },
         {
-          "behavior": "AC3 field frames use --surface-form-line (>=3:1, WCAG 1.4.11)",
+          "behavior": "readAllowedRootsCached spawns git ONCE within the TTL (no per-poll spawn)",
           "disposition": "tested",
-          "evidence": "SimpleFields.test.tsx (border-[var(--surface-form-line) + not --color-border) PASSED"
+          "evidence": "worktree-roots.cache.test.ts 'spawns git ONCE within the TTL' PASSED (calls===1 across three polls)"
         },
         {
-          "behavior": "AC4 More options: visible frame + darker tone persistently when expanded, hover steps darker",
+          "behavior": "readAllowedRootsCached re-spawns after the TTL expires",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded\u2026' PASSED + qa-form-hover-moreoptions.png"
+          "evidence": "worktree-roots.cache.test.ts 're-spawns once the TTL expires' PASSED (calls===2)"
         },
         {
-          "behavior": "AC5 every task form variant (incl. Plain/pure-Claude) inherits AC1-AC4",
+          "behavior": "readAllowedRootsCached dedups concurrent in-flight callers (caches the promise)",
           "disposition": "tested",
-          "evidence": "all five bodies render through ModalShell + SimpleFields (NewPlainModal imports Title/DescriptionFieldFragment); NewIssueModal suite 97 tests PASSED"
+          "evidence": "worktree-roots.cache.test.ts same-promise identity (expect(b).toBe(a)) with a single spawn"
         },
         {
-          "behavior": "AC6 title-bar buttons render the Launch/Resume teal rgb(14,122,107)",
+          "behavior": "checkSquashMerged never regresses a terminal `merged` under the async cache race",
           "disposition": "tested",
-          "evidence": "QA assertion: computed backgroundColor of board/projects/ships-log/modal-Launch all equal rgb(14,122,107)"
+          "evidence": "merge-check.race.test.ts 'a racing `pending` never regresses…' PASSED; verified RED when the guard is neutralized"
         },
         {
-          "behavior": "AC7 buttons share height 36px + right edge; label may widen only",
+          "behavior": "findWorkCompleted serves the cached index without re-projecting an unchanged log",
           "disposition": "tested",
-          "evidence": "QA assertion: unique heights=[36], unique right edges=[1233]"
+          "evidence": "iterate-record.test.ts 'serves the run from the cached index…' PASSED (same RunProjection object identity)"
         },
         {
-          "behavior": "AC8 buttons share a baseline regardless of a page subtitle",
+          "behavior": "findWorkCompleted does NOT re-read the log while its (mtime,size) fingerprint is unchanged",
           "disposition": "tested",
-          "evidence": "QA assertion: max-min y <= 2 (28/28/29) after .page-head .inner min-height:92px"
+          "evidence": "iterate-record.test.ts 'does NOT re-read the log while its (mtime,size) fingerprint is unchanged' PASSED (same-length overwrite + re-pinned mtime stays unseen)"
+        },
+        {
+          "behavior": "findWorkCompleted rebuilds the index when the log changes (appended run becomes visible)",
+          "disposition": "tested",
+          "evidence": "iterate-record.test.ts 'rebuilds the index when the log changes' PASSED"
+        },
+        {
+          "behavior": "found / absent / unavailable trichotomy preserved exactly vs the prior scan",
+          "disposition": "tested",
+          "evidence": "iterate-record.test.ts absent/absent-when-missing cases + routes.merge-freshness.test.ts (unchanged) green"
+        },
+        {
+          "behavior": "Detail endpoint still re-validates roots point-in-time fresh (uncached)",
+          "disposition": "tested",
+          "evidence": "routes.documents.test.ts stale/root-no-longer-registered paths unchanged and green"
+        },
+        {
+          "behavior": "Mission-context response byte-identical for identical inputs across the refactor",
+          "disposition": "tested",
+          "evidence": "full mission-context suite (route + resolver, 33 files / 391) green pre- and post-refactor; F0.5 web smoke green"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 12,
+        "tested": 12,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 8,
-        "covered_acs": 8
+        "acs": 3,
+        "covered_acs": 3
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/2e14a629-3752-417f-bd64-554586a44f93/scratchpad/s3-e2e-runner.mjs",
+      "runner": "node .../client/node_modules/@playwright/test/cli.js test --config .../client/playwright.iterate.config.ts --grep-invert=WebSocket 00-core-surfaces",
       "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.shipwright\\runs\\iterate-2026-07-19-mission-s3-pipeline-campaign-polish\\surface_verification.log",
-      "timestamp": "2026-07-19T00:40:59.059Z",
+      "tests_run": 7,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-20-mission-context-async-git/surface_verification.json",
+      "timestamp": "2026-07-20T21:50:57.007Z",
       "attempts": 1
     }
   }
