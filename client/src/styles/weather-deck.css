@@ -85,13 +85,15 @@
      dividers #C3B8AE, --primary-50 #847A75). Deliberately SEPARATE from --beige,
      which stays the warm Files-&-Terminal reading surface (A18, "nur die mitte
      beige") — do not collapse them.
-     --surface-form-line is dark enough to clear WCAG 1.4.11 non-text contrast
-     (3:1) against BOTH the white field fill and the sheet: a white field on a
-     #EDEAE7 sheet is only 1.13:1, so the frame is the sole affordance. */
+     --surface-form-line is the field-frame affordance: a white field on a #EDEAE7
+     sheet is only 1.13:1, so the frame is the sole boundary. Sven 2026-07-20 found
+     #847A75 too dark; #8E847E is the lightest tone that STILL clears WCAG 1.4.11
+     non-text contrast (3:1) against BOTH the white field fill (3.65:1) and the
+     sheet (3.05:1) — do not lighten further without re-checking both ratios. */
   --surface-form: #EDEAE7;
   --surface-form-sunken: #E4DFDA;
   --surface-form-sunken-strong: #D9D3CC;
-  --surface-form-line: #847A75;
+  --surface-form-line: #8E847E;
   --surface-form-divider: #C3B8AE;
   /* semantic */
   --ok: #067647; --ok-tint: #ECFDF3; --ok-line: #ABEFC6; --ok-solid: #17B26A;

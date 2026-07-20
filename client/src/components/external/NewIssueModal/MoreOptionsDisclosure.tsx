@@ -53,6 +53,17 @@ export function MoreOptionsDisclosure({
     ? "bg-[var(--surface-form-sunken-strong,#d9d3cc)] hover:bg-[var(--surface-form-divider,#c3b8ae)]"
     : "hover:bg-[var(--surface-form-sunken-strong,#d9d3cc)]";
 
+  /*
+   * Sven 2026-07-20: when expanded, the header rounded ALL four corners, so its
+   * bottom corners curved inward while the content's straight `border-t` divider
+   * ran edge-to-edge — the divider collided with the rounded corners. Round only
+   * the TOP corners when open so the header's square bottom meets the divider
+   * flush; keep the full pill when collapsed.
+   */
+  const corner = open
+    ? "rounded-t-[var(--radius-button,8px)]"
+    : "rounded-[var(--radius-button,8px)]";
+
   return (
     <div
       data-testid="new-issue-more-options"
@@ -64,7 +75,7 @@ export function MoreOptionsDisclosure({
         data-testid="new-issue-more-options-toggle"
         onClick={onToggle}
         aria-expanded={open}
-        className={`flex w-full items-center justify-between gap-2 rounded-[var(--radius-button,8px)] px-3 py-2.5 pointer-coarse:min-h-[44px] text-left text-[12px] font-semibold text-[var(--ink,#1c1917)] transition-colors ${barTone}`}
+        className={`flex w-full items-center justify-between gap-2 ${corner} px-3 py-2.5 pointer-coarse:min-h-[44px] text-left text-[12px] font-semibold text-[var(--ink,#1c1917)] transition-colors ${barTone}`}
       >
         <span className="flex flex-wrap items-baseline gap-x-1.5">
           <span>{label}</span>
