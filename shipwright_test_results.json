@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-20-traceability-schema-version-guard",
+    "run_id": "iterate-2026-07-20-triage-write-fs-race",
     "date": "2026-07-20",
     "unit": {
       "status": "passed",
-      "passed": 2794,
-      "total": 2795
+      "passed": 2796,
+      "total": 2797
     },
     "integration": {
       "status": "not_run",
@@ -36,48 +36,42 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "manifest schema_version ahead of TRACEABILITY_SCHEMA_VERSION -> one contract_version_ahead warning (drift made visible)",
+          "behavior": "header bootstrap does NOT clobber a tracked store a concurrent producer created+populated in the window between the existence probe and the write (CodeQL js/file-system-race #292 root cause)",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts::'WARNS (once) when schema_version is ahead ...' PASSED"
+          "evidence": "triage-write.fs-race.test.ts::'does not clobber a tracked store a concurrent producer wrote after the existence check' PASSED (RED before fix: producer append record truncated; GREEN after)"
         },
         {
-          "behavior": "version-ahead manifest still inverts to a usable index incl. mappedFrom fold provenance (fail-soft, no throw, not unavailable-due-to-version) [round-trip boundary probe]",
+          "behavior": "fresh-file bootstrap still writes the schema header + the status event when the tracked store is genuinely absent (regression guard)",
           "disposition": "tested",
-          "category": "integration",
-          "evidence": "traceability.schema-version.test.ts::'warns but does NOT lose the index when a version-ahead manifest carries fold provenance' PASSED"
+          "evidence": "triage-write.fs-race.test.ts::'still bootstraps the schema header when the tracked store is genuinely absent' PASSED"
         },
         {
-          "behavior": "schema_version == knownMax -> no warn (no false positive)",
+          "behavior": "termination-guard / newline / zero-byte / CRLF / outbox-routing behavior of appendStatusEvent is unchanged",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version equals the known max' PASSED"
+          "evidence": "triage-write.newline.test.ts (6) + triage-write.test.ts + triage-store{,.recovery,.union}.test.ts all PASSED (full server suite 2796)"
         },
         {
-          "behavior": "schema_version absent (older manifest) -> no warn, still reads clean",
+          "behavior": "parent-dir creation made unconditional mkdir -p (idempotent) produces the same result as the prior existsSync-guarded mkdir",
           "disposition": "tested",
-          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version is ABSENT ...' PASSED"
-        },
-        {
-          "behavior": "guard changes no existing return value for any prior input (corrupt/missing/truncated/real-repo unchanged)",
-          "disposition": "tested",
-          "evidence": "full server suite green (235 files, 2794 passed, 1 skipped) incl. traceability.test.ts real-repo calibration probe"
+          "evidence": "triage-write.test.ts::'creates parent directory + header when triage.jsonl does not exist' PASSED (full suite green)"
         }
       ],
       "counts": {
-        "testable": 5,
-        "tested": 5,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 3,
-        "covered_acs": 3
+        "acs": 2,
+        "covered_acs": 2
       }
     },
     "surface_verification": {
       "surface": "none",
-      "tests_run": 2794,
+      "tests_run": 2796,
       "exit_code": 0,
-      "justification": "Server-internal observability only: readTraceabilityIndex now emits a fail-soft console.warn when the manifest schema_version is ahead of TRACEABILITY_SCHEMA_VERSION; the TraceabilityIndex return contract is byte-identical for every input, so there is no UI-observable delta and no browser surface to exercise. The touches_io_boundary enforcement is met by a round-trip boundary probe (a version-ahead manifest still inverts to a valid index) in traceability.schema-version.test.ts, and the full server suite (2794 passed) exercises the mission-context consumer chain (resolver -> routes) confirming unchanged output."
+      "justification": "Server-internal write-path hardening: appendStatusEvent's schema-header bootstrap now uses atomic exclusive-create (writeFileSync flag 'wx') instead of an existsSync check-then-write, closing a first-write TOCTOU (CodeQL js/file-system-race #292) that could truncate a tracked triage.jsonl a Python producer wrote in the race window. The function's observable output (the JSONL the Triage board reads) is byte-identical for every non-race input; the race outcome is data-loss PREVENTION, deterministically covered by a unit test that reproduces the lost race via a steered existsSync. No UI/API/message-contract change and no client/** touched, so there is no browser surface to exercise; the full server suite (2796 passed) exercises the triage reader + route consumer chain confirming unchanged output."
     }
   }
 }

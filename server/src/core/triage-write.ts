@@ -38,12 +38,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-} from "node:fs";
+import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import type { TriageStatus, TriageStatusEvent } from "../types/triage.js";
@@ -132,19 +127,34 @@ export function appendStatusEvent(args: AppendStatusEventArgs): void {
   // is itself a write and is also caller-lock-protected.
   const parent = path.dirname(targetPath);
   try {
-    if (!existsSync(parent)) {
-      mkdirSync(parent, { recursive: true });
-    }
-    if (!toOutbox && !existsSync(targetPath)) {
+    // mkdir -p is idempotent (no EEXIST when the directory already exists), so
+    // create unconditionally rather than existsSync-check-then-mkdir — the same
+    // check-then-act TOCTOU shape (CodeQL js/file-system-race) the header write
+    // below now avoids.
+    mkdirSync(parent, { recursive: true });
+    if (!toOutbox) {
       // Tracked store only — bootstrap the schema header so producers +
       // downstream readers see a complete file. The outbox is a headerless
       // transient buffer and is NEVER given a header.
+      //
+      // Exclusive-create ("wx") instead of an existsSync check-then-write
+      // (CodeQL js/file-system-race #292): the former probe was a TOCTOU — a
+      // Python producer (disjoint lock primitive, ADR-101 / ADR-106) that
+      // created AND populated the tracked store in the window between the probe
+      // and the write would be TRUNCATED by writeFileSync, and the read-side
+      // `splitRecords` recovery cannot bring back deleted bytes. "wx" fails
+      // closed with EEXIST when the file already exists, so a concurrent create
+      // is a no-op here (the header is already present) rather than a clobber.
       const header = JSON.stringify({
         v: 1,
         schema: "triage",
         created: ts,
       });
-      writeFileSync(targetPath, header + "\n");
+      try {
+        writeFileSync(targetPath, header + "\n", { flag: "wx" });
+      } catch (err) {
+        if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+      }
     }
     // Termination guard (iterate-2026-07-18-triage-jsonl-record-boundary,
     // mirroring `triage.py _append_line`): never assume the PREVIOUS writer

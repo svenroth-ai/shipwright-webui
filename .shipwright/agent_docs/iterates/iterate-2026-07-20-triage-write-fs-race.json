@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-20-triage-write-fs-race",
+  "date": "2026-07-20T22:19:07.375017Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/triage-write-fs-race",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-07-20-triage-write-fs-race"
+}
