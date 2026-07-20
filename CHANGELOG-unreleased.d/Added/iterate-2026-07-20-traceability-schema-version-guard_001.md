@@ -1,0 +1,1 @@
+A guard on the traceability manifest reader: when a project's test-traceability file declares a newer schema version than this build understands, the Command Center logs a one-time notice and keeps reading (fail-soft), instead of silently accepting an unknown format.

@@ -28,6 +28,7 @@ import path from "node:path";
 
 import { readBoundedFile } from "./fs-read.js";
 import { pathGuard } from "../path-guard.js";
+import { checkContractVersion, TRACEABILITY_SCHEMA_VERSION } from "../contract-version.js";
 import type { TestFrRef } from "./types-slice2.js";
 
 export const TRACEABILITY_REL = ".shipwright/compliance/test-traceability.json";
@@ -136,6 +137,23 @@ export function readTraceabilityIndex(
   }
 
   const root = parsed as Record<string, unknown>;
+
+  // Cross-repo contract check (fail-soft). The manifest is produced by the
+  // shipwright plugins — a different repo — so a `schema_version` ahead of what
+  // this build knows means the writer moved and we did not. Surface it once,
+  // then KEEP READING: we consume `requirements[*].id` + `.tests`, stable across
+  // the bumps seen so far, and an older observer must never lock a user out of a
+  // newer project (contract-version.ts policy). Placed before the requirements
+  // shape-check so a genuinely restructured newer schema is reported as "ahead"
+  // rather than only as an opaque "corrupt".
+  checkContractVersion({
+    artefact: TRACEABILITY_REL,
+    path: guard.absolute,
+    declared: root.schema_version,
+    knownMax: TRACEABILITY_SCHEMA_VERSION,
+    fieldName: "schema_version",
+  });
+
   const requirements = root.requirements;
   if (!requirements || typeof requirements !== "object" || Array.isArray(requirements)) {
     return { status: "unavailable", reason: "corrupt" };

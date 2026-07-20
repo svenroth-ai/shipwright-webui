@@ -35,6 +35,21 @@ export const ACTIONS_SCHEMA_VERSION = 1;
  */
 export const PROFILE_SCHEMA_VERSION = 1;
 
+/**
+ * Highest `schema_version` this WebUI build knows how to read for the
+ * test-traceability manifest (`.shipwright/compliance/test-traceability.json`),
+ * produced by the shipwright plugins. Bump in lockstep with the manifest
+ * collector when its shape changes in a way the WebUI relies on.
+ *
+ * A manifest declaring a HIGHER version is warned once (via
+ * `checkContractVersion`) and still read best-effort — the reader consumes
+ * `requirements[*].id` and `requirements[*].tests`, both stable across the
+ * schema bumps seen so far, so an ahead-of-us manifest still yields a useful
+ * index. The composite outer key is never read, so a key-form change alone
+ * does not change behaviour here.
+ */
+export const TRACEABILITY_SCHEMA_VERSION = 2;
+
 interface WarnOnceKey {
   artefact: string;
   path: string;

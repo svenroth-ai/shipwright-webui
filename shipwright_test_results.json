@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-20-task-form-border-polish",
+    "run_id": "iterate-2026-07-20-traceability-schema-version-guard",
     "date": "2026-07-20",
     "unit": {
       "status": "passed",
-      "passed": 2859,
-      "total": 2859
+      "passed": 2794,
+      "total": 2795
     },
     "integration": {
       "status": "not_run",
@@ -29,33 +29,55 @@
       "total": 0
     },
     "smoke": {
-      "status": "skipped"
+      "status": "not_run"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Expanded More-options header rounds only its TOP corners so its square bottom meets the content divider (divider no longer collides with the header's rounded corners)",
+          "behavior": "manifest schema_version ahead of TRACEABILITY_SCHEMA_VERSION -> one contract_version_ahead warning (drift made visible)",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx::'rounds only its top corners when expanded (square bottom meets the divider)' PASSED — open => rounded-t only, closed => full pill"
+          "evidence": "traceability.schema-version.test.ts::'WARNS (once) when schema_version is ahead ...' PASSED"
         },
         {
-          "behavior": "Every task-form field frame + the More-options bar resolve --surface-form-line, so lightening that one token lightens all task forms including plain Claude",
+          "behavior": "version-ahead manifest still inverts to a usable index incl. mappedFrom fold provenance (fail-soft, no throw, not unavailable-due-to-version) [round-trip boundary probe]",
           "disposition": "tested",
-          "evidence": "SimpleFields.test.tsx + MoreOptionsDisclosure.test.tsx assert border-[var(--surface-form-line; production build emits --surface-form-line:#8e847e in dist/assets/*.css (grep-confirmed), contrast 3.05:1 vs sheet / 3.65:1 vs field-fill, both >=WCAG 3:1"
+          "category": "integration",
+          "evidence": "traceability.schema-version.test.ts::'warns but does NOT lose the index when a version-ahead manifest carries fold provenance' PASSED"
+        },
+        {
+          "behavior": "schema_version == knownMax -> no warn (no false positive)",
+          "disposition": "tested",
+          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version equals the known max' PASSED"
+        },
+        {
+          "behavior": "schema_version absent (older manifest) -> no warn, still reads clean",
+          "disposition": "tested",
+          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version is ABSENT ...' PASSED"
+        },
+        {
+          "behavior": "guard changes no existing return value for any prior input (corrupt/missing/truncated/real-repo unchanged)",
+          "disposition": "tested",
+          "evidence": "full server suite green (235 files, 2794 passed, 1 skipped) incl. traceability.test.ts real-repo calibration probe"
         }
       ],
       "counts": {
-        "testable": 2,
-        "tested": 2,
+        "testable": 5,
+        "tested": 5,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 2,
-        "covered_acs": 2
+        "acs": 3,
+        "covered_acs": 3
       }
+    },
+    "surface_verification": {
+      "surface": "none",
+      "tests_run": 2794,
+      "exit_code": 0,
+      "justification": "Server-internal observability only: readTraceabilityIndex now emits a fail-soft console.warn when the manifest schema_version is ahead of TRACEABILITY_SCHEMA_VERSION; the TraceabilityIndex return contract is byte-identical for every input, so there is no UI-observable delta and no browser surface to exercise. The touches_io_boundary enforcement is met by a round-trip boundary probe (a version-ahead manifest still inverts to a valid index) in traceability.schema-version.test.ts, and the full server suite (2794 passed) exercises the mission-context consumer chain (resolver -> routes) confirming unchanged output."
     }
   }
 }
