@@ -1,0 +1,1 @@
+Regenerated the requirement-traceability data and matrix to the current schema (a requirement's id now derives its internal key); the Command Center recognises the new format without warnings and its requirement deep links resolve to the right row.

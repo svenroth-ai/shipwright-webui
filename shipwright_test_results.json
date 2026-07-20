@@ -1,107 +1,65 @@
 {
-  "last_updated": "2026-07-20",
+  "last_updated": "2026-07-21",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-20-mission-context-async-git",
-    "date": "2026-07-20T21:52:00.000Z",
+    "run_id": "iterate-2026-07-21-traceability-regen-schema3",
+    "date": "2026-07-21",
     "unit": {
       "status": "passed",
-      "passed": 2798,
-      "total": 2799,
-      "note": "Full server vitest suite (1 pre-existing skip). Mission-context slice: 33 files / 391 tests."
+      "passed": 5664,
+      "total": 5665
     },
     "integration": {
-      "status": "passed",
-      "passed": 391,
-      "total": 391,
-      "note": "Mission-context route + resolver exercised through the real Hono request pipeline (app.request) — HTTP contract proven byte-identical across the async refactor."
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "No database surface."
+      "total": 0
     },
     "e2e": {
-      "status": "passed",
-      "passed": 7,
-      "total": 7,
-      "note": "F0.5 web smoke (core surfaces) against the modified server on an isolated stack. The embedded-terminal WebSocket-ready smoke was excluded (--grep-invert=WebSocket): it exercises node-pty/terminal, which this diff does not touch, and it is a known isolated-stack pty artifact."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
-      "status": "not_run",
-      "note": "No UI change — server-internal refactor."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Async GitRunner is awaited — a Promise-returning git double resolves correctly through the whole chain",
+          "behavior": "Committed manifest regenerated to campaign schema 3 with id-derived keys (NN::FR-XX.YY); all 29 FRs preserved, no data loss, inner shape intact",
           "disposition": "tested",
-          "evidence": "worktree-roots.cache.test.ts 'awaits an ASYNC git runner' PASSED + merge-check.test.ts real-repo cases run through async execFile"
+          "evidence": "regen verified: schema_version==3, 29 FRs (0 lost/added), 1038->1047 test entries; traceability.test.ts real-repo calibration probe PASSED against the schema-3 manifest"
         },
         {
-          "behavior": "Sync git doubles still satisfy the widened GitRunner type (no injection-site churn)",
+          "behavior": "Reader recognises schema 3 without a contract_version_ahead warning (TRACEABILITY_SCHEMA_VERSION 2->3)",
           "disposition": "tested",
-          "evidence": "full mission-context suite compiles under `(args,cwd)=>string|Promise<string>` and is green (33 files / 391)"
+          "evidence": "traceability.schema-version.test.ts 'equals the known max' (now 3) no-warn PASSED; real-repo probe emits no warn"
         },
         {
-          "behavior": "readAllowedRootsCached spawns git ONCE within the TTL (no per-poll spawn)",
+          "behavior": "A regenerated-RTM requirement deep link (#rtm-fr-XXXX) resolves through the sanitizer user-content- prefix and SCROLLS to its explicit anchor in the WebUI renderer (CP-2 silent-failure guard)",
           "disposition": "tested",
-          "evidence": "worktree-roots.cache.test.ts 'spawns git ONCE within the TTL' PASSED (calls===1 across three polls)"
+          "category": "integration",
+          "evidence": "DocumentMarkdown.test.tsx CP-2 render+click test: #rtm-fr-0166 -> user-content-rtm-fr-0166 scrollIntoView PASSED"
         },
         {
-          "behavior": "readAllowedRootsCached re-spawns after the TTL expires",
+          "behavior": "Reader logic unchanged for every prior input (data-only regen + constant acknowledgement)",
           "disposition": "tested",
-          "evidence": "worktree-roots.cache.test.ts 're-spawns once the TTL expires' PASSED (calls===2)"
-        },
-        {
-          "behavior": "readAllowedRootsCached dedups concurrent in-flight callers (caches the promise)",
-          "disposition": "tested",
-          "evidence": "worktree-roots.cache.test.ts same-promise identity (expect(b).toBe(a)) with a single spawn"
-        },
-        {
-          "behavior": "checkSquashMerged never regresses a terminal `merged` under the async cache race",
-          "disposition": "tested",
-          "evidence": "merge-check.race.test.ts 'a racing `pending` never regresses…' PASSED; verified RED when the guard is neutralized"
-        },
-        {
-          "behavior": "findWorkCompleted serves the cached index without re-projecting an unchanged log",
-          "disposition": "tested",
-          "evidence": "iterate-record.test.ts 'serves the run from the cached index…' PASSED (same RunProjection object identity)"
-        },
-        {
-          "behavior": "findWorkCompleted does NOT re-read the log while its (mtime,size) fingerprint is unchanged",
-          "disposition": "tested",
-          "evidence": "iterate-record.test.ts 'does NOT re-read the log while its (mtime,size) fingerprint is unchanged' PASSED (same-length overwrite + re-pinned mtime stays unseen)"
-        },
-        {
-          "behavior": "findWorkCompleted rebuilds the index when the log changes (appended run becomes visible)",
-          "disposition": "tested",
-          "evidence": "iterate-record.test.ts 'rebuilds the index when the log changes' PASSED"
-        },
-        {
-          "behavior": "found / absent / unavailable trichotomy preserved exactly vs the prior scan",
-          "disposition": "tested",
-          "evidence": "iterate-record.test.ts absent/absent-when-missing cases + routes.merge-freshness.test.ts (unchanged) green"
-        },
-        {
-          "behavior": "Detail endpoint still re-validates roots point-in-time fresh (uncached)",
-          "disposition": "tested",
-          "evidence": "routes.documents.test.ts stale/root-no-longer-registered paths unchanged and green"
-        },
-        {
-          "behavior": "Mission-context response byte-identical for identical inputs across the refactor",
-          "disposition": "tested",
-          "evidence": "full mission-context suite (route + resolver, 33 files / 391) green pre- and post-refactor; F0.5 web smoke green"
+          "evidence": "full server suite (237 files, 2804 passed) + full client suite (306 files, 2860 passed) green"
         }
       ],
       "counts": {
-        "testable": 12,
-        "tested": 12,
+        "testable": 4,
+        "tested": 4,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -112,12 +70,11 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "node .../client/node_modules/@playwright/test/cli.js test --config .../client/playwright.iterate.config.ts --grep-invert=WebSocket 00-core-surfaces",
+      "method": "component",
+      "status": "pass",
+      "tests_run": 2860,
       "exit_code": 0,
-      "tests_run": 7,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-20-mission-context-async-git/surface_verification.json",
-      "timestamp": "2026-07-20T21:50:57.007Z",
-      "attempts": 1
+      "justification": "Web surfaces touched are the SmartViewer markdown renderer (RTM deep-link navigation) and the Mission traceability read. The RTM deep-link resolution — the silent-failure risk CP-2 guards — is verified by a jsdom render+click component test (DocumentMarkdown CP-2) asserting #rtm-fr-0166 resolves to the sanitizer-prefixed user-content-rtm-fr-0166 anchor and calls scrollIntoView; full client suite (2860) green. No new server surface or contract shape; the manifest/RTM change is data regeneration (schema 2->3 key form), reader logic byte-identical (full server suite 2804 green)."
     }
   }
 }
