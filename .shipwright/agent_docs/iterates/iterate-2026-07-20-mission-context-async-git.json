@@ -1,0 +1,14 @@
+{
+  "run_id": "iterate-2026-07-20-mission-context-async-git",
+  "date": "2026-07-20T21:55:49.397400Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/mission-context-async-git",
+  "spec": ".shipwright/planning/iterate/2026-07-20-mission-context-async-git.md",
+  "tests_passed": true,
+  "spec_impact": "none",
+  "affected_frs": [
+    "FR-01.66"
+  ],
+  "adr": "iterate-2026-07-20-mission-context-async-git"
+}

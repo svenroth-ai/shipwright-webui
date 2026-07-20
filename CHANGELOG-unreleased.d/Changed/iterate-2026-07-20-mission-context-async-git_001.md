@@ -1,0 +1,1 @@
+Mission tab is more responsive: the server now runs git off the event loop and caches the worktree list and event-log lookups, so opening a task no longer briefly stalls the terminal or transcript while the Mission panel refreshes.

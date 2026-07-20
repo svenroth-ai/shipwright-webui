@@ -147,16 +147,16 @@ export function parseNameStatus(out: string): { files: ChangedTestFile[]; trunca
  * Reporting "no tests changed" because git failed is precisely the false
  * negative this feature must not produce.
  */
-export function readChangedTestFiles(
+export async function readChangedTestFiles(
   projectRoot: string,
   commit: string | null,
   git: GitRunner,
-): TestsDiff {
+): Promise<TestsDiff> {
   if (!commit || !SHA_RE.test(commit)) return { status: "unavailable", reason: "bad_commit" };
 
   let out: string;
   try {
-    out = git(
+    out = await git(
       // `-z` — raw NUL-delimited paths, so a path containing a tab/newline/
       // quote cannot be mis-parsed. `--first-parent` keeps a merge commit
       // meaningful instead of silently empty.

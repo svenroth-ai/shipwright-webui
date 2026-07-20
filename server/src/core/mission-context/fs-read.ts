@@ -62,3 +62,50 @@ export function readBoundedFile(absolute: string, maxBytes: number): BoundedRead
     }
   }
 }
+
+export type BoundedReadOrUnchanged =
+  | { changed: true; text: string; mtimeMs: number; sizeBytes: number }
+  | { changed: false; mtimeMs: number; sizeBytes: number };
+
+/**
+ * Open ONCE; `fstat`; if `(mtimeMs, sizeBytes)` still matches `known`, return
+ * WITHOUT reading the bytes (`changed: false`); otherwise read them
+ * (`changed: true`).
+ *
+ * This lets an mtime-keyed cache skip re-reading (and re-parsing) a large file
+ * that has not moved, while keeping the same single-descriptor discipline as
+ * `readBoundedFile`: the fstat that decides "unchanged" and the read that
+ * follows a change both come from the ONE fd, so there is no stat-then-read path
+ * race to reintroduce the TOCTOU that `fs-read.ts` exists to close (CodeQL
+ * js/file-system-race). Returns null on the same "no usable content" cases.
+ *
+ * The path MUST already have passed pathGuard + realPathGuard.
+ */
+export function readBoundedFileIfChanged(
+  absolute: string,
+  maxBytes: number,
+  known: { mtimeMs: number; sizeBytes: number } | null,
+): BoundedReadOrUnchanged | null {
+  let fd: number | undefined;
+  try {
+    fd = openSync(absolute, "r");
+    const st = fstatSync(fd);
+    if (!st.isFile()) return null;
+    if (st.size > maxBytes) return null;
+    if (known && known.mtimeMs === st.mtimeMs && known.sizeBytes === st.size) {
+      return { changed: false, mtimeMs: st.mtimeMs, sizeBytes: st.size };
+    }
+    const text = readFileSync(fd, "utf-8");
+    return { changed: true, text, mtimeMs: st.mtimeMs, sizeBytes: st.size };
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) {
+      try {
+        closeSync(fd);
+      } catch {
+        /* already closed / invalid — nothing useful to do */
+      }
+    }
+  }
+}
