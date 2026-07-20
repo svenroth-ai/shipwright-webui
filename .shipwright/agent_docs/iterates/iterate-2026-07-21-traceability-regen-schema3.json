@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-traceability-regen-schema3",
+  "date": "2026-07-20T22:24:20.601033Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/traceability-regen-schema3",
+  "spec": null,
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-traceability-regen-schema3"
+}
