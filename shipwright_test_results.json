@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-07-17",
+  "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-19-mission-s3-pipeline-campaign-polish",
-    "date": "2026-07-19T00:40:59.059Z",
+    "run_id": "iterate-2026-07-20-traceability-schema-version-guard",
+    "date": "2026-07-20",
     "unit": {
-      "passed": 5461,
-      "total": 5462
+      "status": "passed",
+      "passed": 2794,
+      "total": 2795
     },
     "integration": {
       "status": "not_run",
       "passed": 0,
-      "total": 0,
-      "note": "Client-only CSS/token change."
+      "total": 0
     },
     "pgtap": {
       "status": "not_run",
@@ -19,80 +19,65 @@
       "total": 0
     },
     "e2e": {
-      "passed": 13,
-      "total": 13
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "design_fidelity": {
-      "status": "passed",
-      "note": "Grey-beige #EDEAE7 sourced from svenroth.ai's own --light-beige-background; contrast targets checked against WCAG AA (4.5:1 text) and 1.4.11 (3:1 control boundary)."
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 form sheet uses the grey-beige --surface-form, not the yellow --beige",
+          "behavior": "manifest schema_version ahead of TRACEABILITY_SCHEMA_VERSION -> one contract_version_ahead warning (drift made visible)",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx 'renders the grey-beige form surface\u2026' PASSED + qa-form-newtask.png"
+          "evidence": "traceability.schema-version.test.ts::'WARNS (once) when schema_version is ahead ...' PASSED"
         },
         {
-          "behavior": "AC2 labels/hints/helper copy use --body (>=4.5:1), not --color-muted",
+          "behavior": "version-ahead manifest still inverts to a usable index incl. mappedFrom fold provenance (fail-soft, no throw, not unavailable-due-to-version) [round-trip boundary probe]",
           "disposition": "tested",
-          "evidence": "ModalShell.test.tsx (footer hint --body) + FieldLabel/palette/ParamSections token sweep; qa screenshots"
+          "category": "integration",
+          "evidence": "traceability.schema-version.test.ts::'warns but does NOT lose the index when a version-ahead manifest carries fold provenance' PASSED"
         },
         {
-          "behavior": "AC3 field frames use --surface-form-line (>=3:1, WCAG 1.4.11)",
+          "behavior": "schema_version == knownMax -> no warn (no false positive)",
           "disposition": "tested",
-          "evidence": "SimpleFields.test.tsx (border-[var(--surface-form-line) + not --color-border) PASSED"
+          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version equals the known max' PASSED"
         },
         {
-          "behavior": "AC4 More options: visible frame + darker tone persistently when expanded, hover steps darker",
+          "behavior": "schema_version absent (older manifest) -> no warn, still reads clean",
           "disposition": "tested",
-          "evidence": "MoreOptionsDisclosure.test.tsx 'carries the darker tone persistently when expanded\u2026' PASSED + qa-form-hover-moreoptions.png"
+          "evidence": "traceability.schema-version.test.ts::'does NOT warn when schema_version is ABSENT ...' PASSED"
         },
         {
-          "behavior": "AC5 every task form variant (incl. Plain/pure-Claude) inherits AC1-AC4",
+          "behavior": "guard changes no existing return value for any prior input (corrupt/missing/truncated/real-repo unchanged)",
           "disposition": "tested",
-          "evidence": "all five bodies render through ModalShell + SimpleFields (NewPlainModal imports Title/DescriptionFieldFragment); NewIssueModal suite 97 tests PASSED"
-        },
-        {
-          "behavior": "AC6 title-bar buttons render the Launch/Resume teal rgb(14,122,107)",
-          "disposition": "tested",
-          "evidence": "QA assertion: computed backgroundColor of board/projects/ships-log/modal-Launch all equal rgb(14,122,107)"
-        },
-        {
-          "behavior": "AC7 buttons share height 36px + right edge; label may widen only",
-          "disposition": "tested",
-          "evidence": "QA assertion: unique heights=[36], unique right edges=[1233]"
-        },
-        {
-          "behavior": "AC8 buttons share a baseline regardless of a page subtitle",
-          "disposition": "tested",
-          "evidence": "QA assertion: max-min y <= 2 (28/28/29) after .page-head .inner min-height:92px"
+          "evidence": "full server suite green (235 files, 2794 passed, 1 skipped) incl. traceability.test.ts real-repo calibration probe"
         }
       ],
       "counts": {
-        "testable": 8,
-        "tested": 8,
+        "testable": 5,
+        "tested": 5,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 8,
-        "covered_acs": 8
+        "acs": 3,
+        "covered_acs": 3
       }
     },
     "surface_verification": {
-      "surface": "web",
-      "runner": "node C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/2e14a629-3752-417f-bd64-554586a44f93/scratchpad/s3-e2e-runner.mjs",
+      "surface": "none",
+      "tests_run": 2794,
       "exit_code": 0,
-      "tests_run": 13,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.shipwright\\runs\\iterate-2026-07-19-mission-s3-pipeline-campaign-polish\\surface_verification.log",
-      "timestamp": "2026-07-19T00:40:59.059Z",
-      "attempts": 1
+      "justification": "Server-internal observability only: readTraceabilityIndex now emits a fail-soft console.warn when the manifest schema_version is ahead of TRACEABILITY_SCHEMA_VERSION; the TraceabilityIndex return contract is byte-identical for every input, so there is no UI-observable delta and no browser surface to exercise. The touches_io_boundary enforcement is met by a round-trip boundary probe (a version-ahead manifest still inverts to a valid index) in traceability.schema-version.test.ts, and the full server suite (2794 passed) exercises the mission-context consumer chain (resolver -> routes) confirming unchanged output."
     }
   }
 }
