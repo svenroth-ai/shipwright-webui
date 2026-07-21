@@ -219,14 +219,14 @@ export interface MissionContext {
   /** The ITERATE run id (`iterate-<date>-<slug>`) — never `task.runId`. */
   runId: string | null;
   /**
-   * Is this run IN FLIGHT right now? True only when the pointer validated AND
-   * git still registers its worktree — i.e. the run has a working copy to write
-   * into. False for every finished/abandoned run and for every other scenario.
+   * Is this run IN FLIGHT right now? True only when the pointer validated, git
+   * still registers its worktree, AND the run has recorded no `work_completed`
+   * — a completion record is terminal, so it ends live-ness even while the
+   * worktree survives. False for every other scenario.
    *
    * The client uses it for ONE decision: whether `not_yet_created` means "this
    * run has no such artifact" (hide it) or "it has not been written YET" (show
-   * it as pending). Nothing about the artifacts themselves changes — an
-   * `unavailable` artifact stays `unavailable` either way.
+   * it as pending). An `unavailable` artifact NEVER becomes pending.
    */
   runLive: boolean;
   artifacts: ArtifactDescriptor[];

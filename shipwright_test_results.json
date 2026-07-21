@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-21",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-mac-titlebar-right-clip",
+    "run_id": "iterate-2026-07-21-mission-recovery-memo-perf",
     "date": "2026-07-21",
     "unit": {
       "status": "passed",
-      "passed": 5749,
-      "total": 5750
+      "passed": 5767,
+      "total": 5768
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 9,
-      "total": 9
+      "passed": 6,
+      "total": 6
     },
     "design_fidelity": {
       "status": "skipped",
@@ -36,76 +36,108 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Shell scroller reserves no scrollbar gutter",
+          "behavior": "The footer thunk is not invoked when ordered rules 1-4 match first (5 cases)",
           "disposition": "tested",
-          "evidence": "client shell-scroll-invariant.test.ts > reserves NO scrollbar gutter - PASS; mutation-verified (re-adding the gutter turns it RED)"
+          "evidence": "server recovery-schedule.test.ts > is NOT paid when rule %s matches first - PASS; mutation M1 (eager scan) fails 11 tests"
         },
         {
-          "behavior": "Every title-bar route bounds its own vertical scroll",
+          "behavior": "The footer thunk is invoked exactly once when rules 1-4 all miss",
           "disposition": "tested",
-          "evidence": "client shell-scroll-invariant.test.ts > every route that renders a title bar bounds its own vertical scroll - PASS; mutation-verified (unbounding Settings turns it RED)"
+          "evidence": "server recovery-schedule.test.ts > is paid EXACTLY ONCE when rules 1-4 all miss - PASS; mutation M2 (consulted twice) FAILS"
         },
         {
-          "behavior": "A new PageHead page cannot be added without registering its scroll owner",
+          "behavior": "An INVALID pointer never invokes the thunk",
           "disposition": "tested",
-          "evidence": "client shell-scroll-invariant.test.ts > no page renders a title bar without being in the registry - PASS"
+          "evidence": "server recovery-schedule.test.ts > is NOT paid for an INVALID pointer - PASS"
         },
         {
-          "behavior": ".page-head reaches the viewport right edge on all six routes",
+          "behavior": "ScenarioDecision.runIdSource reports the winning rule for all six rules",
           "disposition": "tested",
-          "evidence": "e2e title-bar-full-bleed.spec.ts (6 route cases) - PASS post-fix; the same spec FAILS 8/8 against the pre-fix production build"
+          "evidence": "server recovery-schedule.test.ts > reports WHICH source identified the run - PASS; mutation M9 (source lies) FAILS"
         },
         {
-          "behavior": "Board LIST view bounds its own scroll (title bar not re-clipped on /?view=list)",
+          "behavior": "A campaign or pipeline session quoting a corroborated footer performs ZERO scans across polls",
           "disposition": "tested",
-          "evidence": "e2e title-bar-full-bleed.spec.ts route '/?view=list' - PASS; vitest shell-scroll-invariant.test.ts registry maps TaskBoardPage to BOTH scroll owners, mutation-verified (unbounding the list body turns it RED). Found by internal code review: before the fix, /?view=list overflowed the shell by 19238px with headGap 15."
+          "evidence": "server recovery-schedule.test.ts Part B, real _recoveryScanCount() over 3 polls - PASS"
         },
         {
-          "behavior": "Re-reserving width on the shell scroller is caught wherever it is written",
+          "behavior": "An unidentified session scans once, recovers, and persists source=transcript_run_id",
           "disposition": "tested",
-          "evidence": "vitest shell-scroll-invariant.test.ts scans MainLayout.tsx + weather-deck.css + SceneBackdrop.tsx for scrollbar-gutter AND overflow-y:scroll; mutation-verified in both MainLayout and weather-deck.css"
+          "evidence": "server recovery-schedule.test.ts Part B + routes.recovery.test.ts association shape, exactly one persist - PASS; mutation M3 (not persisted) FAILS"
         },
         {
-          "behavior": "The bar is fitted to the edge, not pushed past it (no horizontal overflow)",
+          "behavior": "The wide reach-back happens once for a transcript that never changes",
           "disposition": "tested",
-          "evidence": "e2e title-bar-full-bleed.spec.ts two-sided gap assertion + scrollWidth<=clientWidth per route - PASS (added after external review)"
+          "evidence": "server routes.recovery-schedule.test.ts > reaches back ONCE ... budget sequence - PASS; mutation M4 (never narrows) FAILS"
         },
         {
-          "behavior": "No route overflows the shell scroller, so no cross-route width spring",
+          "behavior": "It happens again after the transcript revision moves, and the recovery succeeds",
           "disposition": "tested",
-          "evidence": "e2e title-bar-full-bleed.spec.ts > the shell scroller never scrolls - PASS; shell client width constant 1376px across all six routes"
+          "evidence": "server routes.recovery-schedule.test.ts > reaches back AGAIN ... - PASS; mutation M5 (never repeats) FAILS"
         },
         {
-          "behavior": "Settings body scrolls internally while its title bar stays put",
+          "behavior": "A read yielding no revision never marks the reach-back done",
           "disposition": "tested",
-          "evidence": "e2e title-bar-full-bleed.spec.ts > Settings scrolls its own body while the title bar stays put - PASS (added after external review flagged AC4 as untested)"
+          "evidence": "server routes.recovery-schedule.test.ts > a read that yields NO revision ... - PASS; mutation M6 FAILS"
         },
         {
-          "behavior": "Mission Control's .mc-top bar reaches the right edge",
+          "behavior": "Cap eviction only fires for a NEW key, so tasks already in the map keep their marker",
           "disposition": "tested",
-          "evidence": "direct differential measurement in headed msedge: gap 15px pre-fix -> 0px post-fix. NOT covered by the automated spec (seeding a task would write the real sdk-sessions.json outside an isolated USERPROFILE); root cause is pinned by behavior 1. Recorded as a known coverage boundary."
+          "evidence": "server routes.recovery-schedule.test.ts > evicting at the cap ... - PASS; mutation M10 (clear on every write) FAILS"
         },
         {
-          "behavior": "Baseline screenshots reflect the 15px-wider title bar",
+          "behavior": "A rolled-back association (failed persist) also drops the reach-back marker",
+          "disposition": "tested",
+          "evidence": "server routes.recovery-schedule.test.ts > a ROLLED-BACK association ... - PASS; mutation M12 FAILS"
+        },
+        {
+          "behavior": "An already-identified task never consumes a cap slot",
+          "disposition": "tested",
+          "evidence": "server routes.recovery-schedule.test.ts > an already-identified task does not consume the cap - PASS; mutation M13 FAILS"
+        },
+        {
+          "behavior": "An identified task never requests the wide window",
+          "disposition": "tested",
+          "evidence": "server routes.recovery.test.ts > reads the WIDER tail only while unidentified, then drops back - PASS"
+        },
+        {
+          "behavior": "runLive is documented with the full clause set on BOTH sides of the mirror",
+          "disposition": "tested",
+          "evidence": "server mission-runlive-doc-parity.test.ts - PASS; mutations M7/M11/M14 (mirror doc weakened) FAIL"
+        },
+        {
+          "behavior": "The two runLive docs cannot agree with each other and both be wrong",
+          "disposition": "tested",
+          "evidence": "server mission-runlive-doc-parity.test.ts > the implementation really is that conjunction - PASS; mutation M8 FAILS"
+        },
+        {
+          "behavior": "wire.ts returns the tail WITH a revision, end-to-end through SessionWatcher",
+          "disposition": "tested",
+          "evidence": "e2e mission-recovery-schedule.spec.ts (2) + mission-run-identity-recovery.spec.ts (4) - 6 PASS on an isolated stack; PROVED falsifiable by breaking wire.ts to return empty text, which fails the recovered-rail flow"
+        },
+        {
+          "behavior": "The prior run's record states the persistence half of the (e) reversal",
           "disposition": "untestable",
           "reason_code": "requires-manual-visual-judgment",
-          "evidence": "regenerated in the pinned Linux container via visual-baselines.yml; changed-baselines.txt reviewed against the intended route set"
+          "evidence": "Prose in the prior run's adr.md + decision drop (both gitignored); verified by reading, and restated in this run's commit message so it ships"
         }
-      ]
+      ],
+      "enumeration_basis": {
+        "acs": 9,
+        "covered_acs": 9
+      },
+      "counts": {
+        "testable": 16,
+        "tested": 16,
+        "untestable": 1,
+        "untested_testable": 0
+      }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "C:/Users/SvenRoth/AppData/Local/Temp/claude/C--01-Development-shipwright-webui/cf620089-d58f-4ab3-bb0c-88e114db131a/scratchpad/run-e2e.cmd",
+      "tests_run": 6,
       "exit_code": 0,
-      "tests_run": 9,
-      "attempts": 1,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mac-titlebar-right-clip\\.shipwright\\runs\\iterate-2026-07-21-mac-titlebar-right-clip\\surface_verification.log",
-      "timestamp": "2026-07-21T20:23:45.952Z"
-    },
-    "known_coverage_boundaries": [
-      "Real macOS Safari/Edge not exercised (no Mac available); Playwright's WebKit on Windows does not reproduce macOS scrollbar metrics. Defect reproduced and fixed at the same 15px on Windows.",
-      "An uncapped lane (PipelineLaneCard) can still overflow the shell in list view: measured 520px lane at 1280x600 overflows by 41px; 260px does not; kanban never does. Pre-existing, recorded not fixed.",
-      "/wizard, /tasks/:id and /projects/:id/log verified by hand, not in the automated route list; IntentWizardPage lives outside pages/ so the reverse-drift ratchet cannot see it."
-    ]
+      "justification": "Backend-affects-Frontend: the diff changes the mission-context route's read schedule and the reader contract it depends on, so surface=web is mandatory even though the response shape is unchanged. Executed client/e2e/flows/mission-recovery-schedule.spec.ts (new, 2) + mission-run-identity-recovery.spec.ts (the 4 flows from PR #309, as the regression gate) in real Chromium against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_E2E_ISOLATED=1, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3853, SHIPWRIGHT_NETWORK_PROFILE=local): 6 passed. Verified LOAD-BEARING by re-running against a deliberately broken wire.ts (tail text returned empty while the revision stayed valid): the recovered-rail flow FAILED as required, and the negative flow correctly stayed green."
+    }
   }
 }

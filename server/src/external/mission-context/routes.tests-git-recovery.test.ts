@@ -73,7 +73,7 @@ function harness(root: string, task: ExternalTask) {
       persist: async () => {},
     } as unknown as SdkSessionsStore,
     getProjectById: (id) => (id === "proj-1" ? { id: "proj-1", name: "P", path: root } : undefined),
-    readTranscriptTail: async () => "",
+    readTranscriptTail: async () => ({ text: "", revision: "rev-1" }),
     getScenarioFacts: async () => ({
       actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
       runConfigStatus: "missing",
