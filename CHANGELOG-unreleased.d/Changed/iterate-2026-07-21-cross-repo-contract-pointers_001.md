@@ -1,0 +1,1 @@
+Internal: the two cross-repo contracts the Command Center consumes from the shipwright monorepo (the iterate-record 50-run retention window and the frozen adopt snapshot shape) are now stated in the source files that would break them, both of which fail silently rather than loudly

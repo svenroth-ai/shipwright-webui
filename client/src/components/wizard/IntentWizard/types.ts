@@ -67,7 +67,23 @@ export interface ReportModel {
 }
 
 /** The adopt snapshot the result card renders (mirrors the real snapshot.json
- *  shape at a UI level — stack / tests / ci / conventions + what adopt writes). */
+ *  shape at a UI level — stack / tests / ci / conventions + what adopt writes).
+ *
+ *  This is a FLATTENED display shape, currently fed by `stubData.ts` — nothing
+ *  here reads the real `.shipwright/adopt/snapshot.json` yet. Upstream already
+ *  treats us as its consumer and has FROZEN the wire shape against `origin/main`
+ *  (shipwright `plugins/shipwright-adopt/skills/adopt/references/cross-repo-contract.md`
+ *  + `tests/test_snapshot_contract.py`). Two of its rules bind whoever wires the
+ *  live read, and neither fails loudly if broken — you get a half-empty card:
+ *
+ *    - the stack/tests/ci subtrees are DETECTOR-KEYED: iterate them, never index
+ *      a fixed key (`stack.frontend.react` breaks on the first Vue repo);
+ *    - a field BECOMING NULLABLE is a breaking change even though no key moved —
+ *      validate before dereferencing.
+ *
+ *  `schema_version` is additive: a snapshot written by an older adopt simply
+ *  lacks the key and must stay readable. See `reportShape.ts` for how the grade
+ *  card already guards its half of the same contract. */
 export interface AdoptSnapshot {
   found: Array<{ label: string; value: string }>;
   writes: Array<{ label: string; value: string }>;
