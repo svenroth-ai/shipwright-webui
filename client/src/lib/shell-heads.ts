@@ -44,9 +44,12 @@ function splitSegments(cmd: string): string[] {
     const ch = cmd[i];
     if (quote) {
       // POSIX: a backslash escapes inside double quotes, never inside single.
-      if (quote === '"' && ch === "\\" && i + 1 < cmd.length) buf += ch + cmd[++i];
-      else if (ch === quote) (quote = null), (buf += ch);
-      else buf += ch;
+      if (quote === '"' && ch === "\\" && i + 1 < cmd.length) {
+        buf += ch + cmd[++i];
+      } else {
+        if (ch === quote) quote = null;
+        buf += ch;
+      }
       continue;
     }
     if (ch === "\\" && i + 1 < cmd.length) {

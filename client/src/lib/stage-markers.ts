@@ -97,6 +97,36 @@ const RE_FINALIZE_SCRIPT = /finalize_iterate|write_decision_log|artifact_sync|ve
  * Shipwright's tooling vocabulary. */
 
 /**
+ * What KIND of work a shell command evidences, priority-ordered — the narrative
+ * counterpart to `collectMarkers` (FR-01.68).
+ *
+ * Deliberately EXCLUSIVE where `collectMarkers` is not: `git commit && git push`
+ * sets both the finalize and merge markers there (a stepper wants the furthest
+ * position), while a story needs to file the command under one heading. The
+ * regexes are the same ones — this is a second READING of the single marker
+ * vocabulary, never a second definition of it.
+ */
+export type CommandKind = "merge" | "finalize" | "test" | "build" | "scope" | null;
+
+export function classifyCommand(rawCmd: string): CommandKind {
+  const cmd = rawCmd.toLowerCase();
+  if (runsCommand(cmd, RE_MERGE_CMD)) return "merge";
+  if (runsCommand(cmd, RE_FINALIZE_CMD) || RE_FINALIZE_SCRIPT.test(cmd)) return "finalize";
+  if (runsCommand(cmd, RE_TEST_CMD)) return "test";
+  if (runsCommand(cmd, RE_BUILD_CMD)) return "build";
+  if (RE_SCOPE_SCRIPT.test(cmd)) return "scope";
+  return null;
+}
+
+/** Does this command CREATE an iterate worktree? The narrative window's anchor
+ *  (FR-01.68 AC9) — measured at 89% frequency across real iterates in the S4
+ *  probe, and unlike a `pr-link` it marks a genuine BEGINNING. Narrower than
+ *  `RE_SCOPE_SCRIPT`, which lumps it in with calibration + review tooling. */
+export function opensIterateWorktree(rawCmd: string): boolean {
+  return /setup_iterate_worktree/i.test(rawCmd);
+}
+
+/**
  * The plain phrase for the LAST thing the session actually did, or null.
  *
  * Deliberately a tail scan, not a `Markers` read. `Markers` is order-independent

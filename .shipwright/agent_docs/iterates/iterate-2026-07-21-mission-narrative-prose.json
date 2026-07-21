@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-mission-narrative-prose",
+  "date": "2026-07-21T22:38:13.262213Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/2026-07-21-mission-narrative-prose",
+  "spec": ".shipwright/planning/iterate/2026-07-21-mission-narrative-prose.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-mission-narrative-prose"
+}

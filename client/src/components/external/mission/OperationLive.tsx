@@ -1,53 +1,79 @@
 /*
- * OperationLive — the MIDDLE card when a session is LIVE / ad-hoc / empty
- * (FR-01.66). A plain-language, live summary of what is currently in the JSONL:
- * a rolling "what's happening now" line + a short recent-activity list.
+ * OperationLive — the MIDDLE card, told as PROSE (FR-01.68, replacing the
+ * FR-01.66 rolling activity list).
  *
  * READ THIS TWICE (the classic mistake on this card, shared with ProofSummary):
  * this is NOT the terminal. It is rendered history from the read-only transcript
  * observer — NO xterm, NO node-pty, NO WebSocket, NO input affordance (rule 1;
  * the real embedded terminal lives in Files & Terminal and is untouched).
  *
- * HONESTY (AC3): the summary/activity are exactly what `summarizeTranscript`
- * produced. When the JSONL has nothing yet, it says so ("waiting"), never
- * fabricates activity. A20: the activity lines REST visible (staggerStyle only
- * delays the entrance), so reduced motion shows every line, final, immediately.
+ * WHAT CHANGED AND WHY. It used to render the last six mechanical tool lines.
+ * Measured on the session that produced PR #307: 152 narratable steps existed,
+ * 146 were discarded, and what survived was a truncated shell command, two
+ * notes-file edits and the same pull request twice. That cap also meant
+ * `.mc-hero` — a correct scroll container all along — never had anything to
+ * scroll TO. Now it renders sentences, and the card scrolls.
+ *
+ * The `mission-narration-summary` line is RETIRED with it: in prose there is no
+ * "current line", and it only ever repeated the last activity entry.
+ *
+ * Links live INSIDE the sentences, on the nouns they belong to, and drive the
+ * SAME `activeNode` selection the left rail drives — one artifact panel, no
+ * parallel link column (AC5). A span becomes a button only when the rail
+ * actually offers that node, so there are no dead buttons.
+ *
+ * HONESTY (AC7): the paragraphs are exactly what `narrator-prose` produced.
+ * When the JSONL evidences nothing it says so, and never fabricates. A20: the
+ * text RESTS visible (staggerStyle only delays the entrance), so reduced motion
+ * shows every paragraph, final and complete, immediately.
  */
 
 import { staggerStyle } from "../../../lib/motion";
-import type { TranscriptActivity } from "../../../lib/narrator-transcript";
+import type { Paragraph } from "../../../lib/narrator-prose";
 
 interface Props {
-  narration: { summary: string | null; activity: TranscriptActivity[] };
+  paragraphs: readonly Paragraph[];
+  /** Selects an artifact — the same handler the left rail's links use. */
+  onArtifactClick?: (artifact: string) => void;
 }
 
-export function OperationLive({ narration }: Props) {
-  const { summary, activity } = narration;
-  const empty = activity.length === 0;
+export function OperationLive({ paragraphs, onArtifactClick }: Props) {
+  const empty = paragraphs.length === 0;
   return (
     <section className="mc-op" data-testid="operation-card" data-live="true">
-      <p className="mc-missionline" data-testid="mission-narration-summary">
-        {summary ?? "Waiting — nothing in the session log yet."}
-      </p>
       <div
-        className="mc-hero"
+        className="mc-hero mc-story"
         role="log"
-        aria-label="Live activity"
+        aria-label="What is happening"
         tabIndex={0}
         data-testid="mission-narration"
         data-empty={empty || undefined}
       >
         {empty ? (
-          <div className="mc-hero-empty">No activity in the session log yet.</div>
+          <div className="mc-hero-empty">Waiting — nothing in the session log yet.</div>
         ) : (
-          activity.map((item, i) => (
-            <div
-              className="mc-hero-line motion-stagger-item"
+          paragraphs.map((spans, i) => (
+            <p
+              className="mc-story-p motion-stagger-item"
               style={staggerStyle(i)}
-              key={item.id}
+              key={`p${i}`}
+              data-testid="mission-narration-paragraph"
             >
-              {item.text}
-            </div>
+              {spans.map((span, j) =>
+                span.kind === "link" && onArtifactClick ? (
+                  <button
+                    type="button"
+                    className="mc-story-link"
+                    key={`s${j}`}
+                    onClick={() => onArtifactClick(span.artifact)}
+                  >
+                    {span.text}
+                  </button>
+                ) : (
+                  <span key={`s${j}`}>{span.text}</span>
+                ),
+              )}
+            </p>
           ))
         )}
       </div>
