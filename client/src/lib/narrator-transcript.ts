@@ -250,7 +250,21 @@ export function summarizeTranscript(
   options?: StageOptions,
 ): TranscriptSummary {
   if (!content) return EMPTY;
-  const { events } = parseSessionJsonl(content);
+  return summarizeEvents(parseSessionJsonl(content).events, options);
+}
+
+/**
+ * The same derivation over ALREADY-PARSED events (FR-01.68).
+ *
+ * Exists so a caller that needs a second derivation from the same transcript —
+ * the Mission card also composes `narrator-prose` from it — parses the JSONL
+ * ONCE per poll instead of twice. On a multi-megabyte transcript polled every
+ * second that difference is not academic.
+ */
+export function summarizeEvents(
+  events: readonly ParsedEvent[],
+  options?: StageOptions,
+): TranscriptSummary {
   if (events.length === 0) return EMPTY;
 
   const lines: string[] = [];

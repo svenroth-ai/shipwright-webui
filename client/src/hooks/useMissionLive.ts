@@ -27,13 +27,16 @@ import type { ExternalTask } from "../lib/externalApi";
 import type { RunDataJoin } from "../lib/runDataApi";
 import type { Campaign } from "../lib/campaignsApi";
 import { parseCampaignSlug } from "../lib/campaignSlug";
+import { parseSessionJsonl } from "../external/session-parser";
+import { factsFromTranscript } from "../lib/narrator-facts";
 import {
-  summarizeTranscript,
+  summarizeEvents,
   type LifecycleStage,
   type StageOptions,
   type TranscriptActivity,
   type TranscriptSummary,
 } from "../lib/narrator-transcript";
+import { narrate, type Paragraph } from "../lib/narrator-prose";
 import { deriveRecordNodes, type MissionState, type RecordNodeView } from "../lib/recordNodes";
 import { useCampaigns } from "./useCampaigns";
 import { useMissionState } from "./useMissionState";
@@ -67,6 +70,13 @@ export interface MissionLiveModel {
   stageComplete: boolean;
   /** The live JSONL narration for the middle panel. */
   narration: { summary: string | null; activity: TranscriptActivity[] };
+  /**
+   * The middle card's told story (FR-01.68) — paragraphs of prose composed from
+   * the same transcript. Derived on the SAME poll as `narration`, so the card
+   * opens no second reader. Empty when the transcript evidences nothing; the
+   * component then renders its honest waiting line.
+   */
+  narrative: Paragraph[];
   /** The Req/Spec/Test/Review/Commit nodes rendered AS artifact links. */
   nodes: RecordNodeView[];
   /** Autonomous-campaign progress, or null for a normal session (FR-01.67). */
@@ -112,6 +122,9 @@ export function deriveMissionLive(input: {
   /** Autonomous-campaign progress, threaded in like `transcript` (keeps this
    *  derivation pure). Null/undefined for a normal session (FR-01.67). */
   campaign?: CampaignMissionInfo | null;
+  /** The composed prose for the middle card (FR-01.68), threaded in for the
+   *  same reason — this stays a pure assembler. */
+  narrative?: Paragraph[];
 }): MissionLiveModel {
   const { missionState, run, transcript, taskTitle } = input;
   const campaign = input.campaign ?? null;
@@ -151,6 +164,7 @@ export function deriveMissionLive(input: {
     stageActivity,
     stageComplete: completed,
     narration: { summary: transcript.summary, activity: transcript.activity },
+    narrative: input.narrative ?? [],
     nodes: deriveRecordNodes({ missionState, facts: run }),
     campaign,
   };
@@ -165,19 +179,37 @@ export function deriveMissionLive(input: {
  * the `MissionContext`, so it is threaded IN rather than re-fetched here — this
  * hook stays free of a second server round-trip.
  */
+/** `StageOptions` plus the rail nodes the narrative may link to (FR-01.68 AC5).
+ *  Threaded IN like `scenario` — the caller already holds the resolved context,
+ *  so this hook still makes no second server round-trip. */
+export interface MissionLiveOptions extends StageOptions {
+  artifactKeys?: readonly string[];
+}
+
 export function useMissionLive(
   task: ExternalTask | null | undefined,
   transcriptContent: string,
-  stageOptions?: StageOptions,
+  stageOptions?: MissionLiveOptions,
 ): MissionLiveModel {
+  const artifactKeys = stageOptions?.artifactKeys;
   const missionState = useMissionState(task ?? null);
   const runDetail = useRunDetail(task?.projectId ?? null, task?.runId ?? null);
   const run = runDetail.data?.status === "ok" ? runDetail.data.run : null;
   const scenario = stageOptions?.scenario ?? null;
   const phase = stageOptions?.phase ?? null;
+  // ONE parse per poll, two derivations from it (rule 4 / DO-NOT #1: still a
+  // read-only observer of the JSONL, still no second poller).
+  const events = useMemo(
+    () => (transcriptContent ? parseSessionJsonl(transcriptContent).events : []),
+    [transcriptContent],
+  );
   const transcript = useMemo(
-    () => summarizeTranscript(transcriptContent, { scenario, phase }),
-    [transcriptContent, scenario, phase],
+    () => summarizeEvents(events, { scenario, phase }),
+    [events, scenario, phase],
+  );
+  const narrative = useMemo(
+    () => narrate(factsFromTranscript(events), artifactKeys ?? []),
+    [events, artifactKeys],
   );
 
   // Campaign awareness (FR-01.67): the existing 3 s campaign poll, enabled ONLY
@@ -198,7 +230,8 @@ export function useMissionLive(
         transcript,
         taskTitle: task?.title ?? null,
         campaign,
+        narrative,
       }),
-    [missionState, run, transcript, task?.title, campaign],
+    [missionState, run, transcript, task?.title, campaign, narrative],
   );
 }

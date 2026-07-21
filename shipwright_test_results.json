@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-22",
+  "last_updated": "2026-07-21",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-transcript-positional-tail-read",
-    "date": "2026-07-22",
+    "run_id": "iterate-2026-07-21-mission-narrative-prose",
+    "date": "2026-07-21",
     "unit": {
       "status": "passed",
-      "passed": 5843,
-      "total": 5844
+      "passed": 5851,
+      "total": 5852
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 5,
-      "total": 5
+      "passed": 10,
+      "total": 11
     },
     "design_fidelity": {
       "status": "skipped",
@@ -36,184 +36,104 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "readChunk reads only [fromByte, EOF) from disk",
+          "behavior": "Middle card renders prose paragraphs, not an activity list",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > issues a positional read of only (size - fromByte) bytes - PASS; a real FileHandle wrapper records 100,001 bytes requested against a 1,000,001-byte file"
+          "evidence": "client OperationLive.test.tsx > renders paragraphs of prose, not a list of activity lines"
         },
         {
-          "behavior": "fromByte 0 still yields the whole file (inbox-derive caller)",
+          "behavior": "The retired six-line window leaves no .mc-hero-line behind",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > fromByte 0 returns the whole file - PASS"
+          "evidence": "client OperationLive.test.tsx > renders paragraphs of prose (negative assertion)"
         },
         {
-          "behavior": "A mid-file read returns exactly the tail",
+          "behavior": "Ask sourced from the kickoff <command-args>",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > returns exactly [fromByte, EOF) - PASS"
+          "evidence": "client narrator-facts.test.ts > takes the operator's request from the kickoff arguments"
         },
         {
-          "behavior": "fromByte past EOF returns empty with the correct size",
+          "behavior": "Leading CLI flags stripped; value-flags consume their value; `--` ends stripping",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > clamps a fromByte past EOF to an empty read - PASS"
+          "evidence": "client narrator-facts.test.ts > strips leading CLI flags / stops flag stripping at `--`"
         },
         {
-          "behavior": "Negative fromByte clamps to 0",
+          "behavior": "Harness injections are never narrated as something a person said",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > clamps a negative fromByte to 0 - PASS"
+          "evidence": "client narrator-facts.test.ts > never narrates harness injections as something a person said"
         },
         {
-          "behavior": "Empty file is handled",
+          "behavior": "A failure COUNT is read only from recognised test output",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > handles an empty file - PASS"
+          "evidence": "client narrator-facts.test.ts > reads a real failure COUNT from recognised output"
         },
         {
-          "behavior": "No read is issued when fromByte is already at EOF",
+          "behavior": "is_error alone never becomes a failure count",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > does not read at all when fromByte is already at EOF - PASS (reads.length == 0)"
+          "evidence": "client narrator-facts.test.ts > an is_error with NO parseable count does not invent one"
         },
         {
-          "behavior": "A short read is completed by the fill loop, not silently truncated",
+          "behavior": "A counted pass may claim the whole suite; an uncounted one may not",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > fills the buffer across a short read - PASS (10 one-byte reads assembled)"
+          "evidence": "client narrator-prose.test.ts > a COUNTED pass may claim the whole suite"
         },
         {
-          "behavior": "Truncation mid-read re-stats so the caller clamps to the new size",
+          "behavior": "A tool call with no result yet is pending, never success",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > re-stats after a short read - PASS"
+          "evidence": "client narrator-facts.test.ts + narrator-prose.test.ts + e2e mission-narrative-prose.spec.ts"
         },
         {
-          "behavior": "Truncation below the read start drops bytes rather than relabelling them",
+          "behavior": "Reads/searches aggregate into counts; no per-step line, no filenames",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > drops bytes that the post-truncation size can no longer address - PASS; VERIFIED TO FAIL without the fix"
+          "evidence": "client narrator-prose.test.ts > tells the arc of a real run; e2e asserts no filename appears"
         },
         {
-          "behavior": "A partial read is capped at the post-truncation end",
+          "behavior": "An inline link resolves to a rail node, else renders as plain text",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > caps a partial read at the post-truncation end - PASS; VERIFIED TO FAIL without the fix"
+          "evidence": "client narrator-prose.test.ts > emits NO link when the rail has no such node"
         },
         {
-          "behavior": "A re-stat that GREW cannot inflate the clamp",
+          "behavior": "An inline link is a real <button type=button>, keyboard-activatable",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > never reports a size larger than the one the read observed - PASS"
+          "evidence": "client OperationLive.test.tsx > a link span is a real button / is reachable by keyboard"
         },
         {
-          "behavior": "The file handle is closed when read() throws",
+          "behavior": "No duration or elapsed time appears anywhere in the narration",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > closes the handle when the read throws - PASS"
+          "evidence": "client narrator-prose.test.ts > never emits a time unit; e2e negative regex"
         },
         {
-          "behavior": "The file handle is closed when fstat() throws",
+          "behavior": "An empty transcript keeps the honest waiting line",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > closes the handle when fstat throws - PASS"
+          "evidence": "client OperationLive.test.tsx + MissionBody.test.tsx > honest waiting"
         },
         {
-          "behavior": "A close() failure never replaces the read error, so retry classification is preserved",
+          "behavior": "Command heads are quote-aware (escapes, mixed quoting, unclosed quote)",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > propagates the READ error, not a close() failure - PASS"
+          "evidence": "client stage-markers.test.ts > separator INSIDE a quoted argument / quoting edge cases"
         },
         {
-          "behavior": "A close() failure never fails an otherwise successful read",
+          "behavior": "A slash command carrying <command-args> is classified as one and carries args",
           "disposition": "tested",
-          "evidence": "server session-jsonl-io.test.ts > does not fail a successful read because close() threw - PASS"
+          "evidence": "client session-parser.slash-args.test.ts (6 tests)"
         },
         {
-          "behavior": "Output equivalence with the whole-file reader across 12 input classes",
+          "behavior": "Narrative window: 4 anchor rules, ask recovery, completed-run verdict+story stack",
           "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > 12 parameterised cases against a reference implementation of the old algorithm, plus absolute invariants - ALL PASS (from 0, mid-line, on-boundary, past EOF, negative, no-newline tail, empty, single newline, multi-byte UTF-8 aligned and mid-character)"
-        },
-        {
-          "behavior": "Rotation is still detected before any read happens",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > still reports rotation before reading anything - PASS"
-        },
-        {
-          "behavior": "status=missing is still reported when no JSONL exists",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > still reports missing when no JSONL exists - PASS"
-        },
-        {
-          "behavior": "Sequential polling of a growing file duplicates and skips nothing",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > walks a growing file with no duplicated or skipped bytes - PASS"
-        },
-        {
-          "behavior": "fromByte is forwarded to the reader rather than discarded",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > AC-1 forwards fromByte to the reader - PASS"
-        },
-        {
-          "behavior": "A one-shot EBUSY on the read is retried, not surfaced",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > AC-3 a one-shot EBUSY on the tail read is retried - PASS"
-        },
-        {
-          "behavior": "ENOENT is retryable on the read but fatal for discovery",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > AC-3 ENOENT on the read is retried - PASS; server session-jsonl-retry.test.ts > treats ENOENT as retryable by default, and fatal when the caller says so - PASS"
-        },
-        {
-          "behavior": "A short read still yields a newline-terminated chunk with a matching toByte",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > AC-4 a short read still yields a newline-terminated chunk - PASS"
-        },
-        {
-          "behavior": "Bytes appended mid-read defer to the next poll and stay cursor-safe",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > defers bytes appended mid-read without duplicating or skipping - PASS"
-        },
-        {
-          "behavior": "readChunk clamps against the size the read observed, not the discovery stat",
-          "disposition": "tested",
-          "evidence": "server session-watcher.readchunk-positional.test.ts > clamps fromByte against the size the read observed - PASS"
-        },
-        {
-          "behavior": "The readWithRetry envelope is unchanged by the module move",
-          "disposition": "tested",
-          "evidence": "server session-jsonl-retry.test.ts > 4 cases (3 moved verbatim plus the new ENOENT-policy case) - PASS"
-        },
-        {
-          "behavior": "lastIndexOfByte is unchanged by the module move",
-          "disposition": "tested",
-          "evidence": "server session-jsonl-retry.test.ts > 3 cases - PASS"
-        },
-        {
-          "behavior": "The other two production callers (inbox derive, transcript route) are unaffected",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test - full server suite 250 files / 2931 passed and client 311 files / 2912 passed, including the inbox-derive and transcript-route suites"
-        },
-        {
-          "behavior": "A bounded range is served over real HTTP against a multi-MB transcript, the pane stays live, and resuming from toByte delivers the append exactly once",
-          "disposition": "tested",
-          "evidence": "client e2e/flows/91-transcript-positional-tail.spec.ts - PASS against a real 2 MB seeded JSONL in Chromium; regression family 32 / 37a / 38 / 90 also PASS (5/5 total)"
-        },
-        {
-          "behavior": "The measured speed-up holds for the SHIPPED module, not just the design",
-          "disposition": "tested",
-          "evidence": "probe importing the real core/session-jsonl-io.ts and SessionWatcher over the 203-transcript corpus: 919 MB / 253 ms became 102 MB / 44 ms; readChunk on the 137.9 MB transcript = 2.22 ms, status ok, 523,621 chars, newline-terminated"
-        },
-        {
-          "behavior": "Cold-page-cache timing on a 137.9 MB transcript",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "The OS page cache cannot be evicted deterministically from a test, so only the warm figure is measurable. The warm number is the conservative one - a cold read strictly worsens the whole-file column and leaves the positional column roughly flat - so the claim is not weakened by the gap."
+          "evidence": "client narrator-facts.test.ts (7 tests) + MissionBody.test.tsx > COMPLETED run"
         }
       ],
+      "enumeration_basis": "The 12 acceptance criteria of .shipwright/planning/iterate/2026-07-21-mission-narrative-prose.md (AC1-AC10 plus AC3b and AC7b), each split where it carries more than one observable behaviour. 17 behaviours, all tested.",
       "counts": {
-        "testable": 31,
-        "tested": 31,
-        "untestable": 1,
+        "testable": 17,
+        "tested": 17,
+        "untestable": 0,
         "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
       }
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 5,
+      "tests_run": 11,
       "exit_code": 0,
-      "retries": 0,
-      "notes": "Isolated single-process stack: Hono on 127.0.0.1:3848 with SHIPWRIGHT_NETWORK_PROFILE=local, SHIPWRIGHT_STATIC_DIR pointed at a client/dist built fresh in this worktree (the main-tree dist predated the latest client commits), and USERPROFILE/HOME redirected to a temp profile so that ~/.claude/projects and ~/.shipwright-webui were isolated. Ran the new spec 91 plus the transcript regression family 32 / 37a / 38 / 90. 5 passed, 0 failed, on the first attempt. surface=web is owed under the backend-affects-frontend rule: readChunk backs GET /api/external/tasks/:id/transcript, which the task-detail pane polls at 1 Hz, even though no client source file changed."
+      "justification": "UI behaviour change plus two parser/derivation fixes that only manifest end-to-end, so surface=web. Real Chromium against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_E2E_ISOLATED=1, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local). NEW client/e2e/flows/mission-narrative-prose.spec.ts: 3/3 passed — the prose arc incl. the failure->recovery outcome, the quoted-tool-name honesty case, the pending run, and the inline artifact link. Pre-existing mission specs re-run as the regression gate: mission-live-jsonl.spec.ts, mission-artifacts-s4.spec.ts, A12-mission-operation.spec.ts = 7/8 passed. The single failure (A12 'the proof summary is NOT the terminal') waits for the EMBEDDED TERMINAL's data-ws-ready and fails with pty_spawn_failed code 5 in the Hono log — the documented environmental ACCESS_DENIED of an isolated stack, on a surface this diff does not touch."
     }
   }
 }

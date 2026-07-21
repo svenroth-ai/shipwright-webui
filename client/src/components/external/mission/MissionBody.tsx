@@ -17,7 +17,7 @@
  * (`OperationLive`). Read-only observer throughout (rule 1 / DO-NOT #1).
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useMissionLive } from "../../../hooks/useMissionLive";
@@ -45,6 +45,11 @@ interface Props {
   onOpenDocument: () => void;
 }
 
+/** The legacy `RecordNode` rail always renders these five; the context rail
+ *  reports its own subset. Same key names, so an inline link resolves against
+ *  whichever rail is mounted (FR-01.68 AC5). */
+const LEGACY_RAIL_KEYS = ["req", "spec", "tests", "review", "commit"] as const;
+
 export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) {
   const [activeNode, setActiveNode] = useState<string | null>(null);
 
@@ -64,9 +69,19 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   // iterate-only sticky-Analyze rule never runs on a card with no iterate
   // lifecycle. Deliberately read from `context` and NOT from `artifacts`: a
   // `plain` scenario drives no rail but still must gate the stage (AC5).
+  // FR-01.68 AC5: the narrative may only link to nodes the rail actually
+  // offers, so the same list that renders the LEFT links gates the inline ones.
+  // One selection model, no dead buttons. Both rails use the same key names
+  // (`spec` / `tests` / `commit`), so a link resolves identically either way.
+  const artifactKeys = useMemo(
+    () => (artifacts ? artifacts.map((a) => a.kind) : LEGACY_RAIL_KEYS),
+    [artifacts],
+  );
+
   const model = useMissionLive(task, transcriptContent, {
     scenario: stageScenario(context),
     phase: pipelinePhase(context),
+    artifactKeys,
   });
   const activeArtifact = artifacts?.find((a) => a.kind === activeNode) ?? null;
 
@@ -85,10 +100,15 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     onOpenDocument();
   }, [onOpenDocument]);
 
-  // The A12 Operation card (verdict + proof) stays for a design gate and for a
-  // COMPLETED run (AC2 — completed runs keep their proof). A LIVE / ad-hoc / empty
-  // session shows the live JSONL narration instead of "No run data yet" (AC1/AC3).
-  const showOperationCard = model.missionState === "designgate" || model.mode === "completed";
+  // A DESIGN GATE keeps the A12 Operation card outright — it is a decision
+  // surface, not a story.
+  //
+  // A COMPLETED run keeps its verdict + proof AND gains the narrative below it
+  // (FR-01.68 AC10): a run should read the same before and after it finishes,
+  // only more complete. The transcript is still on disk and `useTaskTranscript`
+  // is ungated, so both states drive the SAME derivation and cannot diverge.
+  const isDesignGate = model.missionState === "designgate";
+  const completed = model.mode === "completed";
 
   return (
     <div className="min-h-0 flex-1" data-testid="task-detail-mission">
@@ -100,10 +120,15 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           artifacts={artifacts}
           runLive={runLive}
         />
-        {showOperationCard ? (
+        {isDesignGate ? (
           <OperationCard task={task} />
+        ) : completed ? (
+          <div className="mc-op-stack" data-testid="mission-completed-stack">
+            <OperationCard task={task} />
+            <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
+          </div>
         ) : (
-          <OperationLive narration={model.narration} />
+          <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
         )}
         {activeArtifact ? (
           <MissionArtifactPanel

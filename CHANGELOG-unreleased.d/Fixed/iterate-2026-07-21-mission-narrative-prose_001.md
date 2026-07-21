@@ -1,0 +1,1 @@
+The 'Where it stands' tracker no longer claims phases the session never reached: a tool name quoted inside a command was read as having run it (23% of real sessions), and every single /shipwright-iterate invocation — 124 of 124 across 202 sessions — was misread as an ordinary message, so the tracker never once recognised that an iterate had started.

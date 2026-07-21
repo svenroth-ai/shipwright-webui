@@ -1,0 +1,1 @@
+The middle of the Mission tab now tells the story of a run instead of showing the last six things the tool did — sentences carrying outcomes ('the tests were run, and six of them failed - work continued until the whole suite came back green'), a card that finally scrolls, artifact links inside the prose, and a finished run that keeps its verdict and gains its story beneath it.

@@ -91,9 +91,12 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     // The middle narrates the JSONL — NOT the old "No run data yet — nothing to prove".
     const narration = page.getByTestId("mission-narration");
     await expect(narration).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("mission-narration-summary")).toContainText("Editing login.tsx", {
+    // FR-01.68: prose, not a per-step list. One product edit reads as work
+    // done, not as a filename a non-developer cannot place.
+    await expect(narration).toContainText("One file was then changed.", {
       timeout: 15_000,
     });
+    await expect(page.getByTestId("mission-narration-summary")).toHaveCount(0);
     await expect(page.getByText("No run data yet")).toHaveCount(0);
 
     // The left panel shows the business summary. The STAGE is deliberately NOT
@@ -134,9 +137,11 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
         },
       ],
     });
-    await expect(page.getByTestId("mission-narration-summary")).toContainText("Running tests", {
-      timeout: 15_000,
-    });
+    // A test command with no result yet is PENDING — never reported as passing.
+    await expect(page.getByTestId("mission-narration")).toContainText(
+      "The tests are running now.",
+      { timeout: 15_000 },
+    );
     // Still a plain session — the coarse read rolls forward, the lifecycle claim
     // stays withheld (S4 AC5).
     await expect(page.getByTestId("mission-stage-none")).toContainText("Running tests", {
@@ -239,7 +244,7 @@ test.describe("FR-01.66 — Mission tab live from the JSONL", () => {
     const narration = page.getByTestId("mission-narration");
     await expect(narration).toBeVisible({ timeout: 15_000 });
     await expect(narration).toHaveAttribute("data-empty", "true");
-    await expect(page.getByTestId("mission-narration-summary")).toContainText(/waiting/i);
+    await expect(narration).toContainText(/waiting/i);
     // The stage is an honest "—" when nothing can be derived (never guessed).
     await expect(page.getByTestId("mission-stage")).toHaveAttribute("data-stage", "none");
   });
