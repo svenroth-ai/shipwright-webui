@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-mac-sleep-terminal-frozen",
+  "date": "2026-07-21T20:25:32.895177Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/2026-07-21-mac-sleep-terminal-frozen",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-21-mac-sleep-terminal-frozen.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-mac-sleep-terminal-frozen"
+}

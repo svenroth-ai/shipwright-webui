@@ -16,6 +16,8 @@ afterEach(cleanup);
 
 function makeProps(overrides: Partial<TerminalBannersProps> = {}): TerminalBannersProps {
   return {
+    reconnecting: false,
+    reconnectStalled: false,
     readOnly: false,
     showResetBanner: false,
     resetScrollbackBytes: null,
@@ -33,6 +35,7 @@ function makeProps(overrides: Partial<TerminalBannersProps> = {}): TerminalBanne
 
 const DATALOSS = '[data-testid="embedded-terminal-reset-dataloss"]';
 const RESET = '[data-testid="embedded-terminal-reset"]';
+const RECONNECTING = '[data-testid="embedded-terminal-reconnecting"]';
 
 describe("TerminalBanners — reset-banner resume data-loss note (AC6)", () => {
   it("renders the data-loss note when reset is shown and scrollback exists", () => {
@@ -75,5 +78,56 @@ describe("TerminalBanners — reset-banner resume data-loss note (AC6)", () => {
     );
     expect(container.querySelector(RESET)).toBeNull();
     expect(container.querySelector(DATALOSS)).toBeNull();
+  });
+});
+
+/*
+ * AC-5 (iterate-2026-07-21-mac-sleep-terminal-frozen) — a dead socket must read
+ * as "disconnected, coming back" instead of a silently frozen terminal.
+ */
+describe("TerminalBanners — reconnecting banner (AC-5)", () => {
+  it("renders while reconnecting and tells the user not to reload", () => {
+    const { container } = render(
+      <TerminalBanners {...makeProps({ reconnecting: true })} />,
+    );
+    const el = container.querySelector(RECONNECTING);
+    expect(el).not.toBeNull();
+    // The reload advice is the whole point — the reporter's workaround was a
+    // tab refresh, which is exactly what should no longer be necessary.
+    expect(el?.textContent).toMatch(/not needed/i);
+  });
+
+  it("softens the copy once the outage stops looking transient", () => {
+    const { container } = render(
+      <TerminalBanners
+        {...makeProps({ reconnecting: true, reconnectStalled: true })}
+      />,
+    );
+    const el = container.querySelector(RECONNECTING);
+    expect(el).not.toBeNull();
+    expect(el).toHaveAttribute("data-stalled", "true");
+    // It must STOP asserting the session is fine: a deleted task cwd is
+    // refused deterministically and would never come back (code review MED).
+    expect(el?.textContent).not.toMatch(/not needed/i);
+    expect(el?.textContent).toMatch(/may be unreachable|no longer exist/i);
+  });
+
+  it("is absent when the socket is healthy", () => {
+    const { container } = render(
+      <TerminalBanners {...makeProps({ reconnecting: false })} />,
+    );
+    expect(container.querySelector(RECONNECTING)).toBeNull();
+  });
+
+  it("renders ABOVE the read-only banner — no connection outranks role", () => {
+    const { container } = render(
+      <TerminalBanners {...makeProps({ reconnecting: true, readOnly: true })} />,
+    );
+    const rc = container.querySelector(RECONNECTING);
+    const ro = container.querySelector('[data-testid="embedded-terminal-readonly"]');
+    expect(rc).not.toBeNull();
+    expect(ro).not.toBeNull();
+    // DOCUMENT_POSITION_FOLLOWING === 4 → `ro` comes after `rc`.
+    expect(rc!.compareDocumentPosition(ro!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 });

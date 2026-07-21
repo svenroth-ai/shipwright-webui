@@ -135,8 +135,15 @@ export async function advance(ms: number): Promise<void> {
 }
 
 /**
- * Kill the live socket and make every reconnect fail -> exhaust the budget.
- * Returns the instance count once the 5-attempt budget is spent.
+ * Kill the live socket and make every reconnect fail -> spend the fast ramp.
+ * Returns the instance count once the 5-attempt ramp
+ * (`BACKOFF_MS`, ~6.2 s) is spent.
+ *
+ * NOTE (iterate-2026-07-21-mac-sleep-terminal-frozen): the ramp is no longer a
+ * hard cap — a `WS_RECONNECT_TAIL_MS` retry keeps running afterwards, so this
+ * does NOT leave the client inert. The 8 s advance below lands before the first
+ * tail retry (ramp ends ~6.2 s, tail fires ~11.2 s), which is why the returned
+ * count is still exactly ramp+1.
  */
 export async function exhaustBudget(): Promise<number> {
   FakeWebSocket.nextMode = "fail";
