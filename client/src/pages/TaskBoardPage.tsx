@@ -401,8 +401,18 @@ export default function TaskBoardPage() {
         // it the page-container shrunk to the inner content width (was
         // 889px instead of the expected 1280) because TaskList's child
         // wrapper didn't force horizontal stretch.
-        <div className="page-container w-full pt-6 pb-8">
-          <TaskList tasks={filteredTasks} />
+        // iterate-2026-07-21-mac-titlebar-right-clip: the outer wrapper is the
+        // scroll BOUNDARY. Kanban bounds itself (TaskBoardColumns' rail is
+        // overflow-x-auto/overflow-y-hidden and each column scrolls), but list
+        // view used to hand its overflow up to the shell scroller — which then
+        // grew a real 15px scrollbar and clipped the title bar all over again
+        // (measured: /?view=list overflowed the shell by ~19000px, headGap 15).
+        // The scroller is OUTSIDE .page-container so the scrollbar rides the
+        // window edge, not the centred 1280 box — same shape as Diagnostics.
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="page-container w-full pt-6 pb-8">
+            <TaskList tasks={filteredTasks} />
+          </div>
         </div>
       ) : projectFiltered.length === 0 ? (
         // A07 teaching empty state (zero tasks). A08 (FR-01.51): its CTA opens the guided Intent Wizard — direct/expert create stays in the header split button.

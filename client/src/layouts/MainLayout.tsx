@@ -102,8 +102,22 @@ export function MainLayout() {
             padding-bottom env(safe-area-inset-bottom): the page was clipped at
             the bottom on devices with a bottom inset (iPad home-indicator /
             Safari bottom bar) because only the phone path reserved it. Applied
-            app-wide here; a no-op (0px) on desktop. (tablet-view-polish AC-3) */}
-        <SceneBackdrop className="[scrollbar-gutter:stable] [overscroll-behavior:contain] [padding-bottom:env(safe-area-inset-bottom)]">
+            app-wide here; a no-op (0px) on desktop. (tablet-view-polish AC-3)
+
+            NO `scrollbar-gutter: stable` here — deliberately, and it must not
+            come back (iterate-2026-07-21-mac-titlebar-right-clip). A stable
+            gutter subtracts a scrollbar-wide strip from the RIGHT of the
+            scrollport, and both title bars (`.page-head`, `.mc-top`) render
+            INSIDE it while `.scene-bg` spans the full `.screen` — so every bar
+            stopped short and the photo showed through the strip. It reserved the
+            NATIVE 15px, not the 6px the app draws: `scrollbar-width: thin` is set
+            on `html, body` (index.css) and does NOT inherit.
+            PR #8 added it to stop a cross-route width "spring"; that reason is
+            spent — every route now bounds its own scroll below the bar, so the
+            shell scroller never scrolls and there is nothing left to spring.
+            Ratchets: `src/test/shell-scroll-invariant.test.ts` (source) +
+            `e2e/flows/title-bar-full-bleed.spec.ts` (real geometry). */}
+        <SceneBackdrop className="[overscroll-behavior:contain] [padding-bottom:env(safe-area-inset-bottom)]">
           <Outlet />
         </SceneBackdrop>
       </main>
