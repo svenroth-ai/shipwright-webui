@@ -1,0 +1,1 @@
+The Mission tab no longer slows down as a session grows. Reading a session's transcript used to load the whole file from disk even when only the last part was needed; it now reads just the part it asks for. On this machine's largest session (138 MB) a single refresh went from about 31 ms to 2 ms, and a sweep of all 203 sessions moved 102 MB instead of 919 MB.

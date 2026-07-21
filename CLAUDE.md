@@ -104,7 +104,7 @@ One-line index — rationale lives in the cited ADRs (`.shipwright/agent_docs/de
 3. **Discovery is filename-first.** `<uuid>.jsonl` is the primary match (PoC finding 1); first-line sessionId is a secondary sanity check.
 4. **Transcript endpoint is stateless.** `GET /api/external/tasks/:id/transcript?fromByte=<n>&expectFingerprint=<fp>` — no server-side byte-offset cache; multi-tab for free.
 5. **UTF-8-safe chunking.** Server reads are cut on `\n` boundaries only.
-6. **Torn-read retry budget.** `core/session-watcher.ts` retries EBUSY/EPERM/EACCES/ENOENT up to 6 attempts, 50→1600 ms backoff.
+6. **Torn-read retry budget.** `core/session-jsonl-io.ts` retries EBUSY/EPERM/EACCES/ENOENT up to 6 attempts, 50→1600 ms backoff. It also owns the POSITIONAL tail read — `readChunk` reads `[fromByte, EOF)`, never the whole file — and the append/truncate contract that goes with it. ENOENT is retryable on the READ but fatal for discovery; do not collapse the two.
 7. **No SSE for transcript.** Sequential 1 s client polling via `useTaskTranscript`.
 8. **No chokidar.** Heartbeat-free; watcher state derived on demand from mtime probes.
 9. **Re-pass plugin dirs on every launch.** `--plugin-dir` does not reliably survive `--resume`.

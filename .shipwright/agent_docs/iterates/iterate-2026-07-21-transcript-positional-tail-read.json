@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-transcript-positional-tail-read",
+  "date": "2026-07-21T22:22:11.135983Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/transcript-positional-tail-read",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-21-transcript-positional-tail-read.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-transcript-positional-tail-read"
+}
