@@ -3,7 +3,8 @@
  * (iterate-2026-05-03 / ADR-067).
  *
  * Contract:
- *   - Auto-connects on mount; auto-reconnects with exp-backoff (max 5).
+ *   - Auto-connects on mount; reconnects on a ramp → tail → slow-tail schedule
+ *     that NEVER gives up while the attach is live (`wsReconnectSchedule.ts`).
  *   - Protocol mirrors window.location.protocol — secure (WSS) on HTTPS pages,
  *     plain on loopback HTTP. (Comment reworded to drop the literal insecure
  *     scheme that Semgrep's detect-insecure-websocket flagged; the runtime URL
@@ -32,37 +33,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { attachWsLiveness } from "./wsLiveness";
+import {
+  BACKOFF_MS,
+  createConnectWatchdog,
+  isSlowTail,
+  nextReconnectDelay,
+} from "./wsReconnectSchedule";
+import { parseReadyEnvelope } from "./wsReadyEnvelope";
 
-export type TerminalRole = "writer" | "reader";
-
-export interface TerminalReadyInfo {
-  role: TerminalRole;
-  shellKind: "pwsh" | "cmd" | "posix";
-  cwd: string;
-  /**
-   * Iterate v0.8.2 AC-7 — server bypassed pty spawn because the task is
-   * in a terminal state (`done` / `launch_failed`). UI should render a
-   * "Session ended" banner instead of an input cursor; the server will
-   * close the WS after the replay envelopes.
-   */
-  replayOnly: boolean;
-  /**
-   * Iterate v0.8.2 AC-8 — total persisted scrollback bytes for this
-   * task. 0 when the store is disabled or the task has never written
-   * scrollback. Disclosure footer renders only when > 0.
-   */
-  scrollbackBytes: number;
-  /**
-   * Iterate v0.8.2 AC-9 — retention TTL surfaced for the disclosure
-   * footer copy.
-   */
-  retentionDays: number;
-  /**
-   * Iterate v0.8.2 AC-9 — resolved scrollback dir for the disclosure
-   * footer copy.
-   */
-  scrollbackDir: string;
-}
+import type { TerminalRole, TerminalReadyInfo } from "./wsReadyEnvelope";
+export type { TerminalRole, TerminalReadyInfo };
 
 export interface UseTerminalSocketOptions {
   taskId: string | null;
@@ -144,14 +124,19 @@ export interface UseTerminalSocketResult {
   lastError: string | null;
   /** Number of reconnect attempts since last successful connect. */
   reconnectAttempts: number;
+  /**
+   * Socket down, retry armed — drives the "Reconnecting…" banner so a dead
+   * socket reads as *disconnected* rather than *frozen*. `false` for a
+   * replay-only attach, which is finished rather than broken.
+   */
+  reconnecting: boolean;
+  /** Outage outlived the prompt window → slow tail; softens the banner copy. */
+  reconnectStalled: boolean;
   /** Send a typed envelope. No-op if socket is not OPEN. */
   send: (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => void;
   /** True while socket.readyState === OPEN. */
   open: boolean;
 }
-
-const MAX_RECONNECT_ATTEMPTS = 5;
-const BACKOFF_MS = [200, 400, 800, 1600, 3200];
 
 function defaultUrl(taskId: string): string {
   if (typeof window === "undefined") return "";
@@ -200,6 +185,8 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   const [open, setOpen] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [reconnectStalled, setReconnectStalled] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -221,6 +208,22 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   // effect). Heartbeat + refocus mechanics live in `attachWsLiveness`.
   const sessionReplayOnlyRef = useRef(false);
 
+  /** Clear every per-attach state field (disabled branch + effect teardown). */
+  const resetSessionState = useCallback(() => {
+    setReady(false);
+    setRole(null);
+    setShellKind(null);
+    setReplayOnly(null);
+    setScrollbackBytes(null);
+    setRetentionDays(null);
+    setScrollbackDir(null);
+    setTerminalReset(null);
+    setPtyReused(null);
+    setOpen(false);
+    setReconnecting(false);
+    setReconnectStalled(false);
+  }, []);
+
   const send = useCallback(
     (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => {
       const ws = socketRef.current;
@@ -236,16 +239,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
 
   useEffect(() => {
     if (!enabled || !taskId) {
-      setReady(false);
-      setRole(null);
-      setShellKind(null);
-      setReplayOnly(null);
-      setScrollbackBytes(null);
-      setRetentionDays(null);
-      setScrollbackDir(null);
-      setTerminalReset(null);
-      setPtyReused(null);
-      setOpen(false);
+      resetSessionState();
       replayOnlyRef.current = null;
       sessionReplayOnlyRef.current = false;
       return;
@@ -261,6 +255,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     // mount-1's scheduleReconnect created a spurious ws_C overwriting
     // mount-2's ws_B in socketRef.
     let cancelled = false;
+
+    const watchdog = createConnectWatchdog({
+      connectingState: WebSocket.CONNECTING,
+      isCancelled: () => cancelled,
+      isCurrent: (ws) => socketRef.current === ws,
+    });
 
     const connect = () => {
       if (cancelled) return;
@@ -282,11 +282,17 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
       }
       socketRef.current = ws;
 
+      // Reap an attempt that never resolves — see wsReconnectSchedule.
+      watchdog.arm(ws);
+
       ws.addEventListener("open", () => {
         if (cancelled) return;
+        watchdog.clear();
         setOpen(true);
         attemptsRef.current = 0;
         setReconnectAttempts(0);
+        setReconnecting(false);
+        setReconnectStalled(false);
         setLastError(null);
         // (Re)start the per-connection liveness heartbeat (./wsLiveness).
         liveness.onConnected();
@@ -305,50 +311,25 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         // (heartbeat miss-run + a pending refocus probe).
         liveness.noteInbound();
         if (env.type === "ready") {
-          if (env.role === "writer" || env.role === "reader") setRole(env.role);
-          if (env.shellKind === "pwsh" || env.shellKind === "cmd" || env.shellKind === "posix") {
-            setShellKind(env.shellKind);
-          }
-          // Iterate v0.8.2 AC-7/8/9 — defensive parse for the new ready
-          // envelope fields. `replayOnly` defaults to false to match the
-          // pre-v0.8.2 server behavior; the bytes/retention fields stay
-          // null when absent so the page layer can opt-out cleanly.
-          const nextReplayOnly =
-            typeof env.replayOnly === "boolean" ? env.replayOnly : false;
-          setReplayOnly(nextReplayOnly);
-          replayOnlyRef.current = nextReplayOnly;
-          if (nextReplayOnly) {
+          const r = parseReadyEnvelope(env);
+          if (r.role) setRole(r.role);
+          if (r.shellKind) setShellKind(r.shellKind);
+          setReplayOnly(r.replayOnly);
+          replayOnlyRef.current = r.replayOnly;
+          if (r.replayOnly) {
             // Done/terminal attach: one-shot replay, then the server closes.
             // Never keepalive or resurrect it on refocus.
             sessionReplayOnlyRef.current = true;
             liveness.onDisconnected();
+            // Finished, not broken — the banner must not claim it is returning.
+            setReconnecting(false);
+            setReconnectStalled(false);
           }
-          setScrollbackBytes(
-            typeof env.scrollbackBytes === "number" && env.scrollbackBytes >= 0
-              ? env.scrollbackBytes
-              : null,
-          );
-          setRetentionDays(
-            typeof env.retentionDays === "number" && env.retentionDays > 0
-              ? env.retentionDays
-              : null,
-          );
-          setScrollbackDir(
-            typeof env.scrollbackDir === "string" && env.scrollbackDir.length > 0
-              ? env.scrollbackDir
-              : null,
-          );
-          // ADR-104 — reset-banner signal. Defaults to false when an
-          // older server omits the field (back-compat).
-          setTerminalReset(
-            typeof env.terminalReset === "boolean" ? env.terminalReset : false,
-          );
-          // fix-resume-guard-survives-reload — reused-pty signal for the
-          // one-shot inject guard. Defaults to false when an older
-          // server omits the field (back-compat).
-          setPtyReused(
-            typeof env.ptyReused === "boolean" ? env.ptyReused : false,
-          );
+          setScrollbackBytes(r.scrollbackBytes);
+          setRetentionDays(r.retentionDays);
+          setScrollbackDir(r.scrollbackDir);
+          setTerminalReset(r.terminalReset);
+          setPtyReused(r.ptyReused);
           setReady(true);
           return;
         }
@@ -413,6 +394,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
         // Without this, a stale handler from a previously-unmounted
         // effect would still drive socketRef + scheduleReconnect.
         if (cancelled) return;
+        watchdog.clear();
         setOpen(false);
         setReady(false);
         socketRef.current = null;
@@ -451,10 +433,18 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
 
     const scheduleReconnect = () => {
       if (cancelled) return;
-      if (attemptsRef.current >= MAX_RECONNECT_ATTEMPTS) return;
-      const delay = BACKOFF_MS[Math.min(attemptsRef.current, BACKOFF_MS.length - 1)];
-      attemptsRef.current += 1;
-      setReconnectAttempts(attemptsRef.current);
+      // Done/replay-only attach: finished by server contract, never retry. The
+      // close handler filters only the clean-1000 case, so without this an
+      // ABNORMAL close would retry forever under the unbounded tail.
+      if (sessionReplayOnlyRef.current) return;
+      const attempt = attemptsRef.current;
+      const delay = nextReconnectDelay(attempt);
+      attemptsRef.current = attempt + 1;
+      // Publish the counter only while the ramp is meaningful — past it it has
+      // no consumer, and re-rendering every tail tick forever is pure waste.
+      if (attempt < BACKOFF_MS.length) setReconnectAttempts(attemptsRef.current);
+      setReconnecting(true);
+      if (isSlowTail(attempt)) setReconnectStalled(true);
       reconnectTimerRef.current = setTimeout(() => {
         if (!cancelled) connect();
       }, delay);
@@ -487,6 +477,7 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     return () => {
       cancelled = true;
       liveness.dispose();
+      watchdog.clear();
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -500,19 +491,10 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
           /* ignore */
         }
       }
-      setReady(false);
-      setRole(null);
-      setShellKind(null);
-      setReplayOnly(null);
-      setScrollbackBytes(null);
-      setRetentionDays(null);
-      setScrollbackDir(null);
-      setTerminalReset(null);
-      setPtyReused(null);
-      setOpen(false);
+      resetSessionState();
       replayOnlyRef.current = null;
     };
-  }, [enabled, taskId, urlOverride]);
+  }, [enabled, taskId, urlOverride, resetSessionState]);
 
   return {
     ready,
@@ -526,6 +508,8 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
     ptyReused,
     lastError,
     reconnectAttempts,
+    reconnecting,
+    reconnectStalled,
     send,
     open,
   };

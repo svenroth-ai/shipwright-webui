@@ -132,15 +132,22 @@ export function attachWsLiveness(
     clearProbe();
   };
 
-  const onRefocus = () => {
-    if (deps.isCancelled()) return;
-    // Filters the HIDE half of the shared `visibilitychange` listener; `focus`
-    // and `pageshow` only ever fire on becoming-visible, so this is a no-op
-    // for them.
-    if (typeof document !== "undefined" && document.hidden) return;
+  /**
+   * Shared revival path for "something suggests the peer may be reachable
+   * again". Re-arms the retry budget, then either reconnects a dead socket or
+   * PROBES one that still claims to be OPEN — the half-open case, where the
+   * connection slept through an outage and no `close` was ever delivered.
+   *
+   * Extracted so `online` gets the probe too (code review MEDIUM): guarding it
+   * on "no socket at all" made it a no-op in precisely the scenario it was
+   * added for — an OS resume with the window still frontmost fires no
+   * focus/visibility event, and there the stale half-open socket is exactly
+   * what is still sitting in `socketRef`.
+   */
+  const reviveIfStale = () => {
     if (deps.isReplayOnly()) return;
-    // Returning to the tab re-arms the ~6s reconnect budget that may have been
-    // spent (and failed) while backgrounded across a sleep/Tailscale partition.
+    // Re-arms the reconnect budget that may have been spent (and failed) while
+    // backgrounded across a sleep / tunnel partition.
     deps.rearmBudget();
     const s = deps.getSocket();
     if (!s) {
@@ -180,11 +187,41 @@ export function attachWsLiveness(
     }, refocusProbeMs);
   };
 
+  const onRefocus = () => {
+    if (deps.isCancelled()) return;
+    // Filters the HIDE half of the shared `visibilitychange` listener; `focus`
+    // and `pageshow` only ever fire on becoming-visible, so this is a no-op
+    // for them.
+    if (typeof document !== "undefined" && document.hidden) return;
+    reviveIfStale();
+  };
+
+  /**
+   * The browser reports the network came back (iterate-2026-07-21). Runs the
+   * same revival path as a refocus — including the probe, which is the whole
+   * point: on an OS resume with the window still frontmost NO focus or
+   * visibility event fires, so `online` is the only signal we get, and the
+   * socket it has to deal with is the stale half-open one.
+   *
+   * Deliberately NOT filtered on `document.hidden`: a background tab whose
+   * network just returned should recover too, and unlike `visibilitychange`
+   * the `online` event carries no hide half to filter out.
+   *
+   * Firing eagerly is safe because the scheduler no longer has an exhaustible
+   * budget — `online` routinely fires when the interface is up but a tunnel is
+   * not yet routable, so the attempt may fail; the tail then carries on.
+   */
+  const onOnline = () => {
+    if (deps.isCancelled()) return;
+    reviveIfStale();
+  };
+
   const hasWindow = typeof window !== "undefined";
   const hasDocument = typeof document !== "undefined";
   if (hasWindow) {
     window.addEventListener("focus", onRefocus);
     window.addEventListener("pageshow", onRefocus);
+    window.addEventListener("online", onOnline);
   }
   if (hasDocument) {
     document.addEventListener("visibilitychange", onRefocus);
@@ -200,6 +237,7 @@ export function attachWsLiveness(
       if (hasWindow) {
         window.removeEventListener("focus", onRefocus);
         window.removeEventListener("pageshow", onRefocus);
+        window.removeEventListener("online", onOnline);
       }
       if (hasDocument) {
         document.removeEventListener("visibilitychange", onRefocus);
