@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-20",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-20-triage-write-fs-race",
-    "date": "2026-07-20",
+    "run_id": "iterate-2026-07-21-mission-spec-events-sourced",
+    "date": "2026-07-21",
     "unit": {
       "status": "passed",
-      "passed": 2796,
-      "total": 2797
+      "passed": 2821,
+      "total": 2822
     },
     "integration": {
       "status": "not_run",
@@ -36,29 +36,69 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "header bootstrap does NOT clobber a tracked store a concurrent producer created+populated in the window between the existence probe and the write (CodeQL js/file-system-race #292 root cause)",
+          "behavior": "campaignSpecCandidates rebuilds a campaign sub-iterate's spec path from the never-evicted work_completed fields (campaign + sub_iterate_id) instead of the evictable agent-doc spec hint",
           "disposition": "tested",
-          "evidence": "triage-write.fs-race.test.ts::'does not clobber a tracked store a concurrent producer wrote after the existence check' PASSED (RED before fix: producer append record truncated; GREEN after)"
+          "evidence": "spec-candidates.test.ts::'rebuilds the `<id>-<slug>.md` path that the known layout misses' PASSED"
         },
         {
-          "behavior": "fresh-file bootstrap still writes the schema header + the status event when the tracked store is genuinely absent (regression guard)",
+          "behavior": "the sub-iterate id matches case-insensitively (run_id lowercases what the filename capitalises, e.g. run …-w1-… vs file W1-…)",
           "disposition": "tested",
-          "evidence": "triage-write.fs-race.test.ts::'still bootstraps the schema header when the tracked store is genuinely absent' PASSED"
+          "evidence": "spec-candidates.test.ts::'matches the id case-insensitively' PASSED"
         },
         {
-          "behavior": "termination-guard / newline / zero-byte / CRLF / outbox-routing behavior of appendStatusEvent is unchanged",
+          "behavior": "an exact `<id>.md` outranks a `<id>-<slug>.md` prefix match, and the emitted order is deterministic",
           "disposition": "tested",
-          "evidence": "triage-write.newline.test.ts (6) + triage-write.test.ts + triage-store{,.recovery,.union}.test.ts all PASSED (full server suite 2796)"
+          "evidence": "spec-candidates.test.ts::'prefers an exact `<id>.md` over a `<id>-…` prefix match' PASSED"
         },
         {
-          "behavior": "parent-dir creation made unconditional mkdir -p (idempotent) produces the same result as the prior existsSync-guarded mkdir",
+          "behavior": "the prefix match is bounded by the trailing '-' so sub-iterate W1 never claims W10's document",
           "disposition": "tested",
-          "evidence": "triage-write.test.ts::'creates parent directory + header when triage.jsonl does not exist' PASSED (full suite green)"
+          "evidence": "spec-candidates.test.ts::'does NOT match a different id that merely shares a prefix (W1 must not eat W10)' PASSED"
+        },
+        {
+          "behavior": "non-markdown entries, sub-directories and symlinks are never offered as candidates (defence-in-depth ahead of the caller's realPathGuard)",
+          "disposition": "tested",
+          "evidence": "spec-candidates.test.ts::'ignores non-markdown entries and sub-directories' + 'does not offer a SYMLINK as a candidate' PASSED"
+        },
+        {
+          "behavior": "a missing/unreadable campaign directory yields [] rather than throwing (ENOENT/ENOTDIR/EACCES)",
+          "disposition": "tested",
+          "evidence": "spec-candidates.test.ts::'returns nothing when the campaign directory does not exist (no throw)' PASSED"
+        },
+        {
+          "behavior": "campaign slug and sub-iterate id from the event log are held to the strict id grammar, so neither can inject a path segment or traverse",
+          "disposition": "tested",
+          "evidence": "spec-candidates.test.ts::'REJECTS traversal / unsafe segments in either event-supplied field' (10 vectors) + resolver.eviction.test.ts::'ignores campaign fields that fail the id grammar' PASSED"
+        },
+        {
+          "behavior": "END-TO-END: a campaign sub-iterate's Spec artifact resolves through the resolver with NO iterates/<run_id>.json present at all (AC1 — the eviction steady state)",
+          "disposition": "tested",
+          "evidence": "resolver.eviction.test.ts::'resolves a campaign sub-iterate's Spec from the event log with NO agent-doc present' PASSED; DIFFERENTIALLY VERIFIED — removing the campaignSpecCandidates append makes exactly this case FAIL while the other 3 still pass"
+        },
+        {
+          "behavior": "END-TO-END: the Requirement artifact resolves its FRs from the event log with NO agent-doc present (AC2 — the triage item's literal ask; measured as already-correct, previously UNPINNED)",
+          "disposition": "tested",
+          "evidence": "resolver.eviction.test.ts::'resolves the Requirement's FRs from the event log with NO agent-doc present' PASSED (asserts the specific FR the event recorded, not merely non-empty)"
+        },
+        {
+          "behavior": "no Spec is invented when the campaign document is genuinely absent — honest absence is preserved, not replaced by a pointer to a missing file",
+          "disposition": "tested",
+          "evidence": "resolver.eviction.test.ts::'does NOT invent a Spec when the campaign document is genuinely gone' PASSED"
+        },
+        {
+          "behavior": "the resolved Spec is titled/fingerprinted by the candidate that actually matched (via resolveFirstDoc's returned index), including the appended campaign candidate at index 4+, and the pre-existing preference order is unchanged by the append",
+          "disposition": "tested",
+          "evidence": "resolver.candidate-pairing.test.ts (3 cases) PASSED — mid-list known-layout candidate, appended campaign candidate, and known-layout-wins-over-campaign when both exist"
+        },
+        {
+          "behavior": "moving the work_completed lookup ahead of the resolver cache check, and splitting the spec-path builders into spec-candidates.ts, leave every other Mission behaviour unchanged",
+          "disposition": "tested",
+          "evidence": "full server suite 241 files / 2821 passed, 1 skipped, exit 0 — including all 29 mission-context suites (347) and the mission-context route contract tests"
         }
       ],
       "counts": {
-        "testable": 4,
-        "tested": 4,
+        "testable": 12,
+        "tested": 12,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -69,9 +109,9 @@
     },
     "surface_verification": {
       "surface": "none",
-      "tests_run": 2796,
+      "tests_run": 2821,
       "exit_code": 0,
-      "justification": "Server-internal write-path hardening: appendStatusEvent's schema-header bootstrap now uses atomic exclusive-create (writeFileSync flag 'wx') instead of an existsSync check-then-write, closing a first-write TOCTOU (CodeQL js/file-system-race #292) that could truncate a tracked triage.jsonl a Python producer wrote in the race window. The function's observable output (the JSONL the Triage board reads) is byte-identical for every non-race input; the race outcome is data-loss PREVENTION, deterministically covered by a unit test that reproduces the lost race via a steered existsSync. No UI/API/message-contract change and no client/** touched, so there is no browser surface to exercise; the full server suite (2796 passed) exercises the triage reader + route consumer chain confirming unchanged output."
+      "justification": "Server-internal read-path change with no API, schema, message-contract or client/** edit: the Mission context response shape is byte-identical, and the only difference is that a campaign sub-iterate's Spec artifact now RESOLVES in the case where it previously reported absent because iterates/<run_id>.json had aged out of its 50-entry retention window. The composition point is exercised directly rather than mocked — resolver.eviction.test.ts and resolver.candidate-pairing.test.ts drive the real resolveMissionContext over real temp-dir fixtures with no agent-doc present, which is the exact production steady state (measured: 214 iterate runs in this repo's event log vs 54 surviving agent-docs, 75% already evicted). The AC1 case is differentially verified: reverting the one-line append makes it, and only it, fail. No UI affordance, route, or rendering path changed, so there is no browser surface to exercise; the full server suite (2821 passed) covers the route consumer chain."
     }
   }
 }
