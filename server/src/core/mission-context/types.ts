@@ -218,6 +218,17 @@ export interface MissionContext {
   missionTabVisible: boolean;
   /** The ITERATE run id (`iterate-<date>-<slug>`) — never `task.runId`. */
   runId: string | null;
+  /**
+   * Is this run IN FLIGHT right now? True only when the pointer validated AND
+   * git still registers its worktree — i.e. the run has a working copy to write
+   * into. False for every finished/abandoned run and for every other scenario.
+   *
+   * The client uses it for ONE decision: whether `not_yet_created` means "this
+   * run has no such artifact" (hide it) or "it has not been written YET" (show
+   * it as pending). Nothing about the artifacts themselves changes — an
+   * `unavailable` artifact stays `unavailable` either way.
+   */
+  runLive: boolean;
   artifacts: ArtifactDescriptor[];
   /** Feeds the top-right Tests chip. Null when truly absent — never fabricated. */
   tests: MissionTests | null;
@@ -246,8 +257,21 @@ export interface MissionContextAssociation {
   kind: "iterate";
   runId: string;
   observedAt: string;
-  source: "iterate_active_pointer";
+  /**
+   * WHERE the identity came from, kept because the two sources carry different
+   * strength: `iterate_active_pointer` is a live server observation,
+   * `transcript_run_id` is this session's own corroborated commit footer,
+   * recovered after the pointer was pruned (run-id-recovery.ts).
+   */
+  source: MissionContextAssociationSource;
 }
+
+export type MissionContextAssociationSource = "iterate_active_pointer" | "transcript_run_id";
+
+const ASSOCIATION_SOURCES: ReadonlySet<string> = new Set<MissionContextAssociationSource>([
+  "iterate_active_pointer",
+  "transcript_run_id",
+]);
 
 /**
  * Type-guard used by the store loader to soft-drop a malformed persisted value.
@@ -266,6 +290,7 @@ export function isMissionContextAssociation(v: unknown): v is MissionContextAsso
     isSafeRunId(o.runId) &&
     typeof o.observedAt === "string" &&
     o.observedAt.length > 0 &&
-    o.source === "iterate_active_pointer"
+    typeof o.source === "string" &&
+    ASSOCIATION_SOURCES.has(o.source)
   );
 }

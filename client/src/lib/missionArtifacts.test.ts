@@ -15,18 +15,19 @@ import {
   artifactStateWord,
   frRowLabel,
   isArtifactClickable,
+  isArtifactPending,
   isArtifactVisible,
   isSupportedSchema,
   servesChipValue,
   testsChipValue,
   usesContextRail,
   visibleArtifacts,
-  reviewStatusWord,
   testFrLabel,
   layerWord,
   testChangeWord,
   stageScenario,
 } from "./missionArtifacts";
+import { reviewStatusWord } from "./missionWording";
 import type { ArtifactDescriptor, ArtifactState, MissionContext } from "./missionContextApi";
 
 function spec(state: ArtifactState): ArtifactDescriptor {
@@ -46,6 +47,7 @@ function ctx(over: Partial<MissionContext> = {}): MissionContext {
     scenario: "iterate",
     missionTabVisible: true,
     runId: "iterate-2026-07-18-demo",
+    runLive: false,
     artifacts: [spec("available")],
     tests: null,
     servesFrId: null,
@@ -71,6 +73,47 @@ describe("hide-empty (the 5-state rule)", () => {
     expect(isArtifactClickable(spec("available"))).toBe(true);
     expect(isArtifactClickable(spec("unavailable"))).toBe(false);
     expect(isArtifactClickable(spec("error"))).toBe(false);
+  });
+});
+
+/*
+ * While the run is IN FLIGHT, `not_yet_created` means "not written YET". Hiding
+ * it emptied the whole rail for the entire early phase of every run — measured
+ * on a live iterate whose six artifacts were all `not_yet_created`.
+ */
+describe("hide-empty while the run is live", () => {
+  it("SHOWS a not-yet-written artifact only when the run is live", () => {
+    expect(isArtifactVisible(spec("not_yet_created"), true)).toBe(true);
+    expect(isArtifactVisible(spec("not_yet_created"), false)).toBe(false);
+  });
+
+  it("keeps `not_applicable` hidden even while live — it will never exist", () => {
+    expect(isArtifactVisible(spec("not_applicable"), true)).toBe(false);
+  });
+
+  it("never turns a read failure into 'pending' — those stay distinguishable", () => {
+    expect(isArtifactPending(spec("unavailable"), true)).toBe(false);
+    expect(isArtifactPending(spec("error"), true)).toBe(false);
+    expect(isArtifactPending(spec("available"), true)).toBe(false);
+    expect(isArtifactPending(spec("not_yet_created"), true)).toBe(true);
+    expect(isArtifactPending(spec("not_yet_created"), false)).toBe(false);
+  });
+
+  it("renders the pending rail for a live run instead of nothing at all", () => {
+    const kinds = ["spec", "requirement", "tests", "review", "decisions", "commit"];
+    const artifacts = kinds.map(
+      (kind) => ({ ...spec("not_yet_created"), kind }) as ArtifactDescriptor,
+    );
+    expect(visibleArtifacts(ctx({ artifacts, runLive: true })).map((a) => a.kind)).toEqual(kinds);
+    // …and a FINISHED run keeps hide-empty exactly as before.
+    expect(visibleArtifacts(ctx({ artifacts, runLive: false }))).toEqual([]);
+  });
+
+  it("treats a missing `runLive` (older server) as not live", () => {
+    const artifacts = [{ ...spec("not_yet_created") } as ArtifactDescriptor];
+    const legacy = ctx({ artifacts });
+    delete (legacy as Partial<MissionContext>).runLive;
+    expect(visibleArtifacts(legacy)).toEqual([]);
   });
 });
 

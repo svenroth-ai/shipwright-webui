@@ -101,9 +101,9 @@ const SHARED_INTERFACES = [
  * "forgot to register a new shape" is loud instead of silent.
  */
 const NOT_MIRRORED: Record<string, string> = {
-  // A PERSISTENCE type (the guarded `task.missionContext` association write).
-  // It never crosses the wire, so the client has nothing to mirror.
+  // PERSISTENCE shapes (the guarded `task.missionContext` write) — never on the wire.
   MissionContextAssociation: "server-side persistence shape; never sent to the client",
+  MissionContextAssociationSource: "the `source` of that persistence shape; server-side only",
 };
 
 /**

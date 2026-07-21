@@ -127,9 +127,20 @@ interface Props {
    * exactly as before, so this slice cannot regress them.
    */
   artifacts?: ArtifactDescriptor[] | null;
+  /**
+   * Is the run IN FLIGHT? Only effect: an artifact that has not been written yet
+   * renders as a plain "not written yet" entry instead of being hidden.
+   */
+  runLive?: boolean;
 }
 
-export function MissionLeftPanel({ model, activeNodeKey, onNodeClick, artifacts }: Props) {
+export function MissionLeftPanel({
+  model,
+  activeNodeKey,
+  onNodeClick,
+  artifacts,
+  runLive = false,
+}: Props) {
   const { businessSummary, stage, stageActivity, stageComplete, nodes, campaign } = model;
   return (
     <nav
@@ -159,6 +170,7 @@ export function MissionLeftPanel({ model, activeNodeKey, onNodeClick, artifacts 
                 artifact={a}
                 active={activeNodeKey === a.kind}
                 onClick={() => onNodeClick(a.kind)}
+                runLive={runLive}
               />
             ))
           : nodes.map((node) => (

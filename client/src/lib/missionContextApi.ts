@@ -217,6 +217,13 @@ export interface MissionContext {
   scenario: MissionScenario;
   missionTabVisible: boolean;
   runId: string | null;
+  /**
+   * Is this run IN FLIGHT right now (server: a validated pointer whose worktree
+   * git still registers)? It decides ONE thing here: whether an artifact that
+   * has not been written yet is hidden ("this run has no such artifact") or
+   * shown as pending ("not written yet"). See `missionArtifacts.ts`.
+   */
+  runLive: boolean;
   artifacts: ArtifactDescriptor[];
   tests: MissionTests | null;
   servesFrId: string | null;

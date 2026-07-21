@@ -23,22 +23,16 @@ export { _clearResolverCache } from "./resolver-parts.js";
 // Re-exported so the detail endpoint keeps its single import site (§5.2).
 export { readDocumentBody } from "./document-read.js";
 import { loadFoldMap, specPath } from "./fold-map.js";
-import {
-  checkSquashMerged,
-  extractPrMarker,
-  readOriginSlug,
-  type MergeCheckDeps,
-} from "./merge-check.js";
+import { checkSquashMerged, extractPrMarker, readOriginSlug } from "./merge-check.js";
 import { refreshMerge } from "./merge-refresh.js";
 import { mintDocId } from "./doc-ids.js";
 import { readIteratePointer } from "./pointer.js";
-import { detectScenario, type ScenarioInputs } from "./scenario.js";
+import { detectScenario } from "./scenario.js";
 import { buildRequirementArtifact, buildSpecArtifact } from "./artifacts.js";
 import { buildCommitArtifact } from "./artifacts-commit.js";
 import { buildSlice2Artifacts, slice2RevPaths } from "./slice2-sources.js";
 import { buildNonIterateContext } from "./slice3-sources.js";
-import type { CampaignFact } from "./campaign-artifacts.js";
-import type { PipelineFact } from "./pipeline-artifacts.js";
+import type { ResolveDeps, ResolveRequest, ResolveResult } from "./resolver-io.js";
 import {
   eventsPath,
   findWorkCompleted,
@@ -50,13 +44,8 @@ import {
   specCandidates,
   specHintCandidate,
 } from "./spec-candidates.js";
-import {
-  chooseRoot,
-  isRegisteredWorktree,
-  readAllowedRootsCached,
-  resolveFirstDoc,
-  type GitRunner,
-} from "./worktree-roots.js";
+import { recoverRunIdFromTranscript } from "./run-id-recovery.js";
+import { chooseRoot, readAllowedRootsCached, resolveFirstDoc } from "./worktree-roots.js";
 import {
   MISSION_CONTEXT_SCHEMA_VERSION,
   type ArtifactDescriptor,
@@ -64,38 +53,12 @@ import {
   type MissionContextAssociation,
 } from "./types.js";
 
-export interface ResolveRequest {
-  taskId: string;
-  sessionUuid: string;
-  projectId: string;
-  projectRoot: string;
-  /** Server-read transcript (bounded tail) — never client-supplied (§5.1). */
-  transcript: string;
-  /** Task facts the server owns (from its own store, not the client). */
-  phaseTaskId: string | null;
-  taskRunId: string | null;
-  campaignSlug: string | null;
-  hasCampaignRecord: boolean;
-  actions: ScenarioInputs["actions"];
-  runConfigStatus: ScenarioInputs["runConfigStatus"];
-  /**
-   * S3 — native scenario facts, gathered server-side (external/facts-slice3.ts).
-   * Optional so existing callers/tests compile; absent behaves as `unavailable`,
-   * which SHOWS the artifacts rather than hiding them.
-   */
-  pipeline?: PipelineFact | null;
-  campaign?: CampaignFact | null;
-  /**
-   * The task's persisted association. Read from the server's own store; it is
-   * how a FINALIZED iterate still resolves after its pointer was pruned.
-   */
-  association?: MissionContextAssociation | null;
-}
-
-export interface ResolveDeps {
-  git?: GitRunner;
-  merge?: MergeCheckDeps;
-}
+// The call contract lives next door so this file stays within the size rule.
+export type {
+  ResolveDeps,
+  ResolveRequest,
+  ResolveResult,
+} from "./resolver-io.js";
 
 /**
  * Resolve the Mission context. Pure read — the caller performs the association
@@ -105,13 +68,20 @@ export interface ResolveDeps {
 export async function resolveMissionContext(
   req: ResolveRequest,
   deps: ResolveDeps = {},
-): Promise<{ context: MissionContext; associateRunId: string | null }> {
+): Promise<ResolveResult> {
   const { projectRoot, sessionUuid } = req;
 
   const pointer = readIteratePointer(projectRoot, sessionUuid);
+  // Scanned only for a task nothing else can identify — an associated task never
+  // pays for it, and a successful recovery is persisted, so it is paid once.
+  const transcriptRunId =
+    pointer.status === "absent" && !req.association?.runId
+      ? recoverRunIdFromTranscript(projectRoot, req.transcript, sessionUuid)
+      : null;
   const decision = detectScenario({
     pointer,
     association: req.association ?? null,
+    transcriptRunId,
     actions: req.actions,
     runConfigStatus: req.runConfigStatus,
     phaseTaskId: req.phaseTaskId,
@@ -150,6 +120,7 @@ export async function resolveMissionContext(
         campaignSlug: req.campaignSlug,
       }),
       associateRunId: null,
+      associateSource: "iterate_active_pointer",
     };
   }
 
@@ -159,17 +130,12 @@ export async function resolveMissionContext(
 
   const roots = await readAllowedRootsCached(projectRoot, { git: deps.git });
 
-  // A worktree git does not know is a tree we cannot vouch for.
-  if (worktreePath && !isRegisteredWorktree(roots, worktreePath)) {
-    return integrityResult(
-      "iterate",
-      true,
-      computeSourceRev(baseRevPaths, [runId, "unregistered_worktree"]),
-      "This run's working copy is not a registered worktree of this project.",
-      runId,
-    );
-  }
-
+  // A worktree git does not know is simply NOT USED as a read root — that is
+  // `chooseRoot`'s contract, and it is the normal post-Finalize state, not an
+  // integrity failure. MEASURED 2026-07-21: git registered 0 of this project's
+  // 20 live pointers' worktrees (removed at Finalize, directory left behind),
+  // and the earlier hard failure here erased all six artifacts for every one of
+  // them although every run had its record in the main root. See ADR.
   const chosen = chooseRoot(roots, worktreePath);
 
   // --- Records (the spec candidates below are built from them). The event
@@ -201,7 +167,11 @@ export async function resolveMissionContext(
     [runId, chosen.root, req.taskId],
   );
   const cacheKey = `${projectRoot}::${sessionUuid}::${runId}`;
-  const associate = pointer.status === "ok" ? runId : null;
+  // Persist on a LIVE pointer, and — new — on a corroborated transcript
+  // recovery, which is the whole point of the recovery: pay the scan once.
+  const associate = pointer.status === "ok" || transcriptRunId ? runId : null;
+  const associateSource: MissionContextAssociation["source"] =
+    pointer.status === "ok" ? "iterate_active_pointer" : "transcript_run_id";
 
   const hit = cache.get(cacheKey);
   if (hit && hit.rev === rev) {
@@ -210,6 +180,7 @@ export async function resolveMissionContext(
     return {
       context: await refreshMerge(hit.context, projectRoot, req.transcript, deps),
       associateRunId: associate,
+      associateSource,
     };
   }
 
@@ -280,6 +251,14 @@ export async function resolveMissionContext(
     scenario: "iterate",
     missionTabVisible: true,
     runId,
+    // IN FLIGHT = git still registers the pointer's worktree AND the run has not
+    // recorded completion. The worktree alone is a filesystem PROXY (external
+    // plan review, openai MEDIUM): an abandoned or already-finished run can
+    // leave a registered worktree behind, and "pending" for a run that is over
+    // is the same lie in the other direction. A `work_completed` record is a
+    // terminal fact, so it ends live-ness. Both inputs participate in `rev`
+    // (`chosen.root` + the event log's mtime), so neither can freeze in cache.
+    runLive: chosen.isWorktree && events.status !== "found",
     artifacts,
     tests: run?.tests ?? null,
     servesFrId,
@@ -294,7 +273,8 @@ export async function resolveMissionContext(
     cache.set(cacheKey, { rev, context });
   }
 
-  // `associate` is set by the POINTER validating — never by the task's `state`,
-  // which decays to `idle` on a parked design gate. See association.ts.
-  return { context, associateRunId: associate };
+  // `associate` comes from EVIDENCE — a validated pointer or a corroborated
+  // footer — never from the task's `state`, which decays to `idle` on a parked
+  // design gate. See association.ts.
+  return { context, associateRunId: associate, associateSource };
 }

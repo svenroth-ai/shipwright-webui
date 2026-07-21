@@ -101,10 +101,16 @@ export function harness(root: string, task: ExternalTask, opts: HarnessOptions =
     persist,
   } satisfies Pick<SdkSessionsStore, "get" | "patch" | "persist">;
 
+  // Records the byte budget the route asked for, so a test can prove the wider
+  // recovery window is requested ONLY while the task is unidentified.
+  const readTranscriptTail = vi.fn(async (_uuid: string, _maxBytes?: number) =>
+    opts.transcript ?? "",
+  );
+
   const app = createMissionContextRouter({
     store: store as unknown as SdkSessionsStore,
     getProjectById: (id) => (id === "proj-1" ? { id: "proj-1", name: "P", path: root } : undefined),
-    readTranscriptTail: async () => opts.transcript ?? "",
+    readTranscriptTail,
     getScenarioFacts: async () => ({
       actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
       runConfigStatus: "missing",
@@ -113,7 +119,7 @@ export function harness(root: string, task: ExternalTask, opts: HarnessOptions =
     }),
   });
 
-  return { app, persist, tasks };
+  return { app, persist, tasks, readTranscriptTail };
 }
 
 interface ArtifactLike {
@@ -125,6 +131,7 @@ interface ArtifactLike {
 export interface ContextLike {
   scenario: string;
   runId: string | null;
+  runLive: boolean;
   missionTabVisible: boolean;
   artifacts: ArtifactLike[];
   tests: { passed: number | null; total: number | null } | null;

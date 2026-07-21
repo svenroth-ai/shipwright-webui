@@ -875,6 +875,33 @@ write surface; gated, path-guarded, and concurrency-safe.
   known" must not collapse into a positive finding. An absent or unparseable transcript
   yields "—", never a default Analyze. Pure client-side derivation — no new endpoint, no
   server change, no second write surface, terminal byte-identical.
+- (L) **(iterate-2026-07-21-mission-run-identity-recovery)** The run identity SURVIVES
+  the bridge that carried it. Measured on the real store: only 1 task in 416 had ever
+  had its run recorded, because the association is written only while the Mission tab
+  happens to be open DURING the run and the `iterate_active` pointer is deleted at
+  Finalize — so a finished iterate answered "plain" forever. A **third identification
+  source** now closes that window: the `Run-ID` footer the run wrote into its own
+  commit, read from the session's own server-read transcript within a bounded 1 MB
+  tail, and admitted ONLY when it is canonical (`iterate-YYYY-MM-DD-slug`, then the
+  same strict `isSafeRunId` grammar every other run_id must pass), **line-terminated**
+  (a commit footer, not an inline prose citation), and **corroborated** by this
+  project's own `work_completed` row or iterate record. It is ranked BELOW pipeline and
+  campaign — an association is a server-observed fact, a footer is text a session
+  happens to contain — is never applied to an INVALID pointer, and is persisted once
+  through the SAME guarded association write (`source: "transcript_run_id"`), so the
+  scan is paid once per task rather than once per poll. A transcript with no qualifying
+  footer stays **plain**: no guessed, partial or uncorroborated run is ever adopted.
+  Separately, a pointer naming a worktree `git worktree list` no longer reports is the
+  ORDINARY post-Finalize state — measured, 20 of 20 real pointers — and now falls back
+  to reading the main root, where those artifacts actually are, instead of returning
+  six `unavailable` artifacts; nothing is ever READ from the unregistered directory
+  (root selection is unchanged), and a pointer that fails VALIDATION still reports
+  `unavailable` exactly as before. Finally, `runLive` (the pointer's worktree is
+  git-registered AND the run has recorded no `work_completed`) makes the `not_yet_created`
+  artifacts of a run IN FLIGHT visible as inert, plainly-worded "Not written yet"
+  entries rather than hiding the whole rail for the entire early phase of every run;
+  `not_applicable` stays hidden and an `unavailable` artifact NEVER renders as pending,
+  so a read failure stays distinguishable from "not written yet".
 
 ## Quality Requirements
 

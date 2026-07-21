@@ -55,6 +55,10 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   const contextQuery = useMissionContext(task?.taskId);
   const context = isSupportedSchema(contextQuery.data) ? contextQuery.data : null;
   const artifacts = usesContextRail(context) ? visibleArtifacts(context) : null;
+  // While the run is IN FLIGHT its not-yet-written artifacts are listed as
+  // pending instead of hidden, so the rail is not blank for the whole early
+  // phase of every run (the operator is watching precisely then).
+  const runLive = context?.runLive === true;
 
   // S4 — the SAME resolved context gates the stage derivation, so the
   // iterate-only sticky-Analyze rule never runs on a card with no iterate
@@ -94,6 +98,7 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
           activeNodeKey={activeNode}
           onNodeClick={handleNodeClick}
           artifacts={artifacts}
+          runLive={runLive}
         />
         {showOperationCard ? (
           <OperationCard task={task} />
