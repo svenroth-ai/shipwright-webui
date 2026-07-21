@@ -1,0 +1,1 @@
+A regression guard for the primary-button standard: a meta-test now fails the build if any create button re-implements the primary styling itself or is added without joining the standard, and a real-browser test checks that the buttons genuinely share the same box and land on the same edge.

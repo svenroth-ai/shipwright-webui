@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-20",
+  "last_updated": "2026-07-21",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-cross-repo-contract-pointers",
+    "run_id": "iterate-2026-07-21-all-projects-new-button-parity",
     "date": "2026-07-21",
     "unit": {
       "status": "passed",
-      "passed": 2821,
-      "total": 2822
+      "passed": 5689,
+      "total": 5690
     },
     "integration": {
       "status": "not_run",
@@ -19,9 +19,9 @@
       "total": 0
     },
     "e2e": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 3,
+      "total": 3
     },
     "design_fidelity": {
       "status": "skipped",
@@ -33,14 +33,72 @@
     },
     "degraded": [],
     "test_completeness": {
-      "status": "n/a",
-      "justification": "Comment-only change — two doc-comment blocks, zero executable lines. Both suites were run to prove exactly that (server 2821 passed / 1 skipped, client 2860 passed, both typecheck clean); there is no new behaviour to enumerate."
+      "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "All-Projects desktop create trigger carries the canonical .btn-primary",
+          "disposition": "tested",
+          "evidence": "client ProjectCreateCascade.test.tsx > carries the canonical .btn-primary — PASS"
+        },
+        {
+          "behavior": "Desktop trigger no longer hand-rolls the primary colour or its own padding box",
+          "disposition": "tested",
+          "evidence": "client ProjectCreateCascade.test.tsx > re-implements neither the primary colour nor its own padding box — PASS"
+        },
+        {
+          "behavior": "Desktop trigger wrapper no longer draws its own 1.5px ring",
+          "disposition": "tested",
+          "evidence": "client ProjectCreateCascade.test.tsx > no longer wraps the trigger in its own bordered shell — PASS"
+        },
+        {
+          "behavior": "Phone (<768px) drill-down trigger carries .btn-primary with no hand-rolled box",
+          "disposition": "tested",
+          "evidence": "client ProjectCreatePhoneMenu.test.tsx > trigger carries the canonical .btn-primary, not a hand-rolled box — PASS"
+        },
+        {
+          "behavior": "Rendered box matches the buttons.css contract in a real browser (36px height, >=132px width, 8px radius, rgb(14,122,107), weight 600, 13px)",
+          "disposition": "tested",
+          "evidence": "e2e create-cta-parity.spec.ts > the All-Projects New trigger matches the standard box — PASS (Chromium); FAILS on pre-fix code with height 34.8 / bg rgb(53,184,164)"
+        },
+        {
+          "behavior": "All-Projects CTA and the Projects-page CTA share box + right edge (the same place half of the request)",
+          "disposition": "tested",
+          "evidence": "e2e create-cta-parity.spec.ts > All-Projects New and the Projects page CTA occupy the same box + edge — PASS; FAILS on pre-fix code"
+        },
+        {
+          "behavior": "Single-project split button is unregressed by the change",
+          "disposition": "tested",
+          "evidence": "e2e create-cta-parity.spec.ts > the single-project split button keeps the same outer box — PASS both before and after (correctly discriminating)"
+        },
+        {
+          "behavior": "Ratchet forward drift: every registry entry resolves to a file on disk",
+          "disposition": "tested",
+          "evidence": "client src/test/create-cta-standard.test.ts > every registry entry resolves to a file on disk — PASS"
+        },
+        {
+          "behavior": "Ratchet reverse drift: a new unregistered create CTA is rejected",
+          "disposition": "tested",
+          "evidence": "create-cta-standard.test.ts > every file rendering a create-CTA trigger is in the registry — PASS; falsification probe (temp __probe2.tsx with a create-button testid) FAILED it as designed"
+        },
+        {
+          "behavior": "Ratchet: every create CTA references the canonical button class",
+          "disposition": "tested",
+          "evidence": "create-cta-standard.test.ts — PASS; falsification probe (reverted ProjectCreatePhoneMenu to the hand-rolled className) FAILED it as designed"
+        },
+        {
+          "behavior": "Ratchet: no create CTA re-implements the primary background locally",
+          "disposition": "tested",
+          "evidence": "create-cta-standard.test.ts — PASS; same falsification probe FAILED it as designed with the actionable RETIRED-#35B8A4 message"
+        }
+      ],
+      "untested_testable": 0,
+      "enumeration_basis": "One row per behaviour introduced or changed by the diff: 4 component-level class contracts (desktop trigger x3, phone trigger x1), 3 real-browser geometry outcomes, and 4 ratchet guarantees. Derived by walking the diff file-by-file; the two component files change only the trigger + wrapper className, the two test files and the two new test artifacts add exactly these assertions."
     },
     "surface_verification": {
-      "surface": "none",
-      "tests_run": 2821,
+      "surface": "web",
+      "tests_run": 3,
       "exit_code": 0,
-      "justification": "Documentation-only: doc comments in server/src/core/mission-context/iterate-record.ts and client/src/components/wizard/IntentWizard/types.ts. No executable line changed, so there is nothing to exercise on any surface. Server + client suites and both typechecks were run as the proof of inertness."
+      "justification": "UI-only change to a rendered control, so the class fence in jsdom cannot prove the outcome (no stylesheet is applied there). Executed e2e/flows/create-cta-parity.spec.ts in real Chromium against an isolated stack (temp USERPROFILE, Hono 127.0.0.1:3849, Vite 127.0.0.1:5179, SHIPWRIGHT_NETWORK_PROFILE=local): 3 passed. Verified load-bearing by re-running against stashed pre-fix code — 2 of 3 failed (height 34.8 vs 36, bg rgb(53,184,164) vs rgb(14,122,107)) and the untouched split-button test correctly stayed green."
     }
   }
 }

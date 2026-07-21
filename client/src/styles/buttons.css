@@ -14,6 +14,13 @@
    dann darf er länger werden") but it may never change its height or its baseline.
    PageHead already right-aligns the actions cluster, so equal geometry ⇒ equal
    position.
+   Sven 2026-07-21 (round 3): the All-Projects "New" trigger had been missed by
+   BOTH passes and still hand-rolled `bg-[var(--color-primary)] px-4 py-2` — which
+   under `.chrome-dark-controls` resolves to the RETIRED #35B8A4, at 34.8px tall
+   and with no min-width. Rounds 1+2 were per-component edits, which is exactly
+   why round 3 survived them; the standard is now RATCHETED by the source scan in
+   `client/src/test/create-cta-standard.test.ts` (CLAUDE.md DO-NOT #26). Add any
+   new create CTA to its registry and put it on `.btn-primary`.
    ============================================================================ */
 :root {
   --btn-h: 36px;

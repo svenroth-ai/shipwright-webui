@@ -92,4 +92,18 @@ describe("ProjectCreatePhoneMenu (phone #1)", () => {
     await user.click(await screen.findByTestId("create-menu-cascade-action-p1-new-task"));
     expect(onSelect).toHaveBeenCalledWith(TASK, "p1");
   });
+
+  /* Sven 2026-07-21 — the phone presentation is the SAME All-Projects "New"
+   * button, so it carries the same standard as the desktop cascade. Rationale
+   * for the class-level assertion: see ProjectCreateCascade.test.tsx. */
+  // @covers FR-01.38
+  it("trigger carries the canonical .btn-primary, not a hand-rolled box", () => {
+    renderMenu(PROJECTS);
+    const trigger = screen.getByTestId("create-menu-cascade-trigger");
+    expect(trigger).toHaveClass("btn-primary");
+    expect(trigger.className).not.toContain("bg-[var(--color-primary)]");
+    expect(screen.getByTestId("create-menu-cascade").className).not.toContain(
+      "border-[1.5px]",
+    );
+  });
 });

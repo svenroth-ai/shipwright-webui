@@ -124,7 +124,14 @@ export interface ProjectCascadeProps {
 /** `+ New ▾` two-level cascade for All-Projects mode. On phones (≤767px) the
  *  side-opening submenu has no room and overflowed off-screen, so a flat
  *  downward drill-down replaces it (iterate-2026-06-15 phone-header-polish #1).
- *  Tablet/desktop keep the nested cascade below. */
+ *  Tablet/desktop keep the nested cascade below.
+ *
+ *  The trigger is the ONE canonical `.btn-primary` (styles/buttons.css) — same
+ *  height, min-width, radius and teal as the Board's "New task" split button
+ *  and the Projects page's "Create Project", so it also lands in the same place
+ *  (iterate-2026-07-21-all-projects-new-button-parity). It is deliberately NOT
+ *  the `.btn-primary-split` shape: All-Projects has no single default action a
+ *  main half could fire — the whole button opens the project chooser. */
 export function ProjectCreateMenu({
   projects,
   onSelect,
@@ -142,10 +149,7 @@ export function ProjectCreateMenu({
   }
   const disabled = isLoading || projects.length === 0;
   return (
-    <div
-      className="inline-flex overflow-hidden rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-primary)] shadow-sm"
-      data-testid="create-menu-cascade"
-    >
+    <div className="inline-flex" data-testid="create-menu-cascade">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button
@@ -153,7 +157,7 @@ export function ProjectCreateMenu({
             disabled={disabled}
             data-testid="create-menu-cascade-trigger"
             aria-label="New — choose a project"
-            className="inline-flex items-center gap-1.5 bg-[var(--color-primary)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary shadow-sm"
           >
             {isLoading ? (
               <Loader2 size={16} className="animate-spin" />
