@@ -58,12 +58,15 @@ export const TRANSCRIPT_TAIL_BYTES = 512 * 1024;
  * and MEASURED on this machine that is the common case: 412 of 419 tasks, over
  * transcripts of which 78 % exceed 1 MB (internal code review of PR #309, PERF).
  *
- * WHAT THIS SAVES, stated precisely because the first draft of this comment
- * overstated it: ~425 KB per poll of UTF-8 DECODE, string allocation and
- * downstream scanning — NOT of I/O. `SessionWatcher.readChunk` reads the whole
- * file and then slices, so the tail budget bounds the SLICE, not the read. That
- * whole-file read is the larger cost and is deliberately untouched here (triage
- * `mission-context-whole-file-transcript-read`).
+ * WHAT THIS SAVES: ~425 KB per poll of UTF-8 DECODE, string allocation and
+ * downstream scanning — and, since
+ * iterate-2026-07-21-transcript-positional-tail-read, of I/O as well. An earlier
+ * revision of this comment recorded the opposite ("the tail budget bounds the
+ * SLICE, not the read"), which was true then: `readChunk` loaded the whole file
+ * before slicing. It now issues a POSITIONAL read, so the budget bounds the read
+ * itself. Measured over this project's 203 real transcripts, a full sweep fell
+ * from 919 MB / 253 ms to 102 MB / 44 ms; one poll of the largest (137.9 MB)
+ * went from ~31 ms to 2.2 ms.
  *
  * The invariant is "a narrower window cannot lose a recovery", and it holds
  * UNLESS the transcript outruns the ordinary tail within one poll interval:

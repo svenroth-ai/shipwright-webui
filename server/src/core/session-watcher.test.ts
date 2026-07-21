@@ -11,7 +11,6 @@ import { tmpdir } from "node:os";
 
 import {
   SessionWatcher,
-  readWithRetry,
   computeFingerprint,
   type JsonlLocation,
 } from "./session-watcher.js";
@@ -147,33 +146,9 @@ describe("SessionWatcher.readChunk", () => {
   });
 });
 
-describe("readWithRetry", () => {
-  it("retries on EBUSY up to the 6-attempt budget and eventually succeeds", async () => {
-    let calls = 0;
-    const op = async () => {
-      calls++;
-      if (calls < 3) throw Object.assign(new Error("busy"), { code: "EBUSY" });
-      return "ok";
-    };
-    const value = await readWithRetry(op);
-    expect(value).toBe("ok");
-    expect(calls).toBe(3);
-  });
-
-  it("bails immediately on non-retryable errors", async () => {
-    const op = async () => {
-      throw Object.assign(new Error("bad"), { code: "NOTRETRY" });
-    };
-    await expect(readWithRetry(op)).rejects.toThrow("bad");
-  });
-
-  it("rethrows after exhausting retries on persistent EBUSY", async () => {
-    const op = async () => {
-      throw Object.assign(new Error("still busy"), { code: "EBUSY" });
-    };
-    await expect(readWithRetry(op)).rejects.toThrow("still busy");
-  });
-});
+// `readWithRetry` moved to session-jsonl-io.ts with the rest of the disk
+// primitives (iterate-2026-07-21-transcript-positional-tail-read); its tests
+// moved with it, to session-jsonl-io.test.ts, and gained the ENOENT-policy case.
 
 describe("computeFingerprint", () => {
   it("encodes <mtime-ms>:<size-bytes>", () => {
