@@ -44,9 +44,12 @@ import {
   findWorkCompleted,
   iterateDocPath,
   readIterateDoc,
+} from "./iterate-record.js";
+import {
+  campaignSpecCandidates,
   specCandidates,
   specHintCandidate,
-} from "./iterate-record.js";
+} from "./spec-candidates.js";
 import {
   chooseRoot,
   isRegisteredWorktree,
@@ -169,13 +172,21 @@ export async function resolveMissionContext(
 
   const chosen = chooseRoot(roots, worktreePath);
 
-  // --- Records (first: the spec hint below comes from the agent-doc) ---
+  // --- Records (the spec candidates below are built from them). The event
+  // lookup is (mtime,size)-indexed: ahead of the cache check it is a Map hit.
   const iterateDoc = readIterateDoc(projectRoot, runId);
+  const events = findWorkCompleted(projectRoot, runId);
+  const run = events.status === "found" ? events.run : null;
 
-  // --- Spec -----------------------------------------------------------------
-  // Known layout first; the validated hint covers campaign sub-iterate specs.
+  // --- Spec: known layout, agent-doc hint, then that same campaign path rebuilt
+  // from the never-evicted event log — APPENDED, so preference order is
+  // unchanged and it only adds reach once the doc evicts (trg-92c0c36b).
   const hint = specHintCandidate(iterateDoc?.specHint);
-  const candidates = hint ? [...specCandidates(runId, slug), hint] : specCandidates(runId, slug);
+  const candidates = [
+    ...specCandidates(runId, slug),
+    ...(hint ? [hint] : []),
+    ...campaignSpecCandidates(chosen.root, run?.campaign, run?.subIterateId),
+  ];
   const doc = resolveFirstDoc(chosen.root, candidates);
 
   // The rev covers EVERY source used, incl. the iterate + agent docs AND the
@@ -204,10 +215,12 @@ export async function resolveMissionContext(
 
   let documentId: string | null = null, title: string | null = null, specText: string | null = null;
   if (doc.ok) {
-    const matched = candidates.find((parts) =>
-      doc.absolute.replace(/\\/g, "/").endsWith(parts.join("/")),
-    );
-    const rel = (matched ?? candidates[0]).join("/");
+    // BY INDEX — a suffix-compare against the realpath misses on a leaf-casing
+    // normalisation and silently pairs candidates[0] with the OTHER file's
+    // fingerprint (see resolveFirstDoc).
+    // BY INDEX — what resolveFirstDoc returns it for. See
+    // resolver.candidate-pairing.test.ts for why re-deriving it is a trap.
+    const rel = candidates[doc.index].join("/");
     title = rel.slice(rel.lastIndexOf("/") + 1);
     documentId = mintDocId({
       t: req.taskId,
@@ -222,10 +235,7 @@ export async function resolveMissionContext(
     specText = readBounded(doc.absolute);
   }
 
-  // --- Records --------------------------------------------------------------
-  const events = findWorkCompleted(projectRoot, runId);
   const foldMap = loadFoldMap(projectRoot);
-  const run = events.status === "found" ? events.run : null;
 
   // --- Commit + merge -------------------------------------------------------
   // The marker must belong to THIS project's own origin repo (a sibling repo's

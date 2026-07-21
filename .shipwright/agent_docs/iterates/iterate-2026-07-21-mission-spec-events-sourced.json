@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-mission-spec-events-sourced",
+  "date": "2026-07-21T05:46:38.838562Z",
+  "type": "change",
+  "complexity": "small",
+  "branch": "iterate/mission-spec-events-sourced",
+  "spec": "none",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-mission-spec-events-sourced"
+}

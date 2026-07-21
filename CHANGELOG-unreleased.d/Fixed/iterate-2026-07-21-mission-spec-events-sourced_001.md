@@ -1,0 +1,1 @@
+Mission: a campaign sub-iterate's Spec document no longer disappears once its run ages out of the 50-entry iterate-record window — the path is rebuilt from the append-only event log, which is never pruned (FR-01.66)
