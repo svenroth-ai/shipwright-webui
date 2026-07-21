@@ -14,6 +14,18 @@
  * override, not the other way round. Getting this backwards would have shipped
  * an empty Requirement artifact for ~98% of real runs.
  *
+ * The field coverage above is the WEAKER of the two reasons, and it is the one
+ * that can improve — so do not let it talk you into flipping the order. The
+ * STRUCTURAL reason cannot: source (1) is a bounded 50-entry recency window
+ * (`append_iterate_entry` retention) that EVICTS, while (2) is append-only and
+ * never evicted. Upstream states this as a contract — shipwright
+ * `plugins/shipwright-iterate/skills/iterate/references/F5c.md`, "Consumer
+ * rule": anything that must show the FULL iterate history reads
+ * `shipwright_events.jsonl`, NOT this directory, which is a 50-run recency
+ * cache and not the historical record. Measured here 2026-07-21: 214 runs in
+ * the event log, 54 surviving agent-docs — 75% already evicted. Hence every
+ * read below is BY RUN_ID; nothing in webui may enumerate this directory.
+ *
  * Absence vs unavailability is tracked deliberately: an events log that cannot
  * be READ is `unavailable`, not "no run exists". A capped or failed scan that
  * silently reports emptiness would fake absence (§5.2, Review-2 GPT #7).

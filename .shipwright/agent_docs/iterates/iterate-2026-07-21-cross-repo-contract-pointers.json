@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-cross-repo-contract-pointers",
+  "date": "2026-07-21T06:29:09.282358Z",
+  "type": "change",
+  "complexity": "trivial",
+  "branch": "iterate/cross-repo-contract-pointers",
+  "spec": "none",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-cross-repo-contract-pointers"
+}
