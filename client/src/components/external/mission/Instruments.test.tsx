@@ -102,6 +102,7 @@ describe("Instruments — fed by the mission-context resolver (AC8)", () => {
       scenario: "iterate",
       missionTabVisible: true,
       runId: "iterate-2026-07-18-demo",
+    runLive: false,
       artifacts: [],
       tests: { passed: 4940, total: 4941 },
       servesFrId: "FR-01.66",

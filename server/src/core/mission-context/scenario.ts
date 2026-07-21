@@ -7,10 +7,14 @@
  *
  *   1. custom_actions — a VALIDATED custom-actions project → HIDE the Mission
  *      tab entirely (only Files & Terminal).
- *   2. iterate        — a VALIDATED `iterate_active` pointer.
+ *   2. iterate        — a VALIDATED `iterate_active` pointer, or the persisted
+ *      association once that pointer has been pruned.
  *   3. pipeline       — phaseTaskId + runId (run-config v2 phase_tasks).
  *   4. campaign       — a `campaign:<slug>` title AND a real campaign record.
- *   5. plain          — everything else (scenarios 1/4): narration, no rail.
+ *   5. iterate        — a CORROBORATED `Run-ID` footer in this session's own
+ *      transcript (run-id-recovery.ts). Last resort, and deliberately ranked
+ *      below pipeline/campaign — see `transcriptRunId`.
+ *   6. plain          — everything else (scenarios 1/4): narration, no rail.
  *
  * Two DECIDED asymmetries, both "fail toward showing the tab":
  *   - A MALFORMED actions file or a DUAL-MODE project (custom actions sitting
@@ -66,6 +70,23 @@ export interface ScenarioInputs {
    * must still show its commit + merge state, never "No run data yet").
    */
   association?: MissionContextAssociation | null;
+  /**
+   * A run id recovered from this session's OWN transcript and already
+   * corroborated by the project's records (`run-id-recovery.ts`).
+   *
+   * The last-resort identification source, for the tasks that ran before this
+   * build shipped: measured 2026-07-21, only 19 of this project's 150 sessions
+   * could be identified from a pointer or an association, because the pointer is
+   * pruned at Finalize and the association is only written while the Mission tab
+   * is open during the run.
+   *
+   * Ranked BELOW pipeline and campaign, unlike the association: an association
+   * is a SERVER-OBSERVED fact (this session really was running that iterate),
+   * whereas the footer is text the session happens to contain. Measured, a
+   * campaign session quotes its sub-iterates' footers — ranking this higher
+   * would demote a genuine campaign to `iterate`.
+   */
+  transcriptRunId?: string | null;
   /** Actions catalog facts, resolved SERVER-side from the project. */
   actions: {
     /** True when `.shipwright-webui/actions.json` was actually used. */
@@ -189,6 +210,19 @@ export function detectScenario(inputs: ScenarioInputs): ScenarioDecision {
     return { scenario: "campaign", missionTabVisible: true, runId: null, pointerInvalidReason };
   }
 
-  // 5 — plain / pure.
+  // 5 — the session's own commit footer, corroborated by this project's records.
+  // Same asymmetry as 2b: an INVALID pointer gets no fallback, because a pointer
+  // that failed validation is a signal something is wrong and quietly resolving
+  // the run another way would mask it.
+  if (inputs.pointer.status === "absent" && inputs.transcriptRunId) {
+    return {
+      scenario: "iterate",
+      missionTabVisible: true,
+      runId: inputs.transcriptRunId,
+      pointerInvalidReason: null,
+    };
+  }
+
+  // 6 — plain / pure.
   return { scenario: "plain", missionTabVisible: true, runId: null, pointerInvalidReason };
 }

@@ -59,6 +59,7 @@ function context(over: Partial<MissionContext> = {}): MissionContext {
     scenario: "iterate",
     missionTabVisible: true,
     runId: "iterate-2026-07-18-demo",
+    runLive: false,
     artifacts: [
       {
         kind: "spec",

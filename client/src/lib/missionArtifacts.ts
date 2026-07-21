@@ -16,6 +16,14 @@
  * not read it" — an unreadable event log, a pointer that failed validation.
  * Hiding it would let a data-integrity problem masquerade as "nothing exists",
  * which is exactly the class of lie the state model was introduced to kill.
+ *
+ * ONE exception, added 2026-07-21: while the run is LIVE (`context.runLive`),
+ * `not_yet_created` means "not written YET", not "this run has no such
+ * artifact" — so it is SHOWN, inert, as a pending entry. Without it the rail is
+ * empty for the whole early phase of every run, which is precisely when the
+ * operator is watching. `not_applicable` stays hidden either way, and
+ * `unavailable` never becomes pending: a read failure must stay distinguishable
+ * from "not written yet".
  */
 
 import type {
@@ -57,8 +65,14 @@ const HIDDEN_STATES: ReadonlySet<ArtifactState> = new Set<ArtifactState>([
   "not_yet_created",
 ]);
 
-export function isArtifactVisible(a: ArtifactDescriptor): boolean {
+export function isArtifactVisible(a: ArtifactDescriptor, runLive = false): boolean {
+  if (runLive && a.state === "not_yet_created") return true;
   return !HIDDEN_STATES.has(a.state);
+}
+
+/** Does this artifact render as "waiting to be written" rather than as a link? */
+export function isArtifactPending(a: ArtifactDescriptor, runLive: boolean): boolean {
+  return runLive && a.state === "not_yet_created";
 }
 
 /** Only an `available` artifact opens the right panel; the rest are inert. */
@@ -74,9 +88,12 @@ export function visibleArtifacts(context: MissionContext | null | undefined): Ar
   if (!context) return [];
   const byKind = new Map(context.artifacts.map((a) => [a.kind, a]));
   const out: ArtifactDescriptor[] = [];
+  // `runLive === true` is required explicitly: a server that does not send the
+  // field (an older build) keeps today's hide-empty exactly.
+  const live = context.runLive === true;
   for (const kind of ARTIFACT_ORDER) {
     const a = byKind.get(kind);
-    if (a && isArtifactVisible(a)) out.push(a);
+    if (a && isArtifactVisible(a, live)) out.push(a);
   }
   return out;
 }
@@ -224,75 +241,5 @@ export function reviewTypeLabel(t: "plan" | "code" | "doubt" | "external_code"):
       return "Doubt review";
     case "external_code":
       return "External code review";
-  }
-}
-
-// ---------------------------------------------------------------------------
-// S3 — pipeline + campaign wording
-// ---------------------------------------------------------------------------
-
-/** Plain-language unit/phase status. The raw enum is never shown. */
-export function unitStatusWord(status: string): string {
-  switch (status) {
-    case "complete":
-    case "done":
-      return "complete";
-    case "in_progress":
-      return "running now";
-    case "failed":
-      return "failed";
-    case "escalated":
-      return "needs a decision";
-    case "skipped":
-      return "skipped";
-    case "awaiting_launch":
-      return "waiting to start";
-    case "pending":
-    case "backlog":
-      return "not started";
-    default:
-      return status;
-  }
-}
-
-/** Why this unit is the current one — the basis, stated rather than implied. */
-export function selectionWord(selectedBy: "in_progress" | "first_incomplete" | "last_complete"): string {
-  switch (selectedBy) {
-    case "in_progress":
-      return "It is running now.";
-    case "first_incomplete":
-      return "It is the first unit that has not finished.";
-    case "last_complete":
-      return "Every unit is complete; this was the last one.";
-  }
-}
-
-/**
- * "5107 of 5108 passed", or an honest "not recorded".
- *
- * A null count NEVER becomes 0. Rendering an unrecorded result as "0 of 0
- * passed" would manufacture a pass out of missing data — the same shape as the
- * S2 finding where an unreadable findings count folded into "no issues".
- */
-export function testCountLabel(passed: number | null, total: number | null): string {
-  if (passed == null || total == null) return "not recorded";
-  return `${passed} of ${total} passed`;
-}
-
-/**
- * The review status, in words.
- *
- * `unavailable` deliberately reads as "no record" and NEVER as "passed" or
- * "none" — an unreadable pass presented as a clean one is the single worst
- * failure this artifact could produce (CONTRACT §9.1).
- */
-export function reviewStatusWord(status: "completed" | "not_run" | "unavailable"): string {
-  switch (status) {
-    case "completed":
-      return "ran";
-    case "not_run":
-      return "not run";
-    case "unavailable":
-      return "no record";
   }
 }

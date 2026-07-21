@@ -9,9 +9,18 @@
  *     so a forged `pr-link` marker cannot reach the merge check.
  *   - §5.2 bounded resolver: a multi-megabyte JSONL must not be re-read whole
  *     on a poll; the delivery marker is always near the end.
+ *
+ * The window is CLAMPED here, not trusted from the caller: never below the
+ * ordinary tail (so the PR marker keeps its reach) and never above
+ * `RECOVERY_TAIL_BYTES` (so no code path can turn this into an unbounded read of
+ * a multi-MB JSONL).
  */
 
-import { createMissionContextRouter, TRANSCRIPT_TAIL_BYTES } from "./routes.js";
+import {
+  createMissionContextRouter,
+  RECOVERY_TAIL_BYTES,
+  TRANSCRIPT_TAIL_BYTES,
+} from "./routes.js";
 import { getScenarioFacts } from "./facts.js";
 import type { SessionWatcher } from "../../core/session-watcher.js";
 import type { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
@@ -30,11 +39,15 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
   return createMissionContextRouter({
     store,
     getProjectById,
-    readTranscriptTail: async (sessionUuid: string) => {
+    readTranscriptTail: async (sessionUuid: string, maxBytes?: number) => {
       try {
         const loc = await watcher.findByUuid(sessionUuid);
         if (!loc) return "";
-        const fromByte = Math.max(0, loc.sizeBytes - TRANSCRIPT_TAIL_BYTES);
+        const budget = Math.min(
+          Math.max(maxBytes ?? TRANSCRIPT_TAIL_BYTES, TRANSCRIPT_TAIL_BYTES),
+          RECOVERY_TAIL_BYTES,
+        );
+        const fromByte = Math.max(0, loc.sizeBytes - budget);
         const r = await watcher.readChunk({ sessionUuid, fromByte, expectFingerprint: null });
         return r.status === "ok" ? r.chunk.content : "";
       } catch {

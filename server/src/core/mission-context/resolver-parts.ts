@@ -116,10 +116,16 @@ export function readBounded(absolute: string): string | null {
 }
 
 /**
- * A typed-`unavailable` response for the two integrity cases (AC5): a pointer
- * that failed validation, and one naming an unregistered worktree. Both must
- * SHOW as unavailable and must NOT be persisted — never a quiet fall-through to
- * "No run data yet" or to the project root (external review, openai HIGH).
+ * A typed-`unavailable` response for the integrity case (AC5): a pointer that
+ * FAILED VALIDATION. It must SHOW as unavailable and must NOT be persisted —
+ * never a quiet fall-through to "No run data yet" (external review, openai HIGH).
+ *
+ * The second case this once served — a pointer naming a worktree git does not
+ * register — was removed 2026-07-21: measured, that is the ordinary
+ * post-Finalize state of every pointer on disk, not an integrity failure, and
+ * treating it as one erased the artifacts of every finished run. Reading is
+ * still confined to registered roots by `chooseRoot`, which never used the
+ * unregistered path in the first place.
  */
 export function integrityResult(
   scenario: MissionContext["scenario"],
@@ -127,7 +133,7 @@ export function integrityResult(
   rev: string,
   note: string,
   runId: string | null,
-): { context: MissionContext; associateRunId: null } {
+): { context: MissionContext; associateRunId: null; associateSource: "iterate_active_pointer" } {
   return {
     context: {
       ...emptyContext(scenario, missionTabVisible, rev),
@@ -135,6 +141,7 @@ export function integrityResult(
       artifacts: unavailableArtifacts(note),
     },
     associateRunId: null,
+    associateSource: "iterate_active_pointer",
   };
 }
 
@@ -149,6 +156,8 @@ export function emptyContext(
     scenario,
     missionTabVisible,
     runId: null,
+    // Only a resolved iterate with a registered worktree is ever live.
+    runLive: false,
     artifacts: [],
     tests: null,
     servesFrId: null,

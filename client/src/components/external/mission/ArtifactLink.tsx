@@ -17,17 +17,30 @@
  */
 
 import type { ArtifactDescriptor } from "../../../lib/missionContextApi";
-import { artifactStateWord, isArtifactClickable } from "../../../lib/missionArtifacts";
+import {
+  artifactStateWord,
+  isArtifactClickable,
+  isArtifactPending,
+} from "../../../lib/missionArtifacts";
+
+/**
+ * What a not-yet-written artifact says while the run is still going. Plain
+ * words, no jargon, and it promises nothing about WHEN — it states the fact.
+ */
+const PENDING_RECEIPT = "Not written yet";
 
 interface Props {
   artifact: ArtifactDescriptor;
   active: boolean;
   onClick: () => void;
+  /** True while the run is in flight — see `isArtifactPending`. */
+  runLive?: boolean;
 }
 
-export function ArtifactLink({ artifact, active, onClick }: Props) {
+export function ArtifactLink({ artifact, active, onClick, runLive = false }: Props) {
   const clickable = isArtifactClickable(artifact);
-  const stateWord = artifactStateWord(artifact.state);
+  const pending = isArtifactPending(artifact, runLive);
+  const stateWord = pending ? "not written yet" : artifactStateWord(artifact.state);
   // `done` / `pending` map onto the existing rail dot vocabulary so the two
   // rails share one visual language.
   const dotState = artifact.state === "available" ? "done" : "pending";
@@ -39,6 +52,10 @@ export function ArtifactLink({ artifact, active, onClick }: Props) {
         <span className="rn-k">{artifact.label}</span>
         <span className="sr-only"> — {stateWord}</span>
         {artifact.receipt ? <span className="rn-r">{artifact.receipt}</span> : null}
+        {/* A pending entry states the fact itself — the server sends no receipt
+            for something that does not exist yet, and inventing one would be a
+            claim. `unavailable` keeps its own note and never reads as pending. */}
+        {pending && !artifact.receipt ? <span className="rn-r">{PENDING_RECEIPT}</span> : null}
         {!clickable && artifact.note ? <span className="rn-r">{artifact.note}</span> : null}
       </span>
       {clickable ? (
