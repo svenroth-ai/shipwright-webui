@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-mac-titlebar-right-clip",
+  "date": "2026-07-21T20:26:50.441763Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/mac-titlebar-right-clip",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-21-mac-titlebar-right-clip.md",
+  "adr": "iterate-2026-07-21-mac-titlebar-right-clip"
+}

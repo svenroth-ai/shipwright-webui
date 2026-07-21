@@ -44,17 +44,27 @@ export default function SettingsPage() {
         testId="settings-header"
       />
 
-      {/* Body — .page-container centers to 1280px and applies 24px
-          horizontal padding. Top padding gives a little breathing room
-          under the header. */}
-      <div
-        className="page-container flex flex-col gap-4"
-        style={{ paddingTop: "24px", paddingBottom: "24px" }}
-      >
-        {/* Terminal preferences (client-local). */}
-        <TerminalSettingsCard />
-        {/* FR-01.27 — per-project actions.json upload + reset. */}
-        <ActionsConfigCard projects={projects} />
+      {/* Body — Settings was the LAST route that let its overflow escape to the
+          shell scroller (iterate-2026-07-21-mac-titlebar-right-clip). That made
+          /settings the one route growing a shell scrollbar, which both inset its
+          title bar and sprang the content width when you left the page. This
+          `flex-1 overflow-y-auto` wrapper is the same body Diagnostics / Inbox /
+          Projects / Triage / Ship's Log already use: the bar stays put, the
+          content scrolls under it. Block flow inside (NOT a flex column), so
+          DO-NOT #24's `[&>*]:shrink-0` does not apply — that utility would be
+          inert here and only imply a flex context that does not exist.
+          .page-container (inside) centers to 1280px and applies 24px horizontal
+          padding; the vertical padding gives breathing room under the header. */}
+      <div className="flex-1 overflow-y-auto" data-testid="settings-scroll-body">
+        <div
+          className="page-container flex flex-col gap-4"
+          style={{ paddingTop: "24px", paddingBottom: "24px" }}
+        >
+          {/* Terminal preferences (client-local). */}
+          <TerminalSettingsCard />
+          {/* FR-01.27 — per-project actions.json upload + reset. */}
+          <ActionsConfigCard projects={projects} />
+        </div>
       </div>
     </div>
   );
