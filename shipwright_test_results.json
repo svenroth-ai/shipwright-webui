@@ -32,7 +32,7 @@
       "status": "not_run"
     },
     "degraded": [
-      "E2E spec 73 (pre-existing) — its 2 pty-dependent cases fail on the isolated stack with pty_spawn_failed code 5 (ACCESS_DENIED); 9 of 11 pass. PROVEN ENVIRONMENTAL, not caused by this change: the same 2 cases fail identically on unmodified code, while @lydell/node-pty spawns pwsh.exe fine standalone on the same machine and temp profile. Spec 77 was therefore designed to need no live pty."
+      "E2E spec 73 (pre-existing) \u2014 its 2 pty-dependent cases fail on the isolated stack with pty_spawn_failed code 5 (ACCESS_DENIED); 9 of 11 pass. PROVEN ENVIRONMENTAL, not caused by this change: the same 2 cases fail identically on unmodified code, while @lydell/node-pty spawns pwsh.exe fine standalone on the same machine and temp profile. Spec 77 was therefore designed to need no live pty."
     ],
     "test_completeness": {
       "status": "complete",
@@ -40,107 +40,107 @@
         {
           "behavior": "Reconnect scheduler settles into a capped tail instead of terminating",
           "disposition": "tested",
-          "evidence": "useTerminalSocket.osresume.test.ts > AC-1 never inert — getTimerCount()>0 + exactly +1 attempt per tail interval — PASS"
+          "evidence": "useTerminalSocket.osresume.test.ts > AC-1 never inert \u2014 getTimerCount()>0 + exactly +1 attempt per tail interval \u2014 PASS"
         },
         {
           "behavior": "Network returning after the ramp recovers the terminal unaided",
           "disposition": "tested",
-          "evidence": "osresume > REPRO network-returns — PASS (FAILED before the fix)"
+          "evidence": "osresume > REPRO network-returns \u2014 PASS (FAILED before the fix)"
         },
         {
           "behavior": "`online` re-arms and reconnects immediately",
           "disposition": "tested",
-          "evidence": "osresume > REPRO online — PASS (FAILED before the fix)"
+          "evidence": "osresume > REPRO online \u2014 PASS (FAILED before the fix)"
         },
         {
-          "behavior": "`online` recovery cancels the armed tail — no delayed second attach",
+          "behavior": "`online` recovery cancels the armed tail \u2014 no delayed second attach",
           "disposition": "tested",
-          "evidence": "osresume > AC-3 guard tail-cancel — PASS"
+          "evidence": "osresume > AC-3 guard tail-cancel \u2014 PASS"
         },
         {
-          "behavior": "`online` leaves a healthy OPEN socket alone — no double attach",
+          "behavior": "`online` leaves a healthy OPEN socket alone \u2014 no double attach",
           "disposition": "tested",
-          "evidence": "osresume > AC-3 guard — PASS"
+          "evidence": "osresume > AC-3 guard \u2014 PASS"
         },
         {
           "behavior": "Tail never resurrects a replay-only attach on an ABNORMAL close",
           "disposition": "tested",
-          "evidence": "osresume > AC-4 — PASS"
+          "evidence": "osresume > AC-4 \u2014 PASS"
         },
         {
           "behavior": "`online` never resurrects a replay-only attach",
           "disposition": "tested",
-          "evidence": "osresume > AC-4 — PASS"
+          "evidence": "osresume > AC-4 \u2014 PASS"
         },
         {
           "behavior": "Refocus still reconnects immediately, not via the tail",
           "disposition": "tested",
-          "evidence": "useTerminalSocket.refocus.test.ts > AC-4 x3 (focus/pageshow/visibilitychange) — PASS"
+          "evidence": "useTerminalSocket.refocus.test.ts > AC-4 x3 (focus/pageshow/visibilitychange) \u2014 PASS"
         },
         {
           "behavior": "`reconnecting` true while a retry is armed, false on recovery",
           "disposition": "tested",
-          "evidence": "osresume > AC-5 — PASS"
+          "evidence": "osresume > AC-5 \u2014 PASS"
         },
         {
           "behavior": "A replay-only attach never claims to be reconnecting",
           "disposition": "tested",
-          "evidence": "osresume > AC-5 replay-only — PASS"
+          "evidence": "osresume > AC-5 replay-only \u2014 PASS"
         },
         {
           "behavior": "Watchdog reaps an attempt stuck in CONNECTING so retry resumes",
           "disposition": "tested",
-          "evidence": "osresume > AC-1 hung connect — PASS (fails without the watchdog)"
+          "evidence": "osresume > AC-1 hung connect \u2014 PASS (fails without the watchdog)"
         },
         {
           "behavior": "Delay policy: ramp -> tail -> slow tail; never non-positive; monotonic",
           "disposition": "tested",
-          "evidence": "wsReconnectSchedule.test.ts — PASS (probed to attempt 1e6)"
+          "evidence": "wsReconnectSchedule.test.ts \u2014 PASS (probed to attempt 1e6)"
         },
         {
           "behavior": "isSlowTail boundary agrees with the delay policy",
           "disposition": "tested",
-          "evidence": "wsReconnectSchedule.test.ts — PASS"
+          "evidence": "wsReconnectSchedule.test.ts \u2014 PASS"
         },
         {
           "behavior": "Watchdog: spares OPEN/superseded/cancelled, idempotent clear, re-arm replaces, swallows close() throw",
           "disposition": "tested",
-          "evidence": "wsReconnectSchedule.test.ts (7 cases) — PASS"
+          "evidence": "wsReconnectSchedule.test.ts (7 cases) \u2014 PASS"
         },
         {
           "behavior": "Reconnecting banner renders with the no-reload advice",
           "disposition": "tested",
-          "evidence": "TerminalBanners.test.tsx AC-5 — PASS"
+          "evidence": "TerminalBanners.test.tsx AC-5 \u2014 PASS"
         },
         {
           "behavior": "Banner absent when the socket is healthy",
           "disposition": "tested",
-          "evidence": "TerminalBanners.test.tsx AC-5 — PASS"
+          "evidence": "TerminalBanners.test.tsx AC-5 \u2014 PASS"
         },
         {
           "behavior": "Banner renders ABOVE read-only (no connection outranks role)",
           "disposition": "tested",
-          "evidence": "TerminalBanners.test.tsx AC-5 ordering — PASS"
+          "evidence": "TerminalBanners.test.tsx AC-5 ordering \u2014 PASS"
         },
         {
           "behavior": "Banner softens copy on the slow tail, dropping the 'not needed' promise",
           "disposition": "tested",
-          "evidence": "TerminalBanners.test.tsx AC-5 stalled — PASS"
+          "evidence": "TerminalBanners.test.tsx AC-5 stalled \u2014 PASS"
         },
         {
           "behavior": "Banner grace: no arm before window; arms after; disarms on recovery; blip clears the timer",
           "disposition": "tested",
-          "evidence": "useTerminalShellEffects.reconnecting.test.ts (4 cases) — PASS"
+          "evidence": "useTerminalShellEffects.reconnecting.test.ts (4 cases) \u2014 PASS"
         },
         {
           "behavior": "REAL BROWSER: client keeps retrying past the old 5-attempt budget",
           "disposition": "tested",
-          "evidence": "e2e/flows/77-terminal-reconnect-after-outage.spec.ts — PASS; verified load-bearing by restoring the old cap and rebuilding: FAILED with 'Expected: > 6, Received: 6'"
+          "evidence": "e2e/flows/77-terminal-reconnect-after-outage.spec.ts \u2014 PASS; verified load-bearing by restoring the old cap and rebuilding: FAILED with 'Expected: > 6, Received: 6'"
         },
         {
           "behavior": "REAL BROWSER: outage surfaces as the reconnecting banner, calm cadence (<1 attempt/s)",
           "disposition": "tested",
-          "evidence": "e2e spec 77 (AC-5 + AC-6) — PASS"
+          "evidence": "e2e spec 77 (AC-5 + AC-6) \u2014 PASS"
         },
         {
           "behavior": "Real macOS lid-close -> Tailscale re-establish -> unaided recovery on the reporter's hardware",
@@ -148,13 +148,23 @@
           "reason_code": "requires-physical-device",
           "evidence": "Needs a genuinely suspending Mac plus a real tailnet renegotiation; neither CI nor a local harness can produce an OS suspend and a tunnel returning. The client-side property it depends on (a retry is always armed, and any later success reconnects) is pinned by the rows above."
         }
-      ]
+      ],
+      "counts": {
+        "testable": 21,
+        "tested": 21,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
+      }
     },
     "surface_verification": {
       "surface": "web",
       "tests_run": 1,
       "exit_code": 0,
-      "justification": "WS-layer change, so the backend-affects-frontend rule applies and jsdom cannot prove the outcome. Executed e2e/flows/77-terminal-reconnect-after-outage.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local): 1 passed. Verified LOAD-BEARING by restoring the old 5-attempt cap in useTerminalSocket.ts, rebuilding the client and re-running: FAILED with 'Expected: > 6, Received: 6' — the attempt count freezing at 6 is exactly the reported defect. Fix restored and re-run green."
+      "justification": "WS-layer change, so the backend-affects-frontend rule applies and jsdom cannot prove the outcome. Executed e2e/flows/77-terminal-reconnect-after-outage.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local): 1 passed. Verified LOAD-BEARING by restoring the old 5-attempt cap in useTerminalSocket.ts, rebuilding the client and re-running: FAILED with 'Expected: > 6, Received: 6' \u2014 the attempt count freezing at 6 is exactly the reported defect. Fix restored and re-run green."
     }
   }
 }
