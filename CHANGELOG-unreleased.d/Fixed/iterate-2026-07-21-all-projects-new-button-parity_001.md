@@ -1,0 +1,1 @@
+The "New" button on the Task Board's All-Projects view now matches every other New / Create button: same teal, same height, same width and the same position in the header. It had been missed by both earlier button-standardisation passes and still rendered in a retired brighter teal at a slightly smaller size, so it visibly sat apart from the Board and Projects buttons.

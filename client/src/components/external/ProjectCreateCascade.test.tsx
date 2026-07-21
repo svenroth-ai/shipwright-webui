@@ -222,3 +222,58 @@ describe("ProjectCreateMenu / ProjectPlainPicker triggers", () => {
     expect(screen.getByTestId("plain-cascade-trigger")).toBeTruthy();
   });
 });
+
+/*
+ * Sven 2026-07-21 (iterate-2026-07-21-all-projects-new-button-parity).
+ *
+ * The 2026-07-17 standardisation pass put the Board "New task", "Create Project"
+ * and the Ship's Log button on the ONE canonical `.btn-primary` contract
+ * (styles/buttons.css: fixed 36px height, 132px min-width, --btn-primary-bg
+ * #0E7A6B). This trigger was MISSED and kept hand-rolling its own box:
+ * `bg-[var(--color-primary)] px-4 py-2` + a 1.5px ring on the wrapper. Inside
+ * the board header `.chrome-dark-controls` re-points --color-primary at
+ * #35B8A4 — precisely the brighter teal buttons.css records as RETIRED — so the
+ * All-Projects button was a different colour AND a different size, and with no
+ * min-width its left edge landed somewhere else than every other page's CTA.
+ *
+ * Asserting the CLASS (not computed pixels) is deliberate: jsdom applies no
+ * stylesheet, so geometry is unobservable here. The class is the contract;
+ * buttons.css owns the geometry behind it. Same shape as the sibling assertion
+ * in pages/ProjectsPage.test.tsx.
+ */
+describe("All-Projects create trigger — the ONE primary-button standard", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+  });
+
+  // @covers FR-01.38
+  it("carries the canonical .btn-primary", () => {
+    const qc = makeQc();
+    wrap(qc, <ProjectCreateMenu projects={PROJECTS} onSelect={vi.fn()} />);
+    expect(screen.getByTestId("create-menu-cascade-trigger")).toHaveClass(
+      "btn-primary",
+    );
+  });
+
+  // @covers FR-01.38
+  it("re-implements neither the primary colour nor its own padding box", () => {
+    const qc = makeQc();
+    wrap(qc, <ProjectCreateMenu projects={PROJECTS} onSelect={vi.fn()} />);
+    const cls = screen.getByTestId("create-menu-cascade-trigger").className;
+    expect(cls).not.toContain("bg-[var(--color-primary)]");
+    expect(cls).not.toContain("px-4");
+    expect(cls).not.toContain("py-2");
+  });
+
+  // The wrapper existed only to draw a rounded 1.5px ring around the hand-rolled
+  // button; `.btn-primary` owns radius + colour, so the ring must not come back
+  // (it added ~3px of height, breaking the fixed-geometry contract).
+  // @covers FR-01.38
+  it("no longer wraps the trigger in its own bordered shell", () => {
+    const qc = makeQc();
+    wrap(qc, <ProjectCreateMenu projects={PROJECTS} onSelect={vi.fn()} />);
+    const cls = screen.getByTestId("create-menu-cascade").className;
+    expect(cls).not.toContain("border-[1.5px]");
+    expect(cls).not.toContain("border-[var(--color-primary)]");
+  });
+});

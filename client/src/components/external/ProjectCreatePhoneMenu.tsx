@@ -12,6 +12,10 @@
  * Testids match the cascade (`create-menu-cascade-*`) so the same E2E/unit
  * selectors target both presentations. Action selection funnels through the
  * SAME `onSelect(action, projectId)` contract → existing NewIssueModal flow.
+ *
+ * The trigger carries the ONE canonical `.btn-primary` (styles/buttons.css),
+ * identical to the desktop cascade — same button, smaller viewport
+ * (iterate-2026-07-21-all-projects-new-button-parity).
  */
 
 import { useState } from "react";
@@ -36,10 +40,7 @@ export function ProjectCreatePhoneMenu({
   const [picked, setPicked] = useState<Project | null>(null);
   const disabled = isLoading || projects.length === 0;
   return (
-    <div
-      className="inline-flex overflow-hidden rounded-[var(--radius-button)] border-[1.5px] border-[var(--color-primary)] shadow-sm"
-      data-testid="create-menu-cascade"
-    >
+    <div className="inline-flex" data-testid="create-menu-cascade">
       <DropdownMenu.Root
         open={open}
         onOpenChange={(o) => {
@@ -55,7 +56,7 @@ export function ProjectCreatePhoneMenu({
             disabled={disabled}
             data-testid="create-menu-cascade-trigger"
             aria-label="New — choose a project"
-            className="inline-flex items-center gap-1.5 bg-[var(--color-primary)] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary shadow-sm"
           >
             {isLoading ? (
               <Loader2 size={16} className="animate-spin" />
