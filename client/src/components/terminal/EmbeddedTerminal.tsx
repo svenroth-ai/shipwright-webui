@@ -21,7 +21,6 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
-  useState,
 } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
@@ -51,6 +50,7 @@ import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
 import { useTerminalClipboard } from "./useTerminalClipboard";
 import { useTerminalShellEffects } from "./useTerminalShellEffects";
+import { useTerminalBannerState } from "./useTerminalBannerState";
 import { TerminalBanners } from "./TerminalBanners";
 import { TerminalKeyBar, terminalKeySequence } from "./TerminalKeyBar";
 
@@ -110,15 +110,11 @@ export const EmbeddedTerminal = forwardRef<
   // WebGL glyph-atlas heal (FR-01.28) — see activation-repaint.ts "ATLAS HEAL".
   const atlasHealRef = useRef<(() => void) | null>(null);
 
-  // Shell-owned banner state.
-  const [readOnlyArmed, setReadOnlyArmed] = useState(false);
-  const [resetBannerDismissed, setResetBannerDismissed] = useState(false);
-  // Transient clipboard-notice state (paste hints + OSC 52 copy-failed).
+  // Shell-owned banner state (+ per-task reset) and the transient
+  // clipboard-notice state (paste hints + OSC 52 copy-failed).
+  const banners = useTerminalBannerState(taskId);
+  const { readOnlyArmed, resetBannerDismissed, setResetBannerDismissed } = banners;
   const clip = useTerminalClipboard();
-
-  useEffect(() => {
-    setResetBannerDismissed(false);
-  }, [taskId]);
 
   // ── Hook chain (lifecycle-ordered) ──
   const coord = useLaunchCoordinator();
@@ -163,7 +159,8 @@ export const EmbeddedTerminal = forwardRef<
     termRef,
     fitAddonRef,
     disposedRef,
-    setReadOnlyArmed,
+    setReadOnlyArmed: banners.setReadOnlyArmed,
+    setReconnectingArmed: banners.setReconnectingArmed,
     onReadyChange,
     onTerminalMeta,
   });
@@ -281,6 +278,8 @@ export const EmbeddedTerminal = forwardRef<
       data-role={socket.role ?? "unknown"}
     >
       <TerminalBanners
+        reconnecting={banners.reconnectingArmed}
+        reconnectStalled={socket.reconnectStalled}
         readOnly={readOnly}
         showResetBanner={showResetBanner}
         resetScrollbackBytes={socket.scrollbackBytes}

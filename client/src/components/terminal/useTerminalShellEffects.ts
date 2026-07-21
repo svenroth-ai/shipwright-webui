@@ -22,7 +22,15 @@ import type {
   UseTerminalSocketResult,
 } from "../../hooks/useTerminalSocket";
 
-const READONLY_BANNER_GRACE_MS = 1500;
+export const READONLY_BANNER_GRACE_MS = 1500;
+/**
+ * Same grace idea for the "Reconnecting…" banner
+ * (iterate-2026-07-21-mac-sleep-terminal-frozen). A transient blip — a server
+ * restart, a brief partition — is recovered inside the fast reconnect ramp, so
+ * arming instantly would flash the banner on every hiccup. Only an outage that
+ * outlives the grace is worth telling the user about.
+ */
+const RECONNECTING_BANNER_GRACE_MS = 1500;
 
 export interface UseTerminalShellEffectsOptions {
   socket: UseTerminalSocketResult;
@@ -31,6 +39,7 @@ export interface UseTerminalShellEffectsOptions {
   fitAddonRef: RefObject<FitAddon | null>;
   disposedRef: RefObject<boolean>;
   setReadOnlyArmed: Dispatch<SetStateAction<boolean>>;
+  setReconnectingArmed: Dispatch<SetStateAction<boolean>>;
   onReadyChange?: (ready: boolean, role: TerminalRole | null) => void;
   onTerminalMeta?: (meta: {
     replayOnly: boolean | null;
@@ -50,6 +59,7 @@ export function useTerminalShellEffects(
     fitAddonRef,
     disposedRef,
     setReadOnlyArmed,
+    setReconnectingArmed,
     onReadyChange,
     onTerminalMeta,
   } = opts;
@@ -71,6 +81,21 @@ export function useTerminalShellEffects(
     );
     return () => clearTimeout(t);
   }, [socket.role, socket.ready, setReadOnlyArmed]);
+
+  // Reconnecting-banner grace (iterate-2026-07-21) — mirrors the read-only
+  // grace above. Clears the moment the socket is back, so the banner
+  // self-dismisses without the user doing anything.
+  useEffect(() => {
+    if (!socket.reconnecting) {
+      setReconnectingArmed(false);
+      return;
+    }
+    const t = setTimeout(
+      () => setReconnectingArmed(true),
+      RECONNECTING_BANNER_GRACE_MS,
+    );
+    return () => clearTimeout(t);
+  }, [socket.reconnecting, setReconnectingArmed]);
 
   // Tab auto-focus + display:none-repair refit (iterate-2026-05-23).
   const tabAutoFocusedRef = useRef(false);

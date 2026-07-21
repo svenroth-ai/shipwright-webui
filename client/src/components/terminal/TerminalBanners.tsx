@@ -45,6 +45,21 @@ const CLIPBOARD_NOTICE_CLASS: Record<ClipboardNoticeKind, string> = {
 };
 
 export interface TerminalBannersProps {
+  /**
+   * Grace-armed "the socket is down but coming back" state
+   * (iterate-2026-07-21-mac-sleep-terminal-frozen). Rendered FIRST: with no
+   * connection the read-only / reset / replay states are all moot, and a silent
+   * dead socket is exactly what made an OS-resume outage read as a frozen
+   * terminal rather than a disconnected one. Self-dismisses on reconnect.
+   */
+  reconnecting: boolean;
+  /**
+   * The outage has outlived the prompt retry window. Softens the copy: not
+   * every disconnect recovers (a deleted task cwd is refused deterministically
+   * by the server), so after a minute the banner must stop asserting that the
+   * session is fine and simply say it is still trying (code review MEDIUM).
+   */
+  reconnectStalled: boolean;
   readOnly: boolean;
   showResetBanner: boolean;
   /**
@@ -67,6 +82,8 @@ export interface TerminalBannersProps {
 
 export function TerminalBanners(props: TerminalBannersProps): ReactElement {
   const {
+    reconnecting,
+    reconnectStalled,
     readOnly,
     showResetBanner,
     resetScrollbackBytes,
@@ -81,6 +98,18 @@ export function TerminalBanners(props: TerminalBannersProps): ReactElement {
   } = props;
   return (
     <>
+      {reconnecting || reconnectStalled ? (
+        <div
+          className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
+          data-testid="embedded-terminal-reconnecting"
+          data-stalled={reconnectStalled ? "true" : "false"}
+          role="status"
+        >
+          {reconnectStalled
+            ? "Connection lost — still retrying, less often now. The server may be unreachable, or this task's folder may no longer exist."
+            : "Connection lost — reconnecting… The terminal keeps retrying on its own; reloading the page is not needed."}
+        </div>
+      ) : null}
       {readOnly ? (
         <div
           className="-mx-2 -mt-2 mb-2 border-b border-[var(--color-border,#e0dbd4)] bg-[var(--color-warning-bg,#fff7ed)] px-3 py-1 text-[11px] text-[var(--color-warning,#9a3412)]"
