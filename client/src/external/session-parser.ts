@@ -1,4 +1,5 @@
 import { extractAskUserPayload } from "../lib/askUserPayload";
+import { detectSlashCommand } from "./parsers/slash-command";
 import { detectStopHook } from "./parsers/stop-hook";
 
 /*
@@ -61,6 +62,16 @@ export interface SlashCommandEvent extends BaseEvent {
   kind: "slash-command";
   /** The command name, e.g. `/shipwright-compliance:compliance`. */
   commandName: string;
+  /**
+   * 2026-07-21 — FR-01.68 AC2. The `<command-args>` payload, when present.
+   *
+   * For a `/shipwright-iterate` session this is where the operator's REQUEST
+   * lives — there is no separate user message carrying it. The Mission
+   * narrative opens on it; without it the story has no reason to exist.
+   * OPTIONAL for forward/backward compat: a bare command has no args, and
+   * events parsed before this shipped won't carry the field.
+   */
+  args?: string;
 }
 
 /**
@@ -295,7 +306,7 @@ function parseOne(raw: Record<string, unknown>): ParsedEvent {
       // whitespace around them — mixed user text falls through to `user`.
       const slash = detectSlashCommand(content);
       if (slash) {
-        return { ...base, kind: "slash-command", commandName: slash };
+        return { ...base, kind: "slash-command", ...slash };
       }
       // 2026-04-23 — iterate-20260423-chat-followups AC-3 / ADR-056 AC-A:
       // skill-loader fingerprint. Length-guarded + CRLF-normalized +
@@ -574,29 +585,8 @@ function collectTextBlocks(blocks: unknown[]): string {
  * Mixed-content guard prevents swallowing a normal user message that
  * happens to contain `<command-message>` as literal text.
  */
-function detectSlashCommand(content: unknown): string | null {
-  if (typeof content !== "string") return null;
-  // Length cap — a legitimate slash command name is ~50 chars tops.
-  // Anything over ~200 is almost certainly user prose that happened
-  // to contain command-tag shapes.
-  if (content.length > 200) return null;
-  const trimmed = content.trim();
-  if (!trimmed.startsWith("<command-message>") || !trimmed.endsWith("</command-name>")) {
-    return null;
-  }
-  // `[^<\n]+` (no newlines inside tags) narrows the match so a real
-  // user message whose text contains a newline + balanced tag strings
-  // can't match. Length-bounded further by the 200-char guard above.
-  const pattern =
-    /^<command-message>([^<\n]+)<\/command-message>\s*<command-name>\/([^<\n]+)<\/command-name>$/;
-  const match = trimmed.match(pattern);
-  if (!match) return null;
-  const [, inner, named] = match;
-  // Names must match (Claude Code always emits them paired). If they
-  // differ, the content is hand-crafted and should render as plain user.
-  if (inner.trim() !== named.trim()) return null;
-  return `/${named.trim()}`;
-}
+/* `detectSlashCommand` moved to `parsers/slash-command.ts` (FR-01.68) — this
+ * file is at its bloat baseline and the detection siblings already live there. */
 
 /**
  * Unwrap user-message content into a single text string for fingerprint

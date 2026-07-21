@@ -16,6 +16,7 @@
  */
 
 import { toolUses, type ParsedEvent } from "../external/session-parser";
+import { runsCommand } from "./shell-heads";
 
 export type EditKind = "spec" | "finalize" | "incidental" | "product";
 
@@ -90,32 +91,10 @@ const RE_SCOPE_SCRIPT =
   /setup_iterate_worktree|classify_complexity|check-external-review-keys|external_review\.py|mark-review-state/;
 const RE_FINALIZE_SCRIPT = /finalize_iterate|write_decision_log|artifact_sync|verify_iterate/;
 
-/** Shell separators that begin a new command. */
-const SEGMENT_SPLIT = /\n|;|&&|\|\||[|&]/;
-/** Leading noise before the real command: env assignments and runner wrappers. */
-const COMMAND_PREFIX = /^(\S+=\S+|npx|pnpm|yarn|bun|sudo|time|command)\s+/;
-
-/**
- * The command heads of a shell string — one per `;`/`&&`/`||`/`|` segment, with
- * env assignments and runner wrappers stripped, so `npx vitest run` and
- * `shipwright_network_profile=local npx vitest run` both expose `vitest run`
- * while `cat vitest.config.ts` exposes `cat …`.
- */
-function commandHeads(cmd: string): string[] {
-  return cmd.split(SEGMENT_SPLIT).map((segment) => {
-    let s = segment.trim();
-    for (;;) {
-      const m = COMMAND_PREFIX.exec(s);
-      if (!m) return s;
-      s = s.slice(m[0].length);
-    }
-  });
-}
-
-/** Did this shell string actually RUN the pattern, rather than mention it? */
-function runsCommand(cmd: string, pattern: RegExp): boolean {
-  return commandHeads(cmd).some((head) => pattern.test(head));
-}
+/* Command-position matching (incl. the quote-aware splitting that keeps a tool
+ * name inside a quoted argument from claiming its phase) lives in
+ * `shell-heads.ts` — it changes with SHELL syntax, this file changes with
+ * Shipwright's tooling vocabulary. */
 
 /**
  * The plain phrase for the LAST thing the session actually did, or null.
