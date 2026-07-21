@@ -42,18 +42,25 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
     readTranscriptTail: async (sessionUuid: string, maxBytes?: number) => {
       try {
         const loc = await watcher.findByUuid(sessionUuid);
-        if (!loc) return "";
+        if (!loc) return { text: "", revision: "" };
         const budget = Math.min(
           Math.max(maxBytes ?? TRANSCRIPT_TAIL_BYTES, TRANSCRIPT_TAIL_BYTES),
           RECOVERY_TAIL_BYTES,
         );
         const fromByte = Math.max(0, loc.sizeBytes - budget);
         const r = await watcher.readChunk({ sessionUuid, fromByte, expectFingerprint: null });
-        return r.status === "ok" ? r.chunk.content : "";
+        if (r.status !== "ok") return { text: "", revision: "" };
+        // Already in hand from the SAME `findByUuid` walk, so scheduling the
+        // wide reach-back costs no extra I/O. All three parts earn their place:
+        // `path` catches a transcript REPLACED under the same session uuid,
+        // `sizeBytes` the ordinary append, `mtimeMs` an in-place rewrite that
+        // happens to preserve the length.
+        return { text: r.chunk.content, revision: `${loc.path}:${loc.sizeBytes}:${loc.mtimeMs}` };
       } catch {
         // A transcript fault degrades the PR marker (merge → "unknown"), and
-        // must never fail the context read itself.
-        return "";
+        // must never fail the context read itself. No revision, so the reach-back
+        // schedule treats it as "we learned nothing".
+        return { text: "", revision: "" };
       }
     },
     getScenarioFacts: (project, task) => getScenarioFacts(project, task, { readRunConfig }),

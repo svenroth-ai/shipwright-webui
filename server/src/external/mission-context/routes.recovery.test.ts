@@ -19,6 +19,7 @@ import { join } from "node:path";
 
 import { _clearResolverCache } from "../../core/mission-context/resolver.js";
 import { _clearEventIndexCache } from "../../core/mission-context/iterate-record.js";
+import { _clearRecoveryMemo } from "../../core/mission-context/run-id-recovery.js";
 import { RECOVERY_TAIL_BYTES, TRANSCRIPT_TAIL_BYTES } from "./routes.js";
 import { getContext, harness, makeProject, makeTask, RUN_ID, UUID } from "./test-harness.js";
 

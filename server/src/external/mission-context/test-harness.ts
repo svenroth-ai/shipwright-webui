@@ -12,7 +12,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { vi } from "vitest";
 
-import { createMissionContextRouter } from "./routes.js";
+import {
+  createMissionContextRouter,
+  RECOVERY_TAIL_BYTES,
+  TRANSCRIPT_TAIL_BYTES,
+} from "./routes.js";
 import type { ExternalTask } from "../../core/sdk-sessions-store.js";
 import type { SdkSessionsStore } from "../../core/sdk-sessions-store.js";
 
@@ -79,10 +83,28 @@ export interface HarnessOptions {
   /** Make persist() reject, the way an ELOCKED contention would. */
   persistThrows?: boolean;
   transcript?: string;
+  /** Test seam for the reach-back cap (routes.ts `WIDE_WINDOW_CAP`). */
+  wideWindowCap?: number;
+  /**
+   * Per-poll transcript reads, for the reach-back SCHEDULE. The last entry
+   * repeats, so `[a, b]` means "a once, then b forever". Default: `transcript`
+   * at a constant revision — a transcript that never changes.
+   *
+   * `narrowText` is what the ORDINARY window sees; omit it when the budget makes
+   * no difference. Setting it models the case the wide window exists for: a
+   * footer sitting further back than `TRANSCRIPT_TAIL_BYTES`, which only the
+   * reach-back can read.
+   */
+  reads?: { text: string; revision: string; narrowText?: string }[];
 }
 
-export function harness(root: string, task: ExternalTask, opts: HarnessOptions = {}) {
-  const tasks = new Map<string, ExternalTask>([[task.taskId, task]]);
+export function harness(
+  root: string,
+  task: ExternalTask | ExternalTask[],
+  opts: HarnessOptions = {},
+) {
+  const all = Array.isArray(task) ? task : [task];
+  const tasks = new Map<string, ExternalTask>(all.map((t) => [t.taskId, t]));
   const persist = vi.fn(async () => {
     if (opts.persistThrows) throw new Error("ELOCKED");
   });
@@ -102,15 +124,25 @@ export function harness(root: string, task: ExternalTask, opts: HarnessOptions =
   } satisfies Pick<SdkSessionsStore, "get" | "patch" | "persist">;
 
   // Records the byte budget the route asked for, so a test can prove the wider
-  // recovery window is requested ONLY while the task is unidentified.
-  const readTranscriptTail = vi.fn(async (_uuid: string, _maxBytes?: number) =>
-    opts.transcript ?? "",
-  );
+  // recovery window is requested ONLY while it can still pay.
+  //
+  // `poll` counts READS, not reads-per-task: with several tasks the sequence
+  // interleaves. That is deliberate (the budget sequence is what the schedule
+  // tests assert, in call order) but it means a multi-task test must either use
+  // a single sticky entry or account for the interleaving itself.
+  const reads = opts.reads ?? [{ text: opts.transcript ?? "", revision: "rev-1" }];
+  let poll = 0;
+  const readTranscriptTail = vi.fn(async (_uuid: string, maxBytes?: number) => {
+    const r = reads[Math.min(poll++, reads.length - 1)];
+    const narrow = (maxBytes ?? TRANSCRIPT_TAIL_BYTES) < RECOVERY_TAIL_BYTES;
+    return { text: narrow ? (r.narrowText ?? r.text) : r.text, revision: r.revision };
+  });
 
   const app = createMissionContextRouter({
     store: store as unknown as SdkSessionsStore,
     getProjectById: (id) => (id === "proj-1" ? { id: "proj-1", name: "P", path: root } : undefined),
     readTranscriptTail,
+    wideWindowCap: opts.wideWindowCap,
     getScenarioFacts: async () => ({
       actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
       runConfigStatus: "missing",

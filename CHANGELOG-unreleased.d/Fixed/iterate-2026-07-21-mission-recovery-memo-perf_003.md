@@ -1,0 +1,1 @@
+Mission tab: if saving a newly recovered run identity fails (for example another Command Center instance holds the lock), the next refresh looks as widely as the first one did, instead of quietly giving up on that task until the transcript changes.

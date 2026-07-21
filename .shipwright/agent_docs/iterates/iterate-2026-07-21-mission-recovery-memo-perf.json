@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-21-mission-recovery-memo-perf",
+  "date": "2026-07-21T20:33:15.605614Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/2026-07-21-mission-recovery-memo-perf",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-21-mission-recovery-memo-perf/spec.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-21-mission-recovery-memo-perf"
+}

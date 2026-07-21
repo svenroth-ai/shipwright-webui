@@ -13,7 +13,7 @@
  *   4. campaign       — a `campaign:<slug>` title AND a real campaign record.
  *   5. iterate        — a CORROBORATED `Run-ID` footer in this session's own
  *      transcript (run-id-recovery.ts). Last resort, and deliberately ranked
- *      below pipeline/campaign — see `transcriptRunId`.
+ *      below pipeline/campaign — see `recoverTranscriptRunId`.
  *   6. plain          — everything else (scenarios 1/4): narration, no rail.
  *
  * Two DECIDED asymmetries, both "fail toward showing the tab":
@@ -85,8 +85,16 @@ export interface ScenarioInputs {
    * whereas the footer is text the session happens to contain. Measured, a
    * campaign session quotes its sub-iterates' footers — ranking this higher
    * would demote a genuine campaign to `iterate`.
+   *
+   * A THUNK, not a value, and that is the whole point (internal code review of
+   * PR #309, PERF). Computing it eagerly meant a campaign- or pipeline-resolved
+   * session whose transcript quotes a CORROBORATED footer re-ran the regex and
+   * the record lookup on every poll forever: it never reached rule 5, so nothing
+   * ever persisted, and the negative memo does not cover a POSITIVE find.
+   * Deferring removes that work instead of remembering it, and makes this table
+   * the single place that decides whether the footer matters at all.
    */
-  transcriptRunId?: string | null;
+  recoverTranscriptRunId?: (() => string | null) | null;
   /** Actions catalog facts, resolved SERVER-side from the project. */
   actions: {
     /** True when `.shipwright-webui/actions.json` was actually used. */
@@ -154,12 +162,20 @@ export interface ScenarioDecision {
   missionTabVisible: boolean;
   /** Set only for `iterate` — the run id the whole resolve joins on. */
   runId: string | null;
+  /**
+   * WHICH rule produced `runId`. The resolver persists an association for the
+   * pointer and the transcript, never for the one it read back from the store —
+   * deriving that from `pointer.status` plus a separately-computed candidate is
+   * how the two could disagree (they did: the association branch reported
+   * `transcript_run_id` beside a null id).
+   */
+  runIdSource: "pointer" | "association" | "transcript" | null;
   /** Set when a pointer existed but could not be trusted (§5.1e) → `unavailable`. */
   pointerInvalidReason: string | null;
 }
 
 export function detectScenario(inputs: ScenarioInputs): ScenarioDecision {
-  const base = { runId: null, pointerInvalidReason: null };
+  const base = { runId: null, runIdSource: null, pointerInvalidReason: null };
 
   // 1 — custom-actions wins over a leftover pointer, but ONLY when validated.
   if (isValidatedCustomActions(inputs)) {
@@ -172,6 +188,7 @@ export function detectScenario(inputs: ScenarioInputs): ScenarioDecision {
       scenario: "iterate",
       missionTabVisible: true,
       runId: inputs.pointer.pointer.runId,
+      runIdSource: "pointer",
       pointerInvalidReason: null,
     };
   }
@@ -196,33 +213,41 @@ export function detectScenario(inputs: ScenarioInputs): ScenarioDecision {
       scenario: "iterate",
       missionTabVisible: true,
       runId: inputs.association.runId,
+      runIdSource: "association",
       pointerInvalidReason: null,
     };
   }
 
   // 3 — pipeline phase task. Behavior unchanged until its native slice.
   if (inputs.phaseTaskId && inputs.taskRunId) {
-    return { scenario: "pipeline", missionTabVisible: true, runId: null, pointerInvalidReason };
+    return { ...base, scenario: "pipeline", missionTabVisible: true, pointerInvalidReason };
   }
 
   // 4 — campaign, only with a real record behind the title.
   if (inputs.campaignSlug && inputs.hasCampaignRecord) {
-    return { scenario: "campaign", missionTabVisible: true, runId: null, pointerInvalidReason };
+    return { ...base, scenario: "campaign", missionTabVisible: true, pointerInvalidReason };
   }
 
   // 5 — the session's own commit footer, corroborated by this project's records.
   // Same asymmetry as 2b: an INVALID pointer gets no fallback, because a pointer
   // that failed validation is a signal something is wrong and quietly resolving
   // the run another way would mask it.
-  if (inputs.pointer.status === "absent" && inputs.transcriptRunId) {
+  //
+  // THIS is where the transcript is finally read — nowhere earlier. Rules 1-4
+  // have all missed by the time control reaches this line, so the scan is paid
+  // by exactly the sessions whose identity depends on it.
+  const transcriptRunId =
+    inputs.pointer.status === "absent" ? (inputs.recoverTranscriptRunId?.() ?? null) : null;
+  if (transcriptRunId) {
     return {
       scenario: "iterate",
       missionTabVisible: true,
-      runId: inputs.transcriptRunId,
+      runId: transcriptRunId,
+      runIdSource: "transcript",
       pointerInvalidReason: null,
     };
   }
 
   // 6 — plain / pure.
-  return { scenario: "plain", missionTabVisible: true, runId: null, pointerInvalidReason };
+  return { ...base, scenario: "plain", missionTabVisible: true, pointerInvalidReason };
 }

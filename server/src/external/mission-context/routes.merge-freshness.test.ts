@@ -73,7 +73,7 @@ function mergeHarness(root: string, task: ExternalTask) {
       persist: async () => {},
     } as unknown as SdkSessionsStore,
     getProjectById: (id) => (id === "proj-1" ? { id: "proj-1", name: "P", path: root } : undefined),
-    readTranscriptTail: async () => `opened ${PR_URL}`,
+    readTranscriptTail: async () => ({ text: `opened ${PR_URL}`, revision: "rev-1" }),
     getScenarioFacts: async () => ({
       actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
       runConfigStatus: "missing",
@@ -193,8 +193,10 @@ describe("merge state across resolver cache hits", () => {
           persist: async () => {},
         } as unknown as SdkSessionsStore,
         getProjectById: () => ({ id: "proj-1", name: "P", path: root }),
-        readTranscriptTail: async () =>
-          "see https://github.com/svenroth-ai/shipwright/pull/290 for context",
+        readTranscriptTail: async () => ({
+          text: "see https://github.com/svenroth-ai/shipwright/pull/290 for context",
+          revision: "rev-1",
+        }),
         getScenarioFacts: async () => ({
           actions: { fromUser: false, hasDiagnostics: false, actionIds: ["new-iterate"] },
           runConfigStatus: "missing",

@@ -1,0 +1,1 @@
+Mission tab: a campaign or pipeline session that happens to quote another run's commit footer no longer pays for searching that footer on every refresh — the search now runs only when it is the thing that would identify the session.

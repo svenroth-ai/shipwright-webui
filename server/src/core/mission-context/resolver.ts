@@ -72,16 +72,21 @@ export async function resolveMissionContext(
   const { projectRoot, sessionUuid } = req;
 
   const pointer = readIteratePointer(projectRoot, sessionUuid);
-  // Scanned only for a task nothing else can identify — an associated task never
-  // pays for it, and a successful recovery is persisted, so it is paid once.
-  const transcriptRunId =
-    pointer.status === "absent" && !req.association?.runId
-      ? recoverRunIdFromTranscript(projectRoot, req.transcript, sessionUuid)
-      : null;
+  // LAZY. The table calls this only if rules 1-4 all miss (scenario.ts rule 5),
+  // so a pointer-, association-, pipeline- or campaign-identified task pays
+  // nothing; a successful recovery is persisted below, so a task that does reach
+  // it pays once and never again.
+  //
+  // "At most once per resolve" is pinned by a TEST over the table
+  // (recovery-schedule.test.ts) rather than by a memo guard here. The external
+  // plan review proposed the guard for a future rule that consulted the footer
+  // twice — but a guard would make that mistake invisible, and this is a hot
+  // read path where silence is exactly what produced the finding being fixed.
   const decision = detectScenario({
     pointer,
     association: req.association ?? null,
-    transcriptRunId,
+    recoverTranscriptRunId: () =>
+      recoverRunIdFromTranscript(projectRoot, req.transcript, sessionUuid),
     actions: req.actions,
     runConfigStatus: req.runConfigStatus,
     phaseTaskId: req.phaseTaskId,
@@ -167,11 +172,14 @@ export async function resolveMissionContext(
     [runId, chosen.root, req.taskId],
   );
   const cacheKey = `${projectRoot}::${sessionUuid}::${runId}`;
-  // Persist on a LIVE pointer, and — new — on a corroborated transcript
-  // recovery, which is the whole point of the recovery: pay the scan once.
-  const associate = pointer.status === "ok" || transcriptRunId ? runId : null;
+  // Persist on a LIVE pointer, and on a corroborated transcript recovery — which
+  // is the whole point of the recovery: pay the scan once. Read back off the
+  // WINNING rule, so the id and its provenance cannot disagree; an id that came
+  // from the store is not re-persisted.
+  const associate =
+    decision.runIdSource === "pointer" || decision.runIdSource === "transcript" ? runId : null;
   const associateSource: MissionContextAssociation["source"] =
-    pointer.status === "ok" ? "iterate_active_pointer" : "transcript_run_id";
+    decision.runIdSource === "transcript" ? "transcript_run_id" : "iterate_active_pointer";
 
   const hit = cache.get(cacheKey);
   if (hit && hit.rev === rev) {

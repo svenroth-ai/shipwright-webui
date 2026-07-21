@@ -218,10 +218,13 @@ export interface MissionContext {
   missionTabVisible: boolean;
   runId: string | null;
   /**
-   * Is this run IN FLIGHT right now (server: a validated pointer whose worktree
-   * git still registers)? It decides ONE thing here: whether an artifact that
-   * has not been written yet is hidden ("this run has no such artifact") or
-   * shown as pending ("not written yet"). See `missionArtifacts.ts`.
+   * Is this run IN FLIGHT right now? Server-side: a validated pointer whose
+   * worktree git still registers AND no `work_completed` recorded for the run —
+   * a completion record is terminal, so it ends live-ness even while the
+   * worktree survives. It decides ONE thing here: whether an artifact that has
+   * not been written yet is hidden ("this run has no such artifact") or shown as
+   * pending ("not written yet"). An `unavailable` artifact NEVER becomes
+   * pending. See `missionArtifacts.ts`.
    */
   runLive: boolean;
   artifacts: ArtifactDescriptor[];

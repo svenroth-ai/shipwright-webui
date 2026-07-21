@@ -147,10 +147,17 @@ export function _clearRecoveryMemo(): void {
 /**
  * The recovered run id for this session, or null.
  *
- * Called ONLY when neither the pointer nor the persisted association could
- * identify the run (resolver.ts), so the scan does not run for an already
- * identified task — and the caller persists the answer, so a successful recovery
- * is paid for once per task rather than once per poll.
+ * Called ONLY from rule 5 of the ordered scenario table (scenario.ts), i.e. only
+ * once rules 1-4 — custom-actions, pointer, association, pipeline, campaign —
+ * have all missed. Every caller that reaches it therefore RESOLVES on the
+ * answer, and the route persists that answer, so the scan is paid once per task
+ * rather than once per poll.
+ *
+ * It was not always so: until iterate-2026-07-21-mission-recovery-memo-perf the
+ * resolver computed this BEFORE the table, so a campaign- or pipeline-resolved
+ * session that happened to quote a corroborated footer scanned on every poll
+ * forever — nothing consumed the answer, so nothing ever persisted it, and the
+ * memo below only covers a NEGATIVE result (internal code review of PR #309).
  */
 export function recoverRunIdFromTranscript(
   projectRoot: string,

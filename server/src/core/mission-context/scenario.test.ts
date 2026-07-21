@@ -228,6 +228,7 @@ describe("association fallback after the pointer is pruned", () => {
  */
 describe("transcript-recovered run id — precedence", () => {
   const transcriptRunId = "iterate-2026-07-20-recovered";
+  const recoverTranscriptRunId = () => transcriptRunId;
   const association = {
     kind: "iterate" as const,
     runId: "iterate-2026-07-18-demo",
@@ -236,19 +237,19 @@ describe("transcript-recovered run id — precedence", () => {
   };
 
   it("resolves an ITERATE when nothing else can identify the run", () => {
-    const d = detectScenario(inputs({ pointer: { status: "absent" }, transcriptRunId }));
+    const d = detectScenario(inputs({ pointer: { status: "absent" }, recoverTranscriptRunId }));
     expect(d.scenario).toBe("iterate");
     expect(d.runId).toBe(transcriptRunId);
   });
 
   it("loses to a LIVE pointer (which also carries the worktree)", () => {
-    const d = detectScenario(inputs({ pointer: okPointer, transcriptRunId }));
+    const d = detectScenario(inputs({ pointer: okPointer, recoverTranscriptRunId }));
     expect(d.runId).toBe("iterate-2026-07-18-demo");
   });
 
   it("loses to the stored association (a server-observed fact outranks quoted text)", () => {
     const d = detectScenario(
-      inputs({ pointer: { status: "absent" }, association, transcriptRunId }),
+      inputs({ pointer: { status: "absent" }, association, recoverTranscriptRunId }),
     );
     expect(d.runId).toBe("iterate-2026-07-18-demo");
   });
@@ -257,7 +258,7 @@ describe("transcript-recovered run id — precedence", () => {
     const d = detectScenario(
       inputs({
         pointer: { status: "absent" },
-        transcriptRunId,
+        recoverTranscriptRunId,
         phaseTaskId: "ptk-1",
         taskRunId: "run-abc12345",
       }),
@@ -269,7 +270,7 @@ describe("transcript-recovered run id — precedence", () => {
     const d = detectScenario(
       inputs({
         pointer: { status: "absent" },
-        transcriptRunId,
+        recoverTranscriptRunId,
         campaignSlug: "2026-07-18-mission-artifacts",
         hasCampaignRecord: true,
       }),
@@ -280,14 +281,14 @@ describe("transcript-recovered run id — precedence", () => {
 
   it("does NOT rescue an INVALID pointer — same asymmetry as the association", () => {
     const d = detectScenario(
-      inputs({ pointer: { status: "invalid", reason: "bad_run_id" }, transcriptRunId }),
+      inputs({ pointer: { status: "invalid", reason: "bad_run_id" }, recoverTranscriptRunId }),
     );
     expect(d.scenario).toBe("plain");
     expect(d.pointerInvalidReason).toBe("bad_run_id");
   });
 
   it("stays PLAIN with no marker — an unidentifiable session is not an iterate", () => {
-    const d = detectScenario(inputs({ pointer: { status: "absent" }, transcriptRunId: null }));
+    const d = detectScenario(inputs({ pointer: { status: "absent" }, recoverTranscriptRunId: () => null }));
     expect(d.scenario).toBe("plain");
     expect(d.runId).toBeNull();
   });

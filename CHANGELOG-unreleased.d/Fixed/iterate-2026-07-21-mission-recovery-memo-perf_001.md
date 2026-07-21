@@ -1,0 +1,1 @@
+Mission tab: a task the Command Center cannot identify from a pointer or a stored association no longer re-reads and re-scans up to a megabyte of its session transcript every ten seconds for as long as the tab is open. The wide look-back now happens once per task, and again only after the transcript actually changes.

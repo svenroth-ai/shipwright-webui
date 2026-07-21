@@ -129,7 +129,7 @@ async function contextFor(root: string, task: ExternalTask): Promise<Ctx> {
   const app = createMissionContextRouter({
     store,
     getProjectById: (id) => (id === "proj-1" ? project : undefined),
-    readTranscriptTail: async () => "",
+    readTranscriptTail: async () => ({ text: "", revision: "rev-1" }),
     getScenarioFacts: (p, t) => getScenarioFacts(p, t, { readRunConfig }),
   });
 
