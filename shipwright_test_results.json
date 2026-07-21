@@ -91,8 +91,16 @@
           "evidence": "create-cta-standard.test.ts — PASS; same falsification probe FAILED it as designed with the actionable RETIRED-#35B8A4 message"
         }
       ],
-      "untested_testable": 0,
-      "enumeration_basis": "One row per behaviour introduced or changed by the diff: 4 component-level class contracts (desktop trigger x3, phone trigger x1), 3 real-browser geometry outcomes, and 4 ratchet guarantees. Derived by walking the diff file-by-file; the two component files change only the trigger + wrapper className, the two test files and the two new test artifacts add exactly these assertions."
+      "enumeration_basis": {
+        "acs": 3,
+        "covered_acs": 3
+      },
+      "counts": {
+        "testable": 11,
+        "tested": 11,
+        "untestable": 0,
+        "untested_testable": 0
+      }
     },
     "surface_verification": {
       "surface": "web",
