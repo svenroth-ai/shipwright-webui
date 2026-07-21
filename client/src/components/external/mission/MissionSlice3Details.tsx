@@ -16,7 +16,7 @@ import {
   selectionWord,
   testCountLabel,
   unitStatusWord,
-} from "../../../lib/missionArtifacts";
+} from "../../../lib/missionWording";
 
 type Of<K extends ArtifactDescriptor["kind"]> = Extract<ArtifactDescriptor, { kind: K }>;
 

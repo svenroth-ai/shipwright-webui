@@ -74,3 +74,60 @@ describe("unavailable artifact", () => {
     expect(screen.getByTestId("artifact-link-spec")).toHaveAttribute("data-state", "error");
   });
 });
+
+/*
+ * A run IN FLIGHT (iterate-2026-07-21). `not_yet_created` is shown as a plain
+ * pending entry instead of being hidden — otherwise the rail is empty for the
+ * whole early phase of every run. It must stay INERT, must say so in words a
+ * non-expert reads, and must never be confused with a read failure.
+ */
+describe("pending artifact (the run is still going)", () => {
+  it("says 'Not written yet' in plain words and is inert", () => {
+    const onClick = vi.fn();
+    render(
+      <ArtifactLink
+        artifact={artifact("not_yet_created")}
+        active={false}
+        onClick={onClick}
+        runLive
+      />,
+    );
+    const node = screen.getByTestId("artifact-link-spec");
+    expect(node.tagName).not.toBe("BUTTON");
+    expect(node).toHaveTextContent("Not written yet");
+    fireEvent.click(node);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("carries the pending state word for screen readers", () => {
+    render(
+      <ArtifactLink artifact={artifact("not_yet_created")} active={false} onClick={vi.fn()} runLive />,
+    );
+    expect(screen.getByTestId("artifact-link-spec")).toHaveAttribute(
+      "aria-label",
+      expect.stringContaining("not written yet"),
+    );
+  });
+
+  it("does NOT relabel a read failure as pending, even while live", () => {
+    render(
+      <ArtifactLink
+        artifact={artifact("unavailable", { note: "The run record could not be read." })}
+        active={false}
+        onClick={vi.fn()}
+        runLive
+      />,
+    );
+    const node = screen.getByTestId("artifact-link-spec");
+    expect(node).toHaveTextContent("The run record could not be read.");
+    expect(node).not.toHaveTextContent("Not written yet");
+    expect(node).toHaveAttribute("aria-label", expect.stringContaining("currently unavailable"));
+  });
+
+  it("shows nothing extra when the run is NOT live (hide-empty still owns it)", () => {
+    render(
+      <ArtifactLink artifact={artifact("not_yet_created")} active={false} onClick={vi.fn()} />,
+    );
+    expect(screen.getByTestId("artifact-link-spec")).not.toHaveTextContent("Not written yet");
+  });
+});

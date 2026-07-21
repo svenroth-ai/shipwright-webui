@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
-import { rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { _clearResolverCache } from "../../core/mission-context/resolver.js";
@@ -84,10 +84,26 @@ describe("GET mission-context — code-review regressions", () => {
     }
   });
 
-  it("HIGH: an UNREGISTERED worktree_path yields `unavailable` and is NOT persisted (AC5)", async () => {
+  /*
+   * SUPERSEDED 2026-07-21 (iterate-2026-07-21-mission-run-identity-recovery).
+   *
+   * This case used to assert that an unregistered `worktree_path` yields six
+   * `unavailable` artifacts. MEASURED on the operator's machine: git registered
+   * ZERO of the 20 live pointers' worktrees — a worktree removed at Finalize
+   * leaves its directory behind — so the rule fired on the ORDINARY end state of
+   * every run and erased artifacts that were sitting in the main root all along.
+   *
+   * What the original review actually asked for is preserved and pinned below:
+   * nothing may be READ from a root git does not vouch for. That is
+   * `chooseRoot`'s job and it is unchanged — the resolver now falls back to the
+   * project root instead of erasing the rail.
+   */
+  it("an UNREGISTERED worktree_path falls back to the MAIN root (not an erased rail)", async () => {
     const root = makeProject();
     try {
-      // Re-point the pointer at a directory git does not report as a worktree.
+      // A directory that exists but is not a git worktree — exactly the shape a
+      // `git worktree remove` leaves behind.
+      mkdirSync(join(root, "not-a-worktree"), { recursive: true });
       writeFileSync(
         join(root, ".shipwright", "iterate_active", `${UUID}.json`),
         JSON.stringify({
@@ -99,11 +115,28 @@ describe("GET mission-context — code-review regressions", () => {
           created_at: "2026-07-18T10:00:00Z",
         }),
       );
-      const { app, persist } = harness(root, makeTask());
+      // A spec that ONLY exists in the unregistered directory would be a read
+      // below a root git does not vouch for — it must never be served.
+      mkdirSync(join(root, "not-a-worktree", ".shipwright", "planning", "iterate", RUN_ID), {
+        recursive: true,
+      });
+      writeFileSync(
+        join(root, "not-a-worktree", ".shipwright", "planning", "iterate", RUN_ID, "adr.md"),
+        "# MUST NOT BE READ\n",
+      );
+
+      const { app } = harness(root, makeTask());
       const ctx = await getContext(app);
       expect(ctx.scenario).toBe("iterate");
-      for (const a of ctx.artifacts) expect(a.state).toBe("unavailable");
-      expect(persist).not.toHaveBeenCalled();
+      expect(ctx.runId).toBe(RUN_ID);
+      // The main root's own spec resolves — the rail is REAL, not erased.
+      const spec = ctx.artifacts.find((a) => a.kind === "spec");
+      expect(spec?.state).toBe("available");
+      expect(spec?.state).not.toBe("unavailable");
+      expect(spec && "detail" in spec ? spec.detail?.title : null).toBe("mini-plan.md");
+      // Not live: the pointer names no registered worktree, so the run is not in
+      // flight and hide-empty keeps its meaning.
+      expect(ctx.runLive).toBe(false);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

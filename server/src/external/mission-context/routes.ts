@@ -41,11 +41,27 @@ import type { ExternalRouteProjectView } from "../_shared/helpers.js";
 /** Bounded tail of the transcript — enough for a `pr-link`, never the whole file. */
 export const TRANSCRIPT_TAIL_BYTES = 512 * 1024;
 
+/**
+ * The larger bounded tail used ONLY while a task is still unidentified, so the
+ * `Run-ID` footer recovery can reach it (run-id-recovery.ts).
+ *
+ * 1 MB is measured, not guessed: across this project's 65 real transcripts a
+ * 512 KB tail recovers 42 sessions and MISSES 4 whose pointer proves the run
+ * (the closest sits 526 KB from the end); 1 MB recovers 50 and misses none;
+ * 2, 4 and 8 MB add nothing at all. Once the recovery persists the association
+ * the very next poll drops back to `TRANSCRIPT_TAIL_BYTES`.
+ */
+export const RECOVERY_TAIL_BYTES = 1024 * 1024;
+
 export interface MissionContextRouterDeps {
   store: SdkSessionsStore;
   getProjectById: (id: string) => ExternalRouteProjectView | undefined;
-  /** Server-side transcript read. Returns "" when unavailable — never throws. */
-  readTranscriptTail: (sessionUuid: string) => Promise<string>;
+  /**
+   * Server-side transcript read of the LAST `maxBytes` bytes. Returns "" when
+   * unavailable — never throws. `maxBytes` is omitted for the ordinary poll and
+   * widened only while the task is still unidentified.
+   */
+  readTranscriptTail: (sessionUuid: string, maxBytes?: number) => Promise<string>;
   /** Scenario inputs the resolver cannot derive itself. */
   getScenarioFacts: (
     project: ExternalRouteProjectView,
@@ -93,9 +109,15 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
     const { task, project } = bound;
 
     const facts = await getScenarioFacts(project, task);
-    const transcript = await readTranscriptTail(task.sessionUuid);
+    // A task that already knows its run needs only the ordinary tail; one that
+    // does not gets the wider window the footer recovery needs — exactly once,
+    // because a successful recovery is persisted below.
+    const transcript = await readTranscriptTail(
+      task.sessionUuid,
+      task.missionContext ? TRANSCRIPT_TAIL_BYTES : RECOVERY_TAIL_BYTES,
+    );
 
-    const { context, associateRunId } = await resolveMissionContext({
+    const { context, associateRunId, associateSource } = await resolveMissionContext({
       taskId: task.taskId,
       sessionUuid: task.sessionUuid,
       projectId: task.projectId,
@@ -117,7 +139,7 @@ export function createMissionContextRouter(deps: MissionContextRouterDeps): Hono
         kind: "iterate",
         runId: associateRunId,
         observedAt: now().toISOString(),
-        source: "iterate_active_pointer",
+        source: associateSource,
       };
       if (setMissionContextOnce(store, task.taskId, association)) {
         try {

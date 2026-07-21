@@ -24,9 +24,9 @@ import type {
   ReviewRow,
   TestsArtifact,
 } from "../../../lib/missionContextApi";
+import { reviewStatusWord } from "../../../lib/missionWording";
 import {
   layerWord,
-  reviewStatusWord,
   reviewTypeLabel,
   testChangeWord,
   testFrLabel,

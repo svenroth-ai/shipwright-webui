@@ -215,3 +215,80 @@ describe("association fallback after the pointer is pruned", () => {
     expect(d.runId).toBeNull();
   });
 });
+
+/*
+ * The THIRD source (2026-07-21): the session's own `Run-ID` commit footer, when
+ * the pointer was pruned before anyone ever opened the tab. MEASURED: only 19 of
+ * this project's 150 sessions could be identified without it.
+ *
+ * The value reaching `detectScenario` is ALREADY corroborated by
+ * run-id-recovery.ts — these cases pin the PRECEDENCE, which is where it differs
+ * from the association: strictly lower, because a footer is text a session
+ * contains, not a run the server watched.
+ */
+describe("transcript-recovered run id — precedence", () => {
+  const transcriptRunId = "iterate-2026-07-20-recovered";
+  const association = {
+    kind: "iterate" as const,
+    runId: "iterate-2026-07-18-demo",
+    observedAt: "2026-07-18T10:00:00.000Z",
+    source: "iterate_active_pointer" as const,
+  };
+
+  it("resolves an ITERATE when nothing else can identify the run", () => {
+    const d = detectScenario(inputs({ pointer: { status: "absent" }, transcriptRunId }));
+    expect(d.scenario).toBe("iterate");
+    expect(d.runId).toBe(transcriptRunId);
+  });
+
+  it("loses to a LIVE pointer (which also carries the worktree)", () => {
+    const d = detectScenario(inputs({ pointer: okPointer, transcriptRunId }));
+    expect(d.runId).toBe("iterate-2026-07-18-demo");
+  });
+
+  it("loses to the stored association (a server-observed fact outranks quoted text)", () => {
+    const d = detectScenario(
+      inputs({ pointer: { status: "absent" }, association, transcriptRunId }),
+    );
+    expect(d.runId).toBe("iterate-2026-07-18-demo");
+  });
+
+  it("loses to PIPELINE — unlike the association, which outranks it", () => {
+    const d = detectScenario(
+      inputs({
+        pointer: { status: "absent" },
+        transcriptRunId,
+        phaseTaskId: "ptk-1",
+        taskRunId: "run-abc12345",
+      }),
+    );
+    expect(d.scenario).toBe("pipeline");
+  });
+
+  it("loses to CAMPAIGN — a campaign session quotes its sub-iterates' footers", () => {
+    const d = detectScenario(
+      inputs({
+        pointer: { status: "absent" },
+        transcriptRunId,
+        campaignSlug: "2026-07-18-mission-artifacts",
+        hasCampaignRecord: true,
+      }),
+    );
+    expect(d.scenario).toBe("campaign");
+    expect(d.runId).toBeNull();
+  });
+
+  it("does NOT rescue an INVALID pointer — same asymmetry as the association", () => {
+    const d = detectScenario(
+      inputs({ pointer: { status: "invalid", reason: "bad_run_id" }, transcriptRunId }),
+    );
+    expect(d.scenario).toBe("plain");
+    expect(d.pointerInvalidReason).toBe("bad_run_id");
+  });
+
+  it("stays PLAIN with no marker — an unidentifiable session is not an iterate", () => {
+    const d = detectScenario(inputs({ pointer: { status: "absent" }, transcriptRunId: null }));
+    expect(d.scenario).toBe("plain");
+    expect(d.runId).toBeNull();
+  });
+});
