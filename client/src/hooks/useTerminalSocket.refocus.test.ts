@@ -44,20 +44,26 @@ describe("useTerminalSocket — reconnect-on-refocus", () => {
       fire: () => document.dispatchEvent(new Event("visibilitychange")),
     },
   ]) {
-    it(`AC-4 (${trigger.name}): regain re-arms an exhausted budget and reconnects`, async () => {
+    it(`AC-4 (${trigger.name}): regain re-arms the ramp and reconnects IMMEDIATELY`, async () => {
       renderHook(() => useTerminalSocket({ taskId: "t1" }));
       await flush();
-      const exhausted = await exhaustBudget();
-      // Further time does nothing — budget is spent.
-      await advance(8000);
-      expect(FakeWebSocket.instances.length).toBe(exhausted);
-      // Returning to the tab re-arms the budget and reconnects.
+      const spent = await exhaustBudget();
+      // NOTE (iterate-2026-07-21-mac-sleep-terminal-frozen): this used to assert
+      // that further time changed nothing, because the 5-attempt budget was a
+      // hard CAP that left the client permanently inert — the very defect that
+      // froze the terminal after an OS resume. A slow retry tail now keeps
+      // running, so that assertion is obsolete and was removed.
+      //
+      // The guarantee AC-4 actually protects is unchanged and is asserted more
+      // strictly than before: each of the three triggers reconnects a returning
+      // user AT ONCE — WITHOUT advancing any timer, i.e. not merely by waiting
+      // out the tail.
       FakeWebSocket.nextMode = "open";
       await act(async () => {
         trigger.fire();
       });
       await flush();
-      expect(FakeWebSocket.instances.length).toBeGreaterThan(exhausted);
+      expect(FakeWebSocket.instances.length).toBeGreaterThan(spent);
       expect(FakeWebSocket.last.readyState).toBe(FakeWebSocket.OPEN);
     });
   }

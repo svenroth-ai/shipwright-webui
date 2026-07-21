@@ -1,0 +1,1 @@
+Embedded terminal: a "Connection lost — reconnecting…" strip so an outage reads as a connection problem being worked on rather than a frozen pane; it self-dismisses on reconnect and softens its wording if the outage persists. (FR-01.28)

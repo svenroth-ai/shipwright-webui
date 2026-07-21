@@ -29,6 +29,67 @@ export const WS_HEARTBEAT_MAX_MISSED = 2;
 export const WS_REFOCUS_PROBE_MS = 4_000;
 
 /**
+ * Steady retry cadence once the fast reconnect ramp
+ * (`BACKOFF_MS = [200,400,800,1600,3200]`, ~6.2 s total) is spent.
+ *
+ * WHY THIS EXISTS (iterate-2026-07-21-mac-sleep-terminal-frozen): the ramp used
+ * to be a hard 5-attempt CAP. After an OS sleep/resume the refocus probe reaps
+ * the half-open socket and spends the whole ramp inside ~6.2 s — but a tunnelled
+ * network (Tailscale) can need appreciably longer than that to become routable
+ * again after a resume. Every attempt then failed against a network that could
+ * not answer yet, the cap was reached, and `scheduleReconnect` returned early
+ * FOREVER while the per-connection heartbeat was already stopped: **zero armed
+ * timers**, so nothing could observe the network coming back. Recovery waited on
+ * a later incidental `focus`/`visibilitychange`, which is why the terminal
+ * appeared frozen for ~30 s and why only a tab refresh reliably fixed it.
+ *
+ * The cap's legitimate intent — do not hammer a dead server at 200 ms forever —
+ * is preserved: after the ramp we settle here and retry at a calm, bounded rate
+ * indefinitely. Time-to-network-return cannot be measured or bounded from the
+ * client, so ANY fixed budget is a guess; never going inert is the property that
+ * actually matters. 5 s keeps worst-case recovery well inside a human's patience
+ * while costing one failed connect per 5 s against a genuinely dead server.
+ */
+export const WS_RECONNECT_TAIL_MS = 5_000;
+
+/**
+ * How many 5 s tail attempts before backing off to `WS_RECONNECT_TAIL_SLOW_MS`.
+ * 12 ≈ one minute of prompt retrying, which covers any realistic OS-resume /
+ * tunnel-renegotiation window.
+ */
+export const WS_RECONNECT_TAIL_SLOW_AFTER = 12;
+
+/**
+ * Tail cadence once an outage has clearly stopped being transient.
+ *
+ * Not every failure recovers: a task whose cwd was deleted (a removed worktree
+ * is routine in this repo) makes the server reject the WS upgrade
+ * DETERMINISTICALLY, and a rejected upgrade is indistinguishable client-side
+ * from a transient one. Without this step an unattended tab would do realpath
+ * I/O and emit a server warn every 5 s indefinitely (external code review,
+ * MEDIUM). Backing off cuts that ~6× while preserving the property that
+ * actually matters: a retry is ALWAYS armed.
+ */
+export const WS_RECONNECT_TAIL_SLOW_MS = 30_000;
+
+/**
+ * Watchdog for a single connect ATTEMPT that never resolves.
+ *
+ * The retry tail is driven by the `close` event: an attempt that fails schedules
+ * the next one. But a socket can sit in `CONNECTING` indefinitely — a SYN into a
+ * blackholed route is exactly what a half-restored tunnel produces after an OS
+ * resume, and the browser's own connect timeout is minutes long. No `close`
+ * would fire, so no retry would ever be scheduled and the client would be right
+ * back in the inert state this iterate exists to remove (external code review,
+ * openai MEDIUM). Closing a stuck attempt fires `close`, which re-enters the
+ * normal retry path.
+ *
+ * 10 s is comfortably above a healthy LAN/tailnet handshake while keeping
+ * worst-case recovery at roughly one watchdog plus one tail interval.
+ */
+export const WS_CONNECT_TIMEOUT_MS = 10_000;
+
+/**
  * Opaque timer-handle type. Browser `setInterval` returns `number`, Node
  * returns `Timeout`; the client tsconfig sees both lib sets, so we pin one
  * alias and cast the global fallbacks to it (avoids a `number | Timeout`
