@@ -138,29 +138,47 @@ export interface TestsArtifact extends ArtifactBase {
   } | null;
 }
 
-export type ReviewType = "plan" | "code" | "doubt" | "external_code";
+export type ReviewType = "self" | "plan" | "code" | "doubt" | "external_code";
 
 /**
- * `not_run`     — a record says the pass did not run.
- * `unavailable` — no readable record either way. NOT the same as "clean".
+ * `not_run`        — a record says the pass did not run.
+ * `not_applicable` — it did not APPLY at this size or change shape.
+ * `unavailable`    — no readable record either way. NOT the same as "clean".
  */
-export type ReviewStatus = "completed" | "not_run" | "unavailable";
+export type ReviewStatus = "completed" | "not_run" | "not_applicable" | "unavailable";
+
+/**
+ * `unstructured` means the review RAN and its prose could not be itemized, so
+ * the count is 0 for a review that may have found plenty — never render that
+ * as a clean pass.
+ */
+export type ReviewParseStatus = "structured" | "partial" | "unstructured";
+
+/** Where a row came from — the honesty copy differs per source. */
+export type ReviewSource = "record" | "marker";
 
 export interface ReviewFinding {
   severity: string | null;
   title: string;
+  /** `path/to/file.ts:42`, pre-joined by the server; null when not located. */
+  location: string | null;
+  suggestion: string | null;
 }
 
 export interface ReviewRow {
   reviewType: ReviewType;
   status: ReviewStatus;
   findingsCount: number | null;
-  /** Always empty today — never render `[]` as "no findings were found". */
+  /** Populated from the per-run record; ALWAYS empty on the `marker` path. */
   findings: ReviewFinding[];
   provider: string | null;
   completedAt: string | null;
   disposition: string | null;
   note: string | null;
+  parseStatus: ReviewParseStatus | null;
+  source: ReviewSource;
+  /** The finding list was capped — never imply completeness. */
+  truncated: boolean;
 }
 
 export interface ReviewArtifact extends ArtifactBase {

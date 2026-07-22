@@ -141,6 +141,8 @@ const SHARED_UNIONS = [
   "TestChangeKind",
   "ReviewType",
   "ReviewStatus",
+  "ReviewParseStatus",
+  "ReviewSource",
   "DecisionSource",
   "SubIterateSelection",
 ];

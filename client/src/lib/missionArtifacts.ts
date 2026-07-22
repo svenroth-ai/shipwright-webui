@@ -231,8 +231,12 @@ export function layerWord(layer: string | null): string {
 }
 
 /** Plain-language name for each of the four review passes. */
-export function reviewTypeLabel(t: "plan" | "code" | "doubt" | "external_code"): string {
+export function reviewTypeLabel(
+  t: "self" | "plan" | "code" | "doubt" | "external_code",
+): string {
   switch (t) {
+    case "self":
+      return "Self-review";
     case "plan":
       return "Plan review";
     case "code":

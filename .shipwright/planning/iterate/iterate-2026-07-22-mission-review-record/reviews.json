@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-22-mission-review-record",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": null,
+          "category": "Error Handling",
+          "file": null,
+          "line": null,
+          "finding": "existsSync was used to decide 'absent', which swallows EVERY errno and would have silently downgraded an unreadable record (EACCES, broken symlink, a directory in the file's place) to the weaker marker source. Fixed: statSync with explicit ENOENT discrimination, plus realPathGuard, plus a non-file check. Found by the external cascade after I had already been warned about exactly this class in the plan review.",
+          "suggestion": null,
+          "source": "self-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-22T07:18:39.038472+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 13,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Mid-run file reads risk triggering false integrity faults. If you read `reviews.json` asynchronously while the producer is writing it, `JSON.parse()` will throw a `SyntaxError`. Because Step 2 strictly assigns schema/parse failures as a corruption fault (`sawUnreadable: true`), a normal mid-run refresh could render a permanent-looking error state to the user instead of a `pending` state.",
+          "suggestion": "Confirm that the Shipwright producer (PR #428) uses atomic writes (e.g., writing to a `.tmp` file and atomically moving it to `reviews.json`). If it writes directly, handle `SyntaxError` for active runs gracefully as a `pending` fallback, reserving the strict `sawUnreadable` fault only for completed runs or schema violations.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan introduces a new server-side signal (`sawUnreadable: true`) for corrupt files in Step 2, but fails to expose this state in the type definitions and client rendering plan. Step 3 (`types-slice2.ts` updates) and Step 4 (Renderer) omit adding this field or building UI for it.",
+          "suggestion": "Explicitly add `sawUnreadable` (or an `integrityFault` boolean) to the exported types in `types-slice2.ts`, and ensure `MissionSlice2Details.tsx` has a dedicated branch to render this explicit error so it doesn't silently fall through to a blank or unexpected state.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The `readBoundedFile` guard might be too strict. It was likely tuned for the legacy marker files which hold very little data. The new `reviews.json` contains arrays of full textual details (`finding`, `suggestion`, `location`) across up to 5 phases, which can easily balloon in size during a noisy lint or code-review pass.",
+          "suggestion": "Verify the byte-limit enforced by `readBoundedFile` is large enough (e.g., 500KB - 1MB) to accommodate a fully populated findings aggregate without truncating and triggering a false corruption fault.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "There is a UX contradiction for unstructured reviews. The spec notes that `findings_count` is exactly `0` when `parse_status: unstructured`. However, AC7 dictates rendering \"the count plus 'could not be itemized'\". Showing a user \"0 issues (could not be itemized)\" visually registers as a clean pass to a skimming reader.",
+          "suggestion": "When `parse_status === 'unstructured'`, override the UI to strictly hide or replace the \"0\" (e.g., display `?` or just the warning text) so a failed parse is never misread as a zero-finding victory.  Overall Assessment: The architectural strategy is excellent; utilizing a separate reader and an exact, real-world producer fixture perfectly isolates the new complexity from the fragile legacy fallback logic. Squaring away the mid-run read semantics and ensuring your boundary type captures the new error states will make this a highly durable integration.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The plan’s producer dependency is internally inconsistent: the specification describes PR #428 as delivered/merged, while the risk section says it is still blocked on a review dismissal. The consumer’s strict validator, fixture provenance, and schema assumptions cannot safely be finalized against a draft producer commit.",
+          "suggestion": "Resolve the producer state before implementation. Pin the fixture and documented contract to the merged producer commit (or explicitly pin a commit SHA accepted by both repositories), and record that SHA in the fixture/test comment. If the producer is not merged, treat it as a release prerequisite rather than relying solely on graceful absence fallback.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The proposed type changes do not explicitly carry the fields needed for two required UI behaviors: `disposition` for `not_run` / `not_applicable` (AC3), and `parse_status` or an equivalent derived presentation state for `unstructured` (AC7). Adding only `not_applicable`, `location`, and `suggestion` is insufficient for the renderer to distinguish these cases reliably.",
+          "suggestion": "Extend the server/client `ReviewRow` contract with either: - `disposition: string | null` and `parseStatus: ReviewParseStatus | null`, or - narrowly scoped derived display fields such as `unavailableReason` / `itemizationNote`.  Prefer preserving `disposition` and `parseStatus` in the SoT unless the existing artifact model consistently uses presentation-oriented fields. Add sync-test coverage and renderer tests for both required paths.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Strict validation should validate the root `schema_version` and `run_id`, but the plan only calls out the five review keys, key/type equality, status vocabulary, and count equality. Without checking `run_id === requestedRunId`, a mistakenly copied or stale record at a valid guarded path could be rendered as the wrong run’s review history.",
+          "suggestion": "Require `schema_version === 1` and exact equality between the record’s `run_id` and the requested, already-path-guarded run ID. Treat mismatches as integrity faults, with the same no-fallback behavior as malformed JSON. Test wrong schema version and wrong run ID explicitly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The plan needs a clear distinction between only `ENOENT` (record absent, use markers) and every other record-read failure (oversize, permission failure, path-guard rejection, invalid UTF-8/JSON, schema failure: integrity-unavailable). The proposed `sawUnreadable` wording suggests this intent, but it is not explicit enough to prevent an implementation from falling back on a generic read error. That would violate AC6 and AC9.",
+          "suggestion": "Make the reader return a discriminated result such as `valid`, `absent`, or `invalid`, where `absent` is exclusively a verified missing-file condition. Ensure all non-absence errors become the integrity-unavailable result, and add tests for oversized and inaccessible/read-error cases in addition to corrupt JSON.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The proposed behavior allows a mid-run valid `pending` record, but does not establish whether the producer publishes updates atomically. If the producer rewrites `reviews.json` in place, the UI can observe a transient partial JSON document and present an integrity fault even though the run is healthy. This is especially relevant because the artifact is explicitly refreshed when the file changes.",
+          "suggestion": "Verify that PR #428 writes updates via atomic replacement (temporary file plus rename) before relying on live refresh behavior. If it does not, make atomic publication a producer prerequisite or add a small bounded retry for transient parse failures before reporting an integrity fault—while still never falling back to markers once a record path has been observed as present.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The renderer change is underspecified around the old “count but no findings” message. For valid record data, `findings_count === findings.length`, so a completed record with a nonzero count and no findings is invalid. That condition is meaningful only for the legacy marker fallback. Also, an `unstructured` completed review has count `0` and no items, but must not be presented as a clean zero-finding review.",
+          "suggestion": "Make rendering depend on record provenance/status rather than just `count` and `findings.length`: - legacy marker-backed completed rows with a count but no details retain the existing “details were not recorded” explanation; - record-backed `unstructured` rows show the count plus the required “could not be itemized” note; - record-backed structured/partial completed rows render their items normally; - a structured completed zero-count record may be rendered as clean only when it is not `unstructured`.  Add renderer tests proving the old marker message remains on fallback and cannot leak into the record path.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The source-to-display mapping for `file` and `line` needs more explicit null/format handling. The producer contract lists these fields but only explicitly guarantees nullable `severity`; real records may reasonably omit a file or line. A simplistic `\\`${file}:${line}\\`` can produce misleading output such as `null:null` or `path:undefined`.",
+          "suggestion": "Validate and map location defensively: emit `file:line` only when both usable values exist, optionally emit `file` alone if that is supported by the UX, otherwise use `null`. Preserve `severity: null` as planned, and add fixtures/unit cases for absent file, absent line, and unusual but valid file text.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Adding the record path to `reviewStatePaths()` is the right approach for cache/source revision invalidation, but the plan does not include a test for the actual late-write transition: an artifact first built with no record, followed by record creation, must refresh into record-authoritative output rather than remain marker-backed from cache.",
+          "suggestion": "Add an integration-level `sourceRev`/artifact-cache test that builds from a legacy marker layout, creates a valid `reviews.json`, and verifies the next read is invalidated and renders record data. Also verify marker changes do not override an already-valid record.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Findings and suggestions originate from an external serialized artifact and may contain reviewer-controlled prose. The plan appropriately excludes `raw_excerpt`, but it should ensure the newly exposed finding text, location, and suggestion remain plain text and that `raw_excerpt` is neither returned in the API payload nor emitted in error logs.",
+          "suggestion": "Keep renderer output in normal React text nodes—no HTML/Markdown interpretation or `dangerouslySetInnerHTML`—and explicitly omit `raw_excerpt` from mapped server/client types. Retain the bounded file read, use the existing path guard for the record path, and avoid logging full invalid record contents.  Overall, record-first with strict no-fallback-on-corruption behavior is the correct approach, and separating the new reader preserves the legacy marker path well. The main work to tighten is making the result/type model carry disposition and parse state, validating record identity/version, and confirming atomic producer publication and cache refresh behavior.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-22T06:43:59.790049+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[gemini] Here is the review of your implementation approach:\n\n- **Category:** edge-case\n- **Severity:** high\n- **Finding:** Mid-run file reads risk triggering false integrity faults. If you read `reviews.json` asynchronously while the producer is writing it, `JSON.parse()` will throw a `SyntaxError`. Because Step 2 strictly assigns schema/parse failures as a corruption fault (`sawUnreadable: true`), a normal mid-run refresh could render a permanent-looking error state to the user instead of a `pending` state.\n- **Suggestion:** Confirm that the Shipwright producer (PR #428) uses atomic writes (e.g., writing to a `.tmp` file and atomically moving it to `reviews.json`). If it writes directly, handle `SyntaxError` for active runs gracefully as a `pending` fallback, reserving the strict `sawUnreadable` fault only for completed runs or schema violations.\n\n- **Category:** dependency\n- **Severity:** medium\n- **Finding:** The plan introduces a new server-side signal (`sawUnreadable: true`) for corrupt files in Step 2, but fails to expose this state in the type definitions and client rendering plan. Step 3 (`types-slice2.ts` updates) and Step 4 (Renderer) omit adding this field or building UI for it.\n- **Suggestion:** Explicitly add `sawUnreadable` (or an `integrityFault` boolean) to the exported types in `types-slice2.ts`, and ensure `MissionSlice2Details.tsx` has a dedicated branch to render this explicit error so it doesn't silently fall through to a blank or unexpected state.\n\n- **Category:** risk\n- **Severity:** low\n- **Finding:** The `readBoundedFile` guard might be too strict. It was likely tuned for the legacy marker files which hold very little data. The new `reviews.json` contains arrays of full textual details (`finding`, `suggestion`, `location`) across up to 5 phases, which can easily balloon in size during a noisy lint or code-review pass. \n- **Suggestion:** Verify the byte-limit enforced by `readBoundedFile` is large enough (e.g., 500KB - 1MB) to accommodat […truncated]\n\n[openai] 1. **Category: dependency — Severity: high**  \n   **Finding:** The plan’s producer dependency is internally inconsistent: the specification describes PR #428 as delivered/merged, while the risk section says it is still blocked on a review dismissal. The consumer’s strict validator, fixture provenance, and schema assumptions cannot safely be finalized against a draft producer commit.  \n   **Suggestion:** Resolve the producer state before implementation. Pin the fixture and documented contract to the merged producer commit (or explicitly pin a commit SHA accepted by both repositories), and record that SHA in the fixture/test comment. If the producer is not merged, treat it as a release prerequisite rather than relying solely on graceful absence fallback.\n\n2. **Category: approach — Severity: high**  \n   **Finding:** The proposed type changes do not explicitly carry the fields needed for two required UI behaviors: `disposition` for `not_run` / `not_applicable` (AC3), and `parse_status` or an equivalent derived presentation state for `unstructured` (AC7). Adding only `not_applicable`, `location`, and `suggestion` is insufficient for the renderer to distinguish these cases reliably.  \n   **Suggestion:** Extend the server/client `ReviewRow` contract with either:\n   - `disposition: string | null` and `parseStatus: ReviewParseStatus | null`, or\n   - narrowly scoped derived display fields such as `unavailableReason` / `itemizationNote`.\n   \n   Prefer preserving `disposition` and `parseStatus` in the SoT unless the existing artifact model consistently uses presentation-oriented fields. Add sync-test coverage and renderer tests for both required paths.\n\n3. **Category: edge-case — Severity: high**  \n   **Finding:** Strict validation should validate the root `schema_version` and `run_id`, but the plan only calls out the five review keys, key/type equality, status vocabulary, and count equality. Without checking `run_id === requestedRunId`, a mistakenly copied or stal […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/artifacts-slice2.ts",
+          "line": 191,
+          "finding": "The artifact SUMMARY ignores parseStatus, so an unstructured completed pass counts as 0 and yields '1 review ran and raised no issues' — rendered ABOVE the renderer's own caveat. The renderer was fixed; the line a skimmer actually reads was not.",
+          "suggestion": "Exclude unstructured from `counted` and pin it with a buildReviewArtifact test.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "client/e2e/flows/mission-artifacts-s2.spec.ts",
+          "line": 146,
+          "finding": "Stale assertion toHaveCount(4): the marker fallback now emits five rows, so the existing spec is red. No record-path E2E was added either, leaving AC1/AC7 with no end-to-end coverage.",
+          "suggestion": "Update to 5 and add an E2E seeding reviews.json that asserts per-finding location and the unstructured no-count rule.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/review-state.ts",
+          "line": 241,
+          "finding": "The isSafeRunId branch inside readMarkerState is unreachable (the record read rejects an unsafe id first), and the surviving path shows 'record EXISTS but could not be read' for a file nobody probed.",
+          "suggestion": "Hoist the guard into readReviewState and delete the dead branch.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/review-state.ts",
+          "line": 216,
+          "finding": "hasRecord:true for a freshly materialized all-pending record makes Review appear mid-run saying 'No review was recorded as having run', where the previous behaviour was the honest not_yet_created.",
+          "suggestion": "hasRecord = rows.some(r => r.status !== 'unavailable').",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/components/external/mission/MissionSlice2Details.tsx",
+          "line": 130,
+          "finding": "parse_status 'partial' is treated exactly like structured, so a count known to UNDERSTATE what was found is presented as precise.",
+          "suggestion": "Give partial its own caveat while keeping the count as a floor.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "readability",
+          "file": "client/src/components/external/mission/MissionSlice2Details.tsx",
+          "line": 104,
+          "finding": "Four adjacent inline spans with no separator text and no CSS render as one run-on string; jsdom's toHaveTextContent normalizes it away and cannot catch it.",
+          "suggestion": "Add the missing mission-record.css rules and verify in a real browser.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "server/src/core/mission-context/review-record.ts",
+          "line": 183,
+          "finding": "readBoundedFile is called after pathGuard only; its documented precondition is pathGuard + realPathGuard, so a symlink at the record path is followed. The sibling reader decision-drops.ts applies both.",
+          "suggestion": "Add realPathGuard after the existence check.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/review-record.ts",
+          "line": 153,
+          "finding": "The `as ReviewStatus` cast severs the link between the runtime status set and the union; a sixth producer status would reach the client's exhaustive switch and render an EMPTY status word.",
+          "suggestion": "Replace the Set with a typed Record lookup so it becomes a compile error.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "client/src/components/external/mission/MissionSlice2Details.tsx",
+          "line": 159,
+          "finding": "Findings render unbounded across five rows against a 2 MB record bound; every other Slice-2 detail caps and discloses.",
+          "suggestion": "Cap server-side and add a truncated signal.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": ".shipwright/planning/01-adopted/spec.md",
+          "line": 879,
+          "finding": "Spec Impact declares MODIFY but FR-01.66 has no dated AC line for this run; the F11 spec_impact gate fails closed on that.",
+          "suggestion": "Append the AC line in the same commit.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-22T07:19:17.162581+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-22T07:19:17.274814+00:00",
+      "disposition": "Stage 3 is conditional and advisory per iteration-reviews.md; not run here because the Stage-2 cascade already produced 14 findings across three reviewers and every one was fixed, and this session's remaining context is better spent finalizing than on a fourth pass. Recorded as not_run rather than skipped silently.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "bug",
+          "file": "server/src/core/mission-context/review-record.ts",
+          "line": 186,
+          "finding": "existsSync(guard.absolute)` does not distinguish `ENOENT` from other filesystem failures. For example, an inaccessible record can make `existsSync` return `false`, causing the reader to return `{ kind: \"absent\" }` and silently fall back to marker data. This violates the required “absent means ENOENT only” rule and AC6/AC9’s requirement that unreadable records be integrity faults.",
+          "suggestion": "Replace the existence probe with a `stat`/read path that catches errors and returns `absent` only for `ENOENT`; map `EACCES`, path/type errors, and all other failures to `invalid`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/mission-context/review-record.ts:143-166",
+          "line": null,
+          "finding": "Record validation accepts malformed producer entries as valid. In particular, an unknown or non-string `parse_status` is silently converted to `null`, and a `not_run`/`not_applicable` entry with no valid `disposition` is accepted. This can render an invalid record as a normal completed/clean row or a non-run row without the reason mandated by AC3, rather than treating it as the schema-integrity fault required by AC6.",
+          "suggestion": "Validate `parse_status` as either `null` or one of the closed vocabulary values, and require a non-empty disposition for terminal non-completed statuses. Return `invalid` for violations rather than normalizing them to `null`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/mission-context/review-record.ts:133-166",
+          "line": null,
+          "finding": "The reader does not enforce the producer invariant for `parse_status: \"unstructured\"`: such a review must have `findings_count === 0` and no itemized findings. A corrupt record declaring `unstructured` with itemized findings is accepted; the renderer suppresses its count but still renders the finding list, presenting an internally inconsistent state rather than an integrity error.",
+          "suggestion": "During row validation, reject `unstructured` entries unless `findings_count` is zero and `findings` is empty, matching the pinned producer contract.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/core/mission-context/review-state.precedence.test.ts:34-52",
+          "line": null,
+          "finding": "The AC5 fallback test uses a hand-constructed marker string, not the required fixture built from a real pre-record (64-run-era) layout. It therefore does not verify that the legacy on-disk layout and its exact marker behavior remain compatible; a regression in path/layout assumptions could still pass.",
+          "suggestion": "Add and use a fixture copied from a real pre-record run directory, including its actual marker files/layout, and assert the fallback rows and internal-pass note against it.  Overall assessment: ship-with-fixes. The record-first architecture and main precedence behavior are implemented well, but filesystem error handling can silently downgrade an unreadable authoritative record, and schema validation currently permits contract-invalid records to be rendered as normal results.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-22T07:18:39.171748+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] : string): string | null {\n  if (!isSafeRunId(runId)) return null;\n  return path.join(projectRoot, \".shipwright\", \"planning\", \"iterate\", runId, \"reviews.json\");\n}\n```\n\nLook at validation in `readReviewRecord`:\n```typescript\n  let parsed: unknown;\n  try {\n    parsed = JSON.parse(read.text);\n  } catch {\n    return invalid(\"the record is not valid JSON\");\n  }\n  if (!parsed || typeof parsed !== \"object\" || Array.isArray(parsed)) {\n    return invalid(\"the record is not an object\");\n  }\n```\n\nThen later down:\n```typescript\n  const reviews = record\n\n[openai] - Category: bug  \n  Severity: high  \n  File: `server/src/core/mission-context/review-record.ts:186`  \n  Finding: `existsSync(guard.absolute)` does not distinguish `ENOENT` from other filesystem failures. For example, an inaccessible record can make `existsSync` return `false`, causing the reader to return `{ kind: \"absent\" }` and silently fall back to marker data. This violates the required “absent means ENOENT only” rule and AC6/AC9’s requirement that unreadable records be integrity faults.  \n  Suggestion: Replace the existence probe with a `stat`/read path that catches errors and returns `absent` only for `ENOENT`; map `EACCES`, path/type errors, and all other failures to `invalid`.\n\n- Category: spec  \n  Severity: medium  \n  File: `server/src/core/mission-context/review-record.ts:143-166`  \n  Finding: Record validation accepts malformed producer entries as valid. In particular, an unknown or non-string `parse_status` is silently converted to `null`, and a `not_run`/`not_applicable` entry with no valid `disposition` is accepted. This can render an invalid record as a normal completed/clean row or a non-run row without the reason mandated by AC3, rather than treating it as the schema-integrity fault required by AC6.  \n  Suggestion: Validate `parse_status` as either `null` or one of the closed vocabulary values, and require a non-empty disposition for terminal non-completed statuses. Return `invalid` for violations rather than normalizing them to `null`.\n\n- Category: spec  \n  Severity: medium  \n  File: `server/src/core/mission-context/review-record.ts:133-166`  \n  Finding: The reader does not enforce the producer invariant for `parse_status: \"unstructured\"`: such a review must have `findings_count === 0` and no itemized findings. A corrupt record declaring `unstructured` with itemized findings is accepted; the renderer suppresses its count but still renders the finding list, presenting an internally inconsistent state rather than an integrity error.  \n   […truncated]"
+    }
+  }
+}
