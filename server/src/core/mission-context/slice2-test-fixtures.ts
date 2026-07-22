@@ -66,6 +66,9 @@ export function reviewRow(
     completedAt: null,
     disposition: null,
     note: null,
+    parseStatus: null,
+    source: "marker",
+    truncated: false,
     ...over,
   };
 }

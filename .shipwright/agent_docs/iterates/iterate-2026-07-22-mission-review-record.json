@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-22-mission-review-record",
+  "date": "2026-07-22T07:21:46.837856Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/mission-review-record",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-22-mission-review-record.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-22-mission-review-record"
+}

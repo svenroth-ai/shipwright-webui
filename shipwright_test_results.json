@@ -36,104 +36,127 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Middle card renders prose paragraphs, not an activity list",
+          "behavior": "AC1 a real producer record maps all five types with real counts and per-finding detail",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx > renders paragraphs of prose, not a list of activity lines"
+          "evidence": "review-record.test.ts 'a record the producer actually wrote' (5 cases, driven by the verbatim fixture) PASSED"
         },
         {
-          "behavior": "The retired six-line window leaves no .mc-hero-line behind",
+          "behavior": "AC2 self is present, first, and labelled in plain language",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx > renders paragraphs of prose (negative assertion)"
+          "evidence": "review-record.test.ts contract-order case + MissionSlice2Details.test.tsx 'labels the self-review' PASSED"
         },
         {
-          "behavior": "Ask sourced from the kickoff <command-args>",
+          "behavior": "AC3 not_run and not_applicable stay distinct and render their disposition",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > takes the operator's request from the kickoff arguments"
+          "evidence": "review-record.test.ts 2 status cases + MissionSlice2Details 'did not APPLY' PASSED"
         },
         {
-          "behavior": "Leading CLI flags stripped; value-flags consume their value; `--` ends stripping",
+          "behavior": "AC4 a pending type renders unavailable with a null count, never as clean",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > strips leading CLI flags / stops flag stripping at `--`"
+          "evidence": "review-record.test.ts 'renders a still-pending type as unavailable' PASSED"
         },
         {
-          "behavior": "Harness injections are never narrated as something a person said",
+          "behavior": "AC5 absent record falls back to the marker path unchanged, internal note intact",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > never narrates harness injections as something a person said"
+          "evidence": "review-state.precedence.test.ts 'no record \u2014 the pre-record behaviour, unchanged' (2) + the 12 pre-existing review-state tests PASSED"
         },
         {
-          "behavior": "A failure COUNT is read only from recognised test output",
+          "behavior": "AC6 a corrupt or foreign record is an integrity fault that does NOT fall back and is SHOWN",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > reads a real failure COUNT from recognised output"
+          "evidence": "review-state.precedence.test.ts 'a corrupt record is a fault' (3) PASSED"
         },
         {
-          "behavior": "is_error alone never becomes a failure count",
+          "behavior": "AC7 an unstructured pass shows no count, in the row AND in the summary",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > an is_error with NO parseable count does not invent one"
+          "evidence": "MissionSlice2Details 'NEVER shows 0 issues' + precedence 'summary never says raised no issues' PASSED"
         },
         {
-          "behavior": "A counted pass may claim the whole suite; an uncounted one may not",
+          "behavior": "AC8 a null severity is rendered without inventing one",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > a COUNTED pass may claim the whole suite"
+          "evidence": "review-record.test.ts 'does not invent a severity' PASSED"
         },
         {
-          "behavior": "A tool call with no result yet is pending, never success",
+          "behavior": "AC9 the record is read through isSafeRunId + pathGuard + realPathGuard and a 2 MB bound; ENOENT alone is absence",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts + narrator-prose.test.ts + e2e mission-narrative-prose.spec.ts"
+          "evidence": "review-record.validation.test.ts (12 cases incl. unsafe run id) PASSED"
         },
         {
-          "behavior": "Reads/searches aggregate into counts; no per-step line, no filenames",
+          "behavior": "AC10 the client mirror stays byte-aligned with the server SoT",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > tells the arc of a real run; e2e asserts no filename appears"
+          "evidence": "mission-context-types-sync.test.ts PASSED (it correctly FAILED until ReviewParseStatus + ReviewSource were registered)"
         },
         {
-          "behavior": "An inline link resolves to a rail node, else renders as plain text",
+          "behavior": "A record naming a different run is refused rather than shown as this run's history",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > emits NO link when the rail has no such node"
+          "evidence": "review-record.validation.test.ts + precedence 'a record naming a different run' PASSED"
         },
         {
-          "behavior": "An inline link is a real <button type=button>, keyboard-activatable",
+          "behavior": "An all-pending record keeps the artifact not_yet_created instead of claiming no review ran",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx > a link span is a real button / is reachable by keyboard"
+          "evidence": "review-state.precedence.test.ts 'a freshly materialized record is not a review history' PASSED"
         },
         {
-          "behavior": "No duration or elapsed time appears anywhere in the narration",
+          "behavior": "An unsafe run id is reported as unidentifiable, not as a corrupt record",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > never emits a time unit; e2e negative regex"
+          "evidence": "review-state.precedence.test.ts 'an unsafe run id is identified as such' PASSED"
         },
         {
-          "behavior": "An empty transcript keeps the honest waiting line",
+          "behavior": "parse_status partial presents its count as a floor, never as complete",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx + MissionBody.test.tsx > honest waiting"
+          "evidence": "MissionSlice2Details 'presents a PARTIAL parse as a floor' PASSED"
         },
         {
-          "behavior": "Command heads are quote-aware (escapes, mixed quoting, unclosed quote)",
+          "behavior": "A capped finding list is disclosed rather than implying completeness",
           "disposition": "tested",
-          "evidence": "client stage-markers.test.ts > separator INSIDE a quoted argument / quoting edge cases"
+          "evidence": "MissionSlice2Details 'discloses a capped finding list' PASSED"
         },
         {
-          "behavior": "A slash command carrying <command-args> is classified as one and carries args",
+          "behavior": "Schema faults: unknown parse_status, missing disposition, unstructured-with-findings",
           "disposition": "tested",
-          "evidence": "client session-parser.slash-args.test.ts (6 tests)"
+          "evidence": "review-record.validation.test.ts shape cases PASSED"
         },
         {
-          "behavior": "Narrative window: 4 anchor rules, ask recovery, completed-run verdict+story stack",
+          "behavior": "The finding spans are visually separated by CSS, which jsdom cannot verify",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts (7 tests) + MissionBody.test.tsx > COMPLETED run"
+          "evidence": "mission-artifacts-s2.spec.ts toHaveCSS(display,flex)+(flex-direction,column) in a REAL browser PASSED"
+        },
+        {
+          "behavior": "The marker-fallback E2E still represents every pass explicitly",
+          "disposition": "tested",
+          "evidence": "mission-artifacts-s2.spec.ts 'Review shows the five passes' PASSED"
+        },
+        {
+          "behavior": "AC1/AC7 end-to-end: a seeded per-run record renders the self row, a per-finding location, a did-not-apply reason, and NO count for an unitemizable pass",
+          "disposition": "tested",
+          "category": "integration",
+          "evidence": "client/e2e/flows/mission-artifacts-s2.spec.ts 'Review reads the per-run record' \u2014 real browser against an isolated stack, 5 passed"
+        },
+        {
+          "behavior": "Rendering of a record produced by a future producer schema version",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "A version this reader does not understand is refused as an integrity fault, which IS tested ('rejects a schema version it does not understand'). What a hypothetical v2 should render cannot be tested before v2 exists; the fail-closed behaviour is the whole contract until then."
         }
       ],
-      "enumeration_basis": "The 12 acceptance criteria of .shipwright/planning/iterate/2026-07-21-mission-narrative-prose.md (AC1-AC10 plus AC3b and AC7b), each split where it carries more than one observable behaviour. 17 behaviours, all tested.",
       "counts": {
-        "testable": 17,
-        "tested": 17,
-        "untestable": 0,
+        "testable": 19,
+        "tested": 19,
+        "untestable": 1,
         "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
       }
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 11,
+      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/mission-artifacts-s2.spec.ts --config client/playwright.config.ts --reporter=line --workers=1",
       "exit_code": 0,
-      "justification": "UI behaviour change plus two parser/derivation fixes that only manifest end-to-end, so surface=web. Real Chromium against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_E2E_ISOLATED=1, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local). NEW client/e2e/flows/mission-narrative-prose.spec.ts: 3/3 passed — the prose arc incl. the failure->recovery outcome, the quoted-tool-name honesty case, the pending run, and the inline artifact link. Pre-existing mission specs re-run as the regression gate: mission-live-jsonl.spec.ts, mission-artifacts-s4.spec.ts, A12-mission-operation.spec.ts = 7/8 passed. The single failure (A12 'the proof summary is NOT the terminal') waits for the EMBEDDED TERMINAL's data-ws-ready and fails with pty_spawn_failed code 5 in the Hono log — the documented environmental ACCESS_DENIED of an isolated stack, on a surface this diff does not touch."
+      "tests_run": 5,
+      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-review-record\\.shipwright\\runs\\iterate-2026-07-22-mission-review-record\\surface_verification.log",
+      "timestamp": "2026-07-22T07:18:02.890Z",
+      "attempts": 1
     }
   }
 }

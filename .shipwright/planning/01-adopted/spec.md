@@ -903,6 +903,21 @@ write surface; gated, path-guarded, and concurrency-safe.
   entries rather than hiding the whole rail for the entire early phase of every run;
   `not_applicable` stays hidden and an `unavailable` artifact NEVER renders as pending,
   so a read failure stays distinguishable from "not written yet".
+- (M) **(iterate-2026-07-22-mission-review-record)** The Review artifact shows what the
+  reviews actually FOUND. The producer now writes a per-run record listing every review
+  pass with its individual findings, so the three passes that were permanently
+  "unavailable" — the author's own check and the internal code and doubt passes — carry
+  real results, and the author's own check appears as a **fifth** pass because on a small
+  change it is the only review that runs. That record is the authority: the older
+  per-run marker files answer ONLY when no record exists, so the runs that predate it
+  keep exactly the behaviour they have. A record that exists but cannot be read, or that
+  names a different run, is reported as a data problem and NEVER answered by quietly
+  falling back to the weaker source — only a genuinely missing file counts as absent. A
+  pass that did not run states the reason it did not, and a pass that did not APPLY at
+  this size says so in different words from one that was skipped. A review whose findings
+  could not be read back individually never shows a count of zero — neither in the list
+  nor in the one-line summary above it — because "0" reads as "found nothing"; where only
+  part could be read back, the number is shown as a floor and said to be incomplete.
 
 ## Quality Requirements
 

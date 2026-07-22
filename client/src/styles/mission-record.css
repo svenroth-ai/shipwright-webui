@@ -195,3 +195,24 @@
 .artifact .a-reviews { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .artifact .a-review-name { font-weight: 600; color: var(--ink); }
 .artifact .a-review-status { color: var(--muted); }
+
+/* Per-finding review detail (iterate-2026-07-22-mission-review-record).
+   The marker path never supplied findings, so these are the first rules the
+   finding list has ever needed. Without them the four spans render as one
+   run-on string — "mediumthe lock is releasedserver/src/x.ts:42widen the lock" —
+   which jsdom's `toHaveTextContent` normalizes away and cannot catch. */
+.artifact .a-review-findings { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.artifact .a-review-findings li { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.artifact .a-review-severity {
+  align-self: flex-start;
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.artifact .a-review-severity[data-severity="high"] { color: var(--danger, #b4443a); }
+.artifact .a-review-finding-text { color: var(--ink); }
+.artifact .a-review-location { color: var(--muted); font-family: var(--mono, monospace); font-size: 11px; word-break: break-all; }
+.artifact .a-review-suggestion { color: var(--muted); }
+.artifact .a-review-count { color: var(--muted); }

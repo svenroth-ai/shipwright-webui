@@ -143,6 +143,9 @@ function reviewRow(over: Partial<ReviewRow> & Pick<ReviewRow, "reviewType">): Re
     completedAt: null,
     disposition: null,
     note: null,
+    parseStatus: null,
+    source: "marker",
+    truncated: false,
     ...over,
   };
 }
@@ -209,20 +212,159 @@ describe("ReviewDetail", () => {
     expect(screen.queryByTestId("artifact-review-no-detail")).not.toBeInTheDocument();
   });
 
-  it("renders per-finding rows when a source ever supplies them", () => {
+  it("renders per-finding rows when a source supplies them", () => {
     render(
       <ReviewDetail
         artifact={reviewArtifact([
           reviewRow({
             reviewType: "plan",
             status: "completed",
+            source: "record",
             findingsCount: 1,
-            findings: [{ severity: "HIGH", title: "Unbounded read" }],
+            findings: [
+              { severity: "HIGH", title: "Unbounded read", location: null, suggestion: null },
+            ],
           }),
         ])}
       />,
     );
-    expect(screen.getByText("HIGH — Unbounded read")).toBeInTheDocument();
+    const finding = screen.getByTestId("artifact-review-finding");
+    expect(finding).toHaveTextContent("HIGH");
+    expect(finding).toHaveTextContent("Unbounded read");
     expect(screen.queryByTestId("artifact-review-no-detail")).not.toBeInTheDocument();
+  });
+
+  // --- the per-run review record (iterate-2026-07-22-mission-review-record) --
+
+  it("shows where a finding is and what to do about it", () => {
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({
+            reviewType: "code",
+            status: "completed",
+            source: "record",
+            findingsCount: 1,
+            findings: [
+              {
+                severity: "medium",
+                title: "the lock is released before the write",
+                location: "server/src/core/x.ts:42",
+                suggestion: "widen the lock",
+              },
+            ],
+          }),
+        ])}
+      />,
+    );
+    expect(screen.getByTestId("artifact-review-location")).toHaveTextContent(
+      "server/src/core/x.ts:42",
+    );
+    expect(screen.getByTestId("artifact-review-finding")).toHaveTextContent("widen the lock");
+  });
+
+  it("labels the self-review, the only pass that runs on a small change", () => {
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({ reviewType: "self", status: "completed", source: "record", findingsCount: 0 }),
+        ])}
+      />,
+    );
+    expect(screen.getByTestId("artifact-review-row")).toHaveTextContent("Self-review");
+  });
+
+  it("says a pass did not APPLY, rather than that someone skipped it", () => {
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({
+            reviewType: "doubt",
+            status: "not_applicable",
+            source: "record",
+            disposition: "docs-only diff; the doubt pass is conditional",
+          }),
+        ])}
+      />,
+    );
+    const row = screen.getByTestId("artifact-review-row");
+    expect(row).toHaveTextContent("did not apply");
+    expect(screen.getByTestId("artifact-review-disposition")).toHaveTextContent("docs-only diff");
+  });
+
+  it("NEVER shows '0 issues' for a review whose findings could not be itemized", () => {
+    // The whole artifact exists to stop a reader completing "0" into "found
+    // nothing". A review that ran and could not be parsed is not a clean one.
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({
+            reviewType: "plan",
+            status: "completed",
+            source: "record",
+            parseStatus: "unstructured",
+            findingsCount: 0,
+          }),
+        ])}
+      />,
+    );
+    expect(screen.queryByTestId("artifact-review-count")).not.toBeInTheDocument();
+    expect(screen.getByTestId("artifact-review-unitemized")).toBeInTheDocument();
+  });
+
+  it("does not claim missing detail for a record-backed clean review", () => {
+    // `findingsCount === findings.length` is guaranteed by the record, so a
+    // record-backed zero is a genuine "found nothing" and needs no caveat.
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({
+            reviewType: "code",
+            status: "completed",
+            source: "record",
+            findingsCount: 0,
+          }),
+        ])}
+      />,
+    );
+    expect(screen.getByTestId("artifact-review-count")).toHaveTextContent("0 issues");
+    expect(screen.queryByTestId("artifact-review-no-detail")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("artifact-review-unitemized")).not.toBeInTheDocument();
+  });
+
+  it("presents a PARTIAL parse as a floor, never as a complete count", () => {
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({
+            reviewType: "plan",
+            status: "completed",
+            source: "record",
+            parseStatus: "partial",
+            findingsCount: 3,
+          }),
+        ])}
+      />,
+    );
+    expect(screen.getByTestId("artifact-review-count")).toHaveTextContent("3 issues");
+    expect(screen.getByTestId("artifact-review-partial")).toBeInTheDocument();
+  });
+
+  it("discloses a capped finding list rather than implying completeness", () => {
+    render(
+      <ReviewDetail
+        artifact={reviewArtifact([
+          reviewRow({
+            reviewType: "code",
+            status: "completed",
+            source: "record",
+            findingsCount: 200,
+            truncated: true,
+            findings: [{ severity: null, title: "one of many", location: null, suggestion: null }],
+          }),
+        ])}
+      />,
+    );
+    expect(screen.getByTestId("artifact-review-truncated")).toBeInTheDocument();
   });
 });

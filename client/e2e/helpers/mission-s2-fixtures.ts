@@ -148,3 +148,75 @@ export function decisionLog(): string {
     "",
   ].join("\n");
 }
+
+/**
+ * A per-run review record, in the shape the shipwright monorepo producer writes
+ * (`shared/scripts/lib/review_record*.py`, PR #428). Kept minimal but SHAPE-EXACT;
+ * the byte-verbatim copy of real producer output lives in the server unit tests
+ * (`server/src/test/fixtures/reviews-record-real.json`).
+ */
+export function reviewRecord(
+  over: Partial<Record<string, Record<string, unknown>>> = {},
+): string {
+  const base = (reviewType: string, extra: Record<string, unknown> = {}) => ({
+    review_type: reviewType,
+    status: "completed",
+    findings_count: 0,
+    findings: [],
+    provider: null,
+    completed_at: "2026-07-22T09:00:00+00:00",
+    disposition: null,
+    recorded_by: null,
+    parse_status: null,
+    raw_excerpt: null,
+    ...extra,
+  });
+  return JSON.stringify(
+    {
+      schema_version: 1,
+      run_id: RUN_ID,
+      reviews: {
+        self: base("self", {
+          findings_count: 1,
+          findings: [
+            {
+              severity: null,
+              category: "Test Quality",
+              file: null,
+              line: null,
+              finding: "no error-path test on the reader",
+              suggestion: null,
+              source: "self-review",
+            },
+          ],
+        }),
+        plan: base("plan", { provider: "openrouter", parse_status: "structured" }),
+        code: base("code", {
+          findings_count: 1,
+          findings: [
+            {
+              severity: "medium",
+              category: "correctness",
+              file: "server/src/core/x.ts",
+              line: 42,
+              finding: "the lock is released before the write",
+              suggestion: "widen the lock",
+              source: "code-reviewer",
+            },
+          ],
+        }),
+        doubt: base("doubt", {
+          status: "not_applicable",
+          disposition: "docs-only diff; the doubt pass is conditional per iteration-reviews.md",
+        }),
+        external_code: base("external_code", {
+          provider: "openrouter",
+          parse_status: "unstructured",
+        }),
+        ...over,
+      },
+    },
+    null,
+    2,
+  );
+}

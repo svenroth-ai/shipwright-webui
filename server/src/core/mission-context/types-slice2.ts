@@ -71,29 +71,56 @@ export interface TestsArtifact extends ArtifactBase {
 // Review
 // ---------------------------------------------------------------------------
 
-/** The four passes the contract pins. */
-export type ReviewType = "plan" | "code" | "doubt" | "external_code";
+/**
+ * The five passes. `self` was added once the producer began recording it
+ * (`iterate-2026-07-22-mission-review-record`): at trivial and small complexity
+ * the Self-Review is the ONLY review that runs, so omitting it showed nothing
+ * for the commonest case.
+ */
+export type ReviewType = "self" | "plan" | "code" | "doubt" | "external_code";
 
 /**
- * `not_run`     — a record EXISTS saying the pass did not run.
- * `unavailable` — no readable record either way. NOT the same as "clean".
+ * `not_run`        — a record EXISTS saying the pass did not run.
+ * `not_applicable` — it did not APPLY at this size or change shape. Kept
+ *                    distinct from `not_run`: "we chose to skip it" and "the
+ *                    rules never asked for it" are different facts, and the
+ *                    disposition should not have to re-explain which one it was.
+ * `unavailable`    — no readable record either way. NOT the same as "clean".
  */
-export type ReviewStatus = "completed" | "not_run" | "unavailable";
+export type ReviewStatus = "completed" | "not_run" | "not_applicable" | "unavailable";
+
+/**
+ * How well the reviewer's own output could be itemized.
+ *
+ * `unstructured` is the load-bearing one: the review RAN and its prose could not
+ * be split into findings, so `findingsCount` is 0 for a review that may have
+ * found plenty. Rendering that as "0 issues" is the fabrication the whole
+ * artifact exists to prevent, which is why this is a field the UI can branch on
+ * rather than a sentence buried in `note`.
+ */
+export type ReviewParseStatus = "structured" | "partial" | "unstructured";
+
+/** Where a row came from — the UI's honesty copy differs per source. */
+export type ReviewSource = "record" | "marker";
 
 export interface ReviewFinding {
   severity: string | null;
+  /** The finding text itself. */
   title: string;
+  /** `path/to/file.ts:42`, pre-joined server-side; null when not located. */
+  location: string | null;
+  suggestion: string | null;
 }
 
 export interface ReviewRow {
   reviewType: ReviewType;
   status: ReviewStatus;
-  /** Real count from the record; null when there is no readable record. */
+  /** Real count; null when there is no readable record, or none yet. */
   findingsCount: number | null;
   /**
-   * Per-finding detail. Always empty from today's sources — the marker records
-   * a COUNT only. The UI must never render `[]` as "no findings were found"
-   * (see review-state.ts for the §9.1 decision and follow-up `trg-74ec44b8`).
+   * Per-finding detail. Populated from the per-run review record; ALWAYS empty
+   * on the `marker` path, which records a COUNT only. The UI must never render
+   * `[]` as "no findings were found" — see `source`.
    */
   findings: ReviewFinding[];
   provider: string | null;
@@ -102,13 +129,18 @@ export interface ReviewRow {
   disposition: string | null;
   /** Plain-language reason the status is not `completed`. */
   note: string | null;
+  /** Null on the marker path and for internal passes, which are not parsed. */
+  parseStatus: ReviewParseStatus | null;
+  source: ReviewSource;
+  /** The finding list was capped — the UI must say so, not imply completeness. */
+  truncated: boolean;
 }
 
 export interface ReviewArtifact extends ArtifactBase {
   kind: "review";
   detail: {
     type: "reviews";
-    /** ALWAYS all four types, in contract order (AC4). */
+    /** ALWAYS all five types, in contract order (AC4). */
     rows: ReviewRow[];
   } | null;
 }
