@@ -50,11 +50,17 @@ function row(rows: ReviewRow[], t: ReviewType): ReviewRow {
 }
 
 describe("readReviewState", () => {
-  it("ALWAYS returns the four contract types, in order (AC4)", () => {
+  it("ALWAYS returns the five contract types, in order (AC4)", () => {
     const root = projectWithMarkers({});
     try {
       const { rows } = readReviewState(root, RUN_ID);
-      expect(rows.map((r) => r.reviewType)).toEqual(["plan", "code", "doubt", "external_code"]);
+      expect(rows.map((r) => r.reviewType)).toEqual([
+        "self",
+        "plan",
+        "code",
+        "doubt",
+        "external_code",
+      ]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -202,9 +208,12 @@ describe("readReviewState", () => {
 });
 
 describe("reviewStatePaths", () => {
-  it("lists BOTH markers so a review written later invalidates the resolver cache", () => {
+  it("lists the record AND both markers so a later write invalidates the cache", () => {
     const paths = reviewStatePaths("/root", RUN_ID);
-    expect(paths).toHaveLength(2);
+    // Three since the per-run record joined the marker pair as the primary
+    // source (iterate-2026-07-22-mission-review-record).
+    expect(paths).toHaveLength(3);
+    expect(paths.some((p) => p.endsWith("reviews.json"))).toBe(true);
     expect(paths.some((p) => p.endsWith("external_review_state.json"))).toBe(true);
     expect(paths.some((p) => p.endsWith("external_code_review_state.json"))).toBe(true);
     expect(paths.every((p) => p.includes(RUN_ID))).toBe(true);

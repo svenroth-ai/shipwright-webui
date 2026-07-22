@@ -58,7 +58,7 @@ test.describe("A12 — Mission 'Operation' card", () => {
     const narration = page.getByTestId("mission-narration");
     await expect(narration).toBeVisible();
     await expect(narration).toHaveAttribute("data-empty", "true");
-    await expect(page.getByTestId("mission-narration-summary")).toContainText(/waiting/i);
+    await expect(page.getByTestId("mission-narration")).toContainText(/waiting/i);
     // Never a green ALL CLEAR over an unknown run.
     await expect(card).not.toContainText("ALL CLEAR");
   });

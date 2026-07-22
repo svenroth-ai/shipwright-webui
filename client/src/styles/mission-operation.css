@@ -38,6 +38,34 @@
 .mc-hero { flex: 1; min-height: 0; background: var(--dark); border: 1px solid var(--dark-line); border-radius: 10px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; padding: 16px 18px; overflow-y: auto; color: #c9c7c1; }
 .mc-hero:focus-visible { outline: none; box-shadow: var(--focus); }
 .mc-hero-line { white-space: pre-wrap; word-break: break-word; }
+
+/* A COMPLETED run shows its verdict AND its story (FR-01.68 AC10). The stack
+   takes the middle slot and never scrolls itself — each card keeps its own
+   internal `.mc-hero` scroller, so DO-NOT #24 does not apply here. The verdict
+   sizes to content; the story takes the remaining height. */
+.mc-op-stack { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.mc-op-stack > .mc-op:first-child { flex: 0 0 auto; }
+.mc-op-stack > .mc-op:last-child { flex: 1 1 auto; min-height: 0; }
+
+/* ── the told story (FR-01.68) ─────────────────────────────────────────────
+   PROSE, not a log. The `.mc-hero` shell keeps its scroll + keyline, but the
+   type switches from mono to the reading face: this is meant for someone who
+   finds the terminal too much, and a monospace wall reads as a terminal no
+   matter what it says. `.mc-hero` already carried `overflow-y: auto` — what was
+   missing was ever having more than six lines to scroll to. */
+.mc-story { font-family: inherit; font-size: 14px; line-height: 1.65; padding: 18px 20px; }
+.mc-story-p { margin: 0 0 14px; white-space: normal; word-break: normal; overflow-wrap: anywhere; }
+.mc-story-p:last-child { margin-bottom: 0; }
+/* An inline link is a WORD in a sentence, so it inherits the run of text and
+   only marks itself with an underline — a chip or a button box here would
+   rebuild the link column this design exists to remove. */
+.mc-story-link {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+}
+.mc-story-link:hover { text-decoration-color: currentColor; }
+.mc-story-link:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 3px; }
 .mc-hero .t { color: #5fc9b4; }
 .mc-hero .p { color: #3fbf9a; }
 .mc-hero .r { color: #f08772; }

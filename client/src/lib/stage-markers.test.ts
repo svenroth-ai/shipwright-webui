@@ -161,4 +161,49 @@ describe("a shell command must DO the phase, not merely name it (FIX 4)", () => 
     expect(stageOf('uv run ".../classify_complexity.py" --message x')).toBe("Analyze");
     expect(stageOf('uv run ".../finalize_iterate.py" --run-id x')).toBe("Finalize");
   });
+
+  /*
+   * FR-01.68 AC8 — the same name-vs-evidence class one level deeper.
+   *
+   * The suite above already pinned `grep -rn 'git commit' scripts/`, but that
+   * case passes by ACCIDENT: there is no shell separator inside those quotes,
+   * so the string stays one head beginning with `grep`. Put a `|` INSIDE the
+   * quotes and the splitter cuts the quoted argument apart, promoting a
+   * fragment to a command head:
+   *
+   *   grep -n "visual\|screenshot\|playwright" .gitignore
+   *     -> heads: [`grep -n "visual\`, `screenshot\`, `playwright" .gitignore`]
+   *                                             ^^^^^^^^^^ matches RE_TEST_CMD
+   *
+   * Measured over 198 real transcripts: 47 (23%) contain at least one such
+   * command — 63 test, 11 build, 4 merge. This is a SHIPPED defect: the left
+   * stepper can claim Test while the iterate is still scouting.
+   */
+  it("a separator INSIDE a quoted argument does not promote a fragment to a command", () => {
+    // The exact real-world offender from the probe.
+    expect(stageOf('grep -n "visual\\|screenshot\\|playwright" .gitignore')).toBe("Analyze");
+    expect(stageOf('grep -rn "npm run build|vite build" scripts/')).toBe("Analyze");
+    expect(stageOf("sed 's/x|vitest/y/' file.ts")).toBe("Analyze");
+    // How this was actually found: a probe whose Python source quoted the
+    // narrator's own marker regex. The narrator read its own source as a test run.
+    expect(stageOf("python -c \"re.search(r'npm test|vitest|jest', s)\"")).toBe("Analyze");
+    expect(stageOf('echo "git push|gh pr create"')).toBe("Analyze");
+  });
+
+  it("handles the quoting edge cases a naive scanner gets wrong", () => {
+    // An escaped quote does not end the quoted run.
+    expect(stageOf('grep "he said \\"stop\\"|vitest" f.ts')).toBe("Analyze");
+    // Mixed quoting.
+    expect(stageOf("grep -n '\"a|vitest\"' f.ts")).toBe("Analyze");
+    // An UNCLOSED quote must not swallow a real command that follows it.
+    expect(stageOf('echo "unclosed && npm run test')).toBe("Test");
+  });
+
+  it("the fix does not buy honesty with blindness — real commands still count", () => {
+    expect(stageOf("npx vitest run")).toBe("Test");
+    expect(stageOf('npx vitest run "src/lib/thing.test.ts"')).toBe("Test");
+    expect(stageOf("cd /repo && npm run test")).toBe("Test");
+    expect(stageOf('git commit -m "feat: x|y"')).toBe("Finalize");
+    expect(stageOf("cd /repo && git push origin HEAD")).toBe("Merge");
+  });
 });

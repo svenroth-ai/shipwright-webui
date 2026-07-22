@@ -31,7 +31,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 |----|------|------|----------|-------------|--------|
 | FR-01.02 | TSK | Task detail — 3-pane viewer | Must | The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout. | enrichment |
 | FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. It warns before saving files with tricky content (tables, raw HTML, footnotes).<br>**Updates:** Gained a formatting toolbar. | iterate-2026-06-03, toolbar iterate-2026-06-04 |
-| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. | iterate-2026-07-17-mission-live-jsonl |
+| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. | iterate-2026-07-21-mission-narrative-prose |
 
 ### Area TRM — Embedded Terminal
 
@@ -164,6 +164,7 @@ pair collapsed to one capability.
 | `FR-01.62` | `FR-01.02` | delta | Files & Terminal three-card layout — glass · **beige** · glass around a byte-identical pty |
 | `FR-01.63` | `FR-01.04` | delta | Inbox mid-run question — honest **terminal fallback** (jump to the task's terminal to answer; the WebUI answers nothing) |
 | `FR-01.67` | `FR-01.66` | delta | Mission lifecycle — six stages (Analyze…Merge) + autonomous-campaign progress awareness |
+| `FR-01.68` | `FR-01.66` | delta | Mission middle card told as PROSE — outcome-bearing sentences with inline artifact links, replacing the six-line tool log |
 
 ## How to read & extend this spec (requirements taxonomy)
 
@@ -902,6 +903,21 @@ write surface; gated, path-guarded, and concurrency-safe.
   entries rather than hiding the whole rail for the entire early phase of every run;
   `not_applicable` stays hidden and an `unavailable` artifact NEVER renders as pending,
   so a read failure stays distinguishable from "not written yet".
+- (M) **(iterate-2026-07-22-mission-review-record)** The Review artifact shows what the
+  reviews actually FOUND. The producer now writes a per-run record listing every review
+  pass with its individual findings, so the three passes that were permanently
+  "unavailable" — the author's own check and the internal code and doubt passes — carry
+  real results, and the author's own check appears as a **fifth** pass because on a small
+  change it is the only review that runs. That record is the authority: the older
+  per-run marker files answer ONLY when no record exists, so the runs that predate it
+  keep exactly the behaviour they have. A record that exists but cannot be read, or that
+  names a different run, is reported as a data problem and NEVER answered by quietly
+  falling back to the weaker source — only a genuinely missing file counts as absent. A
+  pass that did not run states the reason it did not, and a pass that did not APPLY at
+  this size says so in different words from one that was skipped. A review whose findings
+  could not be read back individually never shows a count of zero — neither in the list
+  nor in the one-line summary above it — because "0" reads as "found nothing"; where only
+  part could be read back, the number is shown as a floor and said to be incomplete.
 
 ## Quality Requirements
 

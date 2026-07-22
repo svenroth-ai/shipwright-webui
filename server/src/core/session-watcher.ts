@@ -17,11 +17,24 @@
  * BLOCKER fix + Gemini BLOCKER. PoC finding 4 showed torn-reads don't fire
  * on NTFS at the write rates claude emits, but the wider retry envelope
  * remains as insurance against AV scanners / OneDrive sync / Defender.
+ *
+ * The disk primitives themselves — that retry envelope, the POSITIONAL tail
+ * read (`readChunk` reads only `[fromByte, EOF)`, never the whole file) and the
+ * newline scan — live in `session-jsonl-io.ts`, which also carries the
+ * append/truncate concurrency contract they honour.
  */
 
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
+
+import {
+  ENOENT_FATAL,
+  lastIndexOfByte,
+  readTailFromDisk,
+  readWithRetry,
+  type TailRead,
+} from "./session-jsonl-io.js";
 
 export const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
@@ -35,7 +48,14 @@ export interface JsonlLocation {
 export interface SessionWatcherDeps {
   readdir?: (p: string) => Promise<string[]>;
   stat?: (p: string) => Promise<{ mtimeMs: number; size: number; isDirectory: () => boolean }>;
-  readFile?: (p: string) => Promise<Buffer>;
+  /**
+   * Positional read of `[fromByte, EOF)`. Replaced the former whole-file
+   * `readFile` dep in iterate-2026-07-21-transcript-positional-tail-read — a
+   * bounded-tail request must not cost an unbounded read. The old dep was
+   * removed rather than kept alongside: nothing injected it, so leaving it
+   * would have left an override that silently no longer changes behavior.
+   */
+  readTail?: (p: string, fromByte: number) => Promise<TailRead>;
   /** Override for tests; defaults to `~/.claude/projects`. */
   projectsDir?: string;
 }
@@ -48,7 +68,7 @@ const DEFAULT_DEPS: Required<SessionWatcherDeps> = {
       size: s.size,
       isDirectory: () => s.isDirectory(),
     })),
-  readFile: (p) => readFile(p),
+  readTail: (p, fromByte) => readTailFromDisk(p, fromByte),
   projectsDir: PROJECTS_DIR,
 };
 
@@ -221,11 +241,19 @@ export class SessionWatcher {
       }
     }
 
-    const bytes = await readWithRetry(() => this.deps.readFile(loc.path));
-    const from = Math.min(Math.max(args.fromByte, 0), bytes.length);
-    let slice = bytes.subarray(from);
+    // Positional: only `[fromByte, EOF)` leaves the disk. `liveSize` is the end
+    // THAT read observed, so a file truncated between discovery and the read
+    // clamps `from` exactly as the old whole-file reader implicitly did.
+    // No `fatalCodes` here, deliberately: unlike discovery, a transient ENOENT
+    // on the read is an AV scanner / sync client yanking a file we just saw,
+    // and must be retried rather than reported as an authoritative miss.
+    const { bytes, size: liveSize } = await readWithRetry(() =>
+      this.deps.readTail(loc.path, args.fromByte),
+    );
+    const from = Math.min(Math.max(args.fromByte, 0), liveSize);
+    let slice = bytes;
     let endExclusive = from + slice.length;
-    const lastNl = lastIndexOf(slice, 0x0a);
+    const lastNl = lastIndexOfByte(slice, 0x0a);
     if (lastNl === -1) {
       slice = Buffer.alloc(0);
       endExclusive = from;
@@ -266,34 +294,5 @@ export function computeFingerprint(loc: JsonlLocation): string {
   return `${Math.trunc(loc.mtimeMs)}:${loc.sizeBytes}`;
 }
 
-const RETRY_DELAYS_MS = [50, 100, 200, 400, 800, 1600];
-const RETRY_ERROR_CODES = new Set(["EBUSY", "EPERM", "EACCES", "ENOENT"]);
-/** D06/F24 — discovery passes this so ENOENT (absent) is an authoritative miss. */
-const ENOENT_FATAL: ReadonlySet<string> = new Set(["ENOENT"]);
-
-/** 6-attempt exponential backoff over Windows fs errors; `fatalCodes` bails
- * immediately on the given codes (e.g. ENOENT for discovery). */
-export async function readWithRetry<T>(op: () => Promise<T>, fatalCodes?: ReadonlySet<string>): Promise<T> {
-  let lastErr: unknown;
-  for (let i = 0; i < RETRY_DELAYS_MS.length; i++) {
-    try {
-      return await op();
-    } catch (err) {
-      lastErr = err;
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (!code || !RETRY_ERROR_CODES.has(code) || fatalCodes?.has(code)) {
-        throw err; // non-retryable (permissions, syntax) or caller-fatal
-      }
-      if (i === RETRY_DELAYS_MS.length - 1) break;
-      await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[i]));
-    }
-  }
-  throw lastErr;
-}
-
-function lastIndexOf(buf: Buffer, byte: number): number {
-  for (let i = buf.length - 1; i >= 0; i--) {
-    if (buf[i] === byte) return i;
-  }
-  return -1;
-}
+// The torn-read retry envelope, the positional tail read and the newline scan
+// live in `session-jsonl-io.ts` — imported above, re-exported nowhere.

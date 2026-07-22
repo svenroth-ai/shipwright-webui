@@ -16,6 +16,7 @@
  */
 
 import { toolUses, type ParsedEvent } from "../external/session-parser";
+import { runsCommand } from "./shell-heads";
 
 export type EditKind = "spec" | "finalize" | "incidental" | "product";
 
@@ -90,31 +91,39 @@ const RE_SCOPE_SCRIPT =
   /setup_iterate_worktree|classify_complexity|check-external-review-keys|external_review\.py|mark-review-state/;
 const RE_FINALIZE_SCRIPT = /finalize_iterate|write_decision_log|artifact_sync|verify_iterate/;
 
-/** Shell separators that begin a new command. */
-const SEGMENT_SPLIT = /\n|;|&&|\|\||[|&]/;
-/** Leading noise before the real command: env assignments and runner wrappers. */
-const COMMAND_PREFIX = /^(\S+=\S+|npx|pnpm|yarn|bun|sudo|time|command)\s+/;
+/* Command-position matching (incl. the quote-aware splitting that keeps a tool
+ * name inside a quoted argument from claiming its phase) lives in
+ * `shell-heads.ts` — it changes with SHELL syntax, this file changes with
+ * Shipwright's tooling vocabulary. */
 
 /**
- * The command heads of a shell string — one per `;`/`&&`/`||`/`|` segment, with
- * env assignments and runner wrappers stripped, so `npx vitest run` and
- * `shipwright_network_profile=local npx vitest run` both expose `vitest run`
- * while `cat vitest.config.ts` exposes `cat …`.
+ * What KIND of work a shell command evidences, priority-ordered — the narrative
+ * counterpart to `collectMarkers` (FR-01.68).
+ *
+ * Deliberately EXCLUSIVE where `collectMarkers` is not: `git commit && git push`
+ * sets both the finalize and merge markers there (a stepper wants the furthest
+ * position), while a story needs to file the command under one heading. The
+ * regexes are the same ones — this is a second READING of the single marker
+ * vocabulary, never a second definition of it.
  */
-function commandHeads(cmd: string): string[] {
-  return cmd.split(SEGMENT_SPLIT).map((segment) => {
-    let s = segment.trim();
-    for (;;) {
-      const m = COMMAND_PREFIX.exec(s);
-      if (!m) return s;
-      s = s.slice(m[0].length);
-    }
-  });
+export type CommandKind = "merge" | "finalize" | "test" | "build" | "scope" | null;
+
+export function classifyCommand(rawCmd: string): CommandKind {
+  const cmd = rawCmd.toLowerCase();
+  if (runsCommand(cmd, RE_MERGE_CMD)) return "merge";
+  if (runsCommand(cmd, RE_FINALIZE_CMD) || RE_FINALIZE_SCRIPT.test(cmd)) return "finalize";
+  if (runsCommand(cmd, RE_TEST_CMD)) return "test";
+  if (runsCommand(cmd, RE_BUILD_CMD)) return "build";
+  if (RE_SCOPE_SCRIPT.test(cmd)) return "scope";
+  return null;
 }
 
-/** Did this shell string actually RUN the pattern, rather than mention it? */
-function runsCommand(cmd: string, pattern: RegExp): boolean {
-  return commandHeads(cmd).some((head) => pattern.test(head));
+/** Does this command CREATE an iterate worktree? The narrative window's anchor
+ *  (FR-01.68 AC9) — measured at 89% frequency across real iterates in the S4
+ *  probe, and unlike a `pr-link` it marks a genuine BEGINNING. Narrower than
+ *  `RE_SCOPE_SCRIPT`, which lumps it in with calibration + review tooling. */
+export function opensIterateWorktree(rawCmd: string): boolean {
+  return /setup_iterate_worktree/i.test(rawCmd);
 }
 
 /**

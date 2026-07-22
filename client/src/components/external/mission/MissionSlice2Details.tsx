@@ -21,6 +21,7 @@
 import type {
   DecisionsArtifact,
   ReviewArtifact,
+  ReviewFinding,
   ReviewRow,
   TestsArtifact,
 } from "../../../lib/missionContextApi";
@@ -100,8 +101,44 @@ export function TestsDetail({ artifact }: { artifact: TestsArtifact }) {
 }
 
 /** One review pass. Kept small so the four rows read uniformly. */
+function ReviewFindingItem({ finding }: { finding: ReviewFinding }) {
+  return (
+    <li data-testid="artifact-review-finding">
+      {finding.severity ? (
+        <span className="a-review-severity" data-severity={finding.severity}>
+          {finding.severity}
+        </span>
+      ) : null}
+      <span className="a-review-finding-text">{finding.title}</span>
+      {finding.location ? (
+        <span className="a-review-location" data-testid="artifact-review-location">
+          {finding.location}
+        </span>
+      ) : null}
+      {finding.suggestion ? (
+        <span className="a-review-suggestion">{finding.suggestion}</span>
+      ) : null}
+    </li>
+  );
+}
+
 function ReviewRowItem({ row }: { row: ReviewRow }) {
-  const hasCount = row.status === "completed" && row.findingsCount != null;
+  // A review that RAN but whose prose could not be itemized has a count of 0
+  // for a review that may have found plenty. Showing "0 issues" would let a
+  // skimming reader complete it as "found nothing" — so the count is SUPPRESSED
+  // and only the caveat renders.
+  const unitemized = row.status === "completed" && row.parseStatus === "unstructured";
+  // `partial` means part of the reviewer's output could not be itemized, so the
+  // count is known to UNDERSTATE what was found. Same class of fabrication as
+  // `unstructured`, differing only in degree — so the count is shown (it is a
+  // real floor) but never presented as complete.
+  const undercount = row.status === "completed" && row.parseStatus === "partial";
+  const hasCount = row.status === "completed" && row.findingsCount != null && !unitemized;
+  // Only the marker path can report a count with no detail behind it; a record
+  // guarantees `findingsCount === findings.length`.
+  const countWithoutDetail =
+    row.source === "marker" && hasCount && row.findingsCount! > 0 && row.findings.length === 0;
+
   return (
     <li data-testid="artifact-review-row" data-review-type={row.reviewType} data-status={row.status}>
       <span className="a-review-name">{reviewTypeLabel(row.reviewType)}</span>{" "}
@@ -113,17 +150,32 @@ function ReviewRowItem({ row }: { row: ReviewRow }) {
           {` — ${row.findingsCount} ${row.findingsCount === 1 ? "issue" : "issues"}`}
         </span>
       ) : null}
-      {/* The count is real but the per-finding detail is not recorded. Saying
-          nothing here would let a reader assume the list below is complete. */}
-      {hasCount && row.findingsCount! > 0 && row.findings.length === 0 ? (
+      {unitemized ? (
+        <p className="a-note" data-testid="artifact-review-unitemized">
+          This review ran, but its findings could not be read back individually —
+          so this is not a “nothing found” result.
+        </p>
+      ) : null}
+      {undercount ? (
+        <p className="a-note" data-testid="artifact-review-partial">
+          Part of this review could not be read back individually, so it may have
+          found more than the number shown.
+        </p>
+      ) : null}
+      {countWithoutDetail ? (
         <p className="a-note" data-testid="artifact-review-no-detail">
           The individual findings were not recorded, only the count.
+        </p>
+      ) : null}
+      {row.truncated ? (
+        <p className="a-note" data-testid="artifact-review-truncated">
+          This review recorded more findings than are shown here.
         </p>
       ) : null}
       {row.findings.length > 0 ? (
         <ul className="a-review-findings">
           {row.findings.map((f, i) => (
-            <li key={`${f.title}:${i}`}>{f.severity ? `${f.severity} — ${f.title}` : f.title}</li>
+            <ReviewFindingItem key={`${f.title}:${i}`} finding={f} />
           ))}
         </ul>
       ) : null}
