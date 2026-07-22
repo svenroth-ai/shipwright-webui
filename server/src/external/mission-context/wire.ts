@@ -48,7 +48,17 @@ export function createWiredMissionContextRouter(deps: WiredMissionContextDeps) {
           RECOVERY_TAIL_BYTES,
         );
         const fromByte = Math.max(0, loc.sizeBytes - budget);
-        const r = await watcher.readChunk({ sessionUuid, fromByte, expectFingerprint: null });
+        // `loc` is handed to the reader so it does not repeat the walk we just
+        // did (iterate-2026-07-22-…-single-walk). Safe HERE specifically
+        // because this caller passes `expectFingerprint: null` — a caller that
+        // relied on rotation detection must let `readChunk` resolve the file
+        // itself, since the fingerprint is computed from whatever it is given.
+        const r = await watcher.readChunk({
+          sessionUuid,
+          fromByte,
+          expectFingerprint: null,
+          location: loc,
+        });
         if (r.status !== "ok") return { text: "", revision: "" };
         // Already in hand from the SAME `findByUuid` walk, so scheduling the
         // wide reach-back costs no extra I/O. All three parts earn their place:

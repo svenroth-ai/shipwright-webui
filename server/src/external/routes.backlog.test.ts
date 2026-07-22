@@ -39,13 +39,22 @@ function inMemoryDeps(): SdkSessionsStoreDeps {
 
 /** result="ok" watcher stub (real-FS scan bypassed) — see active-stays test. */
 function makeOkWatcherStub(sessionUuid: string): SessionWatcher {
+  // ONE location, handed back by both `findByUuid` and `readChunk` — the
+  // invariant the real reader now guarantees
+  // (iterate-2026-07-22-…-single-walk): the location an `ok` chunk reports is
+  // the one those bytes were read from. Two independently-built literals here
+  // would let the stub drift from a shape the production code cannot produce.
+  const loc = {
+    path: "/fake/jsonl",
+    encodedCwd: "enc",
+    mtimeMs: Date.now() - 5_000,
+    sizeBytes: 16,
+  };
   return {
-    findByUuid: async (uuid: string) =>
-      uuid === sessionUuid
-        ? { path: "/fake/jsonl", mtimeMs: Date.now() - 5_000, sizeBytes: 16 }
-        : null,
+    findByUuid: async (uuid: string) => (uuid === sessionUuid ? loc : null),
     readChunk: async () => ({
       status: "ok" as const,
+      location: loc,
       chunk: { fingerprint: "fp", size: 16, fromByte: 0, toByte: 0, content: "" },
     }),
   } as unknown as SessionWatcher;

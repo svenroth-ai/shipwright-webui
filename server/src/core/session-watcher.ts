@@ -12,16 +12,11 @@
  * `fromByte` + `expectFingerprint`; the server returns the delta. No
  * server-side offset cache → multi-tab works by construction.
  *
- * Torn-read retry: 50 → 1600 ms × 6 attempts, catching EBUSY / EPERM /
- * EACCES / ENOENT in addition to JSON-parse errors. Plan D'' round-1
- * BLOCKER fix + Gemini BLOCKER. PoC finding 4 showed torn-reads don't fire
- * on NTFS at the write rates claude emits, but the wider retry envelope
- * remains as insurance against AV scanners / OneDrive sync / Defender.
- *
- * The disk primitives themselves — that retry envelope, the POSITIONAL tail
- * read (`readChunk` reads only `[fromByte, EOF)`, never the whole file) and the
- * newline scan — live in `session-jsonl-io.ts`, which also carries the
- * append/truncate concurrency contract they honour.
+ * The disk primitives — the torn-read retry envelope (50 → 1600 ms × 6 over
+ * EBUSY / EPERM / EACCES / ENOENT, insurance against AV scanners / OneDrive /
+ * Defender), the POSITIONAL tail read (`readChunk` reads only `[fromByte, EOF)`,
+ * never the whole file) and the newline scan — live in `session-jsonl-io.ts`,
+ * which also carries the append/truncate concurrency contract they honour.
  */
 
 import { readdir, stat } from "node:fs/promises";
@@ -35,6 +30,7 @@ import {
   readWithRetry,
   type TailRead,
 } from "./session-jsonl-io.js";
+import { awaitingLaunchProbe } from "./session-watcher-debug.js";
 
 export const PROJECTS_DIR = path.join(homedir(), ".claude", "projects");
 
@@ -82,34 +78,18 @@ export class SessionWatcher {
   /**
    * Resolve the on-disk JSONL for a given pre-bound session UUID.
    * Returns null if no file matches yet (common during
-   * `awaiting_external_start` before the user pastes).
-   *
-   * Iterate v0.8.2 AC-5 (awaiting-launch state lag — diagnosis): when
-   * SHIPWRIGHT_DEBUG_AWAITING_LAUNCH=1, log each polled subdirectory +
-   * match outcome. The known-good lower bound is ~5–15 s for Claude's
-   * first JSONL write + 2–5 s server poll cadence (~20 s total). If
-   * the field reports >30 s, the most likely cause is an encoded-cwd
-   * mismatch — the pty was started under one cwd but `Set-Location`'d
-   * before launch, while task.cwd records the original. The log shows
-   * BOTH the directories walked AND a no-match outcome so the operator
-   * can compare against the encoded cwd they expected.
+   * `awaiting_external_start` before the user pastes). The env-gated
+   * awaiting-launch diagnostic lives in `session-watcher-debug.ts`.
    */
   async findByUuid(sessionUuid: string): Promise<JsonlLocation | null> {
-    const debug =
-      process.env.SHIPWRIGHT_DEBUG_AWAITING_LAUNCH === "1" ||
-      process.env.SHIPWRIGHT_DEBUG_AWAITING_LAUNCH === "true";
+    const probe = awaitingLaunchProbe();
     const wanted = `${sessionUuid.toLowerCase()}.jsonl`;
     let subs: string[];
     try {
       // D06/F24 — retry transient fs errors, fast-fail ENOENT (absent dir).
       subs = await readWithRetry(() => this.deps.readdir(this.deps.projectsDir), ENOENT_FATAL);
     } catch {
-      if (debug) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[awaiting-launch] readdir(projectsDir) failed for uuid=${sessionUuid} dir=${this.deps.projectsDir}`,
-        );
-      }
+      probe?.readdirFailed(sessionUuid, this.deps.projectsDir);
       return null;
     }
     for (const sub of subs) {
@@ -132,24 +112,14 @@ export class SessionWatcher {
         try {
           // D06/F24 core fix — retry the matched file's stat (pre-fix a transient EBUSY here read as an authoritative "JSONL missing").
           const fs = await readWithRetry(() => this.deps.stat(fp), ENOENT_FATAL);
-          if (debug) {
-            // eslint-disable-next-line no-console
-            console.log(
-              `[awaiting-launch] HIT uuid=${sessionUuid} encodedCwd=${sub} size=${fs.size}`,
-            );
-          }
+          probe?.hit(sessionUuid, sub, fs.size);
           return { path: fp, encodedCwd: sub, mtimeMs: fs.mtimeMs, sizeBytes: fs.size };
         } catch {
           return null;
         }
       }
     }
-    if (debug) {
-      // eslint-disable-next-line no-console
-      console.log(
-        `[awaiting-launch] miss uuid=${sessionUuid} walked=${subs.length} encodedCwds=${subs.slice(0, 8).join(",")}${subs.length > 8 ? ",…" : ""}`,
-      );
-    }
+    probe?.miss(sessionUuid, subs);
     return null;
   }
 
@@ -223,13 +193,28 @@ export class SessionWatcher {
    * chunk trimming. Always returns content ending on `\n` so the client
    * never sees a partial line (and `\n` is safe to split on even in the
    * middle of a multi-byte UTF-8 sequence).
+   *
+   * Returns the `JsonlLocation` it read from on success, so a caller needing
+   * the file's mtime/size does not walk `~/.claude/projects` a second time for
+   * an answer this call already had (iterate-2026-07-22-…-single-walk).
    */
   async readChunk(args: {
     sessionUuid: string;
     fromByte: number;
     expectFingerprint: string | null;
+    /**
+     * Pre-resolved location: "I walked in THIS poll — don't walk again."
+     * For callers that must resolve first anyway (mission-context needs
+     * `sizeBytes` to compute a tail offset; the inbox cold path walks for its
+     * cache). It does not become authoritative over the bytes — the read runs
+     * its own `fstat` — but `size` + `fingerprint` are taken from it, so a
+     * caller relying on `expectFingerprint` for rotation must NOT pass one.
+     * Construct it only via `findByUuid` / `findManyByUuid`; no route may
+     * supply a path from request data.
+     */
+    location?: JsonlLocation | null;
   }): Promise<TranscriptReadResult> {
-    const loc = await this.findByUuid(args.sessionUuid);
+    const loc = args.location ?? (await this.findByUuid(args.sessionUuid));
     if (!loc) return { status: "missing" };
     const fingerprint = computeFingerprint(loc);
 
@@ -247,6 +232,11 @@ export class SessionWatcher {
     // No `fatalCodes` here, deliberately: unlike discovery, a transient ENOENT
     // on the read is an AV scanner / sync client yanking a file we just saw,
     // and must be retried rather than reported as an authoritative miss.
+    // NOTE `chunk.toByte` may exceed `chunk.size`: `size` comes from the
+    // discovery stat while the read runs through the EOF its OWN handle saw.
+    // Pre-existing, and load-bearing since a client cursor arrived — a
+    // `fromByte` past `prevSize` is exactly what the rotation check's
+    // `sizeBytes < fromByte` disjunct absorbs (internal review, LOW-5).
     const { bytes, size: liveSize } = await readWithRetry(() =>
       this.deps.readTail(loc.path, args.fromByte),
     );
@@ -264,6 +254,7 @@ export class SessionWatcher {
 
     return {
       status: "ok",
+      location: loc,
       chunk: {
         fingerprint,
         size: loc.sizeBytes,
@@ -285,14 +276,17 @@ export interface TranscriptChunk {
   content: string;
 }
 
+/**
+ * `location` is REQUIRED on `ok` — deliberately, so every construction site
+ * (including test mocks) has to supply a real one. An optional field would let
+ * a consumer keep a silent `?? findByUuid()` fallback and re-grow the second
+ * walk this shape exists to remove. `rotated` carries none: no caller wants it.
+ */
 export type TranscriptReadResult =
   | { status: "missing" }
   | { status: "rotated"; currentFingerprint: string }
-  | { status: "ok"; chunk: TranscriptChunk };
+  | { status: "ok"; chunk: TranscriptChunk; location: JsonlLocation };
 
 export function computeFingerprint(loc: JsonlLocation): string {
   return `${Math.trunc(loc.mtimeMs)}:${loc.sizeBytes}`;
 }
-
-// The torn-read retry envelope, the positional tail read and the newline scan
-// live in `session-jsonl-io.ts` — imported above, re-exported nowhere.

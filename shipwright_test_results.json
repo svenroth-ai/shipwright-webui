@@ -1,27 +1,27 @@
 {
-  "last_updated": "2026-07-21",
+  "last_updated": "2026-07-22",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-mission-narrative-prose",
-    "date": "2026-07-21",
+    "run_id": "iterate-2026-07-22-transcript-cursor-single-walk",
+    "date": "2026-07-22",
     "unit": {
       "status": "passed",
-      "passed": 5851,
-      "total": 5852
+      "passed": 5938,
+      "total": 5939
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 5938,
+      "total": 5939
     },
     "pgtap": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "e2e": {
       "status": "passed",
-      "passed": 10,
-      "total": 11
+      "passed": 7,
+      "total": 7
     },
     "design_fidelity": {
       "status": "skipped",
@@ -29,111 +29,219 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Middle card renders prose paragraphs, not an activity list",
+          "behavior": "The poll sends the previous response's toByte, not 0",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx > renders paragraphs of prose, not a list of activity lines"
+          "evidence": "useTaskTranscript.cursor.test.ts 'the second poll asks from the first response toByte, not 0' PASSED; e2e 103 AC-1 wire-level PASSED"
         },
         {
-          "behavior": "The retired six-line window leaves no .mc-hero-line behind",
+          "behavior": "Accumulated content equals the concatenation of every delta",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx > renders paragraphs of prose (negative assertion)"
+          "evidence": "useTaskTranscript.cursor.test.ts 'content across three polls equals the concatenation' PASSED; e2e 103 (line delivered only inside a delta) PASSED"
         },
         {
-          "behavior": "Ask sourced from the kickoff <command-args>",
+          "behavior": "fromByte 0 REPLACES the buffer",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > takes the operator's request from the kickoff arguments"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'fromByte 0 REPLACES' PASSED"
         },
         {
-          "behavior": "Leading CLI flags stripped; value-flags consume their value; `--` ends stripping",
+          "behavior": "fromByte === cursor APPENDS and advances the cursor to toByte",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > strips leading CLI flags / stops flag stripping at `--`"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'APPENDS and advances the cursor' PASSED"
         },
         {
-          "behavior": "Harness injections are never narrated as something a person said",
+          "behavior": "Any other fromByte is rejected; pane preserved, cursor rewound to 0",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > never narrates harness injections as something a person said"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'REJECTED without corrupting the pane' PASSED"
         },
         {
-          "behavior": "A failure COUNT is read only from recognised test output",
+          "behavior": "A duplicate delta is applied exactly once",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > reads a real failure COUNT from recognised output"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'applying the SAME delta twice' PASSED"
         },
         {
-          "behavior": "is_error alone never becomes a failure count",
+          "behavior": "The cursor is bytes, not string length (multi-byte UTF-8)",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts > an is_error with NO parseable count does not invent one"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'the cursor is BYTES, not string length' PASSED; verified to FAIL under the reviewer-suggested prev.length guard"
         },
         {
-          "behavior": "A counted pass may claim the whole suite; an uncounted one may not",
+          "behavior": "An empty delta preserves content by value (keeps the downstream useMemo skip)",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > a COUNTED pass may claim the whole suite"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'empty delta at the cursor is a no-op' PASSED"
         },
         {
-          "behavior": "A tool call with no result yet is pending, never success",
+          "behavior": "modelName is carried forward when the newest delta has none",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts + narrator-prose.test.ts + e2e mission-narrative-prose.spec.ts"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a delta WITHOUT a model' PASSED; cursor.test.ts 'EARLIER delta' PASSED"
         },
         {
-          "behavior": "Reads/searches aggregate into counts; no per-step line, no filenames",
+          "behavior": "modelName is overridden by the newest delta (last occurrence wins)",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > tells the arc of a real run; e2e asserts no filename appears"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a delta WITH a model overrides it' PASSED"
         },
         {
-          "behavior": "An inline link resolves to a rail node, else renders as plain text",
+          "behavior": "A REPLACE with no model CLEARS modelName (no cross-transcript leak)",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > emits NO link when the rail has no such node"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a REPLACE with no model CLEARS it' PASSED; verified to FAIL without the fix"
         },
         {
-          "behavior": "An inline link is a real <button type=button>, keyboard-activatable",
+          "behavior": "A rejected chunk leaves modelName untouched",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx > a link span is a real button / is reachable by keyboard"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a REJECTED chunk leaves the model untouched' PASSED"
         },
         {
-          "behavior": "No duration or elapsed time appears anywhere in the narration",
+          "behavior": "rotated resets buffer + cursor + fingerprint",
           "disposition": "tested",
-          "evidence": "client narrator-prose.test.ts > never emits a time unit; e2e negative regex"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'rotated clears the buffer AND the cursor' PASSED; e2e 103 AC-2 on real Chromium PASSED"
         },
         {
-          "behavior": "An empty transcript keeps the honest waiting line",
+          "behavior": "missing resets buffer + cursor + modelName",
           "disposition": "tested",
-          "evidence": "client OperationLive.test.tsx + MissionBody.test.tsx > honest waiting"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'missing clears the buffer, the model and the cursor' PASSED"
         },
         {
-          "behavior": "Command heads are quote-aware (escapes, mixed quoting, unclosed quote)",
+          "behavior": "A taskId switch resets the cursor AND the fingerprint",
           "disposition": "tested",
-          "evidence": "client stage-markers.test.ts > separator INSIDE a quoted argument / quoting edge cases"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'no inherited fingerprint' PASSED"
         },
         {
-          "behavior": "A slash command carrying <command-args> is classified as one and carries args",
+          "behavior": "A taskId switch blanks the PUBLISHED state immediately",
           "disposition": "tested",
-          "evidence": "client session-parser.slash-args.test.ts (6 tests)"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'blanks the pane IMMEDIATELY' PASSED"
         },
         {
-          "behavior": "Narrative window: 4 anchor rules, ask recovery, completed-run verdict+story stack",
+          "behavior": "A late response from the previous task never lands in the new buffer",
           "disposition": "tested",
-          "evidence": "client narrator-facts.test.ts (7 tests) + MissionBody.test.tsx > COMPLETED run"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'in-flight response from the PREVIOUS task' PASSED"
+        },
+        {
+          "behavior": "Whole-file resync every RESYNC_EVERY_POLLS polls, bounding divergence a shrink-only rotation check cannot detect",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.resilience.test.ts 'resyncs to fromByte 0 every 60th poll' PASSED; verified to FAIL with dueForResync forced false"
+        },
+        {
+          "behavior": "After a rejection the recovery poll carries fromByte 0 AND a null fingerprint",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.resilience.test.ts 'after a REJECTED chunk' PASSED"
+        },
+        {
+          "behavior": "A failed poll leaves the cursor and fingerprint intact",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.resilience.test.ts 'a failed poll leaves the cursor' PASSED"
+        },
+        {
+          "behavior": "readChunk returns the JsonlLocation it read from, paired with chunk.size",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'returns the same location findByUuid would have returned' PASSED"
+        },
+        {
+          "behavior": "A pre-resolved location makes readChunk perform ZERO readdir calls",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'performs ZERO readdir calls' PASSED"
+        },
+        {
+          "behavior": "The chunk is byte-identical with and without a pre-resolved location",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'byte-identical chunk with and without' PASSED"
+        },
+        {
+          "behavior": "A passed location does not re-classify read-ENOENT as fatal (CLAUDE.md rule 6)",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'does not make ENOENT on the READ fatal' PASSED"
+        },
+        {
+          "behavior": "A stale location cannot truncate the read or throw",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'delivers everything on disk even when location.sizeBytes predates a write' PASSED"
+        },
+        {
+          "behavior": "Discovery is unchanged without a location (missing, and an explicit null)",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 2 cases PASSED"
+        },
+        {
+          "behavior": "A transcript poll walks ~/.claude/projects exactly once (ok, missing, and across 10 polls)",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 3 cases PASSED; red before the fix at 20 walks for 10 polls",
+          "category": "integration"
+        },
+        {
+          "behavior": "The persisted lastJsonlSeenMtimeMs equals the file's real mtime",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 'persists lastJsonlSeenMtimeMs equal to the real mtime' PASSED"
+        },
+        {
+          "behavior": "active-to-idle decay and active-stays-active are preserved",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 2 cases PASSED"
+        },
+        {
+          "behavior": "Rotation is still detected through the route (the fingerprint stays fresh)",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 'still reports rotated after the JSONL shrinks' PASSED"
+        },
+        {
+          "behavior": "A mission-context poll walks ~/.claude/projects exactly once",
+          "disposition": "tested",
+          "evidence": "callers-single-walk.test.ts PASSED; verified to FAIL at 2 walks without the location pass-through",
+          "category": "integration"
+        },
+        {
+          "behavior": "An inbox cold-path derive walks ~/.claude/projects exactly once",
+          "disposition": "tested",
+          "evidence": "callers-single-walk.test.ts PASSED; verified to FAIL at 2 walks without the location pass-through",
+          "category": "integration"
+        },
+        {
+          "behavior": "The session-watcher-debug extraction is behaviour-identical (enable condition, all 3 log strings, the 8-entry cap, silence when off)",
+          "disposition": "tested",
+          "evidence": "session-watcher-debug.test.ts 8 cases PASSED - the diagnostic had ZERO coverage before the move"
+        },
+        {
+          "behavior": "Terminal-state stop and single-source modelName (F21/F22) unchanged",
+          "disposition": "tested",
+          "evidence": "covered-by-existing-test: useTaskTranscript.test.ts untouched, all cases PASSED"
+        },
+        {
+          "behavior": "The other readChunk consumers are unaffected",
+          "disposition": "tested",
+          "evidence": "covered-by-existing-test: full server suite 254 files / 2956 PASSED incl. the inbox and transcript-route suites"
+        },
+        {
+          "behavior": "The pane's residual full-content re-parse cost after the change",
+          "disposition": "untestable",
+          "reason_code": "covered-by-existing-test",
+          "reason": "Correctness is covered by the existing TaskDetailPage and parser suites; the NUMBER (5.6 ms median / 11.3 ms p90, measured against the shipped parseSessionJsonl) is deliberately not asserted, because a wall-clock threshold in CI is a flake generator. Scoped out in 'What this run does NOT fix'."
+        },
+        {
+          "behavior": "Cold-page-cache behaviour on the 131 MB transcript",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "The OS page cache cannot be evicted deterministically from a test. The warm figure is the conservative one: a cold read strictly worsens the fromByte:0 column and leaves the cursor column flat."
         }
       ],
-      "enumeration_basis": "The 12 acceptance criteria of .shipwright/planning/iterate/2026-07-21-mission-narrative-prose.md (AC1-AC10 plus AC3b and AC7b), each split where it carries more than one observable behaviour. 17 behaviours, all tested.",
       "counts": {
-        "testable": 17,
-        "tested": 17,
-        "untestable": 0,
+        "testable": 35,
+        "tested": 35,
+        "untestable": 2,
         "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6
       }
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 11,
+      "tests_run": 7,
       "exit_code": 0,
-      "justification": "UI behaviour change plus two parser/derivation fixes that only manifest end-to-end, so surface=web. Real Chromium against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_E2E_ISOLATED=1, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local). NEW client/e2e/flows/mission-narrative-prose.spec.ts: 3/3 passed — the prose arc incl. the failure->recovery outcome, the quoted-tool-name honesty case, the pending run, and the inline artifact link. Pre-existing mission specs re-run as the regression gate: mission-live-jsonl.spec.ts, mission-artifacts-s4.spec.ts, A12-mission-operation.spec.ts = 7/8 passed. The single failure (A12 'the proof summary is NOT the terminal') waits for the EMBEDDED TERMINAL's data-ws-ready and fails with pty_spawn_failed code 5 in the Hono log — the documented environmental ACCESS_DENIED of an isolated stack, on a surface this diff does not touch."
+      "justification": "The client half changes what the transcript pane REQUESTS and how it assembles the reply, and the rendered text is identical either way - so only a real browser against a real server can show the change happened. Isolated single-process stack: temp USERPROFILE, built client served via SHIPWRIGHT_STATIC_DIR, Hono on 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local on both halves. NEW client/e2e/flows/103-transcript-cursor-single-walk.spec.ts: 2/2 passed - AC-1 reads the fromByte off the WIRE via page.on('request') and proves later polls stop asking for the whole file while the pane still shows a line that only ever arrived inside a delta; AC-2 truncates the JSONL under the browser and proves the client rewinds to 0 and REPLACES. Both were verified to FAIL against a client rebuilt with fromByte pinned to 0. Pre-existing transcript specs re-run for regression, all passed: 32-transcript-live, 34-browser-refresh, 37b-bubble-lifecycle (x2), 38-jsonl-missing-transition. 7/7, exit 0."
     }
   }
 }

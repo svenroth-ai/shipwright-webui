@@ -55,14 +55,23 @@ function makePtyManagerStub(liveTaskIds: string[] = []): { get: (taskId: string)
  * deterministically exercises the result="ok" branch of the state machine.
  */
 function makeWatcherStub(sessionUuid: string, mtimeOffsetMs: number) {
+  // ONE location for both entry points. Since
+  // iterate-2026-07-22-…-single-walk the route reads the mtime off
+  // `readChunk().location` rather than walking a second time, so a stub whose
+  // two answers disagreed would be testing a state the real reader cannot
+  // reach — and `stableMtime` is the whole point of this fixture.
   const stableMtime = Date.now() - mtimeOffsetMs;
+  const loc = {
+    path: "/fake/jsonl",
+    encodedCwd: "enc",
+    mtimeMs: stableMtime,
+    sizeBytes: 1024,
+  };
   return {
-    findByUuid: async (uuid: string) => {
-      if (uuid !== sessionUuid) return null;
-      return { path: "/fake/jsonl", mtimeMs: stableMtime, sizeBytes: 1024 };
-    },
+    findByUuid: async (uuid: string) => (uuid === sessionUuid ? loc : null),
     readChunk: async () => ({
       status: "ok" as const,
+      location: loc,
       chunk: {
         fingerprint: "fp-test",
         size: 1024,

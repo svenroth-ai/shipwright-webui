@@ -114,6 +114,15 @@ export async function readTailFromDisk(
 
 // ---------- torn-read retry (moved verbatim from session-watcher.ts) ----------
 
+/*
+ * WHY THE ENVELOPE IS THIS WIDE, kept with the code it explains: it is the Plan
+ * D'' round-1 BLOCKER fix (+ the Gemini BLOCKER). PoC finding 4 showed torn
+ * reads do NOT actually fire on NTFS at the write rates Claude emits, so the
+ * six attempts are insurance against AV scanners / OneDrive sync / Defender
+ * rather than a response to an observed failure. Moved here verbatim by
+ * iterate-2026-07-22-…-single-walk: the collapse of session-watcher.ts's header
+ * would otherwise have deleted the only record of it (internal review, LOW-7).
+ */
 const RETRY_DELAYS_MS = [50, 100, 200, 400, 800, 1600];
 const RETRY_ERROR_CODES = new Set(["EBUSY", "EPERM", "EACCES", "ENOENT"]);
 /** D06/F24 — discovery passes this so ENOENT (absent) is an authoritative miss. */
