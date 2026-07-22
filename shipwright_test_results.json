@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-21",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-mission-narrative-prose",
-    "date": "2026-07-21",
+    "run_id": "iterate-2026-07-21-compliance-audit-reconcile",
+    "date": "2026-07-22",
     "unit": {
       "status": "passed",
-      "passed": 5851,
-      "total": 5852
+      "passed": 5939,
+      "total": 5939,
+      "skipped": 1
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +21,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 10,
-      "total": 11
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,115 +33,115 @@
       "status": "not_run"
     },
     "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "Backend-affects-Frontend: server/src/core/jsonl-records.ts was split (decoding primitives extracted to jsonl-decode.ts), and that module is the record reader behind the Triage/Inbox board, the event-log projections and campaign-events — code consumed by the UI — so surface=web applies even though no client file changed. Executed client/e2e/flows/triage-record-boundary-recovery.spec.ts + campaign-events-projection.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local): 2 passed. Verified LOAD-BEARING by re-running against a deliberately broken jsonl-decode.ts (decodeObjectAt returning null, killing slow-path recovery): the recovery flow FAILED as required (trg-aaaa0001 never rendered), proving the spec exercises the extracted code through the UI rather than passing incidentally; restored and re-verified green."
+    },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "AC1 a real producer record maps all five types with real counts and per-finding detail",
+          "behavior": "jsonl-decode extraction preserves record splitting",
           "disposition": "tested",
-          "evidence": "review-record.test.ts 'a record the producer actually wrote' (5 cases, driven by the verbatim fixture) PASSED"
+          "evidence": "server jsonl-records.test.ts + jsonl-records.faults.test.ts + event-log-recovery.test.ts — 91/91 unchanged and green"
         },
         {
-          "behavior": "AC2 self is present, first, and labelled in plain language",
+          "behavior": "Consumers keep working across the split (no import or symbol change)",
           "disposition": "tested",
-          "evidence": "review-record.test.ts contract-order case + MissionSlice2Details.test.tsx 'labels the self-review' PASSED"
+          "evidence": "event-log-reader.test.ts, triage-store.test.ts, run-data-join.file.test.ts green; full server suite 2894 passed; tsc --noEmit clean both workspaces"
         },
         {
-          "behavior": "AC3 not_run and not_applicable stay distinct and render their disposition",
+          "behavior": "Record recovery still works end-to-end in the UI",
           "disposition": "tested",
-          "evidence": "review-record.test.ts 2 status cases + MissionSlice2Details 'did not APPLY' PASSED"
+          "evidence": "E2E triage-record-boundary-recovery.spec.ts + campaign-events-projection.spec.ts, real Chromium vs real server, 2/2; proven load-bearing by a deliberate break that made it FAIL"
         },
         {
-          "behavior": "AC4 a pending type renders unavailable with a null count, never as clean",
+          "behavior": "Recorded totals count executed tests, not collected ones",
           "disposition": "tested",
-          "evidence": "review-record.test.ts 'renders a still-pending type as unavailable' PASSED"
+          "evidence": "new server/src/test/event-test-counts-executed.test.ts (4 assertions); non-vacuous by an explicit in-scope guard, and it CAUGHT a real offender (evt-0e22eb2f) that D4 could not see"
         },
         {
-          "behavior": "AC5 absent record falls back to the marker path unchanged, internal note intact",
+          "behavior": "A malformed tests block fails the guard instead of being skipped",
           "disposition": "tested",
-          "evidence": "review-state.precedence.test.ts 'no record \u2014 the pre-record behaviour, unchanged' (2) + the 12 pre-existing review-state tests PASSED"
+          "evidence": "same guard, 'records a well-formed tests block' — asserts non-negative integers rather than filtering non-numbers (external review finding)"
         },
         {
-          "behavior": "AC6 a corrupt or foreign record is an integrity fault that does NOT fall back and is SHOWN",
+          "behavior": "tests.skipped stays a non-negative integer, apart from the executed total",
           "disposition": "tested",
-          "evidence": "review-state.precedence.test.ts 'a corrupt record is a fault' (3) PASSED"
+          "evidence": "same guard, third assertion"
         },
         {
-          "behavior": "AC7 an unstructured pass shows no count, in the row AND in the summary",
+          "behavior": "B7: 20 commits relinked to their events",
           "disposition": "tested",
-          "evidence": "MissionSlice2Details 'NEVER shows 0 issues' + precedence 'summary never says raised no issues' PASSED"
+          "evidence": "audit re-run B7 pass (65 commits, 52 matched); pre-write guards refuse a duplicate, unreachable or already-linked target"
         },
         {
-          "behavior": "AC8 a null severity is rendered without inventing one",
+          "behavior": "B7: PR #276's missing event recorded retroactively and schema-valid",
           "disposition": "tested",
-          "evidence": "review-record.test.ts 'does not invent a severity' PASSED"
+          "evidence": "written via record_event.py, whose FR + spec_impact gates rejected two earlier drafts; audit re-run keeps D5 pass"
         },
         {
-          "behavior": "AC9 the record is read through isSafeRunId + pathGuard + realPathGuard and a 2 MB bound; ENOENT alone is absence",
+          "behavior": "D2: the fold is scoped by a spec_updated watermark",
           "disposition": "tested",
-          "evidence": "review-record.validation.test.ts (12 cases incl. unsafe run id) PASSED"
+          "evidence": "audit re-run D2 pass; measured 78 stale refs before the regroup, 0 after; watermark verified to take the target's ts, not write time"
         },
         {
-          "behavior": "AC10 the client mirror stays byte-aligned with the server SoT",
+          "behavior": "D1/D3: promised FRs read as delivered",
           "disposition": "tested",
-          "evidence": "mission-context-types-sync.test.ts PASSED (it correctly FAILED until ReviewParseStatus + ReviewSource were registered)"
+          "evidence": "audit re-run D1 + D3 pass; all 8 FRs confirmed by their delivering commit naming the FR"
         },
         {
-          "behavior": "A record naming a different run is refused rather than shown as this run's history",
+          "behavior": "D4: every same-cause shortfall corrected, not only the flagged ones",
           "disposition": "tested",
-          "evidence": "review-record.validation.test.ts + precedence 'a record naming a different run' PASSED"
+          "evidence": "audit re-run D4 pass; 30 records corrected under a two-condition guard (delta==1 AND after the symlink test landed); 3 deliberately refused and named"
         },
         {
-          "behavior": "An all-pending record keeps the artifact not_yet_created instead of claiming no review ran",
+          "behavior": "G2: every scope in active use resolves",
           "disposition": "tested",
-          "evidence": "review-state.precedence.test.ts 'a freshly materialized record is not a review history' PASSED"
+          "evidence": "audit re-run G2 pass over 65 commits; the 18 scopes were taken verbatim from the audit's own G2 evidence"
         },
         {
-          "behavior": "An unsafe run id is reported as unidentifiable, not as a corrupt record",
+          "behavior": "F5: arch-impact drops documented in their target doc",
           "disposition": "tested",
-          "evidence": "review-state.precedence.test.ts 'an unsafe run id is identified as such' PASSED"
+          "evidence": "audit re-run F5 pass; bullet <=600-char rule re-checked and check_agent_doc_budget.py OK"
         },
         {
-          "behavior": "parse_status partial presents its count as a floor, never as complete",
+          "behavior": "H1/H2: baseline matches disk and holds real code to the rule",
           "disposition": "tested",
-          "evidence": "MissionSlice2Details 'presents a PARTIAL parse as a floor' PASSED"
+          "evidence": "audit re-run H0-H6 pass; jsonl-records.ts 317->251 and deliberately NOT added to the baseline; update script refuses any loosening"
         },
         {
-          "behavior": "A capped finding list is disclosed rather than implying completeness",
-          "disposition": "tested",
-          "evidence": "MissionSlice2Details 'discloses a capped finding list' PASSED"
-        },
-        {
-          "behavior": "Schema faults: unknown parse_status, missing disposition, unstructured-with-findings",
-          "disposition": "tested",
-          "evidence": "review-record.validation.test.ts shape cases PASSED"
-        },
-        {
-          "behavior": "The finding spans are visually separated by CSS, which jsdom cannot verify",
-          "disposition": "tested",
-          "evidence": "mission-artifacts-s2.spec.ts toHaveCSS(display,flex)+(flex-direction,column) in a REAL browser PASSED"
-        },
-        {
-          "behavior": "The marker-fallback E2E still represents every pass explicitly",
-          "disposition": "tested",
-          "evidence": "mission-artifacts-s2.spec.ts 'Review shows the five passes' PASSED"
-        },
-        {
-          "behavior": "AC1/AC7 end-to-end: a seeded per-run record renders the self row, a per-finding location, a did-not-apply reason, and NO count for an unitemizable pass",
-          "disposition": "tested",
-          "category": "integration",
-          "evidence": "client/e2e/flows/mission-artifacts-s2.spec.ts 'Review reads the per-run record' \u2014 real browser against an isolated stack, 5 passed"
-        },
-        {
-          "behavior": "Rendering of a record produced by a future producer schema version",
+          "behavior": "C1's recorded reason is legible to the next reader",
           "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "reason": "A version this reader does not understand is refused as an integrity fault, which IS tested ('rejects a schema version it does not understand'). What a hypothetical v2 should render cannot be tested before v2 exists; the fail-closed behaviour is the whole contract until then."
+          "reason_code": "requires-manual-visual-judgment",
+          "reason": "whether prose persuades the next reader not to silence the check is a human judgment; the mechanical half (C1 absent from disabled_checks, still reported) IS asserted by the audit re-run"
+        },
+        {
+          "behavior": "An amendment preserves every original tests key (e2e_run, new, modified)",
+          "disposition": "tested",
+          "evidence": "internal review found the shallow-merge data loss (28 records lost e2e_run, 6 of them true); repaired and re-verified through the real consumer apply_amendments — 0 records still losing keys, 60 keep e2e_run:true"
+        },
+        {
+          "behavior": "The guard reads the event log the way the audit does (concatenation-tolerant)",
+          "disposition": "tested",
+          "evidence": "effectiveEvents() now goes through parseJsonlRecords (the module this iterate split) instead of a per-line JSON.parse, so a merge=union concatenation cannot hide an offender from the guard while the audit still judges it; guard 4/4 green"
+        },
+        {
+          "behavior": "Epoch scoping is timezone-safe",
+          "disposition": "tested",
+          "evidence": "Date.parse instant comparison replaces the lexical one; 70 records in this log carry +02:00 rather than Z, so string order != chronological order"
+        },
+        {
+          "behavior": "The three A-campaign backfills do not assert a skip-free run",
+          "disposition": "tested",
+          "evidence": "git cat-file confirmed write-symlink-guard.test.ts existed at 8fbc0a4e / 7e8c97c5 / 4beaf596, so executed = quoted - 1 with skipped:1; recorded with that reasoning in backfill_reason"
         }
       ],
       "counts": {
-        "testable": 19,
-        "tested": 19,
+        "testable": 18,
+        "tested": 18,
         "untestable": 1,
         "untested_testable": 0
       },
@@ -148,15 +149,6 @@
         "acs": 10,
         "covered_acs": 10
       }
-    },
-    "surface_verification": {
-      "surface": "web",
-      "runner": "node client/node_modules/@playwright/test/cli.js test e2e/flows/mission-artifacts-s2.spec.ts --config client/playwright.config.ts --reporter=line --workers=1",
-      "exit_code": 0,
-      "tests_run": 5,
-      "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\mission-review-record\\.shipwright\\runs\\iterate-2026-07-22-mission-review-record\\surface_verification.log",
-      "timestamp": "2026-07-22T07:18:02.890Z",
-      "attempts": 1
     }
   }
 }

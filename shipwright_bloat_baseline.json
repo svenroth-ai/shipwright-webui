@@ -25,7 +25,7 @@
     {
       "path": "client/e2e/flows/82-v0.8.6-terminal-reattach-smoke.spec.ts",
       "limit": 300,
-      "current": 323,
+      "current": 319,
       "state": "grandfathered",
       "adr": null
     },
@@ -46,7 +46,7 @@
     {
       "path": "client/e2e/flows/v0-9-5-task-type-matrix.spec.ts",
       "limit": 300,
-      "current": 682,
+      "current": 672,
       "state": "grandfathered",
       "adr": null
     },
@@ -88,7 +88,7 @@
     {
       "path": "client/src/components/external/FolderTree.tsx",
       "limit": 300,
-      "current": 398,
+      "current": 394,
       "state": "grandfathered",
       "adr": null
     },
@@ -107,6 +107,13 @@
       "adr": null
     },
     {
+      "path": "client/src/components/external/NewIssueModal/ModalShell.test.tsx",
+      "limit": 300,
+      "current": 305,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+    },
+    {
       "path": "client/src/components/external/ParamField.test.tsx",
       "limit": 300,
       "current": 346,
@@ -123,7 +130,7 @@
     {
       "path": "client/src/components/external/SmartViewer.tsx",
       "limit": 300,
-      "current": 290,
+      "current": 284,
       "state": "grandfathered",
       "adr": null
     },
@@ -144,7 +151,7 @@
     {
       "path": "client/src/components/external/TaskCard.tsx",
       "limit": 300,
-      "current": 543,
+      "current": 479,
       "state": "grandfathered",
       "adr": null
     },
@@ -158,7 +165,7 @@
     {
       "path": "client/src/components/external/TaskList.tsx",
       "limit": 300,
-      "current": 534,
+      "current": 533,
       "state": "grandfathered",
       "adr": null
     },
@@ -175,6 +182,13 @@
       "current": 336,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "client/src/components/external/mission/MissionSlice2Details.test.tsx",
+      "limit": 300,
+      "current": 370,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
     },
     {
       "path": "client/src/components/settings/ActionsConfigCard.test.tsx",
@@ -200,16 +214,16 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
       "limit": 300,
-      "current": 314,
+      "current": 313,
       "state": "grandfathered",
       "adr": "iterate-2026-07-01-terminal-title-wrap-smear"
     },
     {
-      "path": "client/src/components/triage/TriageDetailModal.tsx",
+      "path": "client/src/components/terminal/xtermAddons.atlas.test.ts",
       "limit": 300,
-      "current": 375,
+      "current": 308,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
     },
     {
       "path": "client/src/components/triage/TriageDetailModal.test.tsx",
@@ -217,6 +231,13 @@
       "current": 432,
       "state": "grandfathered",
       "adr": "iterate-2026-07-17-test-traceability-retrofit"
+    },
+    {
+      "path": "client/src/components/triage/TriageDetailModal.tsx",
+      "limit": 300,
+      "current": 375,
+      "state": "grandfathered",
+      "adr": "iterate-2026-06-10-triage-pending-delivery-badge"
     },
     {
       "path": "client/src/components/wizard/ProjectWizard.tsx",
@@ -235,7 +256,7 @@
     {
       "path": "client/src/external/session-parser.ts",
       "limit": 300,
-      "current": 826,
+      "current": 816,
       "state": "grandfathered",
       "adr": "iterate-2026-05-27-transcript-renderer-scroll"
     },
@@ -263,7 +284,7 @@
     {
       "path": "client/src/hooks/useTerminalSocket.ts",
       "limit": 300,
-      "current": 532,
+      "current": 516,
       "state": "grandfathered",
       "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus"
     },
@@ -284,7 +305,7 @@
     {
       "path": "client/src/pages/TaskBoardPage.tsx",
       "limit": 300,
-      "current": 449,
+      "current": 447,
       "state": "grandfathered",
       "adr": "iterate-2026-06-30-compliance-grade-webui"
     },
@@ -298,9 +319,16 @@
     {
       "path": "client/src/pages/TaskDetailPage.tsx",
       "limit": 300,
-      "current": 676,
+      "current": 673,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "client/src/pages/TriagePage.tsx",
+      "limit": 300,
+      "current": 283,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
     },
     {
       "path": "server/scripts/sdk-poc.ts",
@@ -338,6 +366,13 @@
       "adr": "iterate-2026-06-11-custom-action-slash-command"
     },
     {
+      "path": "server/src/core/campaign-provenance.test.ts",
+      "limit": 300,
+      "current": 316,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+    },
+    {
       "path": "server/src/core/cli-compat.ts",
       "limit": 300,
       "current": 334,
@@ -345,11 +380,32 @@
       "adr": null
     },
     {
+      "path": "server/src/core/event-log-reader.test.ts",
+      "limit": 300,
+      "current": 321,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+    },
+    {
+      "path": "server/src/core/inbox-derive.test.ts",
+      "limit": 300,
+      "current": 313,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+    },
+    {
       "path": "server/src/core/launcher.test.ts",
       "limit": 300,
       "current": 440,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "server/src/core/mission-context/review-record.test.ts",
+      "limit": 300,
+      "current": 304,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
     },
     {
       "path": "server/src/core/parameter-resolver.ts",
@@ -368,7 +424,7 @@
     {
       "path": "server/src/core/preview-session-manager.ts",
       "limit": 300,
-      "current": 393,
+      "current": 392,
       "state": "grandfathered",
       "adr": null
     },
@@ -389,7 +445,7 @@
     {
       "path": "server/src/core/run-config-reader.ts",
       "limit": 300,
-      "current": 439,
+      "current": 431,
       "state": "grandfathered",
       "adr": null
     },
@@ -413,6 +469,13 @@
       "current": 543,
       "state": "grandfathered",
       "adr": null
+    },
+    {
+      "path": "server/src/core/triage-store.ts",
+      "limit": 300,
+      "current": 305,
+      "state": "grandfathered",
+      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
     },
     {
       "path": "server/src/core/triage-write.test.ts",
@@ -466,7 +529,7 @@
     {
       "path": "server/src/index.ts",
       "limit": 300,
-      "current": 899,
+      "current": 887,
       "state": "grandfathered",
       "adr": "iterate-2026-07-06-project-delete-cascades-tasks"
     },
@@ -564,7 +627,7 @@
     {
       "path": "server/src/terminal/scrollback-store.ts",
       "limit": 300,
-      "current": 688,
+      "current": 687,
       "state": "grandfathered",
       "adr": null
     },
@@ -578,7 +641,7 @@
     {
       "path": "server/src/terminal/snapshot-store.ts",
       "limit": 300,
-      "current": 513,
+      "current": 511,
       "state": "grandfathered",
       "adr": null
     },
@@ -590,18 +653,11 @@
       "adr": "ADR-103"
     },
     {
-      "path": "client/src/pages/TriagePage.tsx",
+      "path": "server/src/test/mission-context-types-sync.test.ts",
       "limit": 300,
       "current": 302,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
-    },
-    {
-      "path": "server/src/core/triage-store.ts",
-      "limit": 300,
-      "current": 305,
-      "state": "grandfathered",
-      "adr": "iterate-2026-07-08-compliance-b7-d3-g2-h1-h2-reconcile"
+      "adr": "iterate-2026-07-21-compliance-audit-reconcile"
     }
   ]
 }
