@@ -1,0 +1,1 @@
+The JSONL record reader is split into `jsonl-records.ts` (what records are on this line) and `jsonl-decode.ts` (where one JSON object ends), keeping both inside the 300-line rule with no behaviour change.

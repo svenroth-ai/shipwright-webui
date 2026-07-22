@@ -1,0 +1,1 @@
+A green build no longer reports itself as failing. Recorded test totals count the tests that actually ran, with skipped ones reported separately - one host-gated symlink test had been making every run look one test short.

@@ -1,0 +1,1 @@
+Compliance records now match what actually shipped: of the 21 merge commits that lost their `Run-ID:` footer to squash-merge, 20 are linked back to their runs, and the 21st (PR #276) — an iterate that shipped without ever writing a record at all — now has one.

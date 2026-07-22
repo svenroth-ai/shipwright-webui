@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-21",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-mission-recovery-memo-perf",
-    "date": "2026-07-21",
+    "run_id": "iterate-2026-07-21-compliance-audit-reconcile",
+    "date": "2026-07-22",
     "unit": {
       "status": "passed",
-      "passed": 5767,
-      "total": 5768
+      "passed": 5806,
+      "total": 5806,
+      "skipped": 1
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +21,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 6,
-      "total": 6
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -32,112 +33,122 @@
       "status": "not_run"
     },
     "degraded": [],
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 2,
+      "exit_code": 0,
+      "justification": "Backend-affects-Frontend: server/src/core/jsonl-records.ts was split (decoding primitives extracted to jsonl-decode.ts), and that module is the record reader behind the Triage/Inbox board, the event-log projections and campaign-events — code consumed by the UI — so surface=web applies even though no client file changed. Executed client/e2e/flows/triage-record-boundary-recovery.spec.ts + campaign-events-projection.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local): 2 passed. Verified LOAD-BEARING by re-running against a deliberately broken jsonl-decode.ts (decodeObjectAt returning null, killing slow-path recovery): the recovery flow FAILED as required (trg-aaaa0001 never rendered), proving the spec exercises the extracted code through the UI rather than passing incidentally; restored and re-verified green."
+    },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "The footer thunk is not invoked when ordered rules 1-4 match first (5 cases)",
+          "behavior": "jsonl-decode extraction preserves record splitting",
           "disposition": "tested",
-          "evidence": "server recovery-schedule.test.ts > is NOT paid when rule %s matches first - PASS; mutation M1 (eager scan) fails 11 tests"
+          "evidence": "server jsonl-records.test.ts + jsonl-records.faults.test.ts + event-log-recovery.test.ts — 91/91 unchanged and green"
         },
         {
-          "behavior": "The footer thunk is invoked exactly once when rules 1-4 all miss",
+          "behavior": "Consumers keep working across the split (no import or symbol change)",
           "disposition": "tested",
-          "evidence": "server recovery-schedule.test.ts > is paid EXACTLY ONCE when rules 1-4 all miss - PASS; mutation M2 (consulted twice) FAILS"
+          "evidence": "event-log-reader.test.ts, triage-store.test.ts, run-data-join.file.test.ts green; full server suite 2894 passed; tsc --noEmit clean both workspaces"
         },
         {
-          "behavior": "An INVALID pointer never invokes the thunk",
+          "behavior": "Record recovery still works end-to-end in the UI",
           "disposition": "tested",
-          "evidence": "server recovery-schedule.test.ts > is NOT paid for an INVALID pointer - PASS"
+          "evidence": "E2E triage-record-boundary-recovery.spec.ts + campaign-events-projection.spec.ts, real Chromium vs real server, 2/2; proven load-bearing by a deliberate break that made it FAIL"
         },
         {
-          "behavior": "ScenarioDecision.runIdSource reports the winning rule for all six rules",
+          "behavior": "Recorded totals count executed tests, not collected ones",
           "disposition": "tested",
-          "evidence": "server recovery-schedule.test.ts > reports WHICH source identified the run - PASS; mutation M9 (source lies) FAILS"
+          "evidence": "new server/src/test/event-test-counts-executed.test.ts (4 assertions); non-vacuous by an explicit in-scope guard, and it CAUGHT a real offender (evt-0e22eb2f) that D4 could not see"
         },
         {
-          "behavior": "A campaign or pipeline session quoting a corroborated footer performs ZERO scans across polls",
+          "behavior": "A malformed tests block fails the guard instead of being skipped",
           "disposition": "tested",
-          "evidence": "server recovery-schedule.test.ts Part B, real _recoveryScanCount() over 3 polls - PASS"
+          "evidence": "same guard, 'records a well-formed tests block' — asserts non-negative integers rather than filtering non-numbers (external review finding)"
         },
         {
-          "behavior": "An unidentified session scans once, recovers, and persists source=transcript_run_id",
+          "behavior": "tests.skipped stays a non-negative integer, apart from the executed total",
           "disposition": "tested",
-          "evidence": "server recovery-schedule.test.ts Part B + routes.recovery.test.ts association shape, exactly one persist - PASS; mutation M3 (not persisted) FAILS"
+          "evidence": "same guard, third assertion"
         },
         {
-          "behavior": "The wide reach-back happens once for a transcript that never changes",
+          "behavior": "B7: 20 commits relinked to their events",
           "disposition": "tested",
-          "evidence": "server routes.recovery-schedule.test.ts > reaches back ONCE ... budget sequence - PASS; mutation M4 (never narrows) FAILS"
+          "evidence": "audit re-run B7 pass (65 commits, 52 matched); pre-write guards refuse a duplicate, unreachable or already-linked target"
         },
         {
-          "behavior": "It happens again after the transcript revision moves, and the recovery succeeds",
+          "behavior": "B7: PR #276's missing event recorded retroactively and schema-valid",
           "disposition": "tested",
-          "evidence": "server routes.recovery-schedule.test.ts > reaches back AGAIN ... - PASS; mutation M5 (never repeats) FAILS"
+          "evidence": "written via record_event.py, whose FR + spec_impact gates rejected two earlier drafts; audit re-run keeps D5 pass"
         },
         {
-          "behavior": "A read yielding no revision never marks the reach-back done",
+          "behavior": "D2: the fold is scoped by a spec_updated watermark",
           "disposition": "tested",
-          "evidence": "server routes.recovery-schedule.test.ts > a read that yields NO revision ... - PASS; mutation M6 FAILS"
+          "evidence": "audit re-run D2 pass; measured 78 stale refs before the regroup, 0 after; watermark verified to take the target's ts, not write time"
         },
         {
-          "behavior": "Cap eviction only fires for a NEW key, so tasks already in the map keep their marker",
+          "behavior": "D1/D3: promised FRs read as delivered",
           "disposition": "tested",
-          "evidence": "server routes.recovery-schedule.test.ts > evicting at the cap ... - PASS; mutation M10 (clear on every write) FAILS"
+          "evidence": "audit re-run D1 + D3 pass; all 8 FRs confirmed by their delivering commit naming the FR"
         },
         {
-          "behavior": "A rolled-back association (failed persist) also drops the reach-back marker",
+          "behavior": "D4: every same-cause shortfall corrected, not only the flagged ones",
           "disposition": "tested",
-          "evidence": "server routes.recovery-schedule.test.ts > a ROLLED-BACK association ... - PASS; mutation M12 FAILS"
+          "evidence": "audit re-run D4 pass; 30 records corrected under a two-condition guard (delta==1 AND after the symlink test landed); 3 deliberately refused and named"
         },
         {
-          "behavior": "An already-identified task never consumes a cap slot",
+          "behavior": "G2: every scope in active use resolves",
           "disposition": "tested",
-          "evidence": "server routes.recovery-schedule.test.ts > an already-identified task does not consume the cap - PASS; mutation M13 FAILS"
+          "evidence": "audit re-run G2 pass over 65 commits; the 18 scopes were taken verbatim from the audit's own G2 evidence"
         },
         {
-          "behavior": "An identified task never requests the wide window",
+          "behavior": "F5: arch-impact drops documented in their target doc",
           "disposition": "tested",
-          "evidence": "server routes.recovery.test.ts > reads the WIDER tail only while unidentified, then drops back - PASS"
+          "evidence": "audit re-run F5 pass; bullet <=600-char rule re-checked and check_agent_doc_budget.py OK"
         },
         {
-          "behavior": "runLive is documented with the full clause set on BOTH sides of the mirror",
+          "behavior": "H1/H2: baseline matches disk and holds real code to the rule",
           "disposition": "tested",
-          "evidence": "server mission-runlive-doc-parity.test.ts - PASS; mutations M7/M11/M14 (mirror doc weakened) FAIL"
+          "evidence": "audit re-run H0-H6 pass; jsonl-records.ts 317->251 and deliberately NOT added to the baseline; update script refuses any loosening"
         },
         {
-          "behavior": "The two runLive docs cannot agree with each other and both be wrong",
-          "disposition": "tested",
-          "evidence": "server mission-runlive-doc-parity.test.ts > the implementation really is that conjunction - PASS; mutation M8 FAILS"
-        },
-        {
-          "behavior": "wire.ts returns the tail WITH a revision, end-to-end through SessionWatcher",
-          "disposition": "tested",
-          "evidence": "e2e mission-recovery-schedule.spec.ts (2) + mission-run-identity-recovery.spec.ts (4) - 6 PASS on an isolated stack; PROVED falsifiable by breaking wire.ts to return empty text, which fails the recovered-rail flow"
-        },
-        {
-          "behavior": "The prior run's record states the persistence half of the (e) reversal",
+          "behavior": "C1's recorded reason is legible to the next reader",
           "disposition": "untestable",
           "reason_code": "requires-manual-visual-judgment",
-          "evidence": "Prose in the prior run's adr.md + decision drop (both gitignored); verified by reading, and restated in this run's commit message so it ships"
+          "reason": "whether prose persuades the next reader not to silence the check is a human judgment; the mechanical half (C1 absent from disabled_checks, still reported) IS asserted by the audit re-run"
+        },
+        {
+          "behavior": "An amendment preserves every original tests key (e2e_run, new, modified)",
+          "disposition": "tested",
+          "evidence": "internal review found the shallow-merge data loss (28 records lost e2e_run, 6 of them true); repaired and re-verified through the real consumer apply_amendments — 0 records still losing keys, 60 keep e2e_run:true"
+        },
+        {
+          "behavior": "The guard reads the event log the way the audit does (concatenation-tolerant)",
+          "disposition": "tested",
+          "evidence": "effectiveEvents() now goes through parseJsonlRecords (the module this iterate split) instead of a per-line JSON.parse, so a merge=union concatenation cannot hide an offender from the guard while the audit still judges it; guard 4/4 green"
+        },
+        {
+          "behavior": "Epoch scoping is timezone-safe",
+          "disposition": "tested",
+          "evidence": "Date.parse instant comparison replaces the lexical one; 70 records in this log carry +02:00 rather than Z, so string order != chronological order"
+        },
+        {
+          "behavior": "The three A-campaign backfills do not assert a skip-free run",
+          "disposition": "tested",
+          "evidence": "git cat-file confirmed write-symlink-guard.test.ts existed at 8fbc0a4e / 7e8c97c5 / 4beaf596, so executed = quoted - 1 with skipped:1; recorded with that reasoning in backfill_reason"
         }
       ],
-      "enumeration_basis": {
-        "acs": 9,
-        "covered_acs": 9
-      },
       "counts": {
-        "testable": 16,
-        "tested": 16,
+        "testable": 18,
+        "tested": 18,
         "untestable": 1,
         "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 10,
+        "covered_acs": 10
       }
-    },
-    "surface_verification": {
-      "surface": "web",
-      "tests_run": 6,
-      "exit_code": 0,
-      "justification": "Backend-affects-Frontend: the diff changes the mission-context route's read schedule and the reader contract it depends on, so surface=web is mandatory even though the response shape is unchanged. Executed client/e2e/flows/mission-recovery-schedule.spec.ts (new, 2) + mission-run-identity-recovery.spec.ts (the 4 flows from PR #309, as the regression gate) in real Chromium against an isolated single-process stack (temp USERPROFILE, SHIPWRIGHT_E2E_ISOLATED=1, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3853, SHIPWRIGHT_NETWORK_PROFILE=local): 6 passed. Verified LOAD-BEARING by re-running against a deliberately broken wire.ts (tail text returned empty while the revision stayed valid): the recovered-rail flow FAILED as required, and the negative flow correctly stayed green."
     }
   }
 }

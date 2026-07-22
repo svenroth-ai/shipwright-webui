@@ -101,3 +101,58 @@ track upstream as a GitHub issue rather than patching around it locally.
 The privacy disclosure footer in `TaskDetailPage.tsx`
 (`PrivacyDisclosureFooter`) surfaces both paths to the user so the
 divergence is documented in-product.
+
+## Open compliance finding — C1 (design manifest)
+
+`C1 (Spec FR → plan/design coverage)` is **knowingly left failing**, not
+silenced. It is a *design-phase* verifier that demands
+`.shipwright/designs/design-manifest.md`, the artifact `/shipwright-design`
+produces. This project never ran that phase — it was **adopted**, and
+`run_config.completed_steps` is `[project, plan, build, test]`.
+
+It passed for months as *"no planning FRs — coverage trivially satisfied"*,
+but on a wrong basis: the FR table existed the whole time and the older spec
+parser simply did not recognise the adopted table shape. Running today's
+parser against the historical specs shows 32 / 32 / 42 FRs on the very dates
+the audit reported "no planning FRs". A parser upgrade flipped the check to
+HIGH-fail with **no change to this project**.
+
+- **Producer fix** filed upstream: monorepo triage `trg-d26da6f4` — the
+  verifier needs a "no design phase ran" skip, mirroring the `scope=library`
+  skip it already has. It currently sits in the monorepo's **gitignored triage
+  outbox** (a write on an idle `main` routes there by design) and becomes
+  durable when the next monorepo iterate sweeps the outbox into its PR. Until
+  then it is visible in the Command Center, which reads tracked ∪ outbox, but
+  not in the tracked `triage.jsonl`.
+- **Deliberately NOT** added to `audit_config.json` `disabled_checks`; the
+  fence lives there as `_c1_open_comment`.
+- Writing the FR→screen map was considered and **deferred by decision**: it is
+  product documentation worth doing deliberately, not padding on a
+  records-cleanup PR.
+
+Recorded by `iterate-2026-07-21-compliance-audit-reconcile`.
+
+## Open upstream gap — skipped tests have nowhere to go
+
+`record_event.py` builds a `work_completed` `tests` block from
+`--tests-passed / --tests-total / --tests-new / --tests-modified / --e2e-run`.
+There is **no `--tests-skipped`**, and nothing under `shared/scripts` or the
+compliance plugin reads `tests.skipped` yet.
+
+Consequence, and the trade-off this project accepted in
+`iterate-2026-07-21-compliance-audit-reconcile`: a host-gated skipped test used
+to be folded into the collected total, which made `passed < total` on a green
+run and caused the audit's D4 to report FRs as landing in a failing build. That
+is now corrected to executed counts — but `test_evidence.py` rendered the old
+shortfall honestly as `PASS (N skipped)`, so with `passed === total` that
+disclosure disappears and the skip count lands in a field no consumer reads.
+The information is preserved in the event log; it is simply not rendered yet.
+
+- Filed upstream: monorepo triage `trg-c40210ee` — asks for a `--tests-skipped`
+  flag, consumers that render it, and a D4 that keys on failures rather than on
+  the `passed`/`total` gap. Same outbox caveat as above.
+- Related sharp edge reported in the same item: `apply_amendments` merges
+  **shallowly**, so an `event_amended` carrying `fields.tests` replaces the whole
+  block and silently drops siblings such as `e2e_run` (which `test_evidence.py`
+  uses to classify a work event's layer). This reconciliation hit that defect
+  and repaired it; see the guard test's header.
