@@ -36,6 +36,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { readBoundedFile } from "./fs-read.js";
+import { readReviewRecord, reviewRecordPath } from "./review-record.js";
 import { pathGuard } from "../path-guard.js";
 import { isSafeRunId } from "./pointer.js";
 import type { ReviewRow, ReviewType } from "./types-slice2.js";
@@ -49,6 +50,13 @@ const MARKERS: { file: string; type: Extract<ReviewType, "plan" | "external_code
 /** A marker is a few hundred bytes; 256 KB bounds a corrupt one generously. */
 const MAX_MARKER_BYTES = 256 * 1024;
 
+/** Contract order — `self` first; it is the one review that always runs. */
+const REVIEW_TYPE_ORDER: ReviewType[] = ["self", "plan", "code", "doubt", "external_code"];
+
+const RECORD_INTEGRITY_NOTE =
+  "This run's review record exists but could not be read. That is a data " +
+  "problem, not a clean result.";
+
 /** Prose disposition can be long (a real one runs to a paragraph) — bound it. */
 const MAX_DISPOSITION_CHARS = 2000;
 
@@ -60,7 +68,7 @@ const INTERNAL_NOTE =
   "The internal review passes do not yet write a machine-readable record, " +
   "so this run's result cannot be shown. This is a known gap, not a clean result.";
 
-function internalRow(reviewType: "code" | "doubt"): ReviewRow {
+function internalRow(reviewType: "self" | "code" | "doubt"): ReviewRow {
   return {
     reviewType,
     status: "unavailable",
@@ -70,6 +78,9 @@ function internalRow(reviewType: "code" | "doubt"): ReviewRow {
     completedAt: null,
     disposition: null,
     note: INTERNAL_NOTE,
+    parseStatus: null,
+    source: "marker",
+    truncated: false,
   };
 }
 
@@ -83,6 +94,9 @@ function unreadableRow(reviewType: ReviewType, note: string): ReviewRow {
     completedAt: null,
     disposition: null,
     note,
+    parseStatus: null,
+    source: "marker",
+    truncated: false,
   };
 }
 
@@ -99,7 +113,11 @@ export function reviewStateDir(projectRoot: string, runId: string): string {
 export function reviewStatePaths(projectRoot: string, runId: string): string[] {
   if (!isSafeRunId(runId)) return [];
   const dir = reviewStateDir(projectRoot, runId);
-  return MARKERS.map((m) => path.join(dir, m.file));
+  const recordPath = reviewRecordPath(projectRoot, runId);
+  return [
+    ...(recordPath ? [recordPath] : []),
+    ...MARKERS.map((m) => path.join(dir, m.file)),
+  ];
 }
 
 type MarkerRead =
@@ -156,6 +174,9 @@ function readMarker(projectRoot: string, runId: string, marker: (typeof MARKERS)
           ? "This review ran; its findings count was not recorded."
           : null
         : notRunNote(raw),
+      parseStatus: null,
+      source: "marker",
+      truncated: false,
     },
   };
 }
@@ -179,34 +200,68 @@ export interface ReviewLookup {
 }
 
 /**
- * All four review types for `runId`, always in contract order (AC4: the four
- * types are ALWAYS represented; missing ones say so explicitly).
+ * All five review types for `runId`, in contract order.
+ *
+ * **Precedence: the per-run record wins.** Since
+ * `iterate-2026-07-22-mission-review-record` the producer writes
+ * `.shipwright/planning/iterate/<run_id>/reviews.json` with real per-finding
+ * detail for all five passes, so the markers are now the FALLBACK — kept
+ * byte-for-byte as they were, because 64 existing runs depend on that behaviour.
+ *
+ * A record that is present but INVALID does not fall through. Answering a
+ * corrupt record with the weaker source would present a data-integrity fault as
+ * a review history; it is reported as unreadable instead, which the §6 state
+ * model renders as "currently unavailable".
  */
 export function readReviewState(projectRoot: string, runId: string): ReviewLookup {
+  // Hoisted out of the marker path: the record read below rejects an unsafe run
+  // id too, so the marker path's own guard became unreachable AND its surviving
+  // branch would have claimed a record "exists but could not be read" for a file
+  // nobody ever probed.
+  if (!isSafeRunId(runId)) {
+    return {
+      rows: REVIEW_TYPE_ORDER.map((t) => unreadableRow(t, "This run could not be identified.")),
+      hasRecord: false,
+      sawUnreadable: true,
+    };
+  }
+
+  const record = readReviewRecord(projectRoot, runId);
+  if (record.kind === "valid") {
+    return {
+      rows: record.rows,
+      // A record the producer JUST materialized has all five types `pending`,
+      // which map to `unavailable`. Reporting `hasRecord: true` for it made the
+      // artifact appear mid-run saying "No review was recorded as having run" —
+      // worse than the honest "not written yet" it replaced. `hasRecord` means
+      // "a source carried an actual answer", on this path as on the marker one.
+      hasRecord: record.rows.some((r) => r.status !== "unavailable"),
+      sawUnreadable: false,
+    };
+  }
+  if (record.kind === "invalid") {
+    return {
+      rows: REVIEW_TYPE_ORDER.map((t) => unreadableRow(t, RECORD_INTEGRITY_NOTE)),
+      hasRecord: false,
+      // An integrity fault is a DETECTED problem, not an absence: `false` here
+      // would make buildReviewArtifact hide the artifact entirely and throw the
+      // fault away.
+      sawUnreadable: true,
+    };
+  }
+  return readMarkerState(projectRoot, runId);
+}
+
+/**
+ * The pre-record path, unchanged: the two `external_*review_state.json` markers,
+ * with the internal passes represented explicitly as unavailable. Reached only
+ * when no record exists — i.e. runs that predate it.
+ */
+function readMarkerState(projectRoot: string, runId: string): ReviewLookup {
   const rows: ReviewRow[] = [];
   let hasRecord = false;
   let sawUnreadable = false;
 
-  if (!isSafeRunId(runId)) {
-    return {
-      rows: [
-        unreadableRow("plan", "This run could not be identified."),
-        internalRow("code"),
-        internalRow("doubt"),
-        unreadableRow("external_code", "This run could not be identified."),
-      ],
-      hasRecord: false,
-      // `true`, NOT false: a run id we cannot validate is a detected INTEGRITY
-      // FAULT, not an absence. Reporting `false` here would erase the fault
-      // this branch just found — `buildReviewArtifact` matches
-      // `!hasRecord && !sawUnreadable` and would HIDE the artifact, throwing
-      // away the four rows constructed directly above and leaving the user with
-      // Spec/Requirement/Commit rendering normally while Review silently
-      // vanished. That is exactly the absent-data-hides-an-artifact shape this
-      // slice exists to prevent (internal code review, MEDIUM).
-      sawUnreadable: true,
-    };
-  }
 
   const byType = new Map<ReviewType, ReviewRow>();
   for (const marker of MARKERS) {
@@ -226,6 +281,12 @@ export function readReviewState(projectRoot: string, runId: string): ReviewLooku
   }
 
   // Contract order: plan · code · doubt · external_code.
-  rows.push(byType.get("plan")!, internalRow("code"), internalRow("doubt"), byType.get("external_code")!);
+  rows.push(
+    internalRow("self"),
+    byType.get("plan")!,
+    internalRow("code"),
+    internalRow("doubt"),
+    byType.get("external_code")!,
+  );
   return { rows, hasRecord, sawUnreadable };
 }

@@ -67,12 +67,18 @@ export function testCountLabel(passed: number | null, total: number | null): str
  * "none" — an unreadable pass presented as a clean one is the single worst
  * failure this artifact could produce (CONTRACT §9.1).
  */
-export function reviewStatusWord(status: "completed" | "not_run" | "unavailable"): string {
+export function reviewStatusWord(
+  status: "completed" | "not_run" | "not_applicable" | "unavailable",
+): string {
   switch (status) {
     case "completed":
       return "ran";
     case "not_run":
       return "not run";
+    // "did not apply" rather than "not run": the pass was never asked for at
+    // this size, which is a different fact from choosing to skip one that was.
+    case "not_applicable":
+      return "did not apply";
     case "unavailable":
       return "no record";
   }

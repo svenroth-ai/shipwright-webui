@@ -29,6 +29,7 @@ import {
   eventsJsonl,
   pointer,
   reviewMarker,
+  reviewRecord,
   seedRepoWithTestChanges,
   traceability,
 } from "../helpers/mission-s2-fixtures";
@@ -36,6 +37,7 @@ import {
 const MINI_PLAN = `.shipwright/planning/iterate/${RUN_ID}/mini-plan.md`;
 const PLAN_REVIEW = `.shipwright/planning/iterate/${RUN_ID}/external_review_state.json`;
 const CODE_REVIEW = `.shipwright/planning/iterate/${RUN_ID}/external_code_review_state.json`;
+const REVIEW_RECORD = `.shipwright/planning/iterate/${RUN_ID}/reviews.json`;
 
 test.describe("S2 — Tests · Review · Decisions artifacts", () => {
   let project: SeededProject;
@@ -124,7 +126,57 @@ test.describe("S2 — Tests · Review · Decisions artifacts", () => {
     await expect(table).toContainText("FR-01.28 (mapped from FR-01.44)");
   });
 
-  test("Review shows the four passes, with unrecorded ones explicit (AC4)", async ({
+  test("Review reads the per-run record: real findings, and no fake zero (AC1/AC7)", async ({
+    page,
+    request,
+  }) => {
+    const { sessionUuid, commit } = await seed(request, "MissionS2Record", "sw-s2-record");
+
+    await writeFiles(project.path, {
+      [`.shipwright/iterate_active/${sessionUuid}.json`]: pointer(sessionUuid, project.path),
+      [MINI_PLAN]: "# S2",
+      // BOTH sources present: the record must win.
+      [PLAN_REVIEW]: reviewMarker("iterate", 5, "marker says five"),
+      [REVIEW_RECORD]: reviewRecord(),
+      "shipwright_events.jsonl": eventsJsonl(commit),
+    });
+
+    await setActiveProject(page, project.projectId);
+    await page.goto(`/tasks/${taskId}`);
+    await page.getByTestId("mission-tab-mission").click();
+    await page.getByTestId("artifact-link-review").click();
+
+    // The self-review is present and labelled — the pass that always runs, and
+    // the one the marker path could never show.
+    const self = page.locator('[data-review-type="self"]');
+    await expect(self).toContainText("Self-review");
+    await expect(self).toContainText("no error-path test on the reader");
+
+    // Per-finding detail with its location — the record's whole point.
+    const code = page.locator('[data-review-type="code"]');
+    await expect(code).toContainText("the lock is released before the write");
+    await expect(code.getByTestId("artifact-review-location")).toContainText(
+      "server/src/core/x.ts:42",
+    );
+    // The severity/text/location/suggestion spans are adjacent with NO separator
+    // text, so their separation is entirely CSS. jsdom normalizes whitespace and
+    // cannot see this — without the rule they render as one run-on string.
+    const findingBox = code.getByTestId("artifact-review-finding").first();
+    await expect(findingBox).toHaveCSS("display", "flex");
+    await expect(findingBox).toHaveCSS("flex-direction", "column");
+
+    // A pass that did not APPLY says so, with its reason.
+    const doubt = page.locator('[data-review-type="doubt"]');
+    await expect(doubt).toContainText("did not apply");
+    await expect(doubt).toContainText("docs-only diff");
+
+    // The unitemizable pass shows NO count — "0 issues" would read as clean.
+    const ext = page.locator('[data-review-type="external_code"]');
+    await expect(ext.getByTestId("artifact-review-unitemized")).toBeVisible();
+    await expect(ext.getByTestId("artifact-review-count")).toHaveCount(0);
+  });
+
+  test("Review shows the five passes, with unrecorded ones explicit (AC4)", async ({
     page,
     request,
   }) => {
@@ -142,8 +194,10 @@ test.describe("S2 — Tests · Review · Decisions artifacts", () => {
     await page.getByTestId("mission-tab-mission").click();
     await page.getByTestId("artifact-link-review").click();
 
-    // All four passes are always represented (AC4).
-    await expect(page.getByTestId("artifact-review-row")).toHaveCount(4);
+    // All five passes are always represented (AC4). `self` joined the four in
+    // iterate-2026-07-22-mission-review-record; on this MARKER-fallback path it
+    // has no source, so it renders as "no record" like the other internal passes.
+    await expect(page.getByTestId("artifact-review-row")).toHaveCount(5);
 
     // The external plan review ran and its REAL count shows.
     await expect(page.locator('[data-review-type="plan"]')).toContainText("5 issues");

@@ -148,6 +148,7 @@ export function buildTestsArtifact(input: TestsInput): TestsArtifact {
 // ---------------------------------------------------------------------------
 
 const REVIEW_WORD: Record<ReviewRow["reviewType"], string> = {
+  self: "the self-review",
   plan: "the plan review",
   code: "the code review",
   doubt: "the doubt review",
@@ -188,7 +189,14 @@ export function buildReviewArtifact(lookup: ReviewLookup): ReviewArtifact {
   // honest, the count fabricated. That is the same unreadable→clean collapse the
   // state enum prevents one level up (internal code review, MEDIUM).
   const completed = lookup.rows.filter((r) => r.status === "completed");
-  const counted = completed.filter((r) => r.findingsCount != null);
+  // An UNSTRUCTURED parse is the same collapse in a new disguise: the review ran,
+  // its prose could not be itemized, so its count is 0 for a review that may have
+  // found plenty. Counting it would make the SUMMARY — the first line a reader
+  // sees, above the renderer's caveat — say "raised no issues". The renderer was
+  // taught this; the summary had to be taught it too.
+  const counted = completed.filter(
+    (r) => r.findingsCount != null && r.parseStatus !== "unstructured",
+  );
   const uncounted = completed.length - counted.length;
   const findings = counted.reduce((n, r) => n + (r.findingsCount ?? 0), 0);
   // Anything whose RESULT we cannot state: unreadable passes, plus completed
