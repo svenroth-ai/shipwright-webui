@@ -1,28 +1,27 @@
 {
-  "last_updated": "2026-07-21",
+  "last_updated": "2026-07-22",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-21-compliance-audit-reconcile",
+    "run_id": "iterate-2026-07-22-transcript-cursor-single-walk",
     "date": "2026-07-22",
     "unit": {
       "status": "passed",
-      "passed": 5939,
-      "total": 5939,
-      "skipped": 1
+      "passed": 5938,
+      "total": 5939
     },
     "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 5938,
+      "total": 5939
     },
     "pgtap": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2
+      "passed": 7,
+      "total": 7
     },
     "design_fidelity": {
       "status": "skipped",
@@ -30,125 +29,219 @@
       "total": 0
     },
     "smoke": {
-      "status": "not_run"
+      "status": "passed"
     },
     "degraded": [],
-    "surface_verification": {
-      "surface": "web",
-      "tests_run": 2,
-      "exit_code": 0,
-      "justification": "Backend-affects-Frontend: server/src/core/jsonl-records.ts was split (decoding primitives extracted to jsonl-decode.ts), and that module is the record reader behind the Triage/Inbox board, the event-log projections and campaign-events — code consumed by the UI — so surface=web applies even though no client file changed. Executed client/e2e/flows/triage-record-boundary-recovery.spec.ts + campaign-events-projection.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local): 2 passed. Verified LOAD-BEARING by re-running against a deliberately broken jsonl-decode.ts (decodeObjectAt returning null, killing slow-path recovery): the recovery flow FAILED as required (trg-aaaa0001 never rendered), proving the spec exercises the extracted code through the UI rather than passing incidentally; restored and re-verified green."
-    },
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "jsonl-decode extraction preserves record splitting",
+          "behavior": "The poll sends the previous response's toByte, not 0",
           "disposition": "tested",
-          "evidence": "server jsonl-records.test.ts + jsonl-records.faults.test.ts + event-log-recovery.test.ts — 91/91 unchanged and green"
+          "evidence": "useTaskTranscript.cursor.test.ts 'the second poll asks from the first response toByte, not 0' PASSED; e2e 103 AC-1 wire-level PASSED"
         },
         {
-          "behavior": "Consumers keep working across the split (no import or symbol change)",
+          "behavior": "Accumulated content equals the concatenation of every delta",
           "disposition": "tested",
-          "evidence": "event-log-reader.test.ts, triage-store.test.ts, run-data-join.file.test.ts green; full server suite 2894 passed; tsc --noEmit clean both workspaces"
+          "evidence": "useTaskTranscript.cursor.test.ts 'content across three polls equals the concatenation' PASSED; e2e 103 (line delivered only inside a delta) PASSED"
         },
         {
-          "behavior": "Record recovery still works end-to-end in the UI",
+          "behavior": "fromByte 0 REPLACES the buffer",
           "disposition": "tested",
-          "evidence": "E2E triage-record-boundary-recovery.spec.ts + campaign-events-projection.spec.ts, real Chromium vs real server, 2/2; proven load-bearing by a deliberate break that made it FAIL"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'fromByte 0 REPLACES' PASSED"
         },
         {
-          "behavior": "Recorded totals count executed tests, not collected ones",
+          "behavior": "fromByte === cursor APPENDS and advances the cursor to toByte",
           "disposition": "tested",
-          "evidence": "new server/src/test/event-test-counts-executed.test.ts (4 assertions); non-vacuous by an explicit in-scope guard, and it CAUGHT a real offender (evt-0e22eb2f) that D4 could not see"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'APPENDS and advances the cursor' PASSED"
         },
         {
-          "behavior": "A malformed tests block fails the guard instead of being skipped",
+          "behavior": "Any other fromByte is rejected; pane preserved, cursor rewound to 0",
           "disposition": "tested",
-          "evidence": "same guard, 'records a well-formed tests block' — asserts non-negative integers rather than filtering non-numbers (external review finding)"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'REJECTED without corrupting the pane' PASSED"
         },
         {
-          "behavior": "tests.skipped stays a non-negative integer, apart from the executed total",
+          "behavior": "A duplicate delta is applied exactly once",
           "disposition": "tested",
-          "evidence": "same guard, third assertion"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'applying the SAME delta twice' PASSED"
         },
         {
-          "behavior": "B7: 20 commits relinked to their events",
+          "behavior": "The cursor is bytes, not string length (multi-byte UTF-8)",
           "disposition": "tested",
-          "evidence": "audit re-run B7 pass (65 commits, 52 matched); pre-write guards refuse a duplicate, unreachable or already-linked target"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'the cursor is BYTES, not string length' PASSED; verified to FAIL under the reviewer-suggested prev.length guard"
         },
         {
-          "behavior": "B7: PR #276's missing event recorded retroactively and schema-valid",
+          "behavior": "An empty delta preserves content by value (keeps the downstream useMemo skip)",
           "disposition": "tested",
-          "evidence": "written via record_event.py, whose FR + spec_impact gates rejected two earlier drafts; audit re-run keeps D5 pass"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'empty delta at the cursor is a no-op' PASSED"
         },
         {
-          "behavior": "D2: the fold is scoped by a spec_updated watermark",
+          "behavior": "modelName is carried forward when the newest delta has none",
           "disposition": "tested",
-          "evidence": "audit re-run D2 pass; measured 78 stale refs before the regroup, 0 after; watermark verified to take the target's ts, not write time"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a delta WITHOUT a model' PASSED; cursor.test.ts 'EARLIER delta' PASSED"
         },
         {
-          "behavior": "D1/D3: promised FRs read as delivered",
+          "behavior": "modelName is overridden by the newest delta (last occurrence wins)",
           "disposition": "tested",
-          "evidence": "audit re-run D1 + D3 pass; all 8 FRs confirmed by their delivering commit naming the FR"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a delta WITH a model overrides it' PASSED"
         },
         {
-          "behavior": "D4: every same-cause shortfall corrected, not only the flagged ones",
+          "behavior": "A REPLACE with no model CLEARS modelName (no cross-transcript leak)",
           "disposition": "tested",
-          "evidence": "audit re-run D4 pass; 30 records corrected under a two-condition guard (delta==1 AND after the symlink test landed); 3 deliberately refused and named"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a REPLACE with no model CLEARS it' PASSED; verified to FAIL without the fix"
         },
         {
-          "behavior": "G2: every scope in active use resolves",
+          "behavior": "A rejected chunk leaves modelName untouched",
           "disposition": "tested",
-          "evidence": "audit re-run G2 pass over 65 commits; the 18 scopes were taken verbatim from the audit's own G2 evidence"
+          "evidence": "useTaskTranscript.accumulate.test.ts 'a REJECTED chunk leaves the model untouched' PASSED"
         },
         {
-          "behavior": "F5: arch-impact drops documented in their target doc",
+          "behavior": "rotated resets buffer + cursor + fingerprint",
           "disposition": "tested",
-          "evidence": "audit re-run F5 pass; bullet <=600-char rule re-checked and check_agent_doc_budget.py OK"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'rotated clears the buffer AND the cursor' PASSED; e2e 103 AC-2 on real Chromium PASSED"
         },
         {
-          "behavior": "H1/H2: baseline matches disk and holds real code to the rule",
+          "behavior": "missing resets buffer + cursor + modelName",
           "disposition": "tested",
-          "evidence": "audit re-run H0-H6 pass; jsonl-records.ts 317->251 and deliberately NOT added to the baseline; update script refuses any loosening"
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'missing clears the buffer, the model and the cursor' PASSED"
         },
         {
-          "behavior": "C1's recorded reason is legible to the next reader",
+          "behavior": "A taskId switch resets the cursor AND the fingerprint",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'no inherited fingerprint' PASSED"
+        },
+        {
+          "behavior": "A taskId switch blanks the PUBLISHED state immediately",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'blanks the pane IMMEDIATELY' PASSED"
+        },
+        {
+          "behavior": "A late response from the previous task never lands in the new buffer",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.cursor-reset.test.ts 'in-flight response from the PREVIOUS task' PASSED"
+        },
+        {
+          "behavior": "Whole-file resync every RESYNC_EVERY_POLLS polls, bounding divergence a shrink-only rotation check cannot detect",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.resilience.test.ts 'resyncs to fromByte 0 every 60th poll' PASSED; verified to FAIL with dueForResync forced false"
+        },
+        {
+          "behavior": "After a rejection the recovery poll carries fromByte 0 AND a null fingerprint",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.resilience.test.ts 'after a REJECTED chunk' PASSED"
+        },
+        {
+          "behavior": "A failed poll leaves the cursor and fingerprint intact",
+          "disposition": "tested",
+          "evidence": "useTaskTranscript.resilience.test.ts 'a failed poll leaves the cursor' PASSED"
+        },
+        {
+          "behavior": "readChunk returns the JsonlLocation it read from, paired with chunk.size",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'returns the same location findByUuid would have returned' PASSED"
+        },
+        {
+          "behavior": "A pre-resolved location makes readChunk perform ZERO readdir calls",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'performs ZERO readdir calls' PASSED"
+        },
+        {
+          "behavior": "The chunk is byte-identical with and without a pre-resolved location",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'byte-identical chunk with and without' PASSED"
+        },
+        {
+          "behavior": "A passed location does not re-classify read-ENOENT as fatal (CLAUDE.md rule 6)",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'does not make ENOENT on the READ fatal' PASSED"
+        },
+        {
+          "behavior": "A stale location cannot truncate the read or throw",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 'delivers everything on disk even when location.sizeBytes predates a write' PASSED"
+        },
+        {
+          "behavior": "Discovery is unchanged without a location (missing, and an explicit null)",
+          "disposition": "tested",
+          "evidence": "session-watcher.single-walk.test.ts 2 cases PASSED"
+        },
+        {
+          "behavior": "A transcript poll walks ~/.claude/projects exactly once (ok, missing, and across 10 polls)",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 3 cases PASSED; red before the fix at 20 walks for 10 polls",
+          "category": "integration"
+        },
+        {
+          "behavior": "The persisted lastJsonlSeenMtimeMs equals the file's real mtime",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 'persists lastJsonlSeenMtimeMs equal to the real mtime' PASSED"
+        },
+        {
+          "behavior": "active-to-idle decay and active-stays-active are preserved",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 2 cases PASSED"
+        },
+        {
+          "behavior": "Rotation is still detected through the route (the fingerprint stays fresh)",
+          "disposition": "tested",
+          "evidence": "transcript/__tests__/routes.single-walk.test.ts 'still reports rotated after the JSONL shrinks' PASSED"
+        },
+        {
+          "behavior": "A mission-context poll walks ~/.claude/projects exactly once",
+          "disposition": "tested",
+          "evidence": "callers-single-walk.test.ts PASSED; verified to FAIL at 2 walks without the location pass-through",
+          "category": "integration"
+        },
+        {
+          "behavior": "An inbox cold-path derive walks ~/.claude/projects exactly once",
+          "disposition": "tested",
+          "evidence": "callers-single-walk.test.ts PASSED; verified to FAIL at 2 walks without the location pass-through",
+          "category": "integration"
+        },
+        {
+          "behavior": "The session-watcher-debug extraction is behaviour-identical (enable condition, all 3 log strings, the 8-entry cap, silence when off)",
+          "disposition": "tested",
+          "evidence": "session-watcher-debug.test.ts 8 cases PASSED - the diagnostic had ZERO coverage before the move"
+        },
+        {
+          "behavior": "Terminal-state stop and single-source modelName (F21/F22) unchanged",
+          "disposition": "tested",
+          "evidence": "covered-by-existing-test: useTaskTranscript.test.ts untouched, all cases PASSED"
+        },
+        {
+          "behavior": "The other readChunk consumers are unaffected",
+          "disposition": "tested",
+          "evidence": "covered-by-existing-test: full server suite 254 files / 2956 PASSED incl. the inbox and transcript-route suites"
+        },
+        {
+          "behavior": "The pane's residual full-content re-parse cost after the change",
           "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "reason": "whether prose persuades the next reader not to silence the check is a human judgment; the mechanical half (C1 absent from disabled_checks, still reported) IS asserted by the audit re-run"
+          "reason_code": "covered-by-existing-test",
+          "reason": "Correctness is covered by the existing TaskDetailPage and parser suites; the NUMBER (5.6 ms median / 11.3 ms p90, measured against the shipped parseSessionJsonl) is deliberately not asserted, because a wall-clock threshold in CI is a flake generator. Scoped out in 'What this run does NOT fix'."
         },
         {
-          "behavior": "An amendment preserves every original tests key (e2e_run, new, modified)",
-          "disposition": "tested",
-          "evidence": "internal review found the shallow-merge data loss (28 records lost e2e_run, 6 of them true); repaired and re-verified through the real consumer apply_amendments — 0 records still losing keys, 60 keep e2e_run:true"
-        },
-        {
-          "behavior": "The guard reads the event log the way the audit does (concatenation-tolerant)",
-          "disposition": "tested",
-          "evidence": "effectiveEvents() now goes through parseJsonlRecords (the module this iterate split) instead of a per-line JSON.parse, so a merge=union concatenation cannot hide an offender from the guard while the audit still judges it; guard 4/4 green"
-        },
-        {
-          "behavior": "Epoch scoping is timezone-safe",
-          "disposition": "tested",
-          "evidence": "Date.parse instant comparison replaces the lexical one; 70 records in this log carry +02:00 rather than Z, so string order != chronological order"
-        },
-        {
-          "behavior": "The three A-campaign backfills do not assert a skip-free run",
-          "disposition": "tested",
-          "evidence": "git cat-file confirmed write-symlink-guard.test.ts existed at 8fbc0a4e / 7e8c97c5 / 4beaf596, so executed = quoted - 1 with skipped:1; recorded with that reasoning in backfill_reason"
+          "behavior": "Cold-page-cache behaviour on the 131 MB transcript",
+          "disposition": "untestable",
+          "reason_code": "requires-external-nondeterministic-service",
+          "reason": "The OS page cache cannot be evicted deterministically from a test. The warm figure is the conservative one: a cold read strictly worsens the fromByte:0 column and leaves the cursor column flat."
         }
       ],
       "counts": {
-        "testable": 18,
-        "tested": 18,
-        "untestable": 1,
+        "testable": 35,
+        "tested": 35,
+        "untestable": 2,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 10,
-        "covered_acs": 10
+        "acs": 6,
+        "covered_acs": 6
       }
+    },
+    "surface_verification": {
+      "surface": "web",
+      "tests_run": 7,
+      "exit_code": 0,
+      "justification": "The client half changes what the transcript pane REQUESTS and how it assembles the reply, and the rendered text is identical either way - so only a real browser against a real server can show the change happened. Isolated single-process stack: temp USERPROFILE, built client served via SHIPWRIGHT_STATIC_DIR, Hono on 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local on both halves. NEW client/e2e/flows/103-transcript-cursor-single-walk.spec.ts: 2/2 passed - AC-1 reads the fromByte off the WIRE via page.on('request') and proves later polls stop asking for the whole file while the pane still shows a line that only ever arrived inside a delta; AC-2 truncates the JSONL under the browser and proves the client rewinds to 0 and REPLACES. Both were verified to FAIL against a client rebuilt with fromByte pinned to 0. Pre-existing transcript specs re-run for regression, all passed: 32-transcript-live, 34-browser-refresh, 37b-bubble-lifecycle (x2), 38-jsonl-missing-transition. 7/7, exit 0."
     }
   }
 }

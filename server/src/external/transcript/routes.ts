@@ -106,8 +106,15 @@ export function createTranscriptRouter(deps: TranscriptRouterDeps): Hono {
     }
 
     const now = Date.now();
-    const loc = await watcher.findByUuid(task.sessionUuid);
-    const mtime = loc?.mtimeMs ?? 0;
+    // iterate-2026-07-22-…-single-walk — the mtime comes off the location
+    // `readChunk` already resolved, not a SECOND `~/.claude/projects` walk for
+    // the same file (~0.45 ms per walk, and the read beside it is now ~0.2 ms).
+    // Side effect, deliberate: a JSONL deleted between the two former walks
+    // used to yield `mtime = 0`, which `now - 0 > ACTIVE_IDLE_THRESHOLD_MS`
+    // read as "idle for decades" and knocked a live task to `idle`. One walk
+    // cannot disagree with itself, and this mtime now matches the fingerprint
+    // the client is handed in the same response.
+    const mtime = result.location.mtimeMs;
 
     const patch: Partial<ExternalTask> = {};
     let nextState: ExternalTaskState = task.state;

@@ -109,6 +109,7 @@ export async function deriveInboxFromJsonl(args: {
         sessionUuid: task.sessionUuid,
         fromByte: 0,
         expectFingerprint: null,
+        location: loc, // resolved just above — don't walk the projects dir twice
       });
       if (chunk.status === "ok") content = chunk.chunk.content;
     } catch {
