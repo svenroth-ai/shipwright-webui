@@ -1,17 +1,17 @@
 {
-  "last_updated": "2026-07-22",
+  "last_updated": "2026-07-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-22-transcript-cursor-single-walk",
-    "date": "2026-07-22",
+    "run_id": "iterate-2026-07-23-transcript-incremental-render",
+    "date": "2026-07-23",
     "unit": {
       "status": "passed",
-      "passed": 5938,
-      "total": 5939
+      "passed": 3009,
+      "total": 3009
     },
     "integration": {
-      "status": "passed",
-      "passed": 5938,
-      "total": 5939
+      "status": "not_run",
+      "passed": 0,
+      "total": 0
     },
     "pgtap": {
       "status": "skipped",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 7,
-      "total": 7
+      "passed": 2,
+      "total": 2
     },
     "design_fidelity": {
       "status": "skipped",
@@ -29,207 +29,117 @@
       "total": 0
     },
     "smoke": {
-      "status": "passed"
+      "status": "not_run"
     },
     "degraded": [],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "The poll sends the previous response's toByte, not 0",
+          "behavior": "Incremental parse is byte-identical to parseSessionJsonl at every line-by-line growth step (production shape: content ends on \\n)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor.test.ts 'the second poll asks from the first response toByte, not 0' PASSED; e2e 103 AC-1 wire-level PASSED"
+          "evidence": "incremental-session-parse.test.ts 'matches parseSessionJsonl at every line-by-line growth step' PASSED"
         },
         {
-          "behavior": "Accumulated content equals the concatenation of every delta",
+          "behavior": "Byte-identical at every CHAR-by-char growth step (exercises the trailing partial line: mid-JSON and mid-surrogate tails)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor.test.ts 'content across three polls equals the concatenation' PASSED; e2e 103 (line delivered only inside a delta) PASSED"
+          "evidence": "incremental-session-parse.test.ts 'matches ... at every CHAR-by-char growth step' PASSED; adversarial subagent ran ~500 random corpora char-by-char (LF+CRLF, escape/surrogate/raw-newline-in-value) deep-equal to batch"
         },
         {
-          "behavior": "fromByte 0 REPLACES the buffer",
+          "behavior": "No-trailing-newline content and the empty string parse identically to batch",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'fromByte 0 REPLACES' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'NO trailing newline' + 'the empty string' PASSED"
         },
         {
-          "behavior": "fromByte === cursor APPENDS and advances the cursor to toByte",
+          "behavior": "Already-committed event objects keep referential identity across an append (only new events are new objects)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'APPENDS and advances the cursor' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'keeps already-parsed event objects referentially identical across an append' PASSED"
         },
         {
-          "behavior": "Any other fromByte is rejected; pane preserved, cursor rewound to 0",
+          "behavior": "Advancing does not mutate the previous state's arrays",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'REJECTED without corrupting the pane' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'does NOT mutate the previous state's arrays' PASSED"
         },
         {
-          "behavior": "A duplicate delta is applied exactly once",
+          "behavior": "A shrunk content (truncation) triggers a full re-parse equal to batch",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'applying the SAME delta twice' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'full-reparses when content shrinks' PASSED"
         },
         {
-          "behavior": "The cursor is bytes, not string length (multi-byte UTF-8)",
+          "behavior": "A differing prefix (rotation/replacement) triggers a full re-parse equal to batch",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'the cursor is BYTES, not string length' PASSED; verified to FAIL under the reviewer-suggested prev.length guard"
+          "evidence": "incremental-session-parse.test.ts 'full-reparses when the prefix differs' PASSED"
         },
         {
-          "behavior": "An empty delta preserves content by value (keeps the downstream useMemo skip)",
+          "behavior": "rotation to empty then re-grow parses correctly",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'empty delta at the cursor is a no-op' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'resets cleanly to empty then re-grows' PASSED"
         },
         {
-          "behavior": "modelName is carried forward when the newest delta has none",
+          "behavior": "An idle poll (unchanged content) returns the SAME state and result reference (no downstream memo churn)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'a delta WITHOUT a model' PASSED; cursor.test.ts 'EARLIER delta' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'returns the SAME state (and result) object when content is unchanged' PASSED"
         },
         {
-          "behavior": "modelName is overridden by the newest delta (last occurrence wins)",
+          "behavior": "Malformed-line accounting matches batch (unknown stub for a middle line, swallowed torn tail, malformedLines equal)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'a delta WITH a model overrides it' PASSED"
+          "evidence": "incremental-session-parse.test.ts 'preserves the batch parser's unknown-stub + malformedLines behaviour' PASSED"
         },
         {
-          "behavior": "A REPLACE with no model CLEARS modelName (no cross-transcript leak)",
+          "behavior": "An append hands parseSessionJsonl only the appended region (< 1/10 of the accumulated string); an idle poll calls it zero times (the actual optimization)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'a REPLACE with no model CLEARS it' PASSED; verified to FAIL without the fix"
+          "evidence": "incremental-session-parse.mechanism.test.ts 2 cases PASSED (parseSessionJsonl spied through)"
         },
         {
-          "behavior": "A rejected chunk leaves modelName untouched",
+          "behavior": "useParsedTranscript returns the batch-parser result as content grows",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.accumulate.test.ts 'a REJECTED chunk leaves the model untouched' PASSED"
+          "evidence": "useParsedTranscript.test.ts 'returns the batch-parser result as content grows' PASSED"
         },
         {
-          "behavior": "rotated resets buffer + cursor + fingerprint",
+          "behavior": "useParsedTranscript returns the SAME result reference when content is unchanged",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor-reset.test.ts 'rotated clears the buffer AND the cursor' PASSED; e2e 103 AC-2 on real Chromium PASSED"
+          "evidence": "useParsedTranscript.test.ts 'returns the SAME result reference when content is unchanged' PASSED"
         },
         {
-          "behavior": "missing resets buffer + cursor + modelName",
+          "behavior": "useParsedTranscript is correct under StrictMode double-render (no double-append)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor-reset.test.ts 'missing clears the buffer, the model and the cursor' PASSED"
+          "evidence": "useParsedTranscript.test.ts 'is correct under StrictMode double-render' PASSED"
         },
         {
-          "behavior": "A taskId switch resets the cursor AND the fingerprint",
+          "behavior": "MarkdownChunk skips re-render when its content prop is unchanged across a parent re-render",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor-reset.test.ts 'no inherited fingerprint' PASSED"
+          "evidence": "MarkdownChunk.memo.test.tsx 'skips re-render when content is unchanged' PASSED (MarkdownText render-counter)"
         },
         {
-          "behavior": "A taskId switch blanks the PUBLISHED state immediately",
+          "behavior": "MarkdownChunk re-renders when content changes",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor-reset.test.ts 'blanks the pane IMMEDIATELY' PASSED"
+          "evidence": "MarkdownChunk.memo.test.tsx 're-renders when content changes' PASSED"
         },
         {
-          "behavior": "A late response from the previous task never lands in the new buffer",
+          "behavior": "BubbleTranscript renders identically after switching to the incremental hook",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.cursor-reset.test.ts 'in-flight response from the PREVIOUS task' PASSED"
+          "evidence": "covered-by-existing-test: BubbleTranscript.test.tsx (unchanged, all cases PASSED in the 3009-test client suite)"
         },
         {
-          "behavior": "Whole-file resync every RESYNC_EVERY_POLLS polls, bounding divergence a shrink-only rotation check cannot detect",
+          "behavior": "TaskDetailPage transcript stats render identically after switching to the incremental hook",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.resilience.test.ts 'resyncs to fromByte 0 every 60th poll' PASSED; verified to FAIL with dueForResync forced false"
+          "evidence": "covered-by-existing-test: TaskDetailPage.test.tsx (unchanged, all cases PASSED)"
         },
         {
-          "behavior": "After a rejection the recovery poll carries fromByte 0 AND a null fingerprint",
+          "behavior": "An empty transcript forces the header 'pending' stat to 0 (never the inbox count) — the guard external review flagged as dropped",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.resilience.test.ts 'after a REJECTED chunk' PASSED"
+          "evidence": "TaskDetailPage.transcriptStats.test.tsx 2 cases PASSED (external-review Finding 1 regression fence)"
         },
         {
-          "behavior": "A failed poll leaves the cursor and fingerprint intact",
+          "behavior": "The transcript surfaces render in a real browser with the incremental parser (mode/pr-link/stop-hook + custom-title/agent-name/permission-mode chips, no Unknown card)",
           "disposition": "tested",
-          "evidence": "useTaskTranscript.resilience.test.ts 'a failed poll leaves the cursor' PASSED"
-        },
-        {
-          "behavior": "readChunk returns the JsonlLocation it read from, paired with chunk.size",
-          "disposition": "tested",
-          "evidence": "session-watcher.single-walk.test.ts 'returns the same location findByUuid would have returned' PASSED"
-        },
-        {
-          "behavior": "A pre-resolved location makes readChunk perform ZERO readdir calls",
-          "disposition": "tested",
-          "evidence": "session-watcher.single-walk.test.ts 'performs ZERO readdir calls' PASSED"
-        },
-        {
-          "behavior": "The chunk is byte-identical with and without a pre-resolved location",
-          "disposition": "tested",
-          "evidence": "session-watcher.single-walk.test.ts 'byte-identical chunk with and without' PASSED"
-        },
-        {
-          "behavior": "A passed location does not re-classify read-ENOENT as fatal (CLAUDE.md rule 6)",
-          "disposition": "tested",
-          "evidence": "session-watcher.single-walk.test.ts 'does not make ENOENT on the READ fatal' PASSED"
-        },
-        {
-          "behavior": "A stale location cannot truncate the read or throw",
-          "disposition": "tested",
-          "evidence": "session-watcher.single-walk.test.ts 'delivers everything on disk even when location.sizeBytes predates a write' PASSED"
-        },
-        {
-          "behavior": "Discovery is unchanged without a location (missing, and an explicit null)",
-          "disposition": "tested",
-          "evidence": "session-watcher.single-walk.test.ts 2 cases PASSED"
-        },
-        {
-          "behavior": "A transcript poll walks ~/.claude/projects exactly once (ok, missing, and across 10 polls)",
-          "disposition": "tested",
-          "evidence": "transcript/__tests__/routes.single-walk.test.ts 3 cases PASSED; red before the fix at 20 walks for 10 polls",
-          "category": "integration"
-        },
-        {
-          "behavior": "The persisted lastJsonlSeenMtimeMs equals the file's real mtime",
-          "disposition": "tested",
-          "evidence": "transcript/__tests__/routes.single-walk.test.ts 'persists lastJsonlSeenMtimeMs equal to the real mtime' PASSED"
-        },
-        {
-          "behavior": "active-to-idle decay and active-stays-active are preserved",
-          "disposition": "tested",
-          "evidence": "transcript/__tests__/routes.single-walk.test.ts 2 cases PASSED"
-        },
-        {
-          "behavior": "Rotation is still detected through the route (the fingerprint stays fresh)",
-          "disposition": "tested",
-          "evidence": "transcript/__tests__/routes.single-walk.test.ts 'still reports rotated after the JSONL shrinks' PASSED"
-        },
-        {
-          "behavior": "A mission-context poll walks ~/.claude/projects exactly once",
-          "disposition": "tested",
-          "evidence": "callers-single-walk.test.ts PASSED; verified to FAIL at 2 walks without the location pass-through",
-          "category": "integration"
-        },
-        {
-          "behavior": "An inbox cold-path derive walks ~/.claude/projects exactly once",
-          "disposition": "tested",
-          "evidence": "callers-single-walk.test.ts PASSED; verified to FAIL at 2 walks without the location pass-through",
-          "category": "integration"
-        },
-        {
-          "behavior": "The session-watcher-debug extraction is behaviour-identical (enable condition, all 3 log strings, the 8-entry cap, silence when off)",
-          "disposition": "tested",
-          "evidence": "session-watcher-debug.test.ts 8 cases PASSED - the diagnostic had ZERO coverage before the move"
-        },
-        {
-          "behavior": "Terminal-state stop and single-source modelName (F21/F22) unchanged",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: useTaskTranscript.test.ts untouched, all cases PASSED"
-        },
-        {
-          "behavior": "The other readChunk consumers are unaffected",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: full server suite 254 files / 2956 PASSED incl. the inbox and transcript-route suites"
-        },
-        {
-          "behavior": "The pane's residual full-content re-parse cost after the change",
-          "disposition": "untestable",
-          "reason_code": "covered-by-existing-test",
-          "reason": "Correctness is covered by the existing TaskDetailPage and parser suites; the NUMBER (5.6 ms median / 11.3 ms p90, measured against the shipped parseSessionJsonl) is deliberately not asserted, because a wall-clock threshold in CI is a flake generator. Scoped out in 'What this run does NOT fix'."
-        },
-        {
-          "behavior": "Cold-page-cache behaviour on the 131 MB transcript",
-          "disposition": "untestable",
-          "reason_code": "requires-external-nondeterministic-service",
-          "reason": "The OS page cache cannot be evicted deterministically from a test. The warm figure is the conservative one: a cold read strictly worsens the fromByte:0 column and leaves the cursor column flat."
+          "evidence": "F0.5 web: e2e 90-transcript-renderer-fingerprints + 59-parser-variants, 2/2 passed on Chromium against the isolated real Hono stack, exit 0"
         }
       ],
       "counts": {
-        "testable": 35,
-        "tested": 35,
-        "untestable": 2,
+        "testable": 20,
+        "tested": 20,
+        "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
@@ -239,9 +149,12 @@
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 7,
+      "runner": "bash run-e2e.sh (BASE_URL=127.0.0.1:3848 + isolated USERPROFILE)",
+      "tests_run": 2,
       "exit_code": 0,
-      "justification": "The client half changes what the transcript pane REQUESTS and how it assembles the reply, and the rendered text is identical either way - so only a real browser against a real server can show the change happened. Isolated single-process stack: temp USERPROFILE, built client served via SHIPWRIGHT_STATIC_DIR, Hono on 127.0.0.1:3849, SHIPWRIGHT_NETWORK_PROFILE=local on both halves. NEW client/e2e/flows/103-transcript-cursor-single-walk.spec.ts: 2/2 passed - AC-1 reads the fromByte off the WIRE via page.on('request') and proves later polls stop asking for the whole file while the pane still shows a line that only ever arrived inside a delta; AC-2 truncates the JSONL under the browser and proves the client rewinds to 0 and REPLACES. Both were verified to FAIL against a client rebuilt with fromByte pinned to 0. Pre-existing transcript specs re-run for regression, all passed: 32-transcript-live, 34-browser-refresh, 37b-bubble-lifecycle (x2), 38-jsonl-missing-transition. 7/7, exit 0."
+      "evidence_path": ".shipwright/runs/iterate-2026-07-23-transcript-incremental-render/surface_verification.log",
+      "timestamp": "2026-07-23T06:28:37.690Z",
+      "justification": "Behaviour-preserving client renderer change (Spec Impact NONE): the transcript pane now parses only the appended byte-delta instead of re-parsing the whole accumulated JSONL each poll, and memoizes the markdown leaf. The rendered bubbles are byte-identical, so a real browser against a real server is the honest way to show nothing regressed. Isolated single-process stack: temp USERPROFILE, built client served via SHIPWRIGHT_STATIC_DIR, Hono on 127.0.0.1:3848, SHIPWRIGHT_NETWORK_PROFILE=local; the live WebUI on :3847 was never touched. 90-transcript-renderer-fingerprints (mode/pr-link/stop-hook surfaces, no Unknown card) + 59-parser-variants (custom-title/agent-name/permission-mode chips) both passed 2/2 on Chromium, exit 0."
     }
   }
 }
