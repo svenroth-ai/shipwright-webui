@@ -24,12 +24,18 @@
 
 import type { ReactNode } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { ChevronDown, ChevronRight, Loader2, Plus, Terminal } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
 
 import { useProjectActions } from "../../hooks/useProjectActions";
 import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import { getProjectColor } from "../../lib/projectColor";
 import { ProjectCreatePhoneMenu } from "./ProjectCreatePhoneMenu";
+import {
+  CreateMenuHeading,
+  CreateMenuSeparator,
+  GuidedWizardMenuItem,
+  RegisterManuallyMenuItem,
+} from "./CreateMenuIntentItems";
 import type { ActionDefinition } from "../../lib/externalApi";
 import type { Project } from "../../types";
 
@@ -147,7 +153,12 @@ export function ProjectCreateMenu({
       />
     );
   }
-  const disabled = isLoading || projects.length === 0;
+  // NOT disabled at zero projects (iterate-2026-07-23-intent-launcher-front-door):
+  // the menu now hosts project-INDEPENDENT onboarding rows (Guided → /wizard,
+  // Register manually → /projects?new=1). On a fresh install (All-Projects, no
+  // projects) the front door must be reachable — the old disable-at-zero fence
+  // existed only when the menu held per-project actions alone.
+  const disabled = isLoading;
   return (
     <div className="inline-flex" data-testid="create-menu-cascade">
       <DropdownMenu.Root>
@@ -175,6 +186,12 @@ export function ProjectCreateMenu({
             data-testid="create-menu-cascade-content"
             className={`${SURFACE_CLS} min-w-[240px]`}
           >
+            {/* Guided wizard leads even in All-Projects mode (it needs no active
+                project); the per-project action submenus follow; register-manually
+                closes (iterate-2026-07-23-intent-launcher-front-door). */}
+            <CreateMenuHeading />
+            <GuidedWizardMenuItem />
+            <CreateMenuSeparator />
             {projects.length === 0 ? (
               <div className="px-2.5 py-2 text-[13px] text-[var(--color-muted)]">
                 No projects yet
@@ -234,65 +251,11 @@ export function ProjectCreateMenu({
                 </DropdownMenu.Sub>
               ))
             )}
+            <CreateMenuSeparator />
+            <RegisterManuallyMenuItem />
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
     </div>
-  );
-}
-
-/** Plain Claude project picker for All-Projects mode (single `new-plain`). */
-export function ProjectPlainPicker({
-  projects,
-  onSelect,
-  isLoading = false,
-}: ProjectCascadeProps) {
-  const disabled = isLoading || projects.length === 0;
-  return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          data-testid="plain-cascade-trigger"
-          title="Plain Claude — choose a project"
-          aria-label="Plain Claude — choose a project"
-          className="inline-flex h-[38px] w-[38px] items-center justify-center rounded-[var(--radius-button)] text-[var(--color-muted)] transition-colors hover:bg-[var(--color-muted-bg)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Terminal size={16} strokeWidth={1.7} />
-        </button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          data-testid="plain-cascade-content"
-          className={`${SURFACE_CLS} min-w-[220px]`}
-        >
-          <div className="px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-muted)]">
-            Plain Claude in…
-          </div>
-          {projects.map((p) => (
-            <ProjectActionsLoader
-              key={p.id}
-              projectId={p.id}
-              filter={(a) => a.id === "new-plain"}
-              hideWhenEmpty
-            >
-              {(actions) => (
-                <DropdownMenu.Item
-                  data-testid={`plain-cascade-project-${p.id}`}
-                  onSelect={() => onSelect(actions[0], p.id)}
-                  className={ROW_CLS}
-                >
-                  <ProjectDot project={p} />
-                  <span className="flex-1 truncate">{p.name}</span>
-                </DropdownMenu.Item>
-              )}
-            </ProjectActionsLoader>
-          ))}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
   );
 }

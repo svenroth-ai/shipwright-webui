@@ -4,10 +4,10 @@
  * board filtered by the project; an unknown project is an honest not-found.
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 
 import ShipsLogPage from "./ShipsLogPage";
 import type { Project } from "../types";
@@ -50,6 +50,15 @@ vi.mock("../components/shipslog/LogEntryList", () => ({
   LogEntryList: () => <div data-testid="stub-logbook" />,
 }));
 
+// Radix DropdownMenu needs these jsdom shims to open (same as the phone-menu test).
+beforeAll(() => {
+  const proto = Element.prototype as unknown as Record<string, unknown>;
+  if (!proto.hasPointerCapture) proto.hasPointerCapture = () => false;
+  if (!proto.setPointerCapture) proto.setPointerCapture = () => {};
+  if (!proto.releasePointerCapture) proto.releasePointerCapture = () => {};
+  if (!proto.scrollIntoView) proto.scrollIntoView = () => {};
+});
+
 function Loc() {
   const l = useLocation();
   return <div data-testid="loc">{l.pathname + l.search}</div>;
@@ -62,6 +71,7 @@ function renderPage(projectId = "p1") {
         <Route path="/projects/:projectId/log" element={<ShipsLogPage />} />
         <Route path="/" element={<Loc />} />
         <Route path="/projects" element={<Loc />} />
+        <Route path="/wizard" element={<Loc />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -119,6 +129,34 @@ describe("ShipsLogPage", () => {
   it("'Open board' uses the standard .btn-primary button (Sven 2026-07-17, AC8)", () => {
     renderPage();
     expect(screen.getByTestId("ships-log-open-board")).toHaveClass("btn-primary");
+  });
+
+  // @covers FR-01.51 — the guided front door + register-manually escape hatch
+  // also live on a project's home (iterate-2026-07-23-intent-launcher-front-door).
+  it("header launcher offers the guided wizard + register-manually", async () => {
+    renderPage();
+    await userEvent.click(screen.getByTestId("shipslog-create-trigger"));
+    const content = await screen.findByTestId("shipslog-create-content");
+    expect(within(content).getByTestId("create-menu-guided")).toBeInTheDocument();
+    expect(
+      within(content).getByTestId("create-menu-register-manually"),
+    ).toBeInTheDocument();
+  });
+
+  // @covers FR-01.51
+  it("header launcher 'Guided' opens the Intent Wizard", async () => {
+    renderPage();
+    await userEvent.click(screen.getByTestId("shipslog-create-trigger"));
+    await userEvent.click(await screen.findByTestId("create-menu-guided"));
+    expect(screen.getByTestId("loc")).toHaveTextContent("/wizard");
+  });
+
+  // @covers FR-01.51 — the launcher trigger rides the canonical .btn-primary.
+  it("header launcher trigger uses the standard .btn-primary", () => {
+    renderPage();
+    expect(screen.getByTestId("shipslog-create-trigger")).toHaveClass(
+      "btn-primary",
+    );
   });
 
   // @covers FR-01.59

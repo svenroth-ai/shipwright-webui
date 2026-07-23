@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within, cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 
@@ -61,7 +61,33 @@ describe("IntentWizard — door picker + readiness gate", () => {
     expect(screen.getByTestId("wizard-door-new")).toHaveTextContent("Build something new");
     expect(screen.getByTestId("wizard-door-adopt")).toHaveTextContent("Bring Shipwright to an existing repo");
     expect(screen.getByTestId("wizard-door-grade")).toHaveTextContent("Grade your repo");
-    expect(screen.getByTestId("wizard-add-existing")).toHaveTextContent("Add the existing project");
+    expect(screen.getByTestId("wizard-add-existing")).toHaveTextContent(
+      "Register a project manually",
+    );
+  });
+
+  // @covers FR-01.51 — the register-manually line is the permanent escape hatch;
+  // it opens the expert registration via the /projects?new=1 deep-link (iterate-
+  // 2026-07-23-intent-launcher-front-door), no longer a dead-end on the list.
+  it("the register-manually line opens the manual-registration deep-link", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    let loc = "";
+    function Echo() {
+      const l = useLocation();
+      loc = l.pathname + l.search;
+      return null;
+    }
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/wizard"]}>
+          <IntentWizard initialDoor={null} tickMs={1} />
+          <Echo />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await doorsReady();
+    fireEvent.click(screen.getByTestId("wizard-add-existing"));
+    await waitFor(() => expect(loc).toBe("/projects?new=1"));
   });
 
   // @covers FR-01.51

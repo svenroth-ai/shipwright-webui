@@ -20,7 +20,8 @@
 import { CreateMenuSplitButton } from "./CreateMenuSplitButton";
 import { PlainClaudeButton } from "./PlainClaudeButton";
 import { PreviewButton } from "./PreviewButton";
-import { ProjectCreateMenu, ProjectPlainPicker } from "./ProjectCreateCascade";
+import { ProjectCreateMenu } from "./ProjectCreateCascade";
+import { ProjectPlainPicker } from "./ProjectPlainPicker";
 import type { ActionDefinition } from "../../lib/externalApi";
 import type { Project } from "../../types";
 

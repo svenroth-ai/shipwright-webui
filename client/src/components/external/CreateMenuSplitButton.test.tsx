@@ -1,8 +1,19 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeAll } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 
 import { CreateMenuSplitButton } from "./CreateMenuSplitButton";
 import type { ActionDefinition } from "../../lib/externalApi";
+
+// Radix DropdownMenu needs these jsdom shims to open.
+beforeAll(() => {
+  const proto = Element.prototype as unknown as Record<string, unknown>;
+  if (!proto.hasPointerCapture) proto.hasPointerCapture = () => false;
+  if (!proto.setPointerCapture) proto.setPointerCapture = () => {};
+  if (!proto.releasePointerCapture) proto.releasePointerCapture = () => {};
+  if (!proto.scrollIntoView) proto.scrollIntoView = () => {};
+});
 
 const SAMPLE_ACTIONS: ActionDefinition[] = [
   {
@@ -32,6 +43,31 @@ describe("CreateMenuSplitButton", () => {
     fireEvent.click(screen.getByTestId("create-menu-primary"));
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(onSelect.mock.calls[0][0].id).toBe("new-task");
+  });
+
+  // iterate-2026-07-23-intent-launcher-front-door — the dropdown is the front
+  // door: Guided leads, the direct actions follow, register-manually closes.
+  it("the dropdown leads with Guided and ends with Register manually", async () => {
+    render(
+      <MemoryRouter>
+        <CreateMenuSplitButton actions={SAMPLE_ACTIONS} onSelect={() => {}} />
+      </MemoryRouter>,
+    );
+    await userEvent.click(screen.getByTestId("create-menu-caret"));
+    const menu = await screen.findByTestId("create-menu-dropdown");
+    const guided = within(menu).getByTestId("create-menu-guided");
+    const pipeline = within(menu).getByTestId("create-menu-item-new-pipeline");
+    const register = within(menu).getByTestId("create-menu-register-manually");
+    // Order is load-bearing (AC1): Guided leads, direct actions follow,
+    // register-manually closes — a mere presence check would pass on any order.
+    expect(
+      guided.compareDocumentPosition(pipeline) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      pipeline.compareDocumentPosition(register) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("disables both buttons when isLoading", () => {

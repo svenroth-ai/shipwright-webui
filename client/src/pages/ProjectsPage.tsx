@@ -19,7 +19,8 @@
  * DO-NOT #12 (never write run_config), rule 1 (never spawn Claude), rule 23
  * (never touch state/boardColumn): this page is a pure read-only observer.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import { Plus, FolderOpen } from "lucide-react";
 
@@ -43,6 +44,25 @@ export default function ProjectsPage() {
   const [showWizard, setShowWizard] = useState(false);
   const [settingsFor, setSettingsFor] = useState<Project | null>(null);
   const deleteProject = useDeleteProject();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Register-a-project-manually deep-link (iterate-2026-07-23-intent-launcher-
+  // front-door): every "Register a project manually…" affordance across the app
+  // routes here with ?new=1, which opens the ONE expert ProjectWizard. The param
+  // is cleared on close so a back-nav does not re-open it.
+  const wantsNew = searchParams.get("new") === "1";
+  useEffect(() => {
+    if (wantsNew) setShowWizard(true);
+  }, [wantsNew]);
+  function handleWizardOpenChange(open: boolean) {
+    setShowWizard(open);
+    if (!open && wantsNew) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("new");
+      setSearchParams(next, { replace: true });
+    }
+  }
 
   // One A02 run bundle per project (synthesized rows disabled). useQueries is
   // built for a dynamic-length fan-out; the shared options builder keeps the
@@ -132,7 +152,7 @@ export default function ProjectsPage() {
             <button
               type="button"
               className="btn-primary"
-              onClick={() => setShowWizard(true)}
+              onClick={() => navigate("/wizard")}
               data-testid="projects-create-button"
             >
               <Plus size={16} /> Create Project
@@ -177,7 +197,7 @@ export default function ProjectsPage() {
               <button
                 type="button"
                 className="btn-primary"
-                onClick={() => setShowWizard(true)}
+                onClick={() => navigate("/wizard")}
               >
                 <Plus size={16} /> Create Project
               </button>
@@ -207,7 +227,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      <ProjectWizard open={showWizard} onOpenChange={setShowWizard} />
+      <ProjectWizard open={showWizard} onOpenChange={handleWizardOpenChange} />
       <ProjectSettingsDialog
         project={settingsFor}
         open={settingsFor !== null}

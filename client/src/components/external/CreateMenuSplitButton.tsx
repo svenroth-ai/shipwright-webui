@@ -48,6 +48,12 @@ import {
 } from "lucide-react";
 
 import type { ActionDefinition } from "../../lib/externalApi";
+import {
+  CreateMenuHeading,
+  CreateMenuSeparator,
+  GuidedWizardMenuItem,
+  RegisterManuallyMenuItem,
+} from "./CreateMenuIntentItems";
 
 interface CreateMenuSplitButtonProps {
   actions: ActionDefinition[];
@@ -160,6 +166,13 @@ export function CreateMenuSplitButton({
             style={{ minWidth: "280px", maxWidth: "280px" }}
             data-testid="create-menu-dropdown"
           >
+            {/* The guided Intent Wizard is the recommended front door
+                (iterate-2026-07-23-intent-launcher-front-door). It leads; the
+                direct pipeline/task/iterate actions follow; register-manually is
+                the escape hatch. */}
+            <CreateMenuHeading />
+            <GuidedWizardMenuItem />
+            <CreateMenuSeparator />
             {actions.map((a) => {
               const v = ACTION_VISUALS[a.id] ?? DEFAULT_VISUAL;
               const Icon = v.icon;
@@ -201,6 +214,8 @@ export function CreateMenuSplitButton({
                 </DropdownMenu.Item>
               );
             })}
+            <CreateMenuSeparator />
+            <RegisterManuallyMenuItem />
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>

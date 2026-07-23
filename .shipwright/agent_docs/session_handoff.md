@@ -1,43 +1,44 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-07-22-mission-review-record"
+run_id: "iterate-2026-07-23-intent-launcher-front-door"
 phase: "iterate"
-reason: "iterate: read the per-run review record in the Mission Review artifact"
-timestamp: "2026-07-22T07:21:46.920230+00:00"
+reason: "iterate: intent-launcher-front-door"
+timestamp: "2026-07-23T09:54:48.438101+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-07-22 07:21:46 UTC
+> Auto-generated 2026-07-23 09:54:48 UTC
 
 ## Session Info
 
-- **Session ID**: dcc0a976-e768-47b5-9797-65838f71f827
-- **Timestamp**: 2026-07-22 07:21:46 UTC
-- **Reason**: iterate: read the per-run review record in the Mission Review artifact
+- **Session ID**: 100adf44-6b77-4519-8485-b1d4b5334e33
+- **Timestamp**: 2026-07-23 09:54:48 UTC
+- **Reason**: iterate: intent-launcher-front-door
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-22-mission-review-record
-- **Date**: 2026-07-22T07:21:46.837856Z
+- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
+- **Date**: 2026-07-23T09:54:48.143624Z
 - **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/mission-review-record
-- **ADR**: iterate-2026-07-22-mission-review-record
+- **Branch**: iterate/intent-launcher-front-door
+- **ADR**: iterate-2026-07-23-intent-launcher-front-door
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/iterate-2026-07-22-mission-review-record.md
+- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/mission-review-record
-- **Run ID**: iterate-2026-07-22-mission-review-record
-- **Spec**: .shipwright/planning/iterate/iterate-2026-07-22-mission-review-record.md
-- **Complexity**: medium (history-calibrated, n=20)
-- **External Review Marker**: stale (predates spec (2026-07-22T06:43:59))
+- **Branch**: iterate/intent-launcher-front-door
+- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
+- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
+- **Complexity**: medium
+- **External Review Marker**: stale (predates spec (2026-07-08T13:26:14))
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
+- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -51,8 +52,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/mission-review-record
-- **Last Commit**: 023ccc01 wip: checkpoint before finalize bundle
+- **Branch**: iterate/intent-launcher-front-door
+- **Last Commit**: 19869d75 chore(triage): sweep 7 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +69,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-692edbfe | work_completed | iterate (Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch) | 2026-07-23 |
+| evt-6b8a677d | work_completed | iterate (Incremental transcript parse (delta-only) + memoized MarkdownChunk; replaces the whole-string re-parse per poll in BubbleTranscript and TaskDetailPage.transcriptStats) | 2026-07-23 |
+| evt-b4b01ad1 | event_amended | — | 2026-07-22 |
 | evt-9a58ec4c | work_completed | iterate (iterate: read the per-run review record in the Mission Review artifact) | 2026-07-22 |
-| evt-8c68d86e | work_completed | iterate (iterate: positional tail read in the shared transcript reader) | 2026-07-21 |
-| evt-b663e1ad | work_completed | iterate (iterate: Mission middle card told as prose (FR-01.68) + two shipped stage-derivation defects) | 2026-07-21 |
-| evt-d718e35f | work_completed | iterate (Title bar reaches the right edge on every route: drop the shell scroller reserved gutter, bound the Settings and Board-list bodies) | 2026-07-21 |
-| evt-90fde8cf | work_completed | iterate (Defer the Mission transcript run-id scan to the ordered rule that consumes it; gate the 1 MB reach-back on a reader-supplied transcript revision; record the persistence half of the unregistered-worktree reversal and ratchet the runLive doc parity.) | 2026-07-21 |
+| evt-c0fdc1ac | work_completed | iterate (iterate: client transcript cursor + single projects-dir walk per poll) | 2026-07-22 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 368
-- **Last iterate**: change — iterate: read the per-run review record in the Mission Review artifact (2026-07-22)
+- **Total work events**: 373
+- **Last iterate**: feature — Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch (2026-07-23)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
