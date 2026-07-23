@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-23-intent-launcher-front-door",
+    "run_id": "iterate-2026-07-23-first-contact-hero",
     "date": "2026-07-23",
     "unit": {
       "status": "passed",
-      "passed": 3023,
-      "total": 3023
+      "passed": 3037,
+      "total": 3037
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +20,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 5,
-      "total": 5,
+      "passed": 3,
+      "total": 3,
       "e2e_run": true
     },
     "design_fidelity": {
@@ -36,75 +36,33 @@
     "test_completeness": {
       "status": "complete",
       "behaviors": [
-        {
-          "behavior": "Board single-project New menu leads with Guided (→/wizard) and ends with Register manually, in that ORDER",
-          "disposition": "tested",
-          "evidence": "CreateMenuSplitButton.test.tsx::\"leads with Guided and ends with Register manually\" (compareDocumentPosition) PASSED"
-        },
-        {
-          "behavior": "Board All-Projects desktop cascade shows Guided+Register and its trigger is ENABLED at zero projects",
-          "disposition": "tested",
-          "evidence": "ProjectCreateCascade.test.tsx::\"trigger stays enabled with zero projects\" PASSED + E2E 76 PASSED"
-        },
-        {
-          "behavior": "Board All-Projects phone menu shows Guided+Register at the project-list level and is ENABLED at zero projects",
-          "disposition": "tested",
-          "evidence": "ProjectCreatePhoneMenu.test.tsx::\"guided+register at project-list level\" + \"trigger stays enabled with zero projects\" PASSED"
-        },
-        {
-          "behavior": "Projects \"Create Project\" (header + empty-state) navigates to /wizard",
-          "disposition": "tested",
-          "evidence": "ProjectsPage.test.tsx::\"Create Project navigates\" + \"empty-state Create navigates\" PASSED"
-        },
-        {
-          "behavior": "/projects?new=1 auto-opens the expert ProjectWizard and clears the param on close without re-opening",
-          "disposition": "tested",
-          "evidence": "ProjectsPage.test.tsx::\"auto-opens\" + \"closing clears the param and does not re-open\" PASSED"
-        },
-        {
-          "behavior": "Wizard DoorPicker register-manually line navigates to /projects?new=1",
-          "disposition": "tested",
-          "evidence": "IntentWizard.test.tsx::\"register-manually line opens the manual-registration deep-link\" PASSED"
-        },
-        {
-          "behavior": "Ship's Log header launcher offers Guided+Register, navigates to /wizard, and rides .btn-primary",
-          "disposition": "tested",
-          "evidence": "ShipsLogPage.test.tsx::launcher offers/Guided opens/.btn-primary PASSED"
-        },
-        {
-          "behavior": "Shared intent-items render both affordances with the correct routes",
-          "disposition": "tested",
-          "evidence": "CreateMenuIntentItems.test.tsx (routes + copy + navigation) PASSED"
-        },
-        {
-          "behavior": "create-cta guard: every trigger on .btn-primary; registry includes ShipsLogPage",
-          "disposition": "tested",
-          "evidence": "create-cta-standard.test.ts PASSED"
-        },
-        {
-          "behavior": "End-to-end: each create surface reaches the wizard / registration in a real browser",
-          "disposition": "tested",
-          "evidence": "e2e/flows/76-intent-launcher-front-door.spec.ts — 5 passed (chromium, isolated stack) via surface_verification"
-        }
+        { "behavior": "First Contact renders the eyebrow + h1 + lead welcome copy", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"renders the lighthouse-hero welcome copy + the three canonical doors\" PASSED" },
+        { "behavior": "First Contact renders the three canonical doors + the register-manually line", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"renders the lighthouse-hero welcome copy + the three canonical doors\" PASSED" },
+        { "behavior": "Doors deep-link: new -> /wizard, adopt -> /wizard/adopt, grade -> /wizard/grade", "disposition": "tested", "evidence": "FirstContact.test.tsx it.each \"the %s door navigates to %s\" PASSED + F0.5 door-nav PASSED" },
+        { "behavior": "Register-manually line deep-links to /projects?new=1", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"the register-manually line deep-links to /projects?new=1\" PASSED" },
+        { "behavior": "Not-ready readiness -> doors inert (disabled) + gate names the repair command", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"when NOT ready the doors are inert and the gate names the fix\" PASSED" },
+        { "behavior": "prefers-reduced-motion -> the hero renders its complete opaque final state", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"renders the complete hero even when reduced motion is preferred\" PASSED" },
+        { "behavior": "Root /: zero registered projects AND zero tasks -> First Contact", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"empty registry AND no tasks -> First Contact\" PASSED + F0.5 empty-root PASSED" },
+        { "behavior": "Root /: >=1 real registered project -> the Task Board", "disposition": "tested", "evidence": "RootRoute.test.tsx::\">=1 real project -> the Task Board\" PASSED" },
+        { "behavior": "Root /: zero registered projects but unassigned tasks exist -> the Task Board (never strand them)", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"zero registered projects but unassigned tasks exist -> the Task Board\" PASSED" },
+        { "behavior": "Root /: still-loading registry -> the Task Board (no blank for the existing user)", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"loading -> the Task Board (no blank for the existing user)\" PASSED" },
+        { "behavior": "Root /: errored/undefined registry -> the Task Board (no redirect)", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"errored/undefined registry -> the Task Board (no redirect)\" PASSED" },
+        { "behavior": "/first-contact always renders First Contact (any stack, registry-independent)", "disposition": "tested", "evidence": "F0.5 101-first-contact-hero.spec.ts \"renders the lighthouse hero...\" PASSED" },
+        { "behavior": "SceneBackdrop maps /first-contact -> lighthouse.jpg + well-left scrim", "disposition": "tested", "evidence": "SceneBackdrop.test.tsx::\"the /first-contact route carries the lighthouse plate + well-left scrim\" PASSED" },
+        { "behavior": "DoorPicker -> DoorGrid extraction is behavior-preserving (wizard DOM/testids unchanged)", "disposition": "tested", "evidence": "IntentWizard.test.tsx + wiring/launchFlow suites (79 tests) PASSED unchanged" },
+        { "behavior": "End-to-end: empty-registry root -> First Contact hero; a door -> the wizard flow (real Chromium)", "disposition": "tested", "evidence": "surface_verification.py web exit 0, 3/3 (101-first-contact-hero.spec.ts)" }
       ],
-      "counts": {
-        "testable": 10,
-        "tested": 10,
-        "untestable": 0,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
-      }
+      "counts": { "testable": 15, "tested": 15, "untestable": 0, "untested_testable": 0 },
+      "enumeration_basis": { "acs": 6, "covered_acs": 6 }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "bash run-e2e-f05.sh → npx playwright test e2e/flows/76-intent-launcher-front-door.spec.ts --project=chromium (isolated temp-USERPROFILE Hono stack on :3899)",
+      "runner": "bash <isolated empty-registry stack> + Playwright (real Chromium), e2e/flows/101-first-contact-hero.spec.ts",
       "exit_code": 0,
-      "tests_run": 5,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-23-intent-launcher-front-door/surface_verification.log",
-      "timestamp": "2026-07-23"
+      "tests_run": 3,
+      "justification": "",
+      "note": "Isolated single-process stack: temp USERPROFILE (zero projects + zero tasks) + SHIPWRIGHT_STATIC_DIR + plugin-cache canary seeded (readiness ready = fresh-install state). Verified /api/projects=={\"data\":[]}, /api/readiness.ready==true, then empty root -> First Contact, a door -> the wizard flow, /first-contact always renders.",
+      "attempts": 1
     }
   }
 }

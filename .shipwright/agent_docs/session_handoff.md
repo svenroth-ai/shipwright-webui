@@ -1,44 +1,35 @@
----
-canon_generated: true
-run_id: "iterate-2026-07-23-intent-launcher-front-door"
-phase: "iterate"
-reason: "iterate: intent-launcher-front-door"
-timestamp: "2026-07-23T09:54:48.438101+00:00"
----
-
 # Session Handoff
 
-> Auto-generated 2026-07-23 09:54:48 UTC
+> Auto-generated 2026-07-23 13:49:40 UTC
 
 ## Session Info
 
-- **Session ID**: 100adf44-6b77-4519-8485-b1d4b5334e33
-- **Timestamp**: 2026-07-23 09:54:48 UTC
-- **Reason**: iterate: intent-launcher-front-door
+- **Session ID**: 3cfa001d-c467-4482-8381-f89f0dc03906
+- **Timestamp**: 2026-07-23 13:49:40 UTC
+- **Reason**: iterate completion: iterate-2026-07-23-first-contact-hero
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
-- **Date**: 2026-07-23T09:54:48.143624Z
+- **Run ID**: iterate-2026-07-23-first-contact-hero
+- **Date**: 2026-07-23T13:49:40.457268Z
 - **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/intent-launcher-front-door
-- **ADR**: iterate-2026-07-23-intent-launcher-front-door
+- **Branch**: iterate/first-contact-hero
+- **ADR**: iterate-2026-07-23-first-contact-hero
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
+- **Spec**: .shipwright/planning/iterate/2026-07-23-first-contact-hero.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/intent-launcher-front-door
-- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
-- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
+- **Branch**: iterate/first-contact-hero
+- **Run ID**: iterate-2026-07-23-first-contact-hero
+- **Spec**: .shipwright/planning/iterate/2026-07-23-first-contact-hero.md
 - **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-07-08T13:26:14))
+- **External Review Marker**: completed (external_review_state.json @ 2026-07-23T13:38:56)
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -52,8 +43,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/intent-launcher-front-door
-- **Last Commit**: 19869d75 chore(triage): sweep 7 outbox append(s) into branch
+- **Branch**: iterate/first-contact-hero
+- **Last Commit**: 02b7e567 feat(first-contact): a dedicated First Contact hero at the empty-registry root (FR-01.51)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -69,17 +60,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-071e4d3b | work_completed | iterate (First Contact hero — the fresh-install first screen reuses the wizard door picker + readiness gate) | 2026-07-23 |
 | evt-692edbfe | work_completed | iterate (Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch) | 2026-07-23 |
 | evt-6b8a677d | work_completed | iterate (Incremental transcript parse (delta-only) + memoized MarkdownChunk; replaces the whole-string re-parse per poll in BubbleTranscript and TaskDetailPage.transcriptStats) | 2026-07-23 |
 | evt-b4b01ad1 | event_amended | — | 2026-07-22 |
 | evt-9a58ec4c | work_completed | iterate (iterate: read the per-run review record in the Mission Review artifact) | 2026-07-22 |
-| evt-c0fdc1ac | work_completed | iterate (iterate: client transcript cursor + single projects-dir walk per poll) | 2026-07-22 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 373
-- **Last iterate**: feature — Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch (2026-07-23)
+- **Total work events**: 374
+- **Last iterate**: feature — First Contact hero — the fresh-install first screen reuses the wizard door picker + readiness gate (2026-07-23)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

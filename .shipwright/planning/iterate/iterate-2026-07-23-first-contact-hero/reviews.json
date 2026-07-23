@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-23-first-contact-hero",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T13:38:46.432825+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "opus-plan-reviewer (internal fallback; no OPENAI_API_KEY)",
+      "completed_at": "2026-07-23T13:38:56.042692+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "shipwright-build:code-reviewer",
+      "completed_at": "2026-07-23T13:38:46.656204+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "shipwright-build:doubt-reviewer",
+      "completed_at": "2026-07-23T13:38:46.767045+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T13:38:32.978588+00:00",
+      "disposition": "External LLM review is Advisory (Override Classes) and no OPENAI_API_KEY is configured; the code-review cascade ran via the internal shipwright-build:code-reviewer + doubt-reviewer subagents (ADR-029 Step 3.7).",
+      "recorded_by": "iterate-orchestrator",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
