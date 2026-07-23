@@ -61,6 +61,10 @@
   --dark: #1C1917; --dark-2: #292524; --dark-line: #3a3531;
   /* text */
   --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
+  /* ALWAYS dark — never theme-flipped (unlike --ink, which on-photo.css flips to
+     #fff). For a chip/pill that carries its OWN fixed-light background (bg-inset)
+     and so must stay dark on the board AND inside the .mc-top header. */
+  --ink-fixed: #1C1917;
   /* borders */
   --line: #E7E5E4; --line-strong: #D6D3D1;
   /* accent — teal, demoted to signature. This is ALSO the canonical primary-button

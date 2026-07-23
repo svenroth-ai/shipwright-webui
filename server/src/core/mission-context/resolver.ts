@@ -33,12 +33,8 @@ import { buildCommitArtifact } from "./artifacts-commit.js";
 import { buildSlice2Artifacts, slice2RevPaths } from "./slice2-sources.js";
 import { buildNonIterateContext } from "./slice3-sources.js";
 import type { ResolveDeps, ResolveRequest, ResolveResult } from "./resolver-io.js";
-import {
-  eventsPath,
-  findWorkCompleted,
-  iterateDocPath,
-  readIterateDoc,
-} from "./iterate-record.js";
+import { eventsPath, iterateDocPath, readIterateDoc } from "./iterate-record.js";
+import { resolveWorkCompleted } from "./merged-events.js";
 import {
   campaignSpecCandidates,
   specCandidates,
@@ -146,7 +142,16 @@ export async function resolveMissionContext(
   // --- Records (the spec candidates below are built from them). The event
   // lookup is (mtime,size)-indexed: ahead of the cache check it is a Map hit.
   const iterateDoc = readIterateDoc(projectRoot, runId);
-  const events = findWorkCompleted(projectRoot, runId);
+  // Working tree first, then — for a FINISHED run whose worktree is gone
+  // (`!isWorktree`) and whose row is not local — the default remote ref where
+  // the squash landed it. This is the "merged but not pulled" case that
+  // otherwise leaves only Decisions on the rail (merged-events.ts).
+  const { events, mergedRefMiss } = await resolveWorkCompleted(
+    projectRoot,
+    runId,
+    chosen.isWorktree,
+    { git: deps.git },
+  );
   const run = events.status === "found" ? events.run : null;
 
   // --- Spec: known layout, agent-doc hint, then that same campaign path rebuilt
@@ -275,8 +280,11 @@ export async function resolveMissionContext(
 
   // A TRANSIENT git failure is not cached: git's answer is not a statted file,
   // so it cannot participate in `rev`, and caching it would pin Tests at
-  // "currently unavailable" until an unrelated source file changed.
-  if (slice2.cacheable) {
+  // "currently unavailable" until an unrelated source file changed. A merged-ref
+  // MISS is excluded for the same reason — the run may land on the ref after a
+  // later fetch, which `rev` would not see; re-resolving is cheap (the ref blob
+  // is TTL-cached in merged-events). A merged-ref HIT is stable and caches.
+  if (slice2.cacheable && !mergedRefMiss) {
     if (cache.size >= CACHE_CAP) cache.clear();
     cache.set(cacheKey, { rev, context });
   }

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-23-mission-finished-run-artifacts",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T15:39:34.415284+00:00",
+      "disposition": "7-point self-review pass (see .shipwright/planning/iterate/2026-07-23-mission-finished-run-artifacts.md): spec-compliance (4 ACs RED-first + real-data proof), error handling (typed found/absent/unavailable + uncacheable miss), security (arg-array git, constant ref/path, read-only), test quality, performance (TTL-cached ref), structure (Tests split keeps files <=300), boundaries probed.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T15:40:08.105565+00:00",
+      "disposition": "Path C bug-fix bundle: no separate implementation-plan artifact to review. Scope was fixed by the 4-fix plan table and the user's RC-B decision, then reviewed as code (Phase Matrix Mini-Plan is advisory for a bug).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T15:54:46.220740+00:00",
+      "disposition": "Internal fresh-context adversarial review (biased to disprove): 1 HIGH (RC-D pill used --ink, flips white on .on-photo — regressed board + non-fix; FIXED via never-flipped --ink-fixed token + hardened guard), 1 MEDIUM (merged-events 4MB git buffer vs 64MB working-tree budget → overflow re-collapses rail; FIXED with a 64MB-buffer runner), 2 LOW ({0,0}->'All 0 passing' FIXED; run_id-reuse noted-unreachable). Verified sound: mergedRefMiss cache exclusion, absent/unavailable distinction, buildTestsArtifact honesty, isMergeConfirmed, wire mirror. All re-verified green.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T15:40:08.233186+00:00",
+      "disposition": "Folded into the code-review pass, which was run ADVERSARIALLY (a fresh-context reviewer biased to DISPROVE) over the full diff — covering the doubt-reviewer remit for this non-trivial (git-read + shared-type + resolver) touch.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/mission-context/artifacts-tests.ts:72-76",
+          "line": null,
+          "finding": "AC2 requires the Tests artifact to lead with recorded `passed/total` and e2e status, but `normalizeResults` copies only `passed` and `total`. The recorded `e2e_run` value is discarded before the artifact is built, and neither the server summary/receipt nor client `testsResultText` can render it.",
+          "suggestion": "Carry the recorded e2e field through the mission/wire artifact type and include a clear e2e indicator in the Tests summary/detail headline (with tests for true, false, and absent e2e values).",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "server/src/core/mission-context/artifacts-tests.ts",
+          "line": 150,
+          "finding": "AC2 explicitly requires changed test files to come from `changed_files`, falling back to the commit diff. This implementation still derives file rows exclusively from the `diff` input; it never reads `events.run.changed_files`. Therefore a completed worktree run with test counts and `changed_files` but `commit: \"\"` remains available, but loses the required changed-file enrichment.",
+          "suggestion": "Build file rows from the event’s `changed_files` when present, and invoke the commit-diff path only when that event field is absent. Add a test for a `commit: \"\"` event containing `changed_files`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "server/src/core/mission-context/merged-events.ts:132-134",
+          "line": null,
+          "finding": "When the local event row is absent and `git show origin/main:shipwright_events.jsonl` is unreadable, `findWorkCompletedFromMergedRef` correctly returns `unavailable`, but `resolveWorkCompleted` converts that back into the original local `absent` result. Downstream consumers consequently treat a finished run with an unreadable merged ref as “not yet created” and hide its dependent artifacts, rather than reporting that the record could not be read. This also contradicts the module’s stated unavailable-vs-absent distinction.",
+          "suggestion": "Return `fromRef` when it is `unavailable` (or add an explicit resolver status that downstream artifact builders map to unavailable), while retaining the local-row short circuit and live-worktree gate.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/core/mission-context/artifacts-tests.test.ts:167-247",
+          "line": null,
+          "finding": "The new counts-led tests validate counts and commit-diff cases, but do not cover either required `e2e_run` rendering or the `changed_files`-before-commit-diff source selection. The current implementation, which drops e2e entirely and ignores `changed_files`, still passes this suite.",
+          "suggestion": "Add cases for e2e-present results and for a no-commit event with populated `changed_files`, asserting both the artifact detail rows and rendered user-facing text.  Overall assessment: ship-with-fixes. The core merged-ref fallback and counts-led availability are implemented, but AC2 is incomplete for e2e and event-provided changed-file enrichment, and the fallback’s unreadable-ref error path is incorrectly hidden as absence.",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-23T15:54:46.343691+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] claimed the manifest was fine (external code review, MEDIUM). With no\n      // rows there is nothing to link, so the manifest is not \"at fault\".\n      manifestStatus: !hasFiles || (index.status === \"ok\" && !index.truncated) ? \"ok\" : \"unavailable\",\n    },\n  };\n```\nIf there are `results` present but no `files` (because `diff.status !== \"ok\"` or zero test files changed):\nThen we return `state: \"available\"`.\n`summary` will be built from `[resultsSentence(results), null]`.\nWait, in `artifacts-tests.ts`:\n```typescript\n  const receipt = results\n    ? resultsReceipt(results)\n    \n\n[openai] - Category: spec  \n  Severity: medium  \n  File: server/src/core/mission-context/artifacts-tests.ts:72-76  \n  Finding: AC2 requires the Tests artifact to lead with recorded `passed/total` **and e2e status**, but `normalizeResults` copies only `passed` and `total`. The recorded `e2e_run` value is discarded before the artifact is built, and neither the server summary/receipt nor client `testsResultText` can render it.  \n  Suggestion: Carry the recorded e2e field through the mission/wire artifact type and include a clear e2e indicator in the Tests summary/detail headline (with tests for true, false, and absent e2e values).\n\n- Category: spec  \n  Severity: medium  \n  File: server/src/core/mission-context/artifacts-tests.ts:150  \n  Finding: AC2 explicitly requires changed test files to come from `changed_files`, falling back to the commit diff. This implementation still derives file rows exclusively from the `diff` input; it never reads `events.run.changed_files`. Therefore a completed worktree run with test counts and `changed_files` but `commit: \"\"` remains available, but loses the required changed-file enrichment.  \n  Suggestion: Build file rows from the event’s `changed_files` when present, and invoke the commit-diff path only when that event field is absent. Add a test for a `commit: \"\"` event containing `changed_files`.\n\n- Category: bug  \n  Severity: medium  \n  File: server/src/core/mission-context/merged-events.ts:132-134  \n  Finding: When the local event row is absent and `git show origin/main:shipwright_events.jsonl` is unreadable, `findWorkCompletedFromMergedRef` correctly returns `unavailable`, but `resolveWorkCompleted` converts that back into the original local `absent` result. Downstream consumers consequently treat a finished run with an unreadable merged ref as “not yet created” and hide its dependent artifacts, rather than reporting that the record could not be read. This also contradicts the module’s stated unavailable-vs-absent distinction.  […truncated]"
+    }
+  }
+}

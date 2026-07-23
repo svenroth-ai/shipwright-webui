@@ -1,5 +1,31 @@
 import { describe, it, expect } from "vitest";
-import { getPhaseStyle, derivePhaseFromTitle, resolveTaskPhase } from "./phaseStyle";
+import {
+  getPhaseStyle,
+  derivePhaseFromTitle,
+  resolveTaskPhase,
+  PHASE_STYLE_ENTRIES,
+} from "./phaseStyle";
+
+describe("phase pill legibility guard (Sven, 2026-07-23)", () => {
+  // A `bg-inset` pill renders inside `.mc-top` (flips `--color-text` → #fff) AND
+  // inside `.on-photo` (flips `--ink` → #fff for non-`.pill`-classed elements —
+  // which these Tailwind spans are). BOTH tokens therefore go white-on-near-white
+  // in some real context. A neutral pill must use neither.
+  it("no NEUTRAL pill draws its foreground from --color-text or --ink (both flip white)", () => {
+    for (const id of ["project", "adopt", "iterate"]) {
+      const cls = PHASE_STYLE_ENTRIES[id].cls;
+      expect(/text-\[var\(--color-text\)\]/.test(cls), `${id} uses --color-text (white in .mc-top)`).toBe(false);
+      expect(/text-\[var\(--ink\)\]/.test(cls), `${id} uses --ink (white on .on-photo routes)`).toBe(false);
+    }
+  });
+
+  it("the neutral pills (project/adopt/iterate) use the never-flipped --ink-fixed on bg-inset", () => {
+    for (const id of ["project", "adopt", "iterate"]) {
+      expect(PHASE_STYLE_ENTRIES[id].cls, id).toContain("bg-inset");
+      expect(PHASE_STYLE_ENTRIES[id].cls, id).toContain("text-[var(--ink-fixed)]");
+    }
+  });
+});
 
 describe("getPhaseStyle", () => {
   it("returns the right palette for each canonical phase id", () => {

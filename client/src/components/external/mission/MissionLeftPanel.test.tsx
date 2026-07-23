@@ -4,7 +4,20 @@ import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MissionLeftPanel } from "./MissionLeftPanel";
 import { deriveMissionLive, type MissionLiveModel } from "../../../hooks/useMissionLive";
 import type { TranscriptSummary } from "../../../lib/narrator-transcript";
+import type { ArtifactDescriptor, MergeState } from "../../../lib/missionContextApi";
 import type { RunDataJoin } from "../../../lib/runDataApi";
+
+/** A minimal available Commit artifact carrying a given real merge state. */
+function commitArtifact(merge: MergeState): ArtifactDescriptor {
+  return {
+    kind: "commit",
+    label: "Commit",
+    state: "available",
+    summary: "Delivered.",
+    receipt: "PR #321",
+    detail: { type: "commit", commit: null, message: "Ship it", prNumber: 321, prUrl: null, merge },
+  };
+}
 
 const EMPTY_TRANSCRIPT: TranscriptSummary = {
   topic: null,
@@ -83,6 +96,38 @@ describe("MissionLeftPanel — stage labels (FR-01.67 AC1)", () => {
     for (const step of steps) {
       expect(step.getAttribute("data-state")).toBe("done");
     }
+  });
+
+  // RC-A (Sven, 2026-07-23): a standalone iterate has no pipeline run-join, so
+  // `stageComplete` is always false and its green "Merge" step never lit up even
+  // after the PR merged. The stepper now reads the REAL merge state off the
+  // Commit artifact.
+  it("lights every step — incl. green Merge — when the Commit artifact reports MERGED", () => {
+    render(
+      <MissionLeftPanel
+        model={liveModel("Merge")} // live model → stageComplete is false
+        artifacts={[commitArtifact("merged")]}
+        activeNodeKey={null}
+        onNodeClick={vi.fn()}
+      />,
+    );
+    const steps = screen.getByTestId("mission-stage").querySelectorAll("li.ml-step");
+    expect(steps[5].getAttribute("data-state")).toBe("done"); // Merge — green
+    for (const step of steps) expect(step.getAttribute("data-state")).toBe("done");
+  });
+
+  it("does NOT mark Merge done while the merge is only PENDING", () => {
+    render(
+      <MissionLeftPanel
+        model={liveModel("Merge")}
+        artifacts={[commitArtifact("pending")]}
+        activeNodeKey={null}
+        onNodeClick={vi.fn()}
+      />,
+    );
+    const steps = screen.getByTestId("mission-stage").querySelectorAll("li.ml-step");
+    // Stage is "Merge" (index 5) so it is the CURRENT step, never green yet.
+    expect(steps[5].getAttribute("data-state")).toBe("current");
   });
 });
 

@@ -12,7 +12,7 @@
  * `review-state.ts` import the shapes from here rather than declaring twins.
  */
 
-import type { ArtifactBase } from "./types.js";
+import type { ArtifactBase, MissionTests } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -52,6 +52,15 @@ export interface TestsArtifact extends ArtifactBase {
   kind: "tests";
   detail: {
     type: "tests";
+    /**
+     * Pass/total the run RECORDED (`work_completed.tests`, the same shape
+     * `MissionContext.tests` carries) — the reliable CORE signal, present for
+     * 182/374 real rows even when the worktree flow shipped `commit:""` and no
+     * per-file diff could be built. `null` only when the run recorded no counts
+     * at all. The `rows` below are the ENRICHMENT: they exist only when a real
+     * commit diff resolved, and are never a precondition for showing the card.
+     */
+    results: MissionTests | null;
     rows: TestRow[];
     counts: { added: number; modified: number; removed: number };
     /** Aggregate per layer, e.g. `[{layer:"unit",count:4},{layer:"e2e",count:1}]`. */

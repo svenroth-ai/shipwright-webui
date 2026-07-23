@@ -41,7 +41,7 @@ function testsArtifact(over: Partial<NonNullable<TestsArtifact["detail"]>> = {})
     summary: "This change added 1 test file, removed 1 test file.",
     receipt: "2 test files",
     detail: {
-      type: "tests",
+      type: "tests", results: null,
       counts: { added: 1, modified: 0, removed: 1 },
       byLayer: [{ layer: "unit", count: 1 }],
       truncated: false,

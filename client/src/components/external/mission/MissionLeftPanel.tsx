@@ -48,6 +48,19 @@ function stepStateFor(index: number, currentIndex: number, complete: boolean): S
   return "todo";
 }
 
+/**
+ * Is this run's change CONFIRMED on the main line? Read from the Commit
+ * artifact's real merge state (the squash-aware `checkSquashMerged` result),
+ * NOT from the pipeline run-join that `model.stageComplete` depends on — a
+ * standalone iterate never has that join, which is why its green "Merge" step
+ * never lit up even after the PR merged (Sven, 2026-07-23). A merged run IS the
+ * whole lifecycle done, so it drives the stepper to all-done.
+ */
+function isMergeConfirmed(artifacts?: ArtifactDescriptor[] | null): boolean {
+  const commit = artifacts?.find((a) => a.kind === "commit");
+  return commit?.kind === "commit" && commit.detail?.merge === "merged";
+}
+
 interface StepperProps {
   stage: LifecycleStage | null;
   complete: boolean;
@@ -142,6 +155,12 @@ export function MissionLeftPanel({
   runLive = false,
 }: Props) {
   const { businessSummary, stage, stageActivity, stageComplete, nodes, campaign } = model;
+  // A confirmed merge means the whole lifecycle finished — light every step,
+  // including "Merge". This is independent of `stageComplete` (the pipeline-only
+  // signal), so a standalone iterate's green Merge no longer depends on a join
+  // it never has. Left as-is for a live/pending run (the transcript stage still
+  // renders "Merge" as the current step).
+  const stepperComplete = stageComplete || isMergeConfirmed(artifacts);
   return (
     <nav
       className="record mc-left"
@@ -158,7 +177,7 @@ export function MissionLeftPanel({
       <section className="ml-block">
         <span className="eyebrow">Where it stands</span>
         {campaign ? <CampaignProgress campaign={campaign} /> : null}
-        <StageStepper stage={stage} complete={stageComplete} activity={stageActivity} />
+        <StageStepper stage={stage} complete={stepperComplete} activity={stageActivity} />
       </section>
 
       <section className="ml-block ml-artifacts">

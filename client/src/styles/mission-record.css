@@ -171,6 +171,9 @@
 .artifact .a-tag { font-weight: 600; color: var(--accent); font-size: 12px; }
 
 .artifact .a-note { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin: 10px 0 0; }
+/* The Tests result headline — the pass/total the run recorded, shown first and
+   in the ink colour because it is the artifact's core fact, not a caveat. */
+.artifact .a-tests-result { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.5; margin: 0; }
 .artifact .a-detail:empty { display: none; }
 
 /* Narrow screens: the rail and the panel both need to stay readable rather than

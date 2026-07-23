@@ -1,0 +1,13 @@
+{
+  "run_id": "iterate-2026-07-23-mission-finished-run-artifacts",
+  "date": "2026-07-23T15:36:41.635162Z",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/mission-finished-run-artifacts",
+  "tests_passed": true,
+  "spec": ".shipwright/planning/iterate/2026-07-23-mission-finished-run-artifacts.md",
+  "affected_frs": [
+    "FR-01.66"
+  ],
+  "spec_impact": "none"
+}
