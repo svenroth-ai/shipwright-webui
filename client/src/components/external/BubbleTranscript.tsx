@@ -17,7 +17,8 @@
 
 import { useMemo, useState } from "react";
 
-import { parseSessionJsonl, toolResults, toolUses } from "../../external/session-parser";
+import { toolResults, toolUses } from "../../external/session-parser";
+import { useParsedTranscript } from "../../hooks/useParsedTranscript";
 import {
   SYSTEM_KINDS,
   filterEventsForRender,
@@ -51,7 +52,10 @@ interface Props {
 }
 
 export function BubbleTranscript({ content, initialTail = DEFAULT_TAIL, task }: Props) {
-  const parsed = useMemo(() => parseSessionJsonl(content), [content]);
+  // Incremental parse: only the bytes appended since the last poll are parsed,
+  // and already-parsed event objects keep their references so React reconciles
+  // only new bubbles (iterate-2026-07-23-transcript-incremental-render).
+  const parsed = useParsedTranscript(content);
   const [tail, setTail] = useState<number>(initialTail);
   const [showSystem, setShowSystem] = useSystemVisibility();
 

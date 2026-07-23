@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-23-transcript-incremental-render",
+  "date": "2026-07-23T06:37:05.608178Z",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/transcript-incremental-render",
+  "spec": ".shipwright/planning/iterate/2026-07-23-transcript-incremental-render.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-23-transcript-incremental-render"
+}

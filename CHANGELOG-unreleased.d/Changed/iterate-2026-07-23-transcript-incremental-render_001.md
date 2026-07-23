@@ -1,0 +1,1 @@
+The task Transcript view now parses only new conversation lines as they stream in, instead of re-reading the entire conversation every second — long, actively-updating sessions stay smooth. Behaviour is unchanged.

@@ -41,7 +41,8 @@ import { FocusModeToggle } from "../components/external/FocusModeToggle";
 import { FolderTree } from "../components/external/FolderTree";
 import { SmartViewer } from "../components/external/SmartViewer";
 import { ViewerTabBar } from "../components/external/SmartViewer/ViewerTabBar";
-import { parseSessionJsonl, toolUses } from "../external/session-parser";
+import { toolUses } from "../external/session-parser";
+import { useParsedTranscript } from "../hooks/useParsedTranscript";
 import {
   LaunchCoordinatorProvider,
   useLaunchCoordinator,
@@ -387,21 +388,20 @@ function TaskDetailPageBody() {
     });
   }, []);
 
-  // Derived transcript stats, used by the center-pane header.
+  // Derived transcript stats for the center-pane header. Parsed incrementally
+  // so a streaming poll re-parses only the appended bytes, not the whole
+  // accumulated transcript (iterate-2026-07-23-transcript-incremental-render).
+  const parsedTranscript = useParsedTranscript(transcript.content);
   const transcriptStats = useMemo(() => {
-    if (!transcript.content) {
-      return { events: 0, toolUses: 0, pending: 0 };
-    }
-    const { events } = parseSessionJsonl(transcript.content);
+    // Preserve pre-refactor behaviour: an empty transcript forces all stats to 0.
+    if (!transcript.content) return { events: 0, toolUses: 0, pending: 0 };
     let tools = 0;
-    for (const e of events) {
-      if (e.kind === "assistant") {
-        tools += toolUses(e).length;
-      }
+    for (const e of parsedTranscript.events) {
+      if (e.kind === "assistant") tools += toolUses(e).length;
     }
     const pending = task?.inbox?.pendingToolUseIds?.length ?? 0;
-    return { events: events.length, toolUses: tools, pending };
-  }, [transcript.content, task?.inbox?.pendingToolUseIds]);
+    return { events: parsedTranscript.events.length, toolUses: tools, pending };
+  }, [transcript.content, parsedTranscript, task?.inbox?.pendingToolUseIds]);
 
   if (error) {
     return (
