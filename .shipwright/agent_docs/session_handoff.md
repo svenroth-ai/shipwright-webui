@@ -1,11 +1,3 @@
----
-canon_generated: true
-run_id: "iterate-2026-07-23-first-contact-hero"
-phase: "iterate"
-reason: "iterate: first-contact-hero"
-timestamp: "2026-07-23T13:49:40.545649+00:00"
----
-
 # Session Handoff
 
 > Auto-generated 2026-07-23 13:49:40 UTC
@@ -14,7 +6,7 @@ timestamp: "2026-07-23T13:49:40.545649+00:00"
 
 - **Session ID**: 3cfa001d-c467-4482-8381-f89f0dc03906
 - **Timestamp**: 2026-07-23 13:49:40 UTC
-- **Reason**: iterate: first-contact-hero
+- **Reason**: iterate completion: iterate-2026-07-23-first-contact-hero
 
 ## Last Iterate
 
@@ -52,7 +44,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 ## Git State
 
 - **Branch**: iterate/first-contact-hero
-- **Last Commit**: 1733d737 chore(triage): sweep 4 outbox append(s) into branch
+- **Last Commit**: 02b7e567 feat(first-contact): a dedicated First Contact hero at the empty-registry root (FR-01.51)
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
