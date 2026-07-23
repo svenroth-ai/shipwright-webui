@@ -111,7 +111,14 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
   const completed = model.mode === "completed";
 
   return (
-    <div className="min-h-0 flex-1" data-testid="task-detail-mission">
+    // `flex flex-col` (not a bare block) is load-bearing: `.mc-body` is
+    // `flex:1; min-height:0`, which is INERT unless its parent is a flex
+    // container. Without it the three-card row grows to its tallest child's
+    // content height and the whole cluster overflows the shell scroller
+    // (`.scene-fore`) — so the PAGE scrolls instead of each card scrolling
+    // internally (iterate-2026-07-23-mission-viewer-scroll-popout; broken
+    // since the three-card shell #271).
+    <div className="flex min-h-0 flex-1 flex-col" data-testid="task-detail-mission">
       <div className="mc-body" data-testid="mission-body">
         <MissionLeftPanel
           model={model}

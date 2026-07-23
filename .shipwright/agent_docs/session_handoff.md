@@ -1,20 +1,20 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-07-23-intent-launcher-front-door"
+run_id: "iterate-2026-07-23-mission-viewer-scroll-popout"
 phase: "iterate"
-reason: "iterate: intent-launcher-front-door"
-timestamp: "2026-07-23T09:54:48.438101+00:00"
+reason: "iterate: mission-viewer-scroll-popout"
+timestamp: "2026-07-23T14:29:31.723611+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-07-23 09:54:48 UTC
+> Auto-generated 2026-07-23 14:29:31 UTC
 
 ## Session Info
 
-- **Session ID**: 100adf44-6b77-4519-8485-b1d4b5334e33
-- **Timestamp**: 2026-07-23 09:54:48 UTC
-- **Reason**: iterate: intent-launcher-front-door
+- **Session ID**: 8488876c-f039-435c-9962-4428d06d3030
+- **Timestamp**: 2026-07-23 14:29:31 UTC
+- **Reason**: iterate: mission-viewer-scroll-popout
 
 ## Last Iterate
 
@@ -29,16 +29,15 @@ timestamp: "2026-07-23T09:54:48.438101+00:00"
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/intent-launcher-front-door
-- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
-- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
+- **Branch**: iterate/mission-viewer-scroll-popout
+- **Run ID**: iterate-2026-07-23-mission-viewer-scroll-popout
+- **Spec**: .shipwright/planning/iterate/2026-07-23-mission-viewer-scroll-popout.md
 - **Complexity**: medium
-- **External Review Marker**: stale (predates spec (2026-07-08T13:26:14))
+- **External Review Marker**: completed (external_review_state.json @ 2026-07-23T14:23:38)
 
 ### Mandatory replay on Resume
 
 Before dispatching to the handoff's Remaining phase, run these if missing:
-- Step 4 — External LLM Review (marker missing/stale)
 - Finalization (F0–F11) after all mandatory phases pass
 
 ## Legacy build state
@@ -52,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/intent-launcher-front-door
-- **Last Commit**: 19869d75 chore(triage): sweep 7 outbox append(s) into branch
+- **Branch**: iterate/mission-viewer-scroll-popout
+- **Last Commit**: fb04d2b6 chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -69,17 +68,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
+| evt-1492908f | work_completed | iterate (mission-viewer-scroll-popout) | 2026-07-23 |
 | evt-692edbfe | work_completed | iterate (Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch) | 2026-07-23 |
 | evt-6b8a677d | work_completed | iterate (Incremental transcript parse (delta-only) + memoized MarkdownChunk; replaces the whole-string re-parse per poll in BubbleTranscript and TaskDetailPage.transcriptStats) | 2026-07-23 |
 | evt-b4b01ad1 | event_amended | — | 2026-07-22 |
 | evt-9a58ec4c | work_completed | iterate (iterate: read the per-run review record in the Mission Review artifact) | 2026-07-22 |
-| evt-c0fdc1ac | work_completed | iterate (iterate: client transcript cursor + single projects-dir walk per poll) | 2026-07-22 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 373
-- **Last iterate**: feature — Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch (2026-07-23)
+- **Total work events**: 374
+- **Last iterate**: change — mission-viewer-scroll-popout (2026-07-23)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

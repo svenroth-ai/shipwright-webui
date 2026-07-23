@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 
 import type { ArtifactDescriptor, ArtifactDocumentResponse } from "../../../lib/missionContextApi";
 
@@ -114,6 +114,56 @@ describe("two-region layout", () => {
     const { onClose } = setup(SPEC);
     fireEvent.click(screen.getByTestId("artifact-scrim"));
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+/*
+ * Pop-out modal (iterate-2026-07-23-mission-viewer-scroll-popout) — the panel
+ * gains a "Pop out" control that opens the SAME artifact body in a centered
+ * modal (like the Files & Terminal Smart Viewer), so a long Requirement / Spec
+ * is readable at width. jsdom cannot measure the internal-scroll geometry (that
+ * is the E2E's job); these cases pin the open/close wiring + the Esc guard.
+ */
+describe("pop-out modal", () => {
+  it("renders a Pop out control, and mounts the modal only once opened", () => {
+    setup(SPEC);
+    expect(screen.getByTestId("artifact-popout")).toBeInTheDocument();
+    expect(screen.queryByTestId("mission-artifact-modal")).not.toBeInTheDocument();
+  });
+
+  it("opens a modal that renders the SAME artifact body, and the X closes it", () => {
+    docMock.mockReturnValue({
+      data: { status: "ok", document: { title: "mini-plan.md", body: "# Plan\n\nbody text" } },
+      isPending: false,
+      isError: false,
+    });
+    setup(SPEC);
+    fireEvent.click(screen.getByTestId("artifact-popout"));
+
+    const modal = screen.getByTestId("mission-artifact-modal");
+    expect(modal).toBeInTheDocument();
+    expect(screen.getByTestId("mission-artifact-modal-label")).toHaveTextContent("Spec");
+    // The modal renders its OWN copy of the shared body — summary over document.
+    expect(within(modal).getByTestId("artifact-summary")).toHaveTextContent(
+      "The plan this change was built to.",
+    );
+    expect(within(modal).getByTestId("doc-markdown")).toHaveTextContent("body text");
+
+    fireEvent.click(screen.getByTestId("mission-artifact-modal-close"));
+    expect(screen.queryByTestId("mission-artifact-modal")).not.toBeInTheDocument();
+  });
+
+  it("Esc closes the modal but NOT the panel behind it (AC4)", () => {
+    const { onClose } = setup(SPEC);
+    fireEvent.click(screen.getByTestId("artifact-popout"));
+    expect(screen.getByTestId("mission-artifact-modal")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    // The modal is gone; the panel stayed open (its Esc-to-close was guarded).
+    expect(screen.queryByTestId("mission-artifact-modal")).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("mission-artifact-panel")).toBeInTheDocument();
   });
 });
 

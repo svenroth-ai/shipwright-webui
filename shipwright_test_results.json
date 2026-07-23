@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-23-intent-launcher-front-door",
+    "run_id": "iterate-2026-07-23-mission-viewer-scroll-popout",
     "date": "2026-07-23",
     "unit": {
       "status": "passed",
-      "passed": 3023,
-      "total": 3023
+      "passed": 3027,
+      "total": 3027
     },
     "integration": {
       "status": "not_run",
@@ -20,12 +20,12 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 5,
-      "total": 5,
+      "passed": 1,
+      "total": 1,
       "e2e_run": true
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -37,73 +37,53 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Board single-project New menu leads with Guided (→/wizard) and ends with Register manually, in that ORDER",
+          "behavior": "MissionBody root is a bounded flex column (flex/flex-col/min-h-0/flex-1) so each card scrolls internally, not the page",
           "disposition": "tested",
-          "evidence": "CreateMenuSplitButton.test.tsx::\"leads with Guided and ends with Register manually\" (compareDocumentPosition) PASSED"
+          "evidence": "MissionBody.test.tsx::\"root is a bounded flex column so each card scrolls internally, not the page\" PASSED"
         },
         {
-          "behavior": "Board All-Projects desktop cascade shows Guided+Register and its trigger is ENABLED at zero projects",
+          "behavior": "The Mission artifact card scrolls internally while the shell scroller does NOT grow (real-browser geometry)",
           "disposition": "tested",
-          "evidence": "ProjectCreateCascade.test.tsx::\"trigger stays enabled with zero projects\" PASSED + E2E 76 PASSED"
+          "evidence": "e2e/flows/mission-viewer-scroll-popout.spec.ts -- card scrollHeight>clientHeight AND main-scroll-container scrollHeight<=clientHeight+4 PASSED (chromium, isolated stack)"
         },
         {
-          "behavior": "Board All-Projects phone menu shows Guided+Register at the project-list level and is ENABLED at zero projects",
+          "behavior": "A 'Pop out' control renders on the Mission artifact panel; the modal mounts only once opened",
           "disposition": "tested",
-          "evidence": "ProjectCreatePhoneMenu.test.tsx::\"guided+register at project-list level\" + \"trigger stays enabled with zero projects\" PASSED"
+          "evidence": "MissionArtifactPanel.test.tsx::\"renders a Pop out control, and mounts the modal only once opened\" PASSED"
         },
         {
-          "behavior": "Projects \"Create Project\" (header + empty-state) navigates to /wizard",
+          "behavior": "Pop out opens a viewport-centered modal rendering the SAME artifact body (summary+detail), with its own scroll",
           "disposition": "tested",
-          "evidence": "ProjectsPage.test.tsx::\"Create Project navigates\" + \"empty-state Create navigates\" PASSED"
+          "evidence": "MissionArtifactPanel.test.tsx::\"opens a modal that renders the SAME artifact body, and the X closes it\" + e2e centering(cx/cy<8px)+modal-body scrollTop>0 PASSED"
         },
         {
-          "behavior": "/projects?new=1 auto-opens the expert ProjectWizard and clears the param on close without re-opening",
+          "behavior": "Modal closes via close X, ESC, and backdrop click; ESC on the modal does NOT also close the panel behind it (AC4)",
           "disposition": "tested",
-          "evidence": "ProjectsPage.test.tsx::\"auto-opens\" + \"closing clears the param and does not re-open\" PASSED"
+          "evidence": "MissionArtifactPanel.test.tsx::\"Esc closes the modal but NOT the panel behind it (AC4)\" + e2e ESC/X/backdrop-close-with-panel-visible PASSED"
         },
         {
-          "behavior": "Wizard DoorPicker register-manually line navigates to /projects?new=1",
+          "behavior": "The inline panel still renders each artifact kind's existing shape (document/requirement/tests/review/decisions/commit) and the stale-vs-unavailable distinction after the MissionArtifactBody extract",
           "disposition": "tested",
-          "evidence": "IntentWizard.test.tsx::\"register-manually line opens the manual-registration deep-link\" PASSED"
-        },
-        {
-          "behavior": "Ship's Log header launcher offers Guided+Register, navigates to /wizard, and rides .btn-primary",
-          "disposition": "tested",
-          "evidence": "ShipsLogPage.test.tsx::launcher offers/Guided opens/.btn-primary PASSED"
-        },
-        {
-          "behavior": "Shared intent-items render both affordances with the correct routes",
-          "disposition": "tested",
-          "evidence": "CreateMenuIntentItems.test.tsx (routes + copy + navigation) PASSED"
-        },
-        {
-          "behavior": "create-cta guard: every trigger on .btn-primary; registry includes ShipsLogPage",
-          "disposition": "tested",
-          "evidence": "create-cta-standard.test.ts PASSED"
-        },
-        {
-          "behavior": "End-to-end: each create surface reaches the wizard / registration in a real browser",
-          "disposition": "tested",
-          "evidence": "e2e/flows/76-intent-launcher-front-door.spec.ts — 5 passed (chromium, isolated stack) via surface_verification"
+          "evidence": "covered-by-existing-test: MissionArtifactPanel.test.tsx suites (two-region layout, spec/requirement/commit detail, stale-vs-unavailable) all PASSED post-refactor"
         }
       ],
       "counts": {
-        "testable": 10,
-        "tested": 10,
+        "testable": 6,
+        "tested": 6,
         "untestable": 0,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6
+        "acs": 5,
+        "covered_acs": 5
       }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "bash run-e2e-f05.sh → npx playwright test e2e/flows/76-intent-launcher-front-door.spec.ts --project=chromium (isolated temp-USERPROFILE Hono stack on :3899)",
+      "runner": "npx playwright test e2e/flows/mission-viewer-scroll-popout.spec.ts --project=chromium (single-process isolated temp-USERPROFILE Hono stack serving built client on :3850, BASE_URL set)",
       "exit_code": 0,
-      "tests_run": 5,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-23-intent-launcher-front-door/surface_verification.log",
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-23-mission-viewer-scroll-popout/surface_verification.log",
       "timestamp": "2026-07-23"
     }
   }
