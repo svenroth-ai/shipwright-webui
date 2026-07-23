@@ -63,6 +63,24 @@ function setup(transcript = "", onOpenDocument = vi.fn()) {
 }
 
 describe("MissionBody — the redesigned left panel + live/verdict middle", () => {
+  it("root is a bounded flex column so each card scrolls internally, not the page", () => {
+    // Regression guard (iterate-2026-07-23-mission-viewer-scroll-popout):
+    // `.mc-body` is `flex:1; min-height:0`, which is INERT unless its parent is a
+    // flex container. If this wrapper reverts to a bare block the three-card row
+    // grows to content height and the shell scroller (`.scene-fore`) scrolls the
+    // WHOLE PAGE instead of each card scrolling internally. jsdom cannot measure
+    // scroll geometry — the class contract is the cheap fence; the real geometry
+    // lives in e2e/flows/mission-viewer-scroll-popout.spec.ts.
+    missionStateMock.mockReturnValue("done");
+    runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });
+    setup();
+    const root = screen.getByTestId("task-detail-mission");
+    const classes = root.className.split(/\s+/);
+    for (const cls of ["flex", "flex-col", "min-h-0", "flex-1"]) {
+      expect(classes).toContain(cls);
+    }
+  });
+
   it("renders the left panel + a middle card with no active node; no scrim", () => {
     missionStateMock.mockReturnValue("done");
     runDetailMock.mockReturnValue({ data: { status: "ok", run: null } as RunDetailResponse });

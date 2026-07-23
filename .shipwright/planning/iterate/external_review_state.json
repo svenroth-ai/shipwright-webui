@@ -1,7 +1,7 @@
 {
   "status": "completed",
-  "timestamp": "2026-07-23T13:38:56.046340+00:00",
-  "provider": "opus-plan-reviewer (internal fallback; no OPENAI_API_KEY)",
+  "timestamp": "2026-07-23T14:23:38.516753+00:00",
+  "provider": "openrouter",
   "findings_count": 0,
   "self_review_fallback_ran": false,
   "reason": null,

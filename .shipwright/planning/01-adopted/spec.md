@@ -919,6 +919,21 @@ write surface; gated, path-guarded, and concurrency-safe.
   could not be read back individually never shows a count of zero — neither in the list
   nor in the one-line summary above it — because "0" reads as "found nothing"; where only
   part could be read back, the number is shown as a floor and said to be incomplete.
+- (N) **(iterate-2026-07-23-mission-viewer-scroll-popout)** The right artifact panel
+  scrolls INSIDE its own card and can be popped out for reading. When an artifact's body
+  (a Requirement, a Spec document, the Tests table …) is taller than the card, the card
+  scrolls internally and the surrounding page does NOT — the three equal-height Mission
+  cards sit in a bounded flex column, so each card's own scroller engages instead of the
+  whole page growing (it grew before because the body wrapper was not a flex container,
+  so the equal-height row was never height-bounded, and the shell scroller took the
+  overflow). A **"Pop out"** control on the panel opens the SAME artifact — its business
+  summary over its typed detail — in a viewport-centered modal, larger and with its own
+  scroll, mirroring the Files & Terminal Smart Viewer; Esc, a backdrop click, and the
+  close button all dismiss it, and Esc on the modal never also closes the panel behind
+  it. While the modal is open the inline copy of the body is dropped, so a document's
+  heading ids are never present in the page twice. Pure client-side layout plus a reused
+  Radix dialog — no new endpoint, no server change, no second write surface; read-only
+  observer throughout (rule 1 / DO-NOT #1).
 
 - (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Task Board
   "New" split-button in single-project mode, when its dropdown opens, then it leads

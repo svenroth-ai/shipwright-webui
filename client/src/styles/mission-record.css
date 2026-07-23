@@ -94,7 +94,25 @@
 .artifact .eyebrow { display: block; }
 .artifact .a-close { position: absolute; top: 16px; right: 16px; cursor: pointer; color: var(--muted); width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; }
 .artifact .a-close:hover { background: var(--g100); color: var(--ink); }
-.artifact .a-close:focus-visible, .artifact .a-open:focus-visible { outline: none; box-shadow: var(--focus); }
+.artifact .a-close:focus-visible, .artifact .a-open:focus-visible, .artifact .a-popout:focus-visible { outline: none; box-shadow: var(--focus); }
+
+/* ── the panel toolbar: Pop out + close, top-right (iterate-2026-07-23) ──────
+   The close keeps its look but drops its own absolute positioning so the two
+   controls sit side-by-side in the toolbar; the higher-specificity selector
+   wins over `.artifact .a-close` above. The legacy `ArtifactPanel` renders no
+   `.a-tools`, so its `.a-close` stays the top-right corner button untouched. */
+.artifact .a-tools { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 6px; z-index: 1; }
+.artifact .a-tools .a-close { position: static; top: auto; right: auto; }
+.artifact .a-popout { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--muted); background: transparent; border: 1px solid var(--line-strong); cursor: pointer; font-family: inherit; }
+.artifact .a-popout:hover { color: var(--ink); border-color: var(--accent-line); background: var(--g50); }
+.artifact .a-popout svg { flex-shrink: 0; }
+
+/* ── pop-out modal body: neutralise the slide-over shell so the .artifact-scoped
+   detail styles apply to the centered dialog content. This render lives in the
+   portal, OUTSIDE `.on-photo`, so only the base `.artifact` rules would apply;
+   `is-popout` clears position/width/overflow/paint. The scroll is owned by the
+   surrounding <ModalScrollBody> (DO-NOT #24), so overflow is visible here. */
+.artifact.is-popout { position: static; width: auto; max-width: none; height: auto; background: transparent; box-shadow: none; border: 0; border-radius: 0; overflow: visible; padding: 0; z-index: auto; animation: none; }
 .artifact h3 { font-size: 18px; font-weight: 600; color: var(--ink); margin: 4px 0 14px; word-break: break-word; }
 .artifact .a-body { font-size: 14px; color: var(--body); line-height: 1.6; }
 .artifact .a-open { margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; background: transparent; border: none; font-family: inherit; padding: 0; }
