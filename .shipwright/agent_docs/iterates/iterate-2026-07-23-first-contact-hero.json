@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-23-first-contact-hero",
+  "date": "2026-07-23T13:49:40.457268Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/first-contact-hero",
+  "spec": ".shipwright/planning/iterate/2026-07-23-first-contact-hero.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-23-first-contact-hero"
+}

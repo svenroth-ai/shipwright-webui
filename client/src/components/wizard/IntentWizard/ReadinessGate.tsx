@@ -3,8 +3,8 @@
  * environment is not ready (or the probe failed/loading): it names each missing
  * prerequisite, says WHY it matters in plain words, and gives the ONE command
  * that repairs all of it. When ready it renders nothing — the doors speak for
- * themselves. The doors' inert state is driven by `ready` in DoorPicker, so this
- * banner is the explanation, never the enforcement.
+ * themselves. The doors' inert state is driven by `ready` in DoorGrid (the shared
+ * doors+gate primitive), so this banner is the explanation, never the enforcement.
  *
  * There is deliberately NO demo toggle: the prototype's `__fcDemo` is a demo
  * affordance and MUST NOT ship (no-fcdemo.test.ts asserts its absence).

@@ -52,6 +52,15 @@ describe('SceneBackdrop — applyScene() DOM contract', () => {
     const board = renderAt('/');
     expect(board.container.querySelector('.scene-bg')?.className).not.toContain('well-left');
   });
+
+  // @covers FR-01.51 — First Contact's own hero plate: the lighthouse (exempt from
+  // the deck-golden signature backdrop) with the left-weighted well scrim.
+  it('the /first-contact route carries the lighthouse plate + well-left scrim', () => {
+    const fc = renderAt('/first-contact');
+    const img = fc.container.querySelector('.scene-bg > img') as HTMLImageElement;
+    expect(img.getAttribute('src')).toBe('/backdrops/lighthouse.jpg');
+    expect(fc.container.querySelector('.scene-bg')?.className).toContain('well-left');
+  });
 });
 
 describe('AC3 — the RETRACTED imagery tier/band model is absent', () => {

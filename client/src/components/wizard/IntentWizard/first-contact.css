@@ -1,0 +1,63 @@
+/*
+ * First Contact hero (iterate-2026-07-23-first-contact-hero). The hero COPY only —
+ * the lighthouse image + left-weighted scrim are the scene backdrop
+ * (SceneBackdrop BACKDROPS['first-contact'] = lighthouse.jpg, well:true). Ported
+ * in VALUES from Spec/prototype/styles.css `.fc` / `.fc-in` (v3 "lighthouse hero").
+ *
+ * White-on-photo literals are allowed here (the no-hardcoded-colours guard scans
+ * .ts/.tsx only; intent-wizard.css sets the same precedent) — the copy rides the
+ * dark left-weighted scrim, so it is white for contrast, while the doors below are
+ * the wizard's own white .wz-opt cards (reset to dark-on-white by on-photo.css).
+ */
+
+.fc-hero {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 48px 56px;
+}
+
+/* Left-weighted so the copy sits over the darkest part of the well-left scrim. */
+.fc-in {
+  width: 100%;
+  max-width: 560px;
+  color: #fff;
+}
+
+.fc-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.62);
+  margin-bottom: 10px;
+}
+
+.fc-h1 {
+  font-size: 38px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 14px;
+}
+
+.fc-lead {
+  font-size: 17px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.6;
+  margin: 0 0 28px;
+  max-width: 520px;
+}
+
+/* ── narrow viewports ── */
+@media (max-width: 900px) {
+  .fc-hero {
+    padding: 28px 20px;
+  }
+  .fc-h1 {
+    font-size: 30px;
+  }
+}
