@@ -54,6 +54,9 @@ const CREATE_CTA_FILES = [
   "components/external/ProjectCreateCascade.tsx",
   "components/external/ProjectCreatePhoneMenu.tsx",
   "pages/ProjectsPage.tsx",
+  // Ship's Log grew a `.btn-primary` "New ▾" launcher
+  // (iterate-2026-07-23-intent-launcher-front-door).
+  "pages/ShipsLogPage.tsx",
 ];
 
 /**

@@ -30,6 +30,12 @@ import { useProjectActions } from "../../hooks/useProjectActions";
 import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 import { getProjectColor } from "../../lib/projectColor";
 import { ProjectCreatePhoneMenu } from "./ProjectCreatePhoneMenu";
+import {
+  CreateMenuHeading,
+  CreateMenuSeparator,
+  GuidedWizardMenuItem,
+  RegisterManuallyMenuItem,
+} from "./CreateMenuIntentItems";
 import type { ActionDefinition } from "../../lib/externalApi";
 import type { Project } from "../../types";
 
@@ -147,7 +153,12 @@ export function ProjectCreateMenu({
       />
     );
   }
-  const disabled = isLoading || projects.length === 0;
+  // NOT disabled at zero projects (iterate-2026-07-23-intent-launcher-front-door):
+  // the menu now hosts project-INDEPENDENT onboarding rows (Guided → /wizard,
+  // Register manually → /projects?new=1). On a fresh install (All-Projects, no
+  // projects) the front door must be reachable — the old disable-at-zero fence
+  // existed only when the menu held per-project actions alone.
+  const disabled = isLoading;
   return (
     <div className="inline-flex" data-testid="create-menu-cascade">
       <DropdownMenu.Root>
@@ -175,6 +186,12 @@ export function ProjectCreateMenu({
             data-testid="create-menu-cascade-content"
             className={`${SURFACE_CLS} min-w-[240px]`}
           >
+            {/* Guided wizard leads even in All-Projects mode (it needs no active
+                project); the per-project action submenus follow; register-manually
+                closes (iterate-2026-07-23-intent-launcher-front-door). */}
+            <CreateMenuHeading />
+            <GuidedWizardMenuItem />
+            <CreateMenuSeparator />
             {projects.length === 0 ? (
               <div className="px-2.5 py-2 text-[13px] text-[var(--color-muted)]">
                 No projects yet
@@ -234,6 +251,8 @@ export function ProjectCreateMenu({
                 </DropdownMenu.Sub>
               ))
             )}
+            <CreateMenuSeparator />
+            <RegisterManuallyMenuItem />
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>

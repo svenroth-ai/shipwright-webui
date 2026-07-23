@@ -13,6 +13,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 import { ProjectCreatePhoneMenu } from "./ProjectCreatePhoneMenu";
 import type { ActionDefinition, ResolvedProjectActions } from "../../lib/externalApi";
@@ -48,18 +49,22 @@ function renderMenu(projects: Project[], onSelect = vi.fn()) {
   qc.setQueryData(["project-actions", "p1"], resolved([TASK, ITERATE, PLAIN]));
   vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
   render(
-    <QueryClientProvider client={qc}>
-      <ProjectCreatePhoneMenu projects={projects} onSelect={onSelect} />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={qc}>
+        <ProjectCreatePhoneMenu projects={projects} onSelect={onSelect} />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
   return { onSelect };
 }
 
 describe("ProjectCreatePhoneMenu (phone #1)", () => {
-  // @covers FR-01.38
-  it("trigger is disabled when there are no projects", () => {
+  // @covers FR-01.51 — the phone trigger stays ENABLED at zero projects too: the
+  // guided front door + register-manually need no project (iterate-2026-07-23-
+  // intent-launcher-front-door). Was disabled-at-zero.
+  it("trigger stays enabled with zero projects (front door)", () => {
     renderMenu([]);
-    expect((screen.getByTestId("create-menu-cascade-trigger") as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByTestId("create-menu-cascade-trigger") as HTMLButtonElement).disabled).toBe(false);
   });
 
   // @covers FR-01.38
@@ -91,6 +96,18 @@ describe("ProjectCreatePhoneMenu (phone #1)", () => {
     await user.click(await screen.findByTestId("create-menu-cascade-project-p1"));
     await user.click(await screen.findByTestId("create-menu-cascade-action-p1-new-task"));
     expect(onSelect).toHaveBeenCalledWith(TASK, "p1");
+  });
+
+  // @covers FR-01.51 — the guided front door + register-manually frame the list.
+  it("shows the guided wizard + register-manually at the project-list level", async () => {
+    const user = userEvent.setup();
+    renderMenu(PROJECTS);
+    await user.click(screen.getByTestId("create-menu-cascade-trigger"));
+    const content = await screen.findByTestId("create-menu-cascade-content");
+    expect(within(content).getByTestId("create-menu-guided")).toBeTruthy();
+    expect(
+      within(content).getByTestId("create-menu-register-manually"),
+    ).toBeTruthy();
   });
 
   /* Sven 2026-07-21 — the phone presentation is the SAME All-Projects "New"

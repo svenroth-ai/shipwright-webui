@@ -1,0 +1,1 @@
+The guided Intent Wizard is now the front door of every 'New'/'Create' menu — the Task Board (single-project and All-Projects), the Projects page and the Ship's Log header all lead with 'Guided — Intent Wizard (recommended)'.

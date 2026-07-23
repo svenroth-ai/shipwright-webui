@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-23-intent-launcher-front-door",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T09:36:34.773870+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T09:36:35.033700+00:00",
+      "disposition": "external plan review superseded by the external code-review cascade (external_review.py --mode code) run on the full diff against this iterate spec; no separate plan artifact beyond the spec",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/external/ProjectCreateCascade.tsx:156 + ProjectCreatePhoneMenu.tsx:47",
+          "line": null,
+          "finding": "Trigger stayed disabled at projects.length===0, so the newly-added project-independent Guided/Register front-door rows were unreachable on a fresh install (All-Projects, zero projects) — contradicting the change's own comments.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "client/src/pages/ProjectsPage.tsx:53-64",
+          "line": null,
+          "finding": "The ?new=1 param-clear / no-reopen logic (the most bug-prone part) had no regression test.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-coverage",
+          "file": "client/src/components/external/ProjectCreateCascade.tsx",
+          "line": null,
+          "finding": "The desktop cascade's new Guided/Register rows have no direct jsdom test (covered transitively via CreateMenuIntentItems.test + the phone variant).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "ux",
+          "file": "client/src/pages/ShipsLogPage.tsx:113-145",
+          "line": null,
+          "finding": "Two co-equal .btn-primary in the Ship's Log header (New + Open board) weaken hierarchy.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "a11y",
+          "file": "client/src/components/external/CreateMenuIntentItems.tsx:38-52",
+          "line": null,
+          "finding": "Heading/separator were raw divs rather than Radix DropdownMenu.Label/Separator (group label not exposed to AT).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-23T09:40:36.254888+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T09:36:35.159204+00:00",
+      "disposition": "UI navigation + Radix menu composition diff; no migration/async/concurrency/cross-plugin/irreversible surface per iteration-reviews.md Stage 3 conditional",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "regression",
+          "file": "client/src/components/external/CreateMenuIntentItems.tsx:55` — `GuidedWizardMenuItem` now calls `useNavigate()` during render, making every existing consumer of `CreateMenuSplitButton`, `ProjectCreateMenu`, and `ProjectCreatePhoneMenu` require a React Router context even when the dropdown is never opened. This is a behavioral dependency those components did not previously have; in par […truncated]",
+          "line": null,
+          "finding": "Either wrap all existing standalone render sites/tests in a router, or make navigation an explicit dependency/callback passed from router-aware page-level callers. At minimum, update every existing component test that renders these menus without a router.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/components/external/CreateMenuSplitButton.test.tsx:50-64` — The new test claims the dropdown “leads with Guided and ends with Register manually,” but only checks that the three rows exist. It would still pass if Guided were moved below the direct actions or Register manually were placed anywhere other than the end, both of which violate AC1.",
+          "line": null,
+          "finding": "Assert ordering using the menu children or compare DOM positions (for example, `guided.compareDocumentPosition(pipeline)` and `pipeline.compareDocumentPosition(register)`).",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/src/pages/ProjectsPage.test.tsx:195-200` — The test verifies only the header button (`data-testid=\"projects-create-button\"`). AC3 explicitly requires both the header and empty-state “Create Project” buttons to route to `/wizard`; a regression in the empty-state handler at `ProjectsPage.tsx:197-201` would not be detected.",
+          "line": null,
+          "finding": "Render the no-projects/empty-state fixture, click its Create Project button, and assert navigation to `/wizard`.  Overall assessment: ship-with-fixes. The implementation appears to meet the functional routing and UI requirements, but the newly introduced unconditional router-hook dependency must be reconciled with existing standalone consumers/tests, and the stated ordering/empty-state acceptance behavior should be properly tested.",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-23T09:36:34.899178+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] {CreateMenuSplitButton.tsx}`?\n        ```tsx\n        <DropdownMenu.Content\n          align=\"end\"\n          sideOffset={6}\n          style={{ minWidth: \"280px\", maxWidth: \"280px\" }}\n          data-testid=\"create-menu-dropdown\"\n        >\n          <CreateMenuHeading />\n          <GuidedWizardMenuItem />\n          <CreateMenuSeparator />\n          {actions.map((a) => {\n             ...\n          })}\n          <CreateMenuSeparator />\n          <RegisterManuallyMenuItem />\n        </DropdownMenu.Content>\n        ```\n        This looks perfectly fine.\n\n    *   Is there an omission in `ProjectsPage.tsx` logic?\n        When removing\n\n[openai] - Category: regression  \n  Severity: medium  \n  File: `client/src/components/external/CreateMenuIntentItems.tsx:55` — `GuidedWizardMenuItem` now calls `useNavigate()` during render, making every existing consumer of `CreateMenuSplitButton`, `ProjectCreateMenu`, and `ProjectCreatePhoneMenu` require a React Router context even when the dropdown is never opened. This is a behavioral dependency those components did not previously have; in particular, the pre-existing `CreateMenuSplitButton` tests shown in this diff still render the component without a `MemoryRouter`, so they will throw “useNavigate() may be used only in the context of a `<Router>` component.”  \n  Suggestion: Either wrap all existing standalone render sites/tests in a router, or make navigation an explicit dependency/callback passed from router-aware page-level callers. At minimum, update every existing component test that renders these menus without a router.\n\n- Category: test  \n  Severity: low  \n  File: `client/src/components/external/CreateMenuSplitButton.test.tsx:50-64` — The new test claims the dropdown “leads with Guided and ends with Register manually,” but only checks that the three rows exist. It would still pass if Guided were moved below the direct actions or Register manually were placed anywhere other than the end, both of which violate AC1.  \n  Suggestion: Assert ordering using the menu children or compare DOM positions (for example, `guided.compareDocumentPosition(pipeline)` and `pipeline.compareDocumentPosition(register)`).\n\n- Category: test  \n  Severity: low  \n  File: `client/src/pages/ProjectsPage.test.tsx:195-200` — The test verifies only the header button (`data-testid=\"projects-create-button\"`). AC3 explicitly requires both the header and empty-state “Create Project” buttons to route to `/wizard`; a regression in the empty-state handler at `ProjectsPage.tsx:197-201` would not be detected.  \n  Suggestion: Render the no-projects/empty-state fixture, click its Create Projec […truncated]"
+    }
+  }
+}

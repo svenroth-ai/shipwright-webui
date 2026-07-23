@@ -96,7 +96,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 
 | ID | Area | Name | Priority | Description | Origin |
 |----|------|------|----------|-------------|--------|
-| FR-01.51 | FDR | Intent wizard (New · Adopt · Grade) | Should | A friendly three-door front entrance before the expert setup wizard. New walks you through plain questions and shows a plan of the pipeline phases with a live 'because you said X, we'll do Y' rail. Adopt points at a folder and shows exactly what onboarding would write. Grade points at a folder or GitHub URL and shows a Control-Grade card, honestly marking anything it cannot score as 'n/a' rather than inventing a number. A readiness check gates all three doors - if a prerequisite is missing the doors are disabled and the fix named.<br>**Updates:** Gained the real create-then-launch wiring for the New and Adopt doors and the real read-only Grade result. | iterate-2026-07-10-intent-wizard |
+| FR-01.51 | FDR | Intent wizard (New · Adopt · Grade) | Should | A friendly three-door front entrance before the expert setup wizard. New walks you through plain questions and shows a plan of the pipeline phases with a live 'because you said X, we'll do Y' rail. Adopt points at a folder and shows exactly what onboarding would write. Grade points at a folder or GitHub URL and shows a Control-Grade card, honestly marking anything it cannot score as 'n/a' rather than inventing a number. A readiness check gates all three doors - if a prerequisite is missing the doors are disabled and the fix named.<br>**Updates:** Gained the real create-then-launch wiring for the New and Adopt doors and the real read-only Grade result. Became the reachable front door of every create surface - the Board "New" menus (single-project and All-Projects), the Projects "Create Project" button and the Ship's Log header all lead with a "Guided - Intent Wizard" entry - and gained a permanent "Register a project manually" escape hatch inside the wizard, so it is the single, always-complete way to start or onboard a project. | iterate-2026-07-10-intent-wizard |
 
 ### Area UX — Design System & Shell
 
@@ -918,6 +918,33 @@ write surface; gated, path-guarded, and concurrency-safe.
   could not be read back individually never shows a count of zero — neither in the list
   nor in the one-line summary above it — because "0" reads as "found nothing"; where only
   part could be read back, the number is shown as a floor and said to be incomplete.
+
+- (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Task Board
+  "New" split-button in single-project mode, when its dropdown opens, then it leads
+  with a "Guided — Intent Wizard" item (marked *recommended*, under a "Start
+  something" heading) that navigates to `/wizard`, keeps the existing New
+  pipeline/task/iterate items, and ends with "Register a project manually…" — the
+  ORDER (Guided leads, direct actions follow, register-manually closes) is asserted,
+  not merely presence.
+- (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Task Board in
+  All-Projects mode with zero projects registered, when the "New" trigger renders,
+  then it is ENABLED (no longer disabled-at-zero) and its menu — desktop cascade and
+  phone drill-down alike — leads with the same "Guided — Intent Wizard" entry and
+  ends with "Register a project manually…", because those rows need no active project.
+- (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Projects page,
+  when the "Create Project" button (header or empty-state) is clicked, then it
+  navigates to the guided wizard (`/wizard`); and given the URL `/projects?new=1`,
+  the expert registration dialog auto-opens and the `new` param is cleared on close
+  without re-opening.
+- (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the wizard door
+  picker, when it renders, then a permanent "Register a project manually…" line sits
+  beneath the three doors and opens the expert registration via `/projects?new=1`
+  (replacing the prior dead-end that only listed the projects page).
+- (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given a project's Ship's
+  Log, when the header renders, then a canonical `.btn-primary` "New" launcher offers
+  the guided wizard + register-manually next to "Open board", while the scoped-iterate
+  promptbox stays the primary in-body intent; every create-CTA trigger rides
+  `.btn-primary`/`.btn-primary-split` (the guard registry now includes ShipsLogPage).
 
 ## Quality Requirements
 

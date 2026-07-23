@@ -29,6 +29,12 @@ import {
   ROW_CLS,
   type ProjectCascadeProps,
 } from "./ProjectCreateCascade";
+import {
+  CreateMenuHeading,
+  CreateMenuSeparator,
+  GuidedWizardMenuItem,
+  RegisterManuallyMenuItem,
+} from "./CreateMenuIntentItems";
 import type { Project } from "../../types";
 
 export function ProjectCreatePhoneMenu({
@@ -38,7 +44,9 @@ export function ProjectCreatePhoneMenu({
 }: ProjectCascadeProps) {
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState<Project | null>(null);
-  const disabled = isLoading || projects.length === 0;
+  // Enabled even at zero projects — the guided front door + register-manually
+  // rows need no project (iterate-2026-07-23-intent-launcher-front-door).
+  const disabled = isLoading;
   return (
     <div className="inline-flex" data-testid="create-menu-cascade">
       <DropdownMenu.Root
@@ -76,10 +84,16 @@ export function ProjectCreatePhoneMenu({
             className={`${SURFACE_CLS} max-h-[70vh] w-[min(88vw,320px)] overflow-y-auto`}
           >
             {picked === null ? (
-              projects.length === 0 ? (
-                <div className="px-2.5 py-2 text-[13px] text-[var(--color-muted)]">
-                  No projects yet
-                </div>
+              <>
+                {/* Guided + register-manually frame the project drill-down
+                    (iterate-2026-07-23-intent-launcher-front-door). */}
+                <CreateMenuHeading />
+                <GuidedWizardMenuItem />
+                <CreateMenuSeparator />
+                {projects.length === 0 ? (
+                  <div className="px-2.5 py-2 text-[13px] text-[var(--color-muted)]">
+                    No projects yet
+                  </div>
               ) : (
                 projects.map((p) => (
                   <DropdownMenu.Item
@@ -101,7 +115,10 @@ export function ProjectCreatePhoneMenu({
                     />
                   </DropdownMenu.Item>
                 ))
-              )
+                )}
+                <CreateMenuSeparator />
+                <RegisterManuallyMenuItem />
+              </>
             ) : (
               <>
                 <DropdownMenu.Item

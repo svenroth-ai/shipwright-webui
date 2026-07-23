@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-23-intent-launcher-front-door",
+  "date": "2026-07-23T09:54:48.143624Z",
+  "type": "feature",
+  "complexity": "medium",
+  "branch": "iterate/intent-launcher-front-door",
+  "spec": ".shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-23-intent-launcher-front-door"
+}

@@ -14,7 +14,8 @@
 
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { LayoutGrid } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { ChevronDown, LayoutGrid, Plus } from "lucide-react";
 
 import { PageHead } from "../components/common/PageHead";
 import { useProjects } from "../hooks/useProjects";
@@ -23,6 +24,13 @@ import { useProjectRuns } from "../hooks/useRunData";
 import { getProjectColor } from "../lib/projectColor";
 import { CaptainsDrawer } from "../components/shipslog/CaptainsDrawer";
 import { ScopedIteratePromptbox } from "../components/shipslog/ScopedIteratePromptbox";
+import {
+  CreateMenuHeading,
+  CreateMenuSeparator,
+  GuidedWizardMenuItem,
+  RegisterManuallyMenuItem,
+} from "../components/external/CreateMenuIntentItems";
+import { SURFACE_CLS } from "../components/external/ProjectCreateCascade";
 import { GraduationCard } from "../components/shipslog/GraduationCard";
 import { LogEntryList } from "../components/shipslog/LogEntryList";
 import "../styles/ships-log.css";
@@ -97,14 +105,45 @@ export default function ShipsLogPage() {
         }
         sub="The logbook is this project's home — the accumulated proof between runs."
         actions={
-          <button
-            type="button"
-            data-testid="ships-log-open-board"
-            onClick={openBoard}
-            className="btn-primary"
-          >
-            <LayoutGrid size={16} /> Open board
-          </button>
+          <>
+            {/* The guided Intent Wizard front door + the register-manually escape
+                hatch also live on a project's home (iterate-2026-07-23-intent-
+                launcher-front-door). The scoped-iterate promptbox below stays the
+                primary in-body intent for THIS project. */}
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  data-testid="shipslog-create-trigger"
+                  aria-label="New — start something"
+                  className="btn-primary shadow-sm"
+                >
+                  <Plus size={16} /> New <ChevronDown size={12} />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={6}
+                  data-testid="shipslog-create-content"
+                  className={`${SURFACE_CLS} min-w-[240px]`}
+                >
+                  <CreateMenuHeading />
+                  <GuidedWizardMenuItem />
+                  <CreateMenuSeparator />
+                  <RegisterManuallyMenuItem />
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+            <button
+              type="button"
+              data-testid="ships-log-open-board"
+              onClick={openBoard}
+              className="btn-primary"
+            >
+              <LayoutGrid size={16} /> Open board
+            </button>
+          </>
         }
       />
 

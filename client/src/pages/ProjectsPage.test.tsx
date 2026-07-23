@@ -175,6 +175,82 @@ describe('ProjectsPage', () => {
   });
 
   // -------------------------------------------------------------------------
+  // iterate-2026-07-23-intent-launcher-front-door — "Create Project" is now the
+  // guided front door (→ /wizard); the expert registration is reached via the
+  // ?new=1 deep-link (the target of every "Register a project manually…").
+  // -------------------------------------------------------------------------
+
+  function renderAt(entry: string) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={[entry]}>
+          <Routes>
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/wizard" element={<LocationEcho />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+  }
+
+  it('"Create Project" navigates to the guided Intent Wizard', async () => {
+    renderAt('/projects');
+    await userEvent.click(await screen.findByTestId('projects-create-button'));
+    expect((await screen.findByTestId('loc')).textContent).toBe('/wizard');
+  });
+
+  it('/projects?new=1 auto-opens the expert registration dialog', async () => {
+    renderAt('/projects?new=1');
+    expect(await screen.findByTestId('wizard-modal')).toBeInTheDocument();
+  });
+
+  it('the empty-state "Create Project" also navigates to the wizard (AC3)', async () => {
+    server.use(http.get('/api/projects', () => HttpResponse.json({ data: [] })));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/projects']}>
+          <Routes>
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/wizard" element={<LocationEcho />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    const empty = await screen.findByTestId('projects-empty');
+    await userEvent.click(within(empty).getByRole('button'));
+    expect((await screen.findByTestId('loc')).textContent).toBe('/wizard');
+  });
+
+  it('closing the ?new=1 registration clears the param and does not re-open', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    function UrlEcho() {
+      const loc = useLocation();
+      return <div data-testid="url">{loc.pathname + loc.search}</div>;
+    }
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/projects?new=1']}>
+          <UrlEcho />
+          <Routes>
+            <Route path="/projects" element={<ProjectsPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByTestId('wizard-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('url').textContent).toBe('/projects?new=1');
+    // Close it → the ?new param is cleared (replace: true) AND the dialog stays
+    // closed: wantsNew flips false, so the open-effect does not re-fire.
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByTestId('wizard-modal')).toBeNull());
+    expect(screen.getByTestId('url').textContent).toBe('/projects');
+  });
+
+  // -------------------------------------------------------------------------
   // iterate-2026-07-06-project-delete-cascades-tasks — the confirm must warn
   // how many tasks the cascade removes (and stay silent when there are none).
   // -------------------------------------------------------------------------

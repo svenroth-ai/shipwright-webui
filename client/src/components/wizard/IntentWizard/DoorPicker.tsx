@@ -64,13 +64,17 @@ export function DoorPicker({
         </div>
 
         {/* A repo that ALREADY uses Shipwright is REGISTERED, not adopted —
-            adopting it would re-adopt an adopted repo. Quiet line, not a 4th door. */}
+            adopting it would re-adopt an adopted repo. Quiet line, not a 4th door.
+            Permanent escape hatch (iterate-2026-07-23-intent-launcher-front-door):
+            opens the expert ProjectWizard via /projects?new=1 — the same target
+            every "Register a project manually…" menu item uses — so the wizard is
+            the single, always-complete project-creation hub. */}
         <div style={{ marginTop: 14, fontSize: 12.5, color: "var(--muted)" }}>
           Already set up with Shipwright?{" "}
           <button
             type="button"
             data-testid="wizard-add-existing"
-            onClick={() => navigate("/projects")}
+            onClick={() => navigate("/projects?new=1")}
             style={{
               color: "var(--accent-deep)",
               textDecoration: "underline",
@@ -81,7 +85,7 @@ export function DoorPicker({
               font: "inherit",
             }}
           >
-            Add the existing project
+            Register a project manually…
           </button>{" "}
           — no adopting needed.
         </div>

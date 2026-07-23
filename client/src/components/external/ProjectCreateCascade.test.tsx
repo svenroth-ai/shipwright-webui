@@ -194,15 +194,17 @@ describe("ProjectCreateMenu / ProjectPlainPicker triggers", () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
   });
 
-  // @covers FR-01.38
-  it("create-menu cascade renders a trigger, disabled when there are no projects", () => {
+  // @covers FR-01.51 — the All-Projects trigger stays ENABLED at zero projects:
+  // the menu now hosts the guided front door + register-manually, which need no
+  // project (iterate-2026-07-23-intent-launcher-front-door). Was disabled-at-zero.
+  it("create-menu cascade trigger stays enabled with zero projects (front door)", () => {
     const qc = makeQc();
     wrap(qc, <ProjectCreateMenu projects={[]} onSelect={vi.fn()} />);
     const trigger = screen.getByTestId(
       "create-menu-cascade-trigger",
     ) as HTMLButtonElement;
     expect(trigger).toBeTruthy();
-    expect(trigger.disabled).toBe(true);
+    expect(trigger.disabled).toBe(false);
   });
 
   // @covers FR-01.38

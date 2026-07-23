@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-23-transcript-incremental-render",
+    "run_id": "iterate-2026-07-23-intent-launcher-front-door",
     "date": "2026-07-23",
     "unit": {
       "status": "passed",
-      "passed": 3009,
-      "total": 3009
+      "passed": 3023,
+      "total": 3023
     },
     "integration": {
       "status": "not_run",
@@ -14,17 +14,18 @@
       "total": 0
     },
     "pgtap": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
     "e2e": {
       "status": "passed",
-      "passed": 2,
-      "total": 2
+      "passed": 5,
+      "total": 5,
+      "e2e_run": true
     },
     "design_fidelity": {
-      "status": "skipped",
+      "status": "not_run",
       "passed": 0,
       "total": 0
     },
@@ -36,109 +37,59 @@
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Incremental parse is byte-identical to parseSessionJsonl at every line-by-line growth step (production shape: content ends on \\n)",
+          "behavior": "Board single-project New menu leads with Guided (→/wizard) and ends with Register manually, in that ORDER",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'matches parseSessionJsonl at every line-by-line growth step' PASSED"
+          "evidence": "CreateMenuSplitButton.test.tsx::\"leads with Guided and ends with Register manually\" (compareDocumentPosition) PASSED"
         },
         {
-          "behavior": "Byte-identical at every CHAR-by-char growth step (exercises the trailing partial line: mid-JSON and mid-surrogate tails)",
+          "behavior": "Board All-Projects desktop cascade shows Guided+Register and its trigger is ENABLED at zero projects",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'matches ... at every CHAR-by-char growth step' PASSED; adversarial subagent ran ~500 random corpora char-by-char (LF+CRLF, escape/surrogate/raw-newline-in-value) deep-equal to batch"
+          "evidence": "ProjectCreateCascade.test.tsx::\"trigger stays enabled with zero projects\" PASSED + E2E 76 PASSED"
         },
         {
-          "behavior": "No-trailing-newline content and the empty string parse identically to batch",
+          "behavior": "Board All-Projects phone menu shows Guided+Register at the project-list level and is ENABLED at zero projects",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'NO trailing newline' + 'the empty string' PASSED"
+          "evidence": "ProjectCreatePhoneMenu.test.tsx::\"guided+register at project-list level\" + \"trigger stays enabled with zero projects\" PASSED"
         },
         {
-          "behavior": "Already-committed event objects keep referential identity across an append (only new events are new objects)",
+          "behavior": "Projects \"Create Project\" (header + empty-state) navigates to /wizard",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'keeps already-parsed event objects referentially identical across an append' PASSED"
+          "evidence": "ProjectsPage.test.tsx::\"Create Project navigates\" + \"empty-state Create navigates\" PASSED"
         },
         {
-          "behavior": "Advancing does not mutate the previous state's arrays",
+          "behavior": "/projects?new=1 auto-opens the expert ProjectWizard and clears the param on close without re-opening",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'does NOT mutate the previous state's arrays' PASSED"
+          "evidence": "ProjectsPage.test.tsx::\"auto-opens\" + \"closing clears the param and does not re-open\" PASSED"
         },
         {
-          "behavior": "A shrunk content (truncation) triggers a full re-parse equal to batch",
+          "behavior": "Wizard DoorPicker register-manually line navigates to /projects?new=1",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'full-reparses when content shrinks' PASSED"
+          "evidence": "IntentWizard.test.tsx::\"register-manually line opens the manual-registration deep-link\" PASSED"
         },
         {
-          "behavior": "A differing prefix (rotation/replacement) triggers a full re-parse equal to batch",
+          "behavior": "Ship's Log header launcher offers Guided+Register, navigates to /wizard, and rides .btn-primary",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'full-reparses when the prefix differs' PASSED"
+          "evidence": "ShipsLogPage.test.tsx::launcher offers/Guided opens/.btn-primary PASSED"
         },
         {
-          "behavior": "rotation to empty then re-grow parses correctly",
+          "behavior": "Shared intent-items render both affordances with the correct routes",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'resets cleanly to empty then re-grows' PASSED"
+          "evidence": "CreateMenuIntentItems.test.tsx (routes + copy + navigation) PASSED"
         },
         {
-          "behavior": "An idle poll (unchanged content) returns the SAME state and result reference (no downstream memo churn)",
+          "behavior": "create-cta guard: every trigger on .btn-primary; registry includes ShipsLogPage",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'returns the SAME state (and result) object when content is unchanged' PASSED"
+          "evidence": "create-cta-standard.test.ts PASSED"
         },
         {
-          "behavior": "Malformed-line accounting matches batch (unknown stub for a middle line, swallowed torn tail, malformedLines equal)",
+          "behavior": "End-to-end: each create surface reaches the wizard / registration in a real browser",
           "disposition": "tested",
-          "evidence": "incremental-session-parse.test.ts 'preserves the batch parser's unknown-stub + malformedLines behaviour' PASSED"
-        },
-        {
-          "behavior": "An append hands parseSessionJsonl only the appended region (< 1/10 of the accumulated string); an idle poll calls it zero times (the actual optimization)",
-          "disposition": "tested",
-          "evidence": "incremental-session-parse.mechanism.test.ts 2 cases PASSED (parseSessionJsonl spied through)"
-        },
-        {
-          "behavior": "useParsedTranscript returns the batch-parser result as content grows",
-          "disposition": "tested",
-          "evidence": "useParsedTranscript.test.ts 'returns the batch-parser result as content grows' PASSED"
-        },
-        {
-          "behavior": "useParsedTranscript returns the SAME result reference when content is unchanged",
-          "disposition": "tested",
-          "evidence": "useParsedTranscript.test.ts 'returns the SAME result reference when content is unchanged' PASSED"
-        },
-        {
-          "behavior": "useParsedTranscript is correct under StrictMode double-render (no double-append)",
-          "disposition": "tested",
-          "evidence": "useParsedTranscript.test.ts 'is correct under StrictMode double-render' PASSED"
-        },
-        {
-          "behavior": "MarkdownChunk skips re-render when its content prop is unchanged across a parent re-render",
-          "disposition": "tested",
-          "evidence": "MarkdownChunk.memo.test.tsx 'skips re-render when content is unchanged' PASSED (MarkdownText render-counter)"
-        },
-        {
-          "behavior": "MarkdownChunk re-renders when content changes",
-          "disposition": "tested",
-          "evidence": "MarkdownChunk.memo.test.tsx 're-renders when content changes' PASSED"
-        },
-        {
-          "behavior": "BubbleTranscript renders identically after switching to the incremental hook",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: BubbleTranscript.test.tsx (unchanged, all cases PASSED in the 3009-test client suite)"
-        },
-        {
-          "behavior": "TaskDetailPage transcript stats render identically after switching to the incremental hook",
-          "disposition": "tested",
-          "evidence": "covered-by-existing-test: TaskDetailPage.test.tsx (unchanged, all cases PASSED)"
-        },
-        {
-          "behavior": "An empty transcript forces the header 'pending' stat to 0 (never the inbox count) — the guard external review flagged as dropped",
-          "disposition": "tested",
-          "evidence": "TaskDetailPage.transcriptStats.test.tsx 2 cases PASSED (external-review Finding 1 regression fence)"
-        },
-        {
-          "behavior": "The transcript surfaces render in a real browser with the incremental parser (mode/pr-link/stop-hook + custom-title/agent-name/permission-mode chips, no Unknown card)",
-          "disposition": "tested",
-          "evidence": "F0.5 web: e2e 90-transcript-renderer-fingerprints + 59-parser-variants, 2/2 passed on Chromium against the isolated real Hono stack, exit 0"
+          "evidence": "e2e/flows/76-intent-launcher-front-door.spec.ts — 5 passed (chromium, isolated stack) via surface_verification"
         }
       ],
       "counts": {
-        "testable": 20,
-        "tested": 20,
+        "testable": 10,
+        "tested": 10,
         "untestable": 0,
         "untested_testable": 0
       },
@@ -149,12 +100,11 @@
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "bash run-e2e.sh (BASE_URL=127.0.0.1:3848 + isolated USERPROFILE)",
-      "tests_run": 2,
+      "runner": "bash run-e2e-f05.sh → npx playwright test e2e/flows/76-intent-launcher-front-door.spec.ts --project=chromium (isolated temp-USERPROFILE Hono stack on :3899)",
       "exit_code": 0,
-      "evidence_path": ".shipwright/runs/iterate-2026-07-23-transcript-incremental-render/surface_verification.log",
-      "timestamp": "2026-07-23T06:28:37.690Z",
-      "justification": "Behaviour-preserving client renderer change (Spec Impact NONE): the transcript pane now parses only the appended byte-delta instead of re-parsing the whole accumulated JSONL each poll, and memoizes the markdown leaf. The rendered bubbles are byte-identical, so a real browser against a real server is the honest way to show nothing regressed. Isolated single-process stack: temp USERPROFILE, built client served via SHIPWRIGHT_STATIC_DIR, Hono on 127.0.0.1:3848, SHIPWRIGHT_NETWORK_PROFILE=local; the live WebUI on :3847 was never touched. 90-transcript-renderer-fingerprints (mode/pr-link/stop-hook surfaces, no Unknown card) + 59-parser-variants (custom-title/agent-name/permission-mode chips) both passed 2/2 on Chromium, exit 0."
+      "tests_run": 5,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-23-intent-launcher-front-door/surface_verification.log",
+      "timestamp": "2026-07-23"
     }
   }
 }
