@@ -1,17 +1,16 @@
 /*
  * MissionArtifactPanel — the RIGHT panel for a context-resolved artifact
- * (CONTRACT §7). Two stacked, cleanly separated regions:
+ * (CONTRACT §7). It owns the CHROME only — the eyebrow label, the pop-out + close
+ * toolbar, and the pop-out modal state. The two stacked, cleanly separated
+ * regions (business summary over the discriminated typed detail) live in the
+ * shared `MissionArtifactBody`, so the inline panel and the pop-out modal render
+ * the identical content.
  *
- *   (top)    a plain-language business summary — Mission is FOR NON-EXPERTS,
- *            so this is what a reader sees first;
- *   (bottom) the DETAIL, rendered by its DISCRIMINATED TYPE — a Markdown
- *            document via the existing SmartViewer `DocumentMarkdown`, a
- *            structured requirement list, or commit metadata + PR link.
- *            Not everything is a Markdown file (external-review GPT #13).
- *
- * The document body is fetched ON CLICK by its OPAQUE id — this component never
- * constructs a file path (§5.2). A body that changed or vanished since the
- * context response renders a typed `stale` notice, never an unrelated file.
+ * The card scrolls INTERNALLY (`.artifact { overflow-y:auto }`) now that the
+ * Mission body is a bounded flex column (see MissionBody) — a long Spec /
+ * Requirement no longer pushes the whole page. "Pop out" opens the same content
+ * centered and larger (like the Files & Terminal Smart Viewer) for easier
+ * reading (iterate-2026-07-23-mission-viewer-scroll-popout).
  *
  * Sibling of the legacy `ArtifactPanel`, which continues to serve scenarios
  * 1/3/4/5 untouched.
@@ -19,19 +18,12 @@
  * a11y: role=dialog, Esc closes, focus returns to the node that opened it.
  */
 
-import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, X } from "lucide-react";
 
 import type { ArtifactDescriptor } from "../../../lib/missionContextApi";
-import { frRowLabel } from "../../../lib/missionArtifacts";
-import { useArtifactDocument } from "../../../hooks/useMissionContext";
-import { DocumentMarkdown } from "../SmartViewer/DocumentMarkdown";
-import { DecisionsDetail, ReviewDetail, TestsDetail } from "./MissionSlice2Details";
-import {
-  CampaignProgressDetail,
-  PhaseDetail,
-  SubIterateDetail,
-} from "./MissionSlice3Details";
+import { MissionArtifactBody } from "./MissionArtifactBody";
+import { MissionArtifactModal } from "./MissionArtifactModal";
 
 interface Props {
   taskId: string;
@@ -42,6 +34,11 @@ interface Props {
 export function MissionArtifactPanel({ taskId, artifact, onClose }: Props) {
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const returnToRef = useRef<HTMLElement | null>(null);
+  const [popoutOpen, setPopoutOpen] = useState(false);
+  // Read at Esc-time (capture phase) so the guard never sees a stale value even
+  // if Radix flips the modal state mid-dispatch.
+  const popoutOpenRef = useRef(popoutOpen);
+  popoutOpenRef.current = popoutOpen;
 
   useEffect(() => {
     returnToRef.current = document.activeElement as HTMLElement | null;
@@ -55,13 +52,18 @@ export function MissionArtifactPanel({ taskId, artifact, onClose }: Props) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
+      if (e.key !== "Escape") return;
+      // The pop-out modal owns Esc while it is open (Radix closes it on the
+      // bubble phase). This is a CAPTURE-phase listener, so it runs FIRST — it
+      // sees the modal still open and bows out, so a single Esc never also
+      // closes the panel behind it (AC4). When the modal is closed, Esc closes
+      // the panel as before.
+      if (popoutOpenRef.current) return;
+      e.stopPropagation();
+      onClose();
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [onClose]);
 
   return (
@@ -81,178 +83,45 @@ export function MissionArtifactPanel({ taskId, artifact, onClose }: Props) {
         data-testid="mission-artifact-panel"
         data-node={artifact.kind}
       >
-        <button
-          ref={closeRef}
-          type="button"
-          className="a-close"
-          onClick={onClose}
-          aria-label="Close"
-          data-testid="artifact-close"
-        >
-          <X size={18} aria-hidden="true" />
-        </button>
-
-        {/* Region 1 — the business summary. */}
-        <span className="eyebrow">{artifact.label}</span>
-        {artifact.summary ? (
-          <p className="a-body" data-testid="artifact-summary">
-            {artifact.summary}
-          </p>
-        ) : null}
-
-        {/* Region 2 — the typed detail. */}
-        <div className="a-detail" data-testid="artifact-detail">
-          <ArtifactDetail taskId={taskId} artifact={artifact} />
+        <div className="a-tools">
+          <button
+            type="button"
+            className="a-popout"
+            onClick={() => setPopoutOpen(true)}
+            data-testid="artifact-popout"
+            title="Expand to a larger view"
+          >
+            <ExternalLink size={13} aria-hidden="true" />
+            Pop out
+          </button>
+          <button
+            ref={closeRef}
+            type="button"
+            className="a-close"
+            onClick={onClose}
+            aria-label="Close"
+            data-testid="artifact-close"
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
         </div>
+
+        <span className="eyebrow">{artifact.label}</span>
+        {/* While the pop-out is open the modal renders the SAME body. Rendering
+            it here too would put a document's heading ids (rehype-slug) in the
+            DOM twice — duplicate ids that break in-doc anchor nav inside the
+            modal (an anchor would resolve to the occluded inline copy). The
+            inline panel sits behind the modal overlay anyway, so drop its body
+            until the modal closes (external review — duplicate-render). */}
+        {popoutOpen ? null : <MissionArtifactBody taskId={taskId} artifact={artifact} />}
       </aside>
+
+      <MissionArtifactModal
+        open={popoutOpen}
+        onOpenChange={setPopoutOpen}
+        taskId={taskId}
+        artifact={artifact}
+      />
     </>
-  );
-}
-
-/** Discriminated on `kind` — each artifact type renders its own detail shape. */
-function ArtifactDetail({ taskId, artifact }: { taskId: string; artifact: ArtifactDescriptor }) {
-  switch (artifact.kind) {
-    case "spec":
-      return <SpecDetail taskId={taskId} documentId={artifact.detail?.documentId ?? null} />;
-    case "requirement":
-      return <RequirementDetail artifact={artifact} />;
-    case "tests":
-      return <TestsDetail artifact={artifact} />;
-    case "review":
-      return <ReviewDetail artifact={artifact} />;
-    case "decisions":
-      return <DecisionsDetail artifact={artifact} />;
-    case "commit":
-      return <CommitDetail artifact={artifact} />;
-    // S3 — pipeline
-    case "phase":
-      return <PhaseDetail artifact={artifact} />;
-    // S3 — campaign. The RUNBOOK is a Markdown document like the spec, so it
-    // reuses the same fetch-on-click renderer rather than a second one.
-    case "campaign_runbook":
-      return <SpecDetail taskId={taskId} documentId={artifact.detail?.documentId ?? null} />;
-    case "campaign_progress":
-      return <CampaignProgressDetail artifact={artifact} />;
-    case "sub_iterate":
-      return (
-        <SubIterateDetail
-          artifact={artifact}
-          renderDocument={(id) => <SpecDetail taskId={taskId} documentId={id} />}
-        />
-      );
-  }
-}
-
-function SpecDetail({ taskId, documentId }: { taskId: string; documentId: string | null }) {
-  const doc = useArtifactDocument(taskId, documentId);
-
-  if (!documentId) return <p className="a-note">No document is linked to this artifact.</p>;
-  if (doc.isPending) return <p className="a-note" data-testid="artifact-doc-loading">Loading the document…</p>;
-  if (doc.isError) return <p className="a-note" data-testid="artifact-doc-error">The document could not be loaded.</p>;
-
-  // `stale` and `unavailable` are DIFFERENT facts and the §6 state model exists
-  // to keep them apart — collapsing them here would reintroduce at the last
-  // mile the exact confusion the model prevents everywhere else: a guard
-  // rejection or an over-cap document would read as a benign edit.
-  if (doc.data?.status === "stale") {
-    return (
-      <p className="a-note" data-testid="artifact-doc-stale">
-        This document has changed since it was listed. Reopen the tab to see the current version.
-      </p>
-    );
-  }
-  if (doc.data?.status !== "ok") {
-    return (
-      <p className="a-note" data-testid="artifact-doc-unavailable">
-        This document is currently unavailable — it could not be read safely.
-      </p>
-    );
-  }
-
-  return (
-    <div data-testid="artifact-doc-body">
-      <DocumentMarkdown text={doc.data.document.body} />
-    </div>
-  );
-}
-
-function RequirementDetail({
-  artifact,
-}: {
-  artifact: Extract<ArtifactDescriptor, { kind: "requirement" }>;
-}) {
-  const detail = artifact.detail;
-  if (!detail) return <p className="a-note">No requirement detail was recorded.</p>;
-
-  return (
-    <>
-      {/* Mid-run this is PLANNED impact and says so — never presented as a
-          decided new/changed classification before Finalize (§6). */}
-      <p className="a-note" data-testid="artifact-req-confidence">
-        {detail.confidence === "planned"
-          ? "Planned impact — this run has not finished yet."
-          : detail.confidence === "finalized"
-            ? "Recorded at completion."
-            : "No requirement could be resolved."}
-      </p>
-      {detail.rows.length > 0 ? (
-        <ul className="a-rows" data-testid="artifact-req-rows">
-          {detail.rows.map((row) => (
-            <li key={row.originalFrId}>{frRowLabel(row)}</li>
-          ))}
-        </ul>
-      ) : null}
-      {detail.specImpact ? (
-        <p className="a-note">Spec impact: {detail.specImpact}</p>
-      ) : null}
-    </>
-  );
-}
-
-function CommitDetail({
-  artifact,
-}: {
-  artifact: Extract<ArtifactDescriptor, { kind: "commit" }>;
-}) {
-  const detail = artifact.detail;
-  if (!detail) return <p className="a-note">No commit was recorded for this run.</p>;
-
-  const mergeWord =
-    detail.merge === "merged"
-      ? "Merged"
-      : detail.merge === "pending"
-        ? "Not merged yet"
-        : "Merge state unknown";
-
-  return (
-    <dl className="a-meta" data-testid="artifact-commit-meta">
-      {detail.commit ? (
-        <>
-          <dt>Commit</dt>
-          <dd>
-            <code>{detail.commit.slice(0, 12)}</code>
-          </dd>
-        </>
-      ) : null}
-      {detail.message ? (
-        <>
-          <dt>Message</dt>
-          <dd>{detail.message}</dd>
-        </>
-      ) : null}
-      <dt>Delivery</dt>
-      <dd data-testid="artifact-commit-merge">{mergeWord}</dd>
-      {detail.prUrl && detail.prNumber != null ? (
-        <>
-          <dt>Pull request</dt>
-          <dd>
-            {/* External link — opened deliberately, never auto-navigated (§5.1). */}
-            <a href={detail.prUrl} target="_blank" rel="noreferrer noopener">
-              #{detail.prNumber}
-            </a>
-          </dd>
-        </>
-      ) : null}
-    </dl>
   );
 }

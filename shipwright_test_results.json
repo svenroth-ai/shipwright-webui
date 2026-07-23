@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-23",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-23-first-contact-hero",
+    "run_id": "iterate-2026-07-23-mission-viewer-scroll-popout",
     "date": "2026-07-23",
     "unit": {
       "status": "passed",
-      "passed": 3037,
-      "total": 3037
+      "passed": 3027,
+      "total": 3027
     },
     "integration": {
       "status": "not_run",
@@ -20,12 +20,12 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 3,
-      "total": 3,
+      "passed": 1,
+      "total": 1,
       "e2e_run": true
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -36,33 +36,55 @@
     "test_completeness": {
       "status": "complete",
       "behaviors": [
-        { "behavior": "First Contact renders the eyebrow + h1 + lead welcome copy", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"renders the lighthouse-hero welcome copy + the three canonical doors\" PASSED" },
-        { "behavior": "First Contact renders the three canonical doors + the register-manually line", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"renders the lighthouse-hero welcome copy + the three canonical doors\" PASSED" },
-        { "behavior": "Doors deep-link: new -> /wizard, adopt -> /wizard/adopt, grade -> /wizard/grade", "disposition": "tested", "evidence": "FirstContact.test.tsx it.each \"the %s door navigates to %s\" PASSED + F0.5 door-nav PASSED" },
-        { "behavior": "Register-manually line deep-links to /projects?new=1", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"the register-manually line deep-links to /projects?new=1\" PASSED" },
-        { "behavior": "Not-ready readiness -> doors inert (disabled) + gate names the repair command", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"when NOT ready the doors are inert and the gate names the fix\" PASSED" },
-        { "behavior": "prefers-reduced-motion -> the hero renders its complete opaque final state", "disposition": "tested", "evidence": "FirstContact.test.tsx::\"renders the complete hero even when reduced motion is preferred\" PASSED" },
-        { "behavior": "Root /: zero registered projects AND zero tasks -> First Contact", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"empty registry AND no tasks -> First Contact\" PASSED + F0.5 empty-root PASSED" },
-        { "behavior": "Root /: >=1 real registered project -> the Task Board", "disposition": "tested", "evidence": "RootRoute.test.tsx::\">=1 real project -> the Task Board\" PASSED" },
-        { "behavior": "Root /: zero registered projects but unassigned tasks exist -> the Task Board (never strand them)", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"zero registered projects but unassigned tasks exist -> the Task Board\" PASSED" },
-        { "behavior": "Root /: still-loading registry -> the Task Board (no blank for the existing user)", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"loading -> the Task Board (no blank for the existing user)\" PASSED" },
-        { "behavior": "Root /: errored/undefined registry -> the Task Board (no redirect)", "disposition": "tested", "evidence": "RootRoute.test.tsx::\"errored/undefined registry -> the Task Board (no redirect)\" PASSED" },
-        { "behavior": "/first-contact always renders First Contact (any stack, registry-independent)", "disposition": "tested", "evidence": "F0.5 101-first-contact-hero.spec.ts \"renders the lighthouse hero...\" PASSED" },
-        { "behavior": "SceneBackdrop maps /first-contact -> lighthouse.jpg + well-left scrim", "disposition": "tested", "evidence": "SceneBackdrop.test.tsx::\"the /first-contact route carries the lighthouse plate + well-left scrim\" PASSED" },
-        { "behavior": "DoorPicker -> DoorGrid extraction is behavior-preserving (wizard DOM/testids unchanged)", "disposition": "tested", "evidence": "IntentWizard.test.tsx + wiring/launchFlow suites (79 tests) PASSED unchanged" },
-        { "behavior": "End-to-end: empty-registry root -> First Contact hero; a door -> the wizard flow (real Chromium)", "disposition": "tested", "evidence": "surface_verification.py web exit 0, 3/3 (101-first-contact-hero.spec.ts)" }
+        {
+          "behavior": "MissionBody root is a bounded flex column (flex/flex-col/min-h-0/flex-1) so each card scrolls internally, not the page",
+          "disposition": "tested",
+          "evidence": "MissionBody.test.tsx::\"root is a bounded flex column so each card scrolls internally, not the page\" PASSED"
+        },
+        {
+          "behavior": "The Mission artifact card scrolls internally while the shell scroller does NOT grow (real-browser geometry)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/mission-viewer-scroll-popout.spec.ts -- card scrollHeight>clientHeight AND main-scroll-container scrollHeight<=clientHeight+4 PASSED (chromium, isolated stack)"
+        },
+        {
+          "behavior": "A 'Pop out' control renders on the Mission artifact panel; the modal mounts only once opened",
+          "disposition": "tested",
+          "evidence": "MissionArtifactPanel.test.tsx::\"renders a Pop out control, and mounts the modal only once opened\" PASSED"
+        },
+        {
+          "behavior": "Pop out opens a viewport-centered modal rendering the SAME artifact body (summary+detail), with its own scroll",
+          "disposition": "tested",
+          "evidence": "MissionArtifactPanel.test.tsx::\"opens a modal that renders the SAME artifact body, and the X closes it\" + e2e centering(cx/cy<8px)+modal-body scrollTop>0 PASSED"
+        },
+        {
+          "behavior": "Modal closes via close X, ESC, and backdrop click; ESC on the modal does NOT also close the panel behind it (AC4)",
+          "disposition": "tested",
+          "evidence": "MissionArtifactPanel.test.tsx::\"Esc closes the modal but NOT the panel behind it (AC4)\" + e2e ESC/X/backdrop-close-with-panel-visible PASSED"
+        },
+        {
+          "behavior": "The inline panel still renders each artifact kind's existing shape (document/requirement/tests/review/decisions/commit) and the stale-vs-unavailable distinction after the MissionArtifactBody extract",
+          "disposition": "tested",
+          "evidence": "covered-by-existing-test: MissionArtifactPanel.test.tsx suites (two-region layout, spec/requirement/commit detail, stale-vs-unavailable) all PASSED post-refactor"
+        }
       ],
-      "counts": { "testable": 15, "tested": 15, "untestable": 0, "untested_testable": 0 },
-      "enumeration_basis": { "acs": 6, "covered_acs": 6 }
+      "counts": {
+        "testable": 6,
+        "tested": 6,
+        "untestable": 0,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 5,
+        "covered_acs": 5
+      }
     },
     "surface_verification": {
       "surface": "web",
-      "runner": "bash <isolated empty-registry stack> + Playwright (real Chromium), e2e/flows/101-first-contact-hero.spec.ts",
+      "runner": "npx playwright test e2e/flows/mission-viewer-scroll-popout.spec.ts --project=chromium (single-process isolated temp-USERPROFILE Hono stack serving built client on :3850, BASE_URL set)",
       "exit_code": 0,
-      "tests_run": 3,
-      "justification": "",
-      "note": "Isolated single-process stack: temp USERPROFILE (zero projects + zero tasks) + SHIPWRIGHT_STATIC_DIR + plugin-cache canary seeded (readiness ready = fresh-install state). Verified /api/projects=={\"data\":[]}, /api/readiness.ready==true, then empty root -> First Contact, a door -> the wizard flow, /first-contact always renders.",
-      "attempts": 1
+      "tests_run": 1,
+      "evidence_path": ".shipwright/runs/iterate-2026-07-23-mission-viewer-scroll-popout/surface_verification.log",
+      "timestamp": "2026-07-23"
     }
   }
 }

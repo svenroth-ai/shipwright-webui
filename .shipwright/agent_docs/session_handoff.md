@@ -1,31 +1,39 @@
+---
+canon_generated: true
+run_id: "iterate-2026-07-23-mission-viewer-scroll-popout"
+phase: "iterate"
+reason: "iterate: mission-viewer-scroll-popout"
+timestamp: "2026-07-23T14:29:31.723611+00:00"
+---
+
 # Session Handoff
 
-> Auto-generated 2026-07-23 13:49:40 UTC
+> Auto-generated 2026-07-23 14:29:31 UTC
 
 ## Session Info
 
-- **Session ID**: 3cfa001d-c467-4482-8381-f89f0dc03906
-- **Timestamp**: 2026-07-23 13:49:40 UTC
-- **Reason**: iterate completion: iterate-2026-07-23-first-contact-hero
+- **Session ID**: 8488876c-f039-435c-9962-4428d06d3030
+- **Timestamp**: 2026-07-23 14:29:31 UTC
+- **Reason**: iterate: mission-viewer-scroll-popout
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-23-first-contact-hero
-- **Date**: 2026-07-23T13:49:40.457268Z
+- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
+- **Date**: 2026-07-23T09:54:48.143624Z
 - **Type**: feature
 - **Complexity**: medium
-- **Branch**: iterate/first-contact-hero
-- **ADR**: iterate-2026-07-23-first-contact-hero
+- **Branch**: iterate/intent-launcher-front-door
+- **ADR**: iterate-2026-07-23-intent-launcher-front-door
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-07-23-first-contact-hero.md
+- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/first-contact-hero
-- **Run ID**: iterate-2026-07-23-first-contact-hero
-- **Spec**: .shipwright/planning/iterate/2026-07-23-first-contact-hero.md
+- **Branch**: iterate/mission-viewer-scroll-popout
+- **Run ID**: iterate-2026-07-23-mission-viewer-scroll-popout
+- **Spec**: .shipwright/planning/iterate/2026-07-23-mission-viewer-scroll-popout.md
 - **Complexity**: medium
-- **External Review Marker**: completed (external_review_state.json @ 2026-07-23T13:38:56)
+- **External Review Marker**: completed (external_review_state.json @ 2026-07-23T14:23:38)
 
 ### Mandatory replay on Resume
 
@@ -43,8 +51,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/first-contact-hero
-- **Last Commit**: 02b7e567 feat(first-contact): a dedicated First Contact hero at the empty-registry root (FR-01.51)
+- **Branch**: iterate/mission-viewer-scroll-popout
+- **Last Commit**: fb04d2b6 chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -60,7 +68,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-071e4d3b | work_completed | iterate (First Contact hero — the fresh-install first screen reuses the wizard door picker + readiness gate) | 2026-07-23 |
+| evt-1492908f | work_completed | iterate (mission-viewer-scroll-popout) | 2026-07-23 |
 | evt-692edbfe | work_completed | iterate (Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch) | 2026-07-23 |
 | evt-6b8a677d | work_completed | iterate (Incremental transcript parse (delta-only) + memoized MarkdownChunk; replaces the whole-string re-parse per poll in BubbleTranscript and TaskDetailPage.transcriptStats) | 2026-07-23 |
 | evt-b4b01ad1 | event_amended | — | 2026-07-22 |
@@ -70,7 +78,7 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 - **Pipeline**: 2 phases completed
 - **Total work events**: 374
-- **Last iterate**: feature — First Contact hero — the fresh-install first screen reuses the wizard door picker + readiness gate (2026-07-23)
+- **Last iterate**: change — mission-viewer-scroll-popout (2026-07-23)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions

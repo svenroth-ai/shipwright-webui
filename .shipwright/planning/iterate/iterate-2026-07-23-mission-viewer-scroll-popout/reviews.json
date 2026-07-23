@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-23-mission-viewer-scroll-popout",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T14:23:20.859951+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-23T14:23:38.513754+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode iterate",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T14:23:21.110854+00:00",
+      "disposition": null,
+      "recorded_by": "internal-code-reviewer-subagent",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-23T14:23:21.223376+00:00",
+      "disposition": "UI-only change; no migrations / async-concurrency / cross-plugin imports / irreversible ops — the doubt pass is conditional per iteration-reviews.md",
+      "recorded_by": "iterate",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-23T14:23:38.637964+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode code",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
