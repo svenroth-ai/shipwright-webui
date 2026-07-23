@@ -129,6 +129,12 @@ export interface TestsArtifact extends ArtifactBase {
   kind: "tests";
   detail: {
     type: "tests";
+    /**
+     * Pass/total the run RECORDED — the CORE signal, present even for the
+     * worktree flow's `commit:""` rows. `null` only when no counts were
+     * recorded; `rows` are the enrichment, never a precondition for the card.
+     */
+    results: MissionTests | null;
     rows: TestRow[];
     counts: { added: number; modified: number; removed: number };
     byLayer: { layer: string; count: number }[];

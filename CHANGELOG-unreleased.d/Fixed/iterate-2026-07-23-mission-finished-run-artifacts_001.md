@@ -1,0 +1,1 @@
+Mission: a finished run now shows its full record (Tests, Review, Commit, Merge) as soon as it merges, instead of only Decisions — the tab reads the merged copy when your local checkout has not pulled it yet.

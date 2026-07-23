@@ -31,14 +31,44 @@ import {
   reviewTypeLabel,
   testChangeWord,
   testFrLabel,
+  testsResultText,
 } from "../../../lib/missionArtifacts";
 import { DocumentMarkdown } from "../SmartViewer/DocumentMarkdown";
 
 /** The structured RTM table (§6 row 3 right-detail type). */
 export function TestsDetail({ artifact }: { artifact: TestsArtifact }) {
   const detail = artifact.detail;
-  if (!detail) return <p className="a-note">No test changes were recorded for this run.</p>;
+  if (!detail) return <p className="a-note">No test result was recorded for this run.</p>;
 
+  // The pass/total the run recorded LEADS: it is present even when the worktree
+  // flow shipped `commit:""` and there is no per-file diff to show below.
+  const resultText = testsResultText(detail.results);
+  const hasRows = detail.rows.length > 0;
+
+  return (
+    <>
+      {resultText ? (
+        <p className="a-tests-result" data-testid="artifact-tests-result">
+          {resultText}
+        </p>
+      ) : null}
+
+      {/* The file table + its counts are the ENRICHMENT — only when a real
+          commit diff resolved. A counts-only run shows its result above and an
+          honest note here, not an empty table. */}
+      {!hasRows ? (
+        <p className="a-note" data-testid="artifact-tests-no-files">
+          No test-file changes were recorded for this run.
+        </p>
+      ) : (
+        <TestsFileTable detail={detail} />
+      )}
+    </>
+  );
+}
+
+/** The per-file RTM table — rendered only when the run recorded a diff. */
+function TestsFileTable({ detail }: { detail: NonNullable<TestsArtifact["detail"]> }) {
   return (
     <>
       <p className="a-note" data-testid="artifact-tests-counts">

@@ -18,7 +18,8 @@
  */
 
 import { buildDecisionsArtifact } from "./artifacts-decisions.js";
-import { buildReviewArtifact, buildTestsArtifact } from "./artifacts-slice2.js";
+import { buildReviewArtifact } from "./artifacts-slice2.js";
+import { buildTestsArtifact } from "./artifacts-tests.js";
 import { decisionDropsDir, dropFilePaths } from "./decision-drops.js";
 import { readRunDecisionRecord, decisionLogPath } from "./decisions.js";
 import type { EventLookup } from "./iterate-record.js";

@@ -196,6 +196,33 @@ export function servesChipValue(context: MissionContext | null | undefined): str
   return v && v.length > 0 ? v : null;
 }
 
+/**
+ * The Tests DETAIL headline, from the pass/total the run recorded —
+ * "All 42 tests passing" / "40 of 42 tests passing" / "42 tests recorded".
+ *
+ * Mirrors the server's `resultsSentence` wording (artifacts-tests.ts) so the
+ * rail receipt and the panel headline never teach different things. Returns
+ * null when nothing citable was recorded, so the caller shows the file table
+ * (or a plain note) alone.
+ */
+export function testsResultText(
+  results: { passed: number | null; total: number | null } | null | undefined,
+): string | null {
+  if (!results) return null;
+  const { passed, total } = results;
+  // A genuine zero-of-zero is not a result — never render "All 0 tests passing".
+  if ((passed ?? 0) === 0 && (total ?? 0) === 0) return null;
+  const word = (n: number): string => (n === 1 ? "test" : "tests");
+  if (passed != null && total != null) {
+    return passed === total
+      ? `All ${total} ${word(total)} passing`
+      : `${passed} of ${total} ${word(total)} passing`;
+  }
+  if (total != null) return `${total} ${word(total)} recorded`;
+  if (passed != null) return `${passed} ${word(passed)} passing`;
+  return null;
+}
+
 /** "FR-01.28 — Embedded terminal (mapped from FR-01.44)" for the detail rows. */
 export function frRowLabel(row: {
   displayFrId: string;

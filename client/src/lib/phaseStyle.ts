@@ -17,8 +17,24 @@ export interface PhaseStyle {
   dot: string;
 }
 
+// The three NEUTRAL pills (project / adopt / iterate) sit on `bg-inset` — a
+// near-white surface (`--inset: #F5F5F4`, never themed dark) — so their text
+// must be DARK in every context the pill renders. The catch is that NO neutral
+// token stays dark everywhere:
+//   • `--color-text` resolves `var(--ink)` AT :root (dark) and does not re-flip,
+//     so it is dark on the board — but `.mc-top` explicitly sets it to `#fff`
+//     for its white breadcrumb, so the header pill vanished (Sven, 2026-07-23).
+//   • `--ink` is worse: `on-photo.css` flips it to `#fff` for every `.on-photo`
+//     descendant (which wraps EVERY route) and resets it to dark only for
+//     `.pill`/`.badge`-CLASSED elements — these Tailwind-utility spans are not,
+//     so `--ink` is white on BOTH the board and the header.
+// A pill carries its OWN background, so it takes its own foreground. With the
+// background a fixed near-white, the correct foreground is the never-flipped
+// `--ink-fixed` token (weather-deck.css: always #1C1917, never re-themed) —
+// immune to both flips, and legible on `bg-inset` on the board AND in `.mc-top`.
+const INK_FIXED = "text-[var(--ink-fixed)]";
 const PHASE_STYLES: Record<string, PhaseStyle> = {
-  project: { cls: "bg-inset text-[var(--color-text)]", dot: "bg-[var(--color-muted)]" },
+  project: { cls: `bg-inset ${INK_FIXED}`, dot: "bg-[var(--color-muted)]" },
   design: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   plan: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   build: { cls: "bg-warn-tint text-warn", dot: "bg-[var(--warn-solid)]" },
@@ -27,12 +43,19 @@ const PHASE_STYLES: Record<string, PhaseStyle> = {
   changelog: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   compliance: { cls: "bg-info-tint text-info", dot: "bg-[var(--info-solid)]" },
   security: { cls: "bg-err-tint text-err", dot: "bg-[var(--err-solid)]" },
-  adopt: { cls: "bg-inset text-[var(--color-text)]", dot: "bg-[var(--color-muted)]" },
+  adopt: { cls: `bg-inset ${INK_FIXED}`, dot: "bg-[var(--color-muted)]" },
   iterate: {
-    cls: "bg-inset text-[var(--color-text)]",
+    cls: `bg-inset ${INK_FIXED}`,
     dot: "bg-[var(--color-accent)]",
   },
 };
+
+/**
+ * Exposed for the regression guard: a neutral pill may take its foreground from
+ * NEITHER `--color-text` (flips white in `.mc-top`) NOR `--ink` (flips white on
+ * every `.on-photo` route). Only a fixed dark literal is safe on `bg-inset`.
+ */
+export const PHASE_STYLE_ENTRIES = PHASE_STYLES;
 
 /**
  * Resolve the color style for a phase id. Unknown ids fall back to the

@@ -20,6 +20,7 @@ import {
   isSupportedSchema,
   servesChipValue,
   testsChipValue,
+  testsResultText,
   usesContextRail,
   visibleArtifacts,
   testFrLabel,
@@ -221,6 +222,38 @@ describe("instrument chips (AC8 — honest or dash)", () => {
   it("serves the fold-resolved FR id, or null", () => {
     expect(servesChipValue(ctx({ servesFrId: "FR-01.66" }))).toBe("FR-01.66");
     expect(servesChipValue(ctx({ servesFrId: null }))).toBeNull();
+  });
+});
+
+describe("testsResultText (the counts-led detail headline)", () => {
+  it("says 'All N tests passing' on a green suite", () => {
+    expect(testsResultText({ passed: 3037, total: 3037 })).toBe("All 3037 tests passing");
+  });
+
+  it("says 'N of M tests passing' when some failed — never rounds to green", () => {
+    expect(testsResultText({ passed: 3009, total: 3037 })).toBe("3009 of 3037 tests passing");
+  });
+
+  it("falls back to a total-only or passed-only phrasing", () => {
+    expect(testsResultText({ passed: null, total: 42 })).toBe("42 tests recorded");
+    expect(testsResultText({ passed: 7, total: null })).toBe("7 tests passing");
+  });
+
+  it("singularises a one-test suite", () => {
+    expect(testsResultText({ passed: 1, total: 1 })).toBe("All 1 test passing");
+  });
+
+  it("returns null when nothing citable was recorded", () => {
+    expect(testsResultText(null)).toBeNull();
+    expect(testsResultText({ passed: null, total: null })).toBeNull();
+  });
+
+  it("treats a genuine zero-of-zero as no result — never 'All 0 tests passing'", () => {
+    expect(testsResultText({ passed: 0, total: 0 })).toBeNull();
+  });
+
+  it("still reports a real failing run (0 of N)", () => {
+    expect(testsResultText({ passed: 0, total: 9 })).toBe("0 of 9 tests passing");
   });
 });
 

@@ -1,9 +1,9 @@
 {
   "status": "completed",
-  "timestamp": "2026-07-23T14:23:38.645703+00:00",
+  "timestamp": "2026-07-23T15:54:46.352697+00:00",
   "provider": "openrouter",
-  "findings_count": 0,
+  "findings_count": 4,
   "self_review_fallback_ran": false,
-  "reason": null,
+  "reason": "only some provider legs could be itemized \u2014 the count (4) may understate what was found",
   "review_mode": "code"
 }
