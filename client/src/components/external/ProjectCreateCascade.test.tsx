@@ -20,8 +20,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   ProjectActionsLoader,
   ProjectCreateMenu,
-  ProjectPlainPicker,
 } from "./ProjectCreateCascade";
+import { ProjectPlainPicker } from "./ProjectPlainPicker";
 import type {
   ActionDefinition,
   ResolvedProjectActions,
