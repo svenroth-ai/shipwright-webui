@@ -42,6 +42,11 @@ const BACKDROPS: Record<string, Backdrop> = {
   settings: { img: 'deck-golden.jpg' },
   diagnostics: { img: 'deck-golden.jpg' },
   wizard: { img: 'deck-golden.jpg', well: true },
+  // First Contact's OWN hero plate — the lighthouse, exempt from the deck-golden
+  // signature backdrop (iterate-2026-07-23-first-contact-hero, FR-01.51). The
+  // left-weighted `well` scrim darkens the left so the white hero copy stays
+  // legible; the doors below are the wizard's white .wz-opt cards.
+  'first-contact': { img: 'lighthouse.jpg', well: true },
 };
 
 const DEFAULT_BACKDROP: Backdrop = { img: 'deck-golden.jpg' };

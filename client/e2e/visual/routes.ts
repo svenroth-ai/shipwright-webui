@@ -127,10 +127,10 @@ export const VISUAL_ROUTES: VisualRoute[] = [
   },
   {
     id: "first-contact",
-    path: "/(first contact)",
-    description: "First-Contact / empty-machine onboarding",
-    status: "pending",
-    owner: "A14",
+    path: "/first-contact",
+    description:
+      "First Contact hero (iterate-2026-07-23) — the lighthouse plate + 'Welcome to the Command Center / Say what you want.' promise + the three reused doors + readiness gate. The fresh-install first screen; captured by e2e/visual/11-first-contact.spec.ts with readiness pinned READY. Baseline rendered in the pinned CI container.",
+    status: "baselined",
   },
   // A17 (FR-01.61) — the launch state machine now HAS pixels. The A17 runner is
   // on Windows (its locally-rendered PNGs never match the Linux gate), so these
