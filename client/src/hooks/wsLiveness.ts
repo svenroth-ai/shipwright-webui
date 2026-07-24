@@ -21,6 +21,7 @@ import {
   type ClientHeartbeatHandle,
   type HeartbeatTimer,
 } from "./wsHeartbeat";
+import { startWakeDetector, type WakeDetector } from "./wsWakeDetector";
 
 /** Structural slice of a WebSocket the liveness controller depends on. */
 export interface WsLivenessSocket {
@@ -46,6 +47,10 @@ export interface AttachWsLivenessDeps {
   intervalMs?: number;
   maxMissed?: number;
   refocusProbeMs?: number;
+  /** Wall-clock source for the wake detector (tests inject a controllable one). */
+  nowFn?: () => number;
+  wakeIntervalMs?: number;
+  wakeGapMs?: number;
   setIntervalFn?: (handler: () => void, ms: number) => HeartbeatTimer;
   clearIntervalFn?: (timer: HeartbeatTimer) => void;
   setTimeoutFn?: (handler: () => void, ms: number) => HeartbeatTimer;
@@ -216,6 +221,24 @@ export function attachWsLiveness(
     reviveIfStale();
   };
 
+  // Wake detector (iterate-2026-07-23-mac-wake-terminal-revive). The event-based
+  // revivers above miss the macOS lid-close→unlock case entirely — it fires no
+  // focus/visibility/online event. This clock-drift check catches a slept-through
+  // freeze on ANY OS and runs the same revive path, so recovery no longer waits
+  // out the ~45 s heartbeat. Runs for the whole attach lifetime; stopped in
+  // dispose. reviveIfStale itself no-ops for a replay-only/done session.
+  const wakeDetector: WakeDetector = startWakeDetector({
+    onWake: () => {
+      if (deps.isCancelled()) return;
+      reviveIfStale();
+    },
+    now: deps.nowFn,
+    intervalMs: deps.wakeIntervalMs,
+    gapMs: deps.wakeGapMs,
+    setIntervalFn: deps.setIntervalFn,
+    clearIntervalFn: deps.clearIntervalFn,
+  });
+
   const hasWindow = typeof window !== "undefined";
   const hasDocument = typeof document !== "undefined";
   if (hasWindow) {
@@ -234,6 +257,7 @@ export function attachWsLiveness(
     dispose() {
       onDisconnected();
       clearProbe();
+      wakeDetector.stop();
       if (hasWindow) {
         window.removeEventListener("focus", onRefocus);
         window.removeEventListener("pageshow", onRefocus);
