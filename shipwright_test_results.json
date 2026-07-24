@@ -37,8 +37,17 @@
     ],
     "test_completeness": {
       "status": "complete",
-      "untested_testable": 0,
-      "enumeration_basis": "One row per acceptance criterion AC-1..AC-6 in .shipwright/planning/iterate/2026-07-24-terminal-gpu-off-by-default.md, plus each distinct behavioural branch introduced by the diff (resolver polarity, factory parameter, settings persistence, scroll-heal gating, back-compat).",
+      "counts": {
+        "testable": 20,
+        "tested": 20,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 6,
+        "covered_acs": 6,
+        "note": "One row per acceptance criterion AC-1..AC-6 in .shipwright/planning/iterate/2026-07-24-terminal-gpu-off-by-default.md, plus each distinct behavioural branch introduced by the diff (resolver polarity, factory parameter, settings persistence, scroll-heal gating, back-compat)."
+      },
       "behaviors": [
         {
           "behavior": "AC-1 Default renderer is DOM when nothing is configured (resolver + named constant)",
