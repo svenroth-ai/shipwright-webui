@@ -56,6 +56,24 @@ export interface ScrollRepaintDeps {
   setTimer?: (cb: () => void, ms: number) => ReturnType<typeof setTimeout>;
   /** Test seam for `clearTimeout`. */
   clearTimer?: (handle: ReturnType<typeof setTimeout>) => void;
+  /**
+   * WebGL glyph-atlas heal (`term.clearTextureAtlas()` behind the #206 fence),
+   * read lazily because the handle is created after this module is attached.
+   * Returns null/undefined in the DOM arm (the DEFAULT since
+   * iterate-2026-07-24) — there is no atlas to heal there.
+   *
+   * ATLAS HEAL — why this exists (iterate-2026-07-24). `term.refresh` alone
+   * CANNOT fix a wrong glyph: it routes through `WebglRenderer._updateModel`,
+   * which skips cells whose code/fg/bg/ext match the cached model, so a cell
+   * pointing at a stale atlas coordinate is dirty-skipped forever. Scroll was
+   * the LAST repaint path with no heal wired to it (refocus/activation got
+   * theirs in #206/#215), which is why the user's "resize, then scroll" repro
+   * brought the smear back. Best-effort, not a guarantee: upstream
+   * `TextureAtlas.clearTexture()` early-returns on `_pages[0].currentRow`
+   * ALONE, so a multi-page atlas keeps pages 1..N uncleared — that residual is
+   * exactly why the DOM renderer, not this heal, is the primary fix.
+   */
+  getHealAtlas?: () => (() => void) | null | undefined;
 }
 
 /**
@@ -104,6 +122,17 @@ export function attachScrollRepaint(
     trailing = setT(() => {
       trailing = null;
       repaintFull();
+      // Atlas heal rides the TRAILING pass ONLY — never the per-frame one
+      // above. `clearTextureAtlas()` re-rasterises every visible glyph; doing
+      // that on each animation frame of a wheel gesture would cost more than
+      // the corruption it prevents. Once per settle is the cheap, correct dose.
+      // No-op in the DOM arm (getHealAtlas returns null).
+      if (isDisposed()) return;
+      try {
+        deps.getHealAtlas?.()?.();
+      } catch {
+        /* term mid-dispose — the next scroll reschedules a fresh heal */
+      }
     }, SCROLL_REPAINT_TRAILING_MS);
   };
 

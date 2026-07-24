@@ -21,12 +21,27 @@
  * FR-01.44 #201) on focus / Claude-theme fetch / OS-scheme, which is why it recurs
  * in long sessions with no manual resize.
  *
- * A manual resize heals because handleResize DOES clear the model + glyph renderer
- * (WebglRenderer.handleResize → _clearModel(true)). The atlas REPACK path
+ * A manual resize heals because handleResize clears BOTH the model and the glyph
+ * renderer — but note the exact mechanism, because an earlier revision of this
+ * comment got it wrong and sent the next reader down a dead end: handleResize
+ * ends with `_clearModel(FALSE)` (WebglRenderer.ts:203); the glyph renderer is
+ * cleared SEPARATELY and EARLIER by `_glyphRenderer.handleResize() → clear()`
+ * (:197, GlyphRenderer.ts:318-324). The atlas REPACK path
  * (TextureAtlas._mergePages → onRemoveTextureAtlasCanvas) already self-heals on the
  * next frame via TextureAtlas._requestClearModel (:195), so `refresh` handled that
  * one — we still clear on it, defensively, so any repack that reassigns a live
  * coordinate can never strand a cell.
+ *
+ * LIMIT OF THIS HEAL (iterate-2026-07-24 — why the DOM renderer is now the
+ * DEFAULT and this fence is only best-effort): `TextureAtlas.clearTexture()`
+ * (:138-141) early-returns when `_pages[0].currentRow` is at the origin — a
+ * guard that inspects PAGE 0 ONLY. In the multi-page atlas state that heavy
+ * scrolling produces, pages 1..N are then neither cleared nor given the
+ * `version++` that `GlyphRenderer.render` (:361) requires before re-uploading
+ * the texture, so the corruption those pages hold survives the clear. Upstream
+ * also never resets `_requestClearModel` (:133-136), and `AtlasPage.clear()`
+ * leaves `glyphs`/`_usedPixels` stale. These are upstream defects we cannot
+ * patch from here — hence GPU acceleration is opt-in (terminal-renderer.ts).
  *
  * FIX — call the PUBLIC equivalent of the resize heal: `Terminal.clearTextureAtlas()`
  * (xterm.d.ts → RenderService.clearTextureAtlas → WebglRenderer clears the atlas +

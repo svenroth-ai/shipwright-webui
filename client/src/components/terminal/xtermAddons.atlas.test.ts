@@ -151,7 +151,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   afterEach(() => vi.clearAllMocks());
 
   it("subscribes to the coordinate-reassigning events (change + remove) only, NOT add", () => {
-    createEmbeddedXterm(document.createElement("div"));
+    createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     expect(webgl.onChangeTextureAtlas).toHaveBeenCalledTimes(1);
     expect(webgl.onRemoveTextureAtlasCanvas).toHaveBeenCalledTimes(1);
@@ -162,7 +162,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   });
 
   it("a change or remove mutation heals via a DEFERRED term.clearTextureAtlas()", async () => {
-    createEmbeddedXterm(document.createElement("div"));
+    createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     // No spurious heal before the atlas actually mutates.
     expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
@@ -183,7 +183,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   });
 
   it("coalesces a burst of atlas mutations in one tick into a single clear", async () => {
-    createEmbeddedXterm(document.createElement("div"));
+    createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     webgl.changeAtlasCb?.();
     webgl.removeCanvasCb?.();
@@ -195,7 +195,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   });
 
   it("the atlas heal swallows a mid-dispose term throw (no unhandled rejection)", async () => {
-    createEmbeddedXterm(document.createElement("div"));
+    createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     lastTerm?.clearTextureAtlas.mockImplementation(() => {
       throw new Error("term mid-dispose");
@@ -206,7 +206,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   });
 
   it("disposing the handle cancels a subsequent heal (no clear on a dead term)", async () => {
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     handle.dispose();
     webgl.changeAtlasCb?.();
@@ -219,7 +219,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   // fence directly rather than growing a second heal (see the file header).
 
   it("exposes healAtlas — one deferred, coalesced clear per call", async () => {
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     expect(handle.healAtlas).toBeTypeOf("function");
 
     handle.healAtlas?.();
@@ -230,7 +230,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   });
 
   it("a burst of healAtlas() calls in one tick collapses into a single clear", async () => {
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     handle.healAtlas?.();
     handle.healAtlas?.();
     handle.healAtlas?.();
@@ -241,7 +241,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   it("healAtlas + a concurrent atlas mutation still yield ONE clear per tick", async () => {
     // openai plan-review #4: prove the clear cannot compound with the
     // event-driven heal (they share one `pending` flag, not two).
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     handle.healAtlas?.();
     webgl.changeAtlasCb?.();
@@ -252,7 +252,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   it("a healAtlas queued before dispose() never lands on the torn-down term", async () => {
     // openai plan-review #5: the real race is a re-show event scheduling a heal
     // immediately before React cleanup runs.
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     handle.healAtlas?.(); // queued…
     handle.dispose(); // …then the terminal dies before the microtask drains
     await flushMicrotasks();
@@ -265,7 +265,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   // spec 94 reads as "the heal fired").
 
   it("a heal queued just before a context loss is cancelled, not counted", async () => {
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     handle.healAtlas?.(); // queued on the fence…
     webgl.contextLossCb?.(); // …GPU context dies before the microtask drains
@@ -274,7 +274,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
   });
 
   it("healAtlas is inert after a context loss (renderer is DOM now)", async () => {
-    const handle = createEmbeddedXterm(document.createElement("div"));
+    const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
     const webgl = webglOf();
     webgl.contextLossCb?.();
     handle.healAtlas?.();
@@ -287,7 +287,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
     // unconditional `true` there would hand out a heal for a dead renderer.
     loseContextOnLoad = true;
     try {
-      const handle = createEmbeddedXterm(document.createElement("div"));
+      const handle = createEmbeddedXterm(document.createElement("div"), "dark", "webgl");
       handle.healAtlas?.();
       await flushMicrotasks();
       expect(lastTerm?.clearTextureAtlas).not.toHaveBeenCalled();
@@ -296,7 +296,7 @@ describe("xtermAddons — WebGL atlas-corruption heal (clearTextureAtlas fence)"
     }
   });
 
-  it("healAtlas is undefined in the DOM-renderer arm (no atlas to clear)", () => {
+  it("healAtlas is undefined in the DOM arm — resolved from storage, NO explicit renderer arg", () => {
     localStorage.setItem(RENDERER_STORAGE_KEY, "dom");
     try {
       const handle = createEmbeddedXterm(document.createElement("div"));

@@ -1,12 +1,12 @@
 {
   "last_updated": "2026-07-23T09:20:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-23-mac-wake-terminal-revive",
-    "date": "2026-07-23",
+    "run_id": "iterate-2026-07-24-terminal-scroll-atlas-smear",
+    "date": "2026-07-24",
     "unit": {
       "status": "passed",
-      "passed": 3062,
-      "total": 3062
+      "passed": 3080,
+      "total": 3080
     },
     "integration": {
       "status": "not_run",
@@ -20,91 +20,160 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 1,
-      "total": 1
+      "passed": 23,
+      "total": 23
     },
     "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
+      "status": "not_run"
     },
     "smoke": {
       "status": "not_run"
     },
     "degraded": [
-      "Prior-iterate E2E spec 77 fails on this stack — its outage premise needs the WS upgrade to be REJECTED (pty spawn failing), but here the pty spawned (WS 200) so the terminal connects and there is no outage to surface. NOT a regression from this client-only change (a client wake detector cannot alter server pty spawn). Environmental, per project_e2e_pty_spawn_267_dead_cwd."
+      {
+        "condition": "external_llm_review",
+        "detail": "Plan/code/doubt review subagents not spawned: the operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it. Recorded honestly in reviews.json with a disposition rather than silently skipped."
+      }
     ],
     "test_completeness": {
       "status": "complete",
-      "behaviors": [
-        {
-          "behavior": "Wake detector does NOT fire on a normal-gap tick (running/idle foreground tab)",
-          "disposition": "tested",
-          "evidence": "wsWakeDetector.test.ts — PASS"
-        },
-        {
-          "behavior": "Wake detector FIRES on a large tick gap (the tab was frozen/slept)",
-          "disposition": "tested",
-          "evidence": "wsWakeDetector.test.ts — PASS"
-        },
-        {
-          "behavior": "Wake detector re-arms — a second sleep fires again",
-          "disposition": "tested",
-          "evidence": "wsWakeDetector.test.ts — PASS"
-        },
-        {
-          "behavior": "stop() clears the interval and prevents any further wake; idempotent",
-          "disposition": "tested",
-          "evidence": "wsWakeDetector.test.ts (2 cases) — PASS"
-        },
-        {
-          "behavior": "On wake, an OPEN-but-stale socket is PROBED (ping) with no browser event",
-          "disposition": "tested",
-          "evidence": "wsLiveness.wake.test.ts — PASS"
-        },
-        {
-          "behavior": "On wake with NO socket, reconnect fires immediately",
-          "disposition": "tested",
-          "evidence": "wsLiveness.wake.test.ts — PASS"
-        },
-        {
-          "behavior": "dispose() stops the detector so a later tick does nothing",
-          "disposition": "tested",
-          "evidence": "wsLiveness.wake.test.ts — PASS"
-        },
-        {
-          "behavior": "No spurious wake under the shared fake-timer seam — full 59-test WS suite green",
-          "disposition": "tested",
-          "evidence": "useTerminalSocket.*/wsHeartbeat/wsReconnectSchedule — PASS"
-        },
-        {
-          "behavior": "REAL BROWSER: a lid-close simulation (page.clock.fastForward) reconnects a half-open socket with NO focus/visibility/online event",
-          "disposition": "tested",
-          "evidence": "e2e/flows/78-terminal-wake-reconnect.spec.ts — PASS; verified load-bearing by disabling the detector and rebuilding: FAILED with 'Expected: > 1, Received: 1'"
-        },
-        {
-          "behavior": "Real macOS lid-close→unlock on the reporter's Mac recovers in a few seconds",
-          "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "A genuine OS suspend cannot be produced in CI or a local harness; the mechanism (clock-drift detection → reviveIfStale → probe → reconnect) is unit-covered end-to-end and demonstrated in a real Chromium via page.clock's documented lid-close simulation (ledger row above)."
-        }
-      ],
       "counts": {
-        "testable": 9,
-        "tested": 9,
+        "testable": 20,
+        "tested": 20,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 4,
-        "covered_acs": 4
-      }
+        "acs": 6,
+        "covered_acs": 6,
+        "note": "One row per acceptance criterion AC-1..AC-6 in .shipwright/planning/iterate/2026-07-24-terminal-gpu-off-by-default.md, plus each distinct behavioural branch introduced by the diff (resolver polarity, factory parameter, settings persistence, scroll-heal gating, back-compat)."
+      },
+      "behaviors": [
+        {
+          "behavior": "AC-1 Default renderer is DOM when nothing is configured (resolver + named constant)",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts (2 cases) - PASS"
+        },
+        {
+          "behavior": "AC-1 Factory default arm constructs NO WebGL addon and exposes no healAtlas",
+          "disposition": "tested",
+          "evidence": "xtermAddons.test.ts 'defaults to the DOM renderer' - PASS"
+        },
+        {
+          "behavior": "AC-1 REAL BROWSER: default mount logs renderer=dom, creates 0 canvases, renders .xterm-rows",
+          "disposition": "tested",
+          "evidence": "e2e/flows/93-terminal-renderer-toggle.spec.ts - PASS (isolated stack, chromium)"
+        },
+        {
+          "behavior": "AC-2 WebGL opt-in via storage and via query param; query wins over storage in BOTH directions",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts (4 cases) - PASS"
+        },
+        {
+          "behavior": "AC-2 Unknown/malformed/whitespace values resolve to dom (fail toward safe)",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts (3 cases) - PASS"
+        },
+        {
+          "behavior": "AC-2 REAL BROWSER: opt-in mount logs renderer=webgl and produces canvases",
+          "disposition": "tested",
+          "evidence": "e2e/flows/93 - PASS (canvases=3 via SwiftShader)"
+        },
+        {
+          "behavior": "AC-2 Back-compat: a pre-flip stored 'dom' value is still honoured (storage key unchanged)",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts - PASS"
+        },
+        {
+          "behavior": "AC-3 Settings checkbox is unchecked by default and reflects a persisted opt-in",
+          "disposition": "tested",
+          "evidence": "TerminalSettingsCard.test.tsx (2 cases) - PASS"
+        },
+        {
+          "behavior": "AC-3 Checkbox persists opt-in AND opt-out; writes an explicit renderer name, never removes the key",
+          "disposition": "tested",
+          "evidence": "TerminalSettingsCard.test.tsx + terminal-renderer.test.ts - PASS; e2e/flows/93 'Settings checkbox persists the choice' - PASS (real browser, both directions)"
+        },
+        {
+          "behavior": "AC-3 Checkbox emits NO live-change event (renderer only swaps on a fresh terminal) and says so in the copy",
+          "disposition": "tested",
+          "evidence": "TerminalSettingsCard.test.tsx (2 cases) - PASS"
+        },
+        {
+          "behavior": "AC-3 REAL BROWSER: a user can reach the checkbox in Settings, toggle it, and a terminal mounted afterwards honours the choice in BOTH directions",
+          "disposition": "tested",
+          "evidence": "e2e/flows/93-terminal-renderer-toggle.spec.ts - PASS"
+        },
+        {
+          "behavior": "Checkbox reflects the STORED preference and never the query-param override; an active ?terminalRenderer= override is surfaced to the user",
+          "disposition": "tested",
+          "evidence": "terminal-renderer.test.ts (2 cases) + TerminalSettingsCard - PASS (external code review MEDIUM #1, fixed)"
+        },
+        {
+          "behavior": "AC-4 WebGL arm still loads the addon BEFORE term.open (ADR-099) and registers onContextLoss + atlas fence",
+          "disposition": "tested",
+          "evidence": "xtermAddons.test.ts + xtermAddons.atlas.test.ts (13 cases) - PASS"
+        },
+        {
+          "behavior": "AC-5 Trailing scroll pass invokes healAtlas exactly once; the per-frame pass never does",
+          "disposition": "tested",
+          "evidence": "scroll-repaint.atlas-heal.test.ts - PASS"
+        },
+        {
+          "behavior": "AC-5 No heal in the DOM arm; omitting getHealAtlas stays backwards compatible",
+          "disposition": "tested",
+          "evidence": "scroll-repaint.atlas-heal.test.ts (2 cases) - PASS"
+        },
+        {
+          "behavior": "AC-5 Heal is suppressed after dispose and a heal throw is swallowed",
+          "disposition": "tested",
+          "evidence": "scroll-repaint.atlas-heal.test.ts (2 cases) - PASS"
+        },
+        {
+          "behavior": "AC-5 End-to-end atlas wiring still reaches the LIVE WebGL renderer under the opt-in",
+          "disposition": "tested",
+          "evidence": "e2e/flows/94-webgl-atlas-repaint.spec.ts - PASS (canvases=3, atlasRepaints=6, re-show heal 1->3)"
+        },
+        {
+          "behavior": "Existing terminal surfaces are unaffected by the renderer flip (tab autofocus, mount, appearance, refocus/reflow repaint)",
+          "disposition": "tested",
+          "evidence": "e2e/flows/88,73,95,91,92 - 19 PASS; spec 88's canvas assertion made renderer-aware so it keeps covering the DEFAULT arm"
+        },
+        {
+          "behavior": "AC-6 Whole client suite, typecheck and lint stay green",
+          "disposition": "tested",
+          "evidence": "vitest 3078/3078 PASS; tsc --noEmit clean; oxlint clean on all changed files"
+        },
+        {
+          "behavior": "The DOM renderer visually eliminates the smear on the reporter's own Mac and Windows machines",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "note": "The GPU-side texture eviction/repack that corrupts the atlas does not reproduce off a real GPU (SwiftShader does not evict) - same residual as #206/#215. The WIRING is fully tested above; the visual outcome is the user's confirmation."
+        },
+        {
+          "behavior": "AC-6 Visual baselines regenerated for the renderer flip; only intended routes changed",
+          "disposition": "tested",
+          "evidence": "visual-baselines workflow run 30127239855 (pinned Linux container) against the pushed branch: changed-baselines.txt lists ONLY settings.png (the new GPU checkbox) - committed. task-detail-terminal.png came back BYTE-IDENTICAL, i.e. the CI container was already rendering the terminal without WebGL, so the flip shifted no terminal pixels. No unintended visual bleed."
+        }
+      ]
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 1,
+      "tests_run": 23,
       "exit_code": 0,
-      "justification": "Client WS-behaviour change, so jsdom cannot prove the real outcome. Executed e2e/flows/78-terminal-wake-reconnect.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3851): 1 passed. It drives the exact Mac mechanism — page.clock.fastForward (Playwright's documented laptop-lid-close/reopen simulation) plus a routeWebSocket-mocked HALF-OPEN socket that stops answering pings without closing — and asserts a reconnect happens with NO focus/visibility/online event dispatched. Verified LOAD-BEARING by disabling the wake detector, rebuilding the client and re-running: FAILED with 'Expected: > 1, Received: 1' (the frozen-terminal defect). Fix restored, re-run green. Prior-iterate spec 77 fails environmentally here (WS upgrade succeeded → no outage), independent of this change."
+      "retries": 0,
+      "runner": "playwright-chromium",
+      "stack": "isolated single-process (built client via SHIPWRIGHT_STATIC_DIR, Hono tsx on 127.0.0.1:3849, temp USERPROFILE)",
+      "specs": [
+        "93-terminal-renderer-toggle",
+        "94-webgl-atlas-repaint",
+        "91-terminal-repaint-on-refocus",
+        "92-terminal-reflow-repaint",
+        "88-terminal-tab-autofocus",
+        "73-embedded-terminal",
+        "95-terminal-appearance"
+      ],
+      "notes": "Renderer change is inherently browser-visible; jsdom cannot distinguish the arms (no canvas getContext). Spec 93 is the differential proof: default arm 0 canvases + renderer=dom, opt-in arm 3 canvases + renderer=webgl. AC-3 is additionally driven through the REAL Settings UI (open /settings, toggle the checkbox, mount a terminal, assert the renderer, then toggle back) after external review flagged that seeding localStorage alone never proved a user can reach the control."
     }
   }
 }

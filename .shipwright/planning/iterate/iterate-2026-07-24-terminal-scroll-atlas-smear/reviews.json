@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-24-terminal-scroll-atlas-smear",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T21:13:11.734297+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T21:12:54.253008+00:00",
+      "disposition": "Not run: this operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it, and these three passes are subagent-delivered (plan-reviewer / code-reviewer / doubt-reviewer). Compensating coverage actually performed: a full external code review via external_review.py (openrouter, gemini+openai, 2/2 succeeded) which returned three MEDIUM findings, two of which were real and are fixed in this same diff; plus the 7-point self-review. Recorded as not_run rather than left pending so the empty row means 'genuinely not run', never 'nobody wrote it down'.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T21:12:54.366267+00:00",
+      "disposition": "Not run: this operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it, and these three passes are subagent-delivered (plan-reviewer / code-reviewer / doubt-reviewer). Compensating coverage actually performed: a full external code review via external_review.py (openrouter, gemini+openai, 2/2 succeeded) which returned three MEDIUM findings, two of which were real and are fixed in this same diff; plus the 7-point self-review. Recorded as not_run rather than left pending so the empty row means 'genuinely not run', never 'nobody wrote it down'.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T21:12:54.475383+00:00",
+      "disposition": "Not run: this operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it, and these three passes are subagent-delivered (plan-reviewer / code-reviewer / doubt-reviewer). Compensating coverage actually performed: a full external code review via external_review.py (openrouter, gemini+openai, 2/2 succeeded) which returned three MEDIUM findings, two of which were real and are fixed in this same diff; plus the 7-point self-review. Recorded as not_run rather than left pending so the empty row means 'genuinely not run', never 'nobody wrote it down'.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-24T21:12:12.808092+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Provider: openrouter (gemini + openai). reviews_succeeded=2, degraded=false.\nOverall: ship-with-fixes. Three MEDIUM findings, all actioned in this same diff:\n1. [bug, MEDIUM, TerminalSettingsCard.tsx] Checkbox seeded from isGpuAccelerationEnabled(), which resolved the EFFECTIVE renderer incl. the ?terminalRenderer= query param. With ?terminalRenderer=webgl and nothing stored the box showed checked; un-checking it showed unchecked while the query kept WebGL alive on the next mount - the control lying about what it controls. FIXED: isGpuAccelerationEnabled() now reads localStorage ONLY; new isRendererOverriddenByQuery() drives an explicit note in the card when a query override is active. Regression tests added (terminal-renderer.test.ts, 2 cases).\n2. [spec, MEDIUM, e2e 93] AC-3 required an E2E through the real Settings UI; the existing arms seeded localStorage directly and never visited Settings. FIXED: new test \"the Settings checkbox persists the choice and a new terminal mounts with it\" - opens /settings, asserts default-unchecked, checks it, asserts persistence, mounts a terminal and asserts renderer=webgl, then un-checks and asserts renderer=dom. PASS in real chromium.\n3. [spec, MEDIUM, AC-6] Visual baseline task-detail-terminal.png not regenerated. ACCEPTED as accurate: baselines are Linux-only and produced by the visual-baselines CI workflow against the pushed branch; scheduled at F11 after push. Recorded as untestable/requires-manual-visual-judgment in the ledger rather than claimed done.\n"
+    }
+  }
+}

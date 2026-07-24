@@ -150,15 +150,31 @@ describe("xtermAddons — createEmbeddedXterm factory", () => {
 
   it("returns { term, fit, dispose }", () => {
     const container = document.createElement("div");
-    const handle = createEmbeddedXterm(container);
+    const handle = createEmbeddedXterm(container, "dark", "webgl");
     expect(handle.term).toBeDefined();
     expect(handle.fit).toBeDefined();
     expect(typeof handle.dispose).toBe("function");
   });
 
+  // iterate-2026-07-24 — the DEFAULT arm. Every other test in this file pins
+  // "webgl" explicitly because it exercises the GPU path; this one deliberately
+  // omits the argument so it fails the moment the default flips back to the
+  // renderer whose glyph atlas causes the wrong-letter corruption.
+  it("defaults to the DOM renderer — no WebGL addon, no atlas heal", () => {
+    const container = document.createElement("div");
+    const handle = createEmbeddedXterm(container);
+    expect(
+      callLog.some((entry) => entry === "loadAddon:WebglAddonFake"),
+    ).toBe(false);
+    // No atlas exists in the DOM arm, so no caller may be handed a heal.
+    expect(handle.healAtlas).toBeUndefined();
+    // The terminal itself is still fully constructed and opened.
+    expect(callLog.indexOf("open")).toBeGreaterThan(-1);
+  });
+
   it("loads WebGL addon BEFORE term.open(container) (ADR-099 canonical ordering)", () => {
     const container = document.createElement("div");
-    createEmbeddedXterm(container);
+    createEmbeddedXterm(container, "dark", "webgl");
     const openIdx = callLog.indexOf("open");
     const webglLoadIdx = callLog.findIndex(
       (entry) => entry === "loadAddon:WebglAddonFake",
@@ -170,7 +186,7 @@ describe("xtermAddons — createEmbeddedXterm factory", () => {
 
   it("loads FitAddon AND WebLinksAddon before open (canonical demo order)", () => {
     const container = document.createElement("div");
-    createEmbeddedXterm(container);
+    createEmbeddedXterm(container, "dark", "webgl");
     const openIdx = callLog.indexOf("open");
     const fitIdx = callLog.findIndex((e) => e === "loadAddon:FitAddonFake");
     const linksIdx = callLog.findIndex(
@@ -184,7 +200,7 @@ describe("xtermAddons — createEmbeddedXterm factory", () => {
 
   it("initial fit() runs after open()", () => {
     const container = document.createElement("div");
-    createEmbeddedXterm(container);
+    createEmbeddedXterm(container, "dark", "webgl");
     const openIdx = callLog.indexOf("open");
     const fitIdx = callLog.indexOf("fit");
     expect(openIdx).toBeGreaterThan(-1);
@@ -194,7 +210,7 @@ describe("xtermAddons — createEmbeddedXterm factory", () => {
 
   it("captured Terminal options reflect buildEmbeddedXtermOptions()", () => {
     const container = document.createElement("div");
-    createEmbeddedXterm(container);
+    createEmbeddedXterm(container, "dark", "webgl");
     expect(capturedOptions).not.toBeNull();
     expect(capturedOptions?.convertEol).toBe(false);
     expect(capturedOptions?.allowProposedApi).toBe(true);
@@ -204,14 +220,14 @@ describe("xtermAddons — createEmbeddedXterm factory", () => {
 
   it("bound dispose() calls term.dispose() — installs dimensions-stub first", () => {
     const container = document.createElement("div");
-    const handle = createEmbeddedXterm(container);
+    const handle = createEmbeddedXterm(container, "dark", "webgl");
     handle.dispose();
     expect(callLog).toContain("dispose");
   });
 
   it("registers a WebGL onContextLoss handler that disposes the addon (GPU-context-loss recovery)", () => {
     const container = document.createElement("div");
-    createEmbeddedXterm(container);
+    createEmbeddedXterm(container, "dark", "webgl");
     const webgl = loadedAddons.find(
       (a) => (a as { constructor?: { name?: string } })?.constructor?.name === "WebglAddonFake",
     ) as WebglAddonFake | undefined;

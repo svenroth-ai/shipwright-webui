@@ -162,6 +162,10 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
         const canvases = Array.from(
           term.element.querySelectorAll("canvas"),
         ) as HTMLCanvasElement[];
+        // The DOM renderer (default since iterate-2026-07-24) draws no canvas
+        // at all — its render surface is the .xterm-rows container. Report both
+        // so the assertion below can check whichever surface this arm uses.
+        const rowsEl = term.element.querySelector(".xterm-rows") as HTMLElement | null;
         return {
           hookFound: true,
           cols: term.cols,
@@ -172,6 +176,9 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
             cssW: c.clientWidth,
             cssH: c.clientHeight,
           })),
+          domRows: rowsEl
+            ? { cssW: rowsEl.clientWidth, cssH: rowsEl.clientHeight }
+            : null,
         } as const;
       });
       if (!canvasDims.hookFound) {
@@ -185,12 +192,22 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
       // 0x0 or 1x1 (which would indicate 0-cell-dim layout).
       expect(canvasDims.cols).toBeGreaterThan(10);
       expect(canvasDims.rows).toBeGreaterThan(2);
-      // At least one canvas must have non-zero dimensions. WebGL
-      // renderer pre-fit-on-active would leave canvases at 0x0;
-      // post-fit they should be non-zero.
-      const anyNonZero = canvasDims.canvases.some(
-        (c) => c.w > 0 && c.h > 0 && c.cssW > 0 && c.cssH > 0,
-      );
+      // The render SURFACE must have non-zero dimensions. Both renderers share
+      // the hazard this pins: the container is display:none at mount, so a
+      // renderer that never re-fits on activation stays stuck at 0x0. Which
+      // surface to measure depends on the arm — WebGL draws canvases, the DOM
+      // renderer (the DEFAULT since iterate-2026-07-24) draws .xterm-rows —
+      // so check canvases when present and fall back to the rows container.
+      // Asserting canvases unconditionally would silently stop testing the
+      // default arm, which is the one every user actually gets.
+      const anyNonZero =
+        canvasDims.canvases.length > 0
+          ? canvasDims.canvases.some(
+              (c) => c.w > 0 && c.h > 0 && c.cssW > 0 && c.cssH > 0,
+            )
+          : !!canvasDims.domRows &&
+            canvasDims.domRows.cssW > 0 &&
+            canvasDims.domRows.cssH > 0;
       if (!anyNonZero) {
         await page.screenshot({
           path: path.join(ARTIFACT_DIR, "zero-canvas.png"),
@@ -201,7 +218,7 @@ test.describe("Iterate terminal-tab-autofocus — auto-focus on tab activation",
       }
       expect(
         anyNonZero,
-        "at least one xterm canvas must have non-zero dimensions after tab activation — otherwise the renderer is stuck on the 0x0 atlas it initialised with while the container was display:none",
+        "the xterm render surface (WebGL canvas, or .xterm-rows in the DOM arm) must have non-zero dimensions after tab activation — otherwise the renderer is stuck at the 0x0 it initialised with while the container was display:none",
       ).toBe(true);
     } finally {
       await cleanup();
