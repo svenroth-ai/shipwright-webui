@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-23-mac-wake-terminal-revive",
+  "date": "2026-07-24T06:55:27.928591Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/2026-07-23-mac-wake-terminal-revive",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-23-mac-wake-terminal-revive.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-23-mac-wake-terminal-revive"
+}

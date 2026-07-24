@@ -1,12 +1,12 @@
 {
-  "last_updated": "2026-07-23",
+  "last_updated": "2026-07-23T09:20:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-23-mission-finished-run-artifacts",
+    "run_id": "iterate-2026-07-23-mac-wake-terminal-revive",
     "date": "2026-07-23",
     "unit": {
       "status": "passed",
-      "passed": 6061,
-      "total": 6061
+      "passed": 3062,
+      "total": 3062
     },
     "integration": {
       "status": "not_run",
@@ -19,12 +19,12 @@
       "total": 0
     },
     "e2e": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
+      "status": "passed",
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
-      "status": "not_run",
+      "status": "skipped",
       "passed": 0,
       "total": 0
     },
@@ -32,80 +32,79 @@
       "status": "not_run"
     },
     "degraded": [
-      {
-        "area": "surface_verification",
-        "detail": "Real-browser web E2E of the Mission tab + Linux-only visual-baseline regen (3 mission baselines) deferred to CI; the rendering logic is covered by real-DOM component tests (MissionLeftPanel, TestsDetail) and the wire-sync guard, and the merged-ref/tests/merge path was proven end-to-end against the real main tree."
-      }
+      "Prior-iterate E2E spec 77 fails on this stack — its outage premise needs the WS upgrade to be REJECTED (pty spawn failing), but here the pty spawned (WS 200) so the terminal connects and there is no outage to surface. NOT a regression from this client-only change (a client wake detector cannot alter server pty spawn). Environmental, per project_e2e_pty_spawn_267_dead_cwd."
     ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Merged-ref lookup returns found/absent/unavailable correctly",
+          "behavior": "Wake detector does NOT fire on a normal-gap tick (running/idle foreground tab)",
           "disposition": "tested",
-          "evidence": "merged-events.test.ts findWorkCompletedFromMergedRef (found, absent, unavailable) PASSED"
+          "evidence": "wsWakeDetector.test.ts — PASS"
         },
         {
-          "behavior": "Ref blob is TTL-cached; a live run never consults the ref; a local row short-circuits it",
+          "behavior": "Wake detector FIRES on a large tick gap (the tab was frozen/slept)",
           "disposition": "tested",
-          "evidence": "merged-events.test.ts (TTL count, isWorktree gate, local-row) PASSED"
+          "evidence": "wsWakeDetector.test.ts — PASS"
         },
         {
-          "behavior": "A merged-ref miss is uncacheable so a later fetch is picked up",
+          "behavior": "Wake detector re-arms — a second sleep fires again",
           "disposition": "tested",
-          "evidence": "merged-events.test.ts 'reports a miss (uncacheable)' PASSED"
+          "evidence": "wsWakeDetector.test.ts — PASS"
         },
         {
-          "behavior": "Tests artifact leads with recorded counts even when commit is empty and no diff",
+          "behavior": "stop() clears the interval and prevents any further wake; idempotent",
           "disposition": "tested",
-          "evidence": "artifacts-tests.test.ts counts-led block (6 cases) PASSED"
+          "evidence": "wsWakeDetector.test.ts (2 cases) — PASS"
         },
         {
-          "behavior": "Tests still hides/unavailable honestly when nothing was recorded",
+          "behavior": "On wake, an OPEN-but-stale socket is PROBED (ping) with no browser event",
           "disposition": "tested",
-          "evidence": "artifacts-tests.test.ts never-a-false-negative block PASSED"
+          "evidence": "wsLiveness.wake.test.ts — PASS"
         },
         {
-          "behavior": "Tests wire shape identical server<->client",
+          "behavior": "On wake with NO socket, reconnect fires immediately",
           "disposition": "tested",
-          "evidence": "mission-context-types-sync.test.ts (50) PASSED"
+          "evidence": "wsLiveness.wake.test.ts — PASS"
         },
         {
-          "behavior": "TestsDetail leads with the result headline and shows no empty table",
+          "behavior": "dispose() stops the detector so a later tick does nothing",
           "disposition": "tested",
-          "evidence": "MissionSlice2Details.test.tsx counts-led cases + missionArtifacts.test.ts testsResultText PASSED"
+          "evidence": "wsLiveness.wake.test.ts — PASS"
         },
         {
-          "behavior": "Green Merge step lights from the real merge state for a standalone iterate",
+          "behavior": "No spurious wake under the shared fake-timer seam — full 59-test WS suite green",
           "disposition": "tested",
-          "evidence": "MissionLeftPanel.test.tsx merged->all-done, pending->current PASSED"
+          "evidence": "useTerminalSocket.*/wsHeartbeat/wsReconnectSchedule — PASS"
         },
         {
-          "behavior": "Neutral phase pills stay legible in .mc-top (no --color-text)",
+          "behavior": "REAL BROWSER: a lid-close simulation (page.clock.fastForward) reconnects a half-open socket with NO focus/visibility/online event",
           "disposition": "tested",
-          "evidence": "phaseStyle.test.ts legibility guard PASSED"
+          "evidence": "e2e/flows/78-terminal-wake-reconnect.spec.ts — PASS; verified load-bearing by disabling the detector and rebuilding: FAILED with 'Expected: > 1, Received: 1'"
         },
         {
-          "behavior": "End-to-end merged-ref + tests + merge on the real main tree for first-contact-hero",
-          "disposition": "tested",
-          "evidence": "throwaway integration probe: found, PR#321, merged, 'All 3037 tests passing', 'Delivered - merged' (2026-07-23)"
-        },
-        {
-          "behavior": "Real-browser pixel of the pill/rail/stepper",
+          "behavior": "Real macOS lid-close→unlock on the reporter's Mac recovers in a few seconds",
           "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "evidence": "covered by the deferred visual-baseline regen (3 mission baselines)"
+          "reason_code": "requires-physical-device",
+          "evidence": "A genuine OS suspend cannot be produced in CI or a local harness; the mechanism (clock-drift detection → reviveIfStale → probe → reconnect) is unit-covered end-to-end and demonstrated in a real Chromium via page.clock's documented lid-close simulation (ledger row above)."
         }
-      ]
+      ],
+      "counts": {
+        "testable": 9,
+        "tested": 9,
+        "untestable": 1,
+        "untested_testable": 0
+      },
+      "enumeration_basis": {
+        "acs": 4,
+        "covered_acs": 4
+      }
     },
     "surface_verification": {
-      "surface": "none",
-      "runner": "",
+      "surface": "web",
+      "tests_run": 1,
       "exit_code": 0,
-      "tests_run": 0,
-      "justification": "Rendering + API-shape behaviour is covered by real-DOM component tests (MissionLeftPanel renders the stepper and asserts merged->green; TestsDetail renders the counts-led body) and the server<->client wire-sync guard; the merged-ref/tests/merge data path was proven end-to-end against the real main tree. The full isolated-stack web E2E + Linux-only visual-baseline regen are recorded as degraded and run in CI.",
-      "note": "Backend-affects-frontend: the mission-context response gained a `results` field, mirrored and sync-guarded. Real-browser + baseline regen deferred to CI (see degraded).",
-      "attempts": 0
+      "justification": "Client WS-behaviour change, so jsdom cannot prove the real outcome. Executed e2e/flows/78-terminal-wake-reconnect.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3851): 1 passed. It drives the exact Mac mechanism — page.clock.fastForward (Playwright's documented laptop-lid-close/reopen simulation) plus a routeWebSocket-mocked HALF-OPEN socket that stops answering pings without closing — and asserts a reconnect happens with NO focus/visibility/online event dispatched. Verified LOAD-BEARING by disabling the wake detector, rebuilding the client and re-running: FAILED with 'Expected: > 1, Received: 1' (the frozen-terminal defect). Fix restored, re-run green. Prior-iterate spec 77 fails environmentally here (WS upgrade succeeded → no outage), independent of this change."
     }
   }
 }

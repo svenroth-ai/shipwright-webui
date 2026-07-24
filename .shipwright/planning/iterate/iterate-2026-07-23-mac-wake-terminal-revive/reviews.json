@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-23-mac-wake-terminal-revive",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T06:58:55.131196+00:00",
+      "disposition": "7-point self-review completed (.shipwright/runs/iterate-2026-07-23-mac-wake-terminal-revive/self-review.md): root-cause not symptom; pure module + wiring under the 300 ceiling; false-positive-safe (probe is the authority); full 59-test WS suite + client 3062/server 3011 green; verified by a load-bearing real-browser E2E (spec 78).",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T06:58:16.055343+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+ or risk-flags (none here); doubt review is optional stage-3 for migrations/concurrency/irreversible ops (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E (spec 78).",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T06:58:16.055343+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+ or risk-flags (none here); doubt review is optional stage-3 for migrations/concurrency/irreversible ops (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E (spec 78).",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T06:58:16.055343+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+ or risk-flags (none here); doubt review is optional stage-3 for migrations/concurrency/irreversible ops (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E (spec 78).",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-24T06:58:16.055343+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+ or risk-flags (none here); doubt review is optional stage-3 for migrations/concurrency/irreversible ops (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E (spec 78).",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
