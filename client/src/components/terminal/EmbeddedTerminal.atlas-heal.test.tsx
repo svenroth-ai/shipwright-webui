@@ -22,6 +22,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render } from "@testing-library/react";
 
+import { RENDERER_STORAGE_KEY } from "./terminal-renderer";
+
 // --- xterm doubles -------------------------------------------------------
 // The WebGL fake MUST carry onContextLoss + the two atlas-mutation events, or
 // `attachWebglAtlasRepaint` throws and `createEmbeddedXterm` silently falls into
@@ -123,6 +125,12 @@ async function settleTrailingPasses(): Promise<void> {
 
 describe("EmbeddedTerminal — glyph-atlas heal is wired to the live terminal", () => {
   beforeEach(() => {
+    // Opt IN to WebGL. Since iterate-2026-07-24 the DOM renderer is the
+    // DEFAULT (its glyph atlas is the smear root cause), and the DOM arm has
+    // no atlas at all — so without this the component under test would build
+    // a terminal with nothing to heal and every assertion below would pass
+    // vacuously at zero calls. This suite exists to prove the WebGL wiring.
+    localStorage.setItem(RENDERER_STORAGE_KEY, "webgl");
     vi.useFakeTimers();
     if (!(globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver) {
       class RO {
@@ -140,6 +148,7 @@ describe("EmbeddedTerminal — glyph-atlas heal is wired to the live terminal", 
   });
 
   afterEach(() => {
+    localStorage.removeItem(RENDERER_STORAGE_KEY);
     vi.useRealTimers();
     mockTermElement?.remove();
     mockTermElement = null;

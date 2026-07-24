@@ -1,12 +1,19 @@
 /*
  * Terminal preferences card (Settings page).
  *
- * Surfaces the terminal Appearance selector (light/dark, FR-01.44). The
- * former copy-on-selection toggle was removed in
- * iterate-2026-07-07-terminal-osc52-clipboard when OSC 52 became the sole
- * terminal copy path (Claude copies its own selection; the WebUI relays it).
- * Persists client-side (per-browser) via lib/terminalPrefs; the running
- * terminal re-themes live on change.
+ * Surfaces the terminal Appearance selector (light/dark, FR-01.44) and the
+ * GPU-acceleration toggle (iterate-2026-07-24). The former copy-on-selection
+ * toggle was removed in iterate-2026-07-07-terminal-osc52-clipboard when OSC 52
+ * became the sole terminal copy path (Claude copies its own selection; the
+ * WebUI relays it). Persists client-side (per-browser); the running terminal
+ * re-themes live on an appearance change.
+ *
+ * The GPU toggle is the VS Code `terminal.integrated.gpuAcceleration` analogue.
+ * It is OFF by default: the WebGL glyph texture atlas is the root cause of the
+ * long-running "smear"/wrong-letter class, and `term.refresh` provably cannot
+ * heal it (see terminal-renderer.ts). Unlike Appearance it CANNOT apply live —
+ * the renderer is chosen when the xterm instance is constructed — so the copy
+ * says "next time you open a terminal" rather than pretending otherwise.
  */
 
 import { useState } from "react";
@@ -15,6 +22,11 @@ import {
   setAppearancePref,
 } from "../../lib/terminalPrefs";
 import type { AppearancePref } from "../../lib/terminalAppearance";
+import {
+  isGpuAccelerationEnabled,
+  isRendererOverriddenByQuery,
+  setGpuAccelerationEnabled,
+} from "../terminal/terminal-renderer";
 
 const APPEARANCE_OPTIONS: Array<{ value: AppearancePref; label: string }> = [
   { value: "auto", label: "Auto — match Claude Code" },
@@ -27,12 +39,27 @@ export function TerminalSettingsCard() {
   const [appearance, setAppearanceState] = useState<AppearancePref>(() =>
     getAppearancePref(),
   );
+  // Seeded from the STORED preference, not the effective renderer: a
+  // `?terminalRenderer=` URL override must not make this control display (and
+  // then mis-report) a value it does not own. When such an override is active
+  // we say so below rather than pretend the checkbox is in charge.
+  const [gpuEnabled, setGpuEnabledState] = useState<boolean>(() =>
+    isGpuAccelerationEnabled(),
+  );
+  const [queryOverride] = useState<boolean>(() => isRendererOverriddenByQuery());
 
   const changeAppearance = (next: AppearancePref): void => {
     // Persist + emit the same-tab change event so an already-open terminal
     // re-themes live (FR-01.44) with no remount.
     setAppearancePref(next);
     setAppearanceState(next);
+  };
+
+  const changeGpu = (next: boolean): void => {
+    // No live event on purpose: the renderer is fixed at xterm construction,
+    // so an open terminal keeps its current renderer until it is rebuilt.
+    setGpuAccelerationEnabled(next);
+    setGpuEnabledState(next);
   };
 
   return (
@@ -93,6 +120,41 @@ export function TerminalSettingsCard() {
             </option>
           ))}
         </select>
+      </label>
+
+      <label
+        className="flex flex-col gap-[6px]"
+        style={{ marginTop: "12px" }}
+        data-testid="settings-terminal-gpu"
+      >
+        <span
+          className="flex items-center gap-2 font-medium"
+          style={{ fontSize: "14px", color: "var(--color-text)" }}
+        >
+          <input
+            type="checkbox"
+            checked={gpuEnabled}
+            onChange={(e) => changeGpu(e.target.checked)}
+            data-testid="settings-terminal-gpu-checkbox"
+          />
+          Use GPU acceleration
+        </span>
+        <span style={{ fontSize: "13px", color: "var(--color-muted)" }}>
+          Off by default. GPU drawing is faster on very fast output, but its
+          glyph cache can corrupt — the cause of the terminal showing wrong or
+          smeared letters. Leave this off unless you specifically want the
+          speed. <strong>Applies the next time you open a terminal.</strong>
+          {queryOverride ? (
+            <>
+              {" "}
+              <strong data-testid="settings-terminal-gpu-override-note">
+                A <code>?terminalRenderer=</code> link is currently overriding
+                this setting — remove it from the address bar for this checkbox
+                to take effect.
+              </strong>
+            </>
+          ) : null}
+        </span>
       </label>
     </section>
   );

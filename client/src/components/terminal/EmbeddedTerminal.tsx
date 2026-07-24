@@ -223,8 +223,8 @@ export const EmbeddedTerminal = forwardRef<
     // ADR-133: touch-scroll replicates the mouse wheel (synthetic WheelEvents on
     // term.element), superseding the ADR-131/132 arrow-key path — touch-scroll.ts.
     const disposeTouchScroll = attachTouchScroll(handle.term, container);
-    // Full-viewport WebGL repaint on scroll — fixes the table-scroll smear.
-    const disposeScrollRepaint = attachScrollRepaint(handle.term, container, () => disposedRef.current);
+    // Full-viewport repaint on scroll; the trailing pass ALSO heals the WebGL glyph atlas — see scroll-repaint.ts (iterate-2026-07-24).
+    const disposeScrollRepaint = attachScrollRepaint(handle.term, container, () => disposedRef.current, { getHealAtlas: () => atlasHealRef.current });
     // Data-driven settle-repaint (AC-4) — heals input-area smear on a
     // Transcript→Terminal switch / return-from-home (see repaint-on-settle.ts).
     const settle = attachSettleRepaint(handle.term, () => disposedRef.current);

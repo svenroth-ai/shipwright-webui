@@ -68,8 +68,30 @@ async function createBareTask(
   };
 }
 
+/**
+ * Opt IN to the WebGL renderer for this page.
+ *
+ * MANDATORY since iterate-2026-07-24-terminal-scroll-atlas-smear flipped the
+ * default to the DOM renderer. Without it this entire spec would still be
+ * "green" while asserting nothing: every check below is guarded by
+ * `rendererLog?.includes("webgl")`, so a DOM-rendered terminal takes the
+ * informational branch forever and the atlas wiring goes untested. Seeding the
+ * same localStorage key the Settings checkbox writes keeps this spec testing
+ * the thing it is named after — the opt-in GPU arm.
+ */
+async function optIntoWebgl(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem("shipwright:terminal-renderer", "webgl");
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 /** Navigate + wait for the renderer to have instantiated (xterm opened). */
 async function gotoTerminal(page: Page, taskId: string): Promise<void> {
+  await optIntoWebgl(page);
   await page.goto(`/tasks/${taskId}`);
   await expect(page.getByTestId("embedded-terminal")).toBeVisible({ timeout: 30_000 });
   await expect(

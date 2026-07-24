@@ -45,7 +45,10 @@ import {
   buildEmbeddedXtermOptions,
   buildXtermTheme,
 } from "./xterm-theme-options";
-import { getTerminalRendererOverride } from "./terminal-renderer";
+import {
+  getTerminalRendererOverride,
+  type TerminalRenderer,
+} from "./terminal-renderer";
 import { attachWebglAtlasRepaint } from "./webgl-atlas-repaint";
 
 // Re-exported from the split-out theme module so existing importers
@@ -158,6 +161,7 @@ function installDimensionsStubBeforeDispose(term: Terminal): void {
 export function createEmbeddedXterm(
   container: HTMLElement,
   appearance: ResolvedAppearance = "dark",
+  renderer: TerminalRenderer = getTerminalRendererOverride(),
 ): EmbeddedXtermHandle {
   const term = new Terminal(buildEmbeddedXtermOptions(appearance));
 
@@ -166,11 +170,13 @@ export function createEmbeddedXterm(
   term.loadAddon(fit);
   term.loadAddon(links);
 
-  // Diagnostic renderer override (iterate-2026-06-23, see terminal-renderer.ts):
-  // skip the WebGL addon entirely when the user opts into the DOM renderer, to
-  // A/B whether WebGL is the root cause of the "smear" class. Default is unchanged
-  // ("webgl"). Logged so the active renderer is visible in the browser console.
-  const renderer = getTerminalRendererOverride();
+  // Renderer selection (see terminal-renderer.ts for the full rationale).
+  // DEFAULT is "dom": the WebGL glyph texture atlas is the root cause of the
+  // "smear"/wrong-letter class and `term.refresh` provably cannot heal it, so
+  // GPU acceleration is OPT-IN via Settings (VS Code's gpuAcceleration parity).
+  // Passed in explicitly — rather than read from global state here — so both
+  // arms stay unit-testable; the default keeps every existing caller working.
+  // Logged so the active renderer is visible in the browser console.
   // eslint-disable-next-line no-console
   console.info(`[EmbeddedTerminal] renderer=${renderer}`);
 
@@ -259,9 +265,11 @@ export function createEmbeddedXterm(
       );
     }
   }
-  // renderer === "dom": load no GPU addon — xterm uses its built-in DOM
-  // renderer, which fully reflows every frame (no partial-dirty GL buffer to
-  // go stale). This is the experiment arm.
+  // renderer === "dom" (THE DEFAULT): load no GPU addon — xterm uses its
+  // built-in DOM renderer, which holds no texture atlas at all, so the
+  // wrong-glyph corruption class is structurally impossible here rather than
+  // patched trigger-by-trigger. `healAtlas` stays undefined; every caller
+  // already treats that as "no atlas to heal".
 
   term.open(container);
 

@@ -3,22 +3,25 @@
  * diagnostic renderer override actually switches the embedded-terminal renderer
  * in a REAL browser (jsdom can't — it has no canvas getContext).
  *
- * The smear class survived five `term.refresh`-based fixes and reproduces
- * across active / idle / replay, pointing at the WebGL renderer itself. This
- * toggle (terminal-renderer.ts, read by xtermAddons.ts) lets us A/B WebGL vs
- * the DOM renderer. This spec proves, in real Chromium, that:
- *   - default → the code chooses WebGL (console `renderer=webgl`);
- *   - `localStorage["shipwright:terminal-renderer"]="dom"` → the code chooses
- *     the DOM renderer (console `renderer=dom`) AND no WebGL <canvas> is created
- *     under the terminal, while the DOM renderer's `.xterm-rows` is present.
+ * POLARITY FLIPPED in iterate-2026-07-24-terminal-scroll-atlas-smear. The DOM
+ * renderer is now the DEFAULT and WebGL is OPT-IN, because the WebGL glyph
+ * texture atlas is the root cause of the wrong-letter smear class and
+ * `term.refresh` provably cannot heal it (see terminal-renderer.ts). This spec
+ * proves, in real Chromium, that:
+ *   - default → the code chooses the DOM renderer (console `renderer=dom`) AND
+ *     no WebGL <canvas> is created under the terminal, while the DOM renderer's
+ *     `.xterm-rows` is present;
+ *   - `localStorage["shipwright:terminal-renderer"]="webgl"` (the Settings
+ *     checkbox) → the code chooses WebGL (console `renderer=webgl`).
  *
- * The DOM-mode assertions are GPU-independent (the WebGL addon is never
- * constructed). The WebGL-canvas count is environment-dependent (headless
- * Chromium WebGL via SwiftShader), so the "renderers genuinely differ" check is
- * asserted only when the default arm actually produced a canvas; otherwise the
- * console-log divergence still proves the override is honored. The remaining
- * residue — whether the DOM renderer visually eliminates the smear on a SPECIFIC
- * GPU — is the user's intent-confirmation (a single real-device judgment).
+ * The DEFAULT-arm assertions are now the GPU-independent ones (the WebGL addon
+ * is never constructed), which is the stronger place for them: the thing users
+ * get by default is pinned hard. The WebGL-canvas count is environment-dependent
+ * (headless Chromium WebGL via SwiftShader), so the "renderers genuinely differ"
+ * check is asserted only when the opt-in arm actually produced a canvas;
+ * otherwise the console-log divergence still proves the toggle is honored. The
+ * remaining residue — whether the DOM renderer visually eliminates the smear on
+ * a SPECIFIC GPU — is the user's intent-confirmation (a real-device judgment).
  *
  * Soft-skip on baseURL unreachable (matches specs 86/87/88/91).
  */
@@ -41,7 +44,7 @@ const RENDERER_LOG = "[EmbeddedTerminal] renderer=";
 async function createBareTask(
   page: Page,
   request: APIRequestContext,
-  opts: { domOverride?: boolean } = {},
+  opts: { webglOverride?: boolean } = {},
 ): Promise<{ taskId: string; cleanup: () => Promise<void> }> {
   const project = await ensureProject(request);
   const cwd = await makeTaskCwd("term-renderer-");
@@ -50,10 +53,10 @@ async function createBareTask(
   });
   expect(created.ok()).toBeTruthy();
   const taskId = ((await created.json()) as { task: { taskId: string } }).task.taskId;
-  if (opts.domOverride) {
+  if (opts.webglOverride) {
     await page.addInitScript(() => {
       try {
-        window.localStorage.setItem("shipwright:terminal-renderer", "dom");
+        window.localStorage.setItem("shipwright:terminal-renderer", "webgl");
       } catch {
         /* ignore */
       }
@@ -107,7 +110,7 @@ test.describe("Iterate terminal-renderer-toggle — renderer override (real brow
     }
   });
 
-  test("default chooses WebGL; the dom override switches to the DOM renderer (no canvas)", async ({
+  test("default chooses the DOM renderer (no canvas); the Settings opt-in switches to WebGL", async ({
     page,
     request,
   }) => {
@@ -118,50 +121,117 @@ test.describe("Iterate terminal-renderer-toggle — renderer override (real brow
       if (t.includes(RENDERER_LOG)) logs.push(t);
     });
 
-    // --- Arm 1: DEFAULT (no override) → WebGL chosen ---
+    // --- Arm 1: DEFAULT (nothing stored) → DOM renderer, WebGL addon skipped ---
+    // This is what every user gets out of the box, so its assertions are the
+    // HARD, GPU-independent ones: no WebGL addon is constructed, hence no
+    // <canvas> under the terminal, and the DOM renderer's row container IS
+    // present. If the default ever flips back to the corrupting renderer, this
+    // fails on any machine, GPU or not.
     const def = await createBareTask(page, request);
-    let defaultCanvases = -1;
     try {
       await gotoTerminal(page, def.taskId);
       const defaultLog = logs.find((l) => l.includes(RENDERER_LOG));
       expect(defaultLog, "default mount must log a renderer choice").toBeTruthy();
-      expect(defaultLog, "default arm chooses WebGL").toContain(`${RENDERER_LOG}webgl`);
-      defaultCanvases = await canvasCount(page);
-      // Informational: headless WebGL via SwiftShader usually yields a canvas,
-      // but a GPU-less runner may fall back to DOM — that's why the cross-arm
-      // canvas assertion below is conditional.
-      // eslint-disable-next-line no-console
-      console.log(`[spec93] default arm: canvases=${defaultCanvases}`);
+      expect(defaultLog, "default arm chooses the DOM renderer").toContain(
+        `${RENDERER_LOG}dom`,
+      );
+      expect(await canvasCount(page), "default renderer must create NO <canvas>").toBe(0);
+      expect(await hasXtermRows(page), "default renderer must render .xterm-rows").toBe(
+        true,
+      );
     } finally {
       await def.cleanup();
     }
 
-    // --- Arm 2: DOM override → DOM renderer, WebGL addon skipped ---
+    // --- Arm 2: WebGL opt-in (the Settings checkbox writes this key) → WebGL ---
     logs.length = 0;
-    const dom = await createBareTask(page, request, { domOverride: true });
+    const webgl = await createBareTask(page, request, { webglOverride: true });
     try {
-      await gotoTerminal(page, dom.taskId);
-      const domLog = logs.find((l) => l.includes(RENDERER_LOG));
-      expect(domLog, "dom mount must log a renderer choice").toBeTruthy();
-      expect(domLog, "override arm chooses the DOM renderer").toContain(`${RENDERER_LOG}dom`);
+      await gotoTerminal(page, webgl.taskId);
+      const webglLog = logs.find((l) => l.includes(RENDERER_LOG));
+      expect(webglLog, "opt-in mount must log a renderer choice").toBeTruthy();
+      expect(webglLog, "opt-in arm chooses WebGL").toContain(`${RENDERER_LOG}webgl`);
 
-      // HARD, GPU-independent: the WebGL addon is never constructed in dom mode,
-      // so there is NO <canvas> under the terminal; the DOM renderer's row
-      // container IS present.
-      expect(await canvasCount(page), "dom renderer must create NO <canvas>").toBe(0);
-      expect(await hasXtermRows(page), "dom renderer must render .xterm-rows").toBe(true);
-
-      // The differentiator — only assertable when the default arm actually got a
-      // WebGL canvas (SwiftShader present). When it did, the override provably
-      // changed the live renderer (canvas → none). When it didn't, the console
-      // divergence (webgl vs dom) already proves the override is honored.
-      if (defaultCanvases > 0) {
-        expect(0, "dom arm has fewer canvases than the WebGL default arm").toBeLessThan(
-          defaultCanvases,
-        );
+      // The differentiator — only assertable when this runner actually has a
+      // working WebGL stack (SwiftShader present). When it does, the opt-in
+      // provably changed the live renderer (none → canvas). When it doesn't,
+      // the console divergence (dom vs webgl) already proves the toggle is
+      // honored, and the addon self-falls-back — which is correct behaviour.
+      const optInCanvases = await canvasCount(page);
+      // eslint-disable-next-line no-console
+      console.log(`[spec93] opt-in arm: canvases=${optInCanvases}`);
+      if (optInCanvases > 0) {
+        expect(
+          optInCanvases,
+          "WebGL opt-in arm has more canvases than the DOM default arm",
+        ).toBeGreaterThan(0);
       }
     } finally {
-      await dom.cleanup();
+      await webgl.cleanup();
+    }
+  });
+
+  /*
+   * AC-3 through the REAL Settings UI (external code review, medium: the arms
+   * above seed localStorage directly, which proves the resolver but never that
+   * a user can reach the toggle or that clicking it sticks). This drives the
+   * actual checkbox and then proves a freshly-mounted terminal honours it.
+   */
+  test("the Settings checkbox persists the choice and a new terminal mounts with it", async ({
+    page,
+    request,
+  }) => {
+    const logs: string[] = [];
+    page.on("console", (m) => {
+      const t = m.text();
+      if (t.includes(RENDERER_LOG)) logs.push(t);
+    });
+
+    const task = await createBareTask(page, request);
+    try {
+      await page.goto("/settings");
+      const box = page.getByTestId("settings-terminal-gpu-checkbox");
+      await expect(box).toBeVisible({ timeout: 15_000 });
+      // Ships off by default — this is what a user sees on a fresh browser.
+      await expect(box).not.toBeChecked();
+
+      await box.check();
+      await expect(box).toBeChecked();
+      expect(
+        await page.evaluate(() =>
+          window.localStorage.getItem("shipwright:terminal-renderer"),
+        ),
+        "checking the box must persist the WebGL opt-in",
+      ).toBe("webgl");
+
+      // A terminal opened AFTER the toggle must actually use WebGL.
+      logs.length = 0;
+      await gotoTerminal(page, task.taskId);
+      expect(
+        logs.find((l) => l.includes(RENDERER_LOG)),
+        "a terminal mounted after opting in must choose WebGL",
+      ).toContain(`${RENDERER_LOG}webgl`);
+
+      // And back off again — the opt-out must persist just as hard.
+      await page.goto("/settings");
+      const box2 = page.getByTestId("settings-terminal-gpu-checkbox");
+      await expect(box2).toBeChecked();
+      await box2.uncheck();
+      expect(
+        await page.evaluate(() =>
+          window.localStorage.getItem("shipwright:terminal-renderer"),
+        ),
+        "un-checking the box must persist the opt-out",
+      ).toBe("dom");
+
+      logs.length = 0;
+      await gotoTerminal(page, task.taskId);
+      expect(
+        logs.find((l) => l.includes(RENDERER_LOG)),
+        "a terminal mounted after opting out must choose the DOM renderer",
+      ).toContain(`${RENDERER_LOG}dom`);
+    } finally {
+      await task.cleanup();
     }
   });
 });
