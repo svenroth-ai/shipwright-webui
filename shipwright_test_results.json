@@ -1,12 +1,13 @@
 {
   "last_updated": "2026-07-23T09:20:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-24-terminal-scroll-atlas-smear",
-    "date": "2026-07-24",
+    "run_id": "iterate-2026-07-27-terminal-replay-redraw-nudge",
+    "date": "2026-07-27",
     "unit": {
       "status": "passed",
-      "passed": 3080,
-      "total": 3080
+      "passed": 6113,
+      "total": 6113,
+      "note": "client 3086 + server 3027 (1 skipped)"
     },
     "integration": {
       "status": "not_run",
@@ -20,8 +21,8 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 23,
-      "total": 23
+      "passed": 4,
+      "total": 4
     },
     "design_fidelity": {
       "status": "not_run"
@@ -32,148 +33,138 @@
     "degraded": [
       {
         "condition": "external_llm_review",
-        "detail": "Plan/code/doubt review subagents not spawned: the operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it. Recorded honestly in reviews.json with a disposition rather than silently skipped."
+        "detail": "plan/code/doubt subagent passes not spawned - standing session instruction not to invoke the Agent tool unless requested. Compensated by a full external_review.py code pass (openrouter, gemini+openai, 2/2) whose four findings are all fixed in this diff, plus the 7-point self-review."
       }
     ],
     "test_completeness": {
       "status": "complete",
       "counts": {
-        "testable": 20,
-        "tested": 20,
+        "testable": 19,
+        "tested": 19,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 6,
-        "covered_acs": 6,
-        "note": "One row per acceptance criterion AC-1..AC-6 in .shipwright/planning/iterate/2026-07-24-terminal-gpu-off-by-default.md, plus each distinct behavioural branch introduced by the diff (resolver polarity, factory parameter, settings persistence, scroll-heal gating, back-compat)."
+        "acs": 7,
+        "covered_acs": 7,
+        "note": "One row per AC-1..AC-7 plus each distinct behavioural branch (dedupe/bypass, guard cases, thrown-value types, routing roles, client emission ordering, outbound-fence extension)."
       },
       "behaviors": [
         {
-          "behavior": "AC-1 Default renderer is DOM when nothing is configured (resolver + named constant)",
+          "behavior": "AC-1 Identical CUF bytes render CLEAN onto a row already holding the intended text",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts (2 cases) - PASS"
+          "evidence": "cuf-stale-cell-repro.test.ts - PASS"
         },
         {
-          "behavior": "AC-1 Factory default arm constructs NO WebGL addon and exposes no healAtlas",
+          "behavior": "AC-1 Identical CUF bytes render CLEAN onto a BLANK row (a skipped blank reads as a space)",
           "disposition": "tested",
-          "evidence": "xtermAddons.test.ts 'defaults to the DOM renderer' - PASS"
+          "evidence": "cuf-stale-cell-repro.test.ts - PASS; this is why the defect looked intermittent for months"
         },
         {
-          "behavior": "AC-1 REAL BROWSER: default mount logs renderer=dom, creates 0 canvases, renders .xterm-rows",
+          "behavior": "AC-1 Identical CUF bytes CORRUPT onto a row holding different text, reproducing the reported artifact",
           "disposition": "tested",
-          "evidence": "e2e/flows/93-terminal-renderer-toggle.spec.ts - PASS (isolated stack, chromium)"
+          "evidence": "cuf-stale-cell-repro.test.ts - PASS (asserts 'hattee'/'undd' present AND the intended string absent)"
         },
         {
-          "behavior": "AC-2 WebGL opt-in via storage and via query param; query wins over storage in BOTH directions",
+          "behavior": "AC-2 resize() still dedupes a no-op (v0.8.6 AC-2 stays intact)",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts (4 cases) - PASS"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-2 Unknown/malformed/whitespace values resolve to dom (fail toward safe)",
+          "behavior": "AC-2 resize() still reaches the pty on a real dimension change",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts (3 cases) - PASS"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-2 REAL BROWSER: opt-in mount logs renderer=webgl and produces canvases",
+          "behavior": "AC-2 forceRedraw re-applies the CURRENT dims despite the dedupe",
           "disposition": "tested",
-          "evidence": "e2e/flows/93 - PASS (canvases=3 via SwiftShader)"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-2 Back-compat: a pre-flip stored 'dom' value is still honoured (storage key unchanged)",
+          "behavior": "AC-2 forceRedraw leaves recorded dims intact, so a later real resize still lands",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts - PASS"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-3 Settings checkbox is unchecked by default and reflects a persisted opt-in",
+          "behavior": "AC-3 forceRedraw is a no-op for an unknown task",
           "disposition": "tested",
-          "evidence": "TerminalSettingsCard.test.tsx (2 cases) - PASS"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-3 Checkbox persists opt-in AND opt-out; writes an explicit renderer name, never removes the key",
+          "behavior": "AC-3 forceRedraw is a no-op for a never-sized pty",
           "disposition": "tested",
-          "evidence": "TerminalSettingsCard.test.tsx + terminal-renderer.test.ts - PASS; e2e/flows/93 'Settings checkbox persists the choice' - PASS (real browser, both directions)"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-3 Checkbox emits NO live-change event (renderer only swaps on a fresh terminal) and says so in the copy",
+          "behavior": "AC-3 forceRedraw is a no-op for a torn-down entry",
           "disposition": "tested",
-          "evidence": "TerminalSettingsCard.test.tsx (2 cases) - PASS"
+          "evidence": "pty-manager.force-redraw.test.ts - PASS"
         },
         {
-          "behavior": "AC-3 REAL BROWSER: a user can reach the checkbox in Settings, toggle it, and a terminal mounted afterwards honours the choice in BOTH directions",
+          "behavior": "AC-3 forceRedraw swallows ANY thrown value from pty.resize (Error, null, string, plain object)",
           "disposition": "tested",
-          "evidence": "e2e/flows/93-terminal-renderer-toggle.spec.ts - PASS"
+          "evidence": "pty-manager.force-redraw.test.ts (4 parameterised cases) - PASS; external review MEDIUM: the original (err as Error).message re-throws on a null throw and escapes the catch"
         },
         {
-          "behavior": "Checkbox reflects the STORED preference and never the query-param override; an active ?terminalRenderer= override is surfaced to the user",
+          "behavior": "AC-4 {type:'redraw'} is accepted inbound; stray dimensions are ignored, not rejected",
           "disposition": "tested",
-          "evidence": "terminal-renderer.test.ts (2 cases) + TerminalSettingsCard - PASS (external code review MEDIUM #1, fixed)"
+          "evidence": "ws-upgrade-handler.parse.test.ts (2 table rows) - PASS"
         },
         {
-          "behavior": "AC-4 WebGL arm still loads the addon BEFORE term.open (ADR-099) and registers onContextLoss + atlas fence",
+          "behavior": "AC-4 A WRITER's redraw routes to forceRedraw and never to resize",
           "disposition": "tested",
-          "evidence": "xtermAddons.test.ts + xtermAddons.atlas.test.ts (13 cases) - PASS"
+          "evidence": "ws-upgrade-handler.parse.test.ts - PASS"
         },
         {
-          "behavior": "AC-5 Trailing scroll pass invokes healAtlas exactly once; the per-frame pass never does",
+          "behavior": "AC-4 A READER's redraw is refused with read_only and never reaches the pty",
           "disposition": "tested",
-          "evidence": "scroll-repaint.atlas-heal.test.ts - PASS"
+          "evidence": "ws-upgrade-handler.parse.test.ts - PASS"
         },
         {
-          "behavior": "AC-5 No heal in the DOM arm; omitting getHealAtlas stays backwards compatible",
+          "behavior": "AC-5 A writer emits exactly one dimension-less redraw per settled replay, ordered AFTER the resize",
           "disposition": "tested",
-          "evidence": "scroll-repaint.atlas-heal.test.ts (2 cases) - PASS"
+          "evidence": "useTerminalSizeSync.test.ts (4 cases) - PASS"
         },
         {
-          "behavior": "AC-5 Heal is suppressed after dispose and a heal throw is swallowed",
+          "behavior": "AC-5 A reader emits NOTHING at all (not merely no redraw)",
           "disposition": "tested",
-          "evidence": "scroll-repaint.atlas-heal.test.ts (2 cases) - PASS"
+          "evidence": "useTerminalSizeSync.test.ts - PASS; external review LOW: filtering only redraw frames would have passed even if a reader wrongly emitted a resize"
         },
         {
-          "behavior": "AC-5 End-to-end atlas wiring still reaches the LIVE WebGL renderer under the opt-in",
+          "behavior": "AC-5 syncSizeNow alone emits no redraw (the launch path is untouched)",
           "disposition": "tested",
-          "evidence": "e2e/flows/94-webgl-atlas-repaint.spec.ts - PASS (canvases=3, atlasRepaints=6, re-show heal 1->3)"
+          "evidence": "useTerminalSizeSync.test.ts - PASS"
         },
         {
-          "behavior": "Existing terminal surfaces are unaffected by the renderer flip (tab autofocus, mount, appearance, refocus/reflow repaint)",
+          "behavior": "AC-6 REAL BROWSER: first attach sends no redraw; a snapshot re-attach sends exactly one, dimension-less, after a resize asserted to EXIST; no other new outbound frame type appears",
           "disposition": "tested",
-          "evidence": "e2e/flows/88,73,95,91,92 - 19 PASS; spec 88's canvas assertion made renderer-aware so it keeps covering the DEFAULT arm"
+          "evidence": "e2e/flows/96-terminal-post-replay-redraw.spec.ts - PASS (isolated stack). VERIFIED LOAD-BEARING: disabling the client send and rebuilding made it FAIL. The ordering check was hardened after gemini flagged that indexOf(-1) made it vacuous when resize is absent."
         },
         {
-          "behavior": "AC-6 Whole client suite, typecheck and lint stay green",
+          "behavior": "AC-7 Both suites, typechecks and lint green; the three bloat-baseline entries bumped with a per-entry justification rather than silently",
           "disposition": "tested",
-          "evidence": "vitest 3078/3078 PASS; tsc --noEmit clean; oxlint clean on all changed files"
+          "evidence": "client 3086 + server 3027 PASS; tsc clean in both workspaces; oxlint clean on changed files; anti_ratchet_check.py clean after the documented bump (precedent: PR #254)"
         },
         {
-          "behavior": "The DOM renderer visually eliminates the smear on the reporter's own Mac and Windows machines",
+          "behavior": "The nudge visibly removes the stale-character smear on the reporter's live Claude TUI",
           "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "note": "The GPU-side texture eviction/repack that corrupts the atlas does not reproduce off a real GPU (SwiftShader does not evict) - same residual as #206/#215. The WIRING is fully tested above; the visual outcome is the user's confirmation."
-        },
-        {
-          "behavior": "AC-6 Visual baselines regenerated for the renderer flip; only intended routes changed",
-          "disposition": "tested",
-          "evidence": "visual-baselines workflow run 30127239855 (pinned Linux container) against the pushed branch: changed-baselines.txt lists ONLY settings.png (the new GPU checkbox) - committed. task-detail-terminal.png came back BYTE-IDENTICAL, i.e. the CI container was already rendering the terminal without WebGL, so the flip shifted no terminal pixels. No unintended visual bleed."
+          "reason_code": "requires-manual-visual-judgment",
+          "note": "Needs an authenticated Claude session repainting a real screen; the isolated stack has no Claude auth. The WIRING is fully tested above and the CORRUPTION MECHANISM is now reproduced deterministically - only the end-to-end visual outcome is the user's confirmation."
         }
       ]
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 23,
+      "tests_run": 4,
       "exit_code": 0,
       "retries": 0,
       "runner": "playwright-chromium",
-      "stack": "isolated single-process (built client via SHIPWRIGHT_STATIC_DIR, Hono tsx on 127.0.0.1:3849, temp USERPROFILE)",
+      "stack": "isolated single-process (built client via SHIPWRIGHT_STATIC_DIR, Hono tsx on 127.0.0.1:3851, temp USERPROFILE)",
       "specs": [
-        "93-terminal-renderer-toggle",
-        "94-webgl-atlas-repaint",
-        "91-terminal-repaint-on-refocus",
-        "92-terminal-reflow-repaint",
-        "88-terminal-tab-autofocus",
-        "73-embedded-terminal",
-        "95-terminal-appearance"
+        "96-terminal-post-replay-redraw",
+        "terminal-byte-path-guard"
       ],
-      "notes": "Renderer change is inherently browser-visible; jsdom cannot distinguish the arms (no canvas getContext). Spec 93 is the differential proof: default arm 0 canvases + renderer=dom, opt-in arm 3 canvases + renderer=webgl. AC-3 is additionally driven through the REAL Settings UI (open /settings, toggle the checkbox, mount a terminal, assert the renderer, then toggle back) after external review flagged that seeding localStorage alone never proved a user can reach the control."
+      "notes": "Backend-affects-frontend: a new WS inbound frame type crosses server+client, so surface=web is mandatory regardless of which paths changed. Earlier in the same session 17 terminal E2E (73/93/96/byte-path-guard) also passed against this stack. The new spec was verified LOAD-BEARING by disabling the client send and rebuilding (FAIL)."
     }
   }
 }

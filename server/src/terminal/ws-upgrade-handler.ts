@@ -59,7 +59,17 @@ interface WSMessageResize {
   cols: number;
   rows: number;
 }
-export type WSInbound = WSMessageData | WSMessageResize;
+/**
+ * Post-replay redraw nudge (iterate-2026-07-27, FR-01.28). A dedicated frame,
+ * NOT a `resize`: a re-attach usually lands at the same cols/rows and
+ * `PtyManager.resize` deliberately dedupes a no-op (v0.8.6 AC-2), swallowing the
+ * one signal a fullscreen TUI needs after we restore a snapshot it never drew.
+ * Dimension-less on purpose — the pty already has the right size.
+ */
+interface WSMessageRedraw {
+  type: "redraw";
+}
+export type WSInbound = WSMessageData | WSMessageResize | WSMessageRedraw;
 
 export function isWSInbound(v: unknown): v is WSInbound {
   if (!v || typeof v !== "object") return false;
@@ -68,6 +78,7 @@ export function isWSInbound(v: unknown): v is WSInbound {
   if (o.type === "resize" && typeof o.cols === "number" && typeof o.rows === "number") {
     return true;
   }
+  if (o.type === "redraw") return true;
   return false;
 }
 
@@ -506,6 +517,10 @@ function buildLiveHandlers(
       }
       if (parsed.type === "data") {
         ctx.ptyManager.write(taskId, parsed.payload);
+      } else if (parsed.type === "redraw") {
+        // Writer-gated by the role check above — a reader must never poke the
+        // pty. See WSMessageRedraw for why this cannot be a no-op `resize`.
+        ctx.ptyManager.forceRedraw(taskId);
       } else {
         ctx.ptyManager.resize(taskId, parsed.cols, parsed.rows);
       }

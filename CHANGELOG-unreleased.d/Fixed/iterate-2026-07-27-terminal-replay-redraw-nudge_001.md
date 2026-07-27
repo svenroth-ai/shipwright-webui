@@ -1,0 +1,1 @@
+Embedded terminal: wrong or stale letters after returning to a task, even without GPU acceleration. Coming back restores the saved screen, but Claude was never told to redraw it, so it patched over a picture it had not painted. It is now asked to repaint once, right after the screen is restored.

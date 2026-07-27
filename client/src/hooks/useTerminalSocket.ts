@@ -132,8 +132,15 @@ export interface UseTerminalSocketResult {
   reconnecting: boolean;
   /** Outage outlived the prompt window → slow tail; softens the banner copy. */
   reconnectStalled: boolean;
-  /** Send a typed envelope. No-op if socket is not OPEN. */
-  send: (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => void;
+  /** Send a typed envelope. No-op if socket is not OPEN. `redraw` asks the
+   *  server to re-apply the pty's current size so a fullscreen TUI repaints
+   *  from scratch — see `useTerminalSizeSync` (iterate-2026-07-27). */
+  send: (
+    msg:
+      | { type: "data"; payload: string }
+      | { type: "resize"; cols: number; rows: number }
+      | { type: "redraw" },
+  ) => void;
   /** True while socket.readyState === OPEN. */
   open: boolean;
 }
@@ -225,7 +232,12 @@ export function useTerminalSocket(opts: UseTerminalSocketOptions): UseTerminalSo
   }, []);
 
   const send = useCallback(
-    (msg: { type: "data"; payload: string } | { type: "resize"; cols: number; rows: number }) => {
+    (
+      msg:
+        | { type: "data"; payload: string }
+        | { type: "resize"; cols: number; rows: number }
+        | { type: "redraw" },
+    ) => {
       const ws = socketRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       try {
