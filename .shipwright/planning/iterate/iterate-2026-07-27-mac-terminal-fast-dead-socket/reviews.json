@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-27-mac-terminal-fast-dead-socket",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T08:39:43.637145+00:00",
+      "disposition": "7-point self-review: root-cause (dead socket, slow detection — measured, not guessed) not symptom; +interaction trigger + heartbeat 15->5s; kept #310/#324 as complementary layers; 6 unit tests through real attachWsLiveness + load-bearing real-browser E2E (spec 97); full 73 WS suite + client 3092/server 3030 green.",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T08:39:43.798580+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+/risk-flags (none here); doubt review is optional stage-3 (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E.",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T08:39:43.798580+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+/risk-flags (none here); doubt review is optional stage-3 (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E.",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T08:39:43.798580+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+/risk-flags (none here); doubt review is optional stage-3 (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E.",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T08:39:43.798580+00:00",
+      "disposition": "Small-complexity BUG iterate: Phase Matrix gates external plan review + full code review + external LLM review to medium+/risk-flags (none here); doubt review is optional stage-3 (n/a). Self-review completed; verified by unit + a load-bearing real-browser E2E.",
+      "recorded_by": "close-missing",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

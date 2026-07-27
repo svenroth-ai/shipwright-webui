@@ -1,13 +1,12 @@
 {
-  "last_updated": "2026-07-23T09:20:00.000Z",
+  "last_updated": "2026-07-27T11:00:00.000Z",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-27-terminal-replay-redraw-nudge",
+    "run_id": "iterate-2026-07-27-mac-terminal-fast-dead-socket",
     "date": "2026-07-27",
     "unit": {
       "status": "passed",
-      "passed": 6113,
-      "total": 6113,
-      "note": "client 3086 + server 3027 (1 skipped)"
+      "passed": 3092,
+      "total": 3092
     },
     "integration": {
       "status": "not_run",
@@ -21,150 +20,84 @@
     },
     "e2e": {
       "status": "passed",
-      "passed": 4,
-      "total": 4
+      "passed": 1,
+      "total": 1
     },
     "design_fidelity": {
-      "status": "not_run"
+      "status": "skipped",
+      "passed": 0,
+      "total": 0
     },
     "smoke": {
       "status": "not_run"
     },
-    "degraded": [
-      {
-        "condition": "external_llm_review",
-        "detail": "plan/code/doubt subagent passes not spawned - standing session instruction not to invoke the Agent tool unless requested. Compensated by a full external_review.py code pass (openrouter, gemini+openai, 2/2) whose four findings are all fixed in this diff, plus the 7-point self-review."
-      }
-    ],
+    "degraded": [],
     "test_completeness": {
       "status": "complete",
+      "behaviors": [
+        {
+          "behavior": "Keystroke on an inbound-silent OPEN socket probes it",
+          "disposition": "tested",
+          "evidence": "wsLiveness.interaction.test.ts — PASS"
+        },
+        {
+          "behavior": "Click behaves the same as a keystroke",
+          "disposition": "tested",
+          "evidence": "wsLiveness.interaction.test.ts — PASS"
+        },
+        {
+          "behavior": "Healthy socket (recent inbound): interaction is a no-op — normal typing never churns",
+          "disposition": "tested",
+          "evidence": "wsLiveness.interaction.test.ts — PASS"
+        },
+        {
+          "behavior": "Throttle: rapid keystrokes on a dead socket don't re-arm the probe each keystroke",
+          "disposition": "tested",
+          "evidence": "wsLiveness.interaction.test.ts — PASS"
+        },
+        {
+          "behavior": "No socket (in the tail): a keystroke reconnects immediately",
+          "disposition": "tested",
+          "evidence": "wsLiveness.interaction.test.ts — PASS"
+        },
+        {
+          "behavior": "dispose() unbinds the interaction listeners",
+          "disposition": "tested",
+          "evidence": "wsLiveness.interaction.test.ts — PASS"
+        },
+        {
+          "behavior": "Faster heartbeat: 15s->5s change breaks no timing test",
+          "disposition": "tested",
+          "evidence": "full 73-test WS-liveness suite — PASS"
+        },
+        {
+          "behavior": "REAL BROWSER: typing on an inbound-silent socket fires an eager probe with no focus/visibility/online event",
+          "disposition": "tested",
+          "evidence": "e2e/flows/97-terminal-interaction-revive.spec.ts — PASS; verified load-bearing by disabling the interaction revive + rebuilding: FAILED 'Expected: > 0, Received: 0'"
+        },
+        {
+          "behavior": "Real macOS lock/sleep on the reporter's Mac recovers on the first interaction",
+          "disposition": "untestable",
+          "reason_code": "requires-physical-device",
+          "evidence": "A genuine OS suspend + tunnel drop can't be produced in CI or a local harness; the mechanism (interaction -> reviveIfStale -> reconnect/probe) is unit-covered through the real attachWsLiveness wiring and demonstrated in a real Chromium (spec 97)."
+        }
+      ],
       "counts": {
-        "testable": 19,
-        "tested": 19,
+        "testable": 8,
+        "tested": 8,
         "untestable": 1,
         "untested_testable": 0
       },
       "enumeration_basis": {
-        "acs": 7,
-        "covered_acs": 7,
-        "note": "One row per AC-1..AC-7 plus each distinct behavioural branch (dedupe/bypass, guard cases, thrown-value types, routing roles, client emission ordering, outbound-fence extension)."
-      },
-      "behaviors": [
-        {
-          "behavior": "AC-1 Identical CUF bytes render CLEAN onto a row already holding the intended text",
-          "disposition": "tested",
-          "evidence": "cuf-stale-cell-repro.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-1 Identical CUF bytes render CLEAN onto a BLANK row (a skipped blank reads as a space)",
-          "disposition": "tested",
-          "evidence": "cuf-stale-cell-repro.test.ts - PASS; this is why the defect looked intermittent for months"
-        },
-        {
-          "behavior": "AC-1 Identical CUF bytes CORRUPT onto a row holding different text, reproducing the reported artifact",
-          "disposition": "tested",
-          "evidence": "cuf-stale-cell-repro.test.ts - PASS (asserts 'hattee'/'undd' present AND the intended string absent)"
-        },
-        {
-          "behavior": "AC-2 resize() still dedupes a no-op (v0.8.6 AC-2 stays intact)",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-2 resize() still reaches the pty on a real dimension change",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-2 forceRedraw re-applies the CURRENT dims despite the dedupe",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-2 forceRedraw leaves recorded dims intact, so a later real resize still lands",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-3 forceRedraw is a no-op for an unknown task",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-3 forceRedraw is a no-op for a never-sized pty",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-3 forceRedraw is a no-op for a torn-down entry",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-3 forceRedraw swallows ANY thrown value from pty.resize (Error, null, string, plain object)",
-          "disposition": "tested",
-          "evidence": "pty-manager.force-redraw.test.ts (4 parameterised cases) - PASS; external review MEDIUM: the original (err as Error).message re-throws on a null throw and escapes the catch"
-        },
-        {
-          "behavior": "AC-4 {type:'redraw'} is accepted inbound; stray dimensions are ignored, not rejected",
-          "disposition": "tested",
-          "evidence": "ws-upgrade-handler.parse.test.ts (2 table rows) - PASS"
-        },
-        {
-          "behavior": "AC-4 A WRITER's redraw routes to forceRedraw and never to resize",
-          "disposition": "tested",
-          "evidence": "ws-upgrade-handler.parse.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-4 A READER's redraw is refused with read_only and never reaches the pty",
-          "disposition": "tested",
-          "evidence": "ws-upgrade-handler.parse.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-5 A writer emits exactly one dimension-less redraw per settled replay, ordered AFTER the resize",
-          "disposition": "tested",
-          "evidence": "useTerminalSizeSync.test.ts (4 cases) - PASS"
-        },
-        {
-          "behavior": "AC-5 A reader emits NOTHING at all (not merely no redraw)",
-          "disposition": "tested",
-          "evidence": "useTerminalSizeSync.test.ts - PASS; external review LOW: filtering only redraw frames would have passed even if a reader wrongly emitted a resize"
-        },
-        {
-          "behavior": "AC-5 syncSizeNow alone emits no redraw (the launch path is untouched)",
-          "disposition": "tested",
-          "evidence": "useTerminalSizeSync.test.ts - PASS"
-        },
-        {
-          "behavior": "AC-6 REAL BROWSER: first attach sends no redraw; a snapshot re-attach sends exactly one, dimension-less, after a resize asserted to EXIST; no other new outbound frame type appears",
-          "disposition": "tested",
-          "evidence": "e2e/flows/96-terminal-post-replay-redraw.spec.ts - PASS (isolated stack). VERIFIED LOAD-BEARING: disabling the client send and rebuilding made it FAIL. The ordering check was hardened after gemini flagged that indexOf(-1) made it vacuous when resize is absent."
-        },
-        {
-          "behavior": "AC-7 Both suites, typechecks and lint green; the three bloat-baseline entries bumped with a per-entry justification rather than silently",
-          "disposition": "tested",
-          "evidence": "client 3086 + server 3027 PASS; tsc clean in both workspaces; oxlint clean on changed files; anti_ratchet_check.py clean after the documented bump (precedent: PR #254)"
-        },
-        {
-          "behavior": "The nudge visibly removes the stale-character smear on the reporter's live Claude TUI",
-          "disposition": "untestable",
-          "reason_code": "requires-manual-visual-judgment",
-          "note": "Needs an authenticated Claude session repainting a real screen; the isolated stack has no Claude auth. The WIRING is fully tested above and the CORRUPTION MECHANISM is now reproduced deterministically - only the end-to-end visual outcome is the user's confirmation."
-        }
-      ]
+        "acs": 5,
+        "covered_acs": 5
+      }
     },
     "surface_verification": {
       "surface": "web",
-      "tests_run": 4,
+      "tests_run": 1,
       "exit_code": 0,
-      "retries": 0,
-      "runner": "playwright-chromium",
-      "stack": "isolated single-process (built client via SHIPWRIGHT_STATIC_DIR, Hono tsx on 127.0.0.1:3851, temp USERPROFILE)",
-      "specs": [
-        "96-terminal-post-replay-redraw",
-        "terminal-byte-path-guard"
-      ],
-      "notes": "Backend-affects-frontend: a new WS inbound frame type crosses server+client, so surface=web is mandatory regardless of which paths changed. Earlier in the same session 17 terminal E2E (73/93/96/byte-path-guard) also passed against this stack. The new spec was verified LOAD-BEARING by disabling the client send and rebuilding (FAIL)."
+      "justification": "Client WS-behaviour change → jsdom cannot prove the real outcome. Executed e2e/flows/97-terminal-interaction-revive.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3853): 1 passed. It drives a routeWebSocket-mocked half-open socket + page.clock to make the connection inbound-silent, then a real keystroke (page.keyboard) and asserts an eager probe ping reaches the mock with NO focus/visibility/online event. Verified LOAD-BEARING by disabling the interaction revive, rebuilding the client and re-running: FAILED 'Expected: > 0, Received: 0'. Fix restored, re-run green."
     }
   }
 }
