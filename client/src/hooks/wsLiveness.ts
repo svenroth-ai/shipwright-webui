@@ -17,6 +17,8 @@
 
 import {
   startClientHeartbeat,
+  WS_INTERACTION_STALE_MS,
+  WS_INTERACTION_THROTTLE_MS,
   WS_REFOCUS_PROBE_MS,
   type ClientHeartbeatHandle,
   type HeartbeatTimer,
@@ -83,9 +85,15 @@ export function attachWsLiveness(
     deps.clearTimeoutFn ??
     (clearTimeout as unknown as (timer: HeartbeatTimer) => void);
 
+  const now: () => number = deps.nowFn ?? (() => Date.now());
   let heartbeat: ClientHeartbeatHandle | null = null;
   let probeTimer: HeartbeatTimer | null = null;
   let awaitingProbe = false;
+  // Wall-clock of the last inbound frame (any message, incl. pongs): fresh on a
+  // healthy socket, stale on a silently-dead one. `lastInteractionReviveAt`
+  // spaces out interaction-triggered revives (see onInteraction).
+  let lastInboundAt = now();
+  let lastInteractionReviveAt = 0;
 
   const sendPing = () => {
     const s = deps.getSocket();
@@ -108,6 +116,7 @@ export function attachWsLiveness(
     // A fresh connection makes any probe armed for the PRIOR socket moot —
     // drop it so a stale timer can never act on this new socket (review MED).
     clearProbe();
+    lastInboundAt = now();
     heartbeat?.stop();
     heartbeat = startClientHeartbeat({
       isOpen: () => deps.getSocket()?.readyState === deps.openState,
@@ -133,6 +142,7 @@ export function attachWsLiveness(
     heartbeat = null;
   };
   const noteInbound = () => {
+    lastInboundAt = now();
     heartbeat?.notePong();
     clearProbe();
   };
@@ -221,6 +231,24 @@ export function attachWsLiveness(
     reviveIfStale();
   };
 
+  /**
+   * The user came back and interacted (iterate-2026-07-27-mac-terminal-fast-dead-
+   * socket). The ONE reliable macOS signal: a lock/sleep there fires no
+   * focus/visibility/online event and doesn't freeze the page (wake detector
+   * silent too), but a returning user's keystroke/click always fires a DOM event.
+   * Gated on inbound-silence so normal typing never churns a healthy socket (it
+   * pongs every heartbeat → `lastInboundAt` stays fresh); throttled so continuous
+   * typing into a dead socket can't keep postponing the probe that closes it.
+   */
+  const onInteraction = () => {
+    if (deps.isCancelled()) return;
+    const t = now();
+    if (t - lastInboundAt <= WS_INTERACTION_STALE_MS) return; // socket is fresh
+    if (t - lastInteractionReviveAt < WS_INTERACTION_THROTTLE_MS) return; // throttle
+    lastInteractionReviveAt = t;
+    reviveIfStale();
+  };
+
   // Wake detector (iterate-2026-07-23-mac-wake-terminal-revive). The event-based
   // revivers above miss the macOS lid-close→unlock case entirely — it fires no
   // focus/visibility/online event. This clock-drift check catches a slept-through
@@ -248,6 +276,10 @@ export function attachWsLiveness(
   }
   if (hasDocument) {
     document.addEventListener("visibilitychange", onRefocus);
+    // Capture + passive: see the interaction before xterm can stopPropagation it,
+    // and never preventDefault.
+    document.addEventListener("keydown", onInteraction, { capture: true, passive: true });
+    document.addEventListener("pointerdown", onInteraction, { capture: true, passive: true });
   }
 
   return {
@@ -265,6 +297,8 @@ export function attachWsLiveness(
       }
       if (hasDocument) {
         document.removeEventListener("visibilitychange", onRefocus);
+        document.removeEventListener("keydown", onInteraction, { capture: true });
+        document.removeEventListener("pointerdown", onInteraction, { capture: true });
       }
     },
   };

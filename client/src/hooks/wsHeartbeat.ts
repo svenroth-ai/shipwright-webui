@@ -13,20 +13,46 @@
  * a missed-pong run reaps the socket via `onDead`.
  */
 
-/** Heartbeat cadence. Matches the server's DEFAULT_HEARTBEAT_MS. */
-export const WS_HEARTBEAT_INTERVAL_MS = 15_000;
+/**
+ * Heartbeat cadence. **Deliberately faster than the server's
+ * DEFAULT_HEARTBEAT_MS (15 s)** (iterate-2026-07-27-mac-terminal-fast-dead-socket).
+ *
+ * The client and server pings are independent liveness checks — the client
+ * pings, the server pongs, and vice-versa — so the client is free to sample more
+ * often, and it needs to: on macOS a lock/sleep drops the WS silently half-open
+ * (no `close`, no focus/visibility/online event, and the page keeps running so
+ * the clock-drift wake detector never fires). The heartbeat is then the ONLY
+ * passive detector, and at 15 s × 2 misses it took ~30-45 s — long enough that
+ * the returning user just reloads. At 5 s × 2 it reaps a dead socket in
+ * ~10-15 s. The extra pong traffic (1 / 5 s per open terminal) is negligible.
+ */
+export const WS_HEARTBEAT_INTERVAL_MS = 5_000;
 /**
  * Consecutive unanswered pings tolerated before reap. `2` survives ONE
- * transient miss (OS-sleep resume can drop a single tick) while still reaping
- * a truly dead socket within ~2-3 intervals. Matches DEFAULT_MAX_MISSED_PONGS.
+ * transient miss while still reaping a truly dead socket within ~2-3 intervals.
+ * Matches DEFAULT_MAX_MISSED_PONGS.
  */
 export const WS_HEARTBEAT_MAX_MISSED = 2;
 /**
- * Eager-probe deadline used on a tab refocus when the socket still reports
- * OPEN — short so a returning user recovers in a few seconds instead of
- * waiting for the next ~15 s heartbeat tick.
+ * Eager-probe deadline used on a tab refocus / user interaction when the socket
+ * still reports OPEN — short so a returning user recovers in a few seconds
+ * instead of waiting for the next heartbeat reap.
  */
 export const WS_REFOCUS_PROBE_MS = 4_000;
+/**
+ * A user interaction (keystroke / click) only triggers an eager revive when the
+ * socket has been inbound-SILENT for at least this long — comfortably above the
+ * heartbeat interval, so a healthy socket (which pongs every
+ * WS_HEARTBEAT_INTERVAL_MS) is never torn down by normal typing; only a socket
+ * whose pongs have genuinely stopped is treated as suspect.
+ */
+export const WS_INTERACTION_STALE_MS = 8_000;
+/**
+ * Minimum spacing between interaction-triggered revives. Longer than
+ * WS_REFOCUS_PROBE_MS so continuous typing into a dead socket cannot keep
+ * re-arming (and thus indefinitely postponing) the probe that closes it.
+ */
+export const WS_INTERACTION_THROTTLE_MS = 5_000;
 
 /**
  * Steady retry cadence once the fast reconnect ramp
