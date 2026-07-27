@@ -33,6 +33,15 @@ describe("isWSInbound — inbound parsing discriminator", () => {
       input: { type: "resize", cols: 80, rows: 24 },
       ok: true,
     },
+    // Post-replay redraw nudge (iterate-2026-07-27, FR-01.28). Dimension-LESS
+    // on purpose: the pty already has the right size, and a caller that could
+    // pick one could reflow the very grid the nudge is repairing.
+    { desc: "valid redraw frame", input: { type: "redraw" }, ok: true },
+    {
+      desc: "redraw ignores stray dimensions rather than rejecting",
+      input: { type: "redraw", cols: 80, rows: 24 },
+      ok: true,
+    },
     { desc: "wrong discriminator", input: { type: "ping" }, ok: false },
     {
       desc: "data with non-string payload",
@@ -97,6 +106,29 @@ describe("buildWsHandlers — onMessage routing", () => {
       ws as never,
     );
     expect(pm.__mocks.resize).toHaveBeenCalledWith("task-1", 120, 40);
+  });
+
+  it("writer + redraw → ptyManager.forceRedraw (dimension-less)", () => {
+    // The whole point of a dedicated frame: a same-size resize would be
+    // swallowed by the v0.8.6 no-op dedupe, so the TUI would never repaint.
+    pm.__mocks.getRole.mockReturnValueOnce("writer");
+    handlers.onMessage?.(
+      { data: JSON.stringify({ type: "redraw" }) } as never,
+      ws as never,
+    );
+    expect(pm.__mocks.forceRedraw).toHaveBeenCalledWith("task-1");
+    expect(pm.__mocks.resize).not.toHaveBeenCalled();
+  });
+
+  it("reader + redraw → NO forceRedraw (a reader must never poke the pty)", () => {
+    pm.__mocks.getRole.mockReturnValueOnce("reader");
+    handlers.onMessage?.(
+      { data: JSON.stringify({ type: "redraw" }) } as never,
+      ws as never,
+    );
+    expect(pm.__mocks.forceRedraw).not.toHaveBeenCalled();
+    const types = readSent(ws).map((s) => (s as { type?: string }).type);
+    expect(types).toContain("read_only");
   });
 
   it("reader role → emits read_only and skips write", () => {

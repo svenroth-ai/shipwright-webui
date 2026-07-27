@@ -602,6 +602,42 @@ export class PtyManager {
     }
   }
 
+  /**
+   * Post-replay redraw nudge (iterate-2026-07-27, FR-01.28) — re-apply the pty's
+   * CURRENT dimensions, deliberately bypassing `resize()`'s no-op dedupe.
+   *
+   * node-pty raises a SIGWINCH-driven redraw on EVERY `pty.resize` call, changed
+   * or not. `resize()` dedupes that (v0.8.6 AC-2, PowerShell banner spam) and
+   * MUST keep doing so — but the dedupe also swallows the one signal a fullscreen
+   * TUI needs after we restore a cell-state snapshot it never drew (ADR-087):
+   * Claude Code then repaints differentially with CUF cell-skips, which do not
+   * erase, so every skipped cell keeps a stale character. Rationale + the
+   * deterministic reproduction: `cuf-stale-cell-repro.test.ts`.
+   *
+   * Dimension-LESS by design (a caller cannot reflow the grid it is repairing)
+   * and at-most-once per attach (the dedupe is bypassed here — a loop re-creates
+   * the v0.8.6 spam). No-op for an unknown / torn-down / never-sized pty.
+   */
+  forceRedraw(taskId: string): void {
+    const entry = this.entries.get(taskId);
+    if (!entry || entry.tornDown) return;
+    const cols = entry.lastResizeCols;
+    const rows = entry.lastResizeRows;
+    if (typeof cols !== "number" || typeof rows !== "number") return;
+    try {
+      entry.pty.resize(cols, rows);
+    } catch (err) {
+      // `(err as Error).message` is NOT safe here: JS permits `throw null`, in
+      // which case the property read throws again and escapes this catch — out
+      // through the WS message handler. AC-3 promises swallowing, so format
+      // defensively (external code review MEDIUM).
+      const message = err instanceof Error ? err.message : String(err);
+      // eslint-disable-next-line no-console
+      console.warn(`[pty-manager] forceRedraw failed for ${taskId}: ${message}`);
+    }
+    // Mirror dims are unchanged, so it is deliberately NOT resized (ADR-088).
+  }
+
   async kill(taskId: string): Promise<void> {
     const entry = this.entries.get(taskId);
     if (!entry) return;

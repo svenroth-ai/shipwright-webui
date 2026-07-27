@@ -24,6 +24,9 @@ import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import type { TerminalRole } from "../../hooks/useTerminalSocket";
 
 type ResizeMsg = { type: "resize"; cols: number; rows: number };
+/** The redraw nudge carries no dimensions (iterate-2026-07-27). */
+type RedrawMsg = { type: "redraw" };
+type SentMsg = ResizeMsg | RedrawMsg;
 
 function mount(
   role: TerminalRole | null,
@@ -31,7 +34,7 @@ function mount(
 ) {
   const term = "term" in opts ? opts.term : ({ cols: 100, rows: 30 } as unknown as Terminal);
   const fit = "fit" in opts ? opts.fit : ({ fit: vi.fn() } as unknown as FitAddon);
-  const send = vi.fn<(m: ResizeMsg) => void>();
+  const send = vi.fn<(m: SentMsg) => void>();
   const rendered = renderHook(() => {
     const termRef = useRef(term ?? null);
     const fitRef = useRef(fit ?? null);
@@ -48,7 +51,7 @@ function mount(
 }
 
 const resizes = (send: ReturnType<typeof vi.fn>) =>
-  send.mock.calls.filter((c) => (c[0] as ResizeMsg)?.type === "resize");
+  send.mock.calls.filter((c) => (c[0] as SentMsg)?.type === "resize");
 
 describe("useTerminalSizeSync", () => {
   it("syncSizeNow fits + emits a resize with the terminal's real dims", () => {
@@ -79,5 +82,64 @@ describe("useTerminalSizeSync", () => {
     const { result, send } = mount(null);
     result.current.onReplaySettled();
     expect(send).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Post-replay redraw nudge (iterate-2026-07-27, FR-01.28).
+ *
+ * The resize above is NOT enough: a re-attach usually lands at the SAME
+ * cols/rows and the server deliberately dedupes a no-op resize (v0.8.6 AC-2),
+ * so no SIGWINCH reaches Claude Code and it never learns the grid beneath it is
+ * a restored snapshot (ADR-087) rather than the one it drew. Its next repaint is
+ * differential — CUF (`ESC [ 1 C`) cell-skips, which do not erase — so every
+ * skipped cell keeps a stale character. See
+ * server/src/terminal/cuf-stale-cell-repro.test.ts for the mechanism.
+ */
+describe("useTerminalSizeSync — post-replay redraw nudge", () => {
+  const redraws = (send: ReturnType<typeof vi.fn>) =>
+    send.mock.calls.filter((c) => c[0]?.type === "redraw");
+
+  it("a WRITER emits a redraw frame after the replay settles", () => {
+    const { result, send } = mount("writer");
+    result.current.onReplaySettled();
+    expect(redraws(send)).toHaveLength(1);
+  });
+
+  it("emits the redraw AFTER the resize, so the pty is sized before it repaints", () => {
+    const { result, send } = mount("writer");
+    result.current.onReplaySettled();
+    const types = send.mock.calls.map((c) => c[0]?.type);
+    expect(types).toEqual(["resize", "redraw"]);
+  });
+
+  it("carries NO dimensions — the caller must not be able to reflow the grid it is repairing", () => {
+    const { result, send } = mount("writer");
+    result.current.onReplaySettled();
+    expect(redraws(send)[0][0]).toEqual({ type: "redraw" });
+  });
+
+  it("a READER emits NOTHING AT ALL (not merely no redraw)", () => {
+    // Filtering only redraw frames would pass even if a reader wrongly emitted
+    // a resize, reflowing the snapshot width (#150) — external review LOW.
+    const { result, send } = mount("reader");
+    result.current.onReplaySettled();
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("emits exactly ONE redraw per settled replay (the dedupe is bypassed server-side)", () => {
+    // Two settles = two nudges is fine; what must never happen is a burst per
+    // settle, which would re-create the v0.8.6 banner spam.
+    const { result, send } = mount("writer");
+    result.current.onReplaySettled();
+    expect(redraws(send)).toHaveLength(1);
+    result.current.onReplaySettled();
+    expect(redraws(send)).toHaveLength(2);
+  });
+
+  it("syncSizeNow alone does NOT emit a redraw (launch path stays untouched)", () => {
+    const { result, send } = mount("writer");
+    result.current.syncSizeNow();
+    expect(redraws(send)).toHaveLength(0);
   });
 });

@@ -115,17 +115,21 @@ export function makePtyManager(
   const getRole = vi.fn(() => attachResult.role);
   const write = vi.fn();
   const resize = vi.fn();
+  // Post-replay redraw nudge (iterate-2026-07-27). NOTE the server tsconfig
+  // EXCLUDES **/*.test.ts, so a mock missing a real method fails at RUNTIME,
+  // never at typecheck — keep this fixture in step with PtyManager by hand.
+  const forceRedraw = vi.fn();
 
   const m = {
     get, spawn, attach, subscribeForConnection,
     pauseForConn, resumeForConn,
     serializeMirrorIfLive, detachAndCount, flushMirrorSnapshot,
-    getRole, write, resize,
+    getRole, write, resize, forceRedraw,
     __mocks: {
       get, spawn, attach, subscribeForConnection,
       pauseForConn, resumeForConn,
       serializeMirrorIfLive, detachAndCount, flushMirrorSnapshot,
-      getRole, write, resize,
+      getRole, write, resize, forceRedraw,
     },
   } as unknown as MockPtyManager;
   return m;

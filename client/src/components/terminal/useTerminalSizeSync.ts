@@ -37,7 +37,9 @@ export interface UseTerminalSizeSyncOptions {
   termRef: RefObject<Terminal | null>;
   fitAddonRef: RefObject<FitAddon | null>;
   disposedRef: RefObject<boolean>;
-  socketSend: (msg: { type: "resize"; cols: number; rows: number }) => void;
+  socketSend: (
+    msg: { type: "resize"; cols: number; rows: number } | { type: "redraw" },
+  ) => void;
   /** Current WS role (writer/reader/null) — read live for the writer gate. */
   role: TerminalRole | null;
 }
@@ -68,8 +70,25 @@ export function useTerminalSizeSync(
   roleRef.current = role;
 
   const onReplaySettled = useCallback(() => {
-    if (roleRef.current === "writer") syncSizeNow();
-  }, [syncSizeNow]);
+    if (roleRef.current !== "writer") return;
+    syncSizeNow();
+    // POST-REPLAY REDRAW NUDGE (iterate-2026-07-27, FR-01.28).
+    //
+    // `syncSizeNow` above is NOT enough on its own: a re-attach usually lands at
+    // the SAME cols/rows, and the server deliberately dedupes a no-op resize
+    // (v0.8.6 AC-2). No resize ⇒ no SIGWINCH ⇒ Claude Code never learns that the
+    // grid under it is a restored cell-state snapshot (ADR-087) rather than the
+    // one it drew. Its next repaint is DIFFERENTIAL — `ESC [ 1 C` (CUF) to skip
+    // cells it believes already correct — and CUF does not erase, so every
+    // skipped cell keeps a stale character (`sie und habe` → `sie.undthabe`).
+    //
+    // Sent unconditionally rather than "only when the width did not change": the
+    // client cannot observe the server's dedupe decision, and one redundant
+    // repaint is strictly cheaper than a corrupted screen. Once per settled
+    // replay only — `forceRedraw` bypasses the dedupe, so a loop here would
+    // re-create the v0.8.6 banner spam.
+    socketSend({ type: "redraw" });
+  }, [syncSizeNow, socketSend]);
 
   return { syncSizeNow, onReplaySettled };
 }

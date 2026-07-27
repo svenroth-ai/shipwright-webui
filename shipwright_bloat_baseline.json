@@ -284,9 +284,10 @@
     {
       "path": "client/src/hooks/useTerminalSocket.ts",
       "limit": 300,
-      "current": 516,
+      "current": 528,
       "state": "grandfathered",
-      "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus"
+      "adr": "iterate-2026-06-18-terminal-ws-reconnect-refocus",
+      "note": "outbound `redraw` envelope in the send union (iterate-2026-07-27)"
     },
     {
       "path": "client/src/lib/externalApi.ts",
@@ -599,9 +600,10 @@
     {
       "path": "server/src/terminal/pty-manager.ts",
       "limit": 300,
-      "current": 1230,
+      "current": 1266,
       "state": "exception",
-      "adr": "ADR-101"
+      "adr": "ADR-101",
+      "note": "forceRedraw (post-replay redraw nudge, iterate-2026-07-27) — cohesive in-place addition to the pty lifecycle owner; ADR-101 exception stands"
     },
     {
       "path": "server/src/terminal/pty-replay-attach-detach.test.ts",
@@ -648,9 +650,10 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 550,
+      "current": 565,
       "state": "exception",
-      "adr": "ADR-103"
+      "adr": "ADR-103",
+      "note": "WSMessageRedraw + its writer-gated route (iterate-2026-07-27) — belongs to the WS body alone per ADR-103"
     },
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",

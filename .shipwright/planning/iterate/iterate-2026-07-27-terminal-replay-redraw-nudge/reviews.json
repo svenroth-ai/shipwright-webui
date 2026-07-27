@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-27-terminal-replay-redraw-nudge",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T07:30:55.319150+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T07:30:55.469684+00:00",
+      "disposition": "Not run: these three passes are subagent-delivered (plan-reviewer / code-reviewer / doubt-reviewer) and this operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it. Compensating coverage actually performed: a full external_review.py code pass (openrouter, gemini+openai, 2/2 succeeded) returning four findings, ALL fixed in this diff — including one MEDIUM correctness bug and two vacuous-assertion holes; plus the 7-point self-review; plus an empirical load-bearing check on the new E2E (disable the fix, rebuild, observe FAIL). Recorded as not_run so an empty row means 'genuinely not run', never 'nobody wrote it down'.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T07:30:55.592771+00:00",
+      "disposition": "Not run: these three passes are subagent-delivered (plan-reviewer / code-reviewer / doubt-reviewer) and this operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it. Compensating coverage actually performed: a full external_review.py code pass (openrouter, gemini+openai, 2/2 succeeded) returning four findings, ALL fixed in this diff — including one MEDIUM correctness bug and two vacuous-assertion holes; plus the 7-point self-review; plus an empirical load-bearing check on the new E2E (disable the fix, rebuild, observe FAIL). Recorded as not_run so an empty row means 'genuinely not run', never 'nobody wrote it down'.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-27T07:30:55.717433+00:00",
+      "disposition": "Not run: these three passes are subagent-delivered (plan-reviewer / code-reviewer / doubt-reviewer) and this operating session carries an explicit standing instruction not to invoke the Agent tool unless the user requests it. Compensating coverage actually performed: a full external_review.py code pass (openrouter, gemini+openai, 2/2 succeeded) returning four findings, ALL fixed in this diff — including one MEDIUM correctness bug and two vacuous-assertion holes; plus the 7-point self-review; plus an empirical load-bearing check on the new E2E (disable the fix, rebuild, observe FAIL). Recorded as not_run so an empty row means 'genuinely not run', never 'nobody wrote it down'.",
+      "recorded_by": "claude",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-27T07:30:19.780157+00:00",
+      "disposition": null,
+      "recorded_by": "claude",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Provider: openrouter (gemini + openai). reviews_succeeded=2, degraded=false. Overall: ship-with-fixes.\nFour findings, ALL fixed in this same diff:\n1. [bug, MEDIUM, pty-manager.ts forceRedraw catch] `(err as Error).message` is unsafe: JS permits `throw null`, where the property read throws again and ESCAPES the catch, out through the WS message handler — breaking the AC-3 swallowing guarantee. FIXED: `err instanceof Error ? err.message : String(err)`.\n2. [test, LOW, pty-manager.force-redraw.test.ts] The AC-3 test only threw an Error, so it would have passed despite finding 1. FIXED: parameterised over Error / null / bare string / plain object (4 cases).\n3. [test, LOW, useTerminalSizeSync.test.ts] The reader case asserted only \"no redraw\", so it would have passed if a reader wrongly emitted a resize (reflowing the snapshot width, #150). FIXED: assert `send` was not called at all.\n4. [test, gemini] The E2E ordering assertion `expect(types.indexOf(\"redraw\")).toBeGreaterThan(types.indexOf(\"resize\"))` is VACUOUSLY TRUE when \"resize\" is absent (indexOf returns -1), hiding a missing convergence resize. FIXED: assert `types` toContain(\"resize\") first. Re-ran the spec against the isolated stack after the change: PASS.\n"
+    }
+  }
+}

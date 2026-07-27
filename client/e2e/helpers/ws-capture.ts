@@ -208,10 +208,17 @@ export function outboundDataFrames(
  *            width and smears the input line (#194). `useTerminalSizeSync` sends
  *            this on mount and before launch.
  *
+ *   redraw — dimension-less post-replay nudge (iterate-2026-07-27). Asks the
+ *            server to re-apply the pty's CURRENT size so a fullscreen TUI
+ *            repaints from scratch; a same-size `resize` would be swallowed by
+ *            the v0.8.6 no-op dedupe, leaving Claude Code repainting
+ *            differentially (CUF cell-skips) against a restored snapshot it
+ *            never drew. `useTerminalSizeSync` sends it once per settled replay.
+ *
  * Anything else appearing on the wire means the client grew a NEW way to talk to
  * the pty that no guard covers.
  */
-export const ALLOWED_OUTBOUND_TYPES = ["data", "resize"] as const;
+export const ALLOWED_OUTBOUND_TYPES = ["data", "resize", "redraw"] as const;
 
 /**
  * Outbound frames whose `type` is outside `allowed`. Asserting this is empty is
