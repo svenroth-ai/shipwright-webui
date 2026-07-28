@@ -1,28 +1,78 @@
-# Accepted-risk register.
+# Trivy ignore file — the OPERATIONAL suppression channel.
 #
-# READ THIS BEFORE EDITING — the entry below is NOT a Trivy suppression.
+# READ THIS BEFORE EDITING. This file no longer carries the rationale. Every
+# entry here MUST have a matching entry in `shipwright_accepted_risks.yaml`,
+# which is the human-authored record of WHY a finding is accepted and WHEN it
+# gets revisited. This file is only the switch that silences it.
 #
-# Trivy owns this filename, but the shipwright-compliance dashboard is the
-# consumer that matters here: `parse_accepted_risks()` (ci_security.py) reads
-# `vulnerabilities[].{id, expired_at}` and renders each row in the dashboard's
-# "Accepted risks" table, flipping it to "EXPIRED — re-review" once `expired_at`
-# has passed. That table is currently the ONLY mechanism in the toolchain that
-# surfaces an expiring decision — ADR `Re-Review-Date` fields are written but
-# read by nothing (verified 2026-07-18).
+# The split is enforced in both directions by the drift gate:
 #
-# So a posture decision is registered here to get a due date that actually
-# reaches a human. The id below matches no real CVE, so Trivy ignores it — the
-# entry is inert to the scanner and meaningful to the dashboard.
+#     uv run <shared>/scripts/tools/accepted_risks_cli.py check --project-root .
 #
-# This is an acknowledged semantic stretch, filed as framework follow-up
-# (monorepo triage `ci-supplychain-guardrails-and-acceptance-surfacing`): the
-# register should be generalized so scanner-agnostic acceptances get a
-# first-class home instead of borrowing Trivy's file.
+# A suppression here with no register entry is UNRECORDED — the compliance
+# dashboard renders it as DRIFT, not as an accepted risk, because being
+# suppressed is not the same as being accepted. A register entry with no
+# suppression here is STALE.
+#
+# ENTRIES HAVE TWO DIFFERENT NATURES — do not infer one from the other:
+#
+#   REAL advisory ids (CVE-* / GHSA-*) are honoured natively by Trivy. Trivy
+#   auto-discovers this file from the scan root and `.github/workflows/
+#   security.yml` runs `trivy fs ... .` there, so these genuinely suppress.
+#   Their `expired_at` is LOAD-BEARING, not decorative: once the date passes,
+#   Trivy stops ignoring the finding and the alert comes back on its own. That
+#   is the built-in tripwire — such an acceptance cannot rot silently even while
+#   the register's own `expire` gate is not yet wired into CI.
+#
+#   SYNTHETIC ids (the `semgrep:` entry below) match no real advisory and are
+#   therefore INERT to Trivy; they exist only so the compliance dashboard can
+#   render the acceptance, and their `expired_at` is a dashboard signal rather
+#   than a scanner behaviour. Historically this file was the only channel
+#   carrying a due date at all, which is why a Semgrep / CI-posture decision
+#   ended up filed in a Trivy SCA ignore file. `shipwright_accepted_risks.yaml`
+#   supersedes that role; the synthetic entry stays here for now because
+#   relocating it means moving SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS out
+#   of `.claude/settings.json` and into the workflow — a CI-supply-chain change
+#   with its own review posture, deliberately not bundled into this change.
+#
+# SCOPING NOTE: the two advisory entries are id-level, not `paths`-scoped. Trivy
+# is not installed on the authoring machine, so a narrower path match could not
+# be verified to actually fire, and a suppression that silently fails to apply is
+# the worst outcome for both goals here. The precise occurrence sites are
+# recorded in the register's `scope.paths`.
 
 vulnerabilities:
-  # synthetic id — NOT a CVE/GHSA. Inert to Trivy (matches no real advisory);
-  # consumed only by the dashboard's parse_accepted_risks(). Entries here carry
-  # dual semantics, which is the stretch the header describes.
+  # Register: shipwright_accepted_risks.yaml → ar-2026-07-28-hono-node-server-serve-static-windows
+  # Occurs in server/package-lock.json and bootstrapper/package-lock.json.
+  - id: GHSA-frvp-7c67-39w9
+    expired_at: 2026-10-28
+    statement: >-
+      @hono/node-server < 2.0.5 path traversal in serve-static on Windows via an
+      encoded backslash (%5C). NOT FIXABLE: @hono/node-ws@1.3.1 (latest)
+      peer-requires @hono/node-server ^1.19.11, so the patched 2.0.5 breaks the
+      embedded terminal's WebSocket upgrade chain (ADR-067). NOT REACHABLE: the
+      advisory's impact is reading static files behind a middleware-guarded
+      prefix, and this repo mounts no prefix-scoped middleware — every app.use in
+      server/src/index.ts is a wildcard, the static root is the public SPA build
+      served in full by design, and ".." escape stays blocked. TRIPWIRE: invalid
+      the moment auth middleware or a guarded subtree appears under the static
+      root. Full rationale and re-review trigger in shipwright_accepted_risks.yaml.
+
+  # Register: shipwright_accepted_risks.yaml → ar-2026-07-28-react-router-rsc-csrf
+  # Occurs in client/package-lock.json.
+  - id: GHSA-qwww-vcr4-c8h2
+    expired_at: 2027-01-28
+    statement: >-
+      react-router >= 7.12.0 < 8.3.0 RSC-mode CSRF bypass. NOT APPLICABLE: the
+      advisory scopes itself to the unstable RSC APIs, and this client is a Vite
+      SPA on RouterProvider with no RSC entry point and no unstable_* API in
+      client/src (verified by source scan). No patch exists for the 7.x line —
+      "fixed in 8.3.0" is a major migration, so there is nothing to upgrade to
+      short of one. Full rationale and re-review trigger in
+      shipwright_accepted_risks.yaml.
+
+  # SYNTHETIC id — NOT a CVE/GHSA. Inert to Trivy (matches no real advisory).
+  # Register: shipwright_accepted_risks.yaml → ar-2026-07-18-gh-owned-action-mutable-tags
   - id: semgrep:github-actions-mutable-action-tag
     expired_at: 2027-07-18
     statement: >-

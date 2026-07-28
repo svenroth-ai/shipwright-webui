@@ -1,39 +1,37 @@
 ---
 canon_generated: true
-run_id: "iterate-2026-07-23-mission-viewer-scroll-popout"
+run_id: "iterate-2026-07-28-security-accepted-risk-register"
 phase: "iterate"
-reason: "iterate: mission-viewer-scroll-popout"
-timestamp: "2026-07-23T14:29:31.723611+00:00"
+reason: "iterate: security triage — fix two reachable CVEs, register three unreachable ones"
+timestamp: "2026-07-28T11:34:31.069404+00:00"
 ---
 
 # Session Handoff
 
-> Auto-generated 2026-07-23 14:29:31 UTC
+> Auto-generated 2026-07-28 11:34:31 UTC
 
 ## Session Info
 
-- **Session ID**: 8488876c-f039-435c-9962-4428d06d3030
-- **Timestamp**: 2026-07-23 14:29:31 UTC
-- **Reason**: iterate: mission-viewer-scroll-popout
+- **Session ID**: 0dc6357a-6597-47d3-a868-6843aefe4ec8
+- **Timestamp**: 2026-07-28 11:34:31 UTC
+- **Reason**: iterate: security triage — fix two reachable CVEs, register three unreachable ones
 
 ## Last Iterate
 
-- **Run ID**: iterate-2026-07-23-intent-launcher-front-door
-- **Date**: 2026-07-23T09:54:48.143624Z
-- **Type**: feature
+- **Run ID**: iterate-2026-07-28-security-accepted-risk-register
+- **Date**: 2026-07-28T11:34:24.986308Z
+- **Type**: change
 - **Complexity**: medium
-- **Branch**: iterate/intent-launcher-front-door
-- **ADR**: iterate-2026-07-23-intent-launcher-front-door
+- **Branch**: iterate/security-accepted-risk-register
+- **ADR**: iterate-2026-07-28-security-accepted-risk-register
 - **Tests passed**: True
-- **Spec**: .shipwright/planning/iterate/2026-07-23-intent-launcher-front-door.md
+- **Spec**: .shipwright/planning/iterate/iterate-2026-07-28-security-accepted-risk-register.md
 
 ## Current Iterate Progress
 
-- **Branch**: iterate/mission-viewer-scroll-popout
-- **Run ID**: iterate-2026-07-23-mission-viewer-scroll-popout
-- **Spec**: .shipwright/planning/iterate/2026-07-23-mission-viewer-scroll-popout.md
-- **Complexity**: medium
-- **External Review Marker**: completed (external_review_state.json @ 2026-07-23T14:23:38)
+- **Branch**: iterate/security-accepted-risk-register
+- **Spec**: .shipwright/planning/iterate/iterate-2026-07-28-security-accepted-risk-register.md
+- **External Review Marker**: stale (predates spec (2026-07-23T14:23:38))
 
 ### Mandatory replay on Resume
 
@@ -51,8 +49,8 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 ## Git State
 
-- **Branch**: iterate/mission-viewer-scroll-popout
-- **Last Commit**: fb04d2b6 chore(triage): sweep 1 outbox append(s) into branch
+- **Branch**: iterate/security-accepted-risk-register
+- **Last Commit**: 7bdfd411 chore(triage): sweep 1 outbox append(s) into branch
 - **Uncommitted Changes**: Yes
 
 ## Config Files to Read
@@ -68,17 +66,17 @@ Before dispatching to the handoff's Remaining phase, run these if missing:
 
 | Event | Type | Source | Date |
 |-------|------|--------|------|
-| evt-1492908f | work_completed | iterate (mission-viewer-scroll-popout) | 2026-07-23 |
-| evt-692edbfe | work_completed | iterate (Make the guided Intent Wizard the front door across all four create surfaces + a permanent register-manually escape hatch) | 2026-07-23 |
-| evt-6b8a677d | work_completed | iterate (Incremental transcript parse (delta-only) + memoized MarkdownChunk; replaces the whole-string re-parse per poll in BubbleTranscript and TaskDetailPage.transcriptStats) | 2026-07-23 |
-| evt-b4b01ad1 | event_amended | — | 2026-07-22 |
-| evt-9a58ec4c | work_completed | iterate (iterate: read the per-run review record in the Mission Review artifact) | 2026-07-22 |
+| evt-21f562ff | grade_snapshot | — | 2026-07-28 |
+| evt-742d79a1 | work_completed | iterate (iterate: security triage — fix two reachable CVEs, register three unreachable ones) | 2026-07-28 |
+| evt-e02ce62d | work_completed | iterate (iterate: Mac terminal freeze — revive the dead socket on user interaction + a faster heartbeat) | 2026-07-27 |
+| evt-888b32ba | work_completed | iterate (iterate: post-replay redraw nudge so a restored terminal snapshot is repainted, not patched over) | 2026-07-27 |
+| evt-9e299f3c | work_completed | iterate (iterate: terminal renders via DOM by default; GPU acceleration becomes an opt-in Settings toggle) | 2026-07-24 |
 
 ## Recovery
 
 - **Pipeline**: 2 phases completed
-- **Total work events**: 374
-- **Last iterate**: change — mission-viewer-scroll-popout (2026-07-23)
+- **Total work events**: 381
+- **Last iterate**: change — iterate: security triage — fix two reachable CVEs, register three unreachable ones (2026-07-28)
 - **Resume**: `/shipwright-iterate` for next change, or `/shipwright-run` for new pipeline
 
 ## Recent Decisions
