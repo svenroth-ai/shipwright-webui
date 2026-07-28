@@ -89,8 +89,18 @@ jobs:
         run: semgrep scan --config auto --sarif --output sarif/semgrep.sarif .
         continue-on-error: true
 
+      # `--ignorefile` is REQUIRED for the YAML form and is not a style choice:
+      # Trivy auto-discovers only the flat `.trivyignore`. The YAML variant is
+      # still experimental and, per Trivy's own docs, "you must explicitly
+      # specify the YAML file path using the --ignorefile flag". Without it this
+      # repo's `.trivyignore.yaml` was never read AT ALL — which is why the
+      # accepted risks registered in iterate-2026-07-28-security-accepted-risk-register
+      # (PR #328) kept showing up as open alerts, and why the pre-existing
+      # `semgrep:` entry looked "inert to Trivy" for reasons that had nothing to
+      # do with its synthetic id. Do NOT drop this flag while the register still
+      # uses the YAML form; `expired_at` only becomes load-bearing WITH it.
       - name: Run Trivy (SCA + IaC)
-        run: trivy fs --format sarif --output sarif/trivy.sarif --scanners vuln,misconfig .
+        run: trivy fs --format sarif --output sarif/trivy.sarif --scanners vuln,misconfig --ignorefile .trivyignore.yaml .
         continue-on-error: true
 
       - name: Run Gitleaks (Secrets)
