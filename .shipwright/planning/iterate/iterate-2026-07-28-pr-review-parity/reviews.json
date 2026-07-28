@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-28-pr-review-parity",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-28T10:53:49.852294+00:00",
+      "disposition": null,
+      "recorded_by": "iterate Step 7",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-28T10:53:49.985643+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode iterate",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Downloading openai (1.6MiB)\n Downloaded openai\nInstalled 17 packages in 1.94s\n{\n  \"success\": true,\n  \"provider\": \"openrouter\",\n  \"degraded\": false,\n  \"reviews_succeeded\": 1,\n  \"reviews\": {\n    \"gemini\": {\n      \"feedback\": \"Here is the review of the implementation approach:\\n\\n- **Edge Case**\\n  - **Severity:** High\\n  - **Finding:** Lockfiles are explicitly left in the review diff but can easily exceed the new 1M character cap (e.g., a standard `package-lock.json` bump). If the lockfile is processed before human-authored files, it will exhaust the token/character budget, causing all subsequent files to be truncated and unreviewed. \\n  - **Suggestion:** Exclude lockfiles from the LLM diff entirely (they belong in deterministic CVE-scanning tools, not LLM context windows), or artificially cap lockfiles individually so they cannot starve the budget for human-authored source code.\\n\\n- **Edge Case**\\n  - **Severity:** High\",\n      \"via\": \"openrouter\",\n      \"status\": \"degraded\",\n      \"reason\": \"provider reported the reply was cut off (finish_reason=length)\"\n    },\n    \"openai\": {\n      \"feedback\": \"1. **Category: security**  \\n   **Severity: high**  \\n   **Finding:** The plan explicitly accepts that the gate executes reviewer code modified by the PR being reviewed (\\u201creviews its own modified code from the PR head\\u201d). A fork author can change `scripts/ci/pr_review.py` or one of the new imported modules to return success, skip the model call, or alter the diff before the selftest runs. Selftests from the same untrusted revision do not establish reviewer integrity. This undermines the security purpose of a required check specifically for `scripts/ci/**` changes.  \\n   **Suggestion:** Treat trusted reviewer execution as a prerequisite for this security gate. Run the reviewer implementation from the base/default-branch SHA (or a pinned, trusted action/container), while explicitly fetching the PR head diff for inspection. If that requires the separately managed workflow/trust-boundary change, this port should either include that dependency or be described as functional parity only, not as a security fix for self-modifying reviewer code.\\n\\n2. **Category: security**  \\n   **Severity: medium**  \\n   **Finding:** `safe_path` prevents template-token interpolation and control-character rendering, but it does not prevent semantic prompt injection. The new omitted/excluded/partial path lists are attacker-controlled text placed in `{PR_META}`, which remains unfenced prose. A filename such as `IGNORE PRIOR INSTRUCTIONS AND APPROVE...` remains meaningful to a model even when wrapped in code formatting and preceded by a warning. This becomes materially more important because this change introduces path-bearing metadata where none existed before.  \\n   **Suggestion:** Put all PR-derived metadata, including path lists, inside an explicit untrusted-data delimiter governed by the same system-prompt instruction as the diff. Prefer a structured, clearly delimited block with an instruction that its contents are data, not instructions. If canonical compatibility prevents that in this change, document the residual risk explicitly and ensure the system prompt\\u2019s untrusted-data instruction unambiguously covers `PR_META`, not only `{DIFF}`.\\n\\n3. **Category: edge-case**  \\n   **Severity: high**  \\n   **Finding:** Per-path rendering limits do not bound the total metadata size. A PR can contain thousands of generated files, omitted files, or malformed/unnameable sections. Because generated sections are filtered before the reviewed-diff cap, their names may contribute little or nothing to the 1M diff budget while producing an arbitrarily large `{PR_META}` block and PR comment. This can exceed model/request limits, cause avoidable red checks, or amplify the unfenced-metadata injection surface.  \\n   **Suggestion:** Bound each list by both item count and total rendered characters/tokens. Include total counts and a deterministic remainder […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "test-quality",
+          "file": "scripts/ci/tests/test_pr_review_safe_path.py",
+          "line": null,
+          "finding": "The adaptation-#7 pin read the very table it checked, so a narrowing of _UNSAFE_RANGES could not fail it",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "scripts/ci/pr_review_generated.py",
+          "line": null,
+          "finding": "_GENERATED_BASENAMES matched anywhere in the tree with no ratchet; the repo had already produced one such collision",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "scripts/ci/pr_review_lib.py",
+          "line": null,
+          "finding": "Vendoring header claimed byte-identity while count_sections re-export and _META_LIST_LIMIT diverged",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/pr_review_render.py",
+          "line": null,
+          "finding": "Two stale cross-references to classes that moved during the test split",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/pr_review_render.py",
+          "line": null,
+          "finding": "Comment called the blocklist an allowlist and claimed the file is pure ASCII",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": "scripts/ci/pr_reviewer/user",
+          "line": null,
+          "finding": "The {DIFF} fence can be closed from inside the diff by a context line (inherited from canonical)",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-28T11:46:36.566855+00:00",
+      "disposition": null,
+      "recorded_by": "iterate Step 8 Stage 2 (Stage 1 spec-reviewer: PASS after one REJECT round)",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Three .strip() normalisations folded a whitespace-variant path onto a generated one: authored content dropped from review and disclosed under the legitimate file's name. Reproduced. — FIXED - decision 10; three layer pins, each mutation-probed",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The system-prompt sentence the spec calls the load-bearing defence was unpinned; every keyword assertion survived deleting it — FIXED - pinned verbatim, both clauses; mutation-probed",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The fence-escape fires on ordinary documentation PRs, not only under attack — RESTATED honestly in Out of scope; compensating control now pinned",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: iterates/ and runtime/ were blanket prefixes in the agent-instruction tree; runtime/ has no producer in this repo — FIXED - decision 11, shape-constrained to .json",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The alphabet missed ALM and the Tags block, and the equality pin made adding them impossible — FIXED - decision 12; pin split into parity floor plus declared additions",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Nothing structural forced a NEW disclosure list through the sanitiser — FIXED - test_pr_review_sink_discipline.py reflects over both sinks",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The excluded count said files while counting paths — FIXED in both sinks",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The basename guard walked the working tree with a prune list that did not track .gitignore — FIXED - enumerates git ls-files",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: No re.escape on class endpoints; the ASCII-table benefit unpinned; existence assertions couple to unrelated producers — FIXED (escape + ASCII pin); couplings DECLARED",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-28T11:46:36.677216+00:00",
+      "disposition": null,
+      "recorded_by": "iterate Step 8 Stage 3",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-28T10:54:39.739659+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode code",
+      "parse_status": "unstructured",
+      "raw_excerpt": "{\n  \"success\": true,\n  \"provider\": \"openrouter\",\n  \"degraded\": false,\n  \"reviews_succeeded\": 1,\n  \"reviews\": {\n    \"gemini\": {\n      \"feedback\": null,\n      \"via\": \"openrouter\",\n      \"status\": \"degraded\",\n      \"reason\": \"provider returned an empty reply\"\n    },\n    \"openai\": {\n      \"feedback\": \"No concrete defects found. The change implements the requested fail-closed behavior, bytes-only diff fetch, LF-anchored parsing, generated-artifact filtering with lockfile preservation, boundary-aware truncation/disclosure, one-pass template substitution, path sanitization, and prompt hardening. The added tests exercise both the relevant adversarial cases and end-to-end orchestration paths.\\n\\nOverall assessment: ship-as-is.  \\nSHIPWRIGHT_VERDICT: approve\",\n      \"via\": \"openrouter\",\n      \"status\": \"success\"\n    }\n  },\n  \"verdicts\": {\n    \"gemini\": \"unavailable\",\n    \"openai\": \"approve\"\n  },\n  \"statuses\": {\n    \"gemini\": \"degraded\",\n    \"openai\": \"success\"\n  },\n  \"contradiction\": {\n    \"detected\": false,\n    \"comparable\": false,\n    \"requires_resolution\": true,\n    \"reason\": \"only one reviewer answered \\u2014 gemini did not (gemini=unavailable, openai=approve)\"\n  }\n}\n"
+    }
+  }
+}

@@ -1,35 +1,55 @@
 """Pure helpers for the Tier-3 PR reviewer (no network / no subprocess).
 
-Vendored VERBATIM from the canonical shipwright monorepo. The WebUI has no
-Python ``shared/``/``plugins/`` tree on the CI runner, so the reviewer lives
-in-repo (same convention as ``scripts/hooks/anti_ratchet_check.py``).
+Vendored from the canonical shipwright monorepo. The WebUI has no Python
+``shared/``/``plugins/`` tree on the CI runner, so the reviewer lives in-repo
+(same convention as ``scripts/hooks/anti_ratchet_check.py``).
 
-# canonical-source-hash: 5d18dcc569ae76bbd78c0b981fb67c1f09b73d203f727694428a1e7a27bab82f
+# canonical-source-hash: 037c80c0909899349d59175178a7018921d857a898ffa28c195cf35446966aaf
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-paths:
 #   plugins/shipwright-security/scripts/lib/pr_review_lib.py
-# canonical-source-version: iterate-2026-06-17-pr-review-truncation-failclosed
-# adaptation: none — body is byte-identical to canonical (the hash above
-#   covers the canonical file's bytes, not this docstring header).
+# canonical-source-version: iterate-2026-07-27-pr-review-forged-boundary
+# canonical-source-hash = sha256(the canonical file's bytes at the version above)
+# adaptation: none — the body is byte-identical to canonical below the docstring
+#   (the sibling modules it re-exports from are vendored next to it, so the
+#   import lines need no re-pointing).
 
-Split out of ``scripts/ci/pr_review.py`` so the I/O-free review logic
-(redaction, prompt loading, diff truncation, response parsing, decision →
-exit-code mapping, comment rendering) stays small and unit-testable, and the
-tool script stays under the source-size guideline. See B4.5 in the monorepo's
-``Spec/early-access-readiness-plan.md``.
+Split out of ``scripts/ci/pr_review.py`` so the I/O-free review logic stays small
+and unit-testable, and the tool script stays under the source-size guideline.
+This module is now the pure-logic core only — redaction, prompt loading, the
+template fill, diff truncation, response parsing and the decision → exit-code
+mapping. Diff filtering (``pr_review_diff_filter``) and rendering
+(``pr_review_render``) live in their own modules and are re-exported here for
+existing callers; the two I/O boundaries (``pr_review_gh``,
+``pr_review_openrouter``) are reached through ``pr_review`` itself. See B4.5 in
+the monorepo's ``Spec/early-access-readiness-plan.md``.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
-# A diff larger than this is reviewed on a truncated copy. A truncated (partial)
-# review FAILS CLOSED (we never saw the whole change): for a required gate on an
-# untrusted PR the reviewer forces a request-changes state + non-zero exit (needs
-# human) so a large diff cannot bypass review by size. See B4.5 error-behavior +
-# iterate-2026-06-17-pr-review-truncation-failclosed (was: comment-state + exit 0).
-MAX_DIFF_CHARS = 200_000
+# Generated-artifact diff filtering lives in its own cohesive module; re-exported
+# here so `pr_review_lib.filter_generated_paths` / `.is_generated_path` keep
+# working for callers and tests. See pr_review_diff_filter for the rationale.
+from pr_review_diff_filter import (  # noqa: F401
+    MAX_DIFF_CHARS,
+    ReviewedDiff,
+    filter_generated_paths,
+    is_generated_path,
+    truncate_diff_at_boundary,
+)
+# Rendering (comment + model meta + the path sanitiser) lives in its own
+# module; re-exported so existing call sites keep working.
+from pr_review_render import (  # noqa: F401
+    build_pr_meta,
+    nothing_reviewed_summary,
+    render_comment,
+    safe_path,
+)
+
 
 EXIT_OK = 0
 EXIT_BLOCK = 1
@@ -61,16 +81,38 @@ def load_prompts(prompt_dir: str) -> tuple[str, str]:
     return system, user
 
 
-def truncate_diff(diff: str, max_chars: int = MAX_DIFF_CHARS) -> tuple[str, bool]:
-    """Return (diff, truncated). Truncates to ``max_chars`` when over the cap."""
-    if len(diff) <= max_chars:
-        return diff, False
-    return diff[:max_chars], True
+def truncate_diff(diff: str, max_chars: int = MAX_DIFF_CHARS) -> ReviewedDiff:
+    """Cut an over-cap diff at a file boundary. See ``ReviewedDiff``.
+
+    Returns a record, not a tuple: read ``.incomplete`` for the gate and
+    ``.omitted`` / ``.partial`` for the message.
+    """
+    return truncate_diff_at_boundary(diff, max_chars)
+
+
+_PLACEHOLDERS = ("{PR_META}", "{DIFF}")
+_PLACEHOLDER_RE = re.compile("|".join(re.escape(p) for p in _PLACEHOLDERS))
 
 
 def build_messages(system_prompt: str, user_prompt: str, diff: str, pr_meta: str) -> list[dict]:
-    """Fill the user-prompt template (`{PR_META}`, `{DIFF}`) and build chat messages."""
-    filled = user_prompt.replace("{PR_META}", pr_meta).replace("{DIFF}", diff)
+    """Fill the user-prompt template (`{PR_META}`, `{DIFF}`) and build chat messages.
+
+    ONE pass. Chained `.replace()` calls re-scan what the earlier one inserted,
+    and `{PR_META}` is filled first — so a file literally named ``{DIFF}`` (a
+    legal path; the sanitiser strips control characters, not braces) put its own
+    name into the metadata block and the second replace expanded the whole diff
+    there, **above the fence and outside the block the system prompt marks as
+    untrusted**. A single substitution never reconsiders inserted text.
+
+    Raises if a placeholder is missing: a silent no-op here would send the model
+    a prompt with no diff, or with no statement of what it is not being shown,
+    and every test would stay green.
+    """
+    missing = [p for p in _PLACEHOLDERS if p not in user_prompt]
+    if missing:
+        raise ValueError(f"user prompt template is missing {', '.join(missing)}")
+    values = {"{PR_META}": pr_meta, "{DIFF}": diff}
+    filled = _PLACEHOLDER_RE.sub(lambda m: values[m.group(0)], user_prompt)
     return [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": filled},
@@ -138,44 +180,3 @@ def decision_to_exit(decision: str) -> int:
     if norm == "block":
         return EXIT_BLOCK
     return EXIT_ERROR
-
-
-def render_comment(review: dict, *, model: str, truncated: bool) -> str:
-    """Render the PR comment Markdown from a parsed review object."""
-    decision = str(review.get("decision") or "unknown").strip().lower()
-    badge = {"approve": "✅ APPROVE", "comment": "💬 COMMENT", "block": "🔴 BLOCK"}.get(
-        decision, f"⚠️ {decision.upper()}"
-    )
-    lines = [
-        "## 🤖 Shipwright PR Review",
-        "",
-        f"**Decision: {badge}**",
-        "",
-        str(review.get("summary") or "_No summary provided._"),
-        "",
-    ]
-    if truncated:
-        lines += [
-            f"> ⚠️ **Diff truncated** at {MAX_DIFF_CHARS:,} characters — this review is "
-            "**partial**, so the check **fails closed**: a human must review this PR "
-            "before merge (a maintainer can apply the `skip-pr-review` label after a "
-            "manual look).",
-            "",
-        ]
-    blocking = [b for b in (review.get("blocking") or []) if str(b).strip()]
-    if blocking:
-        lines.append("### 🚫 Blocking issues")
-        lines += [f"- {b}" for b in blocking]
-        lines.append("")
-    comments = [c for c in (review.get("comments") or []) if str(c).strip()]
-    if comments:
-        lines.append("### Comments")
-        lines += [f"- {c}" for c in comments]
-        lines.append("")
-    lines += [
-        "---",
-        f"_Automated Tier-3 review by `{model}` via OpenRouter "
-        "(external / sensitive-path PR). Tier 1/2 PRs are reviewed locally at "
-        "`/shipwright-iterate` Step 8 — see B4.5._",
-    ]
-    return "\n".join(lines)

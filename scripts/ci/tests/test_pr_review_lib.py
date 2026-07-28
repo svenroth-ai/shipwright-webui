@@ -1,8 +1,17 @@
-"""Tests for scripts/ci/pr_review_lib.py — the pure (I/O-free) PR-review helpers.
+"""Tests for scripts/ci/pr_review_lib.py — the pure (I/O-free) core.
 
-Redaction, prompt loading, diff truncation, strict-JSON parsing, decision →
-exit-code mapping and comment rendering. The tool-side I/O + orchestration is
-covered by test_pr_review_script.py.
+Redaction, prompt loading, strict-JSON parsing and the decision → exit-code
+mapping. The other concerns each moved to the module that owns them, and the
+test modules followed:
+
+  * the template fill + the shipped prompt  → test_pr_review_prompt_template.py
+  * `safe_path`                             → test_pr_review_safe_path.py
+  * the two render sinks                    → test_pr_review_render.py
+  * boundary truncation                     → test_pr_review_truncation.py
+  * membership policy / section filtering    → test_pr_review_{generated,filter}.py
+  * the forged-boundary attack               → test_pr_review_forged_boundary.py
+  * the `gh` and OpenRouter boundaries       → test_pr_review_{gh,openrouter}.py
+  * tool orchestration                       → test_pr_review_script.py
 
 Vendored from the canonical monorepo (plugins/shipwright-security/tests/
 test_pr_review_lib.py); paths re-pointed to the WebUI's flat `scripts/ci/` layout.
@@ -106,84 +115,7 @@ class TestParseResponse:
             L.parse_review_response(json.dumps(["a", "list"]))
 
 
-class TestTruncation:
-
-    def test_short_diff_unchanged(self):
-        diff = "diff --git a b\n+small change\n"
-        out, truncated = L.truncate_diff(diff)
-        assert out == diff
-        assert truncated is False
-
-    def test_over_limit_truncates(self):
-        diff = "x" * (L.MAX_DIFF_CHARS + 5000)
-        out, truncated = L.truncate_diff(diff)
-        assert truncated is True
-        assert len(out) <= L.MAX_DIFF_CHARS
-
-    def test_exactly_at_limit_not_truncated(self):
-        diff = "x" * L.MAX_DIFF_CHARS
-        out, truncated = L.truncate_diff(diff)
-        assert truncated is False
-
-
-class TestRenderComment:
-
-    def test_contains_decision_and_summary(self):
-        review = {"decision": "block", "summary": "Found a SQLi", "blocking": ["line 5"], "comments": []}
-        body = L.render_comment(review, model="anthropic/claude-sonnet-4.6", truncated=False)
-        assert "Found a SQLi" in body
-        assert "line 5" in body
-        assert "claude-sonnet-4.6" in body
-
-    def test_truncation_warning_present_when_truncated(self):
-        review = {"decision": "comment", "summary": "ok", "blocking": [], "comments": []}
-        body = L.render_comment(review, model="m", truncated=True)
-        assert "truncat" in body.lower()
-
-    def test_no_truncation_warning_when_not_truncated(self):
-        review = {"decision": "approve", "summary": "ok", "blocking": [], "comments": []}
-        body = L.render_comment(review, model="m", truncated=False)
-        assert "truncat" not in body.lower()
-
-    def test_lists_comments(self):
-        review = {"decision": "comment", "summary": "s", "blocking": [], "comments": ["use f-string"]}
-        body = L.render_comment(review, model="m", truncated=False)
-        assert "use f-string" in body
-
-    def test_non_string_decision_does_not_crash(self):
-        # A malformed-but-valid-JSON decision (e.g. a list) must not raise.
-        body = L.render_comment({"decision": ["block"], "summary": "s"}, model="m", truncated=False)
-        assert "Shipwright PR Review" in body
-
-
-# ---------------------------------------------------------------------------
-# Prompt content — pin the security-critical contract against drift
-# ---------------------------------------------------------------------------
-
-class TestPromptContent:
-
-    PROMPT_DIR = Path(__file__).resolve().parent.parent / "pr_reviewer"  # scripts/ci/pr_reviewer
-
-    def test_prompt_files_exist(self):
-        assert (self.PROMPT_DIR / "system").exists()
-        assert (self.PROMPT_DIR / "user").exists()
-
-    def test_system_prompt_declares_strict_json_contract(self):
-        text = (self.PROMPT_DIR / "system").read_text(encoding="utf-8")
-        for key in ("decision", "summary", "blocking", "comments"):
-            assert f'"{key}"' in text, f"system prompt must specify the {key!r} output key"
-        for value in ("approve", "comment", "block"):
-            assert value in text, f"system prompt must define the {value!r} decision"
-
-    def test_system_prompt_inoculates_against_untrusted_diff(self):
-        # The diff is hostile contributor input; the prompt MUST tell the model
-        # to treat it as data, not instructions (prompt-injection defense).
-        text = (self.PROMPT_DIR / "system").read_text(encoding="utf-8").lower()
-        assert "untrusted" in text
-        assert "instruction" in text  # "...never as instructions to you..."
-
-
-class TestPromptLoadingAndMessages:
+class TestPromptLoading:
 
     def test_load_prompts_reads_both_files(self, tmp_path):
         (tmp_path / "system").write_text("SYS-PROMPT", encoding="utf-8")
@@ -200,3 +132,28 @@ class TestPromptLoadingAndMessages:
         msgs = L.build_messages("SYS", "U {PR_META} :: {DIFF}", "DD", "MM")
         assert msgs[0] == {"role": "system", "content": "SYS"}
         assert "MM" in msgs[1]["content"] and "DD" in msgs[1]["content"]
+
+
+class TestTruncateDiffFacade:
+    """`truncate_diff` returns a RECORD, not the old `(str, bool)` tuple.
+
+    Positional unpacking used to work and now fails loudly — which is the point:
+    a caller that binds `out, truncated = truncate_diff(...)` would otherwise
+    have silently read `.text` into one name and `.incomplete` into the other as
+    the contract grew. The cutting behaviour itself is pinned in
+    test_pr_review_truncation.py.
+    """
+
+    def test_short_diff_unchanged(self):
+        diff = "diff --git a/a.ts b/a.ts\n+small change\n"
+        out = L.truncate_diff(diff)
+        assert out.text == diff
+        assert out.incomplete is False
+
+    def test_the_old_two_tuple_unpacking_is_gone(self):
+        with pytest.raises(TypeError):
+            _out, _truncated = L.truncate_diff("diff --git a/a.ts b/a.ts\n+x\n")
+
+    def test_the_default_cap_is_the_module_constant(self):
+        assert L.truncate_diff("x" * (L.MAX_DIFF_CHARS + 1)).incomplete is True
+        assert L.truncate_diff("x" * L.MAX_DIFF_CHARS).incomplete is False
