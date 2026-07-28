@@ -1,0 +1,124 @@
+# Shipwright accepted-risk register — the single human-authored record of every
+# consciously accepted security finding in THIS repo.
+#
+# This file RECORDS acceptances; it does not APPLY them. The scanner wiring stays
+# where it is: `.trivyignore.yaml` is Trivy's ignore input, and the
+# SHIPWRIGHT_SEMGREP_* policy toggles live in `.claude/settings.json`. A
+# both-directions drift gate keeps record and reality in lockstep:
+#
+#     uv run <shared>/scripts/tools/accepted_risks_cli.py check  --project-root .
+#     uv run <shared>/scripts/tools/accepted_risks_cli.py expire --project-root .
+#
+# `check` fails when a suppression has no entry here (UNRECORDED — nobody can
+# tell why it is silenced or when to revisit it) AND when an entry here has no
+# real suppression (STALE). `expire` fails once an entry is past `expires`.
+#
+# WHY THIS FILE EXISTS HERE. Until now webui recorded acceptances inside
+# `.trivyignore.yaml`, because `expired_at` there was the only due date the
+# toolchain surfaced. That forced a Semgrep / CI-posture decision to be filed in
+# a Trivy SCA ignore file — a semantic stretch this repo was the motivating
+# example for. It also had a sharper cost: the compliance dashboard correlates
+# register against suppression and renders a suppression with NO register entry
+# as DRIFT, not as an accepted risk. Being suppressed is not the same as being
+# accepted, and the dashboard is right to refuse to conflate them.
+#
+# NOT YET WIRED INTO CI. `check` / `expire` are not yet part of this repo's
+# workflow gates, so today they are run on demand. Wiring them is tracked as
+# explicit follow-up (see iterate-2026-07-28-security-accepted-risk-register);
+# until then an expired entry still self-heals on the Trivy side, because
+# `expired_at` in `.trivyignore.yaml` makes the scanner stop ignoring and the
+# alert returns on its own.
+#
+# Fields (all required unless noted):
+#   id             stable, human-readable, unique
+#   target         trivy-ignore | semgrep-rule-exclusion | semgrep-policy-toggle
+#                  | github-dismissal   (only the first three check offline)
+#   rule           the scanner-native identifier this acceptance is keyed to
+#   expires        YYYY-MM-DD re-review date. The date itself is still active;
+#                  the day AFTER it, the entry is overdue. Evaluated in UTC.
+#   rationale_ref  a RECORDED decision: ADR-NNN, an iterate-YYYY-MM-DD-slug run
+#                  id, or #NNN. Prose like "TODO" is rejected.
+#   statement      why this is accepted rather than fixed
+#   scope          optional mapping narrowing the acceptance
+#
+# This is NOT a place to silence a real, reachable finding. Prefer a root
+# remediation whenever one exists. Two findings from the same 2026-07-28 triage
+# were FIXED rather than accepted (linkify-it 5.0.2, dompurify 3.4.12) precisely
+# because a patch was reachable inside the existing semver range.
+
+schema: 1
+
+acceptances:
+  - id: ar-2026-07-28-hono-node-server-serve-static-windows
+    target: trivy-ignore
+    rule: GHSA-frvp-7c67-39w9
+    scope:
+      paths:
+        - "server/package-lock.json"
+        - "bootstrapper/package-lock.json"
+    expires: 2026-10-28
+    rationale_ref: iterate-2026-07-28-security-accepted-risk-register
+    statement: >-
+      @hono/node-server < 2.0.5 — path traversal in serve-static on Windows via
+      an encoded backslash (%5C), CWE-22. NOT FIXABLE TODAY: @hono/node-ws@1.3.1
+      (latest) peer-requires @hono/node-server ^1.19.11, so a bump to 2.0.5
+      breaks the WebSocket upgrade chain the embedded terminal runs on
+      (injectWebSocket, ADR-067). NOT REACHABLE TODAY: the advisory's impact is
+      "read static files under a middleware-guarded prefix", and this repo mounts
+      no prefix-scoped middleware — all three app.use calls in server/src/index.ts
+      are wildcards (cors "*", requestLogger "*", serveStatic "/*"), the static
+      root is client/dist (the public SPA build, served in full by design), and
+      directory escape via ".." stays blocked per the advisory. There is nothing
+      guarded to bypass. TRIPWIRE — this acceptance becomes INVALID the moment
+      auth middleware or any access-guarded subtree is introduced under the
+      static root; re-review immediately if that lands, do not wait for the date.
+      RE-REVIEW TRIGGER: @hono/node-ws shipping a node-server-2.x-compatible
+      release, at which point this is a real fix rather than an acceptance. The
+      short 3-month window is chosen for exactly that reason.
+
+  - id: ar-2026-07-28-react-router-rsc-csrf
+    target: trivy-ignore
+    rule: GHSA-qwww-vcr4-c8h2
+    scope:
+      paths:
+        - "client/package-lock.json"
+    expires: 2027-01-28
+    rationale_ref: iterate-2026-07-28-security-accepted-risk-register
+    statement: >-
+      react-router >= 7.12.0 < 8.3.0 — CSRF bypass allowing action execution
+      before a 400 response in RSC mode, CWE-352. NOT APPLICABLE: the advisory
+      scopes itself — "This only affects your application if you are using the
+      unstable RSC APIs". This client is a Vite SPA driven by RouterProvider
+      (client/src/App.tsx); a source scan finds no RSC entry point and no
+      unstable_* API anywhere in client/src. NO PATCH EXISTS for the 7.x line —
+      "fixed in 8.3.0" is a major-version migration, so accepting is not a choice
+      between fixing and deferring; there is nothing to upgrade to short of a
+      major. RE-REVIEW TRIGGER: whenever a react-router v8 migration is on the
+      table for its own reasons, this resolves as a side effect.
+
+  - id: ar-2026-07-18-gh-owned-action-mutable-tags
+    target: trivy-ignore
+    rule: semgrep:github-actions-mutable-action-tag
+    expires: 2027-07-18
+    rationale_ref: iterate-2026-07-18-unpin-actions-no-dependabot
+    statement: >-
+      GitHub-owned actions (actions/*, github/*) deliberately use mutable version
+      tags. SHA-pinning them is only coherent alongside an updater that keeps the
+      pins patched, and this project takes no GitHub-hosted proprietary service
+      (portability — adopters must not inherit one). An unmaintained pin rots
+      silently, which is worse than the mutable tag; and this vendor already
+      executes the entire CI run. THIRD-PARTY actions stay SHA-pinned — that is
+      where the real supply-chain risk sits, and the Semgrep tailoring is
+      owner-scoped so they remain flagged. Enforced by
+      server/src/test/ci-action-pinning-posture.test.ts; see DO-NOT #25 in
+      CLAUDE.md and reverted PR #285 for the history. RE-REVIEW TRIGGER: revisit
+      if an open-source, self-hostable updater makes SHA-pinning viable without a
+      hosted dependency. FILING NOTE: the id is synthetic and inert to Trivy, and
+      target is `trivy-ignore` because `.trivyignore.yaml` is where this
+      suppression physically lives today — the register records reality, not the
+      shape reality ought to have. The semantically correct home is a
+      `semgrep-policy-toggle` keyed to SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS,
+      which the drift gate discovers only from .github/workflows/security.yml
+      while this repo carries it in .claude/settings.json. Relocating it means
+      moving the toggle into the workflow, which is a CI-supply-chain change with
+      its own review posture — deliberately NOT bundled into this iterate.

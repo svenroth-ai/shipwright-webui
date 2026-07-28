@@ -1,103 +1,94 @@
 {
-  "last_updated": "2026-07-27T11:00:00.000Z",
+  "last_updated": "2026-07-28",
   "iterate_latest": {
-    "run_id": "iterate-2026-07-27-mac-terminal-fast-dead-socket",
-    "date": "2026-07-27",
-    "unit": {
-      "status": "passed",
-      "passed": 3092,
-      "total": 3092
-    },
-    "integration": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "pgtap": {
-      "status": "not_run",
-      "passed": 0,
-      "total": 0
-    },
-    "e2e": {
-      "status": "passed",
-      "passed": 1,
-      "total": 1
-    },
-    "design_fidelity": {
-      "status": "skipped",
-      "passed": 0,
-      "total": 0
-    },
-    "smoke": {
-      "status": "not_run"
-    },
-    "degraded": [],
+    "run_id": "iterate-2026-07-28-security-accepted-risk-register",
+    "date": "2026-07-28",
+    "unit": "PASS — client 3092 passed (331 files); server 3030 passed / 1 skipped (261 files)",
+    "integration": "n/a — no CRUD or service-boundary change",
+    "pgtap": "n/a — no RLS or schema change",
+    "e2e": "PASS — real-Chromium mermaid render probe (authoring-time, not a committed spec); see surface_verification",
+    "design_fidelity": "n/a — no UI change",
+    "smoke": "n/a — no server behaviour change",
+    "degraded": [
+      "Trivy/Semgrep/Gitleaks are not installed on the authoring machine (verified absent), so the suppression could not be proven to fire locally. The authoritative check is the CI Security Scan workflow. Mitigated by using id-level rather than path-scoped ignores.",
+      "PyYAML is absent from the default `uv run` environment; the accepted-risk gates require `uv run --with pyyaml`."
+    ],
     "test_completeness": {
       "status": "complete",
       "behaviors": [
         {
-          "behavior": "Keystroke on an inbound-silent OPEN socket probes it",
+          "behavior": "linkify-it resolves to 5.0.2 (AC1)",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts — PASS"
+          "evidence": "npm ls linkify-it -> 5.0.2; lockfile diff"
         },
         {
-          "behavior": "Click behaves the same as a keystroke",
+          "behavior": "dompurify resolves to 3.4.12 (AC1)",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts — PASS"
+          "evidence": "npm ls dompurify -> 3.4.12; lockfile diff"
         },
         {
-          "behavior": "Healthy socket (recent inbound): interaction is a no-op — normal typing never churns",
+          "behavior": "No collateral dependency churn (AC1)",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts — PASS"
+          "evidence": "git diff --stat = 6 insertions / 6 deletions, confined to the two entries"
         },
         {
-          "behavior": "Throttle: rapid keystrokes on a dead socket don't re-arm the probe each keystroke",
+          "behavior": "Lockfile remains installable, integrity verified (AC2)",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts — PASS"
+          "evidence": "npm ci exit 0; hashes independently re-fetched from the npm registry and byte-compared"
         },
         {
-          "behavior": "No socket (in the tail): a keystroke reconnects immediately",
+          "behavior": "Mermaid still renders after the dompurify bump (AC3)",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts — PASS"
+          "evidence": "Real-Chromium probe: 16283-char SVG, 340x501px, 5/5 node labels, 0 script survivors, 0 console errors"
         },
         {
-          "behavior": "dispose() unbinds the interaction listeners",
+          "behavior": "That mermaid probe can actually fail (AC3 falsification)",
           "disposition": "tested",
-          "evidence": "wsLiveness.interaction.test.ts — PASS"
+          "evidence": "Degraded the render and re-ran -> probe exit 1, so it is sensitive rather than vacuously green"
         },
         {
-          "behavior": "Faster heartbeat: 15s->5s change breaks no timing test",
+          "behavior": "Register validates against the shared schema (AC4)",
           "disposition": "tested",
-          "evidence": "full 73-test WS-liveness suite — PASS"
+          "evidence": "accepted_risks_cli.py check loaded 3 entries with no RegisterError"
         },
         {
-          "behavior": "REAL BROWSER: typing on an inbound-silent socket fires an eager probe with no focus/visibility/online event",
+          "behavior": "Unrecorded suppression is caught (AC5)",
           "disposition": "tested",
-          "evidence": "e2e/flows/97-terminal-interaction-revive.spec.ts — PASS; verified load-bearing by disabling the interaction revive + rebuilding: FAILED 'Expected: > 0, Received: 0'"
+          "evidence": "Probe: removed a register entry, kept the suppression -> UNRECORDED, exit 1"
         },
         {
-          "behavior": "Real macOS lock/sleep on the reporter's Mac recovers on the first interaction",
+          "behavior": "Stale register entry is caught (AC5)",
+          "disposition": "tested",
+          "evidence": "Probe: removed the suppression, kept the register entry -> STALE, exit 1"
+        },
+        {
+          "behavior": "Expired acceptance is caught (AC6)",
+          "disposition": "tested",
+          "evidence": "Probe: backdated an entry one day -> EXPIRED, exit 1"
+        },
+        {
+          "behavior": "Boundary day counts as still active (AC6)",
+          "disposition": "tested",
+          "evidence": "Probe: entry dated exactly today -> exit 0, matching documented semantics"
+        },
+        {
+          "behavior": "Existing suites and doc guards unaffected",
+          "disposition": "tested",
+          "evidence": "Full client+server suites pass; doc-sync.test.ts 104 passed; ci-action-pinning-posture.test.ts 8 passed; tsc --noEmit clean"
+        },
+        {
+          "behavior": "Trivy actually stops emitting the two suppressed advisory ids",
           "disposition": "untestable",
-          "reason_code": "requires-physical-device",
-          "evidence": "A genuine OS suspend + tunnel drop can't be produced in CI or a local harness; the mechanism (interaction -> reviveIfStale -> reconnect/probe) is unit-covered through the real attachWsLiveness wiring and demonstrated in a real Chromium (spec 97)."
+          "reason_code": "requires-external-nondeterministic-service",
+          "evidence": "Trivy is not installed locally (trivy/semgrep/gitleaks all verified absent). The authoritative check is the CI Security Scan run on this PR."
         }
-      ],
-      "counts": {
-        "testable": 8,
-        "tested": 8,
-        "untestable": 1,
-        "untested_testable": 0
-      },
-      "enumeration_basis": {
-        "acs": 5,
-        "covered_acs": 5
-      }
+      ]
     },
     "surface_verification": {
       "surface": "web",
       "tests_run": 1,
       "exit_code": 0,
-      "justification": "Client WS-behaviour change → jsdom cannot prove the real outcome. Executed e2e/flows/97-terminal-interaction-revive.spec.ts in real Chromium against an isolated single-process stack (temp USERPROFILE, built client via SHIPWRIGHT_STATIC_DIR, Hono 127.0.0.1:3853): 1 passed. It drives a routeWebSocket-mocked half-open socket + page.clock to make the connection inbound-silent, then a real keystroke (page.keyboard) and asserts an eager probe ping reaches the mock with NO focus/visibility/online event. Verified LOAD-BEARING by disabling the interaction revive, rebuilding the client and re-running: FAILED 'Expected: > 0, Received: 0'. Fix restored, re-run green."
+      "justification": "The only runtime surface in this diff is the dompurify bump, because dompurify is mermaid's sanitizer. The repo's MermaidRenderer.test.tsx does vi.mock(\"mermaid\"), so the entire existing suite is structurally blind to a sanitizer regression — passing unit tests would have proven nothing here. Verified instead in real Chromium: esbuild-bundled the ACTUALLY INSTALLED mermaid 11.16.0 + dompurify 3.4.12, rendered a flowchart with the app's own securityLevel:\"strict\", and asserted absolute expectations (SVG present, 16283 chars, 340x501px, all 5 node labels, 0 surviving <script>, 0 console errors) -> PASS. Verified LOAD-BEARING by degrading the render and re-running: FAILED (exit 1). HONEST LIMITATION: this was an authoring-time probe, not a committed spec — the repo still has no permanent real-mermaid rendering coverage, which is recorded as follow-up 3 in the iterate spec rather than absorbed silently."
     }
   }
 }
