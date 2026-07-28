@@ -16,13 +16,18 @@
 #
 # ENTRIES HAVE TWO DIFFERENT NATURES — do not infer one from the other:
 #
-#   REAL advisory ids (CVE-* / GHSA-*) are honoured natively by Trivy. Trivy
-#   auto-discovers this file from the scan root and `.github/workflows/
-#   security.yml` runs `trivy fs ... .` there, so these genuinely suppress.
-#   Their `expired_at` is LOAD-BEARING, not decorative: once the date passes,
-#   Trivy stops ignoring the finding and the alert comes back on its own. That
-#   is the built-in tripwire — such an acceptance cannot rot silently even while
-#   the register's own `expire` gate is not yet wired into CI.
+#   REAL advisory ids (CVE-* / GHSA-*) are honoured by Trivy — but ONLY because
+#   `.github/workflows/security.yml` passes `--ignorefile .trivyignore.yaml`
+#   explicitly. Trivy auto-discovers only the FLAT `.trivyignore`; the YAML form
+#   is still experimental and its docs require the flag. Without it this file is
+#   not read at all. That is not hypothetical: the first version of this header
+#   claimed auto-discovery, and the accepted risks stayed OPEN on the Security
+#   tab until the flag was added (iterate-2026-07-28-security-trivy-ignorefile).
+#   With the flag, `expired_at` is LOAD-BEARING: once the date passes Trivy stops
+#   ignoring the finding and the alert returns on its own — the built-in
+#   tripwire, so an acceptance cannot rot silently even while the register's own
+#   `expire` gate is not yet wired into CI. Drop the flag and you silently lose
+#   BOTH the suppression and the tripwire.
 #
 #   SYNTHETIC ids (the `semgrep:` entry below) match no real advisory and are
 #   therefore INERT to Trivy; they exist only so the compliance dashboard can

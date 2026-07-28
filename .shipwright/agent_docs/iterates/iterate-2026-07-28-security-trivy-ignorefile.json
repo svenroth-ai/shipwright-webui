@@ -1,0 +1,10 @@
+{
+  "run_id": "iterate-2026-07-28-security-trivy-ignorefile",
+  "date": "2026-07-28T19:02:38.644324Z",
+  "type": "bug",
+  "complexity": "small",
+  "branch": "iterate/security-trivy-ignorefile",
+  "spec": ".shipwright/planning/iterate/iterate-2026-07-28-security-trivy-ignorefile.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-28-security-trivy-ignorefile"
+}
