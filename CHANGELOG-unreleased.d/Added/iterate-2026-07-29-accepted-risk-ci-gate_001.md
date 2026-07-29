@@ -1,0 +1,1 @@
+The gate is vendored under `scripts/ci/` so it needs no Shipwright plugin cache, with a sha256 manifest (`scripts/ci/accepted_risks_vendor.json`) that fails CI in both directions if a vendored file is edited in place or a new one arrives unrecorded. The vendored CLI deliberately omits the upstream `converge` subcommand, so the CI copy cannot mass-dismiss GitHub security alerts.

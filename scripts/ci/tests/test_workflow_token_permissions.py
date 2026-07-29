@@ -3,14 +3,20 @@
 Mirrors the shipwright monorepo guard. Pins the OpenSSF Scorecard
 Token-Permissions hardening: a read-only top-level token, with write scopes
 widened only on the jobs that need them. ``security.yml`` is the documented
-exception (single-job SARIF workflow; top-level convention-locked by the
-compliance A5.3 audit).
+exception (its top-level block is convention-locked by the compliance A5.3
+audit, which reads the *top-level* ``permissions:``).
 
-No PyYAML dependency — the pr-review ``selftest`` CI job installs only pytest.
-The workflow files are simple + consistently formatted, so a small line scan of
-the top-level ``permissions:`` block is sufficient and unambiguous: after the
-hardening the top-level block of every non-security workflow grants no write, so
-any ``*: write`` line elsewhere in the file is necessarily job-level.
+AMENDED 2026-07-29 (iterate-2026-07-29-accepted-risk-ci-gate). Two premises here
+were true when written and are now false: ``security.yml`` is no longer a
+SINGLE-JOB workflow (the ``accepted-risks`` gate declares its own
+``permissions: contents: read`` so it inherits none of the SARIF job's writes),
+and the pr-review ``selftest`` job now installs PyYAML as well as pytest.
+
+The line scan below is RETAINED deliberately rather than converted to a parse:
+it guards five workflows including ones this repo's gate does not run against,
+and a stdlib-only guard keeps working if the selftest job's dependency set ever
+shrinks again. Its sibling ``test_accepted_risks_repo_invariants.py`` parses,
+because it must detect a commented-out step, which a line scan cannot.
 """
 
 from __future__ import annotations

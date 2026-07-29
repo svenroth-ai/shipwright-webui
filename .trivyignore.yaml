@@ -7,7 +7,11 @@
 #
 # The split is enforced in both directions by the drift gate:
 #
-#     uv run <shared>/scripts/tools/accepted_risks_cli.py check --project-root .
+#     python scripts/ci/accepted_risks_cli.py check --project-root .
+#
+# (that vendored copy under `scripts/ci/` is what CI runs; the plugin's
+# `uv run <shared>/scripts/tools/accepted_risks_cli.py` is the same gate plus the
+# `converge` subcommand, which is deliberately absent from the CI copy)
 #
 # A suppression here with no register entry is UNRECORDED — the compliance
 # dashboard renders it as DRIFT, not as an accepted risk, because being
@@ -25,20 +29,39 @@
 #   tab until the flag was added (iterate-2026-07-28-security-trivy-ignorefile).
 #   With the flag, `expired_at` is LOAD-BEARING: once the date passes Trivy stops
 #   ignoring the finding and the alert returns on its own — the built-in
-#   tripwire, so an acceptance cannot rot silently even while the register's own
-#   `expire` gate is not yet wired into CI. Drop the flag and you silently lose
-#   BOTH the suppression and the tripwire.
+#   tripwire. Since 2026-07-29 it is no longer the ONLY one: the register's own
+#   `check` + `expire` gate runs in CI (`.github/workflows/security.yml`, job
+#   `Accepted-risk register (gate)`). Drop the flag and you silently lose BOTH
+#   the suppression and the tripwire.
 #
 #   SYNTHETIC ids (the `semgrep:` entry below) match no real advisory and are
-#   therefore INERT to Trivy; they exist only so the compliance dashboard can
-#   render the acceptance, and their `expired_at` is a dashboard signal rather
-#   than a scanner behaviour. Historically this file was the only channel
-#   carrying a due date at all, which is why a Semgrep / CI-posture decision
-#   ended up filed in a Trivy SCA ignore file. `shipwright_accepted_risks.yaml`
-#   supersedes that role; the synthetic entry stays here for now because
-#   relocating it means moving SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS out
-#   of `.claude/settings.json` and into the workflow — a CI-supply-chain change
-#   with its own review posture, deliberately not bundled into this change.
+#   therefore INERT to Trivy; they exist only so the drift gate and the
+#   compliance dashboard can SEE the acceptance, and their `expired_at` is a
+#   dashboard signal rather than a scanner behaviour. Historically this file was
+#   the only channel carrying a due date at all, which is why a Semgrep /
+#   CI-posture decision ended up filed in a Trivy SCA ignore file.
+#
+#   The synthetic entry STAYS, and the reason changed on 2026-07-29
+#   (iterate-2026-07-29-accepted-risk-ci-gate). This header used to say it stayed
+#   only because relocating the toggle was a CI-supply-chain change deferred to a
+#   later pass. Investigated: relocating it is not merely pointless, it is
+#   BREAKING — DO NOT DO IT. Two independent reasons.
+#
+#   (a) It suppresses NOTHING there. `security.yml` runs a bare
+#       `semgrep scan --config auto`, which reads no `SHIPWRIGHT_SEMGREP_*`
+#       variable; only the shipwright-security plugin's LOCAL scan backend does.
+#       So `.claude/settings.json` is the variable's correct home.
+#   (b) The accepted-risk gate WOULD see it. `accepted_risk_scan.read_workflow_env`
+#       parses `SHIPWRIGHT_*` assignments OUT of `security.yml` and maps this one
+#       to a `semgrep-policy-toggle` suppression. This entry is filed
+#       `trivy-ignore`, so `check` would find a suppression with no register
+#       entry and FAIL the build ("UNRECORDED semgrep-policy-toggle: …", exit 1).
+#       Reproduced empirically. Relocating would require flipping this entry's
+#       `target` in the SAME commit, for zero operational gain.
+#
+#   In CI the finding IS emitted into the SARIF and simply never blocks, because
+#   the critical gate fires only on `security-severity >= 9.0` or a Gitleaks
+#   secret. Full reasoning: `shipwright_accepted_risks.yaml`, the FILING NOTE.
 #
 # SCOPING NOTE: the two advisory entries are id-level, not `paths`-scoped. Trivy
 # is not installed on the authoring machine, so a narrower path match could not

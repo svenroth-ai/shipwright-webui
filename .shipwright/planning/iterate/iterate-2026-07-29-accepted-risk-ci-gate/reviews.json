@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-29-accepted-risk-ci-gate",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-29T06:58:53.284581+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-29T06:47:38.449905+00:00",
+      "disposition": "Mini-plan authored inline in the iterate spec (with the rejected alternative) rather than as a separate reviewed artifact; the external cascade reviewed the CODE via --mode code, recorded under external_code",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 15,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "FAIL-OPEN. `discovered_suppressions` reads the semgrep channels ONLY from `security.yml`, and this repo's live toggle sits in `.claude/settings.json`. Adding `SHIPWRIGHT_SEMGREP_EXCLUDE_RULES` there genuinely suppresses rules in the scan that feeds `findings.json` and triage, while `check` exits 0 \"no drift\".",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "FAIL-OPEN. The gate proves register↔file agreement, never file↔scanner. Trivy is pointed at a hardcoded `--ignorefile`; rename it or drop the flag and Trivy suppresses nothing while `check` reports \"3 reconciled\". **This actually happened** — per `.trivyignore.yaml`'s own header the YAML file was never read at all until PR #330, and throughout that window this gate would have been green. Both files say \"DO NOT drop this flag\" *in a comment*, in a change whose premise is that a comment is not a guard.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The EC/CR closures ran on `pull_request` ONLY, because `pytest scripts/ci/tests` lives in pr-review.yml. On the weekly run — the trigger the whole design turns on — none executed, and `main` is not branch-protected so a direct push never passes through selftest either.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "`test_the_gate_job_is_wired…` was a raw substring scan: commenting out both `run:` lines left it green — exactly the regression its own docstring claims to prevent.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The schedule test asserted prose; a job-level `if: github.event_name == 'pull_request'` would disarm the gate while leaving `schedule:` in the file.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The `ModuleNotFoundError` handler was too broad (any missing module diagnosed as \"install pyyaml\" — a confidently wrong diagnosis, the same defect class it was written to fix) and too narrow (sibling imports run at module-import time, outside the try, so a botched re-vendor still died with exit 1 = \"drift\").",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "`canonical_sha256` and the four `# canonical-source-hash:` headers are never verified, so \"BYTE-IDENTICAL to canonical\" is unfalsifiable here; edit a body plus its manifest hash in one commit and everything stays green.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The reverse drift direction was NAME-scoped, so a fifth vendored leaf under any other name satisfied it vacuously — proof: `pr_review.py` / `pr_review_lib.py` already carry provenance headers and appear in no manifest.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The lapsed-suppression test used LOCAL time, in a file backstopping a module whose `today_utc()` exists precisely to avoid that; a malformed `expired_at` was silently treated as not-lapsed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "`pytest.importorskip(\"yaml\")` made a security invariant SKIP (i.e. pass) exactly where it was needed.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "A least-privilege comment pointed the reader the wrong way (\"the block below\" — it is above).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "A `check` failure short-circuited `expire`, so one weekly run could hide an expiry behind a drift.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The permissions test sliced the file by job order and indentation.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "`_run(*args, cwd=)` was passed as `--project-root`, never as a subprocess cwd.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Comment volume in the new job restates what five other places already say.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-29T07:23:33.235791+00:00",
+      "disposition": null,
+      "recorded_by": "Stage 1 shipwright-build:spec-reviewer (PASS at round 3) then Stage 2 shipwright-build:code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the fail-open closure set is complete for this repo's channels — .semgrepignore (12 live path patterns), ten inline # nosemgrep in production source, and CodeQL paths-ignore are all ungated. Adding one line to .semgrepignore silences an entire subtree in BOTH the CI scan and the local scan that feeds findings.json and triage - permanently, with no expiry - while check, expire and every invariant stay green. Strictly LARGER than the channel CR-1 closed. Sub-case: the CR-1 filter used a SHIPWRIGHT_SEMGREP_ prefix, so SHIPWRIGHT_SCAN_EXCLUDES (named by the vendored module itself as a real path-scoping channel) slipped its own closure.",
+          "suggestion": "Either pin the .semgrepignore/nosemgrep sets, or scope the claim in writing.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the drift guard is a reliable change-detector over the vendored files (AC-3) — The manifest hashes raw bytes and the repo runs core.autocrlf=true with no *.py gitattributes rule. `git ls-files --eol` confirms every git-checked-out .py under scripts/ci is i/lf w/crlf, while the four new modules are w/lf only because they were written directly and git has not re-materialised them. On the next Windows checkout all four hashes mismatch and the guard reports '{name} has been edited in place' on files nobody touched - and the remedy its own message prescribes (re-record the hashes) would then turn Linux CI permanently red. A ping-pong with no true position.",
+          "suggestion": "A .gitattributes eol=lf pin, or CR-normalisation in the hash.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the gate cannot be disarmed while the guard tests stay green — CR-5 closed only a JOB-level `if:`. `continue-on-error: true` on the job or on either gate step, or a STEP-level `if: github.event_name == ...`, disarms it with every test green. continue-on-error appears three times elsewhere in the same file, so it is the local idiom for 'do not let this block the run'.",
+          "suggestion": "Assert no continue-on-error and no unexpected step-level if.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: an in-place edit of a vendored file fails CI; _NOT_HASH_PINNED only makes a pre-existing gap visible — The guard's SCOPE is editable in the same commit as the thing it guards: removing a manifest entry DELETES a parametrised test rather than failing one, and adding the name to _NOT_HASH_PINNED has no counterpart validation. Separately, accepted_risks_cli inserts scripts/ci at the front of sys.path, so an un-headered shadow module (yaml.py, re.py) changes behaviour with all four hashes intact.",
+          "suggestion": "An explicit expected module NAME SET, disjointness for the allowlist, and dropping the provenance-marker precondition.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: a stale register entry now fails the build, so the register cannot be meaningfully wrong while CI is green — `scope` is read by nothing - the hono entry declares scope.paths while .trivyignore.yaml's own note admits the suppression is id-level, so the register already overstates that acceptance's blast radius, TODAY. `rationale_ref` is validated by SHAPE only, so a non-existent ADR or iterate id passes. And `expire` compares only `expires < today`: no maximum window, no requirement that statement or rationale_ref changed, so a one-character date bump renews indefinitely.",
+          "suggestion": "Cap the renewal window, pin expires values, or enforce/drop scope.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the two halves are independent, so one finding cannot hide another (the CR-12 fix) — CR-3 inserted the pytest invariants step BEFORE `check`, and `check` carried no `if:`, so it defaults to success() - any pytest failure SKIPS the register reconciliation entirely. Dated, not theoretical: on 2026-10-29 the lapsed-suppression invariant and `expire` fire on the same entry, so the first red is a pytest assertion and `check` never runs.",
+          "suggestion": "Put if: !cancelled() on check too, or move the invariants step after both subcommands.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: parsing the workflow YAML with yaml.safe_load is safe here — Safe for today's content, but accepted_risk_scan - vendored in this same diff - states safe_load must NOT be used on a workflow, citing a mechanism that is actually wrong; and a GitHub-legal bare `if: !cancelled()` ANYWHERE in either workflow raises a ConstructorError, taking the gate's first step down with a message naming none of the four fail-open holes.",
+          "suggestion": "Adjudicate the contradiction and wrap the parse.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: the permanent records were corrected in the same pass — test_workflow_token_permissions still described security.yml as the 'single-job SARIF workflow' and stated the selftest job 'installs only pytest' - both falsified by this diff, in the same directory it edits.",
+          "suggestion": "Amend both sentences and say whether the line scan is still the standard.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: CR-4's fix closed the commented-out-command evasion — It matched a fragment anywhere in a parsed run: body, so a multi-line body with the command commented out - or `true || python ... check` - still passed. Same evasion, one level down.",
+          "suggestion": "Match on a command LINE whose stripped form starts with the command.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-29T07:38:21.183650+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "spec",
+          "file": "scripts/ci/accepted_risks_cli.py:144-151",
+          "line": null,
+          "finding": "check` exits successfully whenever `shipwright_accepted_risks.yaml` is absent, before discovering suppressions. A change can therefore delete the register while retaining `.trivyignore.yaml` entries (or workflow suppressions), and both `check` and `expire` pass. This violates the required both-direction reconciliation and makes removal of the register a bypass for the CI gate.",
+          "suggestion": "Do not return early from `cmd_check`; let `load_register()` represent an absent register as an empty set and reconcile it against discovered suppressions. An absent register with no suppressions should still pass, while any suppression should be reported as `UNRECORDED`. Add a test for an absent register plus a `.trivyignore.yaml` suppression.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "scripts/ci/accepted_risk_scan.py:107-119",
+          "line": null,
+          "finding": "Trivy entries are treated as active suppressions solely because their IDs remain in `.trivyignore.yaml`; `expired_at` is ignored. Once a Trivy ignore has expired, Trivy no longer suppresses the finding, but this reader still considers the entry reconciled. In particular, extending only the register’s `expires` date while leaving an already-expired Trivy `expired_at` date produces a passing `check` and `expire` despite the scanner-side suppression no longer being in effect.",
+          "suggestion": "Parse each YAML entry’s `expired_at` using UTC date semantics and exclude entries whose expiry date has passed (and fail closed on malformed expiry metadata if that differs from Trivy behavior). Add tests covering an expired Trivy ignore paired with an unexpired register entry.  Overall assessment: block pending fixes. The missing-register path permits an easy bypass of the newly introduced enforcement, and the Trivy discovery logic does not accurately represent scanner-effective suppressions.  SHIPWRIGHT_VERDICT: reject",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-29T06:47:38.334445+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] <no review returned: provider returned an empty reply>\n\n[openai] - Category: spec\n- Severity: high\n- File: `scripts/ci/accepted_risks_cli.py:144-151`\n- Finding: `check` exits successfully whenever `shipwright_accepted_risks.yaml` is absent, before discovering suppressions. A change can therefore delete the register while retaining `.trivyignore.yaml` entries (or workflow suppressions), and both `check` and `expire` pass. This violates the required both-direction reconciliation and makes removal of the register a bypass for the CI gate.\n- Suggestion: Do not return early from `cmd_check`; let `load_register()` represent an absent register as an empty set and reconcile it against discovered suppressions. An absent register with no suppressions should still pass, while any suppression should be reported as `UNRECORDED`. Add a test for an absent register plus a `.trivyignore.yaml` suppression.\n\n- Category: bug\n- Severity: medium\n- File: `scripts/ci/accepted_risk_scan.py:107-119`\n- Finding: Trivy entries are treated as active suppressions solely because their IDs remain in `.trivyignore.yaml`; `expired_at` is ignored. Once a Trivy ignore has expired, Trivy no longer suppresses the finding, but this reader still considers the entry reconciled. In particular, extending only the register’s `expires` date while leaving an already-expired Trivy `expired_at` date produces a passing `check` and `expire` despite the scanner-side suppression no longer being in effect.\n- Suggestion: Parse each YAML entry’s `expired_at` using UTC date semantics and exclude entries whose expiry date has passed (and fail closed on malformed expiry metadata if that differs from Trivy behavior). Add tests covering an expired Trivy ignore paired with an unexpired register entry.\n\nOverall assessment: block pending fixes. The missing-register path permits an easy bypass of the newly introduced enforcement, and the Trivy discovery logic does not accurately represent scanner-effective suppressions.\n\nSHIPWRIGHT_VERDICT: reject"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The drift guard ran in pr-review.yml selftest, which installs ONLY pytest, so five contract tests get the fail-closed exit 2 and the job would be RED unconditionally - unable to distinguish a real vendored edit from baseline.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC-5 concluded relocating the semgrep toggle would be INERT; falsified by code vendored in the same diff (accepted_risk_scan.read_workflow_env parses SHIPWRIGHT_* out of security.yml).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": ".trivyignore.yaml still said the expire gate was not yet wired into CI, contradicting the register; both files pointed at the plugin path rather than the vendored copy CI runs.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Ledger row 14 cited tests asserting nothing about the new job; the job inherited write scopes; two Chesterton comments still asserted security.yml was single-job.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Three line counts wrong and one delivered file missing from the Implementation table.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-29T07:23:12.321795+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:spec-reviewer (Stage 1 HARD-GATE; REJECT, REJECT, PASS)",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

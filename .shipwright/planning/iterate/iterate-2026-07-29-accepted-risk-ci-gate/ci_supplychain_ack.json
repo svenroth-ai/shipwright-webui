@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-29-accepted-risk-ci-gate",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-07-29-accepted-risk-ci-gate",
+    "paths_fingerprint": "1698975e715add38a2b161f741673174685193dbd844d914169b33e7c7886662",
+    "consistent_with": "iterate-2026-07-18-unpin-actions-no-dependabot",
+    "statement": "Adds one job to .github/workflows/security.yml that runs the vendored accepted-risk gate (check + expire) on every PR and on the existing weekly schedule. It ADDS enforcement of a posture already recorded; it changes no pinning decision. New action uses are actions/checkout@v4 and actions/setup-python@v5 - both GitHub-owned, on MUTABLE tags, exactly as DO-NOT #25 requires; no third-party action is introduced, so nothing needs SHA-pinning and no hosted updater is added. The job installs only PyYAML from PyPI and runs vendored first-party code under scripts/ci/ whose sha256 is pinned by scripts/ci/accepted_risks_vendor.json and enforced by the existing Reviewer Selftest job, so the gate cannot be edited in place unnoticed. The vendored CLI deliberately DROPS canonical's converge subcommand, so this CI copy is structurally incapable of mass-dismissing GitHub security alerts - the authority canonical says no scheduled job may hold. ci-action-pinning-posture.test.ts passes unchanged (8/8).",
+    "ci_paths": [
+      ".github/workflows/security.yml"
+    ]
+  }
+}
