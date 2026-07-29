@@ -1,0 +1,1 @@
+A meta-test pins the render harness to the `securityLevel` `MermaidRenderer` actually initializes mermaid with, in both drift directions, so the harness cannot silently diverge from the app's own configuration.
