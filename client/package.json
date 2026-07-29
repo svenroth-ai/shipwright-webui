@@ -70,6 +70,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "esbuild": "^0.25.12",
     "jsdom": "^25.0.0",
     "msw": "^2.0.0",
     "oxlint": "^1.66.0",
