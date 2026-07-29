@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-29-mermaid-real-render-e2e",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-28T22:22:39.342986+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_applicable",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-28T22:25:03.718570+00:00",
+      "disposition": "Phase Matrix: External LLM Review is 'skip' at small complexity, and no mini-plan exists (mini-plan is FEATURE-only at small; this is a CHANGE)",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/mermaid-real-render.spec.ts",
+          "line": 142,
+          "finding": "addScriptTag resolves even when the inline script throws at evaluation time (top-level throw goes to window.onerror, not script.onerror), so a broken bundle surfaced as 'Cannot read properties of undefined (reading initialize)' while the real cause sat unread in the errors array.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/mermaid-real-render.spec.ts",
+          "line": 208,
+          "finding": "sanitizerPresent was vacuous (the bundle assigns the global itself) AND over-claimed a one-instance property it could not see - the property the dompurify non-declaration decision rests on.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/e2e/flows/mermaid-real-render.spec.ts",
+          "line": 204,
+          "finding": "Test 1's script assertions hold for any sanitizer (its input carries no payload) yet the comment and ledger row credited them with sanitizer coverage.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "client/e2e/flows/mermaid-real-render.spec.ts",
+          "line": 260,
+          "finding": "The securityLevel drift guard is a pure source scan filed in the Playwright suite; this repo has a documented vitest meta-test family for that shape (CLAUDE.md rules 11/24/26/27), and e2e filing confined it to the container job.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-29T05:57:30.091497+00:00",
+      "disposition": null,
+      "recorded_by": "Stage 1 shipwright-build:spec-reviewer (PASS after one REJECT) then Stage 2 shipwright-build:code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: Only a flowchart is rendered; mermaid ships each diagram type in its own lazily-imported chunk (38 loaders), so a bump breaking sequence/class/state/gantt/mindmap passes green while breaking users. — Only a flowchart is rendered; mermaid ships each diagram type in its own lazily-imported chunk (38 loaders), so a bump breaking sequence/class/state/gantt/mindmap passes green while breaking users.",
+          "suggestion": "accepted-and-fixed - four types now rendered (flowchart, sequence, class, state) = four independent chunks. Residual 17 types recorded as an explicit non-coverage limitation in both the record and the spec header.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: AC-4 pins a securityLevel literal whose only render-path effect is the GATED sanitize, which no assertion can observe - flipping to loose changes nothing the suite sees. — AC-4 pins a securityLevel literal whose only render-path effect is the GATED sanitize, which no assertion can observe - flipping to loose changes nothing the suite sees.",
+          "suggestion": "accepted, scope corrected - measured strict vs loose (identical dimensions, identical foreignObject and dominant-baseline counts, ~0.4% char delta) and wrote the limitation into the record and the spec header. AC-4 is now claimed as harness FIDELITY only, not verification of the gated call.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: esbuild IIFE inlines mermaid's dynamic imports while the app uses Vite/Rollup lazy chunks; a Rollup-only runtime failure (chunk-init order, circular-dep TDZ, hashed-chunk delivery) shows users 'Mermaid failed to render' with this gate green. — esbuild IIFE inlines mermaid's dynamic imports while the app uses Vite/Rollup lazy chunks; a Rollup-only runtime failure (chunk-init order, circular-dep TDZ, hashed-chunk delivery) shows users 'Mermaid failed to render' with this gate green.",
+          "suggestion": "accepted, documented as limitation 2. A second app-route harness is scope beyond this card; CI's npm run build covers the build-time half of the class.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The one-DOMPurify guard could not attribute the import to mermaid because the harness entry imported dompurify itself - CR-2's defect one level up. — The one-DOMPurify guard could not attribute the import to mermaid because the harness entry imported dompurify itself - CR-2's defect one level up.",
+          "suggestion": "accepted-and-fixed - the bundle entry now imports ONLY mermaid. Verified the count is still exactly 1, so it reflects mermaid's own resolution and is load-bearing in both directions.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The guard counted module FILES, so a DOMPurify release splitting its ESM output would turn a REQUIRED gate red on a healthy tree, on exactly the dependency-bump PR shape this suite serves. — The guard counted module FILES, so a DOMPurify release splitting its ESM output would turn a REQUIRED gate red on a healthy tree, on exactly the dependency-bump PR shape this suite serves.",
+          "suggestion": "accepted-and-fixed - deduped to distinct package ROOTS.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: ADD_ATTR ['dominant-baseline'] was not exercised at all - the tested flowchart chunk emits zero occurrences while 36 other diagram chunks emit 79. — ADD_ATTR ['dominant-baseline'] was not exercised at all - the tested flowchart chunk emits zero occurrences while 36 other diagram chunks emit 79.",
+          "suggestion": "accepted-and-fixed - the sequence diagram asserts dominant-baseline survivors and flowchart/class/state assert the ADD_TAGS foreignObject survivors. FALSIFIED: a DOMPurify that ignores both options drops flowchart foreignObject 10->0 and sequence dominant-baseline 7->0. Char count fell only to 15029 against a 15000 floor (29 chars margin), so the char floor alone would NOT have caught it.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: logLevel silent with result.warnings never inspected - the harness discards the bundler's own diagnostics about the dependency it watches. — logLevel silent with result.warnings never inspected - the harness discards the bundler's own diagnostics about the dependency it watches.",
+          "suggestion": "accepted-and-fixed - bundleWarnings asserted empty.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The cost claim omits shipping the 7.9 MB IIFE once per test plus trace capture on retry. — The cost claim omits shipping the 7.9 MB IIFE once per test plus trace capture on retry.",
+          "suggestion": "accepted, corrected - per-test cost stated; measured suite time 3.3 s for 6 tests; per-worker memoisation retained deliberately.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The S1-1 disposition - whose subject is stale line counts - itself carried stale line counts (266/64/42 for four files actually 281/76/86/48). — The S1-1 disposition - whose subject is stale line counts - itself carried stale line counts (266/64/42 for four files actually 281/76/86/48).",
+          "suggestion": "accepted-and-fixed - counts consolidated into a single Implementation table.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The width portability argument was never measured, and Liberation Sans is metric-identical to Arial rather than wider. — The width portability argument was never measured, and Liberation Sans is metric-identical to Arial rather than wider.",
+          "suggestion": "accepted-and-fixed - comment restated as measured value + headroom with no unverified prediction.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Claim under doubt: The drift-guard regex took the first securityLevel match anywhere including comments, so it could pass by matching its own documentation. — The drift-guard regex took the first securityLevel match anywhere including comments, so it could pass by matching its own documentation.",
+          "suggestion": "accepted-and-fixed - comments stripped first and the regex anchored on the .initialize( call.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-29T06:19:55.925661+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "client/e2e/flows/mermaid-real-render.spec.ts",
+          "line": 182,
+          "finding": "Playwright's CDP events (like `console` and `pageerror`) are delivered asynchronously to the Node.js test runner. Evaluating `expect(errors).toEqual([])` immediately after `page.evaluate()` resolves creates a small race condition where a trailing console error sent right at the end of the render might not have reached the `errors` array yet.",
+          "suggestion": "While not fatal since major errors will likely crash the render or resolve quickly enough, for perfect strictness, consider asserting against the",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-28T22:25:03.581900+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] I have reviewed the diff against the provided specification. Here are my findings:\n\n- Category: test\n- Severity: low\n- File: `client/e2e/flows/mermaid-real-render.spec.ts:182`\n- Finding: Playwright's CDP events (like `console` and `pageerror`) are delivered asynchronously to the Node.js test runner. Evaluating `expect(errors).toEqual([])` immediately after `page.evaluate()` resolves creates a small race condition where a trailing console error sent right at the end of the render might not have reached the `errors` array yet. \n- Suggestion: While not fatal since major errors will likely crash the render or resolve quickly enough, for perfect strictness, consider asserting against the\n\n[openai] No concrete defects found. The change adds real-browser coverage using the installed Mermaid and DOMPurify bundle, includes absolute rendering and sanitizer assertions, tags the suite for the smoke gate, and guards the harness security level against drift from `MermaidRenderer`.\n\nOverall assessment: ship-as-is.\n\nSHIPWRIGHT_VERDICT: approve"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Record/code line-count drift (266 stated vs 286 delivered).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "esbuild and dompurify imported by first-party code but declared in neither dependencies nor devDependencies; resolve only via npm hoisting / an overrides pin.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "Height floor had the thinnest margin on the one font-metric-driven axis, justified by a char-length argument that does not transfer to pixels.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "reviews.json records EC-1 with disposition null; an empty reviews.json.lock sits in the run directory.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "The third test is a pure readFileSync check yet paid the full beforeEach.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "flushPageEvents relies on requestAnimationFrame, which does not fire on a backgrounded page - would become a test TIMEOUT rather than a failed assertion.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-29T05:58:05.691947+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:spec-reviewer (Stage 1 HARD-GATE; REJECT then PASS on re-review)",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
