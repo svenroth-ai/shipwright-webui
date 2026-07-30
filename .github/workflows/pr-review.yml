@@ -48,8 +48,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install pytest
-        run: pip install pytest
+      # PyYAML is REQUIRED, not optional (iterate-2026-07-29-accepted-risk-ci-gate).
+      # scripts/ci/tests now also covers the vendored accepted-risk gate, whose
+      # contract tests subprocess the CLI and assert exact exit codes. Without
+      # PyYAML every register-parsing path returns 2 (the fail-closed
+      # "gate could not run" code) and five of those tests fail — so this job
+      # would be RED unconditionally and could no longer distinguish a real
+      # vendored-file edit from baseline. A drift guard that is always red is
+      # not a drift guard.
+      - name: Install pytest + PyYAML
+        run: pip install pytest pyyaml
 
       - name: Run vendored reviewer self-tests
         run: python -m pytest scripts/ci/tests -q

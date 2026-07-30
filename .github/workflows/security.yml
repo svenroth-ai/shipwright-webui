@@ -22,11 +22,19 @@ on:
 # shared/scripts/lib/security_workflow.py for the convention lock.
 #
 # Intentionally TOP-LEVEL — unlike the sibling workflows (ci/codeql/bloat-check/
-# pr-review), which keep a read-only top-level and widen per-job. This single-job
-# SARIF workflow is convention-locked by the compliance A5.3 audit, which reads
-# the *top-level* `permissions:`. With one job, top-level == job-level effective
-# scope, so there is no least-privilege loss; do NOT move these to the `scan` job
-# without first teaching A5.3 to read the job's effective permissions.
+# pr-review), which keep a read-only top-level and widen per-job. This SARIF
+# workflow is convention-locked by the compliance A5.3 audit, which reads the
+# *top-level* `permissions:`. Do NOT move these to the `scan` job without first
+# teaching A5.3 to read the job's effective permissions.
+#
+# AMENDED 2026-07-29 (iterate-2026-07-29-accepted-risk-ci-gate): this is no
+# longer a SINGLE-job workflow. The old wording rested on "with one job,
+# top-level == job-level effective scope, so there is no least-privilege loss" —
+# true then, false the moment a second job landed. The `accepted-risks` job
+# therefore declares its own `permissions: contents: read` so it does NOT
+# inherit security-events:write / pull-requests:write, which it has no use for.
+# Any FURTHER job added here must do the same: the top-level block is a
+# compliance lock for the SARIF job, not a default anyone else should take.
 permissions:
   contents: read           # actions/checkout@v4
   actions: read            # github/codeql-action/upload-sarif@v4 (SARIF attach)
@@ -38,6 +46,81 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ── Accepted-risk register gate (iterate-2026-07-29-accepted-risk-ci-gate) ──
+  # `shipwright_accepted_risks.yaml` records every consciously accepted finding
+  # with an `expires` re-review date, but until this job NOTHING gated on it:
+  # `check` (register-vs-suppression drift, both directions) and `expire`
+  # (past-due) were run on demand only, so an overdue acceptance surfaced in a
+  # dashboard table instead of failing the build. The only automatic backstop was
+  # the scanner-side `expired_at` in `.trivyignore.yaml`, which self-heals (Trivy
+  # stops ignoring and the alert returns) but does not GATE — and it covers only
+  # the Trivy channel.
+  #
+  # WHY IT LIVES IN security.yml RATHER THAN ci.yml: `expire` is TIME-based, not
+  # diff-based. A PR-only gate would never fire on an entry that lapses while
+  # nobody happens to open a PR — precisely the "silent rot" this is meant to
+  # stop. This workflow already carries the weekly `schedule` (Mon 06:00 UTC), so
+  # the job inherits the one trigger that makes expiry enforceable. It also sits
+  # next to the `.trivyignore.yaml` it reconciles against.
+  #
+  # Separate job, not a step in `scan`: it is offline and finishes in seconds,
+  # while `scan` installs three scanners. Keeping it separate means it reports
+  # under its own name and a register failure is never confused with a scanner
+  # failure.
+  #
+  # The gate is VENDORED under scripts/ci/ (this repo has no Python shared/ tree
+  # and CI has no shipwright plugin cache), with a drift guard over
+  # scripts/ci/accepted_risks_vendor.json enforced by the existing
+  # `Reviewer Selftest` job. PyYAML is its only dependency.
+  accepted-risks:
+    name: Accepted-risk register (gate)
+    runs-on: ubuntu-latest
+    # Least privilege, explicitly. The top-level block ABOVE grants
+    # security-events: write + pull-requests: write for the SARIF job; this job
+    # only reads the checked-out tree and must not inherit either.
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyYAML + pytest
+        run: pip install pyyaml pytest
+
+      # The gate carries its own backstops. `pytest scripts/ci/tests` otherwise
+      # runs only in pr-review.yml's selftest job, which is pull_request-only —
+      # so on the weekly run (the trigger this whole design turns on) none of the
+      # fail-open invariants would execute, and `main` is not branch-protected so
+      # a direct push never passes through selftest either. ~2 seconds.
+      - name: Repo accepted-risk invariants
+        run: python -m pytest scripts/ci/tests/test_accepted_risks_repo_invariants.py -q
+
+      # Both directions. An UNRECORDED suppression means nobody can tell why a
+      # finding is silenced or when to revisit it; a STALE register entry claims
+      # something is accepted that no longer is. Exit 2 = the register itself is
+      # unparseable, which fails closed rather than reading as "nothing accepted".
+      # `if: !cancelled()` for the same reason `expire` carries it: the
+      # invariants step above runs FIRST, and a default `success()` here would
+      # let a pytest failure SKIP the reconciliation entirely. On 2026-10-29 both
+      # the lapsed-suppression invariant and this check fire on the same entry,
+      # and a reader must see the reconciliation, not just the first red.
+      - name: Reconcile register against real suppressions
+        if: ${{ !cancelled() }}
+        run: python scripts/ci/accepted_risks_cli.py check --project-root .
+
+      # Fails once an acceptance is past its `expires` date. The date itself is
+      # still active; the day AFTER it, the entry is overdue (UTC).
+      # `if: !cancelled()` so a `check` failure does not hide an expiry: both are
+      # independent read-only checks, and on the weekly rot-catcher nobody may
+      # look twice at a second red run for something the first could have shown.
+      - name: Fail on past-due acceptances
+        if: ${{ !cancelled() }}
+        run: python scripts/ci/accepted_risks_cli.py expire --project-root .
+
   scan:
     name: Shipwright Security Scan
     runs-on: ubuntu-latest
