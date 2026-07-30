@@ -11,7 +11,11 @@
   "test_completeness": {
     "status": "complete",
     "untested_testable": 0,
-    "enumeration_basis": "every new/changed exported function, every new WS envelope field, every branch of the drop and resync paths, plus every defect raised by the two external review rounds and the code-reviewer subagent. 6 ACs; 69 behaviours enumerated in full in the iterate spec, condensed here.",
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6,
+      "basis": "every new/changed exported function, every new WS envelope field, every branch of the drop and resync paths, plus every defect raised by the two external review rounds and the code-reviewer subagent"
+    },
     "behaviors": [
       {
         "behavior": "AC-1 every discarded chunk counted (bytes/chunks/episodes)",
@@ -254,12 +258,24 @@
         "reason_code": "requires-manual-visual-judgment",
         "evidence": "the isolated stack has no Claude auth; this is the user's confirmation, as for CLAUDE.md rules 28 and 29"
       }
-    ]
+    ],
+    "counts": {
+      "total": 48,
+      "tested": 47,
+      "untestable": 1,
+      "untested_testable": 0
+    }
   },
   "surface_verification": {
     "surface": "web",
     "tests_run": 12,
     "exit_code": 0,
-    "justification": "Backend-affects-frontend: the diff changes a WS envelope contract in both directions, so surface=web is mandatory. Ran the terminal E2E family in real Chromium against an isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + temp USERPROFILE, 127.0.0.1:3849). 11 passed. Spec 97 was verified LOAD-BEARING by disabling the server resync dispatch and observing snapshotsAfterResync=0, then restored byte-identically. The one failure (v0-9-5 AC-4) was attributed to pre-existing behaviour by re-running it with the preamble disabled \u2014 identical failure \u2014 not accepted on assumption."
-  }
+    "justification": "Backend-affects-frontend: the diff changes a WS envelope contract in both directions, so surface=web is mandatory. Ran the terminal E2E family in real Chromium against an isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + temp USERPROFILE, 127.0.0.1:3849). 11 passed. Spec 97 was verified LOAD-BEARING by disabling the server resync dispatch and observing snapshotsAfterResync=0, then restored byte-identically. The one failure (v0-9-5 AC-4) was attributed to pre-existing behaviour by re-running it with the preamble disabled — identical failure — not accepted on assumption."
+  },
+  "declared_removals": [
+    {
+      "path": ".shipwright/planning/iterate/external_code_review_state.json",
+      "reason": "Single-slot marker recording the LAST external code review, not a per-run accumulator: it holds one timestamp/provider/findings_count. Merging origin/main put this run's review (2026-07-30, 0 findings) against #332's (2026-07-29, 2 findings). A union is not representable in the schema, and keeping the older row would assert that THIS diff was reviewed with #332's findings. #332's own record survives intact in its committed reviews.json; only the transient last-run pointer moves."
+    }
+  ]
 }

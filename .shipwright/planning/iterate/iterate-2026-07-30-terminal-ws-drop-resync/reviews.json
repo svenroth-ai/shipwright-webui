@@ -67,12 +67,31 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": null,
+          "category": "spec-compliance",
+          "file": "server/src/terminal/ws-upgrade-handler.ts",
+          "line": 1,
+          "finding": "AC-1..AC-6 verified against the iterate spec. AC-5 (no new repaint/refresh heal) HOLDS: term.refresh in useReplayDrainGate and the rule-29 redraw frame are both pre-existing and reused, and useTerminalSizeSync has no one-shot latch, so the nudge does fire after a mid-session resync as AC-5 claims. BUG-fix discipline satisfied: the root cause is named and split honestly ('discards ... AND no layer ever resynchronizes'), the fix closes the second half with a documented reason (ADR-067 rejected server-side queueing), and both halves are pinned by absolute-expectation tests on both sides.",
+          "suggestion": "None — spec compliance accepted. Blocking defects were raised separately under the code review and are recorded there.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "spec-compliance",
+          "file": "CLAUDE.md",
+          "line": 1,
+          "finding": "Binding project rules checked: ADR-103 respected (ws-upgrade-handler NOT split; baseline note updated instead); rule 29 intact (the resize no-op dedupe is untouched and forceRedraw keeps its dimension-less path); DO-NOT #18 addressed (the drain-queue trim now announces instead of dropping silently); DO-NOT #7 respected (client mirror, no cross-package import, now drift-guarded). The parser-resync preamble breaks no legitimate payload: CAN is not registered as an execute handler in xterm's InputHandler, so it is a genuine no-op on a ground-state parser, and no other consumer asserts exact envelope bytes.",
+          "suggestion": "None.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-07-30T15:15:22.349539+00:00",
+      "completed_at": "2026-07-30T15:35:16.604273+00:00",
       "disposition": null,
-      "recorded_by": "spec-compliance covered by external_review.py --mode code (diff vs iterate spec, 2 rounds) + the code-reviewer subagent, which was briefed on the ACs and the CLAUDE.md/DO-NOT rules; no separate spec-reviewer agent was spawned (one-subagent-per-iterate policy)",
+      "recorded_by": "shipwright-build:code-reviewer subagent (Stage-1 spec-compliance findings extracted from its reply)",
       "parse_status": null,
       "raw_excerpt": null
     }
