@@ -49,6 +49,15 @@ import {
   makeTaskCwd,
 } from "../helpers/task-fixture";
 
+/**
+ * One "observation window": comfortably longer than the client's resync debounce
+ * (RESYNC_DEBOUNCE_MS = 400) plus a WS round-trip and the server's snapshot
+ * serialize. Used as the UNIT for both arms so the negative arm is always a
+ * multiple of what the positive arm actually needs — a bare sleep in the negative
+ * arm would pass vacuously whenever it was simply too short.
+ */
+const RESYNC_OBSERVE_MS = 2_000;
+
 async function gotoTerminal(page: import("@playwright/test").Page, taskId: string) {
   await page.goto(`/tasks/${taskId}`);
   const term = page.getByTestId("embedded-terminal");
@@ -56,7 +65,7 @@ async function gotoTerminal(page: import("@playwright/test").Page, taskId: strin
   await expect(term).toHaveAttribute("data-ws-ready", "true", { timeout: 30_000 });
 }
 
-test.describe("terminal drop resync", () => {
+test.describe("@smoke terminal drop resync", () => {
   test.setTimeout(180_000);
 
   test("the server answers a resync frame with a fresh replay_snapshot", async ({
@@ -230,19 +239,45 @@ test.describe("terminal drop resync", () => {
           .filter((t): t is string => typeof t === "string");
 
       await gotoTerminal(page, taskId);
-      await page.waitForTimeout(2_500);
+      /*
+       * The negative arm needs a wait that cannot pass VACUOUSLY. A bare sleep
+       * proves nothing here: if it is shorter than debounce + round-trip, the resync
+       * simply has not happened YET and the assertion passes for the wrong reason.
+       * So bound it by an observable instead — the positive arm below establishes how
+       * long a real resync takes on THIS runner, and this arm waits several times
+       * that before concluding none is coming.
+       */
+      const noLossWindow = RESYNC_OBSERVE_MS * 3;
+      await page.waitForTimeout(noLossWindow);
       expect(
         typesSent().filter((t) => t === "resync"),
-        "a notice reporting no loss has no hole to repair",
+        `a notice reporting no loss has no hole to repair (waited ${noLossWindow}ms)`,
       ).toHaveLength(0);
 
       // Re-attach with real losses injected.
       injectLoss = true;
       clientFrames.length = 0;
       await page.goto("/");
-      await page.waitForTimeout(500);
       await gotoTerminal(page, taskId);
-      await page.waitForTimeout(3_000);
+
+      /*
+       * The positive arm POLLS rather than sleeping: a slow runner then waits longer
+       * instead of failing, which is what keeps this usable as a CI gate. It still
+       * fails on genuine absence, and the "exactly one" coalescing claim is asserted
+       * after the window settles, below.
+       */
+      const resyncCount = () =>
+        clientFrames.filter((f) => tryParseEnvelope(f)?.type === "resync").length;
+      await expect
+        .poll(resyncCount, {
+          timeout: RESYNC_OBSERVE_MS * 4,
+          message: "the episode-end notice must produce a resync request",
+        })
+        .toBeGreaterThan(0);
+
+      // Now let any DUPLICATE land before claiming coalescing — asserting ===1 the
+      // instant the first arrives would pass even if a second were on its way.
+      await page.waitForTimeout(RESYNC_OBSERVE_MS);
 
       const resyncs = clientFrames
         .map((f) => tryParseEnvelope(f))
