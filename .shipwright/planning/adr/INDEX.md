@@ -18,3 +18,8 @@ regeneration overwrites this file on every release pass._
 - [ADR-131 — touch scroll alt buffer no op](131-touch-scroll-alt-buffer-no-op.md)
 - [ADR-132 — touch scroll buffer aware routing](132-touch-scroll-buffer-aware-routing.md)
 - [ADR-133 — touch scroll wheel events](133-touch-scroll-wheel-events.md)
+- [ADR-134 — mission artifacts tests review decisions](134-mission-artifacts-tests-review-decisions.md)
+- [ADR-135 — mission artifacts pipeline campaign polish](135-mission-artifacts-pipeline-campaign-polish.md)
+- [ADR-136 — mission honest lifecycle stage](136-mission-honest-lifecycle-stage.md)
+- [ADR-137 — mission decisions drops store honesty](137-mission-decisions-drops-store-honesty.md)
+- [ADR-138 — inbox answer in place not built](138-inbox-answer-in-place-not-built.md)
