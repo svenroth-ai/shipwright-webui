@@ -28,6 +28,7 @@ import { HeadlessMirror } from "./headless-mirror.js";
 import { IdleReaper, DEFAULT_IDLE_TIMEOUT_MS } from "./idle-reaper.js";
 import type { SnapshotRecord, SnapshotStore } from "./snapshot-store.js";
 import { writeSnapshotPreservingLarger } from "./snapshot-preserve.js";
+import { BackpressureTelemetry, type BackpressureNotice } from "./backpressure-telemetry.js";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -93,7 +94,8 @@ export interface AttachResult {
 
 export interface ConnectionSubscription {
   onData: (data: string) => void;
-  onBackpressure?: (info: { droppedBytes: number }) => void;
+  /** Fired when a saturation episode opens AND when it closes — see `BackpressureNotice`. */
+  onBackpressure?: (info: BackpressureNotice) => void;
   /**
    * Fired when this connection is promoted from reader to writer because
    * the previous writer detached (typical: React StrictMode dev double-
@@ -244,8 +246,6 @@ interface PtyEntry {
   lastResizeRows: number | null;
   /** Pending outbound bytes per connection (used for drop-oldest decision). */
   pendingByConn: Map<unknown, { bytes: number; queue: string[] }>;
-  /** True while a backpressure event is already raised — avoids fire-flood. */
-  backpressureRaised: Map<unknown, boolean>;
   /**
    * AC-3a (iterate-2026-05-05) — per-task pause refcount. Multi-tab
    * replay-on-attach has each tab calling pause() / resume() independently;
@@ -367,6 +367,8 @@ export class PtyManager {
   private connCapability = new Map<unknown, "ok" | "missing">();
   /** Whether the capability-missing warning has already been logged (rate-limit). */
   private capabilityWarnLogged = false;
+  /** Owns the saturation-episode state formerly `PtyEntry.backpressureRaised`. */
+  private readonly backpressure = new BackpressureTelemetry();
 
   constructor(opts: PtyManagerOpts) {
     this.spawnFn = opts.spawn;
@@ -467,7 +469,6 @@ export class PtyManager {
       lastResizeCols: null,
       lastResizeRows: null,
       pendingByConn: new Map(),
-      backpressureRaised: new Map(),
       pauseRefCount: 0,
       pausedConns: new Set(),
       bufferedExceededSince: new Map(),
@@ -1015,6 +1016,9 @@ export class PtyManager {
    * scrollback for tasks whose pty has long since exited.
    */
   detach(taskId: string, conn: unknown): void {
+    // BEFORE the entry guard: accounts hang off the manager, not the entry, so a
+    // detach after the entry is gone (reaper / stop / delete) would leak one.
+    this.backpressure.release(conn);
     const entry = this.entries.get(taskId);
     if (!entry) return;
     // AC-3 cleanup (per Gemini #3 + OpenAI #12): if the detached conn
@@ -1025,7 +1029,6 @@ export class PtyManager {
     }
     entry.connSubs.delete(conn);
     entry.pendingByConn.delete(conn);
-    entry.backpressureRaised.delete(conn);
     entry.bufferedExceededSince.delete(conn);
     this.connCapability.delete(conn);
     const wasWriter = entry.writer === conn;
@@ -1144,18 +1147,17 @@ export class PtyManager {
    * Deliver outgoing pty data to a single WS connection subscriber,
    * applying drop-while-saturated backpressure: if the WS already has
    * more than `wsBufferBytes` queued on the wire, drop the new chunk
-   * and fire `onBackpressure` (rate-limited to once per saturation
-   * episode). Once `bufferedAmount` drops back, deliveries resume.
+   * and fire `onBackpressure` TWICE per saturation episode — once when it
+   * opens and once when delivery resumes, the latter carrying the accurate
+   * episode total (policy: backpressure-telemetry.ts, iterate-2026-07-30).
    *
-   * Note (vs external code-review F7): the spec wording said
-   * "drop-oldest", which strictly requires a server-side drain hook
-   * (the @hono/node-ws adapter doesn't expose one) plus a periodic
-   * bufferedAmount-poll loop to flush a queue. The functional outcome
-   * for an interactive pty is equivalent under both policies — bytes
-   * arrive in stream order; the loss window is "during saturation".
-   * Drop-while-saturated is simpler and avoids unbounded server-side
-   * buffer growth that drop-oldest could exhibit if drains stall.
-   * Documented in the iterate spec deviation list + ADR-067 addendum.
+   * Note (vs external code-review F7): the spec said "drop-oldest", which
+   * needs a server-side drain hook (@hono/node-ws exposes none) plus a
+   * bufferedAmount-poll loop. Drop-while-saturated is simpler and cannot
+   * grow the server buffer unboundedly if drains stall. What that note
+   * called an acceptable loss window is no longer merely accepted: the
+   * client answers with a `resync` and the bytes come back as a full grid
+   * (ws-upgrade-handler.ts performResync).
    */
   private deliverWithBackpressure(
     entry: PtyEntry,
@@ -1186,20 +1188,18 @@ export class PtyManager {
       }
     }
 
-    if (typeof live === "number" && live + incoming > this.wsBufferBytes) {
-      // Saturated — drop this chunk, raise backpressure once per episode.
-      if (!entry.backpressureRaised.get(conn) && sub.onBackpressure) {
-        entry.backpressureRaised.set(conn, true);
-        try {
-          sub.onBackpressure({ droppedBytes: incoming });
-        } catch { /* ignore */ }
-      }
-      return;
+    // Saturated: chunk discarded, NEVER resent — client answers with `resync`.
+    // Drained: closes the episode with the accurate total. See backpressure-telemetry.ts.
+    const saturated = typeof live === "number" && live + incoming > this.wsBufferBytes;
+    const notice = saturated
+      ? this.backpressure.onDrop(entry.meta.taskId, conn, incoming)
+      : this.backpressure.onDelivered(entry.meta.taskId, conn);
+    if (notice && sub.onBackpressure) {
+      try {
+        sub.onBackpressure(notice);
+      } catch { /* ignore */ }
     }
-
-    if (entry.backpressureRaised.get(conn)) {
-      entry.backpressureRaised.set(conn, false);
-    }
+    if (saturated) return;
 
     try {
       sub.onData(data);

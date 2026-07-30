@@ -39,9 +39,10 @@
     {
       "path": "client/e2e/flows/v0-9-5-replay-snapshot-envelope.spec.ts",
       "limit": 300,
-      "current": 556,
+      "current": 563,
       "state": "grandfathered",
-      "adr": null
+      "adr": null,
+      "note": "AC-2 now asserts the served payload carries the parser-resync preamble (iterate-2026-07-30); the extra lines are the control-byte constant plus why it exists"
     },
     {
       "path": "client/e2e/flows/v0-9-5-task-type-matrix.spec.ts",
@@ -207,16 +208,17 @@
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.test.tsx",
       "limit": 300,
-      "current": 1746,
+      "current": 1756,
       "state": "grandfathered",
       "adr": "iterate-2026-06-30-terminal-paste-single-sink"
     },
     {
       "path": "client/src/components/terminal/EmbeddedTerminal.tsx",
       "limit": 300,
-      "current": 313,
+      "current": 321,
       "state": "grandfathered",
-      "adr": "iterate-2026-07-01-terminal-title-wrap-smear"
+      "adr": "iterate-2026-07-01-terminal-title-wrap-smear",
+      "note": "backpressure-resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the shell wires useBackpressureResync + the drain-queue overflow hook. Wire types moved OUT to hooks/terminalWsContract.ts to keep this bump to the seam itself"
     },
     {
       "path": "client/src/components/terminal/xtermAddons.atlas.test.ts",
@@ -650,10 +652,10 @@
     {
       "path": "server/src/terminal/ws-upgrade-handler.ts",
       "limit": 300,
-      "current": 565,
+      "current": 663,
       "state": "exception",
       "adr": "ADR-103",
-      "note": "WSMessageRedraw + its writer-gated route (iterate-2026-07-27) — belongs to the WS body alone per ADR-103"
+      "note": "WSMessageResync + performResync + the hoisted replay gate, incl. the `replayBusy` serialisation the external review demanded (iterate-2026-07-30): a mid-session resync MUST reuse the attach pause/buffer/flush ordering AND must not interleave with the attach replay, or the repair drops the bytes it exists to restore. That ordering owns the writer/pause/attach locks -- ADR-103's protected deep module, so NOT split out"
     },
     {
       "path": "server/src/test/mission-context-types-sync.test.ts",

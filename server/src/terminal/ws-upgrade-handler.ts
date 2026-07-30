@@ -45,6 +45,7 @@ import {
 } from "./replay-snapshot.js";
 import { deriveTerminalReset } from "./terminal-reset.js";
 import { startWsHeartbeat } from "./ws-heartbeat.js";
+import { createResyncGate } from "./resync-gate.js";
 
 // ---------------------------------------------------------------------------
 // Inbound message contract
@@ -69,7 +70,26 @@ interface WSMessageResize {
 interface WSMessageRedraw {
   type: "redraw";
 }
-export type WSInbound = WSMessageData | WSMessageResize | WSMessageRedraw;
+/**
+ * Client-requested full-grid resync (iterate-2026-07-30, FR-01.28), answered with a
+ * fresh `replay_snapshot`. Sent when the server reported dropped bytes:
+ * `deliverWithBackpressure` discards a chunk and never resends it, so Claude's
+ * DIFFERENTIAL repaints (CUP + CUF cell-skips, which do not erase) land on a holed
+ * grid and leave stale characters that never heal. Re-applying the whole grid is the
+ * repair — NOT another repaint/refresh heal, nine of which shipped before it.
+ *
+ * Never WRITES to the pty, so unlike `redraw` it is answered for READERS too. It is
+ * not free of the pty though: it briefly pauses it while the mirror serializes, so
+ * the throttle is a real bound, not a nicety.
+ */
+interface WSMessageResync {
+  type: "resync";
+}
+export type WSInbound =
+  | WSMessageData
+  | WSMessageResize
+  | WSMessageRedraw
+  | WSMessageResync;
 
 export function isWSInbound(v: unknown): v is WSInbound {
   if (!v || typeof v !== "object") return false;
@@ -79,6 +99,7 @@ export function isWSInbound(v: unknown): v is WSInbound {
     return true;
   }
   if (o.type === "redraw") return true;
+  if (o.type === "resync") return true;
   return false;
 }
 
@@ -300,6 +321,81 @@ function buildLiveHandlers(
   // We build it inline to keep references stable across handlers.
   const connToken = { taskId, t: Date.now() } as const;
 
+  /*
+   * Replay gate. While a snapshot write is in flight, live pty output is BUFFERED
+   * instead of sent, then flushed once the snapshot has been emitted.
+   *
+   * Hoisted to the handler scope (it was local to `onOpen`) so the mid-session
+   * `resync` path reuses this EXACT sequence rather than a second, subtly different
+   * one. That matters: output produced while the snapshot serializes would
+   * otherwise be sent BEFORE the snapshot and then wiped by the client's
+   * `term.reset()` — the repair would itself lose the bytes it exists to restore.
+   */
+  const liveBuffer: string[] = [];
+  let replayDone = false;
+  /*
+   * True while SOME snapshot-emit sequence owns the gate. Initialised `true`
+   * because the attach replay is guaranteed to run and can only start after
+   * `onOpen` — a `resync` arriving in between would otherwise find the gate free
+   * and interleave with it.
+   *
+   * `resyncGate` alone is not enough: it serializes resync against resync, not
+   * against the ATTACH replay, and both share `liveBuffer`/`replayDone`. Whichever
+   * finished first would set `replayDone = true`, so live output would stream
+   * straight to the client while the other's snapshot was still resolving — and
+   * the client's `term.reset()` would then erase it. That is precisely the
+   * ordering invariant this iterate exists to protect (external review, HIGH).
+   *
+   * A resync that arrives during the attach replay is DROPPED rather than queued,
+   * and that is correct rather than merely convenient: the attach is already
+   * emitting a full grid, which is exactly what the resync would have asked for.
+   * If a drop lands after that snapshot was serialized, the episode-END notice
+   * arrives once the gate is free and the client asks again.
+   */
+  let replayBusy = true;
+  const sendData = (ws: { send(d: string): void }, data: string): void => {
+    try {
+      ws.send(JSON.stringify({ type: "data", payload: data }));
+    } catch { /* socket may be mid-close */ }
+  };
+  const flushLiveBuffer = (ws: { send(d: string): void }): void => {
+    for (const data of liveBuffer) sendData(ws, data);
+    liveBuffer.length = 0;
+  };
+  const resyncGate = createResyncGate();
+
+  /**
+   * Serve a client-requested full-grid resync. Mirrors the attach sequence
+   * deliberately — hold the gate, pause this conn, resolve live-mirror-first
+   * (ADR-092), emit ONE `replay_snapshot`, flush buffered output, resume — because
+   * that ordering is exactly what stops the repair from dropping bytes. Throttled
+   * by `resyncGate`; a denied request is dropped, and the episode-END backpressure
+   * notice guarantees the client gets another chance after the last drop.
+   */
+  const performResync = async (ws: { send(d: string): void }): Promise<void> => {
+    // Never interleave with the attach replay (or another resync) — see replayBusy.
+    if (replayBusy) return;
+    if (!resyncGate.tryAcquire()) return;
+    replayBusy = true;
+    replayDone = false;
+    try {
+      ctx.ptyManager.pauseForConn(taskId, connToken);
+      const snap = await resolveReplaySnapshot(ctx);
+      if (snap) sendReplaySnapshot(ws, snap);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[terminal] resync failed for ${taskId}: ${(err as Error).message}`,
+      );
+    } finally {
+      flushLiveBuffer(ws);
+      replayDone = true;
+      replayBusy = false;
+      ctx.ptyManager.resumeForConn(taskId, connToken);
+      resyncGate.release();
+    }
+  };
+
   return {
     onOpen(_evt, ws) {
       startWsHeartbeat(ws); // reap a dead socket → free a pinned writer slot (read-only false-blocker, iterate-2026-05-31)
@@ -350,33 +446,21 @@ function buildLiveHandlers(
       //      replay_start/chunk/separator/end fallback was retired).
       //   5. Flush liveBuffer + flip replayDone.
       //   6. Resume pty.
-      const liveBuffer: string[] = [];
-      let replayDone = false;
-
-      const flushLiveBuffer = () => {
-        for (const data of liveBuffer) {
-          try {
-            ws.send(JSON.stringify({ type: "data", payload: data }));
-          } catch { /* socket may be mid-close */ }
-        }
-        liveBuffer.length = 0;
-      };
-
+      // The replay gate (liveBuffer / replayDone / flushLiveBuffer) lives in the
+      // handler scope so `resync` reuses it — see its declaration above.
       ctx.ptyManager.subscribeForConnection(taskId, connToken, {
         onData: (data) => {
-          if (replayDone) {
-            try {
-              ws.send(JSON.stringify({ type: "data", payload: data }));
-            } catch { /* socket may be mid-close */ }
-          } else {
-            liveBuffer.push(data);
-          }
+          if (replayDone) sendData(ws, data);
+          else liveBuffer.push(data);
         },
-        onBackpressure: ({ droppedBytes }) => {
+        // Forward the WHOLE notice. Destructuring `droppedBytes` here silently
+        // stripped every cumulative field (`droppedChunks`, `totalDroppedBytes`,
+        // `episode`, `episodeEnded`) so AC-2's countability never crossed the
+        // boundary — the client's tolerant parsing then masked it as zeroes.
+        // Guard: `ws-backpressure-envelope.test.ts`.
+        onBackpressure: (info) => {
           try {
-            ws.send(
-              JSON.stringify({ type: "backpressure", droppedBytes }),
-            );
+            ws.send(JSON.stringify({ type: "backpressure", ...info }));
           } catch { /* ignore */ }
         },
         // Fired when the previous writer detaches and we get
@@ -462,16 +546,19 @@ function buildLiveHandlers(
               snap,
             );
           }
-          flushLiveBuffer();
+          flushLiveBuffer(ws);
           replayDone = true;
         } catch (err) {
           // eslint-disable-next-line no-console
           console.warn(
             `[terminal] replay failed for ${taskId}: ${(err as Error).message}`,
           );
-          flushLiveBuffer();
+          flushLiveBuffer(ws);
           replayDone = true;
         } finally {
+          // Release the shared replay gate only now — a `resync` that arrived
+          // mid-attach must not have interleaved with this sequence.
+          replayBusy = false;
           ctx.ptyManager.resumeForConn(taskId, connToken);
         }
       })();
@@ -502,6 +589,17 @@ function buildLiveHandlers(
         }
         return;
       }
+      // Answered BEFORE the writer gate, like `ping`: it never WRITES to the pty, and
+      // gating it on the writer slot would leave every READER permanently smeared by a
+      // drop. It does briefly PAUSE the shared pty while serializing — hence the throttle.
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        (parsed as { type?: unknown }).type === "resync"
+      ) {
+        void performResync(ws);
+        return;
+      }
       if (!isWSInbound(parsed)) return;
       // External code-review F6: use the non-mutating getRole()
       // here so re-evaluating the writer gate on every inbound
@@ -521,7 +619,7 @@ function buildLiveHandlers(
         // Writer-gated by the role check above — a reader must never poke the
         // pty. See WSMessageRedraw for why this cannot be a no-op `resize`.
         ctx.ptyManager.forceRedraw(taskId);
-      } else {
+      } else if (parsed.type === "resize") {
         ctx.ptyManager.resize(taskId, parsed.cols, parsed.rows);
       }
     },

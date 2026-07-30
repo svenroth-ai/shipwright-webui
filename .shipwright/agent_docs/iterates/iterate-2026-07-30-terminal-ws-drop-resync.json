@@ -1,0 +1,281 @@
+{
+  "run_id": "iterate-2026-07-30-terminal-ws-drop-resync",
+  "date": "2026-07-30T15:24:24.783312Z",
+  "event_at": "2026-07-30T15:24:05.203735+00:00",
+  "type": "bug",
+  "complexity": "medium",
+  "branch": "iterate/terminal-ws-drop-resync",
+  "spec": ".shipwright/planning/iterate/2026-07-30-terminal-ws-drop-resync.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-30-terminal-ws-drop-resync",
+  "test_completeness": {
+    "status": "complete",
+    "untested_testable": 0,
+    "enumeration_basis": {
+      "acs": 6,
+      "covered_acs": 6,
+      "basis": "every new/changed exported function, every new WS envelope field, every branch of the drop and resync paths, plus every defect raised by the two external review rounds and the code-reviewer subagent"
+    },
+    "behaviors": [
+      {
+        "behavior": "AC-1 every discarded chunk counted (bytes/chunks/episodes)",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-1 episode open + close logged; mid-episode lines throttled",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-1 episode TRANSITIONS throttled so a flapping socket cannot flood",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-1 throttle discloses suppressed-line count; byte volume never lost",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-1 a PRIMITIVE connection key does not throw (Map, not WeakMap)",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-2 opening notice carries cumulative episode bytes",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-2 closing notice carries the ACCURATE episode total",
+        "disposition": "tested",
+        "evidence": "backpressure-telemetry.test.ts"
+      },
+      {
+        "behavior": "AC-2 PtyManager emits exactly 2 notices per episode (wiring)",
+        "disposition": "tested",
+        "evidence": "pty-manager.backpressure-notice.test.ts"
+      },
+      {
+        "behavior": "AC-2 second episode counted separately; lifetime totals accumulate",
+        "disposition": "tested",
+        "evidence": "pty-manager.backpressure-notice.test.ts"
+      },
+      {
+        "behavior": "AC-2 a healthy conn keeps receiving while another is saturated",
+        "disposition": "tested",
+        "evidence": "pty-manager.backpressure-notice.test.ts"
+      },
+      {
+        "behavior": "AC-2 the WHOLE notice crosses the WS boundary (all 5 fields)",
+        "disposition": "tested",
+        "evidence": "ws-backpressure-envelope.test.ts"
+      },
+      {
+        "behavior": "AC-2 client/server contract mirror cannot drift (both directions)",
+        "disposition": "tested",
+        "evidence": "terminal-ws-contract-sync.test.ts"
+      },
+      {
+        "behavior": "AC-3 isWSInbound accepts a dimension-less resync frame",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 resync answered with a fresh replay_snapshot",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 resync pauses + resumes the connection; live-mirror-first",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 buffered live output is flushed AFTER the snapshot (ordering)",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 resolver throw still resumes the pty and reopens the gate",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 resync served to a READER, never answered read_only",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 redraw/resize stay writer-gated (no regression)",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts"
+      },
+      {
+        "behavior": "AC-3 back-to-back completed resyncs throttled to the interval floor",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts + resync-gate.test.ts"
+      },
+      {
+        "behavior": "AC-3 gate never latches shut; a spam loop is admitted once per interval",
+        "disposition": "tested",
+        "evidence": "resync-gate.test.ts"
+      },
+      {
+        "behavior": "AC-3 a resync arriving mid-ATTACH-replay is dropped, not interleaved",
+        "disposition": "tested",
+        "evidence": "ws-backpressure-envelope.test.ts"
+      },
+      {
+        "behavior": "AC-3 a failed attach replay does not strand the resync gate",
+        "disposition": "tested",
+        "evidence": "ws-backpressure-envelope.test.ts"
+      },
+      {
+        "behavior": "AC-3 real browser: server answers a READER's resync with a fresh snapshot",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/97-terminal-drop-resync.spec.ts (verified load-bearing)"
+      },
+      {
+        "behavior": "AC-3 real browser: a notice burst yields exactly ONE outbound resync",
+        "disposition": "tested",
+        "evidence": "client/e2e/flows/97-terminal-drop-resync.spec.ts"
+      },
+      {
+        "behavior": "AC-4 envelope prepends CAN + CUP-home; no double-prepend",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 mechanism: reset() swallows the first byte after 6 truncation classes",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 CAN recovers all 6 truncation classes",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 a drop leaves STALE CHARACTERS a repaint never erases",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 envelope restore is byte-exact vs the server mirror",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 restore heals even with the parser stranded mid-CSI",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 WITHOUT the preamble the same restore is NOT byte-exact",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 preamble is safe-when-redundant on a ground-state terminal",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-4 ?1006h mouse augmentation preserved",
+        "disposition": "tested",
+        "evidence": "snapshot-parser-resync.test.ts"
+      },
+      {
+        "behavior": "AC-5 no new repaint/refresh heal; rule-29 nudge reused unchanged",
+        "disposition": "tested",
+        "evidence": "ws-resync.test.ts + spec 96 E2E"
+      },
+      {
+        "behavior": "AC-6 drain-queue overflow ANNOUNCES the loss instead of dropping silently",
+        "disposition": "tested",
+        "evidence": "useReplayDrainGate.overflow.test.tsx"
+      },
+      {
+        "behavior": "AC-6 no announcement under the cap; trim never force-drains (Bug B fence)",
+        "disposition": "tested",
+        "evidence": "useReplayDrainGate.overflow.test.tsx"
+      },
+      {
+        "behavior": "AC-6 a snapshot arriving mid-write is PARKED, latest wins",
+        "disposition": "tested",
+        "evidence": "useReplayDrainGate.overflow.test.tsx"
+      },
+      {
+        "behavior": "AC-6 superseded deltas are never written; post-snapshot data survives",
+        "disposition": "tested",
+        "evidence": "useReplayDrainGate.overflow.test.tsx"
+      },
+      {
+        "behavior": "AC-6 a parked snapshot is discarded on resetGate (no cross-task restore)",
+        "disposition": "tested",
+        "evidence": "useReplayDrainGate.overflow.test.tsx"
+      },
+      {
+        "behavior": "AC-6 onReplaySettled fires only after the LAST snapshot settles",
+        "disposition": "tested",
+        "evidence": "useReplayDrainGate.overflow.test.tsx"
+      },
+      {
+        "behavior": "AC-3 client requests a resync on the episode-END notice only",
+        "disposition": "tested",
+        "evidence": "useBackpressureResync.test.ts"
+      },
+      {
+        "behavior": "AC-3 client does NOT request on the opening notice (congestion + loop)",
+        "disposition": "tested",
+        "evidence": "useBackpressureResync.test.ts"
+      },
+      {
+        "behavior": "AC-3 one episode -> one resync; a later episode gets its own",
+        "disposition": "tested",
+        "evidence": "useBackpressureResync.test.ts"
+      },
+      {
+        "behavior": "AC-3 no resync when the notice reports no loss; legacy server still repairs",
+        "disposition": "tested",
+        "evidence": "useBackpressureResync.test.ts"
+      },
+      {
+        "behavior": "AC-3 no send after unmount",
+        "disposition": "tested",
+        "evidence": "useBackpressureResync.test.ts"
+      },
+      {
+        "behavior": "wire vocabulary: full backpressure envelope + resync frame round-trip",
+        "disposition": "tested",
+        "evidence": "__ws_frame_roundtrip.test.ts"
+      },
+      {
+        "behavior": "Visual confirmation on a live authenticated Claude TUI under real saturation",
+        "disposition": "untestable",
+        "reason_code": "requires-manual-visual-judgment",
+        "evidence": "the isolated stack has no Claude auth; this is the user's confirmation, as for CLAUDE.md rules 28 and 29"
+      }
+    ],
+    "counts": {
+      "total": 48,
+      "tested": 47,
+      "untestable": 1,
+      "untested_testable": 0
+    }
+  },
+  "surface_verification": {
+    "surface": "web",
+    "tests_run": 12,
+    "exit_code": 0,
+    "justification": "Backend-affects-frontend: the diff changes a WS envelope contract in both directions, so surface=web is mandatory. Ran the terminal E2E family in real Chromium against an isolated single-process stack (built client + SHIPWRIGHT_STATIC_DIR + temp USERPROFILE, 127.0.0.1:3849). 11 passed. Spec 97 was verified LOAD-BEARING by disabling the server resync dispatch and observing snapshotsAfterResync=0, then restored byte-identically. The one failure (v0-9-5 AC-4) was attributed to pre-existing behaviour by re-running it with the preamble disabled — identical failure — not accepted on assumption."
+  },
+  "declared_removals": [
+    {
+      "path": ".shipwright/planning/iterate/external_code_review_state.json",
+      "reason": "Single-slot marker recording the LAST external code review, not a per-run accumulator: it holds one timestamp/provider/findings_count. Merging origin/main put this run's review (2026-07-30, 0 findings) against #332's (2026-07-29, 2 findings). A union is not representable in the schema, and keeping the older row would assert that THIS diff was reviewed with #332's findings. #332's own record survives intact in its committed reviews.json; only the transient last-run pointer moves."
+    }
+  ]
+}

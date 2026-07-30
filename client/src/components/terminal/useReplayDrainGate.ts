@@ -1,7 +1,8 @@
 /*
  * useReplayDrainGate — ADR-108 replay-drain gate (Campaign C / C5).
  *
- * Extracted from EmbeddedTerminal.tsx. Behaviour bit-perfect:
+ * Extracted from EmbeddedTerminal.tsx (behaviour preserved apart from the two
+ * iterate-2026-07-30 items called out below):
  *   - While a `replay_snapshot` `term.write` is parsing asynchronously,
  *     queue live `data` instead of writing it — otherwise the two
  *     writers interleave and corrupt the xterm buffer (Bug B left-
@@ -9,23 +10,31 @@
  *   - Drain queue on completion callback OR watchdog (5 s).
  *   - Generation counter neutralises stale callbacks / superseding
  *     snapshots.
- *   - Byte cap (8 MiB) drops OLDEST queued chunks; never force-drain.
+ *   - Byte cap (8 MiB) drops OLDEST queued chunks; never force-drain. NEW: the trim
+ *     ANNOUNCES itself (`onQueueOverflow`) so the caller can ask for a resync —
+ *     dropping chunks silently is what DO-NOT #18 forbids. NEW: a snapshot arriving
+ *     mid-write is PARKED until that write settles, so a resync cannot interleave.
  *
  * Plus prompt-readiness bookkeeping refs (`dataSeenInitiallyRef`,
- * `lastPtyDataAtRef`) consumed by `useAutoLaunch` for the handshake.
- *
- * Exposed primitives are shared with `useAutoLaunch`: both hooks read
- * the same in-flight flag + bookkeeping refs.
+ * `lastPtyDataAtRef`) shared with `useAutoLaunch`, which reads the same in-flight
+ * flag for its handshake.
  */
 
 import { useCallback, useMemo, useRef, type RefObject } from "react";
 import type { Terminal } from "@xterm/xterm";
 
-export const REPLAY_DRAIN_TIMEOUT_MS = 5_000;
-export const REPLAY_DRAIN_MAX_BYTES = 8 * 1024 * 1024;
+import { ReplayDrainQueue } from "./replay-drain-queue";
 
-const utf8ByteLength = (s: string): number =>
-  new TextEncoder().encode(s).length;
+export const REPLAY_DRAIN_TIMEOUT_MS = 5_000;
+export { REPLAY_DRAIN_MAX_BYTES } from "./replay-drain-queue";
+
+/** Payload of a `replay_snapshot` envelope, as the gate consumes it. */
+export interface ReplaySnapshotInfo {
+  data: string;
+  cols: number;
+  rows: number;
+  terminalVersion: string;
+}
 
 /**
  * Bundle of refs + handlers the gate exposes. Held entirely in refs (NO
@@ -39,12 +48,7 @@ export interface ReplayDrainGateHandle {
   /** Wire into `useTerminalSocket({ onData })`. */
   onDataChunk: (chunk: string) => void;
   /** Wire into `useTerminalSocket({ onReplaySnapshot })`. */
-  onReplaySnapshot: (info: {
-    data: string;
-    cols: number;
-    rows: number;
-    terminalVersion: string;
-  }) => void;
+  onReplaySnapshot: (info: ReplaySnapshotInfo) => void;
   /** Reset gate on taskId change / unmount / external triggers. */
   resetGate: () => void;
 }
@@ -62,13 +66,26 @@ export function useReplayDrainGate(
    * wrap-smear). Held behind a latest-ref by the caller; safe to omit.
    */
   onReplaySettled?: () => void,
+  /**
+   * Fired when the drain queue overflowed its byte cap and had to discard the
+   * oldest chunks. Those bytes are unrecoverable locally, so the caller should
+   * request a full-grid resync (iterate-2026-07-30, AC-6 / DO-NOT #18).
+   */
+  onQueueOverflow?: () => void,
 ): ReplayDrainGateHandle {
   const onReplaySettledRef = useRef(onReplaySettled);
   onReplaySettledRef.current = onReplaySettled;
+  const onQueueOverflowRef = useRef(onQueueOverflow);
+  onQueueOverflowRef.current = onQueueOverflow;
+  // Snapshot parked mid-write (latest wins) + the seam settleReplayGate applies it
+  // through, which avoids a declaration cycle between the two callbacks.
+  const pendingSnapshotRef = useRef<ReplaySnapshotInfo | null>(null);
+  const applySnapshotRef = useRef<
+    ((info: ReplaySnapshotInfo, preserveQueue?: boolean) => void) | null
+  >(null);
   // Gate refs.
   const replaySnapshotInFlightRef = useRef(false);
-  const replayDrainQueueRef = useRef<string[]>([]);
-  const replayDrainQueueBytesRef = useRef(0);
+  const queueRef = useRef<ReplayDrainQueue>(new ReplayDrainQueue());
   const replayGenerationRef = useRef(0);
   const replayWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -88,8 +105,9 @@ export function useReplayDrainGate(
   const resetGate = useCallback(() => {
     clearReplayWatchdog();
     replaySnapshotInFlightRef.current = false;
-    replayDrainQueueRef.current = [];
-    replayDrainQueueBytesRef.current = 0;
+    queueRef.current.clear();
+    // Discard a parked snapshot too — on a taskId change it belongs to the OLD task.
+    pendingSnapshotRef.current = null;
     replayGenerationRef.current += 1;
   }, [clearReplayWatchdog]);
 
@@ -102,12 +120,23 @@ export function useReplayDrainGate(
       replayGenerationRef.current += 1;
       clearReplayWatchdog();
       replaySnapshotInFlightRef.current = false;
-      const queued = replayDrainQueueRef.current;
-      replayDrainQueueRef.current = [];
-      replayDrainQueueBytesRef.current = 0;
+      // A snapshot parked mid-write applies FIRST — before the queue is drained, or
+      // `term.reset()` would run right after `term.write(queued)` and xterm would
+      // parse those just-pushed bytes onto the grid the snapshot is about to paint.
+      // The queue is handed over untouched: it holds only data that arrived AFTER
+      // that grid (older deltas were dropped at park time), so it must land on top.
+      // Always cleared, even when unusable: a parked grid that outlived its terminal
+      // would otherwise be restored into the NEXT task and smeared over.
+      const parked = pendingSnapshotRef.current;
+      pendingSnapshotRef.current = null;
+      if (parked && !disposedRef.current && termRef.current === term) {
+        applySnapshotRef.current?.(parked, true);
+        return; // the parked snapshot's own settle drains the queue + converges
+      }
+      const queued = queueRef.current.takeAll();
       if (disposedRef.current || termRef.current !== term) return;
       try {
-        if (queued.length > 0) term.write(queued.join(""));
+        if (queued.length > 0) term.write(queued);
         term.scrollToBottom();
         // iterate-2026-06-08-fix-terminal-replay-render-refresh — force a
         // FULL-viewport repaint after the replay settles. Without this the
@@ -142,20 +171,10 @@ export function useReplayDrainGate(
       if (!dataSeenInitiallyRef.current) dataSeenInitiallyRef.current = true;
       lastPtyDataAtRef.current = Date.now();
       if (replaySnapshotInFlightRef.current) {
-        const queue = replayDrainQueueRef.current;
-        queue.push(chunk);
-        replayDrainQueueBytesRef.current += utf8ByteLength(chunk);
-        // Byte cap — drop OLDEST (ring-buffer trim); never force-drain
-        // mid-flight (re-creates Bug B smear). Newest always survives.
-        while (
-          replayDrainQueueBytesRef.current > REPLAY_DRAIN_MAX_BYTES &&
-          queue.length > 1
-        ) {
-          const dropped = queue.shift();
-          if (dropped !== undefined) {
-            replayDrainQueueBytesRef.current -= utf8ByteLength(dropped);
-          }
-        }
+        // A trim means bytes were DROPPED — announce it so the caller can ask for a
+        // full-grid resync. Silent dropping is what DO-NOT #18 forbids; the trim
+        // itself stays, because force-draining mid-flight re-creates the Bug B smear.
+        if (queueRef.current.push(chunk)) onQueueOverflowRef.current?.();
         return;
       }
       termRef.current?.write(chunk);
@@ -163,13 +182,8 @@ export function useReplayDrainGate(
     [termRef],
   );
 
-  const onReplaySnapshot = useCallback(
-    (info: {
-      data: string;
-      cols: number;
-      rows: number;
-      terminalVersion: string;
-    }): void => {
+  const applySnapshot = useCallback(
+    (info: ReplaySnapshotInfo, preserveQueue = false): void => {
       const term = termRef.current;
       if (!term) return;
       // Best-effort version-family check (server's gate is authoritative).
@@ -187,8 +201,7 @@ export function useReplayDrainGate(
       replayGenerationRef.current += 1;
       const generation = replayGenerationRef.current;
       clearReplayWatchdog();
-      replayDrainQueueRef.current = [];
-      replayDrainQueueBytesRef.current = 0;
+      if (!preserveQueue) queueRef.current.clear();
       replaySnapshotInFlightRef.current = true;
       replayWatchdogRef.current = setTimeout(() => {
         replayWatchdogRef.current = null;
@@ -234,6 +247,24 @@ export function useReplayDrainGate(
       }
     },
     [clearReplayWatchdog, resetGate, settleReplayGate, termRef],
+  );
+  applySnapshotRef.current = applySnapshot;
+
+  /** Park a snapshot arriving mid-write (latest wins): `term.reset()` is SYNCHRONOUS,
+   *  so resetting now would let the earlier write's still-queued bytes land on the
+   *  newer grid (external review). Deltas queued BEFORE the new grid are dropped
+   *  here — the grid supersedes them — while anything arriving after it queues
+   *  normally and is drained once the parked snapshot settles. */
+  const onReplaySnapshot = useCallback(
+    (info: ReplaySnapshotInfo): void => {
+      if (replaySnapshotInFlightRef.current) {
+        pendingSnapshotRef.current = info;
+        queueRef.current.clear();
+        return;
+      }
+      applySnapshot(info);
+    },
+    [applySnapshot],
   );
 
   // Memoize the handle so useAutoLaunch's taskId-reset effect doesn't fire
