@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-29-accepted-risk-ci-gate",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-07-29-accepted-risk-ci-gate",
+    "paths_fingerprint": "bf55e111306a5d53f2246909bbcf1459fce7897d99396ce416cf6c69ecc64df5",
+    "consistent_with": "iterate-2026-07-18-unpin-actions-no-dependabot",
+    "statement": "Two workflow files. (1) security.yml gains an Accepted-risk register (gate) job running the vendored check + expire on every PR and on the existing weekly schedule; it declares its own permissions contents:read so it inherits none of the SARIF job's write scopes, and the top-level comment is amended because that workflow is no longer single-job. (2) pr-review.yml's Reviewer Selftest step now installs pyyaml alongside pytest - without it five contract tests get the fail-closed exit code and that job would be RED unconditionally, unable to distinguish a real vendored-file edit from baseline (reproduced: 5 failed / 103 passed). This ADDS enforcement of a posture already recorded and changes no pinning decision. New action uses are actions/checkout@v4 and actions/setup-python@v5 - both GitHub-owned on MUTABLE tags, exactly as DO-NOT #25 requires; no third-party action is introduced. Only pyyaml and pytest are installed from PyPI; everything else is vendored first-party code whose sha256 is pinned by scripts/ci/accepted_risks_vendor.json, enforced both directions, and pinned eol=lf so the hash survives a Windows checkout. The vendored CLI deliberately DROPS canonical's converge subcommand, so this CI copy is structurally incapable of mass-dismissing GitHub security alerts. ci-action-pinning-posture.test.ts passes unchanged (8/8).",
+    "ci_paths": [
+      ".github/workflows/pr-review.yml",
+      ".github/workflows/security.yml"
+    ]
+  }
+}

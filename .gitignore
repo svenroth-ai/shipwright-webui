@@ -77,6 +77,17 @@ client/e2e/.poc-screenshots/
 # Local launch-prep / one-shot scrub tooling
 /.scrub.py
 
+# Lokaler Konzept-/Prototyp-Scratchpad (Mockups, Audits, HTML-Prototyp,
+# Screenshots) — vollstaendig lokal, NIE im Repo. /Spec/prototype/ allein sind
+# 43 MB Binaries, die jeder Klon mitziehen wuerde. Bis 2026-07-30 griff hier
+# KEINE Regel: der Ordner war nur zufaellig nie eingecheckt, ein `git add .`
+# haette ihn hineingezogen. Die eine Ausnahme, die es gab
+# (Spec/design/2026-07-17-fr-taxonomy-regrouping.md, PR #287), ist mit dieser
+# Regel bewusst wieder entfernt worden — Spec/ ist ausnahmslos lokal. Verweise
+# aus aelteren Iterate-Specs auf Spec/**-Pfade sind damit absichtlich
+# unaufloesbar (sie waren es fuer Prototyp-Pfade ohnehin schon).
+/Spec/
+
 # === BEGIN Shipwright canonical .shipwright artifact-ignore (managed) ===
 # Managed by Shipwright (adopt/project). Do not hand-edit — re-running
 # /shipwright-adopt or /shipwright-project back-fills missing rules.
