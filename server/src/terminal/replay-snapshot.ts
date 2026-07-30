@@ -55,12 +55,45 @@ export interface ReplaySnapshotEnvelope {
 const MOUSE_TRACKING_ENTER_RE = /\x1b\[\?(?:9|1000|1002|1003)h/;
 const MOUSE_SGR_ENCODING = "\x1b[?1006h";
 
+/*
+ * PARSER-RESYNC PREAMBLE (iterate-2026-07-30-terminal-ws-drop-resync, FR-01.28).
+ *
+ * `xterm.Terminal.reset()` does NOT reset the escape-sequence PARSER. The client
+ * restores a snapshot with `term.reset()` then `term.write(data)`, so whenever the
+ * previously-received byte stream ended mid-sequence, the parser is parked
+ * off-ground and the payload's FIRST bytes are swallowed as continuation of that
+ * truncated sequence — the whole restored grid then lands one row off (measured:
+ * 51 of 52 rows wrong against a real 110x52 recording, while a FRESH terminal fed
+ * the same payload is byte-exact).
+ *
+ * A truncated stream is not a corner case here: `deliverWithBackpressure` drops a
+ * chunk mid-sequence by definition, and the real recording's reproducing cut ends
+ * with `ESC [ 3 8 ; 2` — a half-written truecolor CSI. Every parser class is
+ * reachable (mid-CSI / mid-OSC / mid-DCS / lone ESC / mid-charset).
+ *
+ * CAN (0x18) is ISO 6429 "abort sequence in progress" and was verified to recover
+ * ALL SIX truncation classes on its own, so the abort is what does the work; the
+ * CUP-home that follows is the payload's own precondition made explicit rather
+ * than inherited from `reset()`'s side effects.
+ *
+ * Served here — one seam covering attach replay, reconnect replay AND resync —
+ * and safe-when-redundant: CAN on a ground-state parser is a no-op and the cursor
+ * is already home after `reset()`. Guard: `snapshot-parser-resync.test.ts`.
+ * Deliberately NOT another repaint/refresh heal — nine of those shipped in this
+ * class before it; this repairs the BUFFER, not the pixels.
+ */
+const CAN = String.fromCharCode(24);
+const PARSER_RESYNC_PREAMBLE = `${CAN}\x1b[H`;
+
 export function buildReplaySnapshotEnvelope(
   rec: SnapshotRecord,
 ): ReplaySnapshotEnvelope {
   let data = rec.data;
   if (MOUSE_TRACKING_ENTER_RE.test(data) && !data.includes(MOUSE_SGR_ENCODING)) {
     data = data + MOUSE_SGR_ENCODING;
+  }
+  if (!data.startsWith(PARSER_RESYNC_PREAMBLE)) {
+    data = PARSER_RESYNC_PREAMBLE + data;
   }
   return {
     type: "replay_snapshot",

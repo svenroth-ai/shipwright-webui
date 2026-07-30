@@ -944,11 +944,21 @@ describe("<EmbeddedTerminal>", () => {
       // deferred — it re-arms the gate and supersedes "STALE".
       await dispatchSnapshot(ws, "SNAP-2");
       await dispatchData(ws, "FRESH");
+      // Two flushes, because the restore is now TWO-PHASE
+      // (iterate-2026-07-30): SNAP-2 is PARKED rather than applied while SNAP-1's
+      // write is still in flight — `term.reset()` is synchronous, so resetting
+      // mid-write would let SNAP-1's still-queued bytes land on SNAP-2's grid
+      // (external review). Flush 1 settles SNAP-1 and starts SNAP-2; flush 2
+      // settles SNAP-2 and drains the post-SNAP-2 queue.
       await act(async () => {
         flushWriteCompletions();
       });
-      // SNAP-1's stale callback is a no-op; SNAP-2's callback drains only
-      // the post-SNAP-2 chunk. "STALE" is dropped, never written.
+      await act(async () => {
+        flushWriteCompletions();
+      });
+      // "STALE" was queued BEFORE SNAP-2's grid, so the grid supersedes it and it
+      // is never written. "FRESH" arrived AFTER it and therefore must survive —
+      // dropping it would be the very data loss this iterate exists to remove.
       expect(wrote("STALE")).toBe(false);
       expect(wrote("FRESH")).toBe(true);
     });

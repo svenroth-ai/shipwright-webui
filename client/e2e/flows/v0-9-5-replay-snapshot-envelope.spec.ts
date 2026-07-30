@@ -233,8 +233,15 @@ test.describe("ADR-089 — replay_snapshot envelope path", () => {
       const ws = pickAuthoritativeWs(capture, target!.taskId);
       const snap = ws?.envelopes.find((e) => e.type === "replay_snapshot");
       expect(snap, "replay_snapshot envelope required").toBeDefined();
-      // Wire-shape assertions.
-      expect(snap!.parsed!.data).toBe(FIXTURE);
+      // Wire-shape assertions. The served payload carries the parser-resync
+      // preamble (iterate-2026-07-30): CAN (abort a sequence a truncated stream left
+      // open — `Terminal.reset()` does NOT reset the parser) + CUP-home, without
+      // which a restore into an already-used terminal swallows the payload's first
+      // byte and lands the whole grid one row off. See
+      // `server/src/terminal/snapshot-parser-resync.test.ts`.
+      const RESYNC_PREAMBLE =
+        String.fromCharCode(24) + String.fromCharCode(27) + "[H";
+      expect(snap!.parsed!.data).toBe(RESYNC_PREAMBLE + FIXTURE);
       expect(snap!.parsed!.cols).toBe(80);
       expect(snap!.parsed!.rows).toBe(24);
       expect(snap!.parsed!.terminalVersion).toBe(PINNED_TERMINAL_VERSION);

@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-30-terminal-ws-drop-resync",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-30T15:04:35.489118+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-self-review (7-point checklist in the iterate spec)",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-30T15:15:22.661083+00:00",
+      "disposition": "BUG path with no mini-plan artifact: the external LLM review ran in --mode code against the iterate spec instead (2 rounds), which is the same reviewer applied to the finished diff rather than to a plan",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-30T15:15:22.451406+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:code-reviewer subagent (operator-approved); 14 findings, 4 high — all high + the actionable mediums fixed",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "not_run",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-30T15:15:22.557120+00:00",
+      "disposition": "one-subagent-per-iterate policy (memory: iterate review = ONE subagent, not the full cascade); the adversarial function was served by two external review rounds plus the code-reviewer, which together produced 19 findings",
+      "recorded_by": "none",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-30T15:03:52.804442+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode code (2 rounds, 5 findings, all fixed)",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-30T15:15:22.349539+00:00",
+      "disposition": null,
+      "recorded_by": "spec-compliance covered by external_review.py --mode code (diff vs iterate spec, 2 rounds) + the code-reviewer subagent, which was briefed on the ACs and the CLAUDE.md/DO-NOT rules; no separate spec-reviewer agent was spawned (one-subagent-per-iterate policy)",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

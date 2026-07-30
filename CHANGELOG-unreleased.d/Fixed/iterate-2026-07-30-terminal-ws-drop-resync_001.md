@@ -1,0 +1,1 @@
+Embedded terminal: output dropped while the WebSocket is saturated no longer leaves permanent stale characters on screen. The loss is now counted and logged, and the client re-syncs the whole grid from the server once delivery resumes, instead of letting Claude's partial repaints paint over the gap (FR-01.28).

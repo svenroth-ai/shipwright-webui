@@ -28,6 +28,8 @@ import type { FitAddon } from "@xterm/addon-fit";
 import {
   useTerminalSocket,
   type TerminalRole,
+  type TerminalOutbound,
+  type BackpressureInfo,
 } from "../../hooks/useTerminalSocket";
 import { useLaunchCoordinator } from "../../contexts/LaunchCoordinatorContext";
 import {
@@ -46,6 +48,7 @@ import { useTerminalAppearance, resolveAppearanceNow } from "./useTerminalAppear
 import { usePasteImage } from "./usePasteImage";
 import { useTerminalResize } from "./useTerminalResize";
 import { useReplayDrainGate } from "./useReplayDrainGate";
+import { useBackpressureResync } from "./useBackpressureResync";
 import { useTerminalSizeSync } from "./useTerminalSizeSync";
 import { useAutoLaunch } from "./useAutoLaunch";
 import { useTerminalClipboard } from "./useTerminalClipboard";
@@ -73,7 +76,7 @@ export interface EmbeddedTerminalProps {
   socketUrlOverride?: string;
   socketEnabled?: boolean;
   onGitignoreSuggestion?: () => void;
-  onBackpressure?: (info: { droppedBytes: number }) => void;
+  onBackpressure?: (info: BackpressureInfo) => void;
   onReadyChange?: (ready: boolean, role: TerminalRole | null) => void;
   onPasteImageError?: (detail: string) => void;
   onTerminalMeta?: (meta: {
@@ -121,15 +124,20 @@ export const EmbeddedTerminal = forwardRef<
   // Size-sync seam (iterate-2026-07-01-terminal-title-wrap-smear): gate created pre-socket → calls through syncSizeRef, populated post-socket by useTerminalSizeSync.
   const syncSizeRef = useRef<(() => void) | null>(null);
   const gateOnReplaySettled = useCallback(() => syncSizeRef.current?.(), []);
-  const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled);
+  // Resync seam (iterate-2026-07-30): dropped WS bytes are never resent, so the only
+  // repair is a fresh full-grid snapshot. Pre-socket → sends via ref, set post-socket.
+  const resyncSendRef = useRef<((m: TerminalOutbound) => void) | null>(null);
+  const resync = useBackpressureResync({ send: (m) => resyncSendRef.current?.(m), onBackpressure });
+  const gate = useReplayDrainGate(termRef, disposedRef, gateOnReplaySettled, resync.requestResync);
   const socket = useTerminalSocket({
     taskId,
     urlOverride: socketUrlOverride,
     enabled: socketEnabled,
     onData: gate.onDataChunk,
     onReplaySnapshot: gate.onReplaySnapshot,
-    onBackpressure: (info) => onBackpressure?.(info),
+    onBackpressure: resync.onBackpressure,
   });
+  resyncSendRef.current = socket.send;
   const { syncSizeNow, onReplaySettled } = useTerminalSizeSync({ termRef, fitAddonRef, disposedRef, socketSend: socket.send, role: socket.role });
   syncSizeRef.current = onReplaySettled;
   const { manualSendCommand, previewCommand, handleManualSend, dismissManualSend } =
