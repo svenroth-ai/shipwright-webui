@@ -1,7 +1,8 @@
 """Tests for scripts/ci/pr_review.py — the Tier-3 PR reviewer (I/O + orchestration).
 
-The script is the OpenRouter-backed reviewer invoked by `.github/workflows/pr-review.yml`
-for Tier-3 PRs (external contributors, sensitive paths, or `needs-review` label). It must:
+The script is the OpenRouter-backed reviewer invoked by stage 2
+(`.github/workflows/pr-review-run.yml`) for Tier-3 PRs (external contributors,
+sensitive paths, or `needs-review` label). It must:
 
 - fetch the PR diff, call OpenRouter, parse a strict-JSON decision, post a PR comment
 - map the decision to an exit code: 0 = approve/comment, 1 = block, 2 = error

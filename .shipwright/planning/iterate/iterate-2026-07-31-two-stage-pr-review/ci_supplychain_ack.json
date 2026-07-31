@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-31-two-stage-pr-review",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-07-31-two-stage-pr-review",
+    "paths_fingerprint": "6378ad25d97804fd850694a4cf88ae7de5ffc6324afbdd518f4d037b5afab498",
+    "consistent_with": "iterate-2026-07-18-unpin-actions-no-dependabot",
+    "statement": "Two workflow files on the CI trust boundary. (1) pr-review.yml becomes stage 1: keeps Reviewer Selftest byte-identically, loses decide and review, gains a credential-free prepare job uploading an audit diff, and holds NO write scope and NO policy. (2) New pr-review-run.yml is stage 2: workflow_run, default-branch code, holds OPENROUTER_API_KEY and GITHUB_TOKEN, resolves the PR by listing open PRs (commits/{sha}/pulls is EMPTY for forks), derives tier and diff from the API, never checks out the PR head, and posts PR Review as a commit status. This MOVES credential and write capability off the fork-reachable pull_request run onto one the contributor cannot influence, so the trust boundary TIGHTENS; writes are statuses:write and pull-requests:write plus checks:read (to refuse a second producer of the context), on the posting job only, both workflows read-only at top level. No pinning decision changes: the only actions are actions/checkout@v4, actions/setup-python@v5 and actions/upload-artifact@v4, all GitHub-owned on MUTABLE tags exactly as DO-NOT #25 requires; NO third-party action is introduced (astral-sh/setup-uv deliberately not ported - the vendored reviewer is stdlib-only, avoiding a SHA pin with no updater). No new PyPI dependency. The sensitive-path set is WIDENED to the suppression channels, so skip-pr-review can no longer waive a PR adding a Trivy suppression. ci-action-pinning-posture.test.ts passes unchanged 8/8.",
+    "ci_paths": [
+      ".github/workflows/pr-review-run.yml",
+      ".github/workflows/pr-review.yml"
+    ]
+  }
+}
