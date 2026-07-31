@@ -663,6 +663,22 @@
       "current": 302,
       "state": "grandfathered",
       "adr": "iterate-2026-07-21-compliance-audit-reconcile"
+    },
+    {
+      "path": "scripts/ci/accepted_risks.py",
+      "limit": 300,
+      "current": 310,
+      "state": "exception",
+      "adr": "iterate-2026-07-31-revendor-accepted-risk-gate",
+      "note": "VENDORED from shipwright shared/scripts/accepted_risks.py at commit 987e49c6; byte-identity to upstream below the vendor header is the contract that scripts/ci/accepted_risks_vendor.json enforces, so this file CANNOT be split without breaking the drift guard and diverging webui's CI gate from its own compliance dashboard (accepted_risk_scan is a shared leaf the dashboard also consumes). Frozen at the re-vendored size: a future re-vendor that grows it must bump this entry in the same commit as the manifest, which is the conscious step this exception exists to force."
+    },
+    {
+      "path": "scripts/ci/accepted_risks_cli.py",
+      "limit": 300,
+      "current": 349,
+      "state": "exception",
+      "adr": "iterate-2026-07-31-revendor-accepted-risk-gate",
+      "note": "VENDORED from shipwright shared/scripts/tools/accepted_risks_cli.py at commit 987e49c6; byte-identity to upstream below the vendor header is the contract that scripts/ci/accepted_risks_vendor.json enforces, so this file CANNOT be split without breaking the drift guard and diverging webui's CI gate from its own compliance dashboard (accepted_risk_scan is a shared leaf the dashboard also consumes). Frozen at the re-vendored size: a future re-vendor that grows it must bump this entry in the same commit as the manifest, which is the conscious step this exception exists to force. This copy is ADAPTED (no `converge`, wrapped sibling imports, yaml-scoped missing-dependency handler), so its divergence is deliberate and enumerated in its header."
     }
   ]
 }

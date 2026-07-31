@@ -132,12 +132,33 @@ run's own new test**, plus gaps worth closing. All were reproduced before fixing
    `.trivyignore.yaml`'s header with both remedies rather than silently changing
    security dates, which is not this run's call.
 5. **Manifest key order (fixed)** — `canonical_commit` sits with its siblings.
-6. **Bloat (checked, no action).** `accepted_risks_cli.py` (349) and
-   `accepted_risks.py` (310) exceed 300, but the baseline's 94 entries are all
-   under `client/`/`server/` — zero under `scripts/` — and `anti_ratchet_check.py`
-   exits 0. If the Stop gate ever raises these, the disposition is an EXCEPTION,
-   not a split: they are vendored copies whose byte-identity to upstream is the
-   contract the manifest enforces, and splitting them would break it.
+6. **Bloat — I got this wrong, and the Stop gate caught it.** I checked
+   `anti_ratchet_check.py` (exit 0) and concluded `scripts/` was out of scope.
+   That hook only guards RATCHETS of entries already in the baseline; the Stop
+   gate catches NEW crossings, and it blocked on
+   `test_accepted_risks_repo_invariants.py` at **555 lines**. Resolved both ways
+   the gate allows, each where it fits:
+
+   - **Split** the test file, on the seam its own docstring already drew and
+     following upstream's precedent (it split its own register tests at this same
+     cap): `accepted_risks_paths.py` (79, shared helpers) ·
+     `test_accepted_risks_ignorefile_shape.py` (201, EC-2 — will Trivy apply the
+     file?) · `test_accepted_risks_repo_invariants.py` (182, CR-1/CR-2 — the
+     channels this repo uses) · `test_accepted_risks_ci_wiring.py` (157 — is the
+     gate wired and armed?). Test count unchanged at 268, and every guard
+     re-falsified after the move.
+   - **Exception** for the two VENDORED modules, `accepted_risks.py` (310) and
+     `accepted_risks_cli.py` (349). These cannot be split: byte-identity to
+     upstream below the header is the contract the manifest enforces, and this
+     run's own task requires it. Recorded in `shipwright_bloat_baseline.json` as
+     `state: exception` anchored to this run id, frozen at the re-vendored size
+     so a later re-vendor that grows them must bump the entry alongside the
+     manifest.
+
+   The split also removed a drift risk: the gate job now runs the whole
+   `scripts/ci/tests` directory rather than named files, so a future module is
+   covered the day it is written. A hardcoded list would have silently dropped
+   two modules on the very day this split created them.
 
 ### Stage 3 (doubt, adversarial) — it broke three of my claims
 

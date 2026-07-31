@@ -91,22 +91,22 @@ jobs:
       - name: Install PyYAML + pytest
         run: pip install pyyaml pytest
 
-      # The gate carries its own backstops. `pytest scripts/ci/tests` otherwise
-      # runs only in pr-review.yml's selftest job, which is pull_request-only —
-      # so on the weekly run (the trigger this whole design turns on) none of the
-      # fail-open invariants would execute, and `main` is not branch-protected so
-      # a direct push never passes through selftest either. ~2 seconds.
-      # The vendored-drift file rides along for the same reason: it holds the
-      # byte-integrity and provenance guards over the very modules the next two
-      # steps EXECUTE. Left on the pull_request-only side, the scheduled run
-      # would execute vendored code whose hashes were last checked whenever the
-      # last PR happened to land (iterate-2026-07-31-revendor-accepted-risk-gate,
-      # Stage-3 doubt review D-5).
+      # The gate carries its own backstops. These otherwise run only in
+      # pr-review.yml's selftest job, which is pull_request-only — so on the
+      # weekly run (the trigger this whole design turns on) none of the fail-open
+      # invariants would execute, and `main` is not branch-protected so a direct
+      # push never passes through selftest either. ~15 seconds.
+      #
+      # The WHOLE DIRECTORY, deliberately, not a file list. It also picks up the
+      # vendored-drift + provenance guards, which must run here because the next
+      # two steps EXECUTE those very modules — left pull_request-only, a
+      # scheduled run executes vendored code whose hashes were last checked
+      # whenever the last PR happened to land (Stage-3 doubt review D-5). And a
+      # directory cannot go stale: when this file's invariants were split into
+      # three modules the same day, a hardcoded list would have silently dropped
+      # two of them (iterate-2026-07-31-revendor-accepted-risk-gate).
       - name: Repo accepted-risk invariants
-        run: >-
-          python -m pytest
-          scripts/ci/tests/test_accepted_risks_repo_invariants.py
-          scripts/ci/tests/test_accepted_risks_vendored.py -q
+        run: python -m pytest scripts/ci/tests -q
 
       # Both directions. An UNRECORDED suppression means nobody can tell why a
       # finding is silenced or when to revisit it; a STALE register entry claims
