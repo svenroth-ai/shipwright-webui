@@ -31,7 +31,7 @@ Functional Requirements are **capability-level** and grouped by feature area (th
 |----|------|------|----------|-------------|--------|
 | FR-01.02 | TSK | Task detail — 3-pane viewer | Must | The task detail screen: a three-pane workspace with the project's file tree on the left, the session's conversation (readable chat with code and cleaned-up tool output) in the centre, and a file viewer on the right for Markdown, code, text, images, video, and diagrams. Pane sizes are remembered. The header has an editable title (renames apply on the next launch) and a state-aware action button. There is deliberately no chat box for typing to Claude.<br>**Updates:** Gained faster handling of very long transcripts and a Transcript/Terminal toggle; later reworked into the Files and Terminal three-card layout. | enrichment |
 | FR-01.35 | TSK | In-app Markdown editing | Should | In the file viewer, Markdown files gain an Edit button that opens a rich-text editor; changes save back into the file - the first place the app writes into project files. It is limited to Markdown, size-capped, and uses a safety check so it never overwrites a file a Claude session changed underneath you: on a conflict it keeps your edits and offers to reload. It warns before saving files with tricky content (tables, raw HTML, footnotes).<br>**Updates:** Gained a formatting toolbar. | iterate-2026-06-03, toolbar iterate-2026-06-04 |
-| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. | iterate-2026-07-21-mission-narrative-prose |
+| FR-01.66 | TSK | Mission view (live session) | Should | The Mission tab is a live, plain-language view of what a session is doing, read straight from its transcript rather than only a finished-run record - so even an ad-hoc session in progress gets a summary. Three panels: left shows a business-language summary, where things stand (Spec / Build / Test / Finalize), and clickable artifact links; the middle narrates what is happening now; the right opens artifacts on click. It reports only what the transcript actually contains - no invented activity - and never writes anything.<br>**Updates:** Gained a plain-language event narrator, the Record rail plus Operation card and three-card layout, and six lifecycle stages with campaign-progress awareness - then rebuilt to read the live transcript, with context-aware artifacts per scenario and a stage derived from the session's real phase rather than coarse tool signals. The middle card then stopped being a rolling six-line tool log and became a told story: sentences that carry OUTCOMES ("the tests were run, and six of them failed - work continued until the whole suite came back green") with artifact links inside the prose, no elapsed times, and nothing claimed beyond what the transcript evidences. The review list then stopped being a closed set of five: a pass the Command Center does not recognise, or a record written to a newer version of the format, is read and shown rather than reported as damage. | iterate-2026-07-31-review-record-tolerant-reader |
 
 ### Area TRM — Embedded Terminal
 
@@ -934,6 +934,34 @@ write surface; gated, path-guarded, and concurrency-safe.
   heading ids are never present in the page twice. Pure client-side layout plus a reused
   Radix dialog — no new endpoint, no server change, no second write surface; read-only
   observer throughout (rule 1 / DO-NOT #1).
+- (O) **(iterate-2026-07-31-review-record-tolerant-reader)** A review pass the Command
+  Center does not recognise is SHOWN, not treated as damage. Criterion (M) above
+  described the record as a closed set of five passes: a run that recorded a sixth made
+  the whole record read as unreadable, and because an unreadable record is deliberately
+  never answered by the older, weaker source, every one of its rows reported a data
+  problem instead. That penalised the run for recording MORE than expected, and it left
+  the tool that writes the record unable to add a pass at all — so a real pass (the
+  spec-compliance check that runs first and can block everything after it) had to be
+  written somewhere the Command Center does not look, purely to keep healthy runs from
+  reporting as broken. Now an unfamiliar pass gets a row of its own after the five
+  familiar ones, named from what the run itself called it rather than from any guess,
+  and a record written to a NEWER version of the format than this build knows is read
+  rather than refused. What did NOT loosen is everything about a single pass: one whose
+  own details contradict each other — a count that disagrees with its list, a state
+  outside the known words, a skipped pass that gives no reason — still makes the record
+  report as unreadable, whatever version it claims and whether or not its name is
+  familiar. A pass named something that is not a name at all is likewise damage, and a
+  run claiming more passes than any run has says so plainly rather than quietly showing
+  fewer than it holds. Where the two differ is how far the damage spreads: a problem in
+  one of the five familiar passes still makes the whole record report as unreadable,
+  while a problem in an unfamiliar one is confined to that pass, which appears in its
+  own right saying it could not be read — never dropped, and never taking four healthy
+  passes down with it. Finally, reading something newer than this version understands is
+  SAID rather than assumed harmless: when the record comes from a newer Shipwright, or
+  when a run recorded review passes somewhere this version does not look, the summary
+  line says so, so its counts are never mistaken for the whole story. That second case
+  is not hypothetical — it is true of every record written today, and it is why this
+  same summary was quietly leaving out a blocking review before this criterion existed.
 
 - (E) **(iterate-2026-07-23-intent-launcher-front-door)** Given the Task Board
   "New" split-button in single-project mode, when its dropdown opens, then it leads

@@ -36,7 +36,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import { readBoundedFile } from "./fs-read.js";
-import { readReviewRecord, reviewRecordPath } from "./review-record.js";
+import { REVIEW_TYPES, readReviewRecord, reviewRecordPath } from "./review-record.js";
 import { pathGuard } from "../path-guard.js";
 import { isSafeRunId } from "./pointer.js";
 import type { ReviewRow, ReviewType } from "./types-slice2.js";
@@ -50,8 +50,15 @@ const MARKERS: { file: string; type: Extract<ReviewType, "plan" | "external_code
 /** A marker is a few hundred bytes; 256 KB bounds a corrupt one generously. */
 const MAX_MARKER_BYTES = 256 * 1024;
 
-/** Contract order — `self` first; it is the one review that always runs. */
-const REVIEW_TYPE_ORDER: ReviewType[] = ["self", "plan", "code", "doubt", "external_code"];
+/**
+ * Contract order — `self` first; it is the one review that always runs.
+ *
+ * IMPORTED rather than restated: `ReviewType` now admits any string, so the
+ * `ReviewType[]` annotation this list used to carry would no longer catch a
+ * typo, and a second literal could drift from the record path's without
+ * anything failing.
+ */
+const REVIEW_TYPE_ORDER = REVIEW_TYPES;
 
 const RECORD_INTEGRITY_NOTE =
   "This run's review record exists but could not be read. That is a data " +
@@ -68,20 +75,9 @@ const INTERNAL_NOTE =
   "The internal review passes do not yet write a machine-readable record, " +
   "so this run's result cannot be shown. This is a known gap, not a clean result.";
 
+/** Byte-identical to `unreadableRow` but for its note — so it IS that call. */
 function internalRow(reviewType: "self" | "code" | "doubt"): ReviewRow {
-  return {
-    reviewType,
-    status: "unavailable",
-    findingsCount: null,
-    findings: [],
-    provider: null,
-    completedAt: null,
-    disposition: null,
-    note: INTERNAL_NOTE,
-    parseStatus: null,
-    source: "marker",
-    truncated: false,
-  };
+  return unreadableRow(reviewType, INTERNAL_NOTE);
 }
 
 function unreadableRow(reviewType: ReviewType, note: string): ReviewRow {
@@ -197,6 +193,11 @@ export interface ReviewLookup {
   hasRecord: boolean;
   /** A marker existed but could not be read — an integrity signal, not absence. */
   sawUnreadable: boolean;
+  /**
+   * What the reader could NOT read, said out loud (Stage-3 doubt, D1/D2) —
+   * appended to the artifact summary. Empty on the marker path.
+   */
+  caveats: string[];
 }
 
 /**
@@ -223,6 +224,7 @@ export function readReviewState(projectRoot: string, runId: string): ReviewLooku
       rows: REVIEW_TYPE_ORDER.map((t) => unreadableRow(t, "This run could not be identified.")),
       hasRecord: false,
       sawUnreadable: true,
+      caveats: [],
     };
   }
 
@@ -237,6 +239,7 @@ export function readReviewState(projectRoot: string, runId: string): ReviewLooku
       // "a source carried an actual answer", on this path as on the marker one.
       hasRecord: record.rows.some((r) => r.status !== "unavailable"),
       sawUnreadable: false,
+      caveats: record.caveats,
     };
   }
   if (record.kind === "invalid") {
@@ -247,6 +250,7 @@ export function readReviewState(projectRoot: string, runId: string): ReviewLooku
       // would make buildReviewArtifact hide the artifact entirely and throw the
       // fault away.
       sawUnreadable: true,
+      caveats: [],
     };
   }
   return readMarkerState(projectRoot, runId);
@@ -288,5 +292,5 @@ function readMarkerState(projectRoot: string, runId: string): ReviewLookup {
     internalRow("doubt"),
     byType.get("external_code")!,
   );
-  return { rows, hasRecord, sawUnreadable };
+  return { rows, hasRecord, sawUnreadable, caveats: [] };
 }

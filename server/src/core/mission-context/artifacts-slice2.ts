@@ -25,7 +25,18 @@ function plural(n: number, one: string, many: string): string {
 // Review
 // ---------------------------------------------------------------------------
 
-const REVIEW_WORD: Record<ReviewRow["reviewType"], string> = {
+/**
+ * Keyed on the PINNED five spelled out, not on `ReviewRow["reviewType"]`.
+ *
+ * That type now admits any string (`iterate-2026-07-31-review-record-tolerant-reader`),
+ * and `Record<K, V>` over a union containing `(string & {})` collapses into an
+ * INDEX SIGNATURE — which silently cost this table two things: the compile error
+ * that would fire if a sixth pinned type were added without a word for it, and
+ * the honesty of `reviewWord`'s `: string` return, since an index signature hands
+ * back `undefined` for every unpinned key without `noUncheckedIndexedAccess` to
+ * catch it. Spelling the keys out restores both.
+ */
+const REVIEW_WORD: Record<"self" | "plan" | "code" | "doubt" | "external_code", string> = {
   self: "the self-review",
   plan: "the plan review",
   code: "the code review",
@@ -98,18 +109,31 @@ export function buildReviewArtifact(lookup: ReviewLookup): ReviewArtifact {
   const tail = unknown
     ? ` ${plural(unknown, "further review is", "further reviews are")} not recorded, so ${unknown === 1 ? "its" : "their"} result is unknown.`
     : "";
+  // …and never let it stop there while the READER knows it read past its own
+  // knowledge. A newer record format, or passes recorded somewhere this build
+  // does not look, would otherwise make the counts above read as complete when
+  // they are not — the one way forward-tolerance could turn into a false
+  // assurance (Stage-3 doubt, D1/D2). The summary is where it belongs: it is the
+  // line a skimming reader actually finishes.
+  const disclosure = lookup.caveats.length ? ` ${lookup.caveats.join(" ")}` : "";
 
   return {
     kind: "review",
     label: "Review",
     state: "available",
-    summary: `${lead}${tail}`,
+    summary: `${lead}${tail}${disclosure}`,
     receipt: findings ? plural(findings, "finding", "findings") : `${completed.length} reviewed`,
     detail: { type: "reviews", rows: lookup.rows },
   };
 }
 
-/** Plain-language name for a review type — used by the client too (mirrored). */
+/**
+ * Plain-language name for a review type — used by the client too (mirrored).
+ *
+ * A type outside the pinned five has no curated word, so it falls back to the
+ * key the run itself used rather than to `undefined`, which the `: string`
+ * signature would otherwise have been lying about.
+ */
 export function reviewWord(t: ReviewRow["reviewType"]): string {
-  return REVIEW_WORD[t];
+  return t in REVIEW_WORD ? REVIEW_WORD[t as keyof typeof REVIEW_WORD] : `the ${t} review`;
 }

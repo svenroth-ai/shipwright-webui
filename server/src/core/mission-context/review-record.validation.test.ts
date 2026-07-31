@@ -65,12 +65,6 @@ describe("a record must vouch for THIS run", () => {
     expect(readReviewRecord(project(record), RUN_ID).kind).toBe("invalid");
   });
 
-  it("rejects a schema version it does not understand", () => {
-    const record = realRecord();
-    record.schema_version = 2;
-    expect(readReviewRecord(project(record), RUN_ID).kind).toBe("invalid");
-  });
-
   it("refuses an unsafe run id rather than walking the path", () => {
     expect(readReviewRecord(project(), "../../escape").kind).toBe("invalid");
   });
@@ -80,12 +74,6 @@ describe("the shape must be complete and self-consistent", () => {
   it("rejects a record missing a review type", () => {
     const record = realRecord();
     delete (record.reviews as Reviews).doubt;
-    expect(readReviewRecord(project(record), RUN_ID).kind).toBe("invalid");
-  });
-
-  it("rejects an unknown review type", () => {
-    const record = realRecord();
-    (record.reviews as Reviews).gut_feeling = { ...(record.reviews as Reviews).code };
     expect(readReviewRecord(project(record), RUN_ID).kind).toBe("invalid");
   });
 

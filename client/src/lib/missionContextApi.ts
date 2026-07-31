@@ -144,7 +144,12 @@ export interface TestsArtifact extends ArtifactBase {
   } | null;
 }
 
-export type ReviewType = "self" | "plan" | "code" | "doubt" | "external_code";
+/**
+ * The five PINNED passes, plus whatever else a run recorded — the server may
+ * send a pass this build has never heard of rather than calling the record
+ * corrupt, so the row type has to be able to hold one.
+ */
+export type ReviewType = "self" | "plan" | "code" | "doubt" | "external_code" | (string & {});
 
 /**
  * `not_run`        — a record says the pass did not run.
