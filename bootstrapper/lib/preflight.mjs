@@ -17,29 +17,47 @@
 import { spawnSync } from "node:child_process";
 
 import { MIN_NODE, compareSemver, installHint, isWindows } from "./util.mjs";
+import { resolveSpawn } from "./win32-spawn.mjs";
 
 /**
- * Default runner: invoke `<cmd> --version` with shell:false and report whether
- * it actually ran. shell:false means PATHEXT is ignored on Windows, so the
- * callers pass the resolved names Node can spawn (`python`, `py`, `uv`, …).
+ * Default runner: invoke `<cmd> --version` with `shell: false` and report
+ * whether it actually ran.
+ *
+ * On Windows some of these tools are `.cmd`/`.bat` shims (`claude` from an npm
+ * install) that a bare `shell: false` spawn CANNOT reach — probing them that way
+ * would report a perfectly-installed Claude as ABSENT and skip the plugin phase
+ * forever. That used to be answered with `shell: true`; `resolveSpawn` now finds
+ * the real file via PATHEXT and routes a shim through an explicit
+ * `cmd.exe /d /s /c` instead (see lib/win32-spawn.mjs).
+ *
+ * CALLER INVARIANT, still load-bearing: `cmd` is a fixed internal literal
+ * (claude / uv / python3 / python / py / git / gh) and `args` is `["--version"]`.
+ * NOTHING here validates that — `defaultRun` is exported from a published `lib/`
+ * and reaches the cmd.exe wrap with no charset gate of its own (unlike
+ * `claude-cli.mjs`, which has `SAFE_ARG`). Only `runPreflight`'s call sites
+ * honour it. A caller passing user input must gate it first.
+ *
+ * An unresolvable name yields `ok: false` — exactly the verdict the old shell
+ * path produced via a non-zero exit. Note what "unresolvable" now means: a bare
+ * name that PATHEXT cannot place falls back to a direct `CreateProcess` spawn
+ * rather than being abandoned, because `realpath` cannot follow a Windows
+ * App-Execution-Alias at all — so a genuinely INSTALLED Microsoft-Store Python
+ * would otherwise be reported absent. The Store STUB is still rejected, by the
+ * unchanged `\d+\.\d+` output requirement below rather than by failing to
+ * resolve. Both verified on Windows 11, 2026-07-31.
  * @param {string} cmd @param {string[]} [args]
  * @returns {{ ok: boolean, stdout: string, stderr: string, code: number | null }}
  */
 export function defaultRun(cmd, args = ["--version"]) {
   try {
-    // On Windows the tools are `.cmd`/`.bat` shims (claude, npm, gh) that
-    // shell:false CANNOT resolve (PATHEXT is ignored) — probing them that way
-    // would report a perfectly-installed Claude as ABSENT and skip the plugin
-    // phase forever. Go through the shell on Windows. cmd + args are fixed
-    // internal literals (tool name + `--version`), so there is no injection
-    // surface; a single joined string avoids the args-with-shell deprecation.
-    const isWin = process.platform === "win32";
-    // cmd is a fixed literal (claude/uv/python3/python/py/git/gh) with a fixed
-    // --version arg and no user input; shell:true is the Windows-only .cmd
-    // resolution branch. Semgrep false positive.
-    const r = isWin
-      ? spawnSync([cmd, ...args].join(" "), { encoding: "utf-8", shell: true, timeout: 8000 }) // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
-      : spawnSync(cmd, args, { encoding: "utf-8", shell: false, timeout: 8000 });
+    const plan = resolveSpawn([cmd, ...args]);
+    if (!plan) return { ok: false, stdout: "", stderr: "", code: null };
+    const r = spawnSync(plan.command, plan.args, {
+      encoding: "utf-8",
+      shell: false,
+      timeout: 8000,
+      windowsVerbatimArguments: plan.windowsVerbatimArguments,
+    });
     const stdout = (r.stdout ?? "").toString();
     const stderr = (r.stderr ?? "").toString();
     // A real interpreter/tool exits 0 AND prints a version somewhere. The MS

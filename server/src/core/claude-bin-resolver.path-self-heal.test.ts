@@ -1,5 +1,7 @@
 /*
- * cli-compat.path-self-heal.test.ts — iterate v0.8.8 AC-3
+ * claude-bin-resolver.path-self-heal.test.ts — iterate v0.8.8 AC-3
+ * (was cli-compat.path-self-heal.test.ts; renamed with its subject in
+ * iterate-2026-07-31-win32-shell-spawn-remediation — content unchanged)
  *
  * Boot-time PATH self-heal: when `resolveClaudeBin()` succeeds via
  * the AC-2 curated fallback (i.e. the binary exists on disk but its
@@ -16,7 +18,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { selfHealClaudePath } from "./cli-compat.js";
+import { selfHealClaudePath } from "./claude-bin-resolver.js";
 
 describe("AC-3 — boot-time PATH self-heal for claude bin's parent dir", () => {
   it("prepends parent dir to PATH when bin resolved but parent not in PATH (Windows)", () => {

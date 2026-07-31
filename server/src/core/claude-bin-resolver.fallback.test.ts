@@ -1,5 +1,7 @@
 /*
- * cli-compat.fallback.test.ts — iterate v0.8.8 AC-2
+ * claude-bin-resolver.fallback.test.ts — iterate v0.8.8 AC-2
+ * (was cli-compat.fallback.test.ts; renamed with its subject in
+ * iterate-2026-07-31-win32-shell-spawn-remediation — content unchanged)
  *
  * `resolveClaudeBin()` must NOT depend exclusively on `where`/`which`
  * finding the binary on PATH. The Hono server's `process.env.PATH`
@@ -18,7 +20,7 @@
 import { describe, it, expect } from "vitest";
 import path from "node:path";
 import os from "node:os";
-import { resolveClaudeBinWith } from "./cli-compat.js";
+import { resolveClaudeBinWith } from "./claude-bin-resolver.js";
 
 const win32Env = {
   USERPROFILE: "C:\\Users\\Test",

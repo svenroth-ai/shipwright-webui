@@ -8,6 +8,8 @@ import {
   ensureServer,
   bootSpawnPlan,
   swapperSpawnPlan,
+  openBrowserPlan,
+  defaultOpenBrowser,
   checkNativePty,
 } from "../lib/server.mjs";
 
@@ -219,6 +221,88 @@ describe("server — probeServer against a REAL socket (alt ephemeral port, neve
       expect(p.shipwright).toBe(false); // → decideAction returns "foreign"
     } finally {
       srv.close();
+    }
+  });
+});
+
+describe("server — openBrowserPlan opens the browser WITHOUT a platform shell", () => {
+  const ENV = { ComSpec: "C:\\Windows\\System32\\cmd.exe" };
+  const URL = "http://localhost:3847";
+
+  it("win32 invokes the resolved cmd.exe explicitly, never a `shell` option", () => {
+    const plan = openBrowserPlan(URL, "win32", ENV);
+    expect(plan.command).toBe("C:\\Windows\\System32\\cmd.exe");
+    // `start` is a cmd BUILTIN, so cmd.exe is genuinely required — but it is
+    // named, not conjured by handing Node a shell command line. The line is
+    // built by the shared win32CmdWrap, so it takes the verbatim outer-quoted
+    // form (the empty window-title argument alone forces quoting).
+    expect(plan.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    expect(plan.args[3]).toBe(`"start "" ${URL}"`);
+    expect(plan.windowsVerbatimArguments).toBe(true);
+    expect(plan).not.toHaveProperty("shell");
+  });
+
+  it("win32 keeps the empty window-TITLE argument `start` needs", () => {
+    const plan = openBrowserPlan(URL, "win32", ENV);
+    // Without it `start` swallows the URL as the window title and opens nothing.
+    // `/s` strips only the OUTER quote pair, so the `""` survives to cmd.
+    expect(plan.args[3]).toContain('start "" ');
+  });
+
+  it("win32 QUOTES a url carrying a cmd metacharacter", () => {
+    // A query string is the everyday case: an unquoted `&` would make cmd run
+    // `b=2` as a second command. Exported public API, so it must not rely on the
+    // single in-repo caller passing a metachar-free localhost url.
+    const plan = openBrowserPlan("http://h/?a=1&b=2", "win32", ENV);
+    expect(plan.args[3]).toBe('"start "" "http://h/?a=1&b=2""');
+    expect(plan.windowsVerbatimArguments).toBe(true);
+  });
+
+  it("win32 percent-encodes a literal quote — the one char quoting cannot contain", () => {
+    // A raw `"` would close the quoted region early and let the remainder be
+    // read as a command. `"` is never valid unescaped in a URL, so encoding it
+    // cannot corrupt a legitimate one.
+    const plan = openBrowserPlan('http://h/?a="&calc', "win32", ENV);
+    expect(plan.args[3]).not.toContain('a="&calc');
+    expect(plan.args[3]).toContain("%22");
+  });
+
+  it("win32 honours the environment's ComSpec rather than a hardcoded path", () => {
+    const plan = openBrowserPlan(URL, "win32", { ComSpec: "D:\\alt\\cmd.exe" });
+    expect(plan.command).toBe("D:\\alt\\cmd.exe");
+  });
+
+  it("darwin uses `open`, linux uses `xdg-open`, both bare", () => {
+    expect(openBrowserPlan(URL, "darwin", {})).toEqual({ command: "open", args: [URL] });
+    expect(openBrowserPlan(URL, "linux", {})).toEqual({ command: "xdg-open", args: [URL] });
+  });
+
+  it("no platform branch ever asks for a shell", () => {
+    for (const p of ["win32", "darwin", "linux"]) {
+      expect(openBrowserPlan(URL, p, ENV)).not.toHaveProperty("shell");
+    }
+  });
+
+  it("a browser that cannot be launched is NEVER fatal", async () => {
+    /*
+     * `spawn` reports a launch failure ASYNCHRONOUSLY via the "error" event, so
+     * the try/catch inside defaultOpenBrowser cannot see it — and an unhandled
+     * "error" on an EventEmitter THROWS, which on a detached+unref'd child would
+     * take the whole bootstrapper down. This test is the falsification: remove
+     * the `child.on("error", …)` line and this run dies instead of failing
+     * politely. Verified by doing exactly that (iterate-2026-07-31).
+     */
+    const saved = process.env.ComSpec;
+    // Force the win32 branch to target a binary that cannot exist. On POSIX the
+    // xdg-open/open branch is already an ENOENT for the same reason on CI.
+    process.env.ComSpec = "Z:\\definitely\\not\\a\\real\\cmd.exe";
+    try {
+      expect(() => defaultOpenBrowser("http://localhost:3847")).not.toThrow();
+      // Give the "error" event a turn to fire; an unhandled one would abort here.
+      await new Promise((r) => setTimeout(r, 250));
+    } finally {
+      if (saved === undefined) delete process.env.ComSpec;
+      else process.env.ComSpec = saved;
     }
   });
 });
