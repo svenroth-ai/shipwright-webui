@@ -150,11 +150,57 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "spec-compliance",
+          "file": ".shipwright/planning/iterate/2026-07-31-two-stage-pr-review.md",
+          "line": 275,
+          "finding": "REJECT (pass 1). AC-7's reporting half was not backed by anything in the tree. The AC-7 section forward-referenced a full producer record 'in the Implementation notes below'; that pointer resolved to an unfilled '## Notes' placeholder. The three findings the spec asserted were enumerated nowhere - not in the spec, not in .shipwright/triage.jsonl, and no triage.outbox.jsonl existed. A reader could not see which findings were reported, nor confirm that the PR Review phantom is the one this port clears.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "documentation",
+          "file": "scripts/ci/pr_review.py",
+          "line": 20,
+          "finding": "Non-blocking. Two docstrings still described the removed `decide` job - scripts/ci/pr_review.py and scripts/ci/tests/test_pr_review_script.py both named `.github/workflows/pr-review.yml` as the invoker and located the tier filter in a job that no longer exists.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test-quality",
+          "file": "scripts/ci/tests/test_pr_review_workflow_shape.py",
+          "line": 139,
+          "finding": "Non-blocking. `test_keeps_the_reviewer_selftest_job` pinned the required check with `^\\s*name:\\s*Reviewer Selftest`, which a STEP of that name would also satisfy. A step reports no check run at all, so the guard would have read green while the required context vanished.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/pr_review.py",
+          "line": 1,
+          "finding": "Non-blocking, and a correction to the author's own figure: pr_review.py is 299 lines, not the 298 claimed, because the docstring hunk is -5/+6. It has no shipwright_bloat_baseline.json entry, so the ceiling is 300 and there is exactly ONE line of headroom.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "spec-compliance",
+          "file": ".github/workflows/pr-review.yml",
+          "line": 93,
+          "finding": "Non-blocking. The change introduces a new derived check name, `Prepare review request`, which will show up as `unenforced` on the next required-checks producer run.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-07-31T09:05:43.289058+00:00",
-      "disposition": null,
+      "completed_at": "2026-07-31T09:08:03.009622+00:00",
+      "disposition": "Stage 1 HARD-GATE: REJECT on AC-7 (the producer findings were asserted but recorded nowhere), then PASS once both producer runs landed in the spec as before/after tables with triage trg-f8a1b359. Four non-blocking findings, all actioned.",
       "recorded_by": "shipwright-build:spec-reviewer",
       "parse_status": null,
       "raw_excerpt": null

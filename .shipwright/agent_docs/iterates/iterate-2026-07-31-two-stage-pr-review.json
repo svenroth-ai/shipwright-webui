@@ -90,12 +90,12 @@
       {
         "behavior": "Exactly one open PR at the event SHA, or refuse (#14)",
         "disposition": "tested",
-        "evidence": "`decide::test_resolve_pull_request` \u2014 8 executed cases incl. two-matches-across-pages, match-only-on-page-2, a FORK PR, closed PR, wrong head"
+        "evidence": "`decide::test_resolve_pull_request` — 8 executed cases incl. two-matches-across-pages, match-only-on-page-2, a FORK PR, closed PR, wrong head"
       },
       {
         "behavior": "Tier: author / label / sensitive-path matrix (#15)",
         "disposition": "tested",
-        "evidence": "`decide::test_tier_decision` \u2014 21 executed cases"
+        "evidence": "`decide::test_tier_decision` — 21 executed cases"
       },
       {
         "behavior": "Waiver cannot cover a change to the checks (#16)",
@@ -105,22 +105,22 @@
       {
         "behavior": "Sensitive-path match is anchored at path start (#17)",
         "disposition": "tested",
-        "evidence": "`decide::test_tier_decision[docs/.github/workflows/...]` \u2192 not sensitive"
+        "evidence": "`decide::test_tier_decision[docs/.github/workflows/...]` → not sensitive"
       },
       {
         "behavior": "Verdict state for every outcome combination (#18)",
         "disposition": "tested",
-        "evidence": "`verdict::test_verdict_branches` \u2014 7 executed cases"
+        "evidence": "`verdict::test_verdict_branches` — 7 executed cases"
       },
       {
         "behavior": "Suppression channels count as sensitive (trivyignore, accepted-risks, semgrepignore, settings.json, install-hooks, bloat baseline) (#15a)",
         "disposition": "tested",
-        "evidence": "`decide::test_tier_decision` \u2014 7 executed cases (6 channels + `.gitattributes`) plus a waiver-cannot-cover case"
+        "evidence": "`decide::test_tier_decision` — 7 executed cases (6 channels + `.gitattributes`) plus a waiver-cannot-cover case"
       },
       {
         "behavior": "A file list larger than the 64 KiB pipe buffer still classifies (#15b)",
         "disposition": "tested",
-        "evidence": "`decide::test_tier_survives_a_file_list_larger_than_the_pipe_buffer` \u2014 2001 paths, match first"
+        "evidence": "`decide::test_tier_survives_a_file_list_larger_than_the_pipe_buffer` — 2001 paths, match first"
       },
       {
         "behavior": "An at-cap (3000) file list is treated as sensitive (#15c)",
@@ -145,17 +145,17 @@
       {
         "behavior": "\"Could not read\" is reported distinctly from \"moved\" (#18b)",
         "disposition": "tested",
-        "evidence": "`verdict::test_verdict_distinguishes_unreadable_from_moved` \u2014 2 executed cases via `GH_FAIL`"
+        "evidence": "`verdict::test_verdict_distinguishes_unreadable_from_moved` — 2 executed cases via `GH_FAIL`"
       },
       {
-        "behavior": "Head moved mid-run \u21d2 failure, exit 1 (#19)",
+        "behavior": "Head moved mid-run ⇒ failure, exit 1 (#19)",
         "disposition": "tested",
         "evidence": "`verdict::test_verdict_fails_closed_when_the_head_moved`"
       },
       {
-        "behavior": "`A \u2192 B \u2192 A` force-push \u21d2 failure (head equality alone would bless it) (#19a)",
+        "behavior": "`A → B → A` force-push ⇒ failure (head equality alone would bless it) (#19a)",
         "disposition": "tested",
-        "evidence": "`verdict::test_verdict_fails_closed_on_an_a_b_a_force_push` \u2014 **verified load-bearing**: neutralising the clause makes it fail"
+        "evidence": "`verdict::test_verdict_fails_closed_on_an_a_b_a_force_push` — **verified load-bearing**: neutralising the clause makes it fail"
       },
       {
         "behavior": "A force-push from before this run does NOT disqualify (#19b)",
@@ -200,7 +200,7 @@
       {
         "behavior": "A non-numeric force-push count fails closed (#19e)",
         "disposition": "tested",
-        "evidence": "`verdict::test_verdict_fails_closed_when_the_force_push_count_is_not_a_number` \u2014 reachable: `jq` on empty input exits 0 printing nothing"
+        "evidence": "`verdict::test_verdict_fails_closed_when_the_force_push_count_is_not_a_number` — reachable: `jq` on empty input exits 0 printing nothing"
       },
       {
         "behavior": "A missing force-push lower bound refuses rather than reddening every PR (#19f)",
@@ -225,7 +225,7 @@
       {
         "behavior": "Every ledger citation in this spec resolves to a real test (#26a)",
         "disposition": "tested",
-        "evidence": "`test_iterate_ledger_citations.py::test_cited_test_exists` \u2014 it found the phantom row 1 cited"
+        "evidence": "`test_iterate_ledger_citations.py::test_cited_test_exists` — it found the phantom row 1 cited"
       },
       {
         "behavior": "Verdict lands on the immutable event SHA (#20)",
@@ -255,7 +255,7 @@
       {
         "behavior": "Third-party actions SHA-pinned; GitHub-owned on tags (#25)",
         "disposition": "tested",
-        "evidence": "`shape::test_third_party_actions_sha_pinned` (regex anchored \u2014 see probe 5), `server/src/test/ci-action-pinning-posture.test.ts` 8/8"
+        "evidence": "`shape::test_third_party_actions_sha_pinned` (regex anchored — see probe 5), `server/src/test/ci-action-pinning-posture.test.ts` 8/8"
       },
       {
         "behavior": "No `${{ github.* }}` interpolated into a `run:` body (#26)",
@@ -265,16 +265,23 @@
       {
         "behavior": "A commit status satisfies the app-bound required context on THIS repo (#27)",
         "disposition": "untestable",
-        "evidence": "`requires-external-nondeterministic-service` \u2014 only a live PR against live GitHub proves it here. Probed on the monorepo, which runs the identical ruleset shape and has already switched (probe 1). Fails closed if wrong: the context stays absent and the PR blocks.",
+        "evidence": "`requires-external-nondeterministic-service` — only a live PR against live GitHub proves it here. Probed on the monorepo, which runs the identical ruleset shape and has already switched (probe 1). Fails closed if wrong: the context stays absent and the PR blocks.",
         "reason_code": "requires-external-nondeterministic-service"
       },
       {
         "behavior": "Stage 2 fires and reviews on a real fork PR (#28)",
         "disposition": "untestable",
-        "evidence": "`requires-external-nondeterministic-service` \u2014 needs a genuine fork PR against live GitHub. Same fail-closed direction.",
+        "evidence": "`requires-external-nondeterministic-service` — needs a genuine fork PR against live GitHub. Same fail-closed direction.",
         "reason_code": "requires-external-nondeterministic-service"
       }
     ],
-    "summary": "50 behaviours enumerated - 48 tested, 2 untestable with a closed-vocabulary reason_code, 0 testable-but-untested."
+    "summary": "50 behaviours enumerated - 48 tested, 2 untestable with a closed-vocabulary reason_code, 0 testable-but-untested.",
+    "counts": {
+      "total": 50,
+      "tested": 48,
+      "untestable": 2,
+      "untested_testable": 0
+    },
+    "enumeration_basis": "Every behaviour the diff introduces or changes across the two workflows and the vendored guard suite, enumerated from the acceptance criteria (7) and then from each executed branch of stage 2's three run: bodies - resolve, tier and verdict - plus the trust/least-privilege invariants the vendored modules pin. Each row is either `tested` with a named test, or `untestable` with a closed-vocabulary reason_code; the 'could test but did not' disposition is not used."
   }
 }
