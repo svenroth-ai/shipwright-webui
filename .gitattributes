@@ -25,6 +25,17 @@ shipwright_events.jsonl merge=union
 # with "bad interpreter: /usr/bin/env bash^M", so pin the line endings.
 *.sh text eol=lf
 
+# Same rule, same reason, for the ONE shebang file this repo publishes as an
+# executable: the npm `bin` entry of @svenroth-ai/shipwright. `npx` runs it
+# through its shebang, so a CRLF checkout packs `/usr/bin/env node^M` and the
+# installer dies on macOS/Linux with "bad interpreter". It also breaks the
+# Windows dev loop today: esbuild's hashbang handling leaves the stray CR, so
+# `bootstrapper/test/bin.test.mjs` fails to parse with "SyntaxError: Invalid or
+# unexpected token" in any autocrlf worktree — green on Linux CI, red locally.
+# The sibling scripts/*.mjs are spawned as `node <path>` (shebang decorative),
+# so they need no pin. Verified with `git ls-files --eol`.
+bootstrapper/bin/shipwright.mjs text eol=lf
+
 # iterate-2026-07-29-accepted-risk-ci-gate — the accepted-risk drift guard hashes
 # these files byte-for-byte (`scripts/ci/accepted_risks_vendor.json`), and this
 # repo runs core.autocrlf=true. Without this pin the working tree gets CRLF on a

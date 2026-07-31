@@ -21,6 +21,7 @@ import os from "node:os";
 
 import { compareSemver } from "./util.mjs";
 import { tcpOccupied, checkNativePty } from "./probes.mjs";
+import { win32CmdWrap } from "./win32-spawn.mjs";
 
 // Re-exported so callers/tests keep a single `server.mjs` surface.
 export { tcpOccupied, checkNativePty } from "./probes.mjs";
@@ -161,22 +162,61 @@ function defaultReadDeployStatus() {
   }
 }
 
-/** Default: open the browser per platform. Never fatal. */
-function defaultOpenBrowser(url) {
-  const plat = process.platform;
-  const [cmd, args] =
-    plat === "win32"
-      ? ["cmd", ["/c", "start", "", url]]
-      : plat === "darwin"
-        ? ["open", [url]]
-        : ["xdg-open", [url]];
+/**
+ * Pure spawn PLAN for opening the browser. Exported so the shell-free property
+ * is unit-testable on every platform without a real spawn.
+ *
+ * Windows needs cmd.exe because `start` is a cmd BUILTIN, not an executable —
+ * but it gets it EXPLICITLY (the resolved ComSpec, discrete argv, `shell: false`)
+ * rather than by asking Node to build a shell command line for us. Nothing here
+ * needs PATHEXT resolution, so this is the one of the four remediated sites that
+ * reaches for `win32ComSpec` directly instead of `resolveSpawn`.
+ */
+export function openBrowserPlan(url, platform = process.platform, env = process.env) {
+  if (platform === "win32") {
+    // Built through the SAME wrap as every other cmd.exe invocation rather than
+    // splicing the url into discrete argv. That is not decoration: a url with a
+    // query string (`http://h/?a=1&b=2`) would otherwise reach cmd.exe with a
+    // bare `&` and run `b=2` as a second command. Today's only caller passes
+    // `http://localhost:<validated port>`, but this is exported public API in a
+    // published package, so it must not depend on that.
+    // The empty string is `start`'s window-TITLE argument; without it `start`
+    // consumes a quoted URL as the title and opens nothing.
+    //
+    // A literal `"` is the ONE character quoting cannot contain — it would close
+    // the quoted region early and let the rest be read as a command — so it is
+    // percent-encoded here rather than trusted. `"` is never valid unescaped in a
+    // URL, so this cannot corrupt a legitimate one. Residual, stated rather than
+    // implied: `%VAR%` still expands inside double quotes, so a url carrying a
+    // real environment-variable reference would be substituted. Today's only
+    // caller passes `http://localhost:<validated port>`.
+    return win32CmdWrap("start", ["", url.replace(/"/g, "%22")], env);
+  }
+  return { command: platform === "darwin" ? "open" : "xdg-open", args: [url] };
+}
+
+/**
+ * Default: open the browser per platform. Never fatal.
+ *
+ * Exported ONLY so the never-fatal contract is testable — without a way to call
+ * it, the async-error guard below could not be falsified, and a guard that
+ * cannot be falsified is decoration.
+ */
+export function defaultOpenBrowser(url) {
+  const plan = openBrowserPlan(url);
   try {
-    // url is `http://localhost:${port}` with port validated to an integer
-    // 1-65535 upstream; no shell metacharacter is expressible, shell:true is
-    // only for the Windows `start` builtin. Semgrep false positive.
-    spawn(cmd, args, { detached: true, stdio: "ignore", shell: plat === "win32" }).unref(); // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
+    const child = spawn(plan.command, plan.args, { detached: true, stdio: "ignore", shell: false });
+    // `spawn` reports a launch failure ASYNCHRONOUSLY via the "error" event, so
+    // the try/catch above cannot see it — and an unhandled "error" on an
+    // EventEmitter throws, which would take the bootstrapper down and break the
+    // "Never fatal" contract one line above. A bad ComSpec or a missing
+    // xdg-open is exactly that case.
+    child.on("error", () => {
+      /* headless / no opener — the URL is printed by the caller regardless */
+    });
+    child.unref();
   } catch {
-    /* headless / no browser — the URL is printed by the caller regardless */
+    /* synchronous spawn failure — same non-fatal outcome */
   }
 }
 

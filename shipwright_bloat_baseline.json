@@ -378,7 +378,7 @@
     {
       "path": "server/src/core/cli-compat.ts",
       "limit": 300,
-      "current": 334,
+      "current": 111,
       "state": "grandfathered",
       "adr": null
     },

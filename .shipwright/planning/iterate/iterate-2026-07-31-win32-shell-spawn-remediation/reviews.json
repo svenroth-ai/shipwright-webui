@@ -1,0 +1,454 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-31-win32-shell-spawn-remediation",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T08:36:53.721284+00:00",
+      "disposition": null,
+      "recorded_by": "iterate-self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "Risk",
+          "file": null,
+          "line": null,
+          "finding": "The spec highlights that the `bootstrapper` test suite (which includes the parity drift guard, the `SAFE_ARG` contract, and the quoted command handling) currently does not run in CI at all, and no CI jobs run on Windows. This makes the security-load-bearing drift guard purely dependent on local developer discipline to run tests before committing.",
+          "suggestion": "Add a lightweight step to your CI pipeline (ideally on a `windows-latest` runner, or at minimum `ubuntu-latest` for the drift-guard assertions) specifically targeting the `bootstrapper/test/` suite. This correctly surfaces the falsification tests on future PRs.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "Edge-case / Security",
+          "file": null,
+          "line": null,
+          "finding": "For `openBrowserPlan` (`cmd.exe /d /s /c start \"\" <url>`), Probe 32 correctly verifies that the outer quoting handles command metacharacters like `&` in the URL. However, if the underlying URL string ever unexpectedly contained a raw double-quote character (`\"`), it would terminate the `cmd.exe` quote block prematurely, potentially allowing trailing input to be evaluated as a command.",
+          "suggestion": "Apply a `.replace(/\"/g, '%22')` to the URL payload immediately before constructing the verbatim `/c start \"\" \"<url>\"` string. This removes the only character that can break out of a verbatim double-quoted argument in Windows CMD.  Overall Assessment: This is an exceptionally rigorous and practically engineered approach to a notoriously tricky Windows vulnerability. The decisions to rely on tested verbatim duplication over cross-package dependencies, and to deliberately decouple binary resolution from version validation, strictly adhere to boundary constraints without over-producing.  SHIPWRIGHT_VERDICT: approve",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The resolver’s injected `platform` and its path implementation can disagree. The plan explicitly acknowledges that Windows branches use the host `path` module, meaning Linux CI exercises POSIX path parsing even when `platform === \"win32\"`. This is particularly risky for PATH splitting, drive-letter paths, backslashes, absolute/path-like detection, and spaced-path quoting—the exact security-sensitive behavior being changed. Existing local Windows probes establish one machine’s behavior, but the automated tests will not reliably catch regressions.",
+          "suggestion": "Make path semantics follow the effective platform: use `path.win32` whenever the resolver is evaluating a Windows plan (and `path.posix`/host path as appropriate otherwise), or inject a `pathImpl` alongside `platform` in tests. Add assertions using actual Windows-style paths while running on Linux so CI validates the same branch deterministically.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The documented behavior for unresolved bare commands is internally inconsistent. The Spec Impact section says `defaultRun` returns `ok: false` “without spawning” for an unresolvable tool, but the Store-alias remediation deliberately falls back to spawning the unresolved bare command so `CreateProcess` can invoke App-Execution-Aliases. A genuinely absent tool will necessarily take that same fallback and emit an `ENOENT`/error event before producing `ok: false`.",
+          "suggestion": "Correct the stated contract and tests to distinguish “not resolved by explicit PATH/PATHEXT scanning” from “not spawned.” The actual contract should be that unresolved bare names may receive one shell-free `CreateProcess` attempt, and all failure modes still return the existing non-throwing `ok: false` verdict. If no-spawn absence is truly required, define a reliable alias-specific detection mechanism—which is unlikely to be worth the added complexity.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "defaultOpenBrowser` still sends a URL through `cmd.exe /c start`, and quote-wrapping alone does not establish safe handling for all `cmd.exe` expansion modes. In particular, `%VAR%` expansion occurs inside double quotes; caret and delayed-expansion behavior also has subtle context-dependent rules. The cited browser test covers `&`, but the plan does not clearly establish that percent expansion, exclamation marks, quotes, CR/LF, and caret combinations are either safely encoded or rejected. Since URLs can commonly contain percent-encoded data, simply rejecting `%` would also be a meaningful compatibility decision.",
+          "suggestion": "Define one tested URL-to-`cmd.exe` encoding contract rather than relying on generic argument quoting. Prefer a Windows-native opener invocation that avoids interpolating the URL into a command line if practical. If `start` remains required, explicitly reject control characters and implement/test CMD-specific escaping for `%`, `!`, `^`, `&`, `|`, `<`, `>`, and quotes, with real Windows execution fixtures for representative combinations. Do not infer CMD safety from `windowsVerbatimArguments`; that only controls Node’s argument serialization, not CMD parsing.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The remediation has no continuing Windows execution gate. The source scan prevents reintroducing `shell: true`, but cannot validate PATHEXT resolution, `.cmd` execution, `cmd.exe` quoting, App-Execution-Alias fallback, or browser-plan startup. The assertion that this is “requires-physical-device” is not compelling for these process fixtures: a `windows-latest` CI runner can execute purpose-built `.cmd` files and exercise the relevant branches. In addition, the bootstrapper suite currently does not run in CI at all.",
+          "suggestion": "Add a focused Windows CI job for this change, at minimum running the bootstrapper tests and a real `.cmd` fixture in an unspaced directory, a spaced directory, and an `&`-containing directory. It need not validate opening a real browser; that path can test process creation against a controlled command/fixture or retain the existing local evidence. This turns the one-time developer-machine verification into durable regression protection.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Importing `resolveSpawn()` from `preview-win32-spawn.ts` introduces a new ESM cycle on the server boot path. The plan notes it is safe today because neither module currently performs module-load work, but that is a fragile invariant rather than a robust module boundary. This change makes version probing dependent on preview-session module initialization order, and a future top-level export/value change can produce partially initialized bindings or startup-only failures unrelated to the caller.",
+          "suggestion": "Either break the dependency cycle before merging by placing the resolver in a dependency-neutral module, or add an explicit boot/import-order regression test and document the cycle at both import edges. Given this is security-sensitive spawn plumbing and `cli-compat` runs during boot, avoiding the cycle is preferable if the ADR guard permits a pure relocation of the shared helper.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Exporting `SAFE_ARG` and `openBrowserPlan` as new published-package API solely for testability unnecessarily expands the support surface of a package with no `exports` map. These helpers encode security-sensitive implementation details and could become de facto public contracts once consumers import them.",
+          "suggestion": "Keep the new resolver module importable for tests if needed, but avoid exporting helpers that callers do not need. Test the plan through the module’s intended resolver/opening entry point, or use package-internal test imports. If these exports must remain, document them as intentionally supported API and add compatibility expectations accordingly.  Overall, reusing the reviewed resolver and retaining a small, tested package-local mirror is sound, and the plan has unusually strong local Windows evidence. However, the platform-path mismatch, unresolved-command contract contradiction, CMD URL escaping requirements, and lack of a durable Windows execution gate should be addressed before considering the change complete. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-31T09:04:05.493832+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode iterate",
+      "parse_status": "structured",
+      "raw_excerpt": "[gemini] Here is the review of the implementation approach:\n\n- **Category:** Risk\n- **Severity:** Medium\n- **Finding:** The spec highlights that the `bootstrapper` test suite (which includes the parity drift guard, the `SAFE_ARG` contract, and the quoted command handling) currently does not run in CI at all, and no CI jobs run on Windows. This makes the security-load-bearing drift guard purely dependent on local developer discipline to run tests before committing.\n- **Suggestion:** Add a lightweight step to your CI pipeline (ideally on a `windows-latest` runner, or at minimum `ubuntu-latest` for the drift-guard assertions) specifically targeting the `bootstrapper/test/` suite. This correctly surfaces the falsification tests on future PRs.\n\n- **Category:** Edge-case / Security\n- **Severity:** Low\n- **Finding:** For `openBrowserPlan` (`cmd.exe /d /s /c start \"\" <url>`), Probe 32 correctly verifies that the outer quoting handles command metacharacters like `&` in the URL. However, if the underlying URL string ever unexpectedly contained a raw double-quote character (`\"`), it would terminate the `cmd.exe` quote block prematurely, potentially allowing trailing input to be evaluated as a command.\n- **Suggestion:** Apply a `.replace(/\"/g, '%22')` to the URL payload immediately before constructing the verbatim `/c start \"\" \"<url>\"` string. This removes the only character that can break out of a verbatim double-quoted argument in Windows CMD. \n\n**Overall Assessment:** \nThis is an exceptionally rigorous and practically engineered approach to a notoriously tricky Windows vulnerability. The decisions to rely on tested verbatim duplication over cross-package dependencies, and to deliberately decouple binary resolution from version validation, strictly adhere to boundary constraints without over-producing.\n\nSHIPWRIGHT_VERDICT: approve\n\n[openai] 1. **Category: edge-case**  \n   **Severity: high**  \n   **Finding:** The resolver’s injected `platform` and its path implementation can disagree. The plan explicitly acknowledges that Windows branches use the host `path` module, meaning Linux CI exercises POSIX path parsing even when `platform === \"win32\"`. This is particularly risky for PATH splitting, drive-letter paths, backslashes, absolute/path-like detection, and spaced-path quoting—the exact security-sensitive behavior being changed. Existing local Windows probes establish one machine’s behavior, but the automated tests will not reliably catch regressions.  \n   **Suggestion:** Make path semantics follow the effective platform: use `path.win32` whenever the resolver is evaluating a Windows plan (and `path.posix`/host path as appropriate otherwise), or inject a `pathImpl` alongside `platform` in tests. Add assertions using actual Windows-style paths while running on Linux so CI validates the same branch deterministically.\n\n2. **Category: approach**  \n   **Severity: medium**  \n   **Finding:** The documented behavior for unresolved bare commands is internally inconsistent. The Spec Impact section says `defaultRun` returns `ok: false` “without spawning” for an unresolvable tool, but the Store-alias remediation deliberately falls back to spawning the unresolved bare command so `CreateProcess` can invoke App-Execution-Aliases. A genuinely absent tool will necessarily take that same fallback and emit an `ENOENT`/error event before producing `ok: false`.  \n   **Suggestion:** Correct the stated contract and tests to distinguish “not resolved by explicit PATH/PATHEXT scanning” from “not spawned.” The actual contract should be that unresolved bare names may receive one shell-free `CreateProcess` attempt, and all failure modes still return the existing non-throwing `ok: false` verdict. If no-spawn absence is truly required, define a reliable alias-specific detection mechanism—which is unlikely to be worth the […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 11,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "code-quality",
+          "file": "server/src/core/preview-win32-spawn.ts",
+          "line": 134,
+          "finding": "win32NeedsQuote tested whitespace only, so a resolved path carrying a cmd metacharacter (C:\\R&D\\claude.cmd) took the discrete-argv branch and cmd.exe split it. The old shell:true path pre-quoted the binary and worked; making cli-compat a consumer of this resolver carried the gap onto the boot probe. A real regression introduced by this iterate.  [disposition: FIXED]",
+          "suggestion": "WIN32_CMD_SPECIAL = /[&|<>^]/ added to win32NeedsQuote in BOTH the original and the mirror (not only the mirror, which was the wrong scoping call). Reproduced on Windows first ('C:\\...\\R' is not recognized) and re-verified after (AMP-OK).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "code-quality",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 191,
+          "finding": "A bare name that already carries a .cmd/.exe extension skips resolution and is wrapped as given, reaching cmd.exe's cwd-first lookup — falsifying the header's unqualified 'a bare name resolves from PATH only' claim.  [disposition: FIXED (documented + pinned)]",
+          "suggestion": "Header narrowed to 'a bare EXTENSION-LESS name' with the gap spelled out; a test now pins resolveSpawn(['npm.cmd','i']) so the case cannot widen unnoticed. No caller can reach it.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "code-quality",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": 175,
+          "finding": "openBrowserPlan is newly exported public API and spliced the url into discrete argv unquoted; a query-string url would let cmd run the fragment after & as a second command.  [disposition: FIXED]",
+          "suggestion": "Built through the shared win32CmdWrap. Verified: http://h/?a=1&b=2 now yields \"start \"\" \"http://h/?a=1&b=2\"\".",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "code-quality",
+          "file": "server/src/core/cli-compat.ts",
+          "line": 95,
+          "finding": "probeClaudeVersionAsync has zero references repo-wide; deleting it would be smaller than remediating it and would return ~18 LOC to the anti-ratchet budget.  [disposition: DECLINED — recorded as deferred follow-up]",
+          "suggestion": "Removing a public export is a behaviour change that does not belong in a PR claiming no FR-observable change. It now has full test coverage; its fate is recorded in the spec's deferred-follow-ups section for a deliberate decision.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "code-quality",
+          "file": "server/src/core/cli-compat.ts",
+          "line": 13,
+          "finding": "The boot-time version gate now imports the preview subsystem and enters the preview-win32-spawn <-> preview-session-manager ESM cycle from a third module.  [disposition: ACCEPTED — verified safe, recorded]",
+          "suggestion": "Independently confirmed by the doubt review: neither cycle member does module-load-time work and the only cross-cycle reference is a class used lazily inside a function body. The suggested extraction of core/win32-spawn.ts is recorded as a deferred follow-up; it touches the frozen ADR-044 guard surface.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "code-quality",
+          "file": "server/src/test/win32-spawn-mirror-parity.test.ts",
+          "line": null,
+          "finding": "The guard pinned conditions, not consequents: changing `if (!looksPathLike(name))`'s body from throw to a cmd.exe delegation would have stayed green, as would adding cwd to the searched dirs.  [disposition: FIXED]",
+          "suggestion": "Comments now stripped for every invariant (not just the shell: one); per-file CONSEQUENT assertions added; a negative assertion forbids any cwd source inside the bare-name scan. Falsified against both bypasses — the second one initially escaped because the anchor started after the injection point, which was then fixed.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "code-quality",
+          "file": "bootstrapper/lib/preflight.mjs",
+          "line": 22,
+          "finding": "The rewrite dropped the load-bearing invariant that cmd + args are fixed internal literals; defaultRun is exported from a published lib/ and reaches the cmd.exe wrap with no charset gate.  [disposition: FIXED]",
+          "suggestion": "Invariant restored and sharpened: it now says explicitly that nothing enforces it and that a caller passing user input must gate first.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "code-quality",
+          "file": "server/src/core/cli-compat.ts",
+          "line": 49,
+          "finding": "UNKNOWN_VERSION was Object.freeze'd but typed as the mutable ClaudeVersionInfo — a field assignment type-checks and throws at runtime.  [disposition: FIXED]",
+          "suggestion": "Replaced the shared frozen constant with a factory returning a fresh object. No API change, hazard removed outright.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "code-quality",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 150,
+          "finding": "Branch comments still said 'No token has a space' after the condition became 'needs quoting'.  [disposition: FIXED]",
+          "suggestion": "Comments corrected in both files.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "code-quality",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 114,
+          "finding": "The win32 branch uses the host path module while platform is injected, so win32 unit assertions run POSIX path semantics on Linux CI.  [disposition: ACCEPTED — recorded]",
+          "suggestion": "Noted as a deferred follow-up in the spec, with the repo's own prior incident (claude-bin-resolver's 9 red CI runs) cited.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "code-quality",
+          "file": "process",
+          "line": null,
+          "finding": "The reviewed diff was stale mid-review, and there was no CHANGELOG-unreleased.d drop.  [disposition: FIXED]",
+          "suggestion": "Diff re-captured after the fix round; the changelog drop lands at F4.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T09:02:07.111392+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the new mechanism is equivalent to the old shell:true path",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "rejecting the MS-Store App-Execution-Alias is a feature",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "AC-6 — verified by real execution on Windows",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the parity guard catches security drift",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "ratcheting the bloat baseline 334 -> 111 is the clean fix",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "deleting the four suppressions is strictly better than registering them",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "openBrowserPlan is equivalent on win32",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the new static import is inert",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the .gitattributes pin fixes the local red",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T09:01:21.593510+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 4,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": "bootstrapper/lib/claude-cli.mjs",
+          "line": 56,
+          "finding": "On POSIX, `resolveSpawn()` is intentionally a pass-through, so an absent `claude` proceeds to `spawnSync(\"claude\", ...)`. `spawnSync` returns an `ENOENT` error with empty stderr, and this function returns that empty stderr rather than the required `\"claude not found on PATH\"` verdict. The explicit not-found behavior is only implemented for the Windows resolver-null branch.",
+          "suggestion": "Translate `r.error?.code === \"ENOENT\"` into the same `{ ok: false, code: null, stdout: \"\", stderr: \"claude not found on PATH\" }` result after `spawnSync`, and add a POSIX absent-command assertion.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "bootstrapper/lib/win32-spawn.mjs:129-139",
+          "line": null,
+          "finding": "The `.cmd` wrapper only quotes tokens containing whitespace and interpolates all other tokens directly into the command string passed to `cmd.exe`. CMD metacharacters such as `&`, `|`, `%`, `!`, `^`, `<`, and `>` in a no-space target or argument are therefore parsed by `cmd.exe`, not passed literally. This affects the newly exported generic `resolveSpawn()` and `defaultRun(cmd, args)`, whose arguments are not charset-gated; it also makes valid paths such as `C:\\tools&more\\tool.cmd` fail or potentially execute an unintended command.",
+          "suggestion": "Implement CMD-safe escaping/quoting for every token in the command line, including percent/delayed-expansion handling, or reject CMD metacharacters at this generic boundary and keep callers constrained to safe arguments. Add Windows execution tests for metacharacters in both a resolved `.cmd` path and an argument.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "bug",
+          "file": "bootstrapper/lib/server.mjs",
+          "line": 186,
+          "finding": "spawn()` reports executable-launch failures asynchronously via its `\"error\"` event; the surrounding `try/catch` does not catch them. Because the returned child has no error listener, a bad `ComSpec` value or unavailable opener can emit an unhandled error and terminate the bootstrapper, contradicting the “Never fatal” contract.",
+          "suggestion": "Store the child returned by `spawn`, attach a no-op/error-handling `\"error\"` listener before calling `unref()`, then unref it. Preserve the existing nonfatal behavior by logging or ignoring that error as appropriate.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/core/cli-compat.probe-spawn.test.ts:45-122",
+          "line": null,
+          "finding": "The new probe-spawn suite exercises only `probeClaudeVersion()` (the synchronous probe). It does not invoke `probeClaudeVersionAsync()` under the Windows `.cmd` and spaced-path branches, despite the specification explicitly requiring both probes to be remediated. A regression restoring `shell: true`, omitting `windowsVerbatimArguments`, or using the wrong plan in only the async probe would pass this suite.",
+          "suggestion": "Add async tests using a mocked `spawn` child process that records command/options and emits stdout plus `close`; cover direct `.exe`, `.cmd`, spaced `.cmd`, and spawn-error behavior.  Overall assessment: The core shell-removal approach is sound and most acceptance criteria are implemented, but the POSIX not-found contract and unsafe CMD token construction need correction before shipping. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-31T09:02:07.263220+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py --mode code",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] [bin, \"--version\"], process.cwd()); } catch { return null; }\n}\n```\nThe test `cli-compat.probe-spawn.test.ts` overrides `process.platform`, which works if `resolveSpawn` reads `process.platform`. BUT does `resolveSpawn` stub `path.win32` / `path.posix`? No.\nLet's see if this test breaks anything. The prompt doesn't ask me to fix tests breaking on linux if it works.\n\nWait, check `win32CmdWrap` in `bootstrapper/lib/win32-spawn.mjs`:\n```javascript\nfunction win32CmdWrap(target, rest, env) {\n  const parts = [target, ...\n\n[openai] - Category: spec\n- Severity: medium\n- File: bootstrapper/lib/claude-cli.mjs:56\n- Finding: On POSIX, `resolveSpawn()` is intentionally a pass-through, so an absent `claude` proceeds to `spawnSync(\"claude\", ...)`. `spawnSync` returns an `ENOENT` error with empty stderr, and this function returns that empty stderr rather than the required `\"claude not found on PATH\"` verdict. The explicit not-found behavior is only implemented for the Windows resolver-null branch.\n- Suggestion: Translate `r.error?.code === \"ENOENT\"` into the same `{ ok: false, code: null, stdout: \"\", stderr: \"claude not found on PATH\" }` result after `spawnSync`, and add a POSIX absent-command assertion.\n\n- Category: security\n- Severity: medium\n- File: bootstrapper/lib/win32-spawn.mjs:129-139\n- Finding: The `.cmd` wrapper only quotes tokens containing whitespace and interpolates all other tokens directly into the command string passed to `cmd.exe`. CMD metacharacters such as `&`, `|`, `%`, `!`, `^`, `<`, and `>` in a no-space target or argument are therefore parsed by `cmd.exe`, not passed literally. This affects the newly exported generic `resolveSpawn()` and `defaultRun(cmd, args)`, whose arguments are not charset-gated; it also makes valid paths such as `C:\\tools&more\\tool.cmd` fail or potentially execute an unintended command.\n- Suggestion: Implement CMD-safe escaping/quoting for every token in the command line, including percent/delayed-expansion handling, or reject CMD metacharacters at this generic boundary and keep callers constrained to safe arguments. Add Windows execution tests for metacharacters in both a resolved `.cmd` path and an argument.\n\n- Category: bug\n- Severity: low\n- File: bootstrapper/lib/server.mjs:186\n- Finding: `spawn()` reports executable-launch failures asynchronously via its `\"error\"` event; the surrounding `try/catch` does not catch them. Because the returned child has no error listener, a bad `ComSpec` value or unavailable opener can emit an unhandled error a […truncated]"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "out-of-scope",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 57,
+          "finding": "BLOCKING (round 1): the diff creates a 250-line module server/src/core/claude-bin-resolver.ts, relocates six public exports out of cli-compat.ts, renames two test files, rewires index.ts and edits shipwright_bloat_baseline.json — while Mini-Plan step 1 said \"No new code, no new module\". The split is defensible (anti-ratchet forcing constraint) but was declared nowhere. RESOLVED in round 2.",
+          "suggestion": "Declare the split in the spec with the forcing reason, add an AC asserting it is a pure relocation, and state that the baseline is touched. Done: new \"Forced work\" section + AC-8.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "unfaithful",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 17,
+          "finding": "BLOCKING (round 1): the mirror header claimed \"the parity cases are pinned by test/win32-spawn.test.mjs\", which imports only the mirror and can never observe the server original changing — so no drift guard existed, while the spec rejected the shared-module alternative on the grounds that \"a drift guard is cheaper than a dependency\". RESOLVED in round 2.",
+          "suggestion": "Add a real cross-file guard or correct the claim. Done: server/src/test/win32-spawn-mirror-parity.test.ts, placed server-side because CI has no bootstrapper job.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "accuracy",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 21,
+          "finding": "\"ONE DELIBERATE DIVERGENCE\" understated the count — there were at least three (null-vs-throw, injected platform/env signature, dropped cwd parameter, exported win32ComSpec).",
+          "suggestion": "Enumerate all divergences. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "accuracy",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 52,
+          "finding": "Spec Impact said \"Behaviour-preserving\", which is not literally true: two error contracts changed and the published package gained new exports. The FR-level none classification survives, but the wording did not.",
+          "suggestion": "Reword to \"no FR-observable change\" and enumerate the sub-FR deltas. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "docs",
+          "file": "client/src/test/doc-sync.test.ts",
+          "line": 19,
+          "finding": "New production modules claude-bin-resolver and win32-spawn were absent from REQUIRED_TOKENS, architecture.md and component_inventory.md, which the doc-sync meta-test requires in the same commit.",
+          "suggestion": "Add both tokens plus an architecture.md Updates bullet. Done (bullet 596 chars, under the F11 cap).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 85,
+          "finding": "Out of Scope listed only the three pty sites, making AC-5 read as repo-complete; server/scripts/sdk-poc.ts:65 and :857 also carry shell:true.",
+          "suggestion": "Name them and why they stay. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "accuracy",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 10,
+          "finding": "Goal prose said four branches each carried a suppression; there were five branches and four suppressions (cli-compat has a sync and an async probe).",
+          "suggestion": "Correct the count and say why both were fixed. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "residue",
+          "file": "server/src/core/claude-bin-resolver.ts",
+          "line": 76,
+          "finding": "Both renamed test files still named themselves cli-compat.*.test.ts in their headers, and the moved code keeps [cli-compat] log prefixes — arguably deliberate but unstated.",
+          "suggestion": "Fix the headers; state that the log prefixes are deliberately preserved as observable output. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "bookkeeping",
+          "file": "shipwright_bloat_baseline.json",
+          "line": 379,
+          "finding": "The entry kept state grandfathered for a file now at 111/300.",
+          "suggestion": "Drop or re-point the entry. Done — re-pointed to the 300 limit after the doubt review showed 111 would FREEZE the file 189 lines below its own limit.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T09:26:19.035844+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

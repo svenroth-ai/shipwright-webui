@@ -85,6 +85,17 @@ acceptances:
       RE-REVIEW TRIGGER: @hono/node-ws shipping a node-server-2.x-compatible
       release, at which point this is a real fix rather than an acceptance. The
       short 3-month window is chosen for exactly that reason.
+      VERIFIED 2026-07-30 (re-confirmed against both lockfiles 2026-07-31,
+      iterate-2026-07-31-win32-shell-spawn-remediation): @hono/node-ws is STILL
+      1.3.1 and STILL peer-requires "@hono/node-server": "^1.19.11" — a 1.x
+      caret, so 2.0.5 remains out of range; installed node-server is 1.19.13
+      (server) / 1.19.14 (bootstrapper), both < 2.0.5; and the advisory is
+      patched ONLY in 2.0.5 with no 1.x backport. The blocker is therefore
+      unchanged and there is nothing to fix before the re-review date — so the
+      October reviewer starts from evidence, not from a fresh investigation.
+      What that check does NOT settle: whether 1.3.1 is still the LATEST
+      @hono/node-ws (an npm-registry fact, not a lockfile one). That is the one
+      thing to look up in October — a newer adapter release IS the trigger above.
 
   - id: ar-2026-07-28-react-router-rsc-csrf
     target: trivy-ignore
