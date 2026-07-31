@@ -1,0 +1,280 @@
+{
+  "run_id": "iterate-2026-07-31-two-stage-pr-review",
+  "date": "2026-07-31T09:04:27.251568Z",
+  "event_at": "2026-07-31T08:59:07.170618+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/two-stage-pr-review",
+  "spec": ".shipwright/planning/iterate/2026-07-31-two-stage-pr-review.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-31-two-stage-pr-review",
+  "surface_verification": {
+    "surface": "none",
+    "runner": "",
+    "exit_code": 0,
+    "tests_run": 0,
+    "evidence_path": "",
+    "timestamp": "2026-07-31T08:30:52.846Z",
+    "attempts": 0,
+    "justification": "CI-only change with no runtime surface. The diff is two GitHub Actions workflow files, the vendored guard suite under scripts/ci/tests/, a docstring correction in scripts/ci/pr_review.py, and agent docs. It touches no API route, no store mutation, no SSE/WS handler, no message contract and no client code, so the Backend-affects-Frontend rule does not fire and there is nothing a browser could observe. The behaviour that DID change is the workflow shell itself, and it is executed rather than asserted: scripts/ci/tests/test_pr_review_stage2_{decide,verdict}.py lift each run: body out of pr-review-run.yml and run it in bash against a stubbed gh (44 executed cases covering pagination, tier/waiver ordering, the 64KiB and 3000-entry fail-open paths, every verdict branch, and the A-B-A force-push race). Full stack green regardless: 191 vendored + 3101 server + 3115 client."
+  },
+  "test_completeness": {
+    "status": "complete",
+    "ac_count": 7,
+    "behaviors": [
+      {
+        "behavior": "Stage 1 runs on fork PRs (no fork guard) (#1)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage1_is_not_fork_guarded`"
+      },
+      {
+        "behavior": "Stage 1 references no secret (#2)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage1_holds_no_secret`"
+      },
+      {
+        "behavior": "Stage 1 carries no tier/waiver policy (#3)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage1_carries_no_policy`, `shape::test_carries_no_policy`"
+      },
+      {
+        "behavior": "Stage 1 records the audit diff (#4)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage1_records_the_change_for_audit`"
+      },
+      {
+        "behavior": "No stage-1 job is named `PR Review` (#5)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage1_owns_no_pr_review_context`"
+      },
+      {
+        "behavior": "Removing a label re-decides (`unlabeled`) (#6)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage1_re_decides_when_a_label_is_removed`"
+      },
+      {
+        "behavior": "`Reviewer Selftest` stays a JOB of that exact name (#7)",
+        "disposition": "tested",
+        "evidence": "`shape::test_keeps_the_reviewer_selftest_job` (4-space indent pins job, not step)"
+      },
+      {
+        "behavior": "Stage 1 holds no write scope at all (#8)",
+        "disposition": "tested",
+        "evidence": "`token_permissions::test_pr_review_stage1_holds_no_write_scope_at_all`"
+      },
+      {
+        "behavior": "Stage 2 chained to stage 1 by exact name (#9)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_is_triggered_by_workflow_run` + `fork_trust::test_stage2_names_stage1_exactly`"
+      },
+      {
+        "behavior": "Stage 2 never checks out the PR head (#10)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_never_checks_out_contributor_code`"
+      },
+      {
+        "behavior": "Identity from the trusted `workflow_run` event (#11)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_takes_identity_from_the_trusted_event`"
+      },
+      {
+        "behavior": "Stage 2 never reads stage 1's artifact (#12)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_never_reviews_the_artifact`"
+      },
+      {
+        "behavior": "Changed paths read from the API, paginated (#13)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_reads_changed_paths_from_the_api`"
+      },
+      {
+        "behavior": "Exactly one open PR at the event SHA, or refuse (#14)",
+        "disposition": "tested",
+        "evidence": "`decide::test_resolve_pull_request` \u2014 8 executed cases incl. two-matches-across-pages, match-only-on-page-2, a FORK PR, closed PR, wrong head"
+      },
+      {
+        "behavior": "Tier: author / label / sensitive-path matrix (#15)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_decision` \u2014 21 executed cases"
+      },
+      {
+        "behavior": "Waiver cannot cover a change to the checks (#16)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_decision[skip-pr-review + workflows]`, `fail_closed::test_waiver_cannot_cover_a_change_to_the_checks`"
+      },
+      {
+        "behavior": "Sensitive-path match is anchored at path start (#17)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_decision[docs/.github/workflows/...]` \u2192 not sensitive"
+      },
+      {
+        "behavior": "Verdict state for every outcome combination (#18)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_branches` \u2014 7 executed cases"
+      },
+      {
+        "behavior": "Suppression channels count as sensitive (trivyignore, accepted-risks, semgrepignore, settings.json, install-hooks, bloat baseline) (#15a)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_decision` \u2014 7 executed cases (6 channels + `.gitattributes`) plus a waiver-cannot-cover case"
+      },
+      {
+        "behavior": "A file list larger than the 64 KiB pipe buffer still classifies (#15b)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_survives_a_file_list_larger_than_the_pipe_buffer` \u2014 2001 paths, match first"
+      },
+      {
+        "behavior": "An at-cap (3000) file list is treated as sensitive (#15c)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_treats_a_truncated_file_list_as_sensitive`"
+      },
+      {
+        "behavior": "`reason` round-trips through the heredoc output form (#15d)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_reason_round_trips_through_the_output_file`"
+      },
+      {
+        "behavior": "The harness is not flag-blind (a dropped `--slurp` fails a test) (#15e)",
+        "disposition": "tested",
+        "evidence": "`decide::test_harness_rejects_a_dropped_flag`"
+      },
+      {
+        "behavior": "A cancelled (superseded) run posts nothing (#18a)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_step_is_silent_when_cancelled`"
+      },
+      {
+        "behavior": "\"Could not read\" is reported distinctly from \"moved\" (#18b)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_distinguishes_unreadable_from_moved` \u2014 2 executed cases via `GH_FAIL`"
+      },
+      {
+        "behavior": "Head moved mid-run \u21d2 failure, exit 1 (#19)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_fails_closed_when_the_head_moved`"
+      },
+      {
+        "behavior": "`A \u2192 B \u2192 A` force-push \u21d2 failure (head equality alone would bless it) (#19a)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_fails_closed_on_an_a_b_a_force_push` \u2014 **verified load-bearing**: neutralising the clause makes it fail"
+      },
+      {
+        "behavior": "A force-push from before this run does NOT disqualify (#19b)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_ignores_a_force_push_from_before_this_run`"
+      },
+      {
+        "behavior": "Checkout persists no git credentials (#19c)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_checkout_does_not_persist_credentials`"
+      },
+      {
+        "behavior": "Two stage-2 runs for one head are serialised, newest wins (#19d)",
+        "disposition": "tested",
+        "evidence": "`fork_trust::test_stage2_serialises_runs_for_one_head`"
+      },
+      {
+        "behavior": "A FORK PR resolves (`commits/{sha}/pulls` returns empty for one) (#14a)",
+        "disposition": "tested",
+        "evidence": "`decide::test_resolve_pull_request[fork-pr-resolves]`; the real-API half is probe 8"
+      },
+      {
+        "behavior": "A rename OUT of a sensitive directory is still sensitive (#15f)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_sees_a_rename_out_of_a_sensitive_directory`"
+      },
+      {
+        "behavior": "`.gitattributes` counts as sensitive (it controls what the reviewer can see) (#15g)",
+        "disposition": "tested",
+        "evidence": "`decide::test_tier_decision`"
+      },
+      {
+        "behavior": "The tier's path set and the reviewer prompt agree, both directions (#15h)",
+        "disposition": "tested",
+        "evidence": "`test_pr_review_sensitive_paths_sync.py::test_every_routed_path_is_named_in_the_reviewer_prompt` + `test_pr_review_sensitive_paths_sync.py::test_the_prompt_names_no_path_the_tier_never_routes`"
+      },
+      {
+        "behavior": "A superseded (cancelled) stage 1 posts nothing at all (#18c)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_says_nothing_when_stage1_was_cancelled`"
+      },
+      {
+        "behavior": "A non-numeric force-push count fails closed (#19e)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_fails_closed_when_the_force_push_count_is_not_a_number` \u2014 reachable: `jq` on empty input exits 0 printing nothing"
+      },
+      {
+        "behavior": "A missing force-push lower bound refuses rather than reddening every PR (#19f)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_refuses_without_a_force_push_lower_bound`"
+      },
+      {
+        "behavior": "A second check run claiming `PR Review` is refused (#21a)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_refuses_when_a_second_producer_claims_the_context`"
+      },
+      {
+        "behavior": "Other check runs are none of the gate's business (#21b)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_is_unbothered_by_other_check_runs`"
+      },
+      {
+        "behavior": "The job grants `checks: read`, or the impostor lookup reddens every run (#22a)",
+        "disposition": "tested",
+        "evidence": "`token_permissions::test_pr_review_stage2_can_read_check_runs`"
+      },
+      {
+        "behavior": "Every ledger citation in this spec resolves to a real test (#26a)",
+        "disposition": "tested",
+        "evidence": "`test_iterate_ledger_citations.py::test_cited_test_exists` \u2014 it found the phantom row 1 cited"
+      },
+      {
+        "behavior": "Verdict lands on the immutable event SHA (#20)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_verdict_lands_on_the_immutable_event_sha`"
+      },
+      {
+        "behavior": "Exactly one producer of the context (#21)",
+        "disposition": "tested",
+        "evidence": "`verdict::test_stage2_has_exactly_two_status_producers` (head-moved + normal, mutually exclusive)"
+      },
+      {
+        "behavior": "Stage 2 top level read-only; job widens to `statuses`+`pull-requests` (#22)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_stage2_top_level_token_is_read_only`, `token_permissions::test_pr_review_stage2_widens_writes_at_job_level`"
+      },
+      {
+        "behavior": "Reviewer exit code never discarded (`|| true`) (#23)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_reviewer_exit_code_is_never_discarded`"
+      },
+      {
+        "behavior": "Oversize diff fails closed rather than skipping (#24)",
+        "disposition": "tested",
+        "evidence": "`fail_closed::test_oversize_diff_fails_instead_of_skipping` + pre-existing `test_pr_review_script`/`test_pr_review_lib` on `EXIT_BLOCK`"
+      },
+      {
+        "behavior": "Third-party actions SHA-pinned; GitHub-owned on tags (#25)",
+        "disposition": "tested",
+        "evidence": "`shape::test_third_party_actions_sha_pinned` (regex anchored \u2014 see probe 5), `server/src/test/ci-action-pinning-posture.test.ts` 8/8"
+      },
+      {
+        "behavior": "No `${{ github.* }}` interpolated into a `run:` body (#26)",
+        "disposition": "tested",
+        "evidence": "`shape::test_no_direct_github_context_in_run_body`"
+      },
+      {
+        "behavior": "A commit status satisfies the app-bound required context on THIS repo (#27)",
+        "disposition": "untestable",
+        "evidence": "`requires-external-nondeterministic-service` \u2014 only a live PR against live GitHub proves it here. Probed on the monorepo, which runs the identical ruleset shape and has already switched (probe 1). Fails closed if wrong: the context stays absent and the PR blocks.",
+        "reason_code": "requires-external-nondeterministic-service"
+      },
+      {
+        "behavior": "Stage 2 fires and reviews on a real fork PR (#28)",
+        "disposition": "untestable",
+        "evidence": "`requires-external-nondeterministic-service` \u2014 needs a genuine fork PR against live GitHub. Same fail-closed direction.",
+        "reason_code": "requires-external-nondeterministic-service"
+      }
+    ],
+    "summary": "50 behaviours enumerated - 48 tested, 2 untestable with a closed-vocabulary reason_code, 0 testable-but-untested."
+  }
+}

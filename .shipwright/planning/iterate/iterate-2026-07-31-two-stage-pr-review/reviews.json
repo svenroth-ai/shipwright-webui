@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-31-two-stage-pr-review",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T08:29:59.909797+00:00",
+      "disposition": "7-point self-review. Correctness: 191 vendored + 3101 server + 3115 client tests green; typecheck clean; lint warnings all pre-existing in untouched files. Trust invariants re-verified directly against the shipped files rather than via the tests: stage 1 contains no 'secrets.', no 'svroch', no 'skip-pr-review' and no write scope; stage 2 is contents:read at top level with the widening on the posting job only; zero 'ref:' on any checkout; exactly 2 status call sites, both the same verdict. Affected boundaries: the CI trust boundary only (two workflow files) plus the vendored guard suite; no app code, no config parsing, no state file, no runtime write surface, so no boundary probe applies beyond the shell-behaviour harness. Bloat: pr_review.py restored to 299 (its pre-change size was 298; the +1 is the docstring correction), anti_ratchet_check clean, every new file under 300.",
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Missing `edited` trigger creates a base-branch modification bypass. Changing a PR's base branch (e.g., repointing from a `feature-branch` to `main`) changes the underlying diff that needs reviewing, but GitHub fires an `edited` event, not a `synchronize` event. A PR could get approved on a small diff against a feature branch and subsequently be repointed to `main` without triggering a new review, inheriting the passing status.",
+          "suggestion": "Add `edited` to the `types: [...]` array on the Stage 1 `pull_request` trigger.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Wasteful redundant executions on unrelated label events. Because `labeled` and `unlabeled` trigger Stage 1/2, adding or removing any label (e.g., `bug`, `wip`, `do-not-merge`) will execute a full new run of the vendored reviewer script against the exact same SHA. This wastes LLM API quota and adds unnecessary CI delays.",
+          "suggestion": "In Stage 2, before invoking `pr_review.py`, check if the current `head_sha` already has a `success` commit status for `PR Review`. If it does, short-circuit and emit the `success` status again without running the reviewer. Alternatively, inspect the webhook payload and only proceed if the label involved is `skip-pr-review`.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Over-production and unnecessary availability coupling for the Stage 1 audit artifact. Emitting a `pr.diff` artifact that Stage 2 explicitly ignores—and accepting that an artifact-upload flake will fail closed and block the PR—solely to satisfy a test ported from upstream is poor architecture. The test is dictating the application code out of a desire for strict parity, creating a pointless production failure mode. Git and GitHub inherently retain the history of SHAs and comments.",
+          "suggestion": "Remove the `prepare` job entirely and delete/skip `test_stage1_records_the_change_for_audit` in this repository's test suite.  Overall Assessment: The transition to a two-stage `workflow_run` pipeline posting commit statuses is the structurally correct, secure pattern to resolve GitHub Actions' fork-and-skip loopholes. However, the missed event trigger allows a base-branch bypass, and the label triggers require short-circuiting logic to prevent severe API waste.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "Adding `unlabeled` makes revocation eventually re-decide, but it does not immediately invalidate a prior successful `PR Review` status on the same commit SHA. A PR waived by `skip-pr-review` can retain its green commit status after the label is removed; until the new stage-1 run completes and stage 2 posts a replacement verdict, branch protection can still see the old green required context and permit a merge. The same stale-verdict window exists for any label change that increases the required tier. Re-verifying only the head SHA does not detect this, because labels can change without a new SHA.",
+          "suggestion": "Treat policy state as part of the verdict’s freshness. At minimum, re-fetch labels and changed-path/tier inputs immediately before posting and fail rather than bless if the decision differs from the one used to run the reviewer. Add concurrency/cancellation for same-head stage-2 runs to prevent an older run overwriting a newer verdict. More importantly, if immediate label-revocation safety is required, introduce a narrowly scoped trusted label-event handler that posts `PR Review=pending`/failure on label changes without checking out PR code, then let the `workflow_run` path replace it with the final verdict.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "persist-credentials: false` is accepted in the review findings but is not explicitly included in the stated stage-2 implementation steps. The stage-2 job holds both `OPENROUTER_API_KEY` and a token with `statuses: write` and `pull-requests: write`; a default `actions/checkout` persists the GitHub token in the local git credential helper. Even though the current reviewer does not use git, leaving credentials persisted broadens the impact of a future reviewer/script change.",
+          "suggestion": "Make `actions/checkout` explicit in `pr-review-run.yml` and set `persist-credentials: false`. Keep `GH_TOKEN` scoped only to the individual steps that invoke `gh`, as planned, and add a structural test for the checkout setting.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Multiple completed stage-1 runs for the same SHA can produce competing stage-2 verdicts. This is realistic with label churn, workflow re-runs, or rapid synchronize/label events. Without coordination, a slower older run can post after a newer run and become the effective combined status for the same context/SHA.",
+          "suggestion": "Add a stage-2 concurrency group based on the trusted workflow-run head SHA (and, where safely available, repository identity), with `cancel-in-progress: true`. Combined with a final API re-read of policy inputs, this ensures obsolete runs do not publish a stale result.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The artifact is correctly excluded from the trusted decision path, but calling it an “audit record” can overstate its evidentiary value: both its contents and the stage-1 workflow that generated it are PR-controlled. It is useful forensic material, but not authoritative evidence of either the event SHA’s diff or the workflow’s intended behavior.",
+          "suggestion": "Retain the artifact if canonical-suite parity and troubleshooting value justify it, but document it as an untrusted snapshot produced by the PR execution. Ensure incident/runbook guidance directs operators to GitHub’s API and immutable workflow-run metadata for authoritative reconstruction.  Overall, the two-workflow split, API-derived review inputs, immutable-SHA status posting, and no-PR-head checkout are sound and substantially close the stated fork and self-waiver holes. The label-policy freshness gap needs resolution before relying on `skip-pr-review` revocation as a fail-closed control. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-31T08:14:10.375120+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py",
+      "parse_status": "structured",
+      "raw_excerpt": "[gemini] Here is the structural and operational review of the proposed two-stage PR review implementation.\n\n- **Category:** edge-case\n- **Severity:** high\n- **Finding:** Missing `edited` trigger creates a base-branch modification bypass. Changing a PR's base branch (e.g., repointing from a `feature-branch` to `main`) changes the underlying diff that needs reviewing, but GitHub fires an `edited` event, not a `synchronize` event. A PR could get approved on a small diff against a feature branch and subsequently be repointed to `main` without triggering a new review, inheriting the passing status. \n- **Suggestion:** Add `edited` to the `types: [...]` array on the Stage 1 `pull_request` trigger.\n\n- **Category:** risk\n- **Severity:** medium\n- **Finding:** Wasteful redundant executions on unrelated label events. Because `labeled` and `unlabeled` trigger Stage 1/2, adding or removing *any* label (e.g., `bug`, `wip`, `do-not-merge`) will execute a full new run of the vendored reviewer script against the exact same SHA. This wastes LLM API quota and adds unnecessary CI delays.\n- **Suggestion:** In Stage 2, before invoking `pr_review.py`, check if the current `head_sha` already has a `success` commit status for `PR Review`. If it does, short-circuit and emit the `success` status again without running the reviewer. Alternatively, inspect the webhook payload and only proceed if the label involved is `skip-pr-review`.\n\n- **Category:** approach\n- **Severity:** medium\n- **Finding:** Over-production and unnecessary availability coupling for the Stage 1 audit artifact. Emitting a `pr.diff` artifact that Stage 2 explicitly ignores—and accepting that an artifact-upload flake will fail closed and block the PR—solely to satisfy a test ported from upstream is poor architecture. The test is dictating the application code out of a desire for strict parity, creating a pointless production failure mode. Git and GitHub inherently retain the history of SHAs and comments.\n- **Suggestion:** R […truncated]\n\n[openai] 1. **Category:** edge-case  \n   **Severity:** high  \n   **Finding:** Adding `unlabeled` makes revocation eventually re-decide, but it does not immediately invalidate a prior successful `PR Review` status on the same commit SHA. A PR waived by `skip-pr-review` can retain its green commit status after the label is removed; until the new stage-1 run completes and stage 2 posts a replacement verdict, branch protection can still see the old green required context and permit a merge. The same stale-verdict window exists for any label change that increases the required tier. Re-verifying only the head SHA does not detect this, because labels can change without a new SHA.  \n   **Suggestion:** Treat policy state as part of the verdict’s freshness. At minimum, re-fetch labels and changed-path/tier inputs immediately before posting and fail rather than bless if the decision differs from the one used to run the reviewer. Add concurrency/cancellation for same-head stage-2 runs to prevent an older run overwriting a newer verdict. More importantly, if immediate label-revocation safety is required, introduce a narrowly scoped trusted label-event handler that posts `PR Review=pending`/failure on label changes without checking out PR code, then let the `workflow_run` path replace it with the final verdict.\n\n2. **Category:** security  \n   **Severity:** medium  \n   **Finding:** `persist-credentials: false` is accepted in the review findings but is not explicitly included in the stated stage-2 implementation steps. The stage-2 job holds both `OPENROUTER_API_KEY` and a token with `statuses: write` and `pull-requests: write`; a default `actions/checkout` persists the GitHub token in the local git credential helper. Even though the current reviewer does not use git, leaving credentials persisted broadens the impact of a future reviewer/script change.  \n   **Suggestion:** Make `actions/checkout` explicit in `pr-review-run.yml` and set `persist-credentials: false`. Keep `GH_TOKE […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T08:29:26.642390+00:00",
+      "disposition": "Stage 2 cascade: 11 findings (3 medium, 8 low), 10 fixed in-branch and 1 accepted-with-note. Mediums: always() posts from a cancelled run and defeats the concurrency guard (now !cancelled()); two fail-open paths in the sensitive-path rule (SIGPIPE above 64KiB, and the 3000-entry files cap); pr_review.py advertised a skip-pr-review override the new tier step ignores. Accepted: four vendored guards that cannot fail are kept byte-identical to shipwright#437 and filed upstream, with the weakness named in _pr_review_workflows.py.",
+      "recorded_by": "shipwright-build:code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T08:52:56.942619+00:00",
+      "disposition": "Stage 3 adversarial: 15 doubts (2 high, 5 medium, 8 low). The high one that mattered was settled by probe and CHANGED THE DESIGN: commits/{sha}/pulls returns EMPTY for fork PRs (confirmed on three real fork PRs in cli/cli), so the resolve step upstream ships would have left every fork PR unresolvable and permanently red without ever being reviewed - the exact case this change exists for. Now lists the base repo's open PRs and matches head SHA. Also fixed: a superseded non-overlapping run posting over the live verdict; a rename-blind classifier (previous_filename); [ -ne ] failing OPEN on a non-numeric force-push count (reachable - jq on empty input exits 0 with no output); an unguarded empty run_started_at; the reviewer prompt never widened to match the tier (door un-waivable and unlocked); a phantom ledger citation. Explicitly could NOT break: the A-B-A guard, the artifact trust boundary, stage-1 deletion/rename, or --slurp on an empty timeline.",
+      "recorded_by": "shipwright-build:doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "security",
+          "file": ".github/workflows/pr-review-run.yml:199-205, 230-242",
+          "line": null,
+          "finding": "The reviewer fetches the diff by mutable PR number (`gh pr diff` inside `pr_review.py`), while the final check only verifies that the PR head equals the event SHA at posting time. A contributor can force-push from event SHA `A` to `B` before or during the reviewer fetch, let the reviewer approve `B`, then restore `A` before the final head check. The workflow will post a green status onto `A`, despite having reviewed `B`. This violates AC-5’s requirement that a mid-run force-push cannot cause a commit to inherit a green verdict.",
+          "suggestion": "Fetch/review a diff explicitly pinned to `HEAD_SHA` rather than the current PR head (for example, obtain the event-SHA diff through a commit/compare API endpoint and pass that immutable content to the reviewer). At minimum, verify the PR head immediately before fetching and immediately after fetching/reviewing, but pinning the reviewed content is the robust fix.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "scripts/ci/tests/test_pr_review_stage2_behaviour.py:174-185",
+          "line": null,
+          "finding": "The force-push test covers only the simple case where the head remains changed at the final re-check. It does not cover the security-relevant `A → B → A` sequence, and therefore passes even though the workflow can bless event SHA `A` after reviewing mutable-head content from `B`.",
+          "suggestion": "Add an integration-level test around the review-fetch and verdict sequence that simulates the head changing after resolution/review start and being restored before posting. Refactor the reviewer invocation or introduce a testable immutable-diff input so the test can prove that the reviewed content is tied to `HEAD_SHA`.  Overall assessment: ship-with-fixes. The two-stage design substantially meets the specification, but the mutable PR-diff fetch leaves a concrete force-push race that defeats the intended fail-closed guarantee.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-31T08:29:37.464527+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] group A` evaluates `now` after the review. Will it fail?\nYes: `if [ \"$now\" != \"$HEAD_SHA\" ]; then ... exit 1`.\nSo Group A will fail and post `failure` state for `HEAD_SHA` (SHA_A).\nGroup B will succeed and post `success` for `SHA_B`.\nThis handles the race condition beautifully!\n\nLet's look at `Decide the tier from trusted API data` step:\n```bash\n          # A change that alters the checks themselves cannot exempt itself:\n          # \"whoever unlocks a door is not the one who decides it may be\n          # unlocked.\" Only users with triage/write+ can apply a label, so a\n          #\n\n[openai] - Category: security\n- Severity: high\n- File: `.github/workflows/pr-review-run.yml:199-205, 230-242`\n- Finding: The reviewer fetches the diff by mutable PR number (`gh pr diff` inside `pr_review.py`), while the final check only verifies that the PR head equals the event SHA at posting time. A contributor can force-push from event SHA `A` to `B` before or during the reviewer fetch, let the reviewer approve `B`, then restore `A` before the final head check. The workflow will post a green status onto `A`, despite having reviewed `B`. This violates AC-5’s requirement that a mid-run force-push cannot cause a commit to inherit a green verdict.\n- Suggestion: Fetch/review a diff explicitly pinned to `HEAD_SHA` rather than the current PR head (for example, obtain the event-SHA diff through a commit/compare API endpoint and pass that immutable content to the reviewer). At minimum, verify the PR head immediately before fetching and immediately after fetching/reviewing, but pinning the reviewed content is the robust fix.\n\n- Category: test\n- Severity: medium\n- File: `scripts/ci/tests/test_pr_review_stage2_behaviour.py:174-185`\n- Finding: The force-push test covers only the simple case where the head remains changed at the final re-check. It does not cover the security-relevant `A → B → A` sequence, and therefore passes even though the workflow can bless event SHA `A` after reviewing mutable-head content from `B`.\n- Suggestion: Add an integration-level test around the review-fetch and verdict sequence that simulates the head changing after resolution/review start and being restored before posting. Refactor the reviewer invocation or introduce a testable immutable-diff input so the test can prove that the reviewed content is tied to `HEAD_SHA`.\n\nOverall assessment: ship-with-fixes. The two-stage design substantially meets the specification, but the mutable PR-diff fetch leaves a concrete force-push race that defeats the intended fail-closed guarantee.\n\nSHIPWRIGHT_VERDICT: revise"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T09:05:43.289058+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
