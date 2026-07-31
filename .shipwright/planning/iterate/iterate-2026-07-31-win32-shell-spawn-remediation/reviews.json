@@ -359,10 +359,92 @@
     "spec": {
       "review_type": "spec",
       "status": "completed",
-      "findings_count": 0,
-      "findings": [],
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "out-of-scope",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 57,
+          "finding": "BLOCKING (round 1): the diff creates a 250-line module server/src/core/claude-bin-resolver.ts, relocates six public exports out of cli-compat.ts, renames two test files, rewires index.ts and edits shipwright_bloat_baseline.json — while Mini-Plan step 1 said \"No new code, no new module\". The split is defensible (anti-ratchet forcing constraint) but was declared nowhere. RESOLVED in round 2.",
+          "suggestion": "Declare the split in the spec with the forcing reason, add an AC asserting it is a pure relocation, and state that the baseline is touched. Done: new \"Forced work\" section + AC-8.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "unfaithful",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 17,
+          "finding": "BLOCKING (round 1): the mirror header claimed \"the parity cases are pinned by test/win32-spawn.test.mjs\", which imports only the mirror and can never observe the server original changing — so no drift guard existed, while the spec rejected the shared-module alternative on the grounds that \"a drift guard is cheaper than a dependency\". RESOLVED in round 2.",
+          "suggestion": "Add a real cross-file guard or correct the claim. Done: server/src/test/win32-spawn-mirror-parity.test.ts, placed server-side because CI has no bootstrapper job.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "accuracy",
+          "file": "bootstrapper/lib/win32-spawn.mjs",
+          "line": 21,
+          "finding": "\"ONE DELIBERATE DIVERGENCE\" understated the count — there were at least three (null-vs-throw, injected platform/env signature, dropped cwd parameter, exported win32ComSpec).",
+          "suggestion": "Enumerate all divergences. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "accuracy",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 52,
+          "finding": "Spec Impact said \"Behaviour-preserving\", which is not literally true: two error contracts changed and the published package gained new exports. The FR-level none classification survives, but the wording did not.",
+          "suggestion": "Reword to \"no FR-observable change\" and enumerate the sub-FR deltas. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "docs",
+          "file": "client/src/test/doc-sync.test.ts",
+          "line": 19,
+          "finding": "New production modules claude-bin-resolver and win32-spawn were absent from REQUIRED_TOKENS, architecture.md and component_inventory.md, which the doc-sync meta-test requires in the same commit.",
+          "suggestion": "Add both tokens plus an architecture.md Updates bullet. Done (bullet 596 chars, under the F11 cap).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "completeness",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 85,
+          "finding": "Out of Scope listed only the three pty sites, making AC-5 read as repo-complete; server/scripts/sdk-poc.ts:65 and :857 also carry shell:true.",
+          "suggestion": "Name them and why they stay. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "accuracy",
+          "file": ".shipwright/planning/iterate/2026-07-31-win32-shell-spawn-remediation.md",
+          "line": 10,
+          "finding": "Goal prose said four branches each carried a suppression; there were five branches and four suppressions (cli-compat has a sync and an async probe).",
+          "suggestion": "Correct the count and say why both were fixed. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "residue",
+          "file": "server/src/core/claude-bin-resolver.ts",
+          "line": 76,
+          "finding": "Both renamed test files still named themselves cli-compat.*.test.ts in their headers, and the moved code keeps [cli-compat] log prefixes — arguably deliberate but unstated.",
+          "suggestion": "Fix the headers; state that the log prefixes are deliberately preserved as observable output. Done.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "bookkeeping",
+          "file": "shipwright_bloat_baseline.json",
+          "line": 379,
+          "finding": "The entry kept state grandfathered for a file now at 111/300.",
+          "suggestion": "Drop or re-point the entry. Done — re-pointed to the 300 limit after the doubt review showed 111 would FREEZE the file 189 lines below its own limit.",
+          "source": "code-reviewer"
+        }
+      ],
       "provider": null,
-      "completed_at": "2026-07-31T08:35:52.029955+00:00",
+      "completed_at": "2026-07-31T09:26:19.035844+00:00",
       "disposition": null,
       "recorded_by": "shipwright-build:spec-reviewer",
       "parse_status": null,
