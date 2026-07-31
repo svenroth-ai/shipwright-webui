@@ -1,30 +1,31 @@
 {
-  "_comment": "Drift guard for the vendored accepted-risk gate. `sha256` is of the file AS VENDORED (header included); `canonical_sha256` is of the upstream file at the recorded version. tests/test_accepted_risks_vendored.py enforces BOTH directions: every entry resolves to a file whose hash matches, and every vendored module has an entry.",
+  "_comment": "Drift guard for the vendored accepted-risk gate. `sha256` is of the file AS VENDORED (header included); `canonical_sha256` is of the upstream GIT BLOB at `canonical_commit` - LF bytes, reproducible from a clone of canonical_repo with `git show <canonical_commit>:<canonical_path> | sha256sum`. Use the COMMIT: `canonical_version` is an iterate run id, not a git ref, so it cannot be resolved - which is why this field was added. The hash is NOT a working-tree hash either: on Windows core.autocrlf=true yields a CRLF variant matching no upstream blob, which is what every canonical_sha256 held until iterate-2026-07-31-revendor-accepted-risk-gate. Only `sha256` is enforced automatically (tests/test_accepted_risks_vendored.py, both directions: every entry resolves to a file whose hash matches, and every vendored module has an entry); `canonical_sha256` is provenance for the next re-vendor, verified by hand against a clone, by recorded decision - the offline check would need a sibling clone that is not guaranteed present.",
   "canonical_repo": "https://github.com/svenroth-ai/shipwright",
-  "canonical_version": "iterate-2026-07-29-accepted-risk-ci-gate",
+  "canonical_version": "iterate-2026-07-31-accepted-risk-gate-holes",
+  "canonical_commit": "987e49c6ed290f74242f91645bd812610dad9e7e",
   "modules": {
     "accepted_risks.py": {
-      "sha256": "bf74165337dab9762837c7562aadb577d4f084882aa02c759c36c46d90a249de",
+      "sha256": "0c1497d4201f0048cab0f7354ccc01a78d666a8479b51a3dd012033e1bfca2a4",
       "canonical_path": "shared/scripts/accepted_risks.py",
-      "canonical_sha256": "1826f8d283ce44b2edfaeed41abb3b7a43643f8db8198bd1a58c193eceb8e7bb",
+      "canonical_sha256": "e1a5e295862e90d7cd77dc444afc75653350ee71e7235844db1e0f833b30d1eb",
       "adapted": false
     },
     "gh_action_tag_owner.py": {
-      "sha256": "300c6eb1e49a8939e38dfd995e0a2cc61e2f3aa5bd5c7450cbbd4427f2b6ce6c",
+      "sha256": "16441f3c742d7339e956ff6b36614a16ddb1f6ea73079e7f1996d16a1c7b3ebf",
       "canonical_path": "shared/scripts/gh_action_tag_owner.py",
-      "canonical_sha256": "cd7ebbdf0723048ecd743788bbd6113cfa67e767d90435138f624ba6dc32cf12",
+      "canonical_sha256": "12fad290274cc5dc3db3d7011648632a7c97da8611bfb0d7db695c740b35a790",
       "adapted": false
     },
     "accepted_risk_scan.py": {
-      "sha256": "1f47bd12fd5d9acad01881eaec4c238ba26e4b168b0e2e7ab3a64ef627203aac",
+      "sha256": "4c52815dc0c215c91439107f86911793d0700b90855fe39ac2f6c5fe5dcd9315",
       "canonical_path": "shared/scripts/accepted_risk_scan.py",
-      "canonical_sha256": "d9260aa67dc0c07b7dfdbadb3917aad09f7bc8d4c1e55ff970624faa92422752",
+      "canonical_sha256": "3b9bd393ab4760c81bf91586c5d0ab2e28b77fc0bcfc7453209f829477f1cd04",
       "adapted": false
     },
     "accepted_risks_cli.py": {
-      "sha256": "c518be14e7f2171ef638f40bc788d1ad30c0b4409cd17fee45c0edd4c1e8a096",
+      "sha256": "3576911f6e2f06437fea71aeaf6f41ec8a64c1ace95fb8769039d5f869d12902",
       "canonical_path": "shared/scripts/tools/accepted_risks_cli.py",
-      "canonical_sha256": "49e9ffd9203c4d769929a0b414c177b3a1d98447ba2a4a513331dff91a6c2a8f",
+      "canonical_sha256": "a2b18497514476be8a164474a0a88badc7914e252d0f450f6db6866aa6659ce1",
       "adapted": true
     }
   }

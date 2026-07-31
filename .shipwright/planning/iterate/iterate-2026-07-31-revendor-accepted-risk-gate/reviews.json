@@ -1,0 +1,291 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-31-revendor-accepted-risk-gate",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T21:10:00.632885+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "low",
+          "category": "Edge-case / Risk",
+          "file": null,
+          "line": null,
+          "finding": "The `.gitattributes` glob (`scripts/ci/.py eol=lf`) was intentionally left non-recursive while the reverse-drift guard was made recursive. This sets a trap: if a developer later adds a nested vendored script, Windows checkouts will yield a CRLF hash, instantly failing the drift guard with a misleading \"hash mismatch / edited in place\" error.",
+          "suggestion": "Do not leave conscious traps for future developers to debug. Widen the `.gitattributes` glob to `scripts/ci//.py eol=lf` (or `scripts/ci/ eol=lf`) in this run to align the boundaries.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "Approach",
+          "file": null,
+          "line": null,
+          "finding": "The",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The retained Trivy-ignore backstop now validates several known bad entry shapes, but the described coverage does not establish that it rejects all YAML forms that make Trivy reject the entire ignore file. In particular, PyYAML normally accepts duplicate mapping keys by retaining one value, whereas stricter Go YAML decoding can reject duplicates. Similar gaps may exist for an invalid top-level document, a non-list `vulnerabilities` value, or a non-string `id`. In those states, the repo-side guard could certify suppressions that Trivy discards wholesale—the exact CR-2 failure mode this guard exists to prevent.",
+          "suggestion": "Make the guard validate the complete subset of `.trivyignore.yaml` that the repository relies upon: top-level mapping, `vulnerabilities` as a list, each entry as a mapping with a valid scalar/string `id`, and exact `expired_at` shape. Use a duplicate-key-detecting YAML loader (without adding a dependency) or otherwise explicitly reject duplicate keys. Add falsification tests for duplicate `expired_at`/`id` keys and invalid top-level/container types.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The re-vendored lapse semantics deliberately create a one-day period in which `check` fails `STALE` while the corresponding accepted-risk record remains unexpired and `expire` remains green. Although documented, this is still a predictable CI behavior change that can produce an apparently contradictory gate failure on every configured expiry date. Documentation alone does not ensure the operator knows which record or date to change, especially during an incident-driven renewal.",
+          "suggestion": "Before landing, add a concise remediation message or runbook reference to the relevant failure path/header that states the required action and the intentional day-boundary difference. Confirm ownership of the listed future expiry dates and calendar a renewal before the first affected date; alternatively, obtain explicit agreement that this one-day red window is the desired operational policy.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "The reverse-drift guard is now recursive, while the LF pin intentionally remains `scripts/ci/.py` and therefore is not recursive. The notes correctly describe the resulting constraint, but it is only a convention: a future re-vendor can add `scripts/ci/lib/foo.py`, pass reverse-drift coverage, and then fail byte-hash checks on Windows due to line-ending conversion.",
+          "suggestion": "Add a small invariant test that rejects manifest vendored paths containing a directory separator while the flat-file convention remains in force. If nested vendoring is expected soon, widen the `.gitattributes` pattern now instead; otherwise the invariant makes the documented prerequisite enforceable.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "Canonical provenance is materially improved—blob hashes, full commits, header/manifest consistency, expected repository checks—but it remains a local self-consistency check. A change that updates the vendored payload, manifest hashes, headers, commit, and reproduction text together can still pass CI without proving the referenced upstream object exists or is authorized. This is acknowledged by the offline-verification decision, but it remains the principal supply-chain trust boundary.",
+          "suggestion": "Keep the recorded manual verification procedure mandatory for re-vendor changes and require review evidence of `git show <full-commit>:<path> | sha256sum` from the approved upstream remote. If CI access to upstream becomes available later, add a non-blocking or scheduled provenance verification job rather than weakening the current offline design.  Overall, the re-vendor and backstop-retirement approach is sound, evidence-driven, and appropriately preserves local hardening. The remaining changes should tighten the malformed-ignore-file guard and make the intentional expiry-window and flat-path assumptions operationally enforceable. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openai",
+      "completed_at": "2026-07-31T21:10:00.744555+00:00",
+      "disposition": null,
+      "recorded_by": "external-review",
+      "parse_status": "structured",
+      "raw_excerpt": "[gemini] **Category:** Edge-case / Risk\n**Severity:** Low\n**Finding:** The `.gitattributes` glob (`scripts/ci/*.py eol=lf`) was intentionally left non-recursive while the reverse-drift guard was made recursive. This sets a trap: if a developer later adds a nested vendored script, Windows checkouts will yield a CRLF hash, instantly failing the drift guard with a misleading \"hash mismatch / edited in place\" error.\n**Suggestion:** Do not leave conscious traps for future developers to debug. Widen the `.gitattributes` glob to `scripts/ci/**/*.py eol=lf` (or `scripts/ci/** eol=lf`) in this run to align the boundaries.\n\n**Category:** Approach\n**Severity:** Low\n**Finding:** The\n\n[openai] 1. **Category: edge-case**  \n   **Severity: medium**  \n   **Finding:** The retained Trivy-ignore backstop now validates several known bad entry shapes, but the described coverage does not establish that it rejects all YAML forms that make Trivy reject the entire ignore file. In particular, PyYAML normally accepts duplicate mapping keys by retaining one value, whereas stricter Go YAML decoding can reject duplicates. Similar gaps may exist for an invalid top-level document, a non-list `vulnerabilities` value, or a non-string `id`. In those states, the repo-side guard could certify suppressions that Trivy discards wholesale—the exact CR-2 failure mode this guard exists to prevent.  \n   **Suggestion:** Make the guard validate the complete subset of `.trivyignore.yaml` that the repository relies upon: top-level mapping, `vulnerabilities` as a list, each entry as a mapping with a valid scalar/string `id`, and exact `expired_at` shape. Use a duplicate-key-detecting YAML loader (without adding a dependency) or otherwise explicitly reject duplicate keys. Add falsification tests for duplicate `expired_at`/`id` keys and invalid top-level/container types.\n\n2. **Category: risk**  \n   **Severity: medium**  \n   **Finding:** The re-vendored lapse semantics deliberately create a one-day period in which `check` fails `STALE` while the corresponding accepted-risk record remains unexpired and `expire` remains green. Although documented, this is still a predictable CI behavior change that can produce an apparently contradictory gate failure on every configured expiry date. Documentation alone does not ensure the operator knows which record or date to change, especially during an incident-driven renewal.  \n   **Suggestion:** Before landing, add a concise remediation message or runbook reference to the relevant failure path/header that states the required action and the intentional day-boundary difference. Confirm ownership of the listed future expiry dates and calendar a ren […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/tests/test_accepted_risks_repo_invariants.py",
+          "line": null,
+          "finding": "The narrowed guard does NOT mirror coerce_date although its new comment claims it does: it stringifies first. An unquoted YAML int (expired_at: 20261028) therefore passes date.fromisoformat on 3.11 while coerce_date returns None, _is_lapsed reads no-expiry and keeps the entry ACTIVE, and Trivy cannot unmarshal an int into a time.Time so it rejects the whole ignore file. A false PASS on the exact fail-open the guard exists for.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "scripts/ci/tests/test_accepted_risks_vendored.py",
+          "line": null,
+          "finding": "The new provenance guard asserts that header KEYS are present but never binds header VALUES to the manifest, leaving 8 hand-maintained values (4 modules x 2 fields) unenforced - in a change whose entire premise is that an unverified provenance field rotted silently. Needs no sibling clone; it is a pure local string comparison.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "architecture",
+          "file": "shipwright_bloat_baseline.json",
+          "line": null,
+          "finding": "accepted_risks.py (310) and accepted_risks_cli.py (349) cross the 300-line cap and are not in the baseline.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": ".trivyignore.yaml",
+          "line": null,
+          "finding": "expired_at lapses ON its date while the register's expires lapses AFTER it, and every entry pairs the two on the same day - so each expiry opens a one-day window where check fails STALE while expire is still green. That day used to pass. Recorded nowhere.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/accepted_risks_cli.py",
+          "line": null,
+          "finding": "The headers' reproduction command uses a 12-char abbreviated sha while the manifest guard added in the same diff rejects abbreviations outright.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/accepted_risks_vendor.json",
+          "line": null,
+          "finding": "canonical_commit appended after the modules object, splitting the provenance triple across both ends of the document.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/tests/test_accepted_risks_repo_invariants.py",
+          "line": null,
+          "finding": "Doc rot from the retirement: a 'TWO OF THE FOUR HAVE RETIRED' heading contradicted by the text, and mixed section-separator schemes.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "CHANGELOG-unreleased.d",
+          "line": null,
+          "finding": "No CHANGELOG drop for this run id, though the change alters observable CI-gate behaviour for adopters.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T21:06:26.798286+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "hidden coupling & blast radius",
+          "file": "scripts/ci/tests/test_accepted_risks_repo_invariants.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-1] deleting test_this_repo_still_has_a_register is safe because the re-vendored cmd_check now catches that case — cmd_check catches a deleted register ONLY when a discoverable suppression is live. Probe P1 passed because three trivy ids happened to be live that day, not because the case is structurally covered. Reproduced: register deleted plus an emptied vulnerabilities list leaves BOTH check and expire at exit 0 while the un-discoverable .claude/settings.json semgrep toggle keeps suppressing with its WHY and UNTIL-WHEN deleted. After 2027-07-18 the same state arrives with no edit at all, since every expired_at has lapsed and _is_lapsed empties the trivy channel. A repo-wide grep confirmed nothing else asserted the register existed. This was a REAL enforcement regression introduced by the retirement.",
+          "suggestion": "fixed - _REGISTERED_SEMGREP_KEYS became a toggle-to-register-entry mapping, and CR-1 now asserts both that the register exists and that the named entry is in it whenever the toggle is live. Closed in the guard that already owns the un-discoverable channel rather than by re-adding a blanket file-exists assertion. Falsified red by moving the register aside.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary & contract",
+          "file": "scripts/ci/tests/test_accepted_risks_repo_invariants.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-2] the narrowed guard now exactly mirrors accepted_risks.coerce_date — The mirror is exact but aimed at the WRONG reference. coerce_date slices [:10] and is strictly more permissive than Trivy, which parses expired_at with the Go layout 2006-01-02 and nothing else - so 2026-10-28xyz passed both coerce_date and the guard while Trivy would reject the whole file. Worse, the guard's own remediation text told the operator to quote the value, and doing so on a YAML int turns a CAUGHT case into an uncaught one: the quoted form parses as basic ISO 8601 on 3.11, so the guard goes silent while coerce_date starts returning a date nobody wrote.",
+          "suggestion": "fixed - the guard now enforces Trivy's shape directly and the remediation says to write it UNQUOTED as YYYY-MM-DD. Both cases falsified red.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary & contract",
+          "file": "scripts/ci/tests/test_accepted_risks_repo_invariants.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-3] a malformed ignore file cannot pass the gate — The guard inspected one field on entries it assumed were mappings. A bare-string entry under vulnerabilities was skipped by the guard and by read_trivyignore_ids identically, so check reported no drift, while Trivy gets a string where it wants a struct and rejects the whole file - CR-2's failure shape, produced by a state this guard was kept alive to prevent.",
+          "suggestion": "fixed - non-mapping entries, id-less entries, non-string ids, a non-list vulnerabilities value, a non-mapping top level, and duplicate mapping keys (rejected via a strict loader, since PyYAML keeps the last value where Go errors) are all now caught. All six falsified red.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "hidden coupling & blast radius",
+          "file": "scripts/ci/tests/test_accepted_risks_vendored.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-4] the new header-provenance test closes the last locally checkable surface — Three corruptions still passed: canonical_repo was never compared (the most supply-chain-relevant field, and the one the test skipped); the header's git show reproduction command carried an unguarded second copy of commit and path, so a drifted command would send the sole manual verification path at the wrong blob; and re.search takes the first match, so a correct line up top plus a drifted one lower down passed.",
+          "suggestion": "fixed - repo added to the comparison, the reproduction command is bound to the manifest commit and path, and findall with an exactly-one assertion replaces search. Falsified against the realistic attack (header changed AND manifest sha256 refreshed, as a re-vendor from a fork would do), because a plain header edit is masked by the drift guard and proves nothing.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "reversibility",
+          "file": ".github/workflows/security.yml",
+          "line": null,
+          "finding": "Claim under doubt: [D-5] the new hardening is enforced on the triggers that matter — test_accepted_risks_vendored.py ran only in pr-review.yml's selftest job, which is pull_request-only, so on the weekly scheduled run the gate executed vendored modules whose byte-integrity and provenance were last checked whenever the previous PR landed. That contradicts the reasoning the repo-invariants file itself gives for living in the gate job.",
+          "suggestion": "fixed - added to the security.yml gate job's pytest step, with a new invariant pinning it there. Falsified red by removing it from the workflow.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "hidden coupling & blast radius",
+          "file": ".gitattributes",
+          "line": null,
+          "finding": "Claim under doubt: [D-6] the eol=lf pin makes the byte hashes safe on Windows — Both the pin (scripts/ci/*.py) and the reverse-drift guard (glob, not rglob) are non-recursive and fail together, so a future module at scripts/ci/lib/foo.py would have had neither a CRLF pin nor drift coverage - CR-8's vacuity one directory down.",
+          "suggestion": "fixed - the reverse guard is recursive and keyed on the relative path, and .gitattributes was widened to scripts/ci/**/*.py. Verified with git check-attr on nested paths and confirmed zero renormalization churn.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary & contract",
+          "file": "scripts/ci/accepted_risk_scan.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-7] _is_lapsed's docstring discloses both directions of its fail-safe — It omits the third outcome: an entry counted as absent AND having no register counterpart vanishes from discovered, so it can never be reported UNRECORDED. Combined with the disclosed UTC-versus-local clock gap this is a narrow new blind spot. Related: a lapsed unregistered ignore entry is now silent dead config where the retired guard listed it by name.",
+          "suggestion": "recorded in the iterate spec - upstream owns the function, so this is documentation rather than a local divergence",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "upheld",
+          "file": "scripts/ci/accepted_risks.py",
+          "line": null,
+          "finding": "Claim under doubt: [C-3 / C-4] verbatim byte-identity below the header, and the eol pin for this diff — Could not be broken. The reviewer stated so explicitly rather than padding: every offset is exactly the inserted header block, and no hashed path in this diff sits outside the pin's globs.",
+          "suggestion": "upheld",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T21:07:15.424682+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 1,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "bug",
+          "file": "scripts/ci/tests/test_accepted_risks_repo_invariants.py:~278` — `if isinstance(raw, date): continue` accepts YAML timestamps such as `expired_at: 2026-10-28T00:00:00Z`, because PyYAML constructs these as `datetime` and `datetime` subclasses `date`. This contradicts the guard’s stated Trivy contract of accepting only `YYYY-MM-DD`; a timestamp that Trivy rejects would let the invariant  […truncated]",
+          "line": null,
+          "finding": "Accept only plain YAML dates, e.g. `if type(raw) is date: continue`, and treat `datetime` as malformed unless it is demonstrated that Trivy accepts that exact representation. Add a falsification test using an unquoted YAML timestamp to ensure the guard fails.  Overall assessment: ship-with-fixes. The re-vendor and gate wiring largely implement the stated acceptance criteria, but the malformed-expiry backstop has a concrete fail-open path for YAML timestamps.  SHIPWRIGHT_VERDICT: revise",
+          "suggestion": null,
+          "source": "external-review"
+        }
+      ],
+      "provider": "openai",
+      "completed_at": "2026-07-31T21:10:00.887376+00:00",
+      "disposition": null,
+      "recorded_by": "external-review",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] `2006-01-02` and nothing else...`\nWait, does Go's `yaml.v3` natively support both?\nIf it's just a regular `time.Time`, Go's `yaml.v3` supports RFC3339. But Trivy uses `*time.Time` or might have a custom unmarshaler?\nActually, the reviewer said in D-2:\n> Trivy parses `expired_at` with the Go layout `2006-01-02` only. So `2026-10-28xyz` passed both `coerce_date` and my guard while Trivy would reject the whole file.\nThe fix was:\n> The\n\n[openai] - Category: bug\n- Severity: medium\n- File: `scripts/ci/tests/test_accepted_risks_repo_invariants.py:~278` — `if isinstance(raw, date): continue` accepts YAML timestamps such as `expired_at: 2026-10-28T00:00:00Z`, because PyYAML constructs these as `datetime` and `datetime` subclasses `date`. This contradicts the guard’s stated Trivy contract of accepting only `YYYY-MM-DD`; a timestamp that Trivy rejects would let the invariant pass while Trivy rejects the entire ignore file and applies no suppressions.\n- Suggestion: Accept only plain YAML dates, e.g. `if type(raw) is date: continue`, and treat `datetime` as malformed unless it is demonstrated that Trivy accepts that exact representation. Add a falsification test using an unquoted YAML timestamp to ensure the guard fails.\n\nOverall assessment: ship-with-fixes. The re-vendor and gate wiring largely implement the stated acceptance criteria, but the malformed-expiry backstop has a concrete fail-open path for YAML timestamps.\n\nSHIPWRIGHT_VERDICT: revise"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T21:06:26.674754+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

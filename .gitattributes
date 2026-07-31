@@ -45,6 +45,13 @@ bootstrapper/bin/shipwright.mjs text eol=lf
 # permanently red. Verified with `git ls-files --eol` (NOT `git show :path`,
 # which smudges under autocrlf). Also keeps the vendored code from being
 # executed with CRLF.
+# Recursive since iterate-2026-07-31-revendor-accepted-risk-gate. The old globs
+# were `scripts/ci/*.py` + `scripts/ci/tests/*.py`, i.e. exactly today's two
+# levels, so a module vendored one directory deeper would have had NO pin — and
+# the reverse-drift guard was non-recursive in the same way, so it would have been
+# invisible to both. That combination produces precisely the misleading failure
+# this pin exists to prevent: a Windows checkout yields CRLF, the manifest records
+# the LF hash, and the guard reports "edited in place" on a file nobody touched.
+scripts/ci/**/*.py text eol=lf
 scripts/ci/*.py text eol=lf
-scripts/ci/tests/*.py text eol=lf
 scripts/ci/accepted_risks_vendor.json text eol=lf

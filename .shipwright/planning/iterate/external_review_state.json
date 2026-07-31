@@ -1,8 +1,8 @@
 {
   "status": "completed",
-  "timestamp": "2026-07-31T09:04:05.505337+00:00",
-  "provider": "openrouter",
-  "findings_count": 8,
+  "timestamp": "2026-07-31T21:10:00.753801+00:00",
+  "provider": "openai",
+  "findings_count": 6,
   "self_review_fallback_ran": false,
   "reason": null,
   "review_mode": "iterate",

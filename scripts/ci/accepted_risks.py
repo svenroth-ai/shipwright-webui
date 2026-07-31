@@ -31,6 +31,11 @@ closed. Collapsing the two would let one broken edit read as "all entries
 removed" and, downstream in ``alert_convergence``, license a mass-dismissal off
 a truncated file.
 
+**Absent is not exempt, either.** Reading as empty means the drift gate
+reconciles it *like* an empty register, not that it skips the comparison —
+otherwise deleting this file would silence the gate while every suppression it
+recorded stayed live (iterate-2026-07-31-accepted-risk-gate-holes).
+
 VENDORED into shipwright-webui. This repo has no Python ``shared/`` tree and
 CI has no shipwright plugin cache, so the accepted-risk gate ships as a
 self-contained copy under ``scripts/ci/`` (same pattern as the vendored
@@ -38,11 +43,23 @@ self-contained copy under ``scripts/ci/`` (same pattern as the vendored
 
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-path: shared/scripts/accepted_risks.py
-# canonical-source-hash: 1826f8d283ce44b2edfaeed41abb3b7a43643f8db8198bd1a58c193eceb8e7bb
-# canonical-source-version: iterate-2026-07-29-accepted-risk-ci-gate
+# canonical-source-hash: e1a5e295862e90d7cd77dc444afc75653350ee71e7235844db1e0f833b30d1eb
+# canonical-source-version: iterate-2026-07-31-accepted-risk-gate-holes
+# canonical-source-commit: 987e49c6ed290f74242f91645bd812610dad9e7e
 #
-# Body below this block is BYTE-IDENTICAL to canonical. Re-verify with a
-# CR-normalized diff; Windows CRLF otherwise masks a real divergence.
+# Body below this block is BYTE-IDENTICAL to canonical.
+#
+# The hash above is of canonical's GIT BLOB (LF), reproducible on any
+# platform from a clone of the canonical repo:
+#
+#     git show 987e49c6ed290f74242f91645bd812610dad9e7e:shared/scripts/accepted_risks.py | sha256sum
+#
+# Use the COMMIT, not the version: the version is an iterate run id and is
+# not a git ref, so it cannot be resolved. And the hash is deliberately NOT
+# that of a Windows working-tree checkout - with core.autocrlf=true that
+# yields a different, unreproducible value. Every canonical hash recorded
+# before iterate-2026-07-31-revendor-accepted-risk-gate was that CRLF
+# variant, and so matched no upstream blob at all.
 
 Drift guard: ``scripts/ci/accepted_risks_vendor.json`` records this file's
 sha256 and ``scripts/ci/tests/test_accepted_risks_vendored.py`` recomputes it,
@@ -144,10 +161,16 @@ def register_exists(project_root: Path | str) -> bool:
     return register_path(project_root).is_file()
 
 
-def _coerce_date(value: Any) -> date | None:
+def coerce_date(value: Any) -> date | None:
     """A ``date`` from a YAML date or an ISO ``YYYY-MM-DD`` string.
 
     ``datetime`` is checked first because it is a *subclass* of ``date``.
+
+    Public because ``accepted_risk_scan`` needs the same polymorphism for the
+    scanner's own due dates: PyYAML hands back a ``date`` for an unquoted
+    ``expired_at`` but a ``str`` for a quoted one, and the flat ``.trivyignore``
+    form can only ever yield a ``str``. One parser both leaves import, rather
+    than a third copy free to drift.
     """
     if isinstance(value, datetime):
         return value.date()
@@ -185,7 +208,7 @@ def _entry_error(entry: Any, index: int, seen: set[str]) -> str | None:
     if not isinstance(rule, str) or not rule.strip():
         return f"{where}: missing or empty 'rule' (the scanner-native id)"
 
-    if _coerce_date(entry.get("expires")) is None:
+    if coerce_date(entry.get("expires")) is None:
         return (
             f"{where}: 'expires' missing or not a YYYY-MM-DD date "
             "— an acceptance without a due date is a blanket suppression"
@@ -273,7 +296,7 @@ def load_register(project_root: Path | str) -> list[Acceptance]:
                 id=entry["id"],
                 target=entry["target"],
                 rule=entry["rule"],
-                expires=_coerce_date(entry["expires"]),  # validated above
+                expires=coerce_date(entry["expires"]),  # validated above
                 rationale_ref=entry["rationale_ref"],
                 statement=entry["statement"].strip(),
                 scope=dict(entry.get("scope") or {}),
