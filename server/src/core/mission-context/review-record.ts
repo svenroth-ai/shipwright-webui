@@ -27,26 +27,101 @@
  * price of the boundary; the protection against drift is the fixture in
  * `test/fixtures/reviews-record-real.json`, copied verbatim from real producer
  * output rather than written here.
+ *
+ * ── forward tolerance, and exactly where it stops ──────────────────────────
+ * (iterate-2026-07-31-review-record-tolerant-reader.) This reader used to pin
+ * `schema_version` with `!==` and reject any `reviews` key outside its own five.
+ * Because an invalid record does NOT degrade to the marker view — it renders
+ * every row as a data-integrity fault — those two lines made the pinned five
+ * unable to grow: a sixth pass would have reported every healthy record as
+ * corrupt. So the producer parked its Stage-1 spec-compliance gate in a sibling
+ * `gates` object nobody reads, and said so in its own source, naming the release
+ * condition: "Promotion into REVIEW_TYPES — one line here, one there — becomes
+ * safe as soon as the webui ships a reader that tolerates unknown review types."
+ *
+ * Both gates therefore move, and NOTHING else does:
+ *   - the version is a FLOOR (`>=`), not a pin;
+ *   - an unrecognised review key is mapped and rendered, not rejected.
+ *
+ * The version number is not what protects this reader and never was — every
+ * entry, pinned or not, still goes through the same total `toRow`. A future
+ * record that RESHAPED an entry is rejected on that entry's own fields no matter
+ * what version it claims.
+ *
+ * ── where that argument STOPS (Stage-3 doubt, D1) ─────────────────────────
+ * It covers reshapes and NOT additions — and additions are what the producer's
+ * contract actually promises. `toRow` reads the fields it names and ignores
+ * every other one, so an added field carrying the real answer (`verdict:
+ * "blocked"` beside `status: "completed"`) would be dropped and the pass drawn
+ * as a clean run. The `!==` pin caught that by refusing the record; nothing else
+ * ever did. So forward-reading is DISCLOSED, not silent: a version past
+ * `MAX_KNOWN_RECORD_SCHEMA_VERSION`, or passes recorded where this reader does
+ * not look, each add a `caveat` that `buildReviewArtifact` appends to the
+ * summary. That is the house rule of the whole feature (`truncated`,
+ * `manifestStatus`, `parseStatus`): read what you can, say what you could not.
+ *
+ * ── the pinned five are FROZEN (Stage-3 doubt, D4) ────────────────────────
+ * Tolerance is additive ONLY. `REVIEW_TYPES` may never shrink or be renamed —
+ * the assembly below requires all five and calls the record unreadable if one is
+ * absent, so renaming `external_code` blanks the whole card rather than adding a
+ * row. A superseded pass keeps its key and closes with a disposition.
  */
 
 import { statSync } from "node:fs";
 import path from "node:path";
 
 import { readBoundedFile } from "./fs-read.js";
+import { toRow, unreadPassCount, unreadableStranger } from "./review-record-entry.js";
 import { pathGuard, realPathGuard } from "../path-guard.js";
 import { isSafeRunId } from "./pointer.js";
-import type {
-  ReviewFinding,
-  ReviewParseStatus,
-  ReviewRow,
-  ReviewStatus,
-  ReviewType,
-} from "./types-slice2.js";
+import type { ReviewRow } from "./types-slice2.js";
 
-/** Contract order — `self` first: it is the one review that always runs. */
-const REVIEW_TYPES: ReviewType[] = ["self", "plan", "code", "doubt", "external_code"];
+/**
+ * Contract order — `self` first: it is the one review that always runs.
+ *
+ * `as const` rather than `ReviewType[]`: `ReviewType` now admits any string, so
+ * the annotation that used to catch a typo here would no longer catch anything.
+ *
+ * EXPORTED because `review-state.ts` needs the same order for its marker
+ * fallback. Two independently-written literals would now drift silently — with
+ * the annotation gone, nothing would fail if the record path and the marker path
+ * disagreed about which five passes exist.
+ */
+export const REVIEW_TYPES = ["self", "plan", "code", "doubt", "external_code"] as const;
 
-const RECORD_SCHEMA_VERSION = 1;
+/**
+ * The OLDEST version this reader can read, not the only one. Anything newer is
+ * additive by the producer's contract and is read; anything older never existed.
+ */
+const MIN_RECORD_SCHEMA_VERSION = 1;
+
+/**
+ * The newest version whose fields this reader actually KNOWS. Beyond it the
+ * record is still read — that is the point — but the fact is disclosed, because
+ * a field added past this line is one `toRow` drops on the floor.
+ */
+const MAX_KNOWN_RECORD_SCHEMA_VERSION = 1;
+
+/** Record-level keys this reader understands; anything else may hold passes. */
+const KNOWN_RECORD_KEYS = new Set(["schema_version", "run_id", "reviews"]);
+
+/**
+ * What an unrecognised review key may look like. Permissive on purpose — the
+ * point of this whole change is that the producer may name a pass something this
+ * reader has not heard of — but a key is still an IDENTIFIER, so `__proto__`,
+ * an empty string, a path fragment and a paragraph of prose are corruption
+ * rather than evolution, and are reported as such.
+ */
+const REVIEW_KEY = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/;
+
+/**
+ * Aggregate bound on how many passes one record may carry (external plan review,
+ * finding 3: unknown keys make a previously five-row structure unbounded). Going
+ * over is an integrity fault and NOT a silent truncation: a review pass dropped
+ * on the floor is precisely the invisible-review failure this artifact exists to
+ * prevent, so the record says it cannot be trusted instead of quietly shrinking.
+ */
+const MAX_REVIEW_TYPES = 32;
 
 /**
  * 2 MB. The marker bound (256 KB) was tuned for a few hundred bytes; a real
@@ -55,41 +130,11 @@ const RECORD_SCHEMA_VERSION = 1;
  */
 const MAX_RECORD_BYTES = 2 * 1024 * 1024;
 
-const MAX_TEXT = 4000;
-const MAX_SHORT = 400;
-
-/**
- * Producer status → wire status. A MAP rather than a set-plus-cast: the cast
- * severed the only link between the runtime vocabulary and the `ReviewStatus`
- * union, so a sixth producer status would have flowed through onto the wire and
- * hit the client's exhaustive `reviewStatusWord` switch, which returns undefined
- * and renders a review with NO status word at all. This way it is a compile
- * error instead.
- */
-const PRODUCER_STATUS: Record<string, ReviewStatus | undefined> = {
-  // "nobody has answered yet" is not a result — it is the absence of one.
-  pending: "unavailable",
-  completed: "completed",
-  not_run: "not_run",
-  not_applicable: "not_applicable",
-};
-
-const PARSE_STATUSES = new Set(["structured", "partial", "unstructured"]);
-
-/** Terminal statuses the producer guarantees carry a reason. */
-const NEEDS_DISPOSITION = new Set(["not_run", "not_applicable"]);
-
-/** Bound what one row can push into a 420px panel; disclosed, never silent. */
-const MAX_FINDINGS_PER_ROW = 50;
-const SEVERITIES = new Set(["high", "medium", "low"]);
-
-const PENDING_NOTE =
-  "This review has not answered yet — the run recorded no result for it.";
-
 export type ReviewRecordResult =
-  | { kind: "valid"; rows: ReviewRow[] }
+  | { kind: "valid"; rows: ReviewRow[]; caveats: string[] }
   | { kind: "absent" }
   | { kind: "invalid"; reason: string };
+
 
 /** Absolute path of the record — also probed for `sourceRev` so a late write refreshes. */
 export function reviewRecordPath(projectRoot: string, runId: string): string | null {
@@ -97,114 +142,8 @@ export function reviewRecordPath(projectRoot: string, runId: string): string | n
   return path.join(projectRoot, ".shipwright", "planning", "iterate", runId, "reviews.json");
 }
 
-function str(value: unknown, max = MAX_TEXT): string | null {
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim().slice(0, max)
-    : null;
-}
-
 function invalid(reason: string): ReviewRecordResult {
   return { kind: "invalid", reason };
-}
-
-/**
- * `file` + `line` joined once, server-side, so the client never formats a
- * location. A file with no line is still a location worth showing.
- */
-function location(file: unknown, line: unknown): string | null {
-  const filePath = str(file, MAX_SHORT);
-  if (!filePath) return null;
-  return typeof line === "number" && Number.isFinite(line) && line > 0
-    ? `${filePath}:${Math.trunc(line)}`
-    : filePath;
-}
-
-function toFinding(raw: unknown): ReviewFinding | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const o = raw as Record<string, unknown>;
-  const title = str(o.finding);
-  if (!title) return null;
-  const severity = typeof o.severity === "string" && SEVERITIES.has(o.severity)
-    ? o.severity
-    : null;
-  return {
-    severity,
-    title,
-    location: location(o.file, o.line),
-    suggestion: str(o.suggestion),
-  };
-}
-
-/**
- * Map one producer entry. A `pending` type becomes `unavailable` with a count of
- * `null`: nobody has answered, and rendering that as a completed review with
- * zero findings is the exact "0 reads as clean" failure this artifact exists to
- * prevent.
- */
-function toRow(reviewType: ReviewType, entry: Record<string, unknown>): ReviewRow | string {
-  if (entry.review_type !== reviewType) {
-    return `reviews.${reviewType}.review_type is ${String(entry.review_type)}`;
-  }
-  const status = typeof entry.status === "string" ? entry.status : "";
-  const wireStatus = PRODUCER_STATUS[status];
-  if (!wireStatus) {
-    return `reviews.${reviewType}.status ${String(entry.status)} is not a known status`;
-  }
-  const rawFindings = entry.findings;
-  if (!Array.isArray(rawFindings)) return `reviews.${reviewType}.findings is not a list`;
-  if (entry.findings_count !== rawFindings.length) {
-    return `reviews.${reviewType}.findings_count disagrees with its own list`;
-  }
-
-  const findings: ReviewFinding[] = [];
-  for (const raw of rawFindings) {
-    const finding = toFinding(raw);
-    if (!finding) return `reviews.${reviewType} has a finding with no text`;
-    findings.push(finding);
-  }
-
-  // An UNKNOWN parse_status is a schema fault, not something to normalize to
-  // null: silently dropping it would turn "we do not know how well this parsed"
-  // into "it parsed fine".
-  const parseStatusRaw = entry.parse_status;
-  if (parseStatusRaw !== null && parseStatusRaw !== undefined
-      && !(typeof parseStatusRaw === "string" && PARSE_STATUSES.has(parseStatusRaw))) {
-    return `reviews.${reviewType}.parse_status ${String(parseStatusRaw)} is not a known value`;
-  }
-  const parseStatus = (typeof parseStatusRaw === "string" ? parseStatusRaw : null) as
-    | ReviewParseStatus
-    | null;
-
-  const disposition = str(entry.disposition, 2000);
-  if (NEEDS_DISPOSITION.has(status) && !disposition) {
-    return `reviews.${reviewType} is ${status} but records no reason`;
-  }
-
-  // The producer guarantees an unstructured parse itemized NOTHING. A record
-  // claiming otherwise is internally inconsistent, and rendering it would show a
-  // finding list under a caveat saying the findings could not be listed.
-  if (parseStatus === "unstructured" && findings.length > 0) {
-    return `reviews.${reviewType} is unstructured yet carries itemized findings`;
-  }
-
-  if (findings.length > MAX_FINDINGS_PER_ROW) {
-    findings.length = MAX_FINDINGS_PER_ROW;
-  }
-
-  const pending = status === "pending";
-  return {
-    reviewType,
-    status: wireStatus,
-    findingsCount: pending ? null : Number(entry.findings_count),
-    findings,
-    truncated: Number(entry.findings_count) > findings.length,
-    provider: str(entry.provider, 120),
-    completedAt: str(entry.completed_at, 64),
-    disposition,
-    note: pending ? PENDING_NOTE : null,
-    parseStatus,
-    source: "record",
-  };
 }
 
 /**
@@ -258,9 +197,13 @@ export function readReviewRecord(projectRoot: string, runId: string): ReviewReco
   }
 
   const record = parsed as Record<string, unknown>;
-  if (record.schema_version !== RECORD_SCHEMA_VERSION) {
+  const version = record.schema_version;
+  // `>=`, not `===`. See the forward-tolerance note in the file header: an older
+  // version never existed, a newer one is additive, and a reshaped entry is
+  // caught by `toRow` rather than by this number.
+  if (!Number.isInteger(version) || (version as number) < MIN_RECORD_SCHEMA_VERSION) {
     return invalid(
-      `record schema_version ${String(record.schema_version)} is not one this reader understands`,
+      `record schema_version ${String(version)} is not a version this reader can read`,
     );
   }
   if (record.run_id !== runId) {
@@ -273,19 +216,71 @@ export function readReviewRecord(projectRoot: string, runId: string): ReviewReco
   }
   const byType = reviews as Record<string, unknown>;
 
-  const unknown = Object.keys(byType).filter((k) => !REVIEW_TYPES.includes(k as ReviewType));
-  if (unknown.length > 0) return invalid(`the record has unknown review type(s): ${unknown.join(", ")}`);
+  // `Object.keys` is own-enumerable only, so nothing inherited can become a row.
+  const keys = Object.keys(byType);
+  if (keys.length > MAX_REVIEW_TYPES) {
+    return invalid(`the record carries ${keys.length} review passes, more than any run has`);
+  }
+  const strangers = keys.filter((k) => !(REVIEW_TYPES as readonly string[]).includes(k));
+  const malformed = strangers.filter((k) => !REVIEW_KEY.test(k));
+  if (malformed.length > 0) {
+    return invalid(`the record has a review key that is not an identifier: ${malformed.join(", ")}`);
+  }
 
+  // The pinned five FIRST, in contract order (AC4 of the Review artifact), then
+  // the passes this reader has not heard of, in the record's own key order. A
+  // stranger is appended rather than interleaved so the order the UI has always
+  // rendered is exactly the order it still renders.
+  //
+  // The five come from REVIEW_TYPES and NOT from the record's own keys. That
+  // looks like a stylistic choice and is not: iterating `keys` is shorter and
+  // silently stops detecting a record MISSING a pinned pass — the check that
+  // keeps a dropped or renamed pass loud instead of quietly rendering four rows
+  // as if five had been considered.
   const rows: ReviewRow[] = [];
   for (const reviewType of REVIEW_TYPES) {
-    const entry = byType[reviewType];
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+    // `hasOwnProperty` guards something the `Object.keys` filter above does not:
+    // these lookups are by literal name, so a globally polluted
+    // `Object.prototype` could otherwise hand back a shadowing value for a key
+    // this record never carried.
+    const entry = Object.prototype.hasOwnProperty.call(byType, reviewType)
+      ? byType[reviewType]
+      : undefined;
+    if (entry === undefined || entry === null) {
       return invalid(`the record is missing the ${reviewType} review`);
+    }
+    if (typeof entry !== "object" || Array.isArray(entry)) {
+      return invalid(`reviews.${reviewType} is not an object`);
     }
     const row = toRow(reviewType, entry as Record<string, unknown>);
     if (typeof row === "string") return invalid(row);
     rows.push(row);
   }
 
-  return { kind: "valid", rows };
+  // A stranger is own by construction (it came from `Object.keys`), so it is
+  // never actually missing — and its entry failing is bounded to its own row.
+  for (const reviewType of strangers) {
+    const entry = byType[reviewType];
+    const row = entry && typeof entry === "object" && !Array.isArray(entry)
+      ? toRow(reviewType, entry as Record<string, unknown>)
+      : `reviews.${reviewType} is not an object`;
+    rows.push(typeof row === "string" ? unreadableStranger(reviewType) : row);
+  }
+
+  const caveats: string[] = [];
+  if ((version as number) > MAX_KNOWN_RECORD_SCHEMA_VERSION) {
+    caveats.push(
+      "This run's review record was written by a newer Shipwright, so a pass may " +
+        "carry detail this version does not know how to show.",
+    );
+  }
+  const unread = unreadPassCount(record, KNOWN_RECORD_KEYS);
+  if (unread > 0) {
+    caveats.push(
+      `This run also recorded ${unread} review ${unread === 1 ? "pass" : "passes"} ` +
+        "somewhere this version does not read, so they are not counted above.",
+    );
+  }
+
+  return { kind: "valid", rows, caveats };
 }

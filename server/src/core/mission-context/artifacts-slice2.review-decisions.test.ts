@@ -28,15 +28,33 @@ const FOUR_UNKNOWN: ReviewRow[] = [
 
 describe("buildReviewArtifact", () => {
   it("hides only when there is NO record and nothing failed to read", () => {
-    const lookup: ReviewLookup = { rows: FOUR_UNKNOWN, hasRecord: false, sawUnreadable: false };
+    const lookup: ReviewLookup = { rows: FOUR_UNKNOWN, hasRecord: false, sawUnreadable: false, caveats: [] };
     expect(buildReviewArtifact(lookup).state).toBe("not_yet_created");
   });
 
   it("SHOWS `unavailable` when a record existed but could not be read", () => {
-    const lookup: ReviewLookup = { rows: FOUR_UNKNOWN, hasRecord: false, sawUnreadable: true };
+    const lookup: ReviewLookup = { rows: FOUR_UNKNOWN, hasRecord: false, sawUnreadable: true, caveats: [] };
     const a = buildReviewArtifact(lookup);
     expect(a.state).toBe("unavailable");
     expect(a.note).toBeTruthy();
+  });
+
+  it("carries a caveat into the SUMMARY, where a skimming reader finishes", () => {
+    // A disclosure the reader computes and the artifact drops is worth nothing.
+    // The summary is the chosen surface because it is the line that gets read —
+    // the same reason the "their result is unknown" tail lives there
+    // (iterate-2026-07-31-review-record-tolerant-reader; Stage-3 doubt D1/D2).
+    const lookup: ReviewLookup = {
+      rows: [reviewRow({ reviewType: "plan", status: "completed", findingsCount: 0 })],
+      hasRecord: true,
+      sawUnreadable: false,
+      caveats: ["This run's review record was written by a newer Shipwright."],
+    };
+    const summary = buildReviewArtifact(lookup).summary ?? "";
+    expect(summary).toContain("raised no issues");
+    expect(summary).toContain("newer Shipwright");
+    // …and the good news must not be the last thing said.
+    expect(summary.indexOf("newer Shipwright")).toBeGreaterThan(summary.indexOf("raised no issues"));
   });
 
   it("renders all four types with the unreadable ones stated explicitly (AC4)", () => {
@@ -49,6 +67,7 @@ describe("buildReviewArtifact", () => {
       ],
       hasRecord: true,
       sawUnreadable: false,
+      caveats: [],
     };
     const a = buildReviewArtifact(lookup);
     expect(a.state).toBe("available");
@@ -73,6 +92,7 @@ describe("buildReviewArtifact", () => {
       ],
       hasRecord: true,
       sawUnreadable: false,
+      caveats: [],
     };
     const a = buildReviewArtifact(lookup);
     expect(a.summary).toContain("raised no issues");
@@ -93,6 +113,7 @@ describe("buildReviewArtifact", () => {
       ],
       hasRecord: true,
       sawUnreadable: false,
+      caveats: [],
     };
     const a = buildReviewArtifact(lookup);
     expect(a.state).toBe("available");
@@ -121,6 +142,7 @@ describe("buildReviewArtifact", () => {
       ],
       hasRecord: true,
       sawUnreadable: false,
+      caveats: [],
     };
     const a = buildReviewArtifact(lookup);
     expect(a.state).toBe("available");
@@ -139,6 +161,7 @@ describe("buildReviewArtifact", () => {
       ],
       hasRecord: true,
       sawUnreadable: false,
+      caveats: [],
     };
     const a = buildReviewArtifact(lookup);
     expect(a.summary).toContain("4 issues raised across 1 review");
@@ -156,6 +179,7 @@ describe("buildReviewArtifact", () => {
       ],
       hasRecord: true,
       sawUnreadable: false,
+      caveats: [],
     };
     expect(buildReviewArtifact(lookup).receipt).toBe("4 findings");
   });

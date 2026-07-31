@@ -257,10 +257,26 @@ export function layerWord(layer: string | null): string {
   return layer;
 }
 
-/** Plain-language name for each of the four review passes. */
-export function reviewTypeLabel(
-  t: "self" | "plan" | "code" | "doubt" | "external_code",
-): string {
+/**
+ * Plain-language name for a review pass.
+ *
+ * The five pinned passes have curated names. Anything else is a pass this build
+ * has never heard of — the server now sends those rather than calling the whole
+ * record corrupt — and its name is DERIVED from its own key, never invented and
+ * never looked up in a table of guesses: underscores become spaces, the first
+ * character is capitalised, " review" is appended. Casing is otherwise left
+ * exactly as the producer wrote it, so a name like `v2_GATE` keeps its shape
+ * instead of being normalised into a different pass's label.
+ *
+ * **The raw key is then shown in parentheses, and that is not redundancy.** The
+ * derivation is not injective — `spec` and `spec_` both prettify to "Spec
+ * review", and HTML collapses the difference — so two different passes could
+ * render under one name, in the artifact whose whole purpose is not misleading
+ * its reader; `data-review-type` settles that for machines and for nobody else.
+ * It also says the useful thing outright: this is a pass the Command Center does
+ * not know, and here is exactly what the run called it.
+ */
+export function reviewTypeLabel(t: string): string {
   switch (t) {
     case "self":
       return "Self-review";
@@ -272,5 +288,13 @@ export function reviewTypeLabel(
       return "Doubt review";
     case "external_code":
       return "External code review";
+    default: {
+      // Defensive: `ReviewType` admits any string, so TypeScript no longer stops
+      // a caller handing this a malformed row. Throwing here would take the whole
+      // Mission panel down over one bad field.
+      const key = typeof t === "string" ? t : "";
+      const words = key.replace(/_/g, " ");
+      return `${words.charAt(0).toUpperCase()}${words.slice(1)} review (${key})`;
+    }
   }
 }
