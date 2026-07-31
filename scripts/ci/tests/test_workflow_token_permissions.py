@@ -58,7 +58,13 @@ def _has_indented_line(text: str, scope: str, value: str) -> bool:
     ) is not None
 
 
-_READ_ONLY_TOP = ["ci.yml", "codeql.yml", "bloat-check.yml", "pr-review.yml"]
+_READ_ONLY_TOP = [
+    "ci.yml",
+    "codeql.yml",
+    "bloat-check.yml",
+    "pr-review.yml",
+    "pr-review-run.yml",
+]
 
 
 @pytest.mark.parametrize("name", _READ_ONLY_TOP)
@@ -77,9 +83,29 @@ def test_bloat_check_widens_pr_write_at_job_level() -> None:
     )
 
 
-def test_pr_review_widens_pr_write_at_job_level() -> None:
-    assert _has_indented_line(_read("pr-review.yml"), "pull-requests", "write"), (
-        "pr-review `review` job must widen to pull-requests:write"
+def test_pr_review_stage2_widens_writes_at_job_level() -> None:
+    # AMENDED 2026-07-31 (iterate-2026-07-31-two-stage-pr-review): the write
+    # scopes moved with the reviewer. Stage 2 posts the verdict, so it needs
+    # statuses:write for the required `PR Review` context and
+    # pull-requests:write for the comment carrying the reasons.
+    stage2 = _read("pr-review-run.yml")
+    assert _has_indented_line(stage2, "pull-requests", "write"), (
+        "pr-review-run `review` job must widen to pull-requests:write"
+    )
+    assert _has_indented_line(stage2, "statuses", "write"), (
+        "pr-review-run `review` job must widen to statuses:write — without it "
+        "the required context can never be posted and every PR blocks"
+    )
+
+
+def test_pr_review_stage1_holds_no_write_scope_at_all() -> None:
+    # Stage 1 runs from the PR head on every pull request including forks. A
+    # write scope anywhere in it — top level or job level — hands an untrusted
+    # change a capability it has no use for.
+    stage1 = _read("pr-review.yml")
+    assert not re.search(r"^\s+[\w-]+:\s*write\b", stage1, re.MULTILINE), (
+        "pr-review.yml (stage 1) must contain no write scope; credentials and "
+        "write capability belong to stage 2, which never runs contributor code"
     )
 
 
@@ -96,3 +122,13 @@ def test_security_yml_is_the_documented_top_level_exception() -> None:
     assert top.get("security-events") == "write"
     assert top.get("actions") == "read"
     assert top.get("contents") == "read"
+
+
+def test_pr_review_stage2_can_read_check_runs() -> None:
+    # The verdict step refuses to bless a SHA that already carries a check run
+    # named `PR Review` (stage 1 runs from the PR head, so its job names are
+    # contributor-chosen). Reading check runs needs `checks: read`; without it
+    # the lookup errors and EVERY verdict reports an impostor that is not there.
+    assert _has_indented_line(_read("pr-review-run.yml"), "checks", "read"), (
+        "pr-review-run must grant `checks: read` for the second-producer check"
+    )

@@ -17,11 +17,10 @@ Vendored from the canonical shipwright monorepo. The WebUI has no Python
 #   (3) OpenRouter attribution headers (HTTP-Referer / X-Title) → the webui repo.
 #   (4) one docstring sentence ("uv run" → "the CI runner's Python").
 
-Invoked by `.github/workflows/pr-review.yml` for Tier-3 PRs only (external
-contributors, sensitive paths, or the `needs-review` label). Tier 1/2 PRs
-(iterate branches + Sven's manual PRs) are NEVER reviewed here — the tier
-filter lives in the workflow's `decide` job and `/shipwright-iterate` Step 8
-already covers them in the local subscription.
+Invoked by `.github/workflows/pr-review-run.yml` (stage 2) for Tier-3 PRs only
+(external contributors, sensitive paths, `needs-review`). The tier filter lives
+in stage 2's `tier` step — default-branch code over API data, moved there by
+iterate-2026-07-31-two-stage-pr-review; Step 8 covers Tier 1/2 locally.
 
 Steps: fetch the PR diff (`gh pr diff`) → load system+user prompts → POST to
 OpenRouter (`/chat/completions`, strict JSON) → parse the decision → post a
@@ -259,11 +258,10 @@ def main(argv: list[str] | None = None) -> int:
     # required gate on an untrusted (external/sensitive) PR, neither auto-passing
     # nor trusting the partial verdict is safe: a large diff must not be able to
     # BYPASS review by exceeding the size cap. Fail CLOSED — force a
-    # request-changes state + non-zero exit (below) so a human must review; a
-    # maintainer can apply the `skip-pr-review` label after a manual look. The red
-    # required check is also what lets the gh-pr-ci triage producer surface the PR
-    # as a tracked follow-up. (Until iterate-2026-06-17-pr-review-truncation-
-    # failclosed this returned EXIT_OK — a silent size-bypass of the gate.)
+    # request-changes state + non-zero exit (below) so a human must review; the
+    # red check is also what lets the gh-pr-ci triage producer track the PR.
+    # (Until iterate-2026-06-17-pr-review-truncation-failclosed this returned
+    # EXIT_OK — a silent size-bypass.)
     effective_decision = "block" if truncated else decision
     body = render_comment(review, model=model, truncated=truncated)
 
@@ -280,9 +278,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if truncated:
         # Partial review fails closed — needs human (see comment above).
+        # `skip-pr-review` is no longer a general override (stage 2's tier step
+        # ignores it on a sensitive path, which an oversize diff often touches).
         print(
             "[pr_review] diff was truncated — failing closed (needs human review). "
-            "Apply the `skip-pr-review` label after a manual review to override.",
+            "Split it below the size cap; `skip-pr-review` overrides this only on "
+            "a NON-sensitive-path PR, else it needs an admin merge.",
             file=sys.stderr,
         )
         return EXIT_BLOCK

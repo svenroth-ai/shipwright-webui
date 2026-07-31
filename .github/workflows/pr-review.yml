@@ -1,32 +1,75 @@
-name: PR Review
+name: PR Review Prepare
 
-# WebUI Tier-3 PR review — mirrors the shipwright monorepo B4.5 Phase 2
-# (.github/workflows/pr-review.yml). Only EXTERNAL contributors, SENSITIVE
-# paths (.github/workflows/, scripts/hooks/, scripts/ci/), or the
-# `needs-review` label reach the OpenRouter custom script. Tier 1/2 PRs
-# (iterate branches + the maintainer's manual PRs) skip the review job —
-# `/shipwright-iterate` Step 8 already reviews them locally.
+# Stage 1 of the two-stage Tier-3 PR review. Ported from the shipwright
+# monorepo (shipwright#437, iterate-2026-07-27-review-gate-failclosed-fork),
+# which replaced the single-stage shape this file used to carry.
 #
-# Required status check: the `PR Review` job. For Tier 1/2 the `review` job is
-# skipped (needs.decide.outputs.needs_review == 'false'); GitHub treats a
-# `needs:`-skipped job as success, so the required check still passes.
+# This stage runs on EVERY pull request, including one raised from a fork, and
+# holds NO credentials. Its jobs do two things: trigger stage 2
+# (`pr-review-run.yml`, which fires on this workflow's completion and holds the
+# credentials), and record what the contributor proposed.
 #
-# NOTE: `main` is not yet branch-protected. To make this a real merge gate (and
-# to arm B4.5 Phase 3 auto-merge), add `PR Review` as a required status check
-# and provision the `OPENROUTER_API_KEY` repo secret.
+# Why the split: GitHub withholds every repository secret from a
+# `pull_request` run raised from a fork, so the reviewer could not run on one
+# at all. The previous shape guarded its `decide` job on
+# `head.repo.full_name == github.repository`; on a fork PR that job was
+# skipped, `review` was skipped through `needs:`, and **GitHub scores a skipped
+# job as a SUCCESSFUL required check** — the required `PR Review` context went
+# green having reviewed nothing, while every other check still ran and still
+# blocked.
 #
-# Fork limitation: fork PRs have a read-only token and no secret access, so the
-# fork-guarded `decide` job does not run and `review` is skipped. The offline
-# `selftest` job still runs on forks. External fork PRs are handled manually.
+# NOTHING THIS STAGE PRODUCES IS TRUSTED. `pull_request` runs the workflow file
+# from the PR head, so a contributor controls this file and everything it
+# emits. The uploaded artifact is an AUDIT RECORD of what stage 1 saw — stage 2
+# reads no authorisation, no identity and no diff from it. The tier decision
+# and the reviewed diff are derived in stage 2 from the API, in default-branch
+# code the contributor cannot edit. An earlier upstream draft put the tier
+# decision here and let stage 2 honour it; that allowed a PR to declare itself
+# exempt and collect a green status. Do not move policy back into this file.
+#
+# Required status check: `PR Review` is NOT produced here. It is a commit
+# status posted by stage 2. That is deliberate and load-bearing — if stage 2
+# never reports, the context is absent, and an absent required context is
+# `pending`, which blocks the merge: silence counts as not passing, as a
+# mechanism rather than a convention. Nothing in this file may emit a check
+# under that name; two producers of one context is the ambiguity GitHub's own
+# docs warn against.
+#
+# NO `merge_group` trigger, and that is a constraint rather than an omission:
+# a required context in a merge queue must be reported by a run triggered on
+# `merge_group`, and neither `PR Review` nor `Reviewer Selftest` would ever
+# report on a queue entry. Entries would sit until they timed out. Fail-closed,
+# and irrelevant today (squash-PR-only, no queue) — but the moment a queue is
+# enabled, stage 1 needs `merge_group` AND stage 2 needs a different way to
+# resolve the change, because a queue ref has no pull request at its head SHA.
+#
+# `Reviewer Selftest` STAYS here, and is the one job whose name matters
+# outside this file: it is offline and credential-free, so it belongs on the
+# untrusted side by the same least-privilege logic that puts the reviewer on
+# the trusted one, and it is itself a required context that must keep
+# reporting on every pull request.
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, labeled]
+    # `unlabeled` matters as much as `labeled`, and is NOT in the upstream
+    # shape: without it, REMOVING the waiver label fires no event, so a waiver
+    # granted once could never be revoked — the green status earned under the
+    # label would simply stay. Adding a label re-decides; removing one must too.
+    #
+    # `edited` is deliberately ABSENT, and that is not an oversight. Changing a
+    # PR's base fires `edited`, not `synchronize`, so it looks like a bypass —
+    # but `branches: [main]` means a PR that targeted something else was never
+    # reviewed here and has NO status to inherit. Re-pointing it at main fires
+    # nothing we listen to, so the required context stays ABSENT, which blocks.
+    # The failure mode is "needs one more push to start the review", not "merges
+    # unreviewed". Adding `edited` would re-run the reviewer on every title and
+    # description edit to buy that convenience.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
-# Least-privilege GITHUB_TOKEN (OpenSSF Scorecard Token-Permissions): top-level
-# is read-only; only the `review` job widens to pull-requests:write to post the
-# Tier-3 review. `selftest` and `decide` need just contents:read.
+# Read-only token (OpenSSF Scorecard Token-Permissions). This stage reads an
+# attacker-influenced diff and needs nothing beyond reading it. The write
+# scopes live in stage 2, which never runs contributor code.
 permissions:
   contents: read
 
@@ -37,8 +80,10 @@ concurrency:
 jobs:
   selftest:
     name: Reviewer Selftest
-    # Offline, no secrets — runs on every PR (incl. forks) so a broken vendored
-    # copy of pr_review.py / a workflow-tier regression fails red in CI.
+    # Offline, no credentials — runs on every PR (incl. forks) so a broken
+    # vendored copy of pr_review.py / a workflow-shape regression fails red in
+    # CI. Its failure also reaches the verdict: stage 2 reads this workflow's
+    # overall conclusion and posts `PR Review = failure` when it is not success.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,95 +100,43 @@ jobs:
       # "gate could not run" code) and five of those tests fail — so this job
       # would be RED unconditionally and could no longer distinguish a real
       # vendored-file edit from baseline. A drift guard that is always red is
-      # not a drift guard.
+      # not a drift guard. The two-stage workflow guards parse YAML too.
       - name: Install pytest + PyYAML
         run: pip install pytest pyyaml
 
       - name: Run vendored reviewer self-tests
         run: python -m pytest scripts/ci/tests -q
 
-  decide:
-    name: Decide if review is needed
+  prepare:
+    name: Prepare review request
     runs-on: ubuntu-latest
-    # Fork-PR guard: forks cannot access OPENROUTER_API_KEY.
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    outputs:
-      needs_review: ${{ steps.tier.outputs.needs_review }}
-      reason: ${{ steps.tier.outputs.reason }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - id: tier
+      - name: Record the change for audit
         # All github context is hoisted into env vars; the run body below never
         # interpolates ${{ github.* }} directly (run-shell-injection guard,
         # semgrep yaml.github-actions.security.run-shell-injection).
+        #
+        # This is evidence, not input. The API serves the diff at the PR's
+        # CURRENT head; this preserves what was proposed at THIS sha, which is
+        # what survives a force-push.
         env:
-          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          LABELS: ${{ toJson(github.event.pull_request.labels.*.name) }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          # Manual skip override (emergency bypass). Safe to evaluate first
-          # because GitHub only lets users with triage/write+ permission apply
-          # labels — an external contributor cannot self-apply `skip-pr-review`
-          # to bypass their own Tier-3 review.
-          if echo "$LABELS" | jq -e 'index("skip-pr-review")' >/dev/null; then
-            echo "needs_review=false" >> "$GITHUB_OUTPUT"
-            echo "reason=skip-pr-review label set" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          # Manual force override
-          if echo "$LABELS" | jq -e 'index("needs-review")' >/dev/null; then
-            echo "needs_review=true" >> "$GITHUB_OUTPUT"
-            echo "reason=needs-review label set" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          # Tier 3a: sensitive paths (CI workflows, executed git hooks, the
-          # vendored reviewer itself).
-          changed=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
-          if echo "$changed" | grep -qE '^(\.github/workflows/|scripts/hooks/|scripts/ci/)'; then
-            echo "needs_review=true" >> "$GITHUB_OUTPUT"
-            echo "reason=sensitive path touched" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          # Tier 3b: external contributor (anyone except the maintainer + dependabot)
-          if [ "$PR_AUTHOR" != "svroch" ] && [ "$PR_AUTHOR" != "dependabot[bot]" ]; then
-            echo "needs_review=true" >> "$GITHUB_OUTPUT"
-            echo "reason=external contributor" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          # Otherwise Tier 1/2 — Step 8 already reviewed it; skip.
-          echo "needs_review=false" >> "$GITHUB_OUTPUT"
-          echo "reason=internal PR — Step 8 already reviewed" >> "$GITHUB_OUTPUT"
-
-  review:
-    name: PR Review
-    needs: decide
-    if: needs.decide.outputs.needs_review == 'true'
-    runs-on: ubuntu-latest
-    # pull-requests:write — the review job posts the Tier-3 review via the API.
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      # Default (shallow) checkout is enough: pr_review.py fetches the diff via
-      # `gh pr diff` (GitHub API) and only needs the prompt + script files on disk.
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Run Tier-3 PR review
-        # github context hoisted into env (run-shell-injection guard); the run
-        # body uses $PR_NUMBER / $REPO, never ${{ github.* }}.
-        env:
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SHIPWRIGHT_PR_REVIEW_MODEL: anthropic/claude-sonnet-4.6
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
         run: |
-          python scripts/ci/pr_review.py \
-            --pr-number "$PR_NUMBER" \
-            --repo "$REPO" \
-            --prompt-dir scripts/ci/pr_reviewer
+          set -euo pipefail
+          mkdir -p pr-review-request
+          git diff "$BASE_SHA" "$HEAD_SHA" > pr-review-request/pr.diff
+          jq -n --arg pr "$PR_NUMBER" --arg head "$HEAD_SHA" --arg base "$BASE_SHA" \
+            '{pr_number: $pr, head_sha: $head, base_sha: $base}' \
+            > pr-review-request/meta.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pr-review-request
+          path: pr-review-request/
+          retention-days: 3
