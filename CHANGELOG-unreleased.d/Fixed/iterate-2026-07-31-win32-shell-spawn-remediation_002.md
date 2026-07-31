@@ -1,0 +1,1 @@
+The published `npx @svenroth-ai/shipwright` entry point is pinned to LF line endings, so an installer packed from a Windows checkout can no longer ship a CRLF shebang that fails on macOS and Linux with `bad interpreter: /usr/bin/env node^M`. Existing clones should run `git add --renormalize bootstrapper/bin/shipwright.mjs` once.

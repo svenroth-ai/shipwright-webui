@@ -131,19 +131,38 @@ function resolveViaPathExt(name: string, cwd: string): string | undefined {
   return undefined;
 }
 
+/**
+ * Characters cmd.exe INTERPRETS, and which a surrounding pair of double quotes
+ * makes literal. A token carrying one must be quoted even without whitespace.
+ *
+ * Added iterate-2026-07-31-win32-shell-spawn-remediation. Until then the
+ * whitespace test alone was load-bearing only because the ONE caller sat behind
+ * `preview-session-manager.tokenizeCommand`, which refuses these characters in
+ * the profile command — but that fence never saw the RESOLVED path, and
+ * `resolveViaPathExt` builds one out of PATH directories. A user whose PATH
+ * contains `C:\R&D\` therefore got `cmd /d /s /c C:\R&D\tool.cmd`, which cmd
+ * splits at the `&`. Verified on Windows 11: discrete → "'C:\…\R' is not
+ * recognized as an internal or external command"; quoted → the shim runs.
+ *
+ * DELIBERATELY ABSENT, because quoting does not neutralise them:
+ *   `%` — `%VAR%` expands inside double quotes too (the upstream fence refuses it).
+ *   `"` — a token containing a quote cannot be wrapped safely by this scheme.
+ */
+const WIN32_CMD_SPECIAL = /[&|<>^]/;
+
 function win32NeedsQuote(token: string): boolean {
-  return token === "" || /\s/.test(token);
+  return token === "" || /\s/.test(token) || WIN32_CMD_SPECIAL.test(token);
 }
 
 function win32CmdWrap(target: string, rest: string[]): ResolvedSpawn {
   const parts = [target, ...rest];
   const command = win32ComSpec();
-  // No token has a space → discrete argv: Node quotes nothing it needn't and
+  // No token needs quoting → discrete argv: Node quotes nothing it needn't and
   // cmd.exe /d /s /c runs each token literally (caller keeps shell:false).
   if (!parts.some(win32NeedsQuote)) {
     return { command, args: ["/d", "/s", "/c", ...parts] };
   }
-  // A token has a space (e.g. `C:\Program Files\nodejs\npm.cmd`). Under `cmd /s`
+  // A token needs quoting (e.g. `C:\Program Files\nodejs\npm.cmd`). Under `cmd /s`
   // Node's own arg-quoting is stripped, so build the canonical
   // `cmd /d /s /c ""<quoted-shim>" <args>"` line ourselves and pass it verbatim:
   // `/s` strips ONLY the outer quote pair, leaving the inner shim-path quotes

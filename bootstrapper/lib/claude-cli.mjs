@@ -19,14 +19,40 @@ import os from "node:os";
 import path from "node:path";
 
 import { MANIFEST_RAW_URL, buildInstalledMap } from "./plugins.mjs";
-
-const SAFE_ARG = /^[A-Za-z0-9@._/:-]+$/;
+import { resolveSpawn } from "./win32-spawn.mjs";
 
 /**
- * Run the real `claude` CLI. On Windows `claude` is a `.cmd` shim, which
- * shell:false can't resolve (PATHEXT is ignored — the same npm.cmd trap this
- * repo hit before), so Windows goes through the shell. Args are whitelisted to
- * a safe charset first, so shelling out cannot smuggle a metacharacter.
+ * Argument charset gate for the `claude` CLI. Exported so BOTH directions can be
+ * asserted without starting a process (a gate that refuses everything would pass
+ * a refusal-only test). See `defaultRunClaude` for why it is still load-bearing
+ * after the shell:true removal.
+ */
+export const SAFE_ARG = /^[A-Za-z0-9@._/:-]+$/;
+
+/** The one "we could not run claude at all" verdict, identical on every platform. */
+const notFound = () => ({
+  ok: false,
+  code: null,
+  stdout: "",
+  stderr: "claude not found on PATH",
+});
+
+/**
+ * Run the real `claude` CLI, always with `shell: false`.
+ *
+ * On Windows `claude` is often a `.cmd` shim, which a bare `shell: false` spawn
+ * cannot reach: `CreateProcess` only ever appends `.exe`, and Node's
+ * CVE-2024-27980 hardening EINVAL-blocks a direct `.cmd`. That used to be
+ * answered with `shell: true`; it is now answered by `resolveSpawn`, which finds
+ * the real file via PATHEXT and invokes a shim through an explicit
+ * `cmd.exe /d /s /c` with discrete argv (see lib/win32-spawn.mjs).
+ *
+ * SAFE_ARG STAYS, and is still load-bearing — do not remove it as newly
+ * redundant. A `.cmd` target is still ultimately parsed by cmd.exe, and Node
+ * quotes an argument for spaces, not for `&` / `|` / `^` / `%`. The charset gate
+ * is what guarantees no token can carry one. What changed is that an `.exe`
+ * target (the common case — `claude.exe` from the native installer) now involves
+ * no cmd.exe at all.
  * @param {string[]} args
  */
 export function defaultRunClaude(args) {
@@ -35,11 +61,23 @@ export function defaultRunClaude(args) {
       return { ok: false, code: null, stdout: "", stderr: `refused unsafe claude arg: ${a}` };
     }
   }
-  const isWin = process.platform === "win32";
-  // Every arg is charset-gated by SAFE_ARG (rejects all cmd.exe metacharacters
-  // incl. %) before this call; shell:true is Windows-only .cmd/PATHEXT
-  // resolution, so there is no injection surface. Semgrep false positive.
-  const r = spawnSync("claude", args, { encoding: "utf-8", shell: isWin, timeout: 120_000 }); // nosemgrep: javascript.lang.security.audit.spawn-shell-true.spawn-shell-true
+  const plan = resolveSpawn(["claude", ...args]);
+  if (!plan) {
+    // Unresolvable on PATH. Reported, never delegated to cmd.exe's own
+    // cwd-first lookup (which a planted `.\claude.cmd` would win).
+    return notFound();
+  }
+  const r = spawnSync(plan.command, plan.args, {
+    encoding: "utf-8",
+    shell: false,
+    timeout: 120_000,
+    windowsVerbatimArguments: plan.windowsVerbatimArguments,
+  });
+  // POSIX takes `resolveSpawn`'s pass-through branch, so an absent `claude`
+  // arrives here as an ENOENT spawn error with EMPTY stderr instead of the
+  // win32 resolver's null. Report the SAME verdict on both platforms — a caller
+  // should not have to know which OS swallowed the message.
+  if (r.error && r.error.code === "ENOENT") return notFound();
   return {
     ok: r.status === 0 && !r.error,
     code: r.status ?? null,

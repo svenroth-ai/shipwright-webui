@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { runPreflight, resolvePython, extractVersion, renderVerdict } from "../lib/preflight.mjs";
+import { runPreflight, resolvePython, extractVersion, renderVerdict, defaultRun } from "../lib/preflight.mjs";
 import { MARK } from "../lib/util.mjs";
 
 /** Build an injected `run` from a { cmd: {ok, out} } table. */
@@ -96,4 +96,48 @@ describe("preflight — Python probe TEST-RUNS --version (Microsoft-Store stub t
     expect(extractVersion("Python 3.11.5")).toBe("3.11.5");
     expect(extractVersion("git version 2.44.0")).toBe("2.44.0");
   });
+});
+
+describe("preflight — defaultRun really starts a process, with no platform shell", () => {
+  /*
+   * These call the REAL `defaultRun` against the REAL OS. That is the point:
+   * `runPreflight` is exercised everywhere else through an injected `run`, so
+   * `defaultRun` itself — the seam that actually spawns — had no coverage at
+   * all. It is also the only layer that can falsify the shell:true removal
+   * (iterate-2026-07-31-win32-shell-spawn-remediation): process startup is not
+   * something a mock can be wrong about convincingly.
+   */
+
+  it("resolves and runs `node --version` (the one tool guaranteed present)", () => {
+    const r = defaultRun("node", ["--version"]);
+    expect(r.ok).toBe(true);
+    expect(r.code).toBe(0);
+    expect(extractVersion(r.stdout + r.stderr)).toMatch(/^\d+\.\d+/);
+  });
+
+  it("an absent tool is a clean ok:false verdict, never a throw", () => {
+    const r = defaultRun("shipwright-definitely-not-installed-xyz", ["--version"]);
+    expect(r.ok).toBe(false);
+    expect(r.stdout).toBe("");
+  });
+
+  it("a tool that exists but prints no version is still ok:false", () => {
+    // `node -e ""` exits 0 and prints nothing — the `\d+\.\d+` requirement is
+    // what rejects the MS-Store python3 stub, so it must not be satisfiable by
+    // exit code alone.
+    const r = defaultRun("node", ["-e", ""]);
+    expect(r.code).toBe(0);
+    expect(r.ok).toBe(false);
+  });
+
+  it.runIf(process.platform === "win32")(
+    "resolves a real .cmd shim through cmd.exe without shell:true (npx)",
+    () => {
+      // npx is a `.cmd` on Windows — the exact shim class that used to require
+      // shell:true. On POSIX there is no shim, hence the platform gate.
+      const r = defaultRun("npx", ["--version"]);
+      expect(r.ok).toBe(true);
+      expect(extractVersion(r.stdout + r.stderr)).toMatch(/^\d+\.\d+/);
+    },
+  );
 });
