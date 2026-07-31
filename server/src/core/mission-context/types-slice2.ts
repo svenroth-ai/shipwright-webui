@@ -81,12 +81,22 @@ export interface TestsArtifact extends ArtifactBase {
 // ---------------------------------------------------------------------------
 
 /**
- * The five passes. `self` was added once the producer began recording it
+ * The five PINNED passes — plus whatever else the producer records.
+ *
+ * `self` was added once the producer began recording it
  * (`iterate-2026-07-22-mission-review-record`): at trivial and small complexity
  * the Self-Review is the ONLY review that runs, so omitting it showed nothing
  * for the commonest case.
+ *
+ * The `(string & {})` arm is load-bearing, not laziness
+ * (`iterate-2026-07-31-review-record-tolerant-reader`): a record may carry a
+ * pass this build has never heard of — the producer's Stage-1 spec-compliance
+ * gate is the first — and the reader now renders it instead of reporting the
+ * whole record as corrupt. The five literals stay written out because they are
+ * still the pinned contract order and still what every label knows by name; the
+ * idiom keeps them in autocomplete while admitting the strangers.
  */
-export type ReviewType = "self" | "plan" | "code" | "doubt" | "external_code";
+export type ReviewType = "self" | "plan" | "code" | "doubt" | "external_code" | (string & {});
 
 /**
  * `not_run`        — a record EXISTS saying the pass did not run.
@@ -149,7 +159,12 @@ export interface ReviewArtifact extends ArtifactBase {
   kind: "review";
   detail: {
     type: "reviews";
-    /** ALWAYS all five types, in contract order (AC4). */
+    /**
+     * ALWAYS the five pinned types, in contract order (AC4) — followed by any
+     * pass the producer recorded that this build does not know by name, in the
+     * record's own key order. "All five, in order" is still guaranteed; "only
+     * five" no longer is.
+     */
     rows: ReviewRow[];
   } | null;
 }

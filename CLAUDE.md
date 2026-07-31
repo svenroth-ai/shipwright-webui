@@ -170,6 +170,10 @@ cd server && npm run dev
 
 `EADDRINUSE` on `npm run dev` usually means another worktree's dev server holds the port. Since v0.3.2 both halves fail loud instead of silently half-starting: Hono exits with a deterministic FATAL message (also for `EACCES` / `EADDRNOTAVAIL`), Vite via `strictPort: true`. `npm run dev:fresh` (dev-restart.js) reads `PORT` + `VITE_PORT` from the environment and kills only those two ports; the historic `VITE_ALT_PORT=5177` hardcode was removed in v0.3.2 — if you run Vite on 5177, set `VITE_PORT=5177` explicitly.
 
+## Review subagents: standing request. Workflows: ask every time.
+
+**The review cascade is requested by default — spawn it, never pause to ask, and never record a review `not_run` citing a session policy.** That is `spec-reviewer` → `code-reviewer` → `doubt-reviewer` plus the review subagents other phase skills prescribe (build Step 6, campaign review). Claude Code withholds subagent spawning until the user asks; **this file is that request, and it stands for every session.** **The grant covers reviewers, not fan-out.** Dynamic workflows, deep-research, and parallel implementation subagents (build's `section-builder` loop) spend openly and stay the operator's call — ask explicitly, every time, and never infer them from the grant above. A project that does not want this can delete the section; it is deliberately plain and must not be compressed further, because it has to read as the user's request at runtime.
+
 ## Asking the user questions (plain language)
 
 When you ask the user a question — a clarification, a choice between options,

@@ -1,0 +1,327 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-07-31-review-record-tolerant-reader",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-07-31T08:21:35.093548+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "Widening `ReviewType` from a closed union to `string & {}` changes more than the reader type: any server or client code using `Record<ReviewType, …>`, exhaustive `switch` statements, label maps, ordering maps, or assumptions that a review type is one of five may now be incomplete or type-unsound. The plan identifies `reviewTypeLabel`, but does not explicitly require an all-usages audit.",
+          "suggestion": "Search both server and client for all `ReviewType` references and for the five literal values. Update every display/map/switch site to have an intentional unknown-type behavior, or keep closed-union types at internal known-only boundaries and use `string` only for the wire/rendered row type. Add at least one type-level or behavioral regression test for a non-`spec` unknown key.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The label derivation is underspecified for the full accepted identifier grammar. `spec` → “Spec review” is clear, but the accepted keys also permit uppercase characters, underscores, hyphens, mixed forms, and 64-character names (for example, `external-v2_GATE`). A loosely implemented fallback can produce inconsistent labels, silently alias distinct keys, or accidentally become a special-case name map, contrary to “derived, never invented.”",
+          "suggestion": "Specify and implement one deterministic, generic formatter—e.g., preserve the raw key as the authoritative identity, split `_`/`-` only for display, normalize casing consistently, and append “ review.” Test representative valid keys including hyphenated, underscored, mixed-case, and unknown names whose formatted labels could otherwise collide. Keep the raw key available in the row model if the UI needs an unambiguous reference.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "Unknown review keys make the previously bounded five-row record effectively unbounded. Capping only in `artifacts-slice2.ts` protects the card layout, but `readReviewRecord` still validates and creates a row and findings structure for every supplied key, and downstream serialization may still carry all rows until the presentation layer. A malformed or unexpectedly large workspace artifact can therefore create avoidable server CPU/memory and response-size pressure.",
+          "suggestion": "Confirm an existing artifact/file-size limit applies to `reviews.json`. If not, add a deliberate aggregate bound at the appropriate ingestion or artifact-assembly boundary, with an explicit integrity-fault behavior if it is exceeded; do not silently drop entries during validation. If the product requirement truly permits arbitrary counts, ensure the capped artifact sent to the client contains only rendered rows plus aggregate summary/truncation metadata, rather than retaining a potentially huge row list.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "Renaming `RECORD_SCHEMA_VERSION` to `MIN_RECORD_SCHEMA_VERSION` is sound for the current v1 reader, but it can blur two distinct concepts: the format version written by a producer and the minimum version the reader can parse. A shared or externally imported constant could unintentionally change writer/test behavior when its equality semantics disappear.",
+          "suggestion": "Audit all imports before renaming. Keep a separate writer/current-schema constant if one is used outside this reader, and make the reader predicate explicit (`Number.isInteger(version) && version >= 1`). Add a test that a future version is accepted only when its entries still satisfy the current entry contract, which captures the intended compatibility boundary.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "This change promotes previously rejected artifact-controlled keys into UI-visible text. The proposed grammar is a good first control, but the derived label must remain rendered as plain React text and must not be used as HTML, a CSS selector, an object-path lookup, or an unsafe DOM attribute.",
+          "suggestion": "Ensure the label helper returns a plain string rendered through normal JSX escaping, and use own-property enumeration (`Object.entries` / `Object.prototype.hasOwnProperty`) when iterating and checking pinned keys. Retain or add a plain-object guard for `reviews` so inherited properties cannot participate in validation or row ordering.  Overall, the central design is sound: it correctly moves compatibility tolerance to record version and review-key membership while retaining strict per-entry validation. Address the cross-codebase `ReviewType` audit and make the label/resource-bound behavior explicit before merging.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-07-31T07:52:31.298842+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[gemini] \" ...}}`.\n        *   If the code iterates `Object.entries(reviews)`, it's safe.\n        *   But if `review['constructor']` is ever accessed, or if standard `in` checks are used elsewhere without `.hasOwnProperty`, it can cause glitches. Since the regex is `^[A-Za-z][A-Za-z0-9_-]{0,63}$`, `constructor` passes.\n        *   Is this a real issue? It's relatively low risk in modern TS using `Object.entries()`, but `__proto__` violates the regex since it starts with `_`. So prototype pollution is handled. `constructor` only ruins things if they invoke it, which they won't. I'll pass on this as\n\n[openai] 1. **Category: dependency**  \n   **Severity: medium**  \n   **Finding:** Widening `ReviewType` from a closed union to `string & {}` changes more than the reader type: any server or client code using `Record<ReviewType, …>`, exhaustive `switch` statements, label maps, ordering maps, or assumptions that a review type is one of five may now be incomplete or type-unsound. The plan identifies `reviewTypeLabel`, but does not explicitly require an all-usages audit.  \n   **Suggestion:** Search both server and client for all `ReviewType` references and for the five literal values. Update every display/map/switch site to have an intentional unknown-type behavior, or keep closed-union types at internal known-only boundaries and use `string` only for the wire/rendered row type. Add at least one type-level or behavioral regression test for a non-`spec` unknown key.\n\n2. **Category: edge-case**  \n   **Severity: medium**  \n   **Finding:** The label derivation is underspecified for the full accepted identifier grammar. `spec` → “Spec review” is clear, but the accepted keys also permit uppercase characters, underscores, hyphens, mixed forms, and 64-character names (for example, `external-v2_GATE`). A loosely implemented fallback can produce inconsistent labels, silently alias distinct keys, or accidentally become a special-case name map, contrary to “derived, never invented.”  \n   **Suggestion:** Specify and implement one deterministic, generic formatter—e.g., preserve the raw key as the authoritative identity, split `_`/`-` only for display, normalize casing consistently, and append “ review.” Test representative valid keys including hyphenated, underscored, mixed-case, and unknown names whose formatted labels could otherwise collide. Keep the raw key available in the row model if the UI needs an unambiguous reference.\n\n3. **Category: risk**  \n   **Severity: medium**  \n   **Finding:** Unknown review keys make the previously bounded five-row record effectively unbounded.  […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/mission-context/artifacts-slice2.ts",
+          "line": 28,
+          "finding": "The one site that genuinely LOST a check. Record<ReviewRow[\"reviewType\"], string> maps over a union now containing (string & {}), which collapses into an index signature: the five-key exhaustiveness check is gone, and reviewWord() is declared : string while returning undefined for any unpinned type (noUncheckedIndexedAccess is not enabled). Missed by my own audit because I grepped for ReviewType, not for ReviewRow[\"reviewType\"]. Unreachable today only because the pair has zero callers.",
+          "suggestion": "FIXED: keyed on the pinned five spelled out, restoring exhaustiveness; reviewWord falls back to the run's own key instead of undefined.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "client/src/lib/missionArtifacts.ts",
+          "line": 288,
+          "finding": "Two different passes can render as the same visible name: spec and spec_ both derive to 'Spec review' and HTML collapses the difference. The disambiguator was data-review-type - a DOM attribute no human can see - so the panel would show two rows with identical names, different statuses and counts, in the one artifact whose stated purpose is not misleading the reader. My own test constructed exactly such a pair and asserted only the invisible attribute, certifying an ambiguity it did not resolve.",
+          "suggestion": "FIXED: an unpinned pass renders its raw key with the label ('Spec review (spec_)'), and the test now asserts the VISIBLE text.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "test",
+          "file": "server/src/test/mission-context-types-sync.test.ts",
+          "line": 196,
+          "finding": "The mirror drift-guard is structurally blind to the arm this change added: unionMembers collects quoted literals only, so ReviewType compares equal whether or not either side still carries (string & {}). A future edit reverting the client mirror to the closed union passes green while the server sends types the client's types deny.",
+          "suggestion": "FIXED: new server/src/test/mission-context-review-type-widening.test.ts asserts the arm on both sides (own file - the sync test is past the 300-line rule and may not grow).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "client/src/lib/missionArtifacts.ts",
+          "line": 289,
+          "finding": "reviewTypeLabel now dereferences its argument and can throw where the exhaustive switch previously degraded to undefined; the widened ReviewType means TS no longer stops a caller passing a non-string, and nothing validates the response body. A malformed row would take down the whole Mission panel.",
+          "suggestion": "FIXED: typeof guard before .replace, plus a test that neither undefined nor null throws.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/mission-context/review-record.ts",
+          "line": 206,
+          "finding": "'missing' is the wrong word for a stranger that is present but not an object: {\"spec\": null}, {\"spec\": 42} and {\"spec\": []} all reported 'the record is missing the spec review', and a stranger came from Object.keys so it is never actually missing.",
+          "suggestion": "FIXED: the branch is split - 'missing' for undefined/null, 'is not an object' otherwise.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "duplication",
+          "file": "server/src/core/mission-context/review-state.ts",
+          "line": 59,
+          "finding": "The pinned five became two unguarded literals. Both were ReviewType[]-annotated before (which at least caught a typo); after the widening both are bare as const with no cross-check, so if they diverged the record path and the marker path would render different row sets and nothing would fail.",
+          "suggestion": "FIXED: REVIEW_TYPES is exported from review-record.ts and imported by review-state.ts - one literal.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/mission-context/review-record.ts",
+          "line": 203,
+          "finding": "The hasOwnProperty call guards a different thing from the documented Object.keys filter - a globally polluted Object.prototype shadowing a PINNED key - and was neither documented nor tested, so it read as redundant and was a prime candidate for a later 'simplification'. Relatedly no test pinned prototype-shaped keys at all.",
+          "suggestion": "FIXED: comment added; __proto__ added to the rejecting cases and constructor to the accepting ones.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "client/e2e/helpers/mission-s2-fixtures.ts",
+          "line": 152,
+          "finding": "Orphaned JSDoc: the 'A per-run review record...' block ended up above specGatePass() (which has its own doc) while reviewRecord() had none.",
+          "suggestion": "FIXED: moved back onto reviewRecord.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "test",
+          "file": "server/src/core/mission-context/review-record.validation.test.ts",
+          "line": 224,
+          "finding": "The identifier grammar was tested only on the rejecting side of the length bound: 65 chars rejected, but 64 and 1 never asserted, so REVIEW_KEY's {0,63} could be changed to {0,62} and every test would still pass.",
+          "suggestion": "FIXED: accepting cases added (1 char, 64 chars, constructor, v2-GATE_x). Fixing this ALSO exposed a defect in my own test helper: reviews[\"__proto__\"] = x sets the prototype rather than creating a key, so that case had been asserting against a record that never carried it. Now written with Object.defineProperty, which is what JSON.parse does on the read side.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T08:30:13.728757+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 8,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary",
+          "file": "server/src/core/mission-context/review-record-entry.ts",
+          "line": null,
+          "finding": "Claim under doubt: accepting a newer schema_version is safe because per-entry validation is total — toRow validates only the fields it NAMES and rejects no unknown entry field; the producer's validate_entry does the same. The version pin was therefore the only thing that could ever catch an ADDITIVE field - and additions are what the producer's contract actually promises, so the safety argument covered reshapes and not the expected evolution. A v2 spec entry {status:'completed', findings_count:0, verdict:'blocked'} would render 'Spec review - ran' and feed the summary '6 reviews ran and raised no issues' for a hard gate that blocked.",
+          "suggestion": "FIXED: forward-reading is now disclosed. MAX_KNOWN_RECORD_SCHEMA_VERSION plus a caveat appended to the artifact summary; new AC10; pinned by a unit test and by a real-browser assertion on artifact-summary.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "coupling",
+          "file": ".shipwright/planning/iterate/iterate-2026-07-31-review-record-tolerant-reader/reviews.json",
+          "line": null,
+          "finding": "Claim under doubt: the tolerance's bound is the reviews object, so the reader sees the answer — THIS RUN's own record carries gates.spec = completed with 5 findings, two beginning 'BLOCKING'. No webui code reads gates. buildReviewArtifact therefore renders '14 issues raised across 3 reviews. 2 further reviews are not recorded' for a record holding 19 findings across 5 answered passes - and that tail implies it has told you everything it could see. Live today, not hypothetical.",
+          "suggestion": "FIXED: passes under any record-level key the reader does not read are counted and disclosed, detected by SHAPE rather than by the name gates, so the next sibling is disclosed the day it appears. Verified on this run's real record: it now emits the caveat. Does NOT preempt the monorepo promotion.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "ordering",
+          "file": "server/src/core/mission-context/review-state.ts",
+          "line": null,
+          "finding": "Claim under doubt: shipping this before the monorepo half is sufficient sequencing — Merge-order is not install-order. The plugin updates via the marketplace cache; the webui is manually rebuilt and deployed on this project. New-plugin + old-webui makes readReviewRecord invalid, and review-state.ts does not degrade - all FIVE rows render 'exists but could not be read. That is a data problem, not a clean result', which is FALSE under version skew and fires on every run until someone rebuilds. No handshake exists in either direction.",
+          "suggestion": "ACCEPTED as a real constraint rather than fixed in code. Carried into the CHANGELOG drop, the ADR and the closing handoff so the monorepo promotion is gated on a DEPLOYED webui, not on merge order.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary",
+          "file": "server/src/core/mission-context/review-record.ts",
+          "line": null,
+          "finding": "Claim under doubt: unknown keys are additive, so the pinned five still mean what they always meant — AC6 forbids the five from shrinking, so a superseded pinned pass cannot be retired: leaving it pending says 'has not answered yet' for a run where it ran, closing it not_run asserts it did not run, and dual-writing double-counts the summary (counted=6, findings=23 for 14 real issues, the same nine findings rendered twice). A rename is worse - a missing external_code blanks the entire card - and the header advertising tolerance never said the five are an un-renameable freeze.",
+          "suggestion": "FIXED (documentation): the freeze is now stated in the header where a producer author will read it, including that a superseded pass keeps its key and closes with a disposition.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "coupling",
+          "file": "server/src/core/mission-context/review-record-entry.ts",
+          "line": null,
+          "finding": "Claim under doubt: tolerance is per-key, so a stranger cannot hurt the pinned rows — toRow returning a string invalidated the WHOLE record, so a stranger with an unknown status replaced five perfectly-parsed rows with an integrity-fault message. Tolerance was per-key; failure was per-record. The corruption prior is the wrong one for the single object this change defines as unknown-by-construction, and the costs are asymmetric: calling evolution corruption destroys five healthy rows, calling corruption evolution costs one row already unknown.",
+          "suggestion": "FIXED: a stranger whose entry fails degrades to its own explicitly-unreadable row; pinned entries stay strict. AC4 amended, six tests rewritten to assert degradation, and one new test pins that a pinned failure is still the whole record.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "reversibility",
+          "file": "shipwright/shared/scripts/lib/review_record_schema.py",
+          "line": null,
+          "finding": "Claim under doubt: the follow-up monorepo change (promote spec + bump SCHEMA_VERSION to 2) is safe once this ships — The producer's validate_record rejects a version NEWER than its constant and check_review_record fails CLOSED, telling the operator to 'Repair or delete' an immutable git-tracked review history that is perfectly fine. Older plugin caches are routine - the producer's own _validate_gates comment says so. The bump buys this reader nothing, because it is a floor now, and only creates old-reader casualties.",
+          "suggestion": "CHANGES THE FOLLOW-UP: the monorepo half should be promotion-only, with no version bump. Raised with the operator rather than decided here - it is the other repo's call.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "coupling",
+          "file": "server/src/core/mission-context/review-record-entry.ts",
+          "line": null,
+          "finding": "Claim under doubt: the per-row and per-record bounds are consistently sized — MAX_FINDINGS_PER_ROW's rationale was sized for a five-row list; the aggregate is now 32x50=1600, up from 250. Separately and speculatively, 32 passes at the producer's 200-finding adapter cap would exceed MAX_RECORD_BYTES, whose own comment justifies itself against a 46 KB record.",
+          "suggestion": "DOCUMENTED and deliberately left: the per-row cap is about one row's share of the panel, which did not change. The arithmetic half is acknowledged in the comment as speculative.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "coupling",
+          "file": "server/src/core/mission-context/artifacts-slice2.ts",
+          "line": null,
+          "finding": "Claim under doubt: the invariants of this change are fenced against a future simplifier — Iterating the record's own keys instead of REVIEW_TYPES is shorter, compiles, and silently deletes the missing-pinned-pass check. And REVIEW_WORD's spelled-out key set is comment-only: rewriting it as Record<ReviewType,string> compiles clean and fails no test, yet the ledger claimed it was 'covered by the server suite'.",
+          "suggestion": "FIXED: the loop comment now names the consequence, and ledger row 27 was corrected from a coverage claim to covered-by-existing-test - the reviewer was right that no test can fail on it.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T08:52:42.788921+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-07-31T08:23:30.075048+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[gemini] ```text\nSHIPWRIGHT_VERDICT: approve\n```\n\n[openai] No concrete defects found. The reader now accepts newer schema versions and identifier-form unknown keys, validates all entries through the same mapping path, preserves pinned-first ordering, enforces the 32-pass bound, and the widened wire type/label behavior supports rendering unknown rows without weakening malformed-record handling. The added unit and E2E tests exercise the forward-compatible path and key integrity regressions meaningfully.\n\nOverall assessment: ship-as-is.  \nSHIPWRIGHT_VERDICT: approve"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 5,
+      "findings": [
+        {
+          "severity": null,
+          "category": "missing-deliverable",
+          "file": ".shipwright/planning/01-adopted/spec.md:937",
+          "line": null,
+          "finding": "BLOCKING (first pass): FR-01.66 in .shipwright/planning/01-adopted/spec.md still ended at AC (N); no (O), no 2026-07-31 string anywhere, and spec.md was not in the diff at all. Worse, the existing AC (M) still asserted the record path as a closed five-pass contract - the exact rule this iterate inverts - so the adopted spec would have contradicted shipped behaviour. FIXED: AC (O) appended and the FR table row's Updates field extended, then re-reviewed and approved. — spec: iterate spec Spec Impact: 'MODIFY: FR-01.66 ... Appended as AC (O)'",
+          "suggestion": "iterate spec Spec Impact: 'MODIFY: FR-01.66 ... Appended as AC (O)'",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "out-of-scope-violation",
+          "file": "server/src/core/mission-context/review-state.ts:53",
+          "line": null,
+          "finding": "BLOCKING (first pass): the diff DOES touch review-state.ts (REVIEW_TYPE_ORDER gains `as const`), which the mini-plan declared and the spec forbade - two artifacts of the same run asserting opposite things about one file, with the code silently following the mini-plan. FIXED: the sentence was what was wrong, not the code (widening ReviewType would otherwise blind that annotation to a typo), so the bullet now reads 'marker fallback BEHAVIOUR untouched' and names the tightening as the single attributed exception. — spec: iterate spec Out of Scope: 'The marker fallback path (review-state.ts) - byte-for-byte untouched.'",
+          "suggestion": "iterate spec Out of Scope: 'The marker fallback path (review-state.ts) - byte-for-byte untouched.'",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "stale-documentation",
+          "file": "server/src/core/mission-context/types-slice2.ts:162",
+          "line": null,
+          "finding": "types-slice2.ts still documented ReviewArtifact.detail.rows as 'ALWAYS all five types, in contract order (AC4)' - false as of this diff, in the source-of-truth file the client mirrors, twelve lines below a comment the diff did update. The sync guard strips comments, so no test would ever catch it. FIXED. — spec: AC1/AC2 - the row list is no longer exactly five",
+          "suggestion": "AC1/AC2 - the row list is no longer exactly five",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "yagni",
+          "file": "server/src/core/mission-context/review-record-entry.ts:58",
+          "line": null,
+          "finding": "The extraction exported `str`, which was module-private before and has no importer anywhere - the split widened a public surface it did not need to. FIXED: made module-private again. — spec: mini-plan: the split is a pure move, not a new public surface",
+          "suggestion": "mini-plan: the split is a pure move, not a new public surface",
+          "source": "spec-reviewer"
+        },
+        {
+          "severity": null,
+          "category": "test-gap",
+          "file": "server/src/core/mission-context/review-record.validation.test.ts:216",
+          "line": null,
+          "finding": "Five of the six clauses AC4 enumerates had an unknown-key test case; the sixth (an unstructured parse that nonetheless carries itemized findings) had none. Mechanically met via the shared code path, but not pinned. FIXED: added the case. — spec: AC4 - an unknown entry is validated exactly like a known one, all six clauses",
+          "suggestion": "AC4 - an unknown entry is validated exactly like a known one, all six clauses",
+          "source": "spec-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-07-31T08:22:13.397561+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
