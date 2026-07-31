@@ -1,6 +1,6 @@
 {
   "run_id": "iterate-2026-07-31-revendor-accepted-risk-gate",
-  "date": "2026-07-31T21:23:11.756451Z",
+  "date": "2026-07-31T21:57:11.179230Z",
   "event_at": "2026-07-31T21:19:39.908279+00:00",
   "type": "change",
   "complexity": "medium",
@@ -98,6 +98,21 @@
         "evidence": "falsified: `20261028` -> RED naming the type; the original false pass, reproduced before fixing"
       },
       {
+        "behavior": "An RFC3339 timestamp expired_at is rejected (only a plain YAML date resolves to Go time.Time)",
+        "disposition": "tested",
+        "evidence": "falsified: `2026-10-28T00:00:00Z` -> RED; tightened from isinstance to `type(raw) is date` after the Tier-3 PR review"
+      },
+      {
+        "behavior": "A quoted date-string expired_at is rejected",
+        "disposition": "tested",
+        "evidence": "falsified: `\"2026-10-28\"` -> RED; the quoted form is the one Go most plausibly refuses, and the earlier draft accepted it"
+      },
+      {
+        "behavior": "An impossible day fails the whole-file decode, as it would for Trivy",
+        "disposition": "tested",
+        "evidence": "falsified: `2026-02-31` -> RED via the strict-decode guard (PyYAML fails the load)"
+      },
+      {
         "behavior": "A non-mapping ignore entry is rejected",
         "disposition": "tested",
         "evidence": "falsified: bare-string entry -> RED 'entry #0 is a str, not a mapping'"
@@ -156,8 +171,8 @@
       }
     ],
     "counts": {
-      "testable": 25,
-      "tested": 25,
+      "testable": 28,
+      "tested": 28,
       "untestable": 2,
       "untested_testable": 0
     },

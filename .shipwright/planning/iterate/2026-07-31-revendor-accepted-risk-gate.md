@@ -227,6 +227,37 @@ Upstream owns the function; noting it here so the next reader need not re-derive
 it. Related and accepted: a lapsed *unregistered* ignore entry is now silent dead
 config, where the retired guard listed it by name.
 
+### Tier-3 CI review — one objection upheld, and my rationale was the weak part
+
+The automated Tier-3 reviewer (`anthropic/claude-sonnet-4.6`) blocked on two
+grounds: the sensitive-path maintainer gate (Sven authorised it on 2026-07-31),
+and a **concrete correctness objection** — `isinstance(raw, date)` silently
+accepts a YAML timestamp, which it called a fail-open left unresolved "with a
+rationale that is incomplete".
+
+Upheld, and fixed harder than asked. My original defence was that a false RED is
+worse than an unverified miss. That was weak in **both** directions:
+
+* Trivy decodes `expired_at` into a Go `time.Time`, and yaml.v3 resolves ONLY a
+  YAML `!!timestamp` into that type — so the **quoted** form (`"2026-10-28"`, a
+  plain `str`) is the one Go most plausibly REFUSES. The draft was therefore most
+  permissive exactly where the risk is highest, while worrying about the
+  timestamp, which yaml.v3 probably *does* accept.
+* The false-RED fear was hypothetical: all three live entries are plain unquoted
+  dates, so requiring that form costs nothing and **removes** the unverified
+  branch instead of documenting it.
+
+Now `type(raw) is date` — not `isinstance` — so `datetime` cannot slip through.
+Quoted strings, timestamps and ints are all rejected with "write it UNQUOTED as
+YYYY-MM-DD", a remediation that moves every rejected form to the one accepted
+form (the old "quote it" advice moved a caught case into an *uncaught* one). An
+impossible day like `2026-02-31` never reaches the check: PyYAML fails the load
+and the strict-decode guard turns that into the whole-file failure Trivy would
+also produce. All four falsified red; the three live entries still pass.
+
+Checkable offline because PyYAML's resolution mirrors yaml.v3's: unquoted date ->
+`date`, quoted -> `str`, RFC3339 -> `datetime`, `20261028` -> `int`.
+
 ## Affected Boundaries
 
 - `scripts/ci/*.py` ↔ upstream `shared/scripts/**` (vendoring boundary; sha256 manifest)

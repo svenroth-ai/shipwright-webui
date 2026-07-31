@@ -26,16 +26,10 @@ is CR-2's shape exactly.
 
 from __future__ import annotations
 
-import re
 from datetime import date
 
 import yaml
 from accepted_risks_paths import TRIVYIGNORE
-
-#: Trivy's ONLY accepted `expired_at` shape — the Go layout `2006-01-02`.
-#: Deliberately STRICTER than `accepted_risks.coerce_date`, which slices `[:10]`
-#: and so accepts trailing junk the scanner rejects.
-_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 class _StrictLoader(yaml.SafeLoader):
@@ -82,20 +76,17 @@ def test_no_trivy_suppression_has_an_unreadable_expiry() -> None:
     `vulnerabilities:` being a list, each entry being a mapping with a string
     `id`, and `expired_at` matching Trivy's layout.
 
-    NOT covered, each for a stated reason rather than by oversight:
+    `expired_at` must be a PLAIN YAML DATE — `type(...) is date`. A quoted
+    string, an RFC3339 timestamp and an int are all rejected, because Trivy
+    decodes the field into a Go `time.Time` and yaml.v3 resolves only a YAML
+    `!!timestamp` into that type. An earlier draft accepted the quoted and
+    timestamp forms as "unverified, and a false red is worse"; that was wrong in
+    both directions and is recorded in the code comment below.
 
-    * a `misconfigurations:`/`secrets:` section — a real Trivy suppression
-      channel that neither this guard nor `read_trivyignore_ids` reads, so the
-      gate's "the `.trivyignore.yaml` channel" is narrower than the file;
-    * a QUOTED but well-formed date, and a YAML TIMESTAMP
-      (`2026-10-28T00:00:00Z`, which PyYAML builds as a `datetime` and so passes
-      the `date` check). Both are accepted because Trivy is not installed on the
-      authoring machine, so whether it rejects them is UNVERIFIED — and the two
-      errors are not symmetric. A wrong REJECT reds CI on a legitimate file; a
-      wrong ACCEPT ends with Trivy dropping the ignore file and the suppressed
-      alerts RETURNING, which is loud rather than hidden. This guard takes the
-      loud failure. Settle it by running `trivy fs --ignorefile` against a file
-      in each form and tighten to `type(raw) is date` if the scanner refuses.
+    NOT covered, stated rather than implied: a `misconfigurations:`/`secrets:`
+    section — a real Trivy suppression channel that neither this guard nor
+    `read_trivyignore_ids` reads, so the gate's "the `.trivyignore.yaml` channel"
+    is narrower than the file itself.
 
     Fails CLOSED on everything it does look at.
     """
@@ -162,35 +153,35 @@ def test_no_trivy_suppression_has_an_unreadable_expiry() -> None:
         raw = entry.get("expired_at")
         if raw is None:
             continue
-        # Accepts a YAML timestamp too (`datetime` subclasses `date`), which is
-        # DELIBERATE and listed as a residual in the docstring: Trivy decodes
-        # into a Go `time.Time` and yaml.v3 resolves RFC3339 into that type
-        # natively, so a timestamp is plausibly ACCEPTED and Trivy is not
-        # installed here to settle it. (External code review.)
-        if isinstance(raw, date):
+        # EXACTLY a plain YAML date — `type(...) is date`, not `isinstance`, so a
+        # `datetime` (which subclasses it) does NOT slip through.
+        #
+        # Trivy decodes this field into a Go `time.Time`, and yaml.v3 resolves
+        # ONLY a YAML `!!timestamp` scalar into that type. PyYAML models the same
+        # resolution, which is what makes this checkable offline: unquoted
+        # `2026-10-28` -> `date`, quoted `"2026-10-28"` -> `str`, RFC3339 ->
+        # `datetime`, `20261028` -> `int`. An impossible day like `2026-02-31`
+        # never reaches here — PyYAML fails the load, and the strict-decode guard
+        # above turns that into the whole-file failure Trivy would also produce.
+        #
+        # STRICTER than the earlier draft, deliberately. That version accepted a
+        # quoted string and a timestamp, arguing a false RED is worse than an
+        # unverified miss. The argument was weak in BOTH directions: the QUOTED
+        # form is the one Go most plausibly REJECTS (a `str` does not unmarshal
+        # into `time.Time`), so the draft was most permissive exactly where the
+        # risk is highest — and since all three live entries are plain dates,
+        # requiring that form costs nothing and REMOVES the unverified branch
+        # instead of documenting it. The remediation is also safe now: "write it
+        # unquoted as YYYY-MM-DD" moves every rejected form to the one accepted
+        # form, where the old "quote it" advice moved a caught case into an
+        # uncaught one. (Tier-3 PR review; external code review.)
+        if type(raw) is date:
             continue
-        if not isinstance(raw, str):
-            # Remediation matters here: the previous wording said "quote it",
-            # and following it on a YAML int turned a CAUGHT case into an
-            # uncaught one — `"20261028"` parses as basic ISO 8601 on 3.11, so
-            # the guard went silent while `coerce_date` began returning a date
-            # the operator never wrote. (Stage-3 doubt review, D-2.)
-            malformed.append(
-                f"{entry.get('id')} (expired_at {raw!r} — a {type(raw).__name__}. "
-                "Write it UNQUOTED as YYYY-MM-DD)"
-            )
-            continue
-        stripped = raw.strip()
-        readable = bool(_ISO_DATE.fullmatch(stripped))
-        if readable:
-            try:
-                date.fromisoformat(stripped)
-            except ValueError:  # shape is right, the day is not (e.g. 2026-02-31)
-                readable = False
-        if not readable:
-            malformed.append(
-                f"{entry.get('id')} (expired_at {raw!r} — not a YYYY-MM-DD date)"
-            )
+        malformed.append(
+            f"{entry.get('id')} (expired_at {raw!r} — a {type(raw).__name__}. "
+            "Write it UNQUOTED as YYYY-MM-DD: Trivy decodes this field into a Go "
+            "time.Time, which only a plain YAML date resolves to)"
+        )
 
     assert not malformed, (
         "these .trivyignore.yaml entries have an unparseable `expired_at`. Trivy "
