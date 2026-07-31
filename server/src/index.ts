@@ -32,12 +32,8 @@ import { requestLogger } from "./middleware/logger.js";
 import { ProjectManager, type ProjectManagerDeps } from "./core/project-manager.js";
 import { SdkSessionsStore } from "./core/sdk-sessions-store.js";
 import { SessionWatcher } from "./core/session-watcher.js";
-import {
-  probeClaudeVersion,
-  resolveClaudeBin,
-  selfHealClaudePath,
-  type ClaudeVersionInfo,
-} from "./core/cli-compat.js";
+import { probeClaudeVersion, type ClaudeVersionInfo } from "./core/cli-compat.js";
+import { resolveClaudeBin, selfHealClaudePath } from "./core/claude-bin-resolver.js";
 import { PreviewSessionManager } from "./core/preview-session-manager.js";
 import {
   loadProfile as loadProfileReal,
