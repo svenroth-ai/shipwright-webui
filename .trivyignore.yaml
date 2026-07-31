@@ -34,6 +34,21 @@
 #   `Accepted-risk register (gate)`). Drop the flag and you silently lose BOTH
 #   the suppression and the tripwire.
 #
+#   THE TWO DATES LAPSE A DAY APART, AND THE GATE GOES RED ON THE EARLIER ONE.
+#   `expired_at` here lapses ON its date (Trivy parses it as midnight, so any
+#   real "now" on that day is already past it); the register's `expires` lapses
+#   the day AFTER. Every entry below pairs the two on the SAME day, so on each
+#   `expired_at` there is a one-day window in which `check` fails with
+#   "STALE trivy-ignore: <id> ... its own expiry has passed" while `expire` is
+#   still green. That is correct — Trivy has stopped suppressing while the
+#   register still claims the acceptance — but it reports as DRIFT, not as the
+#   EXPIRED you would expect from the register's own "the date itself is still
+#   active" rule. Renew BOTH dates, or offset `expired_at` one day later than
+#   `expires` so the actionable expiry fires first. Verified against the
+#   re-vendored gate (iterate-2026-07-31-revendor-accepted-risk-gate): before
+#   that re-vendor a lapsed entry was silently counted as an active suppression,
+#   so this day used to pass — the red is new, and it is the fix working.
+#
 #   SYNTHETIC ids (the `semgrep:` entry below) match no real advisory and are
 #   therefore INERT to Trivy; they exist only so the drift gate and the
 #   compliance dashboard can SEE the acceptance, and their `expired_at` is a

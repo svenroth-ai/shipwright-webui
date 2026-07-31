@@ -1,0 +1,11 @@
+{
+  "run_id": "iterate-2026-07-31-revendor-accepted-risk-gate",
+  "date": "2026-07-31T21:14:53.185496Z",
+  "event_at": "2026-07-31T09:17:49.928541+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "branch": "iterate/revendor-accepted-risk-gate",
+  "spec": ".shipwright/planning/iterate/2026-07-31-revendor-accepted-risk-gate.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-07-31-revendor-accepted-risk-gate"
+}

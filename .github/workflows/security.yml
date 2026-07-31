@@ -96,8 +96,17 @@ jobs:
       # so on the weekly run (the trigger this whole design turns on) none of the
       # fail-open invariants would execute, and `main` is not branch-protected so
       # a direct push never passes through selftest either. ~2 seconds.
+      # The vendored-drift file rides along for the same reason: it holds the
+      # byte-integrity and provenance guards over the very modules the next two
+      # steps EXECUTE. Left on the pull_request-only side, the scheduled run
+      # would execute vendored code whose hashes were last checked whenever the
+      # last PR happened to land (iterate-2026-07-31-revendor-accepted-risk-gate,
+      # Stage-3 doubt review D-5).
       - name: Repo accepted-risk invariants
-        run: python -m pytest scripts/ci/tests/test_accepted_risks_repo_invariants.py -q
+        run: >-
+          python -m pytest
+          scripts/ci/tests/test_accepted_risks_repo_invariants.py
+          scripts/ci/tests/test_accepted_risks_vendored.py -q
 
       # Both directions. An UNRECORDED suppression means nobody can tell why a
       # finding is silenced or when to revisit it; a STALE register entry claims
@@ -105,9 +114,14 @@ jobs:
       # unparseable, which fails closed rather than reading as "nothing accepted".
       # `if: !cancelled()` for the same reason `expire` carries it: the
       # invariants step above runs FIRST, and a default `success()` here would
-      # let a pytest failure SKIP the reconciliation entirely. On 2026-10-29 both
-      # the lapsed-suppression invariant and this check fire on the same entry,
-      # and a reader must see the reconciliation, not just the first red.
+      # let a pytest failure SKIP the reconciliation entirely. A reader must see
+      # the reconciliation, not just the first red — the two steps routinely fire
+      # on the SAME entry, e.g. an unreadable `expired_at` trips the invariants
+      # step while this step reports what it did or did not manage to reconcile.
+      # (The example here used to be the lapsed-suppression invariant; that guard
+      # retired into the shared gate in
+      # iterate-2026-07-31-revendor-accepted-risk-gate. The reasoning is
+      # unchanged and the `if:` stays load-bearing — only the example moved.)
       - name: Reconcile register against real suppressions
         if: ${{ !cancelled() }}
         run: python scripts/ci/accepted_risks_cli.py check --project-root .

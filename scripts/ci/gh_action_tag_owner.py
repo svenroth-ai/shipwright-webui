@@ -34,11 +34,23 @@ self-contained copy under ``scripts/ci/`` (same pattern as the vendored
 
 # canonical-source-repo: https://github.com/svenroth-ai/shipwright
 # canonical-source-path: shared/scripts/gh_action_tag_owner.py
-# canonical-source-hash: cd7ebbdf0723048ecd743788bbd6113cfa67e767d90435138f624ba6dc32cf12
-# canonical-source-version: iterate-2026-07-29-accepted-risk-ci-gate
+# canonical-source-hash: 12fad290274cc5dc3db3d7011648632a7c97da8611bfb0d7db695c740b35a790
+# canonical-source-version: iterate-2026-07-31-accepted-risk-gate-holes
+# canonical-source-commit: 987e49c6ed290f74242f91645bd812610dad9e7e
 #
-# Body below this block is BYTE-IDENTICAL to canonical. Re-verify with a
-# CR-normalized diff; Windows CRLF otherwise masks a real divergence.
+# Body below this block is BYTE-IDENTICAL to canonical.
+#
+# The hash above is of canonical's GIT BLOB (LF), reproducible on any
+# platform from a clone of the canonical repo:
+#
+#     git show 987e49c6ed290f74242f91645bd812610dad9e7e:shared/scripts/gh_action_tag_owner.py | sha256sum
+#
+# Use the COMMIT, not the version: the version is an iterate run id and is
+# not a git ref, so it cannot be resolved. And the hash is deliberately NOT
+# that of a Windows working-tree checkout - with core.autocrlf=true that
+# yields a different, unreproducible value. Every canonical hash recorded
+# before iterate-2026-07-31-revendor-accepted-risk-gate was that CRLF
+# variant, and so matched no upstream blob at all.
 
 Drift guard: ``scripts/ci/accepted_risks_vendor.json`` records this file's
 sha256 and ``scripts/ci/tests/test_accepted_risks_vendored.py`` recomputes it,
