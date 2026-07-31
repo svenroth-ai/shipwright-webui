@@ -1,11 +1,169 @@
 {
   "run_id": "iterate-2026-07-31-revendor-accepted-risk-gate",
-  "date": "2026-07-31T21:14:53.185496Z",
-  "event_at": "2026-07-31T09:17:49.928541+00:00",
+  "date": "2026-07-31T21:23:11.756451Z",
+  "event_at": "2026-07-31T21:19:39.908279+00:00",
   "type": "change",
   "complexity": "medium",
   "branch": "iterate/revendor-accepted-risk-gate",
   "spec": ".shipwright/planning/iterate/2026-07-31-revendor-accepted-risk-gate.md",
   "tests_passed": true,
-  "adr": "iterate-2026-07-31-revendor-accepted-risk-gate"
+  "adr": "iterate-2026-07-31-revendor-accepted-risk-gate",
+  "surface_verification": {
+    "surface": "none",
+    "tests_run": 0,
+    "exit_code": 0,
+    "justification": "No web surface exists for this change and the Backend-affects-Frontend rule does not fire: the diff touches only vendored Python under scripts/ci/, two CI workflow comments plus one pytest invocation, .gitattributes, .trivyignore.yaml's header, and planning docs. No API route, store mutation, SSE/WS handler, message contract, or any code consumed by the UI is modified - confirmed by the diff's file list, and corroborated by the client suite (335 files, 3131 tests) passing untouched. The deliverable IS a CI gate, so it was verified at ITS OWN surface instead: the real vendored CLI was executed against mutated copies of this repo's live state (probes P0-P5 plus the doubt-review state X), and every new or changed guard was falsified - seen RED with an actionable message - not merely seen green. That is stronger evidence for this change than a browser run could produce."
+  },
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "Vendored files match the manifest sha256 (forward drift)",
+        "disposition": "tested",
+        "evidence": "test_accepted_risks_vendored.py::test_forward_every_manifest_entry_matches_disk PASSED (268-test run, py3.11.15 + pytest + pyyaml only)"
+      },
+      {
+        "behavior": "Every vendored module has a manifest entry (reverse drift)",
+        "disposition": "tested",
+        "evidence": "test_reverse_every_vendored_module_is_recorded PASSED; now recursive and relative-path keyed"
+      },
+      {
+        "behavior": "The re-vendored CLI reports no drift on this repo's real state",
+        "disposition": "tested",
+        "evidence": "probe P0: `check` exit 0 'no drift'; `expire` exit 0, 3 entries none past due"
+      },
+      {
+        "behavior": "An absent register no longer exempts the gate",
+        "disposition": "tested",
+        "evidence": "probe P1: register deleted -> exit 1 with 3 UNRECORDED lines"
+      },
+      {
+        "behavior": "A lapsed ignore entry surfaces as STALE, not as reconciled",
+        "disposition": "tested",
+        "evidence": "probe P2: expired_at backdated -> exit 1, STALE with renew-BOTH-dates advice"
+      },
+      {
+        "behavior": "A malformed expired_at fails the repo guard",
+        "disposition": "tested",
+        "evidence": "falsified: `expired_at: whenever` -> RED naming GHSA-frvp-7c67-39w9"
+      },
+      {
+        "behavior": "A lapsed AND unregistered entry is correctly silent",
+        "disposition": "tested",
+        "evidence": "probe P4 exit 0, with probe P5 (live + unregistered -> exit 1) as the control proving the gate is not simply dead"
+      },
+      {
+        "behavior": "The CLI keeps check/expire only - no converge, no github_code_scanning import",
+        "disposition": "tested",
+        "evidence": "test_accepted_risks_cli_contract.py + 14 post-merge assertions over the merged file"
+      },
+      {
+        "behavior": "Vendored files stay LF under core.autocrlf=true",
+        "disposition": "tested",
+        "evidence": "git ls-files --eol: i/lf w/lf on all touched paths; git check-attr confirms the widened glob"
+      },
+      {
+        "behavior": "canonical_sha256 reproduces from `git show <canonical_commit>:<path>`",
+        "disposition": "tested",
+        "evidence": "command run verbatim: 3b9bd393... == manifest for accepted_risk_scan.py; all 8 values reconcile"
+      },
+      {
+        "behavior": "Gate wiring in both workflows stays intact",
+        "disposition": "tested",
+        "evidence": "surviving invariants in test_accepted_risks_repo_invariants.py (unchanged) PASSED"
+      },
+      {
+        "behavior": "A deleted register with a live un-discoverable toggle fails",
+        "disposition": "tested",
+        "evidence": "doubt review D-1; falsified by moving shipwright_accepted_risks.yaml aside -> CR-1 RED"
+      },
+      {
+        "behavior": "A live toggle naming a missing register entry fails",
+        "disposition": "tested",
+        "evidence": "CR-1's new toggle->register-entry mapping check"
+      },
+      {
+        "behavior": "expired_at with trailing junk is rejected (Trivy's shape, not coerce_date's)",
+        "disposition": "tested",
+        "evidence": "falsified: `2026-10-28xyz` -> RED 'not a YYYY-MM-DD date'"
+      },
+      {
+        "behavior": "A quoted basic-ISO int expired_at is rejected",
+        "disposition": "tested",
+        "evidence": "falsified: `\"20261028\"` -> RED; this was the outcome the OLD remediation text produced"
+      },
+      {
+        "behavior": "An unquoted YAML int expired_at is rejected",
+        "disposition": "tested",
+        "evidence": "falsified: `20261028` -> RED naming the type; the original false pass, reproduced before fixing"
+      },
+      {
+        "behavior": "A non-mapping ignore entry is rejected",
+        "disposition": "tested",
+        "evidence": "falsified: bare-string entry -> RED 'entry #0 is a str, not a mapping'"
+      },
+      {
+        "behavior": "A non-list `vulnerabilities:` is rejected",
+        "disposition": "tested",
+        "evidence": "falsified -> RED 'is a str, not a list'"
+      },
+      {
+        "behavior": "A non-mapping top-level document is rejected",
+        "disposition": "tested",
+        "evidence": "falsified -> RED 'top level is a list, not a mapping'"
+      },
+      {
+        "behavior": "Duplicate mapping keys are rejected, as Go's decoder does",
+        "disposition": "tested",
+        "evidence": "falsified with a duplicated expired_at -> RED ConstructorError; PyYAML alone keeps the last value silently"
+      },
+      {
+        "behavior": "A header naming a different canonical repo fails",
+        "disposition": "tested",
+        "evidence": "falsified against the realistic fork re-vendor (header AND manifest sha256 both updated) -> RED"
+      },
+      {
+        "behavior": "A drifted `git show` reproduction command fails",
+        "disposition": "tested",
+        "evidence": "falsified the same way -> RED naming both the command's and the manifest's commit"
+      },
+      {
+        "behavior": "Duplicate provenance lines fail",
+        "disposition": "tested",
+        "evidence": "re.findall + exactly-one assertion in test_header_provenance_agrees_with_the_manifest"
+      },
+      {
+        "behavior": "canonical_commit is present and a full 40-hex sha",
+        "disposition": "tested",
+        "evidence": "test_manifest_exists_and_is_wellformed"
+      },
+      {
+        "behavior": "The gate job runs the vendored drift guard on every trigger, not only pull_request",
+        "disposition": "tested",
+        "evidence": "falsified by removing the file from security.yml -> RED; doubt review D-5"
+      },
+      {
+        "behavior": "Missing-PyYAML path exits 2 rather than 1",
+        "disposition": "untestable",
+        "reason_code": "covered-by-existing-test",
+        "reason": "test_accepted_risks_cli_contract.py covers it; re-proving needs a Python without PyYAML and the CI venv has it by definition. Observed incidentally when the system python ran the gate: exit 2 with the actionable 'NOT a drift finding' message."
+      },
+      {
+        "behavior": "expired_at and expires lapse a day apart, opening a one-day STALE-before-EXPIRED window",
+        "disposition": "untestable",
+        "reason_code": "covered-by-existing-test",
+        "reason": "Behaviour of upstream _is_lapsed vs Acceptance.is_expired, both upstream-tested. Verified here by evaluating both at 2026-10-28 and documented in .trivyignore.yaml's header."
+      }
+    ],
+    "counts": {
+      "testable": 25,
+      "tested": 25,
+      "untestable": 2,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 7,
+      "covered_acs": 7
+    }
+  }
 }
