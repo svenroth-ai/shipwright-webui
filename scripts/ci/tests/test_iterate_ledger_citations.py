@@ -34,6 +34,18 @@ _ALIASES = {
     "decide": "test_pr_review_stage2_decide.py",
     "verdict": "test_pr_review_stage2_verdict.py",
     "token_permissions": "test_workflow_token_permissions.py",
+    # ADR-117 port (iterate-2026-08-01-pr-review-stale-verdict). Registering
+    # these is not bookkeeping: without an alias every citation from that
+    # ledger falls through the `module is None` skip below, so the guard
+    # reports success having checked NOTHING. Its own Stage-1 review found two
+    # bad rows by hand that these aliases now catch mechanically.
+    "select": "test_pr_review_dismiss.py",
+    "calls": "test_pr_review_dismiss_calls.py",
+    "gh": "test_pr_review_gh.py",
+    "stale": "test_pr_review_stale_verdicts.py",
+    "openrouter": "test_pr_review_openrouter.py",
+    "pins": "test_pr_review_vendor_pins.py",
+    "script": "test_pr_review_script.py",
 }
 
 _CITATION = re.compile(r"`([A-Za-z0-9_.]+)::(test_[A-Za-z0-9_]+)")
