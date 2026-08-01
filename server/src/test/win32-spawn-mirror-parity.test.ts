@@ -10,10 +10,22 @@
  * duplicated shape is a mirror PLUS a drift guard — `action-schema-sync.test.ts`
  * is the established example. This is that guard for this pair.
  *
- * WHY IT LIVES IN THE SERVER PACKAGE. CI runs vitest for `client` and `server`
- * only (`.github/workflows/ci.yml` — there is no bootstrapper job), so the same
- * test placed under `bootstrapper/test/` would gate nothing. Reading a file from
- * a sibling package is not an import and does not touch the DO-NOT #7 fence.
+ * WHY IT LIVES IN THE SERVER PACKAGE. Originally: CI ran vitest for `client` and
+ * `server` only, so the same test under `bootstrapper/test/` would have gated
+ * nothing. AMENDED 2026-08-01 (iterate-2026-08-01-bootstrapper-ci-contract) —
+ * `ci.yml` now HAS a `Bootstrapper (type + lint + test)` job, so that premise is
+ * dead, and the honest replacement is narrower than it looks. This test is a
+ * SOURCE SCAN: it resolves the repo root and `readFileSync`s BOTH files by
+ * absolute path (below), so from either package it would read the same two files
+ * and fail on the same edit. Placement decides only WHICH check goes red — and
+ * today only this one blocks: `Server (type + lint + test)` is a required
+ * context, while the bootstrapper job is deliberately ADVISORY until someone
+ * arms it in the ruleset. Moving the file would silently downgrade a blocking
+ * guard to a warning. RE-EVALUATE when the bootstrapper job is armed; at that
+ * point placement becomes a genuinely free choice.
+ *
+ * Reading a file from a sibling package is not an import and does not touch the
+ * DO-NOT #7 fence.
  *
  * WHAT IT CAN AND CANNOT DO. The two files are not byte-comparable — one is TS
  * with a `cwd` parameter and a throwing branch, the other is ESM with injected

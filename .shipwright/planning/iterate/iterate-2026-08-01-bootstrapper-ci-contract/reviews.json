@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-01-bootstrapper-ci-contract",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T09:41:03.063141+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-iterate:self-review",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Self-review — iterate-2026-08-01-bootstrapper-ci-contract (7-point checklist)\n\n1. SCOPE. Exactly the two gaps briefed: bootstrapper CI coverage, and the\n   untested cross-repo manifest contract. Nothing unrelated changed. The two\n   server files are comment-only, and only because this change falsified a\n   premise stated in their headers.\n\n2. CORRECTNESS. The decision path is fail-closed: every non-transport outcome\n   propagates as a failure, and the only widening (the retry) is bounded to a\n   fail-classified STATUS, capped at one attempt, and announced when it changes\n   a verdict. Body-level violations are never retried. Verified by 9 falsifying\n   mutations across two rounds, each failing exactly its own assertion.\n\n3. TESTS. 198 bootstrapper tests (was 153), 290 in scripts/ci/tests. Both the\n   rule and the wiring that routes outcomes into it are covered OFFLINE, so the\n   convention stays under test on days the live probe skips. Falsification was\n   run, not assumed; the ledger has 0 untested-testable rows.\n\n4. ERROR PATHS. Transport failure, timeout, mid-body death, 429, 5xx -> skip.\n   404, 403, other non-2xx, non-JSON, parser rejection, wrong marketplace ID,\n   missing source -> fail. Malformed URL -> fail (a defect must not wear a\n   transport skip). Ambiguous classifier input throws rather than defaulting.\n\n5. CONVENTIONS. Every file under the 300-line cap (largest 252). Conventional\n   Commits. No cross-package import — the two server tests READ sibling files,\n   which DO-NOT #7 explicitly permits. GitHub-owned actions stay on mutable\n   tags per DO-NOT #25; no third-party action added, so no SHA pin is owed.\n\n6. SECURITY / SUPPLY CHAIN. No credential added; the new outbound call is the\n   same unauthenticated public GET the installer already makes, and its\n   response is parsed, never executed. Annotation payloads are escaped so a\n   reason string cannot forge a workflow command (tested). Top-level workflow\n   permissions remain contents:read and the new job widens nothing. The\n   ci_supplychain_ack names the posture decision and was re-recorded after the\n   doubt review corrected an inaccurate claim in it.\n\n7. AFFECTED BOUNDARIES. One producer/consumer pair: the monorepo's\n   .claude-plugin/marketplace.json (producer, external repo) consumed by\n   bootstrapper/lib/plugins.mjs:parseManifest. This is the boundary the change\n   exists to instrument; the probe is a live read of it. touches_io_boundary\n   did not fire (no config/env path in the diff), but the pair is real and is\n   documented in the spec's Affected Boundaries table.\n\nRESIDUAL, disclosed rather than hidden:\n - The job passes locally on Windows/Node 24 and on a clean tree via npm ci;\n   the ubuntu-latest/Node-20 arm is confirmed by this PR's own first CI run.\n - The probe covers precedence 2 (the raw fetch). Precedence 1, the local\n   marketplace clone most returning users actually parse, has no probe.\n - parseManifest + the two added field checks are the contract; the shared/\n   tree that cache-runtime.mjs copies remains uncovered cross-repo surface.\n\nVerdict: ready for the review cascade.\n"
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T09:41:03.650659+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py",
+      "parse_status": "unstructured",
+      "raw_excerpt": "External LLM plan review (mode=iterate, provider=openrouter/openai).\nVerdict: revise. gemini degraded (reply truncated) -> unavailable.\n\nSeven findings, all addressed before build completed:\n\n1. medium/dependency — confirm MANIFEST_RAW_URL and makeFetchRemoteManifest are\n   exported before depending on them. VERIFIED: plugins.mjs:18 and\n   claude-cli.mjs:128. No production change needed.\n2. HIGH/edge-case — two independent fetches could observe two versions of a\n   mutable document and report a false mismatch. FIXED: a single live read; the\n   production seam is driven over the captured bytes via its fetchImpl seam.\n3. HIGH/edge-case — no timeout implementation named; broad catch could turn a\n   parse defect into a skip. FIXED: AbortController with a bounded deadline\n   cleared in finally; the try blocks wrap only the request and the body read,\n   with parsing and assertions outside them.\n4. medium/approach — offline tests covered the classifier but not the observable\n   skip behaviour. FIXED: reportUnverified takes injected io and is asserted for\n   warn, annotation, step summary, and the outside-Actions case; probeManifest\n   was exported so the wiring is covered too.\n5. medium/risk — mechanical `if:` additions could clobber existing conditions or\n   interact with needs. VERIFIED: only diff-coverage had an `if:` and it is\n   already PR-only (left untouched); no job in ci.yml uses needs. Both\n   directions later ratcheted in test_bootstrapper_ci_schedule.py.\n6. medium/dependency — PyYAML reads `on:` as boolean True. FIXED by reusing the\n   repo's existing workflow reader (accepted_risks_paths.triggers), which\n   already normalises it.\n7. low/security — inherit least-privilege permissions and pin actions. VERIFIED\n   inherit-only (top-level contents:read, job widens nothing) and no credential\n   added. Pinning REJECTED WITH REASON: DO-NOT #25 keeps GitHub-owned actions on\n   mutable tags deliberately; PR #285 collapsed that asymmetry and was reverted.\n\ngemini's single (truncated) finding proposed reading a local\n../../.claude-plugin/marketplace.json instead of the network. REJECTED as\nfactually wrong: no such path exists in this repo — the manifest lives in\nsvenroth-ai/shipwright, a DIFFERENT repository — and the proposal is the\nchecked-in fixture the operator explicitly ruled out.\n"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T09:41:03.253350+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:code-reviewer",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Stage-2 code review (shipwright-build:code-reviewer). First pass REQUEST_CHANGES with three blocking findings: (1) the anti-tamper guard did not cover needs: or continue-on-error, the two cheapest ways to neuter the job; (2) the schedule-exclusion check was a substring match, so a '== pull_request || == schedule' disjunction and a bare '== push' both defeated it; (3) the contract test crossed the repo's 300-line cap as a new bloat crossing. All three fixed - two new assertions, a conservative _excludes_schedule that rejects any disjunction, and a cohesive file-level split into mechanism vs cases. Re-review CLOSED all three explicitly, confirmed the split did not break the clearTimeout spy, and raised only LOW/INFO items, of which the substantive ones (pin all three contract files, drop a dead import, guard step-level if:, document the two-pathspec git form) were also applied. SHIPWRIGHT_CODE_VERDICT: APPROVE\n"
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T09:41:03.445874+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:doubt-reviewer",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Stage-3 doubt review (shipwright-build:doubt-reviewer, advisory-must-address).\n12 doubts: 2 high, 6 medium, 4 low. Every one addressed or answered.\n\nHIGH-1 — \"a skip is never a pass\" is FALSE one level up: a skipped test leaves\nthe job and the run GREEN, and GitHub mails only on a FAILED scheduled run, so\n52 skipped weeks look identical to 52 verified ones. ADDRESSED, and it changed\nthe design: on the `schedule` event a skip now FAILS (verificationIsMandatory);\npull requests keep the skip so an outage never blocks a contributor. Confirmed\nwith the operator before implementing, because it modified the brief. New AC10.\n\nHIGH-2 — the claim was OVERSTATED: parseManifest reads only plugins[].name, so\na renamed top-level marketplace id (hardcoded at four sites in lib/) or a\ndangling plugins[].source breaks every user with the document parsing perfectly.\nADDRESSED: both fields are now asserted (AC11), neither hardcodes a plugin list,\nverified against the live document. The remaining uncovered surface (the shared/\ntree copied by cache-runtime.mjs) is named explicitly in the test header instead\nof being implied away.\n\nMEDIUM-3 — \"the identical request npx makes\" is inaccurate; precedence 1 is a\nlocal clone. ADDRESSED: ci_supplychain_ack re-recorded with the correct scope,\nand the limitation documented in the live test header.\nMEDIUM-4 — no retry, so one 403/edge-404 reds an unrelated PR. ADDRESSED: one\nbounded retry (see the external code review for its final, AC-aligned form).\nMEDIUM-5 — a malformed URL raises the same TypeError class as a real outage and\nwould skip forever. ADDRESSED: ERR_INVALID_URL / parse-URL failures classify as\n`fail`.\nMEDIUM-6 — the win32-parity comment's stated mechanism was FACTUALLY WRONG (it\nis a source scan reading both files by absolute path, so placement does not\nchange what it sees). ADDRESSED: rewritten to the true reason — placement decides\nonly WHICH check goes red, and only the server check blocks today — with an\nexplicit re-evaluate-when-armed note. Verified by reading the test's own resolver.\nMEDIUM-7 — \"gates from day one\" overstated. ADDRESSED: softened in ci.yml and in\nthe guard's docstring to \"catches an ACCIDENTAL regression; a deliberate removal\nis caught only by the Tier-3 review\", plus the note that Reviewer Selftest's\nrequired-ness is asserted, not verifiable from the repo.\nMEDIUM-8 — blessing `== 'pull_request'` for every job would let a rewrite stop\nserver-checks running on push-to-main. ADDRESSED: excluding fragments narrowed to\nthe `!= 'schedule'` forms; diff-coverage exempted by job id via PR_ONLY_JOBS,\nwith a test that the exemption stays earned.\nLOW-9 — probe deadline more forgiving than production's 4s. ADDRESSED as a\ndocumented, deliberate difference (8s, one attempt) in the helper header.\nLOW-10 — npx without @latest runs a cached tarball. ADDRESSED: stated in the header.\nLOW-11 — the retirement condition for no-shell-true-spawn was under-specified.\nADDRESSED: two of the six scanned sites are server-only, so the file belongs\nthere regardless of arming state.\nLOW-12 — a persistently corrupt body classifies as skip. ADDRESSED by HIGH-1's\nfix (the weekly run no longer tolerates a skip).\n\nVerdict on the central claim after the fixes: the \"turns RED on real drift\" half\nholds and is now wider (marketplace id + source); the \"never green merely because\nit could not check\" half is true on the schedule and deliberately false on a PR,\nwhich is the documented, operator-approved trade-off.\n"
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T09:41:03.910267+00:00",
+      "disposition": null,
+      "recorded_by": "external_review.py",
+      "parse_status": "unstructured",
+      "raw_excerpt": "External LLM code review (mode=code, provider=openrouter/openai).\nVerdict: revise. gemini degraded (reply truncated) -> unavailable.\n\nOne finding, MEDIUM, and it was correct:\n\n- spec/medium — manifest-probe.mjs: the retry added during the Stage-3 doubt\n  review retried EVERY fail-classified status and returned success if the second\n  read was 2xx. That silently contradicted AC5 as originally written (\"a\n  retrieved, non-conforming response MUST be red\"), and the accompanying test\n  locked the non-compliant behaviour in.\n\nRESOLUTION — the reviewer is right that spec and code disagreed; the fix makes\nthem agree explicitly rather than by deleting one side:\n\n * A fail-classified STATUS is re-read once. If the second read also fails the\n   run is RED (real drift is persistent, so it survives a retry) and the reason\n   records \"confirmed on a second attempt\".\n * If the second read returns a usable document, that document is held to the\n   FULL contract, and the disagreement is ANNOUNCED on all four channels via the\n   new reportInconsistentEndpoint — it is no longer silently forgiven. The\n   probe result carries `recoveredFrom`, and a clean read carries no marker\n   (both asserted).\n * Body-level violations (non-JSON, parseManifest rejection, wrong marketplace\n   ID, missing source) are NOT retried at all — they are deterministic.\n * AC5 in the iterate spec was amended to state this rule precisely, naming the\n   review that produced it.\n\nRetaining the retry rather than reverting it is deliberate: without it a single\nCDN edge answering 404/403 reds an unrelated contributor's PR, and blocks it\noutright once the job is armed. The reviewer's concern was that the weakening\nwas undocumented and untested; both are now false.\n\nTests added for the resolution: probe recovery marker present/absent, and\nreportInconsistentEndpoint announcing on four channels with wording distinct\nfrom the NOT-VERIFIED path.\n"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T09:41:02.856503+00:00",
+      "disposition": null,
+      "recorded_by": "shipwright-build:spec-reviewer",
+      "parse_status": "unstructured",
+      "raw_excerpt": "Stage-1 spec-compliance HARD-GATE (shipwright-build:spec-reviewer). AC1-AC9 all MET, each verified against the worktree rather than the diff narrative. All five Out-of-Scope boundaries respected: no manifest fixture on disk (plus a ratchet), no ruleset change, no plugin count or name assertion, schedule limited to the bootstrapper job with no workflow_run cascade, no webui-side contract test. Spec Impact 'none' with FR-01.49 context-only judged defensible - only bootstrapper/test/** changed and no clause of FR-01.49 is touched. Four non-blocking observations handed on; two were real defects introduced by this change and were fixed before Stage 2 (the concurrency group shared with push-to-main, and a comment overclaiming what the injected-url seam check proves). SHIPWRIGHT_SPEC_VERDICT: APPROVE\n"
+    }
+  }
+}
