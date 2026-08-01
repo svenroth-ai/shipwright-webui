@@ -244,9 +244,12 @@ function defaultSummaryAppend(markdown) {
  * @param {NodeJS.ProcessEnv} env
  */
 export function verificationIsMandatory(env = process.env) {
-  const explicit = env.SHIPWRIGHT_REQUIRE_MANIFEST_VERIFICATION;
-  if (explicit != null && explicit !== "") {
+  // Trimmed before every comparison: CI env-var quoting can deliver " 0", and an
+  // untrimmed compare would read that as "on" — turning an intended opt-OUT into
+  // a hard failure. An all-whitespace value is "unset", like the empty string.
+  const explicit = (env.SHIPWRIGHT_REQUIRE_MANIFEST_VERIFICATION ?? "").trim();
+  if (explicit !== "") {
     return explicit !== "0" && explicit.toLowerCase() !== "false";
   }
-  return env.GITHUB_EVENT_NAME === "schedule";
+  return (env.GITHUB_EVENT_NAME ?? "").trim() === "schedule";
 }

@@ -177,4 +177,24 @@ describe("marketplace contract — when 'could not check' must fail instead of s
       }),
     ).toBe(true);
   });
+
+  it("tolerates the whitespace CI env-var quoting adds", () => {
+    // " 0" untrimmed reads as "on" and would turn an intended opt-OUT into a
+    // hard failure. Raised by the Tier-3 PR review.
+    expect(
+      verificationIsMandatory({ SHIPWRIGHT_REQUIRE_MANIFEST_VERIFICATION: " 0 " }),
+    ).toBe(false);
+    expect(
+      verificationIsMandatory({ SHIPWRIGHT_REQUIRE_MANIFEST_VERIFICATION: " FALSE " }),
+    ).toBe(false);
+    expect(verificationIsMandatory({ SHIPWRIGHT_REQUIRE_MANIFEST_VERIFICATION: " 1 " })).toBe(true);
+    expect(verificationIsMandatory({ GITHUB_EVENT_NAME: " schedule " })).toBe(true);
+    // All-whitespace is "unset", so the event decides.
+    expect(
+      verificationIsMandatory({
+        GITHUB_EVENT_NAME: "pull_request",
+        SHIPWRIGHT_REQUIRE_MANIFEST_VERIFICATION: "   ",
+      }),
+    ).toBe(false);
+  });
 });

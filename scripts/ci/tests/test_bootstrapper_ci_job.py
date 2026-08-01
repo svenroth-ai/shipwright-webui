@@ -181,19 +181,24 @@ def test_no_manifest_fixture_was_checked_in() -> None:
     match a TOP-LEVEL `bootstrapper/marketplace.json`, which is the likeliest
     place a fixture would land.
     """
-    result = subprocess.run(
-        [
-            "git",
-            "ls-files",
-            "--",
-            "bootstrapper/**/marketplace*.json",
-            "bootstrapper/marketplace*.json",
-        ],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "ls-files",
+                "--",
+                "bootstrapper/**/marketplace*.json",
+                "bootstrapper/marketplace*.json",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError:  # pragma: no cover - git is present in CI
+        # A bare FileNotFoundError here reads as a broken test rather than a
+        # missing tool. CI always has git, so this only softens local runs.
+        pytest.fail("git is not on PATH, so 'was a fixture checked in?' cannot be answered")
     assert result.returncode == 0, f"git ls-files failed: {result.stderr.strip()}"
     strays = [line for line in result.stdout.splitlines() if line.strip()]
     assert not strays, (

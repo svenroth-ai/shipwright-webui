@@ -80,6 +80,10 @@ def excludes_schedule(condition: str, *, pr_only_ok: bool = False) -> bool:
       is treated as unsafe even when one side excludes;
     * otherwise `!= 'schedule'` must be present — or, only for a job listed in
       ``PR_ONLY_JOBS``, `== 'pull_request'`.
+
+    A conjunction (`&&`) IS permitted, and deliberately so: `&&` can only ever
+    NARROW an already-excluding condition, so it cannot re-admit the schedule.
+    Only `||` can. (Asymmetry raised by the Tier-3 PR review.)
     """
     normalized = " ".join(condition.split())
     if not normalized:

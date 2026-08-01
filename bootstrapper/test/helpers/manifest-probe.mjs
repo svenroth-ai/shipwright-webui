@@ -73,7 +73,11 @@ export async function probeManifest(deps = {}) {
   return { ...second, recoveredFrom: first.reason };
 }
 
-/** One attempt. See probeManifest for the retry policy. */
+/**
+ * ONE attempt, with no retry. Prefer `probeManifest` for real use — this is
+ * exported so the deadline / timer-cleanup cases can assert a single attempt
+ * without the retry wrapper doubling the call count.
+ */
 export async function probeManifestOnce(deps = {}) {
   const {
     fetchImpl = (...args) => fetch(...args),
