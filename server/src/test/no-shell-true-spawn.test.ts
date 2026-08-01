@@ -25,10 +25,11 @@
  * `Server (type + lint + test)`, which is required. Both bullets must be false
  * before retiring it, and the first one still is not.
  *
- * And even then it belongs HERE: two of the six scanned sites below
- * (`server/src/core/cli-compat.ts`, `server/src/core/preview-win32-spawn.ts`)
- * are server-only, so no bootstrapper-side suite could ever cover them. The
- * arming state changes what a MOVE would cost; it never makes one correct.
+ * And even then it belongs HERE: THREE of the seven scanned sites below
+ * (`cli-compat.ts`, `win32-spawn.ts`, `preview-win32-spawn.ts` — all under
+ * `server/src/core/`) are server-only, so no bootstrapper-side suite could ever
+ * cover them. The arming state changes what a MOVE would cost; it never makes
+ * one correct.
  *
  * This file is therefore the durable, CI-enforced replacement for the four
  * suppressions. It is a source scan (the `ci-action-pinning-posture.test.ts`
