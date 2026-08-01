@@ -112,6 +112,39 @@ describe("probeClaudeVersion — never spawns through a platform shell", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("a bin the resolver cannot place → unknown version, and NOTHING is spawned", () => {
+    /*
+     * The `null` half of the new core contract, reaching its only production
+     * consumer (cli-compat.ts `if (!plan) return UNKNOWN_VERSION`). Added by
+     * iterate-2026-08-01-win32-spawn-followups: Stage-3 doubt review found that
+     * branch had no test at all — the "no resolvable binary" case above passes
+     * `claudeBin: ""` and short-circuits one line earlier at `if (!bin)`, so it
+     * never exercises the resolver. Behaviour is unchanged from the pre-split
+     * code (which threw here and caught it to the same answer); what is new is
+     * that the answer is now pinned.
+     *
+     * Production-unreachable in practice — `resolveClaudeBin()` yields an
+     * absolute path or null — but it is the documented contract of a module
+     * with two other consumers, so it is cheaper to pin than to reason about.
+     */
+    setPlatform("win32");
+    const origPath = process.env.PATH;
+    const origPathExt = process.env.PATHEXT;
+    process.env.PATH = "";
+    process.env.PATHEXT = ".cmd";
+    try {
+      const { calls, fake } = recorder();
+      const info = probeClaudeVersion({ claudeBin: "no-such-tool-xyz", spawnSync: fake });
+      expect(info).toEqual({ raw: "", parsed: null, supported: false });
+      expect(calls).toHaveLength(0);
+    } finally {
+      if (origPath === undefined) delete process.env.PATH;
+      else process.env.PATH = origPath;
+      if (origPathExt === undefined) delete process.env.PATHEXT;
+      else process.env.PATHEXT = origPathExt;
+    }
+  });
+
   it("garbage on stdout is reported unsupported rather than crashing the boot probe", () => {
     setPlatform("win32");
     const { fake } = recorder("command not found");
