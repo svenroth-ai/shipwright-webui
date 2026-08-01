@@ -12,16 +12,24 @@
  * PATHEXT, then invoke `.cmd`/`.bat` through an explicit `cmd.exe /d /s /c`
  * with DISCRETE argv.
  *
- * MIRROR — this is a deliberate copy of `server/src/core/preview-win32-spawn.ts`
+ * MIRROR — this is a deliberate copy of `server/src/core/win32-spawn.ts`
  * (ADR-044, reviewed there; audit findings F03 + F31). It is duplicated rather
  * than imported because `bootstrapper/` is a separately published npm package
  * and DO-NOT #7 forbids cross-package imports.
  *
  * DIVERGENCES from the server original — the COMPLETE list, so a future drift
  * reviewer diffing the two files knows what is intentional:
- *   1. An unresolvable BARE name returns `null` here; the server throws
- *      `PreviewProfileInvalidError`. This package reports a missing prerequisite
- *      as a verdict line rather than crashing the installer.
+ *   1. Failure SHAPE for an unresolvable BARE name. The server core returns
+ *      `null` and its thin `preview-win32-spawn.ts` wrapper converts that into
+ *      `PreviewProfileInvalidError`; this file returns a bare-name plan instead
+ *      — see divergence 5, which is the real behaviour and SUPERSEDES what this
+ *      entry used to claim. **Corrected 2026-08-01**: it read "returns `null`
+ *      here", which stopped being true when the App-Execution-Alias fix landed
+ *      (iterate-2026-07-31) and added the bare-name fallback. `resolveSpawn`
+ *      below can no longer return `null` on any path. The callers'
+ *      `if (!plan)` branches are therefore currently UNREACHABLE; they are kept
+ *      deliberately as cheap contract insurance, and are annotated as such at
+ *      their own sites rather than left implying a live code path.
  *   2. Signature. Here: `resolveSpawn(argv, { platform, env })`, both injectable
  *      (the bootstrapper has no DI container, and its tests must reach the win32
  *      branch from Linux). Server: `resolveSpawn(argv, cwd)`, reading the process
@@ -68,6 +76,19 @@
  *   - `resolveSpawn` never sets `options.shell`. cmd.exe gets discrete argv when
  *     no token needs quoting; a spaced token produces the canonical verbatim
  *     `cmd /d /s /c ""<quoted>" <args>"` line instead.
+ *
+ * PATH-FLAVOUR DISCIPLINE (iterate-2026-08-01-win32-spawn-followups). `platform`
+ * is injected, but `path` follows the REAL host — so on Linux the win32 branch
+ * used to parse `C:\…` with POSIX rules. Every `path.*` call is classified:
+ *   (a) win32 command-STRING semantics -> `path.win32` (`extname` x2, the
+ *       ComSpec `join`). No filesystem involved, so pinning the flavour is free
+ *       on Windows and makes the injected branch faithful on Linux.
+ *   (b) HOST-filesystem addressing -> the host `path` (`resolve` + `join` in
+ *       `resolveViaPathExt`), because those candidates are handed to
+ *       `realpathSync`/`statSync` and must name a file on the host actually
+ *       running. `PATH` splits on the hardcoded win32 `;`, already
+ *       host-independent. The server original carries the identical audit; the
+ *       parity guard pins both halves.
  */
 
 import path from "node:path";
@@ -81,7 +102,9 @@ export function win32ComSpec(env = process.env) {
   const fromEnv = env.ComSpec ?? env.COMSPEC;
   if (fromEnv && fromEnv.trim()) return fromEnv;
   const root = env.SystemRoot ?? env.windir ?? "C:\\Windows";
-  return path.join(root, "System32", "cmd.exe");
+  // (a) pure string — win32 flavour pinned, so an injected win32 platform on a
+  // POSIX host emits `…\System32\cmd.exe`, not the mixed `…/System32/cmd.exe`.
+  return path.win32.join(root, "System32", "cmd.exe");
 }
 
 function looksPathLike(name) {
@@ -119,13 +142,16 @@ function resolveViaPathExt(name, env) {
 
   if (looksPathLike(name)) {
     // Explicit path — honour an exact match first, then PATHEXT.
+    // (b) HOST flavour on purpose — this candidate goes straight to realpath.
     return firstFile(path.resolve(name), true);
   }
   // Bare command — PATH only, never cwd. The empty ext is excluded so an
-  // extensionless POSIX shim is not matched.
+  // extensionless POSIX shim is not matched. `;` is the win32 PATH delimiter,
+  // hardcoded and therefore already host-independent.
   for (const dir of (env.PATH ?? env.Path ?? "").split(";")) {
     const trimmed = dir.trim();
     if (!trimmed) continue;
+    // (b) HOST flavour on purpose — see the classification in the header.
     const hit = firstFile(path.join(trimmed, name), false);
     if (hit) return hit;
   }
@@ -179,12 +205,15 @@ export function win32CmdWrap(target, rest, env = process.env) {
  *   - argv0 is a real `.exe`/`.com`  → spawn it directly (no cmd.exe).
  *   - argv0 is a `.cmd`/`.bat` shim  → run through `cmd.exe /d /s /c`.
  *   - argv0 is a bare name           → resolve via PATH+PATHEXT, then as above.
- *   - nothing resolves for a bare name → `null` (caller reports "not found").
+ *   - nothing resolves for a bare name → the BARE name itself, for CreateProcess
+ *     to resolve PATH-only (divergence 5). This function does NOT return `null`
+ *     on any path; the `@returns` below said `| null` until 2026-08-01 and was
+ *     stale. Callers keep their `if (!plan)` guard as contract insurance.
  *
  * @param {string[]} argv command followed by its arguments
  * @param {{ platform?: string, env?: Record<string, string | undefined> }} [opts]
  *        injected for tests; defaults read the live process
- * @returns {{ command: string, args: string[], windowsVerbatimArguments?: boolean } | null}
+ * @returns {{ command: string, args: string[], windowsVerbatimArguments?: boolean }}
  */
 export function resolveSpawn(argv, opts = {}) {
   const platform = opts.platform ?? process.platform;
@@ -194,7 +223,9 @@ export function resolveSpawn(argv, opts = {}) {
   }
   const name = argv[0];
   const rest = argv.slice(1);
-  const ext = path.extname(name).toLowerCase();
+  // (a) pure string — win32 segment rules, so a POSIX host with an injected
+  // win32 platform classifies `C:\a.b\tool` the way Windows does.
+  const ext = path.win32.extname(name).toLowerCase();
 
   if (WIN32_EXECUTABLE_EXTS.has(ext)) {
     return { command: name, args: rest };
@@ -202,7 +233,9 @@ export function resolveSpawn(argv, opts = {}) {
   if (!WIN32_SHIM_EXTS.has(ext)) {
     const resolved = resolveViaPathExt(name, env);
     if (resolved) {
-      if (WIN32_EXECUTABLE_EXTS.has(path.extname(resolved).toLowerCase())) {
+      // (a) `resolved` is a host realpath; `path.win32` reads `/` as a
+      // separator too, so this is correct on either host.
+      if (WIN32_EXECUTABLE_EXTS.has(path.win32.extname(resolved).toLowerCase())) {
         return { command: resolved, args: rest };
       }
       return win32CmdWrap(resolved, rest, env);
