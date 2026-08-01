@@ -63,8 +63,13 @@ export function defaultRunClaude(args) {
   }
   const plan = resolveSpawn(["claude", ...args]);
   if (!plan) {
-    // Unresolvable on PATH. Reported, never delegated to cmd.exe's own
-    // cwd-first lookup (which a planted `.\claude.cmd` would win).
+    // UNREACHABLE as of iterate-2026-07-31: `resolveSpawn` no longer returns
+    // null — an unresolvable bare name comes back as the bare name for
+    // CreateProcess to resolve PATH-only (win32-spawn divergence 5), and the
+    // ENOENT that follows is turned into `notFound()` below. What actually
+    // prevents cmd.exe's cwd-first lookup is that fallback, NOT this branch.
+    // Kept as contract insurance: if the resolver ever regains a null path,
+    // this is already the right answer. Verified 2026-08-01.
     return notFound();
   }
   const r = spawnSync(plan.command, plan.args, {

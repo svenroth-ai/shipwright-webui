@@ -1,0 +1,236 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-01-win32-spawn-followups",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T07:50:06.125622+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "Risk",
+          "file": null,
+          "line": null,
+          "finding": "The plan states that `cli-compat.probe-spawn.test.ts` (the sync suite) will be \"unchanged and still green\" (Step 2 and 3). However, the plan also states that splitting the module removes the need for `versionProbeSpawn` to use a `try/catch` since it can just check for `null`. If `cli-compat.ts` drops the `try/catch` block and checks for `null`, the test file will almost certainly require modifications to update its mock (returning `null` instead of throwing) or to adjust assertions covering the \"executable not found\" path.",
+          "suggestion": null,
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "AC-9 is internally incompatible with the planned deletion of `cli-compat.probe-spawn-async.test.ts`. It requires that “no collected test disappeared” and “no coverage [be] removed,” while the plan explicitly deletes 11 collected tests and acknowledges deliberate coverage reduction. A behavior-snapshot verifier cannot truthfully satisfy both conditions.",
+          "suggestion": "Adjust the simplify verification ledger/AC-9 to explicitly allow the 11 deleted tests and their associated coverage only when attributable to deletion of `probeClaudeVersionAsync`. Keep the requirement that no unrelated test disappears, flips from green to red, or loses coverage, and reconcile before/after counts accordingly.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The plan identifies `path.win32.extname` and the `SystemRoot` fallback `join` as pure-string decisions, but it does not explicitly require an audit of every other path-derived string decision in both implementations. In particular, resolver code commonly also uses `isAbsolute`, `basename`, `normalize`, `parse`, `relative`, and `delimiter`; any of these used to classify a Windows command or parse `PATH`/`PATHEXT` can retain host-POSIX behavior under a stubbed Win32 platform.",
+          "suggestion": "Before implementation, enumerate every `path.` use in both resolver copies and classify it as either (a) Win32 command-string semantics (`path.win32`) or (b) host-filesystem access (host `path`). Add pins for any classification-sensitive behavior, especially extension detection and any `PATH` splitting/classification. Preserve host `resolve`/`join` only at the point that turns an already-selected candidate into a path to stat/access on the actual host filesystem.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The host-filesystem exception in AC-6 can become ambiguous when test inputs contain multiple `PATH` entries or Windows-style separators. A POSIX-host test that stubs Win32 needs host-addressable directories, while a production Windows resolver normally interprets Windows `PATH` formatting. Merely changing some APIs to `path.win32` can cause tests to pass for a single planted directory but mishandle multi-entry or separator-sensitive cases.",
+          "suggestion": "Define and test the boundary explicitly: use Windows semantics for command-token parsing and extension classification, but inject or isolate the host-search-path representation used by the fs-touching lookup in tests. At minimum, add a test with more than one search-path entry plus a planted executable in a later entry, so the chosen delimiter behavior is intentional rather than incidental.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "AC-10 is described as exercising “real Windows `.cmd`/`.exe` resolution,” but the proposed runner description does not explicitly require a Windows worker or a controlled supported Claude CLI fixture. On a non-Windows runner it cannot exercise the production path semantics, and against a developer/CI-installed Claude it is environment-dependent (missing CLI, unsupported version, or an unrelated user configuration can fail the check).",
+          "suggestion": "Make a Windows execution environment and a deterministic CLI fixture/prerequisite explicit for AC-10. The fixture should provide a supported version and the relevant executable form (`.cmd` and/or `.exe`) on the search path, with diagnostics configured to use it. If the existing F0.5 infrastructure cannot provide that, retain the web check as a boot-regression test but do not claim it verifies real Windows command resolution.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The direct source-scan proposed for the new core module is useful but insufficient by itself to establish that `cli-compat` no longer reaches the preview-session-manager ESM cycle. It can prove no direct import exists while an indirect import through a new or existing dependency still restores the cycle. This matters because the cycle removal is a stated reason for the extraction and the module is security-load-bearing.",
+          "suggestion": "Keep the direct “no preview import” source assertion, but also add or retain a boot/module-load regression check that imports the actual `cli-compat` boot path in the relevant configuration and verifies it initializes without loading the preview dependency chain. AC-10 may serve this purpose only if it is deterministic and runs in the intended environment.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The new null-returning core contract is well chosen, but the approach should preserve more than the preview success/failure result. Extraction can subtly alter command/argument handling for empty argv, quoted executable paths, explicit extensions with mixed casing, and absolute/relative Windows-looking command paths. The frozen preview guard protects selected security cases but may not cover all core call patterns used by `cli-compat`.",
+          "suggestion": "Build the new core test suite from the existing resolver cases before moving code, and add explicit contract tests for empty/invalid argv, quoted paths, explicit `.cmd`/`.exe` extensions, and unresolved bare names. Verify that only the intentional unresolvable-bare-name return conversion differs between core and preview wrapper; all other errors and resolved `{ command, args, windowsVerbatimArguments }` values should remain identical.  Overall, the extraction and thin throwing wrapper are the sound, minimal design for breaking the boot-time preview dependency while preserving preview behavior. Resolve the contradictory verification criterion, fully audit path-semantics calls, and make the Windows end-to-end prerequisite deterministic before implementation. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T06:58:08.970349+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[gemini] Here is the review of the implementation approach.\n\n- **Category**: Risk\n- **Severity**: Medium\n- **Finding**: The plan states that `cli-compat.probe-spawn.test.ts` (the sync suite) will be \"unchanged and still green\" (Step 2 and 3). However, the plan also states that splitting the module removes the need for `versionProbeSpawn` to use a `try/catch` since it can just check for `null`. If `cli-compat.ts` drops the `try/catch` block and checks for `null`, the test file will almost certainly require modifications to update its mock (returning `null` instead of throwing) or to adjust assertions covering the \"executable not found\" path.\n-\n\n[openai] 1. **Category:** risk  \n   **Severity:** medium  \n   **Finding:** AC-9 is internally incompatible with the planned deletion of `cli-compat.probe-spawn-async.test.ts`. It requires that “no collected test disappeared” and “no coverage [be] removed,” while the plan explicitly deletes 11 collected tests and acknowledges deliberate coverage reduction. A behavior-snapshot verifier cannot truthfully satisfy both conditions.  \n   **Suggestion:** Adjust the simplify verification ledger/AC-9 to explicitly allow the 11 deleted tests and their associated coverage only when attributable to deletion of `probeClaudeVersionAsync`. Keep the requirement that no *unrelated* test disappears, flips from green to red, or loses coverage, and reconcile before/after counts accordingly.\n\n2. **Category:** approach  \n   **Severity:** medium  \n   **Finding:** The plan identifies `path.win32.extname` and the `SystemRoot` fallback `join` as pure-string decisions, but it does not explicitly require an audit of every other path-derived string decision in both implementations. In particular, resolver code commonly also uses `isAbsolute`, `basename`, `normalize`, `parse`, `relative`, and `delimiter`; any of these used to classify a Windows command or parse `PATH`/`PATHEXT` can retain host-POSIX behavior under a stubbed Win32 platform.  \n   **Suggestion:** Before implementation, enumerate every `path.*` use in both resolver copies and classify it as either (a) Win32 command-string semantics (`path.win32`) or (b) host-filesystem access (host `path`). Add pins for any classification-sensitive behavior, especially extension detection and any `PATH` splitting/classification. Preserve host `resolve`/`join` only at the point that turns an already-selected candidate into a path to stat/access on the actual host filesystem.\n\n3. **Category:** edge-case  \n   **Severity:** medium  \n   **Finding:** The host-filesystem exception in AC-6 can become ambiguous when test inputs contain multiple `PATH` ent […truncated]"
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 3,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "server/src/core/win32-spawn.test.ts",
+          "line": 129,
+          "finding": "The AC-2 transitive import-closure walker misses MULTI-LINE import statements: `[^;\\n]*?` cannot span a newline, so `import {\\n  X,\\n} from \"./preview-session-manager.js\";` produces no edge. The guard the spec advertises as 'strictly stronger than a direct string match' is defeatable by formatting alone.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "server/src/core/win32-spawn.ts",
+          "line": 243,
+          "finding": "Comment stated a false general implication: '(a POSIX match inside the extension sets implies the win32 one)'. Counter-example `x\\.exe` — path.posix.extname gives '.exe' (direct spawn) while path.win32.extname gives '' (leading-dot basename, falls through to PATHEXT).",
+          "suggestion": null,
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "architecture",
+          "file": "server/src/test/win32-spawn-mirror-parity.test.ts",
+          "line": 99,
+          "finding": "The two new SHARED_INVARIANTS are matched against RAW file contents, but both files' new PATH-FLAVOUR headers discuss `path.win32`/`extname`/the ComSpec `join` in prose — so DOCUMENTATION could satisfy an invariant while the code reverted to the host flavour. Inconsistent with the `shell:` check in the same file, which already strips comments.",
+          "suggestion": null,
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-01T07:30:17.840728+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 7,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the `path.win32` pinning is verified and falsifiable",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the import-closure walker closes external-review finding 5",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "preflight.mjs: 'the ENOENT lands in the catch below as the same ok:false' — stamped 'verified 2026-08-01'",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "'retires the preview ESM cycle from the boot path'",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the new guards' cross-references point where they say",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "'server/ is an application, not a published package' (the Spec-Impact NONE justification)",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": null,
+          "file": null,
+          "line": null,
+          "finding": "the new null contract is honoured by its production consumer",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-01T07:47:25.858013+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T07:49:35.729735+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "unstructured",
+      "raw_excerpt": "[gemini] }\n  }\n```\nWait! `args: argv.slice(1)` has a potential type mismatch? No, `argv` is `string[]`, `slice(1)` is `string[]`.\n\nWhat about `extname` check?\n```typescript\n  const name = argv[0];\n  const rest = argv.slice(1);\n  const ext = path.win32.extname(name).toLowerCase();\n```\nIs `argv` guaranteed to have at least 1 element?\nYes, normally. What if `argv` is empty? `name` is `undefined`.\n`path.win32.extname(undefined)` would throw `TypeError [ERR_INVALID_ARG_TYPE]: The \"path\"\n\n[openai] No concrete defects found in the diff. It implements the extraction and wrapper contract, removes the unused async export and its dedicated tests, routes `cli-compat` through the new non-preview core module, uses `path.win32` for command-string decisions while preserving host-path filesystem lookup, and adds substantive guards for import closure, parity, null behavior, and cross-host path semantics.\n\nOverall assessment: ship-as-is. The implementation appears compliant with the specified acceptance criteria; the required suite/manual verification outcomes should still be confirmed in CI/release evidence.\n\nSHIPWRIGHT_VERDICT: approve"
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T07:17:00.094518+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
