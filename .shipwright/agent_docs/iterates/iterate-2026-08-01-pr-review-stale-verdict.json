@@ -1,0 +1,197 @@
+{
+  "run_id": "iterate-2026-08-01-pr-review-stale-verdict",
+  "date": "2026-08-01T08:21:44.655877Z",
+  "event_at": "2026-08-01T08:20:18.949610+00:00",
+  "type": "change",
+  "complexity": "medium",
+  "prior_source": "history",
+  "branch": "iterate/pr-review-stale-verdict",
+  "spec": ".shipwright/planning/iterate/iterate-2026-08-01-pr-review-stale-verdict.md",
+  "tests_passed": true,
+  "adr": "iterate-2026-08-01-pr-review-stale-verdict",
+  "test_completeness": {
+    "status": "complete",
+    "behaviors": [
+      {
+        "behavior": "A passing run dismisses its own superseded change-requests",
+        "disposition": "tested",
+        "evidence": "calls::test_it_dismisses_and_reports, select::test_own_marked_verdict_on_a_superseded_commit_is_selected"
+      },
+      {
+        "behavior": "The posted review-state body carries this run's nonce, and the cleanup gets that same nonce",
+        "disposition": "tested",
+        "evidence": "stale::test_the_cleanup_looks_for_the_nonce_this_run_actually_posted"
+      },
+      {
+        "behavior": "The head is read before the diff is fetched",
+        "disposition": "tested",
+        "evidence": "stale::test_the_head_is_read_before_the_diff_is_fetched"
+      },
+      {
+        "behavior": "A human's change-request is never dismissed, even carrying the marker",
+        "disposition": "tested",
+        "evidence": "select::test_a_humans_change_request"
+      },
+      {
+        "behavior": "An anchor that is not a Bot is refused",
+        "disposition": "tested",
+        "evidence": "select::test_an_anchor_that_is_not_a_bot"
+      },
+      {
+        "behavior": "Another bot's / another workflow's change-request is never dismissed",
+        "disposition": "tested",
+        "evidence": "select::test_another_bots_change_request, select::test_an_unmarked_verdict_under_the_same_shared_bot_login"
+      },
+      {
+        "behavior": "A marker quoted mid-body is not ownership; a CRLF body still is",
+        "disposition": "tested",
+        "evidence": "select::test_a_quoted_marker_mid_body_is_not_ownership, select::test_a_quoted_anchor_marker_does_not_become_the_anchor, select::test_a_body_as_github_actually_returns_it_is_recognised, select::test_what_stamp_review_body_produces_is_recognised, select::test_leading_whitespace_before_the_marker_is_still_ownership"
+      },
+      {
+        "behavior": "A change-request about the current commit is never dismissed",
+        "disposition": "tested",
+        "evidence": "select::test_a_verdict_about_the_commit_that_is_current"
+      },
+      {
+        "behavior": "A block / truncated / unknown-decision run clears nothing",
+        "disposition": "tested",
+        "evidence": "stale::test_a_blocking_verdict_clears_nothing, stale::test_a_truncated_diff_clears_nothing, stale::test_an_unknown_decision_clears_nothing"
+      },
+      {
+        "behavior": "Reviewed is not head, or stamped is not head, then nothing dismissed",
+        "disposition": "tested",
+        "evidence": "select::test_anything_at_all_when_the_head_has_moved, select::test_a_run_that_reviewed_an_older_commit_clears_nothing"
+      },
+      {
+        "behavior": "An unreadable reviewed-head clears nothing",
+        "disposition": "tested",
+        "evidence": "select::test_an_unreadable_head_clears_nothing"
+      },
+      {
+        "behavior": "The head is re-confirmed before the first dismissal; moved or unreadable abandons the sweep",
+        "disposition": "tested",
+        "evidence": "calls::test_a_head_that_moved_since_selection_stops_the_sweep, calls::test_an_unconfirmable_head_stops_the_sweep"
+      },
+      {
+        "behavior": "With nothing to dismiss, no second head read is spent",
+        "disposition": "tested",
+        "evidence": "calls::test_nothing_to_dismiss_costs_no_extra_head_read"
+      },
+      {
+        "behavior": "A listing / head / dismissal failure never flips the gate",
+        "disposition": "tested",
+        "evidence": "stale::test_a_failing_cleanup_does_not_flip_the_gate, calls::test_one_refused_dismissal_does_not_stop_the_others"
+      },
+      {
+        "behavior": "Unparseable, non-array, OR EMPTY listing output raises rather than reading as \"no reviews\"",
+        "disposition": "tested",
+        "evidence": "gh::test_a_zero_exit_body_that_is_not_json_raises, gh::test_an_error_object_instead_of_an_array_raises, gh::test_a_zero_exit_with_no_json_at_all_raises, gh::test_an_empty_array_is_still_an_empty_list"
+      },
+      {
+        "behavior": "Every refusal is printed, never swallowed",
+        "disposition": "tested",
+        "evidence": "calls::test_a_listing_failure_is_contained_and_named, calls::test_a_head_lookup_failure_is_contained_and_named, stale::test_a_failing_cleanup_is_reported_not_swallowed"
+      },
+      {
+        "behavior": "One malformed review row does not void the sweep; a non-dict user cannot either",
+        "disposition": "tested",
+        "evidence": "select::test_a_malformed_entry_is_counted_and_the_rest_still_clear, select::test_a_non_object_user_does_not_abort_the_sweep, select::test_a_non_object_user_cannot_break_the_anchor_scan_either"
+      },
+      {
+        "behavior": "An already-dismissed review is not selected again (idempotent)",
+        "disposition": "tested",
+        "evidence": "select::test_an_already_dismissed_verdict_is_not_selected_again"
+      },
+      {
+        "behavior": "A marker echoed by the model is stripped before stamping",
+        "disposition": "tested",
+        "evidence": "select::test_a_marker_echoed_by_the_model_is_stripped_before_stamping"
+      },
+      {
+        "behavior": "The nonce is 128 bits from the cryptographic source, and matches what the selector accepts",
+        "disposition": "tested",
+        "evidence": "select::test_two_runs_never_share_a_nonce, select::test_the_nonce_fits_the_marker_the_selector_matches, select::test_it_comes_from_the_cryptographic_source"
+      },
+      {
+        "behavior": "The dismissal request sends PUT plus the required message, and no event",
+        "disposition": "tested",
+        "evidence": "gh::test_it_sends_a_put_with_the_required_message, gh::test_it_does_not_send_the_undocumented_event_field"
+      },
+      {
+        "behavior": "The listing decodes both --paginate shapes and drops non-object entries",
+        "disposition": "tested",
+        "evidence": "gh::test_it_reads_one_merged_array, gh::test_it_reads_arrays_concatenated_one_per_page, gh::test_a_non_object_entry_is_dropped_rather_than_carried"
+      },
+      {
+        "behavior": "Every emitted line is scrubbed at one choke point, and the sanitiser's ALPHABET is pinned",
+        "disposition": "tested",
+        "evidence": "calls::test_every_reported_line_is_scrubbed_wherever_the_text_came_from, calls::test_control_characters_from_gh_are_made_inert, sanitiser::test_its_alphabet_is_exactly_the_documented_class"
+      },
+      {
+        "behavior": "The report names what was dismissed, what was left alone and why",
+        "disposition": "tested",
+        "evidence": "calls::test_it_says_why_when_it_dismisses_nothing, calls::test_the_default_log_goes_to_stderr"
+      },
+      {
+        "behavior": "An unmarked verdict is left alone AND the run names it",
+        "disposition": "tested",
+        "evidence": "select::test_an_unmarked_verdict_under_the_same_shared_bot_login, calls::test_an_unmarked_verdict_is_named_in_the_log"
+      },
+      {
+        "behavior": "No cleanup when the review state never landed (no anchor means no guessing)",
+        "disposition": "tested",
+        "evidence": "stale::test_no_cleanup_when_the_review_state_never_landed, gh::test_review_state_failure_is_raised_rather_than_discarded"
+      },
+      {
+        "behavior": "Both sets of moved tests keep their original assertions; the reviewer still never approves",
+        "disposition": "tested",
+        "evidence": "gh::test_review_state_never_approves, gh::test_fetch_pr_diff_success, gh::test_review_state_block_requests_changes, openrouter::test_builds_authorized_json_request, openrouter::test_http_error_wrapped, openrouter::test_bad_shape_raises_runtime"
+      },
+      {
+        "behavior": "The marker namespace has exactly one producer; vendored copies are pinned and state provenance; no reviewer module silently crosses 300 lines",
+        "disposition": "tested",
+        "evidence": "pins::test_the_marker_namespace_has_exactly_one_producer, pins::test_a_vendored_module_has_not_been_edited_in_place, pins::test_every_pinned_module_states_its_provenance, script::test_no_reviewer_module_silently_crosses_the_size_guideline"
+      },
+      {
+        "behavior": "The offline suite really is offline \u2014 in EVERY module that drives main()",
+        "disposition": "tested",
+        "evidence": "script::test_approve_exits_0, stale::test_a_passing_verdict_clears_its_own_stale_ones"
+      },
+      {
+        "behavior": "A second producer of the marker namespace anywhere in the repo fails the build",
+        "disposition": "tested",
+        "evidence": "pins::test_the_marker_namespace_has_exactly_one_producer"
+      },
+      {
+        "behavior": "A vendored module excused from the manifest guard is pinned SOMEWHERE, or recorded as knowingly unpinned",
+        "disposition": "tested",
+        "evidence": "pins::test_the_not_hash_pinned_allowlist_and_this_module_agree"
+      },
+      {
+        "behavior": "A dismissal actually taking effect against live GitHub",
+        "disposition": "untestable",
+        "reason_code": "requires-external-nondeterministic-service",
+        "reason": "needs a real stale, MARKED change-request on a real pull request under the workflow's token; no review in this repository carries a marker yet, so it is unreachable until the first Tier-3 PR after merge"
+      }
+    ],
+    "counts": {
+      "testable": 31,
+      "tested": 31,
+      "untestable": 1,
+      "untested_testable": 0
+    },
+    "enumeration_basis": {
+      "acs": 9,
+      "covered_acs": 9
+    }
+  },
+  "surface_verification": {
+    "surface": "cli",
+    "runner": "python scripts/ci/tests/f05_live_probe.py --repo svenroth-ai/shipwright-webui --pr 329",
+    "exit_code": 0,
+    "tests_run": 9,
+    "evidence_path": "C:\\01_Development\\shipwright-webui\\.worktrees\\pr-review-stale-verdict\\.shipwright\\runs\\iterate-2026-08-01-pr-review-stale-verdict\\surface_verification.log",
+    "timestamp": "2026-08-01T07:34:00.467Z",
+    "attempts": 1
+  }
+}

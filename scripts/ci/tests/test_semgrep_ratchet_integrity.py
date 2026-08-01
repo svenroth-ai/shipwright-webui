@@ -180,7 +180,7 @@ def test_the_exemptions_do_what_they_claim_on_the_real_tree() -> None:
     (Stage-3 doubt review, D-9.)
     """
     vendored = REPO_ROOT / "scripts" / "ci" / "accepted_risk_scan.py"
-    live = REPO_ROOT / "scripts" / "ci" / "pr_review.py"
+    live = REPO_ROOT / "scripts" / "ci" / "pr_review_openrouter.py"
     for path in (vendored, live):
         assert path.is_file(), (
             f"{path} is gone. These two files pin the exemption's real-tree "
@@ -194,7 +194,7 @@ def test_the_exemptions_do_what_they_claim_on_the_real_tree() -> None:
     )
     real = directives(live)
     assert len(real) == 1 and real[0][2].startswith("python.lang.security"), (
-        f"expected exactly one real directive in pr_review.py, got: {real}"
+        f"expected exactly one real directive in {live.name}, got: {real}"
     )
 
 

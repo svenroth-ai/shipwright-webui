@@ -37,14 +37,15 @@ from semgrep_scan_surface import SCANNED_EXTENSIONS, UNSCANNED_EXTENSIONS, is_sc
 #: POSITIVE).
 _INLINE_SUPPRESSIONS: dict[tuple[str, str], tuple[int, str]] = {
     (
-        "scripts/ci/pr_review.py",
+        "scripts/ci/pr_review_openrouter.py",
         "python.lang.security.audit.dynamic-urllib-use-detected."
         "dynamic-urllib-use-detected",
     ): (
         1,
-        "The URL is built from GITHUB_API_URL plus a path this module composes; "
+        "The URL is the OpenRouter completions endpoint composed by this module; "
         "it is never attacker-supplied. The rule flags any non-literal urlopen, "
-        "which every GitHub API client trips by construction.",
+        "which every HTTP client trips by construction. Relocated from "
+        "pr_review.py by #343 (ADR-117 port) — a pure move, same rule, same count.",
     ),
     (
         "server/src/core/actions-schema-validator.ts",

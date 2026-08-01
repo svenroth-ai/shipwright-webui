@@ -31,6 +31,8 @@ sys.path.insert(0, str(CI_DIR))
 
 import pr_review  # noqa: E402
 
+from _pr_review_offline import no_real_gh  # noqa: E402,F401
+
 # Deliberately NOT in any real credential format (no `sk-`/`ghp_`/`xox` prefix) so the
 # repo's secret-scan hooks don't flag this synthetic fixture. Redaction is format-agnostic.
 FAKE_KEY = "ORTESTKEY-not-a-real-credential-0123456789"
@@ -61,125 +63,35 @@ class TestFileContract:
     def test_default_model_is_sonnet(self):
         assert pr_review.DEFAULT_MODEL == "anthropic/claude-sonnet-4.6"
 
+    def test_no_reviewer_module_silently_crosses_the_size_guideline(self):
+        """The reviewer family stays inside the 300-line source guideline.
 
-# ---------------------------------------------------------------------------
-# _post_openrouter — HTTP boundary (urllib monkeypatched)
-# ---------------------------------------------------------------------------
-
-class TestPostOpenRouter:
-
-    def test_builds_authorized_json_request(self, monkeypatch):
-        captured = {}
-
-        class _FakeResp:
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *a):
-                return False
-
-            def read(self):
-                return json.dumps(
-                    {"choices": [{"message": {"content": "{\"decision\":\"approve\"}"}}]}
-                ).encode("utf-8")
-
-        def fake_urlopen(req, timeout=None):
-            captured["url"] = req.full_url
-            captured["headers"] = {k.lower(): v for k, v in req.header_items()}
-            captured["body"] = json.loads(req.data.decode("utf-8"))
-            return _FakeResp()
-
-        monkeypatch.setattr(pr_review.urllib.request, "urlopen", fake_urlopen)
-        data = pr_review._post_openrouter(FAKE_KEY, "some/model", [{"role": "user", "content": "hi"}], 30)
-
-        assert captured["url"] == pr_review.OPENROUTER_URL
-        assert captured["headers"]["authorization"] == f"Bearer {FAKE_KEY}"
-        assert captured["body"]["model"] == "some/model"
-        assert captured["body"]["response_format"] == {"type": "json_object"}
-        assert data["choices"][0]["message"]["content"] == '{"decision":"approve"}'
-
-
-# ---------------------------------------------------------------------------
-# call_openrouter — content extraction + error wrapping (_post_openrouter mocked)
-# ---------------------------------------------------------------------------
-
-class TestCallOpenRouter:
-
-    def test_success_extracts_content(self, monkeypatch):
-        monkeypatch.setattr(
-            pr_review, "_post_openrouter",
-            lambda k, m, msgs, t: {"choices": [{"message": {"content": "OK"}}]},
+        This is a CI-visible ratchet because nothing else here is one. The
+        pre-commit hook blocks a RATCHET of a file already in
+        `shipwright_bloat_baseline.json`; a brand-new crossing is only advisory
+        there, and the detective audit that would catch it runs in the
+        shipwright dev repo, not in webui. So `pr_review.py` drifting over 300
+        again would reach `main` unremarked — and it has been pushed to the
+        ceiling in three consecutive iterates now (299 after the truncation
+        fix, 299 again after the two-stage split, which recorded the missing
+        headroom as a finding, and it was ADR-117's wiring that finally spent
+        it). A baseline entry still wins, so a DELIBERATE exception is a
+        one-line record rather than a fight with this test.
+        """
+        baseline = json.loads(
+            (CI_DIR.parent.parent / "shipwright_bloat_baseline.json").read_text(encoding="utf-8"))
+        excepted = {e["path"] for e in baseline["entries"]}
+        oversize = {
+            path.name: len(path.read_text(encoding="utf-8").splitlines())
+            for path in sorted(CI_DIR.glob("pr_review*.py"))
+            if f"scripts/ci/{path.name}" not in excepted
+            and len(path.read_text(encoding="utf-8").splitlines()) > 300
+        }
+        assert not oversize, (
+            f"over the 300-line guideline with no baseline entry: {oversize}. "
+            "Split at a real seam (one module per external boundary is the one "
+            "this family uses) or record a baseline exception with a reason."
         )
-        assert pr_review.call_openrouter("k", "m", [], 1) == "OK"
-
-    def test_bad_shape_raises_runtime(self, monkeypatch):
-        monkeypatch.setattr(pr_review, "_post_openrouter", lambda *a: {"unexpected": 1})
-        with pytest.raises(RuntimeError):
-            pr_review.call_openrouter("k", "m", [], 1)
-
-    def test_http_error_wrapped(self, monkeypatch):
-        def boom(*a):
-            raise pr_review.urllib.error.HTTPError("u", 429, "rate limit", {}, None)
-        monkeypatch.setattr(pr_review, "_post_openrouter", boom)
-        with pytest.raises(RuntimeError):
-            pr_review.call_openrouter("k", "m", [], 1)
-
-    def test_url_error_wrapped(self, monkeypatch):
-        def boom(*a):
-            raise pr_review.urllib.error.URLError("connection refused")
-        monkeypatch.setattr(pr_review, "_post_openrouter", boom)
-        with pytest.raises(RuntimeError):
-            pr_review.call_openrouter("k", "m", [], 1)
-
-
-# ---------------------------------------------------------------------------
-# gh-CLI wrappers — exit handling (subprocess mocked)
-# ---------------------------------------------------------------------------
-
-class _Proc:
-    def __init__(self, rc, out="", err=""):
-        self.returncode, self.stdout, self.stderr = rc, out, err
-
-
-class TestGhWrappers:
-
-    def test_fetch_pr_diff_success(self, monkeypatch):
-        monkeypatch.setattr(pr_review.subprocess, "run", lambda *a, **k: _Proc(0, "DIFFTEXT"))
-        assert pr_review.fetch_pr_diff(1, "o/r") == "DIFFTEXT"
-
-    def test_fetch_pr_diff_failure_raises(self, monkeypatch):
-        monkeypatch.setattr(pr_review.subprocess, "run", lambda *a, **k: _Proc(1, "", "no auth"))
-        with pytest.raises(RuntimeError):
-            pr_review.fetch_pr_diff(1, "o/r")
-
-    def test_post_pr_comment_failure_raises(self, monkeypatch):
-        monkeypatch.setattr(pr_review.subprocess, "run", lambda *a, **k: _Proc(1, "", "forbidden"))
-        with pytest.raises(RuntimeError):
-            pr_review.post_pr_comment(1, "o/r", "body")
-
-    def test_review_state_block_requests_changes(self, monkeypatch):
-        captured = {}
-
-        def fake_run(cmd, **k):
-            captured["cmd"] = cmd
-            return _Proc(0)
-
-        monkeypatch.setattr(pr_review.subprocess, "run", fake_run)
-        pr_review.post_pr_review_state(1, "o/r", "block", "nope")
-        assert "--request-changes" in captured["cmd"]
-
-    def test_review_state_non_block_comments(self, monkeypatch):
-        captured = {}
-
-        def fake_run(cmd, **k):
-            captured["cmd"] = cmd
-            return _Proc(0)
-
-        monkeypatch.setattr(pr_review.subprocess, "run", fake_run)
-        pr_review.post_pr_review_state(1, "o/r", "approve", "")
-        assert "--comment" in captured["cmd"]
-        # empty summary must still pass a non-empty body to `gh pr review`
-        assert "--body" in captured["cmd"]
 
 
 # ---------------------------------------------------------------------------
@@ -208,12 +120,27 @@ def _wire(monkeypatch, *, review_json=None, diff="diff --git a b\n+x\n", raise_c
         pr_review, "post_pr_review_state",
         lambda pr, repo, decision, summary: posted.update(state=decision),
     )
+    # ADR-117 added two more `gh` boundaries to main(): the pre-diff head read
+    # and the stale-verdict cleanup. Patch BOTH — this module's docstring
+    # promises the suite runs fully offline, and `.github/workflows/pr-review.yml`
+    # labels the job that runs it "Offline, no credentials".
+    #
+    # Without these two lines every TestMainOrchestration case spawned a real
+    # `gh api repos/owner/repo/pulls/42`, and the two passing-verdict cases went
+    # on to run the REAL cleanup against a repo slug that is not ours. Nothing
+    # could be dismissed (the fresh nonce is never posted, so no anchor is found
+    # and the selector refuses), which is exactly why it was invisible: green,
+    # and quietly making authenticated network calls from an offline suite.
+    monkeypatch.setattr(pr_review, "read_reviewed_head", lambda pr, repo: "headsha")
+    monkeypatch.setattr(pr_review, "dismiss_own_stale_verdicts",
+                        lambda pr, repo, *, nonce, reviewed_sha: None)
     return posted
 
 
 ARGV = ["--pr-number", "42", "--repo", "owner/repo", "--prompt-dir", "scripts/ci/pr_reviewer"]
 
 
+@pytest.mark.usefixtures("no_real_gh")
 class TestMainOrchestration:
 
     def test_missing_api_key_exits_2(self, monkeypatch):
