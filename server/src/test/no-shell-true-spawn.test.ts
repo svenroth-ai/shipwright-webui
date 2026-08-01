@@ -55,6 +55,11 @@ const REMEDIATED = [
   "bootstrapper/lib/preflight.mjs",
   "bootstrapper/lib/server.mjs",
   // The shared resolvers both of the above depend on.
+  // `win32-spawn.ts` is where the resolution actually lives since
+  // iterate-2026-08-01-win32-spawn-followups; `preview-win32-spawn.ts` stays on
+  // the list as the preview-facing wrapper, because dropping a file from this
+  // list is exactly how the guard would quietly stop covering it.
+  "server/src/core/win32-spawn.ts",
   "server/src/core/preview-win32-spawn.ts",
   "bootstrapper/lib/win32-spawn.mjs",
 ];
