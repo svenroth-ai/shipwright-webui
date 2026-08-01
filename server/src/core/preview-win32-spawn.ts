@@ -1,223 +1,51 @@
 /*
- * preview-win32-spawn.ts — platform-aware executable resolution for the
- * preview dev-server spawn (D03 / audit findings F03 + F31).
+ * preview-win32-spawn.ts — the PREVIEW-facing face of the win32 spawn resolver.
  *
- * WHY a separate module: Windows needs PATHEXT resolution plus a cmd.exe
- * wrapper for `.cmd`/`.bat` shims — Node's CVE-2024-27980 hardening
- * EINVAL-blocks direct `.cmd` spawns under `shell: false`. That is a
- * self-contained concern with a narrow surface, kept out of
- * preview-session-manager.ts (which sits at its bloat ceiling). POSIX is a
- * pass-through, so the existing behaviour stays byte-identical.
+ * The resolution itself lives in `win32-spawn.ts` and is shared by three
+ * consumer classes (preview dev-server spawn, the boot-time Claude version
+ * probe, and — mirrored, not imported — the bootstrapper package). This module
+ * adds exactly one thing on top: the preview subsystem's error type.
  *
- * SECURITY posture (ADR-044 — `shell: false` on EVERY path). This is NOT a
- * proof of total safety:
- *   - `splitWin32Command` never treats backslash as an escape, so
- *     `C:\tools\node.exe` survives verbatim (F31).
- *   - The fence (in preview-session-manager.tokenizeCommand) is a BLOCKLIST: it
- *     refuses shell separators / substitution + `%` before resolving. It is NOT
- *     an allow-list — cmd builtins (`start`, `for`, `(…)`, `call`, `@`) survive
- *     it. It does not sandbox a hostile string: the profile author is already
- *     trusted to name an executable (a bare `.exe` is spawned directly). The
- *     fence's narrower job is to stop this cmd.exe wrapper from AMPLIFYING a
- *     `.cmd` shim into shell semantics or a lower-trust repo-cwd binary hijack.
- *   - `resolveSpawn` never sets `options.shell`. It hands cmd.exe DISCRETE argv
- *     when no token needs quoting; for a spaced token it emits the canonical
- *     verbatim `cmd /d /s /c ""<quoted-shim>" <args>"` line. Separators are
- *     refused upstream, so no token can break that quoting.
+ * WHY THE SPLIT (iterate-2026-08-01-win32-spawn-followups). `PreviewProfileInvalidError`
+ * lives in `preview-session-manager.ts`, so ANY module that wants the throwing
+ * form also pulls the preview subsystem into its import closure. That is how
+ * `cli-compat.ts` — the BOOT path — became a MEMBER of the
+ * preview-win32-spawn <-> preview-session-manager ESM cycle when PR #340 made it
+ * a consumer of the resolver, which that PR recorded as a new fragility. Keeping
+ * the throw HERE and the resolution THERE means only callers that actually want
+ * a `PreviewProfileInvalidError` pay for the preview import. Note this file is
+ * still IN that cycle, by design — it is the module that needs the error type.
+ *
+ * ADR-044 / DO-NOT #9 are untouched: the preview path still receives a THROW for
+ * an unresolvable bare command (never a silent `cmd /d /s /c <bare>` delegation,
+ * which would hand cmd.exe its own cwd-first lookup inside an untrusted repo).
+ * The FROZEN guard `preview-win32-resolve.test.ts` — Guards 3-6 from security
+ * review rounds 2-3 — imports `resolveSpawn` from THIS module and is unmodified
+ * by that split; it passing verbatim is the proof the extraction preserved the
+ * preview contract.
  */
 
-import path from "node:path";
-import { statSync, realpathSync } from "node:fs";
+import {
+  resolveSpawn as resolveSpawnOrNull,
+  type ResolvedSpawn,
+} from "./win32-spawn.js";
 // Intra-package import used only inside resolveSpawn's body (never at module
-// load), so the preview-session-manager ↔ this-module cycle is ESM-safe.
+// load), so the preview-session-manager <-> this-module cycle is ESM-safe.
 import { PreviewProfileInvalidError } from "./preview-session-manager.js";
 
-const WIN32_EXECUTABLE_EXTS = new Set([".exe", ".com"]);
-const WIN32_SHIM_EXTS = new Set([".cmd", ".bat"]);
-
-export interface ResolvedSpawn {
-  command: string;
-  args: string[];
-  /** win32 only: set when the cmd.exe line is pre-quoted for `cmd /s` (a spaced
-   *  shim path) — the caller passes it straight through to child_process.spawn. */
-  windowsVerbatimArguments?: boolean;
-}
+export { splitWin32Command, type ResolvedSpawn } from "./win32-spawn.js";
 
 /**
- * Tokenize a win32 dev command WITHOUT POSIX backslash-escaping, so
- * `C:\tools\node.exe` keeps its backslashes (audit F31). Honours double quotes
- * for grouping args that contain spaces. Assumes the caller has already
- * refused command-execution metacharacters (the injection fence lives in
- * preview-session-manager.tokenizeCommand).
- */
-export function splitWin32Command(command: string): string[] {
-  const argv: string[] = [];
-  let cur = "";
-  let inDouble = false;
-  let started = false;
-  for (let i = 0; i < command.length; i++) {
-    const ch = command[i];
-    if (ch === '"') {
-      inDouble = !inDouble;
-      started = true;
-      continue;
-    }
-    if (!inDouble && (ch === " " || ch === "\t")) {
-      if (started) {
-        argv.push(cur);
-        cur = "";
-        started = false;
-      }
-      continue;
-    }
-    cur += ch;
-    started = true;
-  }
-  if (started) argv.push(cur);
-  return argv;
-}
-
-function win32ComSpec(): string {
-  const fromEnv = process.env.ComSpec ?? process.env.COMSPEC;
-  if (fromEnv && fromEnv.trim()) return fromEnv;
-  const root = process.env.SystemRoot ?? process.env.windir ?? "C:\\Windows";
-  return path.join(root, "System32", "cmd.exe");
-}
-
-function looksPathLike(name: string): boolean {
-  return name.includes("\\") || name.includes("/") || /^[a-zA-Z]:/.test(name);
-}
-
-/**
- * Resolve `name` to a concrete on-disk file via PATHEXT, realpath-verified
- * (same realpath posture as core/path-guard.ts). Returns undefined when
- * nothing resolves. Only called for names lacking a recognised extension.
- */
-function resolveViaPathExt(name: string, cwd: string): string | undefined {
-  const exts = (process.env.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
-    .split(";")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  const firstFile = (base: string, withBare: boolean): string | undefined => {
-    for (const ext of withBare ? ["", ...exts] : exts) {
-      try {
-        const real = realpathSync.native(base + ext);
-        if (statSync(real).isFile()) return real;
-      } catch {
-        // no file at this candidate — keep searching
-      }
-    }
-    return undefined;
-  };
-
-  if (looksPathLike(name)) {
-    // Explicit path — honour an exact match first, then PATHEXT.
-    return firstFile(path.resolve(cwd, name), true);
-  }
-  // Bare command — search PATH ONLY, never the untrusted previewed-project cwd:
-  // a planted `<cwd>\npm.exe` must not shadow the real tool (a shell resolves
-  // bare names from PATH, not cwd). Path-like commands stay cwd-relative above.
-  // The empty ext is excluded so an extensionless POSIX shim (the `npm` bash
-  // script) is not matched.
-  const dirs: string[] = [];
-  for (const dir of (process.env.PATH ?? process.env.Path ?? "").split(";")) {
-    if (dir.trim()) dirs.push(dir.trim());
-  }
-  for (const dir of dirs) {
-    const hit = firstFile(path.join(dir, name), false);
-    if (hit) return hit;
-  }
-  return undefined;
-}
-
-/**
- * Characters cmd.exe INTERPRETS, and which a surrounding pair of double quotes
- * makes literal. A token carrying one must be quoted even without whitespace.
+ * `win32-spawn.resolveSpawn` with the preview subsystem's failure mode: an
+ * unresolvable BARE command is a profile error, not a `null`.
  *
- * Added iterate-2026-07-31-win32-shell-spawn-remediation. Until then the
- * whitespace test alone was load-bearing only because the ONE caller sat behind
- * `preview-session-manager.tokenizeCommand`, which refuses these characters in
- * the profile command — but that fence never saw the RESOLVED path, and
- * `resolveViaPathExt` builds one out of PATH directories. A user whose PATH
- * contains `C:\R&D\` therefore got `cmd /d /s /c C:\R&D\tool.cmd`, which cmd
- * splits at the `&`. Verified on Windows 11: discrete → "'C:\…\R' is not
- * recognized as an internal or external command"; quoted → the shim runs.
- *
- * DELIBERATELY ABSENT, because quoting does not neutralise them:
- *   `%` — `%VAR%` expands inside double quotes too (the upstream fence refuses it).
- *   `"` — a token containing a quote cannot be wrapped safely by this scheme.
- */
-const WIN32_CMD_SPECIAL = /[&|<>^]/;
-
-function win32NeedsQuote(token: string): boolean {
-  return token === "" || /\s/.test(token) || WIN32_CMD_SPECIAL.test(token);
-}
-
-function win32CmdWrap(target: string, rest: string[]): ResolvedSpawn {
-  const parts = [target, ...rest];
-  const command = win32ComSpec();
-  // No token needs quoting → discrete argv: Node quotes nothing it needn't and
-  // cmd.exe /d /s /c runs each token literally (caller keeps shell:false).
-  if (!parts.some(win32NeedsQuote)) {
-    return { command, args: ["/d", "/s", "/c", ...parts] };
-  }
-  // A token needs quoting (e.g. `C:\Program Files\nodejs\npm.cmd`). Under `cmd /s`
-  // Node's own arg-quoting is stripped, so build the canonical
-  // `cmd /d /s /c ""<quoted-shim>" <args>"` line ourselves and pass it verbatim:
-  // `/s` strips ONLY the outer quote pair, leaving the inner shim-path quotes
-  // intact. Safe because every shell separator (and `%`) is refused upstream, so
-  // no token can carry a metacharacter that would break out of the quoting.
-  const inner = parts
-    .map((p) => (win32NeedsQuote(p) ? `"${p}"` : p))
-    .join(" ");
-  return {
-    command,
-    args: ["/d", "/s", "/c", `"${inner}"`],
-    windowsVerbatimArguments: true,
-  };
-}
-
-/**
- * Compute the (command, args) to hand to child_process.spawn with
- * `shell: false`. POSIX is a pass-through (argv0 + rest). Reads
- * `process.platform` at call time so the win32/POSIX branch stays stubbable.
- *
- *   - argv0 is a real `.exe`/`.com`      → spawn it directly (no cmd.exe).
- *   - argv0 is a `.cmd`/`.bat` shim OR an unresolved bare command (npm/yarn/
- *     pnpm are `.cmd` shims) → run through `cmd.exe /d /s /c` — discrete argv,
- *     or a verbatim outer-quoted line when a token contains a space.
+ * Identical to the core resolver on every other input — asserted directly by
+ * the core<->wrapper differential matrix in `win32-spawn.test.ts`.
  */
 export function resolveSpawn(argv: string[], cwd: string): ResolvedSpawn {
-  if (process.platform !== "win32") {
-    return { command: argv[0], args: argv.slice(1) };
-  }
-  const name = argv[0];
-  const rest = argv.slice(1);
-  const ext = path.extname(name).toLowerCase();
-
-  if (WIN32_EXECUTABLE_EXTS.has(ext)) {
-    return { command: name, args: rest };
-  }
-  if (!WIN32_SHIM_EXTS.has(ext)) {
-    const resolved = resolveViaPathExt(name, cwd);
-    if (resolved) {
-      if (WIN32_EXECUTABLE_EXTS.has(path.extname(resolved).toLowerCase())) {
-        return { command: resolved, args: rest };
-      }
-      return win32CmdWrap(resolved, rest);
-    }
-    // Unresolved. A BARE (non-path-like) name resolves from PATH ONLY (never
-    // cwd) — so if PATHEXT can't find it we REFUSE here. Delegating
-    // `cmd /d /s /c <bare>` would let cmd.exe do its own cwd-first lookup and run
-    // a planted `<cwd>\npm.cmd` from an untrusted previewed repo. A path-like
-    // name (absolute or `.`/`..`-relative) is the author's explicit target, so
-    // it still wraps below.
-    if (!looksPathLike(name)) {
-      throw new PreviewProfileInvalidError(
-        `dev_server.command not found on PATH: ${name}`,
-      );
-    }
-  }
-  return win32CmdWrap(name, rest);
+  const plan = resolveSpawnOrNull(argv, cwd);
+  if (plan) return plan;
+  throw new PreviewProfileInvalidError(
+    `dev_server.command not found on PATH: ${argv[0]}`,
+  );
 }

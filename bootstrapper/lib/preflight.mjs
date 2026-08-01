@@ -51,6 +51,13 @@ import { resolveSpawn } from "./win32-spawn.mjs";
 export function defaultRun(cmd, args = ["--version"]) {
   try {
     const plan = resolveSpawn([cmd, ...args]);
+    // UNREACHABLE as of iterate-2026-07-31 (win32-spawn divergence 5: an
+    // unresolvable bare name comes back as itself). `spawnSync` does NOT throw
+    // for a missing binary — it returns `{ error: ENOENT, status: null }` — so
+    // the failure is carried by the `!r.error` term in `ok` below and never
+    // reaches the catch. (An earlier version of this comment said "lands in the
+    // catch"; Stage-3 doubt review disproved it. The verdict was always right,
+    // the stated mechanism was not.) Kept as contract insurance.
     if (!plan) return { ok: false, stdout: "", stderr: "", code: null };
     const r = spawnSync(plan.command, plan.args, {
       encoding: "utf-8",

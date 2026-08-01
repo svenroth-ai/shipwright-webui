@@ -1,8 +1,12 @@
 /*
  * Drift guard: `bootstrapper/lib/win32-spawn.mjs` is a deliberate verbatim-ish
- * MIRROR of `server/src/core/preview-win32-spawn.ts` (ADR-044; audit F03 + F31).
+ * MIRROR of `server/src/core/win32-spawn.ts` (ADR-044; audit F03 + F31).
  *
- * Run-ID: iterate-2026-07-31-win32-shell-spawn-remediation.
+ * Run-ID: iterate-2026-07-31-win32-shell-spawn-remediation; re-pointed at the
+ * extracted core by iterate-2026-08-01-win32-spawn-followups, which split
+ * `preview-win32-spawn.ts` into that core plus a thin throwing wrapper. The
+ * mirror was always a mirror of the RESOLVER, never of the preview error type,
+ * so the split makes this guard's subject exact rather than approximate.
  *
  * WHY A MIRROR AT ALL. `bootstrapper/` is a separately published npm package
  * (`@svenroth-ai/shipwright`) and DO-NOT #7 forbids cross-package imports, so the
@@ -34,15 +38,24 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // server/src/test → repo root
 const REPO = resolve(__dirname, "..", "..", "..");
-const SERVER_ORIGINAL = resolve(REPO, "server/src/core/preview-win32-spawn.ts");
+const SERVER_ORIGINAL = resolve(REPO, "server/src/core/win32-spawn.ts");
 const BOOTSTRAPPER_MIRROR = resolve(REPO, "bootstrapper/lib/win32-spawn.mjs");
 
 let original = "";
 let mirror = "";
+/* Comment-stripped twins. The SHARED_INVARIANTS are matched against THESE, not
+ * the raw text: both files' headers now discuss `path.win32`, `extname` and the
+ * ComSpec `join` in prose, so a raw match would let DOCUMENTATION satisfy an
+ * invariant while the code reverted to the host flavour. Same reasoning the
+ * `shell:` check below already used — Stage-2 review flagged the inconsistency. */
+let originalCode = "";
+let mirrorCode = "";
 
 beforeAll(() => {
   original = readFileSync(SERVER_ORIGINAL, "utf-8");
   mirror = readFileSync(BOOTSTRAPPER_MIRROR, "utf-8");
+  originalCode = stripComments(original);
+  mirrorCode = stripComments(mirror);
 });
 
 /** Drop block + line comments, keeping line structure so `^`-anchors still work. */
@@ -87,8 +100,16 @@ const SHARED_INVARIANTS: { name: string; pattern: RegExp }[] = [
     pattern: /\?\?\s*"\.COM;\.EXE;\.BAT;\.CMD"/,
   },
   {
-    name: "ComSpec falls back to <SystemRoot>/System32/cmd.exe",
-    pattern: /path\.join\(root,\s*"System32",\s*"cmd\.exe"\)/,
+    // WIN32-FLAVOURED on purpose (iterate-2026-08-01-win32-spawn-followups).
+    // A bare `path.join` here is the (a)-class gap: on a POSIX host with the
+    // platform stubbed/injected it emits `C:\Win/System32/cmd.exe`. Pinning
+    // `path.win32` in the pattern makes the flavour itself un-driftable.
+    name: "ComSpec falls back to <SystemRoot>\\System32\\cmd.exe, win32-flavoured",
+    pattern: /path\.win32\.join\(root,\s*"System32",\s*"cmd\.exe"\)/,
+  },
+  {
+    name: "extension classification is win32-flavoured, not host-flavoured",
+    pattern: /path\.win32\.extname\(/,
   },
   {
     name: "a bare name is searched on PATH only (the empty ext is excluded)",
@@ -108,6 +129,26 @@ const SHARED_INVARIANTS: { name: string; pattern: RegExp }[] = [
   },
 ];
 
+/**
+ * Patterns that must NOT appear in either file's CODE.
+ *
+ * SHARED_INVARIANTS are >=1 matches, which is the wrong shape for a rule that
+ * has to hold at EVERY site: both files call `extname` twice, so a positive
+ * `path.win32.extname(` invariant stays green after reverting only the second
+ * one. Stage-3 doubt review constructed exactly that bypass. A negative
+ * invariant is the shape that scales with the call count.
+ */
+const FORBIDDEN: { name: string; pattern: RegExp }[] = [
+  {
+    name: "an un-flavoured `path.extname(` — every extname site must be win32-pinned",
+    pattern: /(?<!win32\.)(?<!posix\.)\bpath\.extname\(/,
+  },
+  {
+    name: "an un-flavoured `path.join(root,` in the ComSpec fallback",
+    pattern: /(?<!win32\.)(?<!posix\.)\bpath\.join\(root,/,
+  },
+];
+
 describe("win32 spawn mirror — security-load-bearing parity", () => {
   it("both files are present and non-trivial", () => {
     expect(original.length).toBeGreaterThan(1000);
@@ -115,11 +156,19 @@ describe("win32 spawn mirror — security-load-bearing parity", () => {
   });
 
   it.each(SHARED_INVARIANTS)("$name — present in the SERVER original", ({ pattern }) => {
-    expect(original).toMatch(pattern);
+    expect(originalCode).toMatch(pattern);
   });
 
   it.each(SHARED_INVARIANTS)("$name — present in the BOOTSTRAPPER mirror", ({ pattern }) => {
-    expect(mirror).toMatch(pattern);
+    expect(mirrorCode).toMatch(pattern);
+  });
+
+  it.each(FORBIDDEN)("$name — absent from the SERVER original", ({ pattern }) => {
+    expect(originalCode).not.toMatch(pattern);
+  });
+
+  it.each(FORBIDDEN)("$name — absent from the BOOTSTRAPPER mirror", ({ pattern }) => {
+    expect(mirrorCode).not.toMatch(pattern);
   });
 
   it("neither file sets a `shell` option in CODE — that is the whole point", () => {
@@ -134,8 +183,17 @@ describe("win32 spawn mirror — security-load-bearing parity", () => {
   });
 
   it("the mirror still points at the original, so this guard is discoverable", () => {
-    expect(mirror).toContain("server/src/core/preview-win32-spawn.ts");
+    expect(mirror).toContain("server/src/core/win32-spawn.ts");
     expect(mirror).toContain("win32-spawn-mirror-parity.test.ts");
+  });
+
+  it("the ORIGINAL carries no preview import — that is what the split bought", () => {
+    // The mirror could never import the preview subsystem (different package),
+    // so before the split the two files disagreed on their single most
+    // load-bearing structural property. Now they agree, and this pins it.
+    // NOTE this is a single-file, NON-transitive check; the transitive walk
+    // lives in server/src/core/win32-spawn.import-closure.test.ts.
+    expect(stripComments(original)).not.toMatch(/from\s+"\.\/preview-/);
   });
 
   it("the mirror still documents its divergences rather than claiming to be identical", () => {
