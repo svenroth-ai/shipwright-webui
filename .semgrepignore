@@ -1,6 +1,18 @@
 # Semgrep path exclusions — keep `semgrep scan --config auto` (see
 # .github/workflows/security.yml) focused on the PRODUCTION attack surface.
 #
+# THIS FILE IS PINNED. Every pattern below has a matching entry, with a written
+# rationale, in scripts/ci/tests/test_semgrep_scan_scope.py — adding or removing
+# a line here fails CI until that registry is updated too. It is a scan-SCOPE
+# definition, NOT a risk acceptance: excluding a file must mean "this is not
+# shipped", never "this finding is inconvenient". A finding you want to accept
+# is a register entry in shipwright_accepted_risks.yaml instead.
+#
+# Only four pattern shapes are supported, because the CI matcher implements
+# exactly those: `*.ext` (basename), `dir/` (any depth), `a/b/` (anchored dir),
+# `a/b/c.ext` (anchored file). A negation, `**`, a character class or a leading
+# slash is REJECTED rather than silently misread.
+#
 # Test/E2E specs, one-off POC scripts, and the Shipwright SDLC doc tree are
 # not shipped at runtime; scanning them only produced audit-rule noise that
 # GitHub code-scanning then inflated to "high" (111 high / 19 medium), while
@@ -17,8 +29,18 @@
 *.spec.tsx
 client/e2e/
 
-# --- One-off / POC scripts (not part of the runtime server or client) ---
-server/scripts/
+# --- One-off / POC + dev-time scripts (not part of the runtime server) ---
+#
+# NAMED FILE BY FILE, not as `server/scripts/`. That blanket exclusion was
+# wrong: copy-assets.mjs in the same directory is the second half of
+# `npm run build` ("tsc && node scripts/copy-assets.mjs") and copies
+# src/config -> dist/config, without which `node dist/index.js` ENOENTs. It
+# shapes the SHIPPED artifact and must stay in scan scope. A NEW file added to
+# this directory is therefore scanned until someone excludes it deliberately —
+# which is the safe default. (Codex cross-check on triage trg-ab54e3d1.)
+server/scripts/regen-launch-payload-fixtures.py
+server/scripts/regen-triage-fixtures.py
+server/scripts/sdk-poc.ts
 
 # --- Shipwright SDLC docs, planning, compliance artifacts (not code) ---
 .shipwright/

@@ -1,0 +1,418 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-01-semgrep-suppression-ratchet",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 6,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Self-review before Stage 1: the marker regex had no identifier boundary, so the short stem would match inside any longer token - and .json is a scanned extension, where a base64 blob could trip it.",
+          "suggestion": "Added lookbehind/lookahead boundaries on both sides plus a fixture. Found by re-reading the scanned-extension list, not by a test failing.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/tests/test_semgrep_scan_scope.py",
+          "line": null,
+          "finding": "The rationale floor fired on my OWN entry during build: `build/` read 'Build output. Same reasoning as dist/.' at 39 characters.",
+          "suggestion": "Rewritten with substance. Recorded because it is the gate demonstrating itself on the author rather than on a hypothetical future one.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/tests/test_semgrep_channels_scanner.py",
+          "line": null,
+          "finding": "A fixture asserted `.shipwright/` classified as anchored-dir; it is slash-free and therefore any-depth-dir.",
+          "suggestion": "Fixture expectation corrected - the classifier was right and my expectation was wrong.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/tests/test_semgrep_ratchet_integrity.py",
+          "line": null,
+          "finding": "Self-review after the module splits: extracting the integrity tests silently DROPPED the AC-6 real-tree assertion (0 directives in the vendored module, 1 in pr_review.py). A refactor removed coverage while the suite stayed green.",
+          "suggestion": "Restored as test_the_exemptions_do_what_they_claim_on_the_real_tree, reframed for the parser that actually shipped rather than the tokenize one it originally credited.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "process",
+          "file": ".shipwright/planning/iterate/iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md",
+          "line": null,
+          "finding": "A falsification run killed by a command timeout never ran its `finally`, leaving a mutation on disk; the NEXT run read it as baseline and reported 4/4 falsified beside a still-red suite.",
+          "suggestion": "Caught by checking `git status` and the tree contents after every pass instead of trusting the summary line. Removed the residue; recorded the trap in the evidence file.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "A comment describing irregular whitespace was written USING literal U+2028/U+2029 - the exact hazard it documents.",
+          "suggestion": "Replaced with character names; verified no irregular-whitespace codepoint remains in the file.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-01T08:13:31.989663+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "Approach / Reducibility",
+          "file": null,
+          "line": null,
+          "finding": "Work Breakdown #1 specifies creating a scope matcher (`_excluded`) that \"implements gitignore semantics\". Hand-rolling gitignore globbing and anchoring semantics (e.g., distinguishing `dist/` vs `client/e2e/`) is notoriously error-prone and complex, risking false negatives where files are improperly included or excluded.",
+          "suggestion": "Do not hand-roll this logic. Use the standard Python `pathspec` library (specifically `pathspec.PathSpec.from_lines('gitwildmatch', ...)`) to parse `.semgrepignore` and match paths, which perfectly implements gitignore semantics in just three lines of code.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "Edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan uses Python's `tokenize` to prevent false positives in `.py` files, but falls back to matching \"every marker line\" for `.ts/.tsx/.js/.yaml`. This naive matching will fail AC-6 if a JS/TS file contains the marker in a string, template literal, or print statement.",
+          "suggestion": "For non-Python files, enforce that the marker string is preceded by the language's comment tokens on that line (e.g., a regex looking for `//.nosemgrep` or `/.nosemgrep` or `#.nosemgrep`) rather than a blind substring search.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "Risk",
+          "file": null,
+          "line": null,
+          "finding": "Narrowing `.semgrepignore` to bring `server/scripts/copy-assets.mjs` into scan scope could immediately break the CI gate if that file contains any pre-existing, undetected Semgrep violations.",
+          "suggestion": "Run the Semgrep scanner locally against `copy-assets.mjs` before committing. If it has violations, either remediate them in this PR or ensure they are explicitly added to the new inline-suppression registry.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "Security",
+          "file": null,
+          "line": null,
+          "finding": "The spec enforces the syntax `nosemgrep: <rule-id>` (AC-5). Semgrep also natively respects the legacy directives `nosem:` and `semgrep: ignore`. A developer could accidentally or deliberately use these legacy prefixes to suppress a finding without triggering the ratchet.",
+          "suggestion": "Ensure the scanner regex also flags `nosem` and `semgrep: ignore` as markers so they are subjected to the same rule-naming and registry guards.  Overall, the approach is highly sound and places the trust boundary perfectly by leveraging existing CI plumbing, but the manual gitignore-parsing and naive JS string-matching risk introducing brittleness that standard libraries or regexes can easily avoid.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The proposed custom `.semgrepignore` matcher is a security-critical reimplementation of Semgrep\u2019s ignore semantics, but the plan only demonstrates a few path cases. Gitignore-style matching has consequential details beyond anchored and unanchored directory patterns: ordered negation (`!`), ``, trailing slashes, escaped `#`/`!`, whitespace handling, and file-versus-directory matching. A matcher that is even slightly narrower than Semgrep can report a file as in scope while Semgrep excludes it, defeating the purpose of the scope ratchet.",
+          "suggestion": "Avoid treating a hand-written matcher as the source of truth. Prefer exercising Semgrep\u2019s own ignore resolution if its installed CLI/API can provide it, or tightly constrain and validate the repository\u2019s permitted `.semgrepignore` syntax. At minimum, add focused tests for every syntax feature currently used and explicitly reject unsupported constructs in `.semgrepignore`, including negations, rather than silently misinterpreting them.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The inline scanner is exact for Python because it uses `tokenize`, but \u201cevery marker line\u201d for TS/JS/YAML is not sufficient to meet AC-6 generally. It will mistake `nosemgrep:` text in JavaScript/TypeScript string literals, template literals, block comments that are prose, YAML quoted scalars, or generated fixture content for an active suppression. Conversely, a simplistic line regex may miss a syntactically valid directive embedded in a comment form Semgrep recognizes. The plan\u2019s real-tree proof only establishes the Python docstring case.",
+          "suggestion": "Make directive discovery comment-aware for every scanned language, not just Python. Use an available parser/tokenizer where practical, or implement narrowly scoped comment extraction per syntax family (JS/TS line and block comments; YAML comments), and run the suppression regex only over extracted comment text. Add fixtures covering quoted strings, template literals, block comments, YAML scalar text, valid directives, and bare directives for each supported syntax family.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "_tracked_sources` and the extension list must match the actual Semgrep invocation and ruleset, but the plan does not state how that alignment is guaranteed. A newly supported language, a Semgrep rule targeting an extension not listed by the Python scanner, or Semgrep configuration include/exclude behavior could create a source file that Semgrep scans but the directive ratchet does not inspect.",
+          "suggestion": "Derive the candidate set from the same Semgrep configuration/rule languages used in CI where possible, or maintain one explicit, tested source-extension policy shared with the Semgrep configuration. Add a test asserting that all relevant configured languages/extensions are covered by the directive scanner, and document deliberately unsupported file types.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan says the suppression registry is a `(file, rule) -> count` map, but does not define rule-ID parsing or normalization. A permissive regex could accept malformed rule names, multiple rule names on one directive, punctuation or trailing prose as part of the ID, or a marker that Semgrep handles differently. That can allow a semantic suppression change while preserving a misleading pinned map.",
+          "suggestion": "Define the accepted directive grammar according to Semgrep\u2019s documented syntax and reject anything outside it with a clear error. If Semgrep supports multiple rule IDs or alternate directive forms in the version pinned by the repository, either parse them into individual `(file, rule)` entries or explicitly fail closed until a supported representation is added. Include fixtures for malformed IDs and any supported multi-rule form.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The manual AC-7 falsification is valuable evidence, but it does not protect future edits to the scanner itself. A regression in `_live_patterns`, scope discovery, or directive extraction could make newly added suppressions invisible while the live-tree equality test remains green.",
+          "suggestion": "Add fixture-based automated tests that invoke the same production helper functions against temporary `.semgrepignore` and source files. Cover an extra scope pattern, a missing pattern, an added directive for a new pair, an added directive for an existing pair, a deleted directive, and a bare directive. Keep the recorded end-to-end manual falsification as supplementary evidence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The registry and enforcement code are introduced in the same editable test module. A contributor can add a suppression and update its registry/rationale in one PR, which is intended for a ratchet, but the approach does not establish who is authorized to approve that governance update. The 40-character rationale rule is audit metadata, not an approval control.",
+          "suggestion": "Verify that `.semgrepignore`, the new ratchet test, and preferably the Semgrep configuration are protected by appropriate CODEOWNERS or an equivalent required security review rule. If such protection already exists, document that dependency in the decision record/DO-NOT entry; if it does not, add it as a prerequisite for treating this as a security governance gate.  Overall, the placement in `scripts/ci/tests`, the decision not to misuse the accepted-risk register, and restoring `copy-assets.mjs` to scan scope are sound. The change should be revised to make Semgrep scope and directive detection semantically reliable across all supported file types, and to ensure the resulting ratchet has meaningful review governance. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T06:56:23.807724+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[transcript trimmed] 10 structured finding(s) are recorded in `findings` above, which is the record; the raw provider transcript was a duplicate of it. Disposition and per-finding resolution: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet-miniplan.md."
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Marker regexes lacked re.IGNORECASE; Semgrep's inline matcher is case-insensitive, so an UPPER-CASE directive suppressed for real and scanned as nothing.",
+          "suggestion": "Compiled both patterns with re.IGNORECASE; fixture test_the_marker_match_is_case_insensitive + end-to-end mutation 9 (RED).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "tokenize made .py a strict SUBSET of Semgrep, which does not parse comments but regex-matches a finding's raw line - so a marker in a Python STRING was honoured by Semgrep and invisible here, inside scripts/ci and scripts/hooks (the CI trust boundary).",
+          "suggestion": "Every language now read line by line; the vendored accepted_risk_scan.py gets a rationale-carrying, rot-guarded PROSE_EXEMPT entry instead of an invisible parser asymmetry. The fix immediately caught two further marker literals in our own fixture docstrings.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_scan_surface.py",
+          "line": null,
+          "finding": "Every extensionless file was classed 'not source', but Semgrep guesses language from a shebang - so scripts/hooks/pre-commit (executable, the bloat anti-ratchet gate) was skipped.",
+          "suggestion": "is_scanned() shebang fallback; end-to-end mutation 11 (RED).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "The rule-id tail was captured as one comma-run, so '<marker>: blessed.rule second.rule' left the pinned count unchanged while Semgrep honoured both ids - a working evasion against the count-pinning.",
+          "suggestion": "Tail split on commas AND whitespace, block-comment terminator stripped, any malformed token voids the whole directive; end-to-end mutation 10 (RED).",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "fnmatch applies os.path.normcase - case-insensitive on Windows, sensitive on the Linux CI runner, so the matcher could answer differently where it is developed vs enforced.",
+          "suggestion": "Switched to fnmatchcase; fixture test_basename_matching_is_case_sensitive.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "UnsupportedPattern carried only the pattern string, with the four supported shapes documented only in a docstring the developer has no reason to open.",
+          "suggestion": "Message now names all four shapes and the remedy; asserted by the rejection fixture.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "performance",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Repeated tree walks and per-file pattern re-classification.",
+          "suggestion": "Patterns classified once up front in in_scan_scope - which also closed a real hole, since excluded() short-circuits and a later unsupported pattern could go unclassified depending on file order.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "git ls-files C-quotes non-ASCII names, so such a file matched no pattern and stayed 'in scope' under a nonsense suffix.",
+          "suggestion": "Added -z and core.quotePath=false; split on NUL.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "readability",
+          "file": "scripts/ci/tests/test_semgrep_channels_scanner.py",
+          "line": null,
+          "finding": "The module docstring's self-claim was false about its own file (two docstrings carried the marker literal).",
+          "suggestion": "Resolved by the F2 parser change, which caught the class itself; docstring reworded to the invariant actually enforced.",
+          "source": "code-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "correctness",
+          "file": "scripts/ci/tests/test_semgrep_channels_scanner.py",
+          "line": null,
+          "finding": "The end-to-end fixture inherited the developer's global gitignore, so a core.excludesFile containing vendor/ or *.test.ts would make two negative assertions pass for the wrong reason.",
+          "suggestion": "Fixture repo isolated with core.excludesFile= and a positive control asserting the tracked set before the negatives.",
+          "source": "code-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-01T07:43:08.206021+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 9,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-1] str.splitlines() breaks on VT/FF/FS/GS/RS/NEL/LS/PS, Semgrep's line reader does not - so a form-feed-separated second rule id was ONE line to Semgrep (both honoured) and TWO to the scanner, with the blessed count unchanged. \u2014 FIXED: directives() uses split('\n'). Falsified end-to-end as mutation 12 (RED).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-2] _MARKER_COLON_RE skipped a BARE marker earlier on the line; Semgrep matches the FIRST occurrence, finds no ids and applies the BLANKET form, silencing every rule on the line. \u2014 FIXED: parse_line() parses every marker occurrence and one bare marker anywhere voids the line. Falsified as mutation 13 (RED).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-4] Only the root .semgrepignore was read. The scan step could carry --exclude/--include or narrow --config, and a NESTED .semgrepignore is honoured by Semgrep but read by nothing here (and not even matched by pr-review-run.yml's root-anchored regex). \u2014 FIXED: test_the_scanner_is_pointed_at_the_whole_tree_with_the_full_ruleset + test_the_root_ignore_file_is_the_only_one. Closed in the ratchet rather than by widening a workflow regex, which would have dragged the CI trust boundary into this change.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "high",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-7] PROSE_EXEMPT suppressed the suppression-detector with no ratchet of its own: one 40-char entry keyed at any line made a real directive invisible. \u2014 FIXED: vendored-only (checked against accepted_risks_vendor.json), rule-less-only (parse_line must return []), and a pinned entry count. Falsified as mutation 15 (RED).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-3] _COMMENT_END_RE.split(...)[0] discarded the rest of the line, so a second block-comment directive was invisible. \u2014 FIXED by the same multi-marker parser. Falsified as mutation 14 (RED).",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-5] Semgrep detects Dockerfile by NAME; Path('Dockerfile').suffix is '' with no shebang, so it fell in the inert extensionless bucket while already classified. \u2014 FIXED: SCANNED_FILENAMES. No such file exists today - landmine defused, not a live hole.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-6] test_every_in_scope_extension_is_classified demands A classification, not the RIGHT one - moving .yml to unscanned was a one-line green disarm. \u2014 FIXED: REQUIRED_SCANNED floor asserted by test_the_undebatable_languages_stay_scanned.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-8] Deleting a ratchet module leaves the whole-directory pytest run green; nothing else notices. \u2014 FIXED: mutual existence assertion across all seven modules. Also VERIFIED out-of-band that both jobs running these tests (Reviewer Selftest, Accepted-risk register (gate)) are REQUIRED checks, so the gate is merge-blocking.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "low",
+          "category": "boundary",
+          "file": "scripts/ci/tests/semgrep_channels.py",
+          "line": null,
+          "finding": "Claim under doubt: [D-9] Rule 31 claimed more than the mechanism delivered, and a test docstring still taught the replaced tokenize design. \u2014 FIXED: rule 31 now states precisely what a green run does and does not prove and that the 40-char floor is audit metadata not an approval control; the stale test was rewritten as test_the_exemptions_do_what_they_claim_on_the_real_tree.",
+          "suggestion": null,
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-01T08:13:00.843003+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": ".shipwright/planning/iterate/iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md:1` \u2014 missing from the diff",
+          "line": null,
+          "finding": "AC-7 explicitly requires verbatim red/green evidence for all fifteen falsification mutations at this path. The change adds tests and documentation claiming those mutations were performed, but does not add the required evidence artifact, so the acceptance criterion cannot be verified from the shipped tree.",
+          "suggestion": "Add the required `ac7-falsification.md` file with the command output for every required mutation and restoration, including the tracked-file setup used for the self-scan case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "scripts/ci/tests/test_semgrep_inline_suppressions.py:145-156",
+          "line": null,
+          "finding": "AC-5 requires a rule-less marker failure to include a \u201cname the rule\u201d message. The failure text says directives \u201cname no rule\u201d and instructs the author to write a rule ID, but does not contain the required \u201cname the rule\u201d wording.",
+          "suggestion": "Change the assertion message to explicitly say, for example, \u201cEvery suppression must name the rule it silences,\u201d while retaining the existing remediation guidance.  Overall assessment: the ratchet implementation and its fixture/integrity coverage appear substantively aligned with the specification, but the required AC-7 falsification evidence is absent and the AC-5 error-message requirement is not met literally. Ship with fixes after adding the evidence artifact and correcting the message.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T08:15:37.069023+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[transcript trimmed] 2 structured finding(s) are recorded in `findings` above, which is the record; the raw provider transcript was a duplicate of it. Disposition and per-finding resolution: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet-miniplan.md."
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-01T07:22:40.621232+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}
