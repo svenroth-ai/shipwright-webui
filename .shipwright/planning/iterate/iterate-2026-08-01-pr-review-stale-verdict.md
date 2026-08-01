@@ -276,7 +276,16 @@ change-request this code posted after shipping.
 ## 6. Out of scope (named, not silently dropped)
 
 1. Canonical's diff filter, render module, byte-level diff read and
-   `nothing_reviewed_summary` — a separate port.
+   `nothing_reviewed_summary` — a separate port. **This decision cost this very
+   pull request, and the number is worth recording rather than discovering twice:**
+   #343's diff measured **253,601 chars against the 200,000 cap**, so the reviewer
+   fail-closed on truncation — and **43% of it (110,264 chars) is producer-generated
+   artifacts** (this spec, `reviews.json`, `triage.jsonl`, the changelog drop, the
+   event log) which `pr_review_diff_filter` drops by design. Code and tests alone are
+   **143,337**, comfortably under. So the filter is not a nice-to-have for this repo:
+   without it, any medium+ iterate touching a sensitive path is unreviewable by its
+   own gate and needs an admin merge. Porting it FIRST, as its own small PR, is the
+   sequencing that avoids repeating this.
 2. The `needs_review=false` workflow path and an exact `--head-sha` (§5b c, d).
 3. Rescuing unmarked legacy verdicts (AC7).
 4. Changing the moved wrappers' behaviour while moving them — with the ONE
