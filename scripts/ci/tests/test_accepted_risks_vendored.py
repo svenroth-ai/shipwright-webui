@@ -34,12 +34,21 @@ _CI_DIR = _REPO_ROOT / "scripts" / "ci"
 _MANIFEST = _CI_DIR / "accepted_risks_vendor.json"
 _CLI = _CI_DIR / "accepted_risks_cli.py"
 
-#: Vendored-but-NOT-hash-pinned, each with a one-line reason. These carry a
-#: provenance header but predate this manifest; listing them explicitly keeps
-#: the gap VISIBLE rather than silently outside a name glob.
+#: Vendored modules NOT covered by THIS manifest, each with a one-line reason.
+#: Listing them explicitly keeps the situation VISIBLE rather than silently
+#: outside a name glob. Two distinct reasons live here, and they are not equally
+#: comfortable: the 2026-06-12 pair is a real gap (header-only, pinned nowhere),
+#: while the ADR-117 pair is pinned in `test_pr_review_vendor_pins.py` because
+#: this manifest carries ONE top-level `canonical_commit` and they come from a
+#: different upstream commit than the accepted-risk batch does. Recording them
+#: here would make that field wrong for half the entries.
 _NOT_HASH_PINNED = {
     "pr_review.py": "vendored 2026-06-12 with header-only provenance",
     "pr_review_lib.py": "vendored 2026-06-12 with header-only provenance",
+    "pr_review_dismiss_select.py":
+        "ADR-117 port, upstream commit 4146a610 — pinned in test_pr_review_vendor_pins.py",
+    "pr_review_dismiss.py":
+        "ADR-117 port, upstream commit 4146a610 — pinned in test_pr_review_vendor_pins.py",
 }
 
 #: A vendored module is one that CARRIES a provenance header - a property, not

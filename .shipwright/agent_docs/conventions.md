@@ -71,6 +71,10 @@ Three categories of regression guards are spelled out in CLAUDE.md and must be r
 
 Hard-won, mostly empirical; many predate or complement an ADR. Tighten, do not delete.
 
+- (2026-08-01) iterate/test — a guard that scans the filesystem must define scope from `git ls-files -z --cached --others --exclude-standard`, not `rglob` + an ignore list: inside `.worktrees/<slug>/` an absolute-path exclusion matched every file and the guard passed by finding NOTHING, and a plain walk ingested `.pytest_cache` naming the test itself. [→ iterate-2026-08-01-pr-review-stale-verdict]
+- (2026-08-01) iterate/test — an offline-suite tripwire must raise a `BaseException` subclass: best-effort code that catches `Exception` swallows an `AssertionError`, leaving the suite green AND silent while proving nothing. Verified by mutation in both directions. [→ iterate-2026-08-01-pr-review-stale-verdict]
+- (2026-08-01) iterate/tooling — bash heredocs consume Python backslash escapes even when quoted (`<<'PY'`), so prose containing `\x00-\x1f` writes REAL control bytes and the repair script silently no-ops (NUL→NUL). Build such text as `chr(92)+"x00"` in a real file, and byte-scan anything the run authored before committing. [→ iterate-2026-08-01-pr-review-stale-verdict]
+
 **Testing / jsdom**
 - jsdom has no `Blob.prototype.text()` — use a `FileReader` (`readAsText`) polyfill (`ActionsConfigCard.readFileAsText`).
 - Radix Tabs/menus need `userEvent.click` in jsdom — `fireEvent.click` only dispatches click, Radix listens on pointer events (silent no-op).
@@ -121,7 +125,6 @@ Hard-won, mostly empirical; many predate or complement an ADR. Tighten, do not d
 - (2026-07-21) A per-poll cost claim must name the LAYER it is true at. "The tail budget bounds the read" was false: `SessionWatcher.readChunk` loads the whole JSONL and then slices, so a bounded tail bounds the DECODE + scan, not the I/O. Before quoting a saving, read the function underneath the one you changed (→ iterate-2026-07-21-mission-recovery-memo-perf, trg-4c0e54d6).
 - (2026-07-21) A review-disposition table IS the released record — when a decision reverses mid-run (here: a proposed once-guard was dropped in favour of asserting the call count), the table must be corrected in the same run, or the PR ships a claim the code contradicts. Two consecutive runs were opened by exactly that defect class.
 - (2026-06-17) F11/vendor-sync — webui vendors gate scripts (pr_review, self-contained anti_ratchet) from the monorepo with `canonical-source-hash` provenance (unenforced) + a body-byte-identical contract. Mirror canonical FIXES faithfully (match comments/run_id), refresh the hash+version markers, and verify body byte-identity via a CR-normalized diff (Windows CRLF masks it otherwise). anti_ratchet had NO webui test — added under scripts/ci/tests so the existing selftest job runs it. → iterate-2026-06-17-vendor-sync-gate-failclosed
-
 
 ## Convention Updates
 _**One line per change, ≤600 chars** — convention-relevant changes since adoption (ADR-053), de-duplicated, chronological; detail lives in the cited ADR / decision-drop, not here. **The canonical anchor is the run_id**, one atomic line per change: `- **<run_id>** (date, flags): one sentence.` The run_id↔ADR-NNN mapping lives in `decision_log.md` (keyed by `Run-ID:`) — DO NOT append a duplicate `ADR-NNN` bullet here. Deep-historical bare-`ADR-NNN` lines with no run_id twin (pre-2026-06-11) are grandfathered as-is. See `decision_log.md` for the full ADR catalogue (architecture-only + bug-only too) and `architecture.md` "Architecture Updates" for the architecture-impact view._
