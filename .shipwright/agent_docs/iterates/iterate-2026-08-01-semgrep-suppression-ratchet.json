@@ -126,7 +126,7 @@
       {
         "behavior": "The guard does not report its own source as a suppression (AC-8)",
         "disposition": "tested",
-        "evidence": "full scripts/ci/tests suite collected 473 tests: 420 PASSED, 53 platform skips, with all seven modules tracked; the new negative fixture first turned it RED by exposing the legacy short stem, then GREEN after splitting that stem"
+        "evidence": "post-#345 full scripts/ci/tests suite collected 495 tests: 442 PASSED, 53 platform skips, with all seven ratchet modules tracked; the new negative fixture first turned it RED by exposing the legacy short stem, then GREEN after splitting that stem"
       },
       {
         "behavior": "Whether narrowing scope makes Semgrep emit a new finding on copy-assets.mjs",
@@ -224,7 +224,7 @@
       "acs": 8,
       "covered_acs": 8
     },
-    "evidence_detail": "Full evidence + falsification cross-references: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet.md (Test Completeness Ledger) and iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md. Final 2026-08-02 rerun: Python 3.11 CI gate 420 passed / 53 platform skips; server typecheck + lint exit 0 and Vitest 3235 passed / 1 skipped; client typecheck + lint exit 0 and Vitest 3131 passed; test-hygiene scan exit 0."
+    "evidence_detail": "Full evidence + falsification cross-references: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet.md (Test Completeness Ledger) and iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md. Final 2026-08-02 post-#345 rerun: Python 3.11 CI gate 442 passed / 53 platform skips; server typecheck + lint exit 0 and Vitest 3235 passed / 1 skipped; client typecheck + lint exit 0 and Vitest 3131 passed; Bootstrapper npm ci + typecheck + lint exit 0 and Vitest 202 passed; test-hygiene scan exit 0."
   },
   "declared_removals": [
     {

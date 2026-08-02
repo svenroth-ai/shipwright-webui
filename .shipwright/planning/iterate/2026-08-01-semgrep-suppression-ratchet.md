@@ -203,6 +203,11 @@ message detectors or the Stage-2 diff-driven detectors.
       negative fixture initially made the full suite RED because its own source
       exposed the legacy short marker stem; splitting that stem restored GREEN,
       another direct AC-8 falsification.
+  13. *Does integration of #345 change the ratchet surface?* `ensure_current`
+      merged #345, which adds three modules under `scripts/ci/tests`; the full
+      Python 3.11 gate then collected 495 tests (**442 passed, 53 platform
+      skips**). Its new Bootstrapper CI job was also replayed exactly: `npm ci`,
+      typecheck and lint exit 0, **202/202 tests passed**.
 
 - **Test Completeness Ledger:**
 
@@ -229,7 +234,7 @@ message detectors or the Stage-2 diff-driven detectors.
   | 19 | Scope filter and directive scan compose on a real git tree | tested | `test_in_scan_scope_honours_the_ignore_file_of_the_repo_it_is_given` PASSED |
   | 20 | A new file type in scan scope must be classified | tested | `test_every_in_scope_extension_is_classified` PASSED |
   | 21 | Discovery cannot pass vacuously on an empty set | tested | `test_the_scanner_actually_reads_files` (floors 300 / 200 against 946 / 728) PASSED |
-  | 22 | The guard does not report its own source as a suppression (AC-8) | tested | full suite collected 473 tests: 420 PASSED, 53 platform skips, with all seven modules tracked; the new negative fixture first turned it RED by exposing the legacy short stem, then GREEN after splitting that stem |
+  | 22 | The guard does not report its own source as a suppression (AC-8) | tested | post-#345 full suite collected 495 tests: 442 PASSED, 53 platform skips, with all seven ratchet modules tracked; the new negative fixture first turned it RED by exposing the legacy short stem, then GREEN after splitting that stem |
   | 24 | An UPPER-CASE directive is detected (Semgrep matches case-insensitively) | tested | `test_the_marker_match_is_case_insensitive` PASSED |
   | 25 | A whitespace-separated second rule id cannot ride along on a blessed directive | tested | `test_multiple_ids_register_separately_however_they_are_separated` PASSED |
   | 26 | An extensionless file with a shebang IS scanned | tested | `semgrep_scan_surface.is_scanned` on `scripts/hooks/pre-commit` (RED) |
@@ -309,10 +314,11 @@ message detectors or the Stage-2 diff-driven detectors.
 - **Runner command:**
   `python -m pytest scripts/ci/tests -q` (run from the worktree root), plus the
   two falsification passes of AC-7.
-- **Final rerun (2026-08-02):** Python 3.11 CI gate 420 passed / 53
-  platform skips; server typecheck + lint exit 0 and Vitest 3235 passed / 1
-  skipped; client typecheck + lint exit 0 and Vitest 3131 passed. Test-hygiene
-  scan exit 0 with no findings.
+- **Final rerun (2026-08-02, after #345 integration):** Python 3.11 CI gate
+  442 passed / 53 platform skips; server typecheck + lint exit 0 and Vitest
+  3235 passed / 1 skipped; client typecheck + lint exit 0 and Vitest 3131
+  passed; Bootstrapper `npm ci` + typecheck + lint exit 0 and Vitest 202 passed.
+  Test-hygiene scan exit 0 with no findings.
 - **Evidence path:** `.shipwright/planning/iterate/iterate-2026-08-01-semgrep-suppression-ratchet/`
 - **Justification (surface=none):** the change adds a CI test module and edits
   a scanner scope-exclusion file. There is no startable product surface it can
