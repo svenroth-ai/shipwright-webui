@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-01-semgrep-suppression-ratchet",
+  "reviews": {
+    "self": {
+      "review_type": "self",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-02T20:10:08.285146+00:00",
+      "disposition": null,
+      "recorded_by": "self-review",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "plan": {
+      "review_type": "plan",
+      "status": "completed",
+      "findings_count": 10,
+      "findings": [
+        {
+          "severity": "high",
+          "category": "Approach / Reducibility",
+          "file": null,
+          "line": null,
+          "finding": "Work Breakdown #1 specifies creating a scope matcher (`_excluded`) that \"implements gitignore semantics\". Hand-rolling gitignore globbing and anchoring semantics (e.g., distinguishing `dist/` vs `client/e2e/`) is notoriously error-prone and complex, risking false negatives where files are improperly included or excluded.",
+          "suggestion": "Do not hand-roll this logic. Use the standard Python `pathspec` library (specifically `pathspec.PathSpec.from_lines('gitwildmatch', ...)`) to parse `.semgrepignore` and match paths, which perfectly implements gitignore semantics in just three lines of code.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "Edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan uses Python's `tokenize` to prevent false positives in `.py` files, but falls back to matching \"every marker line\" for `.ts/.tsx/.js/.yaml`. This naive matching will fail AC-6 if a JS/TS file contains the marker in a string, template literal, or print statement.",
+          "suggestion": "For non-Python files, enforce that the marker string is preceded by the language's comment tokens on that line (e.g., a regex looking for `//.nosemgrep` or `/.nosemgrep` or `#.nosemgrep`) rather than a blind substring search.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "Risk",
+          "file": null,
+          "line": null,
+          "finding": "Narrowing `.semgrepignore` to bring `server/scripts/copy-assets.mjs` into scan scope could immediately break the CI gate if that file contains any pre-existing, undetected Semgrep violations.",
+          "suggestion": "Run the Semgrep scanner locally against `copy-assets.mjs` before committing. If it has violations, either remediate them in this PR or ensure they are explicitly added to the new inline-suppression registry.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "Security",
+          "file": null,
+          "line": null,
+          "finding": "The spec enforces the syntax `nosemgrep: <rule-id>` (AC-5). Semgrep also natively respects the legacy directives `nosem:` and `semgrep: ignore`. A developer could accidentally or deliberately use these legacy prefixes to suppress a finding without triggering the ratchet.",
+          "suggestion": "Ensure the scanner regex also flags `nosem` and `semgrep: ignore` as markers so they are subjected to the same rule-naming and registry guards.  Overall, the approach is highly sound and places the trust boundary perfectly by leveraging existing CI plumbing, but the manual gitignore-parsing and naive JS string-matching risk introducing brittleness that standard libraries or regexes can easily avoid.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "approach",
+          "file": null,
+          "line": null,
+          "finding": "The proposed custom `.semgrepignore` matcher is a security-critical reimplementation of Semgrep’s ignore semantics, but the plan only demonstrates a few path cases. Gitignore-style matching has consequential details beyond anchored and unanchored directory patterns: ordered negation (`!`), ``, trailing slashes, escaped `#`/`!`, whitespace handling, and file-versus-directory matching. A matcher that is even slightly narrower than Semgrep can report a file as in scope while Semgrep excludes it, defeating the purpose of the scope ratchet.",
+          "suggestion": "Avoid treating a hand-written matcher as the source of truth. Prefer exercising Semgrep’s own ignore resolution if its installed CLI/API can provide it, or tightly constrain and validate the repository’s permitted `.semgrepignore` syntax. At minimum, add focused tests for every syntax feature currently used and explicitly reject unsupported constructs in `.semgrepignore`, including negations, rather than silently misinterpreting them.",
+          "source": "external-review"
+        },
+        {
+          "severity": "high",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The inline scanner is exact for Python because it uses `tokenize`, but “every marker line” for TS/JS/YAML is not sufficient to meet AC-6 generally. It will mistake `nosemgrep:` text in JavaScript/TypeScript string literals, template literals, block comments that are prose, YAML quoted scalars, or generated fixture content for an active suppression. Conversely, a simplistic line regex may miss a syntactically valid directive embedded in a comment form Semgrep recognizes. The plan’s real-tree proof only establishes the Python docstring case.",
+          "suggestion": "Make directive discovery comment-aware for every scanned language, not just Python. Use an available parser/tokenizer where practical, or implement narrowly scoped comment extraction per syntax family (JS/TS line and block comments; YAML comments), and run the suppression regex only over extracted comment text. Add fixtures covering quoted strings, template literals, block comments, YAML scalar text, valid directives, and bare directives for each supported syntax family.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "dependency",
+          "file": null,
+          "line": null,
+          "finding": "_tracked_sources` and the extension list must match the actual Semgrep invocation and ruleset, but the plan does not state how that alignment is guaranteed. A newly supported language, a Semgrep rule targeting an extension not listed by the Python scanner, or Semgrep configuration include/exclude behavior could create a source file that Semgrep scans but the directive ratchet does not inspect.",
+          "suggestion": "Derive the candidate set from the same Semgrep configuration/rule languages used in CI where possible, or maintain one explicit, tested source-extension policy shared with the Semgrep configuration. Add a test asserting that all relevant configured languages/extensions are covered by the directive scanner, and document deliberately unsupported file types.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "edge-case",
+          "file": null,
+          "line": null,
+          "finding": "The plan says the suppression registry is a `(file, rule) -> count` map, but does not define rule-ID parsing or normalization. A permissive regex could accept malformed rule names, multiple rule names on one directive, punctuation or trailing prose as part of the ID, or a marker that Semgrep handles differently. That can allow a semantic suppression change while preserving a misleading pinned map.",
+          "suggestion": "Define the accepted directive grammar according to Semgrep’s documented syntax and reject anything outside it with a clear error. If Semgrep supports multiple rule IDs or alternate directive forms in the version pinned by the repository, either parse them into individual `(file, rule)` entries or explicitly fail closed until a supported representation is added. Include fixtures for malformed IDs and any supported multi-rule form.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "risk",
+          "file": null,
+          "line": null,
+          "finding": "The manual AC-7 falsification is valuable evidence, but it does not protect future edits to the scanner itself. A regression in `_live_patterns`, scope discovery, or directive extraction could make newly added suppressions invisible while the live-tree equality test remains green.",
+          "suggestion": "Add fixture-based automated tests that invoke the same production helper functions against temporary `.semgrepignore` and source files. Cover an extra scope pattern, a missing pattern, an added directive for a new pair, an added directive for an existing pair, a deleted directive, and a bare directive. Keep the recorded end-to-end manual falsification as supplementary evidence.",
+          "source": "external-review"
+        },
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": null,
+          "line": null,
+          "finding": "The registry and enforcement code are introduced in the same editable test module. A contributor can add a suppression and update its registry/rationale in one PR, which is intended for a ratchet, but the approach does not establish who is authorized to approve that governance update. The 40-character rationale rule is audit metadata, not an approval control.",
+          "suggestion": "Verify that `.semgrepignore`, the new ratchet test, and preferably the Semgrep configuration are protected by appropriate CODEOWNERS or an equivalent required security review rule. If such protection already exists, document that dependency in the decision record/DO-NOT entry; if it does not, add it as a prerequisite for treating this as a security governance gate.  Overall, the placement in `scripts/ci/tests`, the decision not to misuse the accepted-risk register, and restoring `copy-assets.mjs` to scan scope are sound. The change should be revised to make Semgrep scope and directive detection semantically reliable across all supported file types, and to ensure the resulting ratchet has meaningful review governance. SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T06:56:23.807724+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "structured",
+      "raw_excerpt": "[transcript trimmed] 10 structured finding(s) are recorded in `findings` above, which is the record; the raw provider transcript was a duplicate of it. Disposition and per-finding resolution: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet-miniplan.md."
+    },
+    "code": {
+      "review_type": "code",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-02T19:58:24.455909+00:00",
+      "disposition": null,
+      "recorded_by": "code-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "doubt": {
+      "review_type": "doubt",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "security",
+          "file": "scripts/ci/tests/test_semgrep_ratchet_integrity.py",
+          "line": 212,
+          "finding": "Claim under doubt: PROSE_EXEMPT's rule-less parse plus vendor pin proves the exempted line is inert prose. — FALSIFIED: parse_line(text) == [] also represents a working bare blanket suppression. A legitimate re-vendor could place executable code with a bare marker on the exempted line, update the vendor hashes, and leave the complete pytest gate green.",
+          "suggestion": "RESOLVED: every exempted line must now be strictly inside a constant multiline Python string token; opening and closing lines are rejected. A permanent ordinary-code fixture proves that executable code carrying a bare marker fails. The focused tests and complete Python 3.11 suite are green.",
+          "source": "doubt-reviewer"
+        },
+        {
+          "severity": "medium",
+          "category": "compatibility",
+          "file": "scripts/ci/tests/test_semgrep_ratchet_integrity.py",
+          "line": 41,
+          "finding": "Claim under doubt: Strictly inside any multiline tokenize.STRING token proves the exempted physical line cannot execute code. — FALSIFIED under CI Python 3.11: a multiline f-string is one STRING token but can execute FormattedValue expressions, so the initial strict-interior proof still permitted a bare suppression to remain exempt.",
+          "suggestion": "RESOLVED: the helper rejects every STRING token whose prefix contains f or F, including fr and rf variants. The permanent fixture includes a multiline f-string with an executable expression alongside the ordinary-code case. Focused tests and the full Python 3.11 suite pass.",
+          "source": "doubt-reviewer"
+        }
+      ],
+      "provider": null,
+      "completed_at": "2026-08-02T19:57:34.447850+00:00",
+      "disposition": null,
+      "recorded_by": "doubt-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    },
+    "external_code": {
+      "review_type": "external_code",
+      "status": "completed",
+      "findings_count": 2,
+      "findings": [
+        {
+          "severity": "medium",
+          "category": "spec",
+          "file": ".shipwright/planning/iterate/iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md:1` — missing from the diff",
+          "line": null,
+          "finding": "AC-7 explicitly requires verbatim red/green evidence for all fifteen falsification mutations at this path. The change adds tests and documentation claiming those mutations were performed, but does not add the required evidence artifact, so the acceptance criterion cannot be verified from the shipped tree.",
+          "suggestion": "Add the required `ac7-falsification.md` file with the command output for every required mutation and restoration, including the tracked-file setup used for the self-scan case.",
+          "source": "external-review"
+        },
+        {
+          "severity": "low",
+          "category": "spec",
+          "file": "scripts/ci/tests/test_semgrep_inline_suppressions.py:145-156",
+          "line": null,
+          "finding": "AC-5 requires a rule-less marker failure to include a “name the rule” message. The failure text says directives “name no rule” and instructs the author to write a rule ID, but does not contain the required “name the rule” wording.",
+          "suggestion": "Change the assertion message to explicitly say, for example, “Every suppression must name the rule it silences,” while retaining the existing remediation guidance.  Overall assessment: the ratchet implementation and its fixture/integrity coverage appear substantively aligned with the specification, but the required AC-7 falsification evidence is absent and the AC-5 error-message requirement is not met literally. Ship with fixes after adding the evidence artifact and correcting the message.  SHIPWRIGHT_VERDICT: revise",
+          "source": "external-review"
+        }
+      ],
+      "provider": "openrouter",
+      "completed_at": "2026-08-01T08:15:37.069023+00:00",
+      "disposition": null,
+      "recorded_by": "external-review-json",
+      "parse_status": "partial",
+      "raw_excerpt": "[transcript trimmed] 2 structured finding(s) are recorded in `findings` above, which is the record; the raw provider transcript was a duplicate of it. Disposition and per-finding resolution: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet-miniplan.md."
+    }
+  },
+  "gates": {
+    "spec": {
+      "review_type": "spec",
+      "status": "completed",
+      "findings_count": 0,
+      "findings": [],
+      "provider": null,
+      "completed_at": "2026-08-02T19:57:33.818744+00:00",
+      "disposition": null,
+      "recorded_by": "spec-reviewer",
+      "parse_status": null,
+      "raw_excerpt": null
+    }
+  }
+}

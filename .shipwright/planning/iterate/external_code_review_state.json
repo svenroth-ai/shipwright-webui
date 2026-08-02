@@ -1,10 +1,10 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-01T07:49:35.738638+00:00",
+  "timestamp": "2026-08-01T08:15:37.080883+00:00",
   "provider": "openrouter",
-  "findings_count": 0,
+  "findings_count": 2,
   "self_review_fallback_ran": false,
-  "reason": "findings could not be itemized from the reviewer's prose \u2014 the count (0) is NOT a clean-review result",
+  "reason": "only some provider legs could be itemized \u2014 the count (2) may understate what was found",
   "review_mode": "code",
   "marker_schema": 2,
   "verdicts": null,
