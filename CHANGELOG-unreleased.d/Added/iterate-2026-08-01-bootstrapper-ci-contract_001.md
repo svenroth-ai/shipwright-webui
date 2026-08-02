@@ -1,0 +1,1 @@
+CI now runs the bootstrapper's own checks. `bootstrapper/` is the package behind `npx @svenroth-ai/shipwright`, and its 153 tests had never run in CI — a new `Bootstrapper (type + lint + test)` job runs its type-check, lint and tests on every pull request.

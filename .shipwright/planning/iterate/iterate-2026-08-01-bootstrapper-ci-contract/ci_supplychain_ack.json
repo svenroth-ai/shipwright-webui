@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "iterate-2026-08-01-bootstrapper-ci-contract",
+  "ci_supplychain_ack": {
+    "run_id": "iterate-2026-08-01-bootstrapper-ci-contract",
+    "paths_fingerprint": "ef957c65c7d61e2c784b38006b62a1df895153284dd2b863ad74073563f7839f",
+    "consistent_with": "iterate-2026-07-18-action-pinning-posture",
+    "statement": "Adds one job (bootstrapper-checks) plus a weekly schedule trigger to ci.yml, an if-guard excluding the four existing jobs from that schedule, and github.event_name in the concurrency group so the cron and a push to main cannot cancel each other. New action refs are actions/checkout@v4 and actions/setup-node@v4 - GitHub-owned, MUTABLE tags, which is DO-NOT #25's deliberate asymmetric posture: GitHub-owned stay on tags (no hosted updater to keep pins patched), third-party stay SHA-pinned. This change adds NO third-party action, so nothing needs a SHA. No credential and no permissions widening: ci.yml's top-level is contents:read and the new job declares none, so it inherits read-only. The one new outbound call is an unauthenticated GET of the public marketplace manifest, and its response is only parsed, never executed. Scope correction after Stage-3 doubt review: that GET is the request a FIRST-RUN npx makes and the fallback any run may make - NOT what a returning user usually parses, since resolveMarketplacePlugins reads a local marketplace clone at precedence 1. External plan review flagged pinning here (finding 7, low); rejected with reason: pinning GitHub-owned actions is the posture PR #285 collapsed and had reverted.",
+    "ci_paths": [
+      ".github/workflows/ci.yml"
+    ]
+  }
+}
