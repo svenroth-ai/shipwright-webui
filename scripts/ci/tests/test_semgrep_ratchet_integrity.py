@@ -14,7 +14,9 @@ Siblings: `test_semgrep_scan_scope.py`, `test_semgrep_inline_suppressions.py`
 
 from __future__ import annotations
 
+import io
 import json
+import tokenize
 from pathlib import Path
 
 from accepted_risks_paths import SECURITY_YML, runs, workflow
@@ -28,8 +30,49 @@ from semgrep_channels import (
     tracked_files,
 )
 from semgrep_scan_surface import REQUIRED_SCANNED, SCANNED_EXTENSIONS
+from test_semgrep_inline_suppressions import (
+    INLINE_POSITIVE_CONTROL,
+    INLINE_SUPPRESSIONS,
+)
 
 _HERE = Path(__file__).resolve().parent
+
+
+def _strictly_inside_multiline_string(source: str, line_no: int) -> bool:
+    """True only for a line wholly inside a constant Python string token."""
+    def is_constant_string(token: tokenize.TokenInfo) -> bool:
+        quote_indexes = [
+            index for quote in ("'", '"')
+            if (index := token.string.find(quote)) >= 0
+        ]
+        prefix = token.string[:min(quote_indexes)].lower()
+        return "f" not in prefix
+
+    return any(
+        token.type == tokenize.STRING
+        and is_constant_string(token)
+        and token.start[0] < line_no < token.end[0]
+        for token in tokenize.generate_tokens(io.StringIO(source).readline)
+    )
+
+
+def test_the_prose_proof_rejects_a_blanket_suppression_on_code() -> None:
+    """The independent proof must distinguish prose from the bare form."""
+    marker = "no" + "sem" + "grep"
+    source = (
+        '"""header\n'
+        f"inert prose mentions {marker}\n"
+        'footer\n"""\n'
+        f"if False: eval(input())  # {marker}\n"
+    )
+    formatted = (
+        'f"""header\n'
+        f"{{eval(input()) if False else ''}}  # {marker}\n"
+        'footer\n"""\n'
+    )
+    assert _strictly_inside_multiline_string(source, 2)
+    assert not _strictly_inside_multiline_string(source, 5)
+    assert not _strictly_inside_multiline_string(formatted, 2)
 
 
 def test_the_scanner_is_pointed_at_the_whole_tree_with_the_full_ruleset() -> None:
@@ -144,7 +187,8 @@ def test_the_prose_exemptions_cannot_become_a_self_service_bypass() -> None:
             "reworded. For any other file, move the prose — do not exempt it."
         )
 
-        lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
+        source = path.read_text(encoding="utf-8", errors="replace")
+        lines = source.split("\n")
         assert line_no <= len(lines), (
             f"{rel} has only {len(lines)} lines but line {line_no} is exempted. "
             "The file moved under the exemption — re-check it and re-key."
@@ -162,7 +206,23 @@ def test_the_prose_exemptions_cannot_become_a_self_service_bypass() -> None:
         assert parsed == [], (
             f"{rel}:{line_no} is exempted but parses as a REAL directive: "
             f"{parsed}. An exemption is for inert prose, never for a working "
-            "suppression. Register it in _INLINE_SUPPRESSIONS instead."
+            "suppression. Register it in INLINE_SUPPRESSIONS instead."
+        )
+
+        # (c) PROSE, INDEPENDENTLY PROVED. `parse_line() == []` also describes
+        #     a working blanket suppression, so it cannot establish inertness.
+        #     The marker line must sit STRICTLY INSIDE a constant multiline
+        #     Python string token. f-strings are rejected because their interior
+        #     can execute FormattedValue expressions under CI's Python 3.11.
+        #     Strict bounds matter too: on a token's opening/closing line,
+        #     executable code can share the physical line and Semgrep's raw-line
+        #     matcher would let the prose marker suppress that finding.
+        assert _strictly_inside_multiline_string(source, line_no), (
+            f"{rel}:{line_no} is exempted but is not strictly inside a constant "
+            "multiline Python string. A rule-less marker on executable code or "
+            "inside an f-string is "
+            "a real blanket suppression, not prose; remove the exemption and "
+            "register or delete that suppression."
         )
         assert len(rationale.strip()) >= MIN_RATIONALE, (
             f"exemption {rel}:{line_no} needs a real reason, not a label."
@@ -180,7 +240,8 @@ def test_the_exemptions_do_what_they_claim_on_the_real_tree() -> None:
     (Stage-3 doubt review, D-9.)
     """
     vendored = REPO_ROOT / "scripts" / "ci" / "accepted_risk_scan.py"
-    live = REPO_ROOT / "scripts" / "ci" / "pr_review_openrouter.py"
+    live_rel, live_rule = INLINE_POSITIVE_CONTROL
+    live = REPO_ROOT / live_rel
     for path in (vendored, live):
         assert path.is_file(), (
             f"{path} is gone. These two files pin the exemption's real-tree "
@@ -192,9 +253,12 @@ def test_the_exemptions_do_what_they_claim_on_the_real_tree() -> None:
         "the exemption is mis-keyed rather than the file being wrong — it is "
         "byte-pinned and cannot be edited here."
     )
+    expected_count = INLINE_SUPPRESSIONS[INLINE_POSITIVE_CONTROL][0]
     real = directives(live)
-    assert len(real) == 1 and real[0][2].startswith("python.lang.security"), (
-        f"expected exactly one real directive in {live.name}, got: {real}"
+    assert len(real) == expected_count and {row[2] for row in real} == {live_rule}, (
+        f"expected {expected_count} {live_rule!r} directive(s) in {live_rel}, "
+        f"got: {real}. The positive control is sourced from INLINE_SUPPRESSIONS "
+        "so a relocation has one registry key to update."
     )
 
 

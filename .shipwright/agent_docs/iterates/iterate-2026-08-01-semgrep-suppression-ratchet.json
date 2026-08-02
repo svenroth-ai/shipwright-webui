@@ -126,7 +126,7 @@
       {
         "behavior": "The guard does not report its own source as a suppression (AC-8)",
         "disposition": "tested",
-        "evidence": "full scripts/ci/tests suite 309 PASSED with all seven modules tracked"
+        "evidence": "full scripts/ci/tests suite collected 473 tests: 420 PASSED, 53 platform skips, with all seven modules tracked; the new negative fixture first turned it RED by exposing the legacy short stem, then GREEN after splitting that stem"
       },
       {
         "behavior": "Whether narrowing scope makes Semgrep emit a new finding on copy-assets.mjs",
@@ -181,7 +181,7 @@
       {
         "behavior": "PROSE_EXEMPT cannot become a self-service bypass (vendored-only, rule-less-only, count-pinned)",
         "disposition": "tested",
-        "evidence": "test_the_prose_exemptions_cannot_become_a_self_service_bypass"
+        "evidence": "test_the_prose_exemptions_cannot_become_a_self_service_bypass: vendored-only, rule-less-only, count-pinned, and each exempted line independently proved to be strictly inside constant multiline Python string prose; f-strings rejected"
       },
       {
         "behavior": "The scanner's INVOCATION cannot be narrowed outside .semgrepignore",
@@ -224,6 +224,16 @@
       "acs": 8,
       "covered_acs": 8
     },
-    "evidence_detail": "Full evidence + falsification cross-references: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet.md (Test Completeness Ledger) and iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md."
-  }
+    "evidence_detail": "Full evidence + falsification cross-references: .shipwright/planning/iterate/2026-08-01-semgrep-suppression-ratchet.md (Test Completeness Ledger) and iterate-2026-08-01-semgrep-suppression-ratchet/ac7-falsification.md. Final 2026-08-02 rerun: Python 3.11 CI gate 420 passed / 53 platform skips; server typecheck + lint exit 0 and Vitest 3235 passed / 1 skipped; client typecheck + lint exit 0 and Vitest 3131 passed; test-hygiene scan exit 0."
+  },
+  "declared_removals": [
+    {
+      "path": ".shipwright/planning/iterate/external_review_state.json",
+      "reason": "LEGACY single-run marker at the SHARED path — it describes only 'the latest run', so it is last-writer-wins by construction and cannot be unioned. #342 wrote its summary while this branch was open; resolving to this run's summary intentionally supersedes those transient values. #342 has no per-run marker copy, but its durable review substance is preserved in .shipwright/planning/iterate/iterate-2026-08-01-win32-spawn-followups/reviews.json (including its completed plan review and findings)."
+    },
+    {
+      "path": ".shipwright/planning/iterate/external_code_review_state.json",
+      "reason": "Same legacy shared-path marker, same intentional supersession: one object describes the latest code-review run and cannot represent both branches. #342 has no per-run marker copy; its completed code and external-code review records, provider/count metadata, and findings remain durable in its run-specific reviews.json."
+    }
+  ]
 }

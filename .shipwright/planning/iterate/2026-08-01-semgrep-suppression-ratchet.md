@@ -46,7 +46,9 @@ build and shapes the shipped artifact.
 - [ ] **AC-6 — the vendored module's prose does not register, and a real
   directive does.** Over the real tree the scanner reports exactly 0 directives
   in `scripts/ci/accepted_risk_scan.py` and exactly 1 in
-  `scripts/ci/pr_review.py`. *(Originally worded "prose is not mistaken for a
+  `scripts/ci/pr_review_openrouter.py`. The positive path, rule and count come
+  from the inline registry rather than a second hardcoded source. *(Originally
+  worded "prose is not mistaken for a
   directive", crediting `tokenize`. That parser was REPLACED at Stage 2 — see
   Deviations — so the zero now comes from the rot-guarded `PROSE_EXEMPT`
   entries, and the AC says so.)*
@@ -133,7 +135,8 @@ message detectors or the Stage-2 diff-driven detectors.
      files in that directory are genuinely non-shipped (two fixture
      regenerators invoked by hand via `uv run`, one POC).
   3. *Can prose be told from a directive?* Probed with `tokenize` (0 COMMENT
-     tokens in `accepted_risk_scan.py`, 1 in `pr_review.py`) and built on that.
+     tokens in `accepted_risk_scan.py`, 1 in the then-current `pr_review.py`) and
+     built on that.
      **The premise was WRONG and Stage 2 falsified it:** Semgrep does not parse
      comments at all, so a token-aware reader is a strict SUBSET of what Semgrep
      honours — the false-negative direction. Kept here as the record of a probe
@@ -152,7 +155,7 @@ message detectors or the Stage-2 diff-driven detectors.
      `startswith`?* Spot-checked: `client/dist/assets/x.js` excluded via the
      un-anchored `dist/` (matches at any depth),
      `client/e2e/flows/…spec.ts` via the anchored `client/e2e/`, and
-     `scripts/ci/pr_review.py` NOT excluded.
+     `scripts/ci/pr_review_openrouter.py` NOT excluded.
   6. *Is the new module wired into CI without touching a workflow?* Both
      `security.yml` (`accepted-risks` job) and `pr-review.yml`
      (`Reviewer Selftest`) run `python -m pytest scripts/ci/tests -q` — the
@@ -184,6 +187,22 @@ message detectors or the Stage-2 diff-driven detectors.
      provenance header is required.
   10. *Does amending CLAUDE.md break a doc guard?* `client/src/test/doc-sync.test.ts`
       — 106 passed. `ci-action-pinning-posture.test.ts` pins no CLAUDE.md prose.
+  11. *Can the exemption-integrity positive control drift from the inline
+      registry after another relocation?* No: `INLINE_POSITIVE_CONTROL` is now
+      the registry key itself, and the integrity test obtains its expected count
+      from `INLINE_SUPPRESSIONS`. The focused pair passed 11/11; the complete
+      Windows gate, after the doubt-review fixture below, collected 473 tests
+      (**420 passed, 53 platform skips**).
+  12. *Can `PROSE_EXEMPT` bless a real blanket suppression during a legitimate
+      re-vendor?* The doubt review found that `parse_line(text) == []` meant both
+      inert prose and a bare working directive. The exemption now independently
+      proves that its physical line lies strictly inside a **constant** multiline
+      Python string token; f-strings are rejected because their interior may
+      execute expressions, and opening/closing lines are rejected because code
+      could share them while Semgrep still matches the raw line. The permanent
+      negative fixture initially made the full suite RED because its own source
+      exposed the legacy short marker stem; splitting that stem restored GREEN,
+      another direct AC-8 falsification.
 
 - **Test Completeness Ledger:**
 
@@ -201,7 +220,7 @@ message detectors or the Stage-2 diff-driven detectors.
   | 10 | Multi-rule directives register each id separately | tested | `test_a_multi_rule_directive_registers_each_id_separately` PASSED |
   | 11 | A malformed rule id does not swallow trailing prose | tested | `test_a_malformed_rule_id_does_not_become_a_rule` PASSED |
   | 12 | The marker is not matched inside a longer token | tested | `test_the_marker_is_not_matched_inside_a_longer_token` PASSED |
-  | 13 | Python docstring prose is not read as a directive | tested | `test_python_docstring_prose_is_not_a_directive` + `test_prose_is_not_a_directive_and_a_directive_is_not_prose` (0 in the vendored module, 1 in `pr_review.py`) PASSED |
+  | 13 | The vendored module's prose is exempt without hiding a real directive | tested | `test_the_exemptions_do_what_they_claim_on_the_real_tree` (0 in the vendored module, positive path/rule/count sourced from `INLINE_SUPPRESSIONS`) PASSED |
   | 14 | A marker in a TS string literal IS reported (the deliberate fail-safe trade) | tested | `test_a_marker_in_a_typescript_string_is_reported_not_skipped` PASSED |
   | 15 | Each of the four supported `.semgrepignore` shapes classifies correctly | tested | `test_classify_pattern_recognises_every_supported_shape` (7 params) PASSED |
   | 16 | Every unsupported shape is REJECTED, not misread | tested | `test_classify_pattern_rejects_what_the_matcher_does_not_implement` (7 params) PASSED |
@@ -210,7 +229,7 @@ message detectors or the Stage-2 diff-driven detectors.
   | 19 | Scope filter and directive scan compose on a real git tree | tested | `test_in_scan_scope_honours_the_ignore_file_of_the_repo_it_is_given` PASSED |
   | 20 | A new file type in scan scope must be classified | tested | `test_every_in_scope_extension_is_classified` PASSED |
   | 21 | Discovery cannot pass vacuously on an empty set | tested | `test_the_scanner_actually_reads_files` (floors 300 / 200 against 946 / 728) PASSED |
-  | 22 | The guard does not report its own source as a suppression (AC-8) | tested | full suite 305 PASSED with all six modules tracked; no marker literal in any of them |
+  | 22 | The guard does not report its own source as a suppression (AC-8) | tested | full suite collected 473 tests: 420 PASSED, 53 platform skips, with all seven modules tracked; the new negative fixture first turned it RED by exposing the legacy short stem, then GREEN after splitting that stem |
   | 24 | An UPPER-CASE directive is detected (Semgrep matches case-insensitively) | tested | `test_the_marker_match_is_case_insensitive` PASSED |
   | 25 | A whitespace-separated second rule id cannot ride along on a blessed directive | tested | `test_multiple_ids_register_separately_however_they_are_separated` PASSED |
   | 26 | An extensionless file with a shebang IS scanned | tested | `semgrep_scan_surface.is_scanned` on `scripts/hooks/pre-commit` (RED) |
@@ -223,7 +242,7 @@ message detectors or the Stage-2 diff-driven detectors.
 ")` |
   | 33 | A BARE marker earlier on the line voids the whole directive (blanket form) | tested | `parse_line` parses every marker |
   | 34 | A second block-comment directive on one line is not discarded | tested | `test_multiple_ids_register_separately_however_they_are_separated` |
-  | 35 | `PROSE_EXEMPT` cannot become a self-service bypass | tested | `test_the_prose_exemptions_cannot_become_a_self_service_bypass` (vendored-only, rule-less-only, count-pinned) |
+  | 35 | `PROSE_EXEMPT` cannot become a self-service bypass | tested | `test_the_prose_exemptions_cannot_become_a_self_service_bypass` (vendored-only, rule-less-only, count-pinned, and independently proved to be strictly inside constant multiline Python string prose; f-strings rejected) |
   | 36 | The scanner's INVOCATION cannot be narrowed outside `.semgrepignore` | tested | `test_the_scanner_is_pointed_at_the_whole_tree_with_the_full_ruleset` PASSED |
   | 37 | A nested `.semgrepignore` cannot silence a subtree unseen | tested | `test_the_root_ignore_file_is_the_only_one` PASSED |
   | 38 | A scanned language cannot be relabelled "not a Semgrep language" | tested | `test_the_undebatable_languages_stay_scanned` against `REQUIRED_SCANNED` PASSED |
@@ -290,6 +309,10 @@ message detectors or the Stage-2 diff-driven detectors.
 - **Runner command:**
   `python -m pytest scripts/ci/tests -q` (run from the worktree root), plus the
   two falsification passes of AC-7.
+- **Final rerun (2026-08-02):** Python 3.11 CI gate 420 passed / 53
+  platform skips; server typecheck + lint exit 0 and Vitest 3235 passed / 1
+  skipped; client typecheck + lint exit 0 and Vitest 3131 passed. Test-hygiene
+  scan exit 0 with no findings.
 - **Evidence path:** `.shipwright/planning/iterate/iterate-2026-08-01-semgrep-suppression-ratchet/`
 - **Justification (surface=none):** the change adds a CI test module and edits
   a scanner scope-exclusion file. There is no startable product surface it can

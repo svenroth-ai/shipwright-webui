@@ -33,14 +33,20 @@ from pathlib import Path
 from semgrep_channels import MIN_RATIONALE, REPO_ROOT, directives, in_scan_scope
 from semgrep_scan_surface import SCANNED_EXTENSIONS, UNSCANNED_EXTENSIONS, is_scanned
 
+#: Shared positive control for the exemption-integrity test. Keeping this key
+#: beside the registry means a future relocation has one source of truth: the
+#: inline ratchet reports the move, while the integrity test still proves that
+#: exempted prose disappears without hiding a real directive.
+INLINE_POSITIVE_CONTROL = (
+    "scripts/ci/pr_review_openrouter.py",
+    "python.lang.security.audit.dynamic-urllib-use-detected."
+    "dynamic-urllib-use-detected",
+)
+
 #: (repo-relative file, semgrep rule id) -> (exact count, why it is a FALSE
 #: POSITIVE).
-_INLINE_SUPPRESSIONS: dict[tuple[str, str], tuple[int, str]] = {
-    (
-        "scripts/ci/pr_review_openrouter.py",
-        "python.lang.security.audit.dynamic-urllib-use-detected."
-        "dynamic-urllib-use-detected",
-    ): (
+INLINE_SUPPRESSIONS: dict[tuple[str, str], tuple[int, str]] = {
+    INLINE_POSITIVE_CONTROL: (
         1,
         "The URL is the OpenRouter completions endpoint composed by this module; "
         "it is never attacker-supplied. The rule flags any non-literal urlopen, "
@@ -116,7 +122,7 @@ def _discovered() -> tuple[dict[tuple[str, str], int], list[str]]:
 def test_inline_suppressions_match_the_pinned_set() -> None:
     """Both directions, counts included."""
     discovered, _ = _discovered()
-    pinned = {key: count for key, (count, _) in _INLINE_SUPPRESSIONS.items()}
+    pinned = {key: count for key, (count, _) in INLINE_SUPPRESSIONS.items()}
     mismatched = {
         key: f"live={discovered[key]} pinned={pinned[key]}"
         for key in set(discovered) & set(pinned)
@@ -137,7 +143,7 @@ def test_inline_suppressions_match_the_pinned_set() -> None:
 def test_every_inline_suppression_carries_a_rationale() -> None:
     thin = sorted(
         key
-        for key, (_, rationale) in _INLINE_SUPPRESSIONS.items()
+        for key, (_, rationale) in INLINE_SUPPRESSIONS.items()
         if len(rationale.strip()) < MIN_RATIONALE
     )
     assert not thin, (
