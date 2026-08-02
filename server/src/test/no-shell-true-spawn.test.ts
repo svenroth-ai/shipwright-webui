@@ -12,15 +12,30 @@
  *   - CI's Semgrep gate only fails the build at `security-severity >= 9.0`
  *     (see DO-NOT #25), so a re-added `shell: true` lands in the SARIF and
  *     merges green.
- *   - `.github/workflows/ci.yml` runs vitest for `client` and `server` ONLY.
- *     There is no bootstrapper job, so the bootstrapper's own suite — every
- *     test for three of the four sites — never runs in CI at all.
+ *   - `.github/workflows/ci.yml` ran vitest for `client` and `server` ONLY.
+ *     There was no bootstrapper job, so the bootstrapper's own suite — every
+ *     test for three of the four sites — never ran in CI at all.
+ *
+ * AMENDED 2026-08-01 (iterate-2026-08-01-bootstrapper-ci-contract). The second
+ * bullet is now HISTORY: `ci.yml` has a `Bootstrapper (type + lint + test)` job
+ * and that suite does run. It is left standing because it records why this file
+ * was written, and because the gap it describes is only PARTLY closed — the new
+ * job is ADVISORY until someone arms it in the `main-protection` ruleset, so
+ * today it still cannot block a merge. This file can: it runs inside
+ * `Server (type + lint + test)`, which is required. Both bullets must be false
+ * before retiring it, and the first one still is not.
+ *
+ * And even then it belongs HERE: THREE of the seven scanned sites below
+ * (`cli-compat.ts`, `win32-spawn.ts`, `preview-win32-spawn.ts` — all under
+ * `server/src/core/`) are server-only, so no bootstrapper-side suite could ever
+ * cover them. The arming state changes what a MOVE would cost; it never makes
+ * one correct.
  *
  * This file is therefore the durable, CI-enforced replacement for the four
  * suppressions. It is a source scan (the `ci-action-pinning-posture.test.ts`
- * pattern) precisely so it can reach across into `bootstrapper/`, which vitest
- * would otherwise never look at. Reading a sibling package's file is not an
- * import, so DO-NOT #7 is untouched.
+ * pattern) precisely so it can reach across into `bootstrapper/` in ONE place,
+ * covering all four sites with one blocking check. Reading a sibling package's
+ * file is not an import, so DO-NOT #7 is untouched.
  *
  * If a future change genuinely needs a platform shell on one of these paths,
  * that is a decision to RECORD — add the register entry — not to make quietly.

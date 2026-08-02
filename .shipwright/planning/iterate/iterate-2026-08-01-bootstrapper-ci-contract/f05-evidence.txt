@@ -1,0 +1,35 @@
+=== F0.5 runner: the bootstrapper-checks job step sequence, clean tree ===
+node: v24.15.0
+--- step 1: npm ci ---
+Some issues need review, and may require choosing
+a different dependency.
+
+Run `npm audit` for details.
+exit=0
+--- step 2: npx tsc --noEmit ---
+exit=0
+--- step 3: npm run lint ---
+
+> @svenroth-ai/shipwright@0.23.0 lint
+> oxlint .
+
+exit=0
+--- step 4: npm test ---
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 13 passed (14)
+      Tests  1 failed | 195 passed (196)
+   Start at  11:33:58
+   Duration  2.83s (transform 1.16s, setup 0ms, import 3.49s, tests 2.23s, environment 1ms)
+
+exit=1
+
+=== RE-RUN with sibling server/package.json present (as a real checkout has) ===
+
+ Test Files  14 passed (14)
+      Tests  196 passed (196)
+   Start at  11:34:45
+   Duration  1.66s (transform 1.26s, setup 0ms, import 3.05s, tests 2.04s, environment 1ms)
+
+exit=0
