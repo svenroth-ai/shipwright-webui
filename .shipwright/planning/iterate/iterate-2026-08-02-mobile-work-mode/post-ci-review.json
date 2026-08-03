@@ -1,0 +1,21 @@
+{
+  "stage": "post-ci-review",
+  "completed_at": "2026-08-03T07:00:14.5552449Z",
+  "sequence": ["spec-reviewer", "code-reviewer", "doubt-reviewer"],
+  "status": "clean",
+  "scope": [
+    "append-only correction of the executed-test total for evt-8bddddb0",
+    "five Linux visual baselines for the intentional Shiplog rename"
+  ],
+  "verification": {
+    "spec": "CLEAN after removing twelve unrelated design-gate antialias pixels",
+    "code": "CLEAN",
+    "doubt": "CLEAN"
+  },
+  "evidence": {
+    "server": "275 files passed; 3235 tests passed; 1 skipped",
+    "visual": "All five 1280x800 baselines differ from HEAD only inside the shared Shiplog rectangle x=1102..1250, y=139..180.",
+    "event": "evt-c4e54fde amends evt-8bddddb0 with tests passed=6402, total=6402, skipped=1, e2e_run=true."
+  },
+  "remaining_findings": []
+}

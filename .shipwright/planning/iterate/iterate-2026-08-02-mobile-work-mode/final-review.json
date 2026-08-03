@@ -7,5 +7,9 @@
     "spec": "CLEAN",
     "code": "CLEAN",
     "doubt": "CLEAN"
+  },
+  "post_ci_verification": {
+    "artifact": ".shipwright/planning/iterate/iterate-2026-08-02-mobile-work-mode/post-ci-review.json",
+    "status": "clean"
   }
 }
