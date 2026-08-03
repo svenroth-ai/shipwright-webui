@@ -77,9 +77,10 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
       await expect(page.getByTestId("pane-left")).toHaveCount(1);
       await expect(page.getByTestId("pane-center")).toHaveCount(1);
       await expect(page.getByTestId("pane-right")).toHaveCount(1);
-      // Switch Files → Session: the center (terminal host) is still mounted.
+      // Switch Files → Terminal: the flattened control still targets the same
+      // mounted center subtree.
       await page.getByTestId("pane-tab-left").click();
-      await page.getByTestId("pane-tab-center").click();
+      await page.getByTestId("pane-tab-terminal").click();
       await expect(page.getByTestId("pane-center")).toHaveCount(1);
     } finally {
       await cleanupTask(request, taskId);
@@ -104,7 +105,7 @@ test.describe("Tablet responsive — compact (≤1023px)", () => {
       // Compact tab-sizing fires onResize(0/100); the persist path MUST be gated.
       await page.getByTestId("pane-tab-left").click();
       await page.getByTestId("pane-tab-right").click();
-      await page.getByTestId("pane-tab-center").click();
+      await page.getByTestId("pane-tab-terminal").click();
       await page.waitForTimeout(400); // > the layout-hook debounce
       // Post-fix the ONLY writer is the layout hook's own default persist
       // (leftWidth 240 / rightWidth 480). Pre-fix, the ungated drag handlers

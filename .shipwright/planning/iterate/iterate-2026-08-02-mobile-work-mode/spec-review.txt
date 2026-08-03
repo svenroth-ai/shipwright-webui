@@ -1,0 +1,19 @@
+Spec review: completed
+Reviewer: Codex spec-reviewer subagent
+Date: 2026-08-02
+
+Initial findings and resolution:
+- Activity return origin could be lost when the active artifact was selected again: fixed and regression-tested.
+- Compact copy diverged from the agreed exact label "Files & Terminal": restored.
+- New compact controls did not all retain a 44px touch target: corrected.
+- Mobile evidence did not directly prove overlay geometry and terminal-session preservation: the Playwright flow now measures invariant header height and verifies the same terminal DOM node and WebSocket survive Viewer -> Terminal, followed by a usable resize frame.
+
+Re-review verdict: no remaining specification findings.
+
+```json
+{
+  "stage": "spec-review",
+  "verdict": "pass",
+  "spec_citations": []
+}
+```

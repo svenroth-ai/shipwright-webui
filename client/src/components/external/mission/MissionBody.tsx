@@ -17,7 +17,7 @@
  * (`OperationLive`). Read-only observer throughout (rule 1 / DO-NOT #1).
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { ExternalTask } from "../../../lib/externalApi";
 import { useMissionLive } from "../../../hooks/useMissionLive";
@@ -34,6 +34,11 @@ import { OperationCard } from "./OperationCard";
 import { OperationLive } from "./OperationLive";
 import { ArtifactPanel } from "./ArtifactPanel";
 import { MissionArtifactPanel } from "./MissionArtifactPanel";
+import { useIsCompactViewport } from "../../../hooks/useIsCompactViewport";
+import {
+  MissionCompactTabs,
+  type MissionCompactPanel,
+} from "./MissionCompactTabs";
 
 interface Props {
   task: ExternalTask;
@@ -51,7 +56,18 @@ interface Props {
 const LEGACY_RAIL_KEYS = ["req", "spec", "tests", "review", "commit"] as const;
 
 export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) {
+  const compact = useIsCompactViewport();
   const [activeNode, setActiveNode] = useState<string | null>(null);
+  const [compactPanel, setCompactPanel] = useState<MissionCompactPanel>("overview");
+  const detailReturnPanelRef = useRef<"overview" | "activity">("overview");
+  const overviewTabRef = useRef<HTMLButtonElement | null>(null);
+  const activityTabRef = useRef<HTMLButtonElement | null>(null);
+  const detailTabRef = useRef<HTMLButtonElement | null>(null);
+  const focusFrameRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
+  }, []);
 
   // S1 — the context-resolved artifact rail. Additive: it engages ONLY for a
   // resolved standalone iterate on a schema this build understands. Every other
@@ -89,16 +105,67 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     activeNode && !artifacts
       ? model.nodes.find((n) => n.key === activeNode) ?? null
       : null;
+  const detailAvailable = activeArtifact !== null || activeRecordNode !== null;
+
+  const focusPanelTab = useCallback((panel: "overview" | "activity") => {
+    if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current);
+    focusFrameRef.current = requestAnimationFrame(() => {
+      focusFrameRef.current = null;
+      (panel === "overview" ? overviewTabRef : activityTabRef).current?.focus();
+    });
+  }, []);
+
+  const closeDetail = useCallback(() => {
+    setActiveNode(null);
+    const target = detailReturnPanelRef.current;
+    if (compactPanel === "detail") setCompactPanel(target);
+    if (compact) {
+      focusPanelTab(target);
+    }
+  }, [compact, compactPanel, focusPanelTab]);
+
+  useEffect(() => {
+    if (!activeNode || detailAvailable) return;
+    setActiveNode(null);
+    if (compactPanel === "detail") {
+      const target = detailReturnPanelRef.current;
+      setCompactPanel(target);
+      if (compact) focusPanelTab(target);
+    }
+  }, [activeNode, compact, compactPanel, detailAvailable, focusPanelTab]);
 
   const handleNodeClick = useCallback((key: string) => {
-    // Clicking the already-active link closes the artifact (prototype window.__node).
-    setActiveNode((curr) => (curr === key ? null : key));
-  }, []);
-  const handleClose = useCallback(() => setActiveNode(null), []);
+    if (activeNode === key) {
+      if (compact && (compactPanel === "overview" || compactPanel === "activity")) {
+        detailReturnPanelRef.current = compactPanel;
+      }
+      closeDetail();
+      return;
+    }
+    if (compact) {
+      if (compactPanel === "overview" || compactPanel === "activity") {
+        detailReturnPanelRef.current = compactPanel;
+      }
+      setCompactPanel("detail");
+    }
+    setActiveNode(key);
+  }, [activeNode, closeDetail, compact, compactPanel]);
+  const handleClose = closeDetail;
   const handleOpenDocument = useCallback(() => {
-    setActiveNode(null);
+    closeDetail();
     onOpenDocument();
-  }, [onOpenDocument]);
+  }, [closeDetail, onOpenDocument]);
+
+  const handlePanelChange = useCallback((panel: MissionCompactPanel) => {
+    if (panel === "detail" && !detailAvailable) return;
+    if (
+      panel === "detail" &&
+      (compactPanel === "overview" || compactPanel === "activity")
+    ) {
+      detailReturnPanelRef.current = compactPanel;
+    }
+    setCompactPanel(panel);
+  }, [compactPanel, detailAvailable]);
 
   // A DESIGN GATE keeps the A12 Operation card outright — it is a decision
   // surface, not a story.
@@ -119,37 +186,74 @@ export function MissionBody({ task, transcriptContent, onOpenDocument }: Props) 
     // internally (iterate-2026-07-23-mission-viewer-scroll-popout; broken
     // since the three-card shell #271).
     <div className="flex min-h-0 flex-1 flex-col" data-testid="task-detail-mission">
-      <div className="mc-body" data-testid="mission-body">
-        <MissionLeftPanel
-          model={model}
-          activeNodeKey={activeNode}
-          onNodeClick={handleNodeClick}
-          artifacts={artifacts}
-          runLive={runLive}
+      {compact && (
+        <MissionCompactTabs
+          active={compactPanel}
+          detailAvailable={detailAvailable}
+          onChange={handlePanelChange}
+          overviewRef={overviewTabRef}
+          activityRef={activityTabRef}
+          detailRef={detailTabRef}
         />
-        {isDesignGate ? (
-          <OperationCard task={task} />
-        ) : completed ? (
-          <div className="mc-op-stack" data-testid="mission-completed-stack">
+      )}
+      <div className="mc-body" data-testid="mission-body">
+        <div
+          id="mission-panel-overview"
+          role={compact ? "tabpanel" : undefined}
+          aria-labelledby={compact ? "mission-compact-tab-overview" : undefined}
+          className="mission-panel"
+          hidden={compact && compactPanel !== "overview"}
+          data-testid="mission-panel-overview"
+        >
+          <MissionLeftPanel
+            model={model}
+            activeNodeKey={activeNode}
+            onNodeClick={handleNodeClick}
+            artifacts={artifacts}
+            runLive={runLive}
+          />
+        </div>
+        <div
+          id="mission-panel-activity"
+          role={compact ? "tabpanel" : undefined}
+          aria-labelledby={compact ? "mission-compact-tab-activity" : undefined}
+          className="mission-panel"
+          hidden={compact && compactPanel !== "activity"}
+          data-testid="mission-panel-activity"
+        >
+          {isDesignGate ? (
             <OperationCard task={task} />
+          ) : completed ? (
+            <div className="mc-op-stack" data-testid="mission-completed-stack">
+              <OperationCard task={task} />
+              <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
+            </div>
+          ) : (
             <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
-          </div>
-        ) : (
-          <OperationLive paragraphs={model.narrative} onArtifactClick={handleNodeClick} />
-        )}
-        {activeArtifact ? (
-          <MissionArtifactPanel
-            taskId={task.taskId}
-            artifact={activeArtifact}
-            onClose={handleClose}
-          />
-        ) : activeRecordNode ? (
-          <ArtifactPanel
-            node={activeRecordNode}
-            onClose={handleClose}
-            onOpenDocument={handleOpenDocument}
-          />
-        ) : null}
+          )}
+        </div>
+        <div
+          id="mission-panel-detail"
+          role={compact ? "tabpanel" : undefined}
+          aria-labelledby={compact ? "mission-compact-tab-detail" : undefined}
+          className="mission-panel"
+          hidden={compact && compactPanel !== "detail"}
+          data-testid="mission-panel-detail"
+        >
+          {activeArtifact ? (
+            <MissionArtifactPanel
+              taskId={task.taskId}
+              artifact={activeArtifact}
+              onClose={handleClose}
+            />
+          ) : activeRecordNode ? (
+            <ArtifactPanel
+              node={activeRecordNode}
+              onClose={handleClose}
+              onOpenDocument={handleOpenDocument}
+            />
+          ) : null}
+        </div>
       </div>
     </div>
   );

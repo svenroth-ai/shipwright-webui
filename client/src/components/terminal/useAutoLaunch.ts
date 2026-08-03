@@ -69,7 +69,9 @@ export interface UseAutoLaunchOptions {
    * collides the title's first char onto the `>` prompt row ("Der" → "D er").
    * Same ordered WS ⇒ the resize is applied before the command runs.
    */
-  onBeforeDispatch?: () => void;
+  onBeforeDispatch?: () => boolean | void;
+  /** False while a force-mounted terminal is hidden and cannot be sized. */
+  dispatchReady?: boolean;
 }
 
 export interface UseAutoLaunchResult {
@@ -80,7 +82,7 @@ export interface UseAutoLaunchResult {
 }
 
 export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
-  const { taskId, socket, coord, gate, onBeforeDispatch } = opts;
+  const { taskId, socket, coord, gate, onBeforeDispatch, dispatchReady = true } = opts;
 
   // Latest-ref so the async auto-inject closure never captures a stale
   // callback across parent re-renders (same pattern as socketSend in
@@ -140,6 +142,7 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
     if (injectionInFlightRef.current) return;
     if (!socket.ready || socket.role !== "writer") return;
     if (!socket.shellKind) return;
+    if (!dispatchReady) return;
     if (pending.expiresAt <= Date.now()) return;
 
     // One-shot guard — park behind explicit confirm.
@@ -189,12 +192,20 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
         return;
       }
 
-      const cmd = pickShellCommand(pending.commands, socket.shellKind);
-      consumedTokensRef.current.add(pending.launchToken);
       // Sync the pty to the client's real width BEFORE the command runs, on
       // the same ordered WS, so Claude renders the title banner at the correct
       // cols (see onBeforeDispatch doc — the "D er" title-wrap smear).
-      onBeforeDispatchRef.current?.();
+      while (!cancelled && onBeforeDispatchRef.current?.() === false) {
+        if (pending.expiresAt <= Date.now()) {
+          consumedTokensRef.current.add(pending.launchToken);
+          coord.cancelLaunch("timeout");
+          return;
+        }
+        await new Promise((r) => setTimeout(r, PROMPT_POLL_MS));
+      }
+      if (cancelled) return;
+      const cmd = pickShellCommand(pending.commands, socket.shellKind);
+      consumedTokensRef.current.add(pending.launchToken);
       socket.send({ type: "data", payload: cmd + "\r" });
       launchInjectedThisPtyLifetimeRef.current = true;
       coord.consumeLaunch(pending.launchToken);
@@ -205,7 +216,7 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
     return () => {
       cancelled = true;
     };
-  }, [coord, socket.ready, socket.role, socket.shellKind, coord.pendingLaunch, gate.dataSeenInitiallyRef, gate.lastPtyDataAtRef]);
+  }, [coord, socket.ready, socket.role, socket.shellKind, coord.pendingLaunch, dispatchReady, gate.dataSeenInitiallyRef, gate.lastPtyDataAtRef]);
 
   const handleManualSend = useCallback(() => {
     const pending = manualSendPending;
@@ -213,7 +224,7 @@ export function useAutoLaunch(opts: UseAutoLaunchOptions): UseAutoLaunchResult {
     if (!socket.ready || socket.role !== "writer" || !socket.shellKind) return;
     const cmd = pickShellCommand(pending.commands, socket.shellKind);
     // Same pre-dispatch width sync as the auto path (see onBeforeDispatch).
-    onBeforeDispatchRef.current?.();
+    if (onBeforeDispatchRef.current?.() === false) return;
     socket.send({ type: "data", payload: cmd + "\r" });
     setManualSendPending(null);
   }, [

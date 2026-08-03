@@ -127,4 +127,56 @@ describe("useAutoLaunch size-sync before dispatch", () => {
     });
     expect(order).toEqual(["sync", "send:data"]);
   });
+
+  it("waits for a hidden terminal to become active and successfully size-sync", async () => {
+    const socket = makeSocket();
+    const gate = makeGate(false);
+    const coord = makeCoord({
+      launchToken: 8,
+      commands: COMMANDS,
+      expiresAt: Date.now() + 60_000,
+    });
+    const onBeforeDispatch = vi.fn(() => true);
+    const { rerender } = renderHook(
+      ({ active }) => useAutoLaunch(opts({
+        socket, coord, gate, onBeforeDispatch, dispatchReady: active,
+      })),
+      { initialProps: { active: false } },
+    );
+
+    await act(async () => vi.advanceTimersByTimeAsync(1700));
+    expect(onBeforeDispatch).not.toHaveBeenCalled();
+    expect(socket.send).not.toHaveBeenCalled();
+
+    rerender({ active: true });
+    await act(async () => vi.advanceTimersByTimeAsync(1700));
+    expect(onBeforeDispatch).toHaveBeenCalledTimes(1);
+    expect(socket.send).toHaveBeenCalledWith({
+      type: "data",
+      payload: COMMANDS.powershell + "\r",
+    });
+  });
+
+  it("keeps polling until the visible terminal yields a usable grid", async () => {
+    const socket = makeSocket();
+    const onBeforeDispatch = vi.fn()
+      .mockReturnValueOnce(false)
+      .mockReturnValueOnce(false)
+      .mockReturnValue(true);
+    const coord = makeCoord({
+      launchToken: 9,
+      commands: COMMANDS,
+      expiresAt: Date.now() + 60_000,
+    });
+    renderHook(() => useAutoLaunch(opts({
+      socket, coord, gate: makeGate(false), onBeforeDispatch, dispatchReady: true,
+    })));
+
+    await act(async () => vi.advanceTimersByTimeAsync(1800));
+    expect(onBeforeDispatch).toHaveBeenCalledTimes(3);
+    expect(socket.send).toHaveBeenCalledWith({
+      type: "data",
+      payload: COMMANDS.powershell + "\r",
+    });
+  });
 });

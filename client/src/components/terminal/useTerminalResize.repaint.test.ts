@@ -43,8 +43,14 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
     vi.clearAllMocks();
   });
 
+  function setupActiveSettled() {
+    const result = h.setup(true);
+    vi.clearAllMocks();
+    return result;
+  }
+
   it("window focus triggers refit + term.refresh + a resize frame", () => {
-    const { socketSend, term, fit } = h.setup(false);
+    const { socketSend, term, fit } = setupActiveSettled();
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
@@ -62,7 +68,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
 
   it("document visibilitychange (becoming visible) triggers refit + term.refresh", () => {
     setHidden(false);
-    const { term, fit } = h.setup(false);
+    const { term, fit } = setupActiveSettled();
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
@@ -71,7 +77,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("pageshow (bfcache restore) triggers refit + term.refresh", () => {
-    const { term, fit } = h.setup(false);
+    const { term, fit } = setupActiveSettled();
     act(() => {
       window.dispatchEvent(new Event("pageshow"));
     });
@@ -80,7 +86,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("visibilitychange while document.hidden=true is a no-op", () => {
-    const { term, fit } = h.setup(false);
+    const { term, fit } = setupActiveSettled();
     setHidden(true);
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
@@ -91,7 +97,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("focus after disposed=true is a no-op (no fit/refresh on a dead term)", () => {
-    const { term, fit, disposed, rerender } = h.setup(false);
+    const { term, fit, disposed, rerender } = setupActiveSettled();
     disposed.current = true;
     rerender(false);
     act(() => {
@@ -102,7 +108,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("removes the focus/visibility/pageshow listeners on unmount", () => {
-    const { term, fit, unmount } = h.setup(false);
+    const { term, fit, unmount } = setupActiveSettled();
     unmount();
     act(() => {
       window.dispatchEvent(new Event("focus"));
@@ -114,7 +120,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("focus with unchanged dims still repaints but dedupes the resize frame", () => {
-    const { socketSend, term, fit } = h.setup(false);
+    const { socketSend, term, fit } = setupActiveSettled();
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
@@ -153,7 +159,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("window focus arms the settle-repaint window", () => {
-    const { settleArm } = h.setup(false);
+    const { settleArm } = setupActiveSettled();
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
@@ -162,7 +168,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
 
   it("visibilitychange (becoming visible) arms the settle-repaint window", () => {
     setHidden(false);
-    const { settleArm } = h.setup(false);
+    const { settleArm } = setupActiveSettled();
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
@@ -170,7 +176,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("pageshow (bfcache restore) arms the settle-repaint window", () => {
-    const { settleArm } = h.setup(false);
+    const { settleArm } = setupActiveSettled();
     act(() => {
       window.dispatchEvent(new Event("pageshow"));
     });
@@ -178,7 +184,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("a hidden visibilitychange does NOT arm (no work while hidden)", () => {
-    const { settleArm } = h.setup(false);
+    const { settleArm } = setupActiveSettled();
     setHidden(true);
     act(() => {
       document.dispatchEvent(new Event("visibilitychange"));
@@ -188,7 +194,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("the RO (resize) path does NOT arm here — the settle module's own onResize does", () => {
-    const { settleArm } = h.setup(false);
+    const { settleArm } = setupActiveSettled();
     act(() => {
       h.triggerRO();
     });
@@ -196,7 +202,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("focus after disposal does not arm (guarded by disposedRef)", () => {
-    const { settleArm, disposed, rerender } = h.setup(false);
+    const { settleArm, disposed, rerender } = setupActiveSettled();
     disposed.current = true;
     rerender(false);
     act(() => {
@@ -228,7 +234,7 @@ describe("useTerminalResize hook — repaint + settle-arm", () => {
   });
 
   it("window focus schedules data-independent trailing repaints", () => {
-    const { term } = h.setup(false);
+    const { term } = setupActiveSettled();
     const refresh = term.refresh as ReturnType<typeof vi.fn>;
     act(() => {
       window.dispatchEvent(new Event("focus"));

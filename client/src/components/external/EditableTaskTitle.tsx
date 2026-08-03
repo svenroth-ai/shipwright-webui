@@ -19,9 +19,11 @@ import {
   useState,
 } from "react";
 import { Pencil } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
 
 import type { ExternalTask } from "../../lib/externalApi";
 import { useRenameTask } from "../../hooks/useExternalTasks";
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
 
 interface Props {
   task: ExternalTask;
@@ -35,10 +37,18 @@ export interface EditableTaskTitleHandle {
 export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
   function EditableTaskTitle({ task }, ref) {
   const renameMut = useRenameTask();
+  const isPhone = useIsPhoneViewport();
   const [editing, setEditing] = useState(false);
+  const [phonePopoverOpen, setPhonePopoverOpen] = useState(false);
   const [draft, setDraft] = useState(task.title);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const displayButtonRef = useRef<HTMLButtonElement | null>(null);
+  const renameFrameRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (renameFrameRef.current !== null) cancelAnimationFrame(renameFrameRef.current);
+  }, []);
 
   useImperativeHandle(
     ref,
@@ -77,22 +87,61 @@ export const EditableTaskTitle = forwardRef<EditableTaskTitleHandle, Props>(
   };
 
   if (!editing) {
-    return (
+    const titleButton = (
       <button
+        ref={displayButtonRef}
         type="button"
-        onClick={() => setEditing(true)}
-        className="inline-flex items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"
-        aria-label="Edit task title"
+        onClick={isPhone ? undefined : () => setEditing(true)}
+        className={isPhone
+          ? "inline-flex min-h-11 min-w-0 items-center gap-2 truncate rounded px-1 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          : "inline-flex items-center gap-2 text-left text-lg font-semibold text-[var(--color-text)] hover:text-info"}
+        aria-label={isPhone ? "Show full task title" : "Edit task title"}
         data-testid="task-title-display"
       >
-        <span>{task.title}</span>
-        <Pencil size={14} className="text-[var(--color-muted)]" />
+        <span className={isPhone ? "truncate" : undefined}>{task.title}</span>
+        {!isPhone && <Pencil size={14} className="shrink-0 text-[var(--color-muted)]" />}
       </button>
+    );
+    if (!isPhone) return titleButton;
+    return (
+      <Popover.Root modal open={phonePopoverOpen} onOpenChange={setPhonePopoverOpen}>
+        <Popover.Trigger asChild>{titleButton}</Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            side="bottom"
+            align="start"
+            sideOffset={8}
+            collisionPadding={12}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              displayButtonRef.current?.focus({ preventScroll: true });
+            }}
+            data-testid="task-title-popover"
+            className="z-50 flex max-h-[min(70vh,28rem)] w-[min(92vw,30rem)] flex-col gap-3 overflow-y-auto rounded-xl border border-[var(--line)] bg-white p-4 text-[15px] leading-6 text-[var(--ink)] shadow-xl [&>*]:shrink-0"
+          >
+            <p className="whitespace-pre-wrap break-words">{task.title}</p>
+            <button
+              type="button"
+              data-testid="task-title-popover-rename"
+              className="min-h-11 self-start rounded-lg bg-[var(--accent)] px-3 py-2 text-[13px] font-semibold text-white"
+              onClick={() => {
+                setPhonePopoverOpen(false);
+                renameFrameRef.current = requestAnimationFrame(() => {
+                  renameFrameRef.current = null;
+                  setEditing(true);
+                });
+              }}
+            >
+              Rename
+            </button>
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1" data-testid="task-title-editor">
+    <div className="flex min-w-0 flex-1 flex-col gap-1" data-testid="task-title-editor">
       <input
         ref={inputRef}
         type="text"

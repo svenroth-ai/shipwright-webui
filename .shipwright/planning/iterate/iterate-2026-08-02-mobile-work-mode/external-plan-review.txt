@@ -1,0 +1,44 @@
+External Iterate Plan Review — OpenRouter — 2026-08-02
+
+Status: completed
+Provider: openrouter
+Rounds: 3
+Final reviewer verdict: revise (findings integrated before build)
+
+Material findings and dispositions:
+
+1. Terminal mount identity alone does not prove usable dimensions after a
+   zero-width compact pane is revealed. ACCEPTED. The spec now requires outer
+   pane visibility to participate in EmbeddedTerminal.active, a cancellable
+   post-paint fit through the existing resize hook, a >=5x2 send gate, socket
+   identity/count evidence, and rapid Terminal→Viewer→Terminal coverage.
+2. Non-portalled/non-modal disclosure could clip or mishandle focus. ACCEPTED.
+   Both phone disclosures use the installed Radix Popover Portal with modal
+   semantics, Escape/outside close, focus return, viewport-bounded scrolling,
+   the existing overlay layer, and plain React text nodes only.
+3. Mission needs independent artifact and compact-panel state plus a complete
+   transition table. ACCEPTED. activeNode remains the artifact SSoT;
+   activeCompactMissionPanel/detailReturnPanel own navigation. Close restores
+   the actual Overview/Activity source and focus.
+4. Inactive Mission controls must leave the accessibility tree without losing
+   scroll state. ACCEPTED. Panels remain mounted with native hidden; a test
+   proves CSS does not override it. This is explicitly separate from the
+   force-mounted zero-sized terminal panes.
+5. Mobile Rename must complete the overlay→existing-input handoff. ACCEPTED.
+   Close Popover, schedule the existing imperative edit on the next frame, then
+   reuse the existing focused input and mutation/error UI.
+6. Centre preference readiness. RESOLVED BY CODE FACT: useLocalStorage reads
+   synchronously in useState's lazy initializer, so no asynchronous hydration or
+   fallback paint exists. Breakpoint projection is specified read-only.
+7. Artifact stale-resolution token. NOT APPLICABLE BY CODE FACT: MissionBody
+   selection and artifact lookup are synchronous in-memory operations; adding a
+   request token would be speculative machinery with no producer to guard.
+8. Floating terminal expand button could obscure content. ACCEPTED. It receives
+   one opaque 44px hit area and no larger pointer-catching wrapper.
+9. Tablet header/workspace interaction, keyboard tabs, semantic disabled Detail,
+   saved preferences, markup-like text, Detail close focus, and native-hidden
+   behavior were added to the test ledger.
+
+No review finding changed the approved product direction: light Shipwright tab
+surfaces, dark top chrome/terminal, compact title/Description overlays, Shiplog
+as a link, one four-way workspace row, and three-way Mission navigation.

@@ -1,41 +1,18 @@
-/*
- * useTerminalResize — ResizeObserver + tab-activation refit + safeFit guard.
- *
- * Extracted from EmbeddedTerminal.tsx (Campaign C / C5, 2026-05-26).
- * Behaviour bit-perfect with the source:
- *   - ResizeObserver throttled at 250 ms with trailing-edge fire.
- *   - Tab-activation refit + post-activation `term.refresh(0, rows-1)`
- *     (commit 207f5c3 pattern — display:none repair).
- *   - safeFit hardening (ADR-084): short-circuits when disposed OR when
- *     the xterm renderer reports zero cell dims.
- *   - WS `resize` frame emitted with cols/rows; client-side dedupe of
- *     no-op resizes (iterate v0.8.6 AC-2).
- *
- * Plan-review HIGH/MED resolutions:
- *   - gemini #1: callback `socketSend` is held via a latest-ref so the
- *     observer / setTimeout closures never capture a stale reference.
- *   - openai #6 MED: pending throttled timeout is cancelled on cleanup,
- *     and `disposedRef` gates the trailing-edge fire so a late
- *     setTimeout callback that wins the race against unmount is a
- *     safe no-op.
- */
-
+/* ResizeObserver + activation refit for xterm. It throttles and dedupes usable
+ * grids, keeps socketSend fresh, and cancels every delayed callback on cleanup. */
 import { useEffect, useRef, type RefObject } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
-
 import { safeFit } from "./safe-fit";
 import {
   createActivationRepaint,
   type ActivationRepaintHandle,
 } from "./activation-repaint";
-
+import { isMeasurableTerminalContainer, isUsableGrid } from "./terminal-grid";
 /** WS-send shape consumed by this hook — duck-typed to avoid hook-internal coupling. */
 type ResizeSendFn = (msg: { type: "resize"; cols: number; rows: number }) => void;
-
 /** Resize throttle window. ConPTY redraws the line on every SIGWINCH; we don't want to drown it. */
 const RESIZE_THROTTLE_MS = 250;
-
 // Post-layout-change repaint is TWO complementary mechanisms — do NOT collapse
 // them (iterate-2026-06-22, Chesterton's fence):
 //   1. DATA-DRIVEN settle window (`repaint-on-settle.ts`) — armed here via
@@ -52,7 +29,6 @@ const RESIZE_THROTTLE_MS = 250;
 // re-exported so the existing `useTerminalShellEffects` + resize-spec imports
 // keep resolving `./useTerminalResize` unchanged.
 export { safeFit };
-
 export interface UseTerminalResizeOptions {
   /** The DOM container — observed by ResizeObserver. */
   containerRef: RefObject<HTMLDivElement | null>;
@@ -66,6 +42,8 @@ export interface UseTerminalResizeOptions {
   socketSend: ResizeSendFn;
   /** Parent's tab-active flag — true while the Terminal tab is visible. */
   active: boolean;
+  /** Re-runs the settled refit when responsive layout changes but active stays true. */
+  layoutRevision?: string | number;
   /**
    * Arm the data-driven settle-repaint window (`repaint-on-settle.ts`) — held
    * behind a ref because the settle handle is created in EmbeddedTerminal's
@@ -82,7 +60,6 @@ export interface UseTerminalResizeOptions {
    */
   atlasHealRef?: RefObject<(() => void) | null>;
 }
-
 /**
  * Wire the resize observer + tab-activation refit effects. Returns void —
  * pure side-effect hook. Both effects are gated on `termRef.current` so
@@ -96,6 +73,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     disposedRef,
     socketSend,
     active,
+    layoutRevision,
     settleArmRef,
     atlasHealRef,
   } = opts;
@@ -115,6 +93,13 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     cols: -1,
     rows: -1,
   });
+  const sendCurrentGrid = (term: Terminal): void => {
+    if (!isUsableGrid(term)) return;
+    const { cols, rows } = term;
+    if (cols === lastSentRef.current.cols && rows === lastSentRef.current.rows) return;
+    lastSentRef.current = { cols, rows };
+    socketSendRef.current({ type: "resize", cols, rows });
+  };
 
   // Data-independent trailing repaints (`activation-repaint.ts`) — lazily
   // created once; reads term/disposed through the stable refs the hook owns.
@@ -150,19 +135,14 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
     if (!container) return;
 
     const resizeAndSend = (): void => {
+      if (!activeRef.current || !isMeasurableTerminalContainer(container)) return;
       const fit = fitAddonRef.current;
       const term = termRef.current;
       if (!fit || !term) return;
       // safeFit short-circuits when disposed OR when the renderer reports
       // zero cell dims; either case means we have nothing useful to send.
       if (!safeFit(fit, term, disposedRef.current)) return;
-      const cols = term.cols;
-      const rows = term.rows;
-      if (cols === lastSentRef.current.cols && rows === lastSentRef.current.rows) {
-        return;
-      }
-      lastSentRef.current = { cols, rows };
-      socketSendRef.current({ type: "resize", cols, rows });
+      sendCurrentGrid(term);
       // The settle-repaint window is armed internally by `term.onResize`
       // (repaint-on-settle.ts) when this fit changes cols/rows, so the RO
       // path schedules no repaint of its own.
@@ -203,42 +183,66 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
   // 0×0) AND `term.refresh` so the renderer atlas drops any stale 0×0
   // state from when `term.open(container)` ran while the tab was hidden
   // (the original "broken render after first navigation" bug).
-  const lastActiveResizeRef = useRef<{ cols: number; rows: number }>({
-    cols: -1,
-    rows: -1,
-  });
   useEffect(() => {
     if (!active) return;
     const fit = fitAddonRef.current;
     const term = termRef.current;
     if (!fit || !term) return;
-    safeFit(fit, term, disposedRef.current);
+    const container = containerRef.current;
+    const fitted = container !== null && isMeasurableTerminalContainer(container) &&
+      safeFit(fit, term, disposedRef.current);
     // Immediate best-effort refresh — repairs the display:none stale frame.
-    try {
-      term.refresh(0, term.rows - 1);
-    } catch {
-      /* term mid-dispose */
+    if (fitted && isUsableGrid(term)) {
+      try {
+        term.refresh(0, term.rows - 1);
+      } catch {
+        /* term mid-dispose */
+      }
     }
     // Arm the data-driven settle window. A Transcript→Terminal switch may NOT
     // change cols/rows (same pane size), so `term.onResize` won't fire — arm
     // explicitly so Claude's late async redraw still gets repainted clean.
-    settleArmRef?.current?.();
+    if (fitted && isUsableGrid(term)) settleArmRef?.current?.();
     // Data-independent trailing repaints: an IDLE session emits no writes, so
     // the settle window above does nothing — these clear the stale frame the
     // single synchronous refresh above misses (display:none→block composite).
-    activationRepaintRef.current?.schedule();
-    const cols = term.cols;
-    const rows = term.rows;
-    if (
-      cols !== lastActiveResizeRef.current.cols ||
-      rows !== lastActiveResizeRef.current.rows
-    ) {
-      lastActiveResizeRef.current = { cols, rows };
-      socketSendRef.current({ type: "resize", cols, rows });
-    }
+    const repaintAlreadyScheduled = fitted && isUsableGrid(term);
+    if (repaintAlreadyScheduled) activationRepaintRef.current?.schedule();
+
+    // A compact pane becomes visible in the same commit that flips `active`, so
+    // refit after two frames and only then send a usable grid. WS never remounts.
+    let secondFrame: number | null = null;
+    let firstFrame: number | null = requestAnimationFrame(() => {
+      firstFrame = null;
+      secondFrame = requestAnimationFrame(() => {
+        secondFrame = null;
+        if (disposedRef.current || !activeRef.current) return;
+        const settledFit = fitAddonRef.current;
+        const settledTerm = termRef.current;
+        const settledContainer = containerRef.current;
+        if (!settledFit || !settledTerm) return;
+        if (!settledContainer || !isMeasurableTerminalContainer(settledContainer)) return;
+        if (!safeFit(settledFit, settledTerm, disposedRef.current)) return;
+        if (!isUsableGrid(settledTerm)) return;
+        if (!repaintAlreadyScheduled) {
+          try {
+            settledTerm.refresh(0, settledTerm.rows - 1);
+          } catch {
+            /* term mid-dispose */
+          }
+          settleArmRef?.current?.();
+          activationRepaintRef.current?.schedule();
+        }
+        sendCurrentGrid(settledTerm);
+      });
+    });
+    return () => {
+      if (firstFrame !== null) cancelAnimationFrame(firstFrame);
+      if (secondFrame !== null) cancelAnimationFrame(secondFrame);
+    };
     // socketSend is latest-ref'd; deps are intentionally narrow.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active]);
+  }, [active, layoutRevision]);
 
   // -------- Window visibility / focus / bfcache repaint ----------
   // The WebGL renderer (ADR-099) only force-repaints on three triggers:
@@ -258,8 +262,10 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
   // `document.hidden` short-circuits the visibilitychange→hidden edge.
   useEffect(() => {
     const repaint = (): void => {
-      if (disposedRef.current) return;
+      if (disposedRef.current || !activeRef.current) return;
       if (typeof document !== "undefined" && document.hidden) return;
+      const container = containerRef.current;
+      if (!container || !isMeasurableTerminalContainer(container)) return;
       const fit = fitAddonRef.current;
       const term = termRef.current;
       if (!fit || !term) return;
@@ -276,15 +282,7 @@ export function useTerminalResize(opts: UseTerminalResizeOptions): void {
       // Data-independent trailing repaints — same idle-session gap as the
       // tab-activation path (a focus/visibility restore with no new output).
       activationRepaintRef.current?.schedule();
-      const cols = term.cols;
-      const rows = term.rows;
-      if (
-        cols !== lastSentRef.current.cols ||
-        rows !== lastSentRef.current.rows
-      ) {
-        lastSentRef.current = { cols, rows };
-        socketSendRef.current({ type: "resize", cols, rows });
-      }
+      sendCurrentGrid(term);
     };
     window.addEventListener("focus", repaint);
     window.addEventListener("pageshow", repaint);

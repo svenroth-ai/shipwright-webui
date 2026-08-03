@@ -31,9 +31,11 @@ import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 
 import { safeFit } from "./safe-fit";
+import { isMeasurableTerminalContainer, isUsableGrid } from "./terminal-grid";
 import type { TerminalRole } from "../../hooks/useTerminalSocket";
 
 export interface UseTerminalSizeSyncOptions {
+  containerRef: RefObject<HTMLDivElement | null>;
   termRef: RefObject<Terminal | null>;
   fitAddonRef: RefObject<FitAddon | null>;
   disposedRef: RefObject<boolean>;
@@ -42,12 +44,14 @@ export interface UseTerminalSizeSyncOptions {
   ) => void;
   /** Current WS role (writer/reader/null) — read live for the writer gate. */
   role: TerminalRole | null;
+  /** Hidden force-mounted panes must never fit or resize the live pty. */
+  active: boolean;
 }
 
 export interface TerminalSizeSyncHandle {
   /** Fit + emit resize so the pty matches the client's real grid. Wire into
    *  `useAutoLaunch({ onBeforeDispatch })`. */
-  syncSizeNow: () => void;
+  syncSizeNow: () => boolean;
   /** Writer-gated post-replay convergence. Wire into `useReplayDrainGate`. */
   onReplaySettled: () => void;
 }
@@ -55,16 +59,19 @@ export interface TerminalSizeSyncHandle {
 export function useTerminalSizeSync(
   opts: UseTerminalSizeSyncOptions,
 ): TerminalSizeSyncHandle {
-  const { termRef, fitAddonRef, disposedRef, socketSend, role } = opts;
+  const { containerRef, termRef, fitAddonRef, disposedRef, socketSend, role, active } = opts;
 
   const syncSizeNow = useCallback(() => {
+    const container = containerRef.current;
     const term = termRef.current;
     const fit = fitAddonRef.current;
-    if (!term || !fit) return;
-    if (safeFit(fit, term, disposedRef.current)) {
+    if (!active || !container || !isMeasurableTerminalContainer(container) || !term || !fit) return false;
+    if (safeFit(fit, term, disposedRef.current) && isUsableGrid(term)) {
       socketSend({ type: "resize", cols: term.cols, rows: term.rows });
+      return true;
     }
-  }, [termRef, fitAddonRef, disposedRef, socketSend]);
+    return false;
+  }, [active, containerRef, termRef, fitAddonRef, disposedRef, socketSend]);
 
   const roleRef = useRef(role);
   roleRef.current = role;

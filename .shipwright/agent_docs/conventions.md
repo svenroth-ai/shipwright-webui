@@ -68,6 +68,7 @@ Three categories of regression guards are spelled out in CLAUDE.md and must be r
 23. Bloat-baseline exceptions ride on explicit ADRs (`pty-manager.ts` ADR-101, `terminal/routes.ts` ADR-103); the pre-commit hook only blocks RATCHETING an existing baseline entry.
 
 ## Learnings
+- **iterate-2026-08-02-mobile-work-mode** (2026-08-02, responsive terminal): a mounted terminal is not necessarily measurable or visible. Gate every fit/send path on both conditions, and trigger the same cancellable settled refit from a responsive layout revision even when the logical active tab never changed; ResizeObserver timing alone is not the contract. → decision_log (Run-ID).
 
 Hard-won, mostly empirical; many predate or complement an ADR. Tighten, do not delete.
 

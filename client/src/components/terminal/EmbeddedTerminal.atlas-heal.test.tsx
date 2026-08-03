@@ -32,6 +32,7 @@ import { RENDERER_STORAGE_KEY } from "./terminal-renderer";
 const clearTextureAtlasSpy = vi.fn();
 const refreshSpy = vi.fn();
 let mockTermElement: HTMLDivElement | null = null;
+const originalGetBoundingClientRect = HTMLElement.prototype.getBoundingClientRect;
 
 vi.mock("@xterm/xterm", () => ({
   Terminal: vi.fn().mockImplementation(function () {
@@ -145,6 +146,10 @@ describe("EmbeddedTerminal — glyph-atlas heal is wired to the live terminal", 
       value: vi.fn(async () => new Response("{}", { status: 200 })),
     });
     Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+    HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({
+      width: 820, height: 600, x: 0, y: 0, top: 0, left: 0,
+      right: 820, bottom: 600, toJSON: () => ({}),
+    }));
   });
 
   afterEach(() => {
@@ -152,6 +157,7 @@ describe("EmbeddedTerminal — glyph-atlas heal is wired to the live terminal", 
     vi.useRealTimers();
     mockTermElement?.remove();
     mockTermElement = null;
+    HTMLElement.prototype.getBoundingClientRect = originalGetBoundingClientRect;
     vi.clearAllMocks();
   });
 

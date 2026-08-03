@@ -119,4 +119,13 @@ describe("<TerminalKeyBar>", () => {
     // bar look interactive.
     expect(esc.className).toContain("disabled:opacity-40");
   });
+
+  it("uses equal vertical padding with no component-owned safe-area tail", () => {
+    mockPointer(true);
+    render(<TerminalKeyBar onKey={vi.fn()} onFocusTerminal={vi.fn()} />);
+    const classes = screen.getByTestId("terminal-key-bar").className;
+    expect(classes).toContain("py-2");
+    expect(classes).not.toContain("padding-bottom");
+    expect(classes).not.toContain("safe-area-inset-bottom");
+  });
 });
