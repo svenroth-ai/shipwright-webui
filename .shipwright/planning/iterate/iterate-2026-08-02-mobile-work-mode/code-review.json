@@ -1,0 +1,85 @@
+{
+  "section": "mobile-work-mode",
+  "review": [
+    {
+      "severity": "high",
+      "category": "correctness/responsive-state",
+      "finding": "Compact pane selection has two independent sources of truth, so programmatic Viewer or Terminal selection can disagree with panel sizing.",
+      "file": "client/src/pages/TaskDetailPage.tsx",
+      "line": 369,
+      "suggestion": "Control TaskDetailThreePane from TaskDetailPage and cover file-to-Viewer and hotkey-to-Terminal in a real browser."
+    },
+    {
+      "severity": "high",
+      "category": "terminal-lifecycle",
+      "finding": "ResizeObserver and window repaint paths can call safeFit while the compact terminal pane is inactive and zero-sized.",
+      "file": "client/src/components/terminal/useTerminalResize.ts",
+      "line": 151,
+      "suggestion": "Gate fitting on active and measurable state, retaining delayed activation fit after reveal."
+    },
+    {
+      "severity": "medium",
+      "category": "mission-navigation",
+      "finding": "Manually returning from Activity to Detail does not update the Detail close return destination.",
+      "file": "client/src/components/external/mission/MissionBody.tsx",
+      "line": 144,
+      "suggestion": "Record the current Overview or Activity panel before manually entering Detail."
+    },
+    {
+      "severity": "medium",
+      "category": "responsive-state",
+      "finding": "Desktop artifact selection overwrites the preserved compact destination.",
+      "file": "client/src/components/external/mission/MissionBody.tsx",
+      "line": 136,
+      "suggestion": "Only change compact navigation state when the compact layout is active."
+    },
+    {
+      "severity": "medium",
+      "category": "accessibility/touch",
+      "finding": "Shiplog falls back to a 36px target at the md breakpoint inside the compact tablet range.",
+      "file": "client/src/components/external/mission/MissionTabRow.tsx",
+      "line": 72,
+      "suggestion": "Retain 44px through 1023px and shrink only at lg."
+    },
+    {
+      "severity": "medium",
+      "category": "accessibility/tabs",
+      "finding": "The workspace tabs lack tab-to-panel relationships and inactive compact panels remain keyboard-reachable.",
+      "file": "client/src/components/external/PaneTabBar.tsx",
+      "line": 75,
+      "suggestion": "Add ids and aria-controls, tabpanel labelling, and inert on inactive mounted panes."
+    },
+    {
+      "severity": "medium",
+      "category": "keyboard-focus",
+      "finding": "The t shortcut reveals Terminal but synchronously focuses xterm before React removes inert from the centre pane.",
+      "file": "client/src/pages/TaskDetailPage.tsx",
+      "line": 360,
+      "suggestion": "Defer focus until the controlled centre pane has committed and assert the real active element in Playwright."
+    },
+    {
+      "severity": "high",
+      "category": "launch-ordering",
+      "finding": "A hidden-terminal size-sync guard could let auto-launch continue without the pre-dispatch width correction.",
+      "file": "client/src/components/terminal/useAutoLaunch.ts",
+      "line": 160,
+      "suggestion": "Block dispatch until the pane is active and size-sync succeeds; cover hidden-to-visible launch ordering."
+    },
+    {
+      "severity": "medium",
+      "category": "maintainability",
+      "finding": "The mobile browser spec crossed the repository's 300-line limit.",
+      "file": "client/e2e/flows/mobile-work-mode.spec.ts",
+      "line": 1,
+      "suggestion": "Extract cohesive geometry assertions into the E2E helper."
+    },
+    {
+      "severity": "low",
+      "category": "test-completeness",
+      "finding": "The initial resize assertion ran too early to prove that every later frame on the socket remained usable.",
+      "file": "client/e2e/flows/mobile-work-mode.spec.ts",
+      "line": 95,
+      "suggestion": "Re-assert all resize frames since socket open at the end of the terminal scenario."
+    }
+  ]
+}

@@ -19,9 +19,12 @@
  * 3-pane body off-screen (external review).
  */
 import { ChevronDown, ChevronRight } from "lucide-react";
+import * as Popover from "@radix-ui/react-popover";
 
 import type { ExternalTask } from "../../lib/externalApi";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useIsPhoneViewport } from "../../hooks/useIsCompactViewport";
+import { useRef } from "react";
 
 /** Global (not per-task) collapse preference. */
 const COLLAPSE_KEY = "webui:task-description-collapsed";
@@ -31,12 +34,54 @@ interface Props {
 }
 
 export function TaskDescriptionDisclosure({ task }: Props) {
+  const isPhone = useIsPhoneViewport();
+  const phoneTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [collapsed, setCollapsed] = useLocalStorage<boolean>(
     COLLAPSE_KEY,
     true,
   );
   const description = task.description?.trim() ?? "";
   if (description.length === 0) return null;
+
+  if (isPhone) {
+    return (
+      <div data-testid="task-description-disclosure" className="inline-flex">
+        <Popover.Root modal>
+          <Popover.Trigger asChild>
+            <button
+              ref={phoneTriggerRef}
+              type="button"
+              data-testid="task-description-toggle"
+              className="inline-flex min-h-11 items-center gap-1 rounded-full border border-white/20 px-2 text-[11px] font-semibold text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] md:min-h-9"
+            >
+              <ChevronRight size={12} aria-hidden="true" />
+              <span>Description</span>
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              side="bottom"
+              align="start"
+              sideOffset={8}
+              collisionPadding={12}
+              onCloseAutoFocus={(event) => {
+                event.preventDefault();
+                phoneTriggerRef.current?.focus({ preventScroll: true });
+              }}
+              className="z-50 w-[min(92vw,32rem)] rounded-xl border border-[var(--line)] bg-white p-4 shadow-xl"
+            >
+              <div
+                data-testid="task-description-body"
+                className="max-h-[min(70vh,24rem)] overflow-y-auto whitespace-pre-wrap break-words text-[13px] leading-[1.55] text-[var(--ink)]"
+              >
+                {description}
+              </div>
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+      </div>
+    );
+  }
 
   return (
     <div data-testid="task-description-disclosure" className="mt-0.5">

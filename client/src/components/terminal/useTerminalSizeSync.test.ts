@@ -30,21 +30,29 @@ type SentMsg = ResizeMsg | RedrawMsg;
 
 function mount(
   role: TerminalRole | null,
-  opts: { term?: Terminal | null; fit?: FitAddon | null } = {},
+  opts: { term?: Terminal | null; fit?: FitAddon | null; active?: boolean; measurable?: boolean } = {},
 ) {
   const term = "term" in opts ? opts.term : ({ cols: 100, rows: 30 } as unknown as Terminal);
   const fit = "fit" in opts ? opts.fit : ({ fit: vi.fn() } as unknown as FitAddon);
+  const container = document.createElement("div");
+  vi.spyOn(container, "getBoundingClientRect").mockReturnValue({
+    width: opts.measurable === false ? 0 : 640,
+    height: opts.measurable === false ? 0 : 320,
+  } as DOMRect);
   const send = vi.fn<(m: SentMsg) => void>();
   const rendered = renderHook(() => {
+    const containerRef = useRef(container);
     const termRef = useRef(term ?? null);
     const fitRef = useRef(fit ?? null);
     const disposedRef = useRef(false);
     return useTerminalSizeSync({
+      containerRef,
       termRef,
       fitAddonRef: fitRef,
       disposedRef,
       socketSend: send,
       role,
+      active: opts.active ?? true,
     });
   });
   return { ...rendered, send };
@@ -64,6 +72,24 @@ describe("useTerminalSizeSync", () => {
     const { result, send } = mount("writer", { term: null });
     result.current.syncSizeNow();
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it("never fits or resizes a hidden force-mounted terminal", () => {
+    const fit = { fit: vi.fn() } as unknown as FitAddon;
+    const { result, send } = mount("writer", { fit, active: false, measurable: false });
+    result.current.onReplaySettled();
+    expect(fit.fit).not.toHaveBeenCalled();
+    expect(resizes(send)).toHaveLength(0);
+  });
+
+  it("drops an unusable grid produced by fit", () => {
+    const term = { cols: 100, rows: 30 } as unknown as Terminal;
+    const fit = { fit: vi.fn(() => {
+      Object.assign(term, { cols: 2, rows: 1 });
+    }) } as unknown as FitAddon;
+    const { result, send } = mount("writer", { term, fit });
+    result.current.syncSizeNow();
+    expect(resizes(send)).toHaveLength(0);
   });
 
   it("onReplaySettled re-converges a WRITER (emits a resize)", () => {

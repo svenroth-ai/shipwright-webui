@@ -1,10 +1,10 @@
 {
   "status": "completed",
-  "timestamp": "2026-08-01T08:15:37.080883+00:00",
+  "timestamp": "2026-08-02T23:57:07.727689+00:00",
   "provider": "openrouter",
-  "findings_count": 2,
+  "findings_count": 4,
   "self_review_fallback_ran": false,
-  "reason": "only some provider legs could be itemized \u2014 the count (2) may understate what was found",
+  "reason": "Successful OpenAI leg recorded verbatim; all actionable findings resolved; later retries degraded by provider truncation. \u2014 only some provider legs could be itemized \u2014 the count (4) may understate what was found",
   "review_mode": "code",
   "marker_schema": 2,
   "verdicts": null,

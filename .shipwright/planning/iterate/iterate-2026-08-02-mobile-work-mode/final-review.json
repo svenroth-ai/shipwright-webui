@@ -1,0 +1,11 @@
+{
+  "stage": "final-review",
+  "sequence": ["spec-reviewer", "code-reviewer", "doubt-reviewer"],
+  "status": "clean",
+  "remaining_findings": [],
+  "verification": {
+    "spec": "CLEAN",
+    "code": "CLEAN",
+    "doubt": "CLEAN"
+  }
+}

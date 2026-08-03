@@ -77,7 +77,7 @@
    it. rule 3 below still darkens its secondary text further. No baselined route
    renders a .glass-card today, so this moves no visual baseline; it closes the
    trap before A07/A11–A18 add them. */
-.on-photo :is(.card, .tcard, .orch-card, .table-wrap, .logentry, .promptbox, .recesspanel, .modal, .popover, .wz-opt, .wz-input, .sheet, .instr, .mc-hero, .termbig, .badge, .pill, .record, .artifact, .pane, .mc-verdict, .mc-tabs, .mc-op, .flightplan, .glass-card, .ft-card) {
+.on-photo :is(.card, .tcard, .orch-card, .table-wrap, .logentry, .promptbox, .recesspanel, .modal, .popover, .wz-opt, .wz-input, .sheet, .instr, .mc-hero, .termbig, .badge, .pill, .record, .artifact, .pane, .mc-verdict, .mc-tabs, .mc-op, .flightplan, .glass-card, .ft-card, .compact-tab-surface) {
   --ink: #1C1917; --body: #44403C; --muted: #79716B; --faint: #A8A29E;
   --line: #E7E5E4; --line-strong: #D6D3D1;
   --accent: #0E7A6B; --accent-line: #9fd3ca; --focus: 0 0 0 4px rgba(14, 122, 107, .18);

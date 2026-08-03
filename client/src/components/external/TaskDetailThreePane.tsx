@@ -1,24 +1,7 @@
-/*
- * TaskDetailThreePane — react-resizable-panels wrapper (iterate 3
- * section 04).
- *
- * Folder tree | bubble transcript | smart viewer. Widths persist via
- * {@link useThreePaneLayout}; when a side pane is collapsed the layout
- * switches to a 48 px icon rail on the left / fully hidden on the right.
- * Splitter handles own keyboard accessibility (arrow keys: 10 px step;
- * Enter: collapse/expand).
- *
- * This is a pure layout shell — it renders whatever children the caller
- * passes into `left` / `center` / `right`. All data-fetching lives in
- * the slot components (`FolderTree`, `BubbleTranscript`, `SmartViewer`).
- */
-
+/* Resizable three-pane layout shell. Compact mode keeps every pane mounted and
+ * exposes the four direct work surfaces through PaneTabBar. */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import {
-  Panel,
-  PanelGroup,
-  type ImperativePanelHandle,
-} from "react-resizable-panels";
+import { Panel, PanelGroup, type ImperativePanelHandle } from "react-resizable-panels";
 
 import {
   useThreePaneLayout,
@@ -33,17 +16,21 @@ import { useIsCompactViewport } from "../../hooks/useIsCompactViewport";
 import { PaneTabBar, type PaneId } from "./PaneTabBar";
 import { PaneSplitter } from "./PaneSplitter";
 import { FocusModeContext } from "./focus-mode-context";
+import {
+  compactPaneA11y,
+  useCompactPaneSelection,
+} from "./useCompactPaneSelection";
 
 interface Props {
   left: ReactNode;
   center: ReactNode;
   right: ReactNode;
-  /**
-   * Container px width — used to translate min/max px into percentage
-   * sizes that react-resizable-panels accepts. In tests we override with
-   * a fixed value so sizing is deterministic.
-   */
+  /** Container px width; tests pass a deterministic value. */
   containerWidth?: number;
+  centerTab?: "transcript" | "terminal";
+  activePane?: PaneId;
+  onCenterTabChange?: (tab: "transcript" | "terminal") => void;
+  onActivePaneChange?: (pane: PaneId) => void;
 }
 
 export function TaskDetailThreePane({
@@ -51,10 +38,17 @@ export function TaskDetailThreePane({
   center,
   right,
   containerWidth,
+  centerTab,
+  activePane,
+  onCenterTabChange,
+  onActivePaneChange,
 }: Props) {
   const layout = useThreePaneLayout();
   const compact = useIsCompactViewport();
-  const [activeTab, setActiveTab] = useState<PaneId>("center");
+  const { resolvedPane, resolvedCenterTab, selectPane, selectCenterTab } =
+    useCompactPaneSelection({
+      activePane, centerTab, onActivePaneChange, onCenterTabChange,
+    });
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [measuredWidth, setMeasuredWidth] = useState<number>(
     containerWidth ?? 1280,
@@ -81,9 +75,7 @@ export function TaskDetailThreePane({
     };
   }, [containerWidth]);
 
-  // Translate px layout into % sizes for react-resizable-panels. Focus mode
-  // (A18 maximize) FULLY hides both sides (floor 0, not the 48px collapse rail)
-  // and rides the same resize path the persisted collapse uses.
+  // Translate px layout to panel percentages; focus mode hides both sides at 0.
   const total = Math.max(measuredWidth, 600);
   const maxed = layout.maximized;
   const effLeftCollapsed = maxed || layout.leftCollapsed;
@@ -98,13 +90,12 @@ export function TaskDetailThreePane({
   const rightPct = clampPct((rightPx / total) * 100, 0, 50);
   const centerPct = Math.max(10, 100 - leftPct - rightPct);
 
-  // Compact (≤1023px): one pane at a time via the tab bar; the SAME PanelGroup
-  // stays mounted (inactive panes → 0%) so `center`'s terminal never unmounts.
+  // Compact keeps the SAME PanelGroup mounted; inactive panes resize to 0%.
   const sizes = compact
     ? {
-        left: activeTab === "left" ? 100 : 0,
-        center: activeTab === "center" ? 100 : 0,
-        right: activeTab === "right" ? 100 : 0,
+        left: resolvedPane === "left" ? 100 : 0,
+        center: resolvedPane === "center" ? 100 : 0,
+        right: resolvedPane === "right" ? 100 : 0,
       }
     : { left: leftPct, center: centerPct, right: rightPct };
 
@@ -112,10 +103,7 @@ export function TaskDetailThreePane({
   const centerRef = useRef<ImperativePanelHandle | null>(null);
   const rightRef = useRef<ImperativePanelHandle | null>(null);
 
-  // Keep the panels in sync when the hook's values change (keyboard resize,
-  // collapse, or A18 maximize). react-resizable-panels doesn't auto-sync when
-  // controlled externally, so we invoke the imperative handle; swallow the
-  // registry-warmup throw ("Panel size not found" before the first commit).
+  // The library does not sync external size changes; its registry warms after commit.
   useEffect(() => {
     if (compact) return; // compact sizing is owned by the tab effect below
     try {
@@ -130,8 +118,7 @@ export function TaskDetailThreePane({
     }
   }, [compact, leftPct, rightPct]);
 
-  // Compact tab sizing: resize (never unmount) inactive panes to 0% so the
-  // embedded terminal survives — it refits via ResizeObserver on 0 → full.
+  // Resize rather than unmount so the embedded terminal survives.
   useEffect(() => {
     if (!compact) return;
     try {
@@ -152,8 +139,7 @@ export function TaskDetailThreePane({
   }, [compact, sizes.left, sizes.center, sizes.right]);
 
   const handleLeftDrag = (sizePct: number) => {
-    // compact tab-sizing must NOT persist (would clobber saved desktop widths);
-    // maximize is a transient view, likewise non-persisting.
+    // Compact and maximize are transient; never persist their widths.
     if (compact || layout.leftCollapsed || maxed) return;
     layout.setLeftWidth((sizePct / 100) * total);
   };
@@ -232,12 +218,20 @@ export function TaskDetailThreePane({
       data-compact={compact || undefined}
       data-maximized={maxed || undefined}
     >
-      {compact && <PaneTabBar active={activeTab} onChange={setActiveTab} />}
+      {compact && (
+        <PaneTabBar
+          active={resolvedPane}
+          centerTab={resolvedCenterTab}
+          onChange={selectPane}
+          onCenterTabChange={selectCenterTab}
+        />
+      )}
       <PanelGroup
         direction="horizontal"
         className={compact ? "min-h-0 w-full flex-1" : "h-full w-full"}
       >
         <Panel
+          {...compactPaneA11y(compact, resolvedPane, "left", "workspace-tab-left")}
           ref={leftRef}
           defaultSize={sizes.left}
           minSize={compact || maxed ? 0 : 3}
@@ -259,6 +253,7 @@ export function TaskDetailThreePane({
           onKeyDown={leftSplitterKeydown}
         />
         <Panel
+          {...compactPaneA11y(compact, resolvedPane, "center", `workspace-tab-${resolvedCenterTab}`)}
           ref={centerRef}
           defaultSize={sizes.center}
           minSize={compact ? 0 : 20}
@@ -277,6 +272,7 @@ export function TaskDetailThreePane({
           onKeyDown={rightSplitterKeydown}
         />
         <Panel
+          {...compactPaneA11y(compact, resolvedPane, "right", "workspace-tab-right")}
           ref={rightRef}
           defaultSize={sizes.right}
           minSize={0}

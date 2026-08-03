@@ -5,7 +5,7 @@
  * REPLACES the plain-button switch A11 inlined in TaskDetailPage; the testids
  * (`mission-tab-mission` / `mission-tab-files`) are preserved verbatim so every
  * A11/A12/visual spec keeps resolving. Right: a secondary glass "Open Ship's Log"
- * button. The Ship's Log surface is A15/A16; until it lands the button routes to
+ * link. The Ship's Log surface is A15/A16; until it lands the link routes to
  * the existing projects page — never a dead button (AC4).
  *
  * Files & Terminal stays the mount-default view (A11); the Mission tab is opt-in.
@@ -57,7 +57,7 @@ export function MissionTabRow({ value, onChange, taskId }: Props) {
 
   return (
     <div
-      className="mc-tabrow flex-shrink-0 gap-3 px-4 py-2 md:px-8"
+      className="mc-tabrow flex-shrink-0 gap-2 px-2 py-1.5 md:gap-3 md:px-8 md:py-2"
       data-testid="mission-tabrow"
     >
       <MissionSegmented
@@ -69,12 +69,12 @@ export function MissionTabRow({ value, onChange, taskId }: Props) {
       <span className="grow" aria-hidden="true" />
       <Link
         to={SHIPS_LOG_ROUTE}
-        className="btn-glass inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent,#0E7A6B)]"
+        className="btn-glass compact-tab-surface mobile-light-link inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--line)] bg-white px-2.5 py-1.5 text-[12px] font-semibold text-[var(--body)] shadow-sm transition hover:text-[var(--accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent,#0E7A6B)] md:px-3 md:text-[13px] lg:min-h-9"
         data-testid="mission-open-ships-log"
         title="The project's logbook — every run, the accumulated proof"
       >
         <BookOpen size={14} aria-hidden="true" />
-        Open Ship&rsquo;s Log
+        Shiplog
       </Link>
     </div>
   );

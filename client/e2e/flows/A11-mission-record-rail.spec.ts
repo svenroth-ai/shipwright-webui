@@ -90,7 +90,7 @@ test.describe("A11 — Mission 'The Record' rail", () => {
     await expect(page.getByTestId("record-node-spec")).toBeFocused();
   });
 
-  test("below the compact breakpoint the artifact becomes a scrimmed slide-over", async ({ page }) => {
+  test("below the compact breakpoint an artifact selects the full-width Detail panel", async ({ page }) => {
     await page.setViewportSize({ width: 800, height: 900 });
     await page.goto(`/tasks/${taskId}`);
     await page.getByTestId("mission-tab-mission").click();
@@ -98,18 +98,15 @@ test.describe("A11 — Mission 'The Record' rail", () => {
 
     const panel = page.getByTestId("artifact-panel");
     await expect(panel).toBeVisible();
-    // On the compact fallback the scrim is shown (on the inline photo card it is
-    // display:none) and closes the panel.
-    const scrim = page.getByTestId("artifact-scrim");
-    await expect(scrim).toBeVisible();
-    // The slide-over is bounded to the viewport, never wider than it.
+    await expect(page.getByTestId("mission-compact-tab-detail")).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.getByTestId("artifact-scrim")).not.toBeVisible();
     const box = await panel.boundingBox();
     expect(box!.width).toBeLessThanOrEqual(800);
-    // Click the EXPOSED dimmed area (top-left): the scrim spans the viewport but
-    // the artifact aside sits on top of its right ~420px, so a default centre
-    // click lands on the artifact (pointer-events intercept) and never closes.
-    await scrim.click({ position: { x: 8, y: 8 } });
-    await expect(panel).toHaveCount(0);
+    await page.getByTestId("artifact-close").click();
+    await expect(page.getByTestId("mission-compact-tab-overview")).toBeFocused();
   });
   // (FR-01.66) The collapse-to-60px spine was retired with the audit RAIL — the
   // redesigned left panel is a static summary + stage + artifact-links card.

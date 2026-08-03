@@ -47,6 +47,8 @@ describe("MissionTabRow", () => {
     const link = screen.getByTestId("mission-open-ships-log");
     expect(link).toHaveAttribute("href", SHIPS_LOG_ROUTE);
     expect(link).toHaveClass("btn-glass");
+    expect(link).toHaveTextContent("Shiplog");
+    expect(link).not.toHaveTextContent("Open Ship's Log");
   });
 
   // @covers FR-01.66

@@ -106,7 +106,7 @@ export function LaunchCTA({ task, onError }: LaunchCTAProps) {
       type="button"
       onClick={() => void handleLaunch()}
       disabled={launchMut.isPending || coord.pendingLaunch !== null}
-      className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition disabled:opacity-60"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-button,8px)] px-2.5 py-1 text-[12px] font-semibold text-white shadow-sm transition disabled:opacity-60 md:min-h-0 md:gap-2 md:px-4 md:py-1.5 md:text-[13px]"
       style={{ background: "var(--color-success, #059669)" }}
       onMouseEnter={(ev) => {
         ev.currentTarget.style.background = "var(--ok)";

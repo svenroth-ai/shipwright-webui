@@ -99,7 +99,7 @@ export function ResumeCTA({ task, onError }: ResumeCTAProps) {
       type="button"
       onClick={() => void handleResume()}
       disabled={launchMut.isPending || coord.pendingLaunch !== null}
-      className="inline-flex items-center gap-2 rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] px-4 py-1.5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60"
+      className="inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-button,8px)] bg-[var(--color-resume,#C08862)] px-2.5 py-1 text-[12px] font-semibold text-white shadow-sm transition hover:bg-[var(--color-resume-hover,#A67352)] disabled:opacity-60 md:min-h-0 md:gap-2 md:px-4 md:py-1.5 md:text-[13px]"
       data-testid="cta-copy-resume-command"
       data-color="orange"
       aria-label="Resume — auto-execute in embedded terminal"

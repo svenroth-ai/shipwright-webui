@@ -108,7 +108,7 @@ export function TerminalKeyBar({ onKey, onFocusTerminal, disabled }: TerminalKey
       role="toolbar"
       aria-label="Terminal keys"
       data-testid="terminal-key-bar"
-      className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-t border-white/10 bg-[#222] px-2 py-1.5 [padding-bottom:calc(0.375rem+env(safe-area-inset-bottom))]"
+      className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-t border-white/10 bg-[#222] px-2 py-2"
     >
       <button
         type="button"
