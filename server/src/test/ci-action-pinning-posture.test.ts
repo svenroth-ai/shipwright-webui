@@ -154,6 +154,27 @@ describe("no GitHub-hosted updater service is configured", () => {
   });
 });
 
+describe("github/codeql-action stays on the current major version", () => {
+  // CodeQL Action v3 is deprecated December 2026 and drops Node.js 20 runner
+  // support in fall 2026; v4 is the GA, Node-24-based replacement. This repo's
+  // posture above keeps GitHub-owned actions on a MUTABLE tag rather than a SHA
+  // (see the describe block above) — but "mutable" still means the tag itself
+  // must be bumped by hand when GitHub deprecates the old one. This guards that
+  // the bump actually happened, not just that some tag is present.
+  const codeqlUses = allUses.filter((u) => u.ref.startsWith("github/codeql-action/"));
+
+  it("has codeql-action steps to guard (empty-set pass guard)", () => {
+    expect(codeqlUses.length).toBeGreaterThan(0);
+  });
+
+  it("pins every github/codeql-action/* step to @v4, none left on @v3", () => {
+    const stale = codeqlUses
+      .filter((u) => !u.ref.endsWith("@v4"))
+      .map((u) => `${u.file}: ${u.ref}`);
+    expect(stale).toEqual([]);
+  });
+});
+
 describe("the Semgrep owner-scoped acceptance stays wired", () => {
   it("keeps SHIPWRIGHT_SEMGREP_ACCEPT_GH_OWNED_ACTION_TAGS enabled", () => {
     // Chesterton-Fence: this flag is what keeps the mutable-tag findings on
